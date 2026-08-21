@@ -35,6 +35,7 @@ export function DashboardPage() {
   const [totais, setTotais] = useState<EquipmentTotals | null>(null);
   const [municipiosHipo, setMunicipiosHipo] = useState<number | null>(null);
   const [regioesSaudeHipo, setRegioesSaudeHipo] = useState<number | null>(null);
+  const [regioesSaudeTotal, setRegioesSaudeTotal] = useState<number | null>(null);
   // Forca a tabela "Cobertura Assistencial" pro nivel escolhido mesmo sem um
   // filtro geografico daquele nivel especifico selecionado -- so os cards de
   // Hipo acionam isso (clicar neles quer dizer "me mostra a lista", nao
@@ -132,9 +133,15 @@ export function DashboardPage() {
 
     fetchHealthRegionCoverage({ equipmentFamily: FAMILIA, states: estadosFiltro, macroCodes: macrosFiltro })
       .then((rows) => {
-        if (!cancelado) setRegioesSaudeHipo(rows.filter((r) => r.status === 'Hipossuficiente').length);
+        if (cancelado) return;
+        setRegioesSaudeHipo(rows.filter((r) => r.status === 'Hipossuficiente').length);
+        setRegioesSaudeTotal(rows.length);
       })
-      .catch(() => !cancelado && setRegioesSaudeHipo(null));
+      .catch(() => {
+        if (cancelado) return;
+        setRegioesSaudeHipo(null);
+        setRegioesSaudeTotal(null);
+      });
 
     return () => {
       cancelado = true;
@@ -380,7 +387,7 @@ export function DashboardPage() {
         />
         <KpiCard
           label="Regiões de Saúde Hipossuficientes"
-          value={regioesSaudeHipo ?? '—'}
+          value={regioesSaudeHipo != null && regioesSaudeTotal != null ? `${regioesSaudeHipo} de ${regioesSaudeTotal}` : '—'}
           color="#a32d2d"
           onClick={() => verHipo('regiaoSaude')}
           ativo={nivelForcado === 'regiaoSaude'}
