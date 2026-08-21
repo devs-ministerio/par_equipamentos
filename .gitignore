@@ -26,6 +26,11 @@ dist-ssr/
 .env
 .env.local
 
+# Lock file do Office (fica quando alguem tem o .xlsx aberto no Excel)
+~$*.xlsx
+~$*.xls
+~$*.docx
+
 # Editor / SO
 .vscode/*
 !.vscode/extensions.json
