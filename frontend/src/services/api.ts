@@ -1,5 +1,12 @@
 import { UF_INFO } from '../data/geoReference';
-import type { CoberturaRow, EstabelecimentoRow, Macrorregiao, StatusCobertura, TipoEquipamento } from '../types/domain';
+import type {
+  CoberturaRow,
+  EstabelecimentoRow,
+  Macrorregiao,
+  NivelCoberturaRow,
+  StatusCobertura,
+  TipoEquipamento,
+} from '../types/domain';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
@@ -291,5 +298,113 @@ export async function fetchFacilities(equipmentFamily: string): Promise<Facility
     regiaoSaudeId: r.health_region_code,
     regiaoSaudeNome: r.health_region_name,
     municipioChave: r.municipality_name ? `${r.municipality_name}|${r.state}` : null,
+  }));
+}
+
+// Formato exato devolvido por GET /municipality-coverage
+// (backend/app/schemas.py::MunicipalityCoverageRead).
+interface MunicipalityCoverageApi {
+  ibge_code: string;
+  municipality_name: string;
+  health_region_code: string | null;
+  health_region_name: string | null;
+  macro_code: string | null;
+  macro_name: string | null;
+  state: string;
+  population: number | null;
+  population_residente: number | null;
+  population_ans: number | null;
+  existing_qty: number | null;
+  available_qty: number | null;
+  coverage_percentage: number | null;
+  deficit_status: MacroCoverageApi['deficit_status'];
+}
+
+// Formato exato devolvido por GET /health-region-coverage
+// (backend/app/schemas.py::HealthRegionCoverageRead).
+interface HealthRegionCoverageApi {
+  health_region_code: string;
+  health_region_name: string;
+  macro_code: string | null;
+  macro_name: string | null;
+  state: string;
+  population: number | null;
+  population_residente: number | null;
+  population_ans: number | null;
+  existing_qty: number | null;
+  available_qty: number | null;
+  coverage_percentage: number | null;
+  deficit_status: MacroCoverageApi['deficit_status'];
+}
+
+export interface NivelCoberturaParams {
+  equipmentFamily: string;
+  states?: string[];
+  macroCodes?: string[];
+  healthRegionCodes?: string[];
+  municipalities?: string[];
+  /** so pra /municipality-coverage -- municipio abaixo disso nao aparece
+   * (RN especifica de TOMOGRAFO: municipio pequeno nao era esperado ter
+   * equipamento proprio). Omitir pra nao aplicar o corte (ex.: quando o
+   * proprio usuario ja escolheu um municipio/CNES especifico). */
+  minPopulation?: number;
+}
+
+/**
+ * Cobertura por Municipio -- linha da tabela "Cobertura Assistencial" quando
+ * o filtro escolhido afunila ate Municipio ou CNES (decisao 2026-08-21).
+ */
+export async function fetchMunicipalityCoverage(params: NivelCoberturaParams): Promise<NivelCoberturaRow[]> {
+  const query: Record<string, string | string[]> = { equipment_family: params.equipmentFamily };
+  if (params.states?.length) query.state = params.states;
+  if (params.macroCodes?.length) query.macro_code = params.macroCodes;
+  if (params.healthRegionCodes?.length) query.health_region_code = params.healthRegionCodes;
+  if (params.municipalities?.length) query.municipality = params.municipalities;
+  if (params.minPopulation != null) query.min_population = String(params.minPopulation);
+
+  const rows = await apiGet<MunicipalityCoverageApi[]>('/municipality-coverage', query);
+  return rows.map((r) => ({
+    chave: r.ibge_code,
+    nome: r.municipality_name,
+    uf: r.state,
+    regiaoSaudeNome: r.health_region_name,
+    macroNome: r.macro_name,
+    pop: r.population ?? 0,
+    popResidente: r.population_residente ?? 0,
+    popAns: r.population_ans ?? 0,
+    oferta: r.available_qty ?? 0,
+    ofertaTotal: r.existing_qty ?? 0,
+    cobertura: r.coverage_percentage ?? 0,
+    status: toStatus(r.deficit_status),
+  }));
+}
+
+/**
+ * Cobertura por Regiao de Saude -- linha da tabela "Cobertura Assistencial"
+ * quando o filtro escolhido e Regiao de Saude, sem afunilar ate
+ * Municipio/CNES (decisao 2026-08-21). Agregado em tempo de leitura no
+ * backend a partir de municipality_coverage -- por isso nao aceita
+ * min_population (nao faz sentido nesse nivel, ver comentario no router).
+ */
+export async function fetchHealthRegionCoverage(
+  params: Omit<NivelCoberturaParams, 'municipalities' | 'minPopulation'>,
+): Promise<NivelCoberturaRow[]> {
+  const query: Record<string, string | string[]> = { equipment_family: params.equipmentFamily };
+  if (params.states?.length) query.state = params.states;
+  if (params.macroCodes?.length) query.macro_code = params.macroCodes;
+
+  const rows = await apiGet<HealthRegionCoverageApi[]>('/health-region-coverage', query);
+  return rows.map((r) => ({
+    chave: r.health_region_code,
+    nome: r.health_region_name,
+    uf: r.state,
+    macroNome: r.macro_name,
+    pop: r.population ?? 0,
+    popResidente: r.population_residente ?? 0,
+    popAns: r.population_ans ?? 0,
+    oferta: r.available_qty ?? 0,
+    ofertaTotal: r.existing_qty ?? 0,
+    cobertura: r.coverage_percentage ?? 0,
+    status: toStatus(r.deficit_status),
   }));
 }

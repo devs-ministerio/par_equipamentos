@@ -28,6 +28,30 @@ export interface CoberturaRow {
   status: StatusCobertura;
 }
 
+/**
+ * Linha da tabela "Cobertura Assistencial" quando o filtro escolhido afunila
+ * ate Regiao de Saude (nivel='regiaoSaude') ou Municipio/CNES
+ * (nivel='municipio') -- GET /health-region-coverage e GET
+ * /municipality-coverage, respectivamente. Mesmo shape nos dois niveis pra
+ * dar pra usar um componente de tabela so (NivelCoberturaTable).
+ */
+export interface NivelCoberturaRow {
+  /** codigo da regiao de saude ou o co_ibge do municipio -- chave unica da linha. */
+  chave: string;
+  nome: string;
+  uf: string;
+  /** so presente/relevante no nivel municipio (nome da regiao de saude a que pertence). */
+  regiaoSaudeNome?: string | null;
+  macroNome: string | null;
+  pop: number;
+  popResidente: number;
+  popAns: number;
+  oferta: number;
+  ofertaTotal: number;
+  cobertura: number;
+  status: StatusCobertura;
+}
+
 export interface TipoEquipamento {
   tipo: string; // subtipo/canais: 4/16/32/64/128 canais, ou "Não informado"
   qtd: number;

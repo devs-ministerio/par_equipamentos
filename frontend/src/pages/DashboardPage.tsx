@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { KpiCard } from '../components/dashboard/KpiCard';
 import { MultiSelectFilter } from '../components/dashboard/MultiSelectFilter';
 import { CoberturaTable } from '../components/dashboard/CoberturaTable';
+import { NivelCoberturaTable } from '../components/dashboard/NivelCoberturaTable';
 import { EstabelecimentoTable } from '../components/dashboard/EstabelecimentoTable';
 import { InfoIcon } from '../components/common/InfoIcon';
 import { ExportPdfModal } from '../components/modals/ExportPdfModal';
@@ -112,6 +113,13 @@ export function DashboardPage() {
   // de população/cobertura (que só existem por macro) ficam com uma ressalva
   // quando algum desses estiver filtrado.
   const granularidadeFina = Boolean(regioesSaudeFiltro || municipiosFiltro || cnesFiltro);
+  // Nivel da tabela "Cobertura Assistencial": Municipio/CNES -> municipio;
+  // so Regiao de Saude -> regiao de saude; UF/Macro/nenhum filtro -> macro
+  // (decisao 2026-08-21). Municipio/CNES tem prioridade sobre Regiao de
+  // Saude porque escolher um municipio ou CNES especifico ja implica (via
+  // cascata do hook) a regiao de saude dele tambem estar marcada.
+  const nivelTabela: 'macro' | 'regiaoSaude' | 'municipio' =
+    municipiosFiltro || cnesFiltro ? 'municipio' : regioesSaudeFiltro ? 'regiaoSaude' : 'macro';
   const macrosHipo = filteredRows.filter((r) => r.status === 'Hipossuficiente').length;
   const coberturaMedia = filteredRows.length
     ? Math.round((filteredRows.reduce((s, r) => s + r.cobertura, 0) / filteredRows.length) * 10) / 10
@@ -340,22 +348,40 @@ export function DashboardPage() {
         />
       </div>
 
-      <CoberturaTable
-        equipmentFamily={FAMILIA}
-        rows={filteredRows}
-        macros={macros}
-        onSelecionarMunicipio={(chave, macroId, regiaoSaudeCodigo) => {
-          setFiltroMunicipios((prev) => (prev.includes(chave) ? prev.filter((v) => v !== chave) : [...prev, chave]));
-          // so adiciona a macro/regiao de saude (nunca remove sozinho ao
-          // desmarcar cidade) -- mesma regra da cascata automatica de
-          // Municipio/Macro/Regiao de Saude -> UF/Regiao.
-          setFiltroMacros((prev) => (prev.includes(macroId) ? prev : [...prev, macroId]));
-          if (regiaoSaudeCodigo) {
-            setFiltroRegioesSaude((prev) => (prev.includes(regiaoSaudeCodigo) ? prev : [...prev, regiaoSaudeCodigo]));
-          }
-        }}
-        municipiosSelecionados={filtroMunicipios}
-      />
+      <div style={{ background: '#fff', borderRadius: 8, marginTop: 20 }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #eef0f4' }}>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>Cobertura Assistencial</div>
+        </div>
+        {nivelTabela === 'macro' && (
+          <CoberturaTable
+            equipmentFamily={FAMILIA}
+            rows={filteredRows}
+            macros={macros}
+            onSelecionarMunicipio={(chave, macroId, regiaoSaudeCodigo) => {
+              setFiltroMunicipios((prev) => (prev.includes(chave) ? prev.filter((v) => v !== chave) : [...prev, chave]));
+              // so adiciona a macro/regiao de saude (nunca remove sozinho ao
+              // desmarcar cidade) -- mesma regra da cascata automatica de
+              // Municipio/Macro/Regiao de Saude -> UF/Regiao.
+              setFiltroMacros((prev) => (prev.includes(macroId) ? prev : [...prev, macroId]));
+              if (regiaoSaudeCodigo) {
+                setFiltroRegioesSaude((prev) => (prev.includes(regiaoSaudeCodigo) ? prev : [...prev, regiaoSaudeCodigo]));
+              }
+            }}
+            municipiosSelecionados={filtroMunicipios}
+          />
+        )}
+        {nivelTabela !== 'macro' && (
+          <NivelCoberturaTable
+            equipmentFamily={FAMILIA}
+            nivel={nivelTabela}
+            states={estadosFiltro}
+            macroCodes={macrosFiltro}
+            healthRegionCodes={regioesSaudeFiltro}
+            municipalities={municipiosFiltro}
+            semCorteDePopulacao={Boolean(municipiosFiltro || cnesFiltro)}
+          />
+        )}
+      </div>
       <EstabelecimentoTable
         equipmentFamily={FAMILIA}
         states={estadosFiltro}

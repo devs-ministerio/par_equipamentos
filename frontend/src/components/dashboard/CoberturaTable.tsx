@@ -171,9 +171,8 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
   );
 
   return (
-    <div style={{ background: '#fff', borderRadius: 8, marginTop: 20 }}>
-      <div style={{ display: 'flex', padding: '14px 18px', borderBottom: '1px solid #eef0f4', alignItems: 'center', gap: 12 }}>
-        <div style={{ fontWeight: 600, fontSize: 14, flex: 1 }}>Cobertura por macrorregião e equipamento</div>
+    <>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 18px 10px' }}>
         <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por macrorregião ou UF..." />
       </div>
       {/* com alguma macro expandida, o card cresce junto com a pagina (a
@@ -517,6 +516,6 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
         </table>
       </div>
       <Pagination page={page} totalItems={rowsOrdenadas.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
-    </div>
+    </>
   );
 }
