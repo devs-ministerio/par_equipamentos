@@ -44,7 +44,7 @@ type DadosMacro = RegiaoDaMacro[] | 'carregando' | 'erro';
 const SEM_REGIAO = '__sem_regiao__';
 
 export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMunicipio, municipiosSelecionados }: Props) {
-  const macroById = new Map(macros.map((m) => [m.id, m]));
+  const macroById = useMemo(() => new Map(macros.map((m) => [m.id, m])), [macros]);
   const [busca, setBusca] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('macro');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -129,7 +129,7 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
       const alvo = normalizarTexto(`${macro?.id ?? ''} ${macro?.nome ?? ''} ${macro?.uf ?? ''}`);
       return alvo.includes(termo);
     });
-  }, [rows, macros, busca]);
+  }, [rows, macroById, busca]);
 
   const rowsOrdenadas = useMemo(() => {
     const copia = [...rowsFiltradas];
@@ -160,7 +160,7 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return copia;
-  }, [rowsFiltradas, macros, sortKey, sortDir]);
+  }, [rowsFiltradas, macroById, sortKey, sortDir]);
 
   // paginacao conta so linhas de macro -- expandir uma macro (regioes/cidades
   // dentro dela) e conteudo da MESMA linha, nao entra na conta nem muda
