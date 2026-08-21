@@ -12,14 +12,11 @@ qt_existente_sus) ja confirmado com a area, aplicado direto aqui.
 """
 from __future__ import annotations
 
-import math
-
 from sqlalchemy import delete, func, select
 
 from app.db.base import SessionLocal
 from app.db.models import (
     Competency,
-    DeficitStatus,
     EquipmentOfferRow,
     Execution,
     ExecutionMode,
@@ -27,6 +24,7 @@ from app.db.models import (
     MacroCoverage,
 )
 from app.pipeline import api_demas, api_elasticnes, api_sidra
+from app.pipeline.cobertura import calcular_cobertura
 
 FAMILIA = "TOMOGRAFO"
 PRODUTIVIDADE = 100_000  # 1 tomografo por 100 mil habitantes (Metodologia)
@@ -135,9 +133,9 @@ def run() -> None:
         for co_macro, macro in macros.items():
             population = populacao_por_macro.get(co_macro, 0)
             oferta = oferta_por_macro.get(co_macro, {"existente": 0, "existente_sus": 0, "estabelecimentos": set()})
-            required_qty = math.ceil(population / PRODUTIVIDADE) if population else 0
-            available_qty = int(oferta["existente_sus"])
-            balance = available_qty - required_qty
+            cobertura = calcular_cobertura(
+                population=population, existing_sus=int(oferta["existente_sus"]), produtividade=PRODUTIVIDADE
+            )
             db.add(
                 MacroCoverage(
                     execution_id=execution.id,
@@ -146,13 +144,13 @@ def run() -> None:
                     state=macro["sg_uf"],
                     equipment_family=FAMILIA,
                     population=population,
-                    estimated_need=population / PRODUTIVIDADE if population else 0,
-                    required_qty=required_qty,
-                    available_qty=available_qty,
+                    estimated_need=cobertura.estimated_need,
+                    required_qty=cobertura.required_qty,
+                    available_qty=cobertura.available_qty,
                     existing_qty=int(oferta["existente"]),
                     facility_count=len(oferta["estabelecimentos"]),
-                    balance=balance,
-                    deficit_status=DeficitStatus.not_deficient if balance >= 0 else DeficitStatus.deficient,
+                    balance=cobertura.balance,
+                    deficit_status=cobertura.deficit_status,
                 )
             )
 
