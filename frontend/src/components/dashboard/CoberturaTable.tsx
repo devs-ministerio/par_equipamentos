@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../../types/domain';
+import type { CoberturaRow, Macrorregiao, NivelCoberturaRow, StatusCobertura } from '../../types/domain';
 import { formatMultiplicador } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { Pagination } from '../common/Pagination';
-import { fetchEstabelecimentosPage } from '../../services/api';
+import { fetchHealthRegionCoverage } from '../../services/api';
+import { SubNivelRows, type SelecaoSubNivel } from './SubNivelRows';
 
 const PAGE_SIZE = 20;
 
@@ -13,14 +14,13 @@ interface Props {
   equipmentFamily: string;
   rows: CoberturaRow[];
   macros: Macrorregiao[];
-  /** Chamado com a chave composta "NOME|UF", o codigo da macro e o codigo da
-   * regiao de saude ao clicar numa cidade dentro do card expandido -- soma
-   * Município, Macrorregião e Região de Saúde ao filtro (toggle) tanto no
-   * filtro do topo quanto na tabela de Estabelecimento. */
-  onSelecionarMunicipio: (chaveMunicipio: string, macroId: string, regiaoSaudeCodigo: string) => void;
-  /** filtroMunicipios atual (mesmas chaves "NOME|UF") -- usado só pra saber
-   * qual chip destacar como selecionado. */
-  municipiosSelecionados: string[];
+  /** Clique numa sub-linha (Regiao de Saude ou Municipio) dentro do
+   * drill-down -- aplica a cascata de filtro (Municipio/Regiao de
+   * Saude/Macro), igual antes so que agora a partir de qualquer nivel. */
+  onSelecionarSubNivel: (selecao: SelecaoSubNivel, macroIdPai: string) => void;
+  /** chaves (codigo de regiao de saude ou "NOME|UF" de municipio) ja
+   * selecionadas no filtro -- usado so pra destacar a linha. */
+  subNivelSelecionados: string[];
   /** Filtro Hiper/Hipo -- controlado pelo Dashboard, que mostra os botões
    * junto do título "Cobertura Assistencial" (não mais dentro da tabela). */
   statusFiltro: Set<StatusCobertura>;
@@ -28,49 +28,26 @@ interface Props {
 
 type SortKey = 'codigo' | 'macro' | 'uf' | 'populacao' | 'cobertura' | 'status';
 
-interface CidadeDaMacro {
-  municipio: string;
-  qtd: number;
-  estabelecimentos: number;
-}
-
-interface RegiaoDaMacro {
-  codigo: string;
-  nome: string;
-  cidades: CidadeDaMacro[];
-}
-
-type DadosMacro = RegiaoDaMacro[] | 'carregando' | 'erro';
-
-const SEM_REGIAO = '__sem_regiao__';
+type DadosMacro = NivelCoberturaRow[] | 'carregando' | 'erro';
 
 export function CoberturaTable({
   equipmentFamily,
   rows,
   macros,
-  onSelecionarMunicipio,
-  municipiosSelecionados,
+  onSelecionarSubNivel,
+  subNivelSelecionados,
   statusFiltro,
 }: Props) {
   const macroById = useMemo(() => new Map(macros.map((m) => [m.id, m])), [macros]);
   const [sortKey, setSortKey] = useState<SortKey>('macro');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
-  const [regioesExpandidas, setRegioesExpandidas] = useState<Set<string>>(new Set());
   const [dadosPorMacro, setDadosPorMacro] = useState<Record<string, DadosMacro>>({});
   const [page, setPage] = useState(1);
 
   // volta pra pagina 1 quando filtro/ordenacao mudar -- senao pode sobrar numa
   // pagina que nao existe mais depois de filtrar.
   useEffect(() => setPage(1), [statusFiltro, sortKey, sortDir]);
-
-  function toggleRegiaoExpandida(chave: string) {
-    setRegioesExpandidas((prev) => {
-      const next = new Set(prev);
-      next.has(chave) ? next.delete(chave) : next.add(chave);
-      return next;
-    });
-  }
 
   // busca sob demanda -- so quando a macro e expandida pela primeira vez (nao
   // carrega nada de antemao); cada macro e uma busca pequena e independente,
@@ -84,33 +61,8 @@ export function CoberturaTable({
     });
     if (!jaExpandida && !dadosPorMacro[macroId]) {
       setDadosPorMacro((prev) => ({ ...prev, [macroId]: 'carregando' }));
-      fetchEstabelecimentosPage({ equipmentFamily, macroCodes: [macroId], page: 1, pageSize: 2000 })
-        .then((res) => {
-          // macro -> regiao de saude -> cidade (hierarquia real do SUS; uma
-          // macro tem varias regioes de saude dentro dela, cada regiao tem
-          // varios municipios -- nao da pra achatar regiao direto na macro).
-          const porRegiao = new Map<string, RegiaoDaMacro>();
-          res.items.forEach((e) => {
-            const chaveRegiao = e.regiaoSaudeId ?? SEM_REGIAO;
-            const regiao = porRegiao.get(chaveRegiao) ?? {
-              codigo: e.regiaoSaudeId ?? '',
-              nome: e.regiaoSaudeNome ?? 'Sem região de saúde',
-              cidades: [],
-            };
-            let cidade = regiao.cidades.find((c) => c.municipio === e.municipio);
-            if (!cidade) {
-              cidade = { municipio: e.municipio, qtd: 0, estabelecimentos: 0 };
-              regiao.cidades.push(cidade);
-            }
-            cidade.qtd += e.qtd;
-            cidade.estabelecimentos += 1;
-            porRegiao.set(chaveRegiao, regiao);
-          });
-          const lista = [...porRegiao.values()]
-            .map((r) => ({ ...r, cidades: r.cidades.sort((a, b) => a.municipio.localeCompare(b.municipio)) }))
-            .sort((a, b) => a.nome.localeCompare(b.nome));
-          setDadosPorMacro((prev) => ({ ...prev, [macroId]: lista }));
-        })
+      fetchHealthRegionCoverage({ equipmentFamily, macroCodes: [macroId] })
+        .then((filhos) => setDadosPorMacro((prev) => ({ ...prev, [macroId]: filhos })))
         .catch(() => setDadosPorMacro((prev) => ({ ...prev, [macroId]: 'erro' })));
     }
   }
@@ -405,105 +357,14 @@ export function CoberturaTable({
                       {dados === 'erro' && (
                         <div style={{ fontSize: 12, color: '#B40D0D' }}>Não foi possível carregar as regiões de saúde.</div>
                       )}
-                      {Array.isArray(dados) && dados.length === 0 && (
-                        <div style={{ fontSize: 12, color: '#98a0b3' }}>Nenhuma cidade com estabelecimento cadastrado.</div>
-                      )}
-                      {Array.isArray(dados) && dados.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          {dados.map((regiao) => {
-                            const chaveRegiao = `${r.macroId}::${regiao.codigo || regiao.nome}`;
-                            const regiaoAberta = regioesExpandidas.has(chaveRegiao);
-                            const totalEstabelecimentos = regiao.cidades.reduce((s, c) => s + c.estabelecimentos, 0);
-                            const totalTomografos = regiao.cidades.reduce((s, c) => s + c.qtd, 0);
-                            return (
-                              <div key={regiao.codigo || regiao.nome} style={{ borderTop: '1px solid #e2e6ee' }}>
-                                <div
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleRegiaoExpandida(chaveRegiao);
-                                  }}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8,
-                                    padding: '7px 4px',
-                                    cursor: 'pointer',
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      fontSize: 9,
-                                      color: '#98a0b3',
-                                      display: 'inline-block',
-                                      transform: regiaoAberta ? 'rotate(90deg)' : 'none',
-                                      transition: 'transform 0.15s',
-                                    }}
-                                  >
-                                    ▶
-                                  </span>
-                                  {regiao.codigo && (
-                                    <span style={{ fontFamily: 'monospace', fontSize: 10.5, color: '#98a0b3' }}>
-                                      {regiao.codigo}
-                                    </span>
-                                  )}
-                                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#475066' }}>{regiao.nome}</span>
-                                  <span style={{ fontSize: 10.5, color: '#98a0b3', marginLeft: 'auto' }}>
-                                    {regiao.cidades.length} cidade{regiao.cidades.length === 1 ? '' : 's'} ·{' '}
-                                    {totalEstabelecimentos} estabelecimento{totalEstabelecimentos === 1 ? '' : 's'} ·{' '}
-                                    {totalTomografos} tomógrafo{totalTomografos === 1 ? '' : 's'}
-                                  </span>
-                                </div>
-                                {regiaoAberta && (
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '2px 4px 10px 22px' }}>
-                                    {regiao.cidades.map((c) => {
-                                      const chave = `${c.municipio}|${macro.uf}`;
-                                      const selecionada = municipiosSelecionados.includes(chave);
-                                      return (
-                                        <div
-                                          key={c.municipio}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onSelecionarMunicipio(chave, macro.id, regiao.codigo);
-                                          }}
-                                          title={`Filtrar por ${c.municipio}`}
-                                          style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 6,
-                                            background: selecionada ? '#eef2ff' : '#fff',
-                                            border: `1px solid ${selecionada ? '#1a3a9c' : '#dde2ea'}`,
-                                            borderRadius: 6,
-                                            padding: '5px 12px',
-                                            cursor: 'pointer',
-                                          }}
-                                        >
-                                          <span style={{ fontSize: 12, fontWeight: 600, color: '#16213e' }}>
-                                            {c.municipio}
-                                          </span>
-                                          <span style={{ fontSize: 10, color: '#98a0b3' }}>
-                                            {c.estabelecimentos} estabelecimento{c.estabelecimentos === 1 ? '' : 's'}
-                                          </span>
-                                          <span
-                                            style={{
-                                              fontSize: 11,
-                                              color: '#fff',
-                                              background: '#1a3a9c',
-                                              borderRadius: 20,
-                                              padding: '1px 7px',
-                                              fontWeight: 700,
-                                            }}
-                                          >
-                                            {c.qtd}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                      {Array.isArray(dados) && (
+                        <SubNivelRows
+                          rows={dados}
+                          nivelAtual="regiaoSaude"
+                          equipmentFamily={equipmentFamily}
+                          onSelecionar={(selecao) => onSelecionarSubNivel(selecao, macro.id)}
+                          selecionados={subNivelSelecionados}
+                        />
                       )}
                     </td>
                   </tr>

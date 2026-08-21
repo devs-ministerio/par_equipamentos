@@ -42,7 +42,11 @@ export interface NivelCoberturaRow {
   uf: string;
   /** so presente/relevante no nivel municipio (nome da regiao de saude a que pertence). */
   regiaoSaudeNome?: string | null;
+  /** so presente/relevante no nivel municipio (codigo da regiao de saude a que pertence, pra cascata de filtro). */
+  regiaoSaudeId?: string | null;
   macroNome: string | null;
+  /** codigo da macro -- pra cascata de filtro ao clicar numa sub-linha (drill-down). */
+  macroId: string | null;
   pop: number;
   popResidente: number;
   popAns: number;

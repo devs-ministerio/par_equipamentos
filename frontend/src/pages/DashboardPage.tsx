@@ -3,6 +3,7 @@ import { KpiCard } from '../components/dashboard/KpiCard';
 import { MultiSelectFilter } from '../components/dashboard/MultiSelectFilter';
 import { CoberturaTable } from '../components/dashboard/CoberturaTable';
 import { NivelCoberturaTable } from '../components/dashboard/NivelCoberturaTable';
+import type { SelecaoSubNivel } from '../components/dashboard/SubNivelRows';
 import { EstabelecimentoTable } from '../components/dashboard/EstabelecimentoTable';
 import { StatusFilterButtons } from '../components/common/StatusFilterButtons';
 import { InfoIcon } from '../components/common/InfoIcon';
@@ -111,6 +112,27 @@ export function DashboardPage() {
       next.has(cnes) ? next.delete(cnes) : next.add(cnes);
       return next;
     });
+  }
+
+  // Clique numa sub-linha do drill-down da Cobertura Assistencial (Regiao de
+  // Saude dentro de uma Macro expandida, ou Municipio dentro de uma Regiao de
+  // Saude expandida) -- aplica a mesma cascata de filtro que ja existia pro
+  // clique em Municipio, so que agora a partir de qualquer nivel.
+  function onSelecionarSubNivel(selecao: SelecaoSubNivel, macroIdPai: string) {
+    setFiltroMacros((prev) => (prev.includes(macroIdPai) ? prev : [...prev, macroIdPai]));
+    if (selecao.nivel === 'regiaoSaude') {
+      const codigo = selecao.linha.chave;
+      setFiltroRegioesSaude((prev) => (prev.includes(codigo) ? prev.filter((v) => v !== codigo) : [...prev, codigo]));
+    } else {
+      const chaveMunicipio = `${selecao.linha.nome}|${selecao.linha.uf}`;
+      setFiltroMunicipios((prev) =>
+        prev.includes(chaveMunicipio) ? prev.filter((v) => v !== chaveMunicipio) : [...prev, chaveMunicipio],
+      );
+      const regiaoSaudeId = selecao.linha.regiaoSaudeId;
+      if (regiaoSaudeId) {
+        setFiltroRegioesSaude((prev) => (prev.includes(regiaoSaudeId) ? prev : [...prev, regiaoSaudeId]));
+      }
+    }
   }
 
   // usados so no calculo de "pessoas por tomógrafo"/"multiplicador da meta"
@@ -377,17 +399,8 @@ export function DashboardPage() {
             equipmentFamily={FAMILIA}
             rows={filteredRows}
             macros={macros}
-            onSelecionarMunicipio={(chave, macroId, regiaoSaudeCodigo) => {
-              setFiltroMunicipios((prev) => (prev.includes(chave) ? prev.filter((v) => v !== chave) : [...prev, chave]));
-              // so adiciona a macro/regiao de saude (nunca remove sozinho ao
-              // desmarcar cidade) -- mesma regra da cascata automatica de
-              // Municipio/Macro/Regiao de Saude -> UF/Regiao.
-              setFiltroMacros((prev) => (prev.includes(macroId) ? prev : [...prev, macroId]));
-              if (regiaoSaudeCodigo) {
-                setFiltroRegioesSaude((prev) => (prev.includes(regiaoSaudeCodigo) ? prev : [...prev, regiaoSaudeCodigo]));
-              }
-            }}
-            municipiosSelecionados={filtroMunicipios}
+            onSelecionarSubNivel={onSelecionarSubNivel}
+            subNivelSelecionados={[...filtroRegioesSaude, ...filtroMunicipios]}
             statusFiltro={statusFiltro}
           />
         )}
@@ -401,6 +414,8 @@ export function DashboardPage() {
             municipalities={municipiosFiltro}
             semCorteDePopulacao={Boolean(municipiosFiltro || cnesFiltro)}
             statusFiltro={statusFiltro}
+            onSelecionarSubNivel={onSelecionarSubNivel}
+            subNivelSelecionados={[...filtroRegioesSaude, ...filtroMunicipios]}
           />
         )}
       </div>

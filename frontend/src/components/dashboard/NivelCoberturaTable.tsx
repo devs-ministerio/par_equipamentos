@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { NivelCoberturaRow, StatusCobertura } from '../../types/domain';
 import { formatMultiplicador } from '../../utils/format';
 import { colors } from '../../styles/tokens';
@@ -6,6 +6,7 @@ import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { Pagination } from '../common/Pagination';
 import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '../../services/api';
+import { SubNivelRows, type SelecaoSubNivel } from './SubNivelRows';
 
 const PAGE_SIZE = 20;
 
@@ -28,7 +29,14 @@ interface Props {
   /** Filtro Hiper/Hipo -- controlado pelo Dashboard, que mostra os botões
    * junto do título "Cobertura Assistencial" (não mais dentro da tabela). */
   statusFiltro: Set<StatusCobertura>;
+  /** Clique numa sub-linha de Municipio dentro de uma Regiao de Saude
+   * expandida (so existe nivel='regiaoSaude' -- Municipio ja e o nivel mais
+   * fino, sem mais nada pra expandir). */
+  onSelecionarSubNivel: (selecao: SelecaoSubNivel, macroIdPai: string) => void;
+  subNivelSelecionados: string[];
 }
+
+type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
 
 type SortKey = 'nome' | 'uf' | 'populacao' | 'cobertura' | 'status';
 
@@ -41,6 +49,8 @@ export function NivelCoberturaTable({
   municipalities,
   semCorteDePopulacao,
   statusFiltro,
+  onSelecionarSubNivel,
+  subNivelSelecionados,
 }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('nome');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -48,6 +58,25 @@ export function NivelCoberturaTable({
   const [rows, setRows] = useState<NivelCoberturaRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
+  const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
+
+  // so nivel='regiaoSaude' expande (pra Municipio) -- Municipio ja e o nivel
+  // mais fino que a base tem.
+  function toggleExpandida(chave: string) {
+    const jaExpandida = expandidas.has(chave);
+    setExpandidas((prev) => {
+      const next = new Set(prev);
+      jaExpandida ? next.delete(chave) : next.add(chave);
+      return next;
+    });
+    if (!jaExpandida && !filhosPorChave[chave]) {
+      setFilhosPorChave((prev) => ({ ...prev, [chave]: 'carregando' }));
+      fetchMunicipalityCoverage({ equipmentFamily, healthRegionCodes: [chave] })
+        .then((filhos) => setFilhosPorChave((prev) => ({ ...prev, [chave]: filhos })))
+        .catch(() => setFilhosPorChave((prev) => ({ ...prev, [chave]: 'erro' })));
+    }
+  }
 
   const statesKey = states?.join(',') ?? '';
   const macrosKey = macroCodes?.join(',') ?? '';
@@ -272,9 +301,32 @@ export function NivelCoberturaTable({
               const corTexto = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreen : colors.hipoRed;
               const corBarra = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreenBarra : colors.hipoRedBarra;
               const fillPercent = coeficiente != null ? Math.min(100, coeficiente * 50) : 0;
+              const expansivel = nivel === 'regiaoSaude';
+              const expandida = expandidas.has(r.chave);
+              const filhos = filhosPorChave[r.chave];
               return (
-                <tr key={r.chave} style={{ borderTop: '1px solid #f0f1f5' }}>
-                  <td style={{ padding: '9px 6px 9px 18px', fontWeight: 500 }}>{r.nome}</td>
+                <Fragment key={r.chave}>
+                <tr
+                  onClick={expansivel ? () => toggleExpandida(r.chave) : undefined}
+                  style={{ borderTop: '1px solid #f0f1f5', cursor: expansivel ? 'pointer' : 'default' }}
+                >
+                  <td style={{ padding: '9px 6px 9px 18px', fontWeight: 500 }}>
+                    {expansivel && (
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: '#98a0b3',
+                          display: 'inline-block',
+                          marginRight: 6,
+                          transform: expandida ? 'rotate(90deg)' : 'none',
+                          transition: 'transform 0.15s',
+                        }}
+                      >
+                        ▶
+                      </span>
+                    )}
+                    {r.nome}
+                  </td>
                   <td style={{ padding: '9px 8px 9px 6px', color: '#667085' }}>{r.uf}</td>
                   <td style={{ padding: '9px 8px', color: '#667085' }}>{r.macroNome ?? '—'}</td>
                   {nivel === 'municipio' && (
@@ -326,6 +378,28 @@ export function NivelCoberturaTable({
                     <StatusBadge cobertura={r.cobertura} />
                   </td>
                 </tr>
+                {expandida && (
+                  <tr style={{ background: '#eef1f6' }}>
+                    <td colSpan={nivel === 'municipio' ? 7 : 6} style={{ padding: '10px 18px 12px 42px' }}>
+                      {filhos === 'carregando' && (
+                        <div style={{ fontSize: 12, color: '#98a0b3' }}>Carregando municípios...</div>
+                      )}
+                      {filhos === 'erro' && (
+                        <div style={{ fontSize: 12, color: '#B40D0D' }}>Não foi possível carregar os municípios.</div>
+                      )}
+                      {Array.isArray(filhos) && (
+                        <SubNivelRows
+                          rows={filhos}
+                          nivelAtual="municipio"
+                          equipmentFamily={equipmentFamily}
+                          onSelecionar={(selecao) => onSelecionarSubNivel(selecao, r.macroId ?? '')}
+                          selecionados={subNivelSelecionados}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
             {!loading && rowsPaginadas.length === 0 && (
