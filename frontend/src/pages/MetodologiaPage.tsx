@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { colors } from '../styles/tokens';
 
 function FonteItem({ n, titulo, url, urlLabel }: { n: number; titulo: string; url: string; urlLabel: string }) {
@@ -31,7 +32,63 @@ function FonteItem({ n, titulo, url, urlLabel }: { n: number; titulo: string; ur
   );
 }
 
-export function MetodologiaPage() {
+interface ParametrosFamilia {
+  nomeSingular: string;
+  nomePlural: string;
+  parametroTitulo: string;
+  parametroDescricao: ReactNode;
+  produtividade: number;
+  formulaDenominador: ReactNode;
+  notaCriterio: ReactNode;
+  codigoElasticnes: string;
+}
+
+const PARAMETROS_POR_FAMILIA: Record<string, ParametrosFamilia> = {
+  TOMOGRAFO: {
+    nomeSingular: '1 tomógrafo',
+    nomePlural: 'tomógrafos',
+    parametroTitulo: '1 tomógrafo',
+    parametroDescricao: (
+      <>
+        por <strong>100 mil habitantes </strong>ou raio de <strong>75 km </strong>
+        <span style={{ fontSize: 11, color: colors.subtleText }}>o que for atingido primeiro</span>
+      </>
+    ),
+    produtividade: 100_000,
+    formulaDenominador: <>Pop. SUS-dep. / 100.000</>,
+    notaCriterio: (
+      <>Critério de acesso: raio ≤ 75 km <em>ou</em> ≤ 100 mil hab. (o que for atingido primeiro), com foco em urgência/emergência.</>
+    ),
+    codigoElasticnes: 'Cód. 11 (e 26 a 30, por nº de canais)',
+  },
+  RESSONANCIA: {
+    nomeSingular: '1 ressonância magnética',
+    nomePlural: 'ressonâncias magnéticas',
+    parametroTitulo: '5.000 exames/ano',
+    parametroDescricao: (
+      <>
+        de capacidade por equipamento, com necessidade estimada de <strong>30 exames/1.000 habitantes/ano</strong>
+      </>
+    ),
+    produtividade: 5_000 / (30 / 1_000),
+    formulaDenominador: <>Pop. SUS-dep. / 166.667</>,
+    notaCriterio: (
+      <>
+        Produtividade equivalente: 5.000 exames/ano ÷ (30 exames/1.000 hab.) = <strong>1 equipamento a cada ~166.667 habitantes</strong>.
+        Parâmetro repassado pela área em 21/08/2026.
+      </>
+    ),
+    codigoElasticnes: 'Cód. 12 (e 32 a 35, por campo em Tesla)',
+  },
+};
+
+function formatarProdutividade(produtividade: number): string {
+  return Math.round(produtividade).toLocaleString('pt-BR');
+}
+
+export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFamily?: string }) {
+  const p = PARAMETROS_POR_FAMILIA[equipmentFamily] ?? PARAMETROS_POR_FAMILIA.TOMOGRAFO;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ background: '#fff', borderRadius: 10, padding: '28px 32px' }}>
@@ -40,7 +97,7 @@ export function MetodologiaPage() {
         </div>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#16213e', marginBottom: 8 }}>Verificação por Município</div>
         <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.7, maxWidth: 680 }}>
-          A metodologia avalia a suficiência de tomógrafos no SUS comparando a quantidade em uso com a demanda
+          A metodologia avalia a suficiência de {p.nomePlural} no SUS comparando a quantidade em uso com a demanda
           estimada com base na população <strong>SUS-dependente</strong> (IBGE − beneficiários de plano de saúde),
           granularizada ao nível de município.
         </div>
@@ -51,11 +108,8 @@ export function MetodologiaPage() {
           <div style={{ fontSize: 11, fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
             Parâmetro
           </div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: '#16213e', marginBottom: 4 }}>1 tomógrafo</div>
-          <div style={{ fontSize: 12, color: colors.mutedText, lineHeight: 1.6 }}>
-            por <strong>100 mil habitantes </strong>ou raio de <strong>75 km </strong>
-            <span style={{ fontSize: 11, color: colors.subtleText }}>o que for atingido primeiro</span>
-          </div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: '#16213e', marginBottom: 4 }}>{p.parametroTitulo}</div>
+          <div style={{ fontSize: 12, color: colors.mutedText, lineHeight: 1.6 }}>{p.parametroDescricao}</div>
         </div>
 
         <div style={{ background: '#fff', borderRadius: 10, padding: '24px 26px', borderTop: '3px solid #475066' }}>
@@ -85,12 +139,9 @@ export function MetodologiaPage() {
             <br />
             ──────────────────
             <br />
-            Pop. SUS-dep. / 100.000
+            {p.formulaDenominador}
           </div>
-          <div style={{ fontSize: 11, color: colors.mutedText, marginTop: 8, lineHeight: 1.5 }}>
-            Critério de acesso: raio ≤ 75 km <em>ou</em> ≤ 100 mil hab. (o que for atingido primeiro), com foco em
-            urgência/emergência.
-          </div>
+          <div style={{ fontSize: 11, color: colors.mutedText, marginTop: 8, lineHeight: 1.5 }}>{p.notaCriterio}</div>
         </div>
       </div>
 
@@ -99,11 +150,10 @@ export function MetodologiaPage() {
           Como ler o coeficiente
         </div>
         <div style={{ fontSize: 13, color: '#475066', lineHeight: 1.7 }}>
-          Em Planilhas e no Mapa, cada macrorregião/região de saúde/município mostra um <strong>coeficiente</strong>{' '}
-          (ex.: 0,72x): quantos tomógrafos SUS existem pra cada 100 mil habitantes SUS-dependentes, sem arredondar a
-          demanda. Ex.: 6 tomógrafos ÷ 831.219 hab. × 100.000 = 0,72x — a região tem 72% do parâmetro exigido.
-          Coeficiente 1x é exatamente a meta; acima é Hiperssuficiente (capacidade ociosa, mais vaga disponível pra
-          demanda adicional), abaixo é Hipossuficiente.
+          Em Planilhas e no Mapa, cada macrorregião/região de saúde/município mostra um <strong>coeficiente</strong>:
+          quantas {p.nomePlural} SUS existem pra cada {formatarProdutividade(p.produtividade)} habitantes
+          SUS-dependentes, sem arredondar a demanda. Coeficiente 1x é exatamente a meta; acima é Hiperssuficiente
+          (capacidade ociosa, mais vaga disponível pra demanda adicional), abaixo é Hipossuficiente.
         </div>
       </div>
 
@@ -124,9 +174,9 @@ export function MetodologiaPage() {
           />
           <FonteItem
             n={3}
-            titulo="Quantidade de tomógrafos em uso no SUS (ElastiCNES)"
-            url="https://cnes2.datasus.gov.br/Mod_Ind_Equipamentos_Listar.asp?VCod_Equip=11&VTipo_Equip=1%20&VListar=1&VEstado=00&VMun=&VComp="
-            urlLabel="cnes2.datasus.gov.br — Módulo de Equipamentos (Cód. 11)"
+            titulo={`Quantidade de ${p.nomePlural} em uso no SUS (ElastiCNES)`}
+            url="https://cnes2.datasus.gov.br/Mod_Ind_Equipamentos_Listar.asp?VTipo_Equip=1%20&VListar=1&VEstado=00&VMun=&VComp="
+            urlLabel={`cnes2.datasus.gov.br — Módulo de Equipamentos (${p.codigoElasticnes})`}
           />
         </div>
         <div style={{ fontSize: 11.5, color: colors.mutedText, marginTop: 14, lineHeight: 1.6 }}>

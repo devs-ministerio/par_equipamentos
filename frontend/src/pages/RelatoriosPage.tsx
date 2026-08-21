@@ -110,7 +110,7 @@ export function RelatoriosPage() {
         </div>
       )}
 
-      <MetodologiaPage />
+      <MetodologiaPage equipmentFamily={FAMILIA} />
 
       {exportPdfAberto && !loading && !error && (
         <ExportPdfModal
