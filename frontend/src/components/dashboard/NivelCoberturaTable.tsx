@@ -59,7 +59,15 @@ export function NivelCoberturaTable({
     [statusFiltro, sortKey, sortDir, nivel, statesKey, macrosKey, regioesSaudeKey, municipiosKey],
   );
 
+  // Guarda contra corrida: selecionar um CNES cascateia pro Município num
+  // segundo instante (efeito separado no useFiltrosMacro), entao um pedido
+  // SEM filtro de municipio dispara primeiro (mais lento, ~5570 linhas) e um
+  // segundo pedido JA filtrado (rapido, 1 linha) dispara logo em seguida --
+  // sem essa guarda, a resposta lenta e desfiltrada chega depois e sobrescreve
+  // o resultado certo (bug reportado: CNES de Recife mostrando o pais
+  // inteiro). So aceita a resposta se ainda for o pedido mais recente.
   useEffect(() => {
+    let cancelado = false;
     setLoading(true);
     setError(null);
     const promessa =
@@ -75,9 +83,18 @@ export function NivelCoberturaTable({
         : fetchHealthRegionCoverage({ equipmentFamily, states, macroCodes });
 
     promessa
-      .then(setRows)
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (!cancelado) setRows(res);
+      })
+      .catch((e: Error) => {
+        if (!cancelado) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelado) setLoading(false);
+      });
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipmentFamily, nivel, statesKey, macrosKey, regioesSaudeKey, municipiosKey, semCorteDePopulacao]);
 

@@ -78,6 +78,14 @@ export function DashboardPage() {
   const municipiosKey = municipiosFiltro?.join(',') ?? '';
   const cnesKey = cnesFiltro?.join(',') ?? '';
 
+  // Zera o filtro Hiper/Hipo sempre que qualquer filtro geografico principal
+  // muda -- senao um recorte de status escolhido pro filtro anterior (ex.:
+  // "só Hipossuficiente" numa UF) fica silenciosamente aplicado ao trocar de
+  // UF/macro/regiao/municipio/CNES, escondendo linhas sem o usuario perceber.
+  useEffect(() => {
+    setStatusFiltro(new Set());
+  }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
+
   // Total de Tomógrafos / Total de Tomógrafos SUS vem direto de
   // equipment_offer_row (soma exata pro recorte pedido), nao de
   // macro-coverage (agregado so por macro) -- senao filtrar por um
