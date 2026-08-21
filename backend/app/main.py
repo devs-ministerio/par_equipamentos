@@ -7,11 +7,12 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.base import get_db
 from app.errors import register_exception_handlers
-from app.routers import equipment_offer, macro_coverage
+from app.routers import equipment_offer, macro_coverage, municipality_coverage
 
 app = FastAPI(title="SIEO — Sistema de Informação de Equipamentos Oncológicos")
 register_exception_handlers(app)
 app.include_router(macro_coverage.router)
+app.include_router(municipality_coverage.router)
 app.include_router(equipment_offer.router)
 
 # Frontend roda em origem separada (Vite local, Vercel em producao). As

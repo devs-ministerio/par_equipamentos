@@ -286,6 +286,46 @@ class MacroCoverage(Base):
     )
 
 
+class MunicipalityCoverage(Base):
+    """Mesmo calculo de MacroCoverage, granularizado por municipio (chave
+    IBGE) em vez de macrorregiao -- alimenta a tabela "Cobertura Assistencial"
+    do Dashboard quando o filtro escolhido afunila ate Municipio/CNES
+    (decisao 2026-08-21). Guarda tambem macro_code/health_region_code pra
+    filtrar e pra "Regiao de Saude" poder ser agregada a partir daqui em
+    tempo de leitura (GROUP BY health_region_code), sem precisar de uma
+    terceira tabela pre-computada."""
+
+    __tablename__ = "municipality_coverage"
+    __table_args__ = (
+        Index("ix_municipality_coverage_execution_family", "execution_id", "equipment_family"),
+        Index("ix_municipality_coverage_execution_health_region", "execution_id", "health_region_code"),
+        Index("ix_municipality_coverage_execution_macro", "execution_id", "macro_code"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE"), nullable=False)
+    ibge_code: Mapped[str] = mapped_column(String, nullable=False)
+    municipality_name: Mapped[str] = mapped_column(String, nullable=False)
+    health_region_code: Mapped[str | None] = mapped_column(String)
+    health_region_name: Mapped[str | None] = mapped_column(String)
+    macro_code: Mapped[str | None] = mapped_column(String)
+    macro_name: Mapped[str | None] = mapped_column(String)
+    state: Mapped[str] = mapped_column(String(2), nullable=False)
+    equipment_family: Mapped[str] = mapped_column(String, nullable=False)
+    population: Mapped[int | None] = mapped_column(Integer)  # SUS-dependente -- ver MacroCoverage
+    population_residente: Mapped[int | None] = mapped_column(Integer)
+    population_ans: Mapped[int | None] = mapped_column(Integer)
+    estimated_need: Mapped[float | None] = mapped_column(Numeric)
+    required_qty: Mapped[int | None] = mapped_column(Integer)
+    available_qty: Mapped[int | None] = mapped_column(Integer)
+    existing_qty: Mapped[int | None] = mapped_column(Integer)
+    facility_count: Mapped[int | None] = mapped_column(Integer)
+    balance: Mapped[int | None] = mapped_column(Integer)
+    deficit_status: Mapped[DeficitStatus] = mapped_column(
+        PgEnum(DeficitStatus, name="deficit_status", native_enum=True), nullable=False,
+    )
+
+
 class EquipmentOfferRow(Base):
     __tablename__ = "equipment_offer_row"
     # Todas as consultas de leitura filtram por (execution_id, equipment_family)

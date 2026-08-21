@@ -26,6 +26,7 @@ from app.db.models import (
     ExecutionMode,
     ExecutionStatus,
     MacroCoverage,
+    MunicipalityCoverage,
     MunicipalityPopulationRow,
     ReferenceFile,
     ReferenceFileType,
@@ -92,9 +93,14 @@ def run() -> None:
 
     print("4/4 - Agregando por macrorregiao e gravando no banco...")
 
-    # Oferta por macro: soma qt_existente (total) e qt_existente-onde-SUS
-    # (D-02, denominador_oferta confirmado) + contagem de estabelecimentos.
+    # Oferta por macro E por municipio: soma qt_existente (total) e
+    # qt_existente-onde-SUS (D-02, denominador_oferta confirmado) + contagem
+    # de estabelecimentos. Por municipio e o que alimenta municipality_coverage
+    # (tabela "Cobertura Assistencial" quando o filtro afunila ate
+    # Municipio/CNES); por macro continua alimentando macro_coverage, ja
+    # existente.
     oferta_por_macro: dict[str, dict[str, float]] = {}
+    oferta_por_municipio: dict[str, dict[str, float]] = {}
     linhas_equipamento = []
     municipios_sem_match = 0
 
@@ -103,13 +109,19 @@ def run() -> None:
         if municipio is None:
             municipios_sem_match += 1  # RN-06: nao inventa macro, so nao agrega
         else:
-            agg = oferta_por_macro.setdefault(
+            agg_macro = oferta_por_macro.setdefault(
                 municipio["co_macro"], {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
             )
-            agg["existente"] += eq["qt_existente"]
+            agg_macro["existente"] += eq["qt_existente"]
+            agg_muni = oferta_por_municipio.setdefault(
+                eq["co_ibge"], {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+            )
+            agg_muni["existente"] += eq["qt_existente"]
             if eq["fl_sus"]:
-                agg["existente_sus"] += eq["qt_existente"]
-            agg["estabelecimentos"].add(eq["co_cnes"])
+                agg_macro["existente_sus"] += eq["qt_existente"]
+                agg_muni["existente_sus"] += eq["qt_existente"]
+            agg_macro["estabelecimentos"].add(eq["co_cnes"])
+            agg_muni["estabelecimentos"].add(eq["co_cnes"])
 
         linhas_equipamento.append(
             EquipmentOfferRow(
@@ -215,6 +227,44 @@ def run() -> None:
                 )
             )
 
+        # Mesma coisa, mas por municipio (RN-05 tambem vale aqui -- todo
+        # municipio do DEMAS entra, mesmo sem oferta nem populacao SIDRA
+        # daquele ano, com os campos numericos em 0).
+        for co_ibge, municipio in municipios.items():
+            residente = populacao.get(co_ibge, 0)
+            ans = ans_por_municipio.get(co_ibge, 0)
+            population_sus_muni = populacao_sus_dependente(residente=residente, ans=ans)
+            oferta_muni = oferta_por_municipio.get(
+                co_ibge, {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+            )
+            cobertura_muni = calcular_cobertura(
+                population=population_sus_muni, existing_sus=int(oferta_muni["existente_sus"]),
+                produtividade=PRODUTIVIDADE,
+            )
+            db.add(
+                MunicipalityCoverage(
+                    execution_id=execution.id,
+                    ibge_code=co_ibge,
+                    municipality_name=municipio["no_municipio"],
+                    health_region_code=municipio["co_regiao"],
+                    health_region_name=regioes[municipio["co_regiao"]]["no_regiao"],
+                    macro_code=municipio["co_macro"],
+                    macro_name=macros[municipio["co_macro"]]["no_macro"],
+                    state=municipio["sg_uf"],
+                    equipment_family=FAMILIA,
+                    population=population_sus_muni,
+                    population_residente=residente,
+                    population_ans=ans,
+                    estimated_need=cobertura_muni.estimated_need,
+                    required_qty=cobertura_muni.required_qty,
+                    available_qty=cobertura_muni.available_qty,
+                    existing_qty=int(oferta_muni["existente"]),
+                    facility_count=len(oferta_muni["estabelecimentos"]),
+                    balance=cobertura_muni.balance,
+                    deficit_status=cobertura_muni.deficit_status,
+                )
+            )
+
         for linha in linhas_equipamento:
             linha.execution_id = execution.id
         db.add_all(linhas_equipamento)
@@ -243,12 +293,14 @@ def run() -> None:
 
         if anteriores:
             db.execute(delete(MacroCoverage).where(MacroCoverage.execution_id.in_(anteriores)))
+            db.execute(delete(MunicipalityCoverage).where(MunicipalityCoverage.execution_id.in_(anteriores)))
             db.execute(delete(EquipmentOfferRow).where(EquipmentOfferRow.execution_id.in_(anteriores)))
             db.execute(delete(Execution).where(Execution.id.in_(anteriores)))
 
         db.commit()
         print(f"Concluido -- competency={competency.id} execution={execution.id}, "
-              f"{len(macros)} macrorregioes, {len(linhas_equipamento)} linhas de equipamento.")
+              f"{len(macros)} macrorregioes, {len(municipios)} municipios, "
+              f"{len(linhas_equipamento)} linhas de equipamento.")
         if anteriores:
             print(f"   Versoes anteriores de {label} removidas: {sorted(anteriores)}")
     finally:

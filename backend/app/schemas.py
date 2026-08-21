@@ -88,6 +88,63 @@ class MacroCoverageRead(BaseModel):
     coverage_percentage: float | None = None
 
 
+class MunicipalityCoverageRead(BaseModel):
+    """Mesmo shape de MacroCoverageRead, granularizado por municipio --
+    alimenta a tabela Cobertura Assistencial quando o filtro escolhido
+    afunila ate Municipio/CNES."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    execution_id: int
+    ibge_code: str
+    municipality_name: str
+    health_region_code: str | None
+    health_region_name: str | None
+    macro_code: str | None
+    macro_name: str | None
+    state: str
+    equipment_family: str
+    population: int | None
+    population_residente: int | None
+    population_ans: int | None
+    estimated_need: float | None
+    required_qty: int | None
+    available_qty: int | None
+    existing_qty: int | None
+    facility_count: int | None
+    balance: int | None
+    deficit_status: DeficitStatus
+    coverage_percentage: float | None = None
+
+
+class HealthRegionCoverageRead(BaseModel):
+    """Agregado de MunicipalityCoverageRead por regiao de saude, computado em
+    tempo de leitura (GROUP BY health_region_code) -- alimenta a tabela
+    Cobertura Assistencial quando o filtro escolhido e Regiao de Saude (sem
+    afunilar ate Municipio/CNES). Sem `id` proprio (nao e uma linha
+    persistida) nem `ibge_code`/`municipality_name` (nao se aplicam a esse
+    nivel)."""
+
+    health_region_code: str
+    health_region_name: str
+    macro_code: str | None
+    macro_name: str | None
+    state: str
+    equipment_family: str
+    population: int | None
+    population_residente: int | None
+    population_ans: int | None
+    estimated_need: float | None
+    required_qty: int | None
+    available_qty: int | None
+    existing_qty: int | None
+    facility_count: int | None
+    balance: int | None
+    deficit_status: DeficitStatus
+    coverage_percentage: float | None = None
+
+
 class EquipmentOfferRowRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
