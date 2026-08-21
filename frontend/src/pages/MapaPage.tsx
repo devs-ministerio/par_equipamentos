@@ -188,8 +188,8 @@ export function MapaPage() {
             />
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-            <LegendPill color={colors.hiperGreen} bg={colors.hiperGreenBg} label="Hiperssuficiente" />
             <LegendPill color={colors.hipoRed} bg={colors.hipoRedBg} label="Hipossuficiente" />
+            <LegendPill color={colors.hiperGreen} bg={colors.hiperGreenBg} label="Hiperssuficiente" />
           </div>
         </div>
 

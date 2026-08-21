@@ -209,6 +209,10 @@ export function NivelCoberturaTable({
                     >
                       População SUS-dependente ÷ Tomógrafos SUS
                     </div>
+                    <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
+                      "X SUS de Y" mostra os tomógrafos SUS que entram no cálculo (X) e o total geral, incluindo
+                      privados (Y) — quando os dois são iguais, todo o parque local já é SUS.
+                    </div>
                     {nivel === 'municipio' && !semCorteDePopulacao && (
                       <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
                         Só municípios com pelo menos 100 mil habitantes SUS-dependentes aparecem aqui — abaixo
@@ -218,7 +222,29 @@ export function NivelCoberturaTable({
                   </InfoIcon>
                 </span>
               </th>
-              <th style={{ padding: '10px 18px 10px 34px', fontWeight: 600, width: 220 }}>Status</th>
+              <th style={{ padding: '10px 18px 10px 34px', fontWeight: 600, width: 220 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  Status
+                  <InfoIcon align="right">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#B40D0D', flexShrink: 0 }} />
+                      <div>
+                        <strong style={{ color: '#fca5a5' }}>Hipossuficiente</strong>
+                        <br />
+                        hab./aparelho &gt; 100 mil
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2F6A1D', flexShrink: 0 }} />
+                      <div>
+                        <strong style={{ color: '#86efac' }}>Hiperssuficiente</strong>
+                        <br />
+                        hab./aparelho ≤ 100 mil
+                      </div>
+                    </div>
+                  </InfoIcon>
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -269,16 +295,18 @@ export function NivelCoberturaTable({
                         />
                       </div>
                       {pessoasPorEquip != null ? (
-                        <div style={{ width: 92 }}>
+                        <div style={{ width: 108 }}>
                           <div style={{ fontSize: 11.5, fontWeight: 600, color: meta.color }}>
-                            {r.oferta} tomógrafo{r.oferta === 1 ? '' : 's'}
+                            {r.oferta} SUS{r.ofertaTotal !== r.oferta && (
+                              <span style={{ fontSize: 10, fontWeight: 400, color: '#98a0b3' }}> de {r.ofertaTotal}</span>
+                            )}
                           </div>
                           <div style={{ fontSize: 10, color: '#98a0b3' }}>
                             {formatMilhar(pessoasPorEquip)}/1 · {formatMultiplicador(r.cobertura / 100)}
                           </div>
                         </div>
                       ) : (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, width: 92 }}>—</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, width: 108 }}>—</span>
                       )}
                     </div>
                   </td>

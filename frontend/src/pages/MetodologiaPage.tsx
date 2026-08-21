@@ -64,14 +64,14 @@ export function MetodologiaPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: colors.hiperGreen }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: colors.hiperGreen }}>Hiperssuficiente</span>
-              <span style={{ fontSize: 11, color: '#475066' }}>hab./aparelho ≤ 100 mil</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: colors.hipoRed }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: colors.hipoRed }}>Hipossuficiente</span>
               <span style={{ fontSize: 11, color: '#475066' }}>hab./aparelho &gt; 100 mil</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: colors.hiperGreen }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: colors.hiperGreen }}>Hiperssuficiente</span>
+              <span style={{ fontSize: 11, color: '#475066' }}>hab./aparelho ≤ 100 mil</span>
             </div>
           </div>
         </div>
