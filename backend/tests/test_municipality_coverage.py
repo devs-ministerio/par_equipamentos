@@ -12,16 +12,32 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.db.base import SessionLocal
-from app.db.models import Execution, MunicipalityCoverage
+from app.db.models import Competency, Execution, MunicipalityCoverage
 from app.main import app
 
 client = TestClient(app)
 
 
+def _exec_id_tomografo(db):
+    """Execucao TOMOGRAFO mais recente -- NAO a execucao mais recente global
+    (bug real corrigido em 2026-08-21: com RESSONANCIA tambem no banco e mais
+    recente que o seed de TOMOGRAFO, pegar so "a ultima execucao" sem
+    escopar por familia resolvia pra RESSONANCIA, o helper `_tem_dado()`
+    dava False e o pytest pulava o arquivo inteiro em silencio em vez de
+    falhar -- mascarou a mesma regressao nos routers)."""
+    return db.execute(
+        select(Execution.id)
+        .join(Competency, Execution.competency_id == Competency.id)
+        .where(Competency.equipment_family == "TOMOGRAFO")
+        .order_by(Execution.started_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
 def _tem_dado() -> bool:
     db = SessionLocal()
     try:
-        exec_id = db.execute(select(Execution.id).order_by(Execution.started_at.desc()).limit(1)).scalar_one_or_none()
+        exec_id = _exec_id_tomografo(db)
         if exec_id is None:
             return False
         return (
@@ -44,7 +60,7 @@ def _primeiro_macro_com_mais_de_uma_regiao_de_saude() -> str:
     agregacao do /health-region-coverage com um caso nao-trivial."""
     db = SessionLocal()
     try:
-        exec_id = db.execute(select(Execution.id).order_by(Execution.started_at.desc()).limit(1)).scalar_one()
+        exec_id = _exec_id_tomografo(db)
         rows = db.execute(
             select(MunicipalityCoverage.macro_code, MunicipalityCoverage.health_region_code).where(
                 MunicipalityCoverage.execution_id == exec_id,

@@ -21,15 +21,22 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.db.models import Execution, MunicipalityCoverage
+from app.db.models import Competency, Execution, MunicipalityCoverage
 from app.pipeline.cobertura import calcular_cobertura
 from app.schemas import HealthRegionCoverageRead, MunicipalityCoverageRead
 
 router = APIRouter(tags=["cobertura-assistencial"])
 
 
-def _latest_execution_id(db: Session) -> int | None:
-    stmt = select(Execution.id).order_by(Execution.started_at.desc()).limit(1)
+def _latest_execution_id(db: Session, equipment_family: str | None) -> int | None:
+    # Ver mesmo comentario em app/routers/macro_coverage.py -- sem escopar por
+    # familia, "a execucao mais recente" pode ser de outra familia e o filtro
+    # execution_id + equipment_family sempre da 0 linhas.
+    stmt = select(Execution.id).join(Competency, Execution.competency_id == Competency.id).order_by(
+        Execution.started_at.desc()
+    ).limit(1)
+    if equipment_family:
+        stmt = stmt.where(Competency.equipment_family == equipment_family)
     return db.execute(stmt).scalar_one_or_none()
 
 
@@ -65,7 +72,7 @@ def listar_municipality_coverage(
     min_population: int | None = Query(default=None, ge=0),
     db: Session = Depends(get_db),
 ) -> list[MunicipalityCoverageRead]:
-    exec_id = execution_id or _latest_execution_id(db)
+    exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
         return []
 
@@ -107,7 +114,7 @@ def listar_health_region_coverage(
     100_000), nao soma dos ceils individuais -- senao superestimaria
     demanda ao contar cada municipio pequeno como exigindo 1 aparelho
     proprio)."""
-    exec_id = execution_id or _latest_execution_id(db)
+    exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
         return []
 
