@@ -5,6 +5,11 @@ export const colors = {
   primaryDark: '#16213e',
   hiperGreen: '#2F6A1D',
   hiperGreenBg: '#eaf3e0',
+  // usado so no preenchimento da barrinha de cobertura -- mais claro que
+  // hiperGreen/hipoRed (texto/badge) pra listra central de referencia (o
+  // coeficiente 1) aparecer por cima sem se perder na cor solida.
+  hiperGreenBarra: '#8FCB6E',
+  hipoRedBarra: '#EF9A9A',
   hipoRed: '#B40D0D',
   hipoRedBg: '#fde8e8',
   border: '#dde2ea',

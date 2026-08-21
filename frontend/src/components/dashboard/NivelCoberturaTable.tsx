@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { NivelCoberturaRow } from '../../types/domain';
-import { statusMeta } from '../../utils/status';
-import { formatMilhar, formatMultiplicador } from '../../utils/format';
+import type { NivelCoberturaRow, StatusCobertura } from '../../types/domain';
+import { formatMultiplicador } from '../../utils/format';
+import { colors } from '../../styles/tokens';
 import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
-import { SearchInput } from '../common/SearchInput';
 import { Pagination } from '../common/Pagination';
 import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '../../services/api';
-import { normalizarTexto } from '../../utils/texto';
 
 const PAGE_SIZE = 20;
 
@@ -27,6 +25,9 @@ interface Props {
   /** true quando o usuario ja escolheu Municipio/CNES especifico -- desliga
    * o corte de populacao minima (ele quer ver aquele municipio do jeito que for). */
   semCorteDePopulacao?: boolean;
+  /** Filtro Hiper/Hipo -- controlado pelo Dashboard, que mostra os botões
+   * junto do título "Cobertura Assistencial" (não mais dentro da tabela). */
+  statusFiltro: Set<StatusCobertura>;
 }
 
 type SortKey = 'nome' | 'uf' | 'populacao' | 'cobertura' | 'status';
@@ -39,8 +40,8 @@ export function NivelCoberturaTable({
   healthRegionCodes,
   municipalities,
   semCorteDePopulacao,
+  statusFiltro,
 }: Props) {
-  const [busca, setBusca] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('nome');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
@@ -53,7 +54,10 @@ export function NivelCoberturaTable({
   const regioesSaudeKey = healthRegionCodes?.join(',') ?? '';
   const municipiosKey = municipalities?.join(',') ?? '';
 
-  useEffect(() => setPage(1), [busca, sortKey, sortDir, nivel, statesKey, macrosKey, regioesSaudeKey, municipiosKey]);
+  useEffect(
+    () => setPage(1),
+    [statusFiltro, sortKey, sortDir, nivel, statesKey, macrosKey, regioesSaudeKey, municipiosKey],
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -91,10 +95,9 @@ export function NivelCoberturaTable({
   }
 
   const rowsFiltradas = useMemo(() => {
-    const termo = normalizarTexto(busca.trim());
-    if (!termo) return rows;
-    return rows.filter((r) => normalizarTexto(`${r.nome} ${r.uf} ${r.macroNome ?? ''}`).includes(termo));
-  }, [rows, busca]);
+    if (statusFiltro.size === 0) return rows;
+    return rows.filter((r) => statusFiltro.has(r.status));
+  }, [rows, statusFiltro]);
 
   const rowsOrdenadas = useMemo(() => {
     const copia = [...rowsFiltradas];
@@ -128,7 +131,6 @@ export function NivelCoberturaTable({
   );
 
   const tituloColuna = nivel === 'municipio' ? 'Município' : 'Região de saúde';
-  const buscaPlaceholder = nivel === 'municipio' ? 'Buscar por município ou UF...' : 'Buscar por região de saúde ou UF...';
 
   return (
     <>
@@ -137,9 +139,6 @@ export function NivelCoberturaTable({
           Não foi possível carregar ({error}).
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 18px 10px' }}>
-        <SearchInput value={busca} onChange={setBusca} placeholder={buscaPlaceholder} />
-      </div>
       <div style={{ maxHeight: 340, overflow: 'auto', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
           <thead>
@@ -194,9 +193,9 @@ export function NivelCoberturaTable({
                   <InfoIcon>
                     <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Parâmetro normativo</div>
                     <div>
-                      1 tomógrafo por <strong>100 mil habitantes</strong>
+                      1 tomógrafo por <strong>100 mil habitantes SUS-dependentes</strong>
                     </div>
-                    <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Fórmula</div>
+                    <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Coeficiente</div>
                     <div
                       style={{
                         fontFamily: 'monospace',
@@ -207,11 +206,11 @@ export function NivelCoberturaTable({
                         borderRadius: 4,
                       }}
                     >
-                      População SUS-dependente ÷ Tomógrafos SUS
+                      (Tomógrafos SUS × 100.000) ÷ População SUS-dependente
                     </div>
                     <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                      "X SUS de Y" mostra os tomógrafos SUS que entram no cálculo (X) e o total geral, incluindo
-                      privados (Y) — quando os dois são iguais, todo o parque local já é SUS.
+                      Abaixo de 1x é Hipossuficiente, 1x ou mais é Hiperssuficiente. A listra no meio da barra marca
+                      exatamente o coeficiente 1.
                     </div>
                     {nivel === 'municipio' && !semCorteDePopulacao && (
                       <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
@@ -231,7 +230,7 @@ export function NivelCoberturaTable({
                       <div>
                         <strong style={{ color: '#fca5a5' }}>Hipossuficiente</strong>
                         <br />
-                        hab./aparelho &gt; 100 mil
+                        coeficiente &lt; 1x
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -239,7 +238,7 @@ export function NivelCoberturaTable({
                       <div>
                         <strong style={{ color: '#86efac' }}>Hiperssuficiente</strong>
                         <br />
-                        hab./aparelho ≤ 100 mil
+                        coeficiente ≥ 1x
                       </div>
                     </div>
                   </InfoIcon>
@@ -249,9 +248,13 @@ export function NivelCoberturaTable({
           </thead>
           <tbody>
             {rowsPaginadas.map((r) => {
-              const meta = statusMeta(r.cobertura);
-              const pessoasPorEquip = r.oferta > 0 ? r.pop / r.oferta : null;
-              const fillPercent = pessoasPorEquip != null ? Math.min(100, (pessoasPorEquip / 100_000) * 50) : 0;
+              // Coeficiente = (tomógrafos SUS x 100.000) / população SUS-dependente
+              // -- ver CoberturaTable.tsx pro mesmo calculo no nivel macro.
+              const coeficiente = r.pop > 0 ? (r.oferta * 100_000) / r.pop : null;
+              const hiper = coeficiente != null && coeficiente >= 1;
+              const corTexto = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreen : colors.hipoRed;
+              const corBarra = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreenBarra : colors.hipoRedBarra;
+              const fillPercent = coeficiente != null ? Math.min(100, coeficiente * 50) : 0;
               return (
                 <tr key={r.chave} style={{ borderTop: '1px solid #f0f1f5' }}>
                   <td style={{ padding: '9px 6px 9px 18px', fontWeight: 500 }}>{r.nome}</td>
@@ -262,9 +265,6 @@ export function NivelCoberturaTable({
                   )}
                   <td style={{ padding: '9px 8px 9px 10px', textAlign: 'right', color: '#475066' }}>
                     {r.pop.toLocaleString('pt-BR')}
-                    <div style={{ fontSize: 10, color: '#98a0b3', fontWeight: 400 }}>
-                      de {r.popResidente.toLocaleString('pt-BR')} IBGE (−{r.popAns.toLocaleString('pt-BR')} ANS)
-                    </div>
                   </td>
                   <td style={{ padding: '9px 32px 9px 8px', minWidth: 160 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -278,7 +278,7 @@ export function NivelCoberturaTable({
                             top: 0,
                             height: '100%',
                             width: `${fillPercent}%`,
-                            background: meta.color,
+                            background: corBarra,
                           }}
                         />
                         <div
@@ -294,20 +294,15 @@ export function NivelCoberturaTable({
                           }}
                         />
                       </div>
-                      {pessoasPorEquip != null ? (
-                        <div style={{ width: 108 }}>
-                          <div style={{ fontSize: 11.5, fontWeight: 600, color: meta.color }}>
-                            {r.oferta} SUS{r.ofertaTotal !== r.oferta && (
-                              <span style={{ fontSize: 10, fontWeight: 400, color: '#98a0b3' }}> de {r.ofertaTotal}</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 10, color: '#98a0b3' }}>
-                            {formatMilhar(pessoasPorEquip)}/1 · {formatMultiplicador(r.cobertura / 100)}
-                          </div>
+                      <div style={{ width: 118 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 600, color: corTexto }}>
+                          {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
                         </div>
-                      ) : (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, width: 108 }}>—</span>
-                      )}
+                        <div style={{ fontSize: 10, color: '#98a0b3' }}>
+                          {r.oferta} tomógrafo{r.oferta === 1 ? '' : 's'} SUS
+                          {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} no total`}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td style={{ padding: '9px 18px 9px 34px' }}>

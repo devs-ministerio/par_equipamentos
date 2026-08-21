@@ -66,12 +66,12 @@ export function MetodologiaPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: colors.hipoRed }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: colors.hipoRed }}>Hipossuficiente</span>
-              <span style={{ fontSize: 11, color: '#475066' }}>hab./aparelho &gt; 100 mil</span>
+              <span style={{ fontSize: 11, color: '#475066' }}>coeficiente &lt; 1x</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: colors.hiperGreen }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: colors.hiperGreen }}>Hiperssuficiente</span>
-              <span style={{ fontSize: 11, color: '#475066' }}>hab./aparelho ≤ 100 mil</span>
+              <span style={{ fontSize: 11, color: '#475066' }}>coeficiente ≥ 1x</span>
             </div>
           </div>
         </div>
@@ -96,15 +96,14 @@ export function MetodologiaPage() {
 
       <div style={{ background: '#f0f4ff', borderRadius: 10, padding: '20px 28px', borderLeft: `4px solid ${colors.primary}` }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: colors.primary, marginBottom: 6 }}>
-          Como ler "pessoas por tomógrafo" e o multiplicador
+          Como ler o coeficiente
         </div>
         <div style={{ fontSize: 13, color: '#475066', lineHeight: 1.7 }}>
-          Em Planilhas e no Mapa, essa mesma fórmula aparece em dois formatos, além do percentual: <strong>pessoas
-          por tomógrafo</strong> (ex.: 23,4k/1, ou seja, população dividida pela quantidade de tomógrafos) e o{' '}
-          <strong>multiplicador da meta</strong> (ex.: 3,90x — quantas vezes a região tem a mais, ou a menos, do que
-          a quantidade de tomógrafos exigida pelo parâmetro de 1 por 100 mil habitantes). Quanto maior o
-          multiplicador, maior a capacidade ociosa da região, ou seja, mais vaga disponível pra atender demanda
-          adicional.
+          Em Planilhas e no Mapa, cada macrorregião/região de saúde/município mostra um <strong>coeficiente</strong>{' '}
+          (ex.: 0,72x): quantos tomógrafos SUS existem pra cada 100 mil habitantes SUS-dependentes, sem arredondar a
+          demanda. Ex.: 6 tomógrafos ÷ 831.219 hab. × 100.000 = 0,72x — a região tem 72% do parâmetro exigido.
+          Coeficiente 1x é exatamente a meta; acima é Hiperssuficiente (capacidade ociosa, mais vaga disponível pra
+          demanda adicional), abaixo é Hipossuficiente (déficit).
         </div>
       </div>
 

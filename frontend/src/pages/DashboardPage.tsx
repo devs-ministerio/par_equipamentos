@@ -4,6 +4,7 @@ import { MultiSelectFilter } from '../components/dashboard/MultiSelectFilter';
 import { CoberturaTable } from '../components/dashboard/CoberturaTable';
 import { NivelCoberturaTable } from '../components/dashboard/NivelCoberturaTable';
 import { EstabelecimentoTable } from '../components/dashboard/EstabelecimentoTable';
+import { StatusFilterButtons } from '../components/common/StatusFilterButtons';
 import { InfoIcon } from '../components/common/InfoIcon';
 import { ExportPdfModal } from '../components/modals/ExportPdfModal';
 import { ExportXlsxModal } from '../components/modals/ExportXlsxModal';
@@ -13,7 +14,7 @@ import { useFiltrosMacro } from '../hooks/useFiltrosMacro';
 import { formatMilhar, formatMultiplicador } from '../utils/format';
 import { colors } from '../styles/tokens';
 import { REGIOES } from '../data/constants';
-import type { CoberturaRow, Macrorregiao } from '../types/domain';
+import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../types/domain';
 
 const FAMILIA = 'TOMOGRAFO';
 
@@ -25,6 +26,7 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [expandedCnes, setExpandedCnes] = useState<Set<string>>(new Set());
+  const [statusFiltro, setStatusFiltro] = useState<Set<StatusCobertura>>(new Set());
   const [totais, setTotais] = useState<EquipmentTotals | null>(null);
   const [exportPdfAberto, setExportPdfAberto] = useState(false);
   const [exportXlsxAberto, setExportXlsxAberto] = useState(false);
@@ -349,8 +351,18 @@ export function DashboardPage() {
       </div>
 
       <div style={{ background: '#fff', borderRadius: 8, marginTop: 20 }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #eef0f4' }}>
+        <div
+          style={{
+            padding: '14px 18px',
+            borderBottom: '1px solid #eef0f4',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
           <div style={{ fontWeight: 600, fontSize: 14 }}>Cobertura Assistencial</div>
+          <StatusFilterButtons selecionados={statusFiltro} onChange={setStatusFiltro} />
         </div>
         {nivelTabela === 'macro' && (
           <CoberturaTable
@@ -368,6 +380,7 @@ export function DashboardPage() {
               }
             }}
             municipiosSelecionados={filtroMunicipios}
+            statusFiltro={statusFiltro}
           />
         )}
         {nivelTabela !== 'macro' && (
@@ -379,6 +392,7 @@ export function DashboardPage() {
             healthRegionCodes={regioesSaudeFiltro}
             municipalities={municipiosFiltro}
             semCorteDePopulacao={Boolean(municipiosFiltro || cnesFiltro)}
+            statusFiltro={statusFiltro}
           />
         )}
       </div>

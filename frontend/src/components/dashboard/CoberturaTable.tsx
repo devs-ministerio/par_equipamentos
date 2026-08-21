@@ -1,13 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import type { CoberturaRow, Macrorregiao } from '../../types/domain';
-import { statusMeta } from '../../utils/status';
-import { formatMilhar, formatMultiplicador } from '../../utils/format';
+import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../../types/domain';
+import { formatMultiplicador } from '../../utils/format';
+import { colors } from '../../styles/tokens';
 import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
-import { SearchInput } from '../common/SearchInput';
 import { Pagination } from '../common/Pagination';
 import { fetchEstabelecimentosPage } from '../../services/api';
-import { normalizarTexto } from '../../utils/texto';
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +21,9 @@ interface Props {
   /** filtroMunicipios atual (mesmas chaves "NOME|UF") -- usado só pra saber
    * qual chip destacar como selecionado. */
   municipiosSelecionados: string[];
+  /** Filtro Hiper/Hipo -- controlado pelo Dashboard, que mostra os botões
+   * junto do título "Cobertura Assistencial" (não mais dentro da tabela). */
+  statusFiltro: Set<StatusCobertura>;
 }
 
 type SortKey = 'codigo' | 'macro' | 'uf' | 'populacao' | 'cobertura' | 'status';
@@ -43,9 +44,15 @@ type DadosMacro = RegiaoDaMacro[] | 'carregando' | 'erro';
 
 const SEM_REGIAO = '__sem_regiao__';
 
-export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMunicipio, municipiosSelecionados }: Props) {
+export function CoberturaTable({
+  equipmentFamily,
+  rows,
+  macros,
+  onSelecionarMunicipio,
+  municipiosSelecionados,
+  statusFiltro,
+}: Props) {
   const macroById = useMemo(() => new Map(macros.map((m) => [m.id, m])), [macros]);
-  const [busca, setBusca] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('macro');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
@@ -53,9 +60,9 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
   const [dadosPorMacro, setDadosPorMacro] = useState<Record<string, DadosMacro>>({});
   const [page, setPage] = useState(1);
 
-  // volta pra pagina 1 quando busca/ordenacao mudar -- senao pode sobrar numa
+  // volta pra pagina 1 quando filtro/ordenacao mudar -- senao pode sobrar numa
   // pagina que nao existe mais depois de filtrar.
-  useEffect(() => setPage(1), [busca, sortKey, sortDir]);
+  useEffect(() => setPage(1), [statusFiltro, sortKey, sortDir]);
 
   function toggleRegiaoExpandida(chave: string) {
     setRegioesExpandidas((prev) => {
@@ -122,14 +129,9 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
   }
 
   const rowsFiltradas = useMemo(() => {
-    const termo = normalizarTexto(busca.trim());
-    if (!termo) return rows;
-    return rows.filter((r) => {
-      const macro = macroById.get(r.macroId);
-      const alvo = normalizarTexto(`${macro?.id ?? ''} ${macro?.nome ?? ''} ${macro?.uf ?? ''}`);
-      return alvo.includes(termo);
-    });
-  }, [rows, macroById, busca]);
+    if (statusFiltro.size === 0) return rows;
+    return rows.filter((r) => statusFiltro.has(r.status));
+  }, [rows, statusFiltro]);
 
   const rowsOrdenadas = useMemo(() => {
     const copia = [...rowsFiltradas];
@@ -172,9 +174,6 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 18px 10px' }}>
-        <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por macrorregião ou UF..." />
-      </div>
       {/* com alguma macro expandida, o card cresce junto com a pagina (a
           rolagem passa a ser da pagina inteira) em vez de espremer os chips
           de cidade numa caixinha interna -- so trava a altura no modo
@@ -251,9 +250,9 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                   <InfoIcon>
                     <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Parâmetro normativo</div>
                     <div>
-                      1 tomógrafo por <strong>100 mil habitantes</strong>
+                      1 tomógrafo por <strong>100 mil habitantes SUS-dependentes</strong>
                     </div>
-                    <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Fórmula</div>
+                    <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Coeficiente</div>
                     <div
                       style={{
                         fontFamily: 'monospace',
@@ -264,15 +263,11 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                         borderRadius: 4,
                       }}
                     >
-                      População SUS-dependente ÷ Tomógrafos SUS
+                      (Tomógrafos SUS × 100.000) ÷ População SUS-dependente
                     </div>
                     <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                      "X SUS de Y" mostra os tomógrafos SUS que entram no cálculo (X) e o total geral, incluindo
-                      privados (Y) — quando os dois são iguais, todo o parque local já é SUS.
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                      Mostrado também como pessoas por aparelho (ex.: 23,4k/1) e como multiplicador da meta (ex.:
-                      3,90x) — quanto maior o multiplicador, menos pessoas cada tomógrafo atende em média.
+                      Ex.: 6 tomógrafos SUS ÷ 831.219 hab. × 100.000 = 0,72x — abaixo de 1x é Hipossuficiente, 1x ou
+                      mais é Hiperssuficiente. A listra no meio da barra marca exatamente o coeficiente 1.
                     </div>
                   </InfoIcon>
                 </span>
@@ -288,7 +283,7 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                       <div>
                         <strong style={{ color: '#fca5a5' }}>Hipossuficiente</strong>
                         <br />
-                        hab./aparelho &gt; 100 mil
+                        coeficiente &lt; 1x
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -296,7 +291,7 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                       <div>
                         <strong style={{ color: '#86efac' }}>Hiperssuficiente</strong>
                         <br />
-                        hab./aparelho ≤ 100 mil
+                        coeficiente ≥ 1x
                       </div>
                     </div>
                   </InfoIcon>
@@ -308,13 +303,19 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
             {rowsPaginadas.map((r) => {
               const macro = macroById.get(r.macroId);
               if (!macro) return null;
-              const meta = statusMeta(r.cobertura);
-              // pessoas por equipamento -- a listra no meio da barra e a
-              // meta oficial (100 mil/aparelho); a barra enche PRA MENOS
-              // quanto melhor a cobertura (menos gente dividindo o mesmo
-              // aparelho), entao passar da listra = pior que a meta.
-              const pessoasPorEquip = r.oferta > 0 ? macro.pop / r.oferta : null;
-              const fillPercent = pessoasPorEquip != null ? Math.min(100, (pessoasPorEquip / 100_000) * 50) : 0;
+              // Coeficiente = (tomógrafos SUS x 100.000) / população SUS-dependente
+              // -- quantos tomógrafos por 100 mil habitantes essa macro tem, sem
+              // arredondar a demanda (diferente de required_qty, que é ceil).
+              // A listra no meio da barra é o coeficiente 1 (a meta exata);
+              // acima enche mais (hiper/verde), abaixo enche menos (hipo/vermelho).
+              const coeficiente = macro.pop > 0 ? (r.oferta * 100_000) / macro.pop : null;
+              const hiper = coeficiente != null && coeficiente >= 1;
+              // cor do texto/rotulo -- mais escura, pra leitura -- e cor do
+              // preenchimento da barra -- mais clara, pra listra central (o
+              // coeficiente 1) continuar visivel por cima.
+              const corTexto = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreen : colors.hipoRed;
+              const corBarra = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreenBarra : colors.hipoRedBarra;
+              const fillPercent = coeficiente != null ? Math.min(100, coeficiente * 50) : 0;
               const expandida = expandidas.has(r.macroId);
               const dados = dadosPorMacro[r.macroId];
               return (
@@ -344,9 +345,6 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                   <td style={{ padding: '9px 8px 9px 6px', color: '#667085' }}>{macro.uf}</td>
                   <td style={{ padding: '9px 8px 9px 10px', textAlign: 'right', color: '#475066' }}>
                     {macro.pop.toLocaleString('pt-BR')}
-                    <div style={{ fontSize: 10, color: '#98a0b3', fontWeight: 400 }}>
-                      de {macro.popResidente.toLocaleString('pt-BR')} IBGE (−{macro.popAns.toLocaleString('pt-BR')} ANS)
-                    </div>
                   </td>
                   <td style={{ padding: '9px 32px 9px 8px', minWidth: 160 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -367,7 +365,7 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                             top: 0,
                             height: '100%',
                             width: `${fillPercent}%`,
-                            background: meta.color,
+                            background: corBarra,
                           }}
                         />
                         <div
@@ -383,20 +381,15 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                           }}
                         />
                       </div>
-                      {pessoasPorEquip != null ? (
-                        <div style={{ width: 108 }}>
-                          <div style={{ fontSize: 11.5, fontWeight: 600, color: meta.color }}>
-                            {r.oferta} SUS{r.ofertaTotal !== r.oferta && (
-                              <span style={{ fontSize: 10, fontWeight: 400, color: '#98a0b3' }}> de {r.ofertaTotal}</span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 10, color: '#98a0b3' }}>
-                            {formatMilhar(pessoasPorEquip)}/1 · {formatMultiplicador(r.cobertura / 100)}
-                          </div>
+                      <div style={{ width: 118 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 600, color: corTexto }}>
+                          {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
                         </div>
-                      ) : (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: meta.color, width: 108 }}>—</span>
-                      )}
+                        <div style={{ fontSize: 10, color: '#98a0b3' }}>
+                          {r.oferta} tomógrafo{r.oferta === 1 ? '' : 's'} SUS
+                          {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} no total`}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td style={{ padding: '9px 18px 9px 34px' }}>
