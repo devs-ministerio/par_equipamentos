@@ -5,7 +5,7 @@ fluxo gerar automatico/manual for retomado).
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -32,11 +32,14 @@ def _to_read(row: MacroCoverage) -> MacroCoverageRead:
 def listar_macro_coverage(
     equipment_family: str | None = None,
     execution_id: int | None = None,
+    macro_code: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[MacroCoverageRead]:
     """Lista a cobertura por macrorregiao. Sem `execution_id`, usa a execucao
     mais recente (nao precisa ter conceito de competencia publicada ainda --
-    isso e Modulo 5/7, nao existe nenhuma execucao alem da de seed hoje)."""
+    isso e Modulo 5/7, nao existe nenhuma execucao alem da de seed hoje).
+    `macro_code` e opcional -- usado pelo modal de detalhe do municipio pra
+    buscar so a macro dele em vez da lista inteira (~121 linhas)."""
     exec_id = execution_id or _latest_execution_id(db)
     if exec_id is None:
         return []
@@ -44,6 +47,8 @@ def listar_macro_coverage(
     stmt = select(MacroCoverage).where(MacroCoverage.execution_id == exec_id)
     if equipment_family:
         stmt = stmt.where(MacroCoverage.equipment_family == equipment_family)
+    if macro_code:
+        stmt = stmt.where(MacroCoverage.macro_code.in_(macro_code))
 
     rows = db.execute(stmt).scalars().all()
     return [_to_read(r) for r in rows]

@@ -4,9 +4,11 @@ import { formatMultiplicador } from '../../utils/format';
 import { colors } from '../../styles/tokens';
 import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
+import { BotaoDetalhe } from '../common/BotaoDetalhe';
 import { Pagination } from '../common/Pagination';
 import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '../../services/api';
 import { SubNivelRows } from './SubNivelRows';
+import { MunicipioDetalheModal } from './MunicipioDetalheModal';
 
 const PAGE_SIZE = 20;
 
@@ -58,6 +60,7 @@ export function NivelCoberturaTable({
   const [error, setError] = useState<string | null>(null);
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
+  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
 
   // so nivel='regiaoSaude' expande (pra Municipio) -- Municipio ja e o nivel
   // mais fino que a base tem.
@@ -373,7 +376,10 @@ export function NivelCoberturaTable({
                     </div>
                   </td>
                   <td style={{ padding: '9px 18px 9px 34px' }}>
-                    <StatusBadge cobertura={r.cobertura} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <StatusBadge cobertura={r.cobertura} />
+                      {nivel === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(r)} />}
+                    </div>
                   </td>
                 </tr>
                 {expandida && (
@@ -410,6 +416,9 @@ export function NivelCoberturaTable({
         </table>
       </div>
       <Pagination page={page} totalItems={rowsOrdenadas.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+      {detalheAberto && (
+        <MunicipioDetalheModal linha={detalheAberto} equipmentFamily={equipmentFamily} onClose={() => setDetalheAberto(null)} />
+      )}
     </>
   );
 }

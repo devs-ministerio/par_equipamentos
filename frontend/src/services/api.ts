@@ -98,8 +98,10 @@ export interface MacroCoverageResult {
   coberturaRows: CoberturaRow[];
 }
 
-export async function fetchMacroCoverage(equipmentFamily: string): Promise<MacroCoverageResult> {
-  const rows = await apiGet<MacroCoverageApi[]>('/macro-coverage', { equipment_family: equipmentFamily });
+export async function fetchMacroCoverage(equipmentFamily: string, macroCodes?: string[]): Promise<MacroCoverageResult> {
+  const query: Record<string, string | string[]> = { equipment_family: equipmentFamily };
+  if (macroCodes?.length) query.macro_code = macroCodes;
+  const rows = await apiGet<MacroCoverageApi[]>('/macro-coverage', query);
 
   const macros: Macrorregiao[] = rows.map((r) => {
     const geo = UF_INFO[r.state];

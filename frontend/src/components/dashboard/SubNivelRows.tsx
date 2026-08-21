@@ -3,6 +3,7 @@ import type { NivelCoberturaRow } from '../../types/domain';
 import { calcularCoeficiente } from '../../utils/coeficiente';
 import { formatMultiplicador } from '../../utils/format';
 import { StatusBadge } from '../common/StatusBadge';
+import { BotaoDetalhe } from '../common/BotaoDetalhe';
 import { fetchMunicipalityCoverage } from '../../services/api';
 import { MunicipioDetalheModal } from './MunicipioDetalheModal';
 
@@ -28,8 +29,10 @@ interface Props {
  * cobrindo a cadeia completa Macrorregiao -> Regiao de Saude -> Municipio.
  *
  * Municipio (folha) nao filtra mais ao clicar (removido a pedido) -- em vez
- * disso tem um botao de detalhe que abre um modal so com o dado que a
- * propria linha ja carrega (sem requisicao nova, ver MunicipioDetalheModal).
+ * disso tem um botao de detalhe que abre um modal com o comparativo de
+ * cobertura Municipio/Regiao de Saude/Macro (ver MunicipioDetalheModal --
+ * o municipio em si nao pede nada de novo, so a regiao/macro buscam sob
+ * demanda quando o modal abre).
  */
 // RN especifica de TOMOGRAFO (ver Metodologia): municipio abaixo do
 // parametro normativo nunca foi esperado ter equipamento proprio -- na
@@ -38,36 +41,6 @@ interface Props {
 // ja um municipio pequeno em Hiperssuficiente e informativo (superavit
 // "de bonus"), entao continua aparecendo do tamanho que for.
 const POPULACAO_MINIMA_PARA_HIPO = 100_000;
-
-function BotaoDetalhe({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      title="Mais informações"
-      aria-label="Mais informações"
-      style={{
-        display: 'inline-flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        gap: 3,
-        width: 26,
-        height: 22,
-        border: '1px solid #dde2ea',
-        borderRadius: 5,
-        background: '#fff',
-        cursor: 'pointer',
-        padding: 0,
-      }}
-    >
-      <span style={{ display: 'block', width: 14, height: 2, borderRadius: 1, background: '#667085', margin: '0 auto' }} />
-      <span style={{ display: 'block', width: 14, height: 2, borderRadius: 1, background: '#667085', margin: '0 auto' }} />
-      <span style={{ display: 'block', width: 14, height: 2, borderRadius: 1, background: '#667085', margin: '0 auto' }} />
-    </button>
-  );
-}
 
 export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }: Props) {
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
@@ -215,7 +188,9 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
           })}
         </tbody>
       </table>
-      {detalheAberto && <MunicipioDetalheModal linha={detalheAberto} onClose={() => setDetalheAberto(null)} />}
+      {detalheAberto && (
+        <MunicipioDetalheModal linha={detalheAberto} equipmentFamily={equipmentFamily} onClose={() => setDetalheAberto(null)} />
+      )}
     </>
   );
 }
