@@ -6,8 +6,6 @@ import { NivelCoberturaTable } from '../components/dashboard/NivelCoberturaTable
 import { EstabelecimentoTable } from '../components/dashboard/EstabelecimentoTable';
 import { StatusFilterButtons } from '../components/common/StatusFilterButtons';
 import { InfoIcon } from '../components/common/InfoIcon';
-import { ExportPdfModal } from '../components/modals/ExportPdfModal';
-import { ExportXlsxModal } from '../components/modals/ExportXlsxModal';
 import {
   fetchEquipmentTotals,
   fetchFacilities,
@@ -41,8 +39,6 @@ export function DashboardPage() {
   // "eu escolhi uma regiao/cidade"). Zerado junto com statusFiltro sempre que
   // o filtro geografico principal muda.
   const [nivelForcado, setNivelForcado] = useState<'macro' | 'regiaoSaude' | 'municipio' | null>(null);
-  const [exportPdfAberto, setExportPdfAberto] = useState(false);
-  const [exportXlsxAberto, setExportXlsxAberto] = useState(false);
 
   const {
     filtroRegioes,
@@ -317,38 +313,6 @@ export function DashboardPage() {
             ✕ Limpar
           </button>
         )}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button
-            onClick={() => setExportPdfAberto(true)}
-            style={{
-              padding: '7px 16px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: `1px solid ${colors.border}`,
-              background: '#fff',
-              color: colors.hipoRed,
-            }}
-          >
-            ⬇ PDF
-          </button>
-          <button
-            onClick={() => setExportXlsxAberto(true)}
-            style={{
-              padding: '7px 16px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: `1px solid ${colors.border}`,
-              background: '#fff',
-              color: colors.hiperGreen,
-            }}
-          >
-            ⬇ XLSX
-          </button>
-        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'stretch' }}>
@@ -463,42 +427,6 @@ export function DashboardPage() {
         municipalities={municipiosFiltro}
         cnesCodes={cnesFiltro}
       />
-
-      {exportPdfAberto && (
-        <ExportPdfModal
-          onClose={() => setExportPdfAberto(false)}
-          equipmentFamily={FAMILIA}
-          macros={macros}
-          coberturaRowsTodas={coberturaRows}
-          facilities={facilities}
-          filtrosIniciais={{
-            regioes: filtroRegioes,
-            ufs: filtroUfs,
-            macros: filtroMacros,
-            regioesSaude: filtroRegioesSaude,
-            municipios: filtroMunicipios,
-            cnes: filtroCnes,
-          }}
-        />
-      )}
-
-      {exportXlsxAberto && (
-        <ExportXlsxModal
-          onClose={() => setExportXlsxAberto(false)}
-          equipmentFamily={FAMILIA}
-          macros={macros}
-          coberturaRowsTodas={coberturaRows}
-          facilities={facilities}
-          filtrosIniciais={{
-            regioes: filtroRegioes,
-            ufs: filtroUfs,
-            macros: filtroMacros,
-            regioesSaude: filtroRegioesSaude,
-            municipios: filtroMunicipios,
-            cnes: filtroCnes,
-          }}
-        />
-      )}
     </div>
   );
 }
