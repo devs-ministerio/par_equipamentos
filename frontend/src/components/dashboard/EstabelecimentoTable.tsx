@@ -59,7 +59,14 @@ export function EstabelecimentoTable({
     [statesKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey, busca, sortKey, sortDir],
   );
 
+  // Guarda contra corrida (mesmo bug de NivelCoberturaTable, corrigido
+  // 2026-08-22): selecionar um CNES cascateia pro Municipio num segundo
+  // instante, entao um pedido SEM filtro de municipio dispara primeiro
+  // (mais lento, lista nacional) e um pedido JA filtrado dispara logo
+  // depois (mais rapido) -- sem essa guarda, a resposta lenta e desfiltrada
+  // chegava por ultimo e sobrescrevia a tabela com a lista nacional errada.
   useEffect(() => {
+    let cancelado = false;
     setLoading(true);
     setError(null);
     fetchEstabelecimentosPage({
@@ -76,11 +83,15 @@ export function EstabelecimentoTable({
       pageSize: PAGE_SIZE,
     })
       .then((res) => {
+        if (cancelado) return;
         setItems(res.items);
         setTotal(res.total);
       })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+      .catch((e: Error) => !cancelado && setError(e.message))
+      .finally(() => !cancelado && setLoading(false));
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipmentFamily, statesKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey, busca, sortKey, sortDir, page]);
 

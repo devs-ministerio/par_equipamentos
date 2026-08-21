@@ -36,7 +36,6 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
   const [usarFiltros, setUsarFiltros] = useState(true);
 
   const filtros = useFiltrosMacro({
-    equipmentFamily,
     macros,
     coberturaRows: coberturaRowsTodas,
     facilities,

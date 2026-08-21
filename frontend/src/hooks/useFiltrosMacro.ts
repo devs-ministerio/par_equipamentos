@@ -9,7 +9,6 @@ interface FiltroOption {
 }
 
 interface UseFiltrosMacroParams {
-  equipmentFamily: string;
   macros: Macrorregiao[];
   coberturaRows: CoberturaRow[];
   /** Lista completa (sem filtro) de estabelecimentos por CNES -- base unica
@@ -44,7 +43,7 @@ type Dimensao = 'regiao' | 'uf' | 'macro' | 'regiaoSaude' | 'municipio' | 'cnes'
  * automatico (Municipio/Regiao de Saude/Macro/UF/Regiao implicados pelo CNES
  * escolhido) ja afeta.
  */
-export function useFiltrosMacro({ equipmentFamily: _equipmentFamily, macros, coberturaRows, facilities, inicial }: UseFiltrosMacroParams) {
+export function useFiltrosMacro({ macros, coberturaRows, facilities, inicial }: UseFiltrosMacroParams) {
   const [filtroRegioes, setFiltroRegioes] = useState<string[]>(inicial?.regioes ?? []);
   const [filtroUfs, setFiltroUfs] = useState<string[]>(inicial?.ufs ?? []);
   const [filtroMacros, setFiltroMacros] = useState<string[]>(inicial?.macros ?? []);

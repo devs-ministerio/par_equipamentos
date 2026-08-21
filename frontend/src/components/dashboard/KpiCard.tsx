@@ -17,9 +17,13 @@ export function KpiCard({
   /** Destaca visualmente o card quando o filtro que ele aciona já está ativo. */
   ativo?: boolean;
 }) {
+  const Tag = onClick ? 'button' : 'div';
+
   return (
-    <div
+    <Tag
       onClick={onClick}
+      type={onClick ? 'button' : undefined}
+      aria-pressed={onClick ? ativo : undefined}
       style={{
         background: '#fff',
         borderRadius: 8,
@@ -32,6 +36,7 @@ export function KpiCard({
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
+        fontFamily: 'inherit',
         cursor: onClick ? 'pointer' : 'default',
         border: ativo ? `1.5px solid ${color}` : '1.5px solid transparent',
         boxShadow: ativo ? `0 0 0 3px ${color}22` : 'none',
@@ -52,6 +57,6 @@ export function KpiCard({
         {info}
       </div>
       <div style={{ fontSize: 20, fontWeight: 600, marginTop: 6, color }}>{value}</div>
-    </div>
+    </Tag>
   );
 }

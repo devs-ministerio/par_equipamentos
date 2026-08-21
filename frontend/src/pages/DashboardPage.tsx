@@ -70,7 +70,7 @@ export function DashboardPage() {
     cnesFiltro,
     hasAnyFilter,
     limparFiltros,
-  } = useFiltrosMacro({ equipmentFamily: FAMILIA, macros, coberturaRows, facilities });
+  } = useFiltrosMacro({ macros, coberturaRows, facilities });
 
   useEffect(() => {
     setLoading(true);
@@ -107,7 +107,16 @@ export function DashboardPage() {
   // equipamento proprio, ver Metodologia) independente de
   // semCorteDePopulacao (que so vale quando o USUARIO ja escolheu um
   // municipio/CNES especifico).
+  //
+  // Guarda contra corrida (mesmo bug de NivelCoberturaTable, corrigido
+  // 2026-08-22): selecionar um CNES cascateia pro Municipio num segundo
+  // instante, entao um pedido SEM filtro de municipio dispara primeiro
+  // (mais lento, lista nacional) e um pedido JA filtrado dispara logo
+  // depois (mais rapido) -- sem essa guarda, a resposta lenta e desfiltrada
+  // chegava por ultimo e sobrescrevia o card com o numero nacional errado.
   useEffect(() => {
+    let cancelado = false;
+
     fetchMunicipalityCoverage({
       equipmentFamily: FAMILIA,
       states: estadosFiltro,
@@ -116,12 +125,20 @@ export function DashboardPage() {
       municipalities: municipiosFiltro,
       minPopulation: 100_000,
     })
-      .then((rows) => setMunicipiosHipo(rows.filter((r) => r.status === 'Hipossuficiente').length))
-      .catch(() => setMunicipiosHipo(null));
+      .then((rows) => {
+        if (!cancelado) setMunicipiosHipo(rows.filter((r) => r.status === 'Hipossuficiente').length);
+      })
+      .catch(() => !cancelado && setMunicipiosHipo(null));
 
     fetchHealthRegionCoverage({ equipmentFamily: FAMILIA, states: estadosFiltro, macroCodes: macrosFiltro })
-      .then((rows) => setRegioesSaudeHipo(rows.filter((r) => r.status === 'Hipossuficiente').length))
-      .catch(() => setRegioesSaudeHipo(null));
+      .then((rows) => {
+        if (!cancelado) setRegioesSaudeHipo(rows.filter((r) => r.status === 'Hipossuficiente').length);
+      })
+      .catch(() => !cancelado && setRegioesSaudeHipo(null));
+
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey]);
 
@@ -129,8 +146,11 @@ export function DashboardPage() {
   // equipment_offer_row (soma exata pro recorte pedido), nao de
   // macro-coverage (agregado so por macro) -- senao filtrar por um
   // Município/Região de Saúde/CNES mostraria o total da macro inteira em vez
-  // do recorte real (bug corrigido em 2026-08-21).
+  // do recorte real (bug corrigido em 2026-08-21). Mesma guarda contra
+  // corrida do efeito acima.
   useEffect(() => {
+    let cancelado = false;
+
     fetchEquipmentTotals({
       equipmentFamily: FAMILIA,
       states: estadosFiltro,
@@ -139,8 +159,12 @@ export function DashboardPage() {
       municipalities: municipiosFiltro,
       cnesCodes: cnesFiltro,
     })
-      .then(setTotais)
-      .catch(() => setTotais(null));
+      .then((res) => !cancelado && setTotais(res))
+      .catch(() => !cancelado && setTotais(null));
+
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
 
@@ -152,15 +176,12 @@ export function DashboardPage() {
     });
   }
 
-
-  // usados so no calculo de "pessoas por tomógrafo"/"multiplicador da meta"
-  // abaixo -- esses dois dependem de populacao, que so existe agregada por
-  // macro (nao ha populacao por município na base), entao continuam na
-  // granularidade da macro mesmo quando o filtro escolhido e mais fino.
+  // fallback dos cards "Total de Tomógrafos"/"Total de Tomógrafos SUS"
+  // enquanto fetchEquipmentTotals ainda nao respondeu (ou falhou) -- soma
+  // por macro, nao e exata pra filtro mais fino que macro, mas e melhor que
+  // mostrar "--" nesse intervalo curto.
   const totalEquipMacro = filteredRows.reduce((s, r) => s + r.oferta, 0);
   const totalEquipGeralMacro = filteredRows.reduce((s, r) => s + r.ofertaTotal, 0);
-  // Região de Saúde / Município / CNES sao mais finos que macro -- os cards
-  // de população/cobertura (que só existem por macro) ficam com uma ressalva
   // Nivel da tabela "Cobertura Assistencial": nivelForcado (acionado pelos
   // cards de Hipo) tem prioridade; senao, Municipio/CNES -> municipio; so
   // Regiao de Saude -> regiao de saude; UF/Macro/nenhum filtro -> macro
@@ -346,7 +367,7 @@ export function DashboardPage() {
         <KpiCard label="Total de Tomógrafos SUS" value={totais?.availableQty ?? totalEquipMacro} color="#16213e" />
         <KpiCard
           label="Municípios Hipossuficientes"
-          value={municipiosHipo != null ? municipiosHipo : '—'}
+          value={municipiosHipo ?? '—'}
           color="#a32d2d"
           onClick={() => verHipo('municipio')}
           ativo={nivelForcado === 'municipio'}
@@ -359,7 +380,7 @@ export function DashboardPage() {
         />
         <KpiCard
           label="Regiões de Saúde Hipossuficientes"
-          value={regioesSaudeHipo != null ? regioesSaudeHipo : '—'}
+          value={regioesSaudeHipo ?? '—'}
           color="#a32d2d"
           onClick={() => verHipo('regiaoSaude')}
           ativo={nivelForcado === 'regiaoSaude'}

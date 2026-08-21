@@ -73,7 +73,6 @@ export function ExportPdfModal({
     limparFiltros,
     filtrosResumo,
   } = useFiltrosMacro({
-    equipmentFamily,
     macros,
     coberturaRows: coberturaRowsTodas,
     facilities,
