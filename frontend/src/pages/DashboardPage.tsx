@@ -30,7 +30,6 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [expandedCnes, setExpandedCnes] = useState<Set<string>>(new Set());
   const [statusFiltro, setStatusFiltro] = useState<Set<StatusCobertura>>(new Set());
   const [totais, setTotais] = useState<EquipmentTotals | null>(null);
   const [municipiosHipo, setMunicipiosHipo] = useState<number | null>(null);
@@ -175,13 +174,6 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
 
-  function toggleExpand(cnes: string) {
-    setExpandedCnes((prev) => {
-      const next = new Set(prev);
-      next.has(cnes) ? next.delete(cnes) : next.add(cnes);
-      return next;
-    });
-  }
 
   // fallback dos cards "Total de Tomógrafos"/"Total de Tomógrafos SUS"
   // enquanto fetchEquipmentTotals ainda nao respondeu (ou falhou) -- soma
@@ -470,8 +462,6 @@ export function DashboardPage() {
         healthRegionCodes={regioesSaudeFiltro}
         municipalities={municipiosFiltro}
         cnesCodes={cnesFiltro}
-        expanded={expandedCnes}
-        onToggleExpand={toggleExpand}
       />
 
       {exportPdfAberto && (
