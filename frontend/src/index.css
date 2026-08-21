@@ -11,6 +11,21 @@ body {
   font-family: 'Public Sans', -apple-system, sans-serif;
   background: #f4f6fb;
   color: #16213e;
+  /* App e feito quase todo de <div>/<span> clicaveis (linhas de tabela,
+     cards, chips de filtro) em vez de <button>/<a> -- sem isso, o navegador
+     trata esse texto como selecionavel por padrao e mostra o cursor de
+     escrita (I-beam) e destaca em azul ao clicar em qualquer lugar (bug
+     reportado 2026-08-22). Reabilitado so em inputs/textareas -- a maioria
+     das celulas de tabela tambem e clicavel (expande linha/abre detalhe),
+     entao reabilitar selecao ali de volta traria o mesmo problema. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #root {

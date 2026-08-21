@@ -56,6 +56,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
     nivelAtual === 'municipio' && !semGrandeNemEquipamento
       ? rows.filter((r) => r.status === 'Hiperssuficiente' || r.pop >= POPULACAO_MINIMA_PARA_HIPO)
       : rows;
+  const ocultos = rows.length - rowsExibidas.length;
 
   function toggleExpandida(chave: string) {
     const jaExpandida = expandidas.has(chave);
@@ -77,6 +78,17 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
   }
 
   if (rowsExibidas.length === 0) {
+    // rows.length > 0 aqui so acontece se TODOS os municipios do grupo sao
+    // pequenos (<100k) e Hipo -- nao e "sem dado", e o corte escondendo tudo.
+    if (ocultos > 0) {
+      return (
+        <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>
+          {ocultos} município{ocultos === 1 ? '' : 's'} pequeno{ocultos === 1 ? '' : 's'} (abaixo de 100 mil
+          habitantes) em Hipossuficiente oculto{ocultos === 1 ? '' : 's'} — não eram esperados ter equipamento
+          próprio.
+        </div>
+      );
+    }
     const rotulo = nivelAtual === 'regiaoSaude' ? 'região de saúde' : 'município';
     return <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>Nenhuma {rotulo} encontrada.</div>;
   }
@@ -188,6 +200,12 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
           })}
         </tbody>
       </table>
+      {ocultos > 0 && (
+        <div style={{ fontSize: 11, color: '#98a0b3', padding: '6px 4px 0' }}>
+          +{ocultos} município{ocultos === 1 ? '' : 's'} pequeno{ocultos === 1 ? '' : 's'} em Hipossuficiente oculto
+          {ocultos === 1 ? '' : 's'} (abaixo de 100 mil habitantes, não eram esperados ter equipamento próprio).
+        </div>
+      )}
       {detalheAberto && (
         <MunicipioDetalheModal linha={detalheAberto} equipmentFamily={equipmentFamily} onClose={() => setDetalheAberto(null)} />
       )}
