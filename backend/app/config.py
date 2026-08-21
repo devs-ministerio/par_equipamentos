@@ -23,13 +23,21 @@ class Settings(BaseSettings):
 
     @property
     def database_url_normalizada(self) -> str:
-        """Alguns provedores entregam a URL no formato antigo `postgres://`,
-        que o SQLAlchemy 2 nao aceita. Normaliza pro driver que usamos."""
+        """Alguns provedores entregam a URL no formato antigo `postgres://`
+        (ou `postgresql://` sem driver), que o SQLAlchemy 2 aceita mas resolve
+        pro driver errado. Normaliza sempre pro psycopg (v3) -- e a unica
+        dependencia de driver Postgres do projeto (psycopg2 nem esta
+        instalado; ver pyproject.toml). Bug corrigido em 2026-08-21: isso
+        apontava pra "postgresql+psycopg2" e so nao quebrava porque o .env
+        local ja vem como "postgresql+psycopg://" (nao cai em nenhum dos
+        dois `if`) -- no primeiro deploy com DATABASE_URL vindo cru do
+        provedor (formato comum em Railway/Render/Heroku) a API cairia no
+        boot por driver ausente."""
         url = self.database_url
         if url.startswith("postgres://"):
-            return url.replace("postgres://", "postgresql+psycopg2://", 1)
+            return url.replace("postgres://", "postgresql+psycopg://", 1)
         if url.startswith("postgresql://"):
-            return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+            return url.replace("postgresql://", "postgresql+psycopg://", 1)
         return url
 
     @property
