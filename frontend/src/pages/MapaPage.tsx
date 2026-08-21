@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import { BrazilMap } from '../components/mapa/BrazilMap';
 import { ExportPdfModal } from '../components/modals/ExportPdfModal';
-import { fetchEstabelecimentosPage, fetchMacroCoverage } from '../services/api';
+import { fetchEstabelecimentosPage, fetchFacilities, fetchMacroCoverage } from '../services/api';
+import type { FacilityOption } from '../services/api';
 import { statusMeta } from '../utils/status';
 import { formatMilhar } from '../utils/format';
 import { svgParaPng } from '../utils/captureSvg';
@@ -35,6 +36,7 @@ export function MapaPage() {
   const [geo, setGeo] = useState<FeatureCollection<Geometry, GeoJsonProperties> | null>(null);
   const [macros, setMacros] = useState<Macrorregiao[]>([]);
   const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
+  const [facilities, setFacilities] = useState<FacilityOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedUf, setSelectedUf] = useState<string | null>(null);
@@ -62,11 +64,12 @@ export function MapaPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([fetch(GEOJSON_URL).then((r) => r.json()), fetchMacroCoverage(FAMILIA)])
-      .then(([geoData, coverage]) => {
+    Promise.all([fetch(GEOJSON_URL).then((r) => r.json()), fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
+      .then(([geoData, coverage, facilityOptions]) => {
         setGeo(geoData);
         setMacros(coverage.macros);
         setCoberturaRows(coverage.coberturaRows);
+        setFacilities(facilityOptions);
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -332,12 +335,14 @@ export function MapaPage() {
           equipmentFamily={FAMILIA}
           macros={macros}
           coberturaRowsTodas={coberturaRows}
+          facilities={facilities}
           filtrosIniciais={{
             regioes: [],
             ufs: selectedUf ? [selectedUf] : [],
             macros: [],
             regioesSaude: [],
             municipios: [],
+            cnes: [],
           }}
           capturarMapa={capturarMapa}
         />
