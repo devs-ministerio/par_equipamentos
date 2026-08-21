@@ -1,0 +1,34 @@
+# Postgres embutido localmente (backend/.pgsql = distribuicao completa do
+# Postgres, backend/.pgdata = data directory rodando de verdade, com dados
+# reais, backend/pg-binaries.zip = o instalador) -- ~1.1GB ao todo, nunca
+# deveria ir pro repo. Setup local, nao artefato versionavel; producao/outros
+# devs devem apontar DATABASE_URL pra um Postgres proprio (servico do SO,
+# Docker ou gerenciado), nao reusar esse diretorio.
+backend/.pgsql/
+backend/.pgdata/
+backend/pg-binaries.zip
+
+# Logs de processo (uvicorn/vite) rodando em background nesta maquina.
+*.log
+
+# Python
+__pycache__/
+*.py[oc]
+*.egg-info/
+.venv/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+
+# Env locais (segredo/URL de maquina) -- .env.example fica versionado.
+.env
+.env.local
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

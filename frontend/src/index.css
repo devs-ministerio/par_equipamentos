@@ -1,0 +1,32 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Public Sans', -apple-system, sans-serif;
+  background: #f4f6fb;
+  color: #16213e;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c7cede;
+  border-radius: 4px;
+}
+
+button {
+  font-family: inherit;
+}
