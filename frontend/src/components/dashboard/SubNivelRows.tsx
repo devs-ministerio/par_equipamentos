@@ -4,13 +4,9 @@ import { calcularCoeficiente } from '../../utils/coeficiente';
 import { formatMultiplicador } from '../../utils/format';
 import { StatusBadge } from '../common/StatusBadge';
 import { fetchMunicipalityCoverage } from '../../services/api';
+import { MunicipioDetalheModal } from './MunicipioDetalheModal';
 
 type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
-
-export interface SelecaoSubNivel {
-  linha: NivelCoberturaRow;
-  nivel: 'regiaoSaude' | 'municipio';
-}
 
 interface Props {
   rows: NivelCoberturaRow[];
@@ -18,10 +14,8 @@ interface Props {
    * (pra Municipio, que ja e o nivel mais fino que a base tem). */
   nivelAtual: 'regiaoSaude' | 'municipio';
   equipmentFamily: string;
-  /** Clique no "alvo" de cada linha -- aplica o filtro (mesma cascata que
-   * clicar num municipio ja fazia antes). */
-  onSelecionar?: (selecao: SelecaoSubNivel) => void;
-  /** chaves ja selecionadas no filtro (destaca a linha). */
+  /** chaves ja selecionadas no filtro (so destaque visual -- clicar num
+   * municipio nao filtra mais, ver botao de detalhe abaixo). */
   selecionados?: string[];
 }
 
@@ -32,6 +26,10 @@ interface Props {
  * uma linha de Regiao de Saude pode ela mesma expandir em Municipios (o
  * proprio componente busca e se re-renderiza com nivelAtual="municipio"),
  * cobrindo a cadeia completa Macrorregiao -> Regiao de Saude -> Municipio.
+ *
+ * Municipio (folha) nao filtra mais ao clicar (removido a pedido) -- em vez
+ * disso tem um botao de detalhe que abre um modal so com o dado que a
+ * propria linha ja carrega (sem requisicao nova, ver MunicipioDetalheModal).
  */
 // RN especifica de TOMOGRAFO (ver Metodologia): municipio abaixo do
 // parametro normativo nunca foi esperado ter equipamento proprio -- na
@@ -41,9 +39,40 @@ interface Props {
 // "de bonus"), entao continua aparecendo do tamanho que for.
 const POPULACAO_MINIMA_PARA_HIPO = 100_000;
 
-export function SubNivelRows({ rows, nivelAtual, equipmentFamily, onSelecionar, selecionados }: Props) {
+function BotaoDetalhe({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      title="Mais informações"
+      aria-label="Mais informações"
+      style={{
+        display: 'inline-flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 3,
+        width: 26,
+        height: 22,
+        border: '1px solid #dde2ea',
+        borderRadius: 5,
+        background: '#fff',
+        cursor: 'pointer',
+        padding: 0,
+      }}
+    >
+      <span style={{ display: 'block', width: 14, height: 2, borderRadius: 1, background: '#667085', margin: '0 auto' }} />
+      <span style={{ display: 'block', width: 14, height: 2, borderRadius: 1, background: '#667085', margin: '0 auto' }} />
+      <span style={{ display: 'block', width: 14, height: 2, borderRadius: 1, background: '#667085', margin: '0 auto' }} />
+    </button>
+  );
+}
+
+export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }: Props) {
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
+  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
 
   // Excecao ao corte: se NENHUM municipio do grupo tem >=100 mil habitantes
   // E nenhum tem tomografo nenhum, o corte normal deixaria a sub-camada
@@ -80,112 +109,113 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, onSelecionar, 
   }
 
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-      <tbody>
-        {rowsExibidas.map((linha) => {
-          const coef = calcularCoeficiente(linha.oferta, linha.pop);
-          const expansivel = nivelAtual === 'regiaoSaude';
-          const expandida = expandidas.has(linha.chave);
-          const filhos = filhosPorChave[linha.chave];
-          const selecionada = selecionados?.includes(linha.chave);
-          return (
-            <Fragment key={linha.chave}>
-              <tr
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (expansivel) toggleExpandida(linha.chave);
-                  else onSelecionar?.({ linha, nivel: nivelAtual });
-                }}
-                style={{
-                  borderTop: '1px solid #e2e6ee',
-                  cursor: 'pointer',
-                  background: selecionada ? '#eef2ff' : 'transparent',
-                }}
-              >
-                <td style={{ padding: '6px 8px 6px 4px', fontWeight: 500, color: '#16213e' }}>
-                  {expansivel && (
-                    <span
-                      style={{
-                        fontSize: 9,
-                        color: '#98a0b3',
-                        display: 'inline-block',
-                        marginRight: 6,
-                        transform: expandida ? 'rotate(90deg)' : 'none',
-                        transition: 'transform 0.15s',
-                      }}
-                    >
-                      ▶
-                    </span>
-                  )}
-                  {linha.nome} <span style={{ color: '#98a0b3', fontWeight: 400 }}>({linha.uf})</span>
-                </td>
-                <td style={{ padding: '6px 8px', textAlign: 'right', color: '#475066', width: 130, whiteSpace: 'nowrap' }}>
-                  {linha.pop.toLocaleString('pt-BR')}
-                </td>
-                <td style={{ padding: '6px 8px', width: 200 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 3, background: '#eef0f4', overflow: 'clip' }}>
-                      <div
+    <>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <tbody>
+          {rowsExibidas.map((linha) => {
+            const coef = calcularCoeficiente(linha.oferta, linha.pop);
+            const expansivel = nivelAtual === 'regiaoSaude';
+            const expandida = expandidas.has(linha.chave);
+            const filhos = filhosPorChave[linha.chave];
+            const selecionada = selecionados?.includes(linha.chave);
+            return (
+              <Fragment key={linha.chave}>
+                <tr
+                  onClick={expansivel ? (e) => { e.stopPropagation(); toggleExpandida(linha.chave); } : undefined}
+                  style={{
+                    borderTop: '1px solid #e2e6ee',
+                    cursor: expansivel ? 'pointer' : 'default',
+                    background: selecionada ? '#eef2ff' : 'transparent',
+                  }}
+                >
+                  <td style={{ padding: '6px 8px 6px 4px', fontWeight: 500, color: '#16213e' }}>
+                    {expansivel && (
+                      <span
                         style={{
-                          position: 'absolute',
-                          left: 0,
-                          top: 0,
-                          height: '100%',
-                          width: `${coef.fillPercent}%`,
-                          background: coef.corBarra,
+                          fontSize: 9,
+                          color: '#98a0b3',
+                          display: 'inline-block',
+                          marginRight: 6,
+                          transform: expandida ? 'rotate(90deg)' : 'none',
+                          transition: 'transform 0.15s',
                         }}
-                      />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          bottom: 0,
-                          left: '50%',
-                          width: 2,
-                          background: '#475066',
-                          transform: 'translateX(-50%)',
-                        }}
-                      />
-                    </div>
-                    <div style={{ width: 108 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto, whiteSpace: 'nowrap' }}>
-                        {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
+                      >
+                        ▶
+                      </span>
+                    )}
+                    {linha.nome} <span style={{ color: '#98a0b3', fontWeight: 400 }}>({linha.uf})</span>
+                  </td>
+                  <td style={{ padding: '6px 8px', textAlign: 'right', color: '#475066', width: 130, whiteSpace: 'nowrap' }}>
+                    {linha.pop.toLocaleString('pt-BR')}
+                  </td>
+                  <td style={{ padding: '6px 8px', width: 200 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 3, background: '#eef0f4', overflow: 'clip' }}>
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            height: '100%',
+                            width: `${coef.fillPercent}%`,
+                            background: coef.corBarra,
+                          }}
+                        />
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            bottom: 0,
+                            left: '50%',
+                            width: 2,
+                            background: '#475066',
+                            transform: 'translateX(-50%)',
+                          }}
+                        />
                       </div>
-                      <div style={{ fontSize: 9.5, color: '#98a0b3', whiteSpace: 'nowrap' }}>
-                        {linha.oferta} SUS{linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal}`}
+                      <div style={{ width: 108 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto, whiteSpace: 'nowrap' }}>
+                          {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
+                        </div>
+                        <div style={{ fontSize: 9.5, color: '#98a0b3', whiteSpace: 'nowrap' }}>
+                          {linha.oferta} SUS{linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal}`}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td style={{ padding: '6px 4px 6px 12px', width: 130 }}>
-                  <StatusBadge cobertura={linha.cobertura} />
-                </td>
-              </tr>
-              {expandida && (
-                <tr>
-                  <td colSpan={4} style={{ padding: '4px 8px 8px 26px', background: '#f4f6fb' }}>
-                    {filhos === 'carregando' && (
-                      <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>Carregando municípios...</div>
-                    )}
-                    {filhos === 'erro' && (
-                      <div style={{ fontSize: 12, color: '#B40D0D', padding: '4px 0' }}>Não foi possível carregar os municípios.</div>
-                    )}
-                    {Array.isArray(filhos) && (
-                      <SubNivelRows
-                        rows={filhos}
-                        nivelAtual="municipio"
-                        equipmentFamily={equipmentFamily}
-                        onSelecionar={onSelecionar}
-                        selecionados={selecionados}
-                      />
-                    )}
+                  </td>
+                  <td style={{ padding: '6px 4px 6px 12px', width: 130 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <StatusBadge cobertura={linha.cobertura} />
+                      {nivelAtual === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(linha)} />}
+                    </div>
                   </td>
                 </tr>
-              )}
-            </Fragment>
-          );
-        })}
-      </tbody>
-    </table>
+                {expandida && (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '4px 8px 8px 26px', background: '#f4f6fb' }}>
+                      {filhos === 'carregando' && (
+                        <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>Carregando municípios...</div>
+                      )}
+                      {filhos === 'erro' && (
+                        <div style={{ fontSize: 12, color: '#B40D0D', padding: '4px 0' }}>Não foi possível carregar os municípios.</div>
+                      )}
+                      {Array.isArray(filhos) && (
+                        <SubNivelRows
+                          rows={filhos}
+                          nivelAtual="municipio"
+                          equipmentFamily={equipmentFamily}
+                          selecionados={selecionados}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+      {detalheAberto && <MunicipioDetalheModal linha={detalheAberto} onClose={() => setDetalheAberto(null)} />}
+    </>
   );
 }

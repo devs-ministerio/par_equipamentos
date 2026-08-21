@@ -6,7 +6,7 @@ import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { Pagination } from '../common/Pagination';
 import { fetchHealthRegionCoverage } from '../../services/api';
-import { SubNivelRows, type SelecaoSubNivel } from './SubNivelRows';
+import { SubNivelRows } from './SubNivelRows';
 
 const PAGE_SIZE = 20;
 
@@ -14,12 +14,9 @@ interface Props {
   equipmentFamily: string;
   rows: CoberturaRow[];
   macros: Macrorregiao[];
-  /** Clique numa sub-linha (Regiao de Saude ou Municipio) dentro do
-   * drill-down -- aplica a cascata de filtro (Municipio/Regiao de
-   * Saude/Macro), igual antes so que agora a partir de qualquer nivel. */
-  onSelecionarSubNivel: (selecao: SelecaoSubNivel, macroIdPai: string) => void;
   /** chaves (codigo de regiao de saude ou "NOME|UF" de municipio) ja
-   * selecionadas no filtro -- usado so pra destacar a linha. */
+   * selecionadas no filtro -- usado so pra destacar a linha (clicar numa
+   * sub-linha nao filtra mais, so abre detalhe no nivel Municipio). */
   subNivelSelecionados: string[];
   /** Filtro Hiper/Hipo -- controlado pelo Dashboard, que mostra os botões
    * junto do título "Cobertura Assistencial" (não mais dentro da tabela). */
@@ -34,7 +31,6 @@ export function CoberturaTable({
   equipmentFamily,
   rows,
   macros,
-  onSelecionarSubNivel,
   subNivelSelecionados,
   statusFiltro,
 }: Props) {
@@ -362,7 +358,6 @@ export function CoberturaTable({
                           rows={dados}
                           nivelAtual="regiaoSaude"
                           equipmentFamily={equipmentFamily}
-                          onSelecionar={(selecao) => onSelecionarSubNivel(selecao, macro.id)}
                           selecionados={subNivelSelecionados}
                         />
                       )}

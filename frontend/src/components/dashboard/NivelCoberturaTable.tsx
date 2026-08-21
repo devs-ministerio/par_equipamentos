@@ -6,7 +6,7 @@ import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { Pagination } from '../common/Pagination';
 import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '../../services/api';
-import { SubNivelRows, type SelecaoSubNivel } from './SubNivelRows';
+import { SubNivelRows } from './SubNivelRows';
 
 const PAGE_SIZE = 20;
 
@@ -29,10 +29,9 @@ interface Props {
   /** Filtro Hiper/Hipo -- controlado pelo Dashboard, que mostra os botões
    * junto do título "Cobertura Assistencial" (não mais dentro da tabela). */
   statusFiltro: Set<StatusCobertura>;
-  /** Clique numa sub-linha de Municipio dentro de uma Regiao de Saude
-   * expandida (so existe nivel='regiaoSaude' -- Municipio ja e o nivel mais
-   * fino, sem mais nada pra expandir). */
-  onSelecionarSubNivel: (selecao: SelecaoSubNivel, macroIdPai: string) => void;
+  /** chaves ja selecionadas no filtro -- so destaque visual nas sub-linhas
+   * de Municipio dentro de uma Regiao de Saude expandida (clicar nao filtra
+   * mais, so abre detalhe). */
   subNivelSelecionados: string[];
 }
 
@@ -49,7 +48,6 @@ export function NivelCoberturaTable({
   municipalities,
   semCorteDePopulacao,
   statusFiltro,
-  onSelecionarSubNivel,
   subNivelSelecionados,
 }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('nome');
@@ -392,7 +390,6 @@ export function NivelCoberturaTable({
                           rows={filhos}
                           nivelAtual="municipio"
                           equipmentFamily={equipmentFamily}
-                          onSelecionar={(selecao) => onSelecionarSubNivel(selecao, r.macroId ?? '')}
                           selecionados={subNivelSelecionados}
                         />
                       )}

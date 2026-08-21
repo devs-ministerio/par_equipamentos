@@ -3,7 +3,6 @@ import { KpiCard } from '../components/dashboard/KpiCard';
 import { MultiSelectFilter } from '../components/dashboard/MultiSelectFilter';
 import { CoberturaTable } from '../components/dashboard/CoberturaTable';
 import { NivelCoberturaTable } from '../components/dashboard/NivelCoberturaTable';
-import type { SelecaoSubNivel } from '../components/dashboard/SubNivelRows';
 import { EstabelecimentoTable } from '../components/dashboard/EstabelecimentoTable';
 import { StatusFilterButtons } from '../components/common/StatusFilterButtons';
 import { InfoIcon } from '../components/common/InfoIcon';
@@ -153,26 +152,6 @@ export function DashboardPage() {
     });
   }
 
-  // Clique numa sub-linha do drill-down da Cobertura Assistencial (Regiao de
-  // Saude dentro de uma Macro expandida, ou Municipio dentro de uma Regiao de
-  // Saude expandida) -- aplica a mesma cascata de filtro que ja existia pro
-  // clique em Municipio, so que agora a partir de qualquer nivel.
-  function onSelecionarSubNivel(selecao: SelecaoSubNivel, macroIdPai: string) {
-    setFiltroMacros((prev) => (prev.includes(macroIdPai) ? prev : [...prev, macroIdPai]));
-    if (selecao.nivel === 'regiaoSaude') {
-      const codigo = selecao.linha.chave;
-      setFiltroRegioesSaude((prev) => (prev.includes(codigo) ? prev.filter((v) => v !== codigo) : [...prev, codigo]));
-    } else {
-      const chaveMunicipio = `${selecao.linha.nome}|${selecao.linha.uf}`;
-      setFiltroMunicipios((prev) =>
-        prev.includes(chaveMunicipio) ? prev.filter((v) => v !== chaveMunicipio) : [...prev, chaveMunicipio],
-      );
-      const regiaoSaudeId = selecao.linha.regiaoSaudeId;
-      if (regiaoSaudeId) {
-        setFiltroRegioesSaude((prev) => (prev.includes(regiaoSaudeId) ? prev : [...prev, regiaoSaudeId]));
-      }
-    }
-  }
 
   // usados so no calculo de "pessoas por tomógrafo"/"multiplicador da meta"
   // abaixo -- esses dois dependem de populacao, que so existe agregada por
@@ -438,7 +417,6 @@ export function DashboardPage() {
             equipmentFamily={FAMILIA}
             rows={filteredRows}
             macros={macros}
-            onSelecionarSubNivel={onSelecionarSubNivel}
             subNivelSelecionados={[...filtroRegioesSaude, ...filtroMunicipios]}
             statusFiltro={statusFiltro}
           />
@@ -453,7 +431,6 @@ export function DashboardPage() {
             municipalities={municipiosFiltro}
             semCorteDePopulacao={Boolean(municipiosFiltro || cnesFiltro)}
             statusFiltro={statusFiltro}
-            onSelecionarSubNivel={onSelecionarSubNivel}
             subNivelSelecionados={[...filtroRegioesSaude, ...filtroMunicipios]}
           />
         )}
