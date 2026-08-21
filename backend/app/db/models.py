@@ -212,10 +212,21 @@ class IncaEstimate(Base):
 # ----------------------------------------------------------------------------
 
 class Competency(Base):
+    """Bug real encontrado em 2026-08-21: `label` (AAAA-MM) sozinho era
+    UNIQUE, sem distinguir familia de equipamento -- ao rodar o pipeline de
+    RESSONANCIA numa competencia que o TOMOGRAFO ja tinha usado, a rotina de
+    "so a ultima execucao da competencia fica publicada" (ver
+    scripts/run_pipeline_tomografo.py) apagou a execucao de TOMOGRAFO
+    daquele mes inteira (MacroCoverage/MunicipalityCoverage/EquipmentOfferRow),
+    porque as duas familias compartilhavam a mesma Competency. Corrigido:
+    unique agora e (label, equipment_family)."""
+
     __tablename__ = "competency"
+    __table_args__ = (UniqueConstraint("label", "equipment_family"),)
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    label: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    label: Mapped[str] = mapped_column(String, nullable=False)
+    equipment_family: Mapped[str] = mapped_column(String, nullable=False, server_default="TOMOGRAFO")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     published_execution_id: Mapped[int | None] = mapped_column(
         ForeignKey("execution.id", ondelete="RESTRICT", use_alter=True, name="fk_competency_published_execution")

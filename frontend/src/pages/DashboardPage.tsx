@@ -15,13 +15,13 @@ import {
 } from '../services/api';
 import type { EquipmentTotals, FacilityOption } from '../services/api';
 import { useFiltrosMacro } from '../hooks/useFiltrosMacro';
+import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
 import { colors } from '../styles/tokens';
 import { REGIOES } from '../data/constants';
 import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../types/domain';
 
-const FAMILIA = 'TOMOGRAFO';
-
 export function DashboardPage() {
+  const { familia: FAMILIA } = useFamiliaEquipamento();
   const [macros, setMacros] = useState<Macrorregiao[]>([]);
   const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
   const [facilities, setFacilities] = useState<FacilityOption[]>([]);
@@ -68,18 +68,27 @@ export function DashboardPage() {
     limparFiltros,
   } = useFiltrosMacro({ macros, coberturaRows, facilities });
 
+  // Re-roda ao trocar a familia selecionada no menu (SeletorEquipamento) --
+  // guarda contra corrida igual os outros efeitos: trocar de familia
+  // rapido (TOMOGRAFO -> RESSONANCIA -> TOMOGRAFO) pode fazer a resposta da
+  // familia anterior chegar depois da nova e sobrescrever o dado certo.
   useEffect(() => {
+    let cancelado = false;
     setLoading(true);
     setError(null);
     Promise.all([fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
       .then(([coverage, facilityOptions]) => {
+        if (cancelado) return;
         setMacros(coverage.macros);
         setCoberturaRows(coverage.coberturaRows);
         setFacilities(facilityOptions);
       })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((e: Error) => !cancelado && setError(e.message))
+      .finally(() => !cancelado && setLoading(false));
+    return () => {
+      cancelado = true;
+    };
+  }, [FAMILIA]);
 
   const estadosKey = estadosFiltro?.join(',') ?? '';
   const macrosKey = macrosFiltro?.join(',') ?? '';
@@ -94,7 +103,7 @@ export function DashboardPage() {
   useEffect(() => {
     setStatusFiltro(new Set());
     setNivelForcado(null);
-  }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
+  }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
 
   // Contagens dos cards clicaveis "Municípios Hipossuficientes" e "Regiões
   // de Saúde Hipossuficientes" -- mesmo recorte geografico dos outros cards, mas
@@ -142,7 +151,7 @@ export function DashboardPage() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey]);
+  }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey]);
 
   // Total de Tomógrafos / Total de Tomógrafos SUS vem direto de
   // equipment_offer_row (soma exata pro recorte pedido), nao de
@@ -168,7 +177,7 @@ export function DashboardPage() {
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
+  }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
 
 
   // fallback dos cards "Total de Tomógrafos"/"Total de Tomógrafos SUS"

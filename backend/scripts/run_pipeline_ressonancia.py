@@ -1,19 +1,25 @@
-"""Roda o pipeline real de TOMOGRAFO (DEMAS + SIDRA + ElastiCNES) e grava o
-resultado no banco -- substitui o seed fake (scripts/seed_tomografo.py) por
-dado de verdade, puxado ao vivo das APIs publicas.
+"""Roda o pipeline real de RESSONANCIA (DEMAS + SIDRA + ElastiCNES) e grava o
+resultado no banco -- segunda familia do SIEO (decisao 2026-08-21), copiado
+de scripts/run_pipeline_tomografo.py trocando so o que e especifico da
+familia (fetch do ElastiCNES e a produtividade).
 
-Uso: python -m scripts.run_pipeline_tomografo (de dentro de backend/, venv ativo)
+Uso: python -m scripts.run_pipeline_ressonancia (de dentro de backend/, venv ativo)
 
-Logica portada de src/pipeline.py + src/services/cobertura.py (pipeline
-legado), simplificada pra uma unica familia (TOMOGRAFO) sem depender de
-planilha nenhuma -- oferta vem 100% do ElastiCNES, demanda 100% de
-DEMAS (dimensao) + SIDRA (populacao residente, ao vivo) + arquivo de
-referencia de populacao ANS (scripts/importar_populacao_municipios.py,
-sem API oficial ao vivo conhecida pra beneficiarios de plano de saude).
-D-02 (denominador_oferta = qt_existente_sus) ja confirmado com a area,
-aplicado direto aqui. Decisao 2026-08-21: o denominador de DEMANDA passou
-de populacao residente total pra populacao SUS-dependente (residente -
-ANS) -- consistente com a oferta ja ser so-SUS."""
+Metodologia (parametro passado pela area, 2026-08-21):
+  - 5.000 exames/ano de capacidade por equipamento
+  - necessidade de 30 exames/1.000 habitantes/ano
+  => 1 ressonancia cobre 5.000 / (30/1.000) = 166.666,67 habitantes.
+  PRODUTIVIDADE abaixo e essa razao (habitantes por equipamento) --
+  calcular_cobertura() ja e generica o bastante pra receber qualquer
+  produtividade, entao a formula (1 equip. por X habitantes) e a mesma do
+  TOMOGRAFO, so muda o X.
+
+Oferta vem 100% do ElastiCNES, demanda 100% de DEMAS (dimensao) + SIDRA
+(populacao residente, ao vivo) + arquivo de referencia de populacao ANS
+(scripts/importar_populacao_municipios.py, sem API oficial ao vivo
+conhecida pra beneficiarios de plano de saude). D-02 (denominador_oferta =
+qt_existente_sus) vale igual pra toda familia; populacao SUS-dependente
+(residente - ANS) idem."""
 from __future__ import annotations
 
 from sqlalchemy import delete, func, select
@@ -34,8 +40,10 @@ from app.db.models import (
 from app.pipeline import api_demas, api_elasticnes, api_sidra
 from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente
 
-FAMILIA = "TOMOGRAFO"
-PRODUTIVIDADE = 100_000  # 1 tomografo por 100 mil habitantes (Metodologia)
+FAMILIA = "RESSONANCIA"
+# 5.000 exames/ano por equipamento; necessidade de 30 exames/1.000 hab/ano
+# => 1 equip. por (5_000 / (30 / 1_000)) = 166_666.67 habitantes.
+PRODUTIVIDADE = 5_000 / (30 / 1_000)
 
 
 def _competency_label(competencia_aaaamm: str) -> str:
@@ -87,8 +95,8 @@ def run() -> None:
               "'python -m scripts.importar_populacao_municipios' antes pra ter SUS-dependente "
               "de verdade. Por enquanto, sus_dependente = residente inteiro (sem desconto de ANS).")
 
-    print("3/4 - Baixando inventario de TOMOGRAFO do ElastiCNES...")
-    equipamentos, competencia_elasticnes = api_elasticnes.buscar_equipamentos_tomografo()
+    print("3/4 - Baixando inventario de RESSONANCIA do ElastiCNES...")
+    equipamentos, competencia_elasticnes = api_elasticnes.buscar_equipamentos_ressonancia()
     print(f"   {len(equipamentos)} registros (competencia {competencia_elasticnes}).")
 
     print("4/4 - Agregando por macrorregiao e gravando no banco...")

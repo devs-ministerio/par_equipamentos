@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useFamiliaEquipamento } from '../../context/FamiliaEquipamentoContext';
 import { colors, layout } from '../../styles/tokens';
 import { EQUIPAMENTOS } from '../../data/constants';
 
@@ -9,14 +10,16 @@ const ITEMS = [
   { path: '/relatorios', label: 'Relatórios' },
 ];
 
-/** Seletor de familia de equipamento -- so Tomografo tem pipeline/dado real
- * hoje (Fase 1); as demais aparecem desabilitadas ("em breve") pra deixar
- * claro que o escopo maior do projeto ja esta desenhado, sem virar link
- * morto. */
+/** Seletor de familia de equipamento -- troca a familia lida por
+ * Dashboard/Mapa/Relatorios inteiras (via FamiliaEquipamentoContext).
+ * TOMOGRAFO e RESSONANCIA tem pipeline/dado real hoje; as demais aparecem
+ * desabilitadas pra deixar claro que o escopo maior do projeto ja esta
+ * desenhado, sem virar link morto. */
 function SeletorEquipamento() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const atual = EQUIPAMENTOS[0]; // TOMOGRAFO -- unica selecionavel por enquanto
+  const { familia, setFamilia } = useFamiliaEquipamento();
+  const atual = EQUIPAMENTOS.find((eq) => eq.familia === familia) ?? EQUIPAMENTOS[0];
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -77,7 +80,11 @@ function SeletorEquipamento() {
                 padding: '8px 14px',
                 cursor: eq.disponivel ? 'pointer' : 'not-allowed',
               }}
-              onClick={() => eq.disponivel && setOpen(false)}
+              onClick={() => {
+                if (!eq.disponivel) return;
+                setFamilia(eq.familia);
+                setOpen(false);
+              }}
             >
               {eq.rotulo}
             </div>

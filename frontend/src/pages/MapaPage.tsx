@@ -7,6 +7,7 @@ import type { FacilityOption } from '../services/api';
 import { statusMeta } from '../utils/status';
 import { formatMilhar } from '../utils/format';
 import { svgParaPng } from '../utils/captureSvg';
+import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
 import { colors } from '../styles/tokens';
 import type { CoberturaRow, EstabelecimentoRow, Macrorregiao } from '../types/domain';
 
@@ -21,7 +22,6 @@ const MAX_ESTABELECIMENTOS_POR_UF = 2000; // maior estado (SP) tem ~1700
 // internet puder baixa-lo -- o agente que fez essa revisao rodava num
 // sandbox sem acesso de rede de saida e nao pode baixar o arquivo aqui.
 const GEOJSON_URL = 'https://cdn.jsdelivr.net/gh/codeforamerica/click_that_hood@master/public/data/brazil-states.geojson';
-const FAMILIA = 'TOMOGRAFO';
 
 function LegendPill({ color, bg, label }: { color: string; bg: string; label: string }) {
   return (
@@ -33,6 +33,7 @@ function LegendPill({ color, bg, label }: { color: string; bg: string; label: st
 }
 
 export function MapaPage() {
+  const { familia: FAMILIA } = useFamiliaEquipamento();
   const [geo, setGeo] = useState<FeatureCollection<Geometry, GeoJsonProperties> | null>(null);
   const [macros, setMacros] = useState<Macrorregiao[]>([]);
   const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
@@ -61,23 +62,43 @@ export function MapaPage() {
     });
   }
 
+  // Geometria dos estados so precisa vir uma vez (nao depende de familia).
   useEffect(() => {
+    let cancelado = false;
+    fetch(GEOJSON_URL)
+      .then((r) => r.json())
+      .then((geoData) => !cancelado && setGeo(geoData))
+      .catch((e: Error) => !cancelado && setError(e.message));
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  // Cobertura/facilities re-busca ao trocar a familia selecionada no menu --
+  // guarda contra corrida igual DashboardPage (trocar de familia rapido pode
+  // fazer a resposta antiga chegar depois e sobrescrever a nova).
+  useEffect(() => {
+    let cancelado = false;
     setLoading(true);
     setError(null);
-    Promise.all([fetch(GEOJSON_URL).then((r) => r.json()), fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
-      .then(([geoData, coverage, facilityOptions]) => {
-        setGeo(geoData);
+    Promise.all([fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
+      .then(([coverage, facilityOptions]) => {
+        if (cancelado) return;
         setMacros(coverage.macros);
         setCoberturaRows(coverage.coberturaRows);
         setFacilities(facilityOptions);
       })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((e: Error) => !cancelado && setError(e.message))
+      .finally(() => !cancelado && setLoading(false));
+    return () => {
+      cancelado = true;
+    };
+  }, [FAMILIA]);
 
   // busca so quando um estado e selecionado -- em vez de trazer os ~8000
   // estabelecimentos nacionais pra so mostrar o recorte de 1 UF por vez.
   useEffect(() => {
+    let cancelado = false;
     setMacrosExpandidas(new Set());
     if (!selectedUf) {
       setUfEstabelecimentos([]);
@@ -90,10 +111,13 @@ export function MapaPage() {
       page: 1,
       pageSize: MAX_ESTABELECIMENTOS_POR_UF,
     })
-      .then((res) => setUfEstabelecimentos(res.items))
-      .catch(() => setUfEstabelecimentos([]))
-      .finally(() => setUfEstabLoading(false));
-  }, [selectedUf]);
+      .then((res) => !cancelado && setUfEstabelecimentos(res.items))
+      .catch(() => !cancelado && setUfEstabelecimentos([]))
+      .finally(() => !cancelado && setUfEstabLoading(false));
+    return () => {
+      cancelado = true;
+    };
+  }, [FAMILIA, selectedUf]);
 
   const ufCobertura = useMemo(() => {
     const porUf: Record<string, number[]> = {};

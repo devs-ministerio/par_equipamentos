@@ -3,11 +3,10 @@ import { ExportPdfModal } from '../components/modals/ExportPdfModal';
 import { ExportXlsxModal } from '../components/modals/ExportXlsxModal';
 import { fetchFacilities, fetchMacroCoverage } from '../services/api';
 import type { FacilityOption } from '../services/api';
+import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
 import { colors } from '../styles/tokens';
 import { MetodologiaPage } from './MetodologiaPage';
 import type { CoberturaRow, Macrorregiao } from '../types/domain';
-
-const FAMILIA = 'TOMOGRAFO';
 
 const FILTROS_VAZIOS = { regioes: [], ufs: [], macros: [], regioesSaude: [], municipios: [], cnes: [] };
 
@@ -57,6 +56,7 @@ function CardExportar({
  * embutido, entao da pra escolher de novo aqui sem perda de funcionalidade).
  */
 export function RelatoriosPage() {
+  const { familia: FAMILIA } = useFamiliaEquipamento();
   const [macros, setMacros] = useState<Macrorregiao[]>([]);
   const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
   const [facilities, setFacilities] = useState<FacilityOption[]>([]);
@@ -66,17 +66,22 @@ export function RelatoriosPage() {
   const [exportXlsxAberto, setExportXlsxAberto] = useState(false);
 
   useEffect(() => {
+    let cancelado = false;
     setLoading(true);
     setError(null);
     Promise.all([fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
       .then(([coverage, facilityOptions]) => {
+        if (cancelado) return;
         setMacros(coverage.macros);
         setCoberturaRows(coverage.coberturaRows);
         setFacilities(facilityOptions);
       })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch((e: Error) => !cancelado && setError(e.message))
+      .finally(() => !cancelado && setLoading(false));
+    return () => {
+      cancelado = true;
+    };
+  }, [FAMILIA]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -1,11 +1,19 @@
 """Cliente do ElastiCNES -- inventario de equipamentos direto do CNES.
-Portado de src/extract/api_elasticnes.py (pipeline legado), recortado so
-pros codigos de TOMOGRAFO (Fase 1 do SIEO e so essa familia por enquanto --
-ver docs/design, decisao de 2026-08-13).
+Portado de src/extract/api_elasticnes.py (pipeline legado), Fase 1 do SIEO
+era so TOMOGRAFO (decisao 2026-08-13); RESSONANCIA entrou em 2026-08-21
+reaproveitando a mesma busca generica (`_buscar_equipamentos`), so troca o
+de-para (tipo, codigo) -> subtipo.
 
 Achado critico (herdado do legado, ainda vale): `EQUIPAMENTO - CÓDIGO` NAO e
 unico globalmente -- so dentro de cada `EQUIPAMENTO - TIPO`. Por isso o
 filtro abaixo usa sempre o par (tipo, codigo).
+
+Codigos verificados ao vivo em 2026-08-21 (agregacao por
+EQUIPAMENTO - CÓDIGO dentro de EQUIPAMENTO - TIPO = DIAGNOSTICO POR IMAGEM):
+  Tomografo: 11 (antigo, sem subtipo), 26 (4 canais), 27 (16 canais),
+             28 (32 canais), 29 (64 canais), 30 (128 canais)
+  Ressonancia: 12 (antigo, sem subtipo), 32 (0.5T), 33 (1.5T), 34 (3T),
+               35 (campo aberto)
 """
 from __future__ import annotations
 
@@ -31,6 +39,14 @@ _DE_PARA_TOMOGRAFO = {
     ("DIAGNOSTICO POR IMAGEM", "28"): "32_CANAIS",
     ("DIAGNOSTICO POR IMAGEM", "29"): "64_CANAIS",
     ("DIAGNOSTICO POR IMAGEM", "30"): "128_CANAIS",
+}
+
+_DE_PARA_RESSONANCIA = {
+    ("DIAGNOSTICO POR IMAGEM", "12"): None,
+    ("DIAGNOSTICO POR IMAGEM", "32"): "0_5_TESLA",
+    ("DIAGNOSTICO POR IMAGEM", "33"): "1_5_TESLA",
+    ("DIAGNOSTICO POR IMAGEM", "34"): "3_TESLA",
+    ("DIAGNOSTICO POR IMAGEM", "35"): "CAMPO_ABERTO",
 }
 
 
@@ -88,6 +104,18 @@ def _competencia_mais_recente(session: requests.Session) -> str:
 def buscar_equipamentos_tomografo(competencia: str | None = None) -> tuple[list[EquipamentoRow], str]:
     """Busca o inventario de TOMOGRAFO pra uma competencia (AAAAMM) -- usa a
     mais recente publicada se nao for passada. Retorna (linhas, competencia_usada)."""
+    return _buscar_equipamentos(_DE_PARA_TOMOGRAFO, competencia)
+
+
+def buscar_equipamentos_ressonancia(competencia: str | None = None) -> tuple[list[EquipamentoRow], str]:
+    """Idem, pra RESSONANCIA (codigos 12/32/33/34/35 -- ver comentario no topo
+    do arquivo)."""
+    return _buscar_equipamentos(_DE_PARA_RESSONANCIA, competencia)
+
+
+def _buscar_equipamentos(
+    de_para: dict[tuple[str, str], str | None], competencia: str | None
+) -> tuple[list[EquipamentoRow], str]:
     session = _sessao_com_retry()
     competencia = competencia or _competencia_mais_recente(session)
 
@@ -96,7 +124,7 @@ def buscar_equipamentos_tomografo(competencia: str | None = None) -> tuple[list[
             {"term": {"EQUIPAMENTO - TIPO.keyword": tipo}},
             {"term": {"EQUIPAMENTO - CÓDIGO.keyword": codigo}},
         ]}}
-        for (tipo, codigo) in _DE_PARA_TOMOGRAFO
+        for (tipo, codigo) in de_para
     ]
 
     linhas = []
@@ -131,14 +159,14 @@ def buscar_equipamentos_tomografo(competencia: str | None = None) -> tuple[list[
     for h in linhas:
         f = h["_source"]
         chave = (f.get("EQUIPAMENTO - TIPO"), f.get("EQUIPAMENTO - CÓDIGO"))
-        if chave not in _DE_PARA_TOMOGRAFO:
+        if chave not in de_para:
             continue  # nao deveria acontecer (filtro ja restringe), mas nunca inventa dado
         registros.append(EquipamentoRow(
             co_cnes=str(f.get("CNES")),
             no_fantasia=f.get("NOME FANTASIA") or None,
             co_ibge=str(f.get("CÓDIGO DO MUNICÍPIO")),
             sg_uf=f.get("UF"),
-            ds_subtipo=_DE_PARA_TOMOGRAFO[chave],
+            ds_subtipo=de_para[chave],
             qt_existente=int(f.get("EQUIPAMENTO - QTD EXISTENTE") or 0),
             qt_uso=int(f.get("EQUIPAMENTO - QTD EM USO") or 0),
             fl_sus=str(f.get("EQUIPAMENTO - SUS?")).strip().upper() == "SIM",
