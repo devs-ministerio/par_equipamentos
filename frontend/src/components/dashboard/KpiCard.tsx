@@ -5,14 +5,21 @@ export function KpiCard({
   value,
   color,
   info,
+  onClick,
+  ativo,
 }: {
   label: string;
   value: string | number;
   color: string;
   info?: ReactNode;
+  /** Quando presente, o card vira clicável (cursor, hover, destaque). */
+  onClick?: () => void;
+  /** Destaca visualmente o card quando o filtro que ele aciona já está ativo. */
+  ativo?: boolean;
 }) {
   return (
     <div
+      onClick={onClick}
       style={{
         background: '#fff',
         borderRadius: 8,
@@ -25,6 +32,9 @@ export function KpiCard({
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
+        cursor: onClick ? 'pointer' : 'default',
+        border: ativo ? `1.5px solid ${color}` : '1.5px solid transparent',
+        boxShadow: ativo ? `0 0 0 3px ${color}22` : 'none',
       }}
     >
       <div

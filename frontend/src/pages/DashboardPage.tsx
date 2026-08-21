@@ -9,10 +9,15 @@ import { StatusFilterButtons } from '../components/common/StatusFilterButtons';
 import { InfoIcon } from '../components/common/InfoIcon';
 import { ExportPdfModal } from '../components/modals/ExportPdfModal';
 import { ExportXlsxModal } from '../components/modals/ExportXlsxModal';
-import { fetchEquipmentTotals, fetchFacilities, fetchMacroCoverage } from '../services/api';
+import {
+  fetchEquipmentTotals,
+  fetchFacilities,
+  fetchHealthRegionCoverage,
+  fetchMacroCoverage,
+  fetchMunicipalityCoverage,
+} from '../services/api';
 import type { EquipmentTotals, FacilityOption } from '../services/api';
 import { useFiltrosMacro } from '../hooks/useFiltrosMacro';
-import { formatMilhar, formatMultiplicador } from '../utils/format';
 import { colors } from '../styles/tokens';
 import { REGIOES } from '../data/constants';
 import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../types/domain';
@@ -29,6 +34,14 @@ export function DashboardPage() {
   const [expandedCnes, setExpandedCnes] = useState<Set<string>>(new Set());
   const [statusFiltro, setStatusFiltro] = useState<Set<StatusCobertura>>(new Set());
   const [totais, setTotais] = useState<EquipmentTotals | null>(null);
+  const [municipiosGrandesDeficit, setMunicipiosGrandesDeficit] = useState<number | null>(null);
+  const [regioesSaudeDeficit, setRegioesSaudeDeficit] = useState<number | null>(null);
+  // Forca a tabela "Cobertura Assistencial" pro nivel escolhido mesmo sem um
+  // filtro geografico daquele nivel especifico selecionado -- so os cards de
+  // deficit acionam isso (clicar neles quer dizer "me mostra a lista", nao
+  // "eu escolhi uma regiao/cidade"). Zerado junto com statusFiltro sempre que
+  // o filtro geografico principal muda.
+  const [nivelForcado, setNivelForcado] = useState<'macro' | 'regiaoSaude' | 'municipio' | null>(null);
   const [exportPdfAberto, setExportPdfAberto] = useState(false);
   const [exportXlsxAberto, setExportXlsxAberto] = useState(false);
 
@@ -85,7 +98,33 @@ export function DashboardPage() {
   // UF/macro/regiao/municipio/CNES, escondendo linhas sem o usuario perceber.
   useEffect(() => {
     setStatusFiltro(new Set());
+    setNivelForcado(null);
   }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
+
+  // Contagens dos cards clicaveis "Municípios em déficit" e "Regiões de
+  // Saúde em déficit" -- mesmo recorte geografico dos outros cards, mas
+  // sempre com o corte de 100 mil habitantes pro nivel Municipio (RN
+  // especifica de TOMOGRAFO: municipio menor nunca foi esperado ter
+  // equipamento proprio, ver Metodologia) independente de
+  // semCorteDePopulacao (que so vale quando o USUARIO ja escolheu um
+  // municipio/CNES especifico).
+  useEffect(() => {
+    fetchMunicipalityCoverage({
+      equipmentFamily: FAMILIA,
+      states: estadosFiltro,
+      macroCodes: macrosFiltro,
+      healthRegionCodes: regioesSaudeFiltro,
+      municipalities: municipiosFiltro,
+      minPopulation: 100_000,
+    })
+      .then((rows) => setMunicipiosGrandesDeficit(rows.filter((r) => r.status === 'Hipossuficiente').length))
+      .catch(() => setMunicipiosGrandesDeficit(null));
+
+    fetchHealthRegionCoverage({ equipmentFamily: FAMILIA, states: estadosFiltro, macroCodes: macrosFiltro })
+      .then((rows) => setRegioesSaudeDeficit(rows.filter((r) => r.status === 'Hipossuficiente').length))
+      .catch(() => setRegioesSaudeDeficit(null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey]);
 
   // Total de Tomógrafos / Total de Tomógrafos SUS vem direto de
   // equipment_offer_row (soma exata pro recorte pedido), nao de
@@ -143,23 +182,22 @@ export function DashboardPage() {
   const totalEquipGeralMacro = filteredRows.reduce((s, r) => s + r.ofertaTotal, 0);
   // Região de Saúde / Município / CNES sao mais finos que macro -- os cards
   // de população/cobertura (que só existem por macro) ficam com uma ressalva
-  // quando algum desses estiver filtrado.
-  const granularidadeFina = Boolean(regioesSaudeFiltro || municipiosFiltro || cnesFiltro);
-  // Nivel da tabela "Cobertura Assistencial": Municipio/CNES -> municipio;
-  // so Regiao de Saude -> regiao de saude; UF/Macro/nenhum filtro -> macro
+  // Nivel da tabela "Cobertura Assistencial": nivelForcado (acionado pelos
+  // cards de deficit) tem prioridade; senao, Municipio/CNES -> municipio; so
+  // Regiao de Saude -> regiao de saude; UF/Macro/nenhum filtro -> macro
   // (decisao 2026-08-21). Municipio/CNES tem prioridade sobre Regiao de
   // Saude porque escolher um municipio ou CNES especifico ja implica (via
   // cascata do hook) a regiao de saude dele tambem estar marcada.
   const nivelTabela: 'macro' | 'regiaoSaude' | 'municipio' =
-    municipiosFiltro || cnesFiltro ? 'municipio' : regioesSaudeFiltro ? 'regiaoSaude' : 'macro';
+    nivelForcado ?? (municipiosFiltro || cnesFiltro ? 'municipio' : regioesSaudeFiltro ? 'regiaoSaude' : 'macro');
   const macrosHipo = filteredRows.filter((r) => r.status === 'Hipossuficiente').length;
-  const coberturaMedia = filteredRows.length
-    ? Math.round((filteredRows.reduce((s, r) => s + r.cobertura, 0) / filteredRows.length) * 10) / 10
-    : 0;
-  // soma populacao / soma oferta (nao media das razoes por macro) -- mesma
-  // logica ponderada usada pra "pessoas por equipamento" na CoberturaTable.
-  const totalPop = filteredRows.reduce((s, r) => s + (macros.find((m) => m.id === r.macroId)?.pop ?? 0), 0);
-  const pessoasPorTomografo = totalEquipMacro > 0 ? totalPop / totalEquipMacro : null;
+
+  // Clique nos cards de deficit -- mostra a lista (forca o nivel da tabela)
+  // e ja filtra por Hipossuficiente.
+  function verDeficit(nivel: 'macro' | 'regiaoSaude' | 'municipio') {
+    setNivelForcado(nivel);
+    setStatusFiltro(new Set(['Hipossuficiente']));
+  }
 
   if (loading) {
     return <div style={{ padding: 60, textAlign: 'center', color: colors.subtleText }}>Carregando dados...</div>;
@@ -316,67 +354,38 @@ export function DashboardPage() {
           }
         />
         <KpiCard label="Total de Tomógrafos SUS" value={totais?.availableQty ?? totalEquipMacro} color="#16213e" />
-        <KpiCard label="Macrorregiões com Hipossuficiente" value={`${macrosHipo} de ${filteredRows.length}`} color="#a32d2d" />
         <KpiCard
-          label={'Pessoas por tomógrafo'}
-          value={pessoasPorTomografo != null ? `${formatMilhar(pessoasPorTomografo)}/1` : '—'}
-          color={coberturaMedia >= 100 ? '#3b6d11' : '#ba7517'}
+          label="Municípios em déficit"
+          value={municipiosGrandesDeficit != null ? municipiosGrandesDeficit : '—'}
+          color="#a32d2d"
+          onClick={() => verDeficit('municipio')}
+          ativo={nivelForcado === 'municipio'}
           info={
             <InfoIcon>
-              <div>
-                População <strong>SUS-dependente</strong> (IBGE ao vivo do SIDRA − beneficiários de plano de saúde
-                via ANS) dividida pelos tomógrafos SUS — quem tem plano privado não compete pela vaga no SUS.
-              </div>
-              {granularidadeFina && (
-                <div style={{ marginTop: 8, fontSize: 10, color: '#f0b429' }}>
-                  População e cobertura só existem por macrorregião de saúde — com filtro de Região de Saúde,
-                  Município ou CNES aplicado, esse número reflete a(s) macrorregião(ões) inteira(s) do recorte
-                  escolhido, não só a área filtrada.
-                </div>
-              )}
+              Municípios com pelo menos 100 mil habitantes SUS-dependentes e menos de 1 tomógrafo SUS por 100 mil
+              (Hipossuficiente), no recorte de filtro atual. Clique pra ver a lista.
             </InfoIcon>
           }
         />
         <KpiCard
-          label={'Multiplicador da meta (100k/aparelho)'}
-          value={formatMultiplicador(coberturaMedia / 100)}
-          color={coberturaMedia >= 100 ? '#3b6d11' : '#ba7517'}
+          label="Regiões de Saúde em déficit"
+          value={regioesSaudeDeficit != null ? regioesSaudeDeficit : '—'}
+          color="#a32d2d"
+          onClick={() => verDeficit('regiaoSaude')}
+          ativo={nivelForcado === 'regiaoSaude'}
           info={
             <InfoIcon>
-              <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Parâmetro normativo</div>
-              <div>
-                1 tomógrafo por <strong>100 mil habitantes SUS-dependentes</strong>
-              </div>
-              <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Fórmula</div>
-              <div
-                style={{
-                  fontFamily: 'monospace',
-                  fontSize: 11,
-                  marginTop: 4,
-                  background: 'rgba(255,255,255,0.08)',
-                  padding: '6px 8px',
-                  borderRadius: 4,
-                }}
-              >
-                População SUS-dependente ÷ Tomógrafos SUS ÷ 100 mil
-              </div>
-              <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                SUS-dependente = população IBGE (ao vivo, SIDRA) − beneficiários de plano de saúde (ANS, arquivo de
-                referência) — consistente com a oferta já ser só a quantidade SUS.
-              </div>
-              {granularidadeFina && (
-                <div style={{ marginTop: 8, fontSize: 10, color: '#f0b429' }}>
-                  População e cobertura só existem por macrorregião — com Região de Saúde, Município ou CNES
-                  filtrado, este número reflete a(s) macrorregião(ões) inteira(s) do recorte, não só a área filtrada.
-                </div>
-              )}
-              <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                Ex.: 3,90x significa que a região tem quase 4 vezes a quantidade de tomógrafos exigida pela meta —
-                quanto maior o multiplicador, maior a capacidade ociosa da região, ou seja, mais vaga disponível pra
-                atender demanda adicional.
-              </div>
+              Regiões de saúde com menos de 1 tomógrafo SUS por 100 mil habitantes SUS-dependentes
+              (Hipossuficiente), no recorte de filtro atual. Clique pra ver a lista.
             </InfoIcon>
           }
+        />
+        <KpiCard
+          label="Macrorregiões com Hipossuficiente"
+          value={`${macrosHipo} de ${filteredRows.length}`}
+          color="#a32d2d"
+          onClick={() => verDeficit('macro')}
+          ativo={nivelForcado === 'macro'}
         />
       </div>
 
