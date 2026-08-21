@@ -83,9 +83,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
     if (ocultos > 0) {
       return (
         <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>
-          {ocultos} município{ocultos === 1 ? '' : 's'} pequeno{ocultos === 1 ? '' : 's'} (abaixo de 100 mil
-          habitantes) em Hipossuficiente oculto{ocultos === 1 ? '' : 's'} — não eram esperados ter equipamento
-          próprio.
+          +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
         </div>
       );
     }
@@ -202,8 +200,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
       </table>
       {ocultos > 0 && (
         <div style={{ fontSize: 11, color: '#98a0b3', padding: '6px 4px 0' }}>
-          +{ocultos} município{ocultos === 1 ? '' : 's'} pequeno{ocultos === 1 ? '' : 's'} em Hipossuficiente oculto
-          {ocultos === 1 ? '' : 's'} (abaixo de 100 mil habitantes, não eram esperados ter equipamento próprio).
+          +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
         </div>
       )}
       {detalheAberto && (
