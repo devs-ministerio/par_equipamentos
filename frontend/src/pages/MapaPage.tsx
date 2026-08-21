@@ -11,6 +11,14 @@ import type { CoberturaRow, EstabelecimentoRow, Macrorregiao } from '../types/do
 
 const MAX_ESTABELECIMENTOS_POR_UF = 2000; // maior estado (SP) tem ~1700
 
+// TODO(risco pendente, revisao senior 2026-08-21): geometria dos estados
+// buscada ao vivo, a cada carregamento, de um repositorio GitHub de
+// terceiro (nao-oficial) via CDN publico -- sem fallback local, sem cache,
+// sem controle de versao desse arquivo. Pra uma ferramenta de ministerio,
+// o ideal e vendorizar esse geojson como asset local versionado (ex.:
+// frontend/src/data/brazil-states.geojson) assim que alguem com acesso a
+// internet puder baixa-lo -- o agente que fez essa revisao rodava num
+// sandbox sem acesso de rede de saida e nao pode baixar o arquivo aqui.
 const GEOJSON_URL = 'https://cdn.jsdelivr.net/gh/codeforamerica/click_that_hood@master/public/data/brazil-states.geojson';
 const FAMILIA = 'TOMOGRAFO';
 
