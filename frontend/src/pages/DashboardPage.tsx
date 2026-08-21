@@ -34,11 +34,11 @@ export function DashboardPage() {
   const [expandedCnes, setExpandedCnes] = useState<Set<string>>(new Set());
   const [statusFiltro, setStatusFiltro] = useState<Set<StatusCobertura>>(new Set());
   const [totais, setTotais] = useState<EquipmentTotals | null>(null);
-  const [municipiosGrandesDeficit, setMunicipiosGrandesDeficit] = useState<number | null>(null);
-  const [regioesSaudeDeficit, setRegioesSaudeDeficit] = useState<number | null>(null);
+  const [municipiosHipo, setMunicipiosHipo] = useState<number | null>(null);
+  const [regioesSaudeHipo, setRegioesSaudeHipo] = useState<number | null>(null);
   // Forca a tabela "Cobertura Assistencial" pro nivel escolhido mesmo sem um
   // filtro geografico daquele nivel especifico selecionado -- so os cards de
-  // deficit acionam isso (clicar neles quer dizer "me mostra a lista", nao
+  // Hipo acionam isso (clicar neles quer dizer "me mostra a lista", nao
   // "eu escolhi uma regiao/cidade"). Zerado junto com statusFiltro sempre que
   // o filtro geografico principal muda.
   const [nivelForcado, setNivelForcado] = useState<'macro' | 'regiaoSaude' | 'municipio' | null>(null);
@@ -101,8 +101,8 @@ export function DashboardPage() {
     setNivelForcado(null);
   }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
 
-  // Contagens dos cards clicaveis "Municípios em déficit" e "Regiões de
-  // Saúde em déficit" -- mesmo recorte geografico dos outros cards, mas
+  // Contagens dos cards clicaveis "Municípios Hipossuficientes" e "Regiões
+  // de Saúde Hipossuficientes" -- mesmo recorte geografico dos outros cards, mas
   // sempre com o corte de 100 mil habitantes pro nivel Municipio (RN
   // especifica de TOMOGRAFO: municipio menor nunca foi esperado ter
   // equipamento proprio, ver Metodologia) independente de
@@ -117,12 +117,12 @@ export function DashboardPage() {
       municipalities: municipiosFiltro,
       minPopulation: 100_000,
     })
-      .then((rows) => setMunicipiosGrandesDeficit(rows.filter((r) => r.status === 'Hipossuficiente').length))
-      .catch(() => setMunicipiosGrandesDeficit(null));
+      .then((rows) => setMunicipiosHipo(rows.filter((r) => r.status === 'Hipossuficiente').length))
+      .catch(() => setMunicipiosHipo(null));
 
     fetchHealthRegionCoverage({ equipmentFamily: FAMILIA, states: estadosFiltro, macroCodes: macrosFiltro })
-      .then((rows) => setRegioesSaudeDeficit(rows.filter((r) => r.status === 'Hipossuficiente').length))
-      .catch(() => setRegioesSaudeDeficit(null));
+      .then((rows) => setRegioesSaudeHipo(rows.filter((r) => r.status === 'Hipossuficiente').length))
+      .catch(() => setRegioesSaudeHipo(null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estadosKey, macrosKey, regioesSaudeKey, municipiosKey]);
 
@@ -183,7 +183,7 @@ export function DashboardPage() {
   // Região de Saúde / Município / CNES sao mais finos que macro -- os cards
   // de população/cobertura (que só existem por macro) ficam com uma ressalva
   // Nivel da tabela "Cobertura Assistencial": nivelForcado (acionado pelos
-  // cards de deficit) tem prioridade; senao, Municipio/CNES -> municipio; so
+  // cards de Hipo) tem prioridade; senao, Municipio/CNES -> municipio; so
   // Regiao de Saude -> regiao de saude; UF/Macro/nenhum filtro -> macro
   // (decisao 2026-08-21). Municipio/CNES tem prioridade sobre Regiao de
   // Saude porque escolher um municipio ou CNES especifico ja implica (via
@@ -192,20 +192,20 @@ export function DashboardPage() {
     nivelForcado ?? (municipiosFiltro || cnesFiltro ? 'municipio' : regioesSaudeFiltro ? 'regiaoSaude' : 'macro');
   const macrosHipo = filteredRows.filter((r) => r.status === 'Hipossuficiente').length;
 
-  // Clique nos cards de deficit -- mostra a lista (forca o nivel da tabela)
+  // Clique nos cards de Hipo -- mostra a lista (forca o nivel da tabela)
   // e ja filtra por Hipossuficiente. Clicar de novo no MESMO card ja ativo
-  // sai da visao de deficit (senao nao tinha como desligar sem mexer no
+  // sai da visão Hipo (senao nao tinha como desligar sem mexer no
   // filtro geografico -- duvida real do usuario, 2026-08-22).
-  function verDeficit(nivel: 'macro' | 'regiaoSaude' | 'municipio') {
+  function verHipo(nivel: 'macro' | 'regiaoSaude' | 'municipio') {
     if (nivelForcado === nivel) {
-      sairDoDeficit();
+      sairDoHipo();
     } else {
       setNivelForcado(nivel);
       setStatusFiltro(new Set(['Hipossuficiente']));
     }
   }
 
-  function sairDoDeficit() {
+  function sairDoHipo() {
     setNivelForcado(null);
     setStatusFiltro(new Set());
   }
@@ -366,10 +366,10 @@ export function DashboardPage() {
         />
         <KpiCard label="Total de Tomógrafos SUS" value={totais?.availableQty ?? totalEquipMacro} color="#16213e" />
         <KpiCard
-          label="Municípios em déficit"
-          value={municipiosGrandesDeficit != null ? municipiosGrandesDeficit : '—'}
+          label="Municípios Hipossuficientes"
+          value={municipiosHipo != null ? municipiosHipo : '—'}
           color="#a32d2d"
-          onClick={() => verDeficit('municipio')}
+          onClick={() => verHipo('municipio')}
           ativo={nivelForcado === 'municipio'}
           info={
             <InfoIcon>
@@ -379,10 +379,10 @@ export function DashboardPage() {
           }
         />
         <KpiCard
-          label="Regiões de Saúde em déficit"
-          value={regioesSaudeDeficit != null ? regioesSaudeDeficit : '—'}
+          label="Regiões de Saúde Hipossuficientes"
+          value={regioesSaudeHipo != null ? regioesSaudeHipo : '—'}
           color="#a32d2d"
-          onClick={() => verDeficit('regiaoSaude')}
+          onClick={() => verHipo('regiaoSaude')}
           ativo={nivelForcado === 'regiaoSaude'}
           info={
             <InfoIcon>
@@ -395,7 +395,7 @@ export function DashboardPage() {
           label="Macrorregiões com Hipossuficiente"
           value={`${macrosHipo} de ${filteredRows.length}`}
           color="#a32d2d"
-          onClick={() => verDeficit('macro')}
+          onClick={() => verHipo('macro')}
           ativo={nivelForcado === 'macro'}
         />
       </div>
@@ -415,7 +415,7 @@ export function DashboardPage() {
             <div style={{ fontWeight: 600, fontSize: 14 }}>Cobertura Assistencial</div>
             {nivelForcado && (
               <button
-                onClick={sairDoDeficit}
+                onClick={sairDoHipo}
                 style={{
                   padding: '4px 10px',
                   borderRadius: 20,
@@ -427,7 +427,7 @@ export function DashboardPage() {
                   color: '#c0392b',
                 }}
               >
-                ✕ Sair da visão de déficit
+                ✕ Sair da visão Hipo
               </button>
             )}
           </div>

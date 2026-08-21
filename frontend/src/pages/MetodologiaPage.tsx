@@ -103,7 +103,7 @@ export function MetodologiaPage() {
           (ex.: 0,72x): quantos tomógrafos SUS existem pra cada 100 mil habitantes SUS-dependentes, sem arredondar a
           demanda. Ex.: 6 tomógrafos ÷ 831.219 hab. × 100.000 = 0,72x — a região tem 72% do parâmetro exigido.
           Coeficiente 1x é exatamente a meta; acima é Hiperssuficiente (capacidade ociosa, mais vaga disponível pra
-          demanda adicional), abaixo é Hipossuficiente (déficit).
+          demanda adicional), abaixo é Hipossuficiente.
         </div>
       </div>
 

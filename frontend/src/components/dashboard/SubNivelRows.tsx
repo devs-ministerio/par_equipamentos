@@ -36,7 +36,7 @@ interface Props {
 // RN especifica de TOMOGRAFO (ver Metodologia): municipio abaixo do
 // parametro normativo nunca foi esperado ter equipamento proprio -- na
 // sub-camada de Municipio (drill-down), um municipio pequeno em
-// Hipossuficiente e so ruido (deficit que o parametro nunca cobrou dele);
+// Hipossuficiente e so ruido (situacao que o parametro nunca cobrou dele);
 // ja um municipio pequeno em Hiperssuficiente e informativo (superavit
 // "de bonus"), entao continua aparecendo do tamanho que for.
 const POPULACAO_MINIMA_PARA_HIPO = 100_000;
@@ -45,8 +45,13 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, onSelecionar, 
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
 
+  // Excecao ao corte: se NENHUM municipio do grupo tem >=100 mil habitantes
+  // E nenhum tem tomografo nenhum, o corte normal deixaria a sub-camada
+  // inteira vazia (parece "sem dado" em vez de "aqui so tem cidade pequena e
+  // carente") -- nesse caso mostra todos, do jeito que sao.
+  const semGrandeNemEquipamento = rows.every((r) => r.pop < POPULACAO_MINIMA_PARA_HIPO && r.oferta === 0);
   const rowsExibidas =
-    nivelAtual === 'municipio'
+    nivelAtual === 'municipio' && !semGrandeNemEquipamento
       ? rows.filter((r) => r.status === 'Hiperssuficiente' || r.pop >= POPULACAO_MINIMA_PARA_HIPO)
       : rows;
 
