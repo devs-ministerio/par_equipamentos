@@ -224,9 +224,25 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                   textAlign: 'right',
                   whiteSpace: 'nowrap',
                 }}
-                onClick={() => toggleSort('populacao')}
               >
-                População estimada IBGE 2025{arrow('populacao')}
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                  <span style={{ cursor: 'pointer' }} onClick={() => toggleSort('populacao')}>
+                    População SUS-dependente{arrow('populacao')}
+                  </span>
+                  <InfoIcon align="right">
+                    <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>
+                      Populações usadas no cálculo
+                    </div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                      SUS-dependente = IBGE (residente) − beneficiários de plano de saúde (ANS)
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
+                      IBGE vem ao vivo do SIDRA; ANS vem de arquivo de referência (sem API oficial ao vivo
+                      conhecida). É a SUS-dependente que entra no cálculo de demanda — quem tem plano privado não
+                      compete pela vaga no SUS.
+                    </div>
+                  </InfoIcon>
+                </span>
               </th>
               <th style={{ padding: '10px 32px 10px 8px', fontWeight: 600, width: 259 }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -249,7 +265,7 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                         borderRadius: 4,
                       }}
                     >
-                      População ÷ Tomógrafos SUS
+                      População SUS-dependente ÷ Tomógrafos SUS
                     </div>
                     <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
                       Mostrado como pessoas por aparelho (ex.: 23,4k/1) e como multiplicador da meta (ex.: 3,90x) —
@@ -325,6 +341,9 @@ export function CoberturaTable({ equipmentFamily, rows, macros, onSelecionarMuni
                   <td style={{ padding: '9px 8px 9px 6px', color: '#667085' }}>{macro.uf}</td>
                   <td style={{ padding: '9px 8px 9px 10px', textAlign: 'right', color: '#475066' }}>
                     {macro.pop.toLocaleString('pt-BR')}
+                    <div style={{ fontSize: 10, color: '#98a0b3', fontWeight: 400 }}>
+                      de {macro.popResidente.toLocaleString('pt-BR')} IBGE (−{macro.popAns.toLocaleString('pt-BR')} ANS)
+                    </div>
                   </td>
                   <td style={{ padding: '9px 32px 9px 8px', minWidth: 160 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

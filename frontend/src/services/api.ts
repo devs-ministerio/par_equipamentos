@@ -11,7 +11,9 @@ interface MacroCoverageApi {
   macro_name: string;
   state: string;
   equipment_family: string;
-  population: number | null;
+  population: number | null; // SUS-dependente -- usado no calculo
+  population_residente: number | null; // so informativo (IBGE, ao vivo)
+  population_ans: number | null; // so informativo (beneficiarios de plano de saude)
   estimated_need: number | null;
   required_qty: number | null;
   available_qty: number | null;
@@ -100,6 +102,8 @@ export async function fetchMacroCoverage(equipmentFamily: string): Promise<Macro
       uf: r.state,
       regiao: geo?.regiao ?? 'Norte',
       pop: r.population ?? 0,
+      popResidente: r.population_residente ?? 0,
+      popAns: r.population_ans ?? 0,
       nomeEstado: geo?.nome ?? r.state,
     };
   });

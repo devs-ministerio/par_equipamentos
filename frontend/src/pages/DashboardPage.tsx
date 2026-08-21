@@ -282,13 +282,19 @@ export function DashboardPage() {
           value={pessoasPorTomografo != null ? `${formatMilhar(pessoasPorTomografo)}/1` : '—'}
           color={coberturaMedia >= 100 ? '#3b6d11' : '#ba7517'}
           info={
-            granularidadeFina ? (
-              <InfoIcon>
-                População e cobertura só existem calculadas por macrorregião de saúde — com filtro de Região de
-                Saúde, Município ou CNES aplicado, esse número reflete a(s) macrorregião(ões) inteira(s) do recorte
-                escolhido, não só a área filtrada.
-              </InfoIcon>
-            ) : undefined
+            <InfoIcon>
+              <div>
+                População <strong>SUS-dependente</strong> (IBGE ao vivo do SIDRA − beneficiários de plano de saúde
+                via ANS) dividida pelos tomógrafos SUS — quem tem plano privado não compete pela vaga no SUS.
+              </div>
+              {granularidadeFina && (
+                <div style={{ marginTop: 8, fontSize: 10, color: '#f0b429' }}>
+                  População e cobertura só existem por macrorregião de saúde — com filtro de Região de Saúde,
+                  Município ou CNES aplicado, esse número reflete a(s) macrorregião(ões) inteira(s) do recorte
+                  escolhido, não só a área filtrada.
+                </div>
+              )}
+            </InfoIcon>
           }
         />
         <KpiCard
@@ -299,7 +305,7 @@ export function DashboardPage() {
             <InfoIcon>
               <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Parâmetro normativo</div>
               <div>
-                1 tomógrafo por <strong>100 mil habitantes</strong>
+                1 tomógrafo por <strong>100 mil habitantes SUS-dependentes</strong>
               </div>
               <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Fórmula</div>
               <div
@@ -312,7 +318,11 @@ export function DashboardPage() {
                   borderRadius: 4,
                 }}
               >
-                População ÷ Tomógrafos SUS ÷ 100 mil
+                População SUS-dependente ÷ Tomógrafos SUS ÷ 100 mil
+              </div>
+              <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
+                SUS-dependente = população IBGE (ao vivo, SIDRA) − beneficiários de plano de saúde (ANS, arquivo de
+                referência) — consistente com a oferta já ser só a quantidade SUS.
               </div>
               {granularidadeFina && (
                 <div style={{ marginTop: 8, fontSize: 10, color: '#f0b429' }}>

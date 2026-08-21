@@ -5,7 +5,14 @@ export interface Macrorregiao {
   nome: string;
   uf: string;
   regiao: Regiao;
+  /** Populacao SUS-dependente (IBGE ao vivo do SIDRA - beneficiarios ANS do
+   * arquivo de referencia, nunca negativa) -- e o denominador de demanda
+   * usado no calculo de cobertura (consistente com a oferta ja ser so-SUS). */
   pop: number;
+  /** So informativo -- populacao IBGE total (residente), ao vivo do SIDRA. */
+  popResidente: number;
+  /** So informativo -- beneficiarios de plano de saude (arquivo de referencia). */
+  popAns: number;
   nomeEstado: string;
 }
 
