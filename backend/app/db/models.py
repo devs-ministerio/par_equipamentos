@@ -267,7 +267,14 @@ class MacroCoverage(Base):
     macro_name: Mapped[str] = mapped_column(String, nullable=False)
     state: Mapped[str] = mapped_column(String(2), nullable=False)
     equipment_family: Mapped[str] = mapped_column(String, nullable=False)
+    # populacao SUS-dependente (IBGE ao vivo - ANS do arquivo de referencia,
+    # nunca negativa) -- e o denominador de DEMANDA usado no calculo
+    # (estimated_need/required_qty), consistente com D-02 (oferta ja e so
+    # SUS). population_residente/population_ans ficam so pra transparencia
+    # no front (breakdown "quantos dependem do SUS de quantos no total").
     population: Mapped[int | None] = mapped_column(Integer)
+    population_residente: Mapped[int | None] = mapped_column(Integer)
+    population_ans: Mapped[int | None] = mapped_column(Integer)
     estimated_need: Mapped[float | None] = mapped_column(Numeric)
     required_qty: Mapped[int | None] = mapped_column(Integer)
     available_qty: Mapped[int | None] = mapped_column(Integer)

@@ -4,7 +4,21 @@ isolada de banco e das APIs externas -- extraida em
 app/pipeline/cobertura.py justamente pra poder ser testada assim.
 """
 from app.db.models import DeficitStatus
-from app.pipeline.cobertura import calcular_cobertura
+from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente
+
+
+def test_sus_dependente_subtrai_ans_do_residente():
+    assert populacao_sus_dependente(residente=21165, ans=3205) == 17960
+
+
+def test_sus_dependente_nunca_negativa():
+    # residente (SIDRA, ao vivo) e ans (arquivo de referencia) sao fontes/
+    # vintages diferentes -- ans pode superar o residente do ano corrente.
+    assert populacao_sus_dependente(residente=100, ans=500) == 0
+
+
+def test_sus_dependente_sem_beneficiario_ans_e_o_residente_inteiro():
+    assert populacao_sus_dependente(residente=5000, ans=0) == 5000
 
 
 def test_demanda_arredonda_pra_cima():

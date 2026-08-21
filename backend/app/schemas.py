@@ -73,7 +73,9 @@ class MacroCoverageRead(BaseModel):
     macro_name: str
     state: str
     equipment_family: str
-    population: int | None
+    population: int | None  # SUS-dependente (IBGE - ANS) -- denominador da demanda usado no calculo
+    population_residente: int | None  # so informativo (IBGE total, ao vivo do SIDRA)
+    population_ans: int | None  # so informativo (beneficiarios de plano de saude, arquivo de referencia)
     estimated_need: float | None
     required_qty: int | None
     available_qty: int | None

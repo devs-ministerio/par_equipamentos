@@ -21,6 +21,17 @@ class CoberturaMacro:
     deficit_status: DeficitStatus
 
 
+def populacao_sus_dependente(*, residente: int, ans: int) -> int:
+    """RN: populacao SUS-dependente = IBGE residente - beneficiarios de plano
+    de saude (ANS), nunca negativa. `residente` vem ao vivo do SIDRA;
+    `ans` vem do arquivo de referencia importado (sem API oficial ao vivo
+    conhecida) -- por serem duas fontes/vintages diferentes, um municipio
+    pode ter mais beneficiarios ANS cadastrados que populacao SIDRA do ano
+    corrente (defasagem entre fontes); nesse caso a leitura correta e "0
+    dependentes do SUS ali", nunca um numero negativo."""
+    return max(0, residente - ans)
+
+
 def calcular_cobertura(*, population: int, existing_sus: int, produtividade: int = 100_000) -> CoberturaMacro:
     """RN da Metodologia: 1 equipamento por `produtividade` habitantes
     (100 mil, pra TOMOGRAFO). `existing_sus` e o denominador de oferta
