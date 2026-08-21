@@ -193,10 +193,21 @@ export function DashboardPage() {
   const macrosHipo = filteredRows.filter((r) => r.status === 'Hipossuficiente').length;
 
   // Clique nos cards de deficit -- mostra a lista (forca o nivel da tabela)
-  // e ja filtra por Hipossuficiente.
+  // e ja filtra por Hipossuficiente. Clicar de novo no MESMO card ja ativo
+  // sai da visao de deficit (senao nao tinha como desligar sem mexer no
+  // filtro geografico -- duvida real do usuario, 2026-08-22).
   function verDeficit(nivel: 'macro' | 'regiaoSaude' | 'municipio') {
-    setNivelForcado(nivel);
-    setStatusFiltro(new Set(['Hipossuficiente']));
+    if (nivelForcado === nivel) {
+      sairDoDeficit();
+    } else {
+      setNivelForcado(nivel);
+      setStatusFiltro(new Set(['Hipossuficiente']));
+    }
+  }
+
+  function sairDoDeficit() {
+    setNivelForcado(null);
+    setStatusFiltro(new Set());
   }
 
   if (loading) {
@@ -400,7 +411,26 @@ export function DashboardPage() {
             gap: 12,
           }}
         >
-          <div style={{ fontWeight: 600, fontSize: 14 }}>Cobertura Assistencial</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Cobertura Assistencial</div>
+            {nivelForcado && (
+              <button
+                onClick={sairDoDeficit}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: 20,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  border: '1px solid #f0a0a0',
+                  background: '#fff0f0',
+                  color: '#c0392b',
+                }}
+              >
+                ✕ Sair da visão de déficit
+              </button>
+            )}
+          </div>
           <StatusFilterButtons selecionados={statusFiltro} onChange={setStatusFiltro} />
         </div>
         {nivelTabela === 'macro' && (
