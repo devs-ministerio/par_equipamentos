@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { colors } from '../styles/tokens';
+import { getEquipamento } from '../data/constants';
 
 function FonteItem({ n, titulo, url, urlLabel }: { n: number; titulo: string; url: string; urlLabel: string }) {
   return (
@@ -54,7 +55,7 @@ const PARAMETROS_POR_FAMILIA: Record<string, ParametrosFamilia> = {
         <span style={{ fontSize: 11, color: colors.subtleText }}>o que for atingido primeiro</span>
       </>
     ),
-    produtividade: 100_000,
+    produtividade: getEquipamento('TOMOGRAFO').produtividade,
     formulaDenominador: <>Pop. SUS-dep. / 100.000</>,
     notaCriterio: (
       <>Critério de acesso: raio ≤ 75 km <em>ou</em> ≤ 100 mil hab. (o que for atingido primeiro), com foco em urgência/emergência.</>
@@ -70,7 +71,7 @@ const PARAMETROS_POR_FAMILIA: Record<string, ParametrosFamilia> = {
         de capacidade por equipamento, com necessidade estimada de <strong>30 exames/1.000 habitantes/ano</strong>
       </>
     ),
-    produtividade: 5_000 / (30 / 1_000),
+    produtividade: getEquipamento('RESSONANCIA').produtividade,
     formulaDenominador: <>Pop. SUS-dep. / 166.667</>,
     notaCriterio: (
       <>

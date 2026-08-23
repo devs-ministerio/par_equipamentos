@@ -16,12 +16,17 @@ function CardExportar({
   corBotao,
   rotuloBotao,
   onClick,
+  desabilitado,
 }: {
   titulo: string;
   descricao: string;
   corBotao: string;
   rotuloBotao: string;
   onClick: () => void;
+  /** Temporario (2026-08-24, a pedido) -- exportacao desligada por
+   * enquanto, sem remover o botao/modal/fetch (so reativar depois tirando
+   * essa prop). */
+  desabilitado?: boolean;
 }) {
   return (
     <div style={{ background: '#fff', borderRadius: 10, padding: '24px 26px', flex: 1 }}>
@@ -29,15 +34,17 @@ function CardExportar({
       <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.6, marginBottom: 18 }}>{descricao}</div>
       <button
         onClick={onClick}
+        disabled={desabilitado}
+        title={desabilitado ? 'Exportação temporariamente indisponível' : undefined}
         style={{
           padding: '10px 20px',
           borderRadius: 8,
           fontSize: 13,
           fontWeight: 700,
-          cursor: 'pointer',
+          cursor: desabilitado ? 'not-allowed' : 'pointer',
           border: 'none',
-          background: corBotao,
-          color: '#fff',
+          background: desabilitado ? '#d8dce5' : corBotao,
+          color: desabilitado ? colors.subtleText : '#fff',
         }}
       >
         {rotuloBotao}
@@ -93,6 +100,7 @@ export function RelatoriosPage() {
           corBotao={colors.hipoRed}
           rotuloBotao="Gerar PDF"
           onClick={() => setExportPdfAberto(true)}
+          desabilitado
         />
         <CardExportar
           titulo="⬇ Exportar Excel"
@@ -100,6 +108,7 @@ export function RelatoriosPage() {
           corBotao={colors.hiperGreen}
           rotuloBotao="Gerar Excel"
           onClick={() => setExportXlsxAberto(true)}
+          desabilitado
         />
       </div>
 

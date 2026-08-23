@@ -17,11 +17,12 @@ import type { EquipmentTotals, FacilityOption } from '../services/api';
 import { useFiltrosMacro } from '../hooks/useFiltrosMacro';
 import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
 import { colors } from '../styles/tokens';
-import { REGIOES } from '../data/constants';
+import { REGIOES, getEquipamento } from '../data/constants';
 import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../types/domain';
 
 export function DashboardPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
+  const equipamento = getEquipamento(FAMILIA);
   const [macros, setMacros] = useState<Macrorregiao[]>([]);
   const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
   const [facilities, setFacilities] = useState<FacilityOption[]>([]);
@@ -153,7 +154,7 @@ export function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey]);
 
-  // Total de Tomógrafos / Total de Tomógrafos SUS vem direto de
+  // Total de Equipamentos / Total de Equipamentos SUS vem direto de
   // equipment_offer_row (soma exata pro recorte pedido), nao de
   // macro-coverage (agregado so por macro) -- senao filtrar por um
   // Município/Região de Saúde/CNES mostraria o total da macro inteira em vez
@@ -180,7 +181,7 @@ export function DashboardPage() {
   }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
 
 
-  // fallback dos cards "Total de Tomógrafos"/"Total de Tomógrafos SUS"
+  // fallback dos cards "Total de Equipamentos"/"Total de Equipamentos SUS"
   // enquanto fetchEquipmentTotals ainda nao respondeu (ou falhou) -- soma
   // por macro, nao e exata pra filtro mais fino que macro, mas e melhor que
   // mostrar "--" nesse intervalo curto.
@@ -326,17 +327,21 @@ export function DashboardPage() {
 
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'stretch' }}>
         <KpiCard
-          label="Total de Tomógrafos"
+          label="Total de Equipamentos"
           value={totais?.existingQty ?? totalEquipGeralMacro}
           color="#16213e"
           info={
             <InfoIcon>
-              Inclui tomógrafos SUS e não-SUS (privados). Não entra no cálculo de cobertura — só o card "Total de
-              Tomógrafos SUS" ao lado representa capacidade disponível pro paciente do SUS.
+              Inclui equipamentos SUS e não-SUS (privados). Não entra no cálculo de cobertura — só o card "Total de
+              Equipamentos SUS" ao lado representa capacidade disponível pro paciente do SUS.
             </InfoIcon>
           }
         />
-        <KpiCard label="Total de Tomógrafos SUS" value={totais?.availableQty ?? totalEquipMacro} color="#16213e" />
+        <KpiCard
+          label="Total de Equipamentos SUS"
+          value={totais?.availableQty ?? totalEquipMacro}
+          color="#16213e"
+        />
         <KpiCard
           label="Municípios Hipossuficientes"
           value={municipiosHipo ?? '—'}
@@ -345,8 +350,9 @@ export function DashboardPage() {
           ativo={nivelForcado === 'municipio'}
           info={
             <InfoIcon>
-              Municípios com pelo menos 100 mil habitantes SUS-dependentes e menos de 1 tomógrafo SUS por 100 mil
-              (Hipossuficiente), no recorte de filtro atual. Clique pra ver a lista.
+              Municípios com pelo menos 100 mil habitantes SUS-dependentes e menos de 1 equipamento SUS por{' '}
+              {equipamento.produtividade.toLocaleString('pt-BR')} (Hipossuficiente), no recorte de filtro atual.
+              Clique pra ver a lista.
             </InfoIcon>
           }
         />
@@ -358,8 +364,8 @@ export function DashboardPage() {
           ativo={nivelForcado === 'regiaoSaude'}
           info={
             <InfoIcon>
-              Regiões de saúde com menos de 1 tomógrafo SUS por 100 mil habitantes SUS-dependentes
-              (Hipossuficiente), no recorte de filtro atual. Clique pra ver a lista.
+              Regiões de saúde com menos de 1 equipamento SUS por {equipamento.produtividade.toLocaleString('pt-BR')}{' '}
+              habitantes SUS-dependentes (Hipossuficiente), no recorte de filtro atual. Clique pra ver a lista.
             </InfoIcon>
           }
         />

@@ -1,7 +1,7 @@
 import { colors } from '../styles/tokens';
 
 export interface CoeficienteInfo {
-  /** (tomógrafos SUS × 100.000) ÷ população SUS-dependente -- null se pop=0 (sem denominador). */
+  /** (equipamentos SUS × produtividade da família) ÷ população SUS-dependente -- null se pop=0 (sem denominador). */
   valor: number | null;
   hiper: boolean;
   /** cor do texto/rótulo -- mais escura, pra leitura. */
@@ -13,15 +13,25 @@ export interface CoeficienteInfo {
 }
 
 /**
- * Coeficiente = (tomógrofos SUS × 100.000) ÷ população SUS-dependente --
- * quantos tomógrafos por 100 mil habitantes essa macro/região de saúde/
- * município tem, sem arredondar a demanda (diferente do required_qty
+ * Coeficiente = (equipamentos SUS × produtividade) ÷ população SUS-dependente
+ * -- quantos equipamentos por `produtividade` habitantes essa macro/região de
+ * saúde/município tem, sem arredondar a demanda (diferente do required_qty
  * gravado no banco, que é ceil). Usado em toda linha e sub-linha das
  * tabelas de Cobertura Assistencial (CoberturaTable, NivelCoberturaTable e
  * SubNivelRows) -- extraído aqui pra não triplicar a mesma conta.
+ *
+ * `produtividade` precisa ser a mesma constante que o backend usou pra
+ * calcular required_qty/deficit_status dessa família (EQUIPAMENTOS em
+ * data/constants.ts, espelhando PRODUTIVIDADE em
+ * scripts/run_pipeline_*.py) -- 100 mil pra TOMOGRAFO, mas NAO pra toda
+ * família (RESSONANCIA é ~166.667). Default 100_000 só por
+ * compatibilidade de assinatura; todo call site novo deve passar o valor
+ * explícito da família atual (bug real corrigido 2026-08-21: os 5 call
+ * sites tinham esse número fixo, então RESSONANCIA mostrava
+ * coeficiente/barra/cor errados mesmo com o StatusBadge já certo).
  */
-export function calcularCoeficiente(oferta: number, pop: number): CoeficienteInfo {
-  const valor = pop > 0 ? (oferta * 100_000) / pop : null;
+export function calcularCoeficiente(oferta: number, pop: number, produtividade = 100_000): CoeficienteInfo {
+  const valor = pop > 0 ? (oferta * produtividade) / pop : null;
   const hiper = valor != null && valor >= 1;
   return {
     valor,

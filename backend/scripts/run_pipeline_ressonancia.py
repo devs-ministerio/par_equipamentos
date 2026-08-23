@@ -147,6 +147,9 @@ def run() -> None:
                 existing_qty=eq["qt_existente"],
                 in_use_qty=eq["qt_uso"],
                 sus_flag=eq["fl_sus"],
+                latitude=eq["latitude"],
+                longitude=eq["longitude"],
+                legal_nature=eq["natureza_juridica"],
             )
         )
 

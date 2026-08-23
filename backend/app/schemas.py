@@ -116,6 +116,25 @@ class MunicipalityCoverageRead(BaseModel):
     balance: int | None
     deficit_status: DeficitStatus
     coverage_percentage: float | None = None
+    # So informativo (nao entra em deficit_status) -- ver comentario em
+    # app/pipeline/geo.py e app/db/models.py. Nulo pra familias cujo
+    # pipeline ainda nao calcula (so TOMOGRAFO por enquanto).
+    distance_km_nearest_equipment: float | None = None
+    # Coordenada da SEDE do municipio (mesmo CSV vendorizado usado pra
+    # calcular distance_km_nearest_equipment, ver app/pipeline/geo.py) --
+    # decorado em tempo de leitura no router, nao e coluna do banco. Alimenta
+    # o mapa "recorte da macrorregiao" quando o usuario escolhe centralizar o
+    # raio de 75 km no proprio municipio em vez de em cada estabelecimento
+    # (2026-08-23). Nulo so se o municipio nao bater com o CSV (nao deveria
+    # acontecer, ja validado 5570/5570).
+    latitude: float | None = None
+    longitude: float | None = None
+    # Codigo IBGE de 7 digitos (com digito verificador) -- decorado do
+    # mesmo CSV (ver app/pipeline/geo.py::carregar_codigo_ibge_7_digitos).
+    # Usado pelo front pra buscar o contorno REAL do municipio (poligono
+    # oficial, nao raio/circulo) na API de malhas do IBGE, que exige esse
+    # formato de codigo em vez do de 6 digitos que o resto do sistema usa.
+    ibge_code_7: str | None = None
 
 
 class HealthRegionCoverageRead(BaseModel):
@@ -164,6 +183,9 @@ class EquipmentOfferRowRead(BaseModel):
     existing_qty: int
     in_use_qty: int
     sus_flag: bool
+    latitude: float | None
+    longitude: float | None
+    legal_nature: str | None
 
 
 class EquipmentOfferRowPage(BaseModel):
@@ -192,25 +214,15 @@ class EstablishmentRead(BaseModel):
     existing_qty: int
     in_use_qty: int
     sus_flag: bool
+    latitude: float | None
+    longitude: float | None
+    legal_nature: str | None
     types: list[EquipmentType]
 
 
 class EstablishmentPage(BaseModel):
     items: list[EstablishmentRead]
     total: int
-
-
-class MunicipalityRead(BaseModel):
-    """Municipio real (com sua macro de saude e UF) -- usado pra alimentar o
-    filtro de Municipio e, a partir dele, restringir a tabela de cobertura
-    (que e agregada por macro) a so a(s) macro(s) do municipio escolhido.
-    UF entra porque varios municipios brasileiros compartilham nome entre
-    estados diferentes (ex.: Santa Rita existe na PB e no MA) -- sem ela o
-    filtro seria ambiguo."""
-
-    name: str
-    state: str
-    macro_code: str | None
 
 
 class EquipmentTotalsRead(BaseModel):
@@ -220,6 +232,18 @@ class EquipmentTotalsRead(BaseModel):
 
     existing_qty: int
     available_qty: int  # so linhas com sus_flag=true -- mesma regra de "oferta" do macro_coverage
+
+
+class LegalNatureBreakdownRead(BaseModel):
+    """Quebra de equipment_offer_row por natureza juridica do estabelecimento
+    (Publico/Privado/Sem fins lucrativos) -- Painel Geral, card "Natureza
+    juridica da oferta SUS" (2026-08-22): quase metade da capacidade SUS de
+    Tomografo vem de estabelecimento Privado, nao de infraestrutura propria
+    do SUS -- risco que nao aparecia em lugar nenhum antes."""
+
+    legal_nature: str  # "NAO_INFORMADO" quando o campo vem nulo do CNES
+    existing_qty: int
+    available_qty: int  # so linhas com sus_flag=true
 
 
 class FacilityOptionRead(BaseModel):
@@ -237,15 +261,3 @@ class FacilityOptionRead(BaseModel):
     health_region_code: str | None
     health_region_name: str | None
     municipality_name: str | None
-
-
-class HealthRegionRead(BaseModel):
-    """Regiao de saude real (com sua macro e UF) -- usado pra alimentar o
-    filtro de Regiao de Saude. Diferente de municipio, regiao de saude tem
-    codigo proprio (do DEMAS), entao o filtro usa o codigo direto como valor
-    (nao precisa de chave composta nome+UF)."""
-
-    code: str
-    name: str
-    state: str
-    macro_code: str | None

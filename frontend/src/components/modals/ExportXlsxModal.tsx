@@ -87,6 +87,7 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
       const linhasCobertura = usarFiltros ? filtros.filteredRows : coberturaRowsTodas;
 
       await gerarXlsxTomografos({
+        equipmentFamily,
         filtrosResumo: usarFiltros ? filtros.filtrosResumo : '',
         cobertura: usarCobertura
           ? { rows: linhasCobertura, macros, estabelecimentos, campos: camposCobertura }

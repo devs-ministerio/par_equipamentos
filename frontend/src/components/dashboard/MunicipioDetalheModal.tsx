@@ -6,6 +6,7 @@ import { fetchHealthRegionCoverage, fetchMacroCoverage } from '../../services/ap
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/StatusBadge';
 import { colors } from '../../styles/tokens';
+import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
 
 interface Props {
   linha: NivelCoberturaRow;
@@ -28,6 +29,7 @@ interface NivelComparado {
  * filtrada por macro_code) -- nada disso e pre-carregado em bloco.
  */
 export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props) {
+  const produtividade = getEquipamento(equipmentFamily).produtividade;
   const [regiao, setRegiao] = useState<NivelComparado | 'carregando' | 'erro'>('carregando');
   const [macro, setMacro] = useState<NivelComparado | 'carregando' | 'erro'>('carregando');
 
@@ -84,18 +86,45 @@ export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props
       </div>
 
       <div style={{ marginTop: 6, fontSize: 11.5, color: colors.subtleText }}>
-        {linha.pop.toLocaleString('pt-BR')} hab. SUS-dependentes · {linha.oferta} tomógrafo{linha.oferta === 1 ? '' : 's'} SUS
+        {linha.pop.toLocaleString('pt-BR')} hab. SUS-dependentes · {formatarQuantidadeEquipamento(linha.oferta)} SUS
         {linha.ofertaTotal !== linha.oferta && ` (${linha.ofertaTotal} no total)`}
       </div>
+
+      {/* So informativo -- NAO entra na classificacao Hipo/Hiper (que
+          continua so populacional). Distancia geografica ate o equipamento
+          SUS geocodificado mais proximo, em qualquer lugar do pais -- metade
+          do criterio normativo do Tomografo (Caderno 1: "100 mil hab. OU
+          raio de 75 km") que so tinha a parte populacional aplicada
+          (decisao 2026-08-23: aplicar o "OR" na classificacao oficial fica
+          pendente -- os dados mostraram que isso mudaria 99,95% dos
+          municipios hoje "deficient" pra "nao deficient" contando qualquer
+          equipamento do Brasil, sinal forte de que o raio precisa respeitar
+          rede de referencia/regiao, nao distancia nacional pura). So
+          aparece pra familias cujo pipeline calcula isso (so TOMOGRAFO). */}
+      {linha.distanciaKmEquipamentoMaisProximo != null && (
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: 11.5,
+            padding: '6px 10px',
+            borderRadius: 6,
+            background: linha.distanciaKmEquipamentoMaisProximo <= 75 ? colors.hiperGreenBg : colors.hipoRedBg,
+            color: linha.distanciaKmEquipamentoMaisProximo <= 75 ? colors.hiperGreen : colors.hipoRed,
+          }}
+        >
+          {linha.distanciaKmEquipamentoMaisProximo.toFixed(0)} km até o tomógrafo SUS mais próximo
+          {linha.distanciaKmEquipamentoMaisProximo <= 75 ? ' (dentro do raio de 75 km)' : ' (fora do raio de 75 km)'}
+        </div>
+      )}
 
       <div style={{ marginTop: 16, fontSize: 11, fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         Cobertura por nível
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 8 }}>
         <tbody>
-          <LinhaNivel rotulo="Município" oferta={linha.oferta} pop={linha.pop} cobertura={linha.cobertura} />
-          <LinhaComparada rotulo="Região de saúde" dado={regiao} />
-          <LinhaComparada rotulo="Macrorregião" dado={macro} />
+          <LinhaNivel rotulo="Município" oferta={linha.oferta} pop={linha.pop} cobertura={linha.cobertura} produtividade={produtividade} />
+          <LinhaComparada rotulo="Região de saúde" dado={regiao} produtividade={produtividade} />
+          <LinhaComparada rotulo="Macrorregião" dado={macro} produtividade={produtividade} />
         </tbody>
       </table>
 
@@ -120,8 +149,20 @@ export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props
   );
 }
 
-function LinhaNivel({ rotulo, oferta, pop, cobertura }: { rotulo: string; oferta: number; pop: number; cobertura: number }) {
-  const coef = calcularCoeficiente(oferta, pop);
+function LinhaNivel({
+  rotulo,
+  oferta,
+  pop,
+  cobertura,
+  produtividade,
+}: {
+  rotulo: string;
+  oferta: number;
+  pop: number;
+  cobertura: number;
+  produtividade: number;
+}) {
+  const coef = calcularCoeficiente(oferta, pop, produtividade);
   return (
     <tr style={{ borderTop: '1px solid #f0f1f5' }}>
       <td style={{ padding: '8px 8px 8px 0', color: '#16213e', fontWeight: 500 }}>{rotulo}</td>
@@ -135,7 +176,15 @@ function LinhaNivel({ rotulo, oferta, pop, cobertura }: { rotulo: string; oferta
   );
 }
 
-function LinhaComparada({ rotulo, dado }: { rotulo: string; dado: NivelComparado | 'carregando' | 'erro' }) {
+function LinhaComparada({
+  rotulo,
+  dado,
+  produtividade,
+}: {
+  rotulo: string;
+  dado: NivelComparado | 'carregando' | 'erro';
+  produtividade: number;
+}) {
   if (dado === 'carregando') {
     return (
       <tr style={{ borderTop: '1px solid #f0f1f5' }}>
@@ -156,5 +205,5 @@ function LinhaComparada({ rotulo, dado }: { rotulo: string; dado: NivelComparado
       </tr>
     );
   }
-  return <LinhaNivel rotulo={rotulo} oferta={dado.oferta} pop={dado.pop} cobertura={dado.cobertura} />;
+  return <LinhaNivel rotulo={rotulo} oferta={dado.oferta} pop={dado.pop} cobertura={dado.cobertura} produtividade={produtividade} />;
 }

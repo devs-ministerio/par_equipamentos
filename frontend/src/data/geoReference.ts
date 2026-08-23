@@ -36,9 +36,3 @@ export const UF_INFO: Record<string, { nome: string; regiao: Regiao }> = {
   SE: { nome: 'Sergipe', regiao: 'Nordeste' },
   TO: { nome: 'Tocantins', regiao: 'Norte' },
 };
-
-/** Nome do estado (como aparece no geojson do mapa) -> sigla UF. */
-export function ufNameToCode(nomeEstado: string): string | null {
-  const entry = Object.entries(UF_INFO).find(([, info]) => info.nome === nomeEstado);
-  return entry ? entry[0] : null;
-}

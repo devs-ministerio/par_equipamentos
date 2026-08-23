@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.db.models import Competency, Execution, MunicipalityCoverage
 from app.pipeline.cobertura import calcular_cobertura
+from app.pipeline.geo import carregar_codigo_ibge_7_digitos, carregar_coordenadas_municipios
 from app.schemas import HealthRegionCoverageRead, MunicipalityCoverageRead
 
 router = APIRouter(tags=["cobertura-assistencial"])
@@ -90,11 +91,17 @@ def listar_municipality_coverage(
         stmt = stmt.where(MunicipalityCoverage.population >= min_population)
 
     rows = db.execute(stmt).scalars().all()
+    coordenadas = carregar_coordenadas_municipios()
+    codigos_ibge_7 = carregar_codigo_ibge_7_digitos()
     resultado = []
     for r in rows:
         data = MunicipalityCoverageRead.model_validate(r)
         if r.required_qty:
             data.coverage_percentage = round((r.available_qty or 0) / r.required_qty * 100, 1)
+        coord = coordenadas.get(r.ibge_code)
+        if coord:
+            data.latitude, data.longitude = coord
+        data.ibge_code_7 = codigos_ibge_7.get(r.ibge_code)
         resultado.append(data)
     return resultado
 

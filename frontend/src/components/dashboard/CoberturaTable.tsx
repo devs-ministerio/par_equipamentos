@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { CoberturaRow, Macrorregiao, NivelCoberturaRow, StatusCobertura } from '../../types/domain';
 import { formatMultiplicador } from '../../utils/format';
-import { colors } from '../../styles/tokens';
+import { calcularCoeficiente } from '../../utils/coeficiente';
+import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
 import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { Pagination } from '../common/Pagination';
@@ -34,6 +35,7 @@ export function CoberturaTable({
   subNivelSelecionados,
   statusFiltro,
 }: Props) {
+  const equipamento = getEquipamento(equipmentFamily);
   const macroById = useMemo(() => new Map(macros.map((m) => [m.id, m])), [macros]);
   const [sortKey, setSortKey] = useState<SortKey>('macro');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
@@ -198,7 +200,8 @@ export function CoberturaTable({
                   <InfoIcon>
                     <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Parâmetro normativo</div>
                     <div>
-                      1 tomógrafo por <strong>100 mil habitantes SUS-dependentes</strong>
+                      1 equipamento por{' '}
+                      <strong>{equipamento.produtividade.toLocaleString('pt-BR')} habitantes SUS-dependentes</strong>
                     </div>
                     <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Coeficiente</div>
                     <div
@@ -211,11 +214,14 @@ export function CoberturaTable({
                         borderRadius: 4,
                       }}
                     >
-                      (Tomógrafos SUS × 100.000) ÷ População SUS-dependente
+                      (Equipamentos SUS × {equipamento.produtividade.toLocaleString('pt-BR')}) ÷ População
+                      SUS-dependente
                     </div>
                     <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                      Ex.: 6 tomógrafos SUS ÷ 831.219 hab. × 100.000 = 0,72x — abaixo de 1x é Hipossuficiente, 1x ou
-                      mais é Hiperssuficiente. A listra no meio da barra marca exatamente o coeficiente 1.
+                      Ex.: 6 equipamentos SUS ÷ 831.219 hab. × {equipamento.produtividade.toLocaleString('pt-BR')} ={' '}
+                      {formatMultiplicador((6 * equipamento.produtividade) / 831_219)} — abaixo de 1x é
+                      Hipossuficiente, 1x ou mais é Hiperssuficiente. A listra no meio da barra marca exatamente o
+                      coeficiente 1.
                     </div>
                   </InfoIcon>
                 </span>
@@ -251,19 +257,19 @@ export function CoberturaTable({
             {rowsPaginadas.map((r) => {
               const macro = macroById.get(r.macroId);
               if (!macro) return null;
-              // Coeficiente = (tomógrafos SUS x 100.000) / população SUS-dependente
-              // -- quantos tomógrafos por 100 mil habitantes essa macro tem, sem
-              // arredondar a demanda (diferente de required_qty, que é ceil).
-              // A listra no meio da barra é o coeficiente 1 (a meta exata);
-              // acima enche mais (hiper/verde), abaixo enche menos (hipo/vermelho).
-              const coeficiente = macro.pop > 0 ? (r.oferta * 100_000) / macro.pop : null;
-              const hiper = coeficiente != null && coeficiente >= 1;
-              // cor do texto/rotulo -- mais escura, pra leitura -- e cor do
-              // preenchimento da barra -- mais clara, pra listra central (o
-              // coeficiente 1) continuar visivel por cima.
-              const corTexto = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreen : colors.hipoRed;
-              const corBarra = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreenBarra : colors.hipoRedBarra;
-              const fillPercent = coeficiente != null ? Math.min(100, coeficiente * 50) : 0;
+              // Coeficiente = (equip. SUS x produtividade da familia) / populacao
+              // SUS-dependente -- quantos equipamentos por `produtividade`
+              // habitantes essa macro tem, sem arredondar a demanda (diferente
+              // de required_qty, que é ceil). A listra no meio da barra é o
+              // coeficiente 1 (a meta exata); acima enche mais (hiper/verde),
+              // abaixo enche menos (hipo/vermelho). Extraído em
+              // utils/coeficiente.ts pra não recalcular com produtividade
+              // errada em cada tabela (bug real corrigido 2026-08-21).
+              const { valor: coeficiente, corTexto, corBarra, fillPercent } = calcularCoeficiente(
+                r.oferta,
+                macro.pop,
+                equipamento.produtividade,
+              );
               const expandida = expandidas.has(r.macroId);
               const dados = dadosPorMacro[r.macroId];
               return (
@@ -334,7 +340,7 @@ export function CoberturaTable({
                           {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
                         </div>
                         <div style={{ fontSize: 10, color: '#98a0b3' }}>
-                          {r.oferta} tomógrafo{r.oferta === 1 ? '' : 's'} SUS
+                          {formatarQuantidadeEquipamento(r.oferta)} SUS
                           {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} no total`}
                         </div>
                       </div>
