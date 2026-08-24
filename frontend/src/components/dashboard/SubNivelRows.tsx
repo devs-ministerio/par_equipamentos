@@ -220,7 +220,13 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '6px 8px 6px 18px', width: 130 }}>
+                      {/* width 168 (nao 130) -- "Hiperssuficiente" (rotulo
+                          mais longo do StatusBadge) + gap + BotaoDetalhe
+                          juntos passavam dos 130px, empurrando o botao pra
+                          fora da celula/quebrando linha (bug real,
+                          2026-08-24). whiteSpace:nowrap trava o layout numa
+                          linha so. */}
+                      <td style={{ padding: '6px 8px 6px 18px', width: 168, whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <StatusBadge cobertura={linha.cobertura} />
                           {nivelAtual === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(linha)} />}
