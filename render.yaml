@@ -7,6 +7,11 @@
 # de env var). Basta recriar o servico la, colar a mesma DATABASE_URL (ou
 # a nova, se migrar o Postgres tambem) e CORS_ORIGINS, usando o Procfile
 # que ja existe em backend/Procfile.
+#
+# preDeployCommand nao existe no free tier (so em planos pagos) -- por isso
+# a migration entra dentro do proprio startCommand, antes do uvicorn subir.
+# Roda a cada boot (inclusive apos o servico dormir por inatividade), mas
+# 'alembic upgrade head' e idempotente quando ja esta tudo aplicado.
 services:
   - type: web
     name: sieo-backend
@@ -14,8 +19,7 @@ services:
     rootDir: backend
     plan: free
     buildCommand: pip install uv && uv sync --frozen
-    preDeployCommand: uv run alembic upgrade head
-    startCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         sync: false
