@@ -39,7 +39,7 @@ export function Header() {
           MS
         </div>
         <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>
-          DECAN - Análise de Méritos
+          DECAN - Equipamentos Oncológicos
         </div>
       </Link>
     </div>

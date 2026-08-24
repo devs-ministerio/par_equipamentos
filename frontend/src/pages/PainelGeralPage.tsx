@@ -600,37 +600,11 @@ export function PainelGeralPage() {
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.75 }}>
             DECAN · Ministério da Saúde
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>SIEO — Análise de Méritos de Equipamentos Oncológicos</div>
-          <div style={{ fontSize: 13.5, lineHeight: 1.7, maxWidth: 720, opacity: 0.92 }}>
-            Avalia a suficiência de equipamentos oncológicos do SUS por macrorregião, região de saúde e município,
-            comparando a oferta em uso com a demanda estimada a partir da população SUS-dependente (IBGE menos
-            beneficiários de plano de saúde). Metodologia baseada nos Critérios e Parâmetros Assistenciais SUS —
-            2017 (Caderno 1), com um parâmetro de produtividade próprio por família de equipamento.
-          </div>
-          <button
-            onClick={() => irParaEquipamentos(navigate, familiasDisponiveis[0]?.familia ?? 'TOMOGRAFO', 'dashboard')}
-            style={{
-              marginTop: 10,
-              alignSelf: 'flex-start',
-              padding: '11px 22px',
-              borderRadius: 8,
-              fontSize: 13.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: 'none',
-              background: '#fff',
-              color: colors.primary,
-            }}
-          >
-            Entrar no painel de equipamentos →
-          </button>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>SIEO — Sistema de Equipamentos Oncológicos</div>
         </div>
 
         {/* Resumo por familia */}
-        <Secao
-          titulo="Cobertura por família de equipamento"
-          subtitulo="Visão nacional, sem recorte de filtro -- o mesmo dado que o Dashboard mostra ao entrar em cada família, agregado pra o Brasil inteiro."
-        >
+        <Secao titulo="Cobertura por Equipamento">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))', gap: 20 }}>
             {familiasDisponiveis.map((eq) => (
               <CardFamilia
@@ -691,70 +665,40 @@ export function PainelGeralPage() {
                   macros={macrosMapa}
                   coberturaRows={coberturaRowsMapa}
                   produtividade={getEquipamento(familiaMapa).produtividade}
-                  onSelectMacro={() => irParaEquipamentos(navigate, familiaMapa, 'mapa')}
+                  onSelectMacro={() => {}}
                 />
               ) : (
                 <div style={{ padding: 60, textAlign: 'center', color: colors.subtleText }}>Carregando mapa...</div>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 14, flexWrap: 'wrap' }}>
               {/* Mesma logica de MacroMap.tsx::escalaCor -- duas gradacoes
                   com corte duro em 100% (dois stops na mesma posicao),
                   nao mais um gradiente unico atravessando a meta. */}
-              <div
-                style={{
-                  width: 140,
-                  height: 8,
-                  borderRadius: 4,
-                  background: `linear-gradient(to right, ${colors.hipoRed} 0%, ${colors.hipoRedBg} 50%, ${colors.hiperGreenBg} 50%, ${colors.hiperGreen} 100%)`,
-                }}
-              />
-              <span style={{ fontSize: 11, color: colors.subtleText }}>0x ── 1x ── 2x+</span>
-            </div>
-          </div>
-        </Secao>
-
-        {/* Roadmap de familias */}
-        <Secao
-          titulo="Famílias de equipamento"
-          subtitulo="Escopo completo do projeto -- Tomógrafo e Ressonância já têm pipeline de dado real; as demais entram conforme o parâmetro normativo de cada uma for validado."
-        >
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            {EQUIPAMENTOS.map((eq) => (
-              <div
-                key={eq.familia}
-                style={{
-                  background: eq.disponivel ? '#fff' : '#f7f8fb',
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: 8,
-                  padding: '12px 16px',
-                  minWidth: 160,
-                  flex: '1 1 160px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 600, color: eq.disponivel ? '#16213e' : colors.subtleText }}>
-                  {eq.rotulo}
-                </span>
-                <span
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
                   style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: 20,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.02em',
-                    color: eq.disponivel ? colors.hiperGreen : colors.subtleText,
-                    background: eq.disponivel ? colors.hiperGreenBg : '#eef0f4',
+                    width: 140,
+                    height: 8,
+                    borderRadius: 4,
+                    background: `linear-gradient(to right, ${colors.hipoRed} 0%, ${colors.hipoRedBg} 50%, ${colors.hiperGreenBg} 50%, ${colors.hiperGreen} 100%)`,
                   }}
-                >
-                  {eq.disponivel ? 'Disponível' : 'Em breve'}
+                />
+                <span style={{ fontSize: 11, color: colors.subtleText }}>0x ── 1x ── 2x+</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: colors.hipoRed }} />
+                <span style={{ fontSize: 11.5, color: '#475066' }}>
+                  <strong style={{ color: colors.hipoRed }}>Hipossuficiente</strong> -- abaixo de 1x
                 </span>
               </div>
-            ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: colors.hiperGreen }} />
+                <span style={{ fontSize: 11.5, color: '#475066' }}>
+                  <strong style={{ color: colors.hiperGreen }}>Hiperssuficiente</strong> -- 1x ou mais
+                </span>
+              </div>
+            </div>
           </div>
         </Secao>
 
@@ -762,10 +706,10 @@ export function PainelGeralPage() {
         <Secao titulo="Como a suficiência é calculada">
           <div style={{ background: '#fff', borderRadius: 10, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
             <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.7, maxWidth: 640 }}>
-              Cada família de equipamento tem seu próprio parâmetro de produtividade (habitantes SUS-dependentes por
-              equipamento) -- 100 mil para Tomógrafo, ~166.667 para Ressonância. Uma macrorregião, região de saúde ou
-              município é <strong>Hipossuficiente</strong> quando o coeficiente (equipamentos SUS × produtividade ÷
-              população SUS-dependente) fica abaixo de 1x.
+              Cada macrorregião, região de saúde ou município recebe um <strong>coeficiente</strong>, comparando a
+              quantidade de equipamentos SUS com a demanda estimada da população SUS-dependente. Abaixo de 1x é{' '}
+              <strong>Hipossuficiente</strong>; 1x ou mais é <strong>Hiperssuficiente</strong>. Os parâmetros de
+              cada equipamento estão detalhados na Metodologia completa.
             </div>
             <button
               onClick={() => irParaEquipamentos(navigate, familiasDisponiveis[0]?.familia ?? 'TOMOGRAFO', 'relatorios')}
