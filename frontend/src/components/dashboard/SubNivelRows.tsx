@@ -214,8 +214,8 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                               {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
                             </div>
                             <div style={{ fontSize: 9.5, color: '#98a0b3' }}>
-                              {formatarQuantidadeEquipamento(linha.oferta)} SUS
-                              {linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal} no total`}
+                              {formatarQuantidadeEquipamento(linha.oferta)} em uso SUS
+                              {linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal} existentes`}
                             </div>
                           </div>
                         </div>

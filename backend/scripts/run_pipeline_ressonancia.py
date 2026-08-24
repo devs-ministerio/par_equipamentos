@@ -17,8 +17,9 @@ Metodologia (parametro passado pela area, 2026-08-21):
 Oferta vem 100% do ElastiCNES, demanda 100% de DEMAS (dimensao) + SIDRA
 (populacao residente, ao vivo) + arquivo de referencia de populacao ANS
 (scripts/importar_populacao_municipios.py, sem API oficial ao vivo
-conhecida pra beneficiarios de plano de saude). D-02 (denominador_oferta =
-qt_existente_sus) vale igual pra toda familia; populacao SUS-dependente
+conhecida pra beneficiarios de plano de saude). Denominador de oferta =
+qt_uso-onde-sus_flag (decisao 2026-08-24, vale igual pra toda familia --
+antes era qt_existente_sus/D-02, 2026-08-21); populacao SUS-dependente
 (residente - ANS) idem."""
 from __future__ import annotations
 
@@ -102,12 +103,12 @@ def run() -> None:
 
     print("4/4 - Agregando por macrorregiao e gravando no banco...")
 
-    # Oferta por macro E por municipio: soma qt_existente (total) e
-    # qt_existente-onde-SUS (D-02, denominador_oferta confirmado) + contagem
-    # de estabelecimentos. Por municipio e o que alimenta municipality_coverage
-    # (tabela "Cobertura Assistencial" quando o filtro afunila ate
-    # Municipio/CNES); por macro continua alimentando macro_coverage, ja
-    # existente.
+    # Oferta por macro E por municipio: soma qt_existente (total, so pro
+    # card informativo) e qt_uso-onde-SUS (denominador_oferta, 2026-08-24 --
+    # equipamento em uso e SUS) + contagem de estabelecimentos. Por
+    # municipio e o que alimenta municipality_coverage (tabela "Cobertura
+    # Assistencial" quando o filtro afunila ate Municipio/CNES); por macro
+    # continua alimentando macro_coverage, ja existente.
     oferta_por_macro: dict[str, dict[str, float]] = {}
     oferta_por_municipio: dict[str, dict[str, float]] = {}
     linhas_equipamento = []
@@ -119,16 +120,16 @@ def run() -> None:
             municipios_sem_match += 1  # RN-06: nao inventa macro, so nao agrega
         else:
             agg_macro = oferta_por_macro.setdefault(
-                municipio["co_macro"], {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+                municipio["co_macro"], {"existente": 0, "uso_sus": 0, "estabelecimentos": set()}
             )
             agg_macro["existente"] += eq["qt_existente"]
             agg_muni = oferta_por_municipio.setdefault(
-                eq["co_ibge"], {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+                eq["co_ibge"], {"existente": 0, "uso_sus": 0, "estabelecimentos": set()}
             )
             agg_muni["existente"] += eq["qt_existente"]
             if eq["fl_sus"]:
-                agg_macro["existente_sus"] += eq["qt_existente"]
-                agg_muni["existente_sus"] += eq["qt_existente"]
+                agg_macro["uso_sus"] += eq["qt_uso"]
+                agg_muni["uso_sus"] += eq["qt_uso"]
             agg_macro["estabelecimentos"].add(eq["co_cnes"])
             agg_muni["estabelecimentos"].add(eq["co_cnes"])
 
@@ -204,7 +205,7 @@ def run() -> None:
             mode=ExecutionMode.automatic,
             status=ExecutionStatus.published,
             config_chave_macrorregiao="ibge_municipio",
-            config_denominador_oferta="qt_existente_sus",
+            config_denominador_oferta="qt_uso_sus",
             active_sources={
                 "elasticnes": True, "sidra": True, "demas": True,
                 "populacao_ans_arquivo": bool(ans_por_municipio),
@@ -217,9 +218,9 @@ def run() -> None:
             population_residente = residente_por_macro.get(co_macro, 0)
             population_ans = ans_por_macro.get(co_macro, 0)
             population_sus = sus_por_macro.get(co_macro, 0)
-            oferta = oferta_por_macro.get(co_macro, {"existente": 0, "existente_sus": 0, "estabelecimentos": set()})
+            oferta = oferta_por_macro.get(co_macro, {"existente": 0, "uso_sus": 0, "estabelecimentos": set()})
             cobertura = calcular_cobertura(
-                population=population_sus, existing_sus=int(oferta["existente_sus"]), produtividade=PRODUTIVIDADE
+                population=population_sus, in_use_sus=int(oferta["uso_sus"]), produtividade=PRODUTIVIDADE
             )
             db.add(
                 MacroCoverage(
@@ -249,10 +250,10 @@ def run() -> None:
             ans = ans_por_municipio.get(co_ibge, 0)
             population_sus_muni = populacao_sus_dependente(residente=residente, ans=ans)
             oferta_muni = oferta_por_municipio.get(
-                co_ibge, {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+                co_ibge, {"existente": 0, "uso_sus": 0, "estabelecimentos": set()}
             )
             cobertura_muni = calcular_cobertura(
-                population=population_sus_muni, existing_sus=int(oferta_muni["existente_sus"]),
+                population=population_sus_muni, in_use_sus=int(oferta_muni["uso_sus"]),
                 produtividade=PRODUTIVIDADE,
             )
             db.add(

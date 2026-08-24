@@ -210,7 +210,7 @@ export function CoberturaTable({
                         borderRadius: 4,
                       }}
                     >
-                      Equipamentos SUS ÷ população SUS-dependente, na proporção esperada
+                      Equipamentos em uso SUS ÷ população SUS-dependente, na proporção esperada
                     </div>
                     <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
                       Abaixo de 1x é Hipossuficiente, 1x ou mais é Hiperssuficiente. A listra no meio da barra marca
@@ -333,8 +333,8 @@ export function CoberturaTable({
                           {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
                         </div>
                         <div style={{ fontSize: 10, color: '#98a0b3' }}>
-                          {formatarQuantidadeEquipamento(r.oferta)} SUS
-                          {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} no total`}
+                          {formatarQuantidadeEquipamento(r.oferta)} em uso SUS
+                          {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} existentes`}
                         </div>
                       </div>
                     </div>

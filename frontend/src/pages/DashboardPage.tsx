@@ -331,12 +331,12 @@ export function DashboardPage() {
           color="#16213e"
           info={
             <InfoIcon>
-              Inclui equipamentos privados. Só o card ao lado (SUS) entra no cálculo de cobertura.
+              Inclui equipamentos privados. Só o card ao lado (em uso e SUS) entra no cálculo de cobertura.
             </InfoIcon>
           }
         />
         <KpiCard
-          label="Total de Equipamentos SUS"
+          label="Total de Equipamentos em uso SUS"
           value={totais?.availableQty ?? totalEquipMacro}
           color="#16213e"
         />
@@ -348,7 +348,7 @@ export function DashboardPage() {
           ativo={nivelForcado === 'municipio'}
           info={
             <InfoIcon>
-              Municípios com mais de 100 mil habitantes e equipamentos SUS abaixo do necessário. Clique pra ver a
+              Municípios com mais de 100 mil habitantes e equipamentos em uso SUS abaixo do necessário. Clique pra ver a
               lista.
             </InfoIcon>
           }
@@ -360,7 +360,7 @@ export function DashboardPage() {
           onClick={() => verHipo('regiaoSaude')}
           ativo={nivelForcado === 'regiaoSaude'}
           info={
-            <InfoIcon>Regiões de saúde com equipamentos SUS abaixo do necessário. Clique pra ver a lista.</InfoIcon>
+            <InfoIcon>Regiões de saúde com equipamentos em uso SUS abaixo do necessário. Clique pra ver a lista.</InfoIcon>
           }
         />
         <KpiCard

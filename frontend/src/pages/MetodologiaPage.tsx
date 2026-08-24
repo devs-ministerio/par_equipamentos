@@ -97,7 +97,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
         </div>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#16213e', marginBottom: 8 }}>Verificação por Município</div>
         <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.7, maxWidth: 680 }}>
-          A metodologia avalia a suficiência de {p.nomePlural} no SUS comparando a quantidade existente com a demanda
+          A metodologia avalia a suficiência de {p.nomePlural} no SUS comparando a quantidade em uso com a demanda
           estimada com base na população <strong>SUS-dependente</strong> (IBGE − beneficiários de plano de saúde),
           granularizada ao nível de município.
         </div>
@@ -135,7 +135,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
             Fórmula
           </div>
           <div style={{ background: colors.surface, borderRadius: 6, padding: '10px 14px', fontFamily: 'monospace', fontSize: 12, color: '#16213e', lineHeight: 1.6 }}>
-            Qtd SUS existente
+            Qtd SUS em uso
             <br />
             ──────────────────
             <br />
@@ -151,7 +151,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
         </div>
         <div style={{ fontSize: 13, color: '#475066', lineHeight: 1.7 }}>
           Em Planilhas e no Mapa, cada macrorregião/região de saúde/município mostra um <strong>coeficiente</strong>:
-          quantas {p.nomePlural} SUS existem pra cada {formatarProdutividade(p.produtividade)} habitantes
+          quantas {p.nomePlural} SUS em uso existem pra cada {formatarProdutividade(p.produtividade)} habitantes
           SUS-dependentes, sem arredondar a demanda. Abaixo de 1x é <strong>Hipossuficiente</strong>; 1x ou mais é{' '}
           <strong>Hiperssuficiente</strong> -- a meta é estar em hiperssuficiência, com capacidade de sobra pra
           demanda adicional.
@@ -175,7 +175,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
           />
           <FonteItem
             n={3}
-            titulo={`Quantidade de ${p.nomePlural} existentes no SUS (ElastiCNES)`}
+            titulo={`Quantidade de ${p.nomePlural} em uso no SUS (ElastiCNES)`}
             url="https://cnes2.datasus.gov.br/Mod_Ind_Equipamentos_Listar.asp?VTipo_Equip=1%20&VListar=1&VEstado=00&VMun=&VComp="
             urlLabel={`cnes2.datasus.gov.br — Módulo de Equipamentos (${p.codigoElasticnes})`}
           />
