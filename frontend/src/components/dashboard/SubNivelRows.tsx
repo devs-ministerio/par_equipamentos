@@ -166,10 +166,17 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                       <td style={{ padding: '6px 8px', width: 110, textAlign: 'right', color: '#475066', whiteSpace: 'nowrap' }}>
                         {linha.pop.toLocaleString('pt-BR')}
                       </td>
-                      <td style={{ padding: '6px 24px 6px 8px', minWidth: 160 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <td style={{ padding: '6px 24px 6px 8px', width: 210 }}>
+                        {/* bar com largura fixa (nao flex:1) -- em
+                            table-layout:fixed sem width explicito no <td>,
+                            o navegador dividia o espaco sobrando de forma
+                            instavel entre Nome e essa coluna, esticando a
+                            barra bem alem do necessario e empurrando o
+                            rotulo/status pra longe, desalinhado com o
+                            cabecalho (bug real, 2026-08-24). */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div
-                            style={{ flex: 1, position: 'relative', height: 7, borderRadius: 4, background: '#eef0f4', overflow: 'clip' }}
+                            style={{ width: 90, flexShrink: 0, position: 'relative', height: 7, borderRadius: 4, background: '#eef0f4', overflow: 'clip' }}
                           >
                             <div
                               style={{
@@ -194,7 +201,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                               }}
                             />
                           </div>
-                          <div style={{ width: 100 }}>
+                          <div>
                             <div style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto }}>
                               {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
                             </div>
