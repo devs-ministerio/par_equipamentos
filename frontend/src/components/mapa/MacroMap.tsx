@@ -1,5 +1,13 @@
 import { forwardRef, useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+// Imports nomeados dos submodulos do D3 em vez de `import * as d3 from 'd3'`
+// (2026-08-24) -- o metapacote 'd3' reexporta ~30 submodulos, a maioria
+// nunca usada aqui (transicao, drag, zoom, force, etc.); isso sozinho
+// tirou o D3 inteiro do chunk principal do build (ver App.tsx, rotas
+// agora lazy) e reduz o que sobra so ao que este componente de fato chama.
+import { max as d3Max } from 'd3-array';
+import { geoCentroid, geoCircle, geoMercator, geoPath } from 'd3-geo';
+import { scaleLinear, scaleSqrt } from 'd3-scale';
+import { select } from 'd3-selection';
 import type { GeoJsonProperties, Geometry } from 'geojson';
 import { statusMeta } from '../../utils/status';
 import { formatMultiplicador } from '../../utils/format';
@@ -65,7 +73,7 @@ interface Props {
   onSelectMacro: (macroId: string) => void;
 }
 
-/** km -> graus de arco (o que d3.geoCircle espera) -- 1 grau de grande
+/** km -> graus de arco (o que geoCircle espera) -- 1 grau de grande
  * circulo na Terra equivale a raio_terra_km * (pi/180) km. */
 const KM_POR_GRAU = (Math.PI / 180) * 6371;
 
@@ -80,8 +88,8 @@ const KM_POR_GRAU = (Math.PI / 180) * 6371;
  * verde (mais claro = acabou de bater a meta, mais escuro/saturado = bem
  * acima). As 4 cores (hipoRed/hipoRedBg/hiperGreenBg/hiperGreen) já
  * existem no design system (StatusBadge/cards), não inventei tom novo. */
-const escalaVermelho = d3.scaleLinear<string>().domain([0, 100]).range([colors.hipoRed, colors.hipoRedBg]).clamp(true);
-const escalaVerde = d3.scaleLinear<string>().domain([100, 200]).range([colors.hiperGreenBg, colors.hiperGreen]).clamp(true);
+const escalaVermelho = scaleLinear<string>().domain([0, 100]).range([colors.hipoRed, colors.hipoRedBg]).clamp(true);
+const escalaVerde = scaleLinear<string>().domain([100, 200]).range([colors.hiperGreenBg, colors.hiperGreen]).clamp(true);
 
 function escalaCor(cobertura: number): string {
   return cobertura < 100 ? escalaVermelho(cobertura) : escalaVerde(cobertura);
@@ -119,8 +127,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     const width = el.clientWidth || 700;
     const height = 560;
 
-    const svg = d3
-      .select(el)
+    const svg = select(el)
       .append('svg')
       .attr('width', '100%')
       .attr('height', height)
@@ -129,7 +136,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     const featureAlvo = zoomMacroId
       ? geo.features.find((f) => (f as Feature).properties?.cod_macro === zoomMacroId)
       : undefined;
-    const proj = d3.geoMercator();
+    const proj = geoMercator();
     if (featureAlvo) {
       // margem de ~8% em volta -- senao a macro encosta na borda do SVG
       // (fitSize/fitExtent ajusta exatamente, sem folga nenhuma por padrao).
@@ -138,7 +145,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     } else {
       proj.fitSize([width, height], geo);
     }
-    const path = d3.geoPath().projection(proj);
+    const path = geoPath().projection(proj);
 
     const tooltip = document.createElement('div');
     tooltip.style.cssText =
@@ -198,7 +205,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
       });
 
     // Raio normativo (75km do Tomografo) -- um circulo geodesico de verdade
-    // por ponto SUS (d3.geoCircle, nao um raio fixo em pixel: um raio fixo
+    // por ponto SUS (geoCircle, nao um raio fixo em pixel: um raio fixo
     // em pixel ignoraria a distorcao da projecao Mercator, que estica muito
     // longe do equador -- 75km em pixel na Amazonia ficaria bem diferente
     // de 75km em pixel no Sul). So os pontos SUS (susFlag) tem raio -- o
@@ -207,7 +214,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
       const raioGraus = raioKm / KM_POR_GRAU;
       const circulos = pontos
         .filter((p) => p.susFlag)
-        .map((p) => d3.geoCircle().center([p.lon, p.lat]).radius(raioGraus)());
+        .map((p) => geoCircle().center([p.lon, p.lat]).radius(raioGraus)());
       svg
         .append('g')
         .selectAll('path')
@@ -224,8 +231,8 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     }
 
     if (pontos && pontos.length > 0) {
-      const maiorQtd = d3.max(pontos, (p) => p.qtd) ?? 1;
-      const raio = d3.scaleSqrt().domain([1, maiorQtd]).range([2.5, 9]).clamp(true);
+      const maiorQtd = d3Max(pontos, (p) => p.qtd) ?? 1;
+      const raio = scaleSqrt().domain([1, maiorQtd]).range([2.5, 9]).clamp(true);
       svg
         .append('g')
         .selectAll('circle')
@@ -253,7 +260,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     // diferente (a macro unica do Acre e bem maior que uma macro pequena de
     // capital), entao o "tamanho de 1 km na tela" muda por recorte.
     if (featureAlvo) {
-      const [cLon, cLat] = d3.geoCentroid(featureAlvo);
+      const [cLon, cLat] = geoCentroid(featureAlvo);
       const grausPorKmNaLatitude = 1 / (KM_POR_GRAU * Math.cos((cLat * Math.PI) / 180));
       const p0 = proj([cLon, cLat]);
       const p1 = proj([cLon + grausPorKmNaLatitude, cLat]);
