@@ -47,6 +47,7 @@ export function InfoIcon({ children, align = 'left' }: InfoIconProps) {
             borderRadius: 8,
             padding: '12px 14px',
             minWidth: 220,
+            maxWidth: 280,
             zIndex: 50,
             fontSize: 12,
             lineHeight: 1.6,
