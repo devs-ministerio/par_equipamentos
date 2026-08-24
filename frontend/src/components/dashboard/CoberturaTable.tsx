@@ -129,7 +129,14 @@ export function CoberturaTable({
           de cidade numa caixinha interna -- so trava a altura no modo
           compacto (nada expandido), que e quando faz sentido ter rolagem
           interna pra pagina de ate 20 macros. */}
-      <div style={{ maxHeight: expandidas.size > 0 ? 'none' : 340, overflow: 'auto' }}>
+      {/* overflowX visible (nao auto) de proposito -- overflow:auto nos dois
+          eixos cortava o tooltip do InfoIcon (posicionado absoluto, "vaza"
+          pra fora da celula do cabecalho) mesmo com maxWidth certo no popup,
+          porque overflow != visible em QUALQUER eixo já corta filho
+          absolutamente posicionado (bug real, 2026-08-24). So overflowY
+          precisa ser auto aqui (rolagem vertical das linhas); a tabela nao
+          precisa de rolagem horizontal (cabe na largura do container). */}
+      <div style={{ maxHeight: expandidas.size > 0 ? 'none' : 340, overflowY: 'auto', overflowX: 'visible' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
           <thead>
             <tr

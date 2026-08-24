@@ -188,7 +188,18 @@ export function NivelCoberturaTable({
           Não foi possível carregar ({error}).
         </div>
       )}
-      <div style={{ maxHeight: 340, overflow: 'auto', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
+      {/* overflowX visible de proposito -- ver comentario equivalente em
+          CoberturaTable.tsx (overflow:auto nos dois eixos corta o tooltip
+          do InfoIcon, absolutamente posicionado, mesmo com maxWidth certo). */}
+      <div
+        style={{
+          maxHeight: 340,
+          overflowY: 'auto',
+          overflowX: 'visible',
+          opacity: loading ? 0.6 : 1,
+          transition: 'opacity .15s',
+        }}
+      >
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
           <thead>
             <tr
