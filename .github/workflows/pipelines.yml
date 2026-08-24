@@ -16,34 +16,50 @@ on:
 jobs:
   rodar_pipelines:
     runs-on: ubuntu-latest
-    # Nao roda (em vez de quebrar com erro de conexao confuso no alembic)
-    # se alguem clicar "Run workflow" antes do secret DATABASE_URL existir
-    # -- ver nota no topo do arquivo.
-    if: ${{ secrets.DATABASE_URL != '' }}
     defaults:
       run:
         working-directory: backend
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
+      # `secrets` nao pode ser referenciado em `jobs.<id>.if` (o GitHub
+      # rejeita o workflow inteiro com "Unrecognized named-value: secrets" --
+      # erro real encontrado 2026-08-24, so e permitido em `if:` de STEP).
+      # Por isso o guard vira um step normal, que grava um output pros
+      # steps seguintes lerem.
+      - name: Verifica se o secret DATABASE_URL existe
+        id: guard
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Secret DATABASE_URL nao configurado (Settings > Secrets and variables > Actions) -- pulando o resto do job."
+            echo "tem_secret=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tem_secret=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.guard.outputs.tem_secret == 'true'
 
       - uses: astral-sh/setup-uv@v3
+        if: steps.guard.outputs.tem_secret == 'true'
         with:
           version: "latest"
 
       - name: Instala dependencias
+        if: steps.guard.outputs.tem_secret == 'true'
         run: uv sync --frozen
 
       - name: Aplica migrations pendentes
+        if: steps.guard.outputs.tem_secret == 'true'
         run: uv run alembic upgrade head
 
       - name: Roda pipeline TOMOGRAFO
+        if: steps.guard.outputs.tem_secret == 'true'
         run: uv run python -m scripts.run_pipeline_tomografo
 
       - name: Roda pipeline RESSONANCIA
-        # continue-on-error: falha de uma familia nao deve impedir a outra
-        # de tentar rodar -- cada run() ja registra a propria falha em
-        # AuditLog (app/pipeline/runner.py) antes de relancar a excecao.
-        if: always()
+        # sempre tenta, mesmo se TOMOGRAFO falhar -- cada run() ja registra
+        # a propria falha em AuditLog (app/pipeline/runner.py) antes de
+        # relancar a excecao. So nao roda se o guard inicial ja bloqueou tudo.
+        if: always() && steps.guard.outputs.tem_secret == 'true'
         run: uv run python -m scripts.run_pipeline_ressonancia
