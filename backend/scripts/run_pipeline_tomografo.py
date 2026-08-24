@@ -34,6 +34,7 @@ from app.db.models import (
 from app.pipeline import api_demas, api_elasticnes, api_sidra
 from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente
 from app.pipeline.geo import carregar_coordenadas_municipios, distancia_minima_km
+from app.pipeline.runner import executar_com_registro_de_falha
 
 FAMILIA = "TOMOGRAFO"
 PRODUTIVIDADE = 100_000  # 1 tomografo por 100 mil habitantes (Metodologia)
@@ -344,4 +345,4 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    run()
+    executar_com_registro_de_falha(FAMILIA, run)
