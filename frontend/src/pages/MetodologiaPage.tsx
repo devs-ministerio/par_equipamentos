@@ -76,7 +76,6 @@ const PARAMETROS_POR_FAMILIA: Record<string, ParametrosFamilia> = {
     notaCriterio: (
       <>
         Produtividade equivalente: 5.000 exames/ano ÷ (30 exames/1.000 hab.) = <strong>1 equipamento a cada ~166.667 habitantes</strong>.
-        Parâmetro repassado pela área em 21/08/2026.
       </>
     ),
     codigoElasticnes: 'Cód. 12 (e 32 a 35, por campo em Tesla)',
@@ -98,7 +97,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
         </div>
         <div style={{ fontSize: 20, fontWeight: 700, color: '#16213e', marginBottom: 8 }}>Verificação por Município</div>
         <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.7, maxWidth: 680 }}>
-          A metodologia avalia a suficiência de {p.nomePlural} no SUS comparando a quantidade em uso com a demanda
+          A metodologia avalia a suficiência de {p.nomePlural} no SUS comparando a quantidade existente com a demanda
           estimada com base na população <strong>SUS-dependente</strong> (IBGE − beneficiários de plano de saúde),
           granularizada ao nível de município.
         </div>
@@ -136,7 +135,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
             Fórmula
           </div>
           <div style={{ background: colors.surface, borderRadius: 6, padding: '10px 14px', fontFamily: 'monospace', fontSize: 12, color: '#16213e', lineHeight: 1.6 }}>
-            Qtd SUS em uso
+            Qtd SUS existente
             <br />
             ──────────────────
             <br />
@@ -153,8 +152,9 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
         <div style={{ fontSize: 13, color: '#475066', lineHeight: 1.7 }}>
           Em Planilhas e no Mapa, cada macrorregião/região de saúde/município mostra um <strong>coeficiente</strong>:
           quantas {p.nomePlural} SUS existem pra cada {formatarProdutividade(p.produtividade)} habitantes
-          SUS-dependentes, sem arredondar a demanda. Coeficiente 1x é exatamente a meta; acima é Hiperssuficiente
-          (capacidade ociosa, mais vaga disponível pra demanda adicional), abaixo é Hipossuficiente.
+          SUS-dependentes, sem arredondar a demanda. Abaixo de 1x é <strong>Hipossuficiente</strong>; 1x ou mais é{' '}
+          <strong>Hiperssuficiente</strong> -- a meta é estar em hiperssuficiência, com capacidade de sobra pra
+          demanda adicional.
         </div>
       </div>
 
@@ -169,34 +169,16 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
           />
           <FonteItem
             n={2}
-            titulo="População residente (IBGE) estimada por município, consultada ao vivo a cada execução"
+            titulo="População residente (IBGE) estimada por município"
             url="https://sidra.ibge.gov.br/tabela/6579"
             urlLabel="SIDRA/IBGE — agregado 6579, variável 9324 (ano mais recente publicado)"
           />
           <FonteItem
             n={3}
-            titulo={`Quantidade de ${p.nomePlural} em uso no SUS (ElastiCNES)`}
+            titulo={`Quantidade de ${p.nomePlural} existentes no SUS (ElastiCNES)`}
             url="https://cnes2.datasus.gov.br/Mod_Ind_Equipamentos_Listar.asp?VTipo_Equip=1%20&VListar=1&VEstado=00&VMun=&VComp="
             urlLabel={`cnes2.datasus.gov.br — Módulo de Equipamentos (${p.codigoElasticnes})`}
           />
-        </div>
-        <div style={{ fontSize: 11.5, color: colors.mutedText, marginTop: 14, lineHeight: 1.6 }}>
-          <strong>4.</strong> Beneficiários de plano de saúde (ANS), por município — usados pra descontar do IBGE e
-          chegar na população SUS-dependente. Sem API oficial ao vivo conhecida pra esse dado hoje; importado de
-          arquivo de referência (upload manual, versionado) até que uma fonte ao vivo seja identificada e validada.
-        </div>
-      </div>
-
-      <div style={{ background: '#f0f4ff', borderRadius: 10, padding: '20px 28px', borderLeft: `4px solid ${colors.primary}` }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: colors.primary, marginBottom: 6 }}>Nota sobre o denominador</div>
-        <div style={{ fontSize: 13, color: '#475066', lineHeight: 1.7 }}>
-          O denominador é a <strong>população SUS-dependente</strong> (residente IBGE menos beneficiários de plano
-          de saúde ANS), não a população total do território. Decisão de 21/08/2026: o parâmetro normativo do MS
-          (Caderno 1) não faz essa segmentação por si só — trabalha com cobertura populacional plena (lógica PDR) —,
-          mas manter o denominador em população total inflaria artificialmente a demanda em regiões com alta
-          cobertura de plano privado (ex.: capitais), já que quem tem plano não compete pela vaga no SUS. Como a
-          oferta já era medida só em equipamentos SUS (decisão D-02), comparar contra a população SUS-dependente é
-          o recorte consistente dos dois lados da conta.
         </div>
       </div>
     </div>
