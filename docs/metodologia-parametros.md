@@ -2,12 +2,13 @@
 
 Referência rápida dos parâmetros e regras normativas que o sistema já aplica hoje. Cobre só o que está **implementado e em uso** — não é a especificação completa da Metodologia, é um espelho do que o código realmente faz, com o arquivo/linha de onde tirei cada regra pra você conferir.
 
-## Regra geral: sempre SUS
+## Regra geral: sempre SUS e em uso
 
-Todo cálculo de cobertura, distância ou "mais próximo" considera **só equipamento que atende SUS** (`sus_flag=true`). O total (SUS + privado) só aparece em cards explicitamente informativos ("Total de Equipamentos"), nunca entra em nenhuma conta.
+Todo cálculo de cobertura, distância ou "mais próximo" considera **só equipamento que atende SUS** (`sus_flag=true`) **e está em uso** (`in_use_qty`, não `existing_qty`). O total existente (SUS + privado, em uso ou não) só aparece em cards explicitamente informativos ("Total de Equipamentos"), nunca entra em nenhuma conta.
 
-- Backend: `existing_sus` / `available_qty` — nunca `existing_qty` total — em `backend/app/pipeline/cobertura.py`.
-- Busca por raio (mapa): parâmetro `sus_flag=true` em `backend/app/routers/equipment_offer.py`.
+- Decisão 2026-08-24: o denominador de oferta passou de "existente e SUS" pra "em uso e SUS" — equipamento que existe mas está parado deixou de contar como oferta real. `available_qty` no banco (macro_coverage/municipality_coverage) reflete isso desde essa data; `existing_qty` continua sendo o total (informativo, não muda).
+- Backend: `in_use_sus` / `available_qty` — nunca `existing_qty` total — em `backend/app/pipeline/cobertura.py`.
+- Busca por raio (mapa): parâmetro `sus_flag=true` **e** `qt_uso > 0` em `backend/scripts/run_pipeline_tomografo.py` (`pontos_uso_sus_por_cnes`).
 
 ## Parâmetros por família de equipamento
 
@@ -31,10 +32,10 @@ Denominador de população: **SUS-dependente** = população residente (IBGE/SID
 
 ```
 required_qty      = ceil(população_sus_dependente / produtividade)
-balance           = equipamentos_sus − required_qty
+balance           = equipamentos_em_uso_sus − required_qty
 deficit_status     = "não deficiente" se balance ≥ 0, senão "deficiente"
-coverage_percentage = equipamentos_sus / required_qty × 100   (null se required_qty = 0)
-coeficiente         = (equipamentos_sus × produtividade) / população_sus_dependente
+coverage_percentage = equipamentos_em_uso_sus / required_qty × 100   (null se required_qty = 0)
+coeficiente         = (equipamentos_em_uso_sus × produtividade) / população_sus_dependente
 ```
 
 `coverage_percentage` e `coeficiente` medem a mesma coisa em unidades diferentes (percentual vs. multiplicador "1,3x") — `coeficiente ≥ 1` equivale a `coverage_percentage ≥ 100`, é o mesmo corte que decide Hipo/Hiperssuficiente.
@@ -66,7 +67,7 @@ Fonte: `frontend/src/components/dashboard/SubNivelRows.tsx` (`POPULACAO_MINIMA_P
 O Caderno 1 (SUS, 2017) prevê o critério "1 por 100 mil habitantes **OU** raio de 75 km, o que for atingido primeiro" pro Tomógrafo. Hoje só a parte populacional entra na classificação oficial (`deficit_status`). A distância existe, é calculada e mostrada, mas **não muda** se um município é Hipo ou Hiperssuficiente.
 
 O que já existe:
-- `distance_km_nearest_equipment` (só Tomógrafo, calculado no pipeline): Haversine entre a sede do município (coordenada do IBGE) e o tomógrafo SUS geocodificado mais próximo, em **qualquer lugar do Brasil** — sem respeitar fronteira de macro/UF, sem limite de raio. `backend/app/pipeline/geo.py` + `backend/scripts/run_pipeline_tomografo.py`.
+- `distance_km_nearest_equipment` (só Tomógrafo, calculado no pipeline): Haversine entre a sede do município (coordenada do IBGE) e o tomógrafo em uso e SUS geocodificado mais próximo, em **qualquer lugar do Brasil** — sem respeitar fronteira de macro/UF, sem limite de raio. `backend/app/pipeline/geo.py` + `backend/scripts/run_pipeline_tomografo.py`.
 - Demais famílias: sem campo pré-calculado — calculado ao vivo no navegador (mesma fórmula, SUS-only) quando o usuário seleciona um município no Mapa. `frontend/src/utils/geo.ts`.
 - Cards "Distância mais próxima" / "Equipamento mais próximo" e o contorno do município no mapa (polígono oficial, API do IBGE) usam esse dado — só no Mapa, só visual.
 

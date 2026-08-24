@@ -136,20 +136,25 @@ def totais_equipamentos(
     search: str | None = None,
     db: Session = Depends(get_db),
 ) -> EquipmentTotalsRead:
-    """Soma exata (existing_qty / existing_qty-onde-sus_flag) pro recorte de
+    """Soma exata (existing_qty / in_use_qty-onde-sus_flag) pro recorte de
     filtro pedido, direto de equipment_offer_row -- diferente de
     macro_coverage (agregado so por macro), funciona certo pra QUALQUER
     granularidade de filtro (regiao de saude, municipio, cnes), que e o que
-    os cards "Total de Tomografos" / "Total de Tomografos SUS" do Dashboard
-    devem refletir (RF corrigido: antes eles usavam macro_coverage e mostravam
-    o total da macro inteira mesmo filtrando por um municipio so)."""
+    os cards "Total de Equipamentos" / "Total de Equipamentos em uso SUS" do
+    Dashboard devem refletir (RF corrigido: antes eles usavam macro_coverage
+    e mostravam o total da macro inteira mesmo filtrando por um municipio
+    so). available_qty = in_use_qty-onde-sus_flag desde 2026-08-24 (antes
+    era existing_qty-onde-sus_flag) -- mesma decisao de
+    app/pipeline/cobertura.py, pra bater com o numero gravado em
+    macro_coverage/municipality_coverage (esse endpoint so recalcula em
+    tempo de leitura pra granularidade mais fina que macro)."""
     exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
         return EquipmentTotalsRead(existing_qty=0, available_qty=0)
 
     stmt = select(
         func.coalesce(func.sum(EquipmentOfferRow.existing_qty), 0),
-        func.coalesce(func.sum(EquipmentOfferRow.existing_qty).filter(EquipmentOfferRow.sus_flag.is_(True)), 0),
+        func.coalesce(func.sum(EquipmentOfferRow.in_use_qty).filter(EquipmentOfferRow.sus_flag.is_(True)), 0),
     ).where(EquipmentOfferRow.execution_id == exec_id)
     stmt = _aplicar_filtros(stmt, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code)
 
@@ -167,9 +172,9 @@ def totais_por_natureza_juridica(
     municipality: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> list[LegalNatureBreakdownRead]:
-    """Soma de existing_qty/available_qty (mesma regra do /totals) agrupada
-    por natureza juridica do estabelecimento -- Painel Geral, card "Natureza
-    juridica da oferta SUS" (2026-08-22)."""
+    """Soma de existing_qty/available_qty (mesma regra do /totals, ver
+    comentario la) agrupada por natureza juridica do estabelecimento --
+    Painel Geral, card "Natureza juridica da oferta SUS" (2026-08-22)."""
     exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
         return []
@@ -177,7 +182,7 @@ def totais_por_natureza_juridica(
     stmt = select(
         EquipmentOfferRow.legal_nature,
         func.coalesce(func.sum(EquipmentOfferRow.existing_qty), 0),
-        func.coalesce(func.sum(EquipmentOfferRow.existing_qty).filter(EquipmentOfferRow.sus_flag.is_(True)), 0),
+        func.coalesce(func.sum(EquipmentOfferRow.in_use_qty).filter(EquipmentOfferRow.sus_flag.is_(True)), 0),
     ).where(EquipmentOfferRow.execution_id == exec_id)
     stmt = _aplicar_filtros(stmt, equipment_family, state, macro_code, health_region_code, municipality, None)
     stmt = stmt.group_by(EquipmentOfferRow.legal_nature)

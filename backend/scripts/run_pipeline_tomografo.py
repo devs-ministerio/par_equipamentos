@@ -10,10 +10,14 @@ planilha nenhuma -- oferta vem 100% do ElastiCNES, demanda 100% de
 DEMAS (dimensao) + SIDRA (populacao residente, ao vivo) + arquivo de
 referencia de populacao ANS (scripts/importar_populacao_municipios.py,
 sem API oficial ao vivo conhecida pra beneficiarios de plano de saude).
-D-02 (denominador_oferta = qt_existente_sus) ja confirmado com a area,
-aplicado direto aqui. Decisao 2026-08-21: o denominador de DEMANDA passou
-de populacao residente total pra populacao SUS-dependente (residente -
-ANS) -- consistente com a oferta ja ser so-SUS."""
+Denominador de oferta = qt_uso-onde-sus_flag (equipamento EM USO e SUS),
+decisao 2026-08-24 -- antes era qt_existente_sus (D-02, 2026-08-21):
+equipamento existente que nao esta em uso deixou de contar pra
+cobertura/deficit/coeficiente. qt_existente total continua alimentando
+so o card informativo "Total de Equipamentos" (nao muda). Decisao
+2026-08-21: o denominador de DEMANDA passou de populacao residente
+total pra populacao SUS-dependente (residente - ANS) -- consistente
+com a oferta ja ser so-SUS."""
 from __future__ import annotations
 
 from sqlalchemy import delete, func, select
@@ -95,24 +99,24 @@ def run() -> None:
 
     print("4/4 - Agregando por macrorregiao e gravando no banco...")
 
-    # Oferta por macro E por municipio: soma qt_existente (total) e
-    # qt_existente-onde-SUS (D-02, denominador_oferta confirmado) + contagem
-    # de estabelecimentos. Por municipio e o que alimenta municipality_coverage
-    # (tabela "Cobertura Assistencial" quando o filtro afunila ate
-    # Municipio/CNES); por macro continua alimentando macro_coverage, ja
-    # existente.
+    # Oferta por macro E por municipio: soma qt_existente (total, so pro
+    # card informativo) e qt_uso-onde-SUS (denominador_oferta, 2026-08-24 --
+    # equipamento em uso e SUS) + contagem de estabelecimentos. Por
+    # municipio e o que alimenta municipality_coverage (tabela "Cobertura
+    # Assistencial" quando o filtro afunila ate Municipio/CNES); por macro
+    # continua alimentando macro_coverage, ja existente.
     oferta_por_macro: dict[str, dict[str, float]] = {}
     oferta_por_municipio: dict[str, dict[str, float]] = {}
     linhas_equipamento = []
     municipios_sem_match = 0
 
-    # Pontos (lat, long) de tomografo SUS geocodificado, um por CNES (dedup --
-    # um CNES pode ter varias linhas de subtipo diferente no ElastiCNES) --
-    # alimenta a distancia ate o mais proximo (raio de 75 km, ver
-    # app/pipeline/geo.py). So SUS (fl_sus) porque o criterio normativo e de
-    # acesso pelo SUS, mesmo denominador de oferta que D-02 ja usa em todo o
-    # resto do calculo.
-    pontos_sus_por_cnes: dict[str, tuple[float, float]] = {}
+    # Pontos (lat, long) de tomografo em uso E SUS geocodificado, um por
+    # CNES (dedup -- um CNES pode ter varias linhas de subtipo diferente no
+    # ElastiCNES) -- alimenta a distancia ate o mais proximo (raio de 75 km,
+    # ver app/pipeline/geo.py). Em uso porque um equipamento existente mas
+    # parado nao ajuda o paciente a ser atendido (mesmo criterio 2026-08-24
+    # do denominador de oferta).
+    pontos_uso_sus_por_cnes: dict[str, tuple[float, float]] = {}
 
     for eq in equipamentos:
         municipio = municipios.get(eq["co_ibge"])
@@ -120,21 +124,21 @@ def run() -> None:
             municipios_sem_match += 1  # RN-06: nao inventa macro, so nao agrega
         else:
             agg_macro = oferta_por_macro.setdefault(
-                municipio["co_macro"], {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+                municipio["co_macro"], {"existente": 0, "uso_sus": 0, "estabelecimentos": set()}
             )
             agg_macro["existente"] += eq["qt_existente"]
             agg_muni = oferta_por_municipio.setdefault(
-                eq["co_ibge"], {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+                eq["co_ibge"], {"existente": 0, "uso_sus": 0, "estabelecimentos": set()}
             )
             agg_muni["existente"] += eq["qt_existente"]
             if eq["fl_sus"]:
-                agg_macro["existente_sus"] += eq["qt_existente"]
-                agg_muni["existente_sus"] += eq["qt_existente"]
+                agg_macro["uso_sus"] += eq["qt_uso"]
+                agg_muni["uso_sus"] += eq["qt_uso"]
             agg_macro["estabelecimentos"].add(eq["co_cnes"])
             agg_muni["estabelecimentos"].add(eq["co_cnes"])
 
-        if eq["fl_sus"] and eq["latitude"] is not None and eq["longitude"] is not None:
-            pontos_sus_por_cnes[eq["co_cnes"]] = (eq["latitude"], eq["longitude"])
+        if eq["fl_sus"] and eq["qt_uso"] > 0 and eq["latitude"] is not None and eq["longitude"] is not None:
+            pontos_uso_sus_por_cnes[eq["co_cnes"]] = (eq["latitude"], eq["longitude"])
 
         linhas_equipamento.append(
             EquipmentOfferRow(
@@ -161,12 +165,13 @@ def run() -> None:
     if municipios_sem_match:
         print(f"   [AVISO] {municipios_sem_match} registro(s) do ElastiCNES sem municipio correspondente no DEMAS.")
 
-    # pontos_sus_por_cnes ja e so-SUS-geocodificado (filtrado no loop acima),
-    # entao seu tamanho E a cobertura de geocodificacao entre os SUS.
-    pontos_sus = list(pontos_sus_por_cnes.values())
+    # pontos_uso_sus_por_cnes ja e so-em-uso-e-SUS-geocodificado (filtrado
+    # no loop acima), entao seu tamanho E a cobertura de geocodificacao
+    # entre os em-uso-SUS.
+    pontos_uso_sus = list(pontos_uso_sus_por_cnes.values())
     coordenadas_municipios = carregar_coordenadas_municipios()
     print(
-        f"   Distância ao raio de 75km: {len(pontos_sus)} tomógrafo(s) SUS geocodificado(s); "
+        f"   Distância ao raio de 75km: {len(pontos_uso_sus)} tomógrafo(s) em uso e SUS geocodificado(s); "
         f"{len(coordenadas_municipios)} município(s) com coordenada de referência."
     )
 
@@ -217,7 +222,7 @@ def run() -> None:
             mode=ExecutionMode.automatic,
             status=ExecutionStatus.published,
             config_chave_macrorregiao="ibge_municipio",
-            config_denominador_oferta="qt_existente_sus",
+            config_denominador_oferta="qt_uso_sus",
             active_sources={
                 "elasticnes": True, "sidra": True, "demas": True,
                 "populacao_ans_arquivo": bool(ans_por_municipio),
@@ -230,9 +235,9 @@ def run() -> None:
             population_residente = residente_por_macro.get(co_macro, 0)
             population_ans = ans_por_macro.get(co_macro, 0)
             population_sus = sus_por_macro.get(co_macro, 0)
-            oferta = oferta_por_macro.get(co_macro, {"existente": 0, "existente_sus": 0, "estabelecimentos": set()})
+            oferta = oferta_por_macro.get(co_macro, {"existente": 0, "uso_sus": 0, "estabelecimentos": set()})
             cobertura = calcular_cobertura(
-                population=population_sus, existing_sus=int(oferta["existente_sus"]), produtividade=PRODUTIVIDADE
+                population=population_sus, in_use_sus=int(oferta["uso_sus"]), produtividade=PRODUTIVIDADE
             )
             db.add(
                 MacroCoverage(
@@ -262,20 +267,20 @@ def run() -> None:
             ans = ans_por_municipio.get(co_ibge, 0)
             population_sus_muni = populacao_sus_dependente(residente=residente, ans=ans)
             oferta_muni = oferta_por_municipio.get(
-                co_ibge, {"existente": 0, "existente_sus": 0, "estabelecimentos": set()}
+                co_ibge, {"existente": 0, "uso_sus": 0, "estabelecimentos": set()}
             )
             cobertura_muni = calcular_cobertura(
-                population=population_sus_muni, existing_sus=int(oferta_muni["existente_sus"]),
+                population=population_sus_muni, in_use_sus=int(oferta_muni["uso_sus"]),
                 produtividade=PRODUTIVIDADE,
             )
             # So informativo -- NAO entra em cobertura_muni/deficit_status
             # (ver app/pipeline/geo.py). None se o municipio nao tiver
             # coordenada de referencia (nao deveria acontecer, os 5.570
-            # ja foram validados) ou se nenhum tomografo SUS do pais tiver
-            # geocodificacao ainda.
+            # ja foram validados) ou se nenhum tomografo em uso e SUS do
+            # pais tiver geocodificacao ainda.
             coordenada_municipio = coordenadas_municipios.get(co_ibge)
             distancia_ate_mais_proximo = (
-                distancia_minima_km(coordenada_municipio, pontos_sus) if coordenada_municipio else None
+                distancia_minima_km(coordenada_municipio, pontos_uso_sus) if coordenada_municipio else None
             )
             db.add(
                 MunicipalityCoverage(

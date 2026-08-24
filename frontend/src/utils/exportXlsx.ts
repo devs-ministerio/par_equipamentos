@@ -21,8 +21,7 @@ export const CAMPOS_XLSX_COBERTURA: CampoXlsx[] = [
   { key: 'regiaoNome', label: 'Região de saúde' },
   { key: 'municipio', label: 'Município' },
   { key: 'macroPopulacao', label: 'População da macrorregião' },
-  { key: 'macroTomografos', label: 'Equipamentos SUS da macrorregião' },
-  { key: 'macroPessoasPorTomografo', label: 'Pessoas por equipamento (macrorregião)' },
+  { key: 'macroTomografos', label: 'Equipamentos em uso SUS da macrorregião' },
   { key: 'macroMultiplicador', label: 'Multiplicador da meta (macrorregião)' },
   { key: 'macroStatus', label: 'Status da macrorregião' },
   { key: 'estabelecimentos', label: 'Estabelecimentos (nesta linha)' },
@@ -182,10 +181,6 @@ function montarAbaMetodologia(wb: ExcelJS.Workbook, filtrosResumo: string, equip
 
   subtitulo('COMO LER OS INDICADORES');
   linha(
-    'PESSOAS POR EQUIPAMENTO',
-    'População da macrorregião dividida pelo número de equipamentos SUS. Ex.: 23,4 mil/1 significa que cada aparelho atende em média 23,4 mil pessoas.',
-  );
-  linha(
     'MULTIPLICADOR DA META',
     'Quantas vezes a macrorregião tem a mais (ou a menos) da quantidade exigida pelo parâmetro. Ex.: 3,90x indica quase 4 vezes o exigido. Quanto maior o multiplicador, maior a capacidade ociosa, ou seja, mais vaga disponível para atender demanda adicional.',
   );
@@ -273,14 +268,12 @@ function montarAbaCobertura(
     .forEach((r) => {
       const macro = macroById.get(r.macroId);
       if (!macro) return;
-      const pessoasPorTomografo = r.oferta > 0 ? Math.round(macro.pop / r.oferta) : null;
       const base = {
         macroCodigo: macro.id,
         macroNome: macro.nome,
         uf: macro.uf,
         macroPopulacao: macro.pop,
         macroTomografos: r.oferta,
-        macroPessoasPorTomografo: pessoasPorTomografo,
         macroMultiplicador: Math.round((r.cobertura / 100) * 100) / 100,
         macroStatus: r.status,
       };

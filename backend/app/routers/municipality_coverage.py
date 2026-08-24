@@ -155,7 +155,7 @@ def listar_health_region_coverage(
     linhas = db.execute(stmt).mappings().all()
     resultado = []
     for r in linhas:
-        cobertura = calcular_cobertura(population=r["population"] or 0, existing_sus=r["available_qty"] or 0)
+        cobertura = calcular_cobertura(population=r["population"] or 0, in_use_sus=r["available_qty"] or 0)
         coverage_percentage = round(cobertura.available_qty / cobertura.required_qty * 100, 1) if cobertura.required_qty else None
         resultado.append(
             HealthRegionCoverageRead(

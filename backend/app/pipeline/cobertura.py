@@ -32,22 +32,24 @@ def populacao_sus_dependente(*, residente: int, ans: int) -> int:
     return max(0, residente - ans)
 
 
-def calcular_cobertura(*, population: int, existing_sus: int, produtividade: int = 100_000) -> CoberturaMacro:
+def calcular_cobertura(*, population: int, in_use_sus: int, produtividade: int = 100_000) -> CoberturaMacro:
     """RN da Metodologia: 1 equipamento por `produtividade` habitantes
-    (100 mil, pra TOMOGRAFO). `existing_sus` e o denominador de oferta
-    confirmado em D-02 (qt_existente_sus, nao qt_existente total -- o total
-    entra so no card informativo "Total de Tomógrafos", nao no calculo).
+    (100 mil, pra TOMOGRAFO). `in_use_sus` e o denominador de oferta --
+    qt_uso-onde-sus_flag (equipamento em uso E SUS), decisao 2026-08-24
+    (antes era qt_existente_sus/D-02: equipamento existente nao entra mais
+    na conta se nao estiver em uso). qt_existente total continua so no
+    card informativo "Total de Equipamentos", nao no calculo.
 
     Macro sem populacao (RN-05: toda macro aparece, mesmo sem match no
     SIDRA) tem demanda zero e nunca fica em deficit por falta de dado --
     so classificamos deficit quando ha demanda real e a oferta nao cobre.
     """
     required_qty = math.ceil(population / produtividade) if population else 0
-    balance = existing_sus - required_qty
+    balance = in_use_sus - required_qty
     return CoberturaMacro(
         required_qty=required_qty,
         estimated_need=population / produtividade if population else 0,
-        available_qty=existing_sus,
+        available_qty=in_use_sus,
         balance=balance,
         deficit_status=DeficitStatus.not_deficient if balance >= 0 else DeficitStatus.deficient,
     )

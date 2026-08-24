@@ -435,7 +435,7 @@ function CardFamilia({ resumo, rotulo, onEntrar }: { resumo: EstadoResumo; rotul
             <div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#16213e' }}>{resumo.totalSus.toLocaleString('pt-BR')}</div>
               <div style={{ fontSize: 11, color: colors.subtleText, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                Equipamentos SUS
+                Equipamentos em uso SUS
               </div>
             </div>
             <div>
@@ -707,7 +707,7 @@ export function PainelGeralPage() {
           <div style={{ background: '#fff', borderRadius: 10, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
             <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.7, maxWidth: 640 }}>
               Cada macrorregião, região de saúde ou município recebe um <strong>coeficiente</strong>, comparando a
-              quantidade de equipamentos SUS com a demanda estimada da população SUS-dependente. Abaixo de 1x é{' '}
+              quantidade de equipamentos em uso SUS com a demanda estimada da população SUS-dependente. Abaixo de 1x é{' '}
               <strong>Hipossuficiente</strong>; 1x ou mais é <strong>Hiperssuficiente</strong>. Os parâmetros de
               cada equipamento estão detalhados na Metodologia completa.
             </div>
