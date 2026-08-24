@@ -2,7 +2,13 @@ import { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { EQUIPAMENTOS } from '../data/constants';
 
-const CHAVE_STORAGE = 'sieo:familiaSelecionada';
+// Exportada pro PainelGeralPage conseguir "pre-selecionar" a familia (mesma
+// chave) antes de navegar pro Dashboard, sem duplicar a string em outro
+// arquivo (regressao boba: uma cópia divergente aqui silenciosamente para de
+// funcionar e ninguem percebe, porque o fallback pra EQUIPAMENTOS[0] esconde
+// o erro).
+export const CHAVE_STORAGE_FAMILIA = 'sieo:familiaSelecionada';
+const CHAVE_STORAGE = CHAVE_STORAGE_FAMILIA;
 
 interface FamiliaEquipamentoContextValue {
   familia: string;

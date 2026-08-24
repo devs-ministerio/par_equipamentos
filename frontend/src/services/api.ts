@@ -45,6 +45,8 @@ interface EstablishmentApi {
   existing_qty: number;
   in_use_qty: number;
   sus_flag: boolean;
+  latitude: number | null;
+  longitude: number | null;
   types: TipoEquipamento[];
 }
 
@@ -90,6 +92,8 @@ function toEstabelecimentoRow(r: EstablishmentApi): EstabelecimentoRow {
     qtd: r.existing_qty,
     qtdUso: r.in_use_qty,
     susFlag: r.sus_flag,
+    latitude: r.latitude,
+    longitude: r.longitude,
   };
 }
 
@@ -142,6 +146,17 @@ export interface EstabelecimentosParams {
   sortDir?: 'asc' | 'desc';
   page: number; // 1-indexado
   pageSize: number;
+  /** Busca por raio geografico (km) em volta de um ponto, IGNORANDO fronteira
+   * de macro/UF -- alternativa a macroCodes usada pelo recorte do Mapa
+   * quando o usuario centraliza o raio de 75 km num municipio especifico
+   * (o tomografo mais proximo pode estar numa macro vizinha). Quando
+   * presente, `page`/`pageSize` sao ignorados no backend (devolve tudo
+   * dentro do raio de uma vez, ver comentario no router). */
+  near?: { lat: number; lon: number; radiusKm: number };
+  /** Filtra so estabelecimento que atende SUS (fl_sus) -- usado pra achar
+   * o "equipamento mais proximo" (Mapa), mesmo criterio que "oferta" ja
+   * usa em todo o resto do app. */
+  susOnly?: boolean;
 }
 
 export interface EstabelecimentosResult {
@@ -164,37 +179,15 @@ export async function fetchEstabelecimentosPage(params: EstabelecimentosParams):
   if (params.municipalities?.length) query.municipality = params.municipalities;
   if (params.cnesCodes?.length) query.cnes_code = params.cnesCodes;
   if (params.search) query.search = params.search;
+  if (params.near) {
+    query.near_lat = String(params.near.lat);
+    query.near_lon = String(params.near.lon);
+    query.radius_km = String(params.near.radiusKm);
+  }
+  if (params.susOnly) query.sus_flag = 'true';
 
   const page = await apiGet<EstablishmentPageApi>('/equipment-offer-rows/establishments', query);
   return { items: page.items.map(toEstabelecimentoRow), total: page.total };
-}
-
-export interface MunicipiosParams {
-  equipmentFamily: string;
-  states?: string[];
-  macroCodes?: string[];
-  healthRegionCodes?: string[];
-}
-
-export interface MunicipioOption {
-  nome: string;
-  uf: string;
-  macroId: string | null;
-  /** "NOME|UF" -- chave/valor unicos pro dropdown e pro filtro do backend (nome sozinho e ambiguo, varios municipios repetem nome entre estados). */
-  chave: string;
-}
-
-/** Municipios reais e distintos com estabelecimento cadastrado, respeitando os filtros de UF/macro/regiao de saude ja aplicados. */
-export async function fetchMunicipios(params: MunicipiosParams): Promise<MunicipioOption[]> {
-  const query: Record<string, string | string[]> = { equipment_family: params.equipmentFamily };
-  if (params.states?.length) query.state = params.states;
-  if (params.macroCodes?.length) query.macro_code = params.macroCodes;
-  if (params.healthRegionCodes?.length) query.health_region_code = params.healthRegionCodes;
-  const rows = await apiGet<{ name: string; state: string; macro_code: string | null }[]>(
-    '/equipment-offer-rows/municipalities',
-    query,
-  );
-  return rows.map((r) => ({ nome: r.name, uf: r.state, macroId: r.macro_code, chave: `${r.name}|${r.state}` }));
 }
 
 export interface TotaisParams {
@@ -215,7 +208,7 @@ export interface EquipmentTotals {
  * Soma exata de equipment_offer_row pro recorte de filtro pedido -- ao
  * contrario de /macro-coverage (agregado so por macro), da o total certo
  * pra QUALQUER granularidade de filtro (regiao de saude, municipio, cnes).
- * Usado pelos cards "Total de Tomógrafos" / "Total de Tomógrafos SUS" do
+ * Usado pelos cards "Total de Equipamentos" / "Total de Equipamentos SUS" do
  * Dashboard, que antes usavam a soma por macro e mostravam o total da
  * macro inteira mesmo filtrando por um municipio/CNES so.
  */
@@ -230,29 +223,23 @@ export async function fetchEquipmentTotals(params: TotaisParams): Promise<Equipm
   return { existingQty: r.existing_qty, availableQty: r.available_qty };
 }
 
-export interface RegioesSaudeParams {
-  equipmentFamily: string;
-  states?: string[];
-  macroCodes?: string[];
+export interface NaturezaJuridicaBreakdown {
+  naturezaJuridica: string;
+  existingQty: number;
+  availableQty: number;
 }
 
-export interface RegiaoSaudeOption {
-  codigo: string;
-  nome: string;
-  uf: string;
-  macroId: string | null;
-}
-
-/** Regioes de saude reais e distintas com estabelecimento cadastrado, respeitando os filtros de UF/macro ja aplicados. */
-export async function fetchRegioesSaude(params: RegioesSaudeParams): Promise<RegiaoSaudeOption[]> {
-  const query: Record<string, string | string[]> = { equipment_family: params.equipmentFamily };
-  if (params.states?.length) query.state = params.states;
-  if (params.macroCodes?.length) query.macro_code = params.macroCodes;
-  const rows = await apiGet<{ code: string; name: string; state: string; macro_code: string | null }[]>(
-    '/equipment-offer-rows/health-regions',
-    query,
+/**
+ * Quebra da oferta por natureza juridica do estabelecimento (Publico/Privado/
+ * Sem fins lucrativos) -- Painel Geral, card "Natureza jurídica da oferta
+ * SUS" (2026-08-22).
+ */
+export async function fetchLegalNatureBreakdown(equipmentFamily: string): Promise<NaturezaJuridicaBreakdown[]> {
+  const rows = await apiGet<{ legal_nature: string; existing_qty: number; available_qty: number }[]>(
+    '/equipment-offer-rows/by-legal-nature',
+    { equipment_family: equipmentFamily },
   );
-  return rows.map((r) => ({ codigo: r.code, nome: r.name, uf: r.state, macroId: r.macro_code }));
+  return rows.map((r) => ({ naturezaJuridica: r.legal_nature, existingQty: r.existing_qty, availableQty: r.available_qty }));
 }
 
 // Formato exato devolvido por GET /equipment-offer-rows/facilities
@@ -320,6 +307,16 @@ interface MunicipalityCoverageApi {
   available_qty: number | null;
   coverage_percentage: number | null;
   deficit_status: MacroCoverageApi['deficit_status'];
+  // So informativo -- nao entra em deficit_status. Nulo pra familias cujo
+  // pipeline ainda nao calcula (so TOMOGRAFO por enquanto, ver
+  // backend/app/pipeline/geo.py).
+  distance_km_nearest_equipment: number | null;
+  // Coordenada da sede do municipio -- ver comentario em
+  // backend/app/schemas.py::MunicipalityCoverageRead.
+  latitude: number | null;
+  longitude: number | null;
+  // Codigo IBGE de 7 digitos -- ver mesmo comentario.
+  ibge_code_7: string | null;
 }
 
 // Formato exato devolvido por GET /health-region-coverage
@@ -380,6 +377,10 @@ export async function fetchMunicipalityCoverage(params: NivelCoberturaParams): P
     ofertaTotal: r.existing_qty ?? 0,
     cobertura: r.coverage_percentage ?? 0,
     status: toStatus(r.deficit_status),
+    distanciaKmEquipamentoMaisProximo: r.distance_km_nearest_equipment,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    ibgeCode7: r.ibge_code_7,
   }));
 }
 

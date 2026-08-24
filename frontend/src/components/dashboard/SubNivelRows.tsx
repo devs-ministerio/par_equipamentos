@@ -2,10 +2,8 @@ import { Fragment, useState } from 'react';
 import type { NivelCoberturaRow } from '../../types/domain';
 import { calcularCoeficiente } from '../../utils/coeficiente';
 import { formatMultiplicador } from '../../utils/format';
-import { StatusBadge } from '../common/StatusBadge';
-import { BotaoDetalhe } from '../common/BotaoDetalhe';
+import { getEquipamento } from '../../data/constants';
 import { fetchMunicipalityCoverage } from '../../services/api';
-import { MunicipioDetalheModal } from './MunicipioDetalheModal';
 
 type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
 
@@ -15,24 +13,25 @@ interface Props {
    * (pra Municipio, que ja e o nivel mais fino que a base tem). */
   nivelAtual: 'regiaoSaude' | 'municipio';
   equipmentFamily: string;
-  /** chaves ja selecionadas no filtro (so destaque visual -- clicar num
-   * municipio nao filtra mais, ver botao de detalhe abaixo). */
+  /** chaves ja selecionadas no filtro (so destaque visual). */
   selecionados?: string[];
 }
 
 /**
- * Linhas de um nivel abaixo do da tabela pai, com o MESMO layout da linha
- * principal (Nome, População SUS-dependente, Cobertura com a mesma
- * barra/coeficiente, Status) -- pedido explicito (2026-08-22). Recursiva:
- * uma linha de Regiao de Saude pode ela mesma expandir em Municipios (o
- * proprio componente busca e se re-renderiza com nivelAtual="municipio"),
- * cobrindo a cadeia completa Macrorregiao -> Regiao de Saude -> Municipio.
- *
- * Municipio (folha) nao filtra mais ao clicar (removido a pedido) -- em vez
- * disso tem um botao de detalhe que abre um modal com o comparativo de
- * cobertura Municipio/Regiao de Saude/Macro (ver MunicipioDetalheModal --
- * o municipio em si nao pede nada de novo, so a regiao/macro buscam sob
- * demanda quando o modal abre).
+ * Linhas de um nivel abaixo do da tabela pai -- versao enxuta (so Nome e o
+ * coeficiente colorido, tipo "1,54x") do layout completo da linha
+ * principal (que tem população, barra e StatusBadge por extenso). Reduzido
+ * em etapas em 2026-08-24: essa sub-camada roda no painel estreito do Mapa
+ * (mais estreito que o card do Dashboard onde a linha principal aparece) --
+ * primeiro saiu o StatusBadge (maior consumidor de espaço), depois
+ * população/barra/"X SUS de Y" também saíram, e por fim o botão de
+ * detalhe/modal de comparação também saiu (o resumo por nível que ele dava
+ * virou os cards "Total de equipamentos/Cobertura/Equipamento mais
+ * próximo/População SUS" no topo do "Recorte", em MapaPage.tsx). Sobra só
+ * o essencial pra não competir por espaço com o Nome. Recursiva: uma linha
+ * de Regiao de Saude pode ela mesma expandir em Municipios (o proprio
+ * componente busca e se re-renderiza com nivelAtual="municipio"), cobrindo
+ * a cadeia completa Macrorregiao -> Regiao de Saude -> Municipio.
  */
 // RN especifica de TOMOGRAFO (ver Metodologia): municipio abaixo do
 // parametro normativo nunca foi esperado ter equipamento proprio -- na
@@ -43,9 +42,9 @@ interface Props {
 const POPULACAO_MINIMA_PARA_HIPO = 100_000;
 
 export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }: Props) {
+  const produtividade = getEquipamento(equipmentFamily).produtividade;
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
-  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
 
   // Excecao ao corte: se NENHUM municipio do grupo tem >=100 mil habitantes
   // E nenhum tem tomografo nenhum, o corte normal deixaria a sub-camada
@@ -93,10 +92,20 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
 
   return (
     <>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+      {/* table-layout:fixed -- sem isso os widths dos <td> abaixo sao so
+          "sugestao" (table-layout:auto default), e o navegador deixa a
+          tabela crescer alem do container pra caber o conteudo (nome
+          comprido quebrando linha de forma desalinhada, coluna da direita
+          cortada na borda do card com scroll horizontal aparecendo) -- bug
+          real visto 2026-08-24 no painel lateral do Mapa (mais estreito que
+          o card do Dashboard onde esse mesmo componente tambem e usado).
+          Com fixed, a coluna do indicador tem largura garantida e a de
+          Nome fica com o espaco que sobrar (bastante, ja que agora so tem
+          essas 2 colunas). */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
         <tbody>
           {rowsExibidas.map((linha) => {
-            const coef = calcularCoeficiente(linha.oferta, linha.pop);
+            const coef = calcularCoeficiente(linha.oferta, linha.pop, produtividade);
             const expansivel = nivelAtual === 'regiaoSaude';
             const expandida = expandidas.has(linha.chave);
             const filhos = filhosPorChave[linha.chave];
@@ -111,7 +120,17 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
                     background: selecionada ? '#eef2ff' : 'transparent',
                   }}
                 >
-                  <td style={{ padding: '6px 8px 6px 4px', fontWeight: 500, color: '#16213e' }}>
+                  <td
+                    style={{
+                      padding: '6px 8px 6px 4px',
+                      fontWeight: 500,
+                      color: '#16213e',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={`${linha.nome} (${linha.uf})`}
+                  >
                     {expansivel && (
                       <span
                         style={{
@@ -128,54 +147,21 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
                     )}
                     {linha.nome} <span style={{ color: '#98a0b3', fontWeight: 400 }}>({linha.uf})</span>
                   </td>
-                  <td style={{ padding: '6px 8px', textAlign: 'right', color: '#475066', width: 130, whiteSpace: 'nowrap' }}>
-                    {linha.pop.toLocaleString('pt-BR')}
-                  </td>
-                  <td style={{ padding: '6px 8px', width: 200 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ flex: 1, position: 'relative', height: 6, borderRadius: 3, background: '#eef0f4', overflow: 'clip' }}>
-                        <div
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            height: '100%',
-                            width: `${coef.fillPercent}%`,
-                            background: coef.corBarra,
-                          }}
-                        />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            bottom: 0,
-                            left: '50%',
-                            width: 2,
-                            background: '#475066',
-                            transform: 'translateX(-50%)',
-                          }}
-                        />
-                      </div>
-                      <div style={{ width: 108 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto, whiteSpace: 'nowrap' }}>
-                          {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
-                        </div>
-                        <div style={{ fontSize: 9.5, color: '#98a0b3', whiteSpace: 'nowrap' }}>
-                          {linha.oferta} SUS{linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal}`}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '6px 4px 6px 12px', width: 130 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <StatusBadge cobertura={linha.cobertura} />
-                      {nivelAtual === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(linha)} />}
-                    </div>
+                  {/* So o indicador (coeficiente colorido) -- populacao,
+                      barrinha, "X SUS de Y" e o botao de detalhe/modal
+                      foram removidos a pedido (2026-08-24): esse resumo
+                      por nivel agora vive nos cards acima do filtro em
+                      MapaPage.tsx, e o detalhe cru continua na tabela
+                      principal do Dashboard. */}
+                  <td style={{ padding: '6px 8px', width: 76, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto }}>
+                      {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
+                    </span>
                   </td>
                 </tr>
                 {expandida && (
                   <tr>
-                    <td colSpan={4} style={{ padding: '4px 8px 8px 26px', background: '#f4f6fb' }}>
+                    <td colSpan={2} style={{ padding: '4px 8px 8px 26px', background: '#f4f6fb' }}>
                       {filhos === 'carregando' && (
                         <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>Carregando municípios...</div>
                       )}
@@ -202,9 +188,6 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
         <div style={{ fontSize: 11, color: '#98a0b3', padding: '6px 4px 0' }}>
           +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
         </div>
-      )}
-      {detalheAberto && (
-        <MunicipioDetalheModal linha={detalheAberto} equipmentFamily={equipmentFamily} onClose={() => setDetalheAberto(null)} />
       )}
     </>
   );

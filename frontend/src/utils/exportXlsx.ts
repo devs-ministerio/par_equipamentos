@@ -4,6 +4,7 @@
 // carregamento inicial de quem so quer ver a tela.
 import type ExcelJS from 'exceljs';
 import type { CoberturaRow, EstabelecimentoRow, Macrorregiao } from '../types/domain';
+import { getEquipamento } from '../data/constants';
 
 export interface CampoXlsx {
   key: string;
@@ -20,12 +21,12 @@ export const CAMPOS_XLSX_COBERTURA: CampoXlsx[] = [
   { key: 'regiaoNome', label: 'Região de saúde' },
   { key: 'municipio', label: 'Município' },
   { key: 'macroPopulacao', label: 'População da macrorregião' },
-  { key: 'macroTomografos', label: 'Tomógrafos SUS da macrorregião' },
-  { key: 'macroPessoasPorTomografo', label: 'Pessoas por tomógrafo (macrorregião)' },
+  { key: 'macroTomografos', label: 'Equipamentos SUS da macrorregião' },
+  { key: 'macroPessoasPorTomografo', label: 'Pessoas por equipamento (macrorregião)' },
   { key: 'macroMultiplicador', label: 'Multiplicador da meta (macrorregião)' },
   { key: 'macroStatus', label: 'Status da macrorregião' },
   { key: 'estabelecimentos', label: 'Estabelecimentos (nesta linha)' },
-  { key: 'tomografos', label: 'Tomógrafos (nesta linha)' },
+  { key: 'tomografos', label: 'Equipamentos (nesta linha)' },
 ];
 
 /** Campos selecionaveis da aba "Estabelecimento por equipamento". */
@@ -44,12 +45,31 @@ export const CAMPOS_XLSX_ESTABELECIMENTO: CampoXlsx[] = [
   { key: 'tipos', label: 'Subtipos (canais)' },
 ];
 
+/** Texto do "Parâmetro normativo" da aba Metodologia -- especifico por
+ * familia (o criterio de verdade muda, nao so o nome do equipamento: RN da
+ * TOMOGRAFO e raio/populacao, a de RESSONANCIA e produtividade de exames).
+ * Mesmos fatos ja aprovados em PARAMETROS_POR_FAMILIA (MetodologiaPage.tsx),
+ * so em texto plano (celula de planilha nao aceita JSX) e com "equipamento"
+ * generico no lugar do nome da familia (decisao 2026-08-22). Bug real
+ * corrigido 2026-08-21: essa celula sempre mostrava a regra do TOMOGRAFO
+ * (100 mil hab./75 km), mesmo exportando Ressonância. */
+function parametroNormativoTexto(equipmentFamily: string): string {
+  if (equipmentFamily === 'RESSONANCIA') {
+    return (
+      '5.000 exames/ano de capacidade por equipamento, com necessidade estimada de 30 exames/1.000 habitantes/ano ' +
+      '(equivalente a 1 equipamento a cada ~166.667 habitantes).'
+    );
+  }
+  return '1 equipamento para cada 100 mil habitantes, ou raio de 75 km (o que for atingido primeiro).';
+}
+
 const AZUL_ESCURO = 'FF16213E';
 const AZUL_FORTE = 'FF1F4E9C'; // faixa do titulo (aba Metodologia)
 const AZUL_CLARO = 'FFDCE6F5'; // faixa dos subtitulos (aba Metodologia)
 const AZUL_LINK = 'FF0563C1';
 
 interface GerarXlsxParams {
+  equipmentFamily: string;
   filtrosResumo: string;
   cobertura?: {
     rows: CoberturaRow[];
@@ -78,12 +98,13 @@ const BORDA: Partial<ExcelJS.Borders> = {
  * faixa azul no topo, grade com bordas, rotulo em negrito centralizado na
  * esquerda e o conteudo/fonte alinhado a esquerda na direita.
  */
-function montarAbaMetodologia(wb: ExcelJS.Workbook, filtrosResumo: string) {
+function montarAbaMetodologia(wb: ExcelJS.Workbook, filtrosResumo: string, equipmentFamily: string) {
+  const produtividade = getEquipamento(equipmentFamily).produtividade;
   const ws = wb.addWorksheet('Metodologia');
   ws.columns = [{ width: 62 }, { width: 88 }];
 
   // faixa azul forte do titulo
-  const cabecalho = ws.addRow(['TOMÓGRAFOS', 'FONTES']);
+  const cabecalho = ws.addRow(['EQUIPAMENTOS', 'FONTES']);
   cabecalho.height = 22;
   cabecalho.eachCell((c) => {
     c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
@@ -137,7 +158,7 @@ function montarAbaMetodologia(wb: ExcelJS.Workbook, filtrosResumo: string) {
   );
 
   subtitulo('PARÂMETRO E FONTES DE DADOS');
-  linha('Parâmetro normativo', '1 tomógrafo para cada 100 mil habitantes, ou raio de 75 km (o que for atingido primeiro).');
+  linha('Parâmetro normativo', parametroNormativoTexto(equipmentFamily));
   linha('Fonte do parâmetro', {
     texto: 'Critérios e Parâmetros Assistenciais SUS — 2017 — Caderno 1',
     url: 'https://www.gov.br/saude/pt-br/acesso-a-informacao/gestao-do-sus/programacao-regulacao-controle-e-financiamento-da-mac/programacao-assistencial/arquivos/caderno-1-criterios-e-parametros-assistenciais-1-revisao.pdf',
@@ -148,18 +169,21 @@ function montarAbaMetodologia(wb: ExcelJS.Workbook, filtrosResumo: string) {
     url: 'https://sidra.ibge.gov.br/tabela/6579',
   });
   linha(
-    'Número de Tomógrafos',
+    'Número de Equipamentos',
     'Quantidade cadastrada no CNES. Considera apenas os equipamentos marcados como SUS (decisão D-02: qt_existente_sus); equipamentos privados não entram no cálculo de cobertura.',
   );
   linha('Fonte dos equipamentos', {
+    // sem VCod_Equip -- mesma URL generica (por familia) ja usada e aprovada
+    // em MetodologiaPage.tsx (FonteItem #3), pra nao inventar o codigo certo
+    // de cada familia aqui.
     texto: 'CNES — Módulo de Equipamentos',
-    url: 'https://cnes2.datasus.gov.br/Mod_Ind_Equipamentos_Listar.asp?VCod_Equip=11&VTipo_Equip=1%20&VListar=1&VEstado=00&VMun=&VComp=',
+    url: 'https://cnes2.datasus.gov.br/Mod_Ind_Equipamentos_Listar.asp?VTipo_Equip=1%20&VListar=1&VEstado=00&VMun=&VComp=',
   });
 
   subtitulo('COMO LER OS INDICADORES');
   linha(
-    'PESSOAS POR TOMÓGRAFO',
-    'População da macrorregião dividida pelo número de tomógrafos SUS. Ex.: 23,4 mil/1 significa que cada aparelho atende em média 23,4 mil pessoas.',
+    'PESSOAS POR EQUIPAMENTO',
+    'População da macrorregião dividida pelo número de equipamentos SUS. Ex.: 23,4 mil/1 significa que cada aparelho atende em média 23,4 mil pessoas.',
   );
   linha(
     'MULTIPLICADOR DA META',
@@ -167,7 +191,7 @@ function montarAbaMetodologia(wb: ExcelJS.Workbook, filtrosResumo: string) {
   );
   linha(
     'CLASSIFICAÇÃO',
-    'Após aplicar o parâmetro, se a macrorregião tiver até 100 mil habitantes por aparelho a planilha marca HIPERSSUFICIENTE; acima disso marca HIPOSSUFICIENTE.',
+    `Após aplicar o parâmetro, se a macrorregião tiver até ${produtividade.toLocaleString('pt-BR')} habitantes por aparelho a planilha marca HIPERSSUFICIENTE; acima disso marca HIPOSSUFICIENTE.`,
   );
 
   subtitulo('PONTOS DE ATENÇÃO E ATUALIZAÇÃO');
@@ -354,7 +378,7 @@ export async function gerarXlsxTomografos(params: GerarXlsxParams): Promise<void
   wb.creator = 'SIEO — Análise de Méritos';
   wb.created = new Date();
 
-  montarAbaMetodologia(wb, params.filtrosResumo);
+  montarAbaMetodologia(wb, params.filtrosResumo, params.equipmentFamily);
   if (params.cobertura) montarAbaCobertura(wb, params.cobertura);
   if (params.estabelecimentos) montarAbaEstabelecimentos(wb, params.estabelecimentos);
 
@@ -365,7 +389,7 @@ export async function gerarXlsxTomografos(params: GerarXlsxParams): Promise<void
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Analise de Meritos - Tomografos - ${dataArquivo()}.xlsx`;
+  a.download = `Analise de Meritos - Equipamentos - ${dataArquivo()}.xlsx`;
   a.click();
   URL.revokeObjectURL(url);
 }

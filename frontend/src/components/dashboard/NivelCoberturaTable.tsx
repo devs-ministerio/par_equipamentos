@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import type { NivelCoberturaRow, StatusCobertura } from '../../types/domain';
 import { formatMultiplicador } from '../../utils/format';
-import { colors } from '../../styles/tokens';
+import { calcularCoeficiente } from '../../utils/coeficiente';
+import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
 import { InfoIcon } from '../common/InfoIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { BotaoDetalhe } from '../common/BotaoDetalhe';
@@ -52,6 +53,7 @@ export function NivelCoberturaTable({
   statusFiltro,
   subNivelSelecionados,
 }: Props) {
+  const equipamento = getEquipamento(equipmentFamily);
   const [sortKey, setSortKey] = useState<SortKey>('nome');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
@@ -240,7 +242,8 @@ export function NivelCoberturaTable({
                   <InfoIcon>
                     <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Parâmetro normativo</div>
                     <div>
-                      1 tomógrafo por <strong>100 mil habitantes SUS-dependentes</strong>
+                      1 equipamento por{' '}
+                      <strong>{equipamento.produtividade.toLocaleString('pt-BR')} habitantes SUS-dependentes</strong>
                     </div>
                     <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Coeficiente</div>
                     <div
@@ -253,7 +256,8 @@ export function NivelCoberturaTable({
                         borderRadius: 4,
                       }}
                     >
-                      (Tomógrafos SUS × 100.000) ÷ População SUS-dependente
+                      (Equipamentos SUS × {equipamento.produtividade.toLocaleString('pt-BR')}) ÷ População
+                      SUS-dependente
                     </div>
                     <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
                       Abaixo de 1x é Hipossuficiente, 1x ou mais é Hiperssuficiente. A listra no meio da barra marca
@@ -295,13 +299,15 @@ export function NivelCoberturaTable({
           </thead>
           <tbody>
             {rowsPaginadas.map((r) => {
-              // Coeficiente = (tomógrafos SUS x 100.000) / população SUS-dependente
-              // -- ver CoberturaTable.tsx pro mesmo calculo no nivel macro.
-              const coeficiente = r.pop > 0 ? (r.oferta * 100_000) / r.pop : null;
-              const hiper = coeficiente != null && coeficiente >= 1;
-              const corTexto = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreen : colors.hipoRed;
-              const corBarra = coeficiente == null ? colors.subtleText : hiper ? colors.hiperGreenBarra : colors.hipoRedBarra;
-              const fillPercent = coeficiente != null ? Math.min(100, coeficiente * 50) : 0;
+              // Coeficiente = (equip. SUS x produtividade da familia) / populacao
+              // SUS-dependente -- ver CoberturaTable.tsx pro mesmo calculo no
+              // nivel macro (extraido em utils/coeficiente.ts, bug real
+              // corrigido 2026-08-21: aqui tambem tinha 100_000 fixo).
+              const { valor: coeficiente, corTexto, corBarra, fillPercent } = calcularCoeficiente(
+                r.oferta,
+                r.pop,
+                equipamento.produtividade,
+              );
               const expansivel = nivel === 'regiaoSaude';
               const expandida = expandidas.has(r.chave);
               const filhos = filhosPorChave[r.chave];
@@ -369,7 +375,7 @@ export function NivelCoberturaTable({
                           {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
                         </div>
                         <div style={{ fontSize: 10, color: '#98a0b3' }}>
-                          {r.oferta} tomógrafo{r.oferta === 1 ? '' : 's'} SUS
+                          {formatarQuantidadeEquipamento(r.oferta)} SUS
                           {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} no total`}
                         </div>
                       </div>

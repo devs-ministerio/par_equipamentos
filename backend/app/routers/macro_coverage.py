@@ -10,14 +10,26 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.db.models import Execution, MacroCoverage
+from app.db.models import Competency, Execution, MacroCoverage
 from app.schemas import MacroCoverageRead
 
 router = APIRouter(prefix="/macro-coverage", tags=["macro-coverage"])
 
 
-def _latest_execution_id(db: Session) -> int | None:
-    stmt = select(Execution.id).order_by(Execution.started_at.desc()).limit(1)
+def _latest_execution_id(db: Session, equipment_family: str | None) -> int | None:
+    # Precisa filtrar por familia: cada Execution pertence a uma Competency
+    # de UMA familia so (ver comentario em app/db/models.py:Competency), entao
+    # com mais de uma familia com dado (TOMOGRAFO + RESSONANCIA) pegar so a
+    # "mais recente" sem escopar por familia buscava a execucao errada --
+    # ex.: RESSONANCIA seedada depois de TOMOGRAFO virava "a mais recente"
+    # global, e o filtro `WHERE execution_id = <da RESSONANCIA> AND
+    # equipment_family = 'TOMOGRAFO'` sempre dava 0 linhas (bug real,
+    # corrigido 2026-08-21: pagina do Tomografo aparecia vazia).
+    stmt = select(Execution.id).join(Competency, Execution.competency_id == Competency.id).order_by(
+        Execution.started_at.desc()
+    ).limit(1)
+    if equipment_family:
+        stmt = stmt.where(Competency.equipment_family == equipment_family)
     return db.execute(stmt).scalar_one_or_none()
 
 
@@ -40,7 +52,7 @@ def listar_macro_coverage(
     isso e Modulo 5/7, nao existe nenhuma execucao alem da de seed hoje).
     `macro_code` e opcional -- usado pelo modal de detalhe do municipio pra
     buscar so a macro dele em vez da lista inteira (~121 linhas)."""
-    exec_id = execution_id or _latest_execution_id(db)
+    exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
         return []
 

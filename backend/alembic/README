@@ -1,1 +1,45 @@
-Generic single-database configuration.
+Configuracao: um banco so, target_metadata = Base.metadata (app/db/models.py
+registra os modelos nela via app/db/__init__.py). Ver tests/test_schema_migrations.py
+pra regressao automatica de models.py x historico de migrations.
+
+## Regras pra migration nao derrubar a API em producao
+
+Ninguem revisa isso hoje num CI (nao existe pipeline configurado ainda) --
+sao regras de bom senso que ja estavam sendo seguidas nas migrations
+existentes, escritas aqui pra nao depender de quem lembra.
+
+1. **Coluna nova NOT NULL sempre com `server_default`.**
+   Nunca fazer `ALTER COLUMN x SET NOT NULL` numa coluna que ja existe e
+   pode ter linha nula -- o Postgres tranca a tabela inteira (ACCESS
+   EXCLUSIVE) pra validar todo mundo antes de liberar. Toda migration que
+   ja adicionou coluna obrigatoria em tabela com dado real seguiu esse
+   padrao (`op.add_column(..., nullable=False, server_default=...)`) --
+   ver `06e73a1db53b` (`competency.equipment_family`) e `28c0d8de92f2`
+   (`config_decision.valid_from`). O default preenche as linhas
+   existentes no mesmo ALTER, sem segunda passada.
+
+2. **Nunca "renomear" coluna/tabela numa migration so.**
+   Rename e DROP + ADD disfarcado: qualquer instancia da API ainda rodando
+   com o codigo antigo (durante o deploy, ou se a migration falhar no
+   meio) para de entender o schema. Sempre em 2 migrations/deploys
+   separados:
+   - Migration A: adiciona a coluna/tabela nova, backfill do dado,
+     codigo novo passa a escrever nas duas (ou so na nova, se leitura
+     ainda tolerar as duas existirem).
+   - Deploy do codigo que so usa a coluna nova.
+   - Migration B (deploy seguinte): remove a coluna/tabela antiga.
+
+3. **DROP de coluna/tabela so depois que nenhum codigo em producao lê
+   mais dela.** Mesma logica do item 2 -- um DROP e sempre a ultima
+   etapa, nunca a primeira.
+
+4. **Uma migration, uma mudanca conceitual.** Nao empilhar 3 alteracoes
+   sem relacao no mesmo arquivo -- se uma falhar no meio (produção real,
+   não o Postgres de dev), fica mais dificil saber o que já foi aplicado
+   e decidir se reverte ou corrige pra frente.
+
+Isso cobre o risco de trancar/quebrar a tabela durante o ALTER em si.
+Nao cobre (fora de escopo por enquanto, revisitar se a topologia de
+deploy mudar pra multi-instancia/rolling) o caso de 2 versoes do codigo
+rodando ao mesmo tempo contra o mesmo banco -- hoje o deploy e
+stop-then-start de uma instancia so.

@@ -1,0 +1,27 @@
+# Deploy do backend no Render (free tier, sem cartao) -- alternativa
+# temporaria ao Railway (sem trial disponivel no momento). O banco fica no
+# Neon (Postgres free), referenciado so pela env var DATABASE_URL abaixo --
+# nao ha "database:" declarado aqui porque o Neon eh externo ao Render.
+#
+# Migrar pro Railway depois: nada no codigo muda (app/config.py ja le tudo
+# de env var). Basta recriar o servico la, colar a mesma DATABASE_URL (ou
+# a nova, se migrar o Postgres tambem) e CORS_ORIGINS, usando o Procfile
+# que ja existe em backend/Procfile.
+#
+# preDeployCommand nao existe no free tier (so em planos pagos) -- por isso
+# a migration entra dentro do proprio startCommand, antes do uvicorn subir.
+# Roda a cada boot (inclusive apos o servico dormir por inatividade), mas
+# 'alembic upgrade head' e idempotente quando ja esta tudo aplicado.
+services:
+  - type: web
+    name: sieo-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install uv && uv sync --frozen
+    startCommand: uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

@@ -33,6 +33,8 @@ from app.db.models import (
 )
 from app.pipeline import api_demas, api_elasticnes, api_sidra
 from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente
+from app.pipeline.geo import carregar_coordenadas_municipios, distancia_minima_km
+from app.pipeline.runner import executar_com_registro_de_falha
 
 FAMILIA = "TOMOGRAFO"
 PRODUTIVIDADE = 100_000  # 1 tomografo por 100 mil habitantes (Metodologia)
@@ -104,6 +106,14 @@ def run() -> None:
     linhas_equipamento = []
     municipios_sem_match = 0
 
+    # Pontos (lat, long) de tomografo SUS geocodificado, um por CNES (dedup --
+    # um CNES pode ter varias linhas de subtipo diferente no ElastiCNES) --
+    # alimenta a distancia ate o mais proximo (raio de 75 km, ver
+    # app/pipeline/geo.py). So SUS (fl_sus) porque o criterio normativo e de
+    # acesso pelo SUS, mesmo denominador de oferta que D-02 ja usa em todo o
+    # resto do calculo.
+    pontos_sus_por_cnes: dict[str, tuple[float, float]] = {}
+
     for eq in equipamentos:
         municipio = municipios.get(eq["co_ibge"])
         if municipio is None:
@@ -123,6 +133,9 @@ def run() -> None:
             agg_macro["estabelecimentos"].add(eq["co_cnes"])
             agg_muni["estabelecimentos"].add(eq["co_cnes"])
 
+        if eq["fl_sus"] and eq["latitude"] is not None and eq["longitude"] is not None:
+            pontos_sus_por_cnes[eq["co_cnes"]] = (eq["latitude"], eq["longitude"])
+
         linhas_equipamento.append(
             EquipmentOfferRow(
                 cnes_code=eq["co_cnes"],
@@ -139,11 +152,23 @@ def run() -> None:
                 existing_qty=eq["qt_existente"],
                 in_use_qty=eq["qt_uso"],
                 sus_flag=eq["fl_sus"],
+                latitude=eq["latitude"],
+                longitude=eq["longitude"],
+                legal_nature=eq["natureza_juridica"],
             )
         )
 
     if municipios_sem_match:
         print(f"   [AVISO] {municipios_sem_match} registro(s) do ElastiCNES sem municipio correspondente no DEMAS.")
+
+    # pontos_sus_por_cnes ja e so-SUS-geocodificado (filtrado no loop acima),
+    # entao seu tamanho E a cobertura de geocodificacao entre os SUS.
+    pontos_sus = list(pontos_sus_por_cnes.values())
+    coordenadas_municipios = carregar_coordenadas_municipios()
+    print(
+        f"   Distância ao raio de 75km: {len(pontos_sus)} tomógrafo(s) SUS geocodificado(s); "
+        f"{len(coordenadas_municipios)} município(s) com coordenada de referência."
+    )
 
     # Populacao por macro: soma, por municipio pertencente aquela macro
     # (RN-05 -- toda macro aparece, mesmo sem oferta):
@@ -243,6 +268,15 @@ def run() -> None:
                 population=population_sus_muni, existing_sus=int(oferta_muni["existente_sus"]),
                 produtividade=PRODUTIVIDADE,
             )
+            # So informativo -- NAO entra em cobertura_muni/deficit_status
+            # (ver app/pipeline/geo.py). None se o municipio nao tiver
+            # coordenada de referencia (nao deveria acontecer, os 5.570
+            # ja foram validados) ou se nenhum tomografo SUS do pais tiver
+            # geocodificacao ainda.
+            coordenada_municipio = coordenadas_municipios.get(co_ibge)
+            distancia_ate_mais_proximo = (
+                distancia_minima_km(coordenada_municipio, pontos_sus) if coordenada_municipio else None
+            )
             db.add(
                 MunicipalityCoverage(
                     execution_id=execution.id,
@@ -264,6 +298,7 @@ def run() -> None:
                     facility_count=len(oferta_muni["estabelecimentos"]),
                     balance=cobertura_muni.balance,
                     deficit_status=cobertura_muni.deficit_status,
+                    distance_km_nearest_equipment=distancia_ate_mais_proximo,
                 )
             )
 
@@ -310,4 +345,4 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    run()
+    executar_com_registro_de_falha(FAMILIA, run)

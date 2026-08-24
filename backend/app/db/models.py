@@ -24,6 +24,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -127,29 +128,37 @@ class AuditLog(Base):
 # ----------------------------------------------------------------------------
 
 class ConfigDecision(Base):
+    """Append-only (SCD Type 2) -- nunca faz UPDATE de `value`. Trocar a
+    decisao de uma chave e sempre um INSERT de linha nova + fechar
+    `valid_to` da linha vigente anterior, numa unica transacao (ver
+    `app.config_decisions.registrar_decisao`). Substitui o par
+    ConfigDecision (mutavel) + ConfigDecisionHistory (append-only)
+    que existia antes -- evitava duas escritas em tabelas separadas
+    poderem ficar fora de sincronia (mesma classe de bug que o
+    audit_log gravado fora da transacao principal). "Vigente" = linha
+    com valid_to IS NULL; o indice unico parcial abaixo garante no
+    banco que so existe uma vigente por chave."""
+
     __tablename__ = "config_decision"
+    __table_args__ = (
+        Index(
+            "ux_config_decision_key_vigente", "key", unique=True,
+            postgresql_where=text("valid_to IS NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     key: Mapped[ConfigDecisionKey] = mapped_column(
-        PgEnum(ConfigDecisionKey, name="config_decision_key", native_enum=True),
-        nullable=False, unique=True,
+        PgEnum(ConfigDecisionKey, name="config_decision_key", native_enum=True), nullable=False,
     )
     value: Mapped[str] = mapped_column(String, nullable=False)
     confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-class ConfigDecisionHistory(Base):
-    __tablename__ = "config_decision_history"
-
-    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    config_decision_id: Mapped[int] = mapped_column(ForeignKey("config_decision.id", ondelete="CASCADE"), nullable=False)
-    value: Mapped[str] = mapped_column(String, nullable=False)
-    confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
-    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    valid_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # NULL = vigente. Preenchido com now() no exato INSERT que a substitui
+    # (ver registrar_decisao) -- nunca um UPDATE solto depois.
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 # ----------------------------------------------------------------------------
@@ -335,6 +344,17 @@ class MunicipalityCoverage(Base):
     deficit_status: Mapped[DeficitStatus] = mapped_column(
         PgEnum(DeficitStatus, name="deficit_status", native_enum=True), nullable=False,
     )
+    # Distancia (Haversine, km) ate o equipamento SUS geocodificado mais
+    # proximo dessa familia, em qualquer macro/UF do pais -- metade
+    # geografica do criterio do Tomografo (Caderno 1: "100 mil hab. OU raio
+    # de 75 km") que so tinha a parte populacional calculada ate 2026-08-22
+    # (ver app/pipeline/geo.py). SO INFORMATIVO por enquanto -- NAO entra em
+    # deficit_status, que continua 100% populacional (decisao normativa de
+    # aplicar o "OR raio" na classificacao oficial ainda pendente de
+    # confirmacao). Nulo pra familias cujo pipeline ainda nao calcula isso
+    # (so TOMOGRAFO por enquanto) ou quando nem municipio nem nenhum
+    # equipamento da familia tem coordenada.
+    distance_km_nearest_equipment: Mapped[float | None] = mapped_column(Numeric)
 
 
 class EquipmentOfferRow(Base):
@@ -368,6 +388,15 @@ class EquipmentOfferRow(Base):
     existing_qty: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     in_use_qty: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     sus_flag: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # `location` do ElastiCNES ("lat,long" em texto) -- nem todo estabelecimento
+    # tem coordenada cadastrada (ver COORDENADAS GEOGRAFICAS 1), por isso
+    # nullable; usado pra pino exato no Mapa em vez do centroide do municipio.
+    latitude: Mapped[float | None] = mapped_column(Numeric)
+    longitude: Mapped[float | None] = mapped_column(Numeric)
+    # `NATUREZA JURIDICA CATEGORIA` do ElastiCNES (ex.: "PRIVADO", "PUBLICO") --
+    # texto cru da fonte, sem enum: e vocabulario do CNES, nao nosso, pode
+    # ganhar categoria nova sem passar por migration.
+    legal_nature: Mapped[str | None] = mapped_column(String)
 
 
 # ----------------------------------------------------------------------------

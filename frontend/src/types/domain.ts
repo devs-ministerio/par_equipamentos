@@ -54,6 +54,24 @@ export interface NivelCoberturaRow {
   ofertaTotal: number;
   cobertura: number;
   status: StatusCobertura;
+  /** So presente/relevante no nivel municipio, e so pra TOMOGRAFO (unica
+   * familia cujo pipeline calcula isso hoje, ver backend/app/pipeline/geo.py)
+   * -- distancia (km) ate o equipamento SUS geocodificado mais proximo, so
+   * informativo (NAO entra na classificacao Hipo/Hiper, que continua so
+   * populacional -- ver comentario em MunicipioDetalheModal.tsx). */
+  distanciaKmEquipamentoMaisProximo?: number | null;
+  /** So presente/relevante no nivel municipio -- coordenada da sede,
+   * alimenta o mapa "recorte da macrorregiao" quando o raio de 75 km e
+   * centralizado no proprio municipio (ver comentario em
+   * backend/app/schemas.py::MunicipalityCoverageRead). */
+  latitude?: number | null;
+  longitude?: number | null;
+  /** Codigo IBGE de 7 digitos (com digito verificador) -- so presente no
+   * nivel municipio. Usado pra buscar o contorno REAL do municipio
+   * (poligono oficial, ver MapaPage.tsx) na API de malhas do IBGE, que
+   * exige esse formato em vez do de 6 digitos que o resto do sistema usa
+   * (mesma convencao do DATASUS/CNES). */
+  ibgeCode7?: string | null;
 }
 
 export interface TipoEquipamento {
@@ -83,4 +101,8 @@ export interface EstabelecimentoRow {
   qtd: number;
   qtdUso: number;
   susFlag: boolean;
+  /** Nulo pra ~6% dos estabelecimentos (sem geocodificacao no CNES) --
+   * alimenta os pontos plotados no MacroMap.tsx. */
+  latitude: number | null;
+  longitude: number | null;
 }

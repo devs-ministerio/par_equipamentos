@@ -23,8 +23,8 @@ export const CAMPOS_COBERTURA: CampoExport[] = [
   { key: 'codigo', label: 'Código' },
   { key: 'macro', label: 'Macrorregião de saúde' },
   { key: 'uf', label: 'UF' },
-  { key: 'oferta', label: 'Qtd. tomógrafos' },
-  { key: 'pessoasPorTomografo', label: 'Pessoas por tomógrafo' },
+  { key: 'oferta', label: 'Qtd. equipamentos' },
+  { key: 'pessoasPorTomografo', label: 'Pessoas por equipamento' },
   { key: 'multiplicador', label: 'Multiplicador' },
   { key: 'status', label: 'Status' },
 ];
@@ -49,7 +49,7 @@ export interface UfComMacros {
 function cabecalho(doc: jsPDF, subtitulo: string, filtrosResumo: string) {
   doc.setFontSize(16);
   doc.setTextColor(20);
-  doc.text('SIEO — Cobertura de Tomógrafos', 14, 16);
+  doc.text('SIEO — Cobertura de Equipamentos', 14, 16);
   doc.setFontSize(12);
   doc.text(subtitulo, 14, 24);
   doc.setFontSize(9);
@@ -137,7 +137,7 @@ export async function gerarPdfTomografos(params: GerarPdfParams) {
     });
   }
 
-  doc.save('SIEO-Tomografos.pdf');
+  doc.save('SIEO-Equipamentos.pdf');
 }
 
 interface GerarPdfMapaParams {
@@ -224,5 +224,5 @@ export async function gerarPdfMapa(params: GerarPdfMapaParams) {
     });
   }
 
-  doc.save('SIEO-Mapa-Tomografos.pdf');
+  doc.save('SIEO-Mapa-Equipamentos.pdf');
 }

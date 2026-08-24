@@ -1,71 +1,163 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
-import { BrazilMap } from '../components/mapa/BrazilMap';
-import { ExportPdfModal } from '../components/modals/ExportPdfModal';
-import { fetchEstabelecimentosPage, fetchFacilities, fetchMacroCoverage } from '../services/api';
-import type { FacilityOption } from '../services/api';
-import { statusMeta } from '../utils/status';
-import { formatMilhar } from '../utils/format';
-import { svgParaPng } from '../utils/captureSvg';
+import { MacroMap } from '../components/mapa/MacroMap';
+import type { PontoEstabelecimento } from '../components/mapa/MacroMap';
+import { SubNivelRows } from '../components/dashboard/SubNivelRows';
+import { StatusBadge } from '../components/common/StatusBadge';
+import { SingleSelectFilter } from '../components/common/SingleSelectFilter';
+import {
+  fetchEstabelecimentosPage,
+  fetchHealthRegionCoverage,
+  fetchMacroCoverage,
+  fetchMunicipalityCoverage,
+} from '../services/api';
+import { calcularCoeficiente } from '../utils/coeficiente';
+import { formatMilhar, formatMultiplicador } from '../utils/format';
+import { distanciaKm } from '../utils/geo';
 import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
 import { colors } from '../styles/tokens';
-import type { CoberturaRow, EstabelecimentoRow, Macrorregiao } from '../types/domain';
+import { getEquipamento, GEOJSON_MACRORREGIOES_URL } from '../data/constants';
+import type { CoberturaRow, Macrorregiao, NivelCoberturaRow } from '../types/domain';
 
-const MAX_ESTABELECIMENTOS_POR_UF = 2000; // maior estado (SP) tem ~1700
+type RegioesSaudeEstado = NivelCoberturaRow[] | 'carregando' | 'erro';
 
-// TODO(risco pendente, revisao senior 2026-08-21): geometria dos estados
-// buscada ao vivo, a cada carregamento, de um repositorio GitHub de
-// terceiro (nao-oficial) via CDN publico -- sem fallback local, sem cache,
-// sem controle de versao desse arquivo. Pra uma ferramenta de ministerio,
-// o ideal e vendorizar esse geojson como asset local versionado (ex.:
-// frontend/src/data/brazil-states.geojson) assim que alguem com acesso a
-// internet puder baixa-lo -- o agente que fez essa revisao rodava num
-// sandbox sem acesso de rede de saida e nao pode baixar o arquivo aqui.
-const GEOJSON_URL = 'https://cdn.jsdelivr.net/gh/codeforamerica/click_that_hood@master/public/data/brazil-states.geojson';
+// Leaflet (~150KB) so entra no bundle quando essa pagina realmente monta a
+// secao de recorte -- mesmo padrao ja usado pro jsPDF/ExcelJS em
+// utils/exportPdf.ts/exportXlsx.ts (lib pesada, usada numa parte especifica
+// da UI, carregada sob demanda em vez de inflar o bundle principal que
+// TODA pagina paga, mesmo quem nunca abre o Mapa).
+const MacroMapReal = lazy(() =>
+  import('../components/mapa/MacroMapReal').then((m) => ({ default: m.MacroMapReal })),
+);
 
-function LegendPill({ color, bg, label }: { color: string; bg: string; label: string }) {
+// Maior macro nacional (Tomógrafo) tem 964 estabelecimentos distintos --
+// folga confortável abaixo do teto de 2000 do endpoint (mesmo já usado pelo
+// antigo fetch por UF).
+const MAX_ESTABELECIMENTOS_POR_MACRO = 1500;
+
+// Raio de BUSCA/EXIBIÇÃO de estabelecimentos ao redor do município
+// selecionado no mapa -- volta a 75km (2026-08-24; chegou a ir a 200km,
+// mas o usuário achou ruim de visualizar: com pontos espalhados até
+// 200km, o fitBounds precisa enquadrar uma área bem maior, diluindo o
+// foco visual no município selecionado). Mesmo valor do critério
+// normativo do Tomógrafo, usado também como referência de "vizinhança"
+// pras demais famílias.
+const RAIO_BUSCA_MUNICIPIO_KM = 75;
+
+/** Card compacto de resumo (Total de equipamentos / Cobertura / Municipio
+ * mais proximo / Populacao SUS) mostrado acima do filtro de Macro/
+ * Municipio do "Recorte" -- reflete a granularidade mais fina ja
+ * selecionada (municipio, se houver; senao a macro). */
+function CardInfo({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
   return (
-    <div style={{ background: bg, borderRadius: 8, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: color }} />
-      <div style={{ fontSize: 12, fontWeight: 700, color }}>{label}</div>
+    <div
+      style={{
+        flex: '1 1 150px',
+        minWidth: 150,
+        background: '#f7f8fb',
+        border: `1px solid ${colors.border}`,
+        borderRadius: 8,
+        padding: '10px 14px',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          color: colors.subtleText,
+          textTransform: 'uppercase',
+          letterSpacing: '0.03em',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 17,
+          fontWeight: 700,
+          color: cor ?? '#16213e',
+          marginTop: 3,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+        title={valor}
+      >
+        {valor}
+      </div>
     </div>
   );
 }
 
+/**
+ * Mapa nacional por macrorregiao de saude, com drill-down no painel lateral
+ * (decisao 2026-08-22): clicar numa macro no mapa busca as regioes de saude
+ * dela (GET /health-region-coverage?macro_code=) e mostra com SubNivelRows --
+ * MESMO componente que o Dashboard usa pra expandir uma linha de macro
+ * (CoberturaTable), entao a cadeia Regiao de Saude -> Municipio vem de
+ * graca, sem duplicar logica (sem botao de detalhe nessa sub-camada --
+ * removido 2026-08-24, os cards de resumo acima do filtro substituem essa
+ * necessidade).
+ *
+ * Substitui a versao anterior (mapa colorido por UF, clicar no estado listava
+ * as macros dele com a lista crua de estabelecimentos) -- o mapa agora colore
+ * CADA MACRO com o dado exato dela (sem media por UF, ver MacroMap.tsx), e o
+ * drill-down vai direto a fundo (Regiao de Saude -> Municipio) em vez de
+ * parar em "lista de estabelecimentos da macro". A lista crua de
+ * estabelecimentos por CNES continua disponivel no Dashboard
+ * (EstabelecimentoTable, filtravel por macro).
+ */
 export function MapaPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
+  const equipamento = getEquipamento(FAMILIA);
   const [geo, setGeo] = useState<FeatureCollection<Geometry, GeoJsonProperties> | null>(null);
   const [macros, setMacros] = useState<Macrorregiao[]>([]);
   const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
-  const [facilities, setFacilities] = useState<FacilityOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedUf, setSelectedUf] = useState<string | null>(null);
 
-  const [ufEstabelecimentos, setUfEstabelecimentos] = useState<EstabelecimentoRow[]>([]);
-  const [ufEstabLoading, setUfEstabLoading] = useState(false);
-  const [macrosExpandidas, setMacrosExpandidas] = useState<Set<string>>(new Set());
-  const [macroHover, setMacroHover] = useState<string | null>(null);
-  const [exportPdfAberto, setExportPdfAberto] = useState(false);
-  const mapaContainerRef = useRef<HTMLDivElement>(null);
+  const [selectedMacroId, setSelectedMacroId] = useState<string | null>(null);
+  const [regioesSaude, setRegioesSaude] = useState<RegioesSaudeEstado>('carregando');
+  const [pontosMacro, setPontosMacro] = useState<PontoEstabelecimento[]>([]);
+  const [municipiosMacro, setMunicipiosMacro] = useState<RegioesSaudeEstado>('carregando');
+  const [selectedMunicipioId, setSelectedMunicipioId] = useState<string | null>(null);
+  // Total real dentro do raio de busca (pode ser bem maior que os pontos
+  // efetivamente plotados -- o backend limita aos mais proximos, ver
+  // comentario em app/routers/equipment_offer.py). Null fora do modo
+  // municipio (nao se aplica).
+  const [totalEstabelecimentosNoRaio, setTotalEstabelecimentosNoRaio] = useState<number | null>(null);
+  // Nome do municipio do equipamento mais proximo, pro card "Equipamento
+  // mais proximo" -- estado proprio (nao deriva so de pontosMacro) porque
+  // o equipamento mais proximo pode estar bem alem do raio VISUAL do mapa
+  // (RAIO_BUSCA_MUNICIPIO_KM, mantido pequeno de proposito pra nao pesar o
+  // mapa); ver efeito abaixo.
+  const [nomeEquipamentoMaisProximo, setNomeEquipamentoMaisProximo] = useState<string | null>(null);
+  // Distancia (km) ate o equipamento mais proximo do municipio selecionado
+  // -- generalizada pra qualquer familia (2026-08-24), nao so TOMOGRAFO
+  // (unica com o campo pronto no pipeline); ver efeito abaixo.
+  const [distanciaMaisProximaKm, setDistanciaMaisProximaKm] = useState<number | null>(null);
+  // Contorno REAL (poligono oficial) do municipio selecionado -- buscado
+  // sob demanda na API de malhas do IBGE (2026-08-24, a pedido: "nao quero
+  // circulo, quero de fato o contorno do municipio"). Null enquanto
+  // carrega/se nao tiver municipio selecionado/se a busca falhar -- o mapa
+  // degrada bem (so fica sem desenhar o contorno extra, mesmo padrao de
+  // "silencia e segue" ja usado nos outros fetches auxiliares dessa
+  // pagina).
+  const [contornoMunicipio, setContornoMunicipio] = useState<GeoJSON.Feature | null>(null);
+  // Cache em memoria (na aba, nao sobrevive reload) por codigo IBGE de 7
+  // digitos -- fronteira de municipio nao muda durante a sessao, evita
+  // rebuscar na API do IBGE se o usuario voltar a selecionar o mesmo
+  // municipio.
+  const cacheContornosRef = useRef<Map<string, GeoJSON.Feature>>(new Map());
 
-  async function capturarMapa() {
-    if (!mapaContainerRef.current) return null;
-    return svgParaPng(mapaContainerRef.current);
-  }
-
-  function toggleMacroExpandida(macroId: string) {
-    setMacrosExpandidas((prev) => {
-      const next = new Set(prev);
-      next.has(macroId) ? next.delete(macroId) : next.add(macroId);
-      return next;
-    });
-  }
-
-  // Geometria dos estados so precisa vir uma vez (nao depende de familia).
+  // Geometria das macros so precisa vir uma vez (nao depende de familia --
+  // os 121 codigos de macro sao os mesmos pra qualquer equipamento).
   useEffect(() => {
     let cancelado = false;
-    fetch(GEOJSON_URL)
+    fetch(GEOJSON_MACRORREGIOES_URL)
       .then((r) => r.json())
       .then((geoData) => !cancelado && setGeo(geoData))
       .catch((e: Error) => !cancelado && setError(e.message));
@@ -74,19 +166,18 @@ export function MapaPage() {
     };
   }, []);
 
-  // Cobertura/facilities re-busca ao trocar a familia selecionada no menu --
-  // guarda contra corrida igual DashboardPage (trocar de familia rapido pode
+  // Cobertura re-busca ao trocar a familia selecionada no menu -- guarda
+  // contra corrida igual DashboardPage (trocar de familia rapido pode
   // fazer a resposta antiga chegar depois e sobrescrever a nova).
   useEffect(() => {
     let cancelado = false;
     setLoading(true);
     setError(null);
-    Promise.all([fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
-      .then(([coverage, facilityOptions]) => {
+    fetchMacroCoverage(FAMILIA)
+      .then((coverage) => {
         if (cancelado) return;
         setMacros(coverage.macros);
         setCoberturaRows(coverage.coberturaRows);
-        setFacilities(facilityOptions);
       })
       .catch((e: Error) => !cancelado && setError(e.message))
       .finally(() => !cancelado && setLoading(false));
@@ -95,77 +186,335 @@ export function MapaPage() {
     };
   }, [FAMILIA]);
 
-  // busca so quando um estado e selecionado -- em vez de trazer os ~8000
-  // estabelecimentos nacionais pra so mostrar o recorte de 1 UF por vez.
+  // Pre-seleciona a primeira macro (ordenada por UF/nome) assim que a lista
+  // carrega, se o usuario ainda nao escolheu nenhuma -- a secao "Recorte da
+  // macrorregiao" abaixo sempre tem algo pra mostrar, em vez de comecar
+  // vazia esperando um clique no mapa nacional (decisao 2026-08-23).
+  useEffect(() => {
+    if (selectedMacroId || macros.length === 0) return;
+    const ordenadas = [...macros].sort((a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome));
+    setSelectedMacroId(ordenadas[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [macros]);
+
+  // Drill-down: regioes de saude da macro selecionada -- busca de novo ao
+  // trocar de familia tambem (os codigos de macro sao os mesmos entre
+  // familias, mas o dado de cobertura de cada regiao nao e).
   useEffect(() => {
     let cancelado = false;
-    setMacrosExpandidas(new Set());
-    if (!selectedUf) {
-      setUfEstabelecimentos([]);
+    if (!selectedMacroId) {
+      setRegioesSaude('carregando');
       return;
     }
-    setUfEstabLoading(true);
-    fetchEstabelecimentosPage({
-      equipmentFamily: FAMILIA,
-      states: [selectedUf],
-      page: 1,
-      pageSize: MAX_ESTABELECIMENTOS_POR_UF,
-    })
-      .then((res) => !cancelado && setUfEstabelecimentos(res.items))
-      .catch(() => !cancelado && setUfEstabelecimentos([]))
-      .finally(() => !cancelado && setUfEstabLoading(false));
+    setRegioesSaude('carregando');
+    fetchHealthRegionCoverage({ equipmentFamily: FAMILIA, macroCodes: [selectedMacroId] })
+      .then((rows) => !cancelado && setRegioesSaude(rows))
+      .catch(() => !cancelado && setRegioesSaude('erro'));
     return () => {
       cancelado = true;
     };
-  }, [FAMILIA, selectedUf]);
+  }, [FAMILIA, selectedMacroId]);
 
-  const ufCobertura = useMemo(() => {
-    const porUf: Record<string, number[]> = {};
-    coberturaRows.forEach((r) => {
-      const macro = macros.find((m) => m.id === r.macroId);
-      if (!macro) return;
-      (porUf[macro.uf] ??= []).push(r.cobertura);
-    });
-    const media: Record<string, number> = {};
-    for (const [uf, valores] of Object.entries(porUf)) {
-      media[uf] = Math.round((valores.reduce((s, v) => s + v, 0) / valores.length) * 10) / 10;
+  // Municipios da macro selecionada, pro seletor "raio no municipio" abaixo
+  // -- SEM min_population (ao contrario da tabela do Dashboard): aqui
+  // interessa justamente poder escolher um municipio pequeno, que é o caso
+  // que o criterio de raio de 75km existe pra cobrir. Reseta a selecao de
+  // municipio ao trocar de macro (o municipio escolhido pertence a outra
+  // macro, nao faz sentido manter).
+  useEffect(() => {
+    let cancelado = false;
+    setSelectedMunicipioId(null);
+    if (!selectedMacroId) {
+      setMunicipiosMacro('carregando');
+      return;
     }
-    return media;
-  }, [macros, coberturaRows]);
+    setMunicipiosMacro('carregando');
+    fetchMunicipalityCoverage({ equipmentFamily: FAMILIA, macroCodes: [selectedMacroId] })
+      .then((rows) => !cancelado && setMunicipiosMacro(rows))
+      .catch(() => !cancelado && setMunicipiosMacro('erro'));
+    return () => {
+      cancelado = true;
+    };
+  }, [FAMILIA, selectedMacroId]);
 
-  // soma populacao / soma oferta por UF (ponderado, mesma logica da
-  // CoberturaTable/KpiCard) -- alimenta o "pessoas por tomografo" do tooltip
-  // do mapa.
-  const ufPessoasPorTomografo = useMemo(() => {
-    const pop: Record<string, number> = {};
-    const oferta: Record<string, number> = {};
-    coberturaRows.forEach((r) => {
-      const macro = macros.find((m) => m.id === r.macroId);
-      if (!macro) return;
-      pop[macro.uf] = (pop[macro.uf] ?? 0) + macro.pop;
-      oferta[macro.uf] = (oferta[macro.uf] ?? 0) + r.oferta;
-    });
-    const resultado: Record<string, number | null> = {};
-    for (const uf of Object.keys(pop)) {
-      resultado[uf] = oferta[uf] > 0 ? pop[uf] / oferta[uf] : null;
-    }
-    return resultado;
-  }, [macros, coberturaRows]);
+  const municipioSelecionado =
+    Array.isArray(municipiosMacro) && selectedMunicipioId
+      ? municipiosMacro.find((m) => m.chave === selectedMunicipioId)
+      : undefined;
 
-  // ordena pelo numero no final do nome (ex.: "RRAS1" antes de "RRAS10") --
-  // ordem alfabetica pura colocaria RRAS10..RRAS19 antes de RRAS2. Estados
-  // cuja macro nao termina em numero caem no fallback por nome.
-  const ufMacros = selectedUf
-    ? macros
-        .filter((m) => m.uf === selectedUf)
-        .sort((a, b) => {
-          const na = Number(a.nome.match(/(\d+)$/)?.[1]);
-          const nb = Number(b.nome.match(/(\d+)$/)?.[1]);
-          if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-          return a.nome.localeCompare(b.nome);
+  // Pontos de estabelecimento (lat/long) pro recorte abaixo -- so busca sob
+  // demanda (nunca os ~8 mil estabelecimentos nacionais de uma vez). ~6% dos
+  // estabelecimentos nao tem geocodificacao no CNES (latitude/longitude
+  // nulos) -- esses ficam de fora do mapa mas continuam contando nos
+  // numeros/tabelas normalmente.
+  //
+  // Dois modos: sem municipio selecionado, busca por macro_code (visao geral
+  // da macro, comportamento original). Com municipio selecionado, busca por
+  // RAIO GEOGRAFICO ao redor da sede dele, ignorando fronteira de macro --
+  // o tomografo mais proximo desse municipio pode estar numa macro vizinha
+  // (o criterio normativo de 75km e geografico puro, ver
+  // backend/app/pipeline/geo.py), filtrar so por macro_code esconderia
+  // exatamente o ponto que explica a distancia mostrada no badge abaixo.
+  useEffect(() => {
+    let cancelado = false;
+
+    if (municipioSelecionado?.latitude != null && municipioSelecionado.longitude != null) {
+      setTotalEstabelecimentosNoRaio(null);
+      fetchEstabelecimentosPage({
+        equipmentFamily: FAMILIA,
+        near: { lat: municipioSelecionado.latitude, lon: municipioSelecionado.longitude, radiusKm: RAIO_BUSCA_MUNICIPIO_KM },
+        page: 1,
+        pageSize: MAX_ESTABELECIMENTOS_POR_MACRO,
+      })
+        .then((res) => {
+          if (cancelado) return;
+          // Ordem preservada de proposito -- o backend devolve esse modo ja
+          // ordenado por distancia (mais proximo primeiro, ver
+          // app/routers/equipment_offer.py), entao pontos[0] e sempre o
+          // estabelecimento mais proximo do municipio selecionado (usado no
+          // card "Equipamento mais proximo" abaixo).
+          const pontos: PontoEstabelecimento[] = res.items
+            .filter((e) => e.latitude != null && e.longitude != null)
+            .map((e) => ({
+              cnes: e.cnes,
+              lat: e.latitude as number,
+              lon: e.longitude as number,
+              qtd: e.qtd,
+              susFlag: e.susFlag,
+              nome: e.nome,
+              uf: e.uf,
+              municipio: e.municipio,
+            }));
+          setPontosMacro(pontos);
+          setTotalEstabelecimentosNoRaio(res.total);
         })
-    : [];
-  const ufPessoasPorTomografoSelecionado = selectedUf ? (ufPessoasPorTomografo[selectedUf] ?? null) : null;
+        .catch(() => !cancelado && setPontosMacro([]));
+      return () => {
+        cancelado = true;
+      };
+    }
+    setTotalEstabelecimentosNoRaio(null);
+
+    if (!selectedMacroId) {
+      setPontosMacro([]);
+      return;
+    }
+    fetchEstabelecimentosPage({
+      equipmentFamily: FAMILIA,
+      macroCodes: [selectedMacroId],
+      page: 1,
+      pageSize: MAX_ESTABELECIMENTOS_POR_MACRO,
+    })
+      .then((res) => {
+        if (cancelado) return;
+        const pontos: PontoEstabelecimento[] = res.items
+          .filter((e) => e.latitude != null && e.longitude != null)
+          .map((e) => ({
+            cnes: e.cnes,
+            lat: e.latitude as number,
+            lon: e.longitude as number,
+            qtd: e.qtd,
+            susFlag: e.susFlag,
+            nome: e.nome,
+            uf: e.uf,
+            municipio: e.municipio,
+          }));
+        setPontosMacro(pontos);
+      })
+      .catch(() => !cancelado && setPontosMacro([]));
+    return () => {
+      cancelado = true;
+    };
+  }, [FAMILIA, selectedMacroId, municipioSelecionado]);
+
+  // Nome do municipio onde fica o equipamento mais proximo -- so calculado
+  // quando um municipio esta selecionado E ele proprio nao tem equipamento
+  // SUS (oferta, nao ofertaTotal -- corrigido 2026-08-24: um municipio com
+  // SO equipamento privado nao tem acesso via SUS nenhum, entao o "mais
+  // proximo" continua relevante pra ele; ofertaTotal escondia isso por
+  // engano quando so contava privado). Se ja tem SUS proprio, nao ha "mais
+  // proximo" relevante pra apontar, mostra so um tracinho (regra
+  // confirmada 2026-08-24 -- Almenara/Jacinto/MG tem 1 SUS cada, o
+  // tracinho ali e o comportamento certo, nao bug).
+  //
+  // So TOMOGRAFO tem o campo pre-calculado no pipeline
+  // (distance_km_nearest_equipment, sem limite de raio -- ver
+  // backend/app/pipeline/geo.py); pras demais familias (2026-08-24, a
+  // pedido: "outros equipamentos que nao temos o raio") calcula ao vivo no
+  // cliente com Haversine (utils/geo.ts), reaproveitando o mesmo
+  // pontosMacro ja buscado pro mapa quando possivel:
+  //   1. TOMOGRAFO com distancia dentro do raio visual -> pontosMacro[0]
+  //      (ja teria vindo do efeito acima, sem busca extra).
+  //   2. TOMOGRAFO com distancia FORA do raio visual (bug real corrigido
+  //      2026-08-24, ex.: 385km) -> busca a parte, raio dimensionado
+  //      exatamente pra essa distancia ja conhecida (nao infla o mapa).
+  //   3. Outras familias, ja tem algo dentro do raio visual -> usa direto
+  //      (distancia calculada por Haversine, ja que essas nao tem o campo
+  //      pronto do pipeline).
+  //   4. Outras familias, nada no raio visual -> UMA tentativa com raio
+  //      continental (cobre qualquer par de pontos no Brasil) pra achar o
+  //      mais proximo onde quer que esteja -- so 1 busca extra (nao varias
+  //      tentativas incrementais), efeito colateral aceitavel em familia
+  //      sem cobertura nenhuma (ex.: Ultrassom, 0 estabelecimentos hoje).
+  useEffect(() => {
+    let cancelado = false;
+    setNomeEquipamentoMaisProximo(null);
+    setDistanciaMaisProximaKm(null);
+
+    if (!municipioSelecionado || municipioSelecionado.oferta > 0) return;
+    if (municipioSelecionado.latitude == null || municipioSelecionado.longitude == null) return;
+    const centro = { lat: municipioSelecionado.latitude, lon: municipioSelecionado.longitude };
+
+    // "Municipio - UF" -- municipio sozinho e ambiguo (varios nomes se
+    // repetem entre estados, mesmo motivo da chave composta usada nos
+    // outros filtros da tela).
+    function formatarMunicipioUf(municipio?: string | null, uf?: string | null): string | null {
+      if (!municipio) return null;
+      return uf ? `${municipio} - ${uf}` : municipio;
+    }
+
+    // Aceita tanto PontoEstabelecimento (pontosMacro, ja tem lat/lon
+    // certos) quanto EstabelecimentoRow cru (resposta de
+    // fetchEstabelecimentosPage, lat/lon podem vir null) -- normaliza os
+    // dois pro mesmo formato antes de usar.
+    function usarPonto(p: { latitude?: number | null; longitude?: number | null; lat?: number; lon?: number; municipio?: string | null; uf?: string | null } | undefined) {
+      const lat = p?.lat ?? p?.latitude;
+      const lon = p?.lon ?? p?.longitude;
+      if (lat == null || lon == null) return;
+      setDistanciaMaisProximaKm(distanciaKm(centro.lat, centro.lon, lat, lon));
+      setNomeEquipamentoMaisProximo(formatarMunicipioUf(p?.municipio, p?.uf));
+    }
+
+    // pontosMacro NAO e filtrado por SUS (mostra os dois tipos no mapa, de
+    // proposito, pro contexto visual -- ver legenda). Pra achar o mais
+    // proximo que ATENDE SUS (2026-08-24, a pedido -- mesmo criterio que
+    // "oferta" ja usa em todo o resto do app), procura o primeiro com
+    // susFlag na lista ja ordenada por distancia; so cai pra busca
+    // dedicada (com sus_flag=true no backend) se nao achar nenhum dentro
+    // do que ja foi buscado.
+    const maisProximoSusNoRaioVisual = pontosMacro.find((p) => p.susFlag);
+
+    if (FAMILIA === 'TOMOGRAFO') {
+      const distancia = municipioSelecionado.distanciaKmEquipamentoMaisProximo;
+      if (distancia == null) return;
+      setDistanciaMaisProximaKm(distancia);
+      if (distancia <= RAIO_BUSCA_MUNICIPIO_KM && maisProximoSusNoRaioVisual) {
+        usarPonto(maisProximoSusNoRaioVisual);
+        return;
+      }
+      fetchEstabelecimentosPage({
+        equipmentFamily: FAMILIA,
+        near: { ...centro, radiusKm: distancia + 2 },
+        susOnly: true,
+        page: 1,
+        pageSize: 1,
+      })
+        .then((res) => !cancelado && usarPonto(res.items[0]))
+        .catch(() => {});
+      return () => {
+        cancelado = true;
+      };
+    }
+
+    if (maisProximoSusNoRaioVisual) {
+      usarPonto(maisProximoSusNoRaioVisual);
+      return;
+    }
+
+    // RAIO_CONTINENTAL_KM: maior distancia possivel entre 2 pontos dentro
+    // do Brasil e ~4300km (extremo norte a extremo sul) -- 4500km cobre
+    // com folga, uma unica tentativa em vez de varias incrementais.
+    const RAIO_CONTINENTAL_KM = 4500;
+    fetchEstabelecimentosPage({
+      equipmentFamily: FAMILIA,
+      near: { ...centro, radiusKm: RAIO_CONTINENTAL_KM },
+      susOnly: true,
+      page: 1,
+      pageSize: 1,
+    })
+      .then((res) => !cancelado && usarPonto(res.items[0]))
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [FAMILIA, municipioSelecionado, pontosMacro]);
+
+  // Contorno REAL do municipio selecionado -- busca direto no navegador na
+  // API de malhas do IBGE (https://servicodados.ibge.gov.br/api/v3/malhas/
+  // municipios/{codigo7}), CORS liberado (Access-Control-Allow-Origin: *,
+  // testado 2026-08-24) e sem chave/conta, dado geografico OFICIAL do
+  // governo -- mais apropriado pra um projeto do Ministerio da Saude que
+  // depender de terceiro. Payload pequeno (~10-25KB por municipio testado,
+  // ate pra um contorno complexo tipo Sao Paulo capital) porque busca SO O
+  // municipio selecionado, nunca a malha nacional inteira -- nada
+  // vendorizado localmente (diferente do geojson de macro, que e reusado
+  // em toda visita e por isso compensa empacotar; contorno de municipio so
+  // e usado quando aquele municipio especifico e selecionado).
+  useEffect(() => {
+    let cancelado = false;
+    setContornoMunicipio(null);
+
+    const codigo7 = municipioSelecionado?.ibgeCode7;
+    if (!codigo7) return;
+
+    const emCache = cacheContornosRef.current.get(codigo7);
+    if (emCache) {
+      setContornoMunicipio(emCache);
+      return;
+    }
+
+    fetch(`https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codigo7}?formato=application/vnd.geo+json`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((geoJson: GeoJSON.FeatureCollection) => {
+        if (cancelado) return;
+        const feature = geoJson.features[0];
+        if (!feature) return;
+        cacheContornosRef.current.set(codigo7, feature);
+        setContornoMunicipio(feature);
+      })
+      .catch(() => {
+        // silencia e segue -- mapa fica so sem o contorno extra (pin do
+        // municipio e o resto da tela continuam funcionando normalmente).
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [municipioSelecionado]);
+
+  // Objeto estavel (mesma referencia entre renders iguais) -- MacroMapReal
+  // redesenha o mapa (Leaflet) sempre que este prop muda de referencia; sem
+  // memoizar, qualquer re-render nao relacionado (ex.: digitar no campo de
+  // busca de outro filtro) recriava o objeto e disparava um redesenho
+  // inteiro do mapa a toa.
+  const centroMunicipio = useMemo(
+    () =>
+      municipioSelecionado?.latitude != null && municipioSelecionado.longitude != null
+        ? { lat: municipioSelecionado.latitude, lon: municipioSelecionado.longitude, nome: municipioSelecionado.nome }
+        : undefined,
+    [municipioSelecionado],
+  );
+
+  const macroSelecionada = selectedMacroId ? macros.find((m) => m.id === selectedMacroId) : undefined;
+  const coberturaSelecionada = selectedMacroId ? coberturaRows.find((r) => r.macroId === selectedMacroId) : undefined;
+
+  // Dado unificado pros cards de resumo do "Recorte" abaixo -- municipio
+  // selecionado tem prioridade (granularidade mais fina); sem municipio,
+  // cai pra macro. Mesmo shape dos dois lados (pop/ofertaTotal) pra nao
+  // duplicar o JSX dos cards por fonte.
+  const infoSelecionado = municipioSelecionado
+    ? { pop: municipioSelecionado.pop, ofertaTotal: municipioSelecionado.ofertaTotal }
+    : macroSelecionada && coberturaSelecionada
+      ? { pop: macroSelecionada.pop, ofertaTotal: coberturaSelecionada.ofertaTotal }
+      : undefined;
+
+  const coefSelecionada =
+    macroSelecionada && coberturaSelecionada
+      ? calcularCoeficiente(coberturaSelecionada.oferta, macroSelecionada.pop, equipamento.produtividade)
+      : null;
+  const pessoasPorEquipSelecionada =
+    macroSelecionada && coberturaSelecionada && coberturaSelecionada.oferta > 0
+      ? macroSelecionada.pop / coberturaSelecionada.oferta
+      : null;
 
   if (loading) {
     return <div style={{ padding: 60, textAlign: 'center', color: colors.subtleText }}>Carregando dados...</div>;
@@ -181,196 +530,231 @@ export function MapaPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8, gap: 8 }}>
-        <button
-          onClick={() => setExportPdfAberto(true)}
-          disabled={!selectedUf}
-          title={selectedUf ? undefined : 'Selecione um estado no mapa primeiro'}
-          style={{
-            padding: '7px 16px',
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: selectedUf ? 'pointer' : 'not-allowed',
-            border: `1px solid ${colors.border}`,
-            background: selectedUf ? '#fff' : '#f4f6fb',
-            color: selectedUf ? colors.hipoRed : colors.subtleText,
-          }}
-        >
-          ⬇ PDF
-        </button>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, alignItems: 'stretch' }}>
         <div style={{ background: '#fff', borderRadius: 8, padding: '16px 18px' }}>
           <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
-            Tomógrafos — Cobertura por macrorregião de saúde
+            Equipamentos — Cobertura por macrorregião de saúde
           </div>
           {geo && (
-            <BrazilMap
-              ref={mapaContainerRef}
+            <MacroMap
               geo={geo}
-              ufCobertura={ufCobertura}
-              ufPessoasPorTomografo={ufPessoasPorTomografo}
-              onSelectUf={(uf) => setSelectedUf(uf)}
+              macros={macros}
+              coberturaRows={coberturaRows}
+              selectedMacroId={selectedMacroId}
+              produtividade={equipamento.produtividade}
+              onSelectMacro={setSelectedMacroId}
             />
           )}
-          <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-            <LegendPill color={colors.hipoRed} bg={colors.hipoRedBg} label="Hipossuficiente" />
-            <LegendPill color={colors.hiperGreen} bg={colors.hiperGreenBg} label="Hiperssuficiente" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
+            {/* Mesma logica de MacroMap.tsx::escalaCor -- duas gradacoes com
+                corte duro em 100% (a mesma "costura" no meio do degrade,
+                dois stops na mesma posicao), nao mais um gradiente unico
+                atravessando a meta sem distincao visual. */}
+            <div
+              style={{
+                width: 140,
+                height: 8,
+                borderRadius: 4,
+                background: `linear-gradient(to right, ${colors.hipoRed} 0%, ${colors.hipoRedBg} 50%, ${colors.hiperGreenBg} 50%, ${colors.hiperGreen} 100%)`,
+              }}
+            />
+            <span style={{ fontSize: 11, color: colors.subtleText }}>0x ── 1x ── 2x+</span>
           </div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 8, padding: '16px 18px', maxHeight: 620, overflow: 'auto' }}>
-          {selectedUf ? (
+        {/* Sem altura fixa/maxHeight aqui -- deixa o grid (alignItems:
+            'stretch', o default do CSS Grid, so explicito acima por
+            clareza) esticar esse card pra bater exatamente com a altura do
+            mapa ao lado, self-adjusting pra qualquer tamanho de mapa/
+            viewport em vez de um numero magico que desalinhava sempre que
+            o mapa nao tinha exatamente essa altura (bug real visto
+            2026-08-24). overflow:auto continua so como rede de seguranca,
+            caso o conteudo (muitas regioes de saude expandidas) fique mais
+            alto que o mapa. */}
+        <div style={{ background: '#fff', borderRadius: 8, padding: '16px 18px', overflow: 'auto' }}>
+          {macroSelecionada && coberturaSelecionada ? (
             <div>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>{selectedUf}</div>
-              <div style={{ fontSize: 12, color: colors.mutedText, marginBottom: 12 }}>
-                Pessoas por tomógrafo:{' '}
-                {ufPessoasPorTomografoSelecionado != null ? `${formatMilhar(ufPessoasPorTomografoSelecionado)}/1` : '—'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: colors.subtleText }}>
+                  {macroSelecionada.id}
+                </span>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>
+                  {macroSelecionada.nome} <span style={{ color: colors.mutedText, fontWeight: 400 }}>({macroSelecionada.uf})</span>
+                </div>
               </div>
-              {ufEstabLoading && (
-                <div style={{ fontSize: 12, color: colors.subtleText, marginBottom: 8 }}>Carregando estabelecimentos...</div>
-              )}
 
-              {ufMacros.map((m) => {
-                const row = coberturaRows.find((r) => r.macroId === m.id);
-                const cobertura = row?.cobertura ?? 0;
-                const meta = statusMeta(cobertura);
-                // mesma logica da barra da coluna "Cobertura" no Dashboard --
-                // a listra no meio e a meta oficial (100 mil/aparelho), a
-                // barra enche PRA MAIS quanto PIOR a cobertura (mais gente
-                // dividindo o mesmo aparelho).
-                const pessoasPorEquip = row && row.oferta > 0 ? m.pop / row.oferta : null;
-                const fillPercent = pessoasPorEquip != null ? Math.min(100, (pessoasPorEquip / 100_000) * 50) : 0;
-                const expandida = macrosExpandidas.has(m.id);
-                const estabelecimentosDaMacro = ufEstabelecimentos.filter((e) => e.macroId === m.id);
-                return (
-                  <div key={m.id} style={{ borderTop: '1px solid #f0f1f5' }}>
-                    <div
-                      onClick={() => toggleMacroExpandida(m.id)}
-                      onMouseEnter={() => setMacroHover(m.id)}
-                      onMouseLeave={() => setMacroHover((v) => (v === m.id ? null : v))}
-                      style={{
-                        padding: '10px 6px',
-                        cursor: 'pointer',
-                        borderRadius: 6,
-                        background: macroHover === m.id ? colors.primaryLight : 'transparent',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 13,
-                          fontWeight: 500,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          color: macroHover === m.id ? colors.primary : 'inherit',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 10,
-                            color: colors.subtleText,
-                            transform: expandida ? 'rotate(90deg)' : 'none',
-                            transition: 'transform 0.15s',
-                            display: 'inline-block',
-                          }}
-                        >
-                          ▶
-                        </span>
-                        <span style={{ fontFamily: 'monospace', fontSize: 11, color: colors.subtleText }}>{m.id}</span>
-                        {m.nome}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <div style={{ width: 80, height: 4, borderRadius: 2, background: '#eef0f4', overflow: 'clip', position: 'relative' }}>
-                          <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${fillPercent}%`, background: meta.color }} />
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              bottom: 0,
-                              left: '50%',
-                              width: 1,
-                              background: '#475066',
-                              transform: 'translateX(-50%)',
-                            }}
-                          />
-                        </div>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: 20,
-                            background: meta.bg,
-                            color: meta.color,
-                          }}
-                        >
-                          {meta.label}
-                        </span>
-                      </div>
-                    </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                <StatusBadge cobertura={coberturaSelecionada.cobertura} />
+                {coefSelecionada?.valor != null && (
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: coefSelecionada.corTexto }}>
+                    {formatMultiplicador(coefSelecionada.valor)}
+                  </span>
+                )}
+              </div>
 
-                    {expandida && (
-                      <div style={{ padding: '0 6px 10px 24px' }}>
-                        {!ufEstabLoading && estabelecimentosDaMacro.length === 0 && (
-                          <div style={{ fontSize: 12, color: colors.subtleText }}>Nenhum estabelecimento cadastrado.</div>
-                        )}
-                        {estabelecimentosDaMacro.map((e) => (
-                          <div key={e.cnes} style={{ padding: '7px 0', borderTop: '1px solid #f0f1f5' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              <span
-                                style={{
-                                  fontFamily: 'monospace',
-                                  fontSize: 10,
-                                  color: '#98a0b3',
-                                  background: '#f4f6fb',
-                                  padding: '2px 5px',
-                                  borderRadius: 3,
-                                }}
-                              >
-                                {e.cnes}
-                              </span>
-                              <span style={{ fontSize: 10, color: '#98a0b3' }}>qtd: {e.qtd}</span>
-                            </div>
-                            <div style={{ fontSize: 12, fontWeight: 500, marginTop: 2 }}>{e.nome}</div>
-                            <div style={{ fontSize: 11, color: '#667085' }}>
-                              {e.municipio} · {e.tipos.map((t) => `${t.tipo} (${t.qtd})`).join(', ')}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 10, lineHeight: 1.7 }}>
+                {macroSelecionada.pop.toLocaleString('pt-BR')} hab. SUS-dependentes · {coberturaSelecionada.oferta} equipamento
+                {coberturaSelecionada.oferta === 1 ? '' : 's'} SUS
+                {coberturaSelecionada.ofertaTotal !== coberturaSelecionada.oferta &&
+                  ` de ${coberturaSelecionada.ofertaTotal} no total`}
+                <br />
+                Pessoas por equipamento: {pessoasPorEquipSelecionada != null ? `${formatMilhar(pessoasPorEquipSelecionada)}/1` : '—'}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 16,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: colors.subtleText,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                Regiões de saúde
+              </div>
+              <div style={{ marginTop: 6 }}>
+                {regioesSaude === 'carregando' && (
+                  <div style={{ fontSize: 12, color: colors.subtleText, padding: '8px 0' }}>Carregando regiões de saúde...</div>
+                )}
+                {regioesSaude === 'erro' && (
+                  <div style={{ fontSize: 12, color: colors.hipoRed, padding: '8px 0' }}>
+                    Não foi possível carregar as regiões de saúde.
                   </div>
-                );
-              })}
+                )}
+                {Array.isArray(regioesSaude) && (
+                  <SubNivelRows rows={regioesSaude} nivelAtual="regiaoSaude" equipmentFamily={FAMILIA} />
+                )}
+              </div>
             </div>
           ) : (
             <div style={{ color: colors.subtleText, fontSize: 13 }}>
-              Selecione um estado no mapa para ver o detalhe por macrorregião de saúde.
+              Selecione uma macrorregião no mapa para ver o detalhe por região de saúde.
             </div>
           )}
         </div>
       </div>
 
-      {exportPdfAberto && (
-        <ExportPdfModal
-          onClose={() => setExportPdfAberto(false)}
-          equipmentFamily={FAMILIA}
-          macros={macros}
-          coberturaRowsTodas={coberturaRows}
-          facilities={facilities}
-          filtrosIniciais={{
-            regioes: [],
-            ufs: selectedUf ? [selectedUf] : [],
-            macros: [],
-            regioesSaude: [],
-            municipios: [],
-            cnes: [],
-          }}
-          capturarMapa={capturarMapa}
-        />
-      )}
+      <div style={{ background: '#fff', borderRadius: 8, padding: '16px 18px', marginTop: 16 }}>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>Equipamentos — Mapa Rodoviário</div>
+
+        {/* Resumo do que esta selecionado (municipio, se houver -- senao a
+            macro) -- pedido explicito (2026-08-24), fica acima do filtro
+            de Macro/Municipio abaixo. */}
+        {infoSelecionado && (
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+            <CardInfo label="Total de equipamentos" valor={infoSelecionado.ofertaTotal.toLocaleString('pt-BR')} />
+            {/* Distancia -- so existe no nivel Municipio (dado geografico
+                por municipio). Cor so pro TOMOGRAFO (unica familia com
+                criterio normativo de raio, 75km -- Caderno 1 SUS 2017):
+                dentro = verde/bom, fora = vermelho/ruim, mesma convencao
+                do resto do app. Pras demais familias (2026-08-24, a
+                pedido) o valor ainda e calculado e mostrado, so que em
+                preto (cor default do CardInfo) -- nao ha criterio oficial
+                de raio pra colorir contra. */}
+            <CardInfo
+              label="Distância mais próxima"
+              valor={distanciaMaisProximaKm != null ? `${distanciaMaisProximaKm.toFixed(0)} km` : '—'}
+              cor={
+                FAMILIA === 'TOMOGRAFO' && distanciaMaisProximaKm != null
+                  ? distanciaMaisProximaKm <= 75
+                    ? colors.hiperGreen
+                    : colors.hipoRed
+                  : undefined
+              }
+            />
+            <CardInfo label="Equipamento mais próximo" valor={nomeEquipamentoMaisProximo ?? '—'} />
+            <CardInfo label="População SUS" valor={infoSelecionado.pop.toLocaleString('pt-BR')} />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: colors.subtleText }}>Filtrar por</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <SingleSelectFilter
+              placeholder="Selecione uma macrorregião"
+              value={selectedMacroId}
+              onChange={setSelectedMacroId}
+              options={[...macros]
+                .sort((a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome))
+                .map((m) => ({ value: m.id, label: `${m.uf} · ${m.id} · ${m.nome}` }))}
+              minWidth={260}
+            />
+            <SingleSelectFilter
+              placeholder="Toda a macrorregião"
+              value={selectedMunicipioId}
+              onChange={setSelectedMunicipioId}
+              clearLabel="Toda a macrorregião"
+              options={
+                Array.isArray(municipiosMacro)
+                  ? [...municipiosMacro]
+                      .sort((a, b) => a.nome.localeCompare(b.nome))
+                      .map((m) => ({ value: m.chave, label: `${m.nome} (${m.uf})` }))
+                  : []
+              }
+              minWidth={220}
+            />
+          </div>
+        </div>
+
+        {municipioSelecionado && (
+          <div style={{ marginTop: 10, fontSize: 12.5, color: colors.mutedText }}>
+            Mostrando{' '}
+            {totalEstabelecimentosNoRaio != null && totalEstabelecimentosNoRaio > pontosMacro.length
+              ? `os ${pontosMacro.length} estabelecimentos mais próximos (de ${totalEstabelecimentosNoRaio} dentro de ${RAIO_BUSCA_MUNICIPIO_KM} km)`
+              : `estabelecimentos num raio de ${RAIO_BUSCA_MUNICIPIO_KM} km`}{' '}
+            de <strong>{municipioSelecionado.nome}</strong>.
+          </div>
+        )}
+
+        {geo && (selectedMacroId || municipioSelecionado) && (
+          <>
+            <div style={{ marginTop: 12 }}>
+              <Suspense
+                fallback={
+                  <div style={{ height: 560, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.subtleText }}>
+                    Carregando mapa...
+                  </div>
+                }
+              >
+                <MacroMapReal
+                  geo={geo}
+                  macroId={selectedMacroId ?? undefined}
+                  pontos={pontosMacro}
+                  contornoMunicipio={contornoMunicipio}
+                  centro={centroMunicipio}
+                />
+              </Suspense>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 11, color: colors.subtleText, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16213e', display: 'inline-block' }} />
+                estabelecimento (tamanho = qtd. de equipamentos)
+              </span>
+              {municipioSelecionado && (
+                <span style={{ fontSize: 11, color: colors.subtleText, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: colors.hipoRed, border: '1.5px solid #fff', display: 'inline-block' }} />
+                  município selecionado
+                </span>
+              )}
+              {municipioSelecionado && (
+                <span style={{ fontSize: 11, color: colors.subtleText, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span
+                    style={{
+                      width: 12,
+                      height: 8,
+                      border: `1.5px dashed ${colors.hipoRed}`,
+                      borderRadius: 3,
+                      display: 'inline-block',
+                    }}
+                  />
+                  {contornoMunicipio ? 'contorno do município selecionado' : 'buscando contorno do município...'}
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

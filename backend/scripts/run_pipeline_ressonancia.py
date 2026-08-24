@@ -39,6 +39,7 @@ from app.db.models import (
 )
 from app.pipeline import api_demas, api_elasticnes, api_sidra
 from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente
+from app.pipeline.runner import executar_com_registro_de_falha
 
 FAMILIA = "RESSONANCIA"
 # 5.000 exames/ano por equipamento; necessidade de 30 exames/1.000 hab/ano
@@ -147,6 +148,9 @@ def run() -> None:
                 existing_qty=eq["qt_existente"],
                 in_use_qty=eq["qt_uso"],
                 sus_flag=eq["fl_sus"],
+                latitude=eq["latitude"],
+                longitude=eq["longitude"],
+                legal_nature=eq["natureza_juridica"],
             )
         )
 
@@ -318,4 +322,4 @@ def run() -> None:
 
 
 if __name__ == "__main__":
-    run()
+    executar_com_registro_de_falha(FAMILIA, run)

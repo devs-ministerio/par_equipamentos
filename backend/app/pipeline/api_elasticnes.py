@@ -59,6 +59,45 @@ class EquipamentoRow(TypedDict):
     qt_existente: int
     qt_uso: int
     fl_sus: bool
+    latitude: float | None
+    longitude: float | None
+    natureza_juridica: str | None
+
+
+# Bounding box generoso do Brasil (latitude/longitude) -- qualquer par fora
+# disso e geocodificacao errada no proprio CNES (nao e erro nosso de parse:
+# o "," em `location` e SEPARADOR do par "lat,long", nao separador decimal
+# -- confirmado 2026-08-24 investigando um caso real, CNES 3753387
+# MISERICORDIA BOTUCATUENSE, Botucatu/SP: o CNES tinha "-22.887661,
+# 48.445866", faltando so o sinal de menos na longitude, o que jogava o
+# ponto pro Oceano Indico perto de Madagascar/Mocambique -- ~9700km de
+# distancia do municipio real. Descartar (None, None) em vez de propagar
+# segue a mesma filosofia do "nunca inventa" abaixo: um estabelecimento sem
+# geocodificacao plausivel fica de fora do mapa/calculo de distancia (mesmo
+# tratamento que os ~6% sem coordenada nenhuma), em vez de contaminar com
+# uma coordenada logicamente impossivel.
+LATITUDE_MIN_BRASIL = -34.0
+LATITUDE_MAX_BRASIL = 6.0
+LONGITUDE_MIN_BRASIL = -74.5
+LONGITUDE_MAX_BRASIL = -32.0
+
+
+def _parse_location(location: str | None) -> tuple[float | None, float | None]:
+    """`location` vem como "lat,long" em texto -- nem todo estabelecimento
+    tem coordenada cadastrada. Nunca inventa: qualquer formato inesperado
+    OU par fora do bounding box plausivel do Brasil (ver constantes acima)
+    vira (None, None) em vez de propagar uma geocodificacao errada da fonte
+    (RN-06)."""
+    if not location or "," not in location:
+        return None, None
+    lat_str, _, lon_str = location.partition(",")
+    try:
+        lat, lon = float(lat_str), float(lon_str)
+    except ValueError:
+        return None, None
+    if not (LATITUDE_MIN_BRASIL <= lat <= LATITUDE_MAX_BRASIL and LONGITUDE_MIN_BRASIL <= lon <= LONGITUDE_MAX_BRASIL):
+        return None, None
+    return lat, lon
 
 
 def _sessao_com_retry() -> requests.Session:
@@ -136,6 +175,7 @@ def _buscar_equipamentos(
                 "CNES", "NOME FANTASIA", "CÓDIGO DO MUNICÍPIO", "UF", "EQUIPAMENTO - TIPO",
                 "EQUIPAMENTO - CÓDIGO", "EQUIPAMENTO - QTD EXISTENTE",
                 "EQUIPAMENTO - QTD EM USO", "EQUIPAMENTO - SUS?",
+                "location", "NATUREZA JURÍDICA CATEGORIA",
             ],
             "query": {"bool": {"filter": [
                 {"term": {"index_comp.keyword": competencia}},
@@ -161,6 +201,7 @@ def _buscar_equipamentos(
         chave = (f.get("EQUIPAMENTO - TIPO"), f.get("EQUIPAMENTO - CÓDIGO"))
         if chave not in de_para:
             continue  # nao deveria acontecer (filtro ja restringe), mas nunca inventa dado
+        latitude, longitude = _parse_location(f.get("location"))
         registros.append(EquipamentoRow(
             co_cnes=str(f.get("CNES")),
             no_fantasia=f.get("NOME FANTASIA") or None,
@@ -170,6 +211,9 @@ def _buscar_equipamentos(
             qt_existente=int(f.get("EQUIPAMENTO - QTD EXISTENTE") or 0),
             qt_uso=int(f.get("EQUIPAMENTO - QTD EM USO") or 0),
             fl_sus=str(f.get("EQUIPAMENTO - SUS?")).strip().upper() == "SIM",
+            latitude=latitude,
+            longitude=longitude,
+            natureza_juridica=f.get("NATUREZA JURÍDICA CATEGORIA") or None,
         ))
 
     return registros, competencia
