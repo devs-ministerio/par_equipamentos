@@ -54,6 +54,13 @@ export function InfoIcon({ children, align = 'left' }: InfoIconProps) {
             fontWeight: 400,
             textTransform: 'none',
             letterSpacing: 0,
+            // whiteSpace explicito -- alguns cabecalhos de coluna (ex.:
+            // CoberturaTable "Populacao SUS-dependente") usam nowrap no <th>
+            // pra rotulo+seta de ordenacao caberem numa linha, e white-space
+            // e propriedade herdada: sem isso aqui, o popup herdava nowrap
+            // do ancestral e o texto nunca quebrava linha (bug real,
+            // 2026-08-24) -- maxWidth sozinho nao resolve esse caso.
+            whiteSpace: 'normal',
             boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
             pointerEvents: 'none',
           }}

@@ -405,6 +405,7 @@ export function NivelCoberturaTable({
                           nivelAtual="municipio"
                           equipmentFamily={equipmentFamily}
                           selecionados={subNivelSelecionados}
+                          completo
                         />
                       )}
                     </td>

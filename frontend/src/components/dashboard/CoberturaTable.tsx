@@ -358,6 +358,7 @@ export function CoberturaTable({
                           nivelAtual="regiaoSaude"
                           equipmentFamily={equipmentFamily}
                           selecionados={subNivelSelecionados}
+                          completo
                         />
                       )}
                     </td>
