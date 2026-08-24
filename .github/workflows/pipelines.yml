@@ -29,6 +29,11 @@ jobs:
       # steps seguintes lerem.
       - name: Verifica se o secret DATABASE_URL existe
         id: guard
+        # Roda antes do checkout (working-directory: backend do job ainda
+        # nao existe no runner nesse ponto -- erro real encontrado
+        # 2026-08-24: "No such file or directory" ao tentar iniciar o bash
+        # com esse cwd). Sobrescreve pra raiz do workspace so nesse step.
+        working-directory: .
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "Secret DATABASE_URL nao configurado (Settings > Secrets and variables > Actions) -- pulando o resto do job."
