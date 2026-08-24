@@ -1,0 +1,49 @@
+name: Pipelines de dado (TOMOGRAFO / RESSONANCIA)
+
+# So manual por enquanto (Run workflow) -- o "schedule:" fica comentado
+# de proposito: projeto ainda so roda local (2026-08-24), sem Postgres em
+# producao alcancavel pelos runners do GitHub. Um cron diario contra
+# banco nenhum so geraria falha automatica (e notificacao de e-mail) todo
+# dia. Reativar o cron abaixo quando o deploy (Railway ou outro) e o
+# secret DATABASE_URL apontando pra URL PUBLICA do banco existirem.
+#
+# on:
+#   schedule:
+#     - cron: "0 9 * * *"  # 09:00 UTC = 06:00 em Brasilia
+on:
+  workflow_dispatch: {}
+
+jobs:
+  rodar_pipelines:
+    runs-on: ubuntu-latest
+    # Nao roda (em vez de quebrar com erro de conexao confuso no alembic)
+    # se alguem clicar "Run workflow" antes do secret DATABASE_URL existir
+    # -- ver nota no topo do arquivo.
+    if: ${{ secrets.DATABASE_URL != '' }}
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Instala dependencias
+        run: uv sync --frozen
+
+      - name: Aplica migrations pendentes
+        run: uv run alembic upgrade head
+
+      - name: Roda pipeline TOMOGRAFO
+        run: uv run python -m scripts.run_pipeline_tomografo
+
+      - name: Roda pipeline RESSONANCIA
+        # continue-on-error: falha de uma familia nao deve impedir a outra
+        # de tentar rodar -- cada run() ja registra a propria falha em
+        # AuditLog (app/pipeline/runner.py) antes de relancar a excecao.
+        if: always()
+        run: uv run python -m scripts.run_pipeline_ressonancia
