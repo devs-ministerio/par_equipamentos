@@ -2,8 +2,9 @@ import { Fragment, useState } from 'react';
 import type { NivelCoberturaRow } from '../../types/domain';
 import { calcularCoeficiente } from '../../utils/coeficiente';
 import { formatMultiplicador } from '../../utils/format';
-import { getEquipamento } from '../../data/constants';
+import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
 import { fetchMunicipalityCoverage } from '../../services/api';
+import { StatusBadge } from '../common/StatusBadge';
 
 type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
 
@@ -15,23 +16,36 @@ interface Props {
   equipmentFamily: string;
   /** chaves ja selecionadas no filtro (so destaque visual). */
   selecionados?: string[];
+  /** true no Dashboard (card "Cobertura Assistencial", tem espaco de sobra)
+   * -- mostra Populacao SUS-dependente, barra de cobertura completa ("X SUS
+   * de Y no total") e StatusBadge, igual a linha principal em
+   * NivelCoberturaTable.tsx. false (default) no painel estreito do Mapa,
+   * onde so cabe Nome + coeficiente. Historico do bug: a reducao pro Mapa
+   * (2026-08-24) foi aplicada nesse componente inteiro, empobrecendo
+   * tambem o Dashboard sem querer -- esse prop escopa a reducao de volta
+   * so pro Mapa (2026-08-24, correcao). */
+  completo?: boolean;
 }
 
 /**
- * Linhas de um nivel abaixo do da tabela pai -- versao enxuta (so Nome e o
- * coeficiente colorido, tipo "1,54x") do layout completo da linha
- * principal (que tem população, barra e StatusBadge por extenso). Reduzido
- * em etapas em 2026-08-24: essa sub-camada roda no painel estreito do Mapa
- * (mais estreito que o card do Dashboard onde a linha principal aparece) --
- * primeiro saiu o StatusBadge (maior consumidor de espaço), depois
- * população/barra/"X SUS de Y" também saíram, e por fim o botão de
- * detalhe/modal de comparação também saiu (o resumo por nível que ele dava
- * virou os cards "Total de equipamentos/Cobertura/Equipamento mais
- * próximo/População SUS" no topo do "Recorte", em MapaPage.tsx). Sobra só
- * o essencial pra não competir por espaço com o Nome. Recursiva: uma linha
- * de Regiao de Saude pode ela mesma expandir em Municipios (o proprio
- * componente busca e se re-renderiza com nivelAtual="municipio"), cobrindo
- * a cadeia completa Macrorregiao -> Regiao de Saude -> Municipio.
+ * Linhas de um nivel abaixo do da tabela pai. Dois layouts, escolhidos por
+ * `completo`:
+ * - completo=true (Dashboard, NivelCoberturaTable.tsx): Nome, População
+ *   SUS-dependente, barra de cobertura com "X SUS de Y no total" e
+ *   StatusBadge -- mesmas colunas da linha principal, card com espaço de
+ *   sobra.
+ * - completo=false, default (MapaPage.tsx, painel lateral estreito): só
+ *   Nome + coeficiente colorido (tipo "1,54x"). Historico: reduzido em
+ *   2026-08-24 pro painel do Mapa, mas a reducao foi aplicada no componente
+ *   inteiro e empobreceu o Dashboard tambem sem querer -- corrigido no
+ *   mesmo dia escopando com esse prop (o resumo por nivel que o botão de
+ *   detalhe/modal dava no meio tempo virou os cards "Total de
+ *   equipamentos/Cobertura/Equipamento mais próximo/População SUS" no topo
+ *   do "Recorte" em MapaPage.tsx, e continua só lá).
+ * Recursiva: uma linha de Regiao de Saude pode ela mesma expandir em
+ * Municipios (o proprio componente busca e se re-renderiza com
+ * nivelAtual="municipio", propagando o mesmo `completo`), cobrindo a
+ * cadeia completa Macrorregiao -> Regiao de Saude -> Municipio.
  */
 // RN especifica de TOMOGRAFO (ver Metodologia): municipio abaixo do
 // parametro normativo nunca foi esperado ter equipamento proprio -- na
@@ -41,7 +55,7 @@ interface Props {
 // "de bonus"), entao continua aparecendo do tamanho que for.
 const POPULACAO_MINIMA_PARA_HIPO = 100_000;
 
-export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }: Props) {
+export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, completo = false }: Props) {
   const produtividade = getEquipamento(equipmentFamily).produtividade;
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
@@ -147,21 +161,65 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
                     )}
                     {linha.nome} <span style={{ color: '#98a0b3', fontWeight: 400 }}>({linha.uf})</span>
                   </td>
-                  {/* So o indicador (coeficiente colorido) -- populacao,
-                      barrinha, "X SUS de Y" e o botao de detalhe/modal
-                      foram removidos a pedido (2026-08-24): esse resumo
-                      por nivel agora vive nos cards acima do filtro em
-                      MapaPage.tsx, e o detalhe cru continua na tabela
-                      principal do Dashboard. */}
-                  <td style={{ padding: '6px 8px', width: 76, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto }}>
-                      {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
-                    </span>
-                  </td>
+                  {completo ? (
+                    <>
+                      <td style={{ padding: '6px 8px', width: 110, textAlign: 'right', color: '#475066', whiteSpace: 'nowrap' }}>
+                        {linha.pop.toLocaleString('pt-BR')}
+                      </td>
+                      <td style={{ padding: '6px 24px 6px 8px', minWidth: 160 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div
+                            style={{ flex: 1, position: 'relative', height: 7, borderRadius: 4, background: '#eef0f4', overflow: 'clip' }}
+                          >
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                height: '100%',
+                                width: `${coef.fillPercent}%`,
+                                background: coef.corBarra,
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                bottom: 0,
+                                left: '50%',
+                                width: 2,
+                                background: '#475066',
+                                borderRadius: 1,
+                                transform: 'translateX(-50%)',
+                              }}
+                            />
+                          </div>
+                          <div style={{ width: 100 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto }}>
+                              {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
+                            </div>
+                            <div style={{ fontSize: 9.5, color: '#98a0b3' }}>
+                              {formatarQuantidadeEquipamento(linha.oferta)} SUS
+                              {linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal} no total`}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '6px 8px 6px 18px', width: 130 }}>
+                        <StatusBadge cobertura={linha.cobertura} />
+                      </td>
+                    </>
+                  ) : (
+                    <td style={{ padding: '6px 8px', width: 76, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto }}>
+                        {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
+                      </span>
+                    </td>
+                  )}
                 </tr>
                 {expandida && (
                   <tr>
-                    <td colSpan={2} style={{ padding: '4px 8px 8px 26px', background: '#f4f6fb' }}>
+                    <td colSpan={completo ? 4 : 2} style={{ padding: '4px 8px 8px 26px', background: '#f4f6fb' }}>
                       {filhos === 'carregando' && (
                         <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>Carregando municípios...</div>
                       )}
@@ -174,6 +232,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados }
                           nivelAtual="municipio"
                           equipmentFamily={equipmentFamily}
                           selecionados={selecionados}
+                          completo={completo}
                         />
                       )}
                     </td>
