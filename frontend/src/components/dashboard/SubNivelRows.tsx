@@ -5,6 +5,8 @@ import { formatMultiplicador } from '../../utils/format';
 import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
 import { fetchMunicipalityCoverage } from '../../services/api';
 import { StatusBadge } from '../common/StatusBadge';
+import { BotaoDetalhe } from '../common/BotaoDetalhe';
+import { MunicipioDetalheModal } from './MunicipioDetalheModal';
 
 type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
 
@@ -59,6 +61,12 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
   const produtividade = getEquipamento(equipmentFamily).produtividade;
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
+  // Self-contido (nao recebe callback do pai) -- SubNivelRows e chamado tanto
+  // de CoberturaTable quanto de NivelCoberturaTable, e recursivamente por si
+  // mesmo (Regiao -> Municipio); threading um callback por 2+ niveis de
+  // recursao so pra abrir o mesmo modal que MunicipioDetalheModal ja busca
+  // tudo sozinho seria complexidade sem ganho.
+  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
 
   // Excecao ao corte: se NENHUM municipio do grupo tem >=100 mil habitantes
   // E nenhum tem tomografo nenhum, o corte normal deixaria a sub-camada
@@ -213,7 +221,10 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                         </div>
                       </td>
                       <td style={{ padding: '6px 8px 6px 18px', width: 130 }}>
-                        <StatusBadge cobertura={linha.cobertura} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <StatusBadge cobertura={linha.cobertura} />
+                          {nivelAtual === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(linha)} />}
+                        </div>
                       </td>
                     </>
                   ) : (
@@ -254,6 +265,9 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
         <div style={{ fontSize: 11, color: '#98a0b3', padding: '6px 4px 0' }}>
           +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
         </div>
+      )}
+      {detalheAberto && (
+        <MunicipioDetalheModal linha={detalheAberto} equipmentFamily={equipmentFamily} onClose={() => setDetalheAberto(null)} />
       )}
     </>
   );
