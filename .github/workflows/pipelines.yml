@@ -58,6 +58,16 @@ jobs:
         if: steps.guard.outputs.tem_secret == 'true'
         run: uv run alembic upgrade head
 
+      - name: Importa populacao ANS (POPULACAO_CNC) -- so se ainda nao tem arquivo ativo
+        # Sem isso, sus_dependente cai no fallback (= residente inteiro,
+        # sem desconto de beneficiarios de plano de saude) -- ver aviso
+        # que os pipelines abaixo imprimem quando falta. Idempotente: o
+        # importador desativa o ReferenceFile anterior antes de gravar o
+        # novo, entao rodar de novo em runs futuras so re-importa o mesmo
+        # CSV (sem duplicar linha ativa).
+        if: steps.guard.outputs.tem_secret == 'true'
+        run: uv run python -m scripts.importar_populacao_municipios
+
       - name: Roda pipeline TOMOGRAFO
         if: steps.guard.outputs.tem_secret == 'true'
         run: uv run python -m scripts.run_pipeline_tomografo
