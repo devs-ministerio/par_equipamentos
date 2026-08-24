@@ -5,7 +5,7 @@ import { colors, layout } from '../../styles/tokens';
 import { EQUIPAMENTOS } from '../../data/constants';
 
 const ITEMS = [
-  { path: '/dashboard', label: 'Geral' },
+  { path: '/dashboard', label: 'Dashboard' },
   { path: '/mapa', label: 'Mapa' },
   { path: '/relatorios', label: 'Relatórios' },
 ];
