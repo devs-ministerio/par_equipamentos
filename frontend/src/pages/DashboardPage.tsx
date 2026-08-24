@@ -17,12 +17,11 @@ import type { EquipmentTotals, FacilityOption } from '../services/api';
 import { useFiltrosMacro } from '../hooks/useFiltrosMacro';
 import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
 import { colors } from '../styles/tokens';
-import { REGIOES, getEquipamento } from '../data/constants';
+import { REGIOES } from '../data/constants';
 import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../types/domain';
 
 export function DashboardPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
-  const equipamento = getEquipamento(FAMILIA);
   const [macros, setMacros] = useState<Macrorregiao[]>([]);
   const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
   const [facilities, setFacilities] = useState<FacilityOption[]>([]);
@@ -332,8 +331,7 @@ export function DashboardPage() {
           color="#16213e"
           info={
             <InfoIcon>
-              Inclui equipamentos SUS e não-SUS (privados). Não entra no cálculo de cobertura — só o card "Total de
-              Equipamentos SUS" ao lado representa capacidade disponível pro paciente do SUS.
+              Inclui equipamentos privados. Só o card ao lado (SUS) entra no cálculo de cobertura.
             </InfoIcon>
           }
         />
@@ -350,9 +348,8 @@ export function DashboardPage() {
           ativo={nivelForcado === 'municipio'}
           info={
             <InfoIcon>
-              Municípios com pelo menos 100 mil habitantes SUS-dependentes e menos de 1 equipamento SUS por{' '}
-              {equipamento.produtividade.toLocaleString('pt-BR')} (Hipossuficiente), no recorte de filtro atual.
-              Clique pra ver a lista.
+              Municípios com mais de 100 mil habitantes e equipamentos SUS abaixo do necessário. Clique pra ver a
+              lista.
             </InfoIcon>
           }
         />
@@ -363,10 +360,7 @@ export function DashboardPage() {
           onClick={() => verHipo('regiaoSaude')}
           ativo={nivelForcado === 'regiaoSaude'}
           info={
-            <InfoIcon>
-              Regiões de saúde com menos de 1 equipamento SUS por {equipamento.produtividade.toLocaleString('pt-BR')}{' '}
-              habitantes SUS-dependentes (Hipossuficiente), no recorte de filtro atual. Clique pra ver a lista.
-            </InfoIcon>
+            <InfoIcon>Regiões de saúde com equipamentos SUS abaixo do necessário. Clique pra ver a lista.</InfoIcon>
           }
         />
         <KpiCard

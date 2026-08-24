@@ -179,15 +179,10 @@ export function CoberturaTable({
                   </span>
                   <InfoIcon align="right">
                     <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>
-                      Populações usadas no cálculo
+                      População usada no cálculo
                     </div>
                     <div style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                      SUS-dependente = IBGE (residente) − beneficiários de plano de saúde (ANS)
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                      IBGE vem ao vivo do SIDRA; ANS vem de arquivo de referência (sem API oficial ao vivo
-                      conhecida). É a SUS-dependente que entra no cálculo de demanda — quem tem plano privado não
-                      compete pela vaga no SUS.
+                      SUS-dependente = IBGE (residente) − beneficiários de plano de saúde
                     </div>
                   </InfoIcon>
                 </span>
@@ -198,30 +193,21 @@ export function CoberturaTable({
                     Cobertura{arrow('cobertura')}
                   </span>
                   <InfoIcon>
-                    <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Parâmetro normativo</div>
-                    <div>
-                      1 equipamento por{' '}
-                      <strong>{equipamento.produtividade.toLocaleString('pt-BR')} habitantes SUS-dependentes</strong>
-                    </div>
-                    <div style={{ marginTop: 8, fontWeight: 700, color: '#93c5fd' }}>Coeficiente</div>
+                    <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Coeficiente</div>
                     <div
                       style={{
                         fontFamily: 'monospace',
                         fontSize: 11,
-                        marginTop: 4,
                         background: 'rgba(255,255,255,0.08)',
                         padding: '6px 8px',
                         borderRadius: 4,
                       }}
                     >
-                      (Equipamentos SUS × {equipamento.produtividade.toLocaleString('pt-BR')}) ÷ População
-                      SUS-dependente
+                      Equipamentos SUS ÷ população SUS-dependente, na proporção esperada
                     </div>
                     <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
-                      Ex.: 6 equipamentos SUS ÷ 831.219 hab. × {equipamento.produtividade.toLocaleString('pt-BR')} ={' '}
-                      {formatMultiplicador((6 * equipamento.produtividade) / 831_219)} — abaixo de 1x é
-                      Hipossuficiente, 1x ou mais é Hiperssuficiente. A listra no meio da barra marca exatamente o
-                      coeficiente 1.
+                      Abaixo de 1x é Hipossuficiente, 1x ou mais é Hiperssuficiente. A listra no meio da barra marca
+                      exatamente o coeficiente 1.
                     </div>
                   </InfoIcon>
                 </span>
