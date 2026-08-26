@@ -1,6 +1,5 @@
 """Roda o pipeline real de TOMOGRAFO (DEMAS + SIDRA + ElastiCNES) e grava o
-resultado no banco -- substitui o seed fake (scripts/seed_tomografo.py) por
-dado de verdade, puxado ao vivo das APIs publicas.
+resultado no banco, puxado ao vivo das APIs publicas.
 
 Uso: python -m scripts.run_pipeline_tomografo (de dentro de backend/, venv ativo)
 

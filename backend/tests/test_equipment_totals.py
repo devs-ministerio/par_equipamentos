@@ -7,7 +7,7 @@ equipment_offer_row, na granularidade real do filtro pedido.
 Roda contra o banco configurado em DATABASE_URL (mesmo padrao dos outros
 routers, que nao tem camada de repositorio pra mockar) -- pula sozinho se
 o banco nao tiver nenhuma execucao carregada (ex.: banco novo, sem rodar
-scripts/run_pipeline_tomografo.py ou seed_tomografo.py ainda).
+scripts/run_pipeline_tomografo.py ainda).
 """
 from __future__ import annotations
 
