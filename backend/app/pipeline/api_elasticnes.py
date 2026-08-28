@@ -14,6 +14,13 @@ EQUIPAMENTO - CÓDIGO dentro de EQUIPAMENTO - TIPO = DIAGNOSTICO POR IMAGEM):
              28 (32 canais), 29 (64 canais), 30 (128 canais)
   Ressonancia: 12 (antigo, sem subtipo), 32 (0.5T), 33 (1.5T), 34 (3T),
                35 (campo aberto)
+
+Codigo verificado ao vivo em 2026-08-28 (mesma agregacao, olhando
+EQUIPAMENTO - DESCRICAO de cada codigo pra achar o certo -- nao tinha
+comentario nenhum previo sobre PET-CT, decisao 2026-08-13 nunca chegou a
+mapear):
+  PET_CT: 18 ("18 PET/CT", codigo unico, sem subtipo por canal/tesla como
+          Tomografo/Ressonancia).
 """
 from __future__ import annotations
 
@@ -47,6 +54,10 @@ _DE_PARA_RESSONANCIA = {
     ("DIAGNOSTICO POR IMAGEM", "33"): "1_5_TESLA",
     ("DIAGNOSTICO POR IMAGEM", "34"): "3_TESLA",
     ("DIAGNOSTICO POR IMAGEM", "35"): "CAMPO_ABERTO",
+}
+
+_DE_PARA_PET_CT = {
+    ("DIAGNOSTICO POR IMAGEM", "18"): None,
 }
 
 
@@ -150,6 +161,11 @@ def buscar_equipamentos_ressonancia(competencia: str | None = None) -> tuple[lis
     """Idem, pra RESSONANCIA (codigos 12/32/33/34/35 -- ver comentario no topo
     do arquivo)."""
     return _buscar_equipamentos(_DE_PARA_RESSONANCIA, competencia)
+
+
+def buscar_equipamentos_pet_ct(competencia: str | None = None) -> tuple[list[EquipamentoRow], str]:
+    """Idem, pra PET_CT (codigo 18 -- ver comentario no topo do arquivo)."""
+    return _buscar_equipamentos(_DE_PARA_PET_CT, competencia)
 
 
 def _buscar_equipamentos(

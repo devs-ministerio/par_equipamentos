@@ -16,15 +16,26 @@ Todo cálculo de cobertura, distância ou "mais próximo" considera **só equipa
 |---|---|---|---|
 | Tomógrafo | 100.000 | 1 equipamento por 100 mil habitantes (Metodologia) | Em produção |
 | Ressonância Magnética | 166.666,67 | 5.000 exames/ano de capacidade ÷ necessidade de 30 exames/1.000 hab./ano | Em produção |
-| PET-CT | 100.000 (placeholder) | Ainda não recebido da área — usa o mesmo número do Tomógrafo só pra não quebrar o código | Sem pipeline/dado ainda |
-| Acelerador Linear | 100.000 (placeholder) | Idem acima | Sem pipeline/dado ainda |
+| PET-CT | 1.500.000 | 1 equipamento por 1,5 milhão de habitantes (Portaria de Consolidação GM/MS n. 1/2017, art. 102-106) | Em produção (2026-08-28) |
+| Acelerador Linear | 100.000 (placeholder) | Ainda não recebido da área — usa o mesmo número do Tomógrafo só pra não quebrar o código | Sem pipeline/dado ainda |
 | Ultrassom | 100.000 (placeholder) | Idem acima | Sem pipeline/dado ainda |
 | Mamógrafo | 100.000 (placeholder) | Idem acima | Sem pipeline/dado ainda |
 
 Fonte: `frontend/src/data/constants.ts` (`EQUIPAMENTOS`) e `backend/scripts/run_pipeline_*.py` (`PRODUTIVIDADE`) — os dois precisam bater; se um dia um número mudar, muda nos dois lugares.
 
 > [!warning] A confirmar
-> Os 4 placeholders (PET-CT, Acelerador Linear, Ultrassom, Mamógrafo) não têm produtividade real definida pela área ainda — não interpretar o "100.000" deles como parâmetro oficial.
+> Os 3 placeholders restantes (Acelerador Linear, Ultrassom, Mamógrafo) não têm produtividade real definida pela área ainda — não interpretar o "100.000" deles como parâmetro oficial.
+
+## PET-CT: critério de acesso ao radiofármaco — **informativo, não é parâmetro oficial**
+
+A mesma Portaria de Consolidação (art. 102-106) que fixa 1,5 milhão de habitantes também exige que o PET-CT esteja a uma distância que permita acesso ao radiofármaco (FDG-18F, meia-vida de 110 min) em **até 2 horas**. Só a parte populacional entra em `deficit_status` hoje — o tempo de acesso ao radiofármaco é calculado e mostrado, mas **não muda** a classificação Hipo/Hiperssuficiente (mesmo tratamento do raio de 75km do Tomógrafo, ver seção abaixo).
+
+O que já existe (`backend/app/pipeline/radiofarmaco.py` + `backend/scripts/run_pipeline_pet_ct.py`):
+- Lista de **13 produtores de radiofármaco PET** no Brasil, vendorizada em `data/raw/radiofarmacos_produtores_pet.csv` (extraída de `data/raw/radiofarmacos_fabricantes_DECAN.xlsx`, aba de fabricantes — filtrando quem produz PET de verdade, excluindo linhas só-SPECT e distribuidoras sem fábrica no Brasil).
+- `distance_km_nearest_radiopharma`: Haversine entre a sede do município e o produtor mais próximo, em qualquer UF (mesmo método do raio de 75km).
+- `hours_road_nearest_radiopharma` / `hours_air_nearest_radiopharma`: **estimativa por fórmula, não rota real** — sem API de roteamento (decisão 2026-08-28): rodovia = distância reta × fator de sinuosidade (1,3) ÷ velocidade média (70 km/h); avião = distância reta ÷ velocidade de cruzeiro (800 km/h) + tempo fixo de solo (1,5h de embarque/desembarque).
+
+**Por que não virou parâmetro oficial**: mesmo caso do raio de 75km do Tomógrafo — a estimativa por fórmula (sem rota real) e a decisão de aplicar "dentro de 2h → não deficiente" na classificação oficial ainda não foram confirmadas com a área/DECAN.
 
 ## Fórmulas
 

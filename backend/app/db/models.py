@@ -355,6 +355,18 @@ class MunicipalityCoverage(Base):
     # (so TOMOGRAFO por enquanto) ou quando nem municipio nem nenhum
     # equipamento da familia tem coordenada.
     distance_km_nearest_equipment: Mapped[float | None] = mapped_column(Numeric)
+    # Distancia (Haversine, km) e tempo estimado (horas, formula -- NAO rota
+    # real, ver app/pipeline/radiofarmaco.py) ate o produtor de radiofarmaco
+    # PET (FDG-18F) mais proximo, em qualquer UF do pais. Criterio normativo
+    # (Portaria de Consolidacao GM/MS n. 1/2017, art. 102-106): a meia-vida
+    # do FDG e 110 min, o PET_CT deve estar a uma distancia que permita
+    # acesso ao radiofarmaco em ate 2h. SO INFORMATIVO -- NAO entra em
+    # deficit_status (mesmo tratamento do distance_km_nearest_equipment
+    # acima). Nulo pra familias diferentes de PET_CT (unica que roda esse
+    # calculo hoje) ou quando o municipio nao tem coordenada de referencia.
+    distance_km_nearest_radiopharma: Mapped[float | None] = mapped_column(Numeric)
+    hours_road_nearest_radiopharma: Mapped[float | None] = mapped_column(Numeric)
+    hours_air_nearest_radiopharma: Mapped[float | None] = mapped_column(Numeric)
 
 
 class EquipmentOfferRow(Base):

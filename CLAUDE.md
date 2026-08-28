@@ -43,9 +43,11 @@ e no código, não nesse histórico.
   específico. Uma extensão de "monitoramento" (rastrear o mesmo equipamento
   ao longo do tempo) fica fora de escopo até aparecer uma fonte com essa
   granularidade — não tentar simular isso com o schema atual.
-- Os 4 placeholders de produtividade (PET-CT, Acelerador Linear, Ultrassom,
+- Os 3 placeholders de produtividade restantes (Acelerador Linear, Ultrassom,
   Mamógrafo) não são parâmetro oficial — não usar esses números como
-  referência normativa em nenhuma análise.
+  referência normativa em nenhuma análise. PET-CT saiu da lista em
+  2026-08-28 (produtividade real da Portaria de Consolidação n. 1/2017,
+  art. 102-106 — ver `docs/metodologia-parametros.md`).
 
 ## Config e deploy — pegadinhas já resolvidas
 
@@ -68,6 +70,7 @@ cd backend && uv run pytest                          # testes backend
 cd backend && uv run alembic upgrade head             # aplicar migrations
 cd backend && uv run python -m scripts.run_pipeline_tomografo
 cd backend && uv run python -m scripts.run_pipeline_ressonancia
+cd backend && uv run python -m scripts.run_pipeline_pet_ct
 cd frontend && npm run test                            # vitest
 cd frontend && npm run lint                             # oxlint
 ```

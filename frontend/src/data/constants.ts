@@ -56,7 +56,13 @@ export interface EquipamentoOption {
 export const EQUIPAMENTOS: EquipamentoOption[] = [
   { familia: 'TOMOGRAFO', rotulo: 'Tomógrafo', produtividade: 100_000, disponivel: true },
   { familia: 'RESSONANCIA', rotulo: 'Ressonância Magnética', produtividade: 5_000 / (30 / 1_000), disponivel: true },
-  { familia: 'PET_CT', rotulo: 'PET-CT', produtividade: 100_000, disponivel: false },
+  // 1 PET-CT por 1,5 milhao de habitantes SUS-dependentes (Portaria de
+  // Consolidacao GM/MS n. 1/2017, art. 102-106). Pipeline real 2026-08-28
+  // (backend/scripts/run_pipeline_pet_ct.py) -- a mesma portaria tambem fixa
+  // criterio de acesso ao radiofarmaco (FDG, meia-vida 110min) em ate 2h,
+  // ver MunicipioDetalheModal/distance_km_nearest_radiopharma (informativo,
+  // nao entra nesse coeficiente).
+  { familia: 'PET_CT', rotulo: 'PET-CT', produtividade: 1_500_000, disponivel: true },
   { familia: 'ACELERADOR_LINEAR', rotulo: 'Acelerador Linear', produtividade: 100_000, disponivel: false },
   { familia: 'ULTRASSOM', rotulo: 'Ultrassom', produtividade: 100_000, disponivel: false },
   { familia: 'MAMOGRAFO', rotulo: 'Mamógrafo', produtividade: 100_000, disponivel: false },

@@ -1,4 +1,4 @@
-name: Pipelines de dado (TOMOGRAFO / RESSONANCIA)
+name: Pipelines de dado (TOMOGRAFO / RESSONANCIA / PET_CT)
 
 # So manual por enquanto (Run workflow) -- o "schedule:" fica comentado
 # de proposito: projeto ainda so roda local (2026-08-24), sem Postgres em
@@ -78,3 +78,7 @@ jobs:
         # relancar a excecao. So nao roda se o guard inicial ja bloqueou tudo.
         if: always() && steps.guard.outputs.tem_secret == 'true'
         run: uv run python -m scripts.run_pipeline_ressonancia
+
+      - name: Roda pipeline PET_CT
+        if: always() && steps.guard.outputs.tem_secret == 'true'
+        run: uv run python -m scripts.run_pipeline_pet_ct
