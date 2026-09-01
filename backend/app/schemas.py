@@ -120,6 +120,13 @@ class MunicipalityCoverageRead(BaseModel):
     # app/pipeline/geo.py e app/db/models.py. Nulo pra familias cujo
     # pipeline ainda nao calcula (so TOMOGRAFO por enquanto).
     distance_km_nearest_equipment: float | None = None
+    # Idem, mas ate o produtor de radiofarmaco PET mais proximo (FDG) --
+    # so informativo, nulo pra familias diferentes de PET_CT. Ver
+    # app/pipeline/radiofarmaco.py e app/db/models.py. hours_road/hours_air
+    # sao ESTIMATIVA por formula (sem API de roteamento), nao rota real.
+    distance_km_nearest_radiopharma: float | None = None
+    hours_road_nearest_radiopharma: float | None = None
+    hours_air_nearest_radiopharma: float | None = None
     # Coordenada da SEDE do municipio (mesmo CSV vendorizado usado pra
     # calcular distance_km_nearest_equipment, ver app/pipeline/geo.py) --
     # decorado em tempo de leitura no router, nao e coluna do banco. Alimenta

@@ -1,22 +1,35 @@
-"""Roda o pipeline real de TOMOGRAFO (DEMAS + SIDRA + ElastiCNES) e grava o
-resultado no banco, puxado ao vivo das APIs publicas.
+"""Roda o pipeline real de PET_CT (DEMAS + SIDRA + ElastiCNES) e grava o
+resultado no banco -- terceira familia do SIEO (decisao 2026-08-28), copiado
+de scripts/run_pipeline_ressonancia.py trocando o que e especifico da
+familia (fetch do ElastiCNES e a produtividade), mais o calculo de
+distancia/tempo ate o radiofarmaco mais proximo (nao existe no Tomografo
+nem na Ressonancia -- ver app/pipeline/radiofarmaco.py).
 
-Uso: python -m scripts.run_pipeline_tomografo (de dentro de backend/, venv ativo)
+Uso: python -m scripts.run_pipeline_pet_ct (de dentro de backend/, venv ativo)
 
-Logica portada de src/pipeline.py + src/services/cobertura.py (pipeline
-legado), simplificada pra uma unica familia (TOMOGRAFO) sem depender de
-planilha nenhuma -- oferta vem 100% do ElastiCNES, demanda 100% de
-DEMAS (dimensao) + SIDRA (populacao residente, ao vivo) + arquivo de
-referencia de populacao ANS (scripts/importar_populacao_municipios.py,
-sem API oficial ao vivo conhecida pra beneficiarios de plano de saude).
-Denominador de oferta = qt_uso-onde-sus_flag (equipamento EM USO e SUS),
-decisao 2026-08-24 -- antes era qt_existente_sus (D-02, 2026-08-21):
-equipamento existente que nao esta em uso deixou de contar pra
-cobertura/deficit/coeficiente. qt_existente total continua alimentando
-so o card informativo "Total de Equipamentos" (nao muda). Decisao
-2026-08-21: o denominador de DEMANDA passou de populacao residente
-total pra populacao SUS-dependente (residente - ANS) -- consistente
-com a oferta ja ser so-SUS."""
+Metodologia (Portaria de Consolidacao GM/MS n. 1/2017, art. 102-106):
+  - 1 PET_CT para cada 1.500.000 habitantes.
+  PRODUTIVIDADE abaixo e esse numero (habitantes por equipamento) --
+  calcular_cobertura() ja e generica o bastante pra receber qualquer
+  produtividade, mesma formula do TOMOGRAFO/RESSONANCIA, so muda o valor.
+
+  A mesma portaria tambem fixa um criterio de ACESSO AO RADIOFARMACO (FDG,
+  meia-vida de 110 min): o PET_CT deve estar a uma distancia que permita
+  receber o radiofarmaco em ate 2h. So o criterio populacional (1,5 milhao)
+  entra no calculo de cobertura/deficit por enquanto -- o de tempo de acesso
+  ao radiofarmaco fica so informativo (distance_km_nearest_radiopharma /
+  hours_road_nearest_radiopharma / hours_air_nearest_radiopharma em
+  MunicipalityCoverage), mesmo tratamento que o raio de 75km do TOMOGRAFO
+  (app/pipeline/geo.py) -- decisao normativa de aplicar isso na
+  classificacao oficial de deficit ainda pendente de confirmacao.
+
+Oferta vem 100% do ElastiCNES, demanda 100% de DEMAS (dimensao) + SIDRA
+(populacao residente, ao vivo) + arquivo de referencia de populacao ANS
+(scripts/importar_populacao_municipios.py, sem API oficial ao vivo
+conhecida pra beneficiarios de plano de saude). Denominador de oferta =
+qt_uso-onde-sus_flag (decisao 2026-08-24, vale igual pra toda familia --
+antes era qt_existente_sus/D-02, 2026-08-21); populacao SUS-dependente
+(residente - ANS) idem."""
 from __future__ import annotations
 
 from sqlalchemy import delete, func, select
@@ -36,11 +49,19 @@ from app.db.models import (
 )
 from app.pipeline import api_demas, api_elasticnes, api_sidra
 from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente
-from app.pipeline.geo import carregar_coordenadas_municipios, distancia_minima_km
+from app.pipeline.geo import carregar_coordenadas_municipios
+from app.pipeline.radiofarmaco import (
+    carregar_produtores_radiofarmaco_pet,
+    horas_aviao,
+    horas_rodovia,
+    produtor_mais_proximo,
+)
 from app.pipeline.runner import executar_com_registro_de_falha
 
-FAMILIA = "TOMOGRAFO"
-PRODUTIVIDADE = 100_000  # 1 tomografo por 100 mil habitantes (Metodologia)
+FAMILIA = "PET_CT"
+# 1 PET_CT por 1.500.000 habitantes (Portaria de Consolidacao GM/MS n.
+# 1/2017, art. 102-106).
+PRODUTIVIDADE = 1_500_000
 
 
 def _competency_label(competencia_aaaamm: str) -> str:
@@ -92,8 +113,8 @@ def run() -> None:
               "'python -m scripts.importar_populacao_municipios' antes pra ter SUS-dependente "
               "de verdade. Por enquanto, sus_dependente = residente inteiro (sem desconto de ANS).")
 
-    print("3/4 - Baixando inventario de TOMOGRAFO do ElastiCNES...")
-    equipamentos, competencia_elasticnes = api_elasticnes.buscar_equipamentos_tomografo()
+    print("3/4 - Baixando inventario de PET_CT do ElastiCNES...")
+    equipamentos, competencia_elasticnes = api_elasticnes.buscar_equipamentos_pet_ct()
     print(f"   {len(equipamentos)} registros (competencia {competencia_elasticnes}).")
 
     print("4/4 - Agregando por macrorregiao e gravando no banco...")
@@ -108,14 +129,6 @@ def run() -> None:
     oferta_por_municipio: dict[str, dict[str, float]] = {}
     linhas_equipamento = []
     municipios_sem_match = 0
-
-    # Pontos (lat, long) de tomografo em uso E SUS geocodificado, um por
-    # CNES (dedup -- um CNES pode ter varias linhas de subtipo diferente no
-    # ElastiCNES) -- alimenta a distancia ate o mais proximo (raio de 75 km,
-    # ver app/pipeline/geo.py). Em uso porque um equipamento existente mas
-    # parado nao ajuda o paciente a ser atendido (mesmo criterio 2026-08-24
-    # do denominador de oferta).
-    pontos_uso_sus_por_cnes: dict[str, tuple[float, float]] = {}
 
     for eq in equipamentos:
         municipio = municipios.get(eq["co_ibge"])
@@ -135,9 +148,6 @@ def run() -> None:
                 agg_muni["uso_sus"] += eq["qt_uso"]
             agg_macro["estabelecimentos"].add(eq["co_cnes"])
             agg_muni["estabelecimentos"].add(eq["co_cnes"])
-
-        if eq["fl_sus"] and eq["qt_uso"] > 0 and eq["latitude"] is not None and eq["longitude"] is not None:
-            pontos_uso_sus_por_cnes[eq["co_cnes"]] = (eq["latitude"], eq["longitude"])
 
         linhas_equipamento.append(
             EquipmentOfferRow(
@@ -164,13 +174,14 @@ def run() -> None:
     if municipios_sem_match:
         print(f"   [AVISO] {municipios_sem_match} registro(s) do ElastiCNES sem municipio correspondente no DEMAS.")
 
-    # pontos_uso_sus_por_cnes ja e so-em-uso-e-SUS-geocodificado (filtrado
-    # no loop acima), entao seu tamanho E a cobertura de geocodificacao
-    # entre os em-uso-SUS.
-    pontos_uso_sus = list(pontos_uso_sus_por_cnes.values())
+    # Distancia/tempo ate o radiofarmaco (FDG) mais proximo -- diferente do
+    # raio de 75km do TOMOGRAFO, o "ponto" de referencia aqui e uma lista
+    # FIXA de produtores vendorizada (nao muda por competencia do ElastiCNES,
+    # ver app/pipeline/radiofarmaco.py), nao o equipamento em si.
+    produtores_radiofarmaco = carregar_produtores_radiofarmaco_pet()
     coordenadas_municipios = carregar_coordenadas_municipios()
     print(
-        f"   Distância ao raio de 75km: {len(pontos_uso_sus)} tomógrafo(s) em uso e SUS geocodificado(s); "
+        f"   Radiofarmaco: {len(produtores_radiofarmaco)} produtor(es) PET vendorizado(s); "
         f"{len(coordenadas_municipios)} município(s) com coordenada de referência."
     )
 
@@ -272,15 +283,22 @@ def run() -> None:
                 population=population_sus_muni, in_use_sus=int(oferta_muni["uso_sus"]),
                 produtividade=PRODUTIVIDADE,
             )
+
             # So informativo -- NAO entra em cobertura_muni/deficit_status
-            # (ver app/pipeline/geo.py). None se o municipio nao tiver
-            # coordenada de referencia (nao deveria acontecer, os 5.570
-            # ja foram validados) ou se nenhum tomografo em uso e SUS do
-            # pais tiver geocodificacao ainda.
+            # (ver app/pipeline/radiofarmaco.py). None se o municipio nao
+            # tiver coordenada de referencia (nao deveria acontecer, os
+            # 5.570 ja foram validados no TOMOGRAFO).
             coordenada_municipio = coordenadas_municipios.get(co_ibge)
-            distancia_ate_mais_proximo = (
-                distancia_minima_km(coordenada_municipio, pontos_uso_sus) if coordenada_municipio else None
-            )
+            distancia_radiofarmaco = None
+            horas_rodovia_radiofarmaco = None
+            horas_aviao_radiofarmaco = None
+            if coordenada_municipio:
+                resultado = produtor_mais_proximo(coordenada_municipio, produtores_radiofarmaco)
+                if resultado is not None:
+                    _, distancia_radiofarmaco = resultado
+                    horas_rodovia_radiofarmaco = horas_rodovia(distancia_radiofarmaco)
+                    horas_aviao_radiofarmaco = horas_aviao(distancia_radiofarmaco)
+
             db.add(
                 MunicipalityCoverage(
                     execution_id=execution.id,
@@ -302,7 +320,9 @@ def run() -> None:
                     facility_count=len(oferta_muni["estabelecimentos"]),
                     balance=cobertura_muni.balance,
                     deficit_status=cobertura_muni.deficit_status,
-                    distance_km_nearest_equipment=distancia_ate_mais_proximo,
+                    distance_km_nearest_radiopharma=distancia_radiofarmaco,
+                    hours_road_nearest_radiopharma=horas_rodovia_radiofarmaco,
+                    hours_air_nearest_radiopharma=horas_aviao_radiofarmaco,
                 )
             )
 

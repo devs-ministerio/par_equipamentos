@@ -1,0 +1,14 @@
+id,empresa,municipio,uf,status_producao,latitude,longitude
+1,Comissao Nacional de Energia Nuclear (IPEN),Sao Paulo,SP,confirmada,-23.5589,-46.7337
+2,Comissao Nacional de Energia Nuclear (CDTN),Belo Horizonte,MG,confirmada,-19.8716,-43.9697
+3,Hospital das Clinicas FMUSP (InRad/CMN),Sao Paulo,SP,institucional,-23.5554,-46.6692
+4,Villas Boas Radiofarmacos Brasil S/A,Brasilia,DF,confirmada,-15.8267,-47.9218
+5,Villas Boas Radiofarmacos Brasil S/A,Eusebio,CE,confirmada,-3.8897,-38.4583
+6,Cyclopet Radiofarmacos Ltda (R2IBF),Curitiba,PR,confirmada,-25.5068,-49.2611
+7,IBF - Industria Brasileira de Farmoquimicos S.A.,Sao Jose do Rio Preto,SP,confirmada,-20.8197,-49.3794
+8,IBF - Industria Brasileira de Farmoquimicos S.A.,Vitoria de Santo Antao,PE,provavel,-8.1169,-35.2942
+9,CMR Campinas Pharma Ltda,Campinas,SP,confirmada,-22.9056,-47.0608
+10,CMR Salvador Pharma Ltda,Lauro de Freitas,BA,confirmada,-12.8972,-38.3306
+11,R2 Solucoes em Radiofarmacia Ltda,Porto Alegre,RS,confirmada,-30.0600,-51.1758
+12,R2 Solucoes em Radiofarmacia Ltda,Duque de Caxias,RJ,confirmada,-22.7856,-43.3117
+14,MJM Produtos Farmaceuticos e de Radioprotecao S.A. (RPHPHARMA),Itupeva,SP,confirmada,-23.1542,-47.0583

@@ -14,6 +14,12 @@ describe('getEquipamento', () => {
   it('TOMOGRAFO e RESSONANCIA tem produtividade DIFERENTE -- bug real corrigido 2026-08-21 (front usava 100_000 fixo pras duas)', () => {
     expect(getEquipamento('TOMOGRAFO').produtividade).not.toBe(getEquipamento('RESSONANCIA').produtividade);
   });
+
+  it('PET_CT esta disponivel com a produtividade da Portaria de Consolidacao n. 1/2017 (art. 102-106)', () => {
+    const petCt = getEquipamento('PET_CT');
+    expect(petCt.disponivel).toBe(true);
+    expect(petCt.produtividade).toBe(1_500_000);
+  });
 });
 
 describe('formatarQuantidadeEquipamento', () => {
