@@ -20,14 +20,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    marco_grupo = sa.Enum('fase_geral', 'cronograma_fisico', 'regulatorio', name='marco_grupo')
-    marco_grupo.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         'marco_catalogo',
         sa.Column('id', sa.BigInteger(), sa.Identity(always=True), nullable=False),
         sa.Column('codigo', sa.String(), nullable=False),
-        sa.Column('grupo', marco_grupo, nullable=False),
+        sa.Column('grupo', sa.Enum('fase_geral', 'cronograma_fisico', 'regulatorio', name='marco_grupo'), nullable=False),
         sa.Column('ordem', sa.Integer(), nullable=True),
         sa.Column('execucao_fisica_pct_referencia', sa.Numeric(), nullable=True),
         sa.Column('rotulo', sa.String(), nullable=False),
