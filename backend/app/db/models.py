@@ -87,6 +87,21 @@ class AlertType(str, enum.Enum):
     macro_code_divergence = "macro_code_divergence"
 
 
+class MarcoGrupo(str, enum.Enum):
+    """3 blocos que a propria equipe de monitoramento ja usa (planilha
+    "Monitoramento Base de Dados - Convenio FAF TED", aba Instrucional,
+    2026-09-03): a fase macro do instrumento (o que "Situacao"/"Fase"/
+    "Execucao Fisica %" da planilha cobrem), o cronograma fisico do
+    equipamento em si (fabricacao/porto/entrega/instalacao/obra -- nao
+    existe em NENHUM sistema federal, so acompanhamento manual) e os
+    processos regulatorios (CNEN -- matricula, licenca de operacao,
+    descomissionamento/casamata -- so relevante pra equipamento que emite
+    radiacao: Acelerador Linear, Braquiterapia, PET-CT, Gama Camara)."""
+    fase_geral = "fase_geral"
+    cronograma_fisico = "cronograma_fisico"
+    regulatorio = "regulatorio"
+
+
 # ----------------------------------------------------------------------------
 # 2. Identidade e acesso
 # ----------------------------------------------------------------------------
@@ -424,4 +439,108 @@ class ExecutionAlert(Base):
         PgEnum(AlertType, name="alert_type", native_enum=True), nullable=False,
     )
     details: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# ----------------------------------------------------------------------------
+# 8. Monitoramento de equipamento (pos-repasse) -- esforco separado da
+# analise de merito de hipo/hipersuficiencia (decisao 2026-09-03). Cobre o
+# que nenhum sistema federal (TransfereGov, Portal da Transparencia, SICONV)
+# rastreia: o caminho fisico do equipamento apos o dinheiro sair -- entrega,
+# instalacao, licenciamento, inauguracao. Ver docs/monitoramento-equipamentos/.
+# ----------------------------------------------------------------------------
+
+class MarcoCatalogo(Base):
+    """Catalogo FIXO de marcos -- nao e texto livre pro dashboard conseguir
+    agregar. Populado por scripts/seed_monitoramento.py a partir do
+    vocabulario ja pactuado pela equipe (planilha FAF TED, aba Instrucional)."""
+    __tablename__ = "marco_catalogo"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    grupo: Mapped[MarcoGrupo] = mapped_column(PgEnum(MarcoGrupo, name="marco_grupo", native_enum=True), nullable=False)
+    # So preenchido em grupo=fase_geral -- define a ordem de progressao (pra
+    # derivar "fase atual" = marco de maior ordem com evento registrado) e o
+    # % de execucao fisica de referencia (0 a 1) que a planilha ja usa.
+    ordem: Mapped[int | None] = mapped_column(Integer)
+    execucao_fisica_pct_referencia: Mapped[float | None] = mapped_column(Numeric)
+    rotulo: Mapped[str] = mapped_column(String, nullable=False)
+    descricao_referencia: Mapped[str | None] = mapped_column(String)
+
+
+class InstrumentoEquipamento(Base):
+    """1 linha por instrumento monitorado -- o "no" que amarra o numero do
+    convenio (SICONV/Portal da Transparencia) com o acompanhamento manual.
+    Cruzamento com as fontes automaticas (convenios.json/siconv.json/
+    transferegov.json) e por `nr_convenio`, feito na aplicacao -- essa
+    tabela nao duplica dado que ja vem das APIs (valor, situacao contratual),
+    so guarda o que e especifico do monitoramento interno."""
+    __tablename__ = "instrumento_equipamento"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    nr_convenio: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    cnpj_convenente: Mapped[str] = mapped_column(String, nullable=False)
+    nome_convenente: Mapped[str] = mapped_column(String, nullable=False)
+    municipio: Mapped[str | None] = mapped_column(String)
+    uf: Mapped[str | None] = mapped_column(String(2))
+    cnes: Mapped[str | None] = mapped_column(String)
+    # "ID MODELO NO SIGEM/TRANSFEREGOV" da planilha -- descricao do
+    # equipamento (ex. "Acelerador Linear so de Fotons (monoenergetico 6 MV)").
+    equipamento_descricao: Mapped[str | None] = mapped_column(String)
+    # Programa (nm_programa da API TransfereGov /parcerias/programa, quando
+    # existir correspondencia) e Componente (coluna "COMPONENTES DE
+    # FINANCIAMENTO - INVESTUSUS" da planilha, ex. "RADIOTERAPIA", "REDE DE
+    # ATENCAO A PESSOA COM DOENCAS CRONICAS - HOSPITAL HABILITADO NA ALTA
+    # COMPLEXIDADE EM ONCOLOGIA") -- criterio pra decidir o que entra no
+    # escopo de monitoramento. Achado 2026-09-03: nem todo `id_programa` que
+    # tem "EQUIPAMENTO" no objeto e Fundo a Fundo/TED (a familia que este
+    # monitoramento cobre) -- 46 de 76 propostas testadas eram Pronon/Pronas/
+    # Lei de Incentivo (doacao com incentivo fiscal, fluxo sem empenho/
+    # desembolso do Tesouro, fora de escopo aqui). `tp_instrumento_programa`
+    # guarda o texto da API (ex. "Transferencias Fundo a Fundo da Saude")
+    # pra filtrar isso de forma explicita, nao reconstruir a decisao de
+    # memoria depois.
+    programa: Mapped[str | None] = mapped_column(String)
+    tp_instrumento_programa: Mapped[str | None] = mapped_column(String)
+    componente: Mapped[str | None] = mapped_column(String)
+    ano_instrumento: Mapped[int | None] = mapped_column(Integer)
+    valor_global: Mapped[float | None] = mapped_column(Numeric)
+    valor_repasse: Mapped[float | None] = mapped_column(Numeric)
+    valor_contrapartida: Mapped[float | None] = mapped_column(Numeric)
+    tecnico_titular: Mapped[str | None] = mapped_column(String)
+    tecnico_suplente: Mapped[str | None] = mapped_column(String)
+    nivel_monitoramento: Mapped[str | None] = mapped_column(String)
+    finalidade: Mapped[str | None] = mapped_column(String)
+    modalidade_onco: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EventoMarco(Base):
+    """Log append-only -- MESMA filosofia do ConfigDecision (nunca UPDATE):
+    corrigir um marco e lancar um evento novo, nunca editar um existente.
+    "Estado atual" de um instrumento e sempre DERIVADO na aplicacao (o
+    evento mais recente de cada marco; a fase geral atual = marco de
+    grupo=fase_geral com maior `ordem` que tenha evento com
+    data_ocorrencia preenchida) -- nao existe coluna de status mutavel
+    em `instrumento_equipamento` de proposito, pra nao correr o risco de
+    status e historico saírem de sincronia (mesma razao documentada no
+    ConfigDecision)."""
+    __tablename__ = "evento_marco"
+    __table_args__ = (
+        Index("ix_evento_marco_instrumento_marco", "instrumento_id", "marco_id", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(ForeignKey("instrumento_equipamento.id", ondelete="CASCADE"), nullable=False)
+    marco_id: Mapped[int] = mapped_column(ForeignKey("marco_catalogo.id"), nullable=False)
+    data_ocorrencia: Mapped[date | None] = mapped_column(Date)
+    data_prevista: Mapped[date | None] = mapped_column(Date)
+    # So usado em marco de grupo=regulatorio -- vocabulario da propria CNEN/
+    # planilha (NI, NA, Em analise, Em diligencia, Deferido, Indeferido), sem
+    # enum de proposito: e terminologia externa, pode ganhar variante nova
+    # sem exigir migration (mesmo raciocinio do `legal_nature` em
+    # EquipmentOfferRow).
+    status_regulatorio: Mapped[str | None] = mapped_column(String)
+    observacao: Mapped[str | None] = mapped_column(String)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

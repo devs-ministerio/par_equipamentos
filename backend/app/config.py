@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     # 2026-08-13) -- fica opcional pra aplicacao subir sem essa variavel.
     jwt_secret: str = ""
 
+    # Chave gratuita de autoatendimento (login gov.br, sem aprovacao manual)
+    # gerada em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email
+    # -- necessaria pro header `chave-api-dados` da API do Portal da
+    # Transparencia (consulta de convenio por numero). Opcional pra
+    # aplicacao subir; sem ela o client de convenios.py falha explicito
+    # (ver ConvenioClient.__init__).
+    portal_transparencia_api_key: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property

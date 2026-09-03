@@ -1,0 +1,6108 @@
+[
+  {
+    "id": 351141456,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2020-12-23",
+    "dataFinalVigencia": "2025-10-21",
+    "dataPublicacao": "2021-01-08",
+    "dataUltimaLiberacao": "2023-10-27",
+    "dataConclusao": "2025-10-21",
+    "dimConvenio": {
+      "codigo": "904824",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "numero": "18852/2020"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS ENVIADA PARA ANÁLISE",
+    "convenente": {
+      "id": 2120205,
+      "cpfFormatado": "",
+      "cnpjFormatado": "51.473.692/0001-26",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE LIMEIRA",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE LIMEIRA",
+      "nomeFantasiaReceita": "SANTA CASA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3526902",
+      "nomeIBGE": "LIMEIRA",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 340.0,
+    "valorLiberado": 3219262.63,
+    "valorContrapartida": 5182888.0,
+    "valorDaUltimaLiberacao": 3219262.63,
+    "numeroProcesso": "25000154737202024"
+  },
+  {
+    "id": 368646061,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2021-12-31",
+    "dataFinalVigencia": "2026-12-25",
+    "dataPublicacao": "2022-01-13",
+    "dataUltimaLiberacao": "2022-06-28",
+    "dataConclusao": "2026-12-25",
+    "dimConvenio": {
+      "codigo": "925320",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "56086/2021"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 3319996,
+      "cpfFormatado": "",
+      "cnpjFormatado": "46.230.439/0001-01",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO PARA O DESENVOLVIMENTO MEDICO E HOSPITALAR",
+      "razaoSocialReceita": "FUNDACAO PARA O DESENVOLVIMENTO MEDICO E HOSPITALAR",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3507506",
+      "nomeIBGE": "BOTUCATU",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 11932160.0,
+    "valorLiberado": 11932160.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 11932160.0,
+    "numeroProcesso": "25000188707202101"
+  },
+  {
+    "id": 357921504,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-13",
+    "dataFinalVigencia": "2027-12-15",
+    "dataPublicacao": "2023-11-17",
+    "dataUltimaLiberacao": null,
+    "dataConclusao": "2027-12-15",
+    "dimConvenio": {
+      "codigo": "942625",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "35232/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 7720031,
+      "cpfFormatado": "",
+      "cnpjFormatado": "25.104.902/0001-07",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO HOSPITALAR SANTA ROSALIA",
+      "razaoSocialReceita": "ASSOCIACAO HOSPITALAR SANTA ROSALIA",
+      "nomeFantasiaReceita": "HOSPITAL SANTA ROSALIA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3168606",
+      "nomeIBGE": "TEÓFILO OTONI",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MINAS GERAIS",
+        "nome": "MG"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 2216534.0,
+    "valorLiberado": 0.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 0.0,
+    "numeroProcesso": "25000086060202337   "
+  },
+  {
+    "id": 363924968,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-13",
+    "dataFinalVigencia": "2025-10-16",
+    "dataPublicacao": "2023-11-20",
+    "dataUltimaLiberacao": "2024-04-24",
+    "dataConclusao": "2025-10-16",
+    "dimConvenio": {
+      "codigo": "942842",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "35171/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS EM ANÁLISE",
+    "convenente": {
+      "id": 1819997,
+      "cpfFormatado": "",
+      "cnpjFormatado": "10.988.301/0001-29",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DE MEDICINA INTEGRAL PROFESSOR FERNANDO FIGUEIRA - IMIP",
+      "razaoSocialReceita": "INSTITUTO DE MEDICINA INTEGRAL PROFESSOR FERNANDO FIGUEIRA - IMIP",
+      "nomeFantasiaReceita": "IMIP",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2611606",
+      "nomeIBGE": "RECIFE",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PERNAMBUCO",
+        "nome": "PE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 6400000.0,
+    "valorLiberado": 6180000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 6180000.0,
+    "numeroProcesso": "25000085444202332   "
+  },
+  {
+    "id": 357570122,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-10",
+    "dataFinalVigencia": "2026-09-15",
+    "dataPublicacao": "2023-11-16",
+    "dataUltimaLiberacao": "2025-12-15",
+    "dataConclusao": "2026-09-15",
+    "dimConvenio": {
+      "codigo": "943884",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "35255/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 49900720,
+      "cpfFormatado": "",
+      "cnpjFormatado": "28.481.233/0001-72",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "razaoSocialReceita": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "nomeFantasiaReceita": "IGESDF",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5300108",
+      "nomeIBGE": "BRASÍLIA",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "DISTRITO FEDERAL",
+        "nome": "DF"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 230.0,
+    "valorLiberado": 227.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 70671.0,
+    "numeroProcesso": "25000085704202370   "
+  },
+  {
+    "id": 350263762,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-23",
+    "dataFinalVigencia": "2025-12-26",
+    "dataPublicacao": "2023-11-28",
+    "dataUltimaLiberacao": "2024-07-04",
+    "dataConclusao": "2025-12-26",
+    "dimConvenio": {
+      "codigo": "943920",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "35165/2023"
+    },
+    "situacao": "NORMAL",
+    "convenente": {
+      "id": 3420261,
+      "cpfFormatado": "",
+      "cnpjFormatado": "06.870.026/0001-77",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO PIAUIENSE DE COMBATE AO CANCER",
+      "razaoSocialReceita": "ASSOCIACAO PIAUIENSE DE COMBATE AO CANCER ALCENOR ALMEIDA",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2211001",
+      "nomeIBGE": "TERESINA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PIAUÍ",
+        "nome": "PI"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1200000.0,
+    "valorLiberado": 1196666.19,
+    "valorContrapartida": 3313.0,
+    "valorDaUltimaLiberacao": 1196666.19,
+    "numeroProcesso": "25000085394202393   "
+  },
+  {
+    "id": 355882574,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-10",
+    "dataFinalVigencia": "2026-11-10",
+    "dataPublicacao": "2023-11-20",
+    "dataUltimaLiberacao": "2025-10-17",
+    "dataConclusao": "2026-11-10",
+    "dimConvenio": {
+      "codigo": "943969",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "35254/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 49900720,
+      "cpfFormatado": "",
+      "cnpjFormatado": "28.481.233/0001-72",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "razaoSocialReceita": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "nomeFantasiaReceita": "IGESDF",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5300108",
+      "nomeIBGE": "BRASÍLIA",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "DISTRITO FEDERAL",
+        "nome": "DF"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 3098200.0,
+    "valorLiberado": 2097768.68,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 139940.0,
+    "numeroProcesso": "25000085703202325   "
+  },
+  {
+    "id": 369697836,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-10",
+    "dataFinalVigencia": "2026-08-11",
+    "dataPublicacao": "2023-11-20",
+    "dataUltimaLiberacao": "2025-05-12",
+    "dataConclusao": "2026-08-11",
+    "dimConvenio": {
+      "codigo": "946461",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "51390/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS EM ANÁLISE",
+    "convenente": {
+      "id": 28337111,
+      "cpfFormatado": "",
+      "cnpjFormatado": "07.265.515/0001-62",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DO CANCER DO CEARA",
+      "razaoSocialReceita": "INSTITUTO DO CANCER DO CEARA",
+      "nomeFantasiaReceita": "ICC - HOSPITAL HAROLDO JUACABA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2304400",
+      "nomeIBGE": "FORTALEZA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "CEARÁ",
+        "nome": "CE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 6492897.0,
+    "valorLiberado": 5845186.74,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 5845186.74,
+    "numeroProcesso": "25000124716202327   "
+  },
+  {
+    "id": 356228939,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-14",
+    "dataFinalVigencia": "2027-12-15",
+    "dataPublicacao": "2023-11-27",
+    "dataUltimaLiberacao": "2026-06-26",
+    "dataConclusao": "2027-12-15",
+    "dimConvenio": {
+      "codigo": "947256",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "54363/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 7019846,
+      "cpfFormatado": "",
+      "cnpjFormatado": "49.150.352/0001-12",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO PIO XII",
+      "razaoSocialReceita": "FUNDACAO PIO XII",
+      "nomeFantasiaReceita": "FUNDACAO PIO XII",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3505500",
+      "nomeIBGE": "BARRETOS",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 999538.0,
+    "valorLiberado": 782985.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 782985.0,
+    "numeroProcesso": "25000130349202309   "
+  },
+  {
+    "id": 350697299,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-06",
+    "dataFinalVigencia": "2027-05-06",
+    "dataPublicacao": "2023-12-12",
+    "dataUltimaLiberacao": "2025-07-25",
+    "dataConclusao": "2027-05-06",
+    "dimConvenio": {
+      "codigo": "947524",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58606/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 7320310,
+      "cpfFormatado": "",
+      "cnpjFormatado": "03.284.505/0001-13",
+      "numeroInscricaoSocial": "",
+      "nome": "HOSPITAL MATERNIDADE SAO VICENTE DE PAULO",
+      "razaoSocialReceita": "HOSPITAL MATERNIDADE SAO VICENTE DE PAULO",
+      "nomeFantasiaReceita": "HOSPITAL MATERNIDADE SAO VICENTE DE PAULO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2301901",
+      "nomeIBGE": "BARBALHA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "CEARÁ",
+        "nome": "CE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8823709.0,
+    "valorLiberado": 8823709.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 459754.0,
+    "numeroProcesso": "25000151178202343   "
+  },
+  {
+    "id": 350810387,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-06",
+    "dataFinalVigencia": "2027-12-15",
+    "dataPublicacao": "2023-12-12",
+    "dataUltimaLiberacao": "2024-12-23",
+    "dataConclusao": "2027-12-15",
+    "dimConvenio": {
+      "codigo": "947527",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58607/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 3420261,
+      "cpfFormatado": "",
+      "cnpjFormatado": "06.870.026/0001-77",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO PIAUIENSE DE COMBATE AO CANCER",
+      "razaoSocialReceita": "ASSOCIACAO PIAUIENSE DE COMBATE AO CANCER ALCENOR ALMEIDA",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2211001",
+      "nomeIBGE": "TERESINA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PIAUÍ",
+        "nome": "PI"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 15519124.0,
+    "valorLiberado": 15483600.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 15483600.0,
+    "numeroProcesso": "25000151181202367   "
+  },
+  {
+    "id": 353020248,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-06",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2023-12-13",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "948684",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58610/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 4820060,
+      "cpfFormatado": "",
+      "cnpjFormatado": "15.180.961/0001-00",
+      "numeroInscricaoSocial": "",
+      "nome": "LIGA BAHIANA CONTRA O CANCER",
+      "razaoSocialReceita": "LIGA BAHIANA CONTRA O CANCER",
+      "nomeFantasiaReceita": "HOSPITAL ARISTIDES MALTEZ",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2927408",
+      "nomeIBGE": "SALVADOR",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "BAHIA",
+        "nome": "BA"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8673095.0,
+    "valorLiberado": 7280259.1,
+    "valorContrapartida": 2281956.5,
+    "valorDaUltimaLiberacao": 7280259.1,
+    "numeroProcesso": "25000151188202389   "
+  },
+  {
+    "id": 350939030,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-06",
+    "dataFinalVigencia": "2027-05-14",
+    "dataPublicacao": "2023-12-12",
+    "dataUltimaLiberacao": "2024-11-22",
+    "dataConclusao": "2027-05-14",
+    "dimConvenio": {
+      "codigo": "948685",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58608/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 28337111,
+      "cpfFormatado": "",
+      "cnpjFormatado": "07.265.515/0001-62",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DO CANCER DO CEARA",
+      "razaoSocialReceita": "INSTITUTO DO CANCER DO CEARA",
+      "nomeFantasiaReceita": "ICC - HOSPITAL HAROLDO JUACABA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2304400",
+      "nomeIBGE": "FORTALEZA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "CEARÁ",
+        "nome": "CE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8744495.0,
+    "valorLiberado": 8466000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8466000.0,
+    "numeroProcesso": "25000151183202356   "
+  },
+  {
+    "id": 357585095,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-21",
+    "dataFinalVigencia": "2027-01-16",
+    "dataPublicacao": "2023-12-28",
+    "dataUltimaLiberacao": "2025-07-25",
+    "dataConclusao": "2027-01-16",
+    "dimConvenio": {
+      "codigo": "948686",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58626/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 49900720,
+      "cpfFormatado": "",
+      "cnpjFormatado": "28.481.233/0001-72",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "razaoSocialReceita": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "nomeFantasiaReceita": "IGESDF",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5300108",
+      "nomeIBGE": "BRASÍLIA",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "DISTRITO FEDERAL",
+        "nome": "DF"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 9500000.0,
+    "valorLiberado": 9003200.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 9003200.0,
+    "numeroProcesso": "25000151198202314   "
+  },
+  {
+    "id": 366911602,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-19",
+    "dataFinalVigencia": "2027-02-22",
+    "dataPublicacao": "2023-12-21",
+    "dataUltimaLiberacao": "2024-12-04",
+    "dataConclusao": "2027-02-22",
+    "dimConvenio": {
+      "codigo": "948687",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58613/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 8920080,
+      "cpfFormatado": "",
+      "cnpjFormatado": "27.193.705/0001-29",
+      "numeroInscricaoSocial": "",
+      "nome": "HOSPITAL EVANGELICO DE CACHOEIRO DE ITAPEMIRIM",
+      "razaoSocialReceita": "HOSPITAL EVANGELICO DE CACHOEIRO DE ITAPEMIRIM",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3201209",
+      "nomeIBGE": "CACHOEIRO DE ITAPEMIRIM",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "ESPIRITO SANTO",
+        "nome": "ES"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8855324.0,
+    "valorLiberado": 8701443.02,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8701443.02,
+    "numeroProcesso": "25000151195202381   "
+  },
+  {
+    "id": 367801146,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-04",
+    "dataFinalVigencia": "2027-05-21",
+    "dataPublicacao": "2023-12-06",
+    "dataUltimaLiberacao": "2025-11-27",
+    "dataConclusao": "2027-05-21",
+    "dimConvenio": {
+      "codigo": "948691",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58621/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 3520233,
+      "cpfFormatado": "",
+      "cnpjFormatado": "78.633.088/0001-76",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DE CANCER DE LONDRINA",
+      "razaoSocialReceita": "INSTITUTO DE CANCER DE LONDRINA",
+      "nomeFantasiaReceita": "HOSPITAL DO CANCER DE LONDRINA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4113700",
+      "nomeIBGE": "LONDRINA",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARANÁ",
+        "nome": "PR"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 9817902.0,
+    "valorLiberado": 9817902.0,
+    "valorContrapartida": 561014.0,
+    "valorDaUltimaLiberacao": 9817902.0,
+    "numeroProcesso": "25000151212202380   "
+  },
+  {
+    "id": 358925897,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-21",
+    "dataFinalVigencia": "2026-12-05",
+    "dataPublicacao": "2023-12-26",
+    "dataUltimaLiberacao": "2024-07-02",
+    "dataConclusao": "2026-12-05",
+    "dimConvenio": {
+      "codigo": "948692",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58620/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 2620191,
+      "cpfFormatado": "",
+      "cnpjFormatado": "76.591.049/0001-28",
+      "numeroInscricaoSocial": "",
+      "nome": "LIGA PARANAENSE DE COMBATE AO CANCER",
+      "razaoSocialReceita": "LIGA PARANAENSE DE COMBATE AO CANCER",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4106902",
+      "nomeIBGE": "CURITIBA",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARANÁ",
+        "nome": "PR"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 14632696.0,
+    "valorLiberado": 14632696.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 14632696.0,
+    "numeroProcesso": "25000151210202391   "
+  },
+  {
+    "id": 360860547,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-11",
+    "dataFinalVigencia": "2026-06-09",
+    "dataPublicacao": "2023-12-15",
+    "dataUltimaLiberacao": "2024-12-16",
+    "dataConclusao": "2026-06-09",
+    "dimConvenio": {
+      "codigo": "948694",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58623/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS ENVIADA PARA ANÁLISE",
+    "convenente": {
+      "id": 6120313,
+      "cpfFormatado": "",
+      "cnpjFormatado": "90.730.508/0001-38",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO HOSPITAL DE CARIDADE IJUI",
+      "razaoSocialReceita": "ASSOCIACAO HOSPITAL DE CARIDADE IJUI",
+      "nomeFantasiaReceita": "HOSPITAL DE CLINICAS IJUI - HCI",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4310207",
+      "nomeIBGE": "IJUÍ",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 10000000.0,
+    "valorLiberado": 10000000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 10000000.0,
+    "numeroProcesso": "25000151214202379   "
+  },
+  {
+    "id": 364151275,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-12",
+    "dataFinalVigencia": "2026-12-31",
+    "dataPublicacao": "2023-12-14",
+    "dataUltimaLiberacao": "2024-06-21",
+    "dataConclusao": "2026-12-31",
+    "dimConvenio": {
+      "codigo": "948695",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58625/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 4219970,
+      "cpfFormatado": "",
+      "cnpjFormatado": "92.021.062/0001-06",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO HOSPITALAR BENEFICENTE SAO VICENTE DE PAULO",
+      "razaoSocialReceita": "ASSOCIACAO HOSPITALAR BENEFICENTE SAO VICENTE DE PAULO",
+      "nomeFantasiaReceita": "HOSPITAL SAO VICENTE DE PAULO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4314100",
+      "nomeIBGE": "PASSO FUNDO",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8826551.0,
+    "valorLiberado": 8787935.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8787935.0,
+    "numeroProcesso": "25000151215202313   "
+  },
+  {
+    "id": 363807018,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-12",
+    "dataFinalVigencia": "2025-12-27",
+    "dataPublicacao": "2023-12-15",
+    "dataUltimaLiberacao": "2024-07-05",
+    "dataConclusao": "2025-12-27",
+    "dimConvenio": {
+      "codigo": "948696",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58622/2023"
+    },
+    "situacao": "NORMAL",
+    "convenente": {
+      "id": 2020267,
+      "cpfFormatado": "",
+      "cnpjFormatado": "82.654.088/0001-20",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO HOSPITALAR DE BLUMENAU",
+      "razaoSocialReceita": "FUNDACAO HOSPITALAR DE BLUMENAU",
+      "nomeFantasiaReceita": "HOSPITAL STO ANTONIO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4202404",
+      "nomeIBGE": "BLUMENAU",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SANTA CATARINA",
+        "nome": "SC"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8673095.0,
+    "valorLiberado": 8389500.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8389500.0,
+    "numeroProcesso": "25000151213202324   "
+  },
+  {
+    "id": 357908703,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-06",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2023-12-11",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "948698",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58617/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 5720299,
+      "cpfFormatado": "",
+      "cnpjFormatado": "56.577.059/0001-00",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO FACULDADE DE MEDICINA",
+      "razaoSocialReceita": "FUNDACAO FACULDADE DE MEDICINA",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3550308",
+      "nomeIBGE": "SÃO PAULO",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8535269.0,
+    "valorLiberado": 8195000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8195000.0,
+    "numeroProcesso": "25000151202202344   "
+  },
+  {
+    "id": 361211558,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-11-29",
+    "dataFinalVigencia": "2026-12-31",
+    "dataPublicacao": "2023-12-04",
+    "dataUltimaLiberacao": "2025-05-30",
+    "dataConclusao": "2026-12-31",
+    "dimConvenio": {
+      "codigo": "949404",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "59318/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 8019140,
+      "cpfFormatado": "",
+      "cnpjFormatado": "92.815.000/0001-68",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE PORTO ALEGRE",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE PORTO ALEGRE",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4314902",
+      "nomeIBGE": "PORTO ALEGRE",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 200000.0,
+    "valorLiberado": 165000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 165000.0,
+    "numeroProcesso": "25000155329202332   "
+  },
+  {
+    "id": 352579483,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-19",
+    "dataFinalVigencia": "2026-11-01",
+    "dataPublicacao": "2023-12-22",
+    "dataUltimaLiberacao": "2024-11-11",
+    "dataConclusao": "2026-11-01",
+    "dimConvenio": {
+      "codigo": "949415",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "63018/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 6920327,
+      "cpfFormatado": "",
+      "cnpjFormatado": "60.742.616/0001-60",
+      "numeroInscricaoSocial": "",
+      "nome": "CASA DE SAUDE SANTA MARCELINA",
+      "razaoSocialReceita": "CASA DE SAUDE SANTA MARCELINA",
+      "nomeFantasiaReceita": "HOSPITAL SANTA MARCELINA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3550308",
+      "nomeIBGE": "SÃO PAULO",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 10788018.0,
+    "valorLiberado": 10601500.0,
+    "valorContrapartida": 83482.0,
+    "valorDaUltimaLiberacao": 10601500.0,
+    "numeroProcesso": "25000166959202332   "
+  },
+  {
+    "id": 367224050,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-07",
+    "dataFinalVigencia": "2026-12-03",
+    "dataPublicacao": "2023-12-12",
+    "dataUltimaLiberacao": "2026-01-29",
+    "dataConclusao": "2026-12-03",
+    "dimConvenio": {
+      "codigo": "949775",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "64203/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 119924,
+      "cpfFormatado": "",
+      "cnpjFormatado": "17.513.235/0001-80",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO MARIO PENNA",
+      "razaoSocialReceita": "ASSOCIACAO MARIO PENNA",
+      "nomeFantasiaReceita": "INSTITUTO MARIO PENNA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3106200",
+      "nomeIBGE": "BELO HORIZONTE",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MINAS GERAIS",
+        "nome": "MG"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8821503.0,
+    "valorLiberado": 8821503.0,
+    "valorContrapartida": 482152.0,
+    "valorDaUltimaLiberacao": 3465.58,
+    "numeroProcesso": "25000173301202387   "
+  },
+  {
+    "id": 357758154,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-21",
+    "dataFinalVigencia": "2026-12-05",
+    "dataPublicacao": "2023-12-27",
+    "dataUltimaLiberacao": "2024-07-03",
+    "dataConclusao": "2026-12-05",
+    "dimConvenio": {
+      "codigo": "950114",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "66451/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 1320160,
+      "cpfFormatado": "",
+      "cnpjFormatado": "25.438.409/0001-15",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO DE COMBATE AO CANCER DO BRASIL CENTRAL",
+      "razaoSocialReceita": "ASSOCIACAO DE COMBATE AO CANCER DO BRASIL CENTRAL",
+      "nomeFantasiaReceita": "HOSPITAL DR HELIO ANGOTTI",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3170107",
+      "nomeIBGE": "UBERABA",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MINAS GERAIS",
+        "nome": "MG"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8980892.0,
+    "valorLiberado": 8154157.15,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8154157.15,
+    "numeroProcesso": "25000178603202341   "
+  },
+  {
+    "id": 367640058,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-06",
+    "dataFinalVigencia": "2026-09-05",
+    "dataPublicacao": "2023-12-13",
+    "dataUltimaLiberacao": "2025-01-02",
+    "dataConclusao": "2026-09-05",
+    "dimConvenio": {
+      "codigo": "950511",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "66479/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 3320100,
+      "cpfFormatado": "",
+      "cnpjFormatado": "71.485.056/0001-21",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SOROCABA",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SOROCABA",
+      "nomeFantasiaReceita": "IRMANDADE",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3552205",
+      "nomeIBGE": "SOROCABA",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 9824374.0,
+    "valorLiberado": 9394485.96,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 9394485.96,
+    "numeroProcesso": "25000178638202381   "
+  },
+  {
+    "id": 361231012,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2027-01-23",
+    "dataPublicacao": "2024-01-05",
+    "dataUltimaLiberacao": "2025-08-01",
+    "dataConclusao": "2027-01-23",
+    "dimConvenio": {
+      "codigo": "953401",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58614/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 4219972,
+      "cpfFormatado": "",
+      "cnpjFormatado": "50.753.755/0001-35",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO DOUTOR AMARAL CARVALHO",
+      "razaoSocialReceita": "FUNDACAO DOUTOR AMARAL CARVALHO",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3525300",
+      "nomeIBGE": "JAÚ",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8489623.0,
+    "valorLiberado": 8423400.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8423400.0,
+    "numeroProcesso": "25000151199202369   "
+  },
+  {
+    "id": 361069888,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-27",
+    "dataFinalVigencia": "2026-09-22",
+    "dataPublicacao": "2024-01-05",
+    "dataUltimaLiberacao": "2025-07-25",
+    "dataConclusao": "2026-09-22",
+    "dimConvenio": {
+      "codigo": "953716",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69551/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 2819846,
+      "cpfFormatado": "",
+      "cnpjFormatado": "08.428.765/0001-39",
+      "numeroInscricaoSocial": "",
+      "nome": "LIGA NORTE RIOGRANDENSE CONTRA O CANCER",
+      "razaoSocialReceita": "LIGA NORTE RIOGRANDENSE CONTRA O CANCER",
+      "nomeFantasiaReceita": "LIGA NORTE RIOGRANDENSE CONTRA O CANCER",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2408102",
+      "nomeIBGE": "NATAL",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO NORTE",
+        "nome": "RN"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 10500000.0,
+    "valorLiberado": 10470460.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 10470460.0,
+    "numeroProcesso": "25000186264202377   "
+  },
+  {
+    "id": 368526645,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2026-12-31",
+    "dataPublicacao": "2024-01-08",
+    "dataUltimaLiberacao": "2024-08-28",
+    "dataConclusao": "2026-12-31",
+    "dimConvenio": {
+      "codigo": "953718",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69546/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS ENVIADA PARA ANÁLISE",
+    "convenente": {
+      "id": 9020222,
+      "cpfFormatado": "",
+      "cnpjFormatado": "91.162.511/0001-65",
+      "numeroInscricaoSocial": "",
+      "nome": "SOCIEDADE BENEFICENCIA E CARIDADE DE LAJEADO",
+      "razaoSocialReceita": "SOCIEDADE BENEFICENCIA E CARIDADE DE LAJEADO",
+      "nomeFantasiaReceita": "HOSPITAL BRUNO BORN",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4311403",
+      "nomeIBGE": "LAJEADO",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8822643.0,
+    "valorLiberado": 8769707.14,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8769707.14,
+    "numeroProcesso": "25000186252202342   "
+  },
+  {
+    "id": 364143207,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2024-01-09",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "953726",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58612/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 7520065,
+      "cpfFormatado": "",
+      "cnpjFormatado": "23.278.898/0001-60",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE PASSOS",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE PASSOS",
+      "nomeFantasiaReceita": "SANTA CASA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3147907",
+      "nomeIBGE": "PASSOS",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MINAS GERAIS",
+        "nome": "MG"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8488912.0,
+    "valorLiberado": 8480000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8480000.0,
+    "numeroProcesso": "25000151194202336   "
+  },
+  {
+    "id": 357932448,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2026-11-01",
+    "dataPublicacao": "2024-01-05",
+    "dataUltimaLiberacao": "2024-11-11",
+    "dataConclusao": "2026-11-01",
+    "dimConvenio": {
+      "codigo": "953739",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58619/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 6920327,
+      "cpfFormatado": "",
+      "cnpjFormatado": "60.742.616/0001-60",
+      "numeroInscricaoSocial": "",
+      "nome": "CASA DE SAUDE SANTA MARCELINA",
+      "razaoSocialReceita": "CASA DE SAUDE SANTA MARCELINA",
+      "nomeFantasiaReceita": "HOSPITAL SANTA MARCELINA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3550308",
+      "nomeIBGE": "SÃO PAULO",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 7350802.0,
+    "valorLiberado": 7337000.0,
+    "valorContrapartida": 499698.0,
+    "valorDaUltimaLiberacao": 7337000.0,
+    "numeroProcesso": "25000151207202377   "
+  },
+  {
+    "id": 360578114,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2024-01-09",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "953741",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69545/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 3820191,
+      "cpfFormatado": "",
+      "cnpjFormatado": "50.046.887/0001-27",
+      "numeroInscricaoSocial": "",
+      "nome": "CENTRO INF DE INVEST HEMAT DR DOMINGOS A BOLDRINI",
+      "razaoSocialReceita": "CENTRO INF DE INVEST HEMAT DR DOMINGOS A BOLDRINI",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3509502",
+      "nomeIBGE": "CAMPINAS",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8787122.0,
+    "valorLiberado": 7843899.08,
+    "valorContrapartida": 85252.0,
+    "valorDaUltimaLiberacao": 7843899.08,
+    "numeroProcesso": "25000186251202306   "
+  },
+  {
+    "id": 354412943,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2026-05-07",
+    "dataPublicacao": "2024-01-08",
+    "dataUltimaLiberacao": "2024-11-13",
+    "dataConclusao": "2026-05-07",
+    "dimConvenio": {
+      "codigo": "953743",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58618/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS ENVIADA PARA ANÁLISE",
+    "convenente": {
+      "id": 9419974,
+      "cpfFormatado": "",
+      "cnpjFormatado": "57.722.118/0001-40",
+      "numeroInscricaoSocial": "",
+      "nome": "FUND DE APOIO AO ENSINO PESQ E ASSISTENCIA HCFMRPUSP",
+      "razaoSocialReceita": "FUND DE APOIO AO ENSINO PESQ E ASSISTENCIA HCFMRPUSP",
+      "nomeFantasiaReceita": "FAEPA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3543402",
+      "nomeIBGE": "RIBEIRÃO PRETO",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 6963626.0,
+    "valorLiberado": 6367416.77,
+    "valorContrapartida": 2712876.0,
+    "valorDaUltimaLiberacao": 6367416.77,
+    "numeroProcesso": "25000151205202388   "
+  },
+  {
+    "id": 365739824,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-29",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2024-01-08",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "953746",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69718/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 605061780,
+      "cpfFormatado": "",
+      "cnpjFormatado": "49.150.352/0008-99",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO PIO XII",
+      "razaoSocialReceita": "FUNDACAO PIO XII",
+      "nomeFantasiaReceita": "FUNDACAO PIO XII",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3524808",
+      "nomeIBGE": "JALES",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 7266418.0,
+    "valorLiberado": 7266418.0,
+    "valorContrapartida": 382064.0,
+    "valorDaUltimaLiberacao": 7266418.0,
+    "numeroProcesso": "25000186565202309   "
+  },
+  {
+    "id": 360704256,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2026-05-05",
+    "dataPublicacao": "2024-01-08",
+    "dataUltimaLiberacao": "2024-11-11",
+    "dataConclusao": "2026-05-05",
+    "dimConvenio": {
+      "codigo": "953749",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58615/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS ENVIADA PARA ANÁLISE",
+    "convenente": {
+      "id": 519928,
+      "cpfFormatado": "",
+      "cnpjFormatado": "50.944.198/0001-30",
+      "numeroInscricaoSocial": "",
+      "nome": "HOSPITAL DE CARIDADE SAO VICENTE DE PAULO",
+      "razaoSocialReceita": "HOSPITAL DE CARIDADE SAO VICENTE DE PAULO",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3525904",
+      "nomeIBGE": "JUNDIAÍ",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8480920.0,
+    "valorLiberado": 8478000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8478000.0,
+    "numeroProcesso": "25000151200202355   "
+  },
+  {
+    "id": 366370031,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-10-09",
+    "dataFinalVigencia": "2027-07-27",
+    "dataPublicacao": "2024-10-11",
+    "dataUltimaLiberacao": "2025-07-25",
+    "dataConclusao": "2027-07-27",
+    "dimConvenio": {
+      "codigo": "953750",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69556/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 8520049,
+      "cpfFormatado": "",
+      "cnpjFormatado": "58.194.622/0001-88",
+      "numeroInscricaoSocial": "",
+      "nome": "SOCIEDADE PORTUGUESA DE BENEFICENCIA",
+      "razaoSocialReceita": "SOCIEDADE PORTUGUESA DE BENEFICENCIA",
+      "nomeFantasiaReceita": "HOSPITAL SANTO ANTONIO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3548500",
+      "nomeIBGE": "SANTOS",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 7015893.0,
+    "valorLiberado": 6987564.4,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 6987564.4,
+    "numeroProcesso": "25000186271202379   "
+  },
+  {
+    "id": 368330349,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-28",
+    "dataFinalVigencia": "2026-06-26",
+    "dataPublicacao": "2024-01-09",
+    "dataUltimaLiberacao": "2025-01-02",
+    "dataConclusao": "2026-06-26",
+    "dimConvenio": {
+      "codigo": "954006",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69558/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS ENVIADA PARA ANÁLISE",
+    "convenente": {
+      "id": 9419911,
+      "cpfFormatado": "",
+      "cnpjFormatado": "67.185.694/0001-50",
+      "numeroInscricaoSocial": "",
+      "nome": "GRUPO DE APOIO AO ADOLESCENTE E A CRIANCA COM C GRAACC",
+      "razaoSocialReceita": "GRUPO DE APOIO AO ADOLESCENTE E A CRIANCA COM C GRAACC",
+      "nomeFantasiaReceita": "HOSPITAL GRAACC-INSTITUTO DE ONCOLOGIA PEDIATRICA (IOP)",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3550308",
+      "nomeIBGE": "SÃO PAULO",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8508094.0,
+    "valorLiberado": 8221269.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8221269.0,
+    "numeroProcesso": "25000186273202368   "
+  },
+  {
+    "id": 361354533,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-02-22",
+    "dataFinalVigencia": "2026-12-01",
+    "dataPublicacao": "2024-02-27",
+    "dataUltimaLiberacao": "2025-07-25",
+    "dataConclusao": "2026-12-01",
+    "dimConvenio": {
+      "codigo": "954390",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "66725/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 1420040,
+      "cpfFormatado": "",
+      "cnpjFormatado": "14.349.740/0001-42",
+      "numeroInscricaoSocial": "",
+      "nome": "SANTA CASA DE MISERICORDIA DE ITABUNA",
+      "razaoSocialReceita": "SANTA CASA DE MISERICORDIA DE ITABUNA",
+      "nomeFantasiaReceita": "SECRETARIA GERAL",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2914802",
+      "nomeIBGE": "ITABUNA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "BAHIA",
+        "nome": "BA"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8881788.0,
+    "valorLiberado": 8397168.74,
+    "valorContrapartida": 443902.0,
+    "valorDaUltimaLiberacao": 8397168.74,
+    "numeroProcesso": "25000179372202393   "
+  },
+  {
+    "id": 353472474,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-29",
+    "dataFinalVigencia": "2027-02-01",
+    "dataPublicacao": "2024-01-08",
+    "dataUltimaLiberacao": "2024-11-13",
+    "dataConclusao": "2027-02-01",
+    "dimConvenio": {
+      "codigo": "954391",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69543/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 28337111,
+      "cpfFormatado": "",
+      "cnpjFormatado": "07.265.515/0001-62",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DO CANCER DO CEARA",
+      "razaoSocialReceita": "INSTITUTO DO CANCER DO CEARA",
+      "nomeFantasiaReceita": "ICC - HOSPITAL HAROLDO JUACABA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2304400",
+      "nomeIBGE": "FORTALEZA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "CEARÁ",
+        "nome": "CE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 7187873.0,
+    "valorLiberado": 7171200.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 7171200.0,
+    "numeroProcesso": "25000186249202329   "
+  },
+  {
+    "id": 357505544,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-29",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2024-01-08",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "954392",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "66723/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 1020130,
+      "cpfFormatado": "",
+      "cnpjFormatado": "07.818.313/0001-09",
+      "numeroInscricaoSocial": "",
+      "nome": "SANTA CASA DE MISERICORDIA DE SOBRAL",
+      "razaoSocialReceita": "SANTA CASA DE MISERICORDIA DE SOBRAL",
+      "nomeFantasiaReceita": "SANTA CASA DE MISERICORDIA DE SOBRAL",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2312908",
+      "nomeIBGE": "SOBRAL",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "CEARÁ",
+        "nome": "CE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 7328027.0,
+    "valorLiberado": 7293000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 7293000.0,
+    "numeroProcesso": "25000179368202325   "
+  },
+  {
+    "id": 350464085,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-29",
+    "dataFinalVigencia": "2027-03-24",
+    "dataPublicacao": "2024-01-08",
+    "dataUltimaLiberacao": "2025-09-30",
+    "dataConclusao": "2027-03-24",
+    "dimConvenio": {
+      "codigo": "954398",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "58611/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 5419938,
+      "cpfFormatado": "",
+      "cnpjFormatado": "20.146.064/0001-02",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO GERALDO CORREA",
+      "razaoSocialReceita": "FUNDACAO GERALDO CORREA",
+      "nomeFantasiaReceita": "HOSPITAL SAO JOAO DE DEUS",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3122306",
+      "nomeIBGE": "DIVINÓPOLIS",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MINAS GERAIS",
+        "nome": "MG"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 10000000.0,
+    "valorLiberado": 9968000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 9968000.0,
+    "numeroProcesso": "25000151190202358   "
+  },
+  {
+    "id": 357421450,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-04-15",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2024-04-17",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "954404",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69553/2023"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 3220265,
+      "cpfFormatado": "",
+      "cnpjFormatado": "08.841.421/0001-57",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO ASSISTENCIAL DA PARAIBA- FAP",
+      "razaoSocialReceita": "FUNDACAO ASSISTENCIAL DA PARAIBA- FAP",
+      "nomeFantasiaReceita": "HOSPITAL ESCOLA DA FAP",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2504009",
+      "nomeIBGE": "CAMPINA GRANDE",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARAÍBA",
+        "nome": "PB"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8800087.0,
+    "valorLiberado": 8797000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 8797000.0,
+    "numeroProcesso": "25000186265202311   "
+  },
+  {
+    "id": 350780759,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-31",
+    "dataFinalVigencia": "2026-12-26",
+    "dataPublicacao": "2024-01-10",
+    "dataUltimaLiberacao": "2025-07-04",
+    "dataConclusao": "2026-12-26",
+    "dimConvenio": {
+      "codigo": "954413",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69554/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS EM ANÁLISE",
+    "convenente": {
+      "id": 6719819,
+      "cpfFormatado": "",
+      "cnpjFormatado": "12.846.027/0001-89",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO HOSPITALAR SAO JOSE DE JARAGUA DO SUL",
+      "razaoSocialReceita": "ASSOCIACAO HOSPITALAR SAO JOSE DE JARAGUA DO SUL",
+      "nomeFantasiaReceita": "ASSOCIACAO HOSPITALAR SAO JOSE DE JARAGUA DO SUL",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4208906",
+      "nomeIBGE": "JARAGUÁ DO SUL",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SANTA CATARINA",
+        "nome": "SC"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8826551.0,
+    "valorLiberado": 8826551.0,
+    "valorContrapartida": 2670344.0,
+    "valorDaUltimaLiberacao": 8826551.0,
+    "numeroProcesso": "25000186266202366   "
+  },
+  {
+    "id": 364160042,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-30",
+    "dataFinalVigencia": "2027-05-05",
+    "dataPublicacao": "2024-01-09",
+    "dataUltimaLiberacao": "2026-06-17",
+    "dataConclusao": "2027-05-05",
+    "dimConvenio": {
+      "codigo": "954420",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "69555/2023"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS INICIADA POR ANTECIPAÇÃO",
+    "convenente": {
+      "id": 4919823,
+      "cpfFormatado": "",
+      "cnpjFormatado": "54.370.630/0001-87",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE PIRACICABA",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE PIRACICABA",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3538709",
+      "nomeIBGE": "PIRACICABA",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 8872374.0,
+    "valorLiberado": 8872374.0,
+    "valorContrapartida": 562364.05,
+    "valorDaUltimaLiberacao": 924104.75,
+    "numeroProcesso": "25000186268202355   "
+  },
+  {
+    "id": 366324079,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-27",
+    "dataFinalVigencia": "2027-01-08",
+    "dataPublicacao": "2025-01-10",
+    "dataUltimaLiberacao": "2025-07-17",
+    "dataConclusao": "2027-01-08",
+    "dimConvenio": {
+      "codigo": "959453",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "11044/2024"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS APROVADA",
+    "convenente": {
+      "id": 2020044,
+      "cpfFormatado": "",
+      "cnpjFormatado": "03.221.702/0001-93",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO CARMEM PRUDENTE DE MATO GROSSO DO SUL",
+      "razaoSocialReceita": "FUNDACAO CARMEM PRUDENTE DE MATO GROSSO DO SUL",
+      "nomeFantasiaReceita": "HOSPITAL DO CANCER DR ALFREDO ABRAO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5002704",
+      "nomeIBGE": "CAMPO GRANDE",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MATO GROSSO DO SUL",
+        "nome": "MS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 600000.0,
+    "valorLiberado": 401135.82,
+    "valorContrapartida": 16998.0,
+    "valorDaUltimaLiberacao": 401135.82,
+    "numeroProcesso": "25000065661202497   "
+  },
+  {
+    "id": 368351412,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-10-17",
+    "dataFinalVigencia": "2027-01-21",
+    "dataPublicacao": "2024-10-21",
+    "dataUltimaLiberacao": "2025-07-30",
+    "dataConclusao": "2027-01-21",
+    "dimConvenio": {
+      "codigo": "961247",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "16455/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 2020044,
+      "cpfFormatado": "",
+      "cnpjFormatado": "03.221.702/0001-93",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO CARMEM PRUDENTE DE MATO GROSSO DO SUL",
+      "razaoSocialReceita": "FUNDACAO CARMEM PRUDENTE DE MATO GROSSO DO SUL",
+      "nomeFantasiaReceita": "HOSPITAL DO CANCER DR ALFREDO ABRAO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5002704",
+      "nomeIBGE": "CAMPO GRANDE",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MATO GROSSO DO SUL",
+        "nome": "MS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 9306616.0,
+    "valorLiberado": 8042937.54,
+    "valorContrapartida": 1268272.0,
+    "valorDaUltimaLiberacao": 8042937.54,
+    "numeroProcesso": "25000076387202481   "
+  },
+  {
+    "id": 367826606,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-10",
+    "dataFinalVigencia": "2027-03-13",
+    "dataPublicacao": "2024-12-18",
+    "dataUltimaLiberacao": "2025-09-19",
+    "dataConclusao": "2027-03-13",
+    "dimConvenio": {
+      "codigo": "961305",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "11082/2024"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS EM ANÁLISE",
+    "convenente": {
+      "id": 920182,
+      "cpfFormatado": "",
+      "cnpjFormatado": "28.137.925/0001-06",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO FEMININA DE EDUCACAO E COMBATE AO CANCER",
+      "razaoSocialReceita": "ASSOCIACAO FEMININA DE EDUCACAO E COMBATE AO CANCER",
+      "nomeFantasiaReceita": "HOSPITAL SANTA RITA DE CASSIA",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3205309",
+      "nomeIBGE": "VITÓRIA",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "ESPIRITO SANTO",
+        "nome": "ES"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1717896.0,
+    "valorLiberado": 1563000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 1563000.0,
+    "numeroProcesso": "25000065799202496   "
+  },
+  {
+    "id": 368303797,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-09",
+    "dataFinalVigencia": "2027-09-30",
+    "dataPublicacao": "2024-12-11",
+    "dataUltimaLiberacao": "2026-05-08",
+    "dataConclusao": "2027-09-30",
+    "dimConvenio": {
+      "codigo": "962425",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "19215/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 1819997,
+      "cpfFormatado": "",
+      "cnpjFormatado": "10.988.301/0001-29",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DE MEDICINA INTEGRAL PROFESSOR FERNANDO FIGUEIRA - IMIP",
+      "razaoSocialReceita": "INSTITUTO DE MEDICINA INTEGRAL PROFESSOR FERNANDO FIGUEIRA - IMIP",
+      "nomeFantasiaReceita": "IMIP",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2611606",
+      "nomeIBGE": "RECIFE",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PERNAMBUCO",
+        "nome": "PE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1016608.0,
+    "valorLiberado": 769510.09,
+    "valorContrapartida": 124792.0,
+    "valorDaUltimaLiberacao": 769510.09,
+    "numeroProcesso": "25000082287202494   "
+  },
+  {
+    "id": 361278754,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-10",
+    "dataFinalVigencia": "2027-03-17",
+    "dataPublicacao": "2024-12-18",
+    "dataUltimaLiberacao": "2025-12-04",
+    "dataConclusao": "2027-03-17",
+    "dimConvenio": {
+      "codigo": "962431",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "19213/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 4320195,
+      "cpfFormatado": "",
+      "cnpjFormatado": "10.894.988/0001-33",
+      "numeroInscricaoSocial": "",
+      "nome": "SOCIEDADE PERNAMBUCANA DE COMBATE AO CANCER",
+      "razaoSocialReceita": "SOCIEDADE PERNAMBUCANA DE COMBATE AO CANCER",
+      "nomeFantasiaReceita": "HOSPITAL DE CANCER DE PERNAMBUCO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2611606",
+      "nomeIBGE": "RECIFE",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PERNAMBUCO",
+        "nome": "PE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 3249783.0,
+    "valorLiberado": 3188693.45,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 2686121.45,
+    "numeroProcesso": "25000082282202461   "
+  },
+  {
+    "id": 352978139,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-11",
+    "dataFinalVigencia": "2027-12-18",
+    "dataPublicacao": "2024-12-24",
+    "dataUltimaLiberacao": "2026-06-26",
+    "dataConclusao": "2027-12-18",
+    "dimConvenio": {
+      "codigo": "968527",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "25615/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 2920328,
+      "cpfFormatado": "",
+      "cnpjFormatado": "13.851.748/0001-40",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDO ESTADUAL DE SAUDE - FUNDES",
+      "razaoSocialReceita": "FUNDO ESTADUAL DE SAUDE - FUNDES",
+      "nomeFantasiaReceita": "FUNDES - SECRETARIA DE ESTADO DA SAUDE",
+      "tipo": "Administração Pública"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3550308",
+      "nomeIBGE": "SÃO PAULO",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 9306616.0,
+    "valorLiberado": 9306616.0,
+    "valorContrapartida": 2296580.0,
+    "valorDaUltimaLiberacao": 9306616.0,
+    "numeroProcesso": "25000117745202413   "
+  },
+  {
+    "id": 357570186,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-17",
+    "dataFinalVigencia": "2027-09-30",
+    "dataPublicacao": "2024-12-27",
+    "dataUltimaLiberacao": null,
+    "dataConclusao": "2027-09-30",
+    "dimConvenio": {
+      "codigo": "970343",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "31162/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 49900720,
+      "cpfFormatado": "",
+      "cnpjFormatado": "28.481.233/0001-72",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "razaoSocialReceita": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "nomeFantasiaReceita": "IGESDF",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5300108",
+      "nomeIBGE": "BRASÍLIA",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "DISTRITO FEDERAL",
+        "nome": "DF"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 2100000.0,
+    "valorLiberado": 0.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 0.0,
+    "numeroProcesso": "25000164424202416   "
+  },
+  {
+    "id": 358284446,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-05-07",
+    "dataFinalVigencia": "2027-05-21",
+    "dataPublicacao": "2025-05-12",
+    "dataUltimaLiberacao": "2026-02-18",
+    "dataConclusao": "2027-05-21",
+    "dimConvenio": {
+      "codigo": "970357",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "31188/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 5120012,
+      "cpfFormatado": "",
+      "cnpjFormatado": "24.672.792/0001-09",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO MATOGROSSENSE DE COMBATE AO CANCER",
+      "razaoSocialReceita": "ASSOCIACAO MATOGROSSENSE DE COMBATE AO CANCER",
+      "nomeFantasiaReceita": "HOSPITAL DE CANCER DE MATO GROSSO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5103403",
+      "nomeIBGE": "CUIABÁ",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MATO GROSSO",
+        "nome": "MT"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 4749928.0,
+    "valorLiberado": 4126462.51,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 2593308.25,
+    "numeroProcesso": "25000164419202403   "
+  },
+  {
+    "id": 358069213,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-30",
+    "dataFinalVigencia": "2027-04-13",
+    "dataPublicacao": "2025-01-10",
+    "dataUltimaLiberacao": "2026-02-20",
+    "dataConclusao": "2027-04-13",
+    "dimConvenio": {
+      "codigo": "970364",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "31154/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 3220265,
+      "cpfFormatado": "",
+      "cnpjFormatado": "08.841.421/0001-57",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO ASSISTENCIAL DA PARAIBA- FAP",
+      "razaoSocialReceita": "FUNDACAO ASSISTENCIAL DA PARAIBA- FAP",
+      "nomeFantasiaReceita": "HOSPITAL ESCOLA DA FAP",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2504009",
+      "nomeIBGE": "CAMPINA GRANDE",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARAÍBA",
+        "nome": "PB"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1900000.0,
+    "valorLiberado": 1851282.0,
+    "valorContrapartida": 44574.0,
+    "valorDaUltimaLiberacao": 1691154.0,
+    "numeroProcesso": "25000164414202472   "
+  },
+  {
+    "id": 363897323,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-18",
+    "dataFinalVigencia": "2027-05-12",
+    "dataPublicacao": "2024-12-27",
+    "dataUltimaLiberacao": "2025-11-18",
+    "dataConclusao": "2027-05-12",
+    "dimConvenio": {
+      "codigo": "970388",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "32174/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 606234503,
+      "cpfFormatado": "",
+      "cnpjFormatado": "04.994.418/0003-84",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO HOSPITALAR VILA NOVA",
+      "razaoSocialReceita": "ASSOCIACAO HOSPITALAR VILA NOVA",
+      "nomeFantasiaReceita": "HOSPITAL RESTINGA E EXTREMO SUL",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4314902",
+      "nomeIBGE": "PORTO ALEGRE",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1000000.0,
+    "valorLiberado": 999879.81,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 999879.81,
+    "numeroProcesso": "25000171335202418   "
+  },
+  {
+    "id": 357993888,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-20",
+    "dataFinalVigencia": "2027-09-30",
+    "dataPublicacao": "2025-01-07",
+    "dataUltimaLiberacao": null,
+    "dataConclusao": "2027-09-30",
+    "dimConvenio": {
+      "codigo": "970392",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "19244/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 5220212,
+      "cpfFormatado": "",
+      "cnpjFormatado": "91.693.531/0001-62",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO PRO ENSINO SUPERIOR EM NOVO HAMBURGO",
+      "razaoSocialReceita": "ASSOCIACAO PRO ENSINO SUPERIOR EM NOVO HAMBURGO",
+      "nomeFantasiaReceita": "ASPEUR",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4313409",
+      "nomeIBGE": "NOVO HAMBURGO",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1250000.0,
+    "valorLiberado": 0.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 0.0,
+    "numeroProcesso": "25000082355202415   "
+  },
+  {
+    "id": 367850609,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-27",
+    "dataFinalVigencia": "2027-02-09",
+    "dataPublicacao": "2025-01-09",
+    "dataUltimaLiberacao": "2025-08-18",
+    "dataConclusao": "2027-02-09",
+    "dimConvenio": {
+      "codigo": "970621",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "31359/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 4720150,
+      "cpfFormatado": "",
+      "cnpjFormatado": "59.610.394/0001-42",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SAO CARLOS",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SAO CARLOS",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3548906",
+      "nomeIBGE": "SÃO CARLOS",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 10241429.0,
+    "valorLiberado": 10223586.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 10223586.0,
+    "numeroProcesso": "25000164378202447   "
+  },
+  {
+    "id": 368601528,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-05-15",
+    "dataFinalVigencia": "2027-07-23",
+    "dataPublicacao": "2025-05-19",
+    "dataUltimaLiberacao": "2026-01-29",
+    "dataConclusao": "2027-07-23",
+    "dimConvenio": {
+      "codigo": "971131",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "30017/2024"
+    },
+    "situacao": "PRESTAÇÃO DE CONTAS INICIADA POR ANTECIPAÇÃO",
+    "convenente": {
+      "id": 220019,
+      "cpfFormatado": "",
+      "cnpjFormatado": "78.077.906/0001-00",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO DA SANTA CASA DE IBIPORA",
+      "razaoSocialReceita": "ASSOCIACAO DA SANTA CASA DE IBIPORA",
+      "nomeFantasiaReceita": "HOSPITAL CRISTO REI",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4109807",
+      "nomeIBGE": "IBIPORÃ",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARANÁ",
+        "nome": "PR"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 50.0,
+    "valorLiberado": 499800.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 499800.0,
+    "numeroProcesso": "25000148666202454   "
+  },
+  {
+    "id": 350614678,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-23",
+    "dataFinalVigencia": "2026-12-12",
+    "dataPublicacao": "2025-01-08",
+    "dataUltimaLiberacao": "2025-06-20",
+    "dataConclusao": "2026-12-12",
+    "dimConvenio": {
+      "codigo": "971195",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "20867/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 2620062,
+      "cpfFormatado": "",
+      "cnpjFormatado": "58.198.524/0001-19",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SANTOS",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SANTOS",
+      "nomeFantasiaReceita": "SANTA CASA DE SANTOS",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3548500",
+      "nomeIBGE": "SANTOS",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "SÃO PAULO",
+        "nome": "SP"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1050.0,
+    "valorLiberado": 10499846.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 10499846.0,
+    "numeroProcesso": "25000092694202418   "
+  },
+  {
+    "id": 350976656,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-19",
+    "dataFinalVigencia": "2026-12-03",
+    "dataPublicacao": "2024-12-30",
+    "dataUltimaLiberacao": "2025-06-11",
+    "dataConclusao": "2026-12-03",
+    "dimConvenio": {
+      "codigo": "971355",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "331144/2024"
+    },
+    "situacao": "NORMAL",
+    "convenente": {
+      "id": 4019569,
+      "cpfFormatado": "",
+      "cnpjFormatado": "01.368.232/0001-60",
+      "numeroInscricaoSocial": "",
+      "nome": "CASA DE CARIDADE DOM ORIONE",
+      "razaoSocialReceita": "CASA DE CARIDADE DOM ORIONE",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "1702109",
+      "nomeIBGE": "ARAGUAÍNA",
+      "codigoRegiao": "1",
+      "nomeRegiao": "NORTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "TOCANTINS",
+        "nome": "TO"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1203313.0,
+    "valorLiberado": 1203313.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 1203313.0,
+    "numeroProcesso": "25000164391202404   "
+  },
+  {
+    "id": 363981993,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-05-07",
+    "dataFinalVigencia": "2027-03-06",
+    "dataPublicacao": "2025-05-12",
+    "dataUltimaLiberacao": "2025-11-03",
+    "dataConclusao": "2027-03-06",
+    "dimConvenio": {
+      "codigo": "971380",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "31158/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 5120012,
+      "cpfFormatado": "",
+      "cnpjFormatado": "24.672.792/0001-09",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO MATOGROSSENSE DE COMBATE AO CANCER",
+      "razaoSocialReceita": "ASSOCIACAO MATOGROSSENSE DE COMBATE AO CANCER",
+      "nomeFantasiaReceita": "HOSPITAL DE CANCER DE MATO GROSSO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "5103403",
+      "nomeIBGE": "CUIABÁ",
+      "codigoRegiao": "5",
+      "nomeRegiao": "CENTRO-OESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MATO GROSSO",
+        "nome": "MT"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 5812094.0,
+    "valorLiberado": 4436559.88,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 3346559.88,
+    "numeroProcesso": "25000164420202420   "
+  },
+  {
+    "id": 358446815,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-27",
+    "dataFinalVigencia": "2027-09-30",
+    "dataPublicacao": "2025-01-09",
+    "dataUltimaLiberacao": "2026-07-01",
+    "dataConclusao": "2027-09-30",
+    "dimConvenio": {
+      "codigo": "971398",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "35614/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 120159,
+      "cpfFormatado": "",
+      "cnpjFormatado": "04.026.039/0001-39",
+      "numeroInscricaoSocial": "",
+      "nome": "LIGA MOSSOROENSE DE ESTUDOS E COMBATE AO CANCER",
+      "razaoSocialReceita": "LIGA MOSSOROENSE DE ESTUDOS E COMBATE AO CANCER",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2408003",
+      "nomeIBGE": "MOSSORÓ",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO NORTE",
+        "nome": "RN"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 2000000.0,
+    "valorLiberado": 1996367.15,
+    "valorContrapartida": 234058.0,
+    "valorDaUltimaLiberacao": 1996367.15,
+    "numeroProcesso": "25000185676202471   "
+  },
+  {
+    "id": 358355295,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-20",
+    "dataFinalVigencia": "2027-09-30",
+    "dataPublicacao": "2024-12-30",
+    "dataUltimaLiberacao": "2025-08-29",
+    "dataConclusao": "2027-09-30",
+    "dimConvenio": {
+      "codigo": "971399",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "35621/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 320221,
+      "cpfFormatado": "",
+      "cnpjFormatado": "88.630.413/0001-09",
+      "numeroInscricaoSocial": "",
+      "nome": "UNIAO BRASILEIRA DE EDUCACAO E ASSISTENCIA",
+      "razaoSocialReceita": "UNIAO BRASILEIRA DE EDUCACAO E ASSISTENCIA",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4314902",
+      "nomeIBGE": "PORTO ALEGRE",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 7250000.0,
+    "valorLiberado": 7250000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 7250000.0,
+    "numeroProcesso": "25000185760202494   "
+  },
+  {
+    "id": 355779085,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-23",
+    "dataFinalVigencia": "2026-12-24",
+    "dataPublicacao": "2025-01-08",
+    "dataUltimaLiberacao": "2025-08-22",
+    "dataConclusao": "2026-12-24",
+    "dimConvenio": {
+      "codigo": "971549",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "19212/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 2220145,
+      "cpfFormatado": "",
+      "cnpjFormatado": "09.112.236/0001-94",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO NAPOLEAO LAUREANO",
+      "razaoSocialReceita": "FUNDACAO NAPOLEAO LAUREANO",
+      "nomeFantasiaReceita": "HOSPITAL NAPOLEAO LAUREANO MANTIDO PELA FUND LAUREANO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2507507",
+      "nomeIBGE": "JOÃO PESSOA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARAÍBA",
+        "nome": "PB"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 2306011.0,
+    "valorLiberado": 2238960.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 1119480.0,
+    "numeroProcesso": "25000082280202472   "
+  },
+  {
+    "id": 363726439,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2024-12-30",
+    "dataFinalVigencia": "2027-09-30",
+    "dataPublicacao": "2025-01-10",
+    "dataUltimaLiberacao": null,
+    "dataConclusao": "2027-09-30",
+    "dimConvenio": {
+      "codigo": "973049",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "37311/2024"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 6719626,
+      "cpfFormatado": "",
+      "cnpjFormatado": "05.816.630/0001-52",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDO ESTADUAL DE SAUDE DO ESTADO DA BAHIA",
+      "razaoSocialReceita": "FUNDO ESTADUAL DE SAUDE DO ESTADO DA BAHIA",
+      "nomeFantasiaReceita": "FES/BA",
+      "tipo": "Administração Pública"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2927408",
+      "nomeIBGE": "SALVADOR",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "BAHIA",
+        "nome": "BA"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 12154901.0,
+    "valorLiberado": 0.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 0.0,
+    "numeroProcesso": "25000195562202439   "
+  },
+  {
+    "id": 354361999,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-12-17",
+    "dataFinalVigencia": "2027-12-14",
+    "dataPublicacao": "2025-12-22",
+    "dataUltimaLiberacao": "2026-06-22",
+    "dataConclusao": "2027-12-14",
+    "dimConvenio": {
+      "codigo": "985640",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "numero": "63258/2025"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 1020130,
+      "cpfFormatado": "",
+      "cnpjFormatado": "07.818.313/0001-09",
+      "numeroInscricaoSocial": "",
+      "nome": "SANTA CASA DE MISERICORDIA DE SOBRAL",
+      "razaoSocialReceita": "SANTA CASA DE MISERICORDIA DE SOBRAL",
+      "nomeFantasiaReceita": "SANTA CASA DE MISERICORDIA DE SOBRAL",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2312908",
+      "nomeIBGE": "SOBRAL",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "CEARÁ",
+        "nome": "CE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1468023.0,
+    "valorLiberado": 1079770.75,
+    "valorContrapartida": 234.0,
+    "valorDaUltimaLiberacao": 1079770.75,
+    "numeroProcesso": "25000198468202512   "
+  },
+  {
+    "id": 368629110,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-12-18",
+    "dataFinalVigencia": "2027-06-11",
+    "dataPublicacao": "2025-12-22",
+    "dataUltimaLiberacao": null,
+    "dataConclusao": "2027-06-11",
+    "dimConvenio": {
+      "codigo": "985653",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "numero": "63261/2025"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 2220145,
+      "cpfFormatado": "",
+      "cnpjFormatado": "09.112.236/0001-94",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO NAPOLEAO LAUREANO",
+      "razaoSocialReceita": "FUNDACAO NAPOLEAO LAUREANO",
+      "nomeFantasiaReceita": "HOSPITAL NAPOLEAO LAUREANO MANTIDO PELA FUND LAUREANO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2507507",
+      "nomeIBGE": "JOÃO PESSOA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARAÍBA",
+        "nome": "PB"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 180.0,
+    "valorLiberado": 0.0,
+    "valorContrapartida": 138009.0,
+    "valorDaUltimaLiberacao": 0.0,
+    "numeroProcesso": "25000198475202514   "
+  },
+  {
+    "id": 368113209,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-12-18",
+    "dataFinalVigencia": "2027-06-11",
+    "dataPublicacao": "2025-12-22",
+    "dataUltimaLiberacao": null,
+    "dataConclusao": "2027-06-11",
+    "dimConvenio": {
+      "codigo": "985655",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "numero": "63255/2025"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 4320195,
+      "cpfFormatado": "",
+      "cnpjFormatado": "10.894.988/0001-33",
+      "numeroInscricaoSocial": "",
+      "nome": "SOCIEDADE PERNAMBUCANA DE COMBATE AO CANCER",
+      "razaoSocialReceita": "SOCIEDADE PERNAMBUCANA DE COMBATE AO CANCER",
+      "nomeFantasiaReceita": "HOSPITAL DE CANCER DE PERNAMBUCO",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2611606",
+      "nomeIBGE": "RECIFE",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PERNAMBUCO",
+        "nome": "PE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 9611760.0,
+    "valorLiberado": 0.0,
+    "valorContrapartida": 364352.0,
+    "valorDaUltimaLiberacao": 0.0,
+    "numeroProcesso": "25000198462202545   "
+  },
+  {
+    "id": 368699949,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-12-17",
+    "dataFinalVigencia": "2027-06-10",
+    "dataPublicacao": "2025-12-19",
+    "dataUltimaLiberacao": null,
+    "dataConclusao": "2027-06-10",
+    "dimConvenio": {
+      "codigo": "988835",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "numero": "66548/2025"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 6120221,
+      "cpfFormatado": "",
+      "cnpjFormatado": "09.124.165/0001-40",
+      "numeroInscricaoSocial": "",
+      "nome": "INSTITUTO WALFREDO GUEDES PEREIRA",
+      "razaoSocialReceita": "INSTITUTO WALFREDO GUEDES PEREIRA",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2507507",
+      "nomeIBGE": "JOÃO PESSOA",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PARAÍBA",
+        "nome": "PB"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1250000.0,
+    "valorLiberado": 0.0,
+    "valorContrapartida": 150643.0,
+    "valorDaUltimaLiberacao": 0.0,
+    "numeroProcesso": "25000214555202524   "
+  },
+  {
+    "id": 358343392,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-12-30",
+    "dataFinalVigencia": "2027-06-23",
+    "dataPublicacao": "2026-01-07",
+    "dataUltimaLiberacao": "2026-06-29",
+    "dataConclusao": "2027-06-23",
+    "dimConvenio": {
+      "codigo": "991708",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "numero": "70142/2025"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 6820195,
+      "cpfFormatado": "",
+      "cnpjFormatado": "08.579.164/0001-27",
+      "numeroInscricaoSocial": "",
+      "nome": "ASSOCIACAO HOSPITALAR BENEFICENTE SANTO ANTONIO",
+      "razaoSocialReceita": "ASSOCIACAO HOSPITALAR BENEFICENTE SANTO ANTONIO",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "4321402",
+      "nomeIBGE": "TENENTE PORTELA",
+      "codigoRegiao": "4",
+      "nomeRegiao": "SUL",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "RIO GRANDE DO SUL",
+        "nome": "RS"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1396507.0,
+    "valorLiberado": 1349000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 1349000.0,
+    "numeroProcesso": "25000226652202560   "
+  },
+  {
+    "id": 350831827,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2025-12-31",
+    "dataFinalVigencia": "2027-11-23",
+    "dataPublicacao": "2026-01-07",
+    "dataUltimaLiberacao": "2026-06-01",
+    "dataConclusao": "2027-11-23",
+    "dimConvenio": {
+      "codigo": "991766",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "numero": "70173/2025"
+    },
+    "situacao": "EM EXECUÇÃO",
+    "convenente": {
+      "id": 5320195,
+      "cpfFormatado": "",
+      "cnpjFormatado": "10.869.782/0001-53",
+      "numeroInscricaoSocial": "",
+      "nome": "IRMANDADE DA SANTA CASA DE MISERICORDIA DO RECIFE",
+      "razaoSocialReceita": "IRMANDADE DA SANTA CASA DE MISERICORDIA DO RECIFE",
+      "nomeFantasiaReceita": "SANTA CASA DE MISERICORDIA DO RECIFE",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "2611606",
+      "nomeIBGE": "RECIFE",
+      "codigoRegiao": "2",
+      "nomeRegiao": "NORDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "PERNAMBUCO",
+        "nome": "PE"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "302",
+      "descricaoSubfuncap": "Assistência hospitalar e ambulatorial",
+      "funcao": {
+        "codigoFuncao": "10",
+        "descricaoFuncao": "Saúde"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 1736185.0,
+    "valorLiberado": 1656950.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 1656950.0,
+    "numeroProcesso": "25000226746202539   "
+  },
+  {
+    "id": 362660863,
+    "dataReferencia": "2026-08-28",
+    "dataInicioVigencia": "2023-12-05",
+    "dataFinalVigencia": "2026-09-10",
+    "dataPublicacao": "2023-12-11",
+    "dataUltimaLiberacao": "2025-03-19",
+    "dataConclusao": "2026-09-10",
+    "dimConvenio": {
+      "codigo": "950115",
+      "objeto": "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENCAO ESPECIALIZADA EM SAUDE",
+      "numero": "65659/2023"
+    },
+    "situacao": "NORMAL",
+    "convenente": {
+      "id": 6920279,
+      "cpfFormatado": "",
+      "cnpjFormatado": "00.961.315/0001-03",
+      "numeroInscricaoSocial": "",
+      "nome": "FUNDACAO CRISTIANO VARELLA",
+      "razaoSocialReceita": "FUNDACAO CRISTIANO VARELLA",
+      "nomeFantasiaReceita": "",
+      "tipo": "Entidades Sem Fins Lucrativos"
+    },
+    "localidadePessoa": {
+      "id": 3,
+      "descricao": "Municipal"
+    },
+    "municipioConvenente": {
+      "codigoIBGE": "3143906",
+      "nomeIBGE": "MURIAÉ",
+      "codigoRegiao": "3",
+      "nomeRegiao": "SUDESTE",
+      "pais": "BRASIL",
+      "uf": {
+        "sigla": "MINAS GERAIS",
+        "nome": "MG"
+      }
+    },
+    "orgao": {
+      "nome": "Ministério da Saúde - Unidades com vínculo direto",
+      "codigoSIAFI": "36000",
+      "cnpj": "00394544000185",
+      "sigla": "SAÚDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "unidadeGestora": {
+      "codigo": "257001",
+      "nome": "DIRETORIA EXECUTIVA DO FUNDO NAC. DE SAUDE",
+      "descricaoPoder": "EXECUTIVO",
+      "orgaoVinculado": {
+        "codigoSIAFI": "36000",
+        "cnpj": "00394544000185",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde - Unidades com vínculo direto"
+      },
+      "orgaoMaximo": {
+        "codigo": "36000",
+        "sigla": "SAÚDE",
+        "nome": "Ministério da Saúde"
+      }
+    },
+    "subfuncao": {
+      "codigoSubfuncao": "-1",
+      "descricaoSubfuncap": "Sem informação",
+      "funcao": {
+        "codigoFuncao": "-1",
+        "descricaoFuncao": "Sem informação"
+      }
+    },
+    "tipoInstrumento": {
+      "id": -2,
+      "codigo": "-2",
+      "descricao": "Não se aplica"
+    },
+    "valor": 3215250.0,
+    "valorLiberado": 2926000.0,
+    "valorContrapartida": 0.0,
+    "valorDaUltimaLiberacao": 2926000.0,
+    "numeroProcesso": "25000177706202394   "
+  }
+]

@@ -10,6 +10,13 @@ const PainelGeralPage = lazy(() => import('./pages/PainelGeralPage').then((m) =>
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const MapaPage = lazy(() => import('./pages/MapaPage').then((m) => ({ default: m.MapaPage })));
 const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage').then((m) => ({ default: m.RelatoriosPage })));
+// Monitoramento de equipamento (decisao 2026-09-03) -- esforco separado da
+// analise de merito de hipo/hipersuficiencia, sem link a partir do resto do
+// app (so acessivel indo direto na URL). Ver comentario no topo do arquivo
+// da pagina pro porque de ficar fora do AppLayout/TopNav.
+const MonitoramentoEquipamentosPage = lazy(() =>
+  import('./pages/MonitoramentoEquipamentosPage').then((m) => ({ default: m.MonitoramentoEquipamentosPage }))
+);
 
 function App() {
   return (
@@ -20,6 +27,7 @@ function App() {
               AppLayout/TopNav de proposito (nao pertence a uma familia
               especifica, ver comentario em PainelGeralPage.tsx). */}
           <Route path="/" element={<PainelGeralPage />} />
+          <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
           <Route element={<AppLayout />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="mapa" element={<MapaPage />} />
