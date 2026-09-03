@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.db.base import get_db
 from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
+from app.pipeline import portal_transparencia
 
 router = APIRouter(prefix="/monitoramento", tags=["monitoramento"])
 
@@ -77,9 +78,6 @@ class InstrumentoEquipamentoRead(BaseModel):
     tp_instrumento_programa: str | None
     componente: str | None
     ano_instrumento: int | None
-    valor_global: float | None
-    valor_repasse: float | None
-    valor_contrapartida: float | None
     tecnico_titular: str | None
     tecnico_suplente: str | None
     nivel_monitoramento: str | None
@@ -89,8 +87,20 @@ class InstrumentoEquipamentoRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ValorSituacaoAoVivoRead(BaseModel):
+    """Sempre buscado na hora no Portal da Transparencia -- nunca congelado
+    no banco (decisao do usuario 2026-09-03, ver comentario em
+    InstrumentoEquipamento). `disponivel=False` quando a API falhar/nao
+    achar -- o front mostra "indisponivel" em vez de um valor errado."""
+    disponivel: bool
+    valor: float | None = None
+    valor_liberado: float | None = None
+    situacao: str | None = None
+
+
 class InstrumentoTimelineRead(BaseModel):
     instrumento: InstrumentoEquipamentoRead
+    ao_vivo: ValorSituacaoAoVivoRead
     eventos: list[EventoMarcoRead]
 
 
@@ -125,8 +135,27 @@ def obter_timeline(nr_convenio: str, db: Session = Depends(get_db)):
         .where(EventoMarco.instrumento_id == instrumento.id)
         .order_by(EventoMarco.created_at.desc())
     ).scalars().all()
+
+    # Valor e situacao SEMPRE ao vivo (decisao 2026-09-03) -- nunca lidos do
+    # banco. Falha da API vira `disponivel=False`, nao propaga excecao pro
+    # front (a timeline continua util mesmo se o Portal da Transparencia
+    # estiver fora do ar).
+    try:
+        dado = portal_transparencia.buscar_convenio_por_numero(nr_convenio)
+        ao_vivo = ValorSituacaoAoVivoRead(
+            disponivel=dado is not None,
+            valor=dado.get("valor") if dado else None,
+            valor_liberado=dado.get("valorLiberado") if dado else None,
+            situacao=dado.get("situacao") if dado else None,
+        )
+    except Exception:
+        # Chave ausente, rede fora, 500 do Portal da Transparencia -- qualquer
+        # falha aqui rebaixa pra "indisponivel", nunca derruba a timeline.
+        ao_vivo = ValorSituacaoAoVivoRead(disponivel=False)
+
     return InstrumentoTimelineRead(
         instrumento=InstrumentoEquipamentoRead.model_validate(instrumento),
+        ao_vivo=ao_vivo,
         eventos=[
             EventoMarcoRead(
                 id=e.id, marco_id=e.marco_id, data_ocorrencia=e.data_ocorrencia,

@@ -70,9 +70,9 @@ INSTRUMENTO_948686 = dict(
     tp_instrumento_programa="Transferências Fundo a Fundo da Saúde",
     componente="RADIOTERAPIA",
     ano_instrumento=2023,
-    valor_global=9_500_000,
-    valor_repasse=9_003_200,
-    valor_contrapartida=0,
+    # Sem valor_global/valor_repasse/valor_contrapartida de proposito --
+    # decisao do usuario 2026-09-03: esses campos vem SEMPRE ao vivo da API
+    # (Portal da Transparencia), nunca congelados aqui (ver models.py).
     tecnico_titular="PRISCILA",
     tecnico_suplente="BRUNA",
     nivel_monitoramento="ESTRATÉGICO",

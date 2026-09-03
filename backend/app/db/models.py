@@ -504,9 +504,14 @@ class InstrumentoEquipamento(Base):
     tp_instrumento_programa: Mapped[str | None] = mapped_column(String)
     componente: Mapped[str | None] = mapped_column(String)
     ano_instrumento: Mapped[int | None] = mapped_column(Integer)
-    valor_global: Mapped[float | None] = mapped_column(Numeric)
-    valor_repasse: Mapped[float | None] = mapped_column(Numeric)
-    valor_contrapartida: Mapped[float | None] = mapped_column(Numeric)
+    # Deliberadamente SEM valor_global/valor_repasse/valor_contrapartida/situacao
+    # aqui (decisao do usuario, 2026-09-03): esses campos JA existem em API
+    # (Portal da Transparencia /convenios/numero) -- guardar uma copia
+    # congelada no banco arriscaria ficar desatualizado (ex.: convenio muda
+    # de situacao, valor sofre aditivo). app/routers/monitoramento.py busca
+    # esses 2 campos AO VIVO via `app.pipeline.portal_transparencia` toda vez
+    # que a timeline e exibida -- esta tabela so guarda o que NENHUMA API
+    # publica tem (dado de gestao interna).
     tecnico_titular: Mapped[str | None] = mapped_column(String)
     tecnico_suplente: Mapped[str | None] = mapped_column(String)
     nivel_monitoramento: Mapped[str | None] = mapped_column(String)

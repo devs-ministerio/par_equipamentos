@@ -462,10 +462,12 @@ type TimelineApi = {
     id: number; nr_convenio: string; cnpj_convenente: string; nome_convenente: string;
     municipio: string | null; uf: string | null; cnes: string | null; equipamento_descricao: string | null;
     programa: string | null; tp_instrumento_programa: string | null; componente: string | null;
-    ano_instrumento: number | null; valor_global: number | null; valor_repasse: number | null;
-    valor_contrapartida: number | null; tecnico_titular: string | null; tecnico_suplente: string | null;
+    ano_instrumento: number | null; tecnico_titular: string | null; tecnico_suplente: string | null;
     nivel_monitoramento: string | null; finalidade: string | null; modalidade_onco: string | null;
   };
+  // Sempre buscado ao vivo no Portal da Transparencia pelo backend -- nunca
+  // congelado no banco (decisao do usuario 2026-09-03).
+  ao_vivo: { disponivel: boolean; valor: number | null; valor_liberado: number | null; situacao: string | null };
   eventos: EventoMarcoApi[];
 };
 
@@ -533,6 +535,7 @@ function AbaTimeline() {
   const pctAtual = faseAtual?.execucao_fisica_pct_referencia ?? 0;
 
   const inst = timeline.instrumento;
+  const aoVivo = timeline.ao_vivo;
 
   return (
     <div>
@@ -554,8 +557,18 @@ function AbaTimeline() {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10.5, color: paleta.muted }}>REPASSE</div>
-            <div style={{ fontSize: 16, fontWeight: 600 }}>{fmtMoeda(inst.valor_repasse)}</div>
+            <div style={{ fontSize: 10.5, color: paleta.muted }}>
+              VALOR GLOBAL {aoVivo.disponivel ? '(ao vivo)' : ''}
+            </div>
+            {aoVivo.disponivel ? (
+              <>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>{fmtMoeda(aoVivo.valor)}</div>
+                <div style={{ fontSize: 11, color: paleta.muted }}>Liberado: {fmtMoeda(aoVivo.valor_liberado)}</div>
+                <div style={{ marginTop: 4 }}><Badge texto={aoVivo.situacao} /></div>
+              </>
+            ) : (
+              <div style={{ fontSize: 12, color: paleta.yellow }}>⚠️ Indisponível (Portal da Transparência)</div>
+            )}
           </div>
         </div>
       </div>

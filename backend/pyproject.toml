@@ -17,6 +17,7 @@ dependencies = [
     "polars>=1.17",
     "fastexcel>=0.21.0",
     "pyjwt>=2.9",
+    "openpyxl>=3.1",
 ]
 
 [tool.uv]

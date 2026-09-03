@@ -50,9 +50,8 @@ def upgrade() -> None:
         sa.Column('tp_instrumento_programa', sa.String(), nullable=True),
         sa.Column('componente', sa.String(), nullable=True),
         sa.Column('ano_instrumento', sa.Integer(), nullable=True),
-        sa.Column('valor_global', sa.Numeric(), nullable=True),
-        sa.Column('valor_repasse', sa.Numeric(), nullable=True),
-        sa.Column('valor_contrapartida', sa.Numeric(), nullable=True),
+        # Sem valor_global/valor_repasse/valor_contrapartida de proposito --
+        # ver comentario em app/db/models.py::InstrumentoEquipamento.
         sa.Column('tecnico_titular', sa.String(), nullable=True),
         sa.Column('tecnico_suplente', sa.String(), nullable=True),
         sa.Column('nivel_monitoramento', sa.String(), nullable=True),
