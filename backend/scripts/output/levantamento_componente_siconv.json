@@ -1,0 +1,1442 @@
+{
+  "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA": [
+    {
+      "nr_convenio": "987739",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "3352160",
+      "ug_emitente": "250107",
+      "id_proposta": "2154691",
+      "id_programa": "54941",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "984602",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1499100",
+      "ug_emitente": "250107",
+      "id_proposta": "2148409",
+      "id_programa": "54941",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "972690",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "2119140",
+      "ug_emitente": "250107",
+      "id_proposta": "2040186",
+      "id_programa": "53756",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "972688",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "3420400",
+      "ug_emitente": "250107",
+      "id_proposta": "2040183",
+      "id_programa": "53756",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971674",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1249434",
+      "ug_emitente": "250107",
+      "id_proposta": "2038318",
+      "id_programa": "53756",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "972689",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "3080400",
+      "ug_emitente": "250107",
+      "id_proposta": "2040184",
+      "id_programa": "53756",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "7AACXB",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "8501368",
+      "ug_emitente": "",
+      "id_proposta": "2227629",
+      "id_programa": "56640",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "7AACXC",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "8594370",
+      "ug_emitente": "",
+      "id_proposta": "2227630",
+      "id_programa": "56640",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "7AACRV",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "5000000",
+      "ug_emitente": "",
+      "id_proposta": "2226960",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997347",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "3500000",
+      "ug_emitente": "257001",
+      "id_proposta": "2202863",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998345",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500648",
+      "ug_emitente": "257001",
+      "id_proposta": "2202838",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998663",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "2600000",
+      "ug_emitente": "257001",
+      "id_proposta": "2212230",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998681",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "600000",
+      "ug_emitente": "",
+      "id_proposta": "2212140",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998848",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "400000",
+      "ug_emitente": "257001",
+      "id_proposta": "2212224",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998862",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "316419",
+      "ug_emitente": "257001",
+      "id_proposta": "2212248",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997354",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "499384",
+      "ug_emitente": "257001",
+      "id_proposta": "2202840",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "7AACRU",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "4130322",
+      "ug_emitente": "257001",
+      "id_proposta": "2226958",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997358",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1006848",
+      "ug_emitente": "257001",
+      "id_proposta": "2202870",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998828",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1492954",
+      "ug_emitente": "257001",
+      "id_proposta": "2212166",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998829",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "254976",
+      "ug_emitente": "257001",
+      "id_proposta": "2212149",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997349",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "418000",
+      "ug_emitente": "257001",
+      "id_proposta": "2202839",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997357",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "301028",
+      "ug_emitente": "257001",
+      "id_proposta": "2202842",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997346",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200000",
+      "ug_emitente": "257001",
+      "id_proposta": "2202847",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997531",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "975000",
+      "ug_emitente": "257001",
+      "id_proposta": "2202845",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997523",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "412777",
+      "ug_emitente": "257001",
+      "id_proposta": "2202836",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "999306",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "442550",
+      "ug_emitente": "257001",
+      "id_proposta": "2215284",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997348",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "351682",
+      "ug_emitente": "257001",
+      "id_proposta": "2202861",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "7AACSF",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "517482",
+      "ug_emitente": "257001",
+      "id_proposta": "2226962",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997474",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500686",
+      "ug_emitente": "257001",
+      "id_proposta": "2202849",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998861",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1687211",
+      "ug_emitente": "257001",
+      "id_proposta": "2212234",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "998825",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "507613",
+      "ug_emitente": "257001",
+      "id_proposta": "2212159",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997510",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "402864",
+      "ug_emitente": "257001",
+      "id_proposta": "2202843",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "997524",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "202481",
+      "ug_emitente": "257001",
+      "id_proposta": "2202835",
+      "id_programa": "56318",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979584",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "2000000",
+      "ug_emitente": "257001",
+      "id_proposta": "2109927",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988622",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1242900",
+      "ug_emitente": "257001",
+      "id_proposta": "2156874",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979589",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "2000000",
+      "ug_emitente": "257001",
+      "id_proposta": "2110341",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988198",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "1162851",
+      "ug_emitente": "",
+      "id_proposta": "2154548",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "989493",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "2836962",
+      "ug_emitente": "",
+      "id_proposta": "2158739",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979536",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "506366",
+      "ug_emitente": "257001",
+      "id_proposta": "2109902",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985638",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "4471718",
+      "ug_emitente": "257001",
+      "id_proposta": "2149649",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979540",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "203355",
+      "ug_emitente": "257001",
+      "id_proposta": "2109910",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979588",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "394332",
+      "ug_emitente": "257001",
+      "id_proposta": "2110371",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985680",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "2149633",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979548",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1495509",
+      "ug_emitente": "257001",
+      "id_proposta": "2109063",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "989823",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200956",
+      "ug_emitente": "257001",
+      "id_proposta": "2159451",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979549",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "824783",
+      "ug_emitente": "257001",
+      "id_proposta": "2109920",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978811",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "355440",
+      "ug_emitente": "257001",
+      "id_proposta": "2107826",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979579",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "886915",
+      "ug_emitente": "257001",
+      "id_proposta": "2110314",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979576",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "300000",
+      "ug_emitente": "257001",
+      "id_proposta": "2110323",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978848",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "300000",
+      "ug_emitente": "257001",
+      "id_proposta": "2107840",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979582",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1000615",
+      "ug_emitente": "257001",
+      "id_proposta": "2110317",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978812",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "324681",
+      "ug_emitente": "257001",
+      "id_proposta": "2107821",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978894",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200328",
+      "ug_emitente": "257001",
+      "id_proposta": "2107829",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979547",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "507652",
+      "ug_emitente": "257001",
+      "id_proposta": "2109073",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979581",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "304607",
+      "ug_emitente": "257001",
+      "id_proposta": "2110315",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985640",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1468257",
+      "ug_emitente": "257001",
+      "id_proposta": "2149648",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988862",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "499896",
+      "ug_emitente": "257001",
+      "id_proposta": "2156909",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988625",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "201225",
+      "ug_emitente": "257001",
+      "id_proposta": "2156878",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988835",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1400643",
+      "ug_emitente": "257001",
+      "id_proposta": "2156938",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979586",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1000000",
+      "ug_emitente": "257001",
+      "id_proposta": "2110339",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979541",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "300200",
+      "ug_emitente": "257001",
+      "id_proposta": "2109911",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978810",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "300421",
+      "ug_emitente": "257001",
+      "id_proposta": "2107828",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985653",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1938009",
+      "ug_emitente": "257001",
+      "id_proposta": "2149653",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978150",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "402270",
+      "ug_emitente": "257001",
+      "id_proposta": "2107822",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985675",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "522388",
+      "ug_emitente": "257001",
+      "id_proposta": "2149607",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "991268",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "500036",
+      "ug_emitente": "",
+      "id_proposta": "2162426",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979544",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "610878",
+      "ug_emitente": "257001",
+      "id_proposta": "2109068",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988216",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200000",
+      "ug_emitente": "257001",
+      "id_proposta": "2154580",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988856",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "700000",
+      "ug_emitente": "257001",
+      "id_proposta": "2156937",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978853",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "260000",
+      "ug_emitente": "257001",
+      "id_proposta": "2107832",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979578",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "512604",
+      "ug_emitente": "257001",
+      "id_proposta": "2110312",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978850",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "630870",
+      "ug_emitente": "257001",
+      "id_proposta": "2107830",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979577",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1300552",
+      "ug_emitente": "257001",
+      "id_proposta": "2109925",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "979542",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "264895",
+      "ug_emitente": "257001",
+      "id_proposta": "2109069",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "978849",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200000",
+      "ug_emitente": "257001",
+      "id_proposta": "2107843",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985658",
+      "ano": "",
+      "sit_convenio": "",
+      "vl_global_conv": "662344",
+      "ug_emitente": "",
+      "id_proposta": "2149651",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "989476",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "2158742",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985655",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "9976112",
+      "ug_emitente": "257001",
+      "id_proposta": "2149643",
+      "id_programa": "54942",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971195",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "10500000",
+      "ug_emitente": "257001",
+      "id_proposta": "1995723",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970458",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "400000",
+      "ug_emitente": "257001",
+      "id_proposta": "2025674",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970524",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "512000",
+      "ug_emitente": "257001",
+      "id_proposta": "2016388",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "961375",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "299058",
+      "ug_emitente": "257001",
+      "id_proposta": "1984957",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971380",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "5812094",
+      "ug_emitente": "257001",
+      "id_proposta": "2025657",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970364",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1944574",
+      "ug_emitente": "257001",
+      "id_proposta": "2025649",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970388",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1000000",
+      "ug_emitente": "257001",
+      "id_proposta": "2028367",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "962379",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "1990004",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971044",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200000",
+      "ug_emitente": "257001",
+      "id_proposta": "1990835",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970528",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "550774",
+      "ug_emitente": "257001",
+      "id_proposta": "2016380",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970357",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "4749928",
+      "ug_emitente": "257001",
+      "id_proposta": "2025700",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "962425",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1141400",
+      "ug_emitente": "257001",
+      "id_proposta": "1990818",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "961380",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "301400",
+      "ug_emitente": "257001",
+      "id_proposta": "1984925",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "959453",
+      "ano": "2024",
+      "sit_convenio": "Prestação de Contas em Análise",
+      "vl_global_conv": "616998",
+      "ug_emitente": "257001",
+      "id_proposta": "1979477",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970520",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "303382",
+      "ug_emitente": "257001",
+      "id_proposta": "2025647",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "973058",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1102935",
+      "ug_emitente": "257001",
+      "id_proposta": "2040162",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "967733",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1144091",
+      "ug_emitente": "257001",
+      "id_proposta": "1990803",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971030",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "257364",
+      "ug_emitente": "257001",
+      "id_proposta": "1990829",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "972728",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500354",
+      "ug_emitente": "257001",
+      "id_proposta": "2039229",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "962431",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "3249783",
+      "ug_emitente": "257001",
+      "id_proposta": "1990816",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970345",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "844472",
+      "ug_emitente": "257001",
+      "id_proposta": "2025665",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970347",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "2025640",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "961305",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1717896",
+      "ug_emitente": "257001",
+      "id_proposta": "1979523",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "959424",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "1979524",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970463",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1150000",
+      "ug_emitente": "257001",
+      "id_proposta": "2025673",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "973055",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "419894",
+      "ug_emitente": "257001",
+      "id_proposta": "2039878",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970350",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "499808",
+      "ug_emitente": "257001",
+      "id_proposta": "2028363",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971549",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "2306011",
+      "ug_emitente": "257001",
+      "id_proposta": "1990814",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970514",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "272138",
+      "ug_emitente": "257001",
+      "id_proposta": "2025642",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970368",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1156885",
+      "ug_emitente": "257001",
+      "id_proposta": "2025650",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970439",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "407782",
+      "ug_emitente": "257001",
+      "id_proposta": "2016374",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971368",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1125793",
+      "ug_emitente": "257001",
+      "id_proposta": "2035532",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971398",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "2234058",
+      "ug_emitente": "257001",
+      "id_proposta": "2035531",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "959480",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "599874",
+      "ug_emitente": "257001",
+      "id_proposta": "1979486",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "961625",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "380168",
+      "ug_emitente": "257001",
+      "id_proposta": "1987144",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971765",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "4000000",
+      "ug_emitente": "257001",
+      "id_proposta": "2035540",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971171",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "203634",
+      "ug_emitente": "257001",
+      "id_proposta": "2016377",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "961296",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200071",
+      "ug_emitente": "257001",
+      "id_proposta": "1987201",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971153",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "2017143",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970517",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "429000",
+      "ug_emitente": "257001",
+      "id_proposta": "2025644",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971399",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "7250000",
+      "ug_emitente": "257001",
+      "id_proposta": "2035541",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "969171",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1144464",
+      "ug_emitente": "257001",
+      "id_proposta": "2016390",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "962381",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "1989985",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "962432",
+      "ano": "2024",
+      "sit_convenio": "Prestação de Contas Iniciada Por Antecipação",
+      "vl_global_conv": "251286",
+      "ug_emitente": "257001",
+      "id_proposta": "1990817",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970343",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "2100000",
+      "ug_emitente": "257001",
+      "id_proposta": "2025664",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "961377",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "496888",
+      "ug_emitente": "257001",
+      "id_proposta": "1984926",
+      "id_programa": "53757",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "991550",
+      "ano": "2026",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "5489276",
+      "ug_emitente": "257001",
+      "id_proposta": "2164823",
+      "id_programa": "55916",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "991766",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1736185",
+      "ug_emitente": "257001",
+      "id_proposta": "2165217",
+      "id_programa": "55916",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "991708",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1396507",
+      "ug_emitente": "257001",
+      "id_proposta": "2165099",
+      "id_programa": "55916",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "991484",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "535386",
+      "ug_emitente": "257001",
+      "id_proposta": "2163992",
+      "id_programa": "55916",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    }
+  ],
+  "REDE DE ATENCAO A PESSOA COM DOENCAS CRONICAS - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA": [
+    {
+      "nr_convenio": "973049",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "12154901",
+      "ug_emitente": "257001",
+      "id_proposta": "2039594",
+      "id_programa": "54002",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - REDE DE ATENÇÃO À PESSOA COM DOENÇAS CRÔNICAS - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "961247",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "10574888",
+      "ug_emitente": "257001",
+      "id_proposta": "1986438",
+      "id_programa": "54002",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - REDE DE ATENÇÃO À PESSOA COM DOENÇAS CRÔNICAS - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970621",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "10241429",
+      "ug_emitente": "257001",
+      "id_proposta": "2026010",
+      "id_programa": "54002",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - REDE DE ATENÇÃO À PESSOA COM DOENÇAS CRÔNICAS - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "968527",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "11603196",
+      "ug_emitente": "257001",
+      "id_proposta": "2007601",
+      "id_programa": "54002",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - REDE DE ATENÇÃO À PESSOA COM DOENÇAS CRÔNICAS - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+    }
+  ],
+  "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - LABORATORIO DE ANATOMIA PATOLOGICA E/OU CITOPATOLOGIA": [
+    {
+      "nr_convenio": "997074",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "250000",
+      "ug_emitente": "",
+      "id_proposta": "2202998",
+      "id_programa": "56321",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - LABORATÓRIO DE ANATOMIA PATOLÓGIA E/OU CITOPATOLOGIA"
+    }
+  ],
+  "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - AMBULATORIO PARA DIAGNOSTICO EM ONCOLOGIA": [
+    {
+      "nr_convenio": "7AACVL",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "750769",
+      "ug_emitente": "",
+      "id_proposta": "2227109",
+      "id_programa": "56315",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - AMBULATÓRIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988137",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "298815",
+      "ug_emitente": "257001",
+      "id_proposta": "2154534",
+      "id_programa": "54940",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - AMBULÁTORIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "985654",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200000",
+      "ug_emitente": "257001",
+      "id_proposta": "2149814",
+      "id_programa": "54940",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - AMBULÁTORIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "988840",
+      "ano": "2025",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "244677",
+      "ug_emitente": "257001",
+      "id_proposta": "2156935",
+      "id_programa": "54940",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO DO CÂNCER - AMBULÁTORIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "973720",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "201457,96",
+      "ug_emitente": "257001",
+      "id_proposta": "2041392",
+      "id_programa": "53755",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - AMBULATÓRIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "972703",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "200000",
+      "ug_emitente": "257001",
+      "id_proposta": "2039245",
+      "id_programa": "53755",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - AMBULATÓRIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "971406",
+      "ano": "",
+      "sit_convenio": "Proposta/Plano de Trabalho Aprovado",
+      "vl_global_conv": "206920",
+      "ug_emitente": "",
+      "id_proposta": "2025655",
+      "id_programa": "53755",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - AMBULATÓRIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    },
+    {
+      "nr_convenio": "970392",
+      "ano": "2024",
+      "sit_convenio": "Em execução",
+      "vl_global_conv": "1250000",
+      "ug_emitente": "257001",
+      "id_proposta": "1990854",
+      "id_programa": "53755",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - AMBULATÓRIO PARA DIAGNÓSTICO EM ONCOLOGIA"
+    }
+  ],
+  "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - SERVICO DE REFERENCIA PARA O DIAGNOSTICO DO CANCER DE MAMA (SDM)": [
+    {
+      "nr_convenio": "971355",
+      "ano": "2024",
+      "sit_convenio": "Prestação de Contas Concluída",
+      "vl_global_conv": "1203313",
+      "ug_emitente": "257001",
+      "id_proposta": "2025638",
+      "id_programa": "53761",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - SERVIÇO DE REFERÊNCIA PARA O DIAGNÓSTICO DO CÂNCER DE MAMA (SDM)"
+    },
+    {
+      "nr_convenio": "971131",
+      "ano": "2025",
+      "sit_convenio": "Prestação de Contas Iniciada Por Antecipação",
+      "vl_global_conv": "500000",
+      "ug_emitente": "257001",
+      "id_proposta": "2020461",
+      "id_programa": "53761",
+      "nome_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - CONTROLE DO CÂNCER - SERVIÇO DE REFERÊNCIA PARA O DIAGNÓSTICO DO CÂNCER DE MAMA (SDM)"
+    }
+  ]
+}

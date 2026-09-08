@@ -7,6 +7,7 @@
  * proprio, so essa parte): dados aninhados. */
 import { useState } from 'react';
 import { colors } from '../../styles/tokens';
+import { componenteDoProgramaSiconv } from './componenteSiconv';
 import { fmtData, fmtMoeda, pct } from './format';
 import { MonitoramentoInterno } from './MonitoramentoInterno';
 import { SiconvSubAbas } from './SiconvSubAbas';
@@ -37,13 +38,19 @@ export function ConvenioCard({
   // objeto/financeiro) e sempre renderizada, nao precisa de estado.
   const [detalheAberto, setDetalheAberto] = useState(false);
 
-  // Programa -- so API: proposta do TransfereGov ligada por CNPJ,
-  // resolvida por id_programa (aproximacao, mesma ressalva da secao
-  // TransfereGov abaixo). Nunca vem do monitoramento interno (decisao do
-  // usuario 2026-09-08 -- aquilo e planilha da equipe, nao API).
+  // Programa -- so API. Preferencia: SICONV (`siconv.programa`, exato por
+  // ID_PROPOSTA -- achado 2026-09-08) sobre TransfereGov (proposta ligada
+  // por CNPJ, resolvida por id_programa -- aproximacao, mesma ressalva da
+  // secao TransfereGov abaixo). Nunca vem do monitoramento interno
+  // (decisao do usuario 2026-09-08 -- aquilo e planilha da equipe, nao API).
+  const programaSiconv = siconv?.programa?.NOME_PROGRAMA || null;
   const programaTransfereGov = transferegov
     ? programas?.get(Number((transferegov.propostas_expandidas[0]?.proposta as Record<string, unknown> | undefined)?.id_programa))
     : undefined;
+  // Componente PNPCC derivado do NOME_PROGRAMA exato do SICONV, quando da
+  // pra casar com um dos 8 componentes-alvo (ver componenteSiconv.ts) --
+  // mais confiavel que `componentes` (cruzamento por CNPJ via TransfereGov).
+  const componenteSiconv = componenteDoProgramaSiconv(programaSiconv);
 
   const pctDesembolsado = c.financeiro.global && c.financeiro.desembolsado != null
     ? Math.round((c.financeiro.desembolsado / c.financeiro.global) * 100)
@@ -152,19 +159,23 @@ export function ConvenioCard({
             <Campo label="Nº do processo">{c.numeroProcesso}</Campo>
             <Campo label="Região / código IBGE">{c.regiao} · {c.codigoIbge}</Campo>
             {c.situacaoContratacao && <Campo label="Situação da contratação (SICONV)">{c.situacaoContratacao}</Campo>}
-            {programaTransfereGov ? (
+            {programaSiconv ? (
+              <Campo label="Programa" legenda="SICONV, exato por ID_PROPOSTA">{programaSiconv}</Campo>
+            ) : programaTransfereGov ? (
               <Campo label="Programa" legenda="TransfereGov, aproximação por CNPJ">
                 {programaTransfereGov.nm_programa} {programaTransfereGov.ano_programa ? `(${programaTransfereGov.ano_programa})` : ''}
               </Campo>
             ) : (
-              <Campo label="Programa">— (sem proposta TransfereGov pra esse CNPJ)</Campo>
+              <Campo label="Programa">— (não encontrado em nenhuma fonte)</Campo>
             )}
-            {componentes.length > 0 ? (
+            {componenteSiconv ? (
+              <Campo label="Componente PNPCC" legenda="SICONV, exato por ID_PROPOSTA">{componenteSiconv}</Campo>
+            ) : componentes.length > 0 ? (
               <Campo label="Componente PNPCC" legenda="TransfereGov, aproximação por CNPJ">
                 {componentes.map((cp) => `${cp.componente} (${cp.ano})`).join(' · ')}
               </Campo>
             ) : (
-              <Campo label="Componente PNPCC">— (sem proposta TransfereGov pra esse CNPJ)</Campo>
+              <Campo label="Componente PNPCC">— (não encontrado em nenhuma fonte)</Campo>
             )}
           </div>
         </Secao>

@@ -246,6 +246,102 @@ def _paginar_transferegov(endpoint: str, params: dict, sessao: requests.Session)
     return registros
 
 
+def levantar_componente_siconv() -> dict[str, list[dict]]:
+    """Varre `siconv_programa.csv` NACIONAL (nao so os 176 `programa` do
+    TransfereGov, que so cobrem 2025/2026 -- ver levantar_componente)
+    procurando os 8 componentes-alvo pelo NOME_PROGRAMA. Achado 2026-09-08
+    a pedido do usuario ("no SICONV cada convenio nao tem programa?"):
+    ESTE campo cobre TAMBEM 2024 ("REDE DE ATENCAO...", que o TransfereGov
+    nao tem -- lacuna documentada no topo do modulo), e o relacionamento e
+    exato por ID_PROPOSTA (siconv_programa_proposta), nao aproximacao por
+    CNPJ como o cruzamento do TransfereGov em levantar_componente().
+
+    `siconv_programa.csv` e um catalogo NACIONAL de todo governo federal --
+    1,25 milhao de linha (352MB descomprimido), nao so Saude. Rodar
+    `_componente_alvo_de` (SequenceMatcher, caro) em toda linha demorava
+    dezenas de minutos (medido 2026-09-08, matado ainda rodando aos 9min).
+    Por isso pre-filtra por substring barata (mesmas palavras-chave de
+    `PALAVRAS_PROGRAMA_ONCOLOGIA`, que ja cobre "REDE DE ATENCAO" via
+    ONCOL/CANCER) antes do fuzzy match -- so as pouquissimas linhas que
+    sobram do pre-filtro pagam o custo do SequenceMatcher."""
+    print("\n=== COMPONENTE (siconv_programa, dump nacional SICONV) ===")
+    caminho_programa = _baixar_zip_siconv("siconv_programa")
+    cabecalho, leitor = _linhas_csv_do_zip(caminho_programa)
+    idx_id = cabecalho.index("ID_PROGRAMA")
+    idx_nome = cabecalho.index("NOME_PROGRAMA")
+
+    programas_alvo: dict[str, dict] = {}  # id_programa -> {nome_programa, componente_alvo}
+    total = 0
+    pre_filtrados = 0
+    for linha in leitor:
+        total += 1
+        if total % 200_000 == 0:
+            print(f"   ... {total} linha(s) processada(s)")
+        if len(linha) != len(cabecalho):
+            continue
+        if linha[idx_id] in programas_alvo:
+            continue  # catalogo tem linha duplicada por regiao/UF, so a 1a importa
+        nome_norm = _normalizar(linha[idx_nome])
+        if not any(k in nome_norm for k in PALAVRAS_PROGRAMA_ONCOLOGIA):
+            continue  # pre-filtro barato -- evita SequenceMatcher em 1,25mi de linha
+        pre_filtrados += 1
+        componente = _componente_alvo_de(linha[idx_nome])
+        if componente:
+            programas_alvo[linha[idx_id]] = {"nome_programa": linha[idx_nome], "componente_alvo": componente}
+    print(f"   {total} linha(s) no total, {pre_filtrados} passou no pre-filtro por palavra-chave.")
+    print(f"   {len(programas_alvo)} programa(s) do SICONV batem com um dos 8 componentes-alvo.")
+
+    caminho_prop = _baixar_zip_siconv("siconv_programa_proposta")
+    cab_pp, leitor_pp = _linhas_csv_do_zip(caminho_prop)
+    idx_pp_proposta = cab_pp.index("ID_PROPOSTA")
+    idx_pp_programa = cab_pp.index("ID_PROGRAMA")
+    propostas_por_programa: dict[str, list[str]] = defaultdict(list)
+    for linha in leitor_pp:
+        if len(linha) != len(cab_pp):
+            continue
+        if linha[idx_pp_programa] in programas_alvo:
+            propostas_por_programa[linha[idx_pp_programa]].append(linha[idx_pp_proposta])
+    total_propostas = sum(len(v) for v in propostas_por_programa.values())
+    print(f"   {total_propostas} proposta(s) vinculada(s) a esses programas.")
+
+    caminho_convenio = _baixar_zip_siconv("siconv_convenio")
+    cab_conv, leitor_conv = _linhas_csv_do_zip(caminho_convenio)
+    convenio_por_proposta = {}
+    for linha in leitor_conv:
+        if len(linha) != len(cab_conv):
+            continue
+        d = dict(zip(cab_conv, linha))
+        if d.get("ID_PROPOSTA"):
+            convenio_por_proposta[d["ID_PROPOSTA"]] = d
+
+    resultado: dict[str, list[dict]] = defaultdict(list)
+    for id_programa, info in programas_alvo.items():
+        vistos = set()
+        for id_proposta in propostas_por_programa.get(id_programa, []):
+            conv = convenio_por_proposta.get(id_proposta)
+            if conv is None or conv["NR_CONVENIO"] in vistos:
+                continue
+            vistos.add(conv["NR_CONVENIO"])
+            resultado[info["componente_alvo"]].append({
+                "nr_convenio": conv["NR_CONVENIO"],
+                "ano": conv.get("ANO"),
+                "sit_convenio": conv.get("SIT_CONVENIO"),
+                "vl_global_conv": conv.get("VL_GLOBAL_CONV"),
+                "ug_emitente": conv.get("UG_EMITENTE"),
+                "id_proposta": id_proposta,
+                "id_programa": id_programa,
+                "nome_programa": info["nome_programa"],
+            })
+    for componente, convs in sorted(resultado.items()):
+        print(f"   {componente[:70]:70s} -> {len(convs)} convenio(s)")
+    faltando = [c for c in COMPONENTES_ALVO if c not in resultado]
+    if faltando:
+        print(f"   [AVISO] {len(faltando)} componente(s) sem NENHUM convenio no SICONV:")
+        for c in faltando:
+            print(f"      - {c}")
+    return dict(resultado)
+
+
 def levantar_componente() -> dict:
     """Enumera TODOS os `programa` do TransfereGov, acha os relacionados a
     cancer/oncologia, e busca as propostas de cada um. So cobre 2025/2026 --
@@ -288,8 +384,14 @@ def run() -> None:
         json.dumps(componente, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
+    componente_siconv = levantar_componente_siconv()
+    (DIR_SAIDA / "levantamento_componente_siconv.json").write_text(
+        json.dumps(componente_siconv, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
     print("\nGravado em scripts/output/levantamento_equipamento_por_convenio.json")
     print("Gravado em scripts/output/levantamento_componente_por_programa.json")
+    print("Gravado em scripts/output/levantamento_componente_siconv.json")
 
 
 if __name__ == "__main__":

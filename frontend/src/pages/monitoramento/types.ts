@@ -44,6 +44,13 @@ export type ConvenioPortal = {
 
 export type SiconvEntrada = {
   convenio: Record<string, string>;
+  /** Programa do convenio, resolvido de forma EXATA via
+   * ID_PROPOSTA -> ID_PROGRAMA -> siconv_programa.csv (achado 2026-09-08,
+   * ver docstring de coletar_siconv_legado.py) -- null quando o convenio
+   * nao tem ID_PROPOSTA ou o programa nao foi encontrado no dump. Fonte
+   * mais confiavel que a aproximacao por CNPJ do TransfereGov: usar esta
+   * primeiro, cair pro TransfereGov so quando esta for null. */
+  programa: Record<string, string> | null;
   empenhos: Record<string, string>[];
   desembolsos: Record<string, string>[];
   licitacoes: Record<string, string>[];

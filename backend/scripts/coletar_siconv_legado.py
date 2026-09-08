@@ -24,6 +24,18 @@ https://repositorio.dados.gov.br/seges/detru/ se precisar de mais):
                                    detalhado (ID_ITEM_PAD, descricao, quantidade, valor)
                                    -- arquivo fonte tem >1GB descomprimido, filtrado em streaming
                                    linha a linha (nunca carregado inteiro em memoria).
+  siconv_programa_proposta.csv -- 1 linha por (ID_PROPOSTA, ID_PROGRAMA) -- so usada pra resolver
+                                   o ID_PROGRAMA de cada convenio (via ID_PROPOSTA), nao entra
+                                   no resultado final.
+  siconv_programa.csv          -- catalogo de programa (ID_PROGRAMA -> NOME_PROGRAMA,
+                                   ACAO_ORCAMENTARIA, etc) -- achado 2026-09-08 depois do
+                                   usuario perguntar "no SICONV cada convenio nao tem
+                                   programa?". Confirmado real e EXATO por ID_PROPOSTA (nao
+                                   aproximacao por CNPJ como o TransfereGov) contra os 2
+                                   convenios ja conhecidos: 948686 -> "...AÇÃO 8535 -
+                                   RADIOTERAPIA..."; 971195 -> "...CONTROLE DO CÂNCER -
+                                   HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
+                                   (bate quase literal com um dos 8 componentes PNPCC).
 
 Particularidade de parsing: `siconv_termo_aditivo.csv` tem `JUSTIFICATIVA_TA`
 como ultimo campo, texto livre SEM aspas e as vezes contendo ";" dentro do
@@ -134,6 +146,44 @@ def _filtrar_plano_aplicacao_por_id_proposta(ids_proposta: set[str]) -> list[dic
     return registros
 
 
+def _filtrar_programa_proposta_por_id_proposta(ids_proposta: set[str]) -> dict[str, str]:
+    """siconv_programa_proposta.csv: 1 linha por (ID_PROPOSTA, ID_PROGRAMA).
+    Devolve so o PRIMEIRO ID_PROGRAMA achado por proposta -- na pratica uma
+    proposta tem 1 so (confirmado nos 2 convenios de teste), mas o arquivo
+    fonte pode ter mais de 1 linha pra mesma proposta (regiao/UF
+    duplicada), entao usa o primeiro e ignora o resto em vez de decidir
+    qual e "o certo"."""
+    print("Baixando siconv_programa_proposta.csv.zip...")
+    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_programa_proposta"))
+    idx_prop = cabecalho.index("ID_PROPOSTA")
+    idx_prog = cabecalho.index("ID_PROGRAMA")
+    programa_de_proposta: dict[str, str] = {}
+    for linha in leitor:
+        if len(linha) != len(cabecalho):
+            continue
+        if linha[idx_prop] in ids_proposta and linha[idx_prop] not in programa_de_proposta:
+            programa_de_proposta[linha[idx_prop]] = linha[idx_prog]
+    print(f"   {len(programa_de_proposta)} proposta(s) com programa resolvido.")
+    return programa_de_proposta
+
+
+def _filtrar_programa_por_id(ids_programa: set[str]) -> dict[str, dict[str, str]]:
+    """siconv_programa.csv: catalogo, mas com linha duplicada por
+    regiao/UF pro mesmo ID_PROGRAMA (confirmado -- mesmo NOME_PROGRAMA
+    repetido) -- guarda so a primeira ocorrencia de cada ID_PROGRAMA."""
+    print("Baixando siconv_programa.csv.zip...")
+    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_programa"))
+    idx_id = cabecalho.index("ID_PROGRAMA")
+    programas: dict[str, dict[str, str]] = {}
+    for linha in leitor:
+        if len(linha) != len(cabecalho):
+            continue
+        if linha[idx_id] in ids_programa and linha[idx_id] not in programas:
+            programas[linha[idx_id]] = dict(zip(cabecalho, linha))
+    print(f"   {len(programas)} programa(s) resolvido(s).")
+    return programas
+
+
 def run() -> None:
     numeros = _numeros_convenio()
     numeros_set = set(numeros)
@@ -144,8 +194,13 @@ def run() -> None:
     ids_proposta = {c["ID_PROPOSTA"] for c in por_arquivo["siconv_convenio"] if c.get("ID_PROPOSTA")}
     itens_plano = _filtrar_plano_aplicacao_por_id_proposta(ids_proposta)
 
+    # Programa -- achado 2026-09-08, exato por ID_PROPOSTA (ver docstring
+    # do modulo). Resolve em 2 passos: proposta -> id_programa -> nome.
+    programa_de_proposta = _filtrar_programa_proposta_por_id_proposta(ids_proposta)
+    programas_por_id = _filtrar_programa_por_id(set(programa_de_proposta.values()))
+
     # Agrupa tudo por NR_CONVENIO (chave em comum de quase toda tabela --
-    # plano_aplicacao entra via ID_PROPOSTA, resolvido no dict `convenio_de_proposta`).
+    # plano_aplicacao/programa entram via ID_PROPOSTA, resolvido no dict `convenio_de_proposta`).
     convenio_de_proposta = {c["ID_PROPOSTA"]: c["NR_CONVENIO"] for c in por_arquivo["siconv_convenio"]}
     itens_por_convenio: dict[str, list[dict]] = {}
     for item in itens_plano:
@@ -156,8 +211,10 @@ def run() -> None:
     resultado = []
     for convenio in por_arquivo["siconv_convenio"]:
         nr = convenio["NR_CONVENIO"]
+        id_programa = programa_de_proposta.get(convenio.get("ID_PROPOSTA", ""))
         resultado.append({
             "convenio": convenio,
+            "programa": programas_por_id.get(id_programa) if id_programa else None,
             "empenhos": [e for e in por_arquivo["siconv_empenho"] if e["NR_CONVENIO"] == nr],
             "desembolsos": [d for d in por_arquivo["siconv_desembolso"] if d["NR_CONVENIO"] == nr],
             "licitacoes": [l for l in por_arquivo["siconv_licitacao"] if l["NR_CONVENIO"] == nr],
