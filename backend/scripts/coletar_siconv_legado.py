@@ -66,9 +66,22 @@ def _numeros_convenio() -> list[str]:
     return [c["numero"] for c in convenios]
 
 
+DIR_CACHE = Path(__file__).parent / "output" / "cache"
+
+
 def _baixar_zip(nome: str) -> bytes:
+    """Cache local em scripts/output/cache/ (compartilhado com
+    levantamento_convenios_oncologia.py) -- siconv_plano_aplicacao.csv.zip
+    sozinho e ~280MB, sem necessidade de rebaixar toda vez que o universo
+    de convenios (scripts/output/convenios_flat.json) cresce."""
+    caminho = DIR_CACHE / f"{nome}.csv.zip"
+    if caminho.exists():
+        print(f"   (cache) {nome}.csv.zip ja baixado.")
+        return caminho.read_bytes()
     resp = requests.get(f"{BASE_URL}/{nome}.csv.zip", timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
     resp.raise_for_status()
+    DIR_CACHE.mkdir(parents=True, exist_ok=True)
+    caminho.write_bytes(resp.content)
     return resp.content
 
 

@@ -112,3 +112,30 @@ export type ConvenioUnificado = {
    * deste (ver `convenios_legados_relacionados` dentro do proprio objeto). */
   transferegov: TransfereGovEnte | null;
 };
+
+/** Propostas do TransfereGov achadas por `programa` (nao por numero de
+ * convenio -- FAF SAUDE e um instrumento novo, sem numero legado) que
+ * batem com um dos 8 "componente" de financiamento oncologico pedidos
+ * (REDE DE ATENCAO.../Politica Nacional de Prevencao e Controle do
+ * Cancer...). Casamento por nome normalizado, nao por id_programa fixo --
+ * ver backend/scripts/levantamento_convenios_oncologia.py::_componente_alvo_de
+ * (o id_programa muda todo ano que a categoria e recriada). */
+export type ComponentePropostaApi = {
+  id_proposta: number;
+  ente_recebedor: string | null;
+  cnpj: string | null;
+  municipio: string | null;
+  uf: string | null;
+  situacao_proposta: string | null;
+  valor_planejamento: number | null;
+  ds_objeto: string | null;
+};
+
+export type ComponenteOncologia = {
+  componente: string;
+  ano_programa: number;
+  id_programa: number;
+  nm_programa_api: string;
+  total_propostas: number;
+  propostas: ComponentePropostaApi[];
+};

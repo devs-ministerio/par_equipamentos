@@ -37,7 +37,8 @@ import { normalizarTexto } from '../utils/texto';
 import { ConvenioCard } from './monitoramento/ConvenioCard';
 import { fmtMoeda } from './monitoramento/format';
 import { mesclarConvenios } from './monitoramento/mesclarConvenios';
-import type { ConvenioPortal, SiconvEntrada, TransfereGovEnte } from './monitoramento/types';
+import { SecaoComponentes } from './monitoramento/SecaoComponentes';
+import type { ComponenteOncologia, ConvenioPortal, SiconvEntrada, TransfereGovEnte } from './monitoramento/types';
 import { useJson } from './monitoramento/useJson';
 
 export function MonitoramentoEquipamentosPage() {
@@ -47,6 +48,7 @@ export function MonitoramentoEquipamentosPage() {
   const { dados: portal, erro: erroPortal } = useJson<ConvenioPortal[]>('/monitoramento-equipamentos/convenios.json');
   const { dados: siconv, erro: erroSiconv } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
   const { dados: transferegov, erro: erroTransferegov } = useJson<TransfereGovEnte[]>('/monitoramento-equipamentos/transferegov.json');
+  const { dados: componentes } = useJson<ComponenteOncologia[]>('/monitoramento-equipamentos/componentes_oncologia.json');
 
   const convenios = useMemo(() => {
     if (!portal || !siconv || !transferegov) return null;
@@ -83,8 +85,9 @@ export function MonitoramentoEquipamentosPage() {
       <div style={{ maxWidth: layout.maxWidth, margin: '0 auto' }}>
         <h1 style={{ fontSize: 20, margin: '0 0 4px', color: '#16213e' }}>Monitoramento de Equipamentos — Convênios (MS)</h1>
         <p style={{ color: colors.mutedText, fontSize: 13, maxWidth: 900, lineHeight: 1.6, marginBottom: 20 }}>
-          Página separada da análise de mérito de hipo/hipersuficiência do SIEO — 71 convênios de aquisição de
-          equipamento já validados (<code>backend/scripts/validar_convenios.py</code>), com Portal da Transparência +
+          Página separada da análise de mérito de hipo/hipersuficiência do SIEO — {convenios?.length ?? '...'} convênios
+          de aquisição de equipamento (71 validados manualmente + levantamento nacional por item de equipamento no
+          SICONV, ver <code>backend/scripts/levantamento_convenios_oncologia.py</code>), com Portal da Transparência +
           SICONV legado + TransfereGov novo mesclados num registro só por convênio.
         </p>
 
@@ -112,6 +115,8 @@ export function MonitoramentoEquipamentosPage() {
             {filtrados.map((c) => <ConvenioCard key={c.numero} c={c} />)}
           </>
         )}
+
+        {componentes && <SecaoComponentes dados={componentes} />}
       </div>
     </div>
   );

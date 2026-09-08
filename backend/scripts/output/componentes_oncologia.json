@@ -1,0 +1,186 @@
+[
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - AMBULATORIO PARA DIAGNOSTICO EM ONCOLOGIA",
+    "ano_programa": 2025,
+    "id_programa": 53,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Ambulatório para Diagnóstico em Oncologia",
+    "total_propostas": 3,
+    "propostas": [
+      {
+        "id_proposta": 38737,
+        "ente_recebedor": "FUNDO MUNICIPAL DE SAUDE DE APARECIDA DE GOIANIA",
+        "cnpj": "11809185000104",
+        "municipio": "APARECIDA DE GOIÂNIA",
+        "uf": "GO",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 208188.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      },
+      {
+        "id_proposta": 42913,
+        "ente_recebedor": "FUNDO MUNICIPAL DE SAUDE DE JOAO CAMARA RN",
+        "cnpj": "12083881000130",
+        "municipio": "JOÃO CÂMARA",
+        "uf": "RN",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 101773.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      },
+      {
+        "id_proposta": 23810,
+        "ente_recebedor": "FUNDO MUNICIPAL DE SAUDE",
+        "cnpj": "14026965000168",
+        "municipio": "SÃO GONÇALO DO AMARANTE",
+        "uf": "RN",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 1186002.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      }
+    ]
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - AMBULATORIO PARA DIAGNOSTICO EM ONCOLOGIA",
+    "ano_programa": 2026,
+    "id_programa": 109,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - AMBULATÓRIO PARA DIAGNÓSTICO EM ONCOLOGIA",
+    "total_propostas": 0,
+    "propostas": []
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA",
+    "ano_programa": 2025,
+    "id_programa": 57,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Hospital habilitado na Alta Complexidade em Oncologia",
+    "total_propostas": 4,
+    "propostas": [
+      {
+        "id_proposta": 44942,
+        "ente_recebedor": "FUNDO ESTADUAL DE SAUDE",
+        "cnpj": "80673411000187",
+        "municipio": "FLORIANÓPOLIS",
+        "uf": "SC",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 2200000.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      },
+      {
+        "id_proposta": 42284,
+        "ente_recebedor": "FUNDO DE SAUDE DO DISTRITO FEDERAL",
+        "cnpj": "12116247000157",
+        "municipio": "BRASÍLIA",
+        "uf": "DF",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 410000.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      },
+      {
+        "id_proposta": 41803,
+        "ente_recebedor": "FUNDO DE SAUDE DO DISTRITO FEDERAL",
+        "cnpj": "12116247000157",
+        "municipio": "BRASÍLIA",
+        "uf": "DF",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 1300.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      },
+      {
+        "id_proposta": 38088,
+        "ente_recebedor": "FUNDO DE SAUDE DO DISTRITO FEDERAL",
+        "cnpj": "12116247000157",
+        "municipio": "BRASÍLIA",
+        "uf": "DF",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 4692.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      }
+    ]
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA",
+    "ano_programa": 2026,
+    "id_programa": 151,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA",
+    "total_propostas": 0,
+    "propostas": []
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - LABORATORIO DE ANATOMIA PATOLOGICA E/OU CITOPATOLOGIA",
+    "ano_programa": 2025,
+    "id_programa": 63,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Laboratório de anatomia patológia e/ou citopatologia",
+    "total_propostas": 0,
+    "propostas": []
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - LABORATORIO DE ANATOMIA PATOLOGICA E/OU CITOPATOLOGIA",
+    "ano_programa": 2026,
+    "id_programa": 155,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - LABORATÓRIO DE ANATOMIA PATOLÓGIA E/OU CITOPATOLOGIA",
+    "total_propostas": 0,
+    "propostas": []
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - SERVICO DE REFERENCIA PARA O DIAGNOSTICO DO CANCER DE COLO DO UTERO (SRC)",
+    "ano_programa": 2025,
+    "id_programa": 104,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE -  POLITICA NACIONAL DE PREVENÇÃO E CONTROLE DO CANCER - SERVIÇO DE REFERENCIA PARA O DIAGNOSTICO DO CANCER NO UTERO - SRC",
+    "total_propostas": 1,
+    "propostas": [
+      {
+        "id_proposta": 43829,
+        "ente_recebedor": "FUNDO MUNICIPAL DE SAUDE DE APUCARANA",
+        "cnpj": "02575748000148",
+        "municipio": "APUCARANA",
+        "uf": "PR",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 222388.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      }
+    ]
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - SERVICO DE REFERENCIA PARA O DIAGNOSTICO DO CANCER DE COLO DO UTERO (SRC)",
+    "ano_programa": 2026,
+    "id_programa": 165,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Serviço de Referência para o Diagnóstico do Câncer de Útero (SRC)",
+    "total_propostas": 0,
+    "propostas": []
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - SERVICO DE REFERENCIA PARA O DIAGNOSTICO DO CANCER DE MAMA (SDM)",
+    "ano_programa": 2025,
+    "id_programa": 64,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE 0 Política Nacional de Prevenção e Controle do Câncer - Serviço de Referência para o Diagnóstico do Câncer de Mama (SDM)",
+    "total_propostas": 2,
+    "propostas": [
+      {
+        "id_proposta": 24146,
+        "ente_recebedor": "FUNDO MUNICIPAL DE SAUDE",
+        "cnpj": "11169453000162",
+        "municipio": "MAIRIPORÃ",
+        "uf": "SP",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 36055.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      },
+      {
+        "id_proposta": 41173,
+        "ente_recebedor": "FUNDO MUNICIPAL DE SAUDE DE CAMPINAS",
+        "cnpj": "13704311000183",
+        "municipio": "CAMPINAS",
+        "uf": "SP",
+        "situacao_proposta": "Aprovada",
+        "valor_planejamento": 287998.0,
+        "ds_objeto": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE"
+      }
+    ]
+  },
+  {
+    "componente": "POLITICA NACIONAL DE PREVENCAO E CONTROLE DO CANCER - SERVICO DE REFERENCIA PARA O DIAGNOSTICO DO CANCER DE MAMA (SDM)",
+    "ano_programa": 2026,
+    "id_programa": 164,
+    "nm_programa_api": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Serviço de Referência para o Diagnóstico do Câncer de Mama (SDM)",
+    "total_propostas": 0,
+    "propostas": []
+  }
+]
