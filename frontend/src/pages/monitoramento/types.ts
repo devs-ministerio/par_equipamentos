@@ -51,6 +51,14 @@ export type SiconvEntrada = {
    * mais confiavel que a aproximacao por CNPJ do TransfereGov: usar esta
    * primeiro, cair pro TransfereGov so quando esta for null. */
   programa: Record<string, string> | null;
+  /** siconv_proposta.csv, 1 linha por ID_PROPOSTA -- identificacao do
+   * proponente (NM_PROPONENTE, IDENTIF_PROPONENTE/CNPJ, MUNIC_PROPONENTE,
+   * COD_MUNIC_IBGE, UF_PROPONENTE, OBJETO_PROPOSTA, MODALIDADE,
+   * SIT_PROPOSTA, VL_GLOBAL_PROP). Achado 2026-09-08, so buscada pelo
+   * backend pros convenios SEM entrada no Portal da Transparencia (ver
+   * `identidadeFonte`) -- fica null pros que tem Portal (identidade ja
+   * vem de la, mais confiavel). */
+  proposta: Record<string, string> | null;
   empenhos: Record<string, string>[];
   desembolsos: Record<string, string>[];
   licitacoes: Record<string, string>[];

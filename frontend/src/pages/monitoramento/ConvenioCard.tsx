@@ -140,8 +140,8 @@ export function ConvenioCard({
       )}
       {c.identidadeFonte === 'siconv' && (
         <p style={{ fontSize: 11, color: colors.logoOrange, margin: '8px 0 0' }}>
-          ⚠️ Não indexado no Portal da Transparência (numero de instrumento não reconhecido pela API antiga) — nome do
-          convenente, objeto e município não disponíveis. Situação/valores vêm direto do SICONV.
+          ⚠️ Não indexado no Portal da Transparência (número de instrumento não reconhecido pela API antiga) —
+          identificação/situação/valores vêm do SICONV (siconv_convenio + siconv_proposta), não do Portal.
         </p>
       )}
 

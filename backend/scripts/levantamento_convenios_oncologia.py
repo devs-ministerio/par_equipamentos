@@ -81,12 +81,27 @@ DIR_CACHE = DIR_SAIDA / "cache"
 # DESCRICAO_ITEM do SICONV. Rede ampla de proposito (fase de descoberta,
 # nao de decisao final) -- prefere falso positivo (equipe revisa) a falso
 # negativo (convenio nunca aparece pra ninguem ver).
+# Os 5 originais (pedido 2026-09-03) + 9 adicionados 2026-09-08 depois de
+# mapear os 2.250 itens NAO reconhecidos dos 444 convenio ja validados --
+# Ultrassom/Endoscopia/Tomografo/Ressonancia/Radioterapia(generico)/Raios X/
+# Hemodialise/Angiografia/Cobalto apareciam em volume real sem tag nenhuma.
+# Mesmos padroes de frontend/src/pages/monitoramento/equipamentoTags.ts --
+# atualizar os dois juntos se mudar.
 PADROES_EQUIPAMENTO = {
     "Acelerador Linear": re.compile(r"ACELERADOR\s*LINEAR"),
     "Mamografo": re.compile(r"MAMOGRAFO"),
     "PET/CT": re.compile(r"\bPET[\s/\-]*CT\b"),
     "Gama-camara/SPECT": re.compile(r"GAMA\s*C[A]?MARA|C[A]?MARA\s*CINTILOGR[A]?FICA|\bSPECT\b"),
     "Braquiterapia": re.compile(r"BRAQUITERAPIA"),
+    "Ultrassom": re.compile(r"ULTRASSOM"),
+    "Endoscopia": re.compile(r"ENDOSCOP"),
+    "Tomografo": re.compile(r"TOMOGRAF"),
+    "Ressonancia": re.compile(r"RESSONANC"),
+    "Radioterapia": re.compile(r"RADIOTERAPIA"),
+    "Raios X": re.compile(r"RAIOS\s*X"),
+    "Hemodialise": re.compile(r"HEMODIALISE"),
+    "Angiografia": re.compile(r"ANGIOGRAF"),
+    "Cobalto": re.compile(r"COBALTO"),
 }
 
 # Palavras-chave pra achar o `programa` certo entre os 176 do TransfereGov --

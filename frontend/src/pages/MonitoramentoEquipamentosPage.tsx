@@ -75,6 +75,7 @@ export function MonitoramentoEquipamentosPage() {
   const [equipamento, setEquipamento] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<string | null>(null);
   const [ano, setAno] = useState<string | null>(null);
+  const [programa, setPrograma] = useState<string | null>(null);
   const [tipoContratacao, setTipoContratacao] = useState<string | null>('convenio');
   const [soMonitorados, setSoMonitorados] = useState(false);
   const [pagina, setPagina] = useState(1);
@@ -153,6 +154,32 @@ export function MonitoramentoEquipamentosPage() {
     return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([s, n]) => ({ value: s, label: `${s} (${n})` }));
   }, [convenios]);
 
+  // Programa (SICONV, exato por ID_PROPOSTA -- ver siconv.programa em
+  // types.ts) -- TODOS os programas que aparecem nos convenios, nao so os
+  // 8 componentes PNPCC nomeados (pedido do usuario 2026-09-08: "444
+  // convenios, 143 com componente PNPCC, os outros 301 tem programa de
+  // categoria mais antiga/ampla -- pode inserir todos os programas").
+  // Filtra por ID_PROGRAMA (chave limpa) mesmo com NOME_PROGRAMA vindo
+  // com corrupcao de encoding em boa parte das linhas da fonte (confirmado
+  // 2026-09-08: a corrupcao e por linha da fonte, nao por convenio -- cada
+  // ID_PROGRAMA tem sempre a MESMA grafia, entao filtrar por ID nunca
+  // erra mesmo quando o rotulo exibido vier com "?"/"�"). Ordenado por
+  // frequencia -- 87 opcoes, os mais comuns primeiro ajudam a achar rapido.
+  const programaOptions = useMemo(() => {
+    if (!convenios) return [];
+    const porId = new Map<string, { nome: string; n: number }>();
+    for (const c of convenios) {
+      const prog = c.siconv?.programa;
+      if (!prog?.ID_PROGRAMA) continue;
+      const atual = porId.get(prog.ID_PROGRAMA);
+      if (atual) atual.n += 1;
+      else porId.set(prog.ID_PROGRAMA, { nome: prog.NOME_PROGRAMA || prog.ID_PROGRAMA, n: 1 });
+    }
+    return [...porId.entries()]
+      .sort((a, b) => b[1].n - a[1].n)
+      .map(([id, { nome, n }]) => ({ value: id, label: `${nome} (${n})` }));
+  }, [convenios]);
+
   const filtrados = useMemo(() => {
     // "Convenio" e o unico tipo de contratacao com dado -- qualquer outro
     // valor (PERSUS I/II, FAF, TED) mostra lista vazia de proposito, nunca
@@ -163,6 +190,7 @@ export function MonitoramentoEquipamentosPage() {
       if (equipamento && !equipamentosPorNumero.get(c.numero)?.includes(equipamento)) return false;
       if (situacao && c.situacao !== situacao) return false;
       if (ano && c.datas.publicacao?.slice(0, 4) !== ano) return false;
+      if (programa && c.siconv?.programa?.ID_PROGRAMA !== programa) return false;
       if (soMonitorados && !monitorados.has(c.numero)) return false;
       if (busca) {
         const alvo = normalizarTexto(`${c.numero} ${c.convenente.nome} ${c.convenente.cnpj} ${c.municipio} ${c.objeto}`);
@@ -174,11 +202,11 @@ export function MonitoramentoEquipamentosPage() {
     // editavel da pagina toda, merece ficar visivel sem precisar escanear
     // ~300 cards pra achar (so 1 hoje, mas o desenho ja escala pra mais).
     return [...lista].sort((a, b) => Number(monitorados.has(b.numero)) - Number(monitorados.has(a.numero)));
-  }, [convenios, busca, uf, equipamento, situacao, ano, tipoContratacao, soMonitorados, equipamentosPorNumero, monitorados]);
+  }, [convenios, busca, uf, equipamento, situacao, ano, programa, tipoContratacao, soMonitorados, equipamentosPorNumero, monitorados]);
 
   // Volta pra pagina 1 sempre que filtro/busca mudar -- senao o usuario
   // pode ficar preso numa pagina que nao existe mais no resultado novo.
-  useEffect(() => setPagina(1), [busca, uf, equipamento, situacao, ano, tipoContratacao, soMonitorados]);
+  useEffect(() => setPagina(1), [busca, uf, equipamento, situacao, ano, programa, tipoContratacao, soMonitorados]);
 
   const paginados = filtrados.slice((pagina - 1) * PAGE_SIZE, pagina * PAGE_SIZE);
 
@@ -282,6 +310,7 @@ export function MonitoramentoEquipamentosPage() {
                 <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={200} />
                 <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={200} />
                 <SingleSelectFilter placeholder="Ano de publicação" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={140} />
+                <SingleSelectFilter placeholder="Todos os programas" options={programaOptions} value={programa} onChange={setPrograma} clearLabel="Todos os programas" minWidth={220} />
               </div>
 
               {tipoContratacao && tipoContratacao !== 'convenio' ? (

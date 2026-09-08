@@ -37,6 +37,7 @@ Gestão), recorte público, ~44 tabelas / 8GB+ no total. Ver
 | `siconv_plano_aplicacao` | item a item do que foi **planejado** comprar (`DESCRICAO_ITEM`) — o zip se chama `siconv_plano_aplicacao.csv.zip` mas o CSV de dentro é `siconv_plano_aplicacao_detalhado.csv` (mesmo arquivo que a literatura externa chama de "Plano de Aplicação Detalhado", ~4,65 milhões de linha) | `ID_PROPOSTA` | ambos scripts — fonte central da varredura de equipamento |
 | `siconv_programa_proposta` | 1 linha por (`ID_PROPOSTA`, `ID_PROGRAMA`) — só a ponte | `ID_PROPOSTA` → `ID_PROGRAMA` | ambos — achado 2026-09-08 |
 | `siconv_programa` | catálogo `ID_PROGRAMA` → `NOME_PROGRAMA` (~1,25 milhão de linha, governo federal inteiro, não só Saúde) | `ID_PROGRAMA` | ambos — achado 2026-09-08 |
+| `siconv_proposta` | 1 linha por `ID_PROPOSTA` — `NM_PROPONENTE`, `IDENTIF_PROPONENTE` (CNPJ), `MUNIC_PROPONENTE`, `COD_MUNIC_IBGE`, `UF_PROPONENTE`, `OBJETO_PROPOSTA`, `MODALIDADE`, `SIT_PROPOSTA`, `VL_GLOBAL_PROP` (~1,11 milhão de linha, ~199MB comprimido) | `ID_PROPOSTA` | `coletar_siconv_legado.py` — achado 2026-09-08, buscada SÓ pros convênios sem entrada no Portal da Transparência |
 
 `siconv_programa`/`siconv_programa_proposta` dão o **Programa** de cada
 convênio de forma EXATA por `ID_PROPOSTA` — não é aproximação por CNPJ como
@@ -51,6 +52,22 @@ em `levantamento_convenios_oncologia.py`).
 > pré-filtra por substring barata (`ONCOL`/`CANCER`/`PRONON`/`PRONAS`) antes
 > do fuzzy match — só ~18 mil linhas sobrevivem ao pré-filtro.
 
+`siconv_proposta` é a ÚNICA fonte com nome/objeto/município do proponente
+pra convênio que o Portal da Transparência não indexa (identidade
+`identidadeFonte: 'siconv'` no front, ver mesclarConvenios.ts) — nesses
+casos, `MODALIDADE`/`OBJETO_PROPOSTA`/etc. do `siconv_proposta` viram o
+fallback final (depois de Portal, antes de "—"). Só é buscada pra esse
+subconjunto (41 dos 444, medido 2026-09-08) pra não pagar o custo de
+filtrar ~1,11 milhão de linha à toa quando o Portal já tem a identidade.
+
+> [!warning] `MODALIDADE` NÃO é TED/PERSUS/FAF
+> A hipótese registrada abaixo (tabela de "conhecidas mas não usadas") de
+> que `MODALIDADE` poderia alimentar o filtro "Tipo de contratação"
+> (Persus I/II, FAF, TED) foi testada 2026-09-08 contra os 41 convênios
+> reais coletados: só apareceu `CONVENIO` (39) e `CONTRATO DE REPASSE` (2)
+> — nenhum TED/PERSUS/FAF. **Hipótese descartada** — esse filtro continua
+> sem fonte de dado real, estado vazio se mantém.
+
 ## Tabelas conhecidas mas AINDA NÃO usadas no nosso pipeline
 
 Citadas num guia de um projeto anterior do usuário sobre o mesmo dump — não
@@ -62,7 +79,6 @@ de que vêm do mesmo dump e devem estar disponíveis em
 
 | Tabela | O que tem | Por que pode interessar |
 |---|---|---|
-| `siconv_proposta` (~1,11 milhão de linha) | `NM_PROPONENTE`, `IDENTIF_PROPONENTE` (CNPJ/CPF), `UF_PROPONENTE`, **`MODALIDADE`** (TED / PERSUS-I / FAF / Convênio), `OBJETO_PROPOSTA` | `MODALIDADE` é possivelmente a chave pro filtro "Tipo de contratação" que hoje mostra estado vazio pra Persus I/II, FAF e TED no front (`frontend/src/pages/MonitoramentoEquipamentosPage.tsx:59`, `TIPOS_CONTRATACAO`) — **a confirmar**: se esses 3 tipos aparecem de fato como `MODALIDADE` no dump, dá pra tirá-los do estado vazio. |
 | `siconv_meta_crono_fisico` (~1,50 milhão de linha) | `NOME_PROGRAMA`, `DESC_META`, `UF_META` — por `ID_PROPOSTA` | pode servir de reforço/nível-2 na varredura de componente (contexto do programa mesmo quando a descrição do item não é clara), mas hoje já cobrimos isso melhor via `siconv_programa` (exato, não texto livre) |
 | `siconv_itens_dl` (~9,27 milhões de linha) | o que foi **efetivamente pago** (`DESCRICAO_ITEM_DL`, `VALOR_TOTAL_ITEM_DL`) — pode divergir do planejado (nome comercial vs. técnico) | hoje só usamos `siconv_plano_aplicacao` (planejado) pra identificar equipamento — nunca cruzamos com o que foi de fato pago |
 | `siconv_pagamento` (~6,94 milhões de linha) | `NOME_FORNECEDOR`, `IDENTIF_FORNECEDOR`, `DATA_PAG`, `VL_PAGO`, por `NR_CONVENIO` | identificaria o fornecedor/fabricante que efetivamente recebeu o pagamento — não temos isso hoje |
@@ -73,11 +89,14 @@ de que vêm do mesmo dump e devem estar disponíveis em
 | `siconv_justificativas_proposta` (~1,1 milhão de linha) | texto livre de justificativa da proposta | fora de escopo |
 
 > [!warning] A confirmar
-> Nenhuma dessas 7 tabelas foi baixada/inspecionada ainda pelo nosso
+> Nenhuma dessas 6 tabelas foi baixada/inspecionada ainda pelo nosso
 > código — os nomes de coluna acima vêm só do guia externo, não de um
 > `cabecalho.index(...)` real contra o CSV. Antes de codar em cima de
 > qualquer uma, baixar o zip e conferir o cabeçalho de verdade (mesmo
-> padrão de `_baixar_zip_siconv` + `_linhas_csv_do_zip`).
+> padrão de `_baixar_zip_siconv` + `_linhas_csv_do_zip`) — `siconv_proposta`
+> já passou por essa checagem (ver tabela "já usamos" acima) e o cabeçalho
+> real bateu com o do guia, o que dá confiança nos nomes das outras 6, mas
+> não é garantia.
 
 ## Planejado vs. executado — distinção que hoje não fazemos
 
@@ -127,6 +146,9 @@ siconv_plano_aplicacao (item planejado, DESCRICAO_ITEM)
                               ├── NR_CONVENIO ──► siconv_empenho / siconv_desembolso /
                               │                    siconv_licitacao / siconv_termo_aditivo
                               │
-                              └── ID_PROPOSTA ──► siconv_programa_proposta ──► siconv_programa
-                                                    (ID_PROGRAMA)              (NOME_PROGRAMA)
+                              ├── ID_PROPOSTA ──► siconv_programa_proposta ──► siconv_programa
+                              │                     (ID_PROGRAMA)              (NOME_PROGRAMA)
+                              │
+                              └── ID_PROPOSTA ──► siconv_proposta (NM_PROPONENTE, OBJETO_PROPOSTA...)
+                                                    -- só buscada quando falta no Portal
 ```

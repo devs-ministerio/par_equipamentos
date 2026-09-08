@@ -64,6 +64,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264002",
@@ -269,6 +270,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "52716",
@@ -578,6 +580,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177100",
@@ -743,6 +746,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "225054",
@@ -867,6 +871,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "297022",
@@ -1374,6 +1379,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "163780",
@@ -1943,6 +1949,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177085",
@@ -2070,6 +2077,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "290355",
@@ -2249,6 +2257,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "286015",
@@ -2461,6 +2470,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "213840",
@@ -2700,6 +2710,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "145211",
@@ -2925,6 +2936,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "211919",
@@ -3397,6 +3409,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "230553",
@@ -3562,6 +3575,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "40654",
@@ -3848,6 +3862,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "34260",
@@ -4330,6 +4345,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49018",
@@ -4475,6 +4491,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264751",
@@ -4674,6 +4691,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "286052",
@@ -4872,6 +4890,44 @@
       "ACAO_ORCAMENTARIA": "20158535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "1281685",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "SÃO PAULO",
+      "COD_MUNIC_IBGE": "3550308",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "100390/2017",
+      "DIA_PROP": "9",
+      "MES_PROP": "12",
+      "ANO_PROP": "2017",
+      "DIA_PROPOSTA": "09/12/2017",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "60945854000172",
+      "NM_PROPONENTE": "INSTITUTO DO CANCER ARNALDO VIEIRA DE CARVALHO",
+      "CEP_PROPONENTE": "01221020",
+      "ENDERECO_PROPONENTE": "RUA DR. CESARIO MOTTA JUNIOR, 112 - VILA BUARQUE. SÃO PAULO - SP. CEP: 01221-020",
+      "BAIRRO_PROPONENTE": "VILA BUARQUE",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "09/12/2017",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "08/12/2018",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ALTA COMPLEXIDADE EM ONCOLOGIA",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "783850",
+      "VL_REPASSE_PROP": "710000",
+      "VL_CONTRAPARTIDA_PROP": "73850",
+      "CD_AGENCIA": "3221-2",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -5083,6 +5139,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "168550",
@@ -5282,6 +5339,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177080",
@@ -5460,6 +5518,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139553",
@@ -7109,6 +7168,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119513",
@@ -7308,6 +7368,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "113131",
@@ -7560,6 +7621,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "62874",
@@ -7732,6 +7794,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119844",
@@ -7937,6 +8000,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "168707",
@@ -8149,6 +8213,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "115843",
@@ -8587,6 +8652,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "168381",
@@ -8717,6 +8783,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "24039",
@@ -8902,6 +8969,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264855",
@@ -9067,6 +9135,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "34249",
@@ -9348,6 +9417,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151693",
@@ -9479,6 +9549,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "48614",
@@ -9661,6 +9732,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "236932",
@@ -9790,6 +9862,44 @@
       "ACAO_ORCAMENTARIA": "50188535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "1727969",
+      "UF_PROPONENTE": "MG",
+      "MUNIC_PROPONENTE": "UBERABA",
+      "COD_MUNIC_IBGE": "3170107",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "52108/2021",
+      "DIA_PROP": "20",
+      "MES_PROP": "12",
+      "ANO_PROP": "2021",
+      "DIA_PROPOSTA": "20/12/2021",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "25438409000115",
+      "NM_PROPONENTE": "ASSOCIACAO DE COMBATE AO CANCER DO BRASIL CENTRAL",
+      "CEP_PROPONENTE": "38065065",
+      "ENDERECO_PROPONENTE": "RUA GOVERNADOR VALADARES, 640 - FABRICIO. UBERABA - MG. CEP: 38065-065",
+      "BAIRRO_PROPONENTE": "FABRICIO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "20/12/2021",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "20/12/2022",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "1500000",
+      "VL_REPASSE_PROP": "1500000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0160-0",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -9969,6 +10079,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "233922",
@@ -10432,6 +10543,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49195",
@@ -10695,6 +10807,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "170235",
@@ -11316,6 +11429,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "2154548",
+      "UF_PROPONENTE": "RJ",
+      "MUNIC_PROPONENTE": "VASSOURAS",
+      "COD_MUNIC_IBGE": "3306206",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "65581/2025",
+      "DIA_PROP": "3",
+      "MES_PROP": "12",
+      "ANO_PROP": "2025",
+      "DIA_PROPOSTA": "03/12/2025",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "32410037000184",
+      "NM_PROPONENTE": "FUNDACAO SEVERINO SOMBRA",
+      "CEP_PROPONENTE": "27700000",
+      "ENDERECO_PROPONENTE": "AVENIDA EXPEDICIONARIO OSWALDO DE ALMEIDA RAMOS, 280 - CENTRO. VASSOURAS - RJ. CEP: 27700-000",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "03/12/2025",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "03/12/2027",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "1162851",
+      "VL_REPASSE_PROP": "1162851",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0196-1",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "164863",
@@ -11511,6 +11662,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "111054",
@@ -11656,6 +11808,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49672",
@@ -11925,6 +12078,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "234033",
@@ -12055,6 +12209,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "316253",
@@ -12220,6 +12375,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "73135",
@@ -12425,6 +12581,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139593",
@@ -12593,6 +12750,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "211926",
@@ -12925,6 +13083,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "112574",
@@ -13181,6 +13340,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139888",
@@ -13343,6 +13503,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "174125",
@@ -13661,6 +13822,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "184393",
@@ -13771,6 +13933,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "287342",
@@ -13935,6 +14098,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "135424",
@@ -14180,6 +14344,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165531",
@@ -15246,6 +15411,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "158813",
@@ -15478,6 +15644,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "128182",
@@ -15640,6 +15807,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "120027",
@@ -15825,6 +15993,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "128184",
@@ -16064,6 +16233,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139596",
@@ -16229,6 +16399,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "211897",
@@ -16374,6 +16545,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "218162",
@@ -16639,6 +16811,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "149409",
@@ -17247,6 +17420,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1552301",
+      "UF_PROPONENTE": "PR",
+      "MUNIC_PROPONENTE": "ARAPONGAS",
+      "COD_MUNIC_IBGE": "4101507",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "6947/2020",
+      "DIA_PROP": "5",
+      "MES_PROP": "5",
+      "ANO_PROP": "2020",
+      "DIA_PROPOSTA": "05/05/2020",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "04169712000190",
+      "NM_PROPONENTE": "ASSOCIACAO NORTE PARANAENSE DE COMBATE AO CANCER",
+      "CEP_PROPONENTE": "86701050",
+      "ENDERECO_PROPONENTE": "RODOVIA PR 218 - KM 01, S/N, SALA - JARDIM UNIVERSITARIO. ARAPONGAS - PR. CEP: 86701-050",
+      "BAIRRO_PROPONENTE": "JARDIM UNIVERSITARIO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Rejeitados por Impedimento técnico",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "05/05/2020",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "04/02/2022",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "6666277",
+      "VL_REPASSE_PROP": "6660000",
+      "VL_CONTRAPARTIDA_PROP": "6277",
+      "CD_AGENCIA": "0380-8",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "421560",
@@ -17479,6 +17690,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "263188",
@@ -17870,6 +18082,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "170375",
@@ -18191,6 +18404,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "461651",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "SOROCABA",
+      "COD_MUNIC_IBGE": "3552205",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "32205/2011",
+      "DIA_PROP": "14",
+      "MES_PROP": "7",
+      "ANO_PROP": "2011",
+      "DIA_PROPOSTA": "14/07/2011",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "71485056000121",
+      "NM_PROPONENTE": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SOROCABA",
+      "CEP_PROPONENTE": "18013002",
+      "ENDERECO_PROPONENTE": "AVENIDA SAO PAULO, 750 - ARVORE GRANDE. SOROCABA - SP. CEP: 18013-002",
+      "BAIRRO_PROPONENTE": "ARVORE GRANDE",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "14/07/2011",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "31/12/2011",
+      "OBJETO_PROPOSTA": "Aquisição de equipamento",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "500000",
+      "VL_REPASSE_PROP": "500000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "2414-7",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "145175",
@@ -18320,6 +18571,44 @@
       "ACAO_ORCAMENTARIA": "20158535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "1290410",
+      "UF_PROPONENTE": "RS",
+      "MUNIC_PROPONENTE": "PORTO ALEGRE",
+      "COD_MUNIC_IBGE": "4314902",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "105150/2017",
+      "DIA_PROP": "30",
+      "MES_PROP": "12",
+      "ANO_PROP": "2017",
+      "DIA_PROPOSTA": "30/12/2017",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "92815000000168",
+      "NM_PROPONENTE": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE PORTO ALEGRE",
+      "CEP_PROPONENTE": "90020090",
+      "ENDERECO_PROPONENTE": "RUA PROF ANNES DIAS, 295 - CENTRO. PORTO ALEGRE - RS. CEP: 90020-090",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "30/12/2017",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "30/12/2018",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "14284998",
+      "VL_REPASSE_PROP": "14284998",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0010-8",
+      "CD_CONTA": ""
     },
     "empenhos": [],
     "desembolsos": [],
@@ -18767,6 +19056,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "282453",
@@ -19052,6 +19342,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "230524",
@@ -19231,6 +19522,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "163791",
@@ -20058,6 +20350,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151664",
@@ -20308,6 +20601,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140107",
@@ -20453,6 +20747,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139831",
@@ -20734,6 +21029,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "263183",
@@ -20923,6 +21219,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1925996",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "LIMEIRA",
+      "COD_MUNIC_IBGE": "3526902",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "58616/2023",
+      "DIA_PROP": "5",
+      "MES_PROP": "10",
+      "ANO_PROP": "2023",
+      "DIA_PROPOSTA": "05/10/2023",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "51473692000126",
+      "NM_PROPONENTE": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE LIMEIRA",
+      "CEP_PROPONENTE": "13480470",
+      "ENDERECO_PROPONENTE": "AVENIDA ANTONIO OMETTO, 675 - CLAUDIA. LIMEIRA - SP. CEP: 13480-470",
+      "BAIRRO_PROPONENTE": "CLAUDIA",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "05/10/2023",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "05/10/2024",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "8629047",
+      "VL_REPASSE_PROP": "8629047",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "3149-6",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "119219",
@@ -21053,6 +21387,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "75211",
@@ -21218,6 +21553,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "93588",
@@ -21447,6 +21783,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "29539",
@@ -22336,6 +22673,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "47128",
@@ -22541,6 +22879,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "66199",
@@ -22888,6 +23227,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "213277",
@@ -23162,6 +23502,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "71130",
@@ -24090,6 +24431,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "262843",
@@ -24262,6 +24604,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "283117",
@@ -24441,6 +24784,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177110",
@@ -24568,6 +24912,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "27737",
@@ -25137,6 +25482,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49159",
@@ -25296,6 +25642,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177084",
@@ -25597,6 +25944,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "103510",
@@ -25742,6 +26090,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139578",
@@ -25887,6 +26236,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "228529",
@@ -26066,6 +26416,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "214308",
@@ -26321,6 +26672,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "23461",
@@ -26466,6 +26818,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "178521",
@@ -26648,6 +27001,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151666",
@@ -26847,6 +27201,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119141",
@@ -27032,6 +27387,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151663",
@@ -27248,6 +27604,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "181493",
@@ -28616,6 +28973,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "40573",
@@ -28778,6 +29136,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "172205",
@@ -28990,6 +29349,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "78450",
@@ -29155,6 +29515,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "125414",
@@ -29456,6 +29817,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177082",
@@ -29566,6 +29928,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "116356",
@@ -29771,6 +30134,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "212918",
@@ -30082,6 +30446,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151676",
@@ -30369,6 +30734,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "143098",
@@ -30479,6 +30845,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "158725",
@@ -30908,6 +31275,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "89359",
@@ -32550,6 +32918,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "161331",
@@ -32834,6 +33203,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "349709",
@@ -33036,6 +33406,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "111293",
@@ -33372,6 +33743,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1556600",
+      "UF_PROPONENTE": "MG",
+      "MUNIC_PROPONENTE": "UBERABA",
+      "COD_MUNIC_IBGE": "3170107",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "7500/2020",
+      "DIA_PROP": "19",
+      "MES_PROP": "5",
+      "ANO_PROP": "2020",
+      "DIA_PROPOSTA": "19/05/2020",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "25438409000115",
+      "NM_PROPONENTE": "ASSOCIACAO DE COMBATE AO CANCER DO BRASIL CENTRAL",
+      "CEP_PROPONENTE": "38065065",
+      "ENDERECO_PROPONENTE": "RUA GOVERNADOR VALADARES, 640 - FABRICIO. UBERABA - MG. CEP: 38065-065",
+      "BAIRRO_PROPONENTE": "FABRICIO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "19/05/2020",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "20/05/2021",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "1000000",
+      "VL_REPASSE_PROP": "1000000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0160-0",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "23286",
@@ -33601,6 +34010,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "102885",
@@ -33868,6 +34278,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264242",
@@ -34331,6 +34742,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165415",
@@ -34615,6 +35027,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151675",
@@ -34760,6 +35173,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "292512",
@@ -34990,6 +35404,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140407",
@@ -35195,6 +35610,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "236655",
@@ -35401,6 +35817,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "285469",
@@ -35566,6 +35983,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "53746",
@@ -36003,6 +36421,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151697",
@@ -36199,6 +36618,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165360",
@@ -36330,6 +36750,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "226536",
@@ -36488,6 +36909,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "145195",
@@ -38208,6 +38630,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119135",
@@ -38404,6 +38827,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139576",
@@ -38793,6 +39217,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "179324",
@@ -38920,6 +39345,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "137949",
@@ -39099,6 +39525,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "181038",
@@ -39496,6 +39923,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177098",
@@ -39623,6 +40051,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140866",
@@ -39754,6 +40183,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "48914",
@@ -40035,6 +40465,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "292513",
@@ -40390,6 +40821,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "230413",
@@ -40669,6 +41101,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "16359",
@@ -40851,6 +41284,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49714",
@@ -41047,6 +41481,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151657",
@@ -41354,6 +41789,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "115511",
@@ -41533,6 +41969,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142258",
@@ -41712,6 +42149,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "179306",
@@ -41839,6 +42277,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "214895",
@@ -42030,6 +42469,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139548",
@@ -42232,6 +42672,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119228",
@@ -42397,6 +42838,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "102920",
@@ -42815,6 +43257,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "24084",
@@ -43057,6 +43500,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151661",
@@ -43273,6 +43717,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "212347",
@@ -43469,6 +43914,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "145199",
@@ -45001,6 +45447,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140268",
@@ -45379,6 +45826,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "23532",
@@ -45698,6 +46146,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119509",
@@ -45903,6 +46352,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139584",
@@ -46280,6 +46730,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119520",
@@ -46469,6 +46920,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "184288",
@@ -47123,6 +47575,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177081",
@@ -47334,6 +47787,44 @@
       "ACAO_ORCAMENTARIA": "12208535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "465015",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "FRANCA",
+      "COD_MUNIC_IBGE": "3516200",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "34449/2011",
+      "DIA_PROP": "25",
+      "MES_PROP": "7",
+      "ANO_PROP": "2011",
+      "DIA_PROPOSTA": "25/07/2011",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "47969134000189",
+      "NM_PROPONENTE": "FUNDACAO SANTA CASA DE MISERICORDIA DE FRANCA",
+      "CEP_PROPONENTE": "14400715",
+      "ENDERECO_PROPONENTE": "PRACA DOM PEDRO II, 1826 - CENTRO. FRANCA - SP. CEP: 14400-715",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Em Análise",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "25/07/2011",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "31/12/2012",
+      "OBJETO_PROPOSTA": "Aquisição de equipamentos e materiais permanentes.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "2450000",
+      "VL_REPASSE_PROP": "2450000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "2322-1",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -47556,6 +48047,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "292122",
@@ -47721,6 +48213,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "115271",
@@ -47886,6 +48379,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "48768",
@@ -48261,6 +48755,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142848",
@@ -48370,6 +48865,44 @@
       "ACAO_ORCAMENTARIA": "12208535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "309970",
+      "UF_PROPONENTE": "MG",
+      "MUNIC_PROPONENTE": "MONTES CLAROS",
+      "COD_MUNIC_IBGE": "3143302",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "63645/2010",
+      "DIA_PROP": "27",
+      "MES_PROP": "5",
+      "ANO_PROP": "2010",
+      "DIA_PROPOSTA": "27/05/2010",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "00991591000106",
+      "NM_PROPONENTE": "FUNDACAO DE SAUDE DILSON DE QUADROS GODINHO",
+      "CEP_PROPONENTE": "39400292",
+      "ENDERECO_PROPONENTE": "AVENIDA GERALDO ATHAYDE, 480 - ALTO SAO JOAO. MONTES CLAROS - MG. CEP: 39400-292",
+      "BAIRRO_PROPONENTE": "ALTO SAO JOAO",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "27/05/2010",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "26/11/2010",
+      "OBJETO_PROPOSTA": "Aquisição de Aparelho para Exames de Mamografia e Máquina com Cadeira para Hemodiálise.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "204000",
+      "VL_REPASSE_PROP": "195840",
+      "VL_CONTRAPARTIDA_PROP": "8160",
+      "CD_AGENCIA": "0104-X",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -48518,6 +49051,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "369534",
@@ -48947,6 +49481,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "115485",
@@ -49216,6 +49751,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "127957",
@@ -49693,6 +50229,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "123516",
+      "UF_PROPONENTE": "ES",
+      "MUNIC_PROPONENTE": "VITÓRIA",
+      "COD_MUNIC_IBGE": "3205309",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "83989/2009",
+      "DIA_PROP": "20",
+      "MES_PROP": "10",
+      "ANO_PROP": "2009",
+      "DIA_PROPOSTA": "20/10/2009",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "28137925000106",
+      "NM_PROPONENTE": "ASSOCIACAO FEMININA DE EDUCACAO E COMBATE AO CANCER",
+      "CEP_PROPONENTE": "29043260",
+      "ENDERECO_PROPONENTE": "AVENIDA MARECHAL CAMPOS, 1579 - SANTA CECILIA. VITÓRIA - ES. CEP: 29043-260",
+      "BAIRRO_PROPONENTE": "SANTA CECILIA",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Pendente de Regularização",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "05/11/2009",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "05/11/2010",
+      "OBJETO_PROPOSTA": "Aquisição de equipamentos e materiais permanentes para Unidades de Atenção Especializada em Saúde.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "300000",
+      "VL_REPASSE_PROP": "300000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "2310-8",
+      "CD_CONTA": "0002254"
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "283359",
@@ -49942,6 +50516,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139598",
@@ -50124,6 +50699,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119223",
@@ -50323,6 +50899,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165058",
@@ -50525,6 +51102,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119512",
@@ -50670,6 +51248,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151627",
@@ -50920,6 +51499,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "179328",
@@ -51064,6 +51644,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "183237",
@@ -52163,6 +52744,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "188545",
@@ -52425,6 +53007,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "120026",
@@ -52604,6 +53187,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1940510",
+      "UF_PROPONENTE": "RJ",
+      "MUNIC_PROPONENTE": "RIO DE JANEIRO",
+      "COD_MUNIC_IBGE": "3304557",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "66724/2023",
+      "DIA_PROP": "28",
+      "MES_PROP": "11",
+      "ANO_PROP": "2023",
+      "DIA_PROPOSTA": "28/11/2023",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "33816794000204",
+      "NM_PROPONENTE": "ASSOCIACAO BRASILEIRA DE ASSISTENCIA AOS CANCEROSOS",
+      "CEP_PROPONENTE": "21020130",
+      "ENDERECO_PROPONENTE": "RUA MAGE, 326 - PENHA CIRCULAR. RIO DE JANEIRO - RJ. CEP: 21020-130",
+      "BAIRRO_PROPONENTE": "PENHA CIRCULAR",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "28/11/2023",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "16/06/2025",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "7085531",
+      "VL_REPASSE_PROP": "7085531",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "4263-3",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "119502",
@@ -52714,6 +53335,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "16730",
@@ -52859,6 +53481,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "224751",
@@ -53010,6 +53633,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139970",
@@ -53338,6 +53962,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "23442",
@@ -53483,6 +54108,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "292263",
@@ -54210,6 +54836,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "176173",
+      "UF_PROPONENTE": "SC",
+      "MUNIC_PROPONENTE": "CRICIÚMA",
+      "COD_MUNIC_IBGE": "4204608",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "132415/2009",
+      "DIA_PROP": "23",
+      "MES_PROP": "12",
+      "ANO_PROP": "2009",
+      "DIA_PROPOSTA": "23/12/2009",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "92736040000890",
+      "NM_PROPONENTE": "SOCIEDADE LITERARIA E CARITATIVA SANTO AGOSTINHO",
+      "CEP_PROPONENTE": "88811000",
+      "ENDERECO_PROPONENTE": "RUA JULIO GAIDZINSKI, 90 - PIO CORREA. CRICIÚMA - SC. CEP: 88811-000",
+      "BAIRRO_PROPONENTE": "PIO CORREA",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "23/12/2009",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "22/12/2010",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTOS E MATERIAIS PERMANENTES PARA ATENÇÃO ESPECIALIZADA EM SAÚDE,PARA O SERVIÇO DE RADIOTERAPIA, DA SOCIEDADE LITERARIA E CARITATIVA  SANTO AGOSTINHO/SÃO JOSÉ, CONFORME SEGUE ABAIXO:RAD 14 - Acelerador linear com Sistema de Planejamento Tridimensional Computadorizado, Sistema de Gerenciamento e Acessórios.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "2900000",
+      "VL_REPASSE_PROP": "2668000",
+      "VL_CONTRAPARTIDA_PROP": "232000",
+      "CD_AGENCIA": "0407-3",
+      "CD_CONTA": ""
+    },
     "empenhos": [],
     "desembolsos": [],
     "licitacoes": [],
@@ -54299,6 +54963,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "40228",
@@ -54650,6 +55315,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "44559",
@@ -54795,6 +55461,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139425",
@@ -54997,6 +55664,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "116085",
@@ -55575,6 +56243,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "164868",
@@ -55723,6 +56392,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "134659",
@@ -55882,6 +56552,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "102917",
@@ -56078,6 +56749,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "214897",
@@ -57034,6 +57706,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "285554",
@@ -57415,6 +58088,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151672",
@@ -57645,6 +58319,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "238589",
@@ -58442,6 +59117,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "405434",
@@ -58647,6 +59323,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142805",
@@ -58832,6 +59509,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139559",
@@ -59118,6 +59796,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "258741",
@@ -59411,6 +60090,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "78466",
@@ -59666,6 +60346,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "289743",
@@ -60021,6 +60702,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119220",
@@ -60306,6 +60988,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1945596",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "MARÍLIA",
+      "COD_MUNIC_IBGE": "3529005",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "69544/2023",
+      "DIA_PROP": "12",
+      "MES_PROP": "12",
+      "ANO_PROP": "2023",
+      "DIA_PROPOSTA": "12/12/2023",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "09161265000146",
+      "NM_PROPONENTE": "FUNDACAO DE APOIO A FACULDADE DE MEDICINA DE MARILIA E AO HOSPITAL DAS CLINICAS DA FACULDADE DE MEDICINA DE MARILIA - FAMAR",
+      "CEP_PROPONENTE": "17519010",
+      "ENDERECO_PROPONENTE": "RUA MARREY JUNIOR, 162 - FRAGATA. MARÍLIA - SP. CEP: 17519-010",
+      "BAIRRO_PROPONENTE": "FRAGATA",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "12/12/2023",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "11/12/2024",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "8355325",
+      "VL_REPASSE_PROP": "8355325",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0320-4",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "119515",
@@ -60415,6 +61135,44 @@
       "ACAO_ORCAMENTARIA": "51188535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "2025655",
+      "UF_PROPONENTE": "SE",
+      "MUNIC_PROPONENTE": "ARACAJU",
+      "COD_MUNIC_IBGE": "2800308",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "31157/2024",
+      "DIA_PROP": "29",
+      "MES_PROP": "10",
+      "ANO_PROP": "2024",
+      "DIA_PROPOSTA": "29/10/2024",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "13076443000108",
+      "NM_PROPONENTE": "LEGIAO FEMININA DE EDUCACAO E COMBATE AO CANCER",
+      "CEP_PROPONENTE": "49055230",
+      "ENDERECO_PROPONENTE": "RUA DOM BOSCO, 272 - BAIRRO CIRURGIA - ARACAJU. ARACAJU - SE. CEP: 49055-230",
+      "BAIRRO_PROPONENTE": "ARACAJU",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "29/10/2024",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "29/10/2025",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "206920",
+      "VL_REPASSE_PROP": "200000",
+      "VL_CONTRAPARTIDA_PROP": "6920",
+      "CD_AGENCIA": "0017-5",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -60594,6 +61352,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "148058",
@@ -60837,6 +61596,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264753",
@@ -61016,6 +61776,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264785",
@@ -61235,6 +61996,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "213843",
@@ -61431,6 +62193,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "197259",
@@ -61647,6 +62410,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "128141",
@@ -61842,6 +62606,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119222",
@@ -62060,6 +62825,44 @@
       "ACAO_ORCAMENTARIA": "20158535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "608907",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "SOROCABA",
+      "COD_MUNIC_IBGE": "3552205",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "32432/2012",
+      "DIA_PROP": "25",
+      "MES_PROP": "6",
+      "ANO_PROP": "2012",
+      "DIA_PROPOSTA": "25/06/2012",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "71485056000121",
+      "NM_PROPONENTE": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SOROCABA",
+      "CEP_PROPONENTE": "18013002",
+      "ENDERECO_PROPONENTE": "AVENIDA SAO PAULO, 750 - ARVORE GRANDE. SOROCABA - SP. CEP: 18013-002",
+      "BAIRRO_PROPONENTE": "ARVORE GRANDE",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Regularizada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "25/06/2012",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "31/12/2012",
+      "OBJETO_PROPOSTA": "Aquisição de equipamentos",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "956490,2",
+      "VL_REPASSE_PROP": "956490,2",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "2414-7",
+      "CD_CONTA": "66400"
     },
     "empenhos": [
       {
@@ -62299,6 +63102,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151643",
@@ -62409,6 +63213,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "128181",
@@ -62574,6 +63379,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "150160",
@@ -62824,6 +63630,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "175151",
@@ -63300,6 +64107,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "105616",
@@ -63574,6 +64382,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177099",
@@ -63790,6 +64599,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139537",
@@ -63900,6 +64710,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "160482",
@@ -64010,6 +64821,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "75198",
@@ -64202,6 +65014,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151692",
@@ -64333,6 +65146,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "125304",
@@ -64528,6 +65342,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "285893",
@@ -64923,6 +65738,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "246743",
@@ -65298,6 +66114,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151694",
@@ -65545,6 +66362,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "225049",
@@ -65724,6 +66542,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "237571",
@@ -65926,6 +66745,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "194160",
@@ -66165,6 +66985,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "40777",
@@ -66500,6 +67321,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "233962",
@@ -66702,6 +67524,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "46567",
@@ -66847,6 +67670,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "258578",
@@ -67143,6 +67967,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "2149651",
+      "UF_PROPONENTE": "PR",
+      "MUNIC_PROPONENTE": "CASCAVEL",
+      "COD_MUNIC_IBGE": "4104808",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "63260/2025",
+      "DIA_PROP": "17",
+      "MES_PROP": "11",
+      "ANO_PROP": "2025",
+      "DIA_PROPOSTA": "17/11/2025",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "81270548000153",
+      "NM_PROPONENTE": "UNIAO OESTE PARANAENSE DE ESTUDOS E COMBATE AO CANCER",
+      "CEP_PROPONENTE": "85806300",
+      "ENDERECO_PROPONENTE": "RUA ITAQUATIARAS, 769 - SANTO ONOFRE. CASCAVEL - PR. CEP: 85806-300",
+      "BAIRRO_PROPONENTE": "SANTO ONOFRE",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Rejeitados por Impedimento técnico",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "17/11/2025",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "24/02/2027",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "662344",
+      "VL_REPASSE_PROP": "662344",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0531-2",
+      "CD_CONTA": ""
+    },
     "empenhos": [],
     "desembolsos": [],
     "licitacoes": [],
@@ -67283,6 +68145,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139595",
@@ -67445,6 +68308,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "104705",
@@ -67590,6 +68454,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142260",
@@ -67769,6 +68634,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119505",
@@ -67971,6 +68837,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "298059",
@@ -69568,6 +70435,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151651",
@@ -69713,6 +70581,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "129254",
@@ -69926,6 +70795,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "74343",
@@ -70263,6 +71133,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "125322",
@@ -70425,6 +71296,7 @@
       "NOME_SUBTIPO_PROGRAMA": "NOVO PAC - FORMALIZAÇÃO",
       "DESCRICAO_SUBTIPO_PROGRAMA": "DECRETO Nº 11.855, DE 26 DE DEZEMBRO DE 2023. Dispõe sobre termos de compromisso relativos às transferências obrigatórias de recursos da União para a execução de ações do Programa de Aceleração do Crescimento - Novo PAC."
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165111",
@@ -71030,6 +71902,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "211890",
@@ -71391,6 +72264,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "2202998",
+      "UF_PROPONENTE": "DF",
+      "MUNIC_PROPONENTE": "BRASÍLIA",
+      "COD_MUNIC_IBGE": "5300108",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "18337/2026",
+      "DIA_PROP": "22",
+      "MES_PROP": "4",
+      "ANO_PROP": "2026",
+      "DIA_PROPOSTA": "22/04/2026",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "28481233000172",
+      "NM_PROPONENTE": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "CEP_PROPONENTE": "70335900",
+      "ENDERECO_PROPONENTE": "SETOR SMHS AREA ESPECIAL, S/N, QUADRA101 - ASA SUL. BRASÍLIA - DF. CEP: 70335-900",
+      "BAIRRO_PROPONENTE": "ASA SUL",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "22/04/2026",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "07/01/2028",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "250000",
+      "VL_REPASSE_PROP": "250000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "4200-5",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "177069",
@@ -71518,6 +72429,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151695",
@@ -71734,6 +72646,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177083",
@@ -71895,6 +72808,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "2227630",
+      "UF_PROPONENTE": "SE",
+      "MUNIC_PROPONENTE": "ARACAJU",
+      "COD_MUNIC_IBGE": "2800308",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "30299/2026",
+      "DIA_PROP": "3",
+      "MES_PROP": "7",
+      "ANO_PROP": "2026",
+      "DIA_PROPOSTA": "03/07/2026",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "13016332000106",
+      "NM_PROPONENTE": "FUNDACAO DE BENEFICENCIA HOSPITAL DE CIRURGIA",
+      "CEP_PROPONENTE": "49055210",
+      "ENDERECO_PROPONENTE": "AVENIDA DESEMBARGADOR MAYNARD, 174 - CIRURGIA. ARACAJU - SE. CEP: 49055-210",
+      "BAIRRO_PROPONENTE": "CIRURGIA",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "03/07/2026",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "02/07/2027",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "8594370",
+      "VL_REPASSE_PROP": "8594370",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "1224-6",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "184559",
@@ -72005,6 +72956,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142710",
@@ -72155,6 +73107,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "46757",
@@ -72858,6 +73811,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "203308",
@@ -73057,6 +74011,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "2227629",
+      "UF_PROPONENTE": "PE",
+      "MUNIC_PROPONENTE": "RECIFE",
+      "COD_MUNIC_IBGE": "2611606",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "30298/2026",
+      "DIA_PROP": "3",
+      "MES_PROP": "7",
+      "ANO_PROP": "2026",
+      "DIA_PROPOSTA": "03/07/2026",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "10988301000129",
+      "NM_PROPONENTE": "INSTITUTO DE MEDICINA INTEGRAL PROFESSOR FERNANDO FIGUEIRA - IMIP",
+      "CEP_PROPONENTE": "50070550",
+      "ENDERECO_PROPONENTE": "RUA COELHOS, 300 - BOA VISTA. RECIFE - PE. CEP: 50070-550",
+      "BAIRRO_PROPONENTE": "BOA VISTA",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "03/07/2026",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "03/07/2027",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "8501368",
+      "VL_REPASSE_PROP": "8501368",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "3433-9",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "184558",
@@ -73167,6 +74159,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151665",
@@ -73383,6 +74376,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140083",
@@ -73548,6 +74542,7 @@
       "NOME_SUBTIPO_PROGRAMA": "NOVO PAC - FORMALIZAÇÃO",
       "DESCRICAO_SUBTIPO_PROGRAMA": "DECRETO Nº 11.855, DE 26 DE DEZEMBRO DE 2023. Dispõe sobre termos de compromisso relativos às transferências obrigatórias de recursos da União para a execução de ações do Programa de Aceleração do Crescimento - Novo PAC."
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142480",
@@ -73916,6 +74911,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "44240",
@@ -74081,6 +75077,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "235537",
@@ -74366,6 +75363,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "887647",
+      "UF_PROPONENTE": "RS",
+      "MUNIC_PROPONENTE": "CAXIAS DO SUL",
+      "COD_MUNIC_IBGE": "4305108",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "42779/2014",
+      "DIA_PROP": "24",
+      "MES_PROP": "6",
+      "ANO_PROP": "2014",
+      "DIA_PROPOSTA": "24/06/2014",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "88632773000131",
+      "NM_PROPONENTE": "ASSOCIACAO CARITATIVO-LITERARIA SAO JOSE",
+      "CEP_PROPONENTE": "95032475",
+      "ENDERECO_PROPONENTE": "RUA DR JOSE MONTAURY, 1621 - CENTRO. CAXIAS DO SUL - RS. CEP: 95032-475",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Regularizada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "24/06/2014",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "24/06/2015",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "300000",
+      "VL_REPASSE_PROP": "300000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0527-4",
+      "CD_CONTA": "5734721375"
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "247658",
@@ -74529,6 +75564,44 @@
       "ACAO_ORCAMENTARIA": "51188535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "2162426",
+      "UF_PROPONENTE": "MS",
+      "MUNIC_PROPONENTE": "CAMPO GRANDE",
+      "COD_MUNIC_IBGE": "5002704",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "69053/2025",
+      "DIA_PROP": "23",
+      "MES_PROP": "12",
+      "ANO_PROP": "2025",
+      "DIA_PROPOSTA": "23/12/2025",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "03221702000193",
+      "NM_PROPONENTE": "FUNDACAO CARMEM PRUDENTE DE MATO GROSSO DO SUL",
+      "CEP_PROPONENTE": "79002205",
+      "ENDERECO_PROPONENTE": "RUA CANDIDO MARIANO RONDON, 1053 - CENTRO. CAMPO GRANDE - MS. CEP: 79002-205",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "23/12/2025",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "23/12/2026",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "500036",
+      "VL_REPASSE_PROP": "500000",
+      "VL_CONTRAPARTIDA_PROP": "36",
+      "CD_AGENCIA": "1568-7",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -74844,6 +75917,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140402",
@@ -74989,6 +76063,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "293363",
@@ -76471,6 +77546,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151677",
@@ -76633,6 +77709,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165356",
@@ -77277,6 +78354,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "71238",
@@ -77442,6 +78520,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119517",
@@ -77587,6 +78666,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "143511",
@@ -78149,6 +79229,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "34627",
@@ -78294,6 +79375,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151662",
@@ -78530,6 +79612,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "145210",
@@ -78762,6 +79845,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139878",
@@ -78927,6 +80011,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1030549",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "CAMPINAS",
+      "COD_MUNIC_IBGE": "3509502",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "49330/2015",
+      "DIA_PROP": "30",
+      "MES_PROP": "11",
+      "ANO_PROP": "2015",
+      "DIA_PROPOSTA": "30/11/2015",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "50046887000127",
+      "NM_PROPONENTE": "CENTRO INF DE INVEST HEMAT DR DOMINGOS A BOLDRINI",
+      "CEP_PROPONENTE": "13083210",
+      "ENDERECO_PROPONENTE": "RUA DR. GABRIEL PORTO, 1270 - CID. UNIVERSITARIA. CAMPINAS - SP. CEP: 13083-210",
+      "BAIRRO_PROPONENTE": "CID. UNIVERSITARIA",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Regularizada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "30/11/2015",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "31/12/2015",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "3650000",
+      "VL_REPASSE_PROP": "1150000",
+      "VL_CONTRAPARTIDA_PROP": "2500000",
+      "CD_AGENCIA": "3360-X",
+      "CD_CONTA": "5741X"
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "289270",
@@ -79057,6 +80179,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "174772",
@@ -79628,6 +80751,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "164774",
@@ -79810,6 +80934,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "112523",
+      "UF_PROPONENTE": "MG",
+      "MUNIC_PROPONENTE": "ITAJUBÁ",
+      "COD_MUNIC_IBGE": "3132404",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Consórcio Público",
+      "NR_PROPOSTA": "74796/2009",
+      "DIA_PROP": "28",
+      "MES_PROP": "9",
+      "ANO_PROP": "2009",
+      "DIA_PROPOSTA": "28/09/2009",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "01111142000199",
+      "NM_PROPONENTE": "CONSORCIO INTERM SAUDE MUNIC MICROREGIAO ALTO SAPUCAI",
+      "CEP_PROPONENTE": "37504018",
+      "ENDERECO_PROPONENTE": "AVENIDA ENGENHEIRO PEDRO FONSECA PAIVA, 376 - AVENIDA. ITAJUBÁ - MG. CEP: 37504-018",
+      "BAIRRO_PROPONENTE": "AVENIDA",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho em Análise",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "30/09/2009",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "30/09/2010",
+      "OBJETO_PROPOSTA": "Aquisição de equipamento Mamógrafo.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "250000",
+      "VL_REPASSE_PROP": "250000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0308-5",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "283413",
@@ -79940,6 +81102,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "175156",
@@ -80176,6 +81339,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "125328",
@@ -80442,6 +81606,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1408855",
+      "UF_PROPONENTE": "AL",
+      "MUNIC_PROPONENTE": "MACEIÓ",
+      "COD_MUNIC_IBGE": "2704302",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "65352/2018",
+      "DIA_PROP": "28",
+      "MES_PROP": "12",
+      "ANO_PROP": "2018",
+      "DIA_PROPOSTA": "28/12/2018",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONTRATO DE REPASSE",
+      "IDENTIF_PROPONENTE": "12291290000159",
+      "NM_PROPONENTE": "FUNDACAO HOSPITAL DA AGRO INDUSTRIA DO ACUCAR E DO ALCOOL DE ALAGOAS",
+      "CEP_PROPONENTE": "57050000",
+      "ENDERECO_PROPONENTE": "AVENIDA FERNANDES LIMA, SN, KM 5 - FAROL. MACEIÓ - AL. CEP: 57050-000",
+      "BAIRRO_PROPONENTE": "FAROL",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Pendente de Regularização",
+      "SITUACAO_PROJETO_BASICO": "",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "28/12/2018",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "31/12/2019",
+      "OBJETO_PROPOSTA": "REFORMA DE UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Obras e Serviços de Engenharia",
+      "ENVIADA_MANDATARIA": "SIM",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "10302584",
+      "VL_REPASSE_PROP": "10000000",
+      "VL_CONTRAPARTIDA_PROP": "302584",
+      "CD_AGENCIA": "2391-4",
+      "CD_CONTA": "003046792"
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "38271",
@@ -80572,6 +81774,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "74764",
@@ -80850,6 +82053,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151696",
@@ -81015,6 +82219,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "129686",
@@ -81247,6 +82452,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139699",
@@ -81578,6 +82784,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "40436",
@@ -82044,6 +83251,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "285544",
@@ -82313,6 +83521,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165358",
@@ -82848,6 +84057,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142708",
@@ -82958,6 +84168,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "143099",
@@ -83068,6 +84279,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "179329",
@@ -83195,6 +84407,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "32621",
@@ -83451,6 +84664,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "23670",
@@ -83676,6 +84890,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "168272",
@@ -83878,6 +85093,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "168453",
@@ -84043,6 +85259,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "209756",
@@ -84353,6 +85570,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1925989",
+      "UF_PROPONENTE": "PE",
+      "MUNIC_PROPONENTE": "RECIFE",
+      "COD_MUNIC_IBGE": "2611606",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "58609/2023",
+      "DIA_PROP": "5",
+      "MES_PROP": "10",
+      "ANO_PROP": "2023",
+      "DIA_PROPOSTA": "05/10/2023",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "10894988000133",
+      "NM_PROPONENTE": "SOCIEDADE PERNAMBUCANA DE COMBATE AO CANCER",
+      "CEP_PROPONENTE": "50040000",
+      "ENDERECO_PROPONENTE": "AVENIDA CRUZ CABUGA, 1597 - SANTO AMARO. RECIFE - PE. CEP: 50040-000",
+      "BAIRRO_PROPONENTE": "SANTO AMARO",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "05/10/2023",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "05/10/2025",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "7252110",
+      "VL_REPASSE_PROP": "7252110",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "1814-7",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "119499",
@@ -84463,6 +85718,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "175149",
@@ -84730,6 +85986,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "46050",
@@ -84875,6 +86132,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "62931",
@@ -85161,6 +86419,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "2212140",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "SÃO PAULO",
+      "COD_MUNIC_IBGE": "3550308",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "23343/2026",
+      "DIA_PROP": "18",
+      "MES_PROP": "5",
+      "ANO_PROP": "2026",
+      "DIA_PROPOSTA": "18/05/2026",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "62779145000190",
+      "NM_PROPONENTE": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SAO PAULO",
+      "CEP_PROPONENTE": "01221020",
+      "ENDERECO_PROPONENTE": "RUA DR CESARIO MOTA JUNIOR, 112, C/R D VERIDIANA 311 - VILA BUARQUE. SÃO PAULO - SP. CEP: 01221-020",
+      "BAIRRO_PROPONENTE": "VILA BUARQUE",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "18/05/2026",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "25/01/2027",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "600000",
+      "VL_REPASSE_PROP": "600000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "1911-9",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "179355",
@@ -85356,6 +86652,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "299819",
@@ -85528,6 +86825,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140361",
@@ -86121,6 +87419,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139922",
@@ -86310,6 +87609,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "282127",
@@ -86475,6 +87775,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151670",
@@ -86688,6 +87989,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139447",
@@ -87046,6 +88348,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "27253",
@@ -87717,6 +89020,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "108907",
@@ -87862,6 +89166,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "102880",
@@ -88013,6 +89318,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140097",
@@ -88158,6 +89464,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "806923",
+      "UF_PROPONENTE": "SC",
+      "MUNIC_PROPONENTE": "CRICIÚMA",
+      "COD_MUNIC_IBGE": "4204608",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "90017/2013",
+      "DIA_PROP": "6",
+      "MES_PROP": "12",
+      "ANO_PROP": "2013",
+      "DIA_PROPOSTA": "06/12/2013",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "92736040000890",
+      "NM_PROPONENTE": "SOCIEDADE LITERARIA E CARITATIVA SANTO AGOSTINHO",
+      "CEP_PROPONENTE": "88811000",
+      "ENDERECO_PROPONENTE": "RUA JULIO GAIDZINSKI, 90 - PIO CORREA. CRICIÚMA - SC. CEP: 88811-000",
+      "BAIRRO_PROPONENTE": "PIO CORREA",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "06/12/2013",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "06/04/2015",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "3000000",
+      "VL_REPASSE_PROP": "3000000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0407-3",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "286762",
@@ -88288,6 +89632,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151658",
@@ -88692,6 +90037,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "67103",
@@ -88877,6 +90223,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "129674",
@@ -89039,6 +90386,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "85901",
@@ -89258,6 +90606,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140381",
@@ -89510,6 +90859,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "37487",
@@ -89669,6 +91019,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "129675",
@@ -89851,6 +91202,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "98088",
@@ -90039,6 +91391,44 @@
       "ACAO_ORCAMENTARIA": "20158535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "801936",
+      "UF_PROPONENTE": "RS",
+      "MUNIC_PROPONENTE": "GIRUÁ",
+      "COD_MUNIC_IBGE": "4309001",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "88625/2013",
+      "DIA_PROP": "2",
+      "MES_PROP": "12",
+      "ANO_PROP": "2013",
+      "DIA_PROPOSTA": "02/12/2013",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "92962869001379",
+      "NM_PROPONENTE": "ASSOCIACAO DE LITERATURA E BENEFICENCIA",
+      "CEP_PROPONENTE": "98870000",
+      "ENDERECO_PROPONENTE": "AVENIDA PRESIDENTE VARGAS, 867 - CENTRO. GIRUÁ - RS. CEP: 98870-000",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "02/12/2013",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "21/03/2015",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "740000",
+      "VL_REPASSE_PROP": "740000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0480-4",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -90238,6 +91628,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "78448",
@@ -90561,6 +91952,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139713",
@@ -90965,6 +92357,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "120029",
@@ -91150,6 +92543,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "201130",
@@ -91559,6 +92953,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "115838",
@@ -91835,6 +93230,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "163767",
@@ -92078,6 +93474,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "74828",
@@ -92979,6 +94376,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "74176",
@@ -93175,6 +94573,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "180416",
@@ -93433,6 +94832,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "27251",
@@ -93668,6 +95068,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "137012",
@@ -93873,6 +95274,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151669",
@@ -93983,6 +95385,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119227",
@@ -94202,6 +95605,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "314366",
@@ -94446,6 +95850,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "142803",
@@ -94662,6 +96067,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "89362",
@@ -94981,6 +96387,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177086",
@@ -95132,6 +96539,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "104667",
@@ -95364,6 +96772,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165357",
@@ -95716,6 +97125,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "237705",
@@ -95992,6 +97402,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "242906",
@@ -96282,6 +97693,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "30113",
@@ -96501,6 +97913,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "257808",
@@ -96850,6 +98263,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "248927",
@@ -97101,6 +98515,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "125856",
@@ -97406,6 +98821,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1406287",
+      "UF_PROPONENTE": "AL",
+      "MUNIC_PROPONENTE": "MACEIÓ",
+      "COD_MUNIC_IBGE": "2704302",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "64833/2018",
+      "DIA_PROP": "20",
+      "MES_PROP": "12",
+      "ANO_PROP": "2018",
+      "DIA_PROPOSTA": "20/12/2018",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "12291290000159",
+      "NM_PROPONENTE": "FUNDACAO HOSPITAL DA AGRO INDUSTRIA DO ACUCAR E DO ALCOOL DE ALAGOAS",
+      "CEP_PROPONENTE": "57050000",
+      "ENDERECO_PROPONENTE": "AVENIDA FERNANDES LIMA, SN, KM 5 - FAROL. MACEIÓ - AL. CEP: 57050-000",
+      "BAIRRO_PROPONENTE": "FAROL",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "20/12/2018",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "13/05/2019",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "14787100",
+      "VL_REPASSE_PROP": "14787100",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "2391-4",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "381452",
@@ -97672,6 +99125,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "286011",
@@ -97796,6 +99250,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "128105",
@@ -97995,6 +99450,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "44876",
@@ -98401,6 +99857,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "166514",
@@ -98562,6 +100019,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "161329",
@@ -98750,6 +100208,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139660",
@@ -98895,6 +100354,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "63714",
@@ -99040,6 +100500,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "101281",
@@ -99482,6 +100943,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139563",
@@ -99741,6 +101203,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "66577",
@@ -99946,6 +101409,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151668",
@@ -100108,6 +101572,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "178744",
@@ -100358,6 +101823,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "45025",
@@ -100540,6 +102006,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "23454",
@@ -100725,6 +102192,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "181160",
@@ -100835,6 +102303,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "163345",
@@ -100997,6 +102466,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "128130",
@@ -101162,6 +102632,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "335515",
@@ -101387,6 +102858,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139965",
@@ -101750,6 +103222,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "161347",
@@ -101915,6 +103388,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139538",
@@ -102178,6 +103652,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "265207",
@@ -102442,6 +103917,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "65333",
@@ -102701,6 +104177,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "45955",
@@ -102866,6 +104343,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "120030",
@@ -103065,6 +104543,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "179314",
@@ -103209,6 +104688,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "179313",
@@ -103319,6 +104799,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "116355",
@@ -103544,6 +105025,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151673",
@@ -104131,6 +105613,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1458835",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "SÃO PAULO",
+      "COD_MUNIC_IBGE": "3550308",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "26890/2019",
+      "DIA_PROP": "7",
+      "MES_PROP": "6",
+      "ANO_PROP": "2019",
+      "DIA_PROPOSTA": "07/06/2019",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "62779145000190",
+      "NM_PROPONENTE": "IRMANDADE DA SANTA CASA DE MISERICORDIA DE SAO PAULO",
+      "CEP_PROPONENTE": "01221020",
+      "ENDERECO_PROPONENTE": "RUA DR CESARIO MOTA JUNIOR, 112, C/R D VERIDIANA 311 - VILA BUARQUE. SÃO PAULO - SP. CEP: 01221-020",
+      "BAIRRO_PROPONENTE": "VILA BUARQUE",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "07/06/2019",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "27/02/2020",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "970774",
+      "VL_REPASSE_PROP": "970774",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "2873-8",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "424383",
@@ -104318,6 +105838,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "67645",
@@ -104639,6 +106160,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "151674",
@@ -104827,6 +106349,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264868",
@@ -106554,6 +108077,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119516",
@@ -106713,6 +108237,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139931",
@@ -106885,6 +108410,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "160476",
@@ -106995,6 +108521,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "170839",
@@ -107250,6 +108777,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139619",
@@ -107591,6 +109119,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "177107",
@@ -107824,6 +109353,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "129688",
@@ -108037,6 +109567,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1498091",
+      "UF_PROPONENTE": "RS",
+      "MUNIC_PROPONENTE": "CAMAQUÃ",
+      "COD_MUNIC_IBGE": "4303509",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "46409/2019",
+      "DIA_PROP": "4",
+      "MES_PROP": "10",
+      "ANO_PROP": "2019",
+      "DIA_PROPOSTA": "04/10/2019",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "88358940000106",
+      "NM_PROPONENTE": "FUNDACAO ASSISTENCIAL E BENEFICENTE DE CAMAQUA",
+      "CEP_PROPONENTE": "96780092",
+      "ENDERECO_PROPONENTE": "RUA CRISTOVAO GOMES DE ANDRADE, 665 - CENTRO. CAMAQUÃ - RS. CEP: 96780-092",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "04/10/2019",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "20/10/2019",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "250000",
+      "VL_REPASSE_PROP": "200000",
+      "VL_CONTRAPARTIDA_PROP": "50000",
+      "CD_AGENCIA": "0192-9",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "424796",
@@ -108207,6 +109775,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49199",
@@ -108352,6 +109921,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "129687",
@@ -108497,6 +110067,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165092",
@@ -108607,6 +110178,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "166047",
@@ -108840,6 +110412,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "179757",
@@ -109045,6 +110618,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "226028",
@@ -110276,6 +111850,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "161258",
@@ -110407,6 +111982,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "112059",
@@ -110592,6 +112168,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139544",
@@ -110828,6 +112405,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "230576",
@@ -110987,6 +112565,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "321087",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "TAQUARITINGA",
+      "COD_MUNIC_IBGE": "3553708",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "73478/2010",
+      "DIA_PROP": "17",
+      "MES_PROP": "6",
+      "ANO_PROP": "2010",
+      "DIA_PROPOSTA": "17/06/2010",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "72127210000156",
+      "NM_PROPONENTE": "IRMANDADE DA SANTA CASA DE MIS E MAT D ZILDA SALVAGNI",
+      "CEP_PROPONENTE": "15900037",
+      "ENDERECO_PROPONENTE": "PRACA DOUTOR JOSE FURIATTI, 153 - CENTRO. TAQUARITINGA - SP. CEP: 15900-037",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "17/06/2010",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "31/12/2010",
+      "OBJETO_PROPOSTA": "O objetivo do convênio é a Aquisição de EQUIPAMENTO E MATERIAL PERMANENTE, visando a melhoria e a implementação dos serviços prestados à população que dependem do atendimento atraves do Sistema Único de Saúde (SUS).",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "150000",
+      "VL_REPASSE_PROP": "100000",
+      "VL_CONTRAPARTIDA_PROP": "50000",
+      "CD_AGENCIA": "0358-1",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "113050",
@@ -111116,6 +112732,44 @@
       "ACAO_ORCAMENTARIA": "12208535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "501418",
+      "UF_PROPONENTE": "MG",
+      "MUNIC_PROPONENTE": "MONTES CLAROS",
+      "COD_MUNIC_IBGE": "3143302",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "59777/2011",
+      "DIA_PROP": "25",
+      "MES_PROP": "10",
+      "ANO_PROP": "2011",
+      "DIA_PROPOSTA": "25/10/2011",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "00991591000106",
+      "NM_PROPONENTE": "FUNDACAO DE SAUDE DILSON DE QUADROS GODINHO",
+      "CEP_PROPONENTE": "39400292",
+      "ENDERECO_PROPONENTE": "AVENIDA GERALDO ATHAYDE, 480 - ALTO SAO JOAO. MONTES CLAROS - MG. CEP: 39400-292",
+      "BAIRRO_PROPONENTE": "ALTO SAO JOAO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "21/07/2011",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "21/07/2012",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "2335000",
+      "VL_REPASSE_PROP": "2335000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0132-5",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -111247,6 +112901,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "609030",
+      "UF_PROPONENTE": "PR",
+      "MUNIC_PROPONENTE": "LONDRINA",
+      "COD_MUNIC_IBGE": "4113700",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "32514/2012",
+      "DIA_PROP": "25",
+      "MES_PROP": "6",
+      "ANO_PROP": "2012",
+      "DIA_PROPOSTA": "25/06/2012",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "78633088000176",
+      "NM_PROPONENTE": "INSTITUTO DE CANCER DE LONDRINA",
+      "CEP_PROPONENTE": "86015520",
+      "ENDERECO_PROPONENTE": "RUA LUCILLA BALLALAI, 212 - JD PETROPOLIS. LONDRINA - PR. CEP: 86015-520",
+      "BAIRRO_PROPONENTE": "JD PETROPOLIS",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "04/07/2012",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "31/12/2015",
+      "OBJETO_PROPOSTA": "Aquisição de equipamento e / ou material permanente.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "2500000",
+      "VL_REPASSE_PROP": "2500000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "3407-X",
+      "CD_CONTA": ""
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "252783",
@@ -111377,6 +113069,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165526",
@@ -111524,6 +113217,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119221",
@@ -111769,6 +113463,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119497",
@@ -111933,6 +113628,44 @@
       "ACAO_ORCAMENTARIA": "51188535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "2158739",
+      "UF_PROPONENTE": "RJ",
+      "MUNIC_PROPONENTE": "VASSOURAS",
+      "COD_MUNIC_IBGE": "3306206",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "67301/2025",
+      "DIA_PROP": "15",
+      "MES_PROP": "12",
+      "ANO_PROP": "2025",
+      "DIA_PROPOSTA": "15/12/2025",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "32410037000184",
+      "NM_PROPONENTE": "FUNDACAO SEVERINO SOMBRA",
+      "CEP_PROPONENTE": "27700000",
+      "ENDERECO_PROPONENTE": "AVENIDA EXPEDICIONARIO OSWALDO DE ALMEIDA RAMOS, 280 - CENTRO. VASSOURAS - RJ. CEP: 27700-000",
+      "BAIRRO_PROPONENTE": "CENTRO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "15/12/2025",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "14/12/2027",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "2836962",
+      "VL_REPASSE_PROP": "2836962",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0196-1",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -112639,6 +114372,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139592",
@@ -112769,6 +114503,44 @@
       "ACAO_ORCAMENTARIA": "12208535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "501458",
+      "UF_PROPONENTE": "MG",
+      "MUNIC_PROPONENTE": "MONTES CLAROS",
+      "COD_MUNIC_IBGE": "3143302",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "59801/2011",
+      "DIA_PROP": "25",
+      "MES_PROP": "10",
+      "ANO_PROP": "2011",
+      "DIA_PROPOSTA": "25/10/2011",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "00991591000106",
+      "NM_PROPONENTE": "FUNDACAO DE SAUDE DILSON DE QUADROS GODINHO",
+      "CEP_PROPONENTE": "39400292",
+      "ENDERECO_PROPONENTE": "AVENIDA GERALDO ATHAYDE, 480 - ALTO SAO JOAO. MONTES CLAROS - MG. CEP: 39400-292",
+      "BAIRRO_PROPONENTE": "ALTO SAO JOAO",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Não Cadastrado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "26/08/2011",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "26/08/2012",
+      "OBJETO_PROPOSTA": "Aquisição de Equipamentos para setores especializados da Fundação de Saúde Dilson de Quadros Godinho.",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "600000",
+      "VL_REPASSE_PROP": "600000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0132-5",
+      "CD_CONTA": ""
     },
     "empenhos": [],
     "desembolsos": [],
@@ -112927,6 +114699,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "120025",
@@ -113106,6 +114879,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "134592",
@@ -113409,6 +115183,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "115186",
@@ -113632,6 +115407,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "17220",
@@ -113791,6 +115567,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49665",
@@ -113917,6 +115694,44 @@
       "ACAO_ORCAMENTARIA": "20158535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "1038798",
+      "UF_PROPONENTE": "SP",
+      "MUNIC_PROPONENTE": "SÃO PAULO",
+      "COD_MUNIC_IBGE": "3550308",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "52844/2015",
+      "DIA_PROP": "23",
+      "MES_PROP": "12",
+      "ANO_PROP": "2015",
+      "DIA_PROPOSTA": "23/12/2015",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "60945854000172",
+      "NM_PROPONENTE": "INSTITUTO DO CANCER ARNALDO VIEIRA DE CARVALHO",
+      "CEP_PROPONENTE": "01221020",
+      "ENDERECO_PROPONENTE": "RUA DR. CESARIO MOTTA JUNIOR, 112 - VILA BUARQUE. SÃO PAULO - SP. CEP: 01221-020",
+      "BAIRRO_PROPONENTE": "VILA BUARQUE",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "23/12/2015",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "22/12/2016",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "3400000",
+      "VL_REPASSE_PROP": "3000000",
+      "VL_CONTRAPARTIDA_PROP": "400000",
+      "CD_AGENCIA": "3221-2",
+      "CD_CONTA": ""
     },
     "empenhos": [
       {
@@ -114048,6 +115863,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "163065",
@@ -114233,6 +116049,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119514",
@@ -114378,6 +116195,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "165528",
@@ -114559,6 +116377,44 @@
       "ACAO_ORCAMENTARIA": "51188535",
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
+    },
+    "proposta": {
+      "ID_PROPOSTA": "2226960",
+      "UF_PROPONENTE": "CE",
+      "MUNIC_PROPONENTE": "FORTALEZA",
+      "COD_MUNIC_IBGE": "2304400",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "29997/2026",
+      "DIA_PROP": "2",
+      "MES_PROP": "7",
+      "ANO_PROP": "2026",
+      "DIA_PROPOSTA": "02/07/2026",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "07265515000162",
+      "NM_PROPONENTE": "INSTITUTO DO CANCER DO CEARA",
+      "CEP_PROPONENTE": "60430230",
+      "ENDERECO_PROPONENTE": "RUA PAPI JUNIOR, 1222 - RODOLFO TEOFILO. FORTALEZA - CE. CEP: 60430-230",
+      "BAIRRO_PROPONENTE": "RODOLFO TEOFILO",
+      "NM_BANCO": "BANCO DO BRASIL SA",
+      "SITUACAO_CONTA": "Cadastrada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "02/07/2026",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "01/07/2029",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "5000000",
+      "VL_REPASSE_PROP": "5000000",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "2937-8",
+      "CD_CONTA": ""
     },
     "empenhos": [],
     "desembolsos": [],
@@ -115159,6 +117015,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "66139",
@@ -115552,6 +117409,7 @@
       "NOME_SUBTIPO_PROGRAMA": "NOVO PAC - FORMALIZAÇÃO",
       "DESCRICAO_SUBTIPO_PROGRAMA": "DECRETO Nº 11.855, DE 26 DE DEZEMBRO DE 2023. Dispõe sobre termos de compromisso relativos às transferências obrigatórias de recursos da União para a execução de ações do Programa de Aceleração do Crescimento - Novo PAC."
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140512",
@@ -115662,6 +117520,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "49777",
@@ -116157,6 +118016,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "78457",
@@ -116599,6 +118459,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "27893",
@@ -119012,6 +120873,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "264236",
@@ -119245,6 +121107,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "75194",
@@ -119430,6 +121293,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "104668",
@@ -119608,6 +121472,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "161817",
@@ -120000,6 +121865,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "18759",
@@ -120225,6 +122091,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "75192",
@@ -120387,6 +122254,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "125294",
@@ -120683,6 +122551,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "40538",
@@ -120848,6 +122717,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "119224",
@@ -121087,6 +122957,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "140379",
@@ -123174,6 +125045,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "180140",
@@ -123476,6 +125348,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "72384",
@@ -123894,6 +125767,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "78706",
@@ -124039,6 +125913,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139628",
@@ -124184,6 +126059,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "24043",
@@ -124393,6 +126269,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "34575",
@@ -124884,6 +126761,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1614438",
+      "UF_PROPONENTE": "DF",
+      "MUNIC_PROPONENTE": "BRASÍLIA",
+      "COD_MUNIC_IBGE": "5300108",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "27976/2020",
+      "DIA_PROP": "28",
+      "MES_PROP": "12",
+      "ANO_PROP": "2020",
+      "DIA_PROPOSTA": "28/12/2020",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONTRATO DE REPASSE",
+      "IDENTIF_PROPONENTE": "28481233000172",
+      "NM_PROPONENTE": "INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+      "CEP_PROPONENTE": "70335900",
+      "ENDERECO_PROPONENTE": "SETOR SMHS AREA ESPECIAL, S/N, QUADRA101 - ASA SUL. BRASÍLIA - DF. CEP: 70335-900",
+      "BAIRRO_PROPONENTE": "ASA SUL",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Regularizada",
+      "SITUACAO_PROJETO_BASICO": "",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "28/12/2020",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "17/02/2022",
+      "OBJETO_PROPOSTA": "REFORMA DE UNIDADE DE ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Obras e Serviços de Engenharia",
+      "ENVIADA_MANDATARIA": "SIM",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "2582640",
+      "VL_REPASSE_PROP": "2582640",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0002-7",
+      "CD_CONTA": "0034532029"
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "15394",
@@ -124994,6 +126909,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "73142",
@@ -125241,6 +127157,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "291772",
@@ -126007,6 +127924,44 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": {
+      "ID_PROPOSTA": "1690960",
+      "UF_PROPONENTE": "RS",
+      "MUNIC_PROPONENTE": "CANOAS",
+      "COD_MUNIC_IBGE": "4304606",
+      "COD_ORGAO_SUP": "36000",
+      "DESC_ORGAO_SUP": "MINISTERIO DA SAUDE",
+      "NATUREZA_JURIDICA": "Organização da Sociedade Civil",
+      "NR_PROPOSTA": "37411/2021",
+      "DIA_PROP": "23",
+      "MES_PROP": "8",
+      "ANO_PROP": "2021",
+      "DIA_PROPOSTA": "23/08/2021",
+      "COD_ORGAO": "36000",
+      "DESC_ORGAO": "MINISTERIO DA SAUDE",
+      "MODALIDADE": "CONVENIO",
+      "IDENTIF_PROPONENTE": "88314133000183",
+      "NM_PROPONENTE": "ASSOCIACAO BENEFICENTE DE CANOAS",
+      "CEP_PROPONENTE": "92030000",
+      "ENDERECO_PROPONENTE": "RUA SANTOS FERREIRA, 1864 - MARECHAL RONDON. CANOAS - RS. CEP: 92030-000",
+      "BAIRRO_PROPONENTE": "MARECHAL RONDON",
+      "NM_BANCO": "CAIXA ECONOMICA FEDERAL",
+      "SITUACAO_CONTA": "Regularizada",
+      "SITUACAO_PROJETO_BASICO": "Aprovado",
+      "SIT_PROPOSTA": "Proposta/Plano de Trabalho Aprovados",
+      "DIA_INIC_VIGENCIA_PROPOSTA": "23/08/2021",
+      "DIA_FIM_VIGENCIA_PROPOSTA": "24/07/2024",
+      "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO E MATERIAL PERMANENTE PARA ATENÇÃO ESPECIALIZADA EM SAÚDE",
+      "ITEM_INVESTIMENTO": "Equipamentos",
+      "ENVIADA_MANDATARIA": "NÃO APLICÁVEL",
+      "NOME_SUBTIPO_PROPOSTA": "",
+      "DESCRICAO_SUBTIPO_PROPOSTA": "",
+      "VL_GLOBAL_PROP": "1099923",
+      "VL_REPASSE_PROP": "1099923",
+      "VL_CONTRAPARTIDA_PROP": "0",
+      "CD_AGENCIA": "0463-4",
+      "CD_CONTA": "5734723688"
+    },
     "empenhos": [
       {
         "ID_EMPENHO": "64579",
@@ -126185,6 +128140,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "263980",
@@ -126330,6 +128286,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "39564",
@@ -127566,6 +129523,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "237609",
@@ -128081,6 +130039,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "184298",
@@ -128208,6 +130167,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "285862",
@@ -128552,6 +130512,7 @@
       "NOME_SUBTIPO_PROGRAMA": "",
       "DESCRICAO_SUBTIPO_PROGRAMA": ""
     },
+    "proposta": null,
     "empenhos": [
       {
         "ID_EMPENHO": "139830",

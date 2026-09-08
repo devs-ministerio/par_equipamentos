@@ -33,9 +33,19 @@ describe('equipamentosDoConvenio', () => {
     expect(equipamentosDoConvenio(convenioComItens(['PET-CT (novo modelo)']))).toEqual(['PET/CT']);
   });
 
-  it('nao acha nada quando o item nao bate com nenhum dos 5 equipamentos-alvo', () => {
+  it('nao acha nada quando o item nao bate com nenhum dos 14 equipamentos-alvo', () => {
     const c = convenioComItens(['002274-Computador (Desktop-Básico)']);
     expect(equipamentosDoConvenio(c)).toEqual([]);
+  });
+
+  it('acha os 9 equipamentos adicionados 2026-09-08 pelos itens reais nao mapeados dos 444 convenio', () => {
+    expect(equipamentosDoConvenio(convenioComItens(['011422-Ultrassom Diagnóstico Sem Aplicação Transesofágica']))).toEqual(['Ultrassom']);
+    expect(equipamentosDoConvenio(convenioComItens(['011268-Sistema de Vídeo Endoscopia Flexível']))).toEqual(['Endoscopia']);
+    expect(equipamentosDoConvenio(convenioComItens(['Tomógrafo Computadorizado 16 canais']))).toEqual(['Tomógrafo']);
+    expect(equipamentosDoConvenio(convenioComItens(['Aparelho de Ressonância Magnética 1.5T']))).toEqual(['Ressonância']);
+    expect(equipamentosDoConvenio(convenioComItens(['000361-Aparelho de Raios X - Móvel']))).toEqual(['Raios X']);
+    expect(equipamentosDoConvenio(convenioComItens(['000483-Aparelho para Hemodiálise']))).toEqual(['Hemodiálise']);
+    expect(equipamentosDoConvenio(convenioComItens(['Unidade de Cobalto Terapia']))).toEqual(['Cobalto']);
   });
 
   it('convenio sem siconv nem transferegov nao quebra, devolve lista vazia', () => {
