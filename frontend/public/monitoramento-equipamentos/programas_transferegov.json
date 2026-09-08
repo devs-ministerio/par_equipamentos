@@ -1,0 +1,882 @@
+[
+  {
+    "id_programa": 1,
+    "nm_programa": "Pronas/PCD - Serviços médico-assistenciais",
+    "ano_programa": 2024
+  },
+  {
+    "id_programa": 2,
+    "nm_programa": "Pronas/PCD - Formação, treinamento e aperfeiçoamento de recursos humanos em todos os níveis",
+    "ano_programa": 2024
+  },
+  {
+    "id_programa": 3,
+    "nm_programa": "Pronas/PCD - Realização de pesquisas clínicas, epidemiológicas, experimentais e socioantropológicas",
+    "ano_programa": 2024
+  },
+  {
+    "id_programa": 4,
+    "nm_programa": "Pronon - Serviços médico-assistenciais",
+    "ano_programa": 2024
+  },
+  {
+    "id_programa": 5,
+    "nm_programa": "Pronon - Formação, o treinamento e o aperfeiçoamento de recursos humanos em todos os níveis",
+    "ano_programa": 2024
+  },
+  {
+    "id_programa": 6,
+    "nm_programa": "Pronon - Realização de pesquisas clínicas, epidemiológicas e experimentais",
+    "ano_programa": 2024
+  },
+  {
+    "id_programa": 7,
+    "nm_programa": "Lei de Incentivo à Reciclagem",
+    "ano_programa": 2024
+  },
+  {
+    "id_programa": 8,
+    "nm_programa": "Lei de Incentivo à Reciclagem 2025",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 9,
+    "nm_programa": "Multa Ambiental - Gestão de Resíduos Sólidos em Consórcios Públicos de MG",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 10,
+    "nm_programa": "Pronon - Serviços médico-assistenciais (2º ciclo) - Revogado",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 11,
+    "nm_programa": "Pronon - Serviços médico-assistenciais (2º ciclo)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 12,
+    "nm_programa": "FIRECE",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 13,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS INDIVIDUAIS - CUSTEIO - GND3",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 14,
+    "nm_programa": "INCREMENTO AO PISO DA ATENÇÃO PRIMÁRIA (PAP)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 15,
+    "nm_programa": "INCREMENTO DA MÉDIA E ALTA COMPLEXIDADE (MAC)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 16,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS INDIVIDUAIS - INVESTIMENTO - GND4",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 17,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE ATENÇÃO HOSPITALAR - HOSPITAL GERAL",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 18,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE-REDE DE CUIDADOS À PESSOA COM DEFICIÊNCIA - CENTRO ESPECICIALIZADO EM REABILITAÇÃO (CER)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 19,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - CENTRO ESPECIALIZADO EM REABILITAÇÃO (CER)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 20,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - CENTRO ESPECIALIZADO EM REABILITAÇÃO (CER)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 21,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - ACADEMIA DA SAÚDE",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 22,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - AÇÕES INTERPROFISSIONAIS - EQUIPE MULTIPROFISSIONAL (EMULTI)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 23,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - CONSULTÓRIO NA RUA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 24,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - CENTRO ESPECIALIZADO EM REABILITAÇÃO (CER)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 25,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - OFICINA ORTOPÉDICA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 26,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - OFICINA ORTOPÉDICA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 27,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - OFICINA ORTOPÉDICA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 28,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - OFICINA ORTOPÉDICA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 29,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - TRANSPORTE SANITÁRIO ADAPTADO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 30,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE CUIDADOS A PESSOA COM DEFICIÊNCIA - TRIAGEM AUDITIVA NEONATAL",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 31,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE ATENÇÃO HOSPITALAR - UNIDADES DE CUIDADOS PROLONGADOS",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 32,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - POLÍTICA NACIONAL DE SANGUE E HEMODERIVADOS - ESTRUTURAÇÃO DOS SERVIÇOS DE HEMATOLOGIA E HEMOTERAPIA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 33,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - EQUIPAMENTO UBS",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 34,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - POLÍTICA NACIONAL DE ATENÇÃO INTEGRAL À SAÚDE DAS PESSOAS PRIVADAS DE LIBERDADE NO SISTEMA PRISIONAL",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 35,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - POLÍTICA NACIONAL DE CUIDADOS PALEATIVOS",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 36,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - POLÍTICA NACIONAL DE SAÚDE INTEGRAL DAS POPULAÇÕES DO CAMPO, DA FLORESTA E DAS ÁGUAS",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 37,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - PONTO DE APOIO PARA ATENDIMENTO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 38,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - POLÍTICAS DE ATENÇÃO AMBULATORIAL ESPECIALIZADA E SERVIÇOS HOSPITALARES DE ALTA COMPLEXIDADE - TRANSPORTE SANITARIO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 39,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - REQUALIFICA UBS  - CONSTRUÇÃO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 40,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - SAÚDE BUCAL  BRASIL SORRIDENTE - EQUIPAMENTO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 41,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - TRANSPORTE ELETIVO EM SAÚDE",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 42,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - UBS FLUVIAL",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 43,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - REQUALIFICA UBS  - AMPLIAÇÃO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 44,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - REQUALIFICA UBS  - REFORMA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 45,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - SAÚDE BUCAL  BRASIL SORRIDENTE - CONSTRUÇÃO DE CEO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 46,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - SAÚDE BUCAL  BRASIL SORRIDENTE - AMPLIAÇÃO DE CEO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 47,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - SAÚDE BUCAL  BRASIL SORRIDENTE - REFORMA DE CEO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 48,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - SAÚDE BUCAL  BRASIL SORRIDENTE - UNIDADE ODONTOLÓGICA MÓVEL",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 49,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - PORTA DE ENTRADA HOSPITALAR",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 50,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - PRONTO ATENDIMENTO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 51,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - SALA DE ESTABILIZAÇÃO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 52,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - SAMU 192 - AMPLIAÇÃO DE FROTA (USA/USB)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 53,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Ambulatório para Diagnóstico em Oncologia",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 54,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - SAMU 192 - EXPANSÃO DE FROTA (USA/USB)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 55,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - SAMU 192 - RENOVAÇÃO DE FROTA (USA/USB)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 56,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - SAMU 192 - USA/USB/MOTOLÂNCIA/AMBULANCHA/AERO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 57,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Hospital habilitado na Alta Complexidade em Oncologia",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 58,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - SAMU 192 - CENTRAL DE REGULAÇÃO DAS URGÊNCIAS (CRU)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 59,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - SAMU 192 - CENTRAL DE REGULAÇÃO DAS URGÊNCIAS (CRU)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 60,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - UNIDADE DE PRONTO ATENDIMENTO (UPA 24H)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 61,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - UNIDADE DE PRONTO ATENDIMENTO (UPA 24H)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 62,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE URGÊNCIA E EMERGÊNCIA - POLO DE HIDRATAÇÃO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 63,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Laboratório de anatomia patológia e/ou citopatologia",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 64,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE 0 Política Nacional de Prevenção e Controle do Câncer - Serviço de Referência para o Diagnóstico do Câncer de Mama (SDM)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 65,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Políticas de Atenção Ambulatorial Especializada e Serviços Hospitalares de Alta Complexidade - Ambulatorio",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 66,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Políticas de Atenção Ambulatorial Especializada e Serviços Hospitalares de Alta Complexidade - Hospital",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 67,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Ambulatório de Gestação e Puerpério de Alto Risco (A-GPAR)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 68,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Ambulatório de Gestação e Puerpério de Alto Risco (A-GPAR)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 69,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Ambulatório de Seguimento (A-SEG)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 70,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Ambulatório de Seguimento (A-SEG)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 71,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Banco de Leite Humano (BLH)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 72,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Banco de Leite Humano (BLH)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 73,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Casa da Gestante, Bebê e Puérpera (CGBP)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 74,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Centro de Parto Normal (CPN)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 75,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Leitos de Unidade de Cuidado Intermediário Canguru (UCINCa)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 76,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Leitos de Unidade de Cuidado Intermediário Convencional (UCINCo)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 77,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Leitos de Unidade de Terapia Intensiva Neonatal (Utin)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 78,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Maternidade",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 79,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Transporte inter-hospitalar",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 80,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Domiciliar - Melhor em Casa",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 81,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE ATENÇÃO ESPECIALIZADA - OFERTAS DE CUIDADOS INTEGRADO (OCI) - PMAE",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 82,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Hospitalar - Ambulância de Transporte Tipo A - Remoção Simples - Eletiva",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 83,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Integral às Pessoas com Doenças Raras",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 84,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicosocial - Unidade de Acolhimento (UA)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 85,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicossocial - Centro de Atenção Psicossocial (Caps)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 86,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicossocial - Leitos de Saúde Mental",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 87,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicossocial - Serviço Residencial Terapêutico (SRT)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 88,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE ATENÇÃO PSICOSSOCIAL - CENTRO DE ATENÇÃO PSICOSSOCIAL (CAPS)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 89,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE DE ATENÇÃO PSICOSSOCIAL - UNIDADE DE ACOLHIMENTO - UA",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 90,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE ALYNE - LEITOS DE UNIDADE DE TERAPIA INTENSIVA NEONATAL (UTIN)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 91,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE ALYNE - LEITOS DE UNIDADE DE CUIDADO INTERMEDIARIO CONVENCIONAL (UCINCo)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 92,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE ALYNE - LEITOS DE UNIDADE DE CUIDADO INTERMEDIARIO CANGURU (UCINCa)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 93,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Casa da Gestante, Bebê e Puérpera (CGBP)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 94,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Centro de Parto Normal (CPN)",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 95,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS DE BANCADA - CUSTEIO - GND3",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 96,
+    "nm_programa": "Pronon - Prestação de Serviços Médico-Assistenciais",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 97,
+    "nm_programa": "Pronon - Formação, Capacitação e Aperfeiçoamento de Recursos Humanos",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 98,
+    "nm_programa": "Pronon - Realização de pesquisas clínicas, epidemiológicas e experimentais",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 99,
+    "nm_programa": "Pronas/PCD - Prestação de serviços médico-assistenciais",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 100,
+    "nm_programa": "Pronas/PCD - Formação, qualificação e aperfeiçoamento de recursos humanos em todos os níveis de atenção",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 101,
+    "nm_programa": "Pronas/PCD - Realização de pesquisas clínicas, epidemiológicas e experimentais",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 102,
+    "nm_programa": "VIGILÂNCIA EM SAÚDE E AMBIENTE_EQUIPAMENTO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 103,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE SARAH DE HOSPITAIS DE REABILITAÇÃO - ASSISTÊNCIA MÉDICA QUALIFICADA E GRATUITA À TODOS OS NÍVEIS",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 104,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE -  POLITICA NACIONAL DE PREVENÇÃO E CONTROLE DO CANCER - SERVIÇO DE REFERENCIA PARA O DIAGNOSTICO DO CANCER NO UTERO - SRC",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 105,
+    "nm_programa": "REDE DE ATENÇÃO ESPECIALIZADA - AGORA TEM ESPECIALISTA - TRANSPORTE SANITÁRIO",
+    "ano_programa": 2025
+  },
+  {
+    "id_programa": 106,
+    "nm_programa": "Lei de Incentivo à Reciclagem 2026",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 107,
+    "nm_programa": "Vigilância em Saúde - 20YJ Fortalecimento do Sistema Nacional de Vigilância em Saúde e Ambiente",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 108,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE CUIDADOS PALIATIVOS",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 109,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA À SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - AMBULATÓRIO PARA DIAGNÓSTICO EM ONCOLOGIA",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 110,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS INDIVIDUAIS - CUSTEIO - GND3",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 111,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS INDIVIDUAIS - INVESTIMENTO - GND4",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 112,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - SAÚDE BUCAL BRASIL SORRIDENTE - UNIDADE ODONTOLÓGICA MÓVEL",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 113,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - REQUALIFICA UBS - REFORMA",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 114,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - REQUALIFICA UBS - AMPLIAÇÃO",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 115,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - TRANSPORTE ELETIVO EM SAÚDE",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 116,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - SAÚDE BUCAL BRASIL SORRIDENTE - EQUIPAMENTO",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 117,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - REQUALIFICA UBS - CONSTRUÇÃO",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 118,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - PONTO DE APOIO PARA ATENDIMENTO - OBRA",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 119,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - EQUIPAMENTO UBS",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 120,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - AÇÕES INTERPROFISSIONAIS - EQUIPE MULTIPROFISSIONAL (EMULTI) - EQUIPAMENTO",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 121,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - 8581 - ESTRUTURAÇÃO DA REDE DE SERVIÇOS DE ATENÇÃO PRIMÁRIA À SAÚDE",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 122,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - 2E89 - INCREMENTO TEMPORÁRIO AO CUSTEIO DOS SERVIÇOS DE ATENÇÃO PRIMÁRIA À SAÚDE PARA CUMPRIMENTO DE METAS - INCREMENTO PAP",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 123,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - Polo de Hidratação",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 124,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - Unidade de Pronto Atendimento (UPA 24h)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 125,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - SAMU192 - Central de Regulação das Urgências (CRU)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 126,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - SAMU 192 - USA/USB/Motolância/Ambulancha/Aero",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 127,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - SAMU 192 - Renovação de Frota (USA/USB)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 128,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - SAMU 192 - Expansão de Frota (USA/USB)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 129,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - SAMU 192 - Ampliação de Frota (USA/USB)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 130,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - Sala de Estabilização",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 131,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - Pronto Atendimento",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 132,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Urgência e Emergência - Pronto Atendimento",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 133,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Cuidados à Pessoa com Deficiência - Triagem Auditiva Neonatal",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 134,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Cuidados à Pessoa com Deficiência - Transporte Sanitário Adaptado",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 135,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Cuidados à Pessoa com Deficiência - Oficina Ortopédica",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 136,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Cuidados à Pessoa com Deficiência - Centro Especializado em Reabilitação (CER)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 137,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicossocial - Serviço Residencial Terapêutico (SRT)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 138,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicossocial - Leitos de Saúde Mental",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 139,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicossocial - Centro de Atenção Psicossocial (Caps)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 140,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Psicosocial - Unidade de Acolhimento (UA)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 141,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Integral às Pessoas com Doenças Raras",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 142,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Hospitalar - Unidades de Cuidados Prolongados",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 143,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Hospitalar - Hospital Geral",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 144,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Hospitalar - Ambulância de Transporte Tipo A - Remoção Simples - Eletiva",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 145,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Especializada - Ofertas de Cuidados Integrado (OCI) - PMAE",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 146,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - AGORA TEM ESPECIALISTA - TRANSPORTE SANITÁRIO",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 147,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede de Atenção Domiciliar - Melhor em Casa",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 148,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Transporte inter-hospitalar",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 149,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Maternidade",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 150,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Leitos de Unidade de Terapia Intensiva Neonatal (Utin)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 151,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 152,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Leitos de Unidade de Cuidado Intermediário Convencional (UCINCo)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 153,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Leitos de Unidade de Cuidado Intermediário Canguru (UCINCa)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 154,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Centro de Parto Normal (CPN)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 155,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - POLÍTICA NACIONAL DE PREVENÇÃO E CONTROLE DO CÂNCER - LABORATÓRIO DE ANATOMIA PATOLÓGIA E/OU CITOPATOLOGIA",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 156,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Casa da Gestante, Bebê e Puérpera (CGBP)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 157,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Banco de Leite Humano (BLH)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 158,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Ambulatório de Seguimento (A-SEG)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 159,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Rede Alyne - Ambulatório de Gestação e Puerpério de Alto Risco (A-GPAR)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 160,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Políticas de Atenção Ambulatorial Especializada e Serviços Hospitalares de Alta Complexidade - Transporte Sanitário Eletivo",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 161,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Políticas de Atenção Ambulatorial Especializada e Serviços Hospitalares de Alta Complexidade - Hospital de Alta Complexidade",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 162,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Políticas de Atenção Ambulatorial Especializada e Serviços Hospitalares de Alta Complexidade - Ambulatório",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 163,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Ação 21D9 - Estruturação dos Serviços de Hematologia e Hemoterapia",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 164,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Serviço de Referência para o Diagnóstico do Câncer de Mama (SDM)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 165,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - Política Nacional de Prevenção e Controle do Câncer - Serviço de Referência para o Diagnóstico do Câncer de Útero (SRC)",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 166,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE  – Ação 8535 - Estruturação de Unidades de Atenção Especializada em Saúde",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 167,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE – Ação 2E90 - Incremento Temporário ao Custeio dos Serviços de Assistência Hospitalar e Ambulatorial para Cumprimento de Metas",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 168,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS DE BANCADA - CUSTEIO - GND3",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 169,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS DE BANCADA - INVESTIMENTO - GND4",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 170,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS DE COMISSÃO - CUSTEI - GND3",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 171,
+    "nm_programa": "ESTRUTURAÇÃO DA REDE DE SERVIÇOS DO SUAS - EMENDAS DE COMISSÃO - INVESTIMENTO - GND4",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 172,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE - REDE SARAH DE HOSPITAIS DE REABILITAÇÃO - ASSISTÊNCIA MÉDICA QUALIFICADA E GRATUITA À TODOS OS NÍVEIS",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 173,
+    "nm_programa": "ATENÇÃO ESPECIALIZADA EM SAÚDE – Ação 2E90 - AGSUS",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 174,
+    "nm_programa": "LIR - COPA FEMININA 2027",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 175,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - UNIDADE MÓVEL DE RUA - UMR",
+    "ano_programa": 2026
+  },
+  {
+    "id_programa": 176,
+    "nm_programa": "ATENÇÃO PRIMÁRIA À SAÚDE - ACADEMIA DA SAUDE - ACAO 20YL",
+    "ano_programa": 2026
+  }
+]

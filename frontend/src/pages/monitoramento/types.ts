@@ -2,6 +2,17 @@
  * TransfereGov novo) e do tipo mesclado que a pagina realmente renderiza --
  * ver mesclarConvenios.ts pro cruzamento. */
 
+/** Lookup id_programa -> nome, gerado por
+ * backend/scripts/levantamento_convenios_oncologia.py a partir dos 176
+ * `programa` do TransfereGov -- usado pra resolver o `id_programa` (so o
+ * numero) que cada proposta de TransfereGovEnte.propostas_expandidas
+ * carrega, pro nome legivel do programa aparecer no card do convenio. */
+export type ProgramaTransfereGov = {
+  id_programa: number;
+  nm_programa: string;
+  ano_programa: number | null;
+};
+
 export type ConvenioPortal = {
   numero: string;
   numero_instrumento: string | null;

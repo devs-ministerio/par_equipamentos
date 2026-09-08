@@ -1,71 +1,135 @@
+/** Card de convenio -- 2 camadas de informacao, nao 1 accordion escondendo
+ * tudo atras de 1 clique (feedback direto: o que mais importa pra
+ * escanear -- status, objeto, grade financeira -- precisa aparecer sem
+ * clicar em nada, so o dado tecnico profundo (SICONV/TransfereGov/
+ * monitoramento) fica atras de "Ver mais detalhes"). Camada 1 sempre
+ * visivel: identificacao, status, objeto, financeiro. Camada 2 (collapse
+ * proprio, so essa parte): dados aninhados. */
 import { useState } from 'react';
 import { colors } from '../../styles/tokens';
 import { fmtData, fmtMoeda, pct } from './format';
 import { MonitoramentoInterno } from './MonitoramentoInterno';
 import { SiconvSubAbas } from './SiconvSubAbas';
-import type { ConvenioUnificado } from './types';
-import { Campo, estiloCard, rotuloCampo, Secao, StatusPill } from './ui';
+import type { ConvenioUnificado, ProgramaTransfereGov } from './types';
+import { Campo, estiloCard, Secao, StatusPill } from './ui';
 
-export function ConvenioCard({ c, monitorado = false }: { c: ConvenioUnificado; monitorado?: boolean }) {
+export function ConvenioCard({
+  c, monitorado = false, equipamentos = [], programas,
+}: {
+  c: ConvenioUnificado;
+  monitorado?: boolean;
+  /** Tags de equipamento (ver equipamentoTags.ts) -- mostradas em destaque
+   * na camada 1, pedido direto do usuario (2026-09-08). */
+  equipamentos?: string[];
+  /** id_programa -> nome, ver types.ts::ProgramaTransfereGov. So a
+   * proposta do TransfereGov carrega o id cru, sem nome. */
+  programas?: Map<number, ProgramaTransfereGov>;
+}) {
   const siconv = c.siconv;
   const transferegov = c.transferegov;
-  // Controlado (em vez de <details> nativo solto) so pra poder atrasar o
-  // fetch do monitoramento interno ate o card ser aberto -- sem isso os 71
-  // cards dispariam 71 requisicoes (70 delas 404, so 948686 tem instrumento
-  // seedado) assim que a pagina carrega.
-  const [aberto, setAberto] = useState(false);
+  // So controla a camada 2 (dado tecnico aninhado) -- a camada 1 (status/
+  // objeto/financeiro) e sempre renderizada, nao precisa de estado.
+  const [detalheAberto, setDetalheAberto] = useState(false);
 
   const pctDesembolsado = c.financeiro.global && c.financeiro.desembolsado != null
     ? Math.round((c.financeiro.desembolsado / c.financeiro.global) * 100)
     : null;
 
   return (
-    <details
+    <div
       style={{
         ...estiloCard,
-        marginBottom: 10,
+        marginBottom: 12,
         // Convenio com monitoramento interno ativo ganha destaque visual --
         // e o unico dado editavel da pagina, precisa ser achavel sem abrir
         // card por card (ver useInstrumentosMonitorados.ts).
         borderLeft: monitorado ? `3px solid ${colors.hiperGreen}` : estiloCard.borderLeft,
       }}
-      open={aberto}
-      onToggle={(e) => setAberto((e.target as HTMLDetailsElement).open)}
     >
-      <summary style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ---------- Camada 1: sempre visivel ---------- */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            Convênio {c.numero} <span style={{ fontWeight: 400, color: colors.mutedText, fontSize: 11.5 }}>{c.numeroInstrumento || ''}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+            <span style={{
+              fontSize: 11.5, fontWeight: 700, color: colors.primary, background: colors.primaryLight,
+              padding: '2px 9px', borderRadius: 5, fontFamily: 'monospace',
+            }}>
+              Convênio {c.numero}
+            </span>
+            {c.numeroInstrumento && <span style={{ fontSize: 11, color: colors.subtleText, fontFamily: 'monospace' }}>{c.numeroInstrumento}</span>}
             {monitorado && (
               <span style={{ fontSize: 10, fontWeight: 700, color: colors.hiperGreen, background: colors.hiperGreenBg, padding: '2px 7px', borderRadius: 20 }}>
                 ● Monitorado internamente
               </span>
             )}
           </div>
-          <div style={{ fontSize: 12.5, marginTop: 2 }}>{c.convenente.nome}</div>
-          <div style={{ fontSize: 11.5, color: colors.mutedText }}>{c.municipio}/{c.uf}</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={rotuloCampo}>Valor global</div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>{fmtMoeda(c.financeiro.global)}</div>
-            {pctDesembolsado !== null && (
-              <div style={{ fontSize: 10.5, color: colors.mutedText }}>{pctDesembolsado}% desembolsado</div>
-            )}
+          <div style={{ fontSize: 15, fontWeight: 700, color: colors.primaryDark }}>{c.convenente.nome}</div>
+          <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 2 }}>
+            {c.convenente.cnpj} · {c.municipio}/{c.uf}
           </div>
-          <StatusPill texto={c.situacao} />
+          {/* Equipamento em destaque -- pedido direto do usuario (2026-09-08):
+              e o dado que motiva a pagina inteira, precisa aparecer antes de
+              qualquer clique, nao so dentro do plano de aplicacao do SICONV
+              (camada 2). Ver equipamentoTags.ts pro casamento. */}
+          {equipamentos.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
+              {equipamentos.map((e) => (
+                <span key={e} style={{
+                  fontSize: 11, fontWeight: 700, color: colors.logoOrange, background: '#fdf1de',
+                  border: `1px solid ${colors.logoOrange}55`, padding: '3px 9px', borderRadius: 20,
+                }}>
+                  {e}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-      </summary>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+          <StatusPill texto={c.situacao} />
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 10, color: colors.mutedText, textTransform: 'uppercase' }}>Valor global</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: colors.primaryDark }}>{fmtMoeda(c.financeiro.global)}</div>
+            {pctDesembolsado !== null && <div style={{ fontSize: 10.5, color: colors.mutedText }}>{pctDesembolsado}% desembolsado</div>}
+          </div>
+        </div>
+      </div>
 
-      <div style={{ marginTop: 14, borderTop: `1px solid ${colors.border}`, paddingTop: 12 }}>
-        <p style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 12px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 6, padding: '8px 10px' }}>
-          <strong style={{ color: colors.mutedText, fontSize: 11, textTransform: 'uppercase', marginRight: 4 }}>Objeto:</strong>
-          {c.objeto}
+      <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: '12px 0 0', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 6, padding: '8px 10px' }}>
+        <strong style={{ color: colors.mutedText, fontSize: 10.5, textTransform: 'uppercase', marginRight: 4 }}>Objeto:</strong>
+        {c.objeto}
+      </p>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10,
+        marginTop: 12, padding: '10px 12px', background: colors.surface, borderRadius: 8,
+      }}>
+        <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.empenhado)}</Campo>
+        <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.desembolsado)}</Campo>
+        <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
+        <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
+        <Campo label="Última liberação" legenda={fmtData(c.datas.ultimaLiberacao) !== '—' ? fmtData(c.datas.ultimaLiberacao) : undefined}>
+          {fmtMoeda(c.financeiro.ultimaLiberacaoValor)}
+        </Campo>
+      </div>
+      {!c.financeiro.fonteConfiavel && (
+        <p style={{ fontSize: 11, color: colors.logoOrange, margin: '8px 0 0' }}>
+          ⚠️ Não encontrado no dump SICONV — valores acima vêm do Portal da Transparência, que tem bug de truncamento
+          conhecido nesse campo. Conferir manualmente.
         </p>
+      )}
+
+      {/* ---------- Camada 2: dado tecnico aninhado, atras de 1 clique ---------- */}
+      <details
+        style={{ marginTop: 12, borderTop: `1px solid ${colors.border}`, paddingTop: 10 }}
+        open={detalheAberto}
+        onToggle={(e) => setDetalheAberto((e.target as HTMLDetailsElement).open)}
+      >
+        <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: colors.primary }}>
+          {detalheAberto ? 'Ocultar detalhes técnicos' : 'Ver detalhes técnicos'} (identificação, vigência, SICONV, TransfereGov, monitoramento)
+        </summary>
 
         <Secao titulo="Identificação">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
-            <Campo label="CNPJ convenente">{c.convenente.cnpj}</Campo>
             <Campo label="Tipo convenente">{c.convenente.tipo}</Campo>
             <Campo label="Órgão">{c.orgao}</Campo>
             <Campo label="Unidade gestora">{c.unidadeGestora}</Campo>
@@ -83,32 +147,6 @@ export function ConvenioCard({ c, monitorado = false }: { c: ConvenioUnificado; 
             <Campo label="Início vigência">{fmtData(c.datas.inicioVigencia)}</Campo>
             <Campo label="Fim vigência">{fmtData(c.datas.fimVigencia)}</Campo>
             <Campo label="Conclusão">{fmtData(c.datas.conclusao)}</Campo>
-            <Campo label="Última liberação">{fmtData(c.datas.ultimaLiberacao)}</Campo>
-          </div>
-        </Secao>
-
-        <Secao titulo="Financeiro">
-          {!c.financeiro.fonteConfiavel && (
-            <p style={{ fontSize: 11.5, color: colors.logoOrange, margin: '0 0 8px' }}>
-              ⚠️ Convênio não encontrado no dump SICONV — valores abaixo vêm do Portal da Transparência, que tem bug de
-              truncamento conhecido nesse campo (ver docs/monitoramento-equipamentos/convenios.html). Conferir manualmente.
-            </p>
-          )}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-            <Campo label="Global" legenda={c.financeiro.fonteConfiavel ? 'Fonte SICONV' : 'Fonte Portal (conferir)'}>
-              {fmtMoeda(c.financeiro.global)}
-            </Campo>
-            <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>
-              {fmtMoeda(c.financeiro.empenhado)}
-            </Campo>
-            <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>
-              {fmtMoeda(c.financeiro.desembolsado)}
-            </Campo>
-            <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
-            <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
-            <Campo label="Valor da última liberação" legenda={fmtData(c.datas.ultimaLiberacao) !== '—' ? fmtData(c.datas.ultimaLiberacao) : undefined}>
-              {fmtMoeda(c.financeiro.ultimaLiberacaoValor)}
-            </Campo>
           </div>
         </Secao>
 
@@ -133,6 +171,7 @@ export function ConvenioCard({ c, monitorado = false }: { c: ConvenioUnificado; 
               ) : (
                 transferegov.propostas_expandidas.map((p, i) => {
                   const d = p.proposta as Record<string, string | number>;
+                  const programa = programas?.get(Number(d.id_programa));
                   return (
                     <details key={i} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
                       <summary style={{ cursor: 'pointer' }}>
@@ -140,6 +179,11 @@ export function ConvenioCard({ c, monitorado = false }: { c: ConvenioUnificado; 
                         <StatusPill texto={String(d.situacao_proposta)} />
                       </summary>
                       <div style={{ marginTop: 8, fontSize: 12.5 }}>
+                        {programa && (
+                          <div style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600, marginBottom: 4 }}>
+                            Programa: {programa.nm_programa} {programa.ano_programa ? `(${programa.ano_programa})` : ''}
+                          </div>
+                        )}
                         <p>{String(d.ds_objeto)}</p>
                         <div>Valor total: <strong>{fmtMoeda(d.nr_vlr_total as number)}</strong></div>
                         {p.metas.map((m) => (
@@ -180,13 +224,13 @@ export function ConvenioCard({ c, monitorado = false }: { c: ConvenioUnificado; 
           )}
         </Secao>
 
-        {/* Camada separada das 3 fontes acima -- fala com o backend (nao
-            JSON estatico), so montada quando o card abre (ver `aberto` no
-            <details>) pra nao disparar rede pros 71 convenios de uma vez. */}
+        {/* Fala com o backend (nao JSON estatico) -- so montada quando o
+            usuario abre a camada 2, nao dispara rede pros 299 convenios de
+            uma vez. */}
         <Secao titulo="Monitoramento interno (POC)">
-          {aberto && <MonitoramentoInterno numeroConvenio={c.numero} />}
+          {detalheAberto && <MonitoramentoInterno numeroConvenio={c.numero} />}
         </Secao>
-      </div>
-    </details>
+      </details>
+    </div>
   );
 }
