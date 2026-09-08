@@ -14,10 +14,16 @@ import type { ConvenioUnificado, ProgramaTransfereGov } from './types';
 import { Campo, estiloCard, Secao, StatusPill } from './ui';
 
 export function ConvenioCard({
-  c, monitorado = false, equipamentos = [], programas,
+  c, monitorado = false, componentes = [], equipamentos = [], programas,
 }: {
   c: ConvenioUnificado;
   monitorado?: boolean;
+  /** Componente(s) de financiamento PNPCC cruzados pelo CNPJ do convenente
+   * (ver componentesPorCnpj em MonitoramentoEquipamentosPage.tsx) -- so
+   * API (TransfereGov programa/proposta), nunca a planilha interna
+   * (decisao do usuario 2026-09-08). Aproximacao, mesma ressalva da
+   * secao TransfereGov abaixo. */
+  componentes?: { componente: string; ano: number }[];
   /** Tags de equipamento (ver equipamentoTags.ts) -- mostradas em destaque
    * na camada 1, pedido direto do usuario (2026-09-08). */
   equipamentos?: string[];
@@ -30,6 +36,14 @@ export function ConvenioCard({
   // So controla a camada 2 (dado tecnico aninhado) -- a camada 1 (status/
   // objeto/financeiro) e sempre renderizada, nao precisa de estado.
   const [detalheAberto, setDetalheAberto] = useState(false);
+
+  // Programa -- so API: proposta do TransfereGov ligada por CNPJ,
+  // resolvida por id_programa (aproximacao, mesma ressalva da secao
+  // TransfereGov abaixo). Nunca vem do monitoramento interno (decisao do
+  // usuario 2026-09-08 -- aquilo e planilha da equipe, nao API).
+  const programaTransfereGov = transferegov
+    ? programas?.get(Number((transferegov.propostas_expandidas[0]?.proposta as Record<string, unknown> | undefined)?.id_programa))
+    : undefined;
 
   const pctDesembolsado = c.financeiro.global && c.financeiro.desembolsado != null
     ? Math.round((c.financeiro.desembolsado / c.financeiro.global) * 100)
@@ -138,6 +152,20 @@ export function ConvenioCard({
             <Campo label="Nº do processo">{c.numeroProcesso}</Campo>
             <Campo label="Região / código IBGE">{c.regiao} · {c.codigoIbge}</Campo>
             {c.situacaoContratacao && <Campo label="Situação da contratação (SICONV)">{c.situacaoContratacao}</Campo>}
+            {programaTransfereGov ? (
+              <Campo label="Programa" legenda="TransfereGov, aproximação por CNPJ">
+                {programaTransfereGov.nm_programa} {programaTransfereGov.ano_programa ? `(${programaTransfereGov.ano_programa})` : ''}
+              </Campo>
+            ) : (
+              <Campo label="Programa">— (sem proposta TransfereGov pra esse CNPJ)</Campo>
+            )}
+            {componentes.length > 0 ? (
+              <Campo label="Componente PNPCC" legenda="TransfereGov, aproximação por CNPJ">
+                {componentes.map((cp) => `${cp.componente} (${cp.ano})`).join(' · ')}
+              </Campo>
+            ) : (
+              <Campo label="Componente PNPCC">— (sem proposta TransfereGov pra esse CNPJ)</Campo>
+            )}
           </div>
         </Secao>
 

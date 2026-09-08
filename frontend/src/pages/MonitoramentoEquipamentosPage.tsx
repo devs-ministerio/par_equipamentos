@@ -87,6 +87,26 @@ export function MonitoramentoEquipamentosPage() {
   const { dados: programasLista } = useJson<ProgramaTransfereGov[]>('/monitoramento-equipamentos/programas_transferegov.json');
   const programas = useMemo(() => new Map((programasLista ?? []).map((p) => [p.id_programa, p])), [programasLista]);
 
+  // CNPJ (so digitos) -> componente(s) -- cruza componentes_oncologia.json
+  // (API TransfereGov, ver types.ts::ComponenteOncologia) com o convenente
+  // pelo mesmo CNPJ, mesma aproximacao ja usada na secao TransfereGov do
+  // card (nao e o numero exato do convenio -- FAF SAUDE nao tem numero
+  // legado). So API conta aqui, nunca a planilha interna (decisao do
+  // usuario 2026-09-08).
+  const componentesPorCnpj = useMemo(() => {
+    const mapa = new Map<string, { componente: string; ano: number }[]>();
+    for (const comp of componentes ?? []) {
+      for (const p of comp.propostas) {
+        if (!p.cnpj) continue;
+        const digitos = p.cnpj.replace(/\D/g, '');
+        const lista = mapa.get(digitos) ?? [];
+        lista.push({ componente: comp.componente, ano: comp.ano_programa });
+        mapa.set(digitos, lista);
+      }
+    }
+    return mapa;
+  }, [componentes]);
+
   const convenios = useMemo(() => {
     if (!portal || !siconv || !transferegov) return null;
     return mesclarConvenios(portal, siconv, transferegov);
@@ -280,6 +300,7 @@ export function MonitoramentoEquipamentosPage() {
                       key={c.numero}
                       c={c}
                       monitorado={monitorados.has(c.numero)}
+                      componentes={componentesPorCnpj.get(c.convenente.cnpj.replace(/\D/g, '')) ?? []}
                       equipamentos={equipamentosPorNumero.get(c.numero) ?? []}
                       programas={programas}
                     />
