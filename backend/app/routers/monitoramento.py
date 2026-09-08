@@ -91,17 +91,47 @@ class ValorSituacaoAoVivoRead(BaseModel):
     """Sempre buscado na hora no Portal da Transparencia -- nunca congelado
     no banco (decisao do usuario 2026-09-03, ver comentario em
     InstrumentoEquipamento). `disponivel=False` quando a API falhar/nao
-    achar -- o front mostra "indisponivel" em vez de um valor errado."""
+    achar -- o front mostra "indisponivel" em vez de um valor errado.
+
+    `valor_suspeito=True` quando o Portal devolve `valor` (global) MENOR que
+    `valor_liberado` -- logicamente impossivel (liberado nunca passa do
+    global) e e exatamente a assinatura do bug de truncamento confirmado
+    nesse campo (ver docs/monitoramento-equipamentos/convenios.html e
+    frontend/src/pages/monitoramento/mesclarConvenios.ts, que contorna o
+    mesmo bug na lista principal cruzando com o SICONV). Esse endpoint e por
+    instrumento, sem SICONV pra cruzar ao vivo, entao so da pra SINALIZAR o
+    valor suspeito -- nao reconstruir o numero certo."""
     disponivel: bool
     valor: float | None = None
     valor_liberado: float | None = None
     situacao: str | None = None
+    valor_suspeito: bool = False
 
 
 class InstrumentoTimelineRead(BaseModel):
     instrumento: InstrumentoEquipamentoRead
     ao_vivo: ValorSituacaoAoVivoRead
     eventos: list[EventoMarcoRead]
+
+
+def _ao_vivo_de(dado: dict | None) -> ValorSituacaoAoVivoRead:
+    """Monta o `ao_vivo` a partir da resposta crua do Portal da Transparencia
+    (ou `None` quando a consulta falhou/nao achou). Extraida do endpoint pra
+    dar pra testar a deteccao de `valor_suspeito` sem precisar de banco nem
+    de rede (ver test_monitoramento.py)."""
+    if dado is None:
+        return ValorSituacaoAoVivoRead(disponivel=False)
+
+    valor = dado.get("valor")
+    valor_liberado = dado.get("valorLiberado")
+    suspeito = valor is not None and valor_liberado is not None and valor_liberado > valor
+    return ValorSituacaoAoVivoRead(
+        disponivel=True,
+        valor=valor,
+        valor_liberado=valor_liberado,
+        situacao=dado.get("situacao"),
+        valor_suspeito=suspeito,
+    )
 
 
 def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
@@ -142,12 +172,7 @@ def obter_timeline(nr_convenio: str, db: Session = Depends(get_db)):
     # estiver fora do ar).
     try:
         dado = portal_transparencia.buscar_convenio_por_numero(nr_convenio)
-        ao_vivo = ValorSituacaoAoVivoRead(
-            disponivel=dado is not None,
-            valor=dado.get("valor") if dado else None,
-            valor_liberado=dado.get("valorLiberado") if dado else None,
-            situacao=dado.get("situacao") if dado else None,
-        )
+        ao_vivo = _ao_vivo_de(dado)
     except Exception:
         # Chave ausente, rede fora, 500 do Portal da Transparencia -- qualquer
         # falha aqui rebaixa pra "indisponivel", nunca derruba a timeline.

@@ -37,6 +37,12 @@ type ValorSituacaoAoVivoApi = {
   valor: number | null;
   valor_liberado: number | null;
   situacao: string | null;
+  /** true quando `valor` < `valor_liberado` -- logicamente impossivel,
+   * assinatura do bug de truncamento confirmado no Portal da Transparencia
+   * (ver docstring de ValorSituacaoAoVivoRead no backend). O backend so
+   * sinaliza, nao corrige -- o numero cru continua vindo do jeito que a
+   * API devolveu. */
+  valor_suspeito: boolean;
 };
 
 type TimelineApi = {
@@ -163,6 +169,11 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                 <div style={{ fontSize: 16, fontWeight: 600 }}>{fmtMoeda(aoVivo.valor)}</div>
                 <div style={{ fontSize: 11, color: colors.mutedText }}>Liberado: {fmtMoeda(aoVivo.valor_liberado)}</div>
                 {aoVivo.situacao && <div style={{ marginTop: 4 }}><StatusPill texto={aoVivo.situacao} /></div>}
+                {aoVivo.valor_suspeito && (
+                  <div style={{ fontSize: 10.5, color: colors.logoOrange, marginTop: 4, maxWidth: 200, textAlign: 'right' }}>
+                    ⚠️ Valor global menor que o liberado — bug de truncamento conhecido do Portal da Transparência, conferir manualmente.
+                  </div>
+                )}
               </>
             ) : (
               <div style={{ fontSize: 12, color: colors.logoOrange }}>⚠️ Indisponível (Portal da Transparência)</div>
