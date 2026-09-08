@@ -71,11 +71,30 @@ ARQUIVOS = [
 
 SAIDA_JSON = Path(__file__).parent / "output" / "siconv_legado.json"
 NUMEROS_CONVENIO_JSON = Path(__file__).parent / "output" / "convenios_flat.json"
+DIR_LEVANTAMENTO = Path(__file__).parent / "output"
 
 
 def _numeros_convenio() -> list[str]:
-    convenios = json.loads(NUMEROS_CONVENIO_JSON.read_text(encoding="utf-8"))
-    return [c["numero"] for c in convenios]
+    """Uniao do que o Portal da Transparencia confirmou
+    (`convenios_flat.json`) com o que os levantamentos nacionais do SICONV
+    ja acharam por conta propria (`levantamento_componente_siconv.json`,
+    `levantamento_equipamento_por_convenio.json`) -- achado 2026-09-08: 10
+    dos 114 convenios achados via siconv_programa NAO existem no endpoint
+    `/convenios/numero` do Portal (provavelmente numero de instrumento novo
+    demais pra API antiga), o que os deixava de fora do siconv_legado.json
+    mesmo estando confirmados no proprio dump SICONV. Sem isso, esses
+    convenios nunca apareciam no app -- mesclarConvenios.ts hoje ainda
+    itera so sobre `portal`, entao essa uniao e necessaria mas nao
+    suficiente (ver TODO no front pra usar SICONV como fonte de
+    identidade quando o Portal nao tiver o numero)."""
+    numeros = {c["numero"] for c in json.loads(NUMEROS_CONVENIO_JSON.read_text(encoding="utf-8"))}
+    for nome_arquivo in ("levantamento_componente_siconv.json", "levantamento_equipamento_por_convenio.json"):
+        caminho = DIR_LEVANTAMENTO / nome_arquivo
+        if not caminho.exists():
+            continue
+        dados = json.loads(caminho.read_text(encoding="utf-8"))
+        numeros.update(c["nr_convenio"] for lista in dados.values() for c in lista)
+    return sorted(numeros)
 
 
 DIR_CACHE = Path(__file__).parent / "output" / "cache"

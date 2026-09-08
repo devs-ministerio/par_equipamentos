@@ -6,6 +6,14 @@ function numOuNull(v: string | undefined | null): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
+/** Formata AAAAMMDD (varios campos DIA_*_CONV do SICONV) pro mesmo formato
+ * ISO (AAAA-MM-DD) que `fmtData` (format.ts) espera -- SICONV as vezes usa
+ * "00000000"/vazio pra "sem data", tratado como null. */
+function dataSiconv(v: string | undefined): string | null {
+  if (!v || v === '00000000' || v.length !== 8) return null;
+  return `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`;
+}
+
 /** Cruza as 3 fontes por numero de convenio (Portal <-> SICONV, exato) e por
  * CNPJ do convenente (Portal <-> TransfereGov, aproximacao -- ver
  * types.ts). Campo que aparece em mais de uma fonte fica com UM valor so:
@@ -18,13 +26,23 @@ function numOuNull(v: string | undefined | null): number | null {
  *    convenios.html), SICONV bate com a fonte oficial (conferido contra
  *    convenio 971195, IRMANDADE SANTA CASA DE SANTOS: SICONV
  *    VL_GLOBAL_CONV=10.500.000 == valor real; Portal `valor`=1050, errado)
- */
+ *
+ * A LISTA BASE e a uniao Portal ∪ SICONV, nao so Portal -- achado
+ * 2026-09-08: 10 dos convenios achados via levantamento de componente/
+ * equipamento (siconv_programa/siconv_plano_aplicacao nacional) nao existem
+ * no endpoint `/convenios/numero` do Portal (numero de instrumento novo
+ * demais pra API antiga), entao ficavam invisiveis no app mesmo confirmados
+ * no proprio dump SICONV. Pra esses, identidade (nome/objeto/municipio) vem
+ * "—" (SICONV so tem essas colunas em `siconv_proposta`, que ainda nao
+ * coletamos) -- ver `identidadeFonte` em types.ts. */
 export function mesclarConvenios(
   portal: ConvenioPortal[],
   siconv: SiconvEntrada[],
   transferegov: TransfereGovEnte[],
 ): ConvenioUnificado[] {
+  const portalPorNumero = new Map(portal.map((p) => [p.numero, p]));
   const siconvPorNumero = new Map(siconv.map((e) => [e.convenio.NR_CONVENIO, e]));
+  const numeros = new Set([...portalPorNumero.keys(), ...siconvPorNumero.keys()]);
 
   const transferegovPorNumero = new Map<string, TransfereGovEnte>();
   for (const ente of transferegov) {
@@ -33,8 +51,9 @@ export function mesclarConvenios(
     }
   }
 
-  return portal.map((p): ConvenioUnificado => {
-    const s = siconvPorNumero.get(p.numero) ?? null;
+  return Array.from(numeros).map((numero): ConvenioUnificado => {
+    const p = portalPorNumero.get(numero) ?? null;
+    const s = siconvPorNumero.get(numero) ?? null;
     const sc = s?.convenio;
 
     const global = sc ? numOuNull(sc.VL_GLOBAL_CONV) : null;
@@ -42,40 +61,45 @@ export function mesclarConvenios(
     const contrapartida = sc ? numOuNull(sc.VL_CONTRAPARTIDA_CONV) : null;
 
     return {
-      numero: p.numero,
-      numeroInstrumento: p.numero_instrumento,
-      objeto: p.objeto,
-      situacao: p.situacao,
+      numero,
+      numeroInstrumento: p?.numero_instrumento ?? null,
+      objeto: p?.objeto ?? '— (não indexado no Portal da Transparência)',
+      situacao: p?.situacao ?? sc?.SIT_CONVENIO ?? '—',
       situacaoContratacao: sc?.SITUACAO_CONTRATACAO || null,
-      convenente: { nome: p.convenente_nome, cnpj: p.convenente_cnpj, tipo: p.convenente_tipo },
-      municipio: p.municipio,
-      uf: p.uf,
-      codigoIbge: p.codigo_ibge,
-      regiao: p.regiao,
-      orgao: p.orgao,
-      unidadeGestora: p.unidade_gestora,
-      subfuncao: p.subfuncao,
-      funcao: p.funcao,
-      tipoInstrumento: p.tipo_instrumento,
-      numeroProcesso: p.numero_processo,
+      convenente: {
+        nome: p?.convenente_nome ?? '— (não indexado no Portal da Transparência)',
+        cnpj: p?.convenente_cnpj ?? '—',
+        tipo: p?.convenente_tipo ?? '—',
+      },
+      municipio: p?.municipio ?? '—',
+      uf: p?.uf ?? '—',
+      codigoIbge: p?.codigo_ibge ?? '—',
+      regiao: p?.regiao ?? '—',
+      orgao: p?.orgao ?? '—',
+      unidadeGestora: p?.unidade_gestora ?? sc?.UG_EMITENTE ?? '—',
+      subfuncao: p?.subfuncao ?? '—',
+      funcao: p?.funcao ?? '—',
+      tipoInstrumento: p?.tipo_instrumento ?? '—',
+      numeroProcesso: p?.numero_processo ?? sc?.NR_PROCESSO ?? '—',
       datas: {
-        publicacao: p.data_publicacao,
-        inicioVigencia: p.data_inicio_vigencia,
-        fimVigencia: p.data_final_vigencia,
-        conclusao: p.data_conclusao,
-        ultimaLiberacao: p.data_ultima_liberacao,
+        publicacao: p?.data_publicacao ?? dataSiconv(sc?.DIA_PUBL_CONV),
+        inicioVigencia: p?.data_inicio_vigencia ?? dataSiconv(sc?.DIA_INIC_VIGENC_CONV),
+        fimVigencia: p?.data_final_vigencia ?? dataSiconv(sc?.DIA_FIM_VIGENC_CONV),
+        conclusao: p?.data_conclusao ?? null,
+        ultimaLiberacao: p?.data_ultima_liberacao ?? null,
       },
       financeiro: {
-        global: global ?? p.valor,
+        global: global ?? p?.valor ?? null,
         empenhado: sc ? numOuNull(sc.VL_EMPENHADO_CONV) : null,
-        desembolsado: desembolsado ?? p.valor_liberado,
-        contrapartida: contrapartida ?? p.valor_contrapartida,
+        desembolsado: desembolsado ?? p?.valor_liberado ?? null,
+        contrapartida: contrapartida ?? p?.valor_contrapartida ?? null,
         saldoConta: sc ? numOuNull(sc.VL_SALDO_CONTA) : null,
-        ultimaLiberacaoValor: p.valor_ultima_liberacao,
+        ultimaLiberacaoValor: p?.valor_ultima_liberacao ?? null,
         fonteConfiavel: sc !== null,
       },
       siconv: s,
-      transferegov: transferegovPorNumero.get(p.numero) ?? null,
+      transferegov: transferegovPorNumero.get(numero) ?? null,
+      identidadeFonte: p !== null ? 'portal' : 'siconv',
     };
   });
 }

@@ -129,6 +129,15 @@ export type ConvenioUnificado = {
    * pode estar relacionado a OUTROS convenios legados do mesmo CNPJ alem
    * deste (ver `convenios_legados_relacionados` dentro do proprio objeto). */
   transferegov: TransfereGovEnte | null;
+  /** 'portal' -- caso normal, identificacao (nome/objeto/municipio/datas)
+   * vem do Portal da Transparencia. 'siconv' -- achado 2026-09-08: convenio
+   * existe no dump SICONV (por ex. via levantamento de componente/
+   * equipamento) mas o endpoint `/convenios/numero` do Portal nao o
+   * reconhece (numero de instrumento novo demais pra API antiga) -- nesse
+   * caso identificacao/objeto/municipio ficam "—" (SICONV nao tem essas
+   * colunas na tabela `siconv_convenio`, so em `siconv_proposta`, que
+   * ainda nao coletamos), so situacao/valores/datas vem do proprio SICONV. */
+  identidadeFonte: 'portal' | 'siconv';
 };
 
 /** Propostas do TransfereGov achadas por `programa` (nao por numero de
