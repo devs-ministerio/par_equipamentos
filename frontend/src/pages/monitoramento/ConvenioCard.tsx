@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { colors } from '../../styles/tokens';
-import { fmtData, fmtMoeda } from './format';
+import { fmtData, fmtMoeda, pct } from './format';
 import { MonitoramentoInterno } from './MonitoramentoInterno';
+import { SiconvSubAbas } from './SiconvSubAbas';
 import type { ConvenioUnificado } from './types';
-import { Campo, estiloCard, estiloTabela, estiloTabelaWrapper, estiloTd, estiloTh, rotuloCampo, Secao, StatusPill } from './ui';
+import { Campo, estiloCard, rotuloCampo, Secao, StatusPill } from './ui';
 
-export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
+export function ConvenioCard({ c, monitorado = false }: { c: ConvenioUnificado; monitorado?: boolean }) {
   const siconv = c.siconv;
   const transferegov = c.transferegov;
   // Controlado (em vez de <details> nativo solto) so pra poder atrasar o
@@ -14,16 +15,32 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
   // seedado) assim que a pagina carrega.
   const [aberto, setAberto] = useState(false);
 
+  const pctDesembolsado = c.financeiro.global && c.financeiro.desembolsado != null
+    ? Math.round((c.financeiro.desembolsado / c.financeiro.global) * 100)
+    : null;
+
   return (
     <details
-      style={{ ...estiloCard, marginBottom: 10 }}
+      style={{
+        ...estiloCard,
+        marginBottom: 10,
+        // Convenio com monitoramento interno ativo ganha destaque visual --
+        // e o unico dado editavel da pagina, precisa ser achavel sem abrir
+        // card por card (ver useInstrumentosMonitorados.ts).
+        borderLeft: monitorado ? `3px solid ${colors.hiperGreen}` : estiloCard.borderLeft,
+      }}
       open={aberto}
       onToggle={(e) => setAberto((e.target as HTMLDetailsElement).open)}
     >
       <summary style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             Convênio {c.numero} <span style={{ fontWeight: 400, color: colors.mutedText, fontSize: 11.5 }}>{c.numeroInstrumento || ''}</span>
+            {monitorado && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: colors.hiperGreen, background: colors.hiperGreenBg, padding: '2px 7px', borderRadius: 20 }}>
+                ● Monitorado internamente
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 12.5, marginTop: 2 }}>{c.convenente.nome}</div>
           <div style={{ fontSize: 11.5, color: colors.mutedText }}>{c.municipio}/{c.uf}</div>
@@ -32,13 +49,19 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
           <div style={{ textAlign: 'right' }}>
             <div style={rotuloCampo}>Valor global</div>
             <div style={{ fontSize: 14, fontWeight: 600 }}>{fmtMoeda(c.financeiro.global)}</div>
+            {pctDesembolsado !== null && (
+              <div style={{ fontSize: 10.5, color: colors.mutedText }}>{pctDesembolsado}% desembolsado</div>
+            )}
           </div>
           <StatusPill texto={c.situacao} />
         </div>
       </summary>
 
       <div style={{ marginTop: 14, borderTop: `1px solid ${colors.border}`, paddingTop: 12 }}>
-        <p style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>{c.objeto}</p>
+        <p style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 12px', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 6, padding: '8px 10px' }}>
+          <strong style={{ color: colors.mutedText, fontSize: 11, textTransform: 'uppercase', marginRight: 4 }}>Objeto:</strong>
+          {c.objeto}
+        </p>
 
         <Secao titulo="Identificação">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
@@ -72,98 +95,27 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
             </p>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
-            <Campo label="Global">{fmtMoeda(c.financeiro.global)}</Campo>
-            <Campo label="Empenhado">{fmtMoeda(c.financeiro.empenhado)}</Campo>
-            <Campo label="Desembolsado">{fmtMoeda(c.financeiro.desembolsado)}</Campo>
+            <Campo label="Global" legenda={c.financeiro.fonteConfiavel ? 'Fonte SICONV' : 'Fonte Portal (conferir)'}>
+              {fmtMoeda(c.financeiro.global)}
+            </Campo>
+            <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>
+              {fmtMoeda(c.financeiro.empenhado)}
+            </Campo>
+            <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>
+              {fmtMoeda(c.financeiro.desembolsado)}
+            </Campo>
             <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
             <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
-            <Campo label="Valor da última liberação">{fmtMoeda(c.financeiro.ultimaLiberacaoValor)}</Campo>
+            <Campo label="Valor da última liberação" legenda={fmtData(c.datas.ultimaLiberacao) !== '—' ? fmtData(c.datas.ultimaLiberacao) : undefined}>
+              {fmtMoeda(c.financeiro.ultimaLiberacaoValor)}
+            </Campo>
           </div>
         </Secao>
 
         {siconv ? (
-          <>
-            {siconv.empenhos.length > 0 && (
-              <Secao titulo="Empenhos (SICONV)" contagem={siconv.empenhos.length}>
-                <div style={estiloTabelaWrapper}>
-                  <table style={estiloTabela}>
-                  <thead><tr><th style={estiloTh}>Nº empenho</th><th style={estiloTh}>Situação</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
-                  <tbody>
-                    {siconv.empenhos.map((e) => (
-                      <tr key={e.ID_EMPENHO}><td style={estiloTd}>{e.NR_EMPENHO}</td><td style={estiloTd}>{e.DESC_SITUACAO_EMPENHO}</td><td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(e.VALOR_EMPENHO)}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </Secao>
-            )}
-            {siconv.desembolsos.length > 0 && (
-              <Secao titulo="Desembolsos (SICONV)" contagem={siconv.desembolsos.length}>
-                <div style={estiloTabelaWrapper}>
-                  <table style={estiloTabela}>
-                  <thead><tr><th style={estiloTh}>Data</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
-                  <tbody>
-                    {siconv.desembolsos.map((d) => (
-                      <tr key={d.ID_DESEMBOLSO}><td style={estiloTd}>{fmtData(d.DATA_DESEMBOLSO)}</td><td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(d.VL_DESEMBOLSADO)}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </Secao>
-            )}
-            {siconv.licitacoes.length > 0 && (
-              <Secao titulo="Licitações (SICONV)" contagem={siconv.licitacoes.length}>
-                <div style={estiloTabelaWrapper}>
-                  <table style={estiloTabela}>
-                  <thead><tr><th style={estiloTh}>Processo</th><th style={estiloTh}>Modalidade</th><th style={estiloTh}>Status</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
-                  <tbody>
-                    {siconv.licitacoes.map((l) => (
-                      <tr key={l.ID_LICITACAO}>
-                        <td style={estiloTd}>{l.NR_PROCESSO_LICITACAO}</td>
-                        <td style={estiloTd}>{l.TP_PROCESSO_COMPRA || l.MODALIDADE_LICITACAO || '—'}</td>
-                        <td style={estiloTd}>{l.STATUS_LICITACAO}</td>
-                        <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(l.VALOR_LICITACAO)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </Secao>
-            )}
-            {siconv.itens_plano_aplicacao.length > 0 && (
-              <Secao titulo="Itens do plano de aplicação (SICONV)" contagem={siconv.itens_plano_aplicacao.length}>
-                <div style={estiloTabelaWrapper}>
-                  <table style={estiloTabela}>
-                  <thead><tr><th style={estiloTh}>Descrição</th><th style={{ ...estiloTh, textAlign: 'right' }}>Qtd</th><th style={{ ...estiloTh, textAlign: 'right' }}>Vl. unitário</th><th style={{ ...estiloTh, textAlign: 'right' }}>Vl. total</th></tr></thead>
-                  <tbody>
-                    {siconv.itens_plano_aplicacao.map((it) => (
-                      <tr key={it.ID_ITEM_PAD}>
-                        <td style={estiloTd}>{it.DESCRICAO_ITEM}</td>
-                        <td style={{ ...estiloTd, textAlign: 'right' }}>{it.QTD_ITEM}</td>
-                        <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(it.VALOR_UNITARIO_ITEM)}</td>
-                        <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(it.VALOR_TOTAL_ITEM)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </Secao>
-            )}
-            {siconv.termos_aditivos.length > 0 && (
-              <Secao titulo="Termos aditivos (SICONV)" contagem={siconv.termos_aditivos.length}>
-                <div style={estiloTabelaWrapper}>
-                  <table style={estiloTabela}>
-                  <thead><tr><th style={estiloTh}>Tipo</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor global</th><th style={estiloTh}>Justificativa</th></tr></thead>
-                  <tbody>
-                    {siconv.termos_aditivos.map((t, i) => (
-                      <tr key={i}><td style={estiloTd}>{t.TIPO_TA}</td><td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(t.VL_GLOBAL_TA)}</td><td style={{ ...estiloTd, maxWidth: 360 }}>{(t.JUSTIFICATIVA_TA || '').slice(0, 200)}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </Secao>
-            )}
-          </>
+          <Secao titulo="Dados aninhados (SICONV)">
+            <SiconvSubAbas siconv={siconv} />
+          </Secao>
         ) : (
           <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic', marginTop: 14 }}>Não encontrado no dump SICONV.</p>
         )}

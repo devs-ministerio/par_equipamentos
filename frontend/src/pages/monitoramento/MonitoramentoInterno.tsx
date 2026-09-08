@@ -7,10 +7,9 @@
  * instrumento, so backend/scripts/seed_monitoramento.py). */
 import { useEffect, useState } from 'react';
 import { colors } from '../../styles/tokens';
+import { API_BASE_URL } from './api';
 import { fmtData, fmtMoeda } from './format';
 import { estiloCard, estiloInput, StatusPill } from './ui';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 type MarcoCatalogoApi = {
   id: number;
@@ -192,17 +191,34 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         </div>
       </div>
 
-      {/* Barra de progresso -- fase_geral */}
+      {/* Stepper de fase_geral -- 1 segmento por fase (9 hoje) em vez de
+          barra continua + lista de 9 rotulos embaixo, que espremia em tela
+          estreita. Rotulo de cada fase vira title (hover), so a fase atual
+          fica escrita por extenso acima -- menos ruido visual, mesma
+          informacao. */}
       <div style={{ ...estiloCard, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
           <strong>Fase geral</strong>
           <span>{faseAtual?.rotulo ?? 'Não iniciado'} — {Math.round(pctAtual * 100)}%</span>
         </div>
-        <div style={{ height: 8, background: colors.surface, borderRadius: 999, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${pctAtual * 100}%`, background: colors.primary, transition: 'width .3s' }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: colors.mutedText, flexWrap: 'wrap', gap: 4 }}>
-          {fasesGerais.map((f) => <span key={f.id}>{f.rotulo}</span>)}
+        <div style={{ display: 'flex', gap: 3 }}>
+          {fasesGerais.map((f) => {
+            const alcancada = (f.ordem ?? -1) <= (faseAtual?.ordem ?? -1);
+            const ehAtual = f.id === faseAtual?.id;
+            return (
+              <div
+                key={f.id}
+                title={f.rotulo}
+                style={{
+                  flex: 1,
+                  height: 10,
+                  borderRadius: 999,
+                  background: ehAtual ? colors.primary : alcancada ? colors.hiperGreen : colors.surface,
+                  border: alcancada ? 'none' : `1px solid ${colors.border}`,
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -286,11 +302,26 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         <p style={{ color: colors.mutedText, fontStyle: 'italic', fontSize: 13 }}>Nenhum evento lançado ainda.</p>
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
-          {timeline.eventos.map((ev) => {
+          {/* Backend ja devolve mais recente primeiro -- numera decrescente
+              (evento mais antigo = 01) pra ficar claro que e sequencia de
+              lancamento, nao ranking. */}
+          {timeline.eventos.map((ev, i) => {
             const marco = marcoPorId.get(ev.marco_id);
+            const numero = String(timeline.eventos.length - i).padStart(2, '0');
             return (
               <div key={ev.id} style={{ ...estiloCard, display: 'flex', gap: 12 }}>
-                <div style={{ minWidth: 90, fontSize: 11, color: colors.mutedText }}>{fmtData(ev.data_ocorrencia) !== '—' ? fmtData(ev.data_ocorrencia) : fmtData(ev.created_at.slice(0, 10))}</div>
+                <div
+                  style={{
+                    width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: i === 0 ? colors.hiperGreenBg : colors.surface,
+                    color: i === 0 ? colors.hiperGreen : colors.mutedText,
+                    fontSize: 10.5, fontWeight: 700,
+                  }}
+                >
+                  {numero}
+                </div>
+                <div style={{ minWidth: 80, fontSize: 11, color: colors.mutedText }}>{fmtData(ev.data_ocorrencia) !== '—' ? fmtData(ev.data_ocorrencia) : fmtData(ev.created_at.slice(0, 10))}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>
                     {marco?.rotulo ?? `Marco ${ev.marco_id}`}

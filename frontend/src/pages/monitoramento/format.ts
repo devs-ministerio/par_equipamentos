@@ -13,3 +13,11 @@ export function fmtData(s: string | null | undefined): string {
   const [ano, mes, dia] = s.split('-');
   return `${dia}/${mes}/${ano}`;
 }
+
+/** "71% do global" -- legenda curta pra por embaixo de um valor monetario
+ * (ver Campo em ui.tsx). `undefined` quando falta numerador ou denominador
+ * (nunca mostra "0%" ou "NaN%" por dado ausente). */
+export function pct(parte: number | null | undefined, total: number | null | undefined, sufixo: string): string | undefined {
+  if (parte == null || !total) return undefined;
+  return `${Math.round((parte / total) * 100)}% ${sufixo}`;
+}

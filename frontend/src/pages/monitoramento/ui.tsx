@@ -4,17 +4,22 @@
  * 2026-09-03, ver MonitoramentoEquipamentosPage.tsx). */
 import { colors } from '../../styles/tokens';
 
+/** Sombra suave em vez de so borda -- cartao "flutua" sobre o fundo
+ * (colors.surface) ao inves de se misturar nele, mesma linguagem visual
+ * do protótipo de referencia (Stitch, 2026-09-08) adaptada pros tokens
+ * do projeto. */
 export const estiloCard: React.CSSProperties = {
   background: colors.card,
   border: `1px solid ${colors.border}`,
-  borderRadius: 8,
-  padding: '14px 18px',
+  borderRadius: 10,
+  padding: '16px 20px',
+  boxShadow: '0 1px 3px rgba(22,33,62,0.06)',
 };
 
 export const estiloInput: React.CSSProperties = {
   border: `1px solid ${colors.border}`,
-  borderRadius: 6,
-  padding: '7px 10px',
+  borderRadius: 8,
+  padding: '9px 12px',
   fontSize: 12.5,
   fontFamily: 'inherit',
   outline: 'none',
@@ -58,25 +63,33 @@ export const LEGENDA_STATUS: { cor: string; rotulo: string }[] = [
 export function StatusPill({ texto }: { texto: string | null | undefined }) {
   const { cor, bg } = situacaoCor(texto);
   return (
-    <span style={{ display: 'inline-block', padding: '3px 9px', borderRadius: 20, fontSize: 10.5, fontWeight: 600, background: bg, color: cor, whiteSpace: 'nowrap' }}>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px 3px 8px', borderRadius: 20,
+      fontSize: 10.5, fontWeight: 700, background: bg, color: cor, whiteSpace: 'nowrap', border: `1px solid ${cor}33`,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cor, flexShrink: 0 }} />
       {texto || '—'}
     </span>
   );
 }
 
-export function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+export function Campo({ label, legenda, children }: { label: string; legenda?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <div style={rotuloCampo}>{label}</div>
       <div style={{ fontSize: 13 }}>{children}</div>
+      {legenda && <div style={{ fontSize: 10, color: colors.mutedText, marginTop: 1 }}>{legenda}</div>}
     </div>
   );
 }
 
 export function Secao({ titulo, contagem, children }: { titulo: string; contagem?: number; children: React.ReactNode }) {
   return (
-    <div style={{ marginTop: 14 }}>
-      <h4 style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.03em', color: colors.mutedText, margin: '0 0 6px' }}>
+    <div style={{ marginTop: 18 }}>
+      <h4 style={{
+        fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: colors.primary,
+        margin: '0 0 10px', paddingBottom: 6, borderBottom: `1px solid ${colors.border}`,
+      }}>
         {titulo}{contagem !== undefined ? ` — ${contagem}` : ''}
       </h4>
       {children}

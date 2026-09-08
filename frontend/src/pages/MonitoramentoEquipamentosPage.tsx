@@ -6,7 +6,11 @@
  * URL /monitoramento-equipamentos. Reusa a paleta/tokens/componentes do
  * resto do app (styles/tokens.ts, KpiCard, SearchInput, SingleSelectFilter)
  * pra manter a mesma linguagem visual da analise hiper/hipo (decisao
- * 2026-09-03) -- so nao entra no AppLayout mesmo (sem Header/TopNav).
+ * 2026-09-03) -- so nao entra no AppLayout mesmo (sem Header/TopNav,
+ * decisao reafirmada 2026-09-08: layout redesenhado com estrutura de abas
+ * inspirada num prototipo Stitch, mas sem sidebar de navegacao -- essa
+ * pagina nao tem irmãs pra navegar entre si, so duplicaria a barra de
+ * abas logo abaixo sem necessidade).
  *
  * Um registro por convenio, cruzando as 3 fontes oficiais (ver
  * monitoramento/mesclarConvenios.ts pra qual fonte vence em cada campo
@@ -41,12 +45,18 @@ import { mesclarConvenios } from './monitoramento/mesclarConvenios';
 import { SecaoComponentes } from './monitoramento/SecaoComponentes';
 import type { ComponenteOncologia, ConvenioPortal, SiconvEntrada, TransfereGovEnte } from './monitoramento/types';
 import { LEGENDA_STATUS } from './monitoramento/ui';
+import { useInstrumentosMonitorados } from './monitoramento/useInstrumentosMonitorados';
 import { useJson } from './monitoramento/useJson';
 
+type Aba = 'convenios' | 'componentes';
+
 export function MonitoramentoEquipamentosPage() {
+  const [aba, setAba] = useState<Aba>('convenios');
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
+  const [soMonitorados, setSoMonitorados] = useState(false);
+  const monitorados = useInstrumentosMonitorados();
 
   const { dados: portal, erro: erroPortal } = useJson<ConvenioPortal[]>('/monitoramento-equipamentos/convenios.json');
   const { dados: siconv, erro: erroSiconv } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
@@ -84,27 +94,41 @@ export function MonitoramentoEquipamentosPage() {
 
   const filtrados = useMemo(() => {
     if (!convenios) return [];
-    return convenios.filter((c) => {
+    const lista = convenios.filter((c) => {
       if (uf && c.uf !== uf) return false;
       if (equipamento && !equipamentosPorNumero.get(c.numero)?.includes(equipamento)) return false;
+      if (soMonitorados && !monitorados.has(c.numero)) return false;
       if (busca) {
         const alvo = normalizarTexto(`${c.numero} ${c.convenente.nome} ${c.convenente.cnpj} ${c.municipio} ${c.objeto}`);
         if (!alvo.includes(normalizarTexto(busca))) return false;
       }
       return true;
     });
-  }, [convenios, busca, uf, equipamento, equipamentosPorNumero]);
+    // Convenio com monitoramento interno ativo primeiro -- e o unico dado
+    // editavel da pagina toda, merece ficar visivel sem precisar escanear
+    // ~300 cards pra achar (so 1 hoje, mas o desenho ja escala pra mais).
+    return [...lista].sort((a, b) => Number(monitorados.has(b.numero)) - Number(monitorados.has(a.numero)));
+  }, [convenios, busca, uf, equipamento, soMonitorados, equipamentosPorNumero, monitorados]);
 
   const totalGlobal = filtrados.reduce((a, c) => a + (c.financeiro.global || 0), 0);
   const totalDesembolsado = filtrados.reduce((a, c) => a + (c.financeiro.desembolsado || 0), 0);
   const totalEquipamentos = filtrados.reduce((a, c) => a + (equipamentosPorNumero.get(c.numero)?.length ?? 0), 0);
 
   const erro = erroPortal || erroSiconv || erroTransferegov;
+  const totalComponentes = componentes?.reduce((a, c) => a + c.total_propostas, 0) ?? 0;
 
   return (
     <div style={{ minHeight: '100vh', background: colors.surface, padding: layout.pagePadding }}>
       <div style={{ maxWidth: layout.maxWidth, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 20, margin: '0 0 4px', color: '#16213e' }}>Monitoramento de Equipamentos — Convênios (MS)</h1>
+        {/* Cabecalho -- breadcrumb institucional + titulo, puxado do
+            prototipo de referencia (so a tipografia/hierarquia, dado real). */}
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: colors.subtleText, marginBottom: 6 }}>
+          Ministério da Saúde <span style={{ margin: '0 4px' }}>›</span> DECAN / FNS <span style={{ margin: '0 4px' }}>›</span>{' '}
+          <span style={{ color: colors.primary }}>Monitoramento de Instrumentos</span>
+        </div>
+        <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', margin: '0 0 6px', color: colors.primary }}>
+          Painel de Convênios &amp; Equipamentos Oncológicos
+        </h1>
         <p style={{ color: colors.mutedText, fontSize: 13, maxWidth: 900, lineHeight: 1.6, marginBottom: 20 }}>
           Página separada da análise de mérito de hipo/hipersuficiência do SIEO — {convenios?.length ?? '...'} convênios
           de aquisição de equipamento (71 validados manualmente + levantamento nacional por item de equipamento no
@@ -114,44 +138,87 @@ export function MonitoramentoEquipamentosPage() {
 
         {erro && <p style={{ color: colors.hipoRed }}>Erro ao carregar dados: {erro}</p>}
 
-        {!convenios ? (
-          <p style={{ color: colors.mutedText }}>Carregando...</p>
-        ) : (
-          <>
-            <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 14 }}>
-              <KpiCard label="Convênios" value={filtrados.length} color={colors.primary} />
-              <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} color={colors.primary} />
-              <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} color={colors.hiperGreen} />
-              <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} color={colors.primary} />
-            </div>
+        {/* Abas -- Convenios (299 registros, dado ja mesclado) e
+            Componentes de financiamento (agrupamento diferente do mesmo
+            universo, ver SecaoComponentes.tsx). Antes ficava tudo numa
+            rolagem so; virar aba de verdade reduz a pagina a um assunto
+            por vez. */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: `1px solid ${colors.border}` }}>
+          <button
+            onClick={() => setAba('convenios')}
+            style={{
+              padding: '10px 16px', fontSize: 13, fontWeight: 700, border: 'none', background: 'transparent', cursor: 'pointer',
+              color: aba === 'convenios' ? colors.primary : colors.mutedText,
+              borderBottom: aba === 'convenios' ? `2px solid ${colors.primary}` : '2px solid transparent',
+              marginBottom: -1,
+            }}
+          >
+            Convênios <span style={{ color: colors.subtleText, fontWeight: 500 }}>({convenios?.length ?? 0})</span>
+          </button>
+          <button
+            onClick={() => setAba('componentes')}
+            style={{
+              padding: '10px 16px', fontSize: 13, fontWeight: 700, border: 'none', background: 'transparent', cursor: 'pointer',
+              color: aba === 'componentes' ? colors.primary : colors.mutedText,
+              borderBottom: aba === 'componentes' ? `2px solid ${colors.primary}` : '2px solid transparent',
+              marginBottom: -1,
+            }}
+          >
+            Componentes de financiamento <span style={{ color: colors.subtleText, fontWeight: 500 }}>({totalComponentes})</span>
+          </button>
+        </div>
 
-            {/* Legenda de cor -- situacao de convenio tem ~9 variacoes
-                reais, o vocabulario visual so tem 4 familias (ver
-                situacaoCor em ui.tsx). */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 16, fontSize: 11.5, color: colors.mutedText }}>
-              {LEGENDA_STATUS.map((l) => (
-                <span key={l.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: l.cor, display: 'inline-block' }} />
-                  {l.rotulo}
-                </span>
-              ))}
-            </div>
+        {aba === 'convenios' && (
+          !convenios ? (
+            <p style={{ color: colors.mutedText }}>Carregando...</p>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 16 }}>
+                <KpiCard label="Convênios" value={filtrados.length} color={colors.primary} />
+                <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} color={colors.primary} />
+                <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} color={colors.hiperGreen} />
+                <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} color={colors.primary} />
+                <KpiCard
+                  label="Monitorados internamente"
+                  value={monitorados.size}
+                  color={colors.hiperGreen}
+                  onClick={() => setSoMonitorados((v) => !v)}
+                  ativo={soMonitorados}
+                />
+              </div>
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-              <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por convenente, município, número, CNPJ..." />
-              <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={160} />
-              <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={200} />
-            </div>
+              {/* Legenda de cor -- situacao de convenio tem ~9 variacoes
+                  reais, o vocabulario visual so tem 4 familias (ver
+                  situacaoCor em ui.tsx). */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 18, fontSize: 11.5, color: colors.mutedText }}>
+                {LEGENDA_STATUS.map((l) => (
+                  <span key={l.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 999, background: l.cor, display: 'inline-block' }} />
+                    {l.rotulo}
+                  </span>
+                ))}
+              </div>
 
-            <div style={{ color: colors.mutedText, fontSize: 12, marginBottom: 10 }}>
-              {filtrados.length} de {convenios.length} convênio(s)
-            </div>
+              <div style={{
+                background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 14,
+                boxShadow: '0 1px 3px rgba(22,33,62,0.06)', marginBottom: 16,
+                display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
+              }}>
+                <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por convenente, município, número, CNPJ..." />
+                <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={160} />
+                <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={200} />
+              </div>
 
-            {filtrados.map((c) => <ConvenioCard key={c.numero} c={c} />)}
-          </>
+              <div style={{ color: colors.mutedText, fontSize: 12, marginBottom: 10 }}>
+                {filtrados.length} de {convenios.length} convênio(s)
+              </div>
+
+              {filtrados.map((c) => <ConvenioCard key={c.numero} c={c} monitorado={monitorados.has(c.numero)} />)}
+            </>
+          )
         )}
 
-        {componentes && <SecaoComponentes dados={componentes} />}
+        {aba === 'componentes' && (componentes ? <SecaoComponentes dados={componentes} /> : <p style={{ color: colors.mutedText }}>Carregando...</p>)}
       </div>
     </div>
   );

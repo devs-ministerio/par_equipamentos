@@ -4,7 +4,9 @@
  * backend/scripts/levantamento_convenios_oncologia.py. Diferente do resto
  * da pagina: nao e por numero de convenio (FAF SAUDE e instrumento novo,
  * sem numero legado), entao fica como secao separada, nao dentro do
- * ConvenioCard. Fase de descoberta pra equipe tecnica avaliar (2026-09-08)
+ * ConvenioCard -- fica na sua propria aba na pagina principal (ver
+ * MonitoramentoEquipamentosPage.tsx), nao misturado com a lista de
+ * convenios. Fase de descoberta pra equipe tecnica avaliar (2026-09-08)
  * -- so achado ate agora tem proposta em 2025; 2026 existe como `programa`
  * mas sem proposta ainda, e 2024 ("REDE DE ATENCAO...") nao tem `programa`
  * equivalente em nenhuma API (documentado no script). */
@@ -17,8 +19,7 @@ export function SecaoComponentes({ dados }: { dados: ComponenteOncologia[] }) {
   const totalPropostas = dados.reduce((a, c) => a + c.total_propostas, 0);
 
   return (
-    <div style={{ marginTop: 40, paddingTop: 24, borderTop: `2px solid ${colors.border}` }}>
-      <h2 style={{ fontSize: 16, margin: '0 0 4px', color: '#16213e' }}>Componentes de financiamento oncológico</h2>
+    <div>
       <p style={{ color: colors.mutedText, fontSize: 12.5, maxWidth: 900, lineHeight: 1.6, marginBottom: 16 }}>
         Levantamento nacional por <code>programa</code> do TransfereGov (não por número de convênio — FAF SAÚDE é
         instrumento novo, sem número legado). Casamento por nome normalizado contra os 8 componentes pedidos —{' '}
