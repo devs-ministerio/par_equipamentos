@@ -32,8 +32,9 @@
  * copiados pra public/monitoramento-equipamentos/ (ver README la) sempre
  * que os scripts rodarem de novo.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KpiCard } from '../components/dashboard/KpiCard';
+import { Pagination } from '../components/common/Pagination';
 import { SearchInput } from '../components/common/SearchInput';
 import { SingleSelectFilter } from '../components/common/SingleSelectFilter';
 import { colors, layout } from '../styles/tokens';
@@ -63,14 +64,20 @@ const TIPOS_CONTRATACAO = [
   { value: 'ted', label: 'TED (ainda não incluído)' },
 ];
 
+// Card com 2 camadas (ConvenioCard.tsx) e mais pesado que linha de tabela --
+// pagina de 20 em vez dos 50 que EstabelecimentoTable usa pra linha simples.
+const PAGE_SIZE = 20;
+
 export function MonitoramentoEquipamentosPage() {
   const [aba, setAba] = useState<Aba>('convenios');
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
+  const [situacao, setSituacao] = useState<string | null>(null);
   const [ano, setAno] = useState<string | null>(null);
   const [tipoContratacao, setTipoContratacao] = useState<string | null>('convenio');
   const [soMonitorados, setSoMonitorados] = useState(false);
+  const [pagina, setPagina] = useState(1);
   const monitorados = useInstrumentosMonitorados();
 
   const { dados: portal, erro: erroPortal } = useJson<ConvenioPortal[]>('/monitoramento-equipamentos/convenios.json');
@@ -119,6 +126,13 @@ export function MonitoramentoEquipamentosPage() {
     return [...anos].sort().reverse().map((a) => ({ value: a, label: a }));
   }, [convenios]);
 
+  const situacaoOptions = useMemo(() => {
+    if (!convenios) return [];
+    const contagem = new Map<string, number>();
+    for (const c of convenios) contagem.set(c.situacao, (contagem.get(c.situacao) ?? 0) + 1);
+    return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([s, n]) => ({ value: s, label: `${s} (${n})` }));
+  }, [convenios]);
+
   const filtrados = useMemo(() => {
     // "Convenio" e o unico tipo de contratacao com dado -- qualquer outro
     // valor (PERSUS I/II, FAF, TED) mostra lista vazia de proposito, nunca
@@ -127,6 +141,7 @@ export function MonitoramentoEquipamentosPage() {
     const lista = convenios.filter((c) => {
       if (uf && c.uf !== uf) return false;
       if (equipamento && !equipamentosPorNumero.get(c.numero)?.includes(equipamento)) return false;
+      if (situacao && c.situacao !== situacao) return false;
       if (ano && c.datas.publicacao?.slice(0, 4) !== ano) return false;
       if (soMonitorados && !monitorados.has(c.numero)) return false;
       if (busca) {
@@ -139,18 +154,17 @@ export function MonitoramentoEquipamentosPage() {
     // editavel da pagina toda, merece ficar visivel sem precisar escanear
     // ~300 cards pra achar (so 1 hoje, mas o desenho ja escala pra mais).
     return [...lista].sort((a, b) => Number(monitorados.has(b.numero)) - Number(monitorados.has(a.numero)));
-  }, [convenios, busca, uf, equipamento, ano, tipoContratacao, soMonitorados, equipamentosPorNumero, monitorados]);
+  }, [convenios, busca, uf, equipamento, situacao, ano, tipoContratacao, soMonitorados, equipamentosPorNumero, monitorados]);
+
+  // Volta pra pagina 1 sempre que filtro/busca mudar -- senao o usuario
+  // pode ficar preso numa pagina que nao existe mais no resultado novo.
+  useEffect(() => setPagina(1), [busca, uf, equipamento, situacao, ano, tipoContratacao, soMonitorados]);
+
+  const paginados = filtrados.slice((pagina - 1) * PAGE_SIZE, pagina * PAGE_SIZE);
 
   const totalGlobal = filtrados.reduce((a, c) => a + (c.financeiro.global || 0), 0);
   const totalDesembolsado = filtrados.reduce((a, c) => a + (c.financeiro.desembolsado || 0), 0);
   const totalEquipamentos = filtrados.reduce((a, c) => a + (equipamentosPorNumero.get(c.numero)?.length ?? 0), 0);
-  const contagemEquipamentoFiltrado = useMemo(() => {
-    const contagem = new Map<string, number>();
-    for (const c of filtrados) {
-      for (const t of equipamentosPorNumero.get(c.numero) ?? []) contagem.set(t, (contagem.get(t) ?? 0) + 1);
-    }
-    return contagem;
-  }, [filtrados, equipamentosPorNumero]);
 
   const erro = erroPortal || erroSiconv || erroTransferegov;
   const totalComponentes = componentes?.reduce((a, c) => a + c.total_propostas, 0) ?? 0;
@@ -222,30 +236,7 @@ export function MonitoramentoEquipamentosPage() {
                   onClick={() => setSoMonitorados((v) => !v)}
                   ativo={soMonitorados}
                 />
-                {/* Parque tecnologico em destaque -- pedido direto do
-                    usuario (2026-09-08): nao so o total, a quebra por
-                    equipamento tambem precisa aparecer sem clicar em nada. */}
-                <div style={{
-                  background: colors.card, borderRadius: 8, padding: '16px 18px', flex: '2 1 260px', minWidth: 260,
-                  border: '1.5px solid transparent', boxShadow: '0 1px 3px rgba(22,33,62,0.06)',
-                }}>
-                  <div style={{ fontSize: 11, color: colors.mutedText, textTransform: 'uppercase', letterSpacing: '.03em' }}>
-                    Parque tecnológico
-                  </div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: colors.primary, marginTop: 4, marginBottom: 8 }}>
-                    {totalEquipamentos} <span style={{ fontSize: 12, fontWeight: 500, color: colors.mutedText }}>itens</span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {EQUIPAMENTOS_ALVO.map((e) => (
-                      <span key={e} style={{
-                        fontSize: 10.5, fontWeight: 700, color: colors.logoOrange, background: '#fdf1de',
-                        border: `1px solid ${colors.logoOrange}55`, padding: '2px 8px', borderRadius: 20,
-                      }}>
-                        {e}: {contagemEquipamentoFiltrado.get(e) ?? 0}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} color={colors.primary} />
               </div>
 
               {/* Legenda de cor -- situacao de convenio tem ~9 variacoes
@@ -269,6 +260,7 @@ export function MonitoramentoEquipamentosPage() {
                 <SingleSelectFilter placeholder="Tipo de contratação" options={TIPOS_CONTRATACAO} value={tipoContratacao} onChange={setTipoContratacao} clearLabel="Todos os tipos" minWidth={150} />
                 <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={160} />
                 <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={200} />
+                <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={200} />
                 <SingleSelectFilter placeholder="Ano de publicação" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={140} />
               </div>
 
@@ -283,7 +275,7 @@ export function MonitoramentoEquipamentosPage() {
                     {filtrados.length} de {convenios.length} convênio(s)
                   </div>
 
-                  {filtrados.map((c) => (
+                  {paginados.map((c) => (
                     <ConvenioCard
                       key={c.numero}
                       c={c}
@@ -292,6 +284,10 @@ export function MonitoramentoEquipamentosPage() {
                       programas={programas}
                     />
                   ))}
+
+                  <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 10, marginTop: 4 }}>
+                    <Pagination page={pagina} totalItems={filtrados.length} pageSize={PAGE_SIZE} onPageChange={setPagina} />
+                  </div>
                 </>
               )}
             </>

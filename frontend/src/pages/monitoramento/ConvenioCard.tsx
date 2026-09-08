@@ -72,11 +72,11 @@ export function ConvenioCard({
               qualquer clique, nao so dentro do plano de aplicacao do SICONV
               (camada 2). Ver equipamentoTags.ts pro casamento. */}
           {equipamentos.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
               {equipamentos.map((e) => (
                 <span key={e} style={{
-                  fontSize: 11, fontWeight: 700, color: colors.logoOrange, background: '#fdf1de',
-                  border: `1px solid ${colors.logoOrange}55`, padding: '3px 9px', borderRadius: 20,
+                  fontSize: 13, fontWeight: 800, color: colors.primaryDark, background: colors.surface,
+                  border: `1px solid ${colors.border}`, padding: '4px 11px', borderRadius: 20,
                 }}>
                   {e}
                 </span>
