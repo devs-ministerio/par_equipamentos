@@ -3,7 +3,7 @@ import { colors } from '../../styles/tokens';
 import { fmtData, fmtMoeda } from './format';
 import { MonitoramentoInterno } from './MonitoramentoInterno';
 import type { ConvenioUnificado } from './types';
-import { Campo, estiloCard, estiloTabela, estiloTd, estiloTh, rotuloCampo, Secao, StatusPill } from './ui';
+import { Campo, estiloCard, estiloTabela, estiloTabelaWrapper, estiloTd, estiloTh, rotuloCampo, Secao, StatusPill } from './ui';
 
 export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
   const siconv = c.siconv;
@@ -85,7 +85,8 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
           <>
             {siconv.empenhos.length > 0 && (
               <Secao titulo="Empenhos (SICONV)" contagem={siconv.empenhos.length}>
-                <table style={estiloTabela}>
+                <div style={estiloTabelaWrapper}>
+                  <table style={estiloTabela}>
                   <thead><tr><th style={estiloTh}>Nº empenho</th><th style={estiloTh}>Situação</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
                   <tbody>
                     {siconv.empenhos.map((e) => (
@@ -93,11 +94,13 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </Secao>
             )}
             {siconv.desembolsos.length > 0 && (
               <Secao titulo="Desembolsos (SICONV)" contagem={siconv.desembolsos.length}>
-                <table style={estiloTabela}>
+                <div style={estiloTabelaWrapper}>
+                  <table style={estiloTabela}>
                   <thead><tr><th style={estiloTh}>Data</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
                   <tbody>
                     {siconv.desembolsos.map((d) => (
@@ -105,11 +108,13 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </Secao>
             )}
             {siconv.licitacoes.length > 0 && (
               <Secao titulo="Licitações (SICONV)" contagem={siconv.licitacoes.length}>
-                <table style={estiloTabela}>
+                <div style={estiloTabelaWrapper}>
+                  <table style={estiloTabela}>
                   <thead><tr><th style={estiloTh}>Processo</th><th style={estiloTh}>Modalidade</th><th style={estiloTh}>Status</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
                   <tbody>
                     {siconv.licitacoes.map((l) => (
@@ -122,11 +127,13 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </Secao>
             )}
             {siconv.itens_plano_aplicacao.length > 0 && (
               <Secao titulo="Itens do plano de aplicação (SICONV)" contagem={siconv.itens_plano_aplicacao.length}>
-                <table style={estiloTabela}>
+                <div style={estiloTabelaWrapper}>
+                  <table style={estiloTabela}>
                   <thead><tr><th style={estiloTh}>Descrição</th><th style={{ ...estiloTh, textAlign: 'right' }}>Qtd</th><th style={{ ...estiloTh, textAlign: 'right' }}>Vl. unitário</th><th style={{ ...estiloTh, textAlign: 'right' }}>Vl. total</th></tr></thead>
                   <tbody>
                     {siconv.itens_plano_aplicacao.map((it) => (
@@ -139,11 +146,13 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </Secao>
             )}
             {siconv.termos_aditivos.length > 0 && (
               <Secao titulo="Termos aditivos (SICONV)" contagem={siconv.termos_aditivos.length}>
-                <table style={estiloTabela}>
+                <div style={estiloTabelaWrapper}>
+                  <table style={estiloTabela}>
                   <thead><tr><th style={estiloTh}>Tipo</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor global</th><th style={estiloTh}>Justificativa</th></tr></thead>
                   <tbody>
                     {siconv.termos_aditivos.map((t, i) => (
@@ -151,6 +160,7 @@ export function ConvenioCard({ c }: { c: ConvenioUnificado }) {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </Secao>
             )}
           </>

@@ -35,15 +35,18 @@ import { SingleSelectFilter } from '../components/common/SingleSelectFilter';
 import { colors, layout } from '../styles/tokens';
 import { normalizarTexto } from '../utils/texto';
 import { ConvenioCard } from './monitoramento/ConvenioCard';
+import { EQUIPAMENTOS_ALVO, equipamentosDoConvenio } from './monitoramento/equipamentoTags';
 import { fmtMoeda } from './monitoramento/format';
 import { mesclarConvenios } from './monitoramento/mesclarConvenios';
 import { SecaoComponentes } from './monitoramento/SecaoComponentes';
 import type { ComponenteOncologia, ConvenioPortal, SiconvEntrada, TransfereGovEnte } from './monitoramento/types';
+import { LEGENDA_STATUS } from './monitoramento/ui';
 import { useJson } from './monitoramento/useJson';
 
 export function MonitoramentoEquipamentosPage() {
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
+  const [equipamento, setEquipamento] = useState<string | null>(null);
 
   const { dados: portal, erro: erroPortal } = useJson<ConvenioPortal[]>('/monitoramento-equipamentos/convenios.json');
   const { dados: siconv, erro: erroSiconv } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
@@ -63,20 +66,38 @@ export function MonitoramentoEquipamentosPage() {
       .map((u) => ({ value: u, label: u }));
   }, [convenios]);
 
+  // Tag de equipamento por convenio -- reclassifica os itens SICONV/
+  // TransfereGov que o convenio ja tem carregado, mesmos padroes do
+  // levantamento nacional (ver equipamentoTags.ts). So p/ KPI + filtro.
+  const equipamentosPorNumero = useMemo(() => {
+    if (!convenios) return new Map<string, string[]>();
+    return new Map(convenios.map((c) => [c.numero, equipamentosDoConvenio(c)]));
+  }, [convenios]);
+
+  const equipamentoOptions = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const tags of equipamentosPorNumero.values()) {
+      for (const t of tags) contagem.set(t, (contagem.get(t) ?? 0) + 1);
+    }
+    return EQUIPAMENTOS_ALVO.map((e) => ({ value: e, label: `${e} (${contagem.get(e) ?? 0})` }));
+  }, [equipamentosPorNumero]);
+
   const filtrados = useMemo(() => {
     if (!convenios) return [];
     return convenios.filter((c) => {
       if (uf && c.uf !== uf) return false;
+      if (equipamento && !equipamentosPorNumero.get(c.numero)?.includes(equipamento)) return false;
       if (busca) {
         const alvo = normalizarTexto(`${c.numero} ${c.convenente.nome} ${c.convenente.cnpj} ${c.municipio} ${c.objeto}`);
         if (!alvo.includes(normalizarTexto(busca))) return false;
       }
       return true;
     });
-  }, [convenios, busca, uf]);
+  }, [convenios, busca, uf, equipamento, equipamentosPorNumero]);
 
   const totalGlobal = filtrados.reduce((a, c) => a + (c.financeiro.global || 0), 0);
   const totalDesembolsado = filtrados.reduce((a, c) => a + (c.financeiro.desembolsado || 0), 0);
+  const totalEquipamentos = filtrados.reduce((a, c) => a + (equipamentosPorNumero.get(c.numero)?.length ?? 0), 0);
 
   const erro = erroPortal || erroSiconv || erroTransferegov;
 
@@ -97,15 +118,29 @@ export function MonitoramentoEquipamentosPage() {
           <p style={{ color: colors.mutedText }}>Carregando...</p>
         ) : (
           <>
-            <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 14 }}>
               <KpiCard label="Convênios" value={filtrados.length} color={colors.primary} />
               <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} color={colors.primary} />
               <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} color={colors.hiperGreen} />
+              <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} color={colors.primary} />
+            </div>
+
+            {/* Legenda de cor -- situacao de convenio tem ~9 variacoes
+                reais, o vocabulario visual so tem 4 familias (ver
+                situacaoCor em ui.tsx). */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 16, fontSize: 11.5, color: colors.mutedText }}>
+              {LEGENDA_STATUS.map((l) => (
+                <span key={l.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: l.cor, display: 'inline-block' }} />
+                  {l.rotulo}
+                </span>
+              ))}
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
               <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por convenente, município, número, CNPJ..." />
               <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={160} />
+              <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={200} />
             </div>
 
             <div style={{ color: colors.mutedText, fontSize: 12, marginBottom: 10 }}>

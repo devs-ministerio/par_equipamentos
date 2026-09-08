@@ -144,6 +144,9 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const faseAtual = [...fasesGerais].reverse().find((m) => eventosPorMarco.has(m.id));
   const pctAtual = faseAtual?.execucao_fisica_pct_referencia ?? 0;
 
+  const cronogramaFisico = marcos.filter((m) => m.grupo === 'cronograma_fisico');
+  const regulatorio = marcos.filter((m) => m.grupo === 'regulatorio');
+
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
 
@@ -158,6 +161,13 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
             </div>
             <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 4 }}>
               Programa: {inst.programa} ({inst.tp_instrumento_programa}) · Componente: <strong>{inst.componente}</strong>
+            </div>
+            <div style={{ fontSize: 11.5, color: colors.mutedText, marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              <span>Técnico titular: <strong style={{ color: colors.primary }}>{inst.tecnico_titular ?? '—'}</strong></span>
+              <span>Suplente: <strong>{inst.tecnico_suplente ?? '—'}</strong></span>
+              <span>Nível: <strong>{inst.nivel_monitoramento ?? '—'}</strong></span>
+              <span>Finalidade: <strong>{inst.finalidade ?? '—'}</strong></span>
+              <span>Modalidade: <strong>{inst.modalidade_onco ?? '—'}</strong></span>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -193,6 +203,48 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, color: colors.mutedText, flexWrap: 'wrap', gap: 4 }}>
           {fasesGerais.map((f) => <span key={f.id}>{f.rotulo}</span>)}
+        </div>
+      </div>
+
+      {/* Cronograma fisico + regulatorio -- mesmos grupos da planilha da
+          equipe (INÍCIO DA FABRICAÇÃO/CHEGADA NO BRASIL/ENTREGA/
+          INSTALAÇÃO/COMISSIONAMENTO e MATRÍCULA CNEN/SCRA/LICENÇA), so que
+          lidos do evento_marco real -- sem coluna nova, sem dado inventado.
+          Item sem evento lançado mostra "—" (sem registro), nao "pendente"
+          nem qualquer outro rotulo que sugira prazo que ninguem informou. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 16 }}>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Cronograma físico</strong>
+          <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+            {cronogramaFisico.map((m) => {
+              const evs = eventosPorMarco.get(m.id);
+              const ev = evs?.[0];
+              return (
+                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                  <span style={{ color: ev ? colors.primary : colors.mutedText }}>{m.rotulo}</span>
+                  <span style={{ color: colors.mutedText, fontSize: 11, textAlign: 'right' }}>
+                    {ev ? (fmtData(ev.data_ocorrencia) !== '—' ? fmtData(ev.data_ocorrencia) : `prev. ${fmtData(ev.data_prevista)}`) : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Regulatório (CNEN)</strong>
+          <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+            {regulatorio.map((m) => {
+              const evs = eventosPorMarco.get(m.id);
+              const ev = evs?.[0];
+              return (
+                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                  <span style={{ color: ev ? colors.primary : colors.mutedText }}>{m.rotulo}</span>
+                  {ev?.status_regulatorio ? <StatusPill texto={ev.status_regulatorio} /> : <span style={{ color: colors.mutedText, fontSize: 11 }}>—</span>}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
