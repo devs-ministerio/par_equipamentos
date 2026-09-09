@@ -18,12 +18,17 @@ import pytest
 from fastapi import HTTPException
 
 from app.db.base import SessionLocal
-from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo
+from app.db.models import AcaoMonitoramento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo
 from app.routers.monitoramento import (
+    AcaoMonitoramentoCreate,
     EventoMarcoCreate,
     InstrumentoEquipamentoUpdate,
     _ao_vivo_de,
     atualizar_cadastro,
+    concluir_acao,
+    listar_acoes,
+    obter_resumo,
+    registrar_acao,
     registrar_evento,
 )
 
@@ -99,7 +104,7 @@ def test_patch_cadastro_convenio_inexistente_404():
     db = SessionLocal()
     try:
         with pytest.raises(HTTPException) as exc:
-            atualizar_cadastro("000000", InstrumentoEquipamentoUpdate(equipamento_descricao="x"), db)
+            atualizar_cadastro("000000", InstrumentoEquipamentoUpdate(equipamento_marca="x"), db)
         assert exc.value.status_code == 404
     finally:
         db.rollback()  # nada foi escrito (404 antes do commit) -- rollback so por seguranca
@@ -128,4 +133,75 @@ def test_registrar_evento_persiste_numero_documento_e_data_validade():
         if evento_id is not None:
             db.query(EventoMarco).filter_by(id=evento_id).delete()
             db.commit()
+        db.close()
+
+
+def test_resumo_traz_totais_e_lista_de_convenios():
+    """DB de dev tem dado real importado (scripts/importar_planilha_monitoramento.py,
+    2026-09-09) -- so checa estrutura/consistencia, nao conta exata (o
+    numero de instrumentos cresce conforme a planilha da equipe muda)."""
+    db = SessionLocal()
+    try:
+        resumo = obter_resumo(db)
+        assert resumo.total_instrumentos >= 1
+        assert NR_CONVENIO_SEED in resumo.nr_convenios
+        assert len(resumo.nr_convenios) == resumo.total_instrumentos
+        if resumo.pct_execucao_fisica_medio is not None:
+            assert 0.0 <= resumo.pct_execucao_fisica_medio <= 1.0
+        assert resumo.acoes_pendentes >= 0
+        assert resumo.acoes_atrasadas <= resumo.acoes_pendentes
+        # Toda inauguracao listada tem convenio real do resumo.
+        for i in resumo.inauguracoes:
+            assert i.nr_convenio in resumo.nr_convenios
+    finally:
+        db.close()
+
+
+def test_registrar_e_concluir_acao():
+    db = SessionLocal()
+    acao_id = None
+    try:
+        criada = registrar_acao(
+            NR_CONVENIO_SEED,
+            AcaoMonitoramentoCreate(descricao="Ação de teste -- apagar", data_prevista=date(2026, 12, 1)),
+            db,
+        )
+        acao_id = criada.id
+        assert criada.data_conclusao is None  # criada = pendente
+        assert criada.nr_convenio == NR_CONVENIO_SEED
+
+        pendentes = listar_acoes(pendentes=True, db=db)
+        assert any(a.id == acao_id for a in pendentes)
+
+        concluida = concluir_acao(acao_id, db)
+        assert concluida.data_conclusao == date.today()
+
+        pendentes_depois = listar_acoes(pendentes=True, db=db)
+        assert not any(a.id == acao_id for a in pendentes_depois)
+    finally:
+        if acao_id is not None:
+            db.query(AcaoMonitoramento).filter_by(id=acao_id).delete()
+            db.commit()
+        db.close()
+
+
+def test_registrar_acao_convenio_inexistente_404():
+    db = SessionLocal()
+    try:
+        with pytest.raises(HTTPException) as exc:
+            registrar_acao("000000", AcaoMonitoramentoCreate(descricao="x"), db)
+        assert exc.value.status_code == 404
+    finally:
+        db.rollback()
+        db.close()
+
+
+def test_concluir_acao_inexistente_404():
+    db = SessionLocal()
+    try:
+        with pytest.raises(HTTPException) as exc:
+            concluir_acao(999_999_999, db)
+        assert exc.value.status_code == 404
+    finally:
+        db.rollback()
         db.close()

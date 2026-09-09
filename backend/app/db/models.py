@@ -574,3 +574,35 @@ class EventoMarco(Base):
     observacao: Mapped[str | None] = mapped_column(String)
     autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AcaoMonitoramento(Base):
+    """Tarefa/pendencia da equipe -- DIFERENTE de EventoMarco de proposito
+    (achado 2026-09-09, pedido do usuario: "as ações ficaria bom separado
+    dos eventos"). EventoMarco e historico fechado contra um catalogo FIXO
+    de marcos (fase/cronograma/regulatorio), sempre um registro do que JA
+    aconteceu. AcaoMonitoramento e texto livre, sem taxonomia fixa, com
+    ESTADO (pendente/concluida) e data de vencimento -- e o que alimenta
+    "dividas em acoes por data" na pagina de overview.
+
+    `data_conclusao` e o UNICO campo desta tabela pensado pra ser
+    preenchido depois de criado (marcar concluida) -- descricao/
+    data_prevista/responsavel continuam imutaveis apos o registro, mesma
+    disciplina do restante do monitoramento interno (corrigir e lancar
+    ação nova, nao editar a existente)."""
+    __tablename__ = "acao_monitoramento"
+    __table_args__ = (
+        Index("ix_acao_monitoramento_instrumento", "instrumento_id", "data_prevista"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(ForeignKey("instrumento_equipamento.id", ondelete="CASCADE"), nullable=False)
+    descricao: Mapped[str] = mapped_column(String, nullable=False)
+    data_prevista: Mapped[date | None] = mapped_column(Date)
+    # NULL = pendente. Preenchida quando a acao e marcada como concluida
+    # (unico UPDATE que esta tabela permite de proposito).
+    data_conclusao: Mapped[date | None] = mapped_column(Date)
+    # Texto livre por enquanto -- mesmo padrao de autor_nome em EventoMarco
+    # (login fica pra depois, ver _compor_observacao no router).
+    responsavel: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

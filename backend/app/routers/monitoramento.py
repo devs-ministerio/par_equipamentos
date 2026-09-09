@@ -11,15 +11,16 @@ usuario 2026-09-03.
 """
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
+from app.db.models import AcaoMonitoramento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
 from app.pipeline import portal_transparencia
 
 router = APIRouter(prefix="/monitoramento", tags=["monitoramento"])
@@ -155,6 +156,64 @@ class InstrumentoTimelineRead(BaseModel):
     eventos: list[EventoMarcoRead]
 
 
+class AcaoMonitoramentoRead(BaseModel):
+    id: int
+    instrumento_id: int
+    nr_convenio: str
+    descricao: str
+    data_prevista: date | None
+    data_conclusao: date | None
+    responsavel: str | None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AcaoMonitoramentoCreate(BaseModel):
+    descricao: str
+    data_prevista: date | None = None
+    responsavel: str | None = None
+
+
+class InauguracaoResumo(BaseModel):
+    """1 por instrumento com data de inauguracao registrada (real ou
+    prevista) -- alimenta a lista/"calendario" de inauguracoes da pagina
+    de overview. `dias` negativo = ja passou (atrasada, se nao realizada;
+    so informativa se `realizada`)."""
+    nr_convenio: str
+    nome_convenente: str
+    data: date
+    realizada: bool
+    dias: int
+
+
+class ContagemRotulo(BaseModel):
+    """{rotulo, quantidade} generico -- usado tanto pra distribuicao por
+    fase quanto pra contagem por tecnico titular."""
+    rotulo: str
+    quantidade: int
+
+
+class ResumoMonitoramentoRead(BaseModel):
+    """1 chamada so pra pagina de overview (achado 2026-09-09, pedido do
+    usuario: pagina INDEPENDENTE, nao so o detalhe de 1 convenio) -- tudo
+    que da pra calcular a partir do NOSSO schema (instrumento_equipamento/
+    evento_marco/acao_monitoramento). Pagamento ao fornecedor fica de fora
+    de proposito -- essa info vem do siconv.json estatico
+    (frontend/public/monitoramento-equipamentos/), nao do banco; o front
+    cruza sozinho com a lista de nr_convenio abaixo pra nao acoplar este
+    router a um pipeline de arquivo que ele nao gerencia."""
+    total_instrumentos: int
+    pct_execucao_fisica_medio: float | None
+    distribuicao_fase: list[ContagemRotulo]
+    licencas_cnen_deferidas: int
+    por_tecnico_titular: list[ContagemRotulo]
+    inauguracoes: list[InauguracaoResumo]
+    acoes_pendentes: int
+    acoes_atrasadas: int
+    nr_convenios: list[str]
+
+
 def _ao_vivo_de(dado: dict | None) -> ValorSituacaoAoVivoRead:
     """Monta o `ao_vivo` a partir da resposta crua do Portal da Transparencia
     (ou `None` quando a consulta falhou/nao achou). Extraida do endpoint pra
@@ -173,6 +232,16 @@ def _ao_vivo_de(dado: dict | None) -> ValorSituacaoAoVivoRead:
         situacao=dado.get("situacao"),
         valor_suspeito=suspeito,
     )
+
+
+def _fase_atual_id(fases_gerais_desc: list[MarcoCatalogo], marco_ids_com_evento: set[int]) -> int | None:
+    """Mesma regra ja usada no front (MonitoramentoInterno.tsx): marco de
+    fase_geral de MAIOR ordem que tem pelo menos 1 evento lancado --
+    `fases_gerais_desc` ja vem ordenado por `ordem` decrescente."""
+    for f in fases_gerais_desc:
+        if f.id in marco_ids_com_evento:
+            return f.id
+    return None
 
 
 def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
@@ -286,4 +355,150 @@ def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = D
         data_prevista=evento.data_prevista, status_regulatorio=evento.status_regulatorio,
         numero_documento=evento.numero_documento, data_validade=evento.data_validade,
         observacao=evento.observacao, autor_nome=None, created_at=evento.created_at,
+    )
+
+
+@router.get("/resumo", response_model=ResumoMonitoramentoRead)
+def obter_resumo(db: Session = Depends(get_db)):
+    """Pagina de overview independente (achado 2026-09-09, pedido do
+    usuario) -- 1 chamada so, tudo calculado a partir do NOSSO schema (ver
+    docstring de ResumoMonitoramentoRead pro que fica de fora de
+    proposito)."""
+    instrumentos = db.execute(select(InstrumentoEquipamento)).scalars().all()
+    marcos = db.execute(select(MarcoCatalogo)).scalars().all()
+    fases_gerais_desc = sorted(
+        (m for m in marcos if m.grupo == MarcoGrupo.fase_geral), key=lambda m: m.ordem or 0, reverse=True,
+    )
+    marco_licenca = next((m for m in marcos if m.codigo == "regulatorio_licenca_operacao"), None)
+    marco_inauguracao = next((m for m in marcos if m.codigo == "cronograma_previsao_inauguracao"), None)
+
+    todos_eventos = db.execute(select(EventoMarco)).scalars().all()
+    eventos_por_instrumento: dict[int, list[EventoMarco]] = defaultdict(list)
+    for e in todos_eventos:
+        eventos_por_instrumento[e.instrumento_id].append(e)
+
+    hoje = date.today()
+    pcts = []
+    contagem_fase: Counter[str] = Counter()
+    contagem_tecnico: Counter[str] = Counter()
+    licencas_deferidas = 0
+    inauguracoes: list[InauguracaoResumo] = []
+
+    for inst in instrumentos:
+        eventos_inst = eventos_por_instrumento.get(inst.id, [])
+        marco_ids_com_evento = {e.marco_id for e in eventos_inst}
+
+        fase_atual_id = _fase_atual_id(fases_gerais_desc, marco_ids_com_evento)
+        fase_atual = next((f for f in fases_gerais_desc if f.id == fase_atual_id), None)
+        if fase_atual and fase_atual.execucao_fisica_pct_referencia is not None:
+            pcts.append(fase_atual.execucao_fisica_pct_referencia)
+        contagem_fase[fase_atual.rotulo if fase_atual else "Não iniciado"] += 1
+
+        if inst.tecnico_titular:
+            contagem_tecnico[inst.tecnico_titular] += 1
+
+        if marco_licenca:
+            evs_licenca = [e for e in eventos_inst if e.marco_id == marco_licenca.id]
+            if evs_licenca and any(e.status_regulatorio == "Deferido" for e in evs_licenca):
+                licencas_deferidas += 1
+
+        if marco_inauguracao:
+            evs_inaug = [e for e in eventos_inst if e.marco_id == marco_inauguracao.id]
+            # Mais recente por created_at -- so 1 por instrumento na lista.
+            ev = max(evs_inaug, key=lambda e: e.created_at, default=None)
+            if ev:
+                data = ev.data_ocorrencia or ev.data_prevista
+                if data:
+                    inauguracoes.append(InauguracaoResumo(
+                        nr_convenio=inst.nr_convenio, nome_convenente=inst.nome_convenente,
+                        data=data, realizada=ev.data_ocorrencia is not None,
+                        dias=(data - hoje).days,
+                    ))
+
+    inauguracoes.sort(key=lambda i: i.data)
+
+    acoes = db.execute(select(AcaoMonitoramento)).scalars().all()
+    acoes_pendentes = sum(1 for a in acoes if a.data_conclusao is None)
+    acoes_atrasadas = sum(
+        1 for a in acoes if a.data_conclusao is None and a.data_prevista is not None and a.data_prevista < hoje
+    )
+
+    return ResumoMonitoramentoRead(
+        total_instrumentos=len(instrumentos),
+        pct_execucao_fisica_medio=(sum(pcts) / len(pcts)) if pcts else None,
+        distribuicao_fase=[ContagemRotulo(rotulo=r, quantidade=q) for r, q in contagem_fase.most_common()],
+        licencas_cnen_deferidas=licencas_deferidas,
+        por_tecnico_titular=[ContagemRotulo(rotulo=r, quantidade=q) for r, q in contagem_tecnico.most_common()],
+        inauguracoes=inauguracoes,
+        acoes_pendentes=acoes_pendentes,
+        acoes_atrasadas=acoes_atrasadas,
+        nr_convenios=[i.nr_convenio for i in instrumentos],
+    )
+
+
+@router.get("/acoes", response_model=list[AcaoMonitoramentoRead])
+def listar_acoes(pendentes: bool = Query(False), db: Session = Depends(get_db)):
+    """Todas as acoes (ou so pendentes, `?pendentes=true`) de TODOS os
+    instrumentos, ordenadas por data_prevista -- alimenta a lista de
+    "dividas por data" da pagina de overview."""
+    stmt = (
+        select(AcaoMonitoramento, InstrumentoEquipamento.nr_convenio)
+        .join(InstrumentoEquipamento, AcaoMonitoramento.instrumento_id == InstrumentoEquipamento.id)
+        .order_by(AcaoMonitoramento.data_prevista.asc().nulls_last())
+    )
+    if pendentes:
+        stmt = stmt.where(AcaoMonitoramento.data_conclusao.is_(None))
+    linhas = db.execute(stmt).all()
+    return [
+        AcaoMonitoramentoRead(
+            id=a.id, instrumento_id=a.instrumento_id, nr_convenio=nr, descricao=a.descricao,
+            data_prevista=a.data_prevista, data_conclusao=a.data_conclusao,
+            responsavel=a.responsavel, created_at=a.created_at,
+        )
+        for a, nr in linhas
+    ]
+
+
+@router.post("/instrumentos/{nr_convenio}/acoes", response_model=AcaoMonitoramentoRead, status_code=201)
+def registrar_acao(nr_convenio: str, corpo: AcaoMonitoramentoCreate, db: Session = Depends(get_db)):
+    """Cria uma acao PENDENTE (data_conclusao null) -- diferente de
+    EventoMarco, essa tabela nao esta amarrada a um catalogo fixo de
+    marcos (ver docstring de AcaoMonitoramento no models.py)."""
+    instrumento = db.execute(
+        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
+    ).scalar_one_or_none()
+    if instrumento is None:
+        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
+
+    acao = AcaoMonitoramento(
+        instrumento_id=instrumento.id, descricao=corpo.descricao,
+        data_prevista=corpo.data_prevista, responsavel=corpo.responsavel,
+    )
+    db.add(acao)
+    db.commit()
+    db.refresh(acao)
+    return AcaoMonitoramentoRead(
+        id=acao.id, instrumento_id=acao.instrumento_id, nr_convenio=nr_convenio, descricao=acao.descricao,
+        data_prevista=acao.data_prevista, data_conclusao=acao.data_conclusao,
+        responsavel=acao.responsavel, created_at=acao.created_at,
+    )
+
+
+@router.patch("/acoes/{acao_id}/concluir", response_model=AcaoMonitoramentoRead)
+def concluir_acao(acao_id: int, db: Session = Depends(get_db)):
+    """Unico UPDATE que AcaoMonitoramento permite de proposito -- marcar
+    como concluida (seta data_conclusao = hoje). Descricao/data_prevista/
+    responsavel continuam imutaveis (ver docstring do model)."""
+    acao = db.get(AcaoMonitoramento, acao_id)
+    if acao is None:
+        raise HTTPException(404, f"Ação {acao_id} não encontrada.")
+    if acao.data_conclusao is None:
+        acao.data_conclusao = date.today()
+        db.commit()
+        db.refresh(acao)
+    instrumento = db.get(InstrumentoEquipamento, acao.instrumento_id)
+    return AcaoMonitoramentoRead(
+        id=acao.id, instrumento_id=acao.instrumento_id, nr_convenio=instrumento.nr_convenio,
+        descricao=acao.descricao, data_prevista=acao.data_prevista, data_conclusao=acao.data_conclusao,
+        responsavel=acao.responsavel, created_at=acao.created_at,
     )

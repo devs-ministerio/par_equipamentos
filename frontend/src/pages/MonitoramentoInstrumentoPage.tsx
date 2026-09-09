@@ -7,11 +7,10 @@
  * da pagina principal (MonitoramentoEquipamentosPage.tsx), pra manter a
  * mesma linguagem visual (prototipo de referencia desta sessao).
  *
- * Continua POC de 1 instrumento so (convenio 948686, decisao do usuario
- * 2026-09-03, reafirmada 2026-09-09: sem endpoint de criacao, sem escala
- * pros outros 402 convenios ainda) -- so mudou de lugar/ganhou cadastro
- * editavel (equipamento/tecnico/nivel/finalidade/modalidade) e Licenca
- * CNEN com numero de documento + validade (ver MonitoramentoInterno.tsx).
+ * Escalado de 1 pra ~105 instrumentos (achado 2026-09-09, ver
+ * backend/scripts/importar_planilha_monitoramento.py) -- "Voltar" aponta
+ * pro overview novo (MonitoramentoOverviewPage.tsx), nao mais pra lista
+ * principal de convenios.
  */
 import { Link, useParams } from 'react-router-dom';
 import { colors, layout } from '../styles/tokens';
@@ -29,7 +28,7 @@ export function MonitoramentoInstrumentoPage() {
       <div style={{ maxWidth: layout.maxWidth, margin: '0 auto' }}>
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: colors.subtleText, marginBottom: 6 }}>
           Ministério da Saúde <span style={{ margin: '0 4px' }}>›</span> DECAN / FNS <span style={{ margin: '0 4px' }}>›</span>{' '}
-          <Link to="/monitoramento-equipamentos" style={{ color: colors.subtleText, textDecoration: 'none' }}>Monitoramento de Instrumentos</Link>{' '}
+          <Link to="/monitoramento-equipamentos/instrumentos" style={{ color: colors.subtleText, textDecoration: 'none' }}>Monitoramento de Instrumentos</Link>{' '}
           <span style={{ margin: '0 4px' }}>›</span> <span style={{ color: colors.primary }}>Convênio {nrConvenio}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
@@ -37,10 +36,10 @@ export function MonitoramentoInstrumentoPage() {
             Monitoramento interno — Convênio {nrConvenio}
           </h1>
           <Link
-            to="/monitoramento-equipamentos"
+            to="/monitoramento-equipamentos/instrumentos"
             style={{ fontSize: 12.5, fontWeight: 600, color: colors.primary, textDecoration: 'none', whiteSpace: 'nowrap' }}
           >
-            ← Voltar pra lista de convênios
+            ← Voltar pra visão geral
           </Link>
         </div>
         <p style={{ color: colors.mutedText, fontSize: 13, maxWidth: 900, lineHeight: 1.6, marginBottom: 20 }}>

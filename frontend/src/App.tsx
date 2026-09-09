@@ -23,6 +23,12 @@ const MonitoramentoEquipamentosPage = lazy(() =>
 const MonitoramentoInstrumentoPage = lazy(() =>
   import('./pages/MonitoramentoInstrumentoPage').then((m) => ({ default: m.MonitoramentoInstrumentoPage }))
 );
+// Overview INDEPENDENTE do monitoramento interno (achado 2026-09-09,
+// pedido do usuario: "não mostrar apenas quando abrir um convênio
+// especifico") -- indice com KPIs agregados de todos os instrumentos.
+const MonitoramentoOverviewPage = lazy(() =>
+  import('./pages/MonitoramentoOverviewPage').then((m) => ({ default: m.MonitoramentoOverviewPage }))
+);
 
 function App() {
   return (
@@ -34,6 +40,7 @@ function App() {
               especifica, ver comentario em PainelGeralPage.tsx). */}
           <Route path="/" element={<PainelGeralPage />} />
           <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
+          <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />
           <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
           <Route element={<AppLayout />}>
             <Route path="dashboard" element={<DashboardPage />} />

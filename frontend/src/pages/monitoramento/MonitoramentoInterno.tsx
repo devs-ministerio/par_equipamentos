@@ -72,6 +72,22 @@ type InstrumentoApi = {
   nivel_monitoramento: string | null; finalidade: string | null; modalidade_onco: string | null;
 };
 
+/** Tarefa/pendencia da equipe -- DIFERENTE de EventoMarco de proposito
+ * (design pedido pelo usuario 2026-09-09: "acho que as ações ficaria bom
+ * separado dos eventos"). Sem taxonomia fixa (descricao livre), estado
+ * pendente/concluida via `data_conclusao` (null = pendente) em vez de
+ * historico imutavel contra um catalogo. */
+type AcaoApi = {
+  id: number;
+  instrumento_id: number;
+  nr_convenio: string;
+  descricao: string;
+  data_prevista: string | null;
+  data_conclusao: string | null;
+  responsavel: string | null;
+  created_at: string;
+};
+
 type TimelineApi = {
   instrumento: InstrumentoApi;
   /** Nunca congelado no banco (decisao do usuario 2026-09-03) -- o backend
@@ -139,8 +155,23 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const [equipamentoVidaUtilAnos, setEquipamentoVidaUtilAnos] = useState('');
   const [salvandoCadastro, setSalvandoCadastro] = useState(false);
 
+  // Acoes de monitoramento -- separadas da timeline de eventos (design
+  // pedido pelo usuario 2026-09-09). GET /monitoramento/acoes devolve TODAS
+  // as acoes (usado tambem no overview agregado); aqui filtra client-side
+  // pelo convenio da pagina, mesmo padrao ja usado noutro lugar do front.
+  const [acoes, setAcoes] = useState<AcaoApi[] | null>(null);
+  const [acaoDescricao, setAcaoDescricao] = useState('');
+  const [acaoDataPrevista, setAcaoDataPrevista] = useState('');
+  const [acaoResponsavel, setAcaoResponsavel] = useState('');
+  const [enviandoAcao, setEnviandoAcao] = useState(false);
+  const [concluindoAcaoId, setConcluindoAcaoId] = useState<number | null>(null);
+
   const carregar = () => {
     fetch(`${API_BASE_URL}/monitoramento/marcos`).then((r) => r.json()).then(setMarcos).catch((e) => setErro(String(e)));
+    fetch(`${API_BASE_URL}/monitoramento/acoes`)
+      .then((r) => r.json())
+      .then((todas: AcaoApi[]) => setAcoes(todas.filter((a) => a.nr_convenio === numeroConvenio)))
+      .catch((e) => setErro(String(e)));
     fetch(`${API_BASE_URL}/monitoramento/instrumentos/${numeroConvenio}`)
       .then((r) => {
         if (r.status === 404) { setMonitorado(false); return null; }
@@ -223,6 +254,43 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
       setErro(String(e));
     } finally {
       setSalvandoCadastro(false);
+    }
+  }
+
+  async function criarAcao(e: React.FormEvent) {
+    e.preventDefault();
+    if (!acaoDescricao.trim()) return;
+    setEnviandoAcao(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/monitoramento/instrumentos/${numeroConvenio}/acoes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descricao: acaoDescricao,
+          data_prevista: acaoDataPrevista || null,
+          responsavel: acaoResponsavel || null,
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      setAcaoDescricao(''); setAcaoDataPrevista(''); setAcaoResponsavel('');
+      carregar();
+    } catch (e) {
+      setErro(String(e));
+    } finally {
+      setEnviandoAcao(false);
+    }
+  }
+
+  async function concluirAcao(acaoId: number) {
+    setConcluindoAcaoId(acaoId);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/monitoramento/acoes/${acaoId}/concluir`, { method: 'PATCH' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      carregar();
+    } catch (e) {
+      setErro(String(e));
+    } finally {
+      setConcluindoAcaoId(null);
     }
   }
 
@@ -508,6 +576,88 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
             })}
           </div>
         </div>
+      </div>
+
+      {/* Acoes de monitoramento -- visualmente separada da timeline de
+          eventos abaixo (design pedido pelo usuario 2026-09-09: "acho que
+          as ações ficaria bom separado dos eventos"). Fundo proprio
+          (surface) pra nao confundir com os cards brancos da timeline. */}
+      <div style={{ ...estiloCard, background: colors.surface, marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <strong style={{ fontSize: 13 }}>Ações de monitoramento</strong>
+        </div>
+
+        <form onSubmit={criarAcao} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
+          <div style={{ flex: 2, minWidth: 220 }}>
+            <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Nova ação</label>
+            <input
+              required style={{ ...estiloInput, width: '100%' }} placeholder="O que precisa ser feito..."
+              value={acaoDescricao} onChange={(e) => setAcaoDescricao(e.target.value)}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Prazo</label>
+            <input type="date" style={estiloInput} value={acaoDataPrevista} onChange={(e) => setAcaoDataPrevista(e.target.value)} />
+          </div>
+          <div style={{ minWidth: 160 }}>
+            <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Responsável</label>
+            <input style={{ ...estiloInput, width: '100%' }} value={acaoResponsavel} onChange={(e) => setAcaoResponsavel(e.target.value)} />
+          </div>
+          <button type="submit" disabled={enviandoAcao} style={{ ...estiloInput, cursor: 'pointer', background: colors.primary, color: '#fff', border: 'none', fontWeight: 600 }}>
+            {enviandoAcao ? 'Adicionando...' : '+ Adicionar'}
+          </button>
+        </form>
+
+        {!acoes || acoes.length === 0 ? (
+          <p style={{ color: colors.mutedText, fontStyle: 'italic', fontSize: 12.5, margin: 0 }}>Nenhuma ação registrada ainda.</p>
+        ) : (
+          <div style={{ display: 'grid', gap: 6 }}>
+            {[...acoes]
+              .sort((a, b) => Number(!!a.data_conclusao) - Number(!!b.data_conclusao) || (a.data_prevista ?? '9999').localeCompare(b.data_prevista ?? '9999'))
+              .map((acao) => {
+                const diasPrazo = !acao.data_conclusao ? diasAte(acao.data_prevista) : null;
+                const atrasada = diasPrazo !== null && diasPrazo < 0;
+                return (
+                  <div
+                    key={acao.id}
+                    style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+                      background: '#fff', borderRadius: 8, padding: '8px 10px',
+                      border: `1px solid ${atrasada ? colors.hipoRed : colors.border}`,
+                      opacity: acao.data_conclusao ? 0.6 : 1,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 12.5, fontWeight: 600,
+                        textDecoration: acao.data_conclusao ? 'line-through' : 'none',
+                      }}>
+                        {acao.descricao}
+                      </div>
+                      <div style={{ fontSize: 11, color: colors.mutedText, marginTop: 2 }}>
+                        {acao.responsavel && <>Responsável: {acao.responsavel} · </>}
+                        {acao.data_conclusao
+                          ? `Concluída em ${fmtData(acao.data_conclusao)}`
+                          : acao.data_prevista
+                            ? `Prazo: ${fmtData(acao.data_prevista)}`
+                            : 'Sem prazo definido'}
+                        {atrasada && <span style={{ color: colors.hipoRed, fontWeight: 700 }}> · ⚠️ atrasada há {Math.abs(diasPrazo!)} dia(s)</span>}
+                      </div>
+                    </div>
+                    {!acao.data_conclusao && (
+                      <button
+                        onClick={() => concluirAcao(acao.id)}
+                        disabled={concluindoAcaoId === acao.id}
+                        style={{ ...estiloInput, cursor: 'pointer', background: 'transparent', color: colors.hiperGreen, border: `1px solid ${colors.hiperGreen}`, fontWeight: 600, padding: '4px 10px', whiteSpace: 'nowrap' }}
+                      >
+                        {concluindoAcaoId === acao.id ? '...' : '✓ Concluir'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
