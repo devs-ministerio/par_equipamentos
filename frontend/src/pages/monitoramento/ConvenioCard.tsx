@@ -162,7 +162,7 @@ export function ConvenioCard({
         onToggle={(e) => setDetalheAberto((e.target as HTMLDetailsElement).open)}
       >
         <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: colors.primary }}>
-          {detalheAberto ? 'Ocultar detalhes técnicos' : 'Ver detalhes técnicos'} (identificação, vigência, SICONV, TransfereGov, monitoramento)
+          {detalheAberto ? 'Menos detalhes' : 'Mais detalhes'} (identificação, vigência, SICONV, TransfereGov, monitoramento)
         </summary>
 
         <Secao titulo="Identificação">
