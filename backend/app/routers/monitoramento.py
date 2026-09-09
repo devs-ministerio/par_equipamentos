@@ -82,7 +82,17 @@ class InstrumentoEquipamentoRead(BaseModel):
     municipio: str | None
     uf: str | None
     cnes: str | None
+    # Equipamento PLANEJADO (SICONV/plano de aplicacao) -- nunca editavel
+    # por aqui, ver InstrumentoEquipamentoUpdate.
     equipamento_descricao: str | None
+    # Equipamento FISICO de verdade, informado pelo estabelecimento DEPOIS
+    # da entrega (achado 2026-09-09: "não vamos alterar o equipamento que
+    # veio do SISCONV, mas sim cadastrar os dados... quando o
+    # estabelecimento disponibilizar, após a entrega"). Editaveis.
+    equipamento_marca: str | None
+    equipamento_modelo: str | None
+    equipamento_numero_serie: str | None
+    equipamento_vida_util_anos: int | None
     programa: str | None
     tp_instrumento_programa: str | None
     componente: str | None
@@ -101,9 +111,16 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     do comentario em InstrumentoEquipamento no models.py) -- nunca
     nr_convenio/cnpj_convenente/nome_convenente/programa/componente/
     ano_instrumento, que vem de fonte real (planilha/API) e nao devem virar
-    editaveis a mao aqui. Todos opcionais -- PATCH aplica so o que vier
+    editaveis a mao aqui. Tambem NUNCA `equipamento_descricao` (achado
+    2026-09-09: e o equipamento PLANEJADO do SICONV, "não vamos alterar o
+    equipamento que veio do SISCONV") -- os `equipamento_*` editaveis aqui
+    sao o equipamento FISICO de verdade, informado pelo estabelecimento
+    depois da entrega. Todos opcionais -- PATCH aplica so o que vier
     preenchido, deixando o resto como esta (nunca zera campo por omissao)."""
-    equipamento_descricao: str | None = None
+    equipamento_marca: str | None = None
+    equipamento_modelo: str | None = None
+    equipamento_numero_serie: str | None = None
+    equipamento_vida_util_anos: int | None = None
     tecnico_titular: str | None = None
     tecnico_suplente: str | None = None
     nivel_monitoramento: str | None = None

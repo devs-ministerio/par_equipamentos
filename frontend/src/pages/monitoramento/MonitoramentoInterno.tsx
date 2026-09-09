@@ -11,8 +11,6 @@ import { useEffect, useState } from 'react';
 import { colors } from '../../styles/tokens';
 import { API_BASE_URL } from './api';
 import { fmtData, fmtMoeda } from './format';
-import type { SiconvEntrada } from './types';
-import { useJson } from './useJson';
 import { estiloCard, estiloInput, StatusPill } from './ui';
 
 type MarcoCatalogoApi = {
@@ -57,7 +55,18 @@ type ValorSituacaoAoVivoApi = {
 
 type InstrumentoApi = {
   id: number; nr_convenio: string; cnpj_convenente: string; nome_convenente: string;
-  municipio: string | null; uf: string | null; cnes: string | null; equipamento_descricao: string | null;
+  municipio: string | null; uf: string | null; cnes: string | null;
+  /** Equipamento PLANEJADO (SICONV/plano de aplicacao) -- NUNCA editavel
+   * por aqui (decisao do usuario 2026-09-09: "não vamos alterar o
+   * equipamento que veio do SISCONV"). */
+  equipamento_descricao: string | null;
+  /** Equipamento FISICO de verdade, informado pelo estabelecimento DEPOIS
+   * da entrega -- achado 2026-09-09, esses sim editaveis (ver
+   * InstrumentoEquipamentoUpdate no backend). */
+  equipamento_marca: string | null;
+  equipamento_modelo: string | null;
+  equipamento_numero_serie: string | null;
+  equipamento_vida_util_anos: number | null;
   programa: string | null; tp_instrumento_programa: string | null; componente: string | null;
   ano_instrumento: number | null; tecnico_titular: string | null; tecnico_suplente: string | null;
   nivel_monitoramento: string | null; finalidade: string | null; modalidade_onco: string | null;
@@ -110,30 +119,25 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const [autorNome, setAutorNome] = useState('');
   const [enviando, setEnviando] = useState(false);
 
-  // Cadastro (equipamento/tecnico/nivel/finalidade/modalidade) -- unico
-  // jeito de editar isso e o PATCH novo (achado 2026-09-09, antes so dava
-  // pra mudar rodando scripts/seed_monitoramento.py de novo).
+  // Cadastro (tecnico/nivel/finalidade/modalidade + equipamento FISICO) --
+  // unico jeito de editar isso e o PATCH novo (achado 2026-09-09, antes so
+  // dava pra mudar rodando scripts/seed_monitoramento.py de novo).
   const [cadastroAberto, setCadastroAberto] = useState(false);
-  const [equipamentoDescricao, setEquipamentoDescricao] = useState('');
   const [tecnicoTitular, setTecnicoTitular] = useState('');
   const [tecnicoSuplente, setTecnicoSuplente] = useState('');
   const [nivelMonitoramento, setNivelMonitoramento] = useState('');
   const [finalidade, setFinalidade] = useState('');
   const [modalidadeOnco, setModalidadeOnco] = useState('');
+  // Equipamento FISICO de verdade -- so preenchido pelo estabelecimento
+  // DEPOIS da entrega (achado 2026-09-09: "não vamos alterar o
+  // equipamento que veio do SISCONV, mas sim cadastrar os dados... quando
+  // o estabelecimento disponibilizar, após a entrega"). NUNCA toca
+  // equipamento_descricao (esse e o planejado do SICONV, so leitura).
+  const [equipamentoMarca, setEquipamentoMarca] = useState('');
+  const [equipamentoModelo, setEquipamentoModelo] = useState('');
+  const [equipamentoNumeroSerie, setEquipamentoNumeroSerie] = useState('');
+  const [equipamentoVidaUtilAnos, setEquipamentoVidaUtilAnos] = useState('');
   const [salvandoCadastro, setSalvandoCadastro] = useState(false);
-
-  // Sugestao de equipamento a partir do dado REAL do SICONV pra esse
-  // convenio (siconv.json, mesmo arquivo estatico que a pagina principal
-  // usa) -- em vez de digitar do zero, reaproveita a descricao do item que
-  // o proprio plano de aplicacao ja tem. So itens distintos, so quando o
-  // convenio esta no dump (nem todo convenio monitorado necessariamente
-  // esta -- ver mesclarConvenios.ts).
-  const { dados: siconvTodos } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
-  const sugestoesEquipamento = (() => {
-    const entrada = siconvTodos?.find((e) => e.convenio.NR_CONVENIO === numeroConvenio);
-    const descricoes = (entrada?.itens_plano_aplicacao ?? []).map((it) => it.DESCRICAO_ITEM).filter(Boolean);
-    return [...new Set(descricoes)];
-  })();
 
   const carregar = () => {
     fetch(`${API_BASE_URL}/monitoramento/marcos`).then((r) => r.json()).then(setMarcos).catch((e) => setErro(String(e)));
@@ -148,12 +152,15 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
           setMonitorado(true);
           setTimeline(data);
           const inst = data.instrumento;
-          setEquipamentoDescricao(inst.equipamento_descricao ?? '');
           setTecnicoTitular(inst.tecnico_titular ?? '');
           setTecnicoSuplente(inst.tecnico_suplente ?? '');
           setNivelMonitoramento(inst.nivel_monitoramento ?? '');
           setFinalidade(inst.finalidade ?? '');
           setModalidadeOnco(inst.modalidade_onco ?? '');
+          setEquipamentoMarca(inst.equipamento_marca ?? '');
+          setEquipamentoModelo(inst.equipamento_modelo ?? '');
+          setEquipamentoNumeroSerie(inst.equipamento_numero_serie ?? '');
+          setEquipamentoVidaUtilAnos(inst.equipamento_vida_util_anos != null ? String(inst.equipamento_vida_util_anos) : '');
         }
       })
       .catch((e) => setErro(String(e)));
@@ -198,12 +205,15 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          equipamento_descricao: equipamentoDescricao || null,
           tecnico_titular: tecnicoTitular || null,
           tecnico_suplente: tecnicoSuplente || null,
           nivel_monitoramento: nivelMonitoramento || null,
           finalidade: finalidade || null,
           modalidade_onco: modalidadeOnco || null,
+          equipamento_marca: equipamentoMarca || null,
+          equipamento_modelo: equipamentoModelo || null,
+          equipamento_numero_serie: equipamentoNumeroSerie || null,
+          equipamento_vida_util_anos: equipamentoVidaUtilAnos ? Number(equipamentoVidaUtilAnos) : null,
         }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -250,6 +260,16 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const eventoLicenca = (marcoLicenca && eventosPorMarco.get(marcoLicenca.id)?.find((e) => e.data_validade)) || null;
   const diasValidade = diasAte(eventoLicenca?.data_validade);
 
+  // Previsao de inauguracao -- destaque pedido pelo usuario 2026-09-09
+  // ("também é um dado que se destaca pra nós"). Se ja tem data_ocorrencia
+  // no marco, o equipamento ja foi inaugurado (fato consumado); senao usa
+  // data_prevista (previsao ainda em aberto) pra contar dias.
+  const marcoInauguracao = cronogramaFisico.find((m) => m.codigo === 'cronograma_previsao_inauguracao');
+  const eventoInauguracao = (marcoInauguracao && eventosPorMarco.get(marcoInauguracao.id)?.[0]) || null;
+  const inaugurado = !!eventoInauguracao?.data_ocorrencia;
+  const dataInauguracao = eventoInauguracao?.data_ocorrencia || eventoInauguracao?.data_prevista || null;
+  const diasInauguracao = !inaugurado ? diasAte(dataInauguracao) : null;
+
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
 
@@ -260,11 +280,18 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>Convênio {inst.nr_convenio} — {inst.nome_convenente}</div>
             <div style={{ fontSize: 12, color: colors.mutedText }}>
-              {inst.municipio}/{inst.uf} · CNES {inst.cnes} · {inst.equipamento_descricao}
+              {inst.municipio}/{inst.uf} · CNES {inst.cnes} · <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">{inst.equipamento_descricao}</span>
             </div>
             <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 4 }}>
               Programa: {inst.programa} ({inst.tp_instrumento_programa}) · Componente: <strong>{inst.componente}</strong>
             </div>
+            {(inst.equipamento_marca || inst.equipamento_modelo || inst.equipamento_numero_serie || inst.equipamento_vida_util_anos != null) && (
+              <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 4 }}>
+                Equipamento entregue: <strong>{inst.equipamento_marca ?? '—'}</strong> {inst.equipamento_modelo ?? ''}
+                {inst.equipamento_numero_serie && <> · Nº série <strong>{inst.equipamento_numero_serie}</strong></>}
+                {inst.equipamento_vida_util_anos != null && <> · Vida útil <strong>{inst.equipamento_vida_util_anos} ano(s)</strong></>}
+              </div>
+            )}
             <div style={{ fontSize: 11.5, color: colors.mutedText, marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
               <span>Técnico titular: <strong style={{ color: colors.primary }}>{inst.tecnico_titular ?? '—'}</strong></span>
               <span>Suplente: <strong>{inst.tecnico_suplente ?? '—'}</strong></span>
@@ -293,6 +320,27 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
             )}
           </div>
         </div>
+
+        {/* Previsao de inauguracao em destaque -- pedido do usuario
+            2026-09-09 ("também é um dado que se destaca pra nós"). So
+            aparece quando ha data (evento lançado pro marco) -- "—" nao e
+            mostrado aqui de proposito, o cronograma físico abaixo ja cobre
+            o caso sem registro. */}
+        {dataInauguracao && (
+          <div style={{
+            marginTop: 12, paddingTop: 10, borderTop: `1px solid ${colors.border}`,
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+          }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600 }}>
+              {inaugurado ? '🎉 Inaugurado em' : '📅 Previsão de inauguração:'} {fmtData(dataInauguracao)}
+            </span>
+            {!inaugurado && diasInauguracao !== null && (
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: diasInauguracao < 0 ? colors.logoOrange : colors.primary }}>
+                {diasInauguracao < 0 ? `⚠️ Atrasada há ${Math.abs(diasInauguracao)} dia(s)` : `Faltam ${diasInauguracao} dia(s)`}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Cadastro -- equipamento/tecnico/nivel/finalidade/modalidade.
@@ -310,35 +358,36 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         </div>
 
         {cadastroAberto && (
-          <form onSubmit={salvarCadastro} style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+          <form onSubmit={salvarCadastro} style={{ marginTop: 12, display: 'grid', gap: 16 }}>
+            {/* Equipamento FISICO -- so o que o estabelecimento informa
+                DEPOIS da entrega (achado 2026-09-09). NUNCA
+                equipamento_descricao (esse e o planejado do SICONV, so
+                leitura -- mostrado acima, com tooltip explicando). */}
             <div>
-              <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Equipamento</label>
-              <input
-                style={{ ...estiloInput, width: '100%' }}
-                value={equipamentoDescricao}
-                onChange={(e) => setEquipamentoDescricao(e.target.value)}
-                placeholder="Descrição do equipamento..."
-              />
-              {sugestoesEquipamento.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                  <span style={{ fontSize: 10.5, color: colors.mutedText, alignSelf: 'center' }}>Do SICONV deste convênio:</span>
-                  {sugestoesEquipamento.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setEquipamentoDescricao(s)}
-                      title={s}
-                      style={{
-                        fontSize: 11, padding: '3px 9px', borderRadius: 20, cursor: 'pointer',
-                        border: `1px solid ${colors.border}`, background: colors.surface, color: colors.primaryDark,
-                        maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.primary, marginBottom: 8 }}>
+                Equipamento entregue <span style={{ fontWeight: 400, color: colors.mutedText, textTransform: 'none' }}>(informado pelo estabelecimento após a entrega)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Marca</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={equipamentoMarca} onChange={(e) => setEquipamentoMarca(e.target.value)} />
                 </div>
-              )}
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Modelo</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={equipamentoModelo} onChange={(e) => setEquipamentoModelo(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Nº de série</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={equipamentoNumeroSerie} onChange={(e) => setEquipamentoNumeroSerie(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Vida útil (anos)</label>
+                  <input
+                    type="number" min={0} style={{ ...estiloInput, width: '100%' }}
+                    value={equipamentoVidaUtilAnos} onChange={(e) => setEquipamentoVidaUtilAnos(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
               <div>
@@ -442,6 +491,11 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                     </span>
                     {ev?.status_regulatorio ? <StatusPill texto={ev.status_regulatorio} /> : <span style={{ color: colors.mutedText, fontSize: 11 }}>—</span>}
                   </div>
+                  {ehLicenca && eventoLicenca?.data_ocorrencia && (
+                    <div style={{ fontSize: 10.5, color: colors.mutedText, textAlign: 'right' }}>
+                      Emitida em {fmtData(eventoLicenca.data_ocorrencia)}
+                    </div>
+                  )}
                   {ehLicenca && diasValidade !== null && (
                     <div style={{ fontSize: 10.5, color: corValidade(diasValidade), fontWeight: 600, textAlign: 'right' }}>
                       {diasValidade < 0
@@ -463,32 +517,52 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         </button>
       </div>
 
-      {formAberto && (
+      {formAberto && (() => {
+        const marcoDoForm = marcoPorId.get(marcoSelecionado ?? -1);
+        const ehRegulatorio = marcoDoForm?.grupo === 'regulatorio';
+        const ehLicencaOperacao = marcoDoForm?.codigo === 'regulatorio_licenca_operacao';
+        return (
         <form onSubmit={enviarEvento} style={{ ...estiloCard, marginBottom: 16, display: 'grid', gap: 10 }}>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <select required style={{ ...estiloInput, flex: 1, minWidth: 240 }} value={marcoSelecionado ?? ''} onChange={(e) => setMarcoSelecionado(Number(e.target.value))}>
-              <option value="" disabled>Selecione o marco...</option>
-              {['fase_geral', 'cronograma_fisico', 'regulatorio'].map((grupo) => (
-                <optgroup key={grupo} label={grupo === 'fase_geral' ? 'Fase geral' : grupo === 'cronograma_fisico' ? 'Cronograma físico' : 'Regulatório (CNEN)'}>
-                  {marcos.filter((m) => m.grupo === grupo).map((m) => <option key={m.id} value={m.id}>{m.rotulo}</option>)}
-                </optgroup>
-              ))}
-            </select>
-            <input type="date" style={estiloInput} value={dataOcorrencia} onChange={(e) => setDataOcorrencia(e.target.value)} title="Data de ocorrência" />
-          </div>
-          {marcoPorId.get(marcoSelecionado ?? -1)?.grupo === 'regulatorio' && (
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <select style={{ ...estiloInput, flex: 1, minWidth: 160 }} value={statusRegulatorio} onChange={(e) => setStatusRegulatorio(e.target.value)}>
-                <option value="">Status regulatório...</option>
-                {['NI', 'NA', 'Em análise', 'Em diligência', 'Deferido', 'Indeferido'].map((s) => <option key={s} value={s}>{s}</option>)}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Marco</label>
+              <select required style={{ ...estiloInput, width: '100%' }} value={marcoSelecionado ?? ''} onChange={(e) => setMarcoSelecionado(Number(e.target.value))}>
+                <option value="" disabled>Selecione o marco...</option>
+                {['fase_geral', 'cronograma_fisico', 'regulatorio'].map((grupo) => (
+                  <optgroup key={grupo} label={grupo === 'fase_geral' ? 'Fase geral' : grupo === 'cronograma_fisico' ? 'Cronograma físico' : 'Regulatório (CNEN)'}>
+                    {marcos.filter((m) => m.grupo === grupo).map((m) => <option key={m.id} value={m.id}>{m.rotulo}</option>)}
+                  </optgroup>
+                ))}
               </select>
-              <input
-                style={{ ...estiloInput, flex: 1, minWidth: 160 }}
-                placeholder="Nº matrícula/licença/processo"
-                value={numeroDocumento}
-                onChange={(e) => setNumeroDocumento(e.target.value)}
-              />
-              <input type="date" style={estiloInput} value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} title="Validade (se aplicável)" />
+            </div>
+            <div>
+              {/* Rotulo dinamico -- pedido do usuario 2026-09-09: "a licenca
+                  cnen vamos precisar da data da licença e da data de
+                  validade da licença", nao so um icone de calendario com
+                  tooltip. */}
+              <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+                {ehLicencaOperacao ? 'Data da licença' : ehRegulatorio ? 'Data do documento' : 'Data de ocorrência'}
+              </label>
+              <input type="date" style={estiloInput} value={dataOcorrencia} onChange={(e) => setDataOcorrencia(e.target.value)} />
+            </div>
+          </div>
+          {ehRegulatorio && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Status regulatório</label>
+                <select style={{ ...estiloInput, width: '100%' }} value={statusRegulatorio} onChange={(e) => setStatusRegulatorio(e.target.value)}>
+                  <option value="">Status regulatório...</option>
+                  {['NI', 'NA', 'Em análise', 'Em diligência', 'Deferido', 'Indeferido'].map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Nº matrícula/licença/processo</label>
+                <input style={{ ...estiloInput, width: '100%' }} value={numeroDocumento} onChange={(e) => setNumeroDocumento(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Data de validade</label>
+                <input type="date" style={estiloInput} value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} />
+              </div>
             </div>
           )}
           <textarea style={{ ...estiloInput, minHeight: 60 }} placeholder="Observação (o que aconteceu)..." value={observacao} onChange={(e) => setObservacao(e.target.value)} />
@@ -497,7 +571,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
             {enviando ? 'Enviando...' : 'Registrar evento'}
           </button>
         </form>
-      )}
+        );
+      })()}
 
       {timeline.eventos.length === 0 ? (
         <p style={{ color: colors.mutedText, fontStyle: 'italic', fontSize: 13 }}>Nenhum evento lançado ainda.</p>

@@ -485,8 +485,23 @@ class InstrumentoEquipamento(Base):
     uf: Mapped[str | None] = mapped_column(String(2))
     cnes: Mapped[str | None] = mapped_column(String)
     # "ID MODELO NO SIGEM/TRANSFEREGOV" da planilha -- descricao do
-    # equipamento (ex. "Acelerador Linear so de Fotons (monoenergetico 6 MV)").
+    # equipamento PLANEJADO (o que o SICONV/plano de aplicacao diz que vai
+    # ser comprado, ex. "Acelerador Linear so de Fotons (monoenergetico 6
+    # MV)"). NUNCA editavel pela pagina de monitoramento (decisao do
+    # usuario 2026-09-09: "Não vamos alterar o equipamento que veio do
+    # SISCONV") -- so os 4 campos abaixo (equipamento_* fisico) sao.
     equipamento_descricao: Mapped[str | None] = mapped_column(String)
+    # Dados do equipamento FISICO de verdade, informados pelo
+    # estabelecimento de saude DEPOIS da entrega -- achado 2026-09-09,
+    # etapa preparatoria pra futuramente monitorar o equipamento entregue
+    # com dado real, nao so o que SICONV/TransfereGov planejaram. Nulos ate
+    # o estabelecimento informar (nao ha fonte automatica pra isso, mesma
+    # logica documentada no CLAUDE.md pra CNES/ElastiCNES nao ter
+    # granularidade por equipamento -- aqui e coleta manual de proposito).
+    equipamento_marca: Mapped[str | None] = mapped_column(String)
+    equipamento_modelo: Mapped[str | None] = mapped_column(String)
+    equipamento_numero_serie: Mapped[str | None] = mapped_column(String)
+    equipamento_vida_util_anos: Mapped[int | None] = mapped_column(Integer)
     # Programa (nm_programa da API TransfereGov /parcerias/programa, quando
     # existir correspondencia) e Componente (coluna "COMPONENTES DE
     # FINANCIAMENTO - INVESTUSUS" da planilha, ex. "RADIOTERAPIA", "REDE DE

@@ -69,23 +69,30 @@ def test_patch_cadastro_atualiza_so_o_campo_enviado():
     db = SessionLocal()
     try:
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
-        original_equipamento = instrumento.equipamento_descricao
+        original_marca = instrumento.equipamento_marca
         original_tecnico = instrumento.tecnico_titular
 
         resultado = atualizar_cadastro(
-            NR_CONVENIO_SEED, InstrumentoEquipamentoUpdate(equipamento_descricao="TESTE — apagar"), db,
+            NR_CONVENIO_SEED, InstrumentoEquipamentoUpdate(equipamento_marca="TESTE — apagar"), db,
         )
-        assert resultado.equipamento_descricao == "TESTE — apagar"
+        assert resultado.equipamento_marca == "TESTE — apagar"
         # PATCH parcial nao pode zerar campo que nao veio no corpo.
         assert resultado.tecnico_titular == original_tecnico
     finally:
         # Sem rollback aqui (o commit do PATCH ja foi pra base) -- reverte
         # de volta ao valor original com outro PATCH de verdade.
         db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).update(
-            {"equipamento_descricao": original_equipamento}
+            {"equipamento_marca": original_marca}
         )
         db.commit()
         db.close()
+
+
+def test_patch_cadastro_nunca_toca_equipamento_descricao():
+    """equipamento_descricao e o equipamento PLANEJADO (SICONV) -- nao faz
+    parte de InstrumentoEquipamentoUpdate de proposito (decisao do usuario
+    2026-09-09: "não vamos alterar o equipamento que veio do SISCONV")."""
+    assert "equipamento_descricao" not in InstrumentoEquipamentoUpdate.model_fields
 
 
 def test_patch_cadastro_convenio_inexistente_404():
