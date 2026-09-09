@@ -56,6 +56,16 @@ export function ConvenioCard({
     ? Math.round((c.financeiro.desembolsado / c.financeiro.global) * 100)
     : null;
 
+  // Valor pago ao fornecedor -- soma de VL_PAGO (siconv_pagamento, aba
+  // Fornecedores abaixo) achado 2026-09-09. VL_PAGO usa virgula decimal
+  // ("3326,73"), diferente dos VL_*_CONV (ponto). null quando o convenio
+  // nao tem nenhum pagamento registrado (nem todo convenio ja desembolsou
+  // pro fornecedor -- ver guia-dados-siconv.md).
+  const pagamentos = siconv?.pagamentos ?? [];
+  const valorPagoFornecedor = pagamentos.length
+    ? pagamentos.reduce((soma, p) => soma + (Number((p.VL_PAGO || '0').replace(',', '.')) || 0), 0)
+    : null;
+
   return (
     <div
       style={{
@@ -133,6 +143,9 @@ export function ConvenioCard({
         <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
         <Campo label="Última liberação" legenda={fmtData(c.datas.ultimaLiberacao) !== '—' ? fmtData(c.datas.ultimaLiberacao) : undefined}>
           {fmtMoeda(c.financeiro.ultimaLiberacaoValor)}
+        </Campo>
+        <Campo label="Valor pago ao fornecedor" legenda={pagamentos.length ? `${pagamentos.length} pagamento(s)` : undefined}>
+          {fmtMoeda(valorPagoFornecedor)}
         </Campo>
       </div>
       {!c.financeiro.fonteConfiavel && (
