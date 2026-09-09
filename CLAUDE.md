@@ -36,13 +36,51 @@ o Acelerador ainda é placeholder, ver `docs/metodologia-parametros.md`).
 Para "o que o código faz hoje", confiar em `docs/metodologia-parametros.md`
 e no código, não nesse histórico.
 
+## Monitoramento interno de equipamento (pós-repasse)
+
+Sistema **separado** da cobertura/déficit/distância (que continuam só
+CNES/ElastiCNES agregado, ver limitação abaixo). Acompanha manualmente o
+que nenhum sistema federal rastreia: entrega, instalação, licenciamento
+CNEN e inauguração do equipamento de um convênio específico, depois do
+repasse. Schema em `backend/app/db/models.py` (seção "Monitoramento de
+equipamento"), API em `backend/app/routers/monitoramento.py`, front em
+`frontend/src/pages/Monitoramento{Overview,Instrumento}Page.tsx` +
+`frontend/src/pages/monitoramento/MonitoramentoInterno.tsx`. Overview
+agregado (KPIs, fase média, licenças CNEN, inaugurações, pendências) em
+`/monitoramento-equipamentos/instrumentos`; detalhe por convênio em
+`/monitoramento-equipamentos/instrumentos/{nr_convenio}`.
+
+Três distinções que já causaram confusão ao mexer nisso, para não
+reintroduzir o erro:
+
+- **`EventoMarco` (histórico) ≠ `AcaoMonitoramento` (tarefa)**: evento é
+  contra um catálogo FIXO de marcos (fase geral/cronograma físico/
+  regulatório CNEN), sempre fechado, append-only. Ação é texto livre da
+  equipe (reunião, pendência), pendente até `data_conclusao` ser
+  preenchida — é o único campo que uma ação recebe depois de criada.
+  Não reaproveitar uma tabela pra fazer o papel da outra.
+- **Equipamento PLANEJADO (`equipamento_descricao`, vem do SICONV) ≠
+  equipamento FÍSICO entregue (`equipamento_marca/modelo/numero_serie/
+  vida_util_anos`, cadastrado pela equipe)**: o planejado nunca é
+  editável por aqui (`InstrumentoEquipamentoUpdate` não inclui esse
+  campo de propósito, ver teste
+  `test_patch_cadastro_nunca_toca_equipamento_descricao`) — só o físico,
+  e só depois que o estabelecimento confirma a entrega.
+- **Escopo bem menor que os 403 convênios**: só cobre os instrumentos que
+  a equipe decide monitorar (71 hoje, importados de
+  `backend/scripts/importar_planilha_monitoramento.py` a partir da
+  planilha real da equipe). Convênio sem `InstrumentoEquipamento` não é
+  erro — é o caso normal, a maioria ainda não entrou nesse
+  acompanhamento manual.
+
 ## Limitações conhecidas
 
-- **Sem monitoramento por equipamento individual**: CNES/ElastiCNES só
-  fornece quantidade agregada por estabelecimento, sem id de equipamento
-  específico. Uma extensão de "monitoramento" (rastrear o mesmo equipamento
-  ao longo do tempo) fica fora de escopo até aparecer uma fonte com essa
-  granularidade — não tentar simular isso com o schema atual.
+- **Cobertura/déficit/distância sem granularidade por equipamento
+  individual**: CNES/ElastiCNES só fornece quantidade agregada por
+  estabelecimento, sem id de equipamento específico — isso não muda com
+  o monitoramento interno acima (que é cadastro manual de outro
+  propósito, não uma fonte pro cálculo de cobertura). Não usar dado do
+  monitoramento interno em nenhum cálculo de cobertura/déficit/distância.
 - Os 3 placeholders de produtividade restantes (Acelerador Linear, Ultrassom,
   Mamógrafo) não são parâmetro oficial — não usar esses números como
   referência normativa em nenhuma análise. PET-CT saiu da lista em
