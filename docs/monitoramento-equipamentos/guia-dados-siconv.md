@@ -37,7 +37,6 @@ Gestão), recorte público, ~44 tabelas / 8GB+ no total. Ver
 | `siconv_plano_aplicacao` | item a item do que foi **planejado** comprar (`DESCRICAO_ITEM`) — o zip se chama `siconv_plano_aplicacao.csv.zip` mas o CSV de dentro é `siconv_plano_aplicacao_detalhado.csv` (mesmo arquivo que a literatura externa chama de "Plano de Aplicação Detalhado", ~4,65 milhões de linha) | `ID_PROPOSTA` | ambos scripts — fonte central da varredura de equipamento |
 | `siconv_programa_proposta` | 1 linha por (`ID_PROPOSTA`, `ID_PROGRAMA`) — só a ponte | `ID_PROPOSTA` → `ID_PROGRAMA` | ambos — achado 2026-09-08 |
 | `siconv_programa` | catálogo `ID_PROGRAMA` → `NOME_PROGRAMA` (~1,25 milhão de linha, governo federal inteiro, não só Saúde) | `ID_PROGRAMA` | ambos — achado 2026-09-08 |
-| `siconv_proposta` | 1 linha por `ID_PROPOSTA` — `NM_PROPONENTE`, `IDENTIF_PROPONENTE` (CNPJ), `MUNIC_PROPONENTE`, `COD_MUNIC_IBGE`, `UF_PROPONENTE`, `OBJETO_PROPOSTA`, `MODALIDADE`, `SIT_PROPOSTA`, `VL_GLOBAL_PROP` (~1,11 milhão de linha, ~199MB comprimido) | `ID_PROPOSTA` | `coletar_siconv_legado.py` — achado 2026-09-08, buscada SÓ pros convênios sem entrada no Portal da Transparência |
 
 `siconv_programa`/`siconv_programa_proposta` dão o **Programa** de cada
 convênio de forma EXATA por `ID_PROPOSTA` — não é aproximação por CNPJ como
@@ -52,21 +51,22 @@ em `levantamento_convenios_oncologia.py`).
 > pré-filtra por substring barata (`ONCOL`/`CANCER`/`PRONON`/`PRONAS`) antes
 > do fuzzy match — só ~18 mil linhas sobrevivem ao pré-filtro.
 
-`siconv_proposta` é a ÚNICA fonte com nome/objeto/município do proponente
-pra convênio que o Portal da Transparência não indexa (identidade
-`identidadeFonte: 'siconv'` no front, ver mesclarConvenios.ts) — nesses
-casos, `MODALIDADE`/`OBJETO_PROPOSTA`/etc. do `siconv_proposta` viram o
-fallback final (depois de Portal, antes de "—"). Só é buscada pra esse
-subconjunto (41 dos 444, medido 2026-09-08) pra não pagar o custo de
-filtrar ~1,11 milhão de linha à toa quando o Portal já tem a identidade.
-
-> [!warning] `MODALIDADE` NÃO é TED/PERSUS/FAF
-> A hipótese registrada abaixo (tabela de "conhecidas mas não usadas") de
-> que `MODALIDADE` poderia alimentar o filtro "Tipo de contratação"
-> (Persus I/II, FAF, TED) foi testada 2026-09-08 contra os 41 convênios
-> reais coletados: só apareceu `CONVENIO` (39) e `CONTRATO DE REPASSE` (2)
-> — nenhum TED/PERSUS/FAF. **Hipótese descartada** — esse filtro continua
-> sem fonte de dado real, estado vazio se mantém.
+> [!warning] Universo do app: só convênio ASSINADO (Portal), decisão 2026-09-09
+> Entre 2026-09-08 e 2026-09-09 o pipeline chegou a incluir também convênio
+> achado só no dump SICONV sem entrada no Portal da Transparência
+> (`siconv_proposta.csv` como fallback de identidade — `NM_PROPONENTE`,
+> `OBJETO_PROPOSTA`, `MODALIDADE`, `SIT_PROPOSTA`, `VL_GLOBAL_PROP`, campo
+> `identidadeFonte` no front). Conferido: **38 dos 41** desses casos ainda
+> estavam em fase de `SIT_PROPOSTA` "Proposta/Plano de Trabalho Aprovado"
+> (2 rejeitados, 1 em análise) — nenhum tinha `SIT_CONVENIO`, ou seja,
+> nenhum era convênio formalizado de verdade. Revertido a pedido do
+> usuário: **"Vamos manter apenas o que está no portal mesmo. Convênios
+> assinados."** `coletar_siconv_legado.py` voltou a usar só
+> `convenios_flat.json` como universo; `siconv_proposta.csv` não é mais
+> buscado (volta pra tabela "conhecida mas não usada" abaixo). De quebra,
+> a hipótese de que `MODALIDADE` daria TED/PERSUS/FAF pro filtro "Tipo de
+> contratação" foi testada nos 41 casos e **descartada** — só apareceu
+> `CONVENIO`/`CONTRATO DE REPASSE`.
 
 ## Tabelas conhecidas mas AINDA NÃO usadas no nosso pipeline
 

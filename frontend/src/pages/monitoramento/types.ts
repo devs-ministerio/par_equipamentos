@@ -51,14 +51,6 @@ export type SiconvEntrada = {
    * mais confiavel que a aproximacao por CNPJ do TransfereGov: usar esta
    * primeiro, cair pro TransfereGov so quando esta for null. */
   programa: Record<string, string> | null;
-  /** siconv_proposta.csv, 1 linha por ID_PROPOSTA -- identificacao do
-   * proponente (NM_PROPONENTE, IDENTIF_PROPONENTE/CNPJ, MUNIC_PROPONENTE,
-   * COD_MUNIC_IBGE, UF_PROPONENTE, OBJETO_PROPOSTA, MODALIDADE,
-   * SIT_PROPOSTA, VL_GLOBAL_PROP). Achado 2026-09-08, so buscada pelo
-   * backend pros convenios SEM entrada no Portal da Transparencia (ver
-   * `identidadeFonte`) -- fica null pros que tem Portal (identidade ja
-   * vem de la, mais confiavel). */
-  proposta: Record<string, string> | null;
   empenhos: Record<string, string>[];
   desembolsos: Record<string, string>[];
   licitacoes: Record<string, string>[];
@@ -137,15 +129,6 @@ export type ConvenioUnificado = {
    * pode estar relacionado a OUTROS convenios legados do mesmo CNPJ alem
    * deste (ver `convenios_legados_relacionados` dentro do proprio objeto). */
   transferegov: TransfereGovEnte | null;
-  /** 'portal' -- caso normal, identificacao (nome/objeto/municipio/datas)
-   * vem do Portal da Transparencia. 'siconv' -- achado 2026-09-08: convenio
-   * existe no dump SICONV (por ex. via levantamento de componente/
-   * equipamento) mas o endpoint `/convenios/numero` do Portal nao o
-   * reconhece (numero de instrumento novo demais pra API antiga) -- nesse
-   * caso identificacao/objeto/municipio ficam "—" (SICONV nao tem essas
-   * colunas na tabela `siconv_convenio`, so em `siconv_proposta`, que
-   * ainda nao coletamos), so situacao/valores/datas vem do proprio SICONV. */
-  identidadeFonte: 'portal' | 'siconv';
 };
 
 /** Propostas do TransfereGov achadas por `programa` (nao por numero de

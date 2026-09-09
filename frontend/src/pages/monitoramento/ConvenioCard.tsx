@@ -138,12 +138,6 @@ export function ConvenioCard({
           conhecido nesse campo. Conferir manualmente.
         </p>
       )}
-      {c.identidadeFonte === 'siconv' && (
-        <p style={{ fontSize: 11, color: colors.logoOrange, margin: '8px 0 0' }}>
-          ⚠️ Não indexado no Portal da Transparência (número de instrumento não reconhecido pela API antiga) —
-          identificação/situação/valores vêm do SICONV (siconv_convenio + siconv_proposta), não do Portal.
-        </p>
-      )}
 
       {/* ---------- Camada 2: dado tecnico aninhado, atras de 1 clique ---------- */}
       <details

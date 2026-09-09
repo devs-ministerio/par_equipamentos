@@ -36,15 +36,15 @@ https://repositorio.dados.gov.br/seges/detru/ se precisar de mais):
                                    RADIOTERAPIA..."; 971195 -> "...CONTROLE DO CÂNCER -
                                    HOSPITAL HABILITADO NA ALTA COMPLEXIDADE EM ONCOLOGIA"
                                    (bate quase literal com um dos 8 componentes PNPCC).
-  siconv_proposta.csv          -- 1 linha por ID_PROPOSTA -- identificacao do proponente
-                                   (NM_PROPONENTE, IDENTIF_PROPONENTE/CNPJ, MUNIC_PROPONENTE,
-                                   COD_MUNIC_IBGE, UF_PROPONENTE, OBJETO_PROPOSTA, MODALIDADE,
-                                   SIT_PROPOSTA, VL_GLOBAL_PROP). Achado 2026-09-08: so buscada
-                                   pros convenios que o Portal da Transparencia NAO indexa
-                                   (`identidadeFonte: 'siconv'` no front) -- pra esses,
-                                   `siconv_convenio.csv` sozinho nao tem nome/objeto/municipio
-                                   do convenente, so situacao/valor/data. Cabecalho real
-                                   confirmado por download direto (nao vem so do guia externo).
+Decisao 2026-09-09: so entra no universo o que o Portal da Transparencia
+confirma (`convenios_flat.json`) -- ou seja, so convenio ASSINADO. Entre
+2026-09-08 e 2026-09-09 o pipeline chegou a incluir tambem convenio
+achado so no dump SICONV sem entrada no Portal (`siconv_proposta.csv` como
+fallback de identidade, campo `identidadeFonte` no front) -- conferido que
+quase todos (38 de 41) desses ainda estavam em fase de PROPOSTA/plano de
+trabalho (`SIT_PROPOSTA`), nao convenio formalizado. Revertido a pedido do
+usuario: "Vamos manter apenas o que esta no portal mesmo. Convenios
+assinados." `siconv_proposta.csv` nao e mais buscado.
 
 Particularidade de parsing: `siconv_termo_aditivo.csv` tem `JUSTIFICATIVA_TA`
 como ultimo campo, texto livre SEM aspas e as vezes contendo ";" dentro do
@@ -80,30 +80,15 @@ ARQUIVOS = [
 
 SAIDA_JSON = Path(__file__).parent / "output" / "siconv_legado.json"
 NUMEROS_CONVENIO_JSON = Path(__file__).parent / "output" / "convenios_flat.json"
-DIR_LEVANTAMENTO = Path(__file__).parent / "output"
 
 
 def _numeros_convenio() -> list[str]:
-    """Uniao do que o Portal da Transparencia confirmou
-    (`convenios_flat.json`) com o que os levantamentos nacionais do SICONV
-    ja acharam por conta propria (`levantamento_componente_siconv.json`,
-    `levantamento_equipamento_por_convenio.json`) -- achado 2026-09-08: 10
-    dos 114 convenios achados via siconv_programa NAO existem no endpoint
-    `/convenios/numero` do Portal (provavelmente numero de instrumento novo
-    demais pra API antiga), o que os deixava de fora do siconv_legado.json
-    mesmo estando confirmados no proprio dump SICONV. Sem isso, esses
-    convenios nunca apareciam no app -- mesclarConvenios.ts hoje ainda
-    itera so sobre `portal`, entao essa uniao e necessaria mas nao
-    suficiente (ver TODO no front pra usar SICONV como fonte de
-    identidade quando o Portal nao tiver o numero)."""
-    numeros = {c["numero"] for c in json.loads(NUMEROS_CONVENIO_JSON.read_text(encoding="utf-8"))}
-    for nome_arquivo in ("levantamento_componente_siconv.json", "levantamento_equipamento_por_convenio.json"):
-        caminho = DIR_LEVANTAMENTO / nome_arquivo
-        if not caminho.exists():
-            continue
-        dados = json.loads(caminho.read_text(encoding="utf-8"))
-        numeros.update(c["nr_convenio"] for lista in dados.values() for c in lista)
-    return sorted(numeros)
+    """So o que o Portal da Transparencia confirmou (`convenios_flat.json`)
+    -- ou seja, so convenio assinado. Ver decisao 2026-09-09 na docstring
+    do modulo (revertido de uma uniao com levantamentos nacionais que
+    incluia convenio ainda em fase de proposta/plano de trabalho)."""
+    convenios = json.loads(NUMEROS_CONVENIO_JSON.read_text(encoding="utf-8"))
+    return [c["numero"] for c in convenios]
 
 
 DIR_CACHE = Path(__file__).parent / "output" / "cache"
@@ -212,22 +197,6 @@ def _filtrar_programa_por_id(ids_programa: set[str]) -> dict[str, dict[str, str]
     return programas
 
 
-def _filtrar_proposta_por_id(ids_proposta: set[str]) -> dict[str, dict[str, str]]:
-    """siconv_proposta.csv: 1 linha por ID_PROPOSTA -- catalogo nacional
-    (~199MB comprimido), filtrado em streaming pros ids pedidos."""
-    print("Baixando siconv_proposta.csv.zip...")
-    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_proposta"))
-    idx_id = cabecalho.index("ID_PROPOSTA")
-    propostas: dict[str, dict[str, str]] = {}
-    for linha in leitor:
-        if len(linha) != len(cabecalho):
-            continue
-        if linha[idx_id] in ids_proposta:
-            propostas[linha[idx_id]] = dict(zip(cabecalho, linha))
-    print(f"   {len(propostas)} proposta(s) resolvida(s).")
-    return propostas
-
-
 def run() -> None:
     numeros = _numeros_convenio()
     numeros_set = set(numeros)
@@ -242,19 +211,6 @@ def run() -> None:
     # do modulo). Resolve em 2 passos: proposta -> id_programa -> nome.
     programa_de_proposta = _filtrar_programa_proposta_por_id_proposta(ids_proposta)
     programas_por_id = _filtrar_programa_por_id(set(programa_de_proposta.values()))
-
-    # Proposta (identificacao do proponente) -- achado 2026-09-08, so pra
-    # convenio que o Portal da Transparencia NAO indexa (sem isso, esses
-    # convenio ficam sem nome/objeto/municipio no app -- ver
-    # `identidadeFonte` em types.ts). Pedido do usuario: "puxar os dados
-    # necessarios de siconv_proposta para aqueles que nao estao no portal".
-    numeros_portal = {c["numero"] for c in json.loads(NUMEROS_CONVENIO_JSON.read_text(encoding="utf-8"))}
-    ids_proposta_sem_portal = {
-        c["ID_PROPOSTA"] for c in por_arquivo["siconv_convenio"]
-        if c.get("ID_PROPOSTA") and c["NR_CONVENIO"] not in numeros_portal
-    }
-    print(f"{len(ids_proposta_sem_portal)} convenio(s) sem entrada no Portal da Transparencia -- buscando identificacao em siconv_proposta.")
-    propostas_por_id = _filtrar_proposta_por_id(ids_proposta_sem_portal)
 
     # Agrupa tudo por NR_CONVENIO (chave em comum de quase toda tabela --
     # plano_aplicacao/programa entram via ID_PROPOSTA, resolvido no dict `convenio_de_proposta`).
@@ -272,7 +228,6 @@ def run() -> None:
         resultado.append({
             "convenio": convenio,
             "programa": programas_por_id.get(id_programa) if id_programa else None,
-            "proposta": propostas_por_id.get(convenio.get("ID_PROPOSTA", "")),
             "empenhos": [e for e in por_arquivo["siconv_empenho"] if e["NR_CONVENIO"] == nr],
             "desembolsos": [d for d in por_arquivo["siconv_desembolso"] if d["NR_CONVENIO"] == nr],
             "licitacoes": [l for l in por_arquivo["siconv_licitacao"] if l["NR_CONVENIO"] == nr],
