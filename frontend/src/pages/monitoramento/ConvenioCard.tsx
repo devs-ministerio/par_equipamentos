@@ -138,6 +138,7 @@ export function ConvenioCard({
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10,
         marginTop: 12, padding: '10px 12px', background: colors.surface, borderRadius: 8,
       }}>
+        <Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo>
         <Campo label="Valor repasse" legenda={pct(c.financeiro.repasse, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.repasse)}</Campo>
         <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
         <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
