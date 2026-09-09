@@ -115,9 +115,13 @@ export function ConvenioCard({
         </div>
       </div>
 
+      {/* Programa em destaque na camada 1 (trocado de lugar com Objeto,
+          pedido do usuario 2026-09-09) -- e o dado que classifica o
+          convenio dentro da politica de financiamento, mais util pra
+          escanear rapido que o texto livre do objeto. */}
       <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: '12px 0 0', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 6, padding: '8px 10px' }}>
-        <strong style={{ color: colors.mutedText, fontSize: 10.5, textTransform: 'uppercase', marginRight: 4 }}>Objeto:</strong>
-        {c.objeto}
+        <strong style={{ color: colors.mutedText, fontSize: 10.5, textTransform: 'uppercase', marginRight: 4 }}>Programa:</strong>
+        {programaSiconv || (programaTransfereGov && `${programaTransfereGov.nm_programa}${programaTransfereGov.ano_programa ? ` (${programaTransfereGov.ano_programa})` : ''}`) || '— (não encontrado em nenhuma fonte)'}
       </p>
 
       <div style={{
@@ -159,15 +163,7 @@ export function ConvenioCard({
             <Campo label="Nº do processo">{c.numeroProcesso}</Campo>
             <Campo label="Região / código IBGE">{c.regiao} · {c.codigoIbge}</Campo>
             {c.situacaoContratacao && <Campo label="Situação da contratação (SICONV)">{c.situacaoContratacao}</Campo>}
-            {programaSiconv ? (
-              <Campo label="Programa" legenda="SICONV, exato por ID_PROPOSTA">{programaSiconv}</Campo>
-            ) : programaTransfereGov ? (
-              <Campo label="Programa" legenda="TransfereGov, aproximação por CNPJ">
-                {programaTransfereGov.nm_programa} {programaTransfereGov.ano_programa ? `(${programaTransfereGov.ano_programa})` : ''}
-              </Campo>
-            ) : (
-              <Campo label="Programa">— (não encontrado em nenhuma fonte)</Campo>
-            )}
+            <Campo label="Objeto">{c.objeto}</Campo>
             {componenteSiconv ? (
               <Campo label="Componente PNPCC" legenda="SICONV, exato por ID_PROPOSTA">{componenteSiconv}</Campo>
             ) : componentes.length > 0 ? (
