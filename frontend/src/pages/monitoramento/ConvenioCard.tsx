@@ -6,10 +6,10 @@
  * visivel: identificacao, status, objeto, financeiro. Camada 2 (collapse
  * proprio, so essa parte): dados aninhados. */
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { colors } from '../../styles/tokens';
 import { componenteDoProgramaSiconv } from './componenteSiconv';
 import { fmtData, fmtMoeda, pct } from './format';
-import { MonitoramentoInterno } from './MonitoramentoInterno';
 import { SiconvSubAbas } from './SiconvSubAbas';
 import type { ConvenioUnificado, ProgramaTransfereGov } from './types';
 import { Campo, estiloCard, Secao, StatusPill } from './ui';
@@ -292,12 +292,20 @@ export function ConvenioCard({
           )}
         </Secao>
 
-        {/* Fala com o backend (nao JSON estatico) -- so montada quando o
-            usuario abre a camada 2, nao dispara rede pros 299 convenios de
-            uma vez. */}
-        <Secao titulo="Monitoramento interno (POC)">
-          {detalheAberto && <MonitoramentoInterno numeroConvenio={c.numero} />}
-        </Secao>
+        {/* Monitoramento interno mudou pra pagina propria (achado
+            2026-09-09) -- antes era um accordion aqui dentro, com fetch
+            proprio por card. Card fica mais leve; so mostra o link quando
+            ha instrumento monitorado (ver useInstrumentosMonitorados.ts). */}
+        {monitorado && (
+          <Secao titulo="Monitoramento interno">
+            <Link
+              to={`/monitoramento-equipamentos/instrumentos/${c.numero}`}
+              style={{ fontSize: 12.5, fontWeight: 600, color: colors.primary, textDecoration: 'none' }}
+            >
+              Ver monitoramento interno →
+            </Link>
+          </Secao>
+        )}
       </details>
     </div>
   );

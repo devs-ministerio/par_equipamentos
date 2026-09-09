@@ -546,6 +546,16 @@ class EventoMarco(Base):
     # sem exigir migration (mesmo raciocinio do `legal_nature` em
     # EquipmentOfferRow).
     status_regulatorio: Mapped[str | None] = mapped_column(String)
+    # Numero de matricula/licenca/processo (ex. matricula CNEN "16981") --
+    # achado 2026-09-09: esse numero estava sendo gravado dentro de
+    # `status_regulatorio` no seed (gambiarra, ver seed_monitoramento.py e a
+    # migration que corrige o dado ja gravado). `status_regulatorio` fica so
+    # pro vocabulario de status; numero de documento tem coluna propria.
+    numero_documento: Mapped[str | None] = mapped_column(String)
+    # Validade da licenca/matricula (licenca de operacao CNEN normalmente
+    # tem prazo e precisa renovacao) -- usada pro alerta de vencimento na
+    # pagina de monitoramento, nao so registro passivo.
+    data_validade: Mapped[date | None] = mapped_column(Date)
     observacao: Mapped[str | None] = mapped_column(String)
     autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

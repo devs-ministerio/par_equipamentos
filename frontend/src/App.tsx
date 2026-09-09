@@ -17,6 +17,12 @@ const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage').then((m) => (
 const MonitoramentoEquipamentosPage = lazy(() =>
   import('./pages/MonitoramentoEquipamentosPage').then((m) => ({ default: m.MonitoramentoEquipamentosPage }))
 );
+// Pagina propria do monitoramento interno POR instrumento (achado
+// 2026-09-09) -- antes vivia embutida dentro do card do convenio na lista
+// acima. Mesmo padrao de code-splitting, mesmo "fora do AppLayout".
+const MonitoramentoInstrumentoPage = lazy(() =>
+  import('./pages/MonitoramentoInstrumentoPage').then((m) => ({ default: m.MonitoramentoInstrumentoPage }))
+);
 
 function App() {
   return (
@@ -28,6 +34,7 @@ function App() {
               especifica, ver comentario em PainelGeralPage.tsx). */}
           <Route path="/" element={<PainelGeralPage />} />
           <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
+          <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
           <Route element={<AppLayout />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="mapa" element={<MapaPage />} />

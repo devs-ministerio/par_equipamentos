@@ -43,6 +43,13 @@ class EventoMarcoRead(BaseModel):
     data_ocorrencia: date | None
     data_prevista: date | None
     status_regulatorio: str | None
+    # Numero de matricula/licenca/processo (ex. matricula CNEN) -- achado
+    # 2026-09-09, coluna propria pra nao misturar com o vocabulario de
+    # status (ver comentario em app/db/models.py::EventoMarco).
+    numero_documento: str | None
+    # Validade da licenca/matricula, quando aplicavel -- alimenta o alerta
+    # de vencimento na pagina de monitoramento.
+    data_validade: date | None
     observacao: str | None
     autor_nome: str | None  # texto livre por enquanto -- ver EventoMarcoCreate
     created_at: datetime
@@ -55,6 +62,8 @@ class EventoMarcoCreate(BaseModel):
     data_ocorrencia: date | None = None
     data_prevista: date | None = None
     status_regulatorio: str | None = None
+    numero_documento: str | None = None
+    data_validade: date | None = None
     observacao: str | None = None
     # Texto livre por enquanto (nome de quem esta lancando) -- vira FK real
     # pro usuario autenticado quando o login entrar. Guardado dentro de
@@ -85,6 +94,21 @@ class InstrumentoEquipamentoRead(BaseModel):
     modalidade_onco: str | None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class InstrumentoEquipamentoUpdate(BaseModel):
+    """So os campos de cadastro que NENHUMA API publica tem (mesmo criterio
+    do comentario em InstrumentoEquipamento no models.py) -- nunca
+    nr_convenio/cnpj_convenente/nome_convenente/programa/componente/
+    ano_instrumento, que vem de fonte real (planilha/API) e nao devem virar
+    editaveis a mao aqui. Todos opcionais -- PATCH aplica so o que vier
+    preenchido, deixando o resto como esta (nunca zera campo por omissao)."""
+    equipamento_descricao: str | None = None
+    tecnico_titular: str | None = None
+    tecnico_suplente: str | None = None
+    nivel_monitoramento: str | None = None
+    finalidade: str | None = None
+    modalidade_onco: str | None = None
 
 
 class ValorSituacaoAoVivoRead(BaseModel):
@@ -185,11 +209,32 @@ def obter_timeline(nr_convenio: str, db: Session = Depends(get_db)):
             EventoMarcoRead(
                 id=e.id, marco_id=e.marco_id, data_ocorrencia=e.data_ocorrencia,
                 data_prevista=e.data_prevista, status_regulatorio=e.status_regulatorio,
+                numero_documento=e.numero_documento, data_validade=e.data_validade,
                 observacao=e.observacao, autor_nome=None, created_at=e.created_at,
             )
             for e in eventos
         ],
     )
+
+
+@router.patch("/instrumentos/{nr_convenio}", response_model=InstrumentoEquipamentoRead)
+def atualizar_cadastro(nr_convenio: str, corpo: InstrumentoEquipamentoUpdate, db: Session = Depends(get_db)):
+    """Unico jeito de editar `InstrumentoEquipamento` hoje (antes so dava
+    pra criar/editar via scripts/seed_monitoramento.py) -- so os campos de
+    InstrumentoEquipamentoUpdate, nunca identidade/financeiro (ver docstring
+    do model). So aplica campo que veio preenchido no corpo (exclude_unset),
+    nunca zera um campo existente por causa de um PATCH parcial."""
+    instrumento = db.execute(
+        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
+    ).scalar_one_or_none()
+    if instrumento is None:
+        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
+
+    for campo, valor in corpo.model_dump(exclude_unset=True).items():
+        setattr(instrumento, campo, valor)
+    db.commit()
+    db.refresh(instrumento)
+    return instrumento
 
 
 @router.post("/instrumentos/{nr_convenio}/eventos", response_model=EventoMarcoRead, status_code=201)
@@ -211,6 +256,8 @@ def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = D
         data_ocorrencia=corpo.data_ocorrencia,
         data_prevista=corpo.data_prevista,
         status_regulatorio=corpo.status_regulatorio,
+        numero_documento=corpo.numero_documento,
+        data_validade=corpo.data_validade,
         observacao=_compor_observacao(corpo.autor_nome, corpo.observacao),
         autor_id=None,
     )
@@ -220,5 +267,6 @@ def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = D
     return EventoMarcoRead(
         id=evento.id, marco_id=evento.marco_id, data_ocorrencia=evento.data_ocorrencia,
         data_prevista=evento.data_prevista, status_regulatorio=evento.status_regulatorio,
+        numero_documento=evento.numero_documento, data_validade=evento.data_validade,
         observacao=evento.observacao, autor_nome=None, created_at=evento.created_at,
     )

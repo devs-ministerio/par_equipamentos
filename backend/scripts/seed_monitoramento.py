@@ -85,12 +85,17 @@ INSTRUMENTO_948686 = dict(
 # deferido e o restante do cronograma fisico "Sem previsao" (nao lancado
 # aqui -- so registra o que TEM data real; "sem previsao" nao e um evento,
 # e ausencia de um).
+# Tupla: (codigo, data_ocorrencia, data_prevista, status_regulatorio,
+# numero_documento, data_validade, observacao). numero_documento/data_validade
+# achados 2026-09-09 (antes o numero da matricula ia dentro de
+# status_regulatorio por engano -- ver migration a9cd77597629, que tambem
+# corrige quem ja rodou este seed antes dessa mudanca).
 EVENTOS_948686 = [
-    ("fase_equipamento_em_aquisicao", date(2025, 7, 25), None, None,
+    ("fase_equipamento_em_aquisicao", date(2025, 7, 25), None, None, None, None,
      "Repasse FNS realizado (R$ 9.003.200,00) — fonte: Portal da Transparência/SICONV."),
-    ("regulatorio_matricula_cnen", None, None, "16981",
+    ("regulatorio_matricula_cnen", None, None, None, "16981", None,
      "Matrícula CNEN registrada pra este instrumento."),
-    ("regulatorio_modificacao_casamata", date(2025, 10, 13), None, "Deferido",
+    ("regulatorio_modificacao_casamata", date(2025, 10, 13), None, "Deferido", None, None,
      "SCRA 2025SCRA2197 de modificação/casamata enviado à CNEN em 13/10/25 e deferido. "
      "Contexto: em 08/10/25 foi solicitado esclarecimento via TransfereGov/SEI sobre "
      "revisão do RPAS; instituição respondeu em 13/10 com o SCRA."),
@@ -127,14 +132,15 @@ def run() -> None:
             db.query(EventoMarco).filter_by(instrumento_id=instrumento.id).all()
         }
         criados = 0
-        for codigo, data_ocorrencia, data_prevista, status_reg, observacao in EVENTOS_948686:
+        for codigo, data_ocorrencia, data_prevista, status_reg, numero_documento, data_validade, observacao in EVENTOS_948686:
             marco = marcos_por_codigo[codigo]
             if (marco.id, observacao) in eventos_existentes:
                 continue
             db.add(EventoMarco(
                 instrumento_id=instrumento.id, marco_id=marco.id,
                 data_ocorrencia=data_ocorrencia, data_prevista=data_prevista,
-                status_regulatorio=status_reg, observacao=observacao,
+                status_regulatorio=status_reg, numero_documento=numero_documento,
+                data_validade=data_validade, observacao=observacao,
                 autor_id=None,  # autoria em texto livre por enquanto (login fica pra depois)
             ))
             criados += 1
