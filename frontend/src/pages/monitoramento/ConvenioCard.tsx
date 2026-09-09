@@ -189,24 +189,34 @@ export function ConvenioCard({
           </div>
         </Secao>
 
-        <Secao titulo="Vigência">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
-            <Campo label="Publicação">{fmtData(c.datas.publicacao)}</Campo>
-            <Campo label="Início vigência">{fmtData(c.datas.inicioVigencia)}</Campo>
-            <Campo label="Fim vigência">{fmtData(c.datas.fimVigencia)}</Campo>
-            <Campo label="Conclusão">{fmtData(c.datas.conclusao)}</Campo>
+        {/* Vigencia e Financeiro detalhado dividem a mesma linha (pedido do
+            usuario 2026-09-09) -- flex-wrap pra continuar 1 embaixo da
+            outra em tela estreita, sem quebrar responsividade. */}
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 260px' }}>
+            <Secao titulo="Vigência">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
+                <Campo label="Publicação">{fmtData(c.datas.publicacao)}</Campo>
+                <Campo label="Início vigência">{fmtData(c.datas.inicioVigencia)}</Campo>
+                <Campo label="Fim vigência">{fmtData(c.datas.fimVigencia)}</Campo>
+                <Campo label="Conclusão">{fmtData(c.datas.conclusao)}</Campo>
+              </div>
+            </Secao>
           </div>
-        </Secao>
 
-        {/* Empenhado/Desembolsado saem da camada 1 (pedido do usuario
-            2026-09-09: "pode remover o empenhado e desembolsado do layout
-            principal") mas continuam disponiveis aqui, nao apagados. */}
-        <Secao titulo="Financeiro detalhado">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
-            <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.empenhado)}</Campo>
-            <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.desembolsado)}</Campo>
+          {/* Empenhado/Desembolsado saem da camada 1 (pedido do usuario
+              2026-09-09: "pode remover o empenhado e desembolsado do
+              layout principal") mas continuam disponiveis aqui, nao
+              apagados. */}
+          <div style={{ flex: '1 1 260px' }}>
+            <Secao titulo="Financeiro detalhado">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
+                <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.empenhado)}</Campo>
+                <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.desembolsado)}</Campo>
+              </div>
+            </Secao>
           </div>
-        </Secao>
+        </div>
 
         {siconv ? (
           <Secao titulo="Dados aninhados (SICONV)">
