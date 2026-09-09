@@ -37,6 +37,7 @@ Gestão), recorte público, ~44 tabelas / 8GB+ no total. Ver
 | `siconv_plano_aplicacao` | item a item do que foi **planejado** comprar (`DESCRICAO_ITEM`) — o zip se chama `siconv_plano_aplicacao.csv.zip` mas o CSV de dentro é `siconv_plano_aplicacao_detalhado.csv` (mesmo arquivo que a literatura externa chama de "Plano de Aplicação Detalhado", ~4,65 milhões de linha) | `ID_PROPOSTA` | ambos scripts — fonte central da varredura de equipamento |
 | `siconv_programa_proposta` | 1 linha por (`ID_PROPOSTA`, `ID_PROGRAMA`) — só a ponte | `ID_PROPOSTA` → `ID_PROGRAMA` | ambos — achado 2026-09-08 |
 | `siconv_programa` | catálogo `ID_PROGRAMA` → `NOME_PROGRAMA` (~1,25 milhão de linha, governo federal inteiro, não só Saúde) | `ID_PROGRAMA` | ambos — achado 2026-09-08 |
+| `siconv_pagamento` | N/convênio — quem recebeu (`NOME_FORNECEDOR`, `IDENTIF_FORNECEDOR` já mascarado na fonte), quanto (`VL_PAGO`) e quando (`DATA_PAG`). ~344MB comprimido, ~7,36 milhões de linha nacional | `NR_CONVENIO` | `coletar_siconv_legado.py` — achado 2026-09-09, aba "Fornecedores" no card |
 
 `siconv_programa`/`siconv_programa_proposta` dão o **Programa** de cada
 convênio de forma EXATA por `ID_PROPOSTA` — não é aproximação por CNPJ como
@@ -68,6 +69,17 @@ em `levantamento_convenios_oncologia.py`).
 > contratação" foi testada nos 41 casos e **descartada** — só apareceu
 > `CONVENIO`/`CONTRATO DE REPASSE`.
 
+> [!warning] `siconv_pagamento` validado, mas não diz O QUE foi pago
+> Confirmado real 2026-09-09 (usuário perguntou "o valor pago ao
+> fornecedor?"): 1.600 pagamento(s) pros 403 convênios, cobrindo 290
+> deles, soma bate de perto com `VL_DESEMBOLSADO_CONV` (ex. convênio
+> 895596: soma pagamentos R$5.791.640,07 vs desembolsado R$5.791.631,80).
+> Mas `DESC_DL` é só o tipo de documento fiscal ("NOTA FISCAL"/"INVOICE"),
+> não descreve o item — pra saber que o pagamento foi especificamente do
+> equipamento (não de outro material do mesmo convênio) precisa cruzar com
+> `siconv_itens_dl` (usuário já sinalizou 2026-09-09 que vai pedir isso em
+> seguida) via `ID_DL`/`NR_DL`, que `siconv_pagamento` já carrega.
+
 ## Tabelas conhecidas mas AINDA NÃO usadas no nosso pipeline
 
 Citadas num guia de um projeto anterior do usuário sobre o mesmo dump — não
@@ -80,8 +92,7 @@ de que vêm do mesmo dump e devem estar disponíveis em
 | Tabela | O que tem | Por que pode interessar |
 |---|---|---|
 | `siconv_meta_crono_fisico` (~1,50 milhão de linha) | `NOME_PROGRAMA`, `DESC_META`, `UF_META` — por `ID_PROPOSTA` | pode servir de reforço/nível-2 na varredura de componente (contexto do programa mesmo quando a descrição do item não é clara), mas hoje já cobrimos isso melhor via `siconv_programa` (exato, não texto livre) |
-| `siconv_itens_dl` (~9,27 milhões de linha) | o que foi **efetivamente pago** (`DESCRICAO_ITEM_DL`, `VALOR_TOTAL_ITEM_DL`) — pode divergir do planejado (nome comercial vs. técnico) | hoje só usamos `siconv_plano_aplicacao` (planejado) pra identificar equipamento — nunca cruzamos com o que foi de fato pago |
-| `siconv_pagamento` (~6,94 milhões de linha) | `NOME_FORNECEDOR`, `IDENTIF_FORNECEDOR`, `DATA_PAG`, `VL_PAGO`, por `NR_CONVENIO` | identificaria o fornecedor/fabricante que efetivamente recebeu o pagamento — não temos isso hoje |
+| `siconv_itens_dl` (~9,27 milhões de linha) | o que foi **efetivamente pago** (`DESCRICAO_ITEM_DL`, `VALOR_TOTAL_ITEM_DL`) — pode divergir do planejado (nome comercial vs. técnico), liga a `siconv_pagamento` via `ID_DL`/`NR_DL` | **próximo pedido do usuário (2026-09-09)** — hoje só usamos `siconv_plano_aplicacao` (planejado) pra identificar equipamento; isso fecharia o elo "pago a este fornecedor ESPECIFICAMENTE pelo equipamento X", não só pelo convênio como um todo |
 | `siconv_emenda` (~284 mil linha) | emenda parlamentar vinculada ao convênio | fora de escopo até pedido específico |
 | `siconv_contrato` (~656 mil linha) | contratos firmados a partir da licitação | fora de escopo até pedido específico |
 | `siconv_etapa_crono_fisico` (~3,1 milhões de linha) | detalhamento de etapa dentro de cada meta | fora de escopo |
@@ -144,7 +155,8 @@ siconv_plano_aplicacao (item planejado, DESCRICAO_ITEM)
     └── ID_PROPOSTA ──► siconv_convenio (NR_CONVENIO, situação, ANO)
                               │
                               ├── NR_CONVENIO ──► siconv_empenho / siconv_desembolso /
-                              │                    siconv_licitacao / siconv_termo_aditivo
+                              │                    siconv_licitacao / siconv_termo_aditivo /
+                              │                    siconv_pagamento (fornecedor, valor, data)
                               │
                               ├── ID_PROPOSTA ──► siconv_programa_proposta ──► siconv_programa
                               │                     (ID_PROGRAMA)              (NOME_PROGRAMA)

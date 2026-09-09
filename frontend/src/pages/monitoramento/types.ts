@@ -55,6 +55,14 @@ export type SiconvEntrada = {
   desembolsos: Record<string, string>[];
   licitacoes: Record<string, string>[];
   termos_aditivos: Record<string, string>[];
+  /** siconv_pagamento.csv -- quem recebeu (NOME_FORNECEDOR,
+   * IDENTIF_FORNECEDOR ja mascarado na fonte), quanto (VL_PAGO) e quando
+   * (DATA_PAG). Achado 2026-09-09 a pedido do usuario ("o valor pago ao
+   * fornecedor?") -- validado: soma bate de perto com
+   * financeiro.desembolsado (SIT_CONVENIO). Nao confundir com `empenhos`/
+   * `desembolsos` (fluxo de repasse ao CONVENENTE) -- isso aqui e o
+   * proximo elo, o convenente pagando o FORNECEDOR do equipamento. */
+  pagamentos: Record<string, string>[];
   itens_plano_aplicacao: Record<string, string>[];
 };
 

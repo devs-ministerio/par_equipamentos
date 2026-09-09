@@ -20,6 +20,15 @@ https://repositorio.dados.gov.br/seges/detru/ se precisar de mais):
   siconv_desembolso.csv        -- N por convenio (ID_DESEMBOLSO, valor e data de cada repasse)
   siconv_licitacao.csv         -- N por convenio (ID_LICITACAO, modalidade, valor, status)
   siconv_termo_aditivo.csv     -- N por convenio (ID_SOLICITACAO, alteracoes de valor/prazo)
+  siconv_pagamento.csv         -- N por convenio, keyed por NR_CONVENIO -- quem recebeu (
+                                   NOME_FORNECEDOR, IDENTIF_FORNECEDOR ja mascarado na fonte,
+                                   ex. "***54671***"), quanto (VL_PAGO) e quando (DATA_PAG).
+                                   Achado 2026-09-09 a pedido do usuario ("o valor pago ao
+                                   fornecedor?"). ~344MB comprimido, ~7,36 milhoes de linha
+                                   nacional -- confirmado real contra os 403 convenios: 1.600
+                                   pagamento(s) em 290 convenios, soma bate de perto com
+                                   VL_DESEMBOLSADO_CONV (ex. convenio 895596: soma pagamentos
+                                   R$5.791.640,07 vs desembolsado R$5.791.631,80).
   siconv_plano_aplicacao.csv   -- N por ID_PROPOSTA (nao por NR_CONVENIO!), item de despesa
                                    detalhado (ID_ITEM_PAD, descricao, quantidade, valor)
                                    -- arquivo fonte tem >1GB descomprimido, filtrado em streaming
@@ -53,8 +62,9 @@ texto -- isso quebra um split ingenuo. Corrigido fazendo split com limite
 ultimo campo.
 
 Uso: python -m scripts.coletar_siconv_legado (de dentro de backend/, venv
-ativo). Baixa ~230MB no total (a maior parte e o zip do plano de aplicacao,
-~280MB comprimido) -- pode demorar alguns minutos. Grava em
+ativo). Baixa ~650MB no total na 1a vez (siconv_plano_aplicacao ~280MB +
+siconv_pagamento ~344MB sao os maiores) -- pode demorar alguns minutos,
+depois fica em cache local (scripts/output/cache/). Grava em
 scripts/output/siconv_legado.json.
 """
 from __future__ import annotations
@@ -76,6 +86,7 @@ ARQUIVOS = [
     "siconv_desembolso",
     "siconv_licitacao",
     "siconv_termo_aditivo",
+    "siconv_pagamento",
 ]
 
 SAIDA_JSON = Path(__file__).parent / "output" / "siconv_legado.json"
@@ -94,20 +105,37 @@ def _numeros_convenio() -> list[str]:
 DIR_CACHE = Path(__file__).parent / "output" / "cache"
 
 
+def _sessao_com_retry() -> requests.Session:
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    session = requests.Session()
+    retry = Retry(total=5, backoff_factor=3, status_forcelist=[429, 500, 502, 503, 504])
+    session.mount("https://", HTTPAdapter(max_retries=retry))
+    return session
+
+
 def _baixar_zip(nome: str) -> bytes:
     """Cache local em scripts/output/cache/ (compartilhado com
     levantamento_convenios_oncologia.py) -- siconv_plano_aplicacao.csv.zip
-    sozinho e ~280MB, sem necessidade de rebaixar toda vez que o universo
-    de convenios (scripts/output/convenios_flat.json) cresce."""
+    e siconv_pagamento.csv.zip sozinhos sao ~280-340MB, sem necessidade de
+    rebaixar toda vez que o universo de convenios
+    (scripts/output/convenios_flat.json) cresce. Baixa em streaming com
+    retry (achado 2026-09-09: `requests.get(...).content` de uma vez cai
+    com timeout/broken pipe em arquivo desse tamanho -- resolvido baixando
+    em chunk pra disco, como `curl --retry` ja fazia manualmente)."""
     caminho = DIR_CACHE / f"{nome}.csv.zip"
     if caminho.exists():
         print(f"   (cache) {nome}.csv.zip ja baixado.")
         return caminho.read_bytes()
-    resp = requests.get(f"{BASE_URL}/{nome}.csv.zip", timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
-    resp.raise_for_status()
     DIR_CACHE.mkdir(parents=True, exist_ok=True)
-    caminho.write_bytes(resp.content)
-    return resp.content
+    sessao = _sessao_com_retry()
+    with sessao.get(f"{BASE_URL}/{nome}.csv.zip", stream=True, timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"}) as resp:
+        resp.raise_for_status()
+        with caminho.open("wb") as f:
+            for chunk in resp.iter_content(chunk_size=1024 * 1024):
+                f.write(chunk)
+    return caminho.read_bytes()
 
 
 def _linhas_csv_do_zip(conteudo_zip: bytes) -> tuple[list[str], "csv.reader"]:
@@ -232,6 +260,7 @@ def run() -> None:
             "desembolsos": [d for d in por_arquivo["siconv_desembolso"] if d["NR_CONVENIO"] == nr],
             "licitacoes": [l for l in por_arquivo["siconv_licitacao"] if l["NR_CONVENIO"] == nr],
             "termos_aditivos": [t for t in por_arquivo["siconv_termo_aditivo"] if t["NR_CONVENIO"] == nr],
+            "pagamentos": [p for p in por_arquivo["siconv_pagamento"] if p["NR_CONVENIO"] == nr],
             "itens_plano_aplicacao": itens_por_convenio.get(nr, []),
         })
 

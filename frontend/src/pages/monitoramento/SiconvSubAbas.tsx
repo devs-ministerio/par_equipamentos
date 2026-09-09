@@ -9,7 +9,7 @@ import { fmtData, fmtMoeda } from './format';
 import type { SiconvEntrada } from './types';
 import { estiloTabela, estiloTabelaWrapper, estiloTd, estiloTh } from './ui';
 
-type AbaKey = 'itens' | 'empenhos' | 'desembolsos' | 'licitacoes' | 'termos';
+type AbaKey = 'itens' | 'empenhos' | 'desembolsos' | 'licitacoes' | 'termos' | 'fornecedores';
 
 export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
   const contagens: Record<AbaKey, number> = {
@@ -18,6 +18,7 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
     desembolsos: siconv.desembolsos.length,
     licitacoes: siconv.licitacoes.length,
     termos: siconv.termos_aditivos.length,
+    fornecedores: siconv.pagamentos.length,
   };
   const rotulos: Record<AbaKey, string> = {
     itens: 'Itens do plano',
@@ -25,8 +26,9 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
     desembolsos: 'Desembolsos',
     licitacoes: 'Licitações',
     termos: 'Termos aditivos',
+    fornecedores: 'Fornecedores',
   };
-  const ordem: AbaKey[] = ['itens', 'empenhos', 'desembolsos', 'licitacoes', 'termos'];
+  const ordem: AbaKey[] = ['itens', 'empenhos', 'desembolsos', 'licitacoes', 'termos', 'fornecedores'];
   // Abre por padrao na primeira aba que tem linha -- convenio raramente
   // tem as 5 preenchidas, nao faz sentido abrir numa vazia.
   const [aba, setAba] = useState<AbaKey>(() => ordem.find((k) => contagens[k] > 0) ?? 'itens');
@@ -133,6 +135,26 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
               <tbody>
                 {siconv.termos_aditivos.map((t, i) => (
                   <tr key={i}><td style={estiloTd}>{t.TIPO_TA}</td><td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(t.VL_GLOBAL_TA)}</td><td style={{ ...estiloTd, maxWidth: 360 }}>{(t.JUSTIFICATIVA_TA || '').slice(0, 200)}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      {aba === 'fornecedores' && (
+        contagens.fornecedores === 0 ? <VazioMsg /> : (
+          <div style={estiloTabelaWrapper}>
+            <table style={estiloTabela}>
+              <thead><tr><th style={estiloTh}>Fornecedor</th><th style={estiloTh}>Data</th><th style={estiloTh}>Documento</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor pago</th></tr></thead>
+              <tbody>
+                {siconv.pagamentos.map((p, i) => (
+                  <tr key={p.NR_MOV_FIN || i}>
+                    <td style={estiloTd}>{p.NOME_FORNECEDOR}</td>
+                    <td style={estiloTd}>{fmtData(p.DATA_PAG)}</td>
+                    <td style={estiloTd}>{p.DESC_DL}</td>
+                    <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(p.VL_PAGO)}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
