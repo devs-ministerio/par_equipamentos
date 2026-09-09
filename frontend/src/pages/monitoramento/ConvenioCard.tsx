@@ -128,8 +128,7 @@ export function ConvenioCard({
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10,
         marginTop: 12, padding: '10px 12px', background: colors.surface, borderRadius: 8,
       }}>
-        <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.empenhado)}</Campo>
-        <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.desembolsado)}</Campo>
+        <Campo label="Valor repasse" legenda={pct(c.financeiro.repasse, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.repasse)}</Campo>
         <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
         <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
         <Campo label="Última liberação" legenda={fmtData(c.datas.ultimaLiberacao) !== '—' ? fmtData(c.datas.ultimaLiberacao) : undefined}>
@@ -182,6 +181,16 @@ export function ConvenioCard({
             <Campo label="Início vigência">{fmtData(c.datas.inicioVigencia)}</Campo>
             <Campo label="Fim vigência">{fmtData(c.datas.fimVigencia)}</Campo>
             <Campo label="Conclusão">{fmtData(c.datas.conclusao)}</Campo>
+          </div>
+        </Secao>
+
+        {/* Empenhado/Desembolsado saem da camada 1 (pedido do usuario
+            2026-09-09: "pode remover o empenhado e desembolsado do layout
+            principal") mas continuam disponiveis aqui, nao apagados. */}
+        <Secao titulo="Financeiro detalhado">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
+            <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.empenhado)}</Campo>
+            <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.desembolsado)}</Campo>
           </div>
         </Secao>
 

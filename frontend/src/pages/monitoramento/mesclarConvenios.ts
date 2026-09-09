@@ -82,6 +82,7 @@ export function mesclarConvenios(
       },
       financeiro: {
         global: global ?? p.valor,
+        repasse: sc ? numOuNull(sc.VL_REPASSE_CONV) : null,
         empenhado: sc ? numOuNull(sc.VL_EMPENHADO_CONV) : null,
         desembolsado: desembolsado ?? p.valor_liberado,
         contrapartida: contrapartida ?? p.valor_contrapartida,

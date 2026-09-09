@@ -112,6 +112,11 @@ export type ConvenioUnificado = {
   };
   financeiro: {
     global: number | null;
+    /** VL_REPASSE_CONV -- parte de repasse federal dentro do global
+     * (global = repasse + contrapartida, na maioria dos casos -- pode
+     * divergir um pouco quando termo aditivo mudou o global sem atualizar
+     * o repasse). So no SICONV, sem fallback no Portal. */
+    repasse: number | null;
     empenhado: number | null;
     desembolsado: number | null;
     contrapartida: number | null;
