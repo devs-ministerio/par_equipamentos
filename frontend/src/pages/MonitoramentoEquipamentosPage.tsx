@@ -299,18 +299,23 @@ export function MonitoramentoEquipamentosPage() {
                 ))}
               </div>
 
+              {/* Busca + 6 filtro precisam caber numa linha so (pedido do
+                  usuario 2026-09-09) -- larguras reduzidas na proporcao
+                  certa pra somar <1200px (cabe dentro do maxWidth de 1400
+                  menos padding). wrap continua ligado so como rede de
+                  seguranca pra janela bem estreita, nao pro uso normal. */}
               <div style={{
                 background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 14,
                 boxShadow: '0 1px 3px rgba(22,33,62,0.06)', marginBottom: 16,
-                display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
+                display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
               }}>
-                <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por convenente, município, número, CNPJ..." />
-                <SingleSelectFilter placeholder="Tipo de contratação" options={TIPOS_CONTRATACAO} value={tipoContratacao} onChange={setTipoContratacao} clearLabel="Todos os tipos" minWidth={150} />
-                <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={160} />
-                <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={200} />
-                <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={200} />
-                <SingleSelectFilter placeholder="Ano de publicação" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={140} />
-                <SingleSelectFilter placeholder="Todos os programas" options={programaOptions} value={programa} onChange={setPrograma} clearLabel="Todos os programas" minWidth={220} />
+                <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por convenente, município, número, CNPJ..." width={190} />
+                <SingleSelectFilter placeholder="Tipo de contratação" options={TIPOS_CONTRATACAO} value={tipoContratacao} onChange={setTipoContratacao} clearLabel="Todos os tipos" minWidth={120} />
+                <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={100} />
+                <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={150} />
+                <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={150} />
+                <SingleSelectFilter placeholder="Ano de publicação" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={110} />
+                <SingleSelectFilter placeholder="Todos os programas" options={programaOptions} value={programa} onChange={setPrograma} clearLabel="Todos os programas" minWidth={160} />
               </div>
 
               {tipoContratacao && tipoContratacao !== 'convenio' ? (
