@@ -26,7 +26,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KpiCard } from '@/components/dashboard/KpiCard';
+import { KpiCard } from '@/components/common/KpiCard';
 import { colors, layout } from '@/styles/tokens';
 import { normalizarTexto } from '@/utils/texto';
 import {
@@ -335,22 +335,22 @@ export function MonitoramentoPainelPage() {
 
       {/* KPIs executivos */}
       <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 20 }}>
-        <KpiCard label="Instrumentos monitorados" value={resumo.total_instrumentos} color={colors.primary} />
+        <KpiCard label="Instrumentos monitorados" value={resumo.total_instrumentos} variant="primary" />
         <KpiCard
           label="Execução física média"
           value={resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—'}
-          color={colors.primaryDark}
+          variant="primary"
         />
-        <KpiCard label="Valor global investido" value={financeiro ? fmtMoeda(financeiro.global) : '...'} color={colors.primary} />
+        <KpiCard label="Valor global investido" value={financeiro ? fmtMoeda(financeiro.global) : '...'} variant="primary" />
         <KpiCard
           label="Pago ao fornecedor"
           value={financeiro ? `${fmtMoeda(financeiro.pago)}${financeiro.pct != null ? ` (${Math.round(financeiro.pct * 100)}%)` : ''}` : '...'}
-          color={colors.hiperGreen}
+          variant="success"
         />
         <KpiCard
           label="Licenças CNEN deferidas"
           value={`${resumo.licencas_cnen_deferidas}/${resumo.total_instrumentos}`}
-          color={colors.hiperGreen}
+          variant="success"
         />
       </div>
 

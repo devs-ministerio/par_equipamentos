@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { colors } from '../../styles/tokens';
-import { normalizarTexto } from '../../utils/texto';
+import { normalizarTexto } from '@/utils/texto';
+import { cn } from '@/lib/utils';
 
 export interface FilterOption {
   value: string;
@@ -14,6 +14,10 @@ interface MultiSelectFilterProps {
   onChange: (values: string[]) => void;
 }
 
+/** Não é exclusivo do dashboard -- também usado pelos modais de exportação
+ * de RelatoriosPage.tsx (ExportPdfModal/ExportXlsxModal). Fica em
+ * components/common/ por isso, apesar de morar em components/dashboard/
+ * historicamente (ver CLAUDE.md, seção "Estrutura de pastas do frontend"). */
 export function MultiSelectFilter({ placeholder, options, selected, onChange }: MultiSelectFilterProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -36,80 +40,47 @@ export function MultiSelectFilter({ placeholder, options, selected, onChange }: 
   }
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        style={{
-          padding: '6px 14px',
-          borderRadius: 20,
-          fontSize: 12,
-          fontWeight: 500,
-          cursor: 'pointer',
-          border: `1.5px solid ${active ? colors.primary : colors.border}`,
-          background: selected.length > 0 ? colors.primaryLight : open ? '#f0f4ff' : '#f7f8fb',
-          color: active ? colors.primary : '#475066',
-        }}
+        className={cn(
+          'rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-medium',
+          active
+            ? 'border-primary text-primary'
+            : 'border-border text-muted-foreground',
+          selected.length > 0 ? 'bg-secondary' : open ? 'bg-accent/60' : 'bg-muted',
+        )}
       >
         {label} ▾
       </button>
       {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            zIndex: 100,
-            background: '#fff',
-            border: `1px solid ${colors.border}`,
-            borderRadius: 8,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-            minWidth: 220,
-            padding: '8px 0',
-            marginTop: 4,
-          }}
-        >
-          <div style={{ padding: '6px 10px', borderBottom: '1px solid #f0f1f5' }}>
+        <div className="absolute top-full left-0 z-[100] mt-1 min-w-[220px] rounded-lg border border-border bg-card py-2 shadow-lg">
+          <div className="border-b border-muted px-2.5 py-1.5">
             <input
               type="text"
               placeholder="Pesquisar..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                border: `1px solid ${colors.border}`,
-                borderRadius: 6,
-                padding: '5px 8px',
-                fontSize: 12,
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              className="box-border w-full rounded-md border border-border px-2 py-1.5 text-xs outline-none"
             />
           </div>
-          <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+          <div className="max-h-55 overflow-y-auto">
             {filtered.map((opt) => (
               <label
                 key={opt.value}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '7px 12px',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  color: '#16213e',
-                }}
+                className="flex items-center gap-2 px-3 py-1.5 text-[13px] text-foreground cursor-pointer"
               >
                 <input
                   type="checkbox"
                   checked={selected.includes(opt.value)}
                   onChange={() => toggle(opt.value)}
-                  style={{ width: 15, height: 15, accentColor: colors.primary, cursor: 'pointer' }}
+                  className="h-[15px] w-[15px] cursor-pointer accent-primary"
                 />
                 {opt.label}
               </label>
             ))}
             {filtered.length === 0 && (
-              <div style={{ padding: '10px 12px', fontSize: 12, color: colors.subtleText }}>Nenhum resultado</div>
+              <div className="px-3 py-2.5 text-xs text-muted-foreground">Nenhum resultado</div>
             )}
           </div>
         </div>

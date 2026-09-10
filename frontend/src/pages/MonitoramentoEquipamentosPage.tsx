@@ -33,7 +33,7 @@
  * que os scripts rodarem de novo.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { KpiCard } from '@/components/dashboard/KpiCard';
+import { KpiCard } from '@/components/common/KpiCard';
 import { Pagination } from '@/components/common/Pagination';
 import { SearchInput } from '@/components/common/SearchInput';
 import { SingleSelectFilter } from '@/components/common/SingleSelectFilter';
@@ -254,17 +254,17 @@ export function MonitoramentoEquipamentosPage() {
           ) : (
             <>
               <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 16 }}>
-                <KpiCard label="Convênios" value={filtrados.length} color={colors.primary} />
-                <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} color={colors.primary} />
-                <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} color={colors.hiperGreen} />
+                <KpiCard label="Convênios" value={filtrados.length} variant="primary" />
+                <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} variant="primary" />
+                <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} variant="success" />
                 <KpiCard
                   label="Monitorados internamente"
                   value={monitorados.size}
-                  color={colors.hiperGreen}
+                  variant="success"
                   onClick={() => setSoMonitorados((v) => !v)}
                   ativo={soMonitorados}
                 />
-                <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} color={colors.primary} />
+                <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} variant="primary" />
               </div>
 
               {/* Legenda de cor -- situacao de convenio tem ~9 variacoes

@@ -1,13 +1,14 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import type { NivelCoberturaRow, StatusCobertura } from '../../types/domain';
-import { formatMultiplicador } from '../../utils/format';
-import { calcularCoeficiente } from '../../utils/coeficiente';
-import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
-import { InfoIcon } from '../common/InfoIcon';
-import { StatusBadge } from '../common/StatusBadge';
-import { BotaoDetalhe } from '../common/BotaoDetalhe';
-import { Pagination } from '../common/Pagination';
-import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '../../services/api';
+import type { NivelCoberturaRow, StatusCobertura } from '@/types/domain';
+import { formatMultiplicador } from '@/utils/format';
+import { calcularCoeficiente } from '@/utils/coeficiente';
+import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '@/services/api';
+import { Pagination } from '@/components/common/Pagination';
+import { InfoIcon } from './InfoIcon';
+import { BotaoDetalhe } from './BotaoDetalhe';
 import { SubNivelRows } from './SubNivelRows';
 import { MunicipioDetalheModal } from './MunicipioDetalheModal';
 
@@ -140,7 +141,7 @@ export function NivelCoberturaTable({
 
   function arrow(key: SortKey) {
     if (sortKey !== key) return null;
-    return <span style={{ marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>;
+    return <span className="ml-[3px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
   }
 
   const rowsFiltradas = useMemo(() => {
@@ -183,123 +184,72 @@ export function NivelCoberturaTable({
 
   return (
     <>
-      {error && (
-        <div style={{ padding: '10px 18px', color: '#B40D0D', fontSize: 12.5 }}>
-          Não foi possível carregar ({error}).
-        </div>
-      )}
-      {/* overflowX visible de proposito -- ver comentario equivalente em
-          CoberturaTable.tsx (overflow:auto nos dois eixos corta o tooltip
-          do InfoIcon, absolutamente posicionado, mesmo com maxWidth certo). */}
+      {error && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({error}).</div>}
       <div
-        style={{
-          maxHeight: 340,
-          overflowY: 'auto',
-          overflowX: 'visible',
-          opacity: loading ? 0.6 : 1,
-          transition: 'opacity .15s',
-        }}
+        style={{ maxHeight: 340, overflowY: 'auto', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}
       >
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-          <thead>
-            <tr
-              style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 2,
-                background: '#fafbfd',
-                textAlign: 'left',
-                color: '#667085',
-                fontSize: 11,
-                textTransform: 'uppercase',
-                letterSpacing: '0.02em',
-              }}
-            >
-              <th
-                style={{ padding: '10px 6px 10px 18px', fontWeight: 600, cursor: 'pointer' }}
-                onClick={() => toggleSort('nome')}
-              >
+        <Table className="text-[12.5px]">
+          <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
+            <TableRow className="[&>*]:whitespace-normal">
+              <TableHead className="cursor-pointer py-2.5 pr-1.5 pl-4.5" onClick={() => toggleSort('nome')}>
                 {tituloColuna}
                 {arrow('nome')}
-              </th>
-              <th
-                style={{ padding: '10px 8px 10px 6px', fontWeight: 600, cursor: 'pointer', width: 46 }}
-                onClick={() => toggleSort('uf')}
-              >
+              </TableHead>
+              <TableHead className="w-[46px] cursor-pointer py-2.5 pr-2 pl-1.5" onClick={() => toggleSort('uf')}>
                 UF{arrow('uf')}
-              </th>
-              <th style={{ padding: '10px 8px', fontWeight: 600, width: 220 }}>Macrorregião</th>
-              {nivel === 'municipio' && (
-                <th style={{ padding: '10px 8px', fontWeight: 600, width: 180 }}>Região de saúde</th>
-              )}
-              <th
-                style={{
-                  padding: '10px 8px 10px 10px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  width: 190,
-                  textAlign: 'right',
-                  whiteSpace: 'nowrap',
-                }}
-                onClick={() => toggleSort('populacao')}
-              >
+              </TableHead>
+              <TableHead className="w-[220px] py-2.5 px-2">Macrorregião</TableHead>
+              {nivel === 'municipio' && <TableHead className="w-[180px] py-2.5 px-2">Região de saúde</TableHead>}
+              <TableHead className="w-[190px] cursor-pointer py-2.5 pr-2 pl-2.5 text-right" onClick={() => toggleSort('populacao')}>
                 População SUS-dep.{arrow('populacao')}
-              </th>
-              <th style={{ padding: '10px 32px 10px 8px', fontWeight: 600, width: 259 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ cursor: 'pointer' }} onClick={() => toggleSort('cobertura')}>
+              </TableHead>
+              <TableHead className="w-[259px] py-2.5 pr-8 pl-2">
+                <span className="flex items-center gap-1">
+                  <span className="cursor-pointer" onClick={() => toggleSort('cobertura')}>
                     Cobertura{arrow('cobertura')}
                   </span>
                   <InfoIcon>
-                    <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Coeficiente</div>
-                    <div
-                      style={{
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                        background: 'rgba(255,255,255,0.08)',
-                        padding: '6px 8px',
-                        borderRadius: 4,
-                      }}
-                    >
+                    <div className="mb-1.5 font-bold text-[#93c5fd]">Coeficiente</div>
+                    <div className="rounded bg-white/10 px-2 py-1.5 font-mono text-[11px]">
                       Equipamentos em uso SUS ÷ população SUS-dependente, na proporção esperada
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
+                    <div className="mt-2 text-[10px] text-[#94a3b8]">
                       Abaixo de 1x é Hipossuficiente, 1x ou mais é Hiperssuficiente.
                     </div>
                     {nivel === 'municipio' && !semCorteDePopulacao && (
-                      <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
+                      <div className="mt-2 text-[10px] text-[#94a3b8]">
                         Só municípios com mais de 100 mil habitantes aparecem aqui.
                       </div>
                     )}
                   </InfoIcon>
                 </span>
-              </th>
-              <th style={{ padding: '10px 18px 10px 34px', fontWeight: 600, width: 220 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              </TableHead>
+              <TableHead className="w-[220px] py-2.5 pr-4.5 pl-8">
+                <span className="flex items-center gap-1">
                   Status
                   <InfoIcon align="right">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#B40D0D', flexShrink: 0 }} />
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span className="size-2.5 shrink-0 rounded-full bg-destructive" />
                       <div>
-                        <strong style={{ color: '#fca5a5' }}>Hipossuficiente</strong>
+                        <strong className="text-[#fca5a5]">Hipossuficiente</strong>
                         <br />
                         coeficiente &lt; 1x
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2F6A1D', flexShrink: 0 }} />
+                    <div className="flex items-center gap-2">
+                      <span className="size-2.5 shrink-0 rounded-full bg-success" />
                       <div>
-                        <strong style={{ color: '#86efac' }}>Hiperssuficiente</strong>
+                        <strong className="text-[#86efac]">Hiperssuficiente</strong>
                         <br />
                         coeficiente ≥ 1x
                       </div>
                     </div>
                   </InfoIcon>
                 </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rowsPaginadas.map((r) => {
               // Coeficiente = (equip. SUS x produtividade da familia) / populacao
               // SUS-dependente -- ver CoberturaTable.tsx pro mesmo calculo no
@@ -315,90 +265,61 @@ export function NivelCoberturaTable({
               const filhos = filhosPorChave[r.chave];
               return (
                 <Fragment key={r.chave}>
-                <tr
+                <TableRow
                   onClick={expansivel ? () => toggleExpandida(r.chave) : undefined}
-                  style={{ borderTop: '1px solid #f0f1f5', cursor: expansivel ? 'pointer' : 'default' }}
+                  className={`border-t border-border [&>*]:whitespace-normal ${expansivel ? 'cursor-pointer' : ''}`}
                 >
-                  <td style={{ padding: '9px 6px 9px 18px', fontWeight: 500 }}>
+                  <TableCell className="py-[9px] pr-1.5 pl-4.5 font-medium">
                     {expansivel && (
                       <span
-                        style={{
-                          fontSize: 10,
-                          color: '#98a0b3',
-                          display: 'inline-block',
-                          marginRight: 6,
-                          transform: expandida ? 'rotate(90deg)' : 'none',
-                          transition: 'transform 0.15s',
-                        }}
+                        className="mr-1.5 inline-block text-[10px] text-muted-foreground transition-transform duration-150"
+                        style={{ transform: expandida ? 'rotate(90deg)' : 'none' }}
                       >
                         ▶
                       </span>
                     )}
                     {r.nome}
-                  </td>
-                  <td style={{ padding: '9px 8px 9px 6px', color: '#667085' }}>{r.uf}</td>
-                  <td style={{ padding: '9px 8px', color: '#667085' }}>{r.macroNome ?? '—'}</td>
+                  </TableCell>
+                  <TableCell className="py-[9px] pr-2 pl-1.5 text-muted-foreground">{r.uf}</TableCell>
+                  <TableCell className="py-[9px] px-2 text-muted-foreground">{r.macroNome ?? '—'}</TableCell>
                   {nivel === 'municipio' && (
-                    <td style={{ padding: '9px 8px', color: '#667085' }}>{r.regiaoSaudeNome ?? '—'}</td>
+                    <TableCell className="py-[9px] px-2 text-muted-foreground">{r.regiaoSaudeNome ?? '—'}</TableCell>
                   )}
-                  <td style={{ padding: '9px 8px 9px 10px', textAlign: 'right', color: '#475066' }}>
+                  <TableCell className="py-[9px] pr-2 pl-2.5 text-right text-muted-foreground">
                     {r.pop.toLocaleString('pt-BR')}
-                  </td>
-                  <td style={{ padding: '9px 32px 9px 8px', minWidth: 160 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div
-                        style={{ flex: 1, position: 'relative', height: 8, borderRadius: 4, background: '#eef0f4', overflow: 'clip' }}
-                      >
+                  </TableCell>
+                  <TableCell className="min-w-[160px] py-[9px] pr-8 pl-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative h-2 flex-1 overflow-clip rounded bg-muted">
                         <div
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            height: '100%',
-                            width: `${fillPercent}%`,
-                            background: corBarra,
-                          }}
+                          className="absolute top-0 left-0 h-full"
+                          style={{ width: `${fillPercent}%`, background: corBarra }}
                         />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            bottom: 0,
-                            left: '50%',
-                            width: 2,
-                            background: '#475066',
-                            borderRadius: 1,
-                            transform: 'translateX(-50%)',
-                          }}
-                        />
+                        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 rounded-sm bg-muted-foreground" />
                       </div>
-                      <div style={{ width: 118 }}>
-                        <div style={{ fontSize: 11.5, fontWeight: 600, color: corTexto }}>
+                      <div className="w-[118px]">
+                        <div className="text-[11.5px] font-semibold" style={{ color: corTexto }}>
                           {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
                         </div>
-                        <div style={{ fontSize: 10, color: '#98a0b3' }}>
+                        <div className="text-[10px] text-muted-foreground">
                           {formatarQuantidadeEquipamento(r.oferta)} em uso SUS
                           {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} existentes`}
                         </div>
                       </div>
                     </div>
-                  </td>
-                  <td style={{ padding: '9px 18px 9px 34px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  </TableCell>
+                  <TableCell className="py-[9px] pr-4.5 pl-8">
+                    <div className="flex items-center gap-2">
                       <StatusBadge cobertura={r.cobertura} />
                       {nivel === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(r)} />}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
                 {expandida && (
-                  <tr style={{ background: '#eef1f6' }}>
-                    <td colSpan={nivel === 'municipio' ? 7 : 6} style={{ padding: '10px 18px 12px 42px' }}>
-                      {filhos === 'carregando' && (
-                        <div style={{ fontSize: 12, color: '#98a0b3' }}>Carregando municípios...</div>
-                      )}
-                      {filhos === 'erro' && (
-                        <div style={{ fontSize: 12, color: '#B40D0D' }}>Não foi possível carregar os municípios.</div>
-                      )}
+                  <TableRow className="bg-muted">
+                    <TableCell colSpan={nivel === 'municipio' ? 7 : 6} className="py-2.5 pr-4.5 pl-10.5 whitespace-normal">
+                      {filhos === 'carregando' && <div className="text-xs text-muted-foreground">Carregando municípios...</div>}
+                      {filhos === 'erro' && <div className="text-xs text-destructive">Não foi possível carregar os municípios.</div>}
                       {Array.isArray(filhos) && (
                         <SubNivelRows
                           rows={filhos}
@@ -408,21 +329,21 @@ export function NivelCoberturaTable({
                           completo
                         />
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
                 </Fragment>
               );
             })}
             {!loading && rowsPaginadas.length === 0 && (
-              <tr>
-                <td colSpan={7} style={{ padding: '16px 18px', color: '#98a0b3', fontSize: 12.5 }}>
+              <TableRow>
+                <TableCell colSpan={7} className="py-4 px-4.5 text-[12.5px] text-muted-foreground whitespace-normal">
                   Nenhum resultado.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       <Pagination page={page} totalItems={rowsOrdenadas.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
       {detalheAberto && (

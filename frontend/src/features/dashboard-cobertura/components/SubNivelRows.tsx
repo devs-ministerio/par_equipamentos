@@ -1,11 +1,11 @@
 import { Fragment, useState } from 'react';
-import type { NivelCoberturaRow } from '../../types/domain';
-import { calcularCoeficiente } from '../../utils/coeficiente';
-import { formatMultiplicador } from '../../utils/format';
-import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
-import { fetchMunicipalityCoverage } from '../../services/api';
-import { StatusBadge } from '../common/StatusBadge';
-import { BotaoDetalhe } from '../common/BotaoDetalhe';
+import type { NivelCoberturaRow } from '@/types/domain';
+import { calcularCoeficiente } from '@/utils/coeficiente';
+import { formatMultiplicador } from '@/utils/format';
+import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
+import { fetchMunicipalityCoverage } from '@/services/api';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { BotaoDetalhe } from './BotaoDetalhe';
 import { MunicipioDetalheModal } from './MunicipioDetalheModal';
 
 type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
@@ -103,13 +103,13 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
     // pequenos (<100k) e Hipo -- nao e "sem dado", e o corte escondendo tudo.
     if (ocultos > 0) {
       return (
-        <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>
+        <div className="p-1 text-xs text-muted-foreground">
           +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
         </div>
       );
     }
     const rotulo = nivelAtual === 'regiaoSaude' ? 'região de saúde' : 'município';
-    return <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>Nenhuma {rotulo} encontrada.</div>;
+    return <div className="p-1 text-xs text-muted-foreground">Nenhuma {rotulo} encontrada.</div>;
   }
 
   return (
@@ -124,7 +124,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
           Com fixed, a coluna do indicador tem largura garantida e a de
           Nome fica com o espaco que sobrar (bastante, ja que agora so tem
           essas 2 colunas). */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+      <table className="w-full border-collapse text-xs" style={{ tableLayout: 'fixed' }}>
         <tbody>
           {rowsExibidas.map((linha) => {
             const coef = calcularCoeficiente(linha.oferta, linha.pop, produtividade);
@@ -136,45 +136,28 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
               <Fragment key={linha.chave}>
                 <tr
                   onClick={expansivel ? (e) => { e.stopPropagation(); toggleExpandida(linha.chave); } : undefined}
-                  style={{
-                    borderTop: '1px solid #e2e6ee',
-                    cursor: expansivel ? 'pointer' : 'default',
-                    background: selecionada ? '#eef2ff' : 'transparent',
-                  }}
+                  className={`border-t border-border ${expansivel ? 'cursor-pointer' : ''} ${selecionada ? 'bg-accent' : ''}`}
                 >
                   <td
-                    style={{
-                      padding: '6px 8px 6px 4px',
-                      fontWeight: 500,
-                      color: '#16213e',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className="overflow-hidden py-1.5 pr-2 pl-1 font-medium text-foreground text-ellipsis whitespace-nowrap"
                     title={`${linha.nome} (${linha.uf})`}
                   >
                     {expansivel && (
                       <span
-                        style={{
-                          fontSize: 9,
-                          color: '#98a0b3',
-                          display: 'inline-block',
-                          marginRight: 6,
-                          transform: expandida ? 'rotate(90deg)' : 'none',
-                          transition: 'transform 0.15s',
-                        }}
+                        className="mr-1.5 inline-block text-[9px] text-muted-foreground transition-transform duration-150"
+                        style={{ transform: expandida ? 'rotate(90deg)' : 'none' }}
                       >
                         ▶
                       </span>
                     )}
-                    {linha.nome} <span style={{ color: '#98a0b3', fontWeight: 400 }}>({linha.uf})</span>
+                    {linha.nome} <span className="font-normal text-muted-foreground">({linha.uf})</span>
                   </td>
                   {completo ? (
                     <>
-                      <td style={{ padding: '6px 8px', width: 110, textAlign: 'right', color: '#475066', whiteSpace: 'nowrap' }}>
+                      <td className="w-[110px] py-1.5 px-2 text-right whitespace-nowrap text-muted-foreground">
                         {linha.pop.toLocaleString('pt-BR')}
                       </td>
-                      <td style={{ padding: '6px 24px 6px 8px', width: 210 }}>
+                      <td className="w-[210px] py-1.5 pr-6 pl-2">
                         {/* bar com largura fixa (nao flex:1) -- em
                             table-layout:fixed sem width explicito no <td>,
                             o navegador dividia o espaco sobrando de forma
@@ -182,38 +165,19 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                             barra bem alem do necessario e empurrando o
                             rotulo/status pra longe, desalinhado com o
                             cabecalho (bug real, 2026-08-24). */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div
-                            style={{ width: 90, flexShrink: 0, position: 'relative', height: 7, borderRadius: 4, background: '#eef0f4', overflow: 'clip' }}
-                          >
+                        <div className="flex items-center gap-2">
+                          <div className="relative h-[7px] w-[90px] shrink-0 overflow-clip rounded bg-muted">
                             <div
-                              style={{
-                                position: 'absolute',
-                                left: 0,
-                                top: 0,
-                                height: '100%',
-                                width: `${coef.fillPercent}%`,
-                                background: coef.corBarra,
-                              }}
+                              className="absolute top-0 left-0 h-full"
+                              style={{ width: `${coef.fillPercent}%`, background: coef.corBarra }}
                             />
-                            <div
-                              style={{
-                                position: 'absolute',
-                                top: 0,
-                                bottom: 0,
-                                left: '50%',
-                                width: 2,
-                                background: '#475066',
-                                borderRadius: 1,
-                                transform: 'translateX(-50%)',
-                              }}
-                            />
+                            <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 rounded-sm bg-muted-foreground" />
                           </div>
                           <div>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto }}>
+                            <div className="text-[11px] font-semibold" style={{ color: coef.corTexto }}>
                               {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
                             </div>
-                            <div style={{ fontSize: 9.5, color: '#98a0b3' }}>
+                            <div className="text-[9.5px] text-muted-foreground">
                               {formatarQuantidadeEquipamento(linha.oferta)} em uso SUS
                               {linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal} existentes`}
                             </div>
@@ -226,16 +190,16 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                           fora da celula/quebrando linha (bug real,
                           2026-08-24). whiteSpace:nowrap trava o layout numa
                           linha so. */}
-                      <td style={{ padding: '6px 8px 6px 18px', width: 168, whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <td className="w-[168px] py-1.5 pr-2 pl-4.5 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
                           <StatusBadge cobertura={linha.cobertura} />
                           {nivelAtual === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(linha)} />}
                         </div>
                       </td>
                     </>
                   ) : (
-                    <td style={{ padding: '6px 8px', width: 76, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: coef.corTexto }}>
+                    <td className="w-[76px] py-1.5 px-2 text-right whitespace-nowrap">
+                      <span className="text-[11px] font-semibold" style={{ color: coef.corTexto }}>
                         {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
                       </span>
                     </td>
@@ -243,13 +207,9 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
                 </tr>
                 {expandida && (
                   <tr>
-                    <td colSpan={completo ? 4 : 2} style={{ padding: '4px 8px 8px 26px', background: '#f4f6fb' }}>
-                      {filhos === 'carregando' && (
-                        <div style={{ fontSize: 12, color: '#98a0b3', padding: '4px 0' }}>Carregando municípios...</div>
-                      )}
-                      {filhos === 'erro' && (
-                        <div style={{ fontSize: 12, color: '#B40D0D', padding: '4px 0' }}>Não foi possível carregar os municípios.</div>
-                      )}
+                    <td colSpan={completo ? 4 : 2} className="bg-background py-2 pr-2 pl-6.5">
+                      {filhos === 'carregando' && <div className="p-1 text-xs text-muted-foreground">Carregando municípios...</div>}
+                      {filhos === 'erro' && <div className="p-1 text-xs text-destructive">Não foi possível carregar os municípios.</div>}
                       {Array.isArray(filhos) && (
                         <SubNivelRows
                           rows={filhos}
@@ -268,7 +228,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
         </tbody>
       </table>
       {ocultos > 0 && (
-        <div style={{ fontSize: 11, color: '#98a0b3', padding: '6px 4px 0' }}>
+        <div className="px-1 pt-1.5 text-[11px] text-muted-foreground">
           +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
         </div>
       )}

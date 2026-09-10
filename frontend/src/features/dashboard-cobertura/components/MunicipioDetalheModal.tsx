@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { NivelCoberturaRow } from '../../types/domain';
-import { calcularCoeficiente } from '../../utils/coeficiente';
-import { formatMultiplicador } from '../../utils/format';
-import { fetchHealthRegionCoverage, fetchMacroCoverage } from '../../services/api';
-import { Modal } from '../common/Modal';
-import { StatusBadge } from '../common/StatusBadge';
-import { colors } from '../../styles/tokens';
-import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
+import type { NivelCoberturaRow } from '@/types/domain';
+import { calcularCoeficiente } from '@/utils/coeficiente';
+import { formatMultiplicador } from '@/utils/format';
+import { fetchHealthRegionCoverage, fetchMacroCoverage } from '@/services/api';
+import { Modal } from '@/components/common/Modal';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { Button } from '@/components/ui/button';
+import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
 
 interface Props {
   linha: NivelCoberturaRow;
@@ -69,23 +69,23 @@ export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props
 
   return (
     <Modal onClose={onClose} maxWidth={460}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#16213e' }}>{linha.nome}</div>
-          <div style={{ color: colors.mutedText, fontSize: 12.5, marginTop: 4 }}>
+          <div className="text-xl font-extrabold text-foreground">{linha.nome}</div>
+          <div className="mt-1 text-[12.5px] text-muted-foreground">
             {linha.uf} · {linha.macroNome ?? 'Macrorregião não informada'} · {linha.regiaoSaudeNome ?? 'Região de saúde não informada'}
           </div>
         </div>
         <button
           onClick={onClose}
           aria-label="Fechar"
-          style={{ border: 'none', background: 'transparent', fontSize: 20, lineHeight: 1, color: colors.subtleText, cursor: 'pointer', padding: 4 }}
+          className="cursor-pointer border-none bg-transparent p-1 text-xl leading-none text-muted-foreground"
         >
           ✕
         </button>
       </div>
 
-      <div style={{ marginTop: 6, fontSize: 11.5, color: colors.subtleText }}>
+      <div className="mt-1.5 text-[11.5px] text-muted-foreground">
         {linha.pop.toLocaleString('pt-BR')} hab. SUS-dependentes · {formatarQuantidadeEquipamento(linha.oferta)} SUS
         {linha.ofertaTotal !== linha.oferta && ` (${linha.ofertaTotal} no total)`}
       </div>
@@ -103,24 +103,19 @@ export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props
           aparece pra familias cujo pipeline calcula isso (so TOMOGRAFO). */}
       {linha.distanciaKmEquipamentoMaisProximo != null && (
         <div
-          style={{
-            marginTop: 8,
-            fontSize: 11.5,
-            padding: '6px 10px',
-            borderRadius: 6,
-            background: linha.distanciaKmEquipamentoMaisProximo <= 75 ? colors.hiperGreenBg : colors.hipoRedBg,
-            color: linha.distanciaKmEquipamentoMaisProximo <= 75 ? colors.hiperGreen : colors.hipoRed,
-          }}
+          className={
+            linha.distanciaKmEquipamentoMaisProximo <= 75
+              ? 'mt-2 rounded-md bg-success/15 px-2.5 py-1.5 text-[11.5px] text-success'
+              : 'mt-2 rounded-md bg-destructive/10 px-2.5 py-1.5 text-[11.5px] text-destructive'
+          }
         >
           {linha.distanciaKmEquipamentoMaisProximo.toFixed(0)} km até o tomógrafo SUS mais próximo
           {linha.distanciaKmEquipamentoMaisProximo <= 75 ? ' (dentro do raio de 75 km)' : ' (fora do raio de 75 km)'}
         </div>
       )}
 
-      <div style={{ marginTop: 16, fontSize: 11, fontWeight: 700, color: '#93c5fd', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-        Cobertura por nível
-      </div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginTop: 8 }}>
+      <div className="mt-4 text-[11px] font-bold tracking-wide text-[#93c5fd] uppercase">Cobertura por nível</div>
+      <table className="mt-2 w-full border-collapse text-[13px]">
         <tbody>
           <LinhaNivel rotulo="Município" oferta={linha.oferta} pop={linha.pop} cobertura={linha.cobertura} produtividade={produtividade} />
           <LinhaComparada rotulo="Região de saúde" dado={regiao} produtividade={produtividade} />
@@ -128,23 +123,9 @@ export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props
         </tbody>
       </table>
 
-      <button
-        onClick={onClose}
-        style={{
-          width: '100%',
-          marginTop: 20,
-          padding: 11,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 8,
-          background: '#fff',
-          color: '#475066',
-          fontWeight: 600,
-          fontSize: 13,
-          cursor: 'pointer',
-        }}
-      >
+      <Button variant="outline" onClick={onClose} className="mt-5 h-auto w-full py-2.75 text-[13px] font-semibold">
         Fechar
-      </button>
+      </Button>
     </Modal>
   );
 }
@@ -164,12 +145,12 @@ function LinhaNivel({
 }) {
   const coef = calcularCoeficiente(oferta, pop, produtividade);
   return (
-    <tr style={{ borderTop: '1px solid #f0f1f5' }}>
-      <td style={{ padding: '8px 8px 8px 0', color: '#16213e', fontWeight: 500 }}>{rotulo}</td>
-      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 700, color: coef.corTexto }}>
+    <tr className="border-t border-border">
+      <td className="py-2 pr-2 pl-0 font-medium text-foreground">{rotulo}</td>
+      <td className="py-2 px-2 text-right font-bold" style={{ color: coef.corTexto }}>
         {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
       </td>
-      <td style={{ padding: '8px 0 8px 8px', textAlign: 'right' }}>
+      <td className="py-2 pr-0 pl-2 text-right">
         <StatusBadge cobertura={cobertura} />
       </td>
     </tr>
@@ -187,9 +168,9 @@ function LinhaComparada({
 }) {
   if (dado === 'carregando') {
     return (
-      <tr style={{ borderTop: '1px solid #f0f1f5' }}>
-        <td style={{ padding: '8px 8px 8px 0', color: '#16213e', fontWeight: 500 }}>{rotulo}</td>
-        <td colSpan={2} style={{ padding: '8px', textAlign: 'right', color: colors.subtleText, fontSize: 12 }}>
+      <tr className="border-t border-border">
+        <td className="py-2 pr-2 pl-0 font-medium text-foreground">{rotulo}</td>
+        <td colSpan={2} className="py-2 px-2 text-right text-xs text-muted-foreground">
           Carregando...
         </td>
       </tr>
@@ -197,9 +178,9 @@ function LinhaComparada({
   }
   if (dado === 'erro') {
     return (
-      <tr style={{ borderTop: '1px solid #f0f1f5' }}>
-        <td style={{ padding: '8px 8px 8px 0', color: '#16213e', fontWeight: 500 }}>{rotulo}</td>
-        <td colSpan={2} style={{ padding: '8px', textAlign: 'right', color: colors.subtleText, fontSize: 12 }}>
+      <tr className="border-t border-border">
+        <td className="py-2 pr-2 pl-0 font-medium text-foreground">{rotulo}</td>
+        <td colSpan={2} className="py-2 px-2 text-right text-xs text-muted-foreground">
           Não disponível
         </td>
       </tr>

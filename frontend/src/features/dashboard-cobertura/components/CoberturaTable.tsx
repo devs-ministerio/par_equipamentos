@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import type { CoberturaRow, Macrorregiao, NivelCoberturaRow, StatusCobertura } from '../../types/domain';
-import { formatMultiplicador } from '../../utils/format';
-import { calcularCoeficiente } from '../../utils/coeficiente';
-import { getEquipamento, formatarQuantidadeEquipamento } from '../../data/constants';
-import { InfoIcon } from '../common/InfoIcon';
-import { StatusBadge } from '../common/StatusBadge';
-import { Pagination } from '../common/Pagination';
-import { fetchHealthRegionCoverage } from '../../services/api';
+import type { CoberturaRow, Macrorregiao, NivelCoberturaRow, StatusCobertura } from '@/types/domain';
+import { formatMultiplicador } from '@/utils/format';
+import { calcularCoeficiente } from '@/utils/coeficiente';
+import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { Pagination } from '@/components/common/Pagination';
+import { fetchHealthRegionCoverage } from '@/services/api';
+import { InfoIcon } from './InfoIcon';
 import { SubNivelRows } from './SubNivelRows';
 
 const PAGE_SIZE = 20;
@@ -75,7 +76,7 @@ export function CoberturaTable({
 
   function arrow(key: SortKey) {
     if (sortKey !== key) return null;
-    return <span style={{ marginLeft: 3 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>;
+    return <span className="ml-[3px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
   }
 
   const rowsFiltradas = useMemo(() => {
@@ -129,124 +130,77 @@ export function CoberturaTable({
           de cidade numa caixinha interna -- so trava a altura no modo
           compacto (nada expandido), que e quando faz sentido ter rolagem
           interna pra pagina de ate 20 macros. */}
-      {/* overflowX visible (nao auto) de proposito -- overflow:auto nos dois
-          eixos cortava o tooltip do InfoIcon (posicionado absoluto, "vaza"
-          pra fora da celula do cabecalho) mesmo com maxWidth certo no popup,
-          porque overflow != visible em QUALQUER eixo já corta filho
-          absolutamente posicionado (bug real, 2026-08-24). So overflowY
-          precisa ser auto aqui (rolagem vertical das linhas); a tabela nao
-          precisa de rolagem horizontal (cabe na largura do container). */}
-      <div style={{ maxHeight: expandidas.size > 0 ? 'none' : 340, overflowY: 'auto', overflowX: 'visible' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-          <thead>
-            <tr
-              style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 2,
-                background: '#fafbfd',
-                textAlign: 'left',
-                color: '#667085',
-                fontSize: 11,
-                textTransform: 'uppercase',
-                letterSpacing: '0.02em',
-              }}
-            >
-              <th
-                style={{ padding: '10px 8px 10px 18px', fontWeight: 600, cursor: 'pointer', width: 150 }}
-                onClick={() => toggleSort('codigo')}
-              >
+      <div style={{ maxHeight: expandidas.size > 0 ? 'none' : 340, overflowY: 'auto' }}>
+        <Table className="text-[12.5px]">
+          <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
+            <TableRow className="[&>*]:whitespace-normal">
+              <TableHead className="w-[150px] cursor-pointer py-2.5 pr-2 pl-4.5" onClick={() => toggleSort('codigo')}>
                 Código macro de saúde{arrow('codigo')}
-              </th>
-              <th
-                style={{ padding: '10px 6px 10px 8px', fontWeight: 600, cursor: 'pointer', width: 260 }}
-                onClick={() => toggleSort('macro')}
-              >
+              </TableHead>
+              <TableHead className="w-[260px] cursor-pointer py-2.5 pr-1.5 pl-2" onClick={() => toggleSort('macro')}>
                 Macrorregião de saúde{arrow('macro')}
-              </th>
-              <th
-                style={{ padding: '10px 8px 10px 6px', fontWeight: 600, cursor: 'pointer', width: 46 }}
-                onClick={() => toggleSort('uf')}
-              >
+              </TableHead>
+              <TableHead className="w-[46px] cursor-pointer py-2.5 pr-2 pl-1.5" onClick={() => toggleSort('uf')}>
                 UF{arrow('uf')}
-              </th>
-              <th
-                style={{
-                  padding: '10px 8px 10px 10px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  width: 210,
-                  textAlign: 'right',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                  <span style={{ cursor: 'pointer' }} onClick={() => toggleSort('populacao')}>
+              </TableHead>
+              <TableHead className="w-[210px] py-2.5 pr-2 pl-2.5 text-right">
+                <span className="flex items-center justify-end gap-1">
+                  <span className="cursor-pointer" onClick={() => toggleSort('populacao')}>
                     População SUS-dependente{arrow('populacao')}
                   </span>
                   <InfoIcon align="right">
-                    <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>
-                      População usada no cálculo
-                    </div>
-                    <div style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                    <div className="mb-1.5 font-bold text-[#93c5fd]">População usada no cálculo</div>
+                    <div className="font-mono text-[11px]">
                       SUS-dependente = IBGE (residente) − beneficiários de plano de saúde
                     </div>
                   </InfoIcon>
                 </span>
-              </th>
-              <th style={{ padding: '10px 32px 10px 8px', fontWeight: 600, width: 259 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ cursor: 'pointer' }} onClick={() => toggleSort('cobertura')}>
+              </TableHead>
+              <TableHead className="w-[259px] py-2.5 pr-8 pl-2">
+                <span className="flex items-center gap-1">
+                  <span className="cursor-pointer" onClick={() => toggleSort('cobertura')}>
                     Cobertura{arrow('cobertura')}
                   </span>
                   <InfoIcon>
-                    <div style={{ fontWeight: 700, marginBottom: 6, color: '#93c5fd' }}>Coeficiente</div>
-                    <div
-                      style={{
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                        background: 'rgba(255,255,255,0.08)',
-                        padding: '6px 8px',
-                        borderRadius: 4,
-                      }}
-                    >
+                    <div className="mb-1.5 font-bold text-[#93c5fd]">Coeficiente</div>
+                    <div className="rounded bg-white/10 px-2 py-1.5 font-mono text-[11px]">
                       Equipamentos em uso SUS ÷ população SUS-dependente, na proporção esperada
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 10, color: '#94a3b8' }}>
+                    <div className="mt-2 text-[10px] text-[#94a3b8]">
                       Abaixo de 1x é Hipossuficiente, 1x ou mais é Hiperssuficiente. A listra no meio da barra marca
                       exatamente o coeficiente 1.
                     </div>
                   </InfoIcon>
                 </span>
-              </th>
-              <th style={{ padding: '10px 18px 10px 34px', fontWeight: 600, width: 220 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ cursor: 'pointer' }} onClick={() => toggleSort('status')}>
+              </TableHead>
+              <TableHead className="w-[220px] py-2.5 pr-4.5 pl-8">
+                <span className="flex items-center gap-1">
+                  <span className="cursor-pointer" onClick={() => toggleSort('status')}>
                     Status{arrow('status')}
                   </span>
                   <InfoIcon align="right">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#B40D0D', flexShrink: 0 }} />
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span className="size-2.5 shrink-0 rounded-full bg-destructive" />
                       <div>
-                        <strong style={{ color: '#fca5a5' }}>Hipossuficiente</strong>
+                        <strong className="text-[#fca5a5]">Hipossuficiente</strong>
                         <br />
                         coeficiente &lt; 1x
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2F6A1D', flexShrink: 0 }} />
+                    <div className="flex items-center gap-2">
+                      <span className="size-2.5 shrink-0 rounded-full bg-success" />
                       <div>
-                        <strong style={{ color: '#86efac' }}>Hiperssuficiente</strong>
+                        <strong className="text-[#86efac]">Hiperssuficiente</strong>
                         <br />
                         coeficiente ≥ 1x
                       </div>
                     </div>
                   </InfoIcon>
                 </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rowsPaginadas.map((r) => {
               const macro = macroById.get(r.macroId);
               if (!macro) return null;
@@ -267,90 +221,55 @@ export function CoberturaTable({
               const dados = dadosPorMacro[r.macroId];
               return (
                 <Fragment key={r.macroId}>
-                <tr
-                  onClick={() => toggleExpandida(r.macroId)}
-                  style={{ borderTop: '1px solid #f0f1f5', cursor: 'pointer' }}
-                >
-                  <td style={{ padding: '9px 8px 9px 18px', fontFamily: 'monospace', fontSize: 11.5, color: '#98a0b3' }}>
+                <TableRow onClick={() => toggleExpandida(r.macroId)} className="cursor-pointer border-t border-border [&>*]:whitespace-normal">
+                  <TableCell className="py-[9px] pr-2 pl-4.5 font-mono text-[11.5px] text-muted-foreground">
                     {macro.id}
-                  </td>
-                  <td style={{ padding: '9px 6px 9px 8px', fontWeight: 500 }}>
+                  </TableCell>
+                  <TableCell className="py-[9px] pr-1.5 pl-2 font-medium">
                     <span
-                      style={{
-                        fontSize: 10,
-                        color: '#98a0b3',
-                        display: 'inline-block',
-                        marginRight: 6,
-                        transform: expandida ? 'rotate(90deg)' : 'none',
-                        transition: 'transform 0.15s',
-                      }}
+                      className="mr-1.5 inline-block text-[10px] text-muted-foreground transition-transform duration-150"
+                      style={{ transform: expandida ? 'rotate(90deg)' : 'none' }}
                     >
                       ▶
                     </span>
                     {macro.nome}
-                  </td>
-                  <td style={{ padding: '9px 8px 9px 6px', color: '#667085' }}>{macro.uf}</td>
-                  <td style={{ padding: '9px 8px 9px 10px', textAlign: 'right', color: '#475066' }}>
+                  </TableCell>
+                  <TableCell className="py-[9px] pr-2 pl-1.5 text-muted-foreground">{macro.uf}</TableCell>
+                  <TableCell className="py-[9px] pr-2 pl-2.5 text-right text-muted-foreground">
                     {macro.pop.toLocaleString('pt-BR')}
-                  </td>
-                  <td style={{ padding: '9px 32px 9px 8px', minWidth: 160 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          position: 'relative',
-                          height: 8,
-                          borderRadius: 4,
-                          background: '#eef0f4',
-                          overflow: 'clip',
-                        }}
-                      >
+                  </TableCell>
+                  <TableCell className="min-w-[160px] py-[9px] pr-8 pl-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative h-2 flex-1 overflow-clip rounded bg-muted">
                         <div
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            height: '100%',
-                            width: `${fillPercent}%`,
-                            background: corBarra,
-                          }}
+                          className="absolute top-0 left-0 h-full"
+                          style={{ width: `${fillPercent}%`, background: corBarra }}
                         />
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            bottom: 0,
-                            left: '50%',
-                            width: 2,
-                            background: '#475066',
-                            borderRadius: 1,
-                            transform: 'translateX(-50%)',
-                          }}
-                        />
+                        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 rounded-sm bg-muted-foreground" />
                       </div>
-                      <div style={{ width: 118 }}>
-                        <div style={{ fontSize: 11.5, fontWeight: 600, color: corTexto }}>
+                      <div className="w-[118px]">
+                        <div className="text-[11.5px] font-semibold" style={{ color: corTexto }}>
                           {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
                         </div>
-                        <div style={{ fontSize: 10, color: '#98a0b3' }}>
+                        <div className="text-[10px] text-muted-foreground">
                           {formatarQuantidadeEquipamento(r.oferta)} em uso SUS
                           {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} existentes`}
                         </div>
                       </div>
                     </div>
-                  </td>
-                  <td style={{ padding: '9px 18px 9px 34px' }}>
+                  </TableCell>
+                  <TableCell className="py-[9px] pr-4.5 pl-8">
                     <StatusBadge cobertura={r.cobertura} />
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
                 {expandida && (
-                  <tr style={{ background: '#eef1f6' }}>
-                    <td colSpan={6} style={{ padding: '10px 18px 12px 42px' }}>
+                  <TableRow className="bg-muted">
+                    <TableCell colSpan={6} className="py-2.5 pr-4.5 pl-10.5 whitespace-normal">
                       {dados === 'carregando' && (
-                        <div style={{ fontSize: 12, color: '#98a0b3' }}>Carregando regiões de saúde...</div>
+                        <div className="text-xs text-muted-foreground">Carregando regiões de saúde...</div>
                       )}
                       {dados === 'erro' && (
-                        <div style={{ fontSize: 12, color: '#B40D0D' }}>Não foi possível carregar as regiões de saúde.</div>
+                        <div className="text-xs text-destructive">Não foi possível carregar as regiões de saúde.</div>
                       )}
                       {Array.isArray(dados) && (
                         <SubNivelRows
@@ -361,14 +280,14 @@ export function CoberturaTable({
                           completo
                         />
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
                 </Fragment>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       <Pagination page={page} totalItems={rowsOrdenadas.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
     </>

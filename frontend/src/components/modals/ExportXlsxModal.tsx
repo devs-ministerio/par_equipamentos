@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Modal } from '../common/Modal';
-import { MultiSelectFilter } from '../dashboard/MultiSelectFilter';
+import { MultiSelectFilter } from '../common/MultiSelectFilter';
 import { colors } from '../../styles/tokens';
 import { REGIOES } from '../../data/constants';
 import { useFiltrosMacro } from '../../hooks/useFiltrosMacro';

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import { MacroMap } from '../components/mapa/MacroMap';
 import type { PontoEstabelecimento } from '../components/mapa/MacroMap';
-import { SubNivelRows } from '../components/dashboard/SubNivelRows';
+import { SubNivelRows } from '../features/dashboard-cobertura';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { SingleSelectFilter } from '../components/common/SingleSelectFilter';
 import {

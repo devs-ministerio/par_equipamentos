@@ -1,24 +1,19 @@
 import { useEffect, useState } from 'react';
-import { KpiCard } from '../components/dashboard/KpiCard';
-import { MultiSelectFilter } from '../components/dashboard/MultiSelectFilter';
-import { CoberturaTable } from '../components/dashboard/CoberturaTable';
-import { NivelCoberturaTable } from '../components/dashboard/NivelCoberturaTable';
-import { EstabelecimentoTable } from '../components/dashboard/EstabelecimentoTable';
-import { StatusFilterButtons } from '../components/common/StatusFilterButtons';
-import { InfoIcon } from '../components/common/InfoIcon';
+import { KpiCard } from '@/components/common/KpiCard';
+import { MultiSelectFilter } from '@/components/common/MultiSelectFilter';
+import { CoberturaTable, EstabelecimentoTable, InfoIcon, NivelCoberturaTable, StatusFilterButtons } from '@/features/dashboard-cobertura';
 import {
   fetchEquipmentTotals,
   fetchFacilities,
   fetchHealthRegionCoverage,
   fetchMacroCoverage,
   fetchMunicipalityCoverage,
-} from '../services/api';
-import type { EquipmentTotals, FacilityOption } from '../services/api';
-import { useFiltrosMacro } from '../hooks/useFiltrosMacro';
-import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
-import { colors } from '../styles/tokens';
-import { REGIOES } from '../data/constants';
-import type { CoberturaRow, Macrorregiao, StatusCobertura } from '../types/domain';
+} from '@/services/api';
+import type { EquipmentTotals, FacilityOption } from '@/services/api';
+import { useFiltrosMacro } from '@/hooks/useFiltrosMacro';
+import { useFamiliaEquipamento } from '@/context/FamiliaEquipamentoContext';
+import { REGIOES } from '@/data/constants';
+import type { CoberturaRow, Macrorregiao, StatusCobertura } from '@/types/domain';
 
 export function DashboardPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
@@ -215,12 +210,12 @@ export function DashboardPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 60, textAlign: 'center', color: colors.subtleText }}>Carregando dados...</div>;
+    return <div className="p-15 text-center text-muted-foreground">Carregando dados...</div>;
   }
 
   if (error) {
     return (
-      <div style={{ padding: 24, background: '#fde8e8', color: colors.hipoRed, borderRadius: 8 }}>
+      <div className="rounded-lg bg-destructive/10 p-6 text-destructive">
         Não foi possível carregar os dados da API ({error}). Confirme se o backend está rodando em{' '}
         {import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}.
       </div>
@@ -229,19 +224,8 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div
-        style={{
-          background: '#fff',
-          borderRadius: 8,
-          marginBottom: 16,
-          padding: '14px 18px',
-          display: 'flex',
-          gap: 10,
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-        }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#475066', whiteSpace: 'nowrap', paddingTop: 8 }}>
+      <div className="mb-4 flex flex-wrap items-start gap-2.5 rounded-lg bg-card px-4.5 py-3.5">
+        <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">
           Filtrar por
         </span>
         <MultiSelectFilter
@@ -308,27 +292,18 @@ export function DashboardPage() {
         {hasAnyFilter && (
           <button
             onClick={limparFiltros}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 500,
-              cursor: 'pointer',
-              border: '1px solid #f0a0a0',
-              background: '#fff0f0',
-              color: '#c0392b',
-            }}
+            className="cursor-pointer rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive"
           >
             ✕ Limpar
           </button>
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'stretch' }}>
+      <div className="flex flex-wrap items-stretch justify-center gap-4">
         <KpiCard
           label="Total de Equipamentos"
           value={totais?.existingQty ?? totalEquipGeralMacro}
-          color="#16213e"
+          variant="primary"
           info={
             <InfoIcon>
               Inclui equipamentos privados. Só o card ao lado (em uso e SUS) entra no cálculo de cobertura.
@@ -338,12 +313,12 @@ export function DashboardPage() {
         <KpiCard
           label="Total de Equipamentos em uso SUS"
           value={totais?.availableQty ?? totalEquipMacro}
-          color="#16213e"
+          variant="primary"
         />
         <KpiCard
           label="Municípios Hipossuficientes"
           value={municipiosHipo ?? '—'}
-          color="#a32d2d"
+          variant="destructive"
           onClick={() => verHipo('municipio')}
           ativo={nivelForcado === 'municipio'}
           info={
@@ -356,7 +331,7 @@ export function DashboardPage() {
         <KpiCard
           label="Regiões de Saúde Hipossuficientes"
           value={regioesSaudeHipo != null && regioesSaudeTotal != null ? `${regioesSaudeHipo} de ${regioesSaudeTotal}` : '—'}
-          color="#a32d2d"
+          variant="destructive"
           onClick={() => verHipo('regiaoSaude')}
           ativo={nivelForcado === 'regiaoSaude'}
           info={
@@ -366,38 +341,20 @@ export function DashboardPage() {
         <KpiCard
           label="Macrorregiões com Hipossuficiente"
           value={`${macrosHipo} de ${filteredRows.length}`}
-          color="#a32d2d"
+          variant="destructive"
           onClick={() => verHipo('macro')}
           ativo={nivelForcado === 'macro'}
         />
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 8, marginTop: 20 }}>
-        <div
-          style={{
-            padding: '14px 18px',
-            borderBottom: '1px solid #eef0f4',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>Cobertura Assistencial</div>
+      <div className="mt-5 rounded-lg bg-card">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4.5 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="text-sm font-semibold">Cobertura Assistencial</div>
             {nivelForcado && (
               <button
                 onClick={sairDoHipo}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: 20,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  border: '1px solid #f0a0a0',
-                  background: '#fff0f0',
-                  color: '#c0392b',
-                }}
+                className="cursor-pointer rounded-full border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive"
               >
                 ✕ Sair da visão Hipo
               </button>

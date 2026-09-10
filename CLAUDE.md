@@ -143,11 +143,21 @@ versão simplificada de Feature-Sliced Design:
   cálculo citada em `docs/metodologia-parametros.md` e no agente
   `metodologia-sync` — mover esses exigiria atualizar CLAUDE.md e o agente
   junto; não mover sem necessidade real).
-- Migrado até agora: **`features/monitoramento-equipamento/`** (o módulo
-  mais isolado, já vivia quase inteiro em `pages/monitoramento/` antes).
-  Ainda em `pages/`/`components/` sem feature própria: dashboard de
-  cobertura (`components/dashboard/` + `DashboardPage`), mapa
-  (`components/mapa/` + `MapaPage`), relatórios (`RelatoriosPage` +
+- Migrado até agora: **`features/monitoramento-equipamento/`** e
+  **`features/dashboard-cobertura/`** (`CoberturaTable`,
+  `EstabelecimentoTable`, `NivelCoberturaTable`, `SubNivelRows`,
+  `MunicipioDetalheModal`, `BotaoDetalhe`, `InfoIcon`,
+  `StatusFilterButtons`). `KpiCard`/`MultiSelectFilter` **não** entraram
+  na feature apesar de morarem historicamente em `components/dashboard/`
+  — são presentacionais puros (zero lógica de domínio) usados também fora
+  do dashboard (Monitoramento, modais de exportação do Relatórios), então
+  foram pra `components/common/` em vez de pra dentro da feature (mesmo
+  critério já usado pro `SingleSelectFilter`: se o componente não carrega
+  regra de negócio própria e é cross-módulo, fica em `common/`, não numa
+  feature — só componente com lógica de domínio genuína, como
+  `SubNivelRows`, justifica um outro módulo importar de dentro da feature
+  via `index.ts`). Ainda em `pages/`/`components/` sem feature própria:
+  mapa (`components/mapa/` + `MapaPage`), relatórios (`RelatoriosPage` +
   `MetodologiaPage`), painel geral (`PainelGeralPage`) — migrar um por vez,
   não de uma vez (mesmo princípio da migração Tailwind abaixo).
 - Decisão explícita 2026-09-10: **não** adotar ainda TanStack Query/Axios/
@@ -191,6 +201,41 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   em `dependencies`.
 - Adicionar componente novo: `cd frontend && npx shadcn@latest add <nome>`
   (usa a mesma paleta automaticamente, já lê `components.json`).
+- **Variáveis novas (2026-09-10, pra dashboard-cobertura/mapa-equipamentos)**:
+  `--success`/`--success-foreground`/`--success-bg` (== `tokens.ts
+  colors.hiperGreen`/`hiperGreenBg`), `--warning`/`--warning-foreground`
+  (== `colors.logoOrange`), `--destructive-bg` (== `colors.hipoRedBg`) —
+  `--destructive` sólido já existia. As variantes "Bg" existem
+  especificamente pra interpolação de cor via D3 `scaleLinear` (MacroMap.tsx,
+  Fase 2) — isso precisa de 2 cores sólidas reais, opacidade Tailwind
+  (`bg-success/15`) não serve pra interpolação matemática. Pra `className`
+  comum, preferir a opacidade em vez de `bg-success-bg`.
+- **`src/lib/theme-colors.ts`**: helper `resolveThemeColor(cssVarName)` que
+  lê a variável CSS resolvida em runtime (`getComputedStyle`) — só pra D3/
+  Leaflet (`MacroMap.tsx`/`MacroMapReal.tsx`), que desenham imperativamente
+  e não aceitam `className`.
+- **`utils/status.ts` (`statusMeta`) devolve `variant` semântico
+  (`'success' | 'destructive'`), não mais hex** — `StatusBadge` usa o
+  `variant` direto numa classe Tailwind; quem precisa do hex real pra
+  desenho imperativo (`MacroMap.tsx`, tooltip D3) resolve
+  `resolveThemeColor('--' + variant)` em vez de duplicar hex.
+- **Risco aceito conscientemente (decisão do usuário, 2026-09-10)**: as 3
+  tabelas do dashboard (`CoberturaTable`/`EstabelecimentoTable`/
+  `NivelCoberturaTable`) usam o `<Table>` do shadcn completo, incluindo o
+  wrapper `overflow-x-auto` — isso colide em teoria com um bug já corrigido
+  (tooltip do `InfoIcon`, absolutamente posicionado, sendo cortado por
+  `overflow != visible` em qualquer eixo ancestral, ver comentário histórico
+  no código). Testado manualmente após a migração e o tooltip renderizou
+  sem corte nos casos comuns (bloco de conteúdo não excede a largura do
+  container) — mas o padrão pode reaparecer se um popup ficar mais largo
+  que a tabela. `SubNivelRows.tsx` ficou de fora dessa migração pro `<Table>`
+  (continua `<table>` nativo) por depender de `table-layout:fixed`, testado
+  e funcionando, sem necessidade de reabrir.
+- **`KpiCard.tsx` prop `color: string` (hex livre) → `variant: 'primary' |
+  'destructive' | 'success' | 'warning'`** — mudança de contrato, não só de
+  estilo. Call sites fora do dashboard (`Monitoramento{Overview,
+  Equipamentos,Painel}Page.tsx`) foram atualizados só nessa prop, sem
+  reestilizar mais nada nessas páginas (continuam fora de escopo).
 
 ## Config e deploy — pegadinhas já resolvidas
 

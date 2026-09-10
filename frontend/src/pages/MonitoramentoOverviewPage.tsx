@@ -17,7 +17,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KpiCard } from '@/components/dashboard/KpiCard';
+import { KpiCard } from '@/components/common/KpiCard';
 import { SearchInput } from '@/components/common/SearchInput';
 import { SingleSelectFilter } from '@/components/common/SingleSelectFilter';
 import { colors, layout } from '@/styles/tokens';
@@ -226,16 +226,16 @@ export function MonitoramentoOverviewPage() {
       </p>
 
       <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 20 }}>
-          <KpiCard label="Instrumentos monitorados" value={resumo.total_instrumentos} color={colors.primary} />
+          <KpiCard label="Instrumentos monitorados" value={resumo.total_instrumentos} variant="primary" />
           <KpiCard
             label="Execução física média"
             value={resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—'}
-            color={colors.primaryDark}
+            variant="primary"
           />
-          <KpiCard label="Licenças CNEN deferidas" value={resumo.licencas_cnen_deferidas} color={colors.hiperGreen} />
-          <KpiCard label="Equipamentos com pagamento" value={comPagamento ?? '...'} color={colors.hiperGreen} />
-          <KpiCard label={`Equipamentos previstos ${anoAtual}`} value={previstosPorAno(anoAtual)} color={colors.logoOrange} />
-          <KpiCard label={`Equipamentos previstos ${anoAtual + 1}`} value={previstosPorAno(anoAtual + 1)} color={colors.logoOrange} />
+          <KpiCard label="Licenças CNEN deferidas" value={resumo.licencas_cnen_deferidas} variant="success" />
+          <KpiCard label="Equipamentos com pagamento" value={comPagamento ?? '...'} variant="success" />
+          <KpiCard label={`Equipamentos previstos ${anoAtual}`} value={previstosPorAno(anoAtual)} variant="warning" />
+          <KpiCard label={`Equipamentos previstos ${anoAtual + 1}`} value={previstosPorAno(anoAtual + 1)} variant="warning" />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
