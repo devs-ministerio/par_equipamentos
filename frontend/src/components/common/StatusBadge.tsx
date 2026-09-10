@@ -1,19 +1,11 @@
+import { Badge } from '@/components/ui/badge';
 import { statusMeta } from '../../utils/status';
 
 export function StatusBadge({ cobertura }: { cobertura: number }) {
   const meta = statusMeta(cobertura);
   return (
-    <span
-      style={{
-        background: meta.bg,
-        color: meta.color,
-        fontSize: 11.5,
-        fontWeight: 600,
-        padding: '3px 9px',
-        borderRadius: 20,
-      }}
-    >
+    <Badge variant={meta.variant} className="text-[11.5px] font-semibold">
       {meta.label}
-    </span>
+    </Badge>
   );
 }

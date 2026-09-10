@@ -10,6 +10,7 @@ import { scaleLinear, scaleSqrt } from 'd3-scale';
 import { select } from 'd3-selection';
 import type { GeoJsonProperties, Geometry } from 'geojson';
 import { statusMeta } from '../../utils/status';
+import { resolveThemeColor } from '@/lib/theme-colors';
 import { formatMultiplicador } from '../../utils/format';
 import { calcularCoeficiente } from '../../utils/coeficiente';
 import { colors } from '../../styles/tokens';
@@ -180,6 +181,13 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         const macro = macroId ? macroById.get(macroId) : undefined;
         const row = macroId ? coberturaById.get(macroId) : undefined;
         const meta = row ? statusMeta(row.cobertura) : null;
+        // statusMeta devolve `variant` semantico (nao hex) desde 2026-09-10
+        // -- resolve pro hex real da variavel CSS aqui, so nesse 1 ponto que
+        // ficou incompativel com a mudanca de contrato (o resto do desenho
+        // imperativo desse componente -- escalaVermelho/Verde, fill/stroke,
+        // tooltip -- migra pro mesmo helper na reestilizacao de
+        // mapa-equipamentos, nao adiantada aqui).
+        const metaColor = meta ? resolveThemeColor(`--${meta.variant}`) : undefined;
         // Mesmo indicador colorido ("1,31x") usado em todo o resto do app
         // (StatusBadge/tabelas/cards) -- substitui "pessoas por
         // equipamento" (2026-08-24), que nao normalizava pela produtividade
@@ -193,7 +201,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         tooltip.innerHTML = macro
           ? `<strong>${macro.nome} (${macro.uf})</strong><br>Coeficiente: <span style="color:${coef?.corTexto ?? '#fff'}">${
               coef?.valor != null ? formatMultiplicador(coef.valor) : '—'
-            }</span><br><span style="color:${meta?.color ?? '#fff'}">${meta?.label ?? ''}</span>`
+            }</span><br><span style="color:${metaColor ?? '#fff'}">${meta?.label ?? ''}</span>`
           : `<strong>Código ${macroId ?? '—'}</strong><br>Sem dado nessa competência`;
       })
       .on('mouseleave', () => {

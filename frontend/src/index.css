@@ -10,7 +10,9 @@
   /* Tokens do design (ver src/styles/tokens.ts) espelhados aqui como
      variaveis CSS -- shadcn/ui le essas variaveis (--background,
      --primary etc). Enquanto a migracao nao move tokens.ts pra ca de
-     vez, os dois arquivos precisam ficar em sincronia manualmente. */
+     vez, os dois arquivos precisam ficar em sincronia manualmente --
+     agora com --success/--warning/--destructive-bg tambem (adicionadas
+     2026-09-10 pra reestilizacao de dashboard-cobertura/mapa-equipamentos). */
   --background: #f4f6fb;
   --foreground: #16213e;
   --card: #ffffff;
@@ -29,6 +31,20 @@
   --accent-foreground: #16213e;
   --destructive: #b40d0d;
   --destructive-foreground: #ffffff;
+  /* == tokens.ts colors.hipoRedBg -- variante clara SOLIDA, nao opacidade.
+     Existe pra caso que precisa de 2 cores solidas reais (ex. interpolacao
+     de cor via D3 scaleLinear em MacroMap.tsx) -- pra className comum,
+     preferir bg-destructive/15 em vez desta variavel. */
+  --destructive-bg: #fde8e8;
+  /* == tokens.ts colors.hiperGreen -- "hiperssuficiente". */
+  --success: #2f6a1d;
+  --success-foreground: #ffffff;
+  /* == tokens.ts colors.hiperGreenBg -- mesma ressalva do --destructive-bg
+     acima (solida, pra D3; className comum usa bg-success/15). */
+  --success-bg: #eaf3e0;
+  /* == tokens.ts colors.logoOrange. */
+  --warning: #f5a623;
+  --warning-foreground: #16213e;
   --ring: #1a3a9c;
   --radius: 0.5rem;
   /* chart-N e sidebar-N nao tem token equivalente ainda (app nao usa
@@ -68,6 +84,12 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-bg: var(--destructive-bg);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);

@@ -1,4 +1,4 @@
-import { colors } from '../../styles/tokens';
+import { Input } from '@/components/ui/input';
 
 interface Props {
   value: string;
@@ -12,19 +12,13 @@ interface Props {
 
 export function SearchInput({ value, onChange, placeholder, width = 240 }: Props) {
   return (
-    <input
+    <Input
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      style={{
-        border: `1px solid ${colors.border}`,
-        borderRadius: 6,
-        padding: '6px 10px',
-        fontSize: 12,
-        outline: 'none',
-        width,
-      }}
+      className="text-xs"
+      style={{ width }}
     />
   );
 }
