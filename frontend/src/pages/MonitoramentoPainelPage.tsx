@@ -26,14 +26,20 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KpiCard } from '../components/dashboard/KpiCard';
-import { colors, layout } from '../styles/tokens';
-import { normalizarTexto } from '../utils/texto';
-import { API_BASE_URL } from './monitoramento/api';
-import { fmtData, fmtMoeda } from './monitoramento/format';
-import type { SiconvEntrada } from './monitoramento/types';
-import { type ContagemRotulo, BarraDistribuicao, corValidade, estiloCard } from './monitoramento/ui';
-import { useJson } from './monitoramento/useJson';
+import { KpiCard } from '@/components/dashboard/KpiCard';
+import { colors, layout } from '@/styles/tokens';
+import { normalizarTexto } from '@/utils/texto';
+import {
+  API_BASE_URL,
+  BarraDistribuicao,
+  corValidade,
+  estiloCard,
+  fmtData,
+  fmtMoeda,
+  useJson,
+  type ContagemRotulo,
+  type SiconvEntrada,
+} from '@/features/monitoramento-equipamento';
 
 type InauguracaoApi = { nr_convenio: string; nome_convenente: string; data: string; realizada: boolean; dias: number };
 type LicencaVencendoApi = { nr_convenio: string; nome_convenente: string; data_validade: string; dias: number };

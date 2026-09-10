@@ -1,4 +1,4 @@
-import type { ConvenioPortal, ConvenioUnificado, SiconvEntrada, TransfereGovEnte } from './types';
+import type { ConvenioPortal, ConvenioUnificado, SiconvEntrada, TransfereGovEnte } from '../types';
 
 function numOuNull(v: string | undefined | null): number | null {
   if (v === undefined || v === null || v === '') return null;

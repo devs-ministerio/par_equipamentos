@@ -45,7 +45,9 @@ CNEN e inauguração do equipamento de um convênio específico, depois do
 repasse. Schema em `backend/app/db/models.py` (seção "Monitoramento de
 equipamento"), API em `backend/app/routers/monitoramento.py`, front em
 `frontend/src/pages/Monitoramento{Overview,Instrumento,Painel}Page.tsx` +
-`frontend/src/pages/monitoramento/MonitoramentoInterno.tsx`. Overview
+`frontend/src/features/monitoramento-equipamento/` (feature FSD-lite, ver
+seção "Estrutura de pastas do frontend" — só as 4 páginas ficam em
+`pages/`, todo o resto do módulo mora na feature). Overview
 operacional (KPIs, fase média, licenças CNEN, inaugurações, filtros por
 fase/técnico/UF/tipo de contratação) em
 `/monitoramento-equipamentos/instrumentos`; detalhe por convênio em
@@ -117,6 +119,41 @@ reintroduzir o erro:
   depois que o CNES de cada convenente estiver identificado (join bem
   mais confiável que nome de município). Não propor cruzamento por nome
   de município enquanto isso não for resolvido.
+
+## Estrutura de pastas do frontend (FSD simplificado, em andamento)
+
+Desde 2026-09-10 o front está migrando, feature por feature, pra uma
+versão simplificada de Feature-Sliced Design:
+
+- `src/features/<nome>/{components,hooks,lib,types}/` + `index.ts` — módulo
+  de negócio isolado. `index.ts` é o único ponto de importação permitido
+  pra quem está fora da feature (`src/pages/*` importa só dali, nunca
+  `features/x/components/Y` direto) — mantém a feature livre pra
+  reorganizar o interior sem quebrar quem consome. **Sem enforcement de
+  lint**: oxlint hoje só tem plugins `react`/`typescript`/`oxc`, não tem
+  equivalente a `eslint-plugin-boundaries`/steiger — a regra é só
+  convenção, revisar isso à mão em PR.
+- `src/pages/*.tsx` — só composição de rota (o que a página monta a partir
+  de features + components globais), sem lógica de negócio própria.
+- `src/components/{ui,layout,common,dashboard,mapa,modals}/`,
+  `src/context/`, `src/types/`, `src/data/`, `src/utils/`, `src/styles/`
+  — compartilhado entre features, fica **fora** de `features/` de
+  propósito (`types/domain.ts` é usado por ~20 arquivos, `data/constants.ts`
+  por ~16, `utils/coeficiente.ts`/`utils/status.ts` implementam regra de
+  cálculo citada em `docs/metodologia-parametros.md` e no agente
+  `metodologia-sync` — mover esses exigiria atualizar CLAUDE.md e o agente
+  junto; não mover sem necessidade real).
+- Migrado até agora: **`features/monitoramento-equipamento/`** (o módulo
+  mais isolado, já vivia quase inteiro em `pages/monitoramento/` antes).
+  Ainda em `pages/`/`components/` sem feature própria: dashboard de
+  cobertura (`components/dashboard/` + `DashboardPage`), mapa
+  (`components/mapa/` + `MapaPage`), relatórios (`RelatoriosPage` +
+  `MetodologiaPage`), painel geral (`PainelGeralPage`) — migrar um por vez,
+  não de uma vez (mesmo princípio da migração Tailwind abaixo).
+- Decisão explícita 2026-09-10: **não** adotar ainda TanStack Query/Axios/
+  tipos gerados via OpenAPI — `src/services/api.ts` continua fetch puro
+  por enquanto (mover pra `src/api/client.ts` é decisão futura separada,
+  não empacotada com a reorganização de pasta).
 
 ## Migração de arquitetura do frontend (em andamento, progressiva)
 

@@ -8,13 +8,13 @@
  * criacao de instrumento, so backend/scripts/seed_monitoramento.py --
  * decisao do usuario 2026-09-09: continua POC, nao escala ainda). */
 import { useEffect, useState } from 'react';
-import { colors } from '../../styles/tokens';
-import { API_BASE_URL } from './api';
-import { componenteDoProgramaSiconv } from './componenteSiconv';
-import { fmtData, fmtMoeda } from './format';
-import type { SiconvEntrada } from './types';
+import { colors } from '@/styles/tokens';
+import { API_BASE_URL } from '../lib/api';
+import { componenteDoProgramaSiconv } from '../lib/componenteSiconv';
+import { fmtData, fmtMoeda } from '../lib/format';
+import type { SiconvEntrada } from '../types';
 import { corValidade, estiloCard, estiloInput, StatusPill } from './ui';
-import { useJson } from './useJson';
+import { useJson } from '../hooks/useJson';
 
 type MarcoCatalogoApi = {
   id: number;

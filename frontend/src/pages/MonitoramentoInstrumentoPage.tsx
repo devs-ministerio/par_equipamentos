@@ -12,8 +12,8 @@
  * conteudo especifico da pagina.
  */
 import { Link, useParams } from 'react-router-dom';
-import { colors } from '../styles/tokens';
-import { MonitoramentoInterno } from './monitoramento/MonitoramentoInterno';
+import { colors } from '@/styles/tokens';
+import { MonitoramentoInterno } from '@/features/monitoramento-equipamento';
 
 export function MonitoramentoInstrumentoPage() {
   const { nrConvenio } = useParams<{ nrConvenio: string }>();

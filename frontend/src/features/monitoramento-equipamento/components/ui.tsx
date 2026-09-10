@@ -2,7 +2,7 @@
  * paleta clara reaproveitando styles/tokens.ts (mesma linguagem visual do
  * Dashboard/Painel Geral), pagina continua fora do AppLayout (decisao
  * 2026-09-03, ver MonitoramentoEquipamentosPage.tsx). */
-import { colors } from '../../styles/tokens';
+import { colors } from '@/styles/tokens';
 
 /** Sombra suave em vez de so borda -- cartao "flutua" sobre o fundo
  * (colors.surface) ao inves de se misturar nele, mesma linguagem visual

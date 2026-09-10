@@ -7,10 +7,10 @@
  * proprio, so essa parte): dados aninhados. */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { colors } from '../../styles/tokens';
-import { fmtData, fmtMoeda, pct } from './format';
+import { colors } from '@/styles/tokens';
+import { fmtData, fmtMoeda, pct } from '../lib/format';
 import { SiconvSubAbas } from './SiconvSubAbas';
-import type { ConvenioUnificado, ProgramaTransfereGov } from './types';
+import type { ConvenioUnificado, ProgramaTransfereGov } from '../types';
 import { Campo, estiloCard, Secao, StatusPill } from './ui';
 
 export function ConvenioCard({

@@ -10,9 +10,9 @@
  * -- so achado ate agora tem proposta em 2025; 2026 existe como `programa`
  * mas sem proposta ainda, e 2024 ("REDE DE ATENCAO...") nao tem `programa`
  * equivalente em nenhuma API (documentado no script). */
-import { colors } from '../../styles/tokens';
-import { fmtMoeda } from './format';
-import type { ComponenteOncologia } from './types';
+import { colors } from '@/styles/tokens';
+import { fmtMoeda } from '../lib/format';
+import type { ComponenteOncologia } from '../types';
 import { Campo, estiloCard, Secao, StatusPill } from './ui';
 
 export function SecaoComponentes({ dados }: { dados: ComponenteOncologia[] }) {

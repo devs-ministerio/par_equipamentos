@@ -11,8 +11,8 @@
  * por equipamento na lista principal, sem duplicar a varredura nacional
  * (so re-classifica os itens SICONV/TransfereGov que o convenio ja tem
  * carregado). Se os padroes do backend mudarem, atualizar os dois juntos. */
-import { normalizarTexto } from '../../utils/texto';
-import type { ConvenioUnificado } from './types';
+import { normalizarTexto } from '@/utils/texto';
+import type { ConvenioUnificado } from '../types';
 
 export const EQUIPAMENTOS_ALVO = [
   'Acelerador Linear', 'Mamógrafo', 'PET/CT', 'Gama-câmara/SPECT', 'Braquiterapia',

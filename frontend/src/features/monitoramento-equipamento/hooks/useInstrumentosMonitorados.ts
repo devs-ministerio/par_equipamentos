@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { API_BASE_URL } from './api';
+import { API_BASE_URL } from '../lib/api';
 
 /** So os numeros de convenio que tem instrumento monitorado internamente
  * -- 1 chamada leve na pagina inteira (GET /monitoramento/instrumentos),

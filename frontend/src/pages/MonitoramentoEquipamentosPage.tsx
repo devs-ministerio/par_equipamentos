@@ -33,21 +33,28 @@
  * que os scripts rodarem de novo.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { KpiCard } from '../components/dashboard/KpiCard';
-import { Pagination } from '../components/common/Pagination';
-import { SearchInput } from '../components/common/SearchInput';
-import { SingleSelectFilter } from '../components/common/SingleSelectFilter';
-import { colors, layout } from '../styles/tokens';
-import { normalizarTexto } from '../utils/texto';
-import { ConvenioCard } from './monitoramento/ConvenioCard';
-import { EQUIPAMENTOS_ALVO, equipamentosDoConvenio } from './monitoramento/equipamentoTags';
-import { fmtMoeda } from './monitoramento/format';
-import { mesclarConvenios } from './monitoramento/mesclarConvenios';
-import { SecaoComponentes } from './monitoramento/SecaoComponentes';
-import type { ComponenteOncologia, ConvenioPortal, ProgramaTransfereGov, SiconvEntrada, TransfereGovEnte } from './monitoramento/types';
-import { LEGENDA_STATUS } from './monitoramento/ui';
-import { useInstrumentosMonitorados } from './monitoramento/useInstrumentosMonitorados';
-import { useJson } from './monitoramento/useJson';
+import { KpiCard } from '@/components/dashboard/KpiCard';
+import { Pagination } from '@/components/common/Pagination';
+import { SearchInput } from '@/components/common/SearchInput';
+import { SingleSelectFilter } from '@/components/common/SingleSelectFilter';
+import { colors, layout } from '@/styles/tokens';
+import { normalizarTexto } from '@/utils/texto';
+import {
+  ConvenioCard,
+  EQUIPAMENTOS_ALVO,
+  equipamentosDoConvenio,
+  fmtMoeda,
+  LEGENDA_STATUS,
+  mesclarConvenios,
+  SecaoComponentes,
+  useInstrumentosMonitorados,
+  useJson,
+  type ComponenteOncologia,
+  type ConvenioPortal,
+  type ProgramaTransfereGov,
+  type SiconvEntrada,
+  type TransfereGovEnte,
+} from '@/features/monitoramento-equipamento';
 
 type Aba = 'convenios' | 'componentes';
 

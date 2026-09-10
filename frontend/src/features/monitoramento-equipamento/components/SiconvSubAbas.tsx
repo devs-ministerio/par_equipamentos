@@ -4,9 +4,9 @@
  * ConvenioCard.tsx). Reduz rolagem: card com bastante linha em todas as
  * tabelas nao vira uma coluna gigante, só a aba ativa renderiza. */
 import { useState } from 'react';
-import { colors } from '../../styles/tokens';
-import { fmtData, fmtMoeda } from './format';
-import type { SiconvEntrada } from './types';
+import { colors } from '@/styles/tokens';
+import { fmtData, fmtMoeda } from '../lib/format';
+import type { SiconvEntrada } from '../types';
 import { estiloTabela, estiloTabelaWrapper, estiloTd, estiloTh } from './ui';
 
 type AbaKey = 'itens' | 'empenhos' | 'desembolsos' | 'licitacoes' | 'termos' | 'fornecedores';

@@ -17,16 +17,20 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KpiCard } from '../components/dashboard/KpiCard';
-import { SearchInput } from '../components/common/SearchInput';
-import { SingleSelectFilter } from '../components/common/SingleSelectFilter';
-import { colors, layout } from '../styles/tokens';
-import { normalizarTexto } from '../utils/texto';
-import { API_BASE_URL } from './monitoramento/api';
-import { fmtData } from './monitoramento/format';
-import type { SiconvEntrada } from './monitoramento/types';
-import { type ContagemRotulo, BarraDistribuicao, estiloCard } from './monitoramento/ui';
-import { useJson } from './monitoramento/useJson';
+import { KpiCard } from '@/components/dashboard/KpiCard';
+import { SearchInput } from '@/components/common/SearchInput';
+import { SingleSelectFilter } from '@/components/common/SingleSelectFilter';
+import { colors, layout } from '@/styles/tokens';
+import { normalizarTexto } from '@/utils/texto';
+import {
+  API_BASE_URL,
+  BarraDistribuicao,
+  estiloCard,
+  fmtData,
+  useJson,
+  type ContagemRotulo,
+  type SiconvEntrada,
+} from '@/features/monitoramento-equipamento';
 
 type InauguracaoApi = {
   nr_convenio: string;

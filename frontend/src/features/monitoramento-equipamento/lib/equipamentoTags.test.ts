@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { equipamentosDoConvenio } from './equipamentoTags';
-import type { ConvenioUnificado } from './types';
+import type { ConvenioUnificado } from '../types';
 
 /** Convenio minimo so com o que a funcao le -- ver equipamentoTags.ts. */
 function convenioComItens(descricoes: string[]): ConvenioUnificado {
