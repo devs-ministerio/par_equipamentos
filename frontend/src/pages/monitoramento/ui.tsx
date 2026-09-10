@@ -83,6 +83,42 @@ export function Campo({ label, legenda, children }: { label: string; legenda?: R
   );
 }
 
+/** Cor por urgencia de vencimento (licenca CNEN, mas generico) -- achado
+ * 2026-09-09, movido pra ca de MonitoramentoInterno.tsx pra reaproveitar
+ * tambem no Painel de Gestao. `dias` negativo = ja venceu. */
+export function corValidade(dias: number): string {
+  if (dias < 0) return colors.hipoRed;
+  if (dias < 90) return colors.hipoRed;
+  if (dias < 180) return colors.logoOrange;
+  return colors.hiperGreen;
+}
+
+/** {rotulo, quantidade} generico -- distribuicao por fase/tecnico/UF/
+ * componente/tipo de contratacao (achado 2026-09-09, movido pra ca de
+ * MonitoramentoOverviewPage.tsx pra ser reaproveitado tambem no Painel
+ * de Gestao, ver MonitoramentoPainelPage.tsx). */
+export type ContagemRotulo = { rotulo: string; quantidade: number };
+
+/** Barra horizontal simples (sem lib de grafico -- so CSS, mais leve). */
+export function BarraDistribuicao({ itens, corBarra }: { itens: ContagemRotulo[]; corBarra: string }) {
+  const max = Math.max(1, ...itens.map((i) => i.quantidade));
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {itens.map((item) => (
+        <div key={item.rotulo}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 2 }}>
+            <span>{item.rotulo}</span>
+            <strong>{item.quantidade}</strong>
+          </div>
+          <div style={{ height: 8, borderRadius: 999, background: colors.surface }}>
+            <div style={{ height: '100%', borderRadius: 999, width: `${(item.quantidade / max) * 100}%`, background: corBarra }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Secao({ titulo, contagem, children }: { titulo: string; contagem?: number; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 18 }}>

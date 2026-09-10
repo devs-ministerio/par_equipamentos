@@ -519,6 +519,15 @@ class InstrumentoEquipamento(Base):
     tp_instrumento_programa: Mapped[str | None] = mapped_column(String)
     componente: Mapped[str | None] = mapped_column(String)
     ano_instrumento: Mapped[int | None] = mapped_column(Integer)
+    # Coluna "TIPO DE CONTRATAÇÃO" da planilha -- achado 2026-09-09 (pedido
+    # do usuario: incluir os 28 registros FAF/TED que ficaram de fora do
+    # import inicial por nao terem numero de convenio TransfereGov). Nunca
+    # editavel a mao (so vem da planilha/import) -- "Convênio" pros 105 do
+    # universo de 403, "FAF"/"TED" pros que entram so por NUP SEI (ver
+    # comentario em nr_convenio nao existe aqui, mas o import script
+    # documenta a resolucao de identificador). None quando a propria
+    # planilha nao sabia.
+    tipo_contratacao: Mapped[str | None] = mapped_column(String)
     # Deliberadamente SEM valor_global/valor_repasse/valor_contrapartida/situacao
     # aqui (decisao do usuario, 2026-09-03): esses campos JA existem em API
     # (Portal da Transparencia /convenios/numero) -- guardar uma copia
@@ -532,6 +541,13 @@ class InstrumentoEquipamento(Base):
     nivel_monitoramento: Mapped[str | None] = mapped_column(String)
     finalidade: Mapped[str | None] = mapped_column(String)
     modalidade_onco: Mapped[str | None] = mapped_column(String)
+    # Responsavel tecnico da execucao NA INSTITUICAO/convenente (colunas 42-43
+    # da planilha) -- achado 2026-09-09, DIFERENTE de tecnico_titular/suplente
+    # acima (que sao da NOSSA equipe DECAN/FNS). Opcional de proposito, sem
+    # exigir preenchimento (pedido do usuario: "pode incluir o campo pro
+    # contato mas sem obrigacao de preenchimento").
+    responsavel_execucao_nome: Mapped[str | None] = mapped_column(String)
+    responsavel_execucao_contato: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

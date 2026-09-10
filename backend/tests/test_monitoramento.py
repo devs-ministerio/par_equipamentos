@@ -100,6 +100,12 @@ def test_patch_cadastro_nunca_toca_equipamento_descricao():
     assert "equipamento_descricao" not in InstrumentoEquipamentoUpdate.model_fields
 
 
+def test_patch_cadastro_nunca_toca_tipo_contratacao():
+    """tipo_contratacao (Convênio/FAF/TED) so vem da planilha/import --
+    achado 2026-09-09, 2a rodada, nunca editavel a mao por aqui."""
+    assert "tipo_contratacao" not in InstrumentoEquipamentoUpdate.model_fields
+
+
 def test_patch_cadastro_convenio_inexistente_404():
     db = SessionLocal()
     try:
@@ -136,6 +142,78 @@ def test_registrar_evento_persiste_numero_documento_e_data_validade():
         db.close()
 
 
+def test_registrar_evento_de_entrega_atualiza_equipamento_e_observacao():
+    """Achado 2026-09-09, 2a rodada (pedido do usuario: "o equipamento
+    entregue pode mover para eventos"): so o marco cronograma_entrega
+    aplica os campos fisicos em InstrumentoEquipamento (estado atual) E
+    compoe um resumo textual na observacao do evento (retrato historico)."""
+    db = SessionLocal()
+    evento_id = None
+    instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
+    original = dict(
+        marca=instrumento.equipamento_marca, modelo=instrumento.equipamento_modelo,
+        serie=instrumento.equipamento_numero_serie, vida_util=instrumento.equipamento_vida_util_anos,
+    )
+    try:
+        marco_entrega = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
+        corpo = EventoMarcoCreate(
+            marco_id=marco_entrega.id,
+            data_ocorrencia=date(2026, 2, 1),
+            observacao="Entrega de teste -- apagar",
+            autor_nome="pytest",
+            equipamento_marca="MARCA TESTE",
+            equipamento_modelo="MODELO TESTE",
+            equipamento_numero_serie="SN-TESTE-1",
+            equipamento_vida_util_anos=10,
+        )
+        resultado = registrar_evento(NR_CONVENIO_SEED, corpo, db)
+        evento_id = resultado.id
+        assert "Equipamento entregue: MARCA TESTE MODELO TESTE" in resultado.observacao
+        assert "Nº série SN-TESTE-1" in resultado.observacao
+        assert "Vida útil 10 ano(s)" in resultado.observacao
+
+        db.refresh(instrumento)
+        assert instrumento.equipamento_marca == "MARCA TESTE"
+        assert instrumento.equipamento_modelo == "MODELO TESTE"
+        assert instrumento.equipamento_numero_serie == "SN-TESTE-1"
+        assert instrumento.equipamento_vida_util_anos == 10
+    finally:
+        if evento_id is not None:
+            db.query(EventoMarco).filter_by(id=evento_id).delete()
+        instrumento.equipamento_marca = original["marca"]
+        instrumento.equipamento_modelo = original["modelo"]
+        instrumento.equipamento_numero_serie = original["serie"]
+        instrumento.equipamento_vida_util_anos = original["vida_util"]
+        db.commit()
+        db.close()
+
+
+def test_registrar_evento_fora_da_entrega_ignora_campos_de_equipamento():
+    """Marco que nao seja cronograma_entrega nunca mexe em
+    InstrumentoEquipamento por causa de equipamento_* no corpo -- so
+    cronograma_entrega tem esse efeito colateral, de proposito."""
+    db = SessionLocal()
+    evento_id = None
+    instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
+    original_marca = instrumento.equipamento_marca
+    try:
+        marco_licenca = db.query(MarcoCatalogo).filter_by(codigo="regulatorio_licenca_operacao").one()
+        corpo = EventoMarcoCreate(
+            marco_id=marco_licenca.id, autor_nome="pytest",
+            observacao="Evento de teste -- apagar", equipamento_marca="NAO DEVERIA SALVAR",
+        )
+        resultado = registrar_evento(NR_CONVENIO_SEED, corpo, db)
+        evento_id = resultado.id
+        assert "Equipamento entregue" not in (resultado.observacao or "")
+        db.refresh(instrumento)
+        assert instrumento.equipamento_marca == original_marca
+    finally:
+        if evento_id is not None:
+            db.query(EventoMarco).filter_by(id=evento_id).delete()
+            db.commit()
+        db.close()
+
+
 def test_resumo_traz_totais_e_lista_de_convenios():
     """DB de dev tem dado real importado (scripts/importar_planilha_monitoramento.py,
     2026-09-09) -- so checa estrutura/consistencia, nao conta exata (o
@@ -153,6 +231,17 @@ def test_resumo_traz_totais_e_lista_de_convenios():
         # Toda inauguracao listada tem convenio real do resumo.
         for i in resumo.inauguracoes:
             assert i.nr_convenio in resumo.nr_convenios
+        # Toda licenca por vencer listada tem convenio real do resumo.
+        for licenca in resumo.licencas_vencendo:
+            assert licenca.nr_convenio in resumo.nr_convenios
+        # Achado 2026-09-09, 2a rodada: instrumento sem tecnico_titular
+        # (NA/NI ja viram NULL na migration/import) sempre conta, com
+        # rotulo proprio -- nunca "NA"/"NI" nem omitido silenciosamente.
+        rotulos_tecnico = {c.rotulo for c in resumo.por_tecnico_titular}
+        assert "NA" not in rotulos_tecnico
+        assert "NI" not in rotulos_tecnico
+        total_tecnico = sum(c.quantidade for c in resumo.por_tecnico_titular)
+        assert total_tecnico == resumo.total_instrumentos
     finally:
         db.close()
 

@@ -44,13 +44,15 @@ que nenhum sistema federal rastreia: entrega, instalação, licenciamento
 CNEN e inauguração do equipamento de um convênio específico, depois do
 repasse. Schema em `backend/app/db/models.py` (seção "Monitoramento de
 equipamento"), API em `backend/app/routers/monitoramento.py`, front em
-`frontend/src/pages/Monitoramento{Overview,Instrumento}Page.tsx` +
+`frontend/src/pages/Monitoramento{Overview,Instrumento,Painel}Page.tsx` +
 `frontend/src/pages/monitoramento/MonitoramentoInterno.tsx`. Overview
-agregado (KPIs, fase média, licenças CNEN, inaugurações, pendências) em
+operacional (KPIs, fase média, licenças CNEN, inaugurações) em
 `/monitoramento-equipamentos/instrumentos`; detalhe por convênio em
-`/monitoramento-equipamentos/instrumentos/{nr_convenio}`.
+`/monitoramento-equipamentos/instrumentos/{nr_convenio}`; painel
+executivo (só dashboards, sem tabela/form, pra avaliação da gestão) em
+`/monitoramento-equipamentos/painel`.
 
-Três distinções que já causaram confusão ao mexer nisso, para não
+Quatro distinções que já causaram confusão ao mexer nisso, para não
 reintroduzir o erro:
 
 - **`EventoMarco` (histórico) ≠ `AcaoMonitoramento` (tarefa)**: evento é
@@ -65,13 +67,25 @@ reintroduzir o erro:
   editável por aqui (`InstrumentoEquipamentoUpdate` não inclui esse
   campo de propósito, ver teste
   `test_patch_cadastro_nunca_toca_equipamento_descricao`) — só o físico,
-  e só depois que o estabelecimento confirma a entrega.
-- **Escopo bem menor que os 403 convênios**: só cobre os instrumentos que
-  a equipe decide monitorar (71 hoje, importados de
-  `backend/scripts/importar_planilha_monitoramento.py` a partir da
-  planilha real da equipe). Convênio sem `InstrumentoEquipamento` não é
-  erro — é o caso normal, a maioria ainda não entrou nesse
-  acompanhamento manual.
+  e só depois que o estabelecimento confirma a entrega. Desde 2026-09-09
+  o físico é preenchido junto do evento "Entrega no estabelecimento"
+  (marco `cronograma_entrega`, ver `registrar_evento`), não mais num
+  form de cadastro separado — o PATCH continua existindo só pra corrigir
+  depois.
+- **Escopo bem menor que os 403 convênios, e nem tudo é Convênio**: só
+  cobre os instrumentos que a equipe decide monitorar (86 hoje,
+  importados de `backend/scripts/importar_planilha_monitoramento.py` a
+  partir da planilha real da equipe — import é bootstrap único, não
+  rodar de novo como sincronização recorrente). Convênio sem
+  `InstrumentoEquipamento` não é erro — é o caso normal. Desde
+  2026-09-09 o campo `tipo_contratacao` distingue "Convênio" (universo
+  Portal/TransfereGov, `nr_convenio` real) de "FAF"/"TED" (nunca tiveram
+  número TransfereGov — `nr_convenio` aqui guarda o NUP SEI com `/`
+  trocado por `_`, porque `/` cru quebra a rota `/instrumentos/{nr_convenio}`
+  mesmo codificado como `%2F`, testado ao vivo contra o backend).
+- **`tecnico_titular/suplente` (nossa equipe) ≠ `responsavel_execucao_nome/
+  contato` (da instituição/convenente)**: campos parecidos, fontes
+  diferentes — não confundir ao exibir ou editar.
 
 ## Limitações conhecidas
 

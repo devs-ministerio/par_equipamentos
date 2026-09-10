@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { colors } from '../../styles/tokens';
 import { API_BASE_URL } from './api';
 import { fmtData, fmtMoeda } from './format';
-import { estiloCard, estiloInput, StatusPill } from './ui';
+import { corValidade, estiloCard, estiloInput, StatusPill } from './ui';
 
 type MarcoCatalogoApi = {
   id: number;
@@ -68,8 +68,19 @@ type InstrumentoApi = {
   equipamento_numero_serie: string | null;
   equipamento_vida_util_anos: number | null;
   programa: string | null; tp_instrumento_programa: string | null; componente: string | null;
-  ano_instrumento: number | null; tecnico_titular: string | null; tecnico_suplente: string | null;
+  ano_instrumento: number | null;
+  /** "Convênio" (universo Portal/TransfereGov) / "FAF" / "TED" -- achado
+   * 2026-09-09, 2a rodada (pedido do usuario: incluir os 28 registros da
+   * planilha sem numero de convenio TransfereGov). So aparece como chip
+   * quando != "Convênio"/null. */
+  tipo_contratacao: string | null;
+  tecnico_titular: string | null; tecnico_suplente: string | null;
   nivel_monitoramento: string | null; finalidade: string | null; modalidade_onco: string | null;
+  /** Responsavel tecnico da execucao NA INSTITUICAO/convenente -- achado
+   * 2026-09-09, DIFERENTE de tecnico_titular/suplente (nossa equipe).
+   * Opcional, so informativo. */
+  responsavel_execucao_nome: string | null;
+  responsavel_execucao_contato: string | null;
 };
 
 /** Tarefa/pendencia da equipe -- DIFERENTE de EventoMarco de proposito
@@ -112,13 +123,6 @@ function diasAte(dataIso: string | null | undefined): number | null {
   return Math.round((alvo.getTime() - hoje.getTime()) / 86_400_000);
 }
 
-function corValidade(dias: number): string {
-  if (dias < 0) return colors.hipoRed;
-  if (dias < 90) return colors.hipoRed;
-  if (dias < 180) return colors.logoOrange;
-  return colors.hiperGreen;
-}
-
 export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: string }) {
   const [marcos, setMarcos] = useState<MarcoCatalogoApi[] | null>(null);
   const [timeline, setTimeline] = useState<TimelineApi | null>(null);
@@ -134,25 +138,32 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const [observacao, setObservacao] = useState('');
   const [autorNome, setAutorNome] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // Equipamento FISICO -- so pro marco cronograma_entrega (achado
+  // 2026-09-09, 2a rodada: "o equipamento entregue pode mover para
+  // eventos"). Nao e pre-preenchido com o estado atual de proposito --
+  // cada lancamento de evento de entrega e um retrato novo, nao edicao.
+  const [eventoEquipamentoMarca, setEventoEquipamentoMarca] = useState('');
+  const [eventoEquipamentoModelo, setEventoEquipamentoModelo] = useState('');
+  const [eventoEquipamentoNumeroSerie, setEventoEquipamentoNumeroSerie] = useState('');
+  const [eventoEquipamentoVidaUtilAnos, setEventoEquipamentoVidaUtilAnos] = useState('');
 
-  // Cadastro (tecnico/nivel/finalidade/modalidade + equipamento FISICO) --
-  // unico jeito de editar isso e o PATCH novo (achado 2026-09-09, antes so
-  // dava pra mudar rodando scripts/seed_monitoramento.py de novo).
+  // Cadastro (tecnico/nivel/finalidade/modalidade + contato do responsavel
+  // tecnico da execucao) -- unico jeito de editar isso e o PATCH novo
+  // (achado 2026-09-09, antes so dava pra mudar rodando
+  // scripts/seed_monitoramento.py de novo). Equipamento FISICO NAO mora
+  // mais aqui (achado 2026-09-09, 2a rodada) -- ver eventoEquipamento* e o
+  // form de "Lançar evento" pro marco cronograma_entrega.
   const [cadastroAberto, setCadastroAberto] = useState(false);
   const [tecnicoTitular, setTecnicoTitular] = useState('');
   const [tecnicoSuplente, setTecnicoSuplente] = useState('');
   const [nivelMonitoramento, setNivelMonitoramento] = useState('');
   const [finalidade, setFinalidade] = useState('');
   const [modalidadeOnco, setModalidadeOnco] = useState('');
-  // Equipamento FISICO de verdade -- so preenchido pelo estabelecimento
-  // DEPOIS da entrega (achado 2026-09-09: "não vamos alterar o
-  // equipamento que veio do SISCONV, mas sim cadastrar os dados... quando
-  // o estabelecimento disponibilizar, após a entrega"). NUNCA toca
-  // equipamento_descricao (esse e o planejado do SICONV, so leitura).
-  const [equipamentoMarca, setEquipamentoMarca] = useState('');
-  const [equipamentoModelo, setEquipamentoModelo] = useState('');
-  const [equipamentoNumeroSerie, setEquipamentoNumeroSerie] = useState('');
-  const [equipamentoVidaUtilAnos, setEquipamentoVidaUtilAnos] = useState('');
+  // Responsavel tecnico da execucao NA INSTITUICAO/convenente -- achado
+  // 2026-09-09, opcional, sem exigir preenchimento (DIFERENTE de
+  // tecnico_titular/suplente acima, que sao da nossa equipe).
+  const [responsavelExecucaoNome, setResponsavelExecucaoNome] = useState('');
+  const [responsavelExecucaoContato, setResponsavelExecucaoContato] = useState('');
   const [salvandoCadastro, setSalvandoCadastro] = useState(false);
 
   // Acoes de monitoramento -- separadas da timeline de eventos (design
@@ -188,10 +199,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
           setNivelMonitoramento(inst.nivel_monitoramento ?? '');
           setFinalidade(inst.finalidade ?? '');
           setModalidadeOnco(inst.modalidade_onco ?? '');
-          setEquipamentoMarca(inst.equipamento_marca ?? '');
-          setEquipamentoModelo(inst.equipamento_modelo ?? '');
-          setEquipamentoNumeroSerie(inst.equipamento_numero_serie ?? '');
-          setEquipamentoVidaUtilAnos(inst.equipamento_vida_util_anos != null ? String(inst.equipamento_vida_util_anos) : '');
+          setResponsavelExecucaoNome(inst.responsavel_execucao_nome ?? '');
+          setResponsavelExecucaoContato(inst.responsavel_execucao_contato ?? '');
         }
       })
       .catch((e) => setErro(String(e)));
@@ -215,11 +224,19 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
           data_validade: dataValidade || null,
           observacao: observacao || null,
           autor_nome: autorNome,
+          // So tem efeito no backend quando o marco e cronograma_entrega
+          // (achado 2026-09-09, 2a rodada) -- ignorado pra qualquer outro.
+          equipamento_marca: eventoEquipamentoMarca || null,
+          equipamento_modelo: eventoEquipamentoModelo || null,
+          equipamento_numero_serie: eventoEquipamentoNumeroSerie || null,
+          equipamento_vida_util_anos: eventoEquipamentoVidaUtilAnos ? Number(eventoEquipamentoVidaUtilAnos) : null,
         }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       setDataOcorrencia(''); setStatusRegulatorio(''); setNumeroDocumento(''); setDataValidade('');
       setObservacao(''); setFormAberto(false);
+      setEventoEquipamentoMarca(''); setEventoEquipamentoModelo('');
+      setEventoEquipamentoNumeroSerie(''); setEventoEquipamentoVidaUtilAnos('');
       carregar();
     } catch (e) {
       setErro(String(e));
@@ -241,10 +258,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
           nivel_monitoramento: nivelMonitoramento || null,
           finalidade: finalidade || null,
           modalidade_onco: modalidadeOnco || null,
-          equipamento_marca: equipamentoMarca || null,
-          equipamento_modelo: equipamentoModelo || null,
-          equipamento_numero_serie: equipamentoNumeroSerie || null,
-          equipamento_vida_util_anos: equipamentoVidaUtilAnos ? Number(equipamentoVidaUtilAnos) : null,
+          responsavel_execucao_nome: responsavelExecucaoNome || null,
+          responsavel_execucao_contato: responsavelExecucaoContato || null,
         }),
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -298,8 +313,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   if (monitorado === false) {
     return (
       <p style={{ fontSize: 12.5, color: colors.mutedText, fontStyle: 'italic' }}>
-        Ainda não monitorado internamente — POC cobre só o convênio 948686 por enquanto (decisão deliberada: validar
-        o desenho antes de escalar pros demais).
+        Ainda não monitorado internamente — escopo é bem menor que os 403 convênios (só os instrumentos que a
+        equipe decide acompanhar manualmente, ver <code>backend/scripts/importar_planilha_monitoramento.py</code>).
       </p>
     );
   }
@@ -346,18 +361,31 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
       <div style={{ ...estiloCard, marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>Convênio {inst.nr_convenio} — {inst.nome_convenente}</div>
+            <div style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Convênio {inst.nr_convenio} — {inst.nome_convenente}
+              {/* Chip de tipo_contratacao -- achado 2026-09-09, 2a rodada:
+                  os 28 registros FAF/TED (sem numero TransfereGov, usam o
+                  NUP SEI como identificador aqui) agora convivem com os
+                  Convênio de verdade -- deixa claro qual é qual. */}
+              {inst.tipo_contratacao && inst.tipo_contratacao !== 'Convênio' && (
+                <span style={{
+                  fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
+                  background: '#fff3e0', color: colors.logoOrange,
+                }}>
+                  {inst.tipo_contratacao}
+                </span>
+              )}
+            </div>
             <div style={{ fontSize: 12, color: colors.mutedText }}>
               {inst.municipio}/{inst.uf} · CNES {inst.cnes} · <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">{inst.equipamento_descricao}</span>
             </div>
             <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 4 }}>
               Programa: {inst.programa} ({inst.tp_instrumento_programa}) · Componente: <strong>{inst.componente}</strong>
             </div>
-            {(inst.equipamento_marca || inst.equipamento_modelo || inst.equipamento_numero_serie || inst.equipamento_vida_util_anos != null) && (
+            {(inst.responsavel_execucao_nome || inst.responsavel_execucao_contato) && (
               <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 4 }}>
-                Equipamento entregue: <strong>{inst.equipamento_marca ?? '—'}</strong> {inst.equipamento_modelo ?? ''}
-                {inst.equipamento_numero_serie && <> · Nº série <strong>{inst.equipamento_numero_serie}</strong></>}
-                {inst.equipamento_vida_util_anos != null && <> · Vida útil <strong>{inst.equipamento_vida_util_anos} ano(s)</strong></>}
+                Responsável técnico da execução (instituição): <strong>{inst.responsavel_execucao_nome ?? '—'}</strong>
+                {inst.responsavel_execucao_contato && <> · {inst.responsavel_execucao_contato}</>}
               </div>
             )}
             <div style={{ fontSize: 11.5, color: colors.mutedText, marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
@@ -427,36 +455,6 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
 
         {cadastroAberto && (
           <form onSubmit={salvarCadastro} style={{ marginTop: 12, display: 'grid', gap: 16 }}>
-            {/* Equipamento FISICO -- so o que o estabelecimento informa
-                DEPOIS da entrega (achado 2026-09-09). NUNCA
-                equipamento_descricao (esse e o planejado do SICONV, so
-                leitura -- mostrado acima, com tooltip explicando). */}
-            <div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.primary, marginBottom: 8 }}>
-                Equipamento entregue <span style={{ fontWeight: 400, color: colors.mutedText, textTransform: 'none' }}>(informado pelo estabelecimento após a entrega)</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
-                <div>
-                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Marca</label>
-                  <input style={{ ...estiloInput, width: '100%' }} value={equipamentoMarca} onChange={(e) => setEquipamentoMarca(e.target.value)} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Modelo</label>
-                  <input style={{ ...estiloInput, width: '100%' }} value={equipamentoModelo} onChange={(e) => setEquipamentoModelo(e.target.value)} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Nº de série</label>
-                  <input style={{ ...estiloInput, width: '100%' }} value={equipamentoNumeroSerie} onChange={(e) => setEquipamentoNumeroSerie(e.target.value)} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Vida útil (anos)</label>
-                  <input
-                    type="number" min={0} style={{ ...estiloInput, width: '100%' }}
-                    value={equipamentoVidaUtilAnos} onChange={(e) => setEquipamentoVidaUtilAnos(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
               <div>
                 <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Técnico titular</label>
@@ -477,6 +475,25 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
               <div>
                 <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Modalidade</label>
                 <input style={{ ...estiloInput, width: '100%' }} value={modalidadeOnco} onChange={(e) => setModalidadeOnco(e.target.value)} />
+              </div>
+            </div>
+            {/* Responsavel tecnico da execucao NA INSTITUICAO/convenente --
+                achado 2026-09-09, DIFERENTE dos campos de tecnico
+                titular/suplente acima (que sao da nossa equipe). Opcional,
+                sem exigir preenchimento. */}
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.primary, marginBottom: 8 }}>
+                Responsável técnico da execução <span style={{ fontWeight: 400, color: colors.mutedText, textTransform: 'none' }}>(na instituição/convenente, opcional)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Nome</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={responsavelExecucaoNome} onChange={(e) => setResponsavelExecucaoNome(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Contato</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={responsavelExecucaoContato} onChange={(e) => setResponsavelExecucaoContato(e.target.value)} />
+                </div>
               </div>
             </div>
             <button type="submit" disabled={salvandoCadastro} style={{ ...estiloInput, cursor: 'pointer', background: colors.hiperGreen, color: '#fff', border: 'none', justifySelf: 'start', fontWeight: 600 }}>
@@ -671,6 +688,10 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         const marcoDoForm = marcoPorId.get(marcoSelecionado ?? -1);
         const ehRegulatorio = marcoDoForm?.grupo === 'regulatorio';
         const ehLicencaOperacao = marcoDoForm?.codigo === 'regulatorio_licenca_operacao';
+        // Achado 2026-09-09, 2a rodada (pedido do usuario: "o equipamento
+        // entregue pode mover para eventos") -- so o marco de entrega pede
+        // os campos fisicos, junto do mesmo lancamento.
+        const ehEntrega = marcoDoForm?.codigo === 'cronograma_entrega';
         return (
         <form onSubmit={enviarEvento} style={{ ...estiloCard, marginBottom: 16, display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -712,6 +733,34 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
               <div>
                 <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Data de validade</label>
                 <input type="date" style={estiloInput} value={dataValidade} onChange={(e) => setDataValidade(e.target.value)} />
+              </div>
+            </div>
+          )}
+          {ehEntrega && (
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.primary, marginBottom: 8 }}>
+                Equipamento entregue <span style={{ fontWeight: 400, color: colors.mutedText, textTransform: 'none' }}>(informado pelo estabelecimento, opcional)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Marca</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={eventoEquipamentoMarca} onChange={(e) => setEventoEquipamentoMarca(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Modelo</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={eventoEquipamentoModelo} onChange={(e) => setEventoEquipamentoModelo(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Nº de série</label>
+                  <input style={{ ...estiloInput, width: '100%' }} value={eventoEquipamentoNumeroSerie} onChange={(e) => setEventoEquipamentoNumeroSerie(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Vida útil (anos)</label>
+                  <input
+                    type="number" min={0} style={{ ...estiloInput, width: '100%' }}
+                    value={eventoEquipamentoVidaUtilAnos} onChange={(e) => setEventoEquipamentoVidaUtilAnos(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           )}

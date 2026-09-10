@@ -5,12 +5,28 @@ interno pos-repasse -- escala de 1 instrumento (948686, POC deliberado de
 2026-09-09: "acho que você já pode atualizar todos os convênios que
 existe monitoramento dentro dessa planilha".
 
+IMPORTANTE (achado 2026-09-09, pedido explicito do usuario): esta
+importacao e um BOOTSTRAP UNICO. Depois desta rodada, cadastro/eventos/
+ações passam a viver so na aplicacao (PATCH/POST via
+app/routers/monitoramento.py) -- este script NAO e pra rodar de novo como
+sincronizacao recorrente com a planilha (rodar de novo sobrescreveria
+edicao feita a mao no sistema pra campo que a planilha tambem preenche,
+ex. tecnico_titular). Fica idempotente por seguranca/historico, nao como
+convite pra reuso continuo.
+
 Achados na planilha antes de escrever este script (133 linha com dado,
 69 coluna):
   - So 105 das 133 linhas tem `REGISTRO/CÓDIGO NO SISTEMA TRANSFEREGOV`
-    batendo com um nr_convenio real do nosso universo de 403 (as outras
-    28 tem NUP SEI/"TED"/"NI"/"NA" nessa coluna em vez de numero) -- essas
-    28 ficam de fora, LOGADAS (nunca descartadas silenciosamente).
+    batendo com um nr_convenio real do nosso universo de 403 -- essas sao
+    100% `TIPO DE CONTRATAÇÃO = "Convênio"`. Das outras 28 (achado
+    2026-09-09, 2a rodada, pedido do usuario: "inclua nos tipos de
+    contratação equivalentes"): sao `FAF` (23) ou `TED` (3) -- categoria
+    de contratacao DIFERENTE (Fundo a Fundo/Termo de Execucao
+    Descentralizada), que nunca teve numero TransfereGov porque nunca
+    passou pelo SICONV. Resolvidas por identificador alternativo (ver
+    `_resolver_identificador`) -- 4 continuam fora por nao terem NENHUM
+    identificador utilizavel nem em `REGISTRO/CÓDIGO...` nem em `NUP SEI`
+    (ambas colunas com placeholder "NI"/"NA").
   - `FASE` bate quase 1:1 com os rotulos ja seedados em
     scripts/seed_monitoramento.py (CATALOGO) -- "NI" (59 linha) e None (21
     linha) significam "nao informado", NAO "Nao iniciado" (que e um valor
@@ -25,9 +41,20 @@ Achados na planilha antes de escrever este script (133 linha com dado,
   - `MARCA/MODELO` (col. 29) e o modelo da LICITAÇÃO/contratacao, NAO
     confirmacao de entrega real -- NUNCA popula `equipamento_marca/modelo`
     (que por decisao do usuario 2026-09-09 so se preenche quando o
-    ESTABELECIMENTO confirma apos a entrega). Os 4 campos `equipamento_*`
-    fisicos ficam vazios na importacao em massa, pra cadastro manual
-    futuro real -- exatamente como ja e hoje pro 948686.
+    ESTABELECIMENTO confirma apos a entrega, hoje pelo evento de entrega,
+    ver app/routers/monitoramento.py::registrar_evento). Os 4 campos
+    `equipamento_*` fisicos ficam vazios na importacao em massa.
+  - `TÉCNICO RESPONSÁVEL - TITULAR/SUPLENTE` (achado 2026-09-09, 2a
+    rodada): vem com casing misto ("Leonardo Barsante" vs "SAMUEL") e
+    'NA'/'NI' tratados como se fossem nome de tecnico de verdade --
+    `_nome_padronizado` normaliza pra UPPER() e vira None quando for
+    placeholder (nunca um tecnico "fantasma" na distribuicao do overview).
+  - `TIPO DE CONTRATAÇÃO` vira `tipo_contratacao` (Convênio/FAF/TED),
+    aplicado em toda linha (dentro ou fora do universo de 403).
+  - `NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO` + `CONTATO...`
+    (col. 42-43, achado 2026-09-09) viram `responsavel_execucao_nome/
+    contato` -- opcionais, sao dado da INSTITUICAO/convenente, diferente
+    de tecnico_titular/suplente (que sao da nossa equipe).
   - `ÚLTIMA AÇÃO MONITORAMENTO` (texto livre) + `DATA DA ÚLTIMA
     AÇÃO/REUNIÃO VIRTUAL` viram 1 AcaoMonitoramento CONCLUÍDA (ja
     aconteceu) SO quando a data e parseavel -- nos ~13 casos "NI"/"????"
@@ -37,9 +64,10 @@ Achados na planilha antes de escrever este script (133 linha com dado,
     no futuro) vira uma 2a acao PENDENTE separada.
 
 Idempotente -- mesmo padrao de seed_monitoramento.py: upsert por
-nr_convenio (nunca duplica instrumento), evento so criado se ainda nao
-existir um igual (mesmo marco + mesma data/observacao), acao so criada se
-ainda nao existir uma com a mesma descricao pro mesmo instrumento.
+identificador (nr_convenio real ou NUP SEI, nunca duplica instrumento),
+evento so criado se ainda nao existir um igual (mesmo marco + mesma
+data/observacao), acao so criada se ainda nao existir uma com a mesma
+descricao pro mesmo instrumento.
 
 Uso: python -m scripts.importar_planilha_monitoramento (de dentro de
 backend/, venv ativo, com DATABASE_URL configurada).
@@ -65,6 +93,10 @@ ABA = "Planilha Monitoramento "  # espaco no final e do arquivo real, nao erro d
 
 RE_DATA = re.compile(r"^(\d{2})/(\d{2})/(\d{4})$")
 PLACEHOLDERS = {"", "NI", "NA", "N/A", "SIM", "NÃO", "NAO", "SEM PREVISÃO", "SEM PREVISAO", "????"}
+# So pras 2 colunas de identificador (REGISTRO/CÓDIGO... e NUP SEI) --
+# "TED"/"NUP SEI" tambem aparecem la como texto solto no lugar de um
+# numero/NUP de verdade (achado 2026-09-09, ver _resolver_identificador).
+PLACEHOLDERS_IDENTIFICADOR = PLACEHOLDERS | {"TED", "NUP SEI"}
 
 STATUS_MAP = {
     "deferido": "Deferido",
@@ -107,6 +139,48 @@ def _texto(v) -> str | None:
         return None
     s = str(v).replace("\xa0", " ").strip()
     return s or None
+
+
+def _sem_placeholder(v) -> str | None:
+    """`_texto` + filtro de placeholder, SEM upper() -- usada pra campo que
+    deve ficar com a capitalização original da planilha quando tem valor
+    de verdade (ex. "Convênio"), so vira None quando for placeholder tipo
+    'NA'/'NI' (achado 2026-09-09: `tipo_contratacao` estava guardando o
+    literal 'NA' como se fosse um tipo de contratação de verdade)."""
+    s = _texto(v)
+    if not s or s.upper() in PLACEHOLDERS:
+        return None
+    return s
+
+
+def _nome_padronizado(v) -> str | None:
+    """Mesmo corte de placeholder de `_texto`, mas em UPPER() -- achado
+    2026-09-09 (pedido do usuario): tecnico_titular/suplente vinham com
+    casing misto e 'NA'/'NI' contados como se fossem nome de tecnico de
+    verdade. Usada so pra esses 2 campos (nomes de convenente/instituicao
+    continuam como vem da fonte, ja sao uppercase na maioria das APIs)."""
+    s = _texto(v)
+    if not s or s.upper() in PLACEHOLDERS:
+        return None
+    return s.upper()
+
+
+def _resolver_identificador(registro, nup_sei) -> str | None:
+    """Resolve o identificador de um instrumento fora do universo de 403
+    (achado 2026-09-09, 2a rodada: "inclua nos tipos de contratação
+    equivalentes"). Tenta `REGISTRO/CÓDIGO NO SISTEMA TRANSFEREGOV`
+    primeiro; se for placeholder ("TED"/"NI"/"NA"/"NUP SEI"/vazio), cai
+    pra coluna `NUP SEI`. Se as duas forem placeholder, None -- nunca
+    fabrica identificador. Troca "/" por "_" no NUP SEI resolvido: testado
+    ao vivo contra o backend (curl com %2F) que a barra crua QUEBRA a rota
+    `/instrumentos/{nr_convenio}` (Starlette trata como separador de path
+    mesmo codificada) -- "_" mantem o NUP SEI legivel/rastreavel sem esse
+    problema."""
+    for bruto in (registro, nup_sei):
+        s = _texto(bruto)
+        if s and s.upper() not in PLACEHOLDERS_IDENTIFICADOR:
+            return s.replace("/", "_")
+    return None
 
 
 def _parse_data(v) -> date | None:
@@ -153,7 +227,6 @@ def run() -> None:
 
     db = SessionLocal()
     try:
-        nossos_convenios = {i.nr_convenio for i in db.query(InstrumentoEquipamento).all()}
         marcos_por_codigo = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
         fases_por_rotulo = {m.rotulo: m for m in marcos_por_codigo.values() if m.grupo.value == "fase_geral"}
 
@@ -166,18 +239,42 @@ def run() -> None:
             c["numero"] for c in json.loads((Path(__file__).parent / "output" / "convenios_flat.json").read_text(encoding="utf-8"))
         }
 
-        criados, atualizados, fora_do_universo = 0, 0, []
+        criados, atualizados, fora_do_universo, colisoes = 0, 0, [], []
         eventos_criados, acoes_criadas = 0, 0
 
         for linha in ws.iter_rows(min_row=2, values_only=True):
             if linha[0] is None and linha[3] is None:
                 continue
 
-            nr_convenio_raw = _texto(linha[idx["REGISTRO/CÓDIGO NO SISTEMA TRANSFEREGOV"]])
-            if not nr_convenio_raw or nr_convenio_raw not in convenios_validos:
-                fora_do_universo.append((nr_convenio_raw, _texto(linha[idx["PROPONENTE / ENTIDADE"]])))
-                continue
-            nr_convenio = nr_convenio_raw
+            registro_raw = _texto(linha[idx["REGISTRO/CÓDIGO NO SISTEMA TRANSFEREGOV"]])
+            nup_sei_raw = _texto(linha[idx["NUP SEI"]]) if "NUP SEI" in idx else None
+
+            if registro_raw and registro_raw in convenios_validos:
+                # Caminho normal: numero TransfereGov real, dentro do
+                # universo de 403 (sempre "Convênio" nesse caso).
+                nr_convenio = registro_raw
+            else:
+                # Achado 2026-09-09, 2a rodada (pedido do usuario: "inclua
+                # nos tipos de contratação equivalentes"): FAF/TED nunca
+                # tiveram numero TransfereGov -- resolve por NUP SEI (com
+                # "/" trocado por "_", ver _resolver_identificador).
+                identificador = _resolver_identificador(registro_raw, nup_sei_raw)
+                if identificador is None:
+                    fora_do_universo.append((registro_raw, nup_sei_raw, _texto(linha[idx["PROPONENTE / ENTIDADE"]])))
+                    continue
+                if identificador in convenios_validos:
+                    # So checa contra o universo REAL de 403 (nunca deveria
+                    # colidir, formatos bem diferentes, mas e barato checar
+                    # antes de criar um Convênio duplicado sob identidade de
+                    # NUP SEI). NAO checa contra `nossos_convenios` -- isso
+                    # incluiria FAF/TED ja importados em rodada anterior, e
+                    # reencontra-los de novo e upsert normal, nao colisao
+                    # (achado 2026-09-09: bug real, 2a rodada da import
+                    # tratava TODO FAF/TED ja existente como "colisão" e
+                    # pulava em vez de atualizar).
+                    colisoes.append((identificador, _texto(linha[idx["PROPONENTE / ENTIDADE"]])))
+                    continue
+                nr_convenio = identificador
 
             dados_instrumento = dict(
                 nr_convenio=nr_convenio,
@@ -189,10 +286,13 @@ def run() -> None:
                 equipamento_descricao=_texto(linha[idx["ID MODELO NO SIGEM/TRANSFEREGOV"]]),
                 componente=_texto(linha[idx["COMPONENTES DE FINANCIAMENTO - INVESTUSUS"]]),
                 ano_instrumento=int(m.group()) if (v := _texto(linha[idx["ANO DO INSTRUMENTO"]])) and (m := re.search(r"\d{4}", v)) else None,
-                tecnico_titular=_texto(linha[idx["TÉCNICO RESPONSÁVEL - TITULAR"]]),
-                tecnico_suplente=_texto(linha[idx["TÉCNICO RESPONSÁVEL - SUPLENTE"]]),
+                tipo_contratacao=_sem_placeholder(linha[idx["TIPO DE CONTRATAÇÃO"]]) if "TIPO DE CONTRATAÇÃO" in idx else None,
+                tecnico_titular=_nome_padronizado(linha[idx["TÉCNICO RESPONSÁVEL - TITULAR"]]),
+                tecnico_suplente=_nome_padronizado(linha[idx["TÉCNICO RESPONSÁVEL - SUPLENTE"]]),
                 nivel_monitoramento=_texto(linha[idx["NÍVEL DE MONITORAMENTO (ESTRATÉGICO, TÁTICO E SIMPLIFICADO)"]]),
                 finalidade=_texto(linha[idx["FINALIDADE"]]),
+                responsavel_execucao_nome=_texto(linha[idx["NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO"]]) if "NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO" in idx else None,
+                responsavel_execucao_contato=_texto(linha[idx["CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO"]]) if "CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO" in idx else None,
                 modalidade_onco=_texto(linha[idx["MODALIDADE - ONCO"]]),
             )
 
@@ -299,9 +399,13 @@ def run() -> None:
         db.commit()
         print(f"Instrumentos: {criados} criado(s), {atualizados} atualizado(s).")
         print(f"Eventos novos: {eventos_criados}. Ações novas: {acoes_criadas}.")
-        print(f"Fora do universo (número não bate com nenhum dos 403): {len(fora_do_universo)}")
-        for numero, nome in fora_do_universo:
-            print(f"   [AVISO] {numero!r} — {nome}")
+        print(f"Sem identificador utilizável (nem REGISTRO/CÓDIGO nem NUP SEI): {len(fora_do_universo)}")
+        for registro, nup_sei, nome in fora_do_universo:
+            print(f"   [AVISO] registro={registro!r} nup_sei={nup_sei!r} — {nome}")
+        if colisoes:
+            print(f"Colisão de identificador (pulado, já existe): {len(colisoes)}")
+            for identificador, nome in colisoes:
+                print(f"   [AVISO] {identificador!r} — {nome}")
     finally:
         db.close()
 

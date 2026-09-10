@@ -22,10 +22,8 @@ import { colors, layout } from '../styles/tokens';
 import { API_BASE_URL } from './monitoramento/api';
 import { fmtData } from './monitoramento/format';
 import type { SiconvEntrada } from './monitoramento/types';
-import { estiloCard } from './monitoramento/ui';
+import { type ContagemRotulo, BarraDistribuicao, estiloCard } from './monitoramento/ui';
 import { useJson } from './monitoramento/useJson';
-
-type ContagemRotulo = { rotulo: string; quantidade: number };
 
 type InauguracaoApi = {
   nr_convenio: string;
@@ -42,8 +40,6 @@ type ResumoApi = {
   licencas_cnen_deferidas: number;
   por_tecnico_titular: ContagemRotulo[];
   inauguracoes: InauguracaoApi[];
-  acoes_pendentes: number;
-  acoes_atrasadas: number;
   nr_convenios: string[];
 };
 
@@ -55,29 +51,80 @@ type InstrumentoApi = {
   tecnico_titular: string | null;
 };
 
-type AcaoApi = {
-  id: number;
-  nr_convenio: string;
-  descricao: string;
-  data_prevista: string | null;
-  data_conclusao: string | null;
-  responsavel: string | null;
-};
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-/** Barra horizontal simples (sem lib de grafico -- so CSS, mais leve) pra
- * distribuição por fase/técnico. */
-function BarraDistribuicao({ itens, corBarra }: { itens: ContagemRotulo[]; corBarra: string }) {
-  const max = Math.max(1, ...itens.map((i) => i.quantidade));
+/** Linha do tempo de inaugurações -- achado 2026-09-09, 2a rodada (pedido
+ * do usuario: "pensei em dashboards por mês tipo uma linha do tempo com
+ * os anos, e ao passar o mouse a lista"). 1 linha por ano, 12 células
+ * (Jan-Dez); célula solida = ja tem inauguração REALIZADA naquele mês,
+ * contorno = so PREVISTA; hover mostra a lista daquele mês num tooltip
+ * (substitui a lista sempre visivel por uma visao compacta com detalhe
+ * sob demanda). So CSS/estado local, sem lib de grafico nova. */
+function LinhaDoTempoInauguracoes({ itens }: { itens: InauguracaoApi[] }) {
+  const [hover, setHover] = useState<string | null>(null);
+
+  if (itens.length === 0) {
+    return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma inauguração registrada ainda.</p>;
+  }
+
+  const porAnoMes = new Map<string, InauguracaoApi[]>();
+  for (const i of itens) {
+    const d = new Date(i.data + 'T00:00:00');
+    const chave = `${d.getFullYear()}-${d.getMonth()}`;
+    if (!porAnoMes.has(chave)) porAnoMes.set(chave, []);
+    porAnoMes.get(chave)!.push(i);
+  }
+  const anos = [...new Set(itens.map((i) => new Date(i.data + 'T00:00:00').getFullYear()))].sort();
+
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
-      {itens.map((item) => (
-        <div key={item.rotulo}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 2 }}>
-            <span>{item.rotulo}</span>
-            <strong>{item.quantidade}</strong>
-          </div>
-          <div style={{ height: 8, borderRadius: 999, background: colors.surface }}>
-            <div style={{ height: '100%', borderRadius: 999, width: `${(item.quantidade / max) * 100}%`, background: corBarra }} />
+    <div style={{ display: 'grid', gap: 14 }}>
+      {anos.map((ano) => (
+        <div key={ano}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: colors.primary, marginBottom: 6 }}>{ano}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
+            {MESES_ABREV.map((mes, idx) => {
+              const chave = `${ano}-${idx}`;
+              const doMes = porAnoMes.get(chave) ?? [];
+              const temRealizada = doMes.some((i) => i.realizada);
+              const temPrevista = doMes.some((i) => !i.realizada);
+              return (
+                <div key={mes} style={{ position: 'relative' }} onMouseEnter={() => doMes.length && setHover(chave)} onMouseLeave={() => setHover(null)}>
+                  <div
+                    style={{
+                      height: 34, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: 700, cursor: doMes.length ? 'pointer' : 'default',
+                      background: temRealizada ? colors.hiperGreen : temPrevista ? '#fff' : colors.surface,
+                      border: temPrevista && !temRealizada ? `1.5px dashed ${colors.primary}` : temRealizada ? 'none' : `1px solid ${colors.border}`,
+                      color: temRealizada ? '#fff' : temPrevista ? colors.primary : colors.mutedText,
+                    }}
+                  >
+                    {mes}{doMes.length > 1 && ` ×${doMes.length}`}
+                  </div>
+                  {hover === chave && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, zIndex: 10, marginTop: 4,
+                      background: '#fff', border: `1px solid ${colors.border}`, borderRadius: 8, padding: 8,
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 240, display: 'grid', gap: 6,
+                    }}>
+                      {doMes.map((i) => (
+                        <Link
+                          key={i.nr_convenio}
+                          to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`}
+                          style={{ fontSize: 11.5, textDecoration: 'none', color: 'inherit', display: 'block' }}
+                        >
+                          <strong style={{ color: colors.primary }}>{fmtData(i.data)}</strong> — {i.nome_convenente} ({i.nr_convenio})
+                          {i.realizada ? ' ✓' : (
+                            <span style={{ color: i.dias < 0 ? colors.logoOrange : colors.mutedText }}>
+                              {' '}({i.dias < 0 ? `atrasada ${Math.abs(i.dias)}d` : `em ${i.dias}d`})
+                            </span>
+                          )}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       ))}
@@ -88,7 +135,6 @@ function BarraDistribuicao({ itens, corBarra }: { itens: ContagemRotulo[]; corBa
 export function MonitoramentoOverviewPage() {
   const [resumo, setResumo] = useState<ResumoApi | null>(null);
   const [instrumentos, setInstrumentos] = useState<InstrumentoApi[] | null>(null);
-  const [acoesPendentes, setAcoesPendentes] = useState<AcaoApi[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const { dados: siconvTodos } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
 
@@ -96,9 +142,8 @@ export function MonitoramentoOverviewPage() {
     Promise.all([
       fetch(`${API_BASE_URL}/monitoramento/resumo`).then((r) => r.json()),
       fetch(`${API_BASE_URL}/monitoramento/instrumentos`).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/monitoramento/acoes?pendentes=true`).then((r) => r.json()),
     ])
-      .then(([r, i, a]) => { setResumo(r); setInstrumentos(i); setAcoesPendentes(a); })
+      .then(([r, i]) => { setResumo(r); setInstrumentos(i); })
       .catch((e) => setErro(String(e)));
   }, []);
 
@@ -112,13 +157,17 @@ export function MonitoramentoOverviewPage() {
   })();
 
   if (erro) return <p style={{ padding: layout.pagePadding, color: colors.hipoRed }}>Erro ao carregar: {erro}</p>;
-  if (!resumo || !instrumentos || !acoesPendentes) {
+  if (!resumo || !instrumentos) {
     return <p style={{ padding: layout.pagePadding, color: colors.mutedText }}>Carregando...</p>;
   }
 
-  const hoje = new Date().toISOString().slice(0, 10);
-  const acoesAtrasadas = acoesPendentes.filter((a) => a.data_prevista && a.data_prevista < hoje);
-  const acoesProximas = acoesPendentes.filter((a) => !a.data_prevista || a.data_prevista >= hoje);
+  // "Equipamentos previstos {ano}/{ano+1}" -- achado 2026-09-09, 2a
+  // rodada (pedido do usuario, base = previsão de inauguração, decisão
+  // confirmada em AskUserQuestion). Ano calculado, nunca hardcoded --
+  // continua correto sem precisar de ajuste manual em anos futuros.
+  const anoAtual = new Date().getFullYear();
+  const previstosPorAno = (ano: number) =>
+    resumo.inauguracoes.filter((i) => new Date(i.data + 'T00:00:00').getFullYear() === ano).length;
 
   return (
     <div style={{ minHeight: '100vh', background: colors.surface, padding: layout.pagePadding }}>
@@ -128,9 +177,17 @@ export function MonitoramentoOverviewPage() {
           <Link to="/monitoramento-equipamentos" style={{ color: colors.subtleText, textDecoration: 'none' }}>DECAN / FNS</Link>{' '}
           <span style={{ margin: '0 4px' }}>›</span> <span style={{ color: colors.primary }}>Monitoramento de Instrumentos</span>
         </div>
-        <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', margin: '0 0 6px', color: colors.primary }}>
-          Monitoramento Interno — Visão Geral
-        </h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', margin: '0 0 6px', color: colors.primary }}>
+            Monitoramento Interno — Visão Geral
+          </h1>
+          <Link
+            to="/monitoramento-equipamentos/painel"
+            style={{ fontSize: 12.5, fontWeight: 600, color: colors.primary, textDecoration: 'none', whiteSpace: 'nowrap' }}
+          >
+            Ver painel de gestão →
+          </Link>
+        </div>
         <p style={{ color: colors.mutedText, fontSize: 13, maxWidth: 900, lineHeight: 1.6, marginBottom: 20 }}>
           Acompanhamento manual pós-repasse de {resumo.total_instrumentos} instrumento(s) — dado importado da planilha
           real da equipe (<code>backend/scripts/importar_planilha_monitoramento.py</code>). Financeiro/identificação
@@ -146,8 +203,8 @@ export function MonitoramentoOverviewPage() {
           />
           <KpiCard label="Licenças CNEN deferidas" value={resumo.licencas_cnen_deferidas} color={colors.hiperGreen} />
           <KpiCard label="Equipamentos com pagamento" value={comPagamento ?? '...'} color={colors.hiperGreen} />
-          <KpiCard label="Ações pendentes" value={resumo.acoes_pendentes} color={colors.logoOrange} />
-          <KpiCard label="Ações atrasadas" value={resumo.acoes_atrasadas} color={resumo.acoes_atrasadas > 0 ? colors.hipoRed : colors.mutedText} />
+          <KpiCard label={`Equipamentos previstos ${anoAtual}`} value={previstosPorAno(anoAtual)} color={colors.logoOrange} />
+          <KpiCard label={`Equipamentos previstos ${anoAtual + 1}`} value={previstosPorAno(anoAtual + 1)} color={colors.logoOrange} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
@@ -165,52 +222,10 @@ export function MonitoramentoOverviewPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Inaugurações (real ou prevista)</strong>
-            <div style={{ marginTop: 10, display: 'grid', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
-              {resumo.inauguracoes.length === 0 ? (
-                <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma inauguração registrada ainda.</p>
-              ) : resumo.inauguracoes.map((i) => (
-                <Link
-                  key={i.nr_convenio}
-                  to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, textDecoration: 'none', color: 'inherit' }}
-                >
-                  <span>
-                    <strong style={{ color: colors.primary }}>{fmtData(i.data)}</strong> — {i.nome_convenente} ({i.nr_convenio})
-                    {i.realizada && ' ✓'}
-                  </span>
-                  {!i.realizada && (
-                    <span style={{ color: i.dias < 0 ? colors.logoOrange : colors.mutedText, whiteSpace: 'nowrap' }}>
-                      {i.dias < 0 ? `atrasada ${Math.abs(i.dias)}d` : `em ${i.dias}d`}
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Pendências (ações por data)</strong>
-            <div style={{ marginTop: 10, display: 'grid', gap: 8, maxHeight: 360, overflowY: 'auto' }}>
-              {acoesPendentes.length === 0 ? (
-                <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma ação pendente.</p>
-              ) : (
-                <>
-                  {acoesAtrasadas.map((a) => (
-                    <Link key={a.id} to={`/monitoramento-equipamentos/instrumentos/${a.nr_convenio}`} style={{ fontSize: 12, textDecoration: 'none', color: 'inherit' }}>
-                      <span style={{ color: colors.hipoRed, fontWeight: 700 }}>⚠️ {fmtData(a.data_prevista)}</span> — {a.descricao} ({a.nr_convenio})
-                    </Link>
-                  ))}
-                  {acoesProximas.map((a) => (
-                    <Link key={a.id} to={`/monitoramento-equipamentos/instrumentos/${a.nr_convenio}`} style={{ fontSize: 12, textDecoration: 'none', color: 'inherit' }}>
-                      {a.data_prevista ? fmtData(a.data_prevista) : 'sem data'} — {a.descricao} ({a.nr_convenio})
-                    </Link>
-                  ))}
-                </>
-              )}
-            </div>
+        <div style={{ ...estiloCard, marginBottom: 20 }}>
+          <strong style={{ fontSize: 13 }}>Inaugurações (real ou prevista)</strong>
+          <div style={{ marginTop: 10 }}>
+            <LinhaDoTempoInauguracoes itens={resumo.inauguracoes} />
           </div>
         </div>
 

@@ -73,6 +73,17 @@ class EventoMarcoCreate(BaseModel):
     # forma explicita (ver `_compor_observacao`), deixando claro no dado que
     # e um valor auto-declarado, nao autenticado.
     autor_nome: str
+    # Equipamento FISICO -- so usado quando marco.codigo ==
+    # "cronograma_entrega" (achado 2026-09-09, pedido do usuario: "o
+    # equipamento entregue pode mover para eventos"). `registrar_evento`
+    # aplica isso em InstrumentoEquipamento (estado atual) E compoe um
+    # resumo textual na observacao do proprio evento (retrato historico do
+    # que foi confirmado NAQUELE lancamento). Ignorado silenciosamente pra
+    # qualquer outro marco.
+    equipamento_marca: str | None = None
+    equipamento_modelo: str | None = None
+    equipamento_numero_serie: str | None = None
+    equipamento_vida_util_anos: int | None = None
 
 
 class InstrumentoEquipamentoRead(BaseModel):
@@ -98,11 +109,20 @@ class InstrumentoEquipamentoRead(BaseModel):
     tp_instrumento_programa: str | None
     componente: str | None
     ano_instrumento: int | None
+    # "Convênio" (universo Portal/TransfereGov) / "FAF" / "TED" -- achado
+    # 2026-09-09, so vem da planilha/import, nunca editavel a mao (fora do
+    # Update abaixo de proposito).
+    tipo_contratacao: str | None
     tecnico_titular: str | None
     tecnico_suplente: str | None
     nivel_monitoramento: str | None
     finalidade: str | None
     modalidade_onco: str | None
+    # Responsavel tecnico da execucao NA INSTITUICAO/convenente -- achado
+    # 2026-09-09, DIFERENTE de tecnico_titular/suplente (que sao da nossa
+    # equipe). Opcional, informativo.
+    responsavel_execucao_nome: str | None
+    responsavel_execucao_contato: str | None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -111,13 +131,16 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     """So os campos de cadastro que NENHUMA API publica tem (mesmo criterio
     do comentario em InstrumentoEquipamento no models.py) -- nunca
     nr_convenio/cnpj_convenente/nome_convenente/programa/componente/
-    ano_instrumento, que vem de fonte real (planilha/API) e nao devem virar
-    editaveis a mao aqui. Tambem NUNCA `equipamento_descricao` (achado
-    2026-09-09: e o equipamento PLANEJADO do SICONV, "não vamos alterar o
-    equipamento que veio do SISCONV") -- os `equipamento_*` editaveis aqui
-    sao o equipamento FISICO de verdade, informado pelo estabelecimento
-    depois da entrega. Todos opcionais -- PATCH aplica so o que vier
-    preenchido, deixando o resto como esta (nunca zera campo por omissao)."""
+    ano_instrumento/tipo_contratacao, que vem de fonte real (planilha/API)
+    e nao devem virar editaveis a mao aqui. Tambem NUNCA `equipamento_descricao`
+    (achado 2026-09-09: e o equipamento PLANEJADO do SICONV, "não vamos
+    alterar o equipamento que veio do SISCONV") -- os `equipamento_*`
+    editaveis aqui sao o equipamento FISICO de verdade, informado pelo
+    estabelecimento depois da entrega (hoje entram principalmente pelo
+    evento de entrega, ver EventoMarcoCreate, mas o PATCH continua
+    disponivel pra corrigir depois). Todos opcionais -- PATCH aplica so o
+    que vier preenchido, deixando o resto como esta (nunca zera campo por
+    omissao)."""
     equipamento_marca: str | None = None
     equipamento_modelo: str | None = None
     equipamento_numero_serie: str | None = None
@@ -127,6 +150,8 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     nivel_monitoramento: str | None = None
     finalidade: str | None = None
     modalidade_onco: str | None = None
+    responsavel_execucao_nome: str | None = None
+    responsavel_execucao_contato: str | None = None
 
 
 class ValorSituacaoAoVivoRead(BaseModel):
@@ -194,6 +219,16 @@ class ContagemRotulo(BaseModel):
     quantidade: int
 
 
+class LicencaVencendoResumo(BaseModel):
+    """1 por instrumento com licenca de operacao/alteracao emitida E
+    data_validade preenchida -- achado 2026-09-09, alimenta o painel de
+    gestao (semaforo de licenca por vencer). `dias` negativo = ja vencida."""
+    nr_convenio: str
+    nome_convenente: str
+    data_validade: date
+    dias: int
+
+
 class ResumoMonitoramentoRead(BaseModel):
     """1 chamada so pra pagina de overview (achado 2026-09-09, pedido do
     usuario: pagina INDEPENDENTE, nao so o detalhe de 1 convenio) -- tudo
@@ -207,6 +242,7 @@ class ResumoMonitoramentoRead(BaseModel):
     pct_execucao_fisica_medio: float | None
     distribuicao_fase: list[ContagemRotulo]
     licencas_cnen_deferidas: int
+    licencas_vencendo: list[LicencaVencendoResumo]
     por_tecnico_titular: list[ContagemRotulo]
     inauguracoes: list[InauguracaoResumo]
     acoes_pendentes: int
@@ -323,6 +359,23 @@ def atualizar_cadastro(nr_convenio: str, corpo: InstrumentoEquipamentoUpdate, db
     return instrumento
 
 
+def _resumo_equipamento_entregue(corpo: EventoMarcoCreate) -> str | None:
+    """Resumo textual do equipamento fisico informado junto do evento de
+    entrega -- vira parte da observacao (retrato historico do que foi
+    confirmado NAQUELE lancamento, mesmo que o cadastro mude depois). None
+    quando nenhum dos 4 campos veio preenchido."""
+    partes = []
+    if corpo.equipamento_marca or corpo.equipamento_modelo:
+        partes.append(f"{corpo.equipamento_marca or ''} {corpo.equipamento_modelo or ''}".strip())
+    if corpo.equipamento_numero_serie:
+        partes.append(f"Nº série {corpo.equipamento_numero_serie}")
+    if corpo.equipamento_vida_util_anos is not None:
+        partes.append(f"Vida útil {corpo.equipamento_vida_util_anos} ano(s)")
+    if not partes:
+        return None
+    return "Equipamento entregue: " + " · ".join(partes)
+
+
 @router.post("/instrumentos/{nr_convenio}/eventos", response_model=EventoMarcoRead, status_code=201)
 def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = Depends(get_db)):
     """Append-only -- sempre INSERT, nunca UPDATE (ver comentario em
@@ -336,6 +389,24 @@ def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = D
     if marco is None:
         raise HTTPException(422, f"Marco {corpo.marco_id} não existe no catálogo.")
 
+    observacao = corpo.observacao
+    # Equipamento FISICO so se aplica ao marco de entrega (achado
+    # 2026-09-09, "o equipamento entregue pode mover para eventos") --
+    # atualiza o estado atual do instrumento E deixa retrato no proprio
+    # evento, via observacao.
+    if marco.codigo == "cronograma_entrega":
+        if corpo.equipamento_marca is not None:
+            instrumento.equipamento_marca = corpo.equipamento_marca
+        if corpo.equipamento_modelo is not None:
+            instrumento.equipamento_modelo = corpo.equipamento_modelo
+        if corpo.equipamento_numero_serie is not None:
+            instrumento.equipamento_numero_serie = corpo.equipamento_numero_serie
+        if corpo.equipamento_vida_util_anos is not None:
+            instrumento.equipamento_vida_util_anos = corpo.equipamento_vida_util_anos
+        resumo_equipamento = _resumo_equipamento_entregue(corpo)
+        if resumo_equipamento:
+            observacao = f"{observacao}. {resumo_equipamento}" if observacao else resumo_equipamento
+
     evento = EventoMarco(
         instrumento_id=instrumento.id,
         marco_id=corpo.marco_id,
@@ -344,7 +415,7 @@ def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = D
         status_regulatorio=corpo.status_regulatorio,
         numero_documento=corpo.numero_documento,
         data_validade=corpo.data_validade,
-        observacao=_compor_observacao(corpo.autor_nome, corpo.observacao),
+        observacao=_compor_observacao(corpo.autor_nome, observacao),
         autor_id=None,
     )
     db.add(evento)
@@ -382,6 +453,7 @@ def obter_resumo(db: Session = Depends(get_db)):
     contagem_fase: Counter[str] = Counter()
     contagem_tecnico: Counter[str] = Counter()
     licencas_deferidas = 0
+    licencas_vencendo: list[LicencaVencendoResumo] = []
     inauguracoes: list[InauguracaoResumo] = []
 
     for inst in instrumentos:
@@ -394,13 +466,27 @@ def obter_resumo(db: Session = Depends(get_db)):
             pcts.append(fase_atual.execucao_fisica_pct_referencia)
         contagem_fase[fase_atual.rotulo if fase_atual else "Não iniciado"] += 1
 
-        if inst.tecnico_titular:
-            contagem_tecnico[inst.tecnico_titular] += 1
+        # Achado 2026-09-09 (pedido do usuario): NA/NI ja viram NULL na
+        # importacao/migration -- sempre conta, nunca pula, com rotulo
+        # proprio pra quem ainda nao tem tecnico definido (antes ficava de
+        # fora da distribuicao silenciosamente).
+        contagem_tecnico[inst.tecnico_titular or "Sem técnico definido"] += 1
 
         if marco_licenca:
             evs_licenca = [e for e in eventos_inst if e.marco_id == marco_licenca.id]
             if evs_licenca and any(e.status_regulatorio == "Deferido" for e in evs_licenca):
                 licencas_deferidas += 1
+            # Evento mais recente com data_validade preenchida -- mesma
+            # regra ja usada no front (MonitoramentoInterno.tsx) pro
+            # contador de vencimento no detalhe do instrumento.
+            ev_validade = max(
+                (e for e in evs_licenca if e.data_validade), key=lambda e: e.created_at, default=None,
+            )
+            if ev_validade:
+                licencas_vencendo.append(LicencaVencendoResumo(
+                    nr_convenio=inst.nr_convenio, nome_convenente=inst.nome_convenente,
+                    data_validade=ev_validade.data_validade, dias=(ev_validade.data_validade - hoje).days,
+                ))
 
         if marco_inauguracao:
             evs_inaug = [e for e in eventos_inst if e.marco_id == marco_inauguracao.id]
@@ -416,6 +502,7 @@ def obter_resumo(db: Session = Depends(get_db)):
                     ))
 
     inauguracoes.sort(key=lambda i: i.data)
+    licencas_vencendo.sort(key=lambda i: i.data_validade)
 
     acoes = db.execute(select(AcaoMonitoramento)).scalars().all()
     acoes_pendentes = sum(1 for a in acoes if a.data_conclusao is None)
@@ -428,6 +515,7 @@ def obter_resumo(db: Session = Depends(get_db)):
         pct_execucao_fisica_medio=(sum(pcts) / len(pcts)) if pcts else None,
         distribuicao_fase=[ContagemRotulo(rotulo=r, quantidade=q) for r, q in contagem_fase.most_common()],
         licencas_cnen_deferidas=licencas_deferidas,
+        licencas_vencendo=licencas_vencendo,
         por_tecnico_titular=[ContagemRotulo(rotulo=r, quantidade=q) for r, q in contagem_tecnico.most_common()],
         inauguracoes=inauguracoes,
         acoes_pendentes=acoes_pendentes,
