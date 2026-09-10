@@ -171,15 +171,22 @@ def _resolver_identificador(registro, nup_sei) -> str | None:
     equivalentes"). Tenta `REGISTRO/CÓDIGO NO SISTEMA TRANSFEREGOV`
     primeiro; se for placeholder ("TED"/"NI"/"NA"/"NUP SEI"/vazio), cai
     pra coluna `NUP SEI`. Se as duas forem placeholder, None -- nunca
-    fabrica identificador. Troca "/" por "_" no NUP SEI resolvido: testado
-    ao vivo contra o backend (curl com %2F) que a barra crua QUEBRA a rota
-    `/instrumentos/{nr_convenio}` (Starlette trata como separador de path
-    mesmo codificada) -- "_" mantem o NUP SEI legivel/rastreavel sem esse
-    problema."""
+    fabrica identificador.
+
+    So mantem digitos (achado 2026-09-09, 3a rodada, pedido do usuario:
+    "tirar os caracteres especiais do número dos faf e teds, mantenha
+    apenas os números") -- primeira tentativa (troca "/" por "_") quebrava
+    a leitura visual do numero; "só dígitos" tambem evita de vez qualquer
+    problema de separador de path na URL (testado ao vivo contra o
+    backend: `/` cru quebra a rota mesmo como `%2F`, ver historico deste
+    arquivo). Nenhuma colisao entre os 15 identificadores ja resolvidos
+    ao aplicar esse corte -- conferido antes de trocar."""
     for bruto in (registro, nup_sei):
         s = _texto(bruto)
         if s and s.upper() not in PLACEHOLDERS_IDENTIFICADOR:
-            return s.replace("/", "_")
+            so_digitos = re.sub(r"\D", "", s)
+            if so_digitos:
+                return so_digitos
     return None
 
 

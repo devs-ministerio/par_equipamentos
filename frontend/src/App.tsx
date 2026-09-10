@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, BrowserRouter, Routes } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import { MonitoramentoLayout } from './components/layout/MonitoramentoLayout';
 
 // Code-splitting por rota (2026-08-24) -- antes as 4 paginas eram import
 // estatico aqui, entao MapaPage (que carrega MacroMap.tsx -> D3) ia pro
@@ -11,9 +12,11 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ 
 const MapaPage = lazy(() => import('./pages/MapaPage').then((m) => ({ default: m.MapaPage })));
 const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage').then((m) => ({ default: m.RelatoriosPage })));
 // Monitoramento de equipamento (decisao 2026-09-03) -- esforco separado da
-// analise de merito de hipo/hipersuficiencia, sem link a partir do resto do
-// app (so acessivel indo direto na URL). Ver comentario no topo do arquivo
-// da pagina pro porque de ficar fora do AppLayout/TopNav.
+// analise de merito de hipo/hipersuficiencia. Ate 2026-09-09 vivia fora de
+// qualquer layout (so acessivel indo direto na URL); achado 2026-09-10
+// (pedido do usuario: "implante os menus de navegação") -- agora usa
+// MonitoramentoLayout, com nav propria + link de volta pra analise de
+// merito (ver MonitoramentoTopNav.tsx).
 const MonitoramentoEquipamentosPage = lazy(() =>
   import('./pages/MonitoramentoEquipamentosPage').then((m) => ({ default: m.MonitoramentoEquipamentosPage }))
 );
@@ -45,10 +48,12 @@ function App() {
               AppLayout/TopNav de proposito (nao pertence a uma familia
               especifica, ver comentario em PainelGeralPage.tsx). */}
           <Route path="/" element={<PainelGeralPage />} />
-          <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
-          <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />
-          <Route path="/monitoramento-equipamentos/painel" element={<MonitoramentoPainelPage />} />
-          <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
+          <Route element={<MonitoramentoLayout />}>
+            <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
+            <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />
+            <Route path="/monitoramento-equipamentos/painel" element={<MonitoramentoPainelPage />} />
+            <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
+          </Route>
           <Route element={<AppLayout />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="mapa" element={<MapaPage />} />

@@ -10,8 +10,11 @@
 import { useEffect, useState } from 'react';
 import { colors } from '../../styles/tokens';
 import { API_BASE_URL } from './api';
+import { componenteDoProgramaSiconv } from './componenteSiconv';
 import { fmtData, fmtMoeda } from './format';
+import type { SiconvEntrada } from './types';
 import { corValidade, estiloCard, estiloInput, StatusPill } from './ui';
+import { useJson } from './useJson';
 
 type MarcoCatalogoApi = {
   id: number;
@@ -124,6 +127,16 @@ function diasAte(dataIso: string | null | undefined): number | null {
 }
 
 export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: string }) {
+  // Fallback de componente via SICONV -- achado 2026-09-10 (bug real do
+  // convenio 991708: a planilha da equipe deixou a celula "COMPONENTES DE
+  // FINANCIAMENTO" vazia pra essa linha, entao `inst.componente` vem nulo
+  // do banco -- mas o SICONV TEM essa informacao via NOME_PROGRAMA, so
+  // nao é usada por padrao aqui porque o campo `componente` do
+  // monitoramento interno e propositalmente so da planilha da equipe, ver
+  // models.py). So exibido quando `inst.componente` for nulo, nunca
+  // escrito no banco -- so leitura, mesmo dado/funcao ja usados no card
+  // principal (componenteSiconv.ts).
+  const { dados: siconvTodos } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
   const [marcos, setMarcos] = useState<MarcoCatalogoApi[] | null>(null);
   const [timeline, setTimeline] = useState<TimelineApi | null>(null);
   /** null = ainda checando; false = 404 (convenio sem instrumento seedado, caso normal pros outros 402). */
@@ -356,6 +369,12 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
 
+  // So calcula o fallback quando precisa (inst.componente nulo) -- cruza
+  // siconv.json pelo nr_convenio, mesma logica ja usada no card principal.
+  const componenteViaSiconv = !inst.componente
+    ? componenteDoProgramaSiconv(siconvTodos?.find((e) => e.convenio.NR_CONVENIO === inst.nr_convenio)?.programa?.NOME_PROGRAMA)
+    : null;
+
   return (
     <div>
       <div style={{ ...estiloCard, marginBottom: 16 }}>
@@ -380,7 +399,16 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
               {inst.municipio}/{inst.uf} · CNES {inst.cnes} · <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">{inst.equipamento_descricao}</span>
             </div>
             <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 4 }}>
-              Programa: {inst.programa} ({inst.tp_instrumento_programa}) · Componente: <strong>{inst.componente}</strong>
+              Programa: {inst.programa} ({inst.tp_instrumento_programa}) · Componente:{' '}
+              {inst.componente ? (
+                <strong>{inst.componente}</strong>
+              ) : componenteViaSiconv ? (
+                <span title="Não preenchido na planilha da equipe — derivado do programa SICONV pra esse convênio">
+                  <strong>{componenteViaSiconv}</strong> <em style={{ fontStyle: 'normal', color: colors.subtleText }}>(via SICONV)</em>
+                </span>
+              ) : (
+                <strong>—</strong>
+              )}
             </div>
             {(inst.responsavel_execucao_nome || inst.responsavel_execucao_contato) && (
               <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 4 }}>

@@ -46,11 +46,17 @@ repasse. Schema em `backend/app/db/models.py` (seção "Monitoramento de
 equipamento"), API em `backend/app/routers/monitoramento.py`, front em
 `frontend/src/pages/Monitoramento{Overview,Instrumento,Painel}Page.tsx` +
 `frontend/src/pages/monitoramento/MonitoramentoInterno.tsx`. Overview
-operacional (KPIs, fase média, licenças CNEN, inaugurações) em
+operacional (KPIs, fase média, licenças CNEN, inaugurações, filtros por
+fase/técnico/UF/tipo de contratação) em
 `/monitoramento-equipamentos/instrumentos`; detalhe por convênio em
 `/monitoramento-equipamentos/instrumentos/{nr_convenio}`; painel
-executivo (só dashboards, sem tabela/form, pra avaliação da gestão) em
-`/monitoramento-equipamentos/painel`.
+executivo (só dashboards — funil, pizza, barras, mapa fica pra depois,
+ver limitação — pra avaliação da gestão) em
+`/monitoramento-equipamentos/painel`. Desde 2026-09-10 as 4 páginas
+vivem dentro de `MonitoramentoLayout` (`frontend/src/components/layout/`),
+com nav própria (`MonitoramentoTopNav.tsx`) incluindo o link de volta
+pra análise de mérito (`/dashboard`) — não são mais standalone fora de
+qualquer layout.
 
 Quatro distinções que já causaram confusão ao mexer nisso, para não
 reintroduzir o erro:
@@ -80,9 +86,13 @@ reintroduzir o erro:
   `InstrumentoEquipamento` não é erro — é o caso normal. Desde
   2026-09-09 o campo `tipo_contratacao` distingue "Convênio" (universo
   Portal/TransfereGov, `nr_convenio` real) de "FAF"/"TED" (nunca tiveram
-  número TransfereGov — `nr_convenio` aqui guarda o NUP SEI com `/`
-  trocado por `_`, porque `/` cru quebra a rota `/instrumentos/{nr_convenio}`
-  mesmo codificado como `%2F`, testado ao vivo contra o backend).
+  número TransfereGov — `nr_convenio` aqui guarda só os DÍGITOS do NUP SEI
+  (ex. NUP `25000.198305/2024-59` vira `25000198305202459`) — decisão
+  2026-09-10, pedido do usuário: "tirar os caracteres especiais". Sem
+  colisão entre os que existem hoje, conferido antes de aplicar. Versão
+  anterior trocava `/` por `_` (motivo: `/` cru quebra a rota
+  `/instrumentos/{nr_convenio}` mesmo como `%2F`, testado ao vivo) — ainda
+  vale o alerta de nunca usar `/` cru nesse identificador.
 - **`tecnico_titular/suplente` (nossa equipe) ≠ `responsavel_execucao_nome/
   contato` (da instituição/convenente)**: campos parecidos, fontes
   diferentes — não confundir ao exibir ou editar.
@@ -100,6 +110,13 @@ reintroduzir o erro:
   referência normativa em nenhuma análise. PET-CT saiu da lista em
   2026-08-28 (produtividade real da Portaria de Consolidação n. 1/2017,
   art. 102-106 — ver `docs/metodologia-parametros.md`).
+- **Painel de Gestão do monitoramento interno sem mapa geográfico** (em
+  stand by, decisão do usuário 2026-09-10): faltava um jeito confiável de
+  ligar `InstrumentoEquipamento.municipio` (texto livre) a uma
+  macrorregião/UF sem risco de erro de grafia/acentuação — retomar
+  depois que o CNES de cada convenente estiver identificado (join bem
+  mais confiável que nome de município). Não propor cruzamento por nome
+  de município enquanto isso não for resolvido.
 
 ## Config e deploy — pegadinhas já resolvidas
 

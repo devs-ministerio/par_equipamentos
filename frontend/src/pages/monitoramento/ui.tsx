@@ -119,14 +119,22 @@ export function BarraDistribuicao({ itens, corBarra }: { itens: ContagemRotulo[]
   );
 }
 
-export function Secao({ titulo, contagem, children }: { titulo: string; contagem?: number; children: React.ReactNode }) {
+export function Secao({
+  titulo, contagem, acao, children,
+}: { titulo: string; contagem?: number; acao?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 18 }}>
       <h4 style={{
         fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: colors.primary,
         margin: '0 0 10px', paddingBottom: 6, borderBottom: `1px solid ${colors.border}`,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
       }}>
-        {titulo}{contagem !== undefined ? ` — ${contagem}` : ''}
+        <span>{titulo}{contagem !== undefined ? ` — ${contagem}` : ''}</span>
+        {/* Acao opcional na mesma linha do titulo -- achado 2026-09-10,
+            pedido do usuario: titulo + link relacionado (ex. "Monitoramento
+            interno" + "Ver detalhes →") ficavam empilhados e repetiam a
+            mesma frase, essa prop deixa os 2 juntos sem duplicar texto. */}
+        {acao && <span style={{ textTransform: 'none', letterSpacing: 'normal', fontWeight: 600 }}>{acao}</span>}
       </h4>
       {children}
     </div>

@@ -8,23 +8,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { colors } from '../../styles/tokens';
-import { componenteDoProgramaSiconv } from './componenteSiconv';
 import { fmtData, fmtMoeda, pct } from './format';
 import { SiconvSubAbas } from './SiconvSubAbas';
 import type { ConvenioUnificado, ProgramaTransfereGov } from './types';
 import { Campo, estiloCard, Secao, StatusPill } from './ui';
 
 export function ConvenioCard({
-  c, monitorado = false, componentes = [], equipamentos = [], programas,
+  c, monitorado = false, equipamentos = [], programas,
 }: {
   c: ConvenioUnificado;
   monitorado?: boolean;
-  /** Componente(s) de financiamento PNPCC cruzados pelo CNPJ do convenente
-   * (ver componentesPorCnpj em MonitoramentoEquipamentosPage.tsx) -- so
-   * API (TransfereGov programa/proposta), nunca a planilha interna
-   * (decisao do usuario 2026-09-08). Aproximacao, mesma ressalva da
-   * secao TransfereGov abaixo. */
-  componentes?: { componente: string; ano: number }[];
   /** Tags de equipamento (ver equipamentoTags.ts) -- mostradas em destaque
    * na camada 1, pedido direto do usuario (2026-09-08). */
   equipamentos?: string[];
@@ -40,17 +33,13 @@ export function ConvenioCard({
 
   // Programa -- so API. Preferencia: SICONV (`siconv.programa`, exato por
   // ID_PROPOSTA -- achado 2026-09-08) sobre TransfereGov (proposta ligada
-  // por CNPJ, resolvida por id_programa -- aproximacao, mesma ressalva da
-  // secao TransfereGov abaixo). Nunca vem do monitoramento interno
-  // (decisao do usuario 2026-09-08 -- aquilo e planilha da equipe, nao API).
+  // por CNPJ, resolvida por id_programa -- aproximacao). Nunca vem do
+  // monitoramento interno (decisao do usuario 2026-09-08 -- aquilo e
+  // planilha da equipe, nao API).
   const programaSiconv = siconv?.programa?.NOME_PROGRAMA || null;
   const programaTransfereGov = transferegov
     ? programas?.get(Number((transferegov.propostas_expandidas[0]?.proposta as Record<string, unknown> | undefined)?.id_programa))
     : undefined;
-  // Componente PNPCC derivado do NOME_PROGRAMA exato do SICONV, quando da
-  // pra casar com um dos 8 componentes-alvo (ver componenteSiconv.ts) --
-  // mais confiavel que `componentes` (cruzamento por CNPJ via TransfereGov).
-  const componenteSiconv = componenteDoProgramaSiconv(programaSiconv);
 
   const pctDesembolsado = c.financeiro.global && c.financeiro.desembolsado != null
     ? Math.round((c.financeiro.desembolsado / c.financeiro.global) * 100)
@@ -177,15 +166,6 @@ export function ConvenioCard({
             <Campo label="Região / código IBGE">{c.regiao} · {c.codigoIbge}</Campo>
             {c.situacaoContratacao && <Campo label="Situação da contratação (SICONV)">{c.situacaoContratacao}</Campo>}
             <Campo label="Objeto">{c.objeto}</Campo>
-            {componenteSiconv ? (
-              <Campo label="Componente PNPCC" legenda="SICONV, exato por ID_PROPOSTA">{componenteSiconv}</Campo>
-            ) : componentes.length > 0 ? (
-              <Campo label="Componente PNPCC" legenda="TransfereGov, aproximação por CNPJ">
-                {componentes.map((cp) => `${cp.componente} (${cp.ano})`).join(' · ')}
-              </Campo>
-            ) : (
-              <Campo label="Componente PNPCC">— (não encontrado em nenhuma fonte)</Campo>
-            )}
           </div>
         </Secao>
 
@@ -226,84 +206,28 @@ export function ConvenioCard({
           <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic', marginTop: 14 }}>Não encontrado no dump SICONV.</p>
         )}
 
-        <Secao titulo="TransfereGov (novo)">
-          {transferegov ? (
-            <>
-              <p style={{ fontSize: 11.5, color: colors.mutedText, margin: '0 0 8px' }}>
-                Cruzado por CNPJ do convenente — aproximação. Este CNPJ está ligado a {transferegov.convenios_legados_relacionados.length}{' '}
-                convênio(s) legado(s): {transferegov.convenios_legados_relacionados.join(', ')}. As propostas abaixo são do CNPJ como um
-                todo, não necessariamente exclusivas deste convênio.
-              </p>
-              {transferegov.propostas_expandidas.length === 0 ? (
-                <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma proposta de equipamento encontrada na API pra esse CNPJ.</p>
-              ) : (
-                transferegov.propostas_expandidas.map((p, i) => {
-                  const d = p.proposta as Record<string, string | number>;
-                  const programa = programas?.get(Number(d.id_programa));
-                  return (
-                    <details key={i} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: 10, marginBottom: 8 }}>
-                      <summary style={{ cursor: 'pointer' }}>
-                        <strong style={{ fontSize: 12.5 }}>{String(d.ds_objeto).slice(0, 120)}…</strong>{' '}
-                        <StatusPill texto={String(d.situacao_proposta)} />
-                      </summary>
-                      <div style={{ marginTop: 8, fontSize: 12.5 }}>
-                        {programa && (
-                          <div style={{ fontSize: 11.5, color: colors.primary, fontWeight: 600, marginBottom: 4 }}>
-                            Programa: {programa.nm_programa} {programa.ano_programa ? `(${programa.ano_programa})` : ''}
-                          </div>
-                        )}
-                        <p>{String(d.ds_objeto)}</p>
-                        <div>Valor total: <strong>{fmtMoeda(d.nr_vlr_total as number)}</strong></div>
-                        {p.metas.map((m) => (
-                          <div key={m.cd_meta} style={{ marginTop: 6 }}>
-                            <strong>{m.cd_meta}. {m.nm_meta}</strong>
-                            {m.etapas_proposta.map((et) => (
-                              <div key={et.cd_etapa} style={{ marginLeft: 12 }}>
-                                {et.cd_etapa} — {et.nm_etapa}
-                                {et.itens.map((it, j) => {
-                                  const item = it as Record<string, unknown>;
-                                  return (
-                                    <div key={j} style={{ marginLeft: 12, color: colors.mutedText }}>
-                                      {String(item.nm_item)} — {String(item.ds_item)} ({fmtMoeda(item.vl_total_item as number)})
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ))}
-                          </div>
-                        ))}
-                        {p.parcerias.map((pa, k) => {
-                          const parceria = pa.parceria as Record<string, unknown>;
-                          return (
-                            <div key={k} style={{ marginTop: 8 }}>
-                              <strong>Parceria {String(parceria.cd_parceria)}</strong> — <StatusPill texto={String(parceria.in_situacao_parceria)} />
-                              <div style={{ color: colors.mutedText }}>Empenhos: {pa.empenhos.length} · Documentos hábeis: {pa.documentos_habeis.length}</div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </details>
-                  );
-                })
-              )}
-            </>
-          ) : (
-            <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>CNPJ não encontrado na API do TransfereGov.</p>
-          )}
-        </Secao>
-
         {/* Monitoramento interno mudou pra pagina propria (achado
             2026-09-09) -- antes era um accordion aqui dentro, com fetch
             proprio por card. Card fica mais leve; so mostra o link quando
-            ha instrumento monitorado (ver useInstrumentosMonitorados.ts). */}
+            ha instrumento monitorado (ver useInstrumentosMonitorados.ts).
+            Link fica na mesma linha do titulo via a prop `acao` do Secao
+            (achado 2026-09-10, pedido do usuario: titulo + "Ver
+            monitoramento interno" embaixo repetiam a mesma frase). */}
         {monitorado && (
-          <Secao titulo="Monitoramento interno">
-            <Link
-              to={`/monitoramento-equipamentos/instrumentos/${c.numero}`}
-              style={{ fontSize: 12.5, fontWeight: 600, color: colors.primary, textDecoration: 'none' }}
-            >
-              Ver monitoramento interno →
-            </Link>
+          <Secao
+            titulo="Monitoramento interno"
+            acao={
+              <Link
+                to={`/monitoramento-equipamentos/instrumentos/${c.numero}`}
+                style={{ color: colors.primary, textDecoration: 'none' }}
+              >
+                Ver detalhes →
+              </Link>
+            }
+          >
+            <p style={{ fontSize: 12, color: colors.mutedText, margin: 0 }}>
+              Entrega, instalação, licenciamento CNEN e inauguração — acompanhamento manual pós-repasse da equipe.
+            </p>
           </Secao>
         )}
       </details>

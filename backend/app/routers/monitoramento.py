@@ -123,6 +123,12 @@ class InstrumentoEquipamentoRead(BaseModel):
     # equipe). Opcional, informativo.
     responsavel_execucao_nome: str | None
     responsavel_execucao_contato: str | None
+    # So preenchido por `listar_instrumentos` (achado 2026-09-10, pedido do
+    # usuario: filtro de fase na Visao Geral) -- reaproveita `_fase_atual_id`,
+    # mesma regra ja usada em `obter_resumo`/no front. Fica None nos outros
+    # endpoints que devolvem InstrumentoEquipamentoRead (PATCH/timeline), que
+    # nao precisam disso.
+    fase_atual: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -296,7 +302,26 @@ def listar_marcos(db: Session = Depends(get_db)):
 
 @router.get("/instrumentos", response_model=list[InstrumentoEquipamentoRead])
 def listar_instrumentos(db: Session = Depends(get_db)):
-    return db.execute(select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio)).scalars().all()
+    """Inclui `fase_atual` calculado (achado 2026-09-10, pedido do usuario:
+    filtro de fase na Visao Geral) -- mesmo padrao de calculo de
+    `obter_resumo` (marco de fase_geral de maior ordem com evento), so que
+    aqui devolvido POR instrumento em vez de agregado."""
+    instrumentos = db.execute(select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio)).scalars().all()
+    marcos = db.execute(select(MarcoCatalogo)).scalars().all()
+    fases_gerais_desc = sorted(
+        (m for m in marcos if m.grupo == MarcoGrupo.fase_geral), key=lambda m: m.ordem or 0, reverse=True,
+    )
+    todos_eventos = db.execute(select(EventoMarco)).scalars().all()
+    eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
+    for e in todos_eventos:
+        eventos_por_instrumento[e.instrumento_id].add(e.marco_id)
+
+    resultado = []
+    for inst in instrumentos:
+        fase_atual_id = _fase_atual_id(fases_gerais_desc, eventos_por_instrumento.get(inst.id, set()))
+        fase_atual = next((f.rotulo for f in fases_gerais_desc if f.id == fase_atual_id), "Não iniciado")
+        resultado.append(InstrumentoEquipamentoRead.model_validate(inst).model_copy(update={"fase_atual": fase_atual}))
+    return resultado
 
 
 @router.get("/instrumentos/{nr_convenio}", response_model=InstrumentoTimelineRead)

@@ -2,25 +2,33 @@
  * Painel de Gestão -- pedido do usuário 2026-09-09, 2a rodada: "crie uma
  * página de painel apenas com dashboards, seja criativo e rico em
  * detalhes, será para avaliação da gestão". Rota
- * `/monitoramento-equipamentos/painel`.
+ * `/monitoramento-equipamentos/painel`, dentro de `MonitoramentoLayout`
+ * (achado 2026-09-10 -- nav propria, ver MonitoramentoTopNav.tsx).
  *
  * Diferença pro Overview (MonitoramentoOverviewPage.tsx): aqui é SÓ
  * dashboard -- nenhuma tabela crua de instrumentos, nenhum form de
  * edição. Reaproveita os mesmos dados já buscados no Overview
  * (`/monitoramento/resumo` + `/monitoramento/instrumentos` +
  * `siconv.json`), sem endpoint novo, montados numa leitura mais
- * executiva: KPIs financeiros, funil de fase, ranking por UF/componente,
- * licenças por vencer.
+ * executiva: KPIs financeiros, funil de fase, ranking por UF/componente/
+ * tipo de equipamento, licenças por vencer.
  *
- * Sem mapa coroplético do Brasil -- não existe geojson por UF no repo
- * hoje (só Bahia/macrorregiões, ver frontend/public/geo/), adicionar um
- * novo ficaria contra a preferência de "opção mais leve" já registrada
- * em memória. Ranking em barra cobre a mesma necessidade sem asset novo.
+ * Achado 2026-09-10 (pedido do usuário, 3a rodada: "não temos um gráfico
+ * de pizza, barras vertical... os equipamentos achei bem pobre") --
+ * pizza (SVG puro) pra tipo de contratação, barras verticais (SVG puro)
+ * pro ranking de UF, e um bloco novo de distribuição por TIPO de
+ * equipamento (extraído do texto livre `equipamento_descricao`) que não
+ * existia antes.
+ *
+ * Sem mapa coroplético (macrorregião nem UF) -- em stand by por decisão
+ * do usuário: vai retomar depois de identificar o CNES de cada
+ * convenente (join mais confiável que nome de município por texto).
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KpiCard } from '../components/dashboard/KpiCard';
 import { colors, layout } from '../styles/tokens';
+import { normalizarTexto } from '../utils/texto';
 import { API_BASE_URL } from './monitoramento/api';
 import { fmtData, fmtMoeda } from './monitoramento/format';
 import type { SiconvEntrada } from './monitoramento/types';
@@ -46,11 +54,102 @@ type InstrumentoApi = {
   uf: string | null;
   componente: string | null;
   tipo_contratacao: string | null;
+  equipamento_descricao: string | null;
 };
 
 type MarcoApi = { id: number; codigo: string; grupo: string; ordem: number | null; rotulo: string };
 
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+// Paleta pra graficos com varias categorias (pizza/barras) -- reaproveita
+// os tokens do projeto na ordem, repete se tiver mais categorias que cor.
+const PALETA = [colors.primary, colors.hiperGreen, colors.logoOrange, colors.primaryDark, colors.hipoRed, '#8e6fce', '#2aa8b0', '#c9538a'];
+
+/** Extrai a FAMILIA de equipamento (Acelerador Linear, Mamógrafo, etc.) do
+ * texto livre `equipamento_descricao` -- achado 2026-09-10 (pedido do
+ * usuario: "os equipamentos achei bem pobre e sem criatividade"), esse
+ * campo nunca tinha virado uma distribuicao propria antes. Correspondencia
+ * por palavra-chave (normalizada, sem acento) contra os nomes ja usados no
+ * resto do app (data/constants.ts) + as outras familias reais que aparecem
+ * na planilha (Braquiterapia, Endoscopia, Cintilografia/Gama Probe) --
+ * nunca inventa categoria nova, so agrupa o que ja esta escrito no dado. */
+function extrairFamiliaEquipamento(descricao: string | null): string {
+  if (!descricao) return 'Não informado';
+  const t = normalizarTexto(descricao);
+  if (t.includes('acelerador linear')) return 'Acelerador Linear';
+  if (t.includes('mamograf')) return 'Mamógrafo';
+  if (t.includes('pet') && t.includes('ct')) return 'PET-CT';
+  if (t.includes('tomograf')) return 'Tomógrafo';
+  if (t.includes('ressonancia')) return 'Ressonância Magnética';
+  if (t.includes('ultrasson') || t.includes('ultrasom')) return 'Ultrassom';
+  if (t.includes('braquiterapia')) return 'Braquiterapia';
+  if (t.includes('endoscopia')) return 'Endoscopia';
+  if (t.includes('cintilograf') || t.includes('gama camara') || t.includes('gama probe')) return 'Medicina Nuclear';
+  return 'Outro';
+}
+
+/** Gráfico de pizza em SVG puro (sem lib -- preferência de "opção mais
+ * leve" já registrada em memória) -- poucas categorias (tipo de
+ * contratação tem só 2-3), cabe bem em pizza. */
+function GraficoPizza({ itens }: { itens: ContagemRotulo[] }) {
+  const total = itens.reduce((s, i) => s + i.quantidade, 0);
+  if (total === 0) return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Sem dado ainda.</p>;
+
+  const raio = 70, cx = 80, cy = 80;
+  let anguloAcumulado = -Math.PI / 2; // comeca no topo (12h), sentido horario
+  const fatias = itens.map((item, i) => {
+    const fracao = item.quantidade / total;
+    const anguloInicio = anguloAcumulado;
+    const anguloFim = anguloAcumulado + fracao * 2 * Math.PI;
+    anguloAcumulado = anguloFim;
+    const x1 = cx + raio * Math.cos(anguloInicio), y1 = cy + raio * Math.sin(anguloInicio);
+    const x2 = cx + raio * Math.cos(anguloFim), y2 = cy + raio * Math.sin(anguloFim);
+    const grandeArco = anguloFim - anguloInicio > Math.PI ? 1 : 0;
+    const d = `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${raio} ${raio} 0 ${grandeArco} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
+    return { ...item, d, cor: PALETA[i % PALETA.length], pct: fracao };
+  });
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+      <svg width={160} height={160} viewBox="0 0 160 160" role="img" aria-label="Distribuição por tipo de contratação">
+        {fatias.map((f) => <path key={f.rotulo} d={f.d} fill={f.cor} stroke="#fff" strokeWidth={1.5} />)}
+      </svg>
+      <div style={{ display: 'grid', gap: 6 }}>
+        {fatias.map((f) => (
+          <div key={f.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: f.cor, flexShrink: 0 }} />
+            <span>{f.rotulo}</span>
+            <strong>{f.quantidade}</strong>
+            <span style={{ color: colors.mutedText }}>({Math.round(f.pct * 100)}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Barras verticais em SVG puro -- mesma técnica leve do resto do painel,
+ * troca as barras horizontais por um formato melhor pra comparar muitas
+ * categorias lado a lado (achado 2026-09-10, pedido do usuário). */
+function BarrasVerticais({ itens, corBarra }: { itens: ContagemRotulo[]; corBarra: string }) {
+  if (itens.length === 0) return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Sem dado ainda.</p>;
+  const max = Math.max(1, ...itens.map((i) => i.quantidade));
+  const alturaMax = 120;
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: alturaMax + 40, overflowX: 'auto', paddingBottom: 4 }}>
+      {itens.map((item) => {
+        const altura = Math.max((item.quantidade / max) * alturaMax, 4);
+        return (
+          <div key={item.rotulo} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 36 }}>
+            <span style={{ fontSize: 11, fontWeight: 700 }}>{item.quantidade}</span>
+            <div style={{ width: 26, height: altura, background: corBarra, borderRadius: '4px 4px 0 0' }} />
+            <span style={{ fontSize: 10.5, color: colors.mutedText, writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 46 }}>{item.rotulo}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /** Funil de fases -- barras em largura decrescente na ORDEM real do
  * catálogo (Não iniciado → ... → Concluído), não por contagem (achado
@@ -146,8 +245,8 @@ export function MonitoramentoPainelPage() {
 
   // Financeiro -- cruza siconv.json (mesma fonte do Overview/ConvenioCard,
   // nunca no backend de monitoramento interno, ver docstring do arquivo).
-  // FAF/TED (chave = NUP SEI) nunca batem aqui de proposito -- nao tem
-  // registro no SICONV/TransfereGov, contribuem 0 sem fabricar valor.
+  // FAF/TED (chave = numero digitos-so) nunca batem aqui de proposito --
+  // nao tem registro no SICONV/TransfereGov, contribuem 0 sem fabricar valor.
   const financeiro = (() => {
     if (!resumo || !siconvTodos) return null;
     const siconvPorNumero = new Map(siconvTodos.map((e) => [e.convenio.NR_CONVENIO, e]));
@@ -163,9 +262,9 @@ export function MonitoramentoPainelPage() {
     return { global, pago, comPagamento, pct: global > 0 ? pago / global : null };
   })();
 
-  if (erro) return <p style={{ padding: layout.pagePadding, color: colors.hipoRed }}>Erro ao carregar: {erro}</p>;
+  if (erro) return <p style={{ color: colors.hipoRed }}>Erro ao carregar: {erro}</p>;
   if (!resumo || !instrumentos || !marcos) {
-    return <p style={{ padding: layout.pagePadding, color: colors.mutedText }}>Carregando...</p>;
+    return <p style={{ color: colors.mutedText }}>Carregando...</p>;
   }
 
   // Funil na ordem real do catálogo (nao por contagem). "Não iniciado" vem
@@ -197,113 +296,131 @@ export function MonitoramentoPainelPage() {
   const porComponente = contarPor('componente');
   const porTipoContratacao = contarPor('tipo_contratacao');
 
+  // Distribuição por TIPO de equipamento -- achado 2026-09-10, bloco novo
+  // (pedido do usuário: "os equipamentos achei bem pobre"), ver
+  // extrairFamiliaEquipamento acima.
+  const porFamiliaEquipamento = (() => {
+    const c = new Map<string, number>();
+    for (const i of instrumentos) {
+      const familia = extrairFamiliaEquipamento(i.equipamento_descricao);
+      c.set(familia, (c.get(familia) ?? 0) + 1);
+    }
+    return [...c.entries()].map(([rotulo, quantidade]) => ({ rotulo, quantidade })).sort((a, b) => b.quantidade - a.quantidade);
+  })();
+
   return (
-    <div style={{ minHeight: '100vh', background: colors.surface, padding: layout.pagePadding }}>
-      <div style={{ maxWidth: layout.maxWidth, margin: '0 auto' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: colors.subtleText, marginBottom: 6 }}>
-          Ministério da Saúde <span style={{ margin: '0 4px' }}>›</span>{' '}
-          <Link to="/monitoramento-equipamentos/instrumentos" style={{ color: colors.subtleText, textDecoration: 'none' }}>Monitoramento de Instrumentos</Link>{' '}
-          <span style={{ margin: '0 4px' }}>›</span> <span style={{ color: colors.primary }}>Painel de Gestão</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', margin: '0 0 6px', color: colors.primary }}>
-            Painel de Gestão — Equipamentos Oncológicos
-          </h1>
-          <Link
-            to="/monitoramento-equipamentos/instrumentos"
-            style={{ fontSize: 12.5, fontWeight: 600, color: colors.primary, textDecoration: 'none', whiteSpace: 'nowrap' }}
-          >
-            ← Ver operacional (por instrumento)
-          </Link>
-        </div>
-        <p style={{ color: colors.mutedText, fontSize: 13, maxWidth: 900, lineHeight: 1.6, marginBottom: 20 }}>
-          Visão executiva do acompanhamento pós-repasse de {resumo.total_instrumentos} instrumento(s) — pra avaliação
-          da gestão, sem detalhe operacional por convênio (isso fica na{' '}
-          <Link to="/monitoramento-equipamentos/instrumentos" style={{ color: colors.primary }}>visão geral</Link>).
-        </p>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', margin: '0 0 6px', color: colors.primary }}>
+          Painel de Gestão — Equipamentos Oncológicos
+        </h1>
+        <Link
+          to="/monitoramento-equipamentos/instrumentos"
+          style={{ fontSize: 12.5, fontWeight: 600, color: colors.primary, textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          ← Ver operacional (por instrumento)
+        </Link>
+      </div>
+      <p style={{ color: colors.mutedText, fontSize: 13, maxWidth: 900, lineHeight: 1.6, marginBottom: 20 }}>
+        Visão executiva do acompanhamento pós-repasse de {resumo.total_instrumentos} instrumento(s) — pra avaliação
+        da gestão, sem detalhe operacional por convênio (isso fica na{' '}
+        <Link to="/monitoramento-equipamentos/instrumentos" style={{ color: colors.primary }}>visão geral</Link>).
+      </p>
 
-        {/* KPIs executivos */}
-        <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 20 }}>
-          <KpiCard label="Instrumentos monitorados" value={resumo.total_instrumentos} color={colors.primary} />
-          <KpiCard
-            label="Execução física média"
-            value={resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—'}
-            color={colors.primaryDark}
-          />
-          <KpiCard label="Valor global investido" value={financeiro ? fmtMoeda(financeiro.global) : '...'} color={colors.primary} />
-          <KpiCard
-            label="Pago ao fornecedor"
-            value={financeiro ? `${fmtMoeda(financeiro.pago)}${financeiro.pct != null ? ` (${Math.round(financeiro.pct * 100)}%)` : ''}` : '...'}
-            color={colors.hiperGreen}
-          />
-          <KpiCard
-            label="Licenças CNEN deferidas"
-            value={`${resumo.licencas_cnen_deferidas}/${resumo.total_instrumentos}`}
-            color={colors.hiperGreen}
-          />
-        </div>
+      {/* KPIs executivos */}
+      <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 20 }}>
+        <KpiCard label="Instrumentos monitorados" value={resumo.total_instrumentos} color={colors.primary} />
+        <KpiCard
+          label="Execução física média"
+          value={resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—'}
+          color={colors.primaryDark}
+        />
+        <KpiCard label="Valor global investido" value={financeiro ? fmtMoeda(financeiro.global) : '...'} color={colors.primary} />
+        <KpiCard
+          label="Pago ao fornecedor"
+          value={financeiro ? `${fmtMoeda(financeiro.pago)}${financeiro.pct != null ? ` (${Math.round(financeiro.pct * 100)}%)` : ''}` : '...'}
+          color={colors.hiperGreen}
+        />
+        <KpiCard
+          label="Licenças CNEN deferidas"
+          value={`${resumo.licencas_cnen_deferidas}/${resumo.total_instrumentos}`}
+          color={colors.hiperGreen}
+        />
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 16, marginBottom: 20 }}>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Funil de fases</strong>
-            <div style={{ marginTop: 14 }}>
-              <FunilFases fasesOrdenadas={funil} />
-            </div>
-          </div>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Inaugurações por ano</strong>
-            <div style={{ marginTop: 12 }}>
-              <MiniLinhaDoTempo itens={resumo.inauguracoes} />
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 16, marginBottom: 20 }}>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Funil de fases</strong>
+          <div style={{ marginTop: 14 }}>
+            <FunilFases fasesOrdenadas={funil} />
           </div>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, marginBottom: 20 }}>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Por tipo de contratação</strong>
-            <div style={{ marginTop: 10 }}>
-              <BarraDistribuicao itens={porTipoContratacao} corBarra={colors.primary} />
-            </div>
-          </div>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Top 10 UF</strong>
-            <div style={{ marginTop: 10 }}>
-              <BarraDistribuicao itens={porUf} corBarra={colors.hiperGreen} />
-            </div>
-          </div>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Por componente</strong>
-            <div style={{ marginTop: 10 }}>
-              <BarraDistribuicao itens={porComponente} corBarra={colors.logoOrange} />
-            </div>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Inaugurações por ano</strong>
+          <div style={{ marginTop: 12 }}>
+            <MiniLinhaDoTempo itens={resumo.inauguracoes} />
           </div>
         </div>
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Licenças CNEN por vencer</strong>
-            <div style={{ marginTop: 10, display: 'grid', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
-              {resumo.licencas_vencendo.length === 0 ? (
-                <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma licença com validade registrada ainda.</p>
-              ) : resumo.licencas_vencendo.map((l) => (
-                <Link
-                  key={l.nr_convenio}
-                  to={`/monitoramento-equipamentos/instrumentos/${l.nr_convenio}`}
-                  style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, textDecoration: 'none', color: 'inherit' }}
-                >
-                  <span><span style={{ width: 8, height: 8, borderRadius: '50%', background: corValidade(l.dias), display: 'inline-block', marginRight: 6 }} />{l.nome_convenente} ({l.nr_convenio})</span>
-                  <strong style={{ color: corValidade(l.dias), whiteSpace: 'nowrap' }}>
-                    {l.dias < 0 ? `vencida há ${Math.abs(l.dias)}d` : `${l.dias}d`}
-                  </strong>
-                </Link>
-              ))}
-            </div>
+      {/* Equipamentos em destaque -- achado 2026-09-10, bloco novo (pedido
+          do usuário: "um ponto que precisa de mais destaque é os
+          equipamentos"). Pizza pro tipo de contratação, barras verticais
+          pro ranking de UF -- variedade visual pedida na mesma rodada. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Por tipo de equipamento</strong>
+          <div style={{ marginTop: 12 }}>
+            <BarraDistribuicao itens={porFamiliaEquipamento} corBarra={colors.primaryDark} />
           </div>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Convênios por técnico titular</strong>
-            <div style={{ marginTop: 10 }}>
-              <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra={colors.primaryDark} />
-            </div>
+        </div>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Por tipo de contratação</strong>
+          <div style={{ marginTop: 12 }}>
+            <GraficoPizza itens={porTipoContratacao} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, marginBottom: 20 }}>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Top 10 UF</strong>
+          <div style={{ marginTop: 12 }}>
+            <BarrasVerticais itens={porUf} corBarra={colors.hiperGreen} />
+          </div>
+        </div>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Por componente</strong>
+          <div style={{ marginTop: 10 }}>
+            <BarraDistribuicao itens={porComponente} corBarra={colors.logoOrange} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Licenças CNEN por vencer</strong>
+          <div style={{ marginTop: 10, display: 'grid', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+            {resumo.licencas_vencendo.length === 0 ? (
+              <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma licença com validade registrada ainda.</p>
+            ) : resumo.licencas_vencendo.map((l) => (
+              <Link
+                key={l.nr_convenio}
+                to={`/monitoramento-equipamentos/instrumentos/${l.nr_convenio}`}
+                style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, textDecoration: 'none', color: 'inherit' }}
+              >
+                <span><span style={{ width: 8, height: 8, borderRadius: '50%', background: corValidade(l.dias), display: 'inline-block', marginRight: 6 }} />{l.nome_convenente} ({l.nr_convenio})</span>
+                <strong style={{ color: corValidade(l.dias), whiteSpace: 'nowrap' }}>
+                  {l.dias < 0 ? `vencida há ${Math.abs(l.dias)}d` : `${l.dias}d`}
+                </strong>
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div style={estiloCard}>
+          <strong style={{ fontSize: 13 }}>Convênios por técnico titular</strong>
+          <div style={{ marginTop: 10 }}>
+            <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra={colors.primaryDark} />
           </div>
         </div>
       </div>

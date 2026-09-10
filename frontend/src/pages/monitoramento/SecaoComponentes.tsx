@@ -21,8 +21,15 @@ export function SecaoComponentes({ dados }: { dados: ComponenteOncologia[] }) {
   return (
     <div>
       <p style={{ color: colors.mutedText, fontSize: 12.5, maxWidth: 900, lineHeight: 1.6, marginBottom: 16 }}>
-        Levantamento nacional por <code>programa</code> do TransfereGov (não por número de convênio — FAF SAÚDE é
-        instrumento novo, sem número legado). Casamento por nome normalizado contra os 8 componentes pedidos —{' '}
+        Isto é um <strong>radar nacional de propostas</strong>, não a lista de convênios já assinados (essa fica na
+        aba "Convênios"). Cada bloco abaixo é um dos 8 componentes oficiais do PNPCC/Rede de Atenção num ano
+        específico; dentro dele, as "propostas" são pedidos de financiamento que qualquer ente (prefeitura,
+        hospital) submeteu pra aquele programa no TransfereGov — podem ainda nem ter virado convênio (ex.: situação
+        "Aprovada" é etapa anterior a "convênio assinado"). É útil pra achar convênios novos que ainda não têm
+        número TransfereGov legado — foi assim que os registros FAF/TED sem número de convênio foram encontrados.
+      </p>
+      <p style={{ color: colors.mutedText, fontSize: 12.5, maxWidth: 900, lineHeight: 1.6, marginBottom: 16 }}>
+        Casamento por nome normalizado do <code>programa</code> contra os 8 componentes pedidos —{' '}
         <code>id_programa</code> muda todo ano que a categoria é recriada, revalidar anualmente. Fase de descoberta:{' '}
         {totalPropostas} proposta(s) encontrada(s) em {dados.length} combinação(ões) componente/ano.
       </p>
