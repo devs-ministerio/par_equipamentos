@@ -118,6 +118,43 @@ reintroduzir o erro:
   mais confiável que nome de município). Não propor cruzamento por nome
   de município enquanto isso não for resolvido.
 
+## Migração de arquitetura do frontend (em andamento, progressiva)
+
+Desde 2026-09-10 o front está migrando de estilo inline/tokens.ts em TS puro
+pra **Tailwind CSS v4 + shadcn/ui**, aos poucos — não é um rewrite de uma
+vez, páginas antigas continuam em inline style até serem tocadas de novo.
+
+- **Tailwind v4, sem `tailwind.config.js`**: config é CSS-first, tudo em
+  `frontend/src/index.css` (`@theme inline`). Integração é só
+  `@tailwindcss/vite` no `vite.config.ts` — nada de PostCSS/autoprefixer,
+  mais leve e é o caminho recomendado hoje pra Vite.
+- **Paleta em `src/index.css` espelha `src/styles/tokens.ts`**: variáveis
+  `--background/--primary/--border/...` no `:root` foram preenchidas à mão
+  com os valores de `tokens.ts` (não os defaults neutros do preset shadcn).
+  Se `tokens.ts` mudar uma cor, replicar aqui também — ainda não há um
+  script/fonte única unificando os dois.
+- **shadcn init usou preset `nova` (`-b radix`)**: preset só define
+  estrutura de variantes/componentes; a paleta de cor foi sobrescrita como
+  no ponto acima. Fonte do preset é Geist — trocada de volta pra `Public
+  Sans` (a fonte real do app, carregada via Google Fonts no `index.html`)
+  em `--font-sans` dentro do `@theme inline`.
+- **Cuidado com `/* ... */` em comentário CSS que contenha `*/` no meio do
+  texto** (ex. "chart-*/sidebar-*"): fecha o comentário antes da hora e
+  corrompe o resto do bloco. Só aparece quebrado no build minificado
+  (Lightning CSS descarta a declaração malformada) — no dev server ou no
+  `@tailwindcss/cli` cru passa por batido porque nenhum dos dois valida a
+  sintaxe da mesma forma.
+- Alias `@/*` → `src/*` configurado em `tsconfig.json` + `tsconfig.app.json`
+  (sem `baseUrl` — deprecated a partir do TS 6, `paths` funciona sozinho com
+  `moduleResolution: bundler`) e em `vite.config.ts`
+  (`resolve.alias`, via `path.resolve(import.meta.dirname, './src')`).
+- Ferramentas de build (`tailwindcss`, `@tailwindcss/vite`, `shadcn`,
+  `tw-animate-css`) ficam em `devDependencies`; só o que roda em runtime no
+  bundle (`class-variance-authority`, `cn`, `lucide-react`, `radix-ui`) vai
+  em `dependencies`.
+- Adicionar componente novo: `cd frontend && npx shadcn@latest add <nome>`
+  (usa a mesma paleta automaticamente, já lê `components.json`).
+
 ## Config e deploy — pegadinhas já resolvidas
 
 - `DATABASE_URL` pode chegar em formatos diferentes por provedor
