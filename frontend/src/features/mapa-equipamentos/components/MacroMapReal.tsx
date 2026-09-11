@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { GeoJsonProperties, Geometry } from 'geojson';
-import { colors } from '../../styles/tokens';
+import { resolveThemeColor } from '@/lib/theme-colors';
 import type { PontoEstabelecimento } from './MacroMap';
 
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
@@ -53,6 +53,10 @@ interface Props {
  * estourarem "Cannot read properties of undefined (reading '_leaflet_pos')".
  * Separar "ciclo de vida do mapa" de "ciclo de vida do conteudo" elimina a
  * corrida.
+ *
+ * Cor via `resolveThemeColor` (src/lib/theme-colors.ts) -- Leaflet desenha
+ * imperativamente (`L.geoJSON`/`L.circleMarker`), nao aceita `className`,
+ * mesmo tratamento ja usado em MacroMap.tsx.
  */
 export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -109,6 +113,16 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
 
     conteudo.clearLayers();
 
+    // Lido 1x por render do efeito de conteudo (nao por camada/marcador) --
+    // mesmo raciocinio de MacroMap.tsx: o valor da variavel de tema e o
+    // mesmo pra tudo desenhado nesta passada, chamar getComputedStyle por
+    // elemento seria layout thrashing sem necessidade.
+    const primary = resolveThemeColor('--primary');
+    const destructive = resolveThemeColor('--destructive');
+    const card = resolveThemeColor('--card');
+    const foreground = resolveThemeColor('--foreground');
+    const mutedForeground = resolveThemeColor('--muted-foreground');
+
     // limites usados no fitBounds final. Com `contornoMunicipio` presente,
     // o contorno da macro inteira NAO entra nessa conta de proposito --
     // ele continua desenhado (usuario pediu pra manter, ver baixo), mas se
@@ -122,7 +136,7 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
       const feature = geo.features.find((f) => (f as Feature).properties?.cod_macro === macroId);
       if (feature) {
         const contorno = L.geoJSON(feature as GeoJSON.Feature, {
-          style: { color: colors.primary, weight: 2, fillOpacity: 0.04, fillColor: colors.primary },
+          style: { color: primary, weight: 2, fillOpacity: 0.04, fillColor: primary },
         }).addTo(conteudo);
         if (!contornoMunicipio) {
           limites.extend(contorno.getBounds());
@@ -136,7 +150,7 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
       // tracejado, preenchimento bem leve so pra destacar a area sem
       // esconder o mapa de ruas por baixo.
       const contornoMun = L.geoJSON(contornoMunicipio, {
-        style: { color: colors.hipoRed, weight: 2.5, fillOpacity: 0.08, fillColor: colors.hipoRed, dashArray: '6 5' },
+        style: { color: destructive, weight: 2.5, fillOpacity: 0.08, fillColor: destructive, dashArray: '6 5' },
       }).addTo(conteudo);
       limites.extend(contornoMun.getBounds());
     }
@@ -144,9 +158,9 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
     if (centro) {
       const marcadorCentro = L.circleMarker([centro.lat, centro.lon], {
         radius: 6,
-        color: '#fff',
+        color: card,
         weight: 2,
-        fillColor: colors.hipoRed,
+        fillColor: destructive,
         fillOpacity: 1,
       })
         .bindTooltip(centro.nome ? `Município: ${centro.nome}` : 'Município selecionado')
@@ -159,9 +173,9 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
       const raioPx = 4 + (Math.sqrt(p.qtd) / Math.sqrt(maiorQtd)) * 6;
       const marcador = L.circleMarker([p.lat, p.lon], {
         radius: raioPx,
-        color: '#fff',
+        color: card,
         weight: 1,
-        fillColor: p.susFlag ? '#16213e' : '#98a0b3',
+        fillColor: p.susFlag ? foreground : mutedForeground,
         fillOpacity: 0.9,
       })
         // HTML no tooltip (Leaflet renderiza por padrao) -- nome/municipio

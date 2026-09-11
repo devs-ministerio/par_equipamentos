@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '../components/layout/Header';
-import { MacroMap } from '../components/mapa/MacroMap';
+import { MacroMap } from '../features/mapa-equipamentos';
 import {
   fetchEquipmentTotals,
   fetchHealthRegionCoverage,

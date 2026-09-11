@@ -9,12 +9,11 @@ import { geoCentroid, geoCircle, geoMercator, geoPath } from 'd3-geo';
 import { scaleLinear, scaleSqrt } from 'd3-scale';
 import { select } from 'd3-selection';
 import type { GeoJsonProperties, Geometry } from 'geojson';
-import { statusMeta } from '../../utils/status';
+import { statusMeta } from '@/utils/status';
 import { resolveThemeColor } from '@/lib/theme-colors';
-import { formatMultiplicador } from '../../utils/format';
-import { calcularCoeficiente } from '../../utils/coeficiente';
-import { colors } from '../../styles/tokens';
-import type { CoberturaRow, Macrorregiao } from '../../types/domain';
+import { formatMultiplicador } from '@/utils/format';
+import { calcularCoeficiente } from '@/utils/coeficiente';
+import type { CoberturaRow, Macrorregiao } from '@/types/domain';
 
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
 type FeatureCollection = GeoJSON.FeatureCollection<Geometry, GeoJsonProperties>;
@@ -78,24 +77,6 @@ interface Props {
  * circulo na Terra equivale a raio_terra_km * (pi/180) km. */
 const KM_POR_GRAU = (Math.PI / 180) * 6371;
 
-/** Escala de cor em DUAS gradações, cortada exatamente no mesmo corte da
- * classificação oficial (coeficiente 1x = cobertura 100%, mesmo limiar de
- * `statusMeta` em utils/status.ts: `cobertura >= 100` = Hiperssuficiente) --
- * 2026-08-24, substitui o gradiente único (vermelho->laranja->verde) que
- * passava por 100% sem nenhum corte visual, dando a impressão de uma
- * transição suave onde na verdade existe uma classificação binária.
- * Abaixo de 100%: gradação de vermelho (mais escuro/saturado = mais longe
- * da meta, mais claro = quase lá). Igual ou acima de 100%: gradação de
- * verde (mais claro = acabou de bater a meta, mais escuro/saturado = bem
- * acima). As 4 cores (hipoRed/hipoRedBg/hiperGreenBg/hiperGreen) já
- * existem no design system (StatusBadge/cards), não inventei tom novo. */
-const escalaVermelho = scaleLinear<string>().domain([0, 100]).range([colors.hipoRed, colors.hipoRedBg]).clamp(true);
-const escalaVerde = scaleLinear<string>().domain([100, 200]).range([colors.hiperGreenBg, colors.hiperGreen]).clamp(true);
-
-function escalaCor(cobertura: number): string {
-  return cobertura < 100 ? escalaVermelho(cobertura) : escalaVerde(cobertura);
-}
-
 /**
  * Coropletico por MACRORREGIAO DE SAUDE (decisao 2026-08-22) -- substitui o
  * antigo BrazilMap.tsx, que coloria por UF com a cobertura das macros
@@ -109,6 +90,10 @@ function escalaCor(cobertura: number): string {
  * ver GEOJSON_MACRORREGIOES_URL em data/constants.ts) -- resolve o TODO
  * antigo de depender de CDN de terceiro sem fallback, e cai de 3,3 MB pra
  * ~240 KB no processo.
+ *
+ * Cor via `resolveThemeColor` (src/lib/theme-colors.ts) -- D3 desenha
+ * imperativamente (`.attr()`), nao aceita `className`, mas a cor ainda vem
+ * só de index.css (nunca hex cru), lida em runtime a cada render do efeito.
  */
 export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
   { geo, macros, coberturaRows, selectedMacroId, pontos, raioKm, zoomMacroId, produtividade = 100_000, onSelectMacro },
@@ -124,6 +109,37 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
 
     const macroById = new Map(macros.map((m) => [m.id, m]));
     const coberturaById = new Map(coberturaRows.map((r) => [r.macroId, r]));
+
+    // Lido 1x por render do efeito (nao por elemento/tick do D3) -- chamar
+    // getComputedStyle em cada elemento de uma selecao .data().enter() faria
+    // layout thrashing sem necessidade, o valor da variavel e o mesmo pra
+    // todos os elementos desenhados nesta passada.
+    const primary = resolveThemeColor('--primary');
+    const foreground = resolveThemeColor('--foreground');
+    const background = resolveThemeColor('--background');
+    const card = resolveThemeColor('--card');
+    const muted = resolveThemeColor('--muted');
+    const mutedForeground = resolveThemeColor('--muted-foreground');
+    const destructive = resolveThemeColor('--destructive');
+    const destructiveBg = resolveThemeColor('--destructive-bg');
+    const success = resolveThemeColor('--success');
+    const successBg = resolveThemeColor('--success-bg');
+
+    // Escala de cor em DUAS gradações, cortada exatamente no mesmo corte da
+    // classificação oficial (coeficiente 1x = cobertura 100%, mesmo limiar
+    // de `statusMeta` em utils/status.ts: `cobertura >= 100` =
+    // Hiperssuficiente) -- 2026-08-24, substitui o gradiente único
+    // (vermelho->laranja->verde) que passava por 100% sem nenhum corte
+    // visual, dando a impressão de uma transição suave onde na verdade
+    // existe uma classificação binária. Abaixo de 100%: gradação de
+    // vermelho (mais escuro/saturado = mais longe da meta, mais claro =
+    // quase lá). Igual ou acima de 100%: gradação de verde (mais claro =
+    // acabou de bater a meta, mais escuro/saturado = bem acima).
+    const escalaVermelho = scaleLinear<string>().domain([0, 100]).range([destructive, destructiveBg]).clamp(true);
+    const escalaVerde = scaleLinear<string>().domain([100, 200]).range([successBg, success]).clamp(true);
+    function escalaCor(cobertura: number): string {
+      return cobertura < 100 ? escalaVermelho(cobertura) : escalaVerde(cobertura);
+    }
 
     const width = el.clientWidth || 700;
     const height = 560;
@@ -150,7 +166,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
 
     const tooltip = document.createElement('div');
     tooltip.style.cssText =
-      'position:absolute;background:#1a1a2e;color:#fff;padding:8px 12px;border-radius:8px;' +
+      `position:absolute;background:${foreground};color:${background};padding:8px 12px;border-radius:8px;` +
       'font-size:12px;pointer-events:none;display:none;z-index:99;line-height:1.5;' +
       'box-shadow:0 4px 12px rgba(0,0,0,0.2);';
     el.appendChild(tooltip);
@@ -168,25 +184,22 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
       .enter()
       .append('path')
       .attr('d', path as unknown as (f: Feature) => string)
-      .attr('stroke', '#fff')
+      .attr('stroke', card)
       .attr('stroke-width', (d) => ((d as Feature).properties?.cod_macro === selectedMacroId ? 2 : 0.6))
       .attr('cursor', 'pointer')
       .attr('fill', (d) => {
         const macroId = (d as Feature).properties?.cod_macro as string | undefined;
         const row = macroId ? coberturaById.get(macroId) : undefined;
-        return row ? escalaCor(row.cobertura) : '#e5e8ef';
+        return row ? escalaCor(row.cobertura) : muted;
       })
       .on('mousemove', (event: MouseEvent, d) => {
         const macroId = (d as Feature).properties?.cod_macro as string | undefined;
         const macro = macroId ? macroById.get(macroId) : undefined;
         const row = macroId ? coberturaById.get(macroId) : undefined;
         const meta = row ? statusMeta(row.cobertura) : null;
-        // statusMeta devolve `variant` semantico (nao hex) desde 2026-09-10
-        // -- resolve pro hex real da variavel CSS aqui, so nesse 1 ponto que
-        // ficou incompativel com a mudanca de contrato (o resto do desenho
-        // imperativo desse componente -- escalaVermelho/Verde, fill/stroke,
-        // tooltip -- migra pro mesmo helper na reestilizacao de
-        // mapa-equipamentos, nao adiantada aqui).
+        // statusMeta devolve `variant` semantico (nao hex) -- resolve pro
+        // hex real da variavel CSS aqui, mesmo helper usado pro resto da
+        // cor imperativa deste componente.
         const metaColor = meta ? resolveThemeColor(`--${meta.variant}`) : undefined;
         // Mesmo indicador colorido ("1,31x") usado em todo o resto do app
         // (StatusBadge/tabelas/cards) -- substitui "pessoas por
@@ -199,9 +212,9 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         tooltip.style.left = `${event.clientX - rect.left + 12}px`;
         tooltip.style.top = `${event.clientY - rect.top - 40}px`;
         tooltip.innerHTML = macro
-          ? `<strong>${macro.nome} (${macro.uf})</strong><br>Coeficiente: <span style="color:${coef?.corTexto ?? '#fff'}">${
+          ? `<strong>${macro.nome} (${macro.uf})</strong><br>Coeficiente: <span style="color:${coef?.corTexto ?? background}">${
               coef?.valor != null ? formatMultiplicador(coef.valor) : '—'
-            }</span><br><span style="color:${metaColor ?? '#fff'}">${meta?.label ?? ''}</span>`
+            }</span><br><span style="color:${metaColor ?? background}">${meta?.label ?? ''}</span>`
           : `<strong>Código ${macroId ?? '—'}</strong><br>Sem dado nessa competência`;
       })
       .on('mouseleave', () => {
@@ -230,9 +243,9 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         .enter()
         .append('path')
         .attr('d', path as unknown as (f: GeoJSON.Geometry) => string)
-        .attr('fill', colors.primary)
+        .attr('fill', primary)
         .attr('fill-opacity', 0.06)
-        .attr('stroke', colors.primary)
+        .attr('stroke', primary)
         .attr('stroke-opacity', 0.35)
         .attr('stroke-width', 1)
         .attr('pointer-events', 'none');
@@ -250,9 +263,9 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         .attr('cx', (p) => proj([p.lon, p.lat])?.[0] ?? -1000)
         .attr('cy', (p) => proj([p.lon, p.lat])?.[1] ?? -1000)
         .attr('r', (p) => raio(p.qtd))
-        .attr('fill', (p) => (p.susFlag ? '#16213e' : '#98a0b3'))
+        .attr('fill', (p) => (p.susFlag ? foreground : mutedForeground))
         .attr('fill-opacity', 0.85)
-        .attr('stroke', '#fff')
+        .attr('stroke', card)
         .attr('stroke-width', 1)
         // decorativo -- o hover/clique continua sendo o poligono da macro
         // por baixo, senao um ponto pequeno em cima da borda "rouba" o
@@ -288,17 +301,17 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
           .attr('width', larguraBarra + 12)
           .attr('height', 30)
           .attr('rx', 4)
-          .attr('fill', '#fff')
+          .attr('fill', card)
           .attr('fill-opacity', 0.85);
-        escala.append('line').attr('x1', 0).attr('x2', larguraBarra).attr('y1', 0).attr('y2', 0).attr('stroke', '#16213e').attr('stroke-width', 2);
-        escala.append('line').attr('x1', 0).attr('x2', 0).attr('y1', -4).attr('y2', 4).attr('stroke', '#16213e').attr('stroke-width', 2);
+        escala.append('line').attr('x1', 0).attr('x2', larguraBarra).attr('y1', 0).attr('y2', 0).attr('stroke', foreground).attr('stroke-width', 2);
+        escala.append('line').attr('x1', 0).attr('x2', 0).attr('y1', -4).attr('y2', 4).attr('stroke', foreground).attr('stroke-width', 2);
         escala
           .append('line')
           .attr('x1', larguraBarra)
           .attr('x2', larguraBarra)
           .attr('y1', -4)
           .attr('y2', 4)
-          .attr('stroke', '#16213e')
+          .attr('stroke', foreground)
           .attr('stroke-width', 2);
         escala
           .append('text')
@@ -307,7 +320,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
           .attr('text-anchor', 'middle')
           .attr('font-size', 10.5)
           .attr('font-weight', 700)
-          .attr('fill', '#16213e')
+          .attr('fill', foreground)
           .text(`${distanciaEscala} km`);
       }
     }

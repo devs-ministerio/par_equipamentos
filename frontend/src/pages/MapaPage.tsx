@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
-import { MacroMap } from '../components/mapa/MacroMap';
-import type { PontoEstabelecimento } from '../components/mapa/MacroMap';
+import { MacroMap } from '../features/mapa-equipamentos';
+import type { PontoEstabelecimento } from '../features/mapa-equipamentos';
 import { SubNivelRows } from '../features/dashboard-cobertura';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { SingleSelectFilter } from '../components/common/SingleSelectFilter';
@@ -15,7 +15,6 @@ import { calcularCoeficiente } from '../utils/coeficiente';
 import { formatMilhar, formatMultiplicador } from '../utils/format';
 import { distanciaKm } from '../utils/geo';
 import { useFamiliaEquipamento } from '../context/FamiliaEquipamentoContext';
-import { colors } from '../styles/tokens';
 import { getEquipamento, GEOJSON_MACRORREGIOES_URL } from '../data/constants';
 import type { CoberturaRow, Macrorregiao, NivelCoberturaRow } from '../types/domain';
 
@@ -25,9 +24,12 @@ type RegioesSaudeEstado = NivelCoberturaRow[] | 'carregando' | 'erro';
 // secao de recorte -- mesmo padrao ja usado pro jsPDF/ExcelJS em
 // utils/exportPdf.ts/exportXlsx.ts (lib pesada, usada numa parte especifica
 // da UI, carregada sob demanda em vez de inflar o bundle principal que
-// TODA pagina paga, mesmo quem nunca abre o Mapa).
+// TODA pagina paga, mesmo quem nunca abre o Mapa). Import direto do módulo
+// (não do barrel `features/mapa-equipamentos`) -- lazy() precisa de um
+// import() dedicado pro code-splitting funcionar; importar do barrel
+// puxaria `MacroMap`/o resto da feature pro chunk principal também.
 const MacroMapReal = lazy(() =>
-  import('../components/mapa/MacroMapReal').then((m) => ({ default: m.MacroMapReal })),
+  import('../features/mapa-equipamentos/components/MacroMapReal').then((m) => ({ default: m.MacroMapReal })),
 );
 
 // Maior macro nacional (Tomógrafo) tem 964 estabelecimentos distintos --
@@ -50,40 +52,13 @@ const RAIO_BUSCA_MUNICIPIO_KM = 75;
  * selecionada (municipio, se houver; senao a macro). */
 function CardInfo({ label, valor, cor }: { label: string; valor: string; cor?: string }) {
   return (
-    <div
-      style={{
-        flex: '1 1 150px',
-        minWidth: 150,
-        background: '#f7f8fb',
-        border: `1px solid ${colors.border}`,
-        borderRadius: 8,
-        padding: '10px 14px',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10.5,
-          fontWeight: 700,
-          color: colors.subtleText,
-          textTransform: 'uppercase',
-          letterSpacing: '0.03em',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
+    <div className="min-w-[150px] flex-[1_1_150px] rounded-lg border border-border bg-muted px-3.5 py-2.5">
+      <div className="overflow-hidden text-[10.5px] font-bold tracking-[0.03em] text-ellipsis whitespace-nowrap text-muted-foreground uppercase">
         {label}
       </div>
       <div
-        style={{
-          fontSize: 17,
-          fontWeight: 700,
-          color: cor ?? '#16213e',
-          marginTop: 3,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
+        className={`mt-[3px] overflow-hidden text-[17px] font-bold text-ellipsis whitespace-nowrap ${cor ? '' : 'text-foreground'}`}
+        style={cor ? { color: cor } : undefined}
         title={valor}
       >
         {valor}
@@ -517,12 +492,12 @@ export function MapaPage() {
       : null;
 
   if (loading) {
-    return <div style={{ padding: 60, textAlign: 'center', color: colors.subtleText }}>Carregando dados...</div>;
+    return <div className="p-[60px] text-center text-muted-foreground">Carregando dados...</div>;
   }
 
   if (error) {
     return (
-      <div style={{ padding: 24, background: '#fde8e8', color: colors.hipoRed, borderRadius: 8 }}>
+      <div className="rounded-lg bg-destructive-bg p-6 text-destructive">
         Não foi possível carregar os dados ({error}).
       </div>
     );
@@ -530,9 +505,9 @@ export function MapaPage() {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, alignItems: 'stretch' }}>
-        <div style={{ background: '#fff', borderRadius: 8, padding: '16px 18px' }}>
-          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
+      <div className="grid grid-cols-[2fr_1fr] items-stretch gap-4">
+        <div className="rounded-lg bg-card px-4.5 py-4">
+          <div className="mb-2.5 text-sm font-semibold">
             Equipamentos — Cobertura por macrorregião de saúde
           </div>
           {geo && (
@@ -545,20 +520,21 @@ export function MapaPage() {
               onSelectMacro={setSelectedMacroId}
             />
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
+          <div className="mt-3 flex flex-wrap items-center gap-3.5">
             {/* Mesma logica de MacroMap.tsx::escalaCor -- duas gradacoes com
                 corte duro em 100% (a mesma "costura" no meio do degrade,
                 dois stops na mesma posicao), nao mais um gradiente unico
-                atravessando a meta sem distincao visual. */}
+                atravessando a meta sem distincao visual. var() em vez de hex
+                cru -- 4 paradas na mesma barra, arbitrary-value Tailwind
+                ficaria ilegivel pra esse caso. */}
             <div
+              className="h-2 w-[140px] rounded"
               style={{
-                width: 140,
-                height: 8,
-                borderRadius: 4,
-                background: `linear-gradient(to right, ${colors.hipoRed} 0%, ${colors.hipoRedBg} 50%, ${colors.hiperGreenBg} 50%, ${colors.hiperGreen} 100%)`,
+                background:
+                  'linear-gradient(to right, var(--destructive) 0%, var(--destructive-bg) 50%, var(--success-bg) 50%, var(--success) 100%)',
               }}
             />
-            <span style={{ fontSize: 11, color: colors.subtleText }}>0x ── 1x ── 2x+</span>
+            <span className="text-[11px] text-muted-foreground">0x ── 1x ── 2x+</span>
           </div>
         </div>
 
@@ -571,28 +547,28 @@ export function MapaPage() {
             2026-08-24). overflow:auto continua so como rede de seguranca,
             caso o conteudo (muitas regioes de saude expandidas) fique mais
             alto que o mapa. */}
-        <div style={{ background: '#fff', borderRadius: 8, padding: '16px 18px', overflow: 'auto' }}>
+        <div className="overflow-auto rounded-lg bg-card px-4.5 py-4">
           {macroSelecionada && coberturaSelecionada ? (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontFamily: 'monospace', fontSize: 11, color: colors.subtleText }}>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[11px] text-muted-foreground">
                   {macroSelecionada.id}
                 </span>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>
-                  {macroSelecionada.nome} <span style={{ color: colors.mutedText, fontWeight: 400 }}>({macroSelecionada.uf})</span>
+                <div className="text-[15px] font-semibold">
+                  {macroSelecionada.nome} <span className="font-normal text-muted-foreground">({macroSelecionada.uf})</span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+              <div className="mt-2.5 flex items-center gap-2.5">
                 <StatusBadge cobertura={coberturaSelecionada.cobertura} />
                 {coefSelecionada?.valor != null && (
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: coefSelecionada.corTexto }}>
+                  <span className="text-[12.5px] font-semibold" style={{ color: coefSelecionada.corTexto }}>
                     {formatMultiplicador(coefSelecionada.valor)}
                   </span>
                 )}
               </div>
 
-              <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 10, lineHeight: 1.7 }}>
+              <div className="mt-2.5 text-xs leading-[1.7] text-muted-foreground">
                 {macroSelecionada.pop.toLocaleString('pt-BR')} hab. SUS-dependentes · {coberturaSelecionada.oferta} equipamento
                 {coberturaSelecionada.oferta === 1 ? '' : 's'} SUS
                 {coberturaSelecionada.ofertaTotal !== coberturaSelecionada.oferta &&
@@ -601,24 +577,15 @@ export function MapaPage() {
                 Pessoas por equipamento: {pessoasPorEquipSelecionada != null ? `${formatMilhar(pessoasPorEquipSelecionada)}/1` : '—'}
               </div>
 
-              <div
-                style={{
-                  marginTop: 16,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: colors.subtleText,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
+              <div className="mt-4 text-[11px] font-bold tracking-[0.04em] text-muted-foreground uppercase">
                 Regiões de saúde
               </div>
-              <div style={{ marginTop: 6 }}>
+              <div className="mt-1.5">
                 {regioesSaude === 'carregando' && (
-                  <div style={{ fontSize: 12, color: colors.subtleText, padding: '8px 0' }}>Carregando regiões de saúde...</div>
+                  <div className="py-2 text-xs text-muted-foreground">Carregando regiões de saúde...</div>
                 )}
                 {regioesSaude === 'erro' && (
-                  <div style={{ fontSize: 12, color: colors.hipoRed, padding: '8px 0' }}>
+                  <div className="py-2 text-xs text-destructive">
                     Não foi possível carregar as regiões de saúde.
                   </div>
                 )}
@@ -628,38 +595,38 @@ export function MapaPage() {
               </div>
             </div>
           ) : (
-            <div style={{ color: colors.subtleText, fontSize: 13 }}>
+            <div className="text-[13px] text-muted-foreground">
               Selecione uma macrorregião no mapa para ver o detalhe por região de saúde.
             </div>
           )}
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 8, padding: '16px 18px', marginTop: 16 }}>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>Equipamentos — Mapa Rodoviário</div>
+      <div className="mt-4 rounded-lg bg-card px-4.5 py-4">
+        <div className="text-sm font-semibold">Equipamentos — Mapa Rodoviário</div>
 
         {/* Resumo do que esta selecionado (municipio, se houver -- senao a
             macro) -- pedido explicito (2026-08-24), fica acima do filtro
             de Macro/Municipio abaixo. */}
         {infoSelecionado && (
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+          <div className="mt-3 flex flex-wrap gap-2.5">
             <CardInfo label="Total de equipamentos" valor={infoSelecionado.ofertaTotal.toLocaleString('pt-BR')} />
             {/* Distancia -- so existe no nivel Municipio (dado geografico
                 por municipio). Cor so pro TOMOGRAFO (unica familia com
                 criterio normativo de raio, 75km -- Caderno 1 SUS 2017):
                 dentro = verde/bom, fora = vermelho/ruim, mesma convencao
                 do resto do app. Pras demais familias (2026-08-24, a
-                pedido) o valor ainda e calculado e mostrado, so que em
-                preto (cor default do CardInfo) -- nao ha criterio oficial
-                de raio pra colorir contra. */}
+                pedido) o valor ainda e calculado e mostrado, so que na cor
+                default do CardInfo -- nao ha criterio oficial de raio pra
+                colorir contra. */}
             <CardInfo
               label="Distância mais próxima"
               valor={distanciaMaisProximaKm != null ? `${distanciaMaisProximaKm.toFixed(0)} km` : '—'}
               cor={
                 FAMILIA === 'TOMOGRAFO' && distanciaMaisProximaKm != null
                   ? distanciaMaisProximaKm <= 75
-                    ? colors.hiperGreen
-                    : colors.hipoRed
+                    ? 'var(--success)'
+                    : 'var(--destructive)'
                   : undefined
               }
             />
@@ -668,9 +635,9 @@ export function MapaPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginTop: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: colors.subtleText }}>Filtrar por</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="text-xs font-semibold text-muted-foreground">Filtrar por</div>
+          <div className="flex flex-wrap items-center gap-2">
             <SingleSelectFilter
               placeholder="Selecione uma macrorregião"
               value={selectedMacroId}
@@ -698,7 +665,7 @@ export function MapaPage() {
         </div>
 
         {municipioSelecionado && (
-          <div style={{ marginTop: 10, fontSize: 12.5, color: colors.mutedText }}>
+          <div className="mt-2.5 text-[12.5px] text-muted-foreground">
             Mostrando{' '}
             {totalEstabelecimentosNoRaio != null && totalEstabelecimentosNoRaio > pontosMacro.length
               ? `os ${pontosMacro.length} estabelecimentos mais próximos (de ${totalEstabelecimentosNoRaio} dentro de ${RAIO_BUSCA_MUNICIPIO_KM} km)`
@@ -709,10 +676,10 @@ export function MapaPage() {
 
         {geo && (selectedMacroId || municipioSelecionado) && (
           <>
-            <div style={{ marginTop: 12 }}>
+            <div className="mt-3">
               <Suspense
                 fallback={
-                  <div style={{ height: 560, display: 'flex', alignItems: 'center', justifyContent: 'center', color: colors.subtleText }}>
+                  <div className="flex h-[560px] items-center justify-center text-muted-foreground">
                     Carregando mapa...
                   </div>
                 }
@@ -726,28 +693,20 @@ export function MapaPage() {
                 />
               </Suspense>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, color: colors.subtleText, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16213e', display: 'inline-block' }} />
+            <div className="mt-3 flex flex-wrap items-center gap-3.5">
+              <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="inline-block h-2 w-2 rounded-full bg-foreground" />
                 estabelecimento (tamanho = qtd. de equipamentos)
               </span>
               {municipioSelecionado && (
-                <span style={{ fontSize: 11, color: colors.subtleText, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: colors.hipoRed, border: '1.5px solid #fff', display: 'inline-block' }} />
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border-[1.5px] border-card bg-destructive" />
                   município selecionado
                 </span>
               )}
               {municipioSelecionado && (
-                <span style={{ fontSize: 11, color: colors.subtleText, display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span
-                    style={{
-                      width: 12,
-                      height: 8,
-                      border: `1.5px dashed ${colors.hipoRed}`,
-                      borderRadius: 3,
-                      display: 'inline-block',
-                    }}
-                  />
+                <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="inline-block h-2 w-3 rounded-[3px] border-[1.5px] border-dashed border-destructive" />
                   {contornoMunicipio ? 'contorno do município selecionado' : 'buscando contorno do município...'}
                 </span>
               )}

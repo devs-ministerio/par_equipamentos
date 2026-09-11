@@ -143,21 +143,24 @@ versão simplificada de Feature-Sliced Design:
   cálculo citada em `docs/metodologia-parametros.md` e no agente
   `metodologia-sync` — mover esses exigiria atualizar CLAUDE.md e o agente
   junto; não mover sem necessidade real).
-- Migrado até agora: **`features/monitoramento-equipamento/`** e
+- Migrado até agora: **`features/monitoramento-equipamento/`**,
   **`features/dashboard-cobertura/`** (`CoberturaTable`,
   `EstabelecimentoTable`, `NivelCoberturaTable`, `SubNivelRows`,
   `MunicipioDetalheModal`, `BotaoDetalhe`, `InfoIcon`,
-  `StatusFilterButtons`). `KpiCard`/`MultiSelectFilter` **não** entraram
-  na feature apesar de morarem historicamente em `components/dashboard/`
-  — são presentacionais puros (zero lógica de domínio) usados também fora
-  do dashboard (Monitoramento, modais de exportação do Relatórios), então
-  foram pra `components/common/` em vez de pra dentro da feature (mesmo
-  critério já usado pro `SingleSelectFilter`: se o componente não carrega
-  regra de negócio própria e é cross-módulo, fica em `common/`, não numa
-  feature — só componente com lógica de domínio genuína, como
+  `StatusFilterButtons`) e **`features/mapa-equipamentos/`** (`MacroMap`,
+  `MacroMapReal`). `KpiCard`/`MultiSelectFilter`/`SingleSelectFilter`
+  **não** entraram em nenhuma feature apesar de morarem historicamente em
+  `components/dashboard/` — são presentacionais puros (zero lógica de
+  domínio) usados também fora do módulo que os "adotaria" (Monitoramento,
+  modais de exportação do Relatórios, `SingleSelectFilter` é cross
+  mapa+monitoramento), então ficam em `components/common/` em vez de
+  dentro de uma feature (só componente com lógica de domínio genuína, como
   `SubNivelRows`, justifica um outro módulo importar de dentro da feature
-  via `index.ts`). Ainda em `pages/`/`components/` sem feature própria:
-  mapa (`components/mapa/` + `MapaPage`), relatórios (`RelatoriosPage` +
+  via `index.ts`). `MapaPage.tsx` importa `SubNivelRows` de
+  `features/dashboard-cobertura` e `MacroMap`/`SingleSelectFilter` de
+  `features/mapa-equipamentos`/`components/common` — cross-feature import
+  via API pública (`index.ts`), normal em FSD. Ainda em `pages/`/
+  `components/` sem feature própria: relatórios (`RelatoriosPage` +
   `MetodologiaPage`), painel geral (`PainelGeralPage`) — migrar um por vez,
   não de uma vez (mesmo princípio da migração Tailwind abaixo).
 - Decisão explícita 2026-09-10: **não** adotar ainda TanStack Query/Axios/
@@ -213,7 +216,18 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
 - **`src/lib/theme-colors.ts`**: helper `resolveThemeColor(cssVarName)` que
   lê a variável CSS resolvida em runtime (`getComputedStyle`) — só pra D3/
   Leaflet (`MacroMap.tsx`/`MacroMapReal.tsx`), que desenham imperativamente
-  e não aceitam `className`.
+  e não aceitam `className`. `MacroMap.tsx`/`MacroMapReal.tsx` resolvem as
+  variáveis 1x por render do efeito de conteúdo (nunca por elemento/marcador
+  dentro de `.data().enter()`/loop de camada), pra não gerar layout
+  thrashing. `--destructive-bg`/`--success-bg` (Fase 0) existem
+  especificamente pra essa interpolação D3 (`escalaVermelho`/`escalaVerde`
+  em `MacroMap.tsx`) — 2 cores sólidas reais, não opacidade Tailwind — e o
+  gradiente de legenda em `MapaPage.tsx`/`PainelGeralPage.tsx` usa
+  `var(--destructive)`/`var(--destructive-bg)`/`var(--success-bg)`/
+  `var(--success)` direto no `style` inline (4 paradas numa única barra,
+  ilegível como arbitrary-value Tailwind) — nenhum dos dois casos é uso
+  geral em `className`, que continua preferindo opacidade
+  (`bg-destructive/15`).
 - **`utils/status.ts` (`statusMeta`) devolve `variant` semântico
   (`'success' | 'destructive'`), não mais hex** — `StatusBadge` usa o
   `variant` direto numa classe Tailwind; quem precisa do hex real pra
