@@ -8,7 +8,7 @@
  * (`ConvenioCardDetalhes`) -- ambas extraidas pra arquivo proprio (Secao 6
  * da migracao: componente >200 linhas). */
 import { useState } from 'react';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { ConvenioUnificado, ProgramaTransfereGov } from '@/types/monitoramento';
 import { estiloCard } from './monitoramento-ui';
 import { ConvenioCardHeader } from './convenio-card-header';
@@ -57,14 +57,14 @@ export function ConvenioCard({
 
   return (
     <div
-      style={{
-        ...estiloCard,
-        marginBottom: 12,
+      className={cn(
+        estiloCard,
+        'mb-3',
         // Convenio com monitoramento interno ativo ganha destaque visual --
         // e o unico dado editavel da pagina, precisa ser achavel sem abrir
         // card por card (ver useInstrumentosMonitorados.ts).
-        borderLeft: monitorado ? `3px solid ${colors.hiperGreen}` : estiloCard.borderLeft,
-      }}
+        monitorado && 'border-l-[3px] border-l-success',
+      )}
     >
       <ConvenioCardHeader
         c={c}
@@ -78,11 +78,11 @@ export function ConvenioCard({
 
       {/* ---------- Camada 2: dado tecnico aninhado, atras de 1 clique ---------- */}
       <details
-        style={{ marginTop: 12, borderTop: `1px solid ${colors.border}`, paddingTop: 10 }}
+        className="mt-3 border-t border-border pt-2.5"
         open={detalheAberto}
         onToggle={(e) => setDetalheAberto((e.target as HTMLDetailsElement).open)}
       >
-        <summary style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: colors.primary }}>
+        <summary className="cursor-pointer text-xs font-bold text-primary">
           {detalheAberto ? 'Menos detalhes' : 'Mais detalhes'}
         </summary>
         <ConvenioCardDetalhes c={c} monitorado={monitorado} />

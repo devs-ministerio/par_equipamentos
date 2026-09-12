@@ -1,7 +1,6 @@
 /** Camada 1 (sempre visível) do card de convênio -- identificação, status,
  * programa, grade financeira. Extraído de convenio-card.tsx (Seção 6 da
  * migração: componente >200 linhas). */
-import { colors } from '@/styles/tokens';
 import { fmtData, fmtMoeda, pct } from '@/lib/monitoramento-format';
 import type { ConvenioUnificado } from '@/types/monitoramento';
 import { Campo, StatusPill } from './monitoramento-ui';
@@ -29,24 +28,21 @@ export function ConvenioCardHeader({
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+      <div className="flex justify-between gap-3 flex-wrap items-start">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-            <span style={{
-              fontSize: 11.5, fontWeight: 700, color: colors.primary, background: colors.primaryLight,
-              padding: '2px 9px', borderRadius: 5, fontFamily: 'monospace',
-            }}>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="text-[11.5px] font-bold text-primary bg-secondary py-0.5 px-[9px] rounded-[5px] font-mono">
               Convênio {c.numero}
             </span>
-            {c.numeroInstrumento && <span style={{ fontSize: 11, color: colors.subtleText, fontFamily: 'monospace' }}>{c.numeroInstrumento}</span>}
+            {c.numeroInstrumento && <span className="text-[11px] text-muted-foreground/70 font-mono">{c.numeroInstrumento}</span>}
             {monitorado && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: colors.hiperGreen, background: colors.hiperGreenBg, padding: '2px 7px', borderRadius: 20 }}>
+              <span className="text-[10px] font-bold text-success bg-success-bg py-0.5 px-[7px] rounded-full">
                 ● Monitorado internamente
               </span>
             )}
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: colors.primaryDark }}>{c.convenente.nome}</div>
-          <div style={{ fontSize: 12, color: colors.mutedText, marginTop: 2 }}>
+          <div className="text-[15px] font-bold text-foreground">{c.convenente.nome}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">
             {c.convenente.cnpj} · {c.municipio}/{c.uf}
           </div>
           {/* Equipamento em destaque -- pedido direto do usuario (2026-09-08):
@@ -54,39 +50,33 @@ export function ConvenioCardHeader({
               qualquer clique, nao so dentro do plano de aplicacao do SICONV
               (camada 2). Ver equipamentoTags.ts pro casamento. */}
           {equipamentos.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {equipamentos.map((e) => (
-                <span key={e} style={{
-                  fontSize: 13, fontWeight: 800, color: colors.primaryDark, background: colors.surface,
-                  border: `1px solid ${colors.border}`, padding: '4px 11px', borderRadius: 20,
-                }}>
+                <span key={e} className="text-[13px] font-extrabold text-foreground bg-background border border-border py-1 px-[11px] rounded-full">
                   {e}
                 </span>
               ))}
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
           <StatusPill texto={c.situacao} />
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10, color: colors.mutedText, textTransform: 'uppercase' }}>Valor global</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: colors.primaryDark }}>{fmtMoeda(c.financeiro.global)}</div>
-            {pctDesembolsado !== null && <div style={{ fontSize: 10.5, color: colors.mutedText }}>{pctDesembolsado}% desembolsado</div>}
+          <div className="text-right">
+            <div className="text-[10px] text-muted-foreground uppercase">Valor global</div>
+            <div className="text-base font-extrabold text-foreground">{fmtMoeda(c.financeiro.global)}</div>
+            {pctDesembolsado !== null && <div className="text-[10.5px] text-muted-foreground">{pctDesembolsado}% desembolsado</div>}
           </div>
         </div>
       </div>
 
       {/* Programa em destaque na camada 1 -- e o dado que classifica o
           convenio dentro da politica de financiamento. */}
-      <p style={{ fontSize: 12.5, lineHeight: 1.5, margin: '12px 0 0', background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 6, padding: '8px 10px' }}>
-        <strong style={{ color: colors.mutedText, fontSize: 10.5, textTransform: 'uppercase', marginRight: 4 }}>Programa:</strong>
+      <p className="text-[12.5px] leading-normal mt-3 mb-0 bg-background border border-border rounded-md py-2 px-2.5">
+        <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">Programa:</strong>
         {programaSiconv || programaTransfereGovNome || '— (não encontrado em nenhuma fonte)'}
       </p>
 
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10,
-        marginTop: 12, padding: '10px 12px', background: colors.surface, borderRadius: 8,
-      }}>
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))] gap-2.5 mt-3 py-2.5 px-3 bg-background rounded-lg">
         <Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo>
         <Campo label="Valor repasse" legenda={pct(c.financeiro.repasse, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.repasse)}</Campo>
         <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
@@ -99,7 +89,7 @@ export function ConvenioCardHeader({
         </Campo>
       </div>
       {!c.financeiro.fonteConfiavel && (
-        <p style={{ fontSize: 11, color: colors.logoOrange, margin: '8px 0 0' }}>
+        <p className="text-[11px] text-warning mt-2 mb-0">
           ⚠️ Não encontrado no dump SICONV — valores acima vêm do Portal da Transparência, que tem bug de truncamento
           conhecido nesse campo. Conferir manualmente.
         </p>

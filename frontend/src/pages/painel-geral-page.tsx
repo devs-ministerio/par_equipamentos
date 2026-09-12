@@ -8,7 +8,7 @@ import { usePainelGeralResumos } from '@/hooks/usePainelGeralResumos';
 import { useMacroGeojson } from '@/hooks/useMacroGeojson';
 import { CHAVE_STORAGE_FAMILIA } from '../context/familia-equipamento-context';
 import { EQUIPAMENTOS, getEquipamento } from '../data/constants';
-import { colors, layout } from '../styles/tokens';
+import { cn } from '@/lib/utils';
 
 function irParaEquipamentos(
   navigate: ReturnType<typeof useNavigate>,
@@ -56,32 +56,24 @@ export function PainelGeralPage() {
   const coberturaRowsMapa = typeof resumoMapa === 'object' ? resumoMapa.coberturaRows : [];
 
   return (
-    <div style={{ minHeight: '100vh', background: colors.surface, color: colors.primaryDark, fontSize: 14 }}>
+    <div className="min-h-screen bg-background text-sm text-foreground">
       {/* Painel Geral e a pagina inicial (fora de AppLayout/MonitoramentoLayout
           de proposito) -- sem itens de nav, so a logo do header unificado. */}
       <AppHeader navItems={[]} />
-      <div style={{ padding: layout.pagePadding, maxWidth: layout.maxWidth, margin: '0 auto' }}>
+      <div className="mx-auto max-w-[1400px] px-6 py-6">
         {/* Hero */}
-        <div
-          style={{
-            background: colors.primary,
-            borderRadius: 12,
-            padding: '36px 40px',
-            color: '#fff',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-          }}
-        >
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.75 }}>
+        <div className="flex flex-col gap-2.5 rounded-xl bg-primary px-10 py-9 text-primary-foreground">
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] opacity-75">
             DECAN · Ministério da Saúde
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>SIGEO — Sistema de Gestão de Equipamentos em Oncologia</div>
+          <div className="font-display text-[26px] font-extrabold">
+            SIGEO — Sistema de Gestão de Equipamentos em Oncologia
+          </div>
         </div>
 
         {/* Resumo por familia */}
         <PainelGeralSecao titulo="Cobertura por Equipamento">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))', gap: 20 }}>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(480px,1fr))] gap-5">
             {familiasDisponiveis.map((eq) => (
               <PainelGeralCardFamilia
                 key={eq.familia}
@@ -95,23 +87,19 @@ export function PainelGeralPage() {
 
         {/* Mapa nacional */}
         <PainelGeralSecao titulo="Mapa nacional" subtitulo="Cobertura por macrorregião de saúde, coloreada por Hipo/Hiperssuficiência.">
-          <div style={{ background: '#fff', borderRadius: 10, padding: '18px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
+          <div className="rounded-[10px] bg-card px-5 py-[18px]">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex gap-1.5">
                 {familiasDisponiveis.map((eq) => (
                   <button
                     key={eq.familia}
                     onClick={() => setFamiliaMapa(eq.familia)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      border: `1.5px solid ${familiaMapa === eq.familia ? colors.primary : colors.border}`,
-                      background: familiaMapa === eq.familia ? colors.primaryLight : '#fff',
-                      color: familiaMapa === eq.familia ? colors.primary : '#475066',
-                    }}
+                    className={cn(
+                      'cursor-pointer rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-semibold',
+                      familiaMapa === eq.familia
+                        ? 'border-primary bg-secondary text-primary'
+                        : 'border-border bg-card text-muted-foreground',
+                    )}
                   >
                     {eq.rotulo}
                   </button>
@@ -119,22 +107,13 @@ export function PainelGeralPage() {
               </div>
               <button
                 onClick={() => irParaEquipamentos(navigate, familiaMapa, 'mapa')}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: `1px solid ${colors.border}`,
-                  background: '#fff',
-                  color: colors.primary,
-                }}
+                className="cursor-pointer rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-primary"
               >
                 Ver mapa completo →
               </button>
             </div>
 
-            <div style={{ marginTop: 14 }}>
+            <div className="mt-3.5">
               {geoQuery.data && macrosMapa.length > 0 ? (
                 <MacroMap
                   geo={geoQuery.data}
@@ -144,34 +123,33 @@ export function PainelGeralPage() {
                   onSelectMacro={() => {}}
                 />
               ) : (
-                <div style={{ padding: 60, textAlign: 'center', color: colors.subtleText }}>Carregando mapa...</div>
+                <div className="p-[60px] text-center text-muted-foreground/70">Carregando mapa...</div>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 14, flexWrap: 'wrap' }}>
+            <div className="mt-3.5 flex flex-wrap items-center gap-5">
               {/* Mesma logica de MacroMap.tsx::escalaCor -- duas gradacoes
                   com corte duro em 100% (dois stops na mesma posicao),
                   nao mais um gradiente unico atravessando a meta. */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="flex items-center gap-2.5">
                 <div
+                  className="h-2 w-[140px] rounded"
                   style={{
-                    width: 140,
-                    height: 8,
-                    borderRadius: 4,
-                    background: `linear-gradient(to right, ${colors.hipoRed} 0%, ${colors.hipoRedBg} 50%, ${colors.hiperGreenBg} 50%, ${colors.hiperGreen} 100%)`,
+                    background:
+                      'linear-gradient(to right, var(--destructive) 0%, var(--destructive-bg) 50%, var(--success-bg) 50%, var(--success) 100%)',
                   }}
                 />
-                <span style={{ fontSize: 11, color: colors.subtleText }}>0x ── 1x ── 2x+</span>
+                <span className="text-[11px] text-muted-foreground/70">0x ── 1x ── 2x+</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: colors.hipoRed }} />
-                <span style={{ fontSize: 11.5, color: '#475066' }}>
-                  <strong style={{ color: colors.hipoRed }}>Hipossuficiente</strong> -- abaixo de 1x
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block h-[9px] w-[9px] rounded-full bg-destructive" />
+                <span className="text-[11.5px] text-muted-foreground">
+                  <strong className="text-destructive">Hipossuficiente</strong> -- abaixo de 1x
                 </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: colors.hiperGreen }} />
-                <span style={{ fontSize: 11.5, color: '#475066' }}>
-                  <strong style={{ color: colors.hiperGreen }}>Hiperssuficiente</strong> -- 1x ou mais
+              <div className="flex items-center gap-1.5">
+                <span className="inline-block h-[9px] w-[9px] rounded-full bg-success" />
+                <span className="text-[11.5px] text-muted-foreground">
+                  <strong className="text-success">Hiperssuficiente</strong> -- 1x ou mais
                 </span>
               </div>
             </div>
@@ -180,8 +158,8 @@ export function PainelGeralPage() {
 
         {/* Metodologia (teaser) */}
         <PainelGeralSecao titulo="Como a suficiência é calculada">
-          <div style={{ background: '#fff', borderRadius: 10, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.7, maxWidth: 640 }}>
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[10px] bg-card px-6 py-5">
+            <div className="max-w-[640px] text-[13px] leading-[1.7] text-muted-foreground">
               Cada macrorregião, região de saúde ou município recebe um <strong>coeficiente</strong>, comparando a
               quantidade de equipamentos em uso SUS com a demanda estimada da população SUS-dependente. Abaixo de 1x é{' '}
               <strong>Hipossuficiente</strong>; 1x ou mais é <strong>Hiperssuficiente</strong>. Os parâmetros de
@@ -189,24 +167,14 @@ export function PainelGeralPage() {
             </div>
             <button
               onClick={() => irParaEquipamentos(navigate, familiasDisponiveis[0]?.familia ?? 'TOMOGRAFO', 'relatorios')}
-              style={{
-                padding: '9px 18px',
-                borderRadius: 8,
-                fontSize: 12.5,
-                fontWeight: 700,
-                cursor: 'pointer',
-                border: `1px solid ${colors.border}`,
-                background: '#fff',
-                color: colors.primary,
-                whiteSpace: 'nowrap',
-              }}
+              className="cursor-pointer whitespace-nowrap rounded-lg border border-border bg-card px-[18px] py-[9px] text-[12.5px] font-bold text-primary"
             >
               Ver metodologia completa →
             </button>
           </div>
         </PainelGeralSecao>
 
-        <div style={{ height: 40 }} />
+        <div className="h-10" />
       </div>
     </div>
   );

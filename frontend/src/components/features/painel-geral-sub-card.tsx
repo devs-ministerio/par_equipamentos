@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { colors } from '@/styles/tokens';
 
 /** Painel encaixado dentro do card da familia (2026-08-22) -- fundo
  * ligeiramente diferente do card branco que o contem, pra criar separacao
@@ -12,25 +11,8 @@ import { colors } from '@/styles/tokens';
  * em vez de deixar o conteudo ditar a altura (bug real, 2026-08-22). */
 export function PainelGeralSubCard({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
-    <div
-      style={{
-        background: colors.surface,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 12,
-        padding: '16px 18px',
-        flex: '0 0 auto',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 10.5,
-          fontWeight: 700,
-          color: colors.subtleText,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          marginBottom: 13,
-        }}
-      >
+    <div className="flex-none rounded-xl border border-border bg-background px-[18px] py-4">
+      <div className="mb-[13px] text-[10.5px] font-bold uppercase tracking-[0.05em] text-muted-foreground/70">
         {titulo}
       </div>
       {children}

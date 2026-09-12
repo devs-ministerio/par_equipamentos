@@ -1,7 +1,7 @@
 /** Seção "Ações de monitoramento" -- form de criação + lista, visualmente
  * separada da timeline de eventos (design pedido pelo usuário 2026-09-09).
  * Extraído de MonitoramentoInterno.tsx. */
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { AcaoMonitoramento } from '@/services/monitoramento';
 import { diasAte, fmtData } from '@/lib/monitoramento-format';
 import type { CriarAcaoFormValues } from '@/lib/validations/monitoramento';
@@ -30,9 +30,9 @@ export function MonitoramentoInternoAcoes({
       <MonitoramentoInternoFormAcao podeEditar={podeEditar} onCriar={onCriar} />
 
       {!acoes || acoes.length === 0 ? (
-        <p style={{ color: colors.mutedText, fontStyle: 'italic', fontSize: 12.5, margin: 0 }}>Nenhuma ação registrada ainda.</p>
+        <p className="text-muted-foreground italic text-[12.5px] m-0">Nenhuma ação registrada ainda.</p>
       ) : (
-        <div style={{ display: 'grid', gap: 6 }}>
+        <div className="grid gap-1.5">
           {[...acoes]
             .sort((a, b) => Number(!!a.data_conclusao) - Number(!!b.data_conclusao) || (a.data_prevista ?? '9999').localeCompare(b.data_prevista ?? '9999'))
             .map((acao) => {
@@ -41,25 +41,24 @@ export function MonitoramentoInternoAcoes({
               return (
                 <div
                   key={acao.id}
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
-                    background: '#fff', borderRadius: 8, padding: '8px 10px',
-                    border: `1px solid ${atrasada ? colors.hipoRed : colors.border}`,
-                    opacity: acao.data_conclusao ? 0.6 : 1,
-                  }}
+                  className={cn(
+                    'flex justify-between items-center gap-2.5 bg-card rounded-lg py-2 px-2.5 border',
+                    atrasada ? 'border-destructive' : 'border-border',
+                    acao.data_conclusao && 'opacity-60',
+                  )}
                 >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, textDecoration: acao.data_conclusao ? 'line-through' : 'none' }}>
+                  <div className="min-w-0">
+                    <div className={cn('text-[12.5px] font-semibold', acao.data_conclusao && 'line-through')}>
                       {acao.descricao}
                     </div>
-                    <div style={{ fontSize: 11, color: colors.mutedText, marginTop: 2 }}>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
                       {acao.responsavel && <>Responsável: {acao.responsavel} · </>}
                       {acao.data_conclusao
                         ? `Concluída em ${fmtData(acao.data_conclusao)}`
                         : acao.data_prevista
                           ? `Prazo: ${fmtData(acao.data_prevista)}`
                           : 'Sem prazo definido'}
-                      {atrasada && <span style={{ color: colors.hipoRed, fontWeight: 700 }}> · ⚠️ atrasada há {Math.abs(diasPrazo!)} dia(s)</span>}
+                      {atrasada && <span className="text-destructive font-bold"> · ⚠️ atrasada há {Math.abs(diasPrazo!)} dia(s)</span>}
                     </div>
                   </div>
                   {!acao.data_conclusao && (
@@ -67,7 +66,7 @@ export function MonitoramentoInternoAcoes({
                       onClick={() => onConcluir(acao.id)}
                       disabled={!podeEditar || concluindoAcaoId === acao.id}
                       aria-label={`Concluir ação: ${acao.descricao}`}
-                      style={{ ...estiloInput, cursor: 'pointer', background: 'transparent', color: colors.hiperGreen, border: `1px solid ${colors.hiperGreen}`, fontWeight: 600, padding: '4px 10px', whiteSpace: 'nowrap' }}
+                      className={cn(estiloInput, 'cursor-pointer bg-transparent text-success border border-success font-semibold py-1 px-2.5 whitespace-nowrap')}
                     >
                       {concluindoAcaoId === acao.id ? '...' : '✓ Concluir'}
                     </button>

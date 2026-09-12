@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useFamiliaEquipamento } from '../../context/familia-equipamento-context';
-import { colors } from '../../styles/tokens';
 import { EQUIPAMENTOS } from '../../data/constants';
 
 /** Seletor de familia de equipamento -- troca a familia lida por
@@ -28,56 +27,28 @@ export function SeletorEquipamento() {
   }, []);
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        style={{
-          height: 32,
-          border: `1px solid ${colors.topbarBorder}`,
-          borderRadius: 6,
-          background: '#fff',
-          color: colors.primaryDark,
-          fontWeight: 600,
-          fontSize: 13,
-          padding: '0 12px',
-          cursor: 'pointer',
-        }}
+        className="h-8 cursor-pointer rounded-[6px] border border-border bg-white px-3 text-[13px] font-semibold text-foreground"
       >
         {atual.rotulo} ▾
       </button>
       {open && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            background: '#fff',
-            border: `1px solid ${colors.border}`,
-            borderRadius: 6,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.10)',
-            minWidth: 200,
-            zIndex: 20,
-            padding: '4px 0',
-            marginTop: 4,
-          }}
-        >
+        <div className="absolute top-full left-0 z-20 mt-1 min-w-[200px] rounded-[6px] border border-border bg-white py-1 shadow-[var(--shadow-overlay)]">
           {EQUIPAMENTOS.map((eq) => (
             <div
               key={eq.familia}
               title={eq.disponivel ? undefined : 'Em breve'}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                width: '100%',
-                textAlign: 'left',
-                background: eq.familia === atual.familia ? colors.primaryLight : 'transparent',
-                border: 'none',
-                color: eq.disponivel ? (eq.familia === atual.familia ? colors.primary : '#475066') : colors.subtleText,
-                fontSize: 13,
-                fontWeight: eq.familia === atual.familia ? 600 : 400,
-                padding: '8px 14px',
-                cursor: eq.disponivel ? 'pointer' : 'not-allowed',
-              }}
+              className={`flex w-full items-center border-none px-3.5 py-2 text-left text-[13px] ${
+                eq.familia === atual.familia ? 'bg-secondary' : 'bg-transparent'
+              } ${
+                eq.disponivel
+                  ? eq.familia === atual.familia
+                    ? 'cursor-pointer font-semibold text-primary'
+                    : 'cursor-pointer font-normal text-[#475066]'
+                  : 'cursor-not-allowed font-normal text-muted-foreground/70'
+              }`}
               onClick={() => {
                 if (!eq.disponivel) return;
                 setFamilia(eq.familia);

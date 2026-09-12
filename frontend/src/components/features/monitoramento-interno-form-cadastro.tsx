@@ -4,7 +4,7 @@
  * MonitoramentoInterno.tsx. */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { InstrumentoEquipamento } from '@/services/monitoramento';
 import { cadastroInternoSchema, type CadastroInternoFormValues } from '@/lib/validations/monitoramento';
 import { estiloInput } from './monitoramento-ui';
@@ -46,14 +46,14 @@ export function MonitoramentoInternoFormCadastro({
   });
 
   return (
-    <form onSubmit={handleSubmit(onSalvar)} style={{ display: 'grid', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+    <form onSubmit={handleSubmit(onSalvar)} className="grid gap-4">
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
         {CAMPOS.map(({ nome, rotulo }) => (
           <div key={nome}>
-            <label htmlFor={`cadastro-${nome}`} style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+            <label htmlFor={`cadastro-${nome}`} className="text-[11px] text-muted-foreground block mb-1">
               {rotulo}
             </label>
-            <input id={`cadastro-${nome}`} style={{ ...estiloInput, width: '100%' }} {...register(nome)} />
+            <input id={`cadastro-${nome}`} className={cn(estiloInput, 'w-full')} {...register(nome)} />
           </div>
         ))}
       </div>
@@ -61,29 +61,29 @@ export function MonitoramentoInternoFormCadastro({
           DIFERENTE dos campos de tecnico titular/suplente acima (nossa
           equipe). Opcional, sem exigir preenchimento. */}
       <div>
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.primary, marginBottom: 8 }}>
+        <div className="text-[11.5px] font-bold text-primary mb-2">
           Responsável técnico da execução{' '}
-          <span style={{ fontWeight: 400, color: colors.mutedText, textTransform: 'none' }}>(na instituição/convenente, opcional)</span>
+          <span className="font-normal text-muted-foreground normal-case">(na instituição/convenente, opcional)</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
           <div>
-            <label htmlFor="cadastro-responsavelExecucaoNome" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+            <label htmlFor="cadastro-responsavelExecucaoNome" className="text-[11px] text-muted-foreground block mb-1">
               Nome
             </label>
-            <input id="cadastro-responsavelExecucaoNome" style={{ ...estiloInput, width: '100%' }} {...register('responsavelExecucaoNome')} />
+            <input id="cadastro-responsavelExecucaoNome" className={cn(estiloInput, 'w-full')} {...register('responsavelExecucaoNome')} />
           </div>
           <div>
-            <label htmlFor="cadastro-responsavelExecucaoContato" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+            <label htmlFor="cadastro-responsavelExecucaoContato" className="text-[11px] text-muted-foreground block mb-1">
               Contato
             </label>
-            <input id="cadastro-responsavelExecucaoContato" style={{ ...estiloInput, width: '100%' }} {...register('responsavelExecucaoContato')} />
+            <input id="cadastro-responsavelExecucaoContato" className={cn(estiloInput, 'w-full')} {...register('responsavelExecucaoContato')} />
           </div>
         </div>
       </div>
       <button
         type="submit"
         disabled={isSubmitting}
-        style={{ ...estiloInput, cursor: 'pointer', background: colors.hiperGreen, color: '#fff', border: 'none', justifySelf: 'start', fontWeight: 600 }}
+        className={cn(estiloInput, 'cursor-pointer bg-success text-success-foreground border-none justify-self-start font-semibold')}
       >
         {isSubmitting ? 'Salvando...' : 'Salvar cadastro'}
       </button>

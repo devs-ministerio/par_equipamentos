@@ -7,7 +7,6 @@
  * toda lógica assíncrona fora do componente de UI) e delega a
  * apresentação pros subcomponentes de monitoramento-interno-*.tsx. */
 import { useState } from 'react';
-import { colors } from '@/styles/tokens';
 import { useJson } from '@/hooks/useJson';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useMonitoramentoMarcos } from '@/hooks/useMonitoramentoMarcos';
@@ -57,18 +56,18 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
 
   const erroCarregamento = marcosQuery.error || timelineQuery.error || acoesQuery.error;
   if (erroCarregamento) {
-    return <p style={{ color: colors.logoOrange, fontSize: 13 }}>⚠️ {mensagemErro(erroCarregamento)}</p>;
+    return <p className="text-warning text-sm">⚠️ {mensagemErro(erroCarregamento)}</p>;
   }
   if (timelineQuery.isSuccess && timelineQuery.data === null) {
     return (
-      <p style={{ fontSize: 12.5, color: colors.mutedText, fontStyle: 'italic' }}>
+      <p className="text-[12.5px] text-muted-foreground italic">
         Ainda não monitorado internamente — escopo é bem menor que os 403 convênios (só os instrumentos que a
         equipe decide acompanhar manualmente, ver <code>backend/scripts/importar_planilha_monitoramento.py</code>).
       </p>
     );
   }
   if (!marcosQuery.data || !timelineQuery.data) {
-    return <p style={{ fontSize: 13, color: colors.mutedText }}>Carregando...</p>;
+    return <p className="text-sm text-muted-foreground">Carregando...</p>;
   }
 
   const marcos = marcosQuery.data;
@@ -91,7 +90,7 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   return (
     <div>
       {erroEscrita && (
-        <p style={{ color: colors.logoOrange, fontSize: 12.5, marginBottom: 12 }} role="alert">
+        <p className="text-warning text-[12.5px] mb-3" role="alert">
           ⚠️ {erroEscrita}
         </p>
       )}

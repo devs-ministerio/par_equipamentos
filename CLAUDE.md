@@ -180,15 +180,20 @@ Estado atual:
   schema em `src/lib/validations/monitoramento.ts` — campo com
   label/erro/`aria-describedby`/helper text, não mais `useState` por
   campo com só `required` nativo.
-- **Gap conhecido, não resolvido nesta rodada**: o services layer/estado
-  mudou, mas o **estilo visual não** — os componentes do domínio
+- **Gap resolvido (2026-09-11, mesmo dia)**: os componentes do domínio
   monitoramento-equipamento (`monitoramento-interno-*.tsx`,
   `convenio-card*.tsx`, `siconv-sub-abas.tsx`, `monitoramento-ui.tsx`),
-  `painel-geral-*.tsx` e os modais de export (`export-*.tsx`) ainda usam
-  `style={{...}}` inline com `colors`/`layout` de `src/styles/tokens.ts`,
-  não Tailwind. `tokens.ts` **não foi removido** — segue com ~30
-  consumidores. Migrar esses componentes pra Tailwind/shadcn é trabalho
-  futuro separado, mesmo princípio incremental da migração abaixo.
+  `painel-geral-*.tsx`, os modais de export (`export-*.tsx`) e
+  `top-nav.tsx` também migraram de `style={{...}}` inline + `colors`/
+  `layout` de `tokens.ts` pra Tailwind. `src/styles/tokens.ts` **só tem
+  1 consumidor hoje**: `utils/coeficiente.ts` (usa `hiperGreenBarra`/
+  `hipoRedBarra`, cor de preenchimento de barra sem equivalente em
+  variável CSS/Tailwind — exceção legítima, não mover sem necessidade
+  real). `monitoramento-ui.tsx` mudou `estiloCard`/`estiloInput`/
+  `estiloTabela*` de `React.CSSProperties` pra string de classes
+  Tailwind (`className={estiloCard}`/`cn(estiloCard, ...)`); `situacaoCor`/
+  `corValidade` (devolviam hex) viraram `situacaoVariant`/`classeValidade`
+  (devolvem variant/classe semântica, mesmo padrão de `utils/status.ts`).
 
 ## Migração de arquitetura do frontend (em andamento, progressiva)
 

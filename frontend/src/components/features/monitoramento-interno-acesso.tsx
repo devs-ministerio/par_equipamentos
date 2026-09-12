@@ -1,7 +1,7 @@
 /** Seção "Acesso operacional" -- login/logout do monitoramento interno.
  * Extraído de MonitoramentoInterno.tsx (Seção 6 da migração). */
 import { useState } from 'react';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { LoginFormValues } from '@/lib/validations/monitoramento';
 import { MonitoramentoInternoFormLogin } from './monitoramento-interno-form-login';
 import { SecaoOperacional, estiloInput } from './monitoramento-ui';
@@ -41,7 +41,7 @@ export function MonitoramentoInternoAcesso({
         autenticado ? (
           <button
             onClick={onSair}
-            style={{ ...estiloInput, cursor: 'pointer', background: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}`, fontWeight: 600, padding: '4px 10px' }}
+            className={cn(estiloInput, 'cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5')}
           >
             Sair
           </button>
@@ -49,7 +49,7 @@ export function MonitoramentoInternoAcesso({
           <button
             onClick={() => setLoginAberto((v) => !v)}
             aria-expanded={loginAberto}
-            style={{ ...estiloInput, cursor: 'pointer', background: colors.primary, color: '#fff', border: 'none', fontWeight: 600, padding: '4px 10px' }}
+            className={cn(estiloInput, 'cursor-pointer bg-primary text-primary-foreground border-none font-semibold py-1 px-2.5')}
           >
             {loginAberto ? 'Cancelar' : 'Entrar'}
           </button>

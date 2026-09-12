@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { Modal } from '../common/modal';
 import { MultiSelectFilter } from '../common/multi-select-filter';
 import { ExportSecaoTabela } from '../features/export-secao-tabela';
-import { colors } from '../../styles/tokens';
 import { REGIOES } from '../../data/constants';
 import { useFiltrosMacro } from '../../hooks/useFiltrosMacro';
 import { fetchEstabelecimentosPage, type FacilityOption } from '../../services/api';
@@ -177,41 +176,25 @@ export function ExportPdfModal({
 
   return (
     <Modal onClose={onClose} maxWidth={560}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#16213e' }}>Exportar PDF</div>
-          <div style={{ color: colors.mutedText, fontSize: 13, marginTop: 6 }}>
+          <div className="text-[22px] font-extrabold text-[#16213e]">Exportar PDF</div>
+          <div className="mt-1.5 text-[13px] text-muted-foreground">
             Escolha o recorte de dados e quais tabelas/campos entram no relatório.
           </div>
         </div>
         <button
           onClick={onClose}
           aria-label="Fechar"
-          style={{
-            border: 'none',
-            background: 'transparent',
-            fontSize: 20,
-            lineHeight: 1,
-            color: colors.subtleText,
-            cursor: 'pointer',
-            padding: 4,
-          }}
+          className="cursor-pointer border-none bg-transparent p-1 text-xl leading-none text-muted-foreground/70"
         >
           ✕
         </button>
       </div>
 
-      <div
-        style={{
-          marginTop: 12,
-          background: colors.surface,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 6,
-          padding: '12px',
-        }}
-      >
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: '#475066', marginBottom: 8 }}>Filtros aplicados</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      <div className="mt-3 rounded-[6px] border border-border bg-background p-3">
+        <div className="mb-2 text-[11.5px] font-bold text-muted-foreground">Filtros aplicados</div>
+        <div className="flex flex-wrap gap-2">
           <MultiSelectFilter placeholder="CNES" options={cnesOptions} selected={filtroCnes} onChange={setFiltroCnes} />
           <MultiSelectFilter
             placeholder="Região"
@@ -271,16 +254,7 @@ export function ExportPdfModal({
           {hasAnyFilter && (
             <button
               onClick={limparFiltros}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: 'pointer',
-                border: '1px solid #f0a0a0',
-                background: '#fff0f0',
-                color: '#c0392b',
-              }}
+              className="cursor-pointer rounded-[6px] border border-[#f0a0a0] bg-[#fff0f0] px-3 py-1.5 text-xs font-medium text-[#c0392b]"
             >
               ✕ Limpar
             </button>
@@ -289,7 +263,7 @@ export function ExportPdfModal({
       </div>
 
       {modoMapa ? (
-        <div style={{ marginTop: 14, fontSize: 11.5, color: colors.subtleText }}>
+        <div className="mt-3.5 text-[11.5px] text-muted-foreground/70">
           O mapa, a lista de UFs/macrorregiões e a tabela de cobertura sempre entram nesse relatório.
         </div>
       ) : (
@@ -312,22 +286,21 @@ export function ExportPdfModal({
         onToggleCampo={(key) => setCamposEstabelecimentos((prev) => toggleNoSet(prev, key))}
       />
 
-      {erro && <div style={{ marginTop: 12, fontSize: 12, color: colors.hipoRed }}>{erro}</div>}
+      {erro && <div className="mt-3 text-xs text-destructive">{erro}</div>}
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-        <button onClick={onClose} style={{ ...botaoBase, background: '#fff', color: '#475066', border: `1px solid ${colors.border}` }}>
+      <div className="mt-5 flex gap-2.5">
+        <button
+          onClick={onClose}
+          className="flex-1 rounded-[8px] border border-border bg-white px-4 py-2.75 text-[13px] font-bold text-muted-foreground"
+        >
           Cancelar
         </button>
         <button
           onClick={() => gerarMutation.mutate()}
           disabled={nadaSelecionado || gerando}
-          style={{
-            ...botaoBase,
-            border: 'none',
-            background: nadaSelecionado || gerando ? '#9aa5c7' : colors.primary,
-            color: '#fff',
-            cursor: nadaSelecionado || gerando ? 'default' : 'pointer',
-          }}
+          className={`flex-1 rounded-[8px] border-none px-4 py-2.75 text-[13px] font-bold text-white ${
+            nadaSelecionado || gerando ? 'cursor-default bg-[#9aa5c7]' : 'cursor-pointer bg-primary'
+          }`}
         >
           {gerando ? 'Gerando...' : '⬇ Gerar PDF'}
         </button>
@@ -335,11 +308,3 @@ export function ExportPdfModal({
     </Modal>
   );
 }
-
-const botaoBase = {
-  flex: 1,
-  padding: '11px 16px',
-  borderRadius: 8,
-  fontSize: 13,
-  fontWeight: 700,
-};

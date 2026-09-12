@@ -1,20 +1,20 @@
-import { colors } from '@/styles/tokens';
 import type { NaturezaJuridicaBreakdown } from '@/services/api';
 
-/** Rotulo/cor por natureza juridica -- "Privado" nao e cor de alerta (nao e
- * necessariamente ruim, so um risco a acompanhar: capacidade SUS via
- * contrato, nao infraestrutura propria), por isso laranja e nao vermelho. */
+/** Rotulo/classe de cor por natureza juridica -- "Privado" nao e cor de
+ * alerta (nao e necessariamente ruim, so um risco a acompanhar: capacidade
+ * SUS via contrato, nao infraestrutura propria), por isso laranja (warning)
+ * e nao vermelho (destructive). */
 const NATUREZA_LABEL: Record<string, string> = {
   PUBLICO: 'Público',
   'SEM FINS LUCRATIVOS': 'Sem fins lucrativos',
   PRIVADO: 'Privado',
   NAO_INFORMADO: 'Não informado',
 };
-const NATUREZA_COR: Record<string, string> = {
-  PUBLICO: colors.primary,
-  'SEM FINS LUCRATIVOS': colors.hiperGreen,
-  PRIVADO: colors.logoOrange,
-  NAO_INFORMADO: colors.subtleText,
+const NATUREZA_BG: Record<string, string> = {
+  PUBLICO: 'bg-primary',
+  'SEM FINS LUCRATIVOS': 'bg-success',
+  PRIVADO: 'bg-warning',
+  NAO_INFORMADO: 'bg-muted-foreground/70',
 };
 const NATUREZA_ORDEM = ['PUBLICO', 'SEM FINS LUCRATIVOS', 'PRIVADO', 'NAO_INFORMADO'];
 
@@ -23,7 +23,7 @@ const NATUREZA_ORDEM = ['PUBLICO', 'SEM FINS LUCRATIVOS', 'PRIVADO', 'NAO_INFORM
  * contrato com privado" e um risco que hoje nao aparecia em lugar nenhum. */
 export function PainelGeralBarraNaturezaJuridica({ dados }: { dados: NaturezaJuridicaBreakdown[] }) {
   const total = dados.reduce((s, d) => s + d.availableQty, 0);
-  if (total === 0) return <div style={{ fontSize: 12, color: colors.subtleText }}>Sem dado SUS nessa competência.</div>;
+  if (total === 0) return <div className="text-xs text-muted-foreground/70">Sem dado SUS nessa competência.</div>;
 
   const ordenados = [...dados]
     .filter((d) => d.availableQty > 0)
@@ -31,31 +31,21 @@ export function PainelGeralBarraNaturezaJuridica({ dados }: { dados: NaturezaJur
 
   return (
     <div>
-      <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'clip' }}>
+      <div className="flex h-[10px] overflow-clip rounded-[5px]">
         {ordenados.map((d) => (
           <div
             key={d.naturezaJuridica}
             title={`${NATUREZA_LABEL[d.naturezaJuridica] ?? d.naturezaJuridica}: ${d.availableQty}`}
-            style={{
-              width: `${(d.availableQty / total) * 100}%`,
-              background: NATUREZA_COR[d.naturezaJuridica] ?? colors.subtleText,
-            }}
+            className={NATUREZA_BG[d.naturezaJuridica] ?? 'bg-muted-foreground/70'}
+            style={{ width: `${(d.availableQty / total) * 100}%` }}
           />
         ))}
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: 8 }}>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
         {ordenados.map((d) => (
-          <div key={d.naturezaJuridica} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
-            <span
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 2,
-                background: NATUREZA_COR[d.naturezaJuridica] ?? colors.subtleText,
-                display: 'inline-block',
-              }}
-            />
-            <span style={{ color: '#475066' }}>
+          <div key={d.naturezaJuridica} className="flex items-center gap-[5px] text-[11px]">
+            <span className={`inline-block h-2 w-2 rounded-sm ${NATUREZA_BG[d.naturezaJuridica] ?? 'bg-muted-foreground/70'}`} />
+            <span className="text-muted-foreground">
               {NATUREZA_LABEL[d.naturezaJuridica] ?? d.naturezaJuridica} · {Math.round((d.availableQty / total) * 100)}%
             </span>
           </div>

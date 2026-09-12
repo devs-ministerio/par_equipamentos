@@ -4,12 +4,15 @@
  * ConvenioCard.tsx). Reduz rolagem: card com bastante linha em todas as
  * tabelas nao vira uma coluna gigante, só a aba ativa renderiza. */
 import { useState } from 'react';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
 import type { SiconvEntrada } from '@/types/monitoramento';
 import { estiloTabela, estiloTabelaWrapper, estiloTd, estiloTh } from './monitoramento-ui';
 
 type AbaKey = 'itens' | 'empenhos' | 'desembolsos' | 'licitacoes' | 'termos' | 'fornecedores';
+
+const numTh = cn(estiloTh, 'text-right');
+const numTd = cn(estiloTd, 'text-right');
 
 export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
   const contagens: Record<AbaKey, number> = {
@@ -35,22 +38,17 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 4, borderBottom: `1px solid ${colors.border}`, marginBottom: 10, flexWrap: 'wrap' }}>
+      <div className="flex gap-1 border-b border-border mb-2.5 flex-wrap">
         {ordem.map((k) => (
           <button
             key={k}
             onClick={() => setAba(k)}
             disabled={contagens[k] === 0}
-            style={{
-              padding: '6px 10px',
-              fontSize: 11.5,
-              fontWeight: 600,
-              border: 'none',
-              borderBottom: aba === k ? `2px solid ${colors.primary}` : '2px solid transparent',
-              background: 'transparent',
-              color: contagens[k] === 0 ? colors.subtleText : aba === k ? colors.primary : colors.mutedText,
-              cursor: contagens[k] === 0 ? 'default' : 'pointer',
-            }}
+            className={cn(
+              'py-1.5 px-2.5 text-[11.5px] font-semibold border-none bg-transparent border-b-2',
+              aba === k ? 'border-b-primary' : 'border-b-transparent',
+              contagens[k] === 0 ? 'text-muted-foreground/70 cursor-default' : aba === k ? 'text-primary cursor-pointer' : 'text-muted-foreground cursor-pointer',
+            )}
           >
             {rotulos[k]} ({contagens[k]})
           </button>
@@ -59,16 +57,16 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
       {aba === 'itens' && (
         contagens.itens === 0 ? <VazioMsg /> : (
-          <div style={estiloTabelaWrapper}>
-            <table style={estiloTabela}>
-              <thead><tr><th style={estiloTh}>Descrição</th><th style={{ ...estiloTh, textAlign: 'right' }}>Qtd</th><th style={{ ...estiloTh, textAlign: 'right' }}>Vl. unitário</th><th style={{ ...estiloTh, textAlign: 'right' }}>Vl. total</th></tr></thead>
+          <div className={estiloTabelaWrapper}>
+            <table className={estiloTabela}>
+              <thead><tr><th className={estiloTh}>Descrição</th><th className={numTh}>Qtd</th><th className={numTh}>Vl. unitário</th><th className={numTh}>Vl. total</th></tr></thead>
               <tbody>
                 {siconv.itens_plano_aplicacao.map((it) => (
                   <tr key={it.ID_ITEM_PAD}>
-                    <td style={estiloTd}>{it.DESCRICAO_ITEM}</td>
-                    <td style={{ ...estiloTd, textAlign: 'right' }}>{it.QTD_ITEM}</td>
-                    <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(it.VALOR_UNITARIO_ITEM)}</td>
-                    <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(it.VALOR_TOTAL_ITEM)}</td>
+                    <td className={estiloTd}>{it.DESCRICAO_ITEM}</td>
+                    <td className={numTd}>{it.QTD_ITEM}</td>
+                    <td className={numTd}>{fmtMoeda(it.VALOR_UNITARIO_ITEM)}</td>
+                    <td className={numTd}>{fmtMoeda(it.VALOR_TOTAL_ITEM)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -79,12 +77,12 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
       {aba === 'empenhos' && (
         contagens.empenhos === 0 ? <VazioMsg /> : (
-          <div style={estiloTabelaWrapper}>
-            <table style={estiloTabela}>
-              <thead><tr><th style={estiloTh}>Nº empenho</th><th style={estiloTh}>Situação</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
+          <div className={estiloTabelaWrapper}>
+            <table className={estiloTabela}>
+              <thead><tr><th className={estiloTh}>Nº empenho</th><th className={estiloTh}>Situação</th><th className={numTh}>Valor</th></tr></thead>
               <tbody>
                 {siconv.empenhos.map((e) => (
-                  <tr key={e.ID_EMPENHO}><td style={estiloTd}>{e.NR_EMPENHO}</td><td style={estiloTd}>{e.DESC_SITUACAO_EMPENHO}</td><td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(e.VALOR_EMPENHO)}</td></tr>
+                  <tr key={e.ID_EMPENHO}><td className={estiloTd}>{e.NR_EMPENHO}</td><td className={estiloTd}>{e.DESC_SITUACAO_EMPENHO}</td><td className={numTd}>{fmtMoeda(e.VALOR_EMPENHO)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -94,12 +92,12 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
       {aba === 'desembolsos' && (
         contagens.desembolsos === 0 ? <VazioMsg /> : (
-          <div style={estiloTabelaWrapper}>
-            <table style={estiloTabela}>
-              <thead><tr><th style={estiloTh}>Data</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
+          <div className={estiloTabelaWrapper}>
+            <table className={estiloTabela}>
+              <thead><tr><th className={estiloTh}>Data</th><th className={numTh}>Valor</th></tr></thead>
               <tbody>
                 {siconv.desembolsos.map((d) => (
-                  <tr key={d.ID_DESEMBOLSO}><td style={estiloTd}>{fmtData(d.DATA_DESEMBOLSO)}</td><td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(d.VL_DESEMBOLSADO)}</td></tr>
+                  <tr key={d.ID_DESEMBOLSO}><td className={estiloTd}>{fmtData(d.DATA_DESEMBOLSO)}</td><td className={numTd}>{fmtMoeda(d.VL_DESEMBOLSADO)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -109,16 +107,16 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
       {aba === 'licitacoes' && (
         contagens.licitacoes === 0 ? <VazioMsg /> : (
-          <div style={estiloTabelaWrapper}>
-            <table style={estiloTabela}>
-              <thead><tr><th style={estiloTh}>Processo</th><th style={estiloTh}>Modalidade</th><th style={estiloTh}>Status</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor</th></tr></thead>
+          <div className={estiloTabelaWrapper}>
+            <table className={estiloTabela}>
+              <thead><tr><th className={estiloTh}>Processo</th><th className={estiloTh}>Modalidade</th><th className={estiloTh}>Status</th><th className={numTh}>Valor</th></tr></thead>
               <tbody>
                 {siconv.licitacoes.map((l) => (
                   <tr key={l.ID_LICITACAO}>
-                    <td style={estiloTd}>{l.NR_PROCESSO_LICITACAO}</td>
-                    <td style={estiloTd}>{l.TP_PROCESSO_COMPRA || l.MODALIDADE_LICITACAO || '—'}</td>
-                    <td style={estiloTd}>{l.STATUS_LICITACAO}</td>
-                    <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(l.VALOR_LICITACAO)}</td>
+                    <td className={estiloTd}>{l.NR_PROCESSO_LICITACAO}</td>
+                    <td className={estiloTd}>{l.TP_PROCESSO_COMPRA || l.MODALIDADE_LICITACAO || '—'}</td>
+                    <td className={estiloTd}>{l.STATUS_LICITACAO}</td>
+                    <td className={numTd}>{fmtMoeda(l.VALOR_LICITACAO)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -129,12 +127,12 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
       {aba === 'termos' && (
         contagens.termos === 0 ? <VazioMsg /> : (
-          <div style={estiloTabelaWrapper}>
-            <table style={estiloTabela}>
-              <thead><tr><th style={estiloTh}>Tipo</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor global</th><th style={estiloTh}>Justificativa</th></tr></thead>
+          <div className={estiloTabelaWrapper}>
+            <table className={estiloTabela}>
+              <thead><tr><th className={estiloTh}>Tipo</th><th className={numTh}>Valor global</th><th className={estiloTh}>Justificativa</th></tr></thead>
               <tbody>
                 {siconv.termos_aditivos.map((t, i) => (
-                  <tr key={i}><td style={estiloTd}>{t.TIPO_TA}</td><td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(t.VL_GLOBAL_TA)}</td><td style={{ ...estiloTd, maxWidth: 360 }}>{(t.JUSTIFICATIVA_TA || '').slice(0, 200)}</td></tr>
+                  <tr key={i}><td className={estiloTd}>{t.TIPO_TA}</td><td className={numTd}>{fmtMoeda(t.VL_GLOBAL_TA)}</td><td className={cn(estiloTd, 'max-w-[360px]')}>{(t.JUSTIFICATIVA_TA || '').slice(0, 200)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -144,16 +142,16 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
       {aba === 'fornecedores' && (
         contagens.fornecedores === 0 ? <VazioMsg /> : (
-          <div style={estiloTabelaWrapper}>
-            <table style={estiloTabela}>
-              <thead><tr><th style={estiloTh}>Fornecedor</th><th style={estiloTh}>Data</th><th style={estiloTh}>Documento</th><th style={{ ...estiloTh, textAlign: 'right' }}>Valor pago</th></tr></thead>
+          <div className={estiloTabelaWrapper}>
+            <table className={estiloTabela}>
+              <thead><tr><th className={estiloTh}>Fornecedor</th><th className={estiloTh}>Data</th><th className={estiloTh}>Documento</th><th className={numTh}>Valor pago</th></tr></thead>
               <tbody>
                 {siconv.pagamentos.map((p, i) => (
                   <tr key={p.NR_MOV_FIN || i}>
-                    <td style={estiloTd}>{p.NOME_FORNECEDOR}</td>
-                    <td style={estiloTd}>{fmtData(p.DATA_PAG)}</td>
-                    <td style={estiloTd}>{p.DESC_DL}</td>
-                    <td style={{ ...estiloTd, textAlign: 'right' }}>{fmtMoeda(p.VL_PAGO)}</td>
+                    <td className={estiloTd}>{p.NOME_FORNECEDOR}</td>
+                    <td className={estiloTd}>{fmtData(p.DATA_PAG)}</td>
+                    <td className={estiloTd}>{p.DESC_DL}</td>
+                    <td className={numTd}>{fmtMoeda(p.VL_PAGO)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -166,5 +164,5 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 }
 
 function VazioMsg() {
-  return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Sem registro nessa categoria.</p>;
+  return <p className="text-xs text-muted-foreground italic">Sem registro nessa categoria.</p>;
 }

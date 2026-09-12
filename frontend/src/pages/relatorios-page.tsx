@@ -3,7 +3,6 @@ import { ExportPdfModal } from '../components/modals/export-pdf-modal';
 import { ExportXlsxModal } from '../components/modals/export-xlsx-modal';
 import { useRelatoriosDados } from '../hooks/useRelatoriosDados';
 import { useFamiliaEquipamento } from '../context/familia-equipamento-context';
-import { colors } from '../styles/tokens';
 import { MetodologiaPage } from './metodologia-page';
 
 const FILTROS_VAZIOS = { regioes: [], ufs: [], macros: [], regioesSaude: [], municipios: [], cnes: [] };
@@ -11,14 +10,14 @@ const FILTROS_VAZIOS = { regioes: [], ufs: [], macros: [], regioesSaude: [], mun
 function CardExportar({
   titulo,
   descricao,
-  corBotao,
+  variante,
   rotuloBotao,
   onClick,
   desabilitado,
 }: {
   titulo: string;
   descricao: string;
-  corBotao: string;
+  variante: 'destructive' | 'success';
   rotuloBotao: string;
   onClick: () => void;
   /** Temporario (2026-08-24, a pedido) -- exportacao desligada por
@@ -27,23 +26,20 @@ function CardExportar({
   desabilitado?: boolean;
 }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 10, padding: '24px 26px', flex: 1 }}>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#16213e', marginBottom: 6 }}>{titulo}</div>
-      <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.6, marginBottom: 18 }}>{descricao}</div>
+    <div className="flex-1 rounded-[10px] bg-white px-6.5 py-6">
+      <div className="mb-1.5 text-base font-bold text-[#16213e]">{titulo}</div>
+      <div className="mb-[18px] text-[13px] leading-[1.6] text-muted-foreground">{descricao}</div>
       <button
         onClick={onClick}
         disabled={desabilitado}
         title={desabilitado ? 'Exportação temporariamente indisponível' : undefined}
-        style={{
-          padding: '10px 20px',
-          borderRadius: 8,
-          fontSize: 13,
-          fontWeight: 700,
-          cursor: desabilitado ? 'not-allowed' : 'pointer',
-          border: 'none',
-          background: desabilitado ? '#d8dce5' : corBotao,
-          color: desabilitado ? colors.subtleText : '#fff',
-        }}
+        className={`rounded-[8px] border-none px-5 py-2.5 text-[13px] font-bold ${
+          desabilitado
+            ? 'cursor-not-allowed bg-[#d8dce5] text-muted-foreground/70'
+            : variante === 'destructive'
+              ? 'cursor-pointer bg-destructive text-white'
+              : 'cursor-pointer bg-success text-white'
+        }`}
       >
         {rotuloBotao}
       </button>
@@ -72,13 +68,13 @@ export function RelatoriosPage() {
   const semDadoExportavel = !loading && !isError && macros.length === 0 && facilities.length === 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#16213e' }}>Relatórios e Informações</div>
-      <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
+    <div className="flex flex-col gap-4">
+      <div className="text-[22px] font-extrabold text-[#16213e]">Relatórios e Informações</div>
+      <div className="flex items-stretch gap-4">
         <CardExportar
           titulo="⬇ Exportar PDF"
           descricao="Relatório com a tabela de cobertura e/ou a lista de estabelecimentos, com o recorte de filtro que você escolher no próprio popup."
-          corBotao={colors.hipoRed}
+          variante="destructive"
           rotuloBotao="Gerar PDF"
           onClick={() => setExportPdfAberto(true)}
           desabilitado
@@ -86,21 +82,21 @@ export function RelatoriosPage() {
         <CardExportar
           titulo="⬇ Exportar Excel"
           descricao="Planilha com abas de cobertura, estabelecimentos e a metodologia de cálculo, com o recorte de filtro que você escolher no próprio popup."
-          corBotao={colors.hiperGreen}
+          variante="success"
           rotuloBotao="Gerar Excel"
           onClick={() => setExportXlsxAberto(true)}
           desabilitado
         />
       </div>
 
-      {loading && <div style={{ padding: 12, textAlign: 'center', color: colors.subtleText }}>Carregando dados...</div>}
+      {loading && <div className="p-3 text-center text-muted-foreground/70">Carregando dados...</div>}
       {isError && (
-        <div style={{ padding: 16, background: '#fde8e8', color: colors.hipoRed, borderRadius: 8 }}>
+        <div className="rounded-[8px] bg-destructive-bg p-4 text-destructive">
           Não foi possível carregar os dados pra exportação ({error?.message ?? 'erro desconhecido'}).
         </div>
       )}
       {semDadoExportavel && (
-        <div style={{ padding: 16, background: colors.surface, color: colors.subtleText, borderRadius: 8, textAlign: 'center' }}>
+        <div className="rounded-[8px] bg-background p-4 text-center text-muted-foreground/70">
           Nenhum dado disponível pra exportação nessa família ainda.
         </div>
       )}

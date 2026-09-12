@@ -3,7 +3,7 @@
  * além de rodar o script de seed de novo). Extraído de
  * MonitoramentoInterno.tsx. */
 import { useState } from 'react';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { InstrumentoEquipamento } from '@/services/monitoramento';
 import type { CadastroInternoFormValues } from '@/lib/validations/monitoramento';
 import { MonitoramentoInternoFormCadastro } from './monitoramento-interno-form-cadastro';
@@ -38,7 +38,7 @@ export function MonitoramentoInternoCadastro({
           onClick={() => setCadastroAberto((v) => !v)}
           disabled={!podeEditar}
           aria-expanded={cadastroAberto}
-          style={{ ...estiloInput, cursor: 'pointer', background: 'transparent', color: colors.primary, border: `1px solid ${colors.primary}`, fontWeight: 600, padding: '4px 10px' }}
+          className={cn(estiloInput, 'cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5')}
         >
           {cadastroAberto ? 'Cancelar' : 'Editar cadastro'}
         </button>
@@ -59,11 +59,11 @@ export function MonitoramentoInternoCadastro({
           }}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
+        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(190px,1fr))] gap-2.5">
           {CAMPOS_VISAO.map(({ rotulo, campo }) => (
-            <div key={rotulo} style={{ borderTop: `1px solid ${colors.border}`, paddingTop: 8 }}>
-              <div style={{ fontSize: 10.5, color: colors.mutedText, fontWeight: 800, textTransform: 'uppercase' }}>{rotulo}</div>
-              <div style={{ fontSize: 12.5, color: colors.primaryDark, marginTop: 3 }}>{(instrumento[campo] as string | null) || '—'}</div>
+            <div key={rotulo} className="border-t border-border pt-2">
+              <div className="text-[10.5px] text-muted-foreground font-extrabold uppercase">{rotulo}</div>
+              <div className="text-[12.5px] text-foreground mt-[3px]">{(instrumento[campo] as string | null) || '—'}</div>
             </div>
           ))}
         </div>

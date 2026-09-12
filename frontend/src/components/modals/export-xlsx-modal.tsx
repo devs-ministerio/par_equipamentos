@@ -3,7 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { Modal } from '../common/modal';
 import { MultiSelectFilter } from '../common/multi-select-filter';
 import { ExportSecaoAba } from '../features/export-secao-aba';
-import { colors } from '../../styles/tokens';
 import { REGIOES } from '../../data/constants';
 import { useFiltrosMacro } from '../../hooks/useFiltrosMacro';
 import { fetchEstabelecimentosPage, type FacilityOption } from '../../services/api';
@@ -105,10 +104,10 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
 
   return (
     <Modal onClose={onClose} maxWidth={580}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#16213e' }}>Exportar Excel</div>
-          <div style={{ color: colors.mutedText, fontSize: 13, marginTop: 6 }}>
+          <div className="text-[22px] font-extrabold text-[#16213e]">Exportar Excel</div>
+          <div className="mt-1.5 text-[13px] text-muted-foreground">
             A planilha sai com uma aba de <strong>Metodologia</strong> explicando os cálculos, mais as abas de dados
             que você escolher.
           </div>
@@ -116,48 +115,30 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
         <button
           onClick={onClose}
           aria-label="Fechar"
-          style={{
-            border: 'none',
-            background: 'transparent',
-            fontSize: 20,
-            lineHeight: 1,
-            color: colors.subtleText,
-            cursor: 'pointer',
-            padding: 4,
-          }}
+          className="cursor-pointer border-none bg-transparent p-1 text-xl leading-none text-muted-foreground/70"
         >
           ✕
         </button>
       </div>
 
-      <div
-        style={{
-          marginTop: 14,
-          background: colors.surface,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 6,
-          padding: 12,
-        }}
-      >
-        <label
-          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#16213e' }}
-        >
+      <div className="mt-3.5 rounded-[6px] border border-border bg-background p-3">
+        <label className="flex cursor-pointer items-center gap-2 text-[13px] font-bold text-[#16213e]">
           <input
             type="checkbox"
             checked={usarFiltros}
             onChange={() => setUsarFiltros((v) => !v)}
-            style={{ width: 15, height: 15, accentColor: colors.primary }}
+            className="h-[15px] w-[15px] accent-primary"
           />
           Aplicar filtros na exportação
         </label>
-        <div style={{ fontSize: 11.5, color: colors.mutedText, marginTop: 4, marginBottom: usarFiltros ? 10 : 0 }}>
+        <div className={`mt-1 text-[11.5px] text-muted-foreground ${usarFiltros ? 'mb-2.5' : ''}`}>
           {usarFiltros
             ? 'A planilha sai só com o recorte escolhido abaixo.'
             : 'A planilha sai com todos os dados, sem nenhum recorte.'}
         </div>
 
         {usarFiltros && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="flex flex-wrap gap-2">
             <MultiSelectFilter
               placeholder="CNES"
               options={filtros.cnesOptions}
@@ -222,16 +203,7 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
             {filtros.hasAnyFilter && (
               <button
                 onClick={filtros.limparFiltros}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  border: '1px solid #f0a0a0',
-                  background: '#fff0f0',
-                  color: '#c0392b',
-                }}
+                className="cursor-pointer rounded-[6px] border border-[#f0a0a0] bg-[#fff0f0] px-3 py-1.5 text-xs font-medium text-[#c0392b]"
               >
                 ✕ Limpar
               </button>
@@ -260,25 +232,21 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
         onToggleCampo={(key) => setCamposEstabelecimentos((prev) => toggleNoSet(prev, key))}
       />
 
-      {erro && <div style={{ marginTop: 12, fontSize: 12, color: colors.hipoRed }}>{erro}</div>}
+      {erro && <div className="mt-3 text-xs text-destructive">{erro}</div>}
 
-      <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+      <div className="mt-5 flex gap-2.5">
         <button
           onClick={onClose}
-          style={{ ...botaoBase, background: '#fff', color: '#475066', border: `1px solid ${colors.border}` }}
+          className="flex-1 rounded-[8px] border border-border bg-white px-4 py-2.75 text-[13px] font-bold text-muted-foreground"
         >
           Cancelar
         </button>
         <button
           onClick={() => gerarMutation.mutate()}
           disabled={nadaSelecionado || gerando}
-          style={{
-            ...botaoBase,
-            border: 'none',
-            background: nadaSelecionado || gerando ? '#9aa5c7' : colors.hiperGreen,
-            color: '#fff',
-            cursor: nadaSelecionado || gerando ? 'default' : 'pointer',
-          }}
+          className={`flex-1 rounded-[8px] border-none px-4 py-2.75 text-[13px] font-bold text-white ${
+            nadaSelecionado || gerando ? 'cursor-default bg-[#9aa5c7]' : 'cursor-pointer bg-success'
+          }`}
         >
           {gerando ? 'Gerando...' : '⬇ Gerar Excel'}
         </button>
@@ -286,11 +254,3 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
     </Modal>
   );
 }
-
-const botaoBase = {
-  flex: 1,
-  padding: '11px 16px',
-  borderRadius: 8,
-  fontSize: 13,
-  fontWeight: 700,
-};

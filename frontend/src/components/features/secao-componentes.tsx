@@ -10,7 +10,7 @@
  * -- so achado ate agora tem proposta em 2025; 2026 existe como `programa`
  * mas sem proposta ainda, e 2024 ("REDE DE ATENCAO...") nao tem `programa`
  * equivalente em nenhuma API (documentado no script). */
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import { fmtMoeda } from '@/lib/monitoramento-format';
 import type { ComponenteOncologia } from '@/types/monitoramento';
 import { Campo, estiloCard, Secao, StatusPill } from './monitoramento-ui';
@@ -20,7 +20,7 @@ export function SecaoComponentes({ dados }: { dados: ComponenteOncologia[] }) {
 
   return (
     <div>
-      <p style={{ color: colors.mutedText, fontSize: 12.5, maxWidth: 900, lineHeight: 1.6, marginBottom: 16 }}>
+      <p className="text-muted-foreground text-[12.5px] max-w-[900px] leading-relaxed mb-4">
         Isto é um <strong>radar nacional de propostas</strong>, não a lista de convênios já assinados (essa fica na
         aba "Convênios"). Cada bloco abaixo é um dos 8 componentes oficiais do PNPCC/Rede de Atenção num ano
         específico; dentro dele, as "propostas" são pedidos de financiamento que qualquer ente (prefeitura,
@@ -28,46 +28,46 @@ export function SecaoComponentes({ dados }: { dados: ComponenteOncologia[] }) {
         "Aprovada" é etapa anterior a "convênio assinado"). É útil pra achar convênios novos que ainda não têm
         número TransfereGov legado — foi assim que os registros FAF/TED sem número de convênio foram encontrados.
       </p>
-      <p style={{ color: colors.mutedText, fontSize: 12.5, maxWidth: 900, lineHeight: 1.6, marginBottom: 16 }}>
+      <p className="text-muted-foreground text-[12.5px] max-w-[900px] leading-relaxed mb-4">
         Casamento por nome normalizado do <code>programa</code> contra os 8 componentes pedidos —{' '}
         <code>id_programa</code> muda todo ano que a categoria é recriada, revalidar anualmente. Fase de descoberta:{' '}
         {totalPropostas} proposta(s) encontrada(s) em {dados.length} combinação(ões) componente/ano.
       </p>
 
       {dados.length === 0 ? (
-        <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhum componente batendo ainda.</p>
+        <p className="text-xs text-muted-foreground italic">Nenhum componente batendo ainda.</p>
       ) : (
         dados.map((c) => (
-          <details key={`${c.componente}-${c.ano_programa}`} style={{ ...estiloCard, marginBottom: 10 }}>
-            <summary style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <details key={`${c.componente}-${c.ano_programa}`} className={cn(estiloCard, 'mb-2.5')}>
+            <summary className="cursor-pointer flex justify-between gap-3 flex-wrap items-center">
               <div>
-                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{c.componente}</div>
-                <div style={{ fontSize: 11, color: colors.mutedText, marginTop: 2 }}>
+                <div className="font-bold text-[13.5px]">{c.componente}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
                   Ano {c.ano_programa} · programa #{c.id_programa} · nome na API: "{c.nm_programa_api}"
                 </div>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 600, color: colors.primary }}>{c.total_propostas} proposta(s)</span>
+              <span className="text-xs font-semibold text-primary">{c.total_propostas} proposta(s)</span>
             </summary>
 
             {c.propostas.length === 0 ? (
-              <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic', marginTop: 10 }}>
+              <p className="text-xs text-muted-foreground italic mt-2.5">
                 Categoria existe no TransfereGov, mas sem proposta submetida ainda.
               </p>
             ) : (
-              <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+              <div className="mt-3 grid gap-2">
                 {c.propostas.map((p) => (
-                  <div key={p.id_proposta} style={{ background: colors.surface, border: `1px solid ${colors.border}`, borderRadius: 8, padding: 10 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                      <strong style={{ fontSize: 12.5 }}>{p.ente_recebedor || '—'}</strong>
+                  <div key={p.id_proposta} className="bg-background border border-border rounded-lg p-2.5">
+                    <div className="flex justify-between gap-2.5 flex-wrap">
+                      <strong className="text-[12.5px]">{p.ente_recebedor || '—'}</strong>
                       <StatusPill texto={p.situacao_proposta} />
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8, marginTop: 8 }}>
+                    <div className="grid [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))] gap-2 mt-2">
                       <Campo label="CNPJ">{p.cnpj || '—'}</Campo>
                       <Campo label="Município/UF">{p.municipio}/{p.uf}</Campo>
                       <Campo label="Valor planejado">{fmtMoeda(p.valor_planejamento)}</Campo>
                       <Campo label="Proposta">#{p.id_proposta}</Campo>
                     </div>
-                    {p.ds_objeto && <p style={{ fontSize: 12, marginTop: 8, color: colors.mutedText }}>{p.ds_objeto}</p>}
+                    {p.ds_objeto && <p className="text-xs mt-2 text-muted-foreground">{p.ds_objeto}</p>}
                   </div>
                 ))}
               </div>
@@ -77,7 +77,7 @@ export function SecaoComponentes({ dados }: { dados: ComponenteOncologia[] }) {
       )}
 
       <Secao titulo="Nota de escopo">
-        <p style={{ fontSize: 11.5, color: colors.mutedText, lineHeight: 1.6 }}>
+        <p className="text-[11.5px] text-muted-foreground leading-relaxed">
           Além disso, o mesmo levantamento achou 1.689 propostas em programas Pronon/Pronas (mesmo domínio de
           financiamento oncológico/deficiência, mas fora dos 8 componentes literais pedidos) — não incluídas aqui de
           propósito, disponíveis em <code>backend/scripts/output/radar_pronon_pronas.csv</code> pra quem quiser

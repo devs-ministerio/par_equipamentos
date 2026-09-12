@@ -2,7 +2,7 @@
  * MonitoramentoInterno.tsx. */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import { criarAcaoSchema, type CriarAcaoFormValues } from '@/lib/validations/monitoramento';
 import { ErroCampo, estiloInput, idsDescricaoCampo } from './monitoramento-ui';
 
@@ -30,14 +30,14 @@ export function MonitoramentoInternoFormAcao({
   }
 
   return (
-    <form onSubmit={handleSubmit(aoSubmeter)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start', marginBottom: 14 }}>
-      <div style={{ flex: 2, minWidth: 220 }}>
-        <label htmlFor="acao-descricao" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+    <form onSubmit={handleSubmit(aoSubmeter)} className="flex gap-2.5 flex-wrap items-start mb-3.5">
+      <div className="flex-[2] min-w-[220px]">
+        <label htmlFor="acao-descricao" className="text-[11px] text-muted-foreground block mb-1">
           Nova ação
         </label>
         <input
           id="acao-descricao"
-          style={{ ...estiloInput, width: '100%' }}
+          className={cn(estiloInput, 'w-full')}
           placeholder="O que precisa ser feito..."
           aria-invalid={Boolean(errors.descricao)}
           aria-describedby={idsDescricaoCampo('acao-descricao', Boolean(errors.descricao), false)}
@@ -46,21 +46,21 @@ export function MonitoramentoInternoFormAcao({
         <ErroCampo id="acao-descricao-error" mensagem={errors.descricao?.message} />
       </div>
       <div>
-        <label htmlFor="acao-data-prevista" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+        <label htmlFor="acao-data-prevista" className="text-[11px] text-muted-foreground block mb-1">
           Prazo
         </label>
-        <input id="acao-data-prevista" type="date" style={estiloInput} {...register('dataPrevista')} />
+        <input id="acao-data-prevista" type="date" className={estiloInput} {...register('dataPrevista')} />
       </div>
-      <div style={{ minWidth: 160 }}>
-        <label htmlFor="acao-responsavel" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+      <div className="min-w-40">
+        <label htmlFor="acao-responsavel" className="text-[11px] text-muted-foreground block mb-1">
           Responsável
         </label>
-        <input id="acao-responsavel" style={{ ...estiloInput, width: '100%' }} {...register('responsavel')} />
+        <input id="acao-responsavel" className={cn(estiloInput, 'w-full')} {...register('responsavel')} />
       </div>
       <button
         type="submit"
         disabled={!podeEditar || isSubmitting}
-        style={{ ...estiloInput, cursor: 'pointer', background: colors.primary, color: '#fff', border: 'none', fontWeight: 600 }}
+        className={cn(estiloInput, 'cursor-pointer bg-primary text-primary-foreground border-none font-semibold')}
       >
         {isSubmitting ? 'Adicionando...' : '+ Adicionar'}
       </button>

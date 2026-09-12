@@ -33,16 +33,16 @@
  * que os scripts rodarem de novo.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { KpiCard } from '@/components/common/kpi-card';
 import { Pagination } from '@/components/common/pagination';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
-import { colors, layout } from '@/styles/tokens';
 import { normalizarTexto } from '@/utils/texto';
 import { ConvenioCard } from '@/components/features/convenio-card';
 import { SecaoComponentes } from '@/components/features/secao-componentes';
-import { LEGENDA_STATUS } from '@/components/features/monitoramento-ui';
+import { LEGENDA_STATUS, VARIANT_DOT_CLASSES } from '@/components/features/monitoramento-ui';
 import { EQUIPAMENTOS_ALVO, equipamentosDoConvenio } from '@/lib/equipamento-tags';
 import { fmtMoeda } from '@/lib/monitoramento-format';
 import { mesclarConvenios } from '@/lib/mesclar-convenios';
@@ -232,44 +232,40 @@ export function MonitoramentoEquipamentosPage() {
           </CardContent>
         </Card>
 
-        {erro && <p style={{ color: colors.hipoRed }}>Erro ao carregar dados: {erro}</p>}
+        {erro && <p className="text-destructive">Erro ao carregar dados: {erro}</p>}
 
         {/* Abas -- Convenios (299 registros, dado ja mesclado) e
             Componentes de financiamento (agrupamento diferente do mesmo
             universo, ver SecaoComponentes.tsx). Antes ficava tudo numa
             rolagem so; virar aba de verdade reduz a pagina a um assunto
             por vez. */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: `1px solid ${colors.border}` }}>
+        <div className="flex gap-1 mb-5 border-b border-border">
           <button
             onClick={() => setAba('convenios')}
-            style={{
-              padding: '10px 16px', fontSize: 13, fontWeight: 700, border: 'none', background: 'transparent', cursor: 'pointer',
-              color: aba === 'convenios' ? colors.primary : colors.mutedText,
-              borderBottom: aba === 'convenios' ? `2px solid ${colors.primary}` : '2px solid transparent',
-              marginBottom: -1,
-            }}
+            className={cn(
+              'py-2.5 px-4 text-sm font-bold border-none bg-transparent cursor-pointer -mb-px border-b-2',
+              aba === 'convenios' ? 'text-primary border-b-primary' : 'text-muted-foreground border-b-transparent',
+            )}
           >
-            Instrumentos firmados <span style={{ color: colors.subtleText, fontWeight: 500 }}>({convenios?.length ?? 0})</span>
+            Instrumentos firmados <span className="text-muted-foreground/70 font-medium">({convenios?.length ?? 0})</span>
           </button>
           <button
             onClick={() => setAba('componentes')}
-            style={{
-              padding: '10px 16px', fontSize: 13, fontWeight: 700, border: 'none', background: 'transparent', cursor: 'pointer',
-              color: aba === 'componentes' ? colors.primary : colors.mutedText,
-              borderBottom: aba === 'componentes' ? `2px solid ${colors.primary}` : '2px solid transparent',
-              marginBottom: -1,
-            }}
+            className={cn(
+              'py-2.5 px-4 text-sm font-bold border-none bg-transparent cursor-pointer -mb-px border-b-2',
+              aba === 'componentes' ? 'text-primary border-b-primary' : 'text-muted-foreground border-b-transparent',
+            )}
           >
-            Linhas de financiamento <span style={{ color: colors.subtleText, fontWeight: 500 }}>({totalComponentes})</span>
+            Linhas de financiamento <span className="text-muted-foreground/70 font-medium">({totalComponentes})</span>
           </button>
         </div>
 
         {aba === 'convenios' && (
           !convenios ? (
-            <p style={{ color: colors.mutedText }}>Carregando...</p>
+            <p className="text-muted-foreground">Carregando...</p>
           ) : (
             <>
-              <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 16 }}>
+              <div className="flex gap-4 flex-wrap mb-4">
                 <KpiCard label="Instrumentos firmados" value={filtrados.length} variant="primary" />
                 <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} variant="primary" />
                 <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} variant="success" />
@@ -285,11 +281,11 @@ export function MonitoramentoEquipamentosPage() {
 
               {/* Legenda de cor -- situacao de convenio tem ~9 variacoes
                   reais, o vocabulario visual so tem 4 familias (ver
-                  situacaoCor em ui.tsx). */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 18, fontSize: 11.5, color: colors.mutedText }}>
+                  situacaoVariant em ui.tsx). */}
+              <div className="flex flex-wrap gap-3.5 mb-[18px] text-[11.5px] text-muted-foreground">
                 {LEGENDA_STATUS.map((l) => (
-                  <span key={l.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: 999, background: l.cor, display: 'inline-block' }} />
+                  <span key={l.rotulo} className="flex items-center gap-1.5">
+                    <span className={cn('w-2 h-2 rounded-full inline-block', VARIANT_DOT_CLASSES[l.variant])} />
                     {l.rotulo}
                   </span>
                 ))}
@@ -300,11 +296,7 @@ export function MonitoramentoEquipamentosPage() {
                   certa pra somar <1200px (cabe dentro do maxWidth de 1400
                   menos padding). wrap continua ligado so como rede de
                   seguranca pra janela bem estreita, nao pro uso normal. */}
-              <div style={{
-                background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 10, padding: 14,
-                boxShadow: '0 1px 3px rgba(22,33,62,0.06)', marginBottom: 16,
-                display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
-              }}>
+              <div className="bg-card border border-border rounded-[10px] p-3.5 shadow-[0_1px_3px_rgba(22,33,62,0.06)] mb-4 flex gap-2 flex-wrap items-center">
                 <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por convenente, município, número, CNPJ..." width={190} />
                 <SingleSelectFilter placeholder="Tipo de contratação" options={TIPOS_CONTRATACAO} value={tipoContratacao} onChange={setTipoContratacao} clearLabel="Todos os tipos" minWidth={120} />
                 <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={100} />
@@ -315,13 +307,13 @@ export function MonitoramentoEquipamentosPage() {
               </div>
 
               {tipoContratacao && tipoContratacao !== 'convenio' ? (
-                <p style={{ color: colors.mutedText, fontSize: 13, fontStyle: 'italic', padding: '20px 0' }}>
+                <p className="text-muted-foreground text-sm italic py-5">
                   {TIPOS_CONTRATACAO.find((t) => t.value === tipoContratacao)?.label} ainda não foi incluído nos dados do sistema —
                   hoje a página só cruza convênios (Portal da Transparência + SICONV + TransfereGov).
                 </p>
               ) : (
                 <>
-                  <div style={{ color: colors.mutedText, fontSize: 12, marginBottom: 10 }}>
+                  <div className="text-muted-foreground text-xs mb-2.5">
                     {filtrados.length} de {convenios.length} convênio(s)
                   </div>
 
@@ -335,7 +327,7 @@ export function MonitoramentoEquipamentosPage() {
                     />
                   ))}
 
-                  <div style={{ background: colors.card, border: `1px solid ${colors.border}`, borderRadius: 10, marginTop: 4 }}>
+                  <div className="bg-card border border-border rounded-[10px] mt-1">
                     <Pagination page={pagina} totalItems={filtrados.length} pageSize={PAGE_SIZE} onPageChange={setPagina} />
                   </div>
                 </>
@@ -344,7 +336,7 @@ export function MonitoramentoEquipamentosPage() {
           )
         )}
 
-        {aba === 'componentes' && (componentes ? <SecaoComponentes dados={componentes} /> : <p style={{ color: colors.mutedText }}>Carregando...</p>)}
+        {aba === 'componentes' && (componentes ? <SecaoComponentes dados={componentes} /> : <p className="text-muted-foreground">Carregando...</p>)}
     </div>
   );
 }

@@ -27,10 +27,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KpiCard } from '@/components/common/kpi-card';
-import { colors, layout } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import { normalizarTexto } from '@/utils/texto';
 import { API_BASE_URL } from '@/services/monitoramento';
-import { BarraDistribuicao, corValidade, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
+import { BarraDistribuicao, classeValidade, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
 import { useJson } from '@/hooks/useJson';
 import type { SiconvEntrada } from '@/types/monitoramento';
@@ -62,8 +62,18 @@ type MarcoApi = { id: number; codigo: string; grupo: string; ordem: number | nul
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 // Paleta pra graficos com varias categorias (pizza/barras) -- reaproveita
-// os tokens do projeto na ordem, repete se tiver mais categorias que cor.
-const PALETA = [colors.primary, colors.hiperGreen, colors.logoOrange, colors.primaryDark, colors.hipoRed, '#8e6fce', '#2aa8b0', '#c9538a'];
+// os tokens do projeto na ordem (via variavel CSS, pro SVG que precisa de
+// cor solida em atributo, nao className), repete se tiver mais categorias
+// que cor.
+const PALETA = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--foreground)', 'var(--destructive)', '#8e6fce', '#2aa8b0', '#c9538a'];
+
+/** Mesmos limiares de classeValidade (monitoramento-ui.tsx), mas como
+ * classe Tailwind de `bg-*` pro dot de status (o texto usa `classeValidade`
+ * direto, que ja devolve `text-*`). */
+function bgValidade(dias: number): string {
+  if (dias < 180) return dias < 90 ? 'bg-destructive' : 'bg-warning';
+  return 'bg-success';
+}
 
 /** Erro HTTP não é resposta válida de painel. Sem essa guarda, um 404/500
  * JSON podia ser aceito como se fosse o formato esperado e quebrar a tela
@@ -102,7 +112,7 @@ function extrairFamiliaEquipamento(descricao: string | null): string {
  * contratação tem só 2-3), cabe bem em pizza. */
 function GraficoPizza({ itens }: { itens: ContagemRotulo[] }) {
   const total = itens.reduce((s, i) => s + i.quantidade, 0);
-  if (total === 0) return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Sem dado ainda.</p>;
+  if (total === 0) return <p className="text-xs text-muted-foreground italic">Sem dado ainda.</p>;
 
   const raio = 70, cx = 80, cy = 80;
   let anguloAcumulado = -Math.PI / 2; // comeca no topo (12h), sentido horario
@@ -119,17 +129,17 @@ function GraficoPizza({ itens }: { itens: ContagemRotulo[] }) {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+    <div className="flex items-center gap-5 flex-wrap">
       <svg width={160} height={160} viewBox="0 0 160 160" role="img" aria-label="Distribuição por tipo de contratação">
-        {fatias.map((f) => <path key={f.rotulo} d={f.d} fill={f.cor} stroke="#fff" strokeWidth={1.5} />)}
+        {fatias.map((f) => <path key={f.rotulo} d={f.d} fill={f.cor} stroke="var(--card)" strokeWidth={1.5} />)}
       </svg>
-      <div style={{ display: 'grid', gap: 6 }}>
+      <div className="grid gap-1.5">
         {fatias.map((f) => (
-          <div key={f.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-            <span style={{ width: 10, height: 10, borderRadius: 3, background: f.cor, flexShrink: 0 }} />
+          <div key={f.rotulo} className="flex items-center gap-2 text-xs">
+            <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: f.cor }} />
             <span>{f.rotulo}</span>
             <strong>{f.quantidade}</strong>
-            <span style={{ color: colors.mutedText }}>({Math.round(f.pct * 100)}%)</span>
+            <span className="text-muted-foreground">({Math.round(f.pct * 100)}%)</span>
           </div>
         ))}
       </div>
@@ -141,18 +151,18 @@ function GraficoPizza({ itens }: { itens: ContagemRotulo[] }) {
  * troca as barras horizontais por um formato melhor pra comparar muitas
  * categorias lado a lado (achado 2026-09-10, pedido do usuário). */
 function BarrasVerticais({ itens, corBarra }: { itens: ContagemRotulo[]; corBarra: string }) {
-  if (itens.length === 0) return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Sem dado ainda.</p>;
+  if (itens.length === 0) return <p className="text-xs text-muted-foreground italic">Sem dado ainda.</p>;
   const max = Math.max(1, ...itens.map((i) => i.quantidade));
   const alturaMax = 120;
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: alturaMax + 40, overflowX: 'auto', paddingBottom: 4 }}>
+    <div className="flex items-end gap-2.5 overflow-x-auto pb-1" style={{ height: alturaMax + 40 }}>
       {itens.map((item) => {
         const altura = Math.max((item.quantidade / max) * alturaMax, 4);
         return (
-          <div key={item.rotulo} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 36 }}>
-            <span style={{ fontSize: 11, fontWeight: 700 }}>{item.quantidade}</span>
-            <div style={{ width: 26, height: altura, background: corBarra, borderRadius: '4px 4px 0 0' }} />
-            <span style={{ fontSize: 10.5, color: colors.mutedText, writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 46 }}>{item.rotulo}</span>
+          <div key={item.rotulo} className="flex flex-col items-center gap-1 min-w-9">
+            <span className="text-[11px] font-bold">{item.quantidade}</span>
+            <div className="w-[26px] rounded-t" style={{ height: altura, background: corBarra }} />
+            <span className="text-[10.5px] text-muted-foreground h-[46px] [writing-mode:vertical-rl] rotate-180">{item.rotulo}</span>
           </div>
         );
       })}
@@ -167,23 +177,27 @@ function BarrasVerticais({ itens, corBarra }: { itens: ContagemRotulo[]; corBarr
 function FunilFases({ fasesOrdenadas }: { fasesOrdenadas: ContagemRotulo[] }) {
   const total = fasesOrdenadas.reduce((s, f) => s + f.quantidade, 0) || 1;
   return (
-    <div style={{ display: 'grid', gap: 6 }}>
+    <div className="grid gap-1.5">
       {fasesOrdenadas.map((f, i) => {
         const pct = f.quantidade / total;
         return (
-          <div key={f.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 150, fontSize: 11.5, color: colors.mutedText, textAlign: 'right', flexShrink: 0 }}>{f.rotulo}</div>
-            <div style={{ flex: 1, background: colors.surface, borderRadius: 6, overflow: 'hidden' }}>
-              <div style={{
-                width: `${Math.max(pct * 100, f.quantidade > 0 ? 4 : 0)}%`, minHeight: 22,
-                background: `linear-gradient(90deg, ${colors.primary}, ${colors.primaryDark})`,
-                display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 8px',
-                borderTopRightRadius: i === 0 ? 6 : 0, borderBottomRightRadius: 6,
-              }}>
-                {f.quantidade > 0 && <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>{f.quantidade}</span>}
+          <div key={f.rotulo} className="flex items-center gap-2.5">
+            <div className="w-[150px] text-[11.5px] text-muted-foreground text-right shrink-0">{f.rotulo}</div>
+            <div className="flex-1 bg-background rounded-md overflow-hidden">
+              <div
+                className={cn(
+                  'min-h-[22px] flex items-center justify-end px-2 rounded-br-md',
+                  i === 0 ? 'rounded-tr-md' : 'rounded-tr-none',
+                )}
+                style={{
+                  width: `${Math.max(pct * 100, f.quantidade > 0 ? 4 : 0)}%`,
+                  background: 'linear-gradient(90deg, var(--primary), var(--foreground))',
+                }}
+              >
+                {f.quantidade > 0 && <span className="text-primary-foreground text-[11px] font-bold">{f.quantidade}</span>}
               </div>
             </div>
-            <div style={{ width: 40, fontSize: 11, color: colors.mutedText }}>{Math.round(pct * 100)}%</div>
+            <div className="w-10 text-[11px] text-muted-foreground">{Math.round(pct * 100)}%</div>
           </div>
         );
       })}
@@ -194,7 +208,7 @@ function FunilFases({ fasesOrdenadas }: { fasesOrdenadas: ContagemRotulo[] }) {
 /** Mesma linha do tempo por ano/mês do Overview -- versão compacta (sem
  * hover, só visual) pra caber num painel com mais blocos por tela. */
 function MiniLinhaDoTempo({ itens }: { itens: InauguracaoApi[] }) {
-  if (itens.length === 0) return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma inauguração registrada ainda.</p>;
+  if (itens.length === 0) return <p className="text-xs text-muted-foreground italic">Nenhuma inauguração registrada ainda.</p>;
   const porAnoMes = new Map<string, InauguracaoApi[]>();
   for (const i of itens) {
     const d = new Date(i.data + 'T00:00:00');
@@ -204,25 +218,31 @@ function MiniLinhaDoTempo({ itens }: { itens: InauguracaoApi[] }) {
   }
   const anos = [...new Set(itens.map((i) => new Date(i.data + 'T00:00:00').getFullYear()))].sort();
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
+    <div className="grid gap-2.5">
       {anos.map((ano) => {
         const totalAno = MESES_ABREV.reduce((s, _m, idx) => s + (porAnoMes.get(`${ano}-${idx}`)?.length ?? 0), 0);
         return (
           <div key={ano}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 700, color: colors.primary, marginBottom: 4 }}>
+            <div className="flex justify-between text-[11.5px] font-bold text-primary mb-1">
               <span>{ano}</span><span>{totalAno} equipamento(s)</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 3 }}>
+            <div className="grid grid-cols-12 gap-[3px]">
               {MESES_ABREV.map((mes, idx) => {
                 const doMes = porAnoMes.get(`${ano}-${idx}`) ?? [];
                 const temRealizada = doMes.some((i) => i.realizada);
                 return (
-                  <div key={mes} title={doMes.map((i) => `${i.nome_convenente} (${fmtData(i.data)})`).join('\n') || undefined} style={{
-                    height: 26, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8.5, fontWeight: 700,
-                    background: temRealizada ? colors.hiperGreen : doMes.length ? '#fff' : colors.surface,
-                    border: !temRealizada && doMes.length ? `1.5px dashed ${colors.primary}` : temRealizada ? 'none' : `1px solid ${colors.border}`,
-                    color: temRealizada ? '#fff' : doMes.length ? colors.primary : colors.mutedText,
-                  }}>
+                  <div
+                    key={mes}
+                    title={doMes.map((i) => `${i.nome_convenente} (${fmtData(i.data)})`).join('\n') || undefined}
+                    className={cn(
+                      'h-[26px] rounded flex items-center justify-center text-[8.5px] font-bold',
+                      temRealizada
+                        ? 'bg-success text-success-foreground border-none'
+                        : doMes.length
+                          ? 'bg-card text-primary border-[1.5px] border-dashed border-primary'
+                          : 'bg-background text-muted-foreground border border-border',
+                    )}
+                  >
                     {mes[0]}
                   </div>
                 );
@@ -271,9 +291,9 @@ export function MonitoramentoPainelPage() {
     return { global, pago, comPagamento, pct: global > 0 ? pago / global : null };
   })();
 
-  if (erro) return <p style={{ color: colors.hipoRed }}>Erro ao carregar: {erro}</p>;
+  if (erro) return <p className="text-destructive">Erro ao carregar: {erro}</p>;
   if (!resumo || !instrumentos || !marcos) {
-    return <p style={{ color: colors.mutedText }}>Carregando...</p>;
+    return <p className="text-muted-foreground">Carregando...</p>;
   }
 
   // Funil na ordem real do catálogo (nao por contagem). "Não iniciado" vem
@@ -319,25 +339,25 @@ export function MonitoramentoPainelPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', margin: '0 0 6px', color: colors.primary }}>
+      <div className="flex justify-between items-start flex-wrap gap-3">
+        <h1 className="text-[26px] font-extrabold tracking-[-0.01em] m-0 mb-1.5 text-primary">
           Painel de Gestão — Equipamentos Oncológicos
         </h1>
         <Link
           to="/monitoramento-equipamentos/instrumentos"
-          style={{ fontSize: 12.5, fontWeight: 600, color: colors.primary, textDecoration: 'none', whiteSpace: 'nowrap' }}
+          className="text-[12.5px] font-semibold text-primary no-underline whitespace-nowrap"
         >
           ← Ver operacional (por instrumento)
         </Link>
       </div>
-      <p style={{ color: colors.mutedText, fontSize: 13, maxWidth: 900, lineHeight: 1.6, marginBottom: 20 }}>
+      <p className="text-muted-foreground text-sm max-w-[900px] leading-relaxed mb-5">
         Visão executiva do acompanhamento pós-repasse de {resumo.total_instrumentos} instrumento(s) — pra avaliação
         da gestão, sem detalhe operacional por convênio (isso fica na{' '}
-        <Link to="/monitoramento-equipamentos/instrumentos" style={{ color: colors.primary }}>visão geral</Link>).
+        <Link to="/monitoramento-equipamentos/instrumentos" className="text-primary">visão geral</Link>).
       </p>
 
       {/* KPIs executivos */}
-      <div style={{ display: 'flex', gap: layout.cardGap, flexWrap: 'wrap', marginBottom: 20 }}>
+      <div className="flex gap-4 flex-wrap mb-5">
         <KpiCard label="Instrumentos monitorados" value={resumo.total_instrumentos} variant="primary" />
         <KpiCard
           label="Execução física média"
@@ -357,16 +377,16 @@ export function MonitoramentoPainelPage() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 16, marginBottom: 20 }}>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Funil de fases</strong>
-          <div style={{ marginTop: 14 }}>
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(420px,1fr))] gap-4 mb-5">
+        <div className={estiloCard}>
+          <strong className="text-sm">Funil de fases</strong>
+          <div className="mt-3.5">
             <FunilFases fasesOrdenadas={funil} />
           </div>
         </div>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Inaugurações por ano</strong>
-          <div style={{ marginTop: 12 }}>
+        <div className={estiloCard}>
+          <strong className="text-sm">Inaugurações por ano</strong>
+          <div className="mt-3">
             <MiniLinhaDoTempo itens={resumo.inauguracoes} />
           </div>
         </div>
@@ -376,60 +396,60 @@ export function MonitoramentoPainelPage() {
           do usuário: "um ponto que precisa de mais destaque é os
           equipamentos"). Pizza pro tipo de contratação, barras verticais
           pro ranking de UF -- variedade visual pedida na mesma rodada. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Por tipo de equipamento</strong>
-          <div style={{ marginTop: 12 }}>
-            <BarraDistribuicao itens={porFamiliaEquipamento} corBarra={colors.primaryDark} />
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 mb-5">
+        <div className={estiloCard}>
+          <strong className="text-sm">Por tipo de equipamento</strong>
+          <div className="mt-3">
+            <BarraDistribuicao itens={porFamiliaEquipamento} corBarra="var(--foreground)" />
           </div>
         </div>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Por tipo de contratação</strong>
-          <div style={{ marginTop: 12 }}>
+        <div className={estiloCard}>
+          <strong className="text-sm">Por tipo de contratação</strong>
+          <div className="mt-3">
             <GraficoPizza itens={porTipoContratacao} />
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, marginBottom: 20 }}>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Top 10 UF</strong>
-          <div style={{ marginTop: 12 }}>
-            <BarrasVerticais itens={porUf} corBarra={colors.hiperGreen} />
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] gap-4 mb-5">
+        <div className={estiloCard}>
+          <strong className="text-sm">Top 10 UF</strong>
+          <div className="mt-3">
+            <BarrasVerticais itens={porUf} corBarra="var(--success)" />
           </div>
         </div>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Por componente</strong>
-          <div style={{ marginTop: 10 }}>
-            <BarraDistribuicao itens={porComponente} corBarra={colors.logoOrange} />
+        <div className={estiloCard}>
+          <strong className="text-sm">Por componente</strong>
+          <div className="mt-2.5">
+            <BarraDistribuicao itens={porComponente} corBarra="var(--warning)" />
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Licenças CNEN por vencer</strong>
-          <div style={{ marginTop: 10, display: 'grid', gap: 6, maxHeight: 300, overflowY: 'auto' }}>
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 mb-5">
+        <div className={estiloCard}>
+          <strong className="text-sm">Licenças CNEN por vencer</strong>
+          <div className="mt-2.5 grid gap-1.5 max-h-[300px] overflow-y-auto">
             {resumo.licencas_vencendo.length === 0 ? (
-              <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma licença com validade registrada ainda.</p>
+              <p className="text-xs text-muted-foreground italic">Nenhuma licença com validade registrada ainda.</p>
             ) : resumo.licencas_vencendo.map((l) => (
               <Link
                 key={l.nr_convenio}
                 to={`/monitoramento-equipamentos/instrumentos/${l.nr_convenio}`}
-                style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, textDecoration: 'none', color: 'inherit' }}
+                className="flex justify-between gap-2 text-xs no-underline text-inherit"
               >
-                <span><span style={{ width: 8, height: 8, borderRadius: '50%', background: corValidade(l.dias), display: 'inline-block', marginRight: 6 }} />{l.nome_convenente} ({l.nr_convenio})</span>
-                <strong style={{ color: corValidade(l.dias), whiteSpace: 'nowrap' }}>
+                <span><span className={cn('w-2 h-2 rounded-full inline-block mr-1.5', bgValidade(l.dias))} />{l.nome_convenente} ({l.nr_convenio})</span>
+                <strong className={cn('whitespace-nowrap', classeValidade(l.dias))}>
                   {l.dias < 0 ? `vencida há ${Math.abs(l.dias)}d` : `${l.dias}d`}
                 </strong>
               </Link>
             ))}
           </div>
         </div>
-        <div style={estiloCard}>
-          <strong style={{ fontSize: 13 }}>Convênios por técnico titular</strong>
-          <div style={{ marginTop: 10 }}>
-            <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra={colors.primaryDark} />
+        <div className={estiloCard}>
+          <strong className="text-sm">Convênios por técnico titular</strong>
+          <div className="mt-2.5">
+            <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra="var(--foreground)" />
           </div>
         </div>
       </div>

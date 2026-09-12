@@ -1,7 +1,7 @@
 /** Seção "Linha do tempo de eventos" -- toggle do form de lançamento +
  * histórico. Extraído de MonitoramentoInterno.tsx. */
 import { useState } from 'react';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { EventoMarco, MarcoCatalogo } from '@/services/monitoramento';
 import { fmtData } from '@/lib/monitoramento-format';
 import type { EnviarEventoFormValues } from '@/lib/validations/monitoramento';
@@ -31,7 +31,7 @@ export function MonitoramentoInternoEventos({
           disabled={!podeEditar}
           onClick={() => setFormAberto((v) => !v)}
           aria-expanded={formAberto}
-          style={{ ...estiloInput, cursor: 'pointer', background: colors.primary, color: '#fff', border: 'none', fontWeight: 600 }}
+          className={cn(estiloInput, 'cursor-pointer bg-primary text-primary-foreground border-none font-semibold')}
         >
           {formAberto ? 'Cancelar' : '+ Lançar evento'}
         </button>
@@ -48,9 +48,9 @@ export function MonitoramentoInternoEventos({
       )}
 
       {eventos.length === 0 ? (
-        <p style={{ color: colors.mutedText, fontStyle: 'italic', fontSize: 13 }}>Nenhum evento lançado ainda.</p>
+        <p className="text-muted-foreground italic text-sm">Nenhum evento lançado ainda.</p>
       ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div className="grid gap-2">
           {/* Backend ja devolve mais recente primeiro -- numera decrescente
               (evento mais antigo = 01) pra ficar claro que e sequencia de
               lancamento, nao ranking. */}
@@ -58,31 +58,28 @@ export function MonitoramentoInternoEventos({
             const marco = marcoPorId.get(ev.marco_id);
             const numero = String(eventos.length - i).padStart(2, '0');
             return (
-              <div key={ev.id} style={{ ...estiloCard, display: 'flex', gap: 12 }}>
+              <div key={ev.id} className={cn(estiloCard, 'flex gap-3')}>
                 <div
-                  style={{
-                    width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: i === 0 ? colors.hiperGreenBg : colors.surface,
-                    color: i === 0 ? colors.hiperGreen : colors.mutedText,
-                    fontSize: 10.5, fontWeight: 700,
-                  }}
+                  className={cn(
+                    'w-[26px] h-[26px] rounded-full shrink-0 flex items-center justify-center text-[10.5px] font-bold',
+                    i === 0 ? 'bg-success-bg text-success' : 'bg-background text-muted-foreground',
+                  )}
                 >
                   {numero}
                 </div>
-                <div style={{ minWidth: 80, fontSize: 11, color: colors.mutedText }}>
+                <div className="min-w-20 text-[11px] text-muted-foreground">
                   {fmtData(ev.data_ocorrencia) !== '—' ? fmtData(ev.data_ocorrencia) : fmtData(ev.created_at.slice(0, 10))}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>
+                <div className="flex-1">
+                  <div className="font-semibold text-sm">
                     {marco?.rotulo ?? `Marco ${ev.marco_id}`}
                     {ev.numero_documento && <> — nº {ev.numero_documento}</>}
                     {ev.status_regulatorio && <> — <StatusPill texto={ev.status_regulatorio} /></>}
                   </div>
                   {ev.data_validade && (
-                    <div style={{ fontSize: 11, color: colors.mutedText, marginTop: 1 }}>Validade: {fmtData(ev.data_validade)}</div>
+                    <div className="text-[11px] text-muted-foreground mt-px">Validade: {fmtData(ev.data_validade)}</div>
                   )}
-                  {ev.observacao && <div style={{ fontSize: 12.5, color: colors.mutedText, marginTop: 2 }}>{ev.observacao}</div>}
+                  {ev.observacao && <div className="text-[12.5px] text-muted-foreground mt-0.5">{ev.observacao}</div>}
                 </div>
               </div>
             );

@@ -1,36 +1,16 @@
 import type { ReactNode } from 'react';
-import { colors } from '../styles/tokens';
 import { getEquipamento } from '../data/constants';
 
 function FonteItem({ n, titulo, url, urlLabel }: { n: number; titulo: string; url: string; urlLabel: string }) {
   return (
-    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-      <div
-        style={{
-          minWidth: 28,
-          height: 28,
-          borderRadius: '50%',
-          background: '#e8f0fb',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 12,
-          fontWeight: 700,
-          color: colors.primary,
-        }}
-      >
+    <div className="flex items-start gap-3.5">
+      <div className="flex h-7 min-w-7 items-center justify-center rounded-full bg-[#e8f0fb] text-xs font-bold text-primary">
         {n}
       </div>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#16213e' }}>{titulo}</div>
-        <div style={{ fontSize: 12, color: colors.primary, lineHeight: 1.5 }}>
-          <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`${urlLabel} (abre em nova aba)`}
-            style={{ color: colors.primary }}
-          >
+        <div className="text-[13px] font-semibold text-[#16213e]">{titulo}</div>
+        <div className="text-xs leading-[1.5] text-primary">
+          <a href={url} target="_blank" rel="noreferrer" aria-label={`${urlLabel} (abre em nova aba)`} className="text-primary">
             {urlLabel}
           </a>
         </div>
@@ -58,7 +38,7 @@ const PARAMETROS_POR_FAMILIA: Record<string, ParametrosFamilia> = {
     parametroDescricao: (
       <>
         por <strong>100 mil habitantes </strong>ou raio de <strong>75 km </strong>
-        <span style={{ fontSize: 11, color: colors.subtleText }}>o que for atingido primeiro</span>
+        <span className="text-[11px] text-muted-foreground/70">o que for atingido primeiro</span>
       </>
     ),
     produtividade: getEquipamento('TOMOGRAFO').produtividade,
@@ -96,66 +76,56 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
   const p = PARAMETROS_POR_FAMILIA[equipmentFamily] ?? PARAMETROS_POR_FAMILIA.TOMOGRAFO;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: '#fff', borderRadius: 10, padding: '28px 32px' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-          Escopo
-        </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#16213e', marginBottom: 8 }}>Verificação por Município</div>
-        <div style={{ fontSize: 13, color: colors.mutedText, lineHeight: 1.7, maxWidth: 680 }}>
+    <div className="flex flex-col gap-4">
+      <div className="rounded-[10px] bg-white px-8 py-7">
+        <div className="mb-1.5 text-[11px] font-bold tracking-[0.08em] text-primary uppercase">Escopo</div>
+        <div className="mb-2 text-xl font-bold text-[#16213e]">Verificação por Município</div>
+        <div className="max-w-[680px] text-[13px] leading-[1.7] text-muted-foreground">
           A metodologia avalia a suficiência de {p.nomePlural} no SUS comparando a quantidade em uso com a demanda
           estimada com base na população <strong>SUS-dependente</strong> (IBGE − beneficiários de plano de saúde),
           granularizada ao nível de município.
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-        <div style={{ background: '#fff', borderRadius: 10, padding: '24px 26px', borderTop: `3px solid ${colors.primary}` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: colors.primary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-            Parâmetro
-          </div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: '#16213e', marginBottom: 4 }}>{p.parametroTitulo}</div>
-          <div style={{ fontSize: 12, color: colors.mutedText, lineHeight: 1.6 }}>{p.parametroDescricao}</div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-[10px] border-t-[3px] border-t-primary bg-white px-6.5 py-6">
+          <div className="mb-2.5 text-[11px] font-bold tracking-[0.06em] text-primary uppercase">Parâmetro</div>
+          <div className="mb-1 text-[19px] font-extrabold text-[#16213e]">{p.parametroTitulo}</div>
+          <div className="text-xs leading-[1.6] text-muted-foreground">{p.parametroDescricao}</div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 10, padding: '24px 26px', borderTop: '3px solid #475066' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#475066', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-            Classificação
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: colors.hipoRed }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: colors.hipoRed }}>Hipossuficiente</span>
-              <span style={{ fontSize: 11, color: '#475066' }}>coeficiente &lt; 1x</span>
+        <div className="rounded-[10px] border-t-[3px] border-t-[#475066] bg-white px-6.5 py-6">
+          <div className="mb-2.5 text-[11px] font-bold tracking-[0.06em] text-[#475066] uppercase">Classificação</div>
+          <div className="mt-1 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-destructive" />
+              <span className="text-[13px] font-bold text-destructive">Hipossuficiente</span>
+              <span className="text-[11px] text-[#475066]">coeficiente &lt; 1x</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: colors.hiperGreen }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: colors.hiperGreen }}>Hiperssuficiente</span>
-              <span style={{ fontSize: 11, color: '#475066' }}>coeficiente ≥ 1x</span>
+            <div className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-success" />
+              <span className="text-[13px] font-bold text-success">Hiperssuficiente</span>
+              <span className="text-[11px] text-[#475066]">coeficiente ≥ 1x</span>
             </div>
           </div>
         </div>
 
-        <div style={{ background: '#fff', borderRadius: 10, padding: '24px 26px', borderTop: '3px solid #475066' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#475066', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-            Fórmula
-          </div>
-          <div style={{ background: colors.surface, borderRadius: 6, padding: '10px 14px', fontFamily: 'monospace', fontSize: 12, color: '#16213e', lineHeight: 1.6 }}>
+        <div className="rounded-[10px] border-t-[3px] border-t-[#475066] bg-white px-6.5 py-6">
+          <div className="mb-2.5 text-[11px] font-bold tracking-[0.06em] text-[#475066] uppercase">Fórmula</div>
+          <div className="rounded-[6px] bg-background px-3.5 py-2.5 font-mono text-xs leading-[1.6] text-[#16213e]">
             Qtd SUS em uso
             <br />
             ──────────────────
             <br />
             {p.formulaDenominador}
           </div>
-          <div style={{ fontSize: 11, color: colors.mutedText, marginTop: 8, lineHeight: 1.5 }}>{p.notaCriterio}</div>
+          <div className="mt-2 text-[11px] leading-[1.5] text-muted-foreground">{p.notaCriterio}</div>
         </div>
       </div>
 
-      <div style={{ background: '#f0f4ff', borderRadius: 10, padding: '20px 28px', borderLeft: `4px solid ${colors.primary}` }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: colors.primary, marginBottom: 6 }}>
-          Como ler o coeficiente
-        </div>
-        <div style={{ fontSize: 13, color: '#475066', lineHeight: 1.7 }}>
+      <div className="rounded-[10px] border-l-4 border-l-primary bg-[#f0f4ff] px-7 py-5">
+        <div className="mb-1.5 text-xs font-bold text-primary">Como ler o coeficiente</div>
+        <div className="text-[13px] leading-[1.7] text-[#475066]">
           Em Planilhas e no Mapa, cada macrorregião/região de saúde/município mostra um <strong>coeficiente</strong>:
           quantas {p.nomePlural} SUS em uso existem pra cada {formatarProdutividade(p.produtividade)} habitantes
           SUS-dependentes, sem arredondar a demanda. Abaixo de 1x é <strong>Hipossuficiente</strong>; 1x ou mais é{' '}
@@ -164,9 +134,9 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 10, padding: '24px 32px' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#16213e', marginBottom: 14 }}>Fontes de dados</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="rounded-[10px] bg-white px-8 py-6">
+        <div className="mb-3.5 text-[13px] font-bold text-[#16213e]">Fontes de dados</div>
+        <div className="flex flex-col gap-3">
           <FonteItem
             n={1}
             titulo="Critérios e parâmetros assistenciais para o planejamento e programação de ações e serviços de saúde no âmbito do sistema único de saúde."

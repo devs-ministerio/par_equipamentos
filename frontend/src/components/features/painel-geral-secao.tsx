@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { colors } from '@/styles/tokens';
 
 export function PainelGeralSecao({
   titulo,
@@ -11,10 +10,10 @@ export function PainelGeralSecao({
   children: ReactNode;
 }) {
   return (
-    <div style={{ marginTop: 36 }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: '#16213e' }}>{titulo}</div>
-      {subtitulo && <div style={{ fontSize: 13, color: colors.mutedText, marginTop: 4, maxWidth: 720 }}>{subtitulo}</div>}
-      <div style={{ marginTop: 16 }}>{children}</div>
+    <div className="mt-9">
+      <div className="text-lg font-extrabold text-[#16213e]">{titulo}</div>
+      {subtitulo && <div className="mt-1 max-w-[720px] text-[13px] text-muted-foreground">{subtitulo}</div>}
+      <div className="mt-4">{children}</div>
     </div>
   );
 }

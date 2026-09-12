@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { MacroRankItem } from '@/hooks/usePainelGeralResumos';
 
 /**
@@ -26,7 +26,8 @@ import type { MacroRankItem } from '@/hooks/usePainelGeralResumos';
 export function PainelGeralRankingMacros({ hipo, hiper }: { hipo: MacroRankItem[]; hiper: MacroRankItem[] }) {
   const [modo, setModo] = useState<'hipo' | 'hiper'>('hipo');
   const itens = modo === 'hipo' ? hipo : hiper;
-  const cor = modo === 'hipo' ? colors.hipoRed : colors.hiperGreen;
+  const corTexto = modo === 'hipo' ? 'text-destructive' : 'text-success';
+  const corBarra = modo === 'hipo' ? 'bg-destructive' : 'bg-success';
   const valorBarra = (item: MacroRankItem) => (modo === 'hipo' ? Math.max(0, 100 - item.cobertura) : item.cobertura);
   // Hipo usa escala ABSOLUTA (0-100, o proprio valor de severidade vira a
   // largura direto) -- diferente do Hiper, que so faz sentido relativo ao
@@ -42,83 +43,49 @@ export function PainelGeralRankingMacros({ hipo, hiper }: { hipo: MacroRankItem[
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+      <div className="mb-2.5 flex gap-1.5">
         <button
           onClick={() => setModo('hipo')}
           disabled={hipo.length === 0}
-          style={{
-            padding: '4px 11px',
-            borderRadius: 20,
-            fontSize: 11,
-            fontWeight: 700,
-            cursor: hipo.length === 0 ? 'default' : 'pointer',
-            border: `1.5px solid ${modo === 'hipo' ? colors.hipoRed : colors.border}`,
-            background: modo === 'hipo' ? colors.hipoRedBg : '#fff',
-            color: hipo.length === 0 ? colors.subtleText : modo === 'hipo' ? colors.hipoRed : '#475066',
-            opacity: hipo.length === 0 ? 0.5 : 1,
-          }}
+          className={cn(
+            'rounded-full border-[1.5px] bg-card px-[11px] py-1 text-[11px] font-bold',
+            hipo.length === 0 ? 'cursor-default opacity-50' : 'cursor-pointer',
+            modo === 'hipo' ? 'border-destructive bg-destructive-bg text-destructive' : 'border-border',
+            modo !== 'hipo' && (hipo.length === 0 ? 'text-muted-foreground/70' : 'text-muted-foreground'),
+          )}
         >
           ▾ 5 mais Hipo
         </button>
         <button
           onClick={() => setModo('hiper')}
           disabled={hiper.length === 0}
-          style={{
-            padding: '4px 11px',
-            borderRadius: 20,
-            fontSize: 11,
-            fontWeight: 700,
-            cursor: hiper.length === 0 ? 'default' : 'pointer',
-            border: `1.5px solid ${modo === 'hiper' ? colors.hiperGreen : colors.border}`,
-            background: modo === 'hiper' ? colors.hiperGreenBg : '#fff',
-            color: hiper.length === 0 ? colors.subtleText : modo === 'hiper' ? colors.hiperGreen : '#475066',
-            opacity: hiper.length === 0 ? 0.5 : 1,
-          }}
+          className={cn(
+            'rounded-full border-[1.5px] bg-card px-[11px] py-1 text-[11px] font-bold',
+            hiper.length === 0 ? 'cursor-default opacity-50' : 'cursor-pointer',
+            modo === 'hiper' ? 'border-success bg-success-bg text-success' : 'border-border',
+            modo !== 'hiper' && (hiper.length === 0 ? 'text-muted-foreground/70' : 'text-muted-foreground'),
+          )}
         >
           ▴ 5 mais Hiper
         </button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="flex flex-col gap-1.5">
         {itens.map((item, i) => (
-          <div key={item.macroId} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span
-              style={{
-                width: 16,
-                height: 16,
-                borderRadius: '50%',
-                background: '#f4f6fb',
-                color: colors.subtleText,
-                fontSize: 9.5,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
+          <div key={item.macroId} className="flex items-center gap-2">
+            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#f4f6fb] text-[9.5px] font-bold text-muted-foreground/70">
               {i + 1}
             </span>
             <span
-              style={{
-                fontSize: 11.5,
-                color: '#475066',
-                width: 178,
-                flexShrink: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
+              className="w-[178px] flex-shrink-0 overflow-hidden text-ellipsis whitespace-nowrap text-[11.5px] text-muted-foreground"
               title={`${item.nome} (${item.uf})`}
             >
               {item.nome} ({item.uf})
             </span>
-            <div style={{ flex: 1, height: 6, borderRadius: 3, background: '#eef0f4', overflow: 'clip' }}>
-              <div style={{ height: '100%', width: `${(valorBarra(item) / maiorValor) * 100}%`, background: cor }} />
+            <div className="h-1.5 flex-1 overflow-clip rounded-[3px] bg-[#eef0f4]">
+              <div className={cn('h-full', corBarra)} style={{ width: `${(valorBarra(item) / maiorValor) * 100}%` }} />
             </div>
-            <span
-              style={{ width: 36, textAlign: 'right', fontSize: 11.5, fontWeight: 700, color: cor, flexShrink: 0, whiteSpace: 'nowrap' }}
-            >
+            <span className={cn('w-9 flex-shrink-0 whitespace-nowrap text-right text-[11.5px] font-bold', corTexto)}>
               {item.cobertura.toFixed(0)}%
             </span>
           </div>

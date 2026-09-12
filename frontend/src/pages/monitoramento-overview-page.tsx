@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
-import { colors, layout } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import { normalizarTexto } from '@/utils/texto';
 import { API_BASE_URL } from '@/services/monitoramento';
 import { BarraDistribuicao, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
@@ -88,16 +88,16 @@ function IndicadorOperacional({
   tom: 'critico' | 'alerta' | 'ok' | 'neutro';
   icone: ReactNode;
 }) {
-  const cor = tom === 'critico' ? colors.hipoRed : tom === 'alerta' ? colors.logoOrange : tom === 'ok' ? colors.hiperGreen : colors.primary;
-  const bg = tom === 'critico' ? colors.hipoRedBg : tom === 'alerta' ? colors.logoOrangeBg : tom === 'ok' ? colors.hiperGreenBg : colors.primaryLight;
+  const corClasse = tom === 'critico' ? 'text-destructive' : tom === 'alerta' ? 'text-warning' : tom === 'ok' ? 'text-success' : 'text-primary';
+  const bgClasse = tom === 'critico' ? 'bg-destructive-bg' : tom === 'alerta' ? 'bg-warning-bg' : tom === 'ok' ? 'bg-success-bg' : 'bg-secondary';
   return (
-    <div style={{ ...estiloCard, padding: 16, display: 'grid', gap: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', color: colors.mutedText }}>{titulo}</span>
-        <span style={{ width: 30, height: 30, borderRadius: 10, background: bg, color: cor, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{icone}</span>
+    <div className={cn(estiloCard, 'p-4 grid gap-2.5')}>
+      <div className="flex justify-between items-center gap-2.5">
+        <span className="text-[11px] font-extrabold tracking-[.05em] uppercase text-muted-foreground">{titulo}</span>
+        <span className={cn('w-[30px] h-[30px] rounded-[10px] inline-flex items-center justify-center', bgClasse, corClasse)}>{icone}</span>
       </div>
-      <strong style={{ fontSize: 28, lineHeight: 1, color: colors.primaryDark }}>{valor}</strong>
-      <span style={{ fontSize: 12, color: colors.mutedText, lineHeight: 1.35 }}>{detalhe}</span>
+      <strong className="text-[28px] leading-none text-foreground">{valor}</strong>
+      <span className="text-xs text-muted-foreground leading-snug">{detalhe}</span>
     </div>
   );
 }
@@ -113,7 +113,7 @@ function LinhaDoTempoInauguracoes({ itens }: { itens: InauguracaoApi[] }) {
   const [hover, setHover] = useState<string | null>(null);
 
   if (itens.length === 0) {
-    return <p style={{ fontSize: 12, color: colors.mutedText, fontStyle: 'italic' }}>Nenhuma inauguração registrada ainda.</p>;
+    return <p className="text-xs text-muted-foreground italic">Nenhuma inauguração registrada ainda.</p>;
   }
 
   const porAnoMes = new Map<string, InauguracaoApi[]>();
@@ -126,44 +126,42 @@ function LinhaDoTempoInauguracoes({ itens }: { itens: InauguracaoApi[] }) {
   const anos = [...new Set(itens.map((i) => new Date(i.data + 'T00:00:00').getFullYear()))].sort();
 
   return (
-    <div style={{ display: 'grid', gap: 14 }}>
+    <div className="grid gap-3.5">
       {anos.map((ano) => (
         <div key={ano}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: colors.primary, marginBottom: 6 }}>{ano}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
+          <div className="text-xs font-bold text-primary mb-1.5">{ano}</div>
+          <div className="grid grid-cols-12 gap-1">
             {MESES_ABREV.map((mes, idx) => {
               const chave = `${ano}-${idx}`;
               const doMes = porAnoMes.get(chave) ?? [];
               const temRealizada = doMes.some((i) => i.realizada);
               const temPrevista = doMes.some((i) => !i.realizada);
               return (
-                <div key={mes} style={{ position: 'relative' }} onMouseEnter={() => doMes.length && setHover(chave)} onMouseLeave={() => setHover(null)}>
+                <div key={mes} className="relative" onMouseEnter={() => doMes.length && setHover(chave)} onMouseLeave={() => setHover(null)}>
                   <div
-                    style={{
-                      height: 34, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 700, cursor: doMes.length ? 'pointer' : 'default',
-                      background: temRealizada ? colors.hiperGreen : temPrevista ? '#fff' : colors.surface,
-                      border: temPrevista && !temRealizada ? `1.5px dashed ${colors.primary}` : temRealizada ? 'none' : `1px solid ${colors.border}`,
-                      color: temRealizada ? '#fff' : temPrevista ? colors.primary : colors.mutedText,
-                    }}
+                    className={cn(
+                      'h-[34px] rounded-md flex items-center justify-center text-[10px] font-bold',
+                      doMes.length ? 'cursor-pointer' : 'cursor-default',
+                      temRealizada
+                        ? 'bg-success text-success-foreground border-none'
+                        : temPrevista
+                          ? 'bg-card text-primary border-[1.5px] border-dashed border-primary'
+                          : 'bg-background text-muted-foreground border border-border',
+                    )}
                   >
                     {mes}{doMes.length > 1 && ` ×${doMes.length}`}
                   </div>
                   {hover === chave && (
-                    <div style={{
-                      position: 'absolute', top: '100%', left: 0, zIndex: 10, marginTop: 4,
-                      background: '#fff', border: `1px solid ${colors.border}`, borderRadius: 8, padding: 8,
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)', minWidth: 240, display: 'grid', gap: 6,
-                    }}>
+                    <div className="absolute top-full left-0 z-10 mt-1 bg-card border border-border rounded-lg p-2 shadow-[0_4px_16px_rgba(0,0,0,0.12)] min-w-60 grid gap-1.5">
                       {doMes.map((i) => (
                         <Link
                           key={i.nr_convenio}
                           to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`}
-                          style={{ fontSize: 11.5, textDecoration: 'none', color: 'inherit', display: 'block' }}
+                          className="text-[11.5px] no-underline text-inherit block"
                         >
-                          <strong style={{ color: colors.primary }}>{fmtData(i.data)}</strong> — {i.nome_convenente} ({i.nr_convenio})
+                          <strong className="text-primary">{fmtData(i.data)}</strong> — {i.nome_convenente} ({i.nr_convenio})
                           {i.realizada ? ' ✓' : (
-                            <span style={{ color: i.dias < 0 ? colors.logoOrange : colors.mutedText }}>
+                            <span className={i.dias < 0 ? 'text-warning' : 'text-muted-foreground'}>
                               {' '}({i.dias < 0 ? `atrasada ${Math.abs(i.dias)}d` : `em ${i.dias}d`})
                             </span>
                           )}
@@ -218,9 +216,9 @@ export function MonitoramentoOverviewPage() {
     return resumo.nr_convenios.filter((nr) => (siconvPorNumero.get(nr)?.pagamentos.length ?? 0) > 0).length;
   })();
 
-  if (erro) return <p style={{ color: colors.hipoRed }}>Erro ao carregar: {erro}</p>;
+  if (erro) return <p className="text-destructive">Erro ao carregar: {erro}</p>;
   if (!resumo || !instrumentos) {
-    return <p style={{ color: colors.mutedText }}>Carregando...</p>;
+    return <p className="text-muted-foreground">Carregando...</p>;
   }
 
   const hoje = new Date();
@@ -311,7 +309,7 @@ export function MonitoramentoOverviewPage() {
         </CardContent>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: layout.cardGap, marginBottom: 18 }}>
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-4 mb-[18px]">
         <IndicadorOperacional titulo="Ações atrasadas" valor={resumo.acoes_atrasadas} detalhe={`${resumo.acoes_pendentes} pendentes no total`} tom={resumo.acoes_atrasadas > 0 ? 'critico' : 'ok'} icone={<AlertTriangle size={17} />} />
         <IndicadorOperacional titulo="Licenças a vencer" valor={resumo.licencas_vencendo.length} detalhe="CNEN vencida ou próxima" tom={resumo.licencas_vencendo.length > 0 ? 'alerta' : 'ok'} icone={<ShieldCheck size={17} />} />
         <IndicadorOperacional titulo="Inaugurações críticas" valor={inauguracoesAtrasadas + inauguracoesProximas} detalhe={`${inauguracoesAtrasadas} atrasadas · ${inauguracoesProximas} em até 30 dias`} tom={inauguracoesAtrasadas > 0 ? 'critico' : inauguracoesProximas > 0 ? 'alerta' : 'ok'} icone={<CalendarClock size={17} />} />
@@ -365,69 +363,69 @@ export function MonitoramentoOverviewPage() {
         </CardContent>
       </Card>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Distribuição por fase</strong>
-            <div style={{ marginTop: 10 }}>
-              <BarraDistribuicao itens={resumo.distribuicao_fase} corBarra={colors.primary} />
+        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 mb-5">
+          <div className={estiloCard}>
+            <strong className="text-sm">Distribuição por fase</strong>
+            <div className="mt-2.5">
+              <BarraDistribuicao itens={resumo.distribuicao_fase} corBarra="var(--primary)" />
             </div>
           </div>
-          <div style={estiloCard}>
-            <strong style={{ fontSize: 13 }}>Instrumentos por técnico titular</strong>
-            <div style={{ marginTop: 10 }}>
-              <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra={colors.hiperGreen} />
+          <div className={estiloCard}>
+            <strong className="text-sm">Instrumentos por técnico titular</strong>
+            <div className="mt-2.5">
+              <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra="var(--success)" />
             </div>
           </div>
         </div>
 
-        <div style={{ ...estiloCard, marginBottom: 20 }}>
-          <strong style={{ fontSize: 13 }}>Inaugurações (real ou prevista)</strong>
-          <div style={{ marginTop: 10 }}>
+        <div className={cn(estiloCard, 'mb-5')}>
+          <strong className="text-sm">Inaugurações (real ou prevista)</strong>
+          <div className="mt-2.5">
             <LinhaDoTempoInauguracoes itens={resumo.inauguracoes} />
           </div>
         </div>
 
-        <div style={estiloCard}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
-            <strong style={{ fontSize: 13 }}>Instrumentos monitorados ({instrumentosFiltrados.length}{instrumentosFiltrados.length !== instrumentos.length ? ` de ${instrumentos.length}` : ''})</strong>
+        <div className={estiloCard}>
+          <div className="flex justify-between items-center flex-wrap gap-2.5 mb-3">
+            <strong className="text-sm">Instrumentos monitorados ({instrumentosFiltrados.length}{instrumentosFiltrados.length !== instrumentos.length ? ` de ${instrumentos.length}` : ''})</strong>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div className="flex gap-2 flex-wrap mb-3.5">
             <SearchInput value={busca} onChange={setBusca} placeholder="Buscar convênio/convenente..." width={220} />
             <SingleSelectFilter placeholder="Fase" options={opcoesDe('fase_atual')} value={faseFiltro} onChange={setFaseFiltro} clearLabel="Todas as fases" minWidth={150} />
             <SingleSelectFilter placeholder="Técnico titular" options={opcoesDe('tecnico_titular')} value={tecnicoFiltro} onChange={setTecnicoFiltro} clearLabel="Todos os técnicos" minWidth={170} />
             <SingleSelectFilter placeholder="UF" options={opcoesDe('uf')} value={ufFiltro} onChange={setUfFiltro} clearLabel="Todas as UF" minWidth={110} />
             <SingleSelectFilter placeholder="Tipo de contratação" options={opcoesDe('tipo_contratacao')} value={tipoContratacaoFiltro} onChange={setTipoContratacaoFiltro} clearLabel="Todos os tipos" minWidth={170} />
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-[12.5px]">
               <thead>
-                <tr style={{ textAlign: 'left', color: colors.mutedText, fontSize: 11, textTransform: 'uppercase' }}>
-                  <th style={{ padding: '4px 8px' }}>Convênio</th>
-                  <th style={{ padding: '4px 8px' }}>Convenente</th>
-                  <th style={{ padding: '4px 8px' }}>UF/Município</th>
-                  <th style={{ padding: '4px 8px' }}>Fase</th>
-                  <th style={{ padding: '4px 8px' }}>Técnico titular</th>
+                <tr className="text-left text-muted-foreground text-[11px] uppercase">
+                  <th className="py-1 px-2">Convênio</th>
+                  <th className="py-1 px-2">Convenente</th>
+                  <th className="py-1 px-2">UF/Município</th>
+                  <th className="py-1 px-2">Fase</th>
+                  <th className="py-1 px-2">Técnico titular</th>
                 </tr>
               </thead>
               <tbody>
                 {instrumentosFiltrados.length === 0 ? (
-                  <tr><td colSpan={5} style={{ padding: '14px 8px', textAlign: 'center', color: colors.mutedText, fontStyle: 'italic' }}>Nenhum instrumento bate com esse filtro.</td></tr>
+                  <tr><td colSpan={5} className="py-3.5 px-2 text-center text-muted-foreground italic">Nenhum instrumento bate com esse filtro.</td></tr>
                 ) : instrumentosFiltrados.map((i) => (
-                  <tr key={i.nr_convenio} style={{ borderTop: `1px solid ${colors.border}` }}>
-                    <td style={{ padding: '6px 8px' }}>
-                      <Link to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`} style={{ color: colors.primary, textDecoration: 'none', fontWeight: 600 }}>
+                  <tr key={i.nr_convenio} className="border-t border-border">
+                    <td className="py-1.5 px-2">
+                      <Link to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`} className="text-primary no-underline font-semibold">
                         {i.nr_convenio}
                       </Link>
                       {i.tipo_contratacao && i.tipo_contratacao !== 'Convênio' && (
-                        <span style={{ marginLeft: 6, fontSize: 9.5, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: colors.logoOrangeBg, color: colors.logoOrange }}>
+                        <span className="ml-1.5 text-[9.5px] font-bold py-px px-1.5 rounded-full bg-warning-bg text-warning">
                           {i.tipo_contratacao}
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '6px 8px' }}>{i.nome_convenente}</td>
-                    <td style={{ padding: '6px 8px' }}>{i.uf}/{i.municipio}</td>
-                    <td style={{ padding: '6px 8px' }}>{i.fase_atual ?? '—'}</td>
-                    <td style={{ padding: '6px 8px' }}>{i.tecnico_titular ?? '—'}</td>
+                    <td className="py-1.5 px-2">{i.nome_convenente}</td>
+                    <td className="py-1.5 px-2">{i.uf}/{i.municipio}</td>
+                    <td className="py-1.5 px-2">{i.fase_atual ?? '—'}</td>
+                    <td className="py-1.5 px-2">{i.tecnico_titular ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,5 +1,3 @@
-import { colors } from '@/styles/tokens';
-
 /** Cada estatistica de cobertura e o SEU PROPRIO card (2026-08-22, pedido
  * explicito) -- alinhados entre si (mesma altura/padding, `flex: 1` divide o
  * espaco igual) e, como as duas familias usam a mesma estrutura, tambem
@@ -11,18 +9,9 @@ import { colors } from '@/styles/tokens';
  * repetir o mesmo alerta em 3 lugares diferentes da mesma tela. */
 export function PainelGeralStatCard({ valor, label }: { valor: string; label: string }) {
   return (
-    <div
-      style={{
-        flex: 1,
-        background: colors.surface,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 12,
-        padding: '16px 12px',
-        textAlign: 'center',
-      }}
-    >
-      <div style={{ fontSize: 22, fontWeight: 700, color: colors.primaryDark, letterSpacing: '-0.01em' }}>{valor}</div>
-      <div style={{ fontSize: 10.5, color: colors.subtleText, marginTop: 5, lineHeight: 1.35 }}>{label}</div>
+    <div className="flex-1 rounded-xl border border-border bg-background px-3 py-4 text-center">
+      <div className="font-display text-[22px] font-bold tracking-[-0.01em] text-foreground">{valor}</div>
+      <div className="mt-[5px] text-[10.5px] leading-[1.35] text-muted-foreground/70">{label}</div>
     </div>
   );
 }

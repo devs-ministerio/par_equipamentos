@@ -2,7 +2,7 @@
  * migração), extraído de MonitoramentoInterno.tsx. */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import { loginSchema, type LoginFormValues } from '@/lib/validations/monitoramento';
 import { ErroCampo, estiloInput, idsDescricaoCampo } from './monitoramento-ui';
 
@@ -31,29 +31,29 @@ export function MonitoramentoInternoFormLogin({
   }
 
   return (
-    <form onSubmit={handleSubmit(aoSubmeter)} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-      <div style={{ flex: 1, minWidth: 220 }}>
-        <label htmlFor="login-email" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+    <form onSubmit={handleSubmit(aoSubmeter)} className="flex gap-2.5 flex-wrap items-start">
+      <div className="flex-1 min-w-[220px]">
+        <label htmlFor="login-email" className="text-[11px] text-muted-foreground block mb-1">
           Email
         </label>
         <input
           id="login-email"
           type="email"
-          style={{ ...estiloInput, width: '100%' }}
+          className={cn(estiloInput, 'w-full')}
           aria-invalid={Boolean(errors.email)}
           aria-describedby={idsDescricaoCampo('login-email', Boolean(errors.email), false)}
           {...register('email')}
         />
         <ErroCampo id="login-email-error" mensagem={errors.email?.message} />
       </div>
-      <div style={{ flex: 1, minWidth: 180 }}>
-        <label htmlFor="login-senha" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+      <div className="flex-1 min-w-[180px]">
+        <label htmlFor="login-senha" className="text-[11px] text-muted-foreground block mb-1">
           Senha
         </label>
         <input
           id="login-senha"
           type="password"
-          style={{ ...estiloInput, width: '100%' }}
+          className={cn(estiloInput, 'w-full')}
           aria-invalid={Boolean(errors.senha)}
           aria-describedby={idsDescricaoCampo('login-senha', Boolean(errors.senha), false)}
           {...register('senha')}
@@ -64,7 +64,7 @@ export function MonitoramentoInternoFormLogin({
         <button
           type="submit"
           disabled={isSubmitting}
-          style={{ ...estiloInput, cursor: 'pointer', background: colors.hiperGreen, color: '#fff', border: 'none', fontWeight: 600 }}
+          className={cn(estiloInput, 'cursor-pointer bg-success text-success-foreground border-none font-semibold')}
         >
           {isSubmitting ? 'Entrando...' : 'Entrar'}
         </button>

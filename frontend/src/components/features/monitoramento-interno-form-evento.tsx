@@ -4,7 +4,7 @@
  * MonitoramentoInterno.tsx. */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { colors } from '@/styles/tokens';
+import { cn } from '@/lib/utils';
 import type { MarcoCatalogo } from '@/services/monitoramento';
 import { enviarEventoSchema, type EnviarEventoFormValues } from '@/lib/validations/monitoramento';
 import { ErroCampo, estiloCard, estiloInput, idsDescricaoCampo } from './monitoramento-ui';
@@ -49,15 +49,15 @@ export function MonitoramentoInternoFormEvento({
   }
 
   return (
-    <form onSubmit={handleSubmit(aoSubmeter)} style={{ ...estiloCard, marginBottom: 16, display: 'grid', gap: 10 }}>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1, minWidth: 240 }}>
-          <label htmlFor="evento-marco" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+    <form onSubmit={handleSubmit(aoSubmeter)} className={cn(estiloCard, 'mb-4 grid gap-2.5')}>
+      <div className="flex gap-2.5 flex-wrap items-start">
+        <div className="flex-1 min-w-60">
+          <label htmlFor="evento-marco" className="text-[11px] text-muted-foreground block mb-1">
             Marco
           </label>
           <select
             id="evento-marco"
-            style={{ ...estiloInput, width: '100%' }}
+            className={cn(estiloInput, 'w-full')}
             aria-invalid={Boolean(errors.marcoId)}
             aria-describedby={idsDescricaoCampo('evento-marco', Boolean(errors.marcoId), false)}
             defaultValue=""
@@ -78,73 +78,73 @@ export function MonitoramentoInternoFormEvento({
           {/* Rotulo dinamico -- pedido do usuario 2026-09-09: "a licenca
               cnen vamos precisar da data da licença e da data de validade
               da licença", nao so um icone de calendario com tooltip. */}
-          <label htmlFor="evento-data-ocorrencia" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+          <label htmlFor="evento-data-ocorrencia" className="text-[11px] text-muted-foreground block mb-1">
             {ehLicencaOperacao ? 'Data da licença' : ehRegulatorio ? 'Data do documento' : 'Data de ocorrência'}
           </label>
-          <input id="evento-data-ocorrencia" type="date" style={estiloInput} {...register('dataOcorrencia')} />
+          <input id="evento-data-ocorrencia" type="date" className={estiloInput} {...register('dataOcorrencia')} />
         </div>
       </div>
 
       {ehRegulatorio && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <label htmlFor="evento-status-regulatorio" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+        <div className="flex gap-2.5 flex-wrap items-start">
+          <div className="flex-1 min-w-40">
+            <label htmlFor="evento-status-regulatorio" className="text-[11px] text-muted-foreground block mb-1">
               Status regulatório
             </label>
-            <select id="evento-status-regulatorio" style={{ ...estiloInput, width: '100%' }} defaultValue="" {...register('statusRegulatorio')}>
+            <select id="evento-status-regulatorio" className={cn(estiloInput, 'w-full')} defaultValue="" {...register('statusRegulatorio')}>
               <option value="">Status regulatório...</option>
               {STATUS_REGULATORIO_OPCOES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <label htmlFor="evento-numero-documento" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+          <div className="flex-1 min-w-40">
+            <label htmlFor="evento-numero-documento" className="text-[11px] text-muted-foreground block mb-1">
               Nº matrícula/licença/processo
             </label>
-            <input id="evento-numero-documento" style={{ ...estiloInput, width: '100%' }} {...register('numeroDocumento')} />
+            <input id="evento-numero-documento" className={cn(estiloInput, 'w-full')} {...register('numeroDocumento')} />
           </div>
           <div>
-            <label htmlFor="evento-data-validade" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+            <label htmlFor="evento-data-validade" className="text-[11px] text-muted-foreground block mb-1">
               Data de validade
             </label>
-            <input id="evento-data-validade" type="date" style={estiloInput} {...register('dataValidade')} />
+            <input id="evento-data-validade" type="date" className={estiloInput} {...register('dataValidade')} />
           </div>
         </div>
       )}
 
       {ehEntrega && (
         <div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: colors.primary, marginBottom: 8 }}>
+          <div className="text-[11.5px] font-bold text-primary mb-2">
             Equipamento entregue{' '}
-            <span style={{ fontWeight: 400, color: colors.mutedText, textTransform: 'none' }}>(informado pelo estabelecimento, opcional)</span>
+            <span className="font-normal text-muted-foreground normal-case">(informado pelo estabelecimento, opcional)</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+          <div className="grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
             <div>
-              <label htmlFor="evento-equip-marca" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Marca</label>
-              <input id="evento-equip-marca" style={{ ...estiloInput, width: '100%' }} {...register('equipamentoMarca')} />
+              <label htmlFor="evento-equip-marca" className="text-[11px] text-muted-foreground block mb-1">Marca</label>
+              <input id="evento-equip-marca" className={cn(estiloInput, 'w-full')} {...register('equipamentoMarca')} />
             </div>
             <div>
-              <label htmlFor="evento-equip-modelo" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Modelo</label>
-              <input id="evento-equip-modelo" style={{ ...estiloInput, width: '100%' }} {...register('equipamentoModelo')} />
+              <label htmlFor="evento-equip-modelo" className="text-[11px] text-muted-foreground block mb-1">Modelo</label>
+              <input id="evento-equip-modelo" className={cn(estiloInput, 'w-full')} {...register('equipamentoModelo')} />
             </div>
             <div>
-              <label htmlFor="evento-equip-serie" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Nº de série</label>
-              <input id="evento-equip-serie" style={{ ...estiloInput, width: '100%' }} {...register('equipamentoNumeroSerie')} />
+              <label htmlFor="evento-equip-serie" className="text-[11px] text-muted-foreground block mb-1">Nº de série</label>
+              <input id="evento-equip-serie" className={cn(estiloInput, 'w-full')} {...register('equipamentoNumeroSerie')} />
             </div>
             <div>
-              <label htmlFor="evento-equip-vida-util" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>Vida útil (anos)</label>
-              <input id="evento-equip-vida-util" type="number" min={0} style={{ ...estiloInput, width: '100%' }} {...register('equipamentoVidaUtilAnos')} />
+              <label htmlFor="evento-equip-vida-util" className="text-[11px] text-muted-foreground block mb-1">Vida útil (anos)</label>
+              <input id="evento-equip-vida-util" type="number" min={0} className={cn(estiloInput, 'w-full')} {...register('equipamentoVidaUtilAnos')} />
             </div>
           </div>
         </div>
       )}
 
       <div>
-        <label htmlFor="evento-observacao" style={{ fontSize: 11, color: colors.mutedText, display: 'block', marginBottom: 4 }}>
+        <label htmlFor="evento-observacao" className="text-[11px] text-muted-foreground block mb-1">
           Observação
         </label>
         <textarea
           id="evento-observacao"
-          style={{ ...estiloInput, width: '100%', minHeight: 60 }}
+          className={cn(estiloInput, 'w-full min-h-[60px]')}
           placeholder="O que aconteceu..."
           {...register('observacao')}
         />
@@ -152,7 +152,7 @@ export function MonitoramentoInternoFormEvento({
       <button
         type="submit"
         disabled={isSubmitting}
-        style={{ ...estiloInput, cursor: 'pointer', background: colors.hiperGreen, color: '#fff', border: 'none', justifySelf: 'start', fontWeight: 600 }}
+        className={cn(estiloInput, 'cursor-pointer bg-success text-success-foreground border-none justify-self-start font-semibold')}
       >
         {isSubmitting ? 'Enviando...' : 'Registrar evento'}
       </button>
