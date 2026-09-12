@@ -1,4 +1,4 @@
-# Contexto do projeto — SIEO (par_equipamentos)
+# Contexto do projeto — SIGEO (par_equipamentos)
 
 Leia [`README.md`](README.md) primeiro para stack e como rodar. Este arquivo
 é sobre convenções e pegadinhas específicas deste repo.
@@ -44,10 +44,10 @@ que nenhum sistema federal rastreia: entrega, instalação, licenciamento
 CNEN e inauguração do equipamento de um convênio específico, depois do
 repasse. Schema em `backend/app/db/models.py` (seção "Monitoramento de
 equipamento"), API em `backend/app/routers/monitoramento.py`, front em
-`frontend/src/pages/Monitoramento{Overview,Instrumento,Painel}Page.tsx` +
-`frontend/src/features/monitoramento-equipamento/` (feature FSD-lite, ver
-seção "Estrutura de pastas do frontend" — só as 4 páginas ficam em
-`pages/`, todo o resto do módulo mora na feature). Overview
+`frontend/src/pages/monitoramento-{overview,instrumento,painel}-page.tsx` +
+`frontend/src/components/features/monitoramento-*.tsx` (estrutura flat,
+ver seção "Estrutura de pastas do frontend" — só as 4 páginas ficam em
+`pages/`, todo o resto do módulo mora em `components/features/`). Overview
 operacional (KPIs, fase média, licenças CNEN, inaugurações, filtros por
 fase/técnico/UF/tipo de contratação) em
 `/monitoramento-equipamentos/instrumentos`; detalhe por convênio em
@@ -55,10 +55,10 @@ fase/técnico/UF/tipo de contratação) em
 executivo (só dashboards — funil, pizza, barras, mapa fica pra depois,
 ver limitação — pra avaliação da gestão) em
 `/monitoramento-equipamentos/painel`. Desde 2026-09-10 as 4 páginas
-vivem dentro de `MonitoramentoLayout` (`frontend/src/components/layout/`),
-com nav própria (`MonitoramentoTopNav.tsx`) incluindo o link de volta
-pra análise de mérito (`/dashboard`) — não são mais standalone fora de
-qualquer layout.
+vivem dentro de `MonitoramentoLayout` (`frontend/src/components/layout/
+monitoramento-layout.tsx`), com nav própria (header unificado, ver
+`app-header.tsx`) incluindo o link de volta pra análise de mérito
+(`/dashboard`) — não são mais standalone fora de qualquer layout.
 
 Quatro distinções que já causaram confusão ao mexer nisso, para não
 reintroduzir o erro:
@@ -120,53 +120,75 @@ reintroduzir o erro:
   mais confiável que nome de município). Não propor cruzamento por nome
   de município enquanto isso não for resolvido.
 
-## Estrutura de pastas do frontend (FSD simplificado, em andamento)
+## Estrutura de pastas do frontend (flat, kebab-case)
 
-Desde 2026-09-10 o front está migrando, feature por feature, pra uma
-versão simplificada de Feature-Sliced Design:
+O front usou uma versão simplificada de Feature-Sliced Design
+(`src/features/<nome>/{components,hooks,lib,types}/` + barrel `index.ts`)
+entre 2026-09-10 e 2026-09-11. Decisão do usuário em 2026-09-11 (execução
+completa da `constiuicao_frontend.md` anexada por ele — Seção 3, árvore
+flat) reverteu isso: `src/features/` foi desmontada, sem barrel. Estrutura
+atual:
 
-- `src/features/<nome>/{components,hooks,lib,types}/` + `index.ts` — módulo
-  de negócio isolado. `index.ts` é o único ponto de importação permitido
-  pra quem está fora da feature (`src/pages/*` importa só dali, nunca
-  `features/x/components/Y` direto) — mantém a feature livre pra
-  reorganizar o interior sem quebrar quem consome. **Sem enforcement de
-  lint**: oxlint hoje só tem plugins `react`/`typescript`/`oxc`, não tem
-  equivalente a `eslint-plugin-boundaries`/steiger — a regra é só
-  convenção, revisar isso à mão em PR.
-- `src/pages/*.tsx` — só composição de rota (o que a página monta a partir
-  de features + components globais), sem lógica de negócio própria.
-- `src/components/{ui,layout,common,dashboard,mapa,modals}/`,
-  `src/context/`, `src/types/`, `src/data/`, `src/utils/`, `src/styles/`
-  — compartilhado entre features, fica **fora** de `features/` de
-  propósito (`types/domain.ts` é usado por ~20 arquivos, `data/constants.ts`
-  por ~16, `utils/coeficiente.ts`/`utils/status.ts` implementam regra de
-  cálculo citada em `docs/metodologia-parametros.md` e no agente
-  `metodologia-sync` — mover esses exigiria atualizar CLAUDE.md e o agente
-  junto; não mover sem necessidade real).
-- Migrado até agora: **`features/monitoramento-equipamento/`**,
-  **`features/dashboard-cobertura/`** (`CoberturaTable`,
-  `EstabelecimentoTable`, `NivelCoberturaTable`, `SubNivelRows`,
-  `MunicipioDetalheModal`, `BotaoDetalhe`, `InfoIcon`,
-  `StatusFilterButtons`) e **`features/mapa-equipamentos/`** (`MacroMap`,
-  `MacroMapReal`). `KpiCard`/`MultiSelectFilter`/`SingleSelectFilter`
-  **não** entraram em nenhuma feature apesar de morarem historicamente em
-  `components/dashboard/` — são presentacionais puros (zero lógica de
-  domínio) usados também fora do módulo que os "adotaria" (Monitoramento,
-  modais de exportação do Relatórios, `SingleSelectFilter` é cross
-  mapa+monitoramento), então ficam em `components/common/` em vez de
-  dentro de uma feature (só componente com lógica de domínio genuína, como
-  `SubNivelRows`, justifica um outro módulo importar de dentro da feature
-  via `index.ts`). `MapaPage.tsx` importa `SubNivelRows` de
-  `features/dashboard-cobertura` e `MacroMap`/`SingleSelectFilter` de
-  `features/mapa-equipamentos`/`components/common` — cross-feature import
-  via API pública (`index.ts`), normal em FSD. Ainda em `pages/`/
-  `components/` sem feature própria: relatórios (`RelatoriosPage` +
-  `MetodologiaPage`), painel geral (`PainelGeralPage`) — migrar um por vez,
-  não de uma vez (mesmo princípio da migração Tailwind abaixo).
-- Decisão explícita 2026-09-10: **não** adotar ainda TanStack Query/Axios/
-  tipos gerados via OpenAPI — `src/services/api.ts` continua fetch puro
-  por enquanto (mover pra `src/api/client.ts` é decisão futura separada,
-  não empacotada com a reorganização de pasta).
+- `src/components/features/<nome-kebab-case>.tsx` — todo componente de
+  domínio que antes vivia numa feature, agora flat (sem subpasta por
+  domínio). Import direto do arquivo (`@/components/features/cobertura-table`),
+  não mais via barrel.
+- `src/hooks/`, `src/lib/`, `src/types/` — hooks/helpers/tipos que
+  moravam dentro de uma feature (`features/x/hooks|lib|types/`) subiram
+  pra esses diretórios de nível de app, mesclados com o que já existia
+  (ex.: `lib/monitoramento-format.ts`, `types/monitoramento.ts`).
+- `src/pages/*.tsx` — só composição de rota, sem lógica de negócio
+  própria (mesmo princípio de antes).
+- `src/components/{ui,layout,common,modals}/`, `src/context/`,
+  `src/data/`, `src/utils/`, `src/styles/` — compartilhado, sem mudança
+  de propósito.
+- **Nomenclatura kebab-case** (Seção 3 da constituição) em todo
+  Componente/Página/Context — `ConvenioCard.tsx` → `convenio-card.tsx`
+  etc. (38 arquivos renomeados 2026-09-11, `git mv` preservando
+  histórico). O **símbolo exportado continua PascalCase**
+  (`export function ConvenioCard`) — só o nome do arquivo mudou. Hooks
+  (`useXxx.ts`) e services/utils/types (`kebab-case.ts` de 1 palavra, ex.
+  `api.ts`) já batiam com a convenção e não precisaram renomear. **Sem
+  enforcement de lint** pra isso (oxlint só tem `react`/`typescript`/
+  `oxc`, sem regra de naming) — convenção revisada à mão em PR.
+- Arquivo >200 linhas foi quebrado por responsabilidade nesta mesma
+  rodada (Seção 6) — ex. `monitoramento-interno.tsx` (1054→212 linhas,
+  virou 10 subcomponentes/forms próprios), `painel-geral-page.tsx`
+  (739→213), `mapa-page.tsx` (723→189). Lógica assíncrona de cada um saiu
+  pra hook próprio em `src/hooks/` (ver seção seguinte).
+
+## Camada de dados: services + Zod + TanStack Query + React Hook Form
+
+Decisão de 2026-09-10 ("não adotar ainda TanStack Query/Axios") foi
+**revertida** em 2026-09-11 (mesma execução da constituição, Seções 8-11).
+Estado atual:
+
+- Toda função `fetchXxx` de `src/services/api.ts` e `src/services/
+  monitoramento.ts` valida a resposta com **Zod** (`z.object` espelhando
+  o formato exato do backend, snake_case) antes de mapear pro tipo de
+  domínio (camelCase) — falha de rede/HTTP/schema vira `ApiError`
+  (`src/lib/api-error.ts`), nunca erro cru subindo pra UI.
+- Todo `useState`+`useEffect`+guarda manual de corrida (padrão antigo,
+  variável `cancelado`, usado porque resposta lenta de um filtro antigo
+  podia sobrescrever uma resposta rápida de um filtro novo — bug real já
+  visto 2x) foi trocado por **`useQuery`/`useMutation`** do
+  `@tanstack/react-query` (`QueryClientProvider` em `App.tsx`,
+  `src/lib/query-client.ts`) — a `queryKey` inclui toda dependência de
+  filtro, o que já resolve o cancelamento nativamente.
+- Os 4 forms de `monitoramento-interno-form-*.tsx` (login, cadastro,
+  ação, evento) usam **React Hook Form + Zod** (`@hookform/resolvers`),
+  schema em `src/lib/validations/monitoramento.ts` — campo com
+  label/erro/`aria-describedby`/helper text, não mais `useState` por
+  campo com só `required` nativo.
+- **Gap conhecido, não resolvido nesta rodada**: o services layer/estado
+  mudou, mas o **estilo visual não** — os componentes do domínio
+  monitoramento-equipamento (`monitoramento-interno-*.tsx`,
+  `convenio-card*.tsx`, `siconv-sub-abas.tsx`, `monitoramento-ui.tsx`),
+  `painel-geral-*.tsx` e os modais de export (`export-*.tsx`) ainda usam
+  `style={{...}}` inline com `colors`/`layout` de `src/styles/tokens.ts`,
+  não Tailwind. `tokens.ts` **não foi removido** — segue com ~30
+  consumidores. Migrar esses componentes pra Tailwind/shadcn é trabalho
+  futuro separado, mesmo princípio incremental da migração abaixo.
 
 ## Migração de arquitetura do frontend (em andamento, progressiva)
 
@@ -209,46 +231,46 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   colors.hiperGreen`/`hiperGreenBg`), `--warning`/`--warning-foreground`
   (== `colors.logoOrange`), `--destructive-bg` (== `colors.hipoRedBg`) —
   `--destructive` sólido já existia. As variantes "Bg" existem
-  especificamente pra interpolação de cor via D3 `scaleLinear` (MacroMap.tsx,
+  especificamente pra interpolação de cor via D3 `scaleLinear` (macro-map.tsx,
   Fase 2) — isso precisa de 2 cores sólidas reais, opacidade Tailwind
   (`bg-success/15`) não serve pra interpolação matemática. Pra `className`
   comum, preferir a opacidade em vez de `bg-success-bg`.
 - **`src/lib/theme-colors.ts`**: helper `resolveThemeColor(cssVarName)` que
   lê a variável CSS resolvida em runtime (`getComputedStyle`) — só pra D3/
-  Leaflet (`MacroMap.tsx`/`MacroMapReal.tsx`), que desenham imperativamente
-  e não aceitam `className`. `MacroMap.tsx`/`MacroMapReal.tsx` resolvem as
+  Leaflet (`macro-map.tsx`/`macro-map-real.tsx`), que desenham imperativamente
+  e não aceitam `className`. `macro-map.tsx`/`macro-map-real.tsx` resolvem as
   variáveis 1x por render do efeito de conteúdo (nunca por elemento/marcador
   dentro de `.data().enter()`/loop de camada), pra não gerar layout
   thrashing. `--destructive-bg`/`--success-bg` (Fase 0) existem
   especificamente pra essa interpolação D3 (`escalaVermelho`/`escalaVerde`
-  em `MacroMap.tsx`) — 2 cores sólidas reais, não opacidade Tailwind — e o
-  gradiente de legenda em `MapaPage.tsx`/`PainelGeralPage.tsx` usa
+  em `macro-map.tsx`) — 2 cores sólidas reais, não opacidade Tailwind — e o
+  gradiente de legenda em `mapa-page.tsx`/`painel-geral-page.tsx` usa
   `var(--destructive)`/`var(--destructive-bg)`/`var(--success-bg)`/
   `var(--success)` direto no `style` inline (4 paradas numa única barra,
   ilegível como arbitrary-value Tailwind) — nenhum dos dois casos é uso
   geral em `className`, que continua preferindo opacidade
   (`bg-destructive/15`).
 - **`utils/status.ts` (`statusMeta`) devolve `variant` semântico
-  (`'success' | 'destructive'`), não mais hex** — `StatusBadge` usa o
+  (`'success' | 'destructive'`), não mais hex** — `status-badge.tsx` usa o
   `variant` direto numa classe Tailwind; quem precisa do hex real pra
-  desenho imperativo (`MacroMap.tsx`, tooltip D3) resolve
+  desenho imperativo (`macro-map.tsx`, tooltip D3) resolve
   `resolveThemeColor('--' + variant)` em vez de duplicar hex.
 - **Risco aceito conscientemente (decisão do usuário, 2026-09-10)**: as 3
-  tabelas do dashboard (`CoberturaTable`/`EstabelecimentoTable`/
-  `NivelCoberturaTable`) usam o `<Table>` do shadcn completo, incluindo o
+  tabelas do dashboard (`cobertura-table.tsx`/`estabelecimento-table.tsx`/
+  `nivel-cobertura-table.tsx`) usam o `<Table>` do shadcn completo, incluindo o
   wrapper `overflow-x-auto` — isso colide em teoria com um bug já corrigido
-  (tooltip do `InfoIcon`, absolutamente posicionado, sendo cortado por
+  (tooltip do `info-icon.tsx`, absolutamente posicionado, sendo cortado por
   `overflow != visible` em qualquer eixo ancestral, ver comentário histórico
   no código). Testado manualmente após a migração e o tooltip renderizou
   sem corte nos casos comuns (bloco de conteúdo não excede a largura do
   container) — mas o padrão pode reaparecer se um popup ficar mais largo
-  que a tabela. `SubNivelRows.tsx` ficou de fora dessa migração pro `<Table>`
+  que a tabela. `sub-nivel-rows.tsx` ficou de fora dessa migração pro `<Table>`
   (continua `<table>` nativo) por depender de `table-layout:fixed`, testado
   e funcionando, sem necessidade de reabrir.
-- **`KpiCard.tsx` prop `color: string` (hex livre) → `variant: 'primary' |
+- **`kpi-card.tsx` prop `color: string` (hex livre) → `variant: 'primary' |
   'destructive' | 'success' | 'warning'`** — mudança de contrato, não só de
-  estilo. Call sites fora do dashboard (`Monitoramento{Overview,
-  Equipamentos,Painel}Page.tsx`) foram atualizados só nessa prop, sem
+  estilo. Call sites fora do dashboard (`monitoramento-{overview,
+  equipamentos,painel}-page.tsx`) foram atualizados só nessa prop, sem
   reestilizar mais nada nessas páginas (continuam fora de escopo).
 
 ## Config e deploy — pegadinhas já resolvidas

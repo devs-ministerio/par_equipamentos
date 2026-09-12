@@ -1,4 +1,4 @@
-# SIEO — Sistema de Informação de Equipamentos Oncológicos
+# SIGEO — Sistema de Gestão de Equipamentos em Oncologia
 
 Ferramenta do DECAN/MS (Departamento de Controle do Câncer) para saber se um
 município, região de saúde ou macrorregião de saúde está em déficit ou
