@@ -19,7 +19,7 @@ import { ApiError } from '@/lib/api-error';
  * (ver AGENTS/CLAUDE.md do escopo desta tarefa). */
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
-const AUTH_TOKEN_STORAGE_KEY = 'sieo.authToken';
+const AUTH_TOKEN_STORAGE_KEY = 'sigeo.authToken';
 
 export function getAuthToken(): string | null {
   return typeof window === 'undefined' ? null : window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);

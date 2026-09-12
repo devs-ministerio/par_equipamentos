@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ExportPdfModal } from '../components/modals/export-pdf-modal';
 import { ExportXlsxModal } from '../components/modals/export-xlsx-modal';
-import { fetchFacilities, fetchMacroCoverage } from '../services/api';
-import type { FacilityOption } from '../services/api';
+import { useRelatoriosDados } from '../hooks/useRelatoriosDados';
 import { useFamiliaEquipamento } from '../context/familia-equipamento-context';
 import { colors } from '../styles/tokens';
 import { MetodologiaPage } from './metodologia-page';
-import type { CoberturaRow, Macrorregiao } from '../types/domain';
 
 const FILTROS_VAZIOS = { regioes: [], ufs: [], macros: [], regioesSaude: [], municipios: [], cnes: [] };
 
@@ -64,31 +62,14 @@ function CardExportar({
  */
 export function RelatoriosPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
-  const [macros, setMacros] = useState<Macrorregiao[]>([]);
-  const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
-  const [facilities, setFacilities] = useState<FacilityOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { macros, coberturaRows, facilities, isLoading: loading, isError, error } = useRelatoriosDados(FAMILIA);
   const [exportPdfAberto, setExportPdfAberto] = useState(false);
   const [exportXlsxAberto, setExportXlsxAberto] = useState(false);
 
-  useEffect(() => {
-    let cancelado = false;
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
-      .then(([coverage, facilityOptions]) => {
-        if (cancelado) return;
-        setMacros(coverage.macros);
-        setCoberturaRows(coverage.coberturaRows);
-        setFacilities(facilityOptions);
-      })
-      .catch((e: Error) => !cancelado && setError(e.message))
-      .finally(() => !cancelado && setLoading(false));
-    return () => {
-      cancelado = true;
-    };
-  }, [FAMILIA]);
+  // Nada exportavel pra essa familia (sem macro-coverage nem estabelecimento
+  // cadastrado) -- gap de empty state fechado 2026-09-11, antes os cards de
+  // exportacao ficavam ali mudos mesmo sem nenhum dado por tras.
+  const semDadoExportavel = !loading && !isError && macros.length === 0 && facilities.length === 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -113,15 +94,20 @@ export function RelatoriosPage() {
       </div>
 
       {loading && <div style={{ padding: 12, textAlign: 'center', color: colors.subtleText }}>Carregando dados...</div>}
-      {error && (
+      {isError && (
         <div style={{ padding: 16, background: '#fde8e8', color: colors.hipoRed, borderRadius: 8 }}>
-          Não foi possível carregar os dados pra exportação ({error}).
+          Não foi possível carregar os dados pra exportação ({error?.message ?? 'erro desconhecido'}).
+        </div>
+      )}
+      {semDadoExportavel && (
+        <div style={{ padding: 16, background: colors.surface, color: colors.subtleText, borderRadius: 8, textAlign: 'center' }}>
+          Nenhum dado disponível pra exportação nessa família ainda.
         </div>
       )}
 
       <MetodologiaPage equipmentFamily={FAMILIA} />
 
-      {exportPdfAberto && !loading && !error && (
+      {exportPdfAberto && !loading && !isError && (
         <ExportPdfModal
           onClose={() => setExportPdfAberto(false)}
           equipmentFamily={FAMILIA}
@@ -132,7 +118,7 @@ export function RelatoriosPage() {
         />
       )}
 
-      {exportXlsxAberto && !loading && !error && (
+      {exportXlsxAberto && !loading && !isError && (
         <ExportXlsxModal
           onClose={() => setExportXlsxAberto(false)}
           equipmentFamily={FAMILIA}

@@ -24,7 +24,13 @@ function FonteItem({ n, titulo, url, urlLabel }: { n: number; titulo: string; ur
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: '#16213e' }}>{titulo}</div>
         <div style={{ fontSize: 12, color: colors.primary, lineHeight: 1.5 }}>
-          <a href={url} target="_blank" rel="noreferrer" style={{ color: colors.primary }}>
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`${urlLabel} (abre em nova aba)`}
+            style={{ color: colors.primary }}
+          >
             {urlLabel}
           </a>
         </div>

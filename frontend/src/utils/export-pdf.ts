@@ -49,7 +49,7 @@ export interface UfComMacros {
 function cabecalho(doc: jsPDF, subtitulo: string, filtrosResumo: string) {
   doc.setFontSize(16);
   doc.setTextColor(20);
-  doc.text('SIEO — Cobertura de Equipamentos', 14, 16);
+  doc.text('SIGEO — Cobertura de Equipamentos', 14, 16);
   doc.setFontSize(12);
   doc.text(subtitulo, 14, 24);
   doc.setFontSize(9);
@@ -137,7 +137,7 @@ export async function gerarPdfTomografos(params: GerarPdfParams) {
     });
   }
 
-  doc.save('SIEO-Equipamentos.pdf');
+  doc.save('SIGEO-Equipamentos.pdf');
 }
 
 interface GerarPdfMapaParams {
@@ -224,5 +224,5 @@ export async function gerarPdfMapa(params: GerarPdfMapaParams) {
     });
   }
 
-  doc.save('SIEO-Mapa-Equipamentos.pdf');
+  doc.save('SIGEO-Mapa-Equipamentos.pdf');
 }

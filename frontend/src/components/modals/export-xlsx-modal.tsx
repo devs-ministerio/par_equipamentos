@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Modal } from '../common/modal';
 import { MultiSelectFilter } from '../common/multi-select-filter';
+import { ExportSecaoAba } from '../features/export-secao-aba';
 import { colors } from '../../styles/tokens';
 import { REGIOES } from '../../data/constants';
 import { useFiltrosMacro } from '../../hooks/useFiltrosMacro';
@@ -48,8 +50,6 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
   const [camposEstabelecimentos, setCamposEstabelecimentos] = useState(
     new Set(CAMPOS_XLSX_ESTABELECIMENTO.map((c) => c.key)),
   );
-  const [gerando, setGerando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
 
   const nadaSelecionado = !usarCobertura && !usarEstabelecimentos;
 
@@ -76,11 +76,12 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
     return todos;
   }
 
-  async function gerar() {
-    if (nadaSelecionado || gerando) return;
-    setGerando(true);
-    setErro(null);
-    try {
+  // Geracao da planilha e uma ACAO sob demanda (disparada pelo clique em
+  // "Gerar Excel"), nao leitura automatica de tela -- por isso `useMutation`,
+  // nao `useQuery` (2026-09-11). `buscarEstabelecimentos` continua paginando
+  // manualmente ate esgotar o total (endpoint nao devolve tudo de uma vez).
+  const gerarMutation = useMutation({
+    mutationFn: async () => {
       // a aba de Cobertura precisa dos estabelecimentos pra montar a quebra
       // por regiao de saude e municipio (os niveis do drill-down).
       const estabelecimentos = await buscarEstabelecimentos();
@@ -96,13 +97,11 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
           ? { rows: estabelecimentos, campos: camposEstabelecimentos }
           : undefined,
       });
-      onClose();
-    } catch {
-      setErro('Não foi possível gerar a planilha. Tente novamente.');
-    } finally {
-      setGerando(false);
-    }
-  }
+    },
+    onSuccess: onClose,
+  });
+  const gerando = gerarMutation.isPending;
+  const erro = gerarMutation.isError ? 'Não foi possível gerar a planilha. Tente novamente.' : null;
 
   return (
     <Modal onClose={onClose} maxWidth={580}>
@@ -241,7 +240,7 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
         )}
       </div>
 
-      <SecaoAba
+      <ExportSecaoAba
         titulo="Aba: Cobertura por macrorregião"
         descricao="Detalha até município, com agrupamento (+/−) por macrorregião e região de saúde."
         ativa={usarCobertura}
@@ -251,7 +250,7 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
         onToggleCampo={(key) => setCamposCobertura((prev) => toggleNoSet(prev, key))}
       />
 
-      <SecaoAba
+      <ExportSecaoAba
         titulo="Aba: Estabelecimento por equipamento"
         descricao="Um estabelecimento por linha, com os subtipos (canais) numa coluna."
         ativa={usarEstabelecimentos}
@@ -271,7 +270,7 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
           Cancelar
         </button>
         <button
-          onClick={gerar}
+          onClick={() => gerarMutation.mutate()}
           disabled={nadaSelecionado || gerando}
           style={{
             ...botaoBase,
@@ -285,69 +284,6 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
         </button>
       </div>
     </Modal>
-  );
-}
-
-function SecaoAba({
-  titulo,
-  descricao,
-  ativa,
-  onToggleAtiva,
-  campos,
-  selecionados,
-  onToggleCampo,
-}: {
-  titulo: string;
-  descricao: string;
-  ativa: boolean;
-  onToggleAtiva: () => void;
-  campos: readonly { key: string; label: string }[];
-  selecionados: Set<string>;
-  onToggleCampo: (key: string) => void;
-}) {
-  return (
-    <div style={{ marginTop: 14, border: `1px solid ${colors.border}`, borderRadius: 8, overflow: 'hidden' }}>
-      <label
-        style={{
-          display: 'block',
-          padding: '10px 14px',
-          background: '#fafbfd',
-          borderBottom: ativa ? `1px solid ${colors.border}` : 'none',
-          cursor: 'pointer',
-        }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, fontSize: 13, color: '#16213e' }}>
-          <input
-            type="checkbox"
-            checked={ativa}
-            onChange={onToggleAtiva}
-            style={{ width: 15, height: 15, accentColor: colors.primary }}
-          />
-          {titulo}
-        </span>
-        <span style={{ display: 'block', fontSize: 11, color: colors.mutedText, marginLeft: 23, marginTop: 2 }}>
-          {descricao}
-        </span>
-      </label>
-      {ativa && (
-        <div style={{ padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
-          {campos.map((c) => (
-            <label
-              key={c.key}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#475066', cursor: 'pointer' }}
-            >
-              <input
-                type="checkbox"
-                checked={selecionados.has(c.key)}
-                onChange={() => onToggleCampo(c.key)}
-                style={{ width: 13, height: 13, accentColor: colors.primary }}
-              />
-              {c.label}
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 

@@ -190,7 +190,7 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
       }
     });
     return () => cancelAnimationFrame(rafId);
-  }, [geo, macroId, pontos, contornoMunicipio, centro]);
+  }, [geo, macroId, pontos, contornoMunicipio, centro, mapRef, conteudoRef]);
 
   return <div ref={containerRef} style={{ width: '100%', height: 560, borderRadius: 8, overflow: 'hidden' }} />;
 }

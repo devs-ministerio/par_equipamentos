@@ -368,7 +368,7 @@ export async function gerarXlsxTomografos(params: GerarXlsxParams): Promise<void
   const { default: ExcelJSRuntime } = await import('exceljs');
 
   const wb = new ExcelJSRuntime.Workbook();
-  wb.creator = 'SIEO — Análise de Méritos';
+  wb.creator = 'SIGEO — Análise de Méritos';
   wb.created = new Date();
 
   montarAbaMetodologia(wb, params.filtrosResumo, params.equipmentFamily);

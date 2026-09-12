@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Modal } from '../common/modal';
 import { MultiSelectFilter } from '../common/multi-select-filter';
+import { ExportSecaoTabela } from '../features/export-secao-tabela';
 import { colors } from '../../styles/tokens';
 import { REGIOES } from '../../data/constants';
 import { useFiltrosMacro } from '../../hooks/useFiltrosMacro';
@@ -85,8 +87,6 @@ export function ExportPdfModal({
   const [camposEstabelecimentos, setCamposEstabelecimentos] = useState(
     new Set(CAMPOS_ESTABELECIMENTO.map((c) => c.key)),
   );
-  const [gerando, setGerando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
 
   // no layout com mapa, a cobertura entra sempre (faz parte fixa do relatorio)
   // -- so Estabelecimentos continua opcional.
@@ -144,11 +144,12 @@ export function ExportPdfModal({
     return todos;
   }
 
-  async function gerar() {
-    if (nadaSelecionado || gerando) return;
-    setGerando(true);
-    setErro(null);
-    try {
+  // Geracao do PDF e uma ACAO sob demanda (disparada pelo clique em "Gerar
+  // PDF"), nao leitura automatica de tela -- por isso `useMutation`, nao
+  // `useQuery` (2026-09-11). `fetchTodosEstabelecimentos` continua paginando
+  // manualmente ate esgotar o total (endpoint nao devolve tudo de uma vez).
+  const gerarMutation = useMutation({
+    mutationFn: async () => {
       const estabelecimentos = usarEstabelecimentos ? await fetchTodosEstabelecimentos() : undefined;
 
       if (capturarMapa) {
@@ -168,13 +169,11 @@ export function ExportPdfModal({
           estabelecimentos: estabelecimentos ? { rows: estabelecimentos, campos: camposEstabelecimentos } : undefined,
         });
       }
-      onClose();
-    } catch {
-      setErro('Não foi possível gerar o PDF. Tente novamente.');
-    } finally {
-      setGerando(false);
-    }
-  }
+    },
+    onSuccess: onClose,
+  });
+  const gerando = gerarMutation.isPending;
+  const erro = gerarMutation.isError ? 'Não foi possível gerar o PDF. Tente novamente.' : null;
 
   return (
     <Modal onClose={onClose} maxWidth={560}>
@@ -294,7 +293,7 @@ export function ExportPdfModal({
           O mapa, a lista de UFs/macrorregiões e a tabela de cobertura sempre entram nesse relatório.
         </div>
       ) : (
-        <SecaoTabela
+        <ExportSecaoTabela
           titulo="Cobertura por macrorregião e equipamento"
           ativa={usarCobertura}
           onToggleAtiva={() => setUsarCobertura((v) => !v)}
@@ -304,7 +303,7 @@ export function ExportPdfModal({
         />
       )}
 
-      <SecaoTabela
+      <ExportSecaoTabela
         titulo="Estabelecimentos"
         ativa={usarEstabelecimentos}
         onToggleAtiva={() => setUsarEstabelecimentos((v) => !v)}
@@ -320,7 +319,7 @@ export function ExportPdfModal({
           Cancelar
         </button>
         <button
-          onClick={gerar}
+          onClick={() => gerarMutation.mutate()}
           disabled={nadaSelecionado || gerando}
           style={{
             ...botaoBase,
@@ -334,59 +333,6 @@ export function ExportPdfModal({
         </button>
       </div>
     </Modal>
-  );
-}
-
-function SecaoTabela({
-  titulo,
-  ativa,
-  onToggleAtiva,
-  campos,
-  selecionados,
-  onToggleCampo,
-}: {
-  titulo: string;
-  ativa: boolean;
-  onToggleAtiva: () => void;
-  campos: { key: string; label: string }[];
-  selecionados: Set<string>;
-  onToggleCampo: (key: string) => void;
-}) {
-  return (
-    <div style={{ marginTop: 14, border: `1px solid ${colors.border}`, borderRadius: 8, overflow: 'hidden' }}>
-      <label
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 14px',
-          background: '#fafbfd',
-          borderBottom: ativa ? `1px solid ${colors.border}` : 'none',
-          cursor: 'pointer',
-          fontWeight: 700,
-          fontSize: 13,
-          color: '#16213e',
-        }}
-      >
-        <input type="checkbox" checked={ativa} onChange={onToggleAtiva} style={{ width: 15, height: 15, accentColor: colors.primary }} />
-        {titulo}
-      </label>
-      {ativa && (
-        <div style={{ padding: '10px 14px', display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
-          {campos.map((c) => (
-            <label key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#475066', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={selecionados.has(c.key)}
-                onChange={() => onToggleCampo(c.key)}
-                style={{ width: 13, height: 13, accentColor: colors.primary }}
-              />
-              {c.label}
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
