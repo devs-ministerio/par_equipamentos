@@ -5,7 +5,7 @@
  * tabelas nao vira uma coluna gigante, só a aba ativa renderiza. */
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
+import { corrigirTextoSiconv, fmtData, fmtMoeda } from '@/lib/monitoramento-format';
 import type { SiconvEntrada } from '@/types/monitoramento';
 import { estiloTabela, estiloTabelaWrapper, estiloTd, estiloTh } from './monitoramento-ui';
 
@@ -63,7 +63,7 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
               <tbody>
                 {siconv.itens_plano_aplicacao.map((it) => (
                   <tr key={it.ID_ITEM_PAD}>
-                    <td className={estiloTd}>{it.DESCRICAO_ITEM}</td>
+                    <td className={estiloTd}>{corrigirTextoSiconv(it.DESCRICAO_ITEM)}</td>
                     <td className={numTd}>{it.QTD_ITEM}</td>
                     <td className={numTd}>{fmtMoeda(it.VALOR_UNITARIO_ITEM)}</td>
                     <td className={numTd}>{fmtMoeda(it.VALOR_TOTAL_ITEM)}</td>
@@ -82,7 +82,7 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
               <thead><tr><th className={estiloTh}>Nº empenho</th><th className={estiloTh}>Situação</th><th className={numTh}>Valor</th></tr></thead>
               <tbody>
                 {siconv.empenhos.map((e) => (
-                  <tr key={e.ID_EMPENHO}><td className={estiloTd}>{e.NR_EMPENHO}</td><td className={estiloTd}>{e.DESC_SITUACAO_EMPENHO}</td><td className={numTd}>{fmtMoeda(e.VALOR_EMPENHO)}</td></tr>
+                  <tr key={e.ID_EMPENHO}><td className={estiloTd}>{e.NR_EMPENHO}</td><td className={estiloTd}>{corrigirTextoSiconv(e.DESC_SITUACAO_EMPENHO)}</td><td className={numTd}>{fmtMoeda(e.VALOR_EMPENHO)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -114,8 +114,8 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
                 {siconv.licitacoes.map((l) => (
                   <tr key={l.ID_LICITACAO}>
                     <td className={estiloTd}>{l.NR_PROCESSO_LICITACAO}</td>
-                    <td className={estiloTd}>{l.TP_PROCESSO_COMPRA || l.MODALIDADE_LICITACAO || '—'}</td>
-                    <td className={estiloTd}>{l.STATUS_LICITACAO}</td>
+                    <td className={estiloTd}>{corrigirTextoSiconv(l.TP_PROCESSO_COMPRA || l.MODALIDADE_LICITACAO) || '—'}</td>
+                    <td className={estiloTd}>{corrigirTextoSiconv(l.STATUS_LICITACAO)}</td>
                     <td className={numTd}>{fmtMoeda(l.VALOR_LICITACAO)}</td>
                   </tr>
                 ))}
@@ -132,7 +132,7 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
               <thead><tr><th className={estiloTh}>Tipo</th><th className={numTh}>Valor global</th><th className={estiloTh}>Justificativa</th></tr></thead>
               <tbody>
                 {siconv.termos_aditivos.map((t, i) => (
-                  <tr key={i}><td className={estiloTd}>{t.TIPO_TA}</td><td className={numTd}>{fmtMoeda(t.VL_GLOBAL_TA)}</td><td className={cn(estiloTd, 'max-w-[360px]')}>{(t.JUSTIFICATIVA_TA || '').slice(0, 200)}</td></tr>
+                  <tr key={i}><td className={estiloTd}>{t.TIPO_TA}</td><td className={numTd}>{fmtMoeda(t.VL_GLOBAL_TA)}</td><td className={cn(estiloTd, 'max-w-[360px]')}>{corrigirTextoSiconv((t.JUSTIFICATIVA_TA || '').slice(0, 200))}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -148,9 +148,9 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
               <tbody>
                 {siconv.pagamentos.map((p, i) => (
                   <tr key={p.NR_MOV_FIN || i}>
-                    <td className={estiloTd}>{p.NOME_FORNECEDOR}</td>
+                    <td className={estiloTd}>{corrigirTextoSiconv(p.NOME_FORNECEDOR)}</td>
                     <td className={estiloTd}>{fmtData(p.DATA_PAG)}</td>
-                    <td className={estiloTd}>{p.DESC_DL}</td>
+                    <td className={estiloTd}>{corrigirTextoSiconv(p.DESC_DL)}</td>
                     <td className={numTd}>{fmtMoeda(p.VL_PAGO)}</td>
                   </tr>
                 ))}

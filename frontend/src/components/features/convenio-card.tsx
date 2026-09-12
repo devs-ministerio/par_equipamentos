@@ -9,6 +9,7 @@
  * da migracao: componente >200 linhas). */
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { corrigirTextoSiconv } from '@/lib/monitoramento-format';
 import type { ConvenioUnificado, ProgramaTransfereGov } from '@/types/monitoramento';
 import { estiloCard } from './monitoramento-ui';
 import { ConvenioCardHeader } from './convenio-card-header';
@@ -37,7 +38,10 @@ export function ConvenioCard({
   // por CNPJ, resolvida por id_programa -- aproximacao). Nunca vem do
   // monitoramento interno (decisao do usuario 2026-09-08 -- aquilo e
   // planilha da equipe, nao API).
-  const programaSiconv = siconv?.programa?.NOME_PROGRAMA || null;
+  // corrigirTextoSiconv -- o dump SICONV tem acento corrompido em "?" (byte
+  // perdido na origem, ver comentario em lib/monitoramento-format.ts), so
+  // corrigivel na exibicao pro vocabulario burocratico fechado que se repete.
+  const programaSiconv = corrigirTextoSiconv(siconv?.programa?.NOME_PROGRAMA || null);
   const programaTransfereGov = transferegov
     ? programas?.get(Number((transferegov.propostas_expandidas[0]?.proposta as Record<string, unknown> | undefined)?.id_programa))
     : undefined;
