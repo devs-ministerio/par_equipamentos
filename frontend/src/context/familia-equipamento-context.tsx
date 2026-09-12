@@ -7,7 +7,7 @@ import { EQUIPAMENTOS } from '../data/constants';
 // arquivo (regressao boba: uma cópia divergente aqui silenciosamente para de
 // funcionar e ninguem percebe, porque o fallback pra EQUIPAMENTOS[0] esconde
 // o erro).
-export const CHAVE_STORAGE_FAMILIA = 'sieo:familiaSelecionada';
+export const CHAVE_STORAGE_FAMILIA = 'sigeo:familiaSelecionada';
 const CHAVE_STORAGE = CHAVE_STORAGE_FAMILIA;
 
 interface FamiliaEquipamentoContextValue {

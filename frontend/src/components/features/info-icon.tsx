@@ -15,7 +15,17 @@ export function InfoIcon({ children, align = 'left' }: InfoIconProps) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
+      {/* tabIndex + on-focus/blur -- so com hover, quem navega so por
+          teclado nunca via esse conteudo (a11y quase zero no projeto hoje,
+          corrigido aqui pontualmente). role="button" + aria-label descreve
+          a acao pra leitor de tela, ja que o conteudo real (children) so
+          aparece no popup. */}
       <span
+        role="button"
+        tabIndex={0}
+        aria-label="Mais informações"
+        onFocus={() => setHover(true)}
+        onBlur={() => setHover(false)}
         style={{
           width: 15,
           height: 15,

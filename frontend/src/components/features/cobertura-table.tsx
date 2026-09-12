@@ -1,14 +1,9 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import type { CoberturaRow, Macrorregiao, NivelCoberturaRow, StatusCobertura } from '@/types/domain';
-import { formatMultiplicador } from '@/utils/format';
-import { calcularCoeficiente } from '@/utils/coeficiente';
-import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
+import { useEffect, useMemo, useState } from 'react';
+import type { CoberturaRow, Macrorregiao, StatusCobertura } from '@/types/domain';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { StatusBadge } from '@/components/common/status-badge';
 import { Pagination } from '@/components/common/pagination';
-import { fetchHealthRegionCoverage } from '@/services/api';
 import { InfoIcon } from './info-icon';
-import { SubNivelRows } from './sub-nivel-rows';
+import { CoberturaMacroRow } from './cobertura-macro-row';
 
 const PAGE_SIZE = 20;
 
@@ -27,8 +22,6 @@ interface Props {
 
 type SortKey = 'codigo' | 'macro' | 'uf' | 'populacao' | 'cobertura' | 'status';
 
-type DadosMacro = NivelCoberturaRow[] | 'carregando' | 'erro';
-
 export function CoberturaTable({
   equipmentFamily,
   rows,
@@ -36,34 +29,25 @@ export function CoberturaTable({
   subNivelSelecionados,
   statusFiltro,
 }: Props) {
-  const equipamento = getEquipamento(equipmentFamily);
   const macroById = useMemo(() => new Map(macros.map((m) => [m.id, m])), [macros]);
   const [sortKey, setSortKey] = useState<SortKey>('macro');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
-  const [dadosPorMacro, setDadosPorMacro] = useState<Record<string, DadosMacro>>({});
   const [page, setPage] = useState(1);
 
   // volta pra pagina 1 quando filtro/ordenacao mudar -- senao pode sobrar numa
   // pagina que nao existe mais depois de filtrar.
   useEffect(() => setPage(1), [statusFiltro, sortKey, sortDir]);
 
-  // busca sob demanda -- so quando a macro e expandida pela primeira vez (nao
-  // carrega nada de antemao); cada macro e uma busca pequena e independente,
-  // igual o padrao ja usado no Mapa pra buscar por UF.
+  // expandir/recolher e so estado de UI -- o fetch sob demanda de cada macro
+  // mora em CoberturaMacroRow (useHealthRegionByMacro), disparado sozinho
+  // pelo `enabled: expandida` do useQuery quando essa macro entra no Set.
   function toggleExpandida(macroId: string) {
-    const jaExpandida = expandidas.has(macroId);
     setExpandidas((prev) => {
       const next = new Set(prev);
-      jaExpandida ? next.delete(macroId) : next.add(macroId);
+      next.has(macroId) ? next.delete(macroId) : next.add(macroId);
       return next;
     });
-    if (!jaExpandida && !dadosPorMacro[macroId]) {
-      setDadosPorMacro((prev) => ({ ...prev, [macroId]: 'carregando' }));
-      fetchHealthRegionCoverage({ equipmentFamily, macroCodes: [macroId] })
-        .then((filhos) => setDadosPorMacro((prev) => ({ ...prev, [macroId]: filhos })))
-        .catch(() => setDadosPorMacro((prev) => ({ ...prev, [macroId]: 'erro' })));
-    }
   }
 
   function toggleSort(key: SortKey) {
@@ -204,88 +188,25 @@ export function CoberturaTable({
             {rowsPaginadas.map((r) => {
               const macro = macroById.get(r.macroId);
               if (!macro) return null;
-              // Coeficiente = (equip. SUS x produtividade da familia) / populacao
-              // SUS-dependente -- quantos equipamentos por `produtividade`
-              // habitantes essa macro tem, sem arredondar a demanda (diferente
-              // de required_qty, que é ceil). A listra no meio da barra é o
-              // coeficiente 1 (a meta exata); acima enche mais (hiper/verde),
-              // abaixo enche menos (hipo/vermelho). Extraído em
-              // utils/coeficiente.ts pra não recalcular com produtividade
-              // errada em cada tabela (bug real corrigido 2026-08-21).
-              const { valor: coeficiente, corTexto, corBarra, fillPercent } = calcularCoeficiente(
-                r.oferta,
-                macro.pop,
-                equipamento.produtividade,
-              );
-              const expandida = expandidas.has(r.macroId);
-              const dados = dadosPorMacro[r.macroId];
               return (
-                <Fragment key={r.macroId}>
-                <TableRow onClick={() => toggleExpandida(r.macroId)} className="cursor-pointer border-t border-border [&>*]:whitespace-normal">
-                  <TableCell className="py-[9px] pr-2 pl-4.5 font-mono text-[11.5px] text-muted-foreground">
-                    {macro.id}
-                  </TableCell>
-                  <TableCell className="py-[9px] pr-1.5 pl-2 font-medium">
-                    <span
-                      className="mr-1.5 inline-block text-[10px] text-muted-foreground transition-transform duration-150"
-                      style={{ transform: expandida ? 'rotate(90deg)' : 'none' }}
-                    >
-                      ▶
-                    </span>
-                    {macro.nome}
-                  </TableCell>
-                  <TableCell className="py-[9px] pr-2 pl-1.5 text-muted-foreground">{macro.uf}</TableCell>
-                  <TableCell className="py-[9px] pr-2 pl-2.5 text-right text-muted-foreground">
-                    {macro.pop.toLocaleString('pt-BR')}
-                  </TableCell>
-                  <TableCell className="min-w-[160px] py-[9px] pr-8 pl-2">
-                    <div className="flex items-center gap-1.5">
-                      <div className="relative h-2 flex-1 overflow-clip rounded bg-muted">
-                        <div
-                          className="absolute top-0 left-0 h-full"
-                          style={{ width: `${fillPercent}%`, background: corBarra }}
-                        />
-                        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 rounded-sm bg-muted-foreground" />
-                      </div>
-                      <div className="w-[118px]">
-                        <div className="text-[11.5px] font-semibold" style={{ color: corTexto }}>
-                          {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {formatarQuantidadeEquipamento(r.oferta)} em uso SUS
-                          {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} existentes`}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-[9px] pr-4.5 pl-8">
-                    <StatusBadge status={r.status} />
-                  </TableCell>
-                </TableRow>
-                {expandida && (
-                  <TableRow className="bg-muted">
-                    <TableCell colSpan={6} className="py-2.5 pr-4.5 pl-10.5 whitespace-normal">
-                      {dados === 'carregando' && (
-                        <div className="text-xs text-muted-foreground">Carregando regiões de saúde...</div>
-                      )}
-                      {dados === 'erro' && (
-                        <div className="text-xs text-destructive">Não foi possível carregar as regiões de saúde.</div>
-                      )}
-                      {Array.isArray(dados) && (
-                        <SubNivelRows
-                          rows={dados}
-                          nivelAtual="regiaoSaude"
-                          equipmentFamily={equipmentFamily}
-                          selecionados={subNivelSelecionados}
-                          completo
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-                </Fragment>
+                <CoberturaMacroRow
+                  key={r.macroId}
+                  row={r}
+                  macro={macro}
+                  equipmentFamily={equipmentFamily}
+                  subNivelSelecionados={subNivelSelecionados}
+                  expandida={expandidas.has(r.macroId)}
+                  onToggle={() => toggleExpandida(r.macroId)}
+                />
               );
             })}
+            {rowsPaginadas.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="py-4 px-4.5 text-[12.5px] text-muted-foreground whitespace-normal">
+                  Nenhum resultado.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

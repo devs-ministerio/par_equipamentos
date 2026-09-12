@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { NivelCoberturaRow, StatusCobertura } from '@/types/domain';
 import { calcularCoeficiente } from '@/utils/coeficiente';
 import { formatMultiplicador } from '@/utils/format';
@@ -22,6 +22,8 @@ interface NivelComparado {
   status: StatusCobertura;
 }
 
+type NivelComparadoQuery = NivelComparado | 'carregando' | 'erro';
+
 /**
  * Detalhe do municipio -- o proprio municipio nao pede nada de novo (a linha
  * ja traz tudo do /municipality-coverage que alimentou a subcamada); so o
@@ -31,42 +33,44 @@ interface NivelComparado {
  */
 export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props) {
   const produtividade = getEquipamento(equipmentFamily).produtividade;
-  const [regiao, setRegiao] = useState<NivelComparado | 'carregando' | 'erro'>('carregando');
-  const [macro, setMacro] = useState<NivelComparado | 'carregando' | 'erro'>('carregando');
 
-  useEffect(() => {
-    let cancelado = false;
+  // Comparativo com a Macrorregiao dele -- so busca sob demanda quando o
+  // modal abre (queryKey inclui macroId: mudar de municipio dentro do mesmo
+  // modal -- nao acontece hoje, mas se acontecesse -- e uma query nova
+  // automaticamente, sem guarda manual).
+  const macroQuery = useQuery({
+    queryKey: ['municipio-detalhe-macro', equipmentFamily, linha.macroId],
+    queryFn: async (): Promise<NivelComparado | null> => {
+      const { macros, coberturaRows } = await fetchMacroCoverage(equipmentFamily, [linha.macroId!]);
+      const m = macros[0];
+      const c = coberturaRows[0];
+      return m && c ? { rotulo: m.nome, oferta: c.oferta, pop: m.pop, cobertura: c.cobertura, status: c.status } : null;
+    },
+    enabled: Boolean(linha.macroId),
+  });
 
-    if (linha.macroId) {
-      fetchMacroCoverage(equipmentFamily, [linha.macroId])
-        .then(({ macros, coberturaRows }) => {
-          if (cancelado) return;
-          const m = macros[0];
-          const c = coberturaRows[0];
-          setMacro(m && c ? { rotulo: m.nome, oferta: c.oferta, pop: m.pop, cobertura: c.cobertura, status: c.status } : 'erro');
-        })
-        .catch(() => !cancelado && setMacro('erro'));
+  // Comparativo com a Regiao de Saude dele -- mesma logica, sob demanda.
+  const regiaoQuery = useQuery({
+    queryKey: ['municipio-detalhe-regiao', equipmentFamily, linha.macroId, linha.regiaoSaudeId],
+    queryFn: async (): Promise<NivelComparado | null> => {
+      const rows = await fetchHealthRegionCoverage({ equipmentFamily, macroCodes: [linha.macroId!] });
+      const propria = rows.find((r) => r.chave === linha.regiaoSaudeId);
+      return propria
+        ? { rotulo: propria.nome, oferta: propria.oferta, pop: propria.pop, cobertura: propria.cobertura, status: propria.status }
+        : null;
+    },
+    enabled: Boolean(linha.macroId),
+  });
 
-      fetchHealthRegionCoverage({ equipmentFamily, macroCodes: [linha.macroId] })
-        .then((rows) => {
-          if (cancelado) return;
-          const propria = rows.find((r) => r.chave === linha.regiaoSaudeId);
-          setRegiao(
-            propria
-              ? { rotulo: propria.nome, oferta: propria.oferta, pop: propria.pop, cobertura: propria.cobertura, status: propria.status }
-              : 'erro',
-          );
-        })
-        .catch(() => !cancelado && setRegiao('erro'));
-    } else {
-      setMacro('erro');
-      setRegiao('erro');
-    }
+  function paraNivelComparado(query: typeof macroQuery): NivelComparadoQuery {
+    if (!linha.macroId) return 'erro';
+    if (query.isLoading) return 'carregando';
+    if (query.isError || query.data == null) return 'erro';
+    return query.data;
+  }
 
-    return () => {
-      cancelado = true;
-    };
-  }, [linha.macroId, linha.regiaoSaudeId, equipmentFamily]);
+  const macro = paraNivelComparado(macroQuery);
+  const regiao = paraNivelComparado(regiaoQuery);
 
   return (
     <Modal onClose={onClose} maxWidth={460}>

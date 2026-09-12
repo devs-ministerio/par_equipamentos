@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { ApiError } from '@/lib/api-error';
 import { UF_INFO } from '../data/geo-reference';
 import type {
   CoberturaRow,
@@ -10,52 +12,15 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
-// Formato exato devolvido por GET /macro-coverage (backend/app/schemas.py::MacroCoverageRead)
-interface MacroCoverageApi {
-  id: number;
-  execution_id: number;
-  macro_code: string;
-  macro_name: string;
-  state: string;
-  equipment_family: string;
-  population: number | null; // SUS-dependente -- usado no calculo
-  population_residente: number | null; // so informativo (IBGE, ao vivo)
-  population_ans: number | null; // so informativo (beneficiarios de plano de saude)
-  estimated_need: number | null;
-  required_qty: number | null;
-  available_qty: number | null;
-  existing_qty: number | null;
-  facility_count: number | null;
-  balance: number | null;
-  deficit_status: 'deficient' | 'not_deficient' | 'not_available';
-  coverage_percentage: number | null;
-}
+/** Seção 8/9 da constiuicao_frontend.md anexada pelo usuário: todo payload de
+ * API é validado com Zod na camada de services antes de voltar pra UI --
+ * tipo usado na UI deriva do schema (`z.infer`), não de interface manual
+ * desacoplada. Cada schema já faz `.transform()` snake_case (wire, formato
+ * exato do backend)→camelCase (domínio, `types/domain.ts`) num passo só,
+ * então o `z.infer` do schema JÁ É o tipo de domínio -- não existe mais um
+ * par de tipos (`...Api` + tipo manual) fazendo o mesmo mapeamento a mão. */
 
-// Formato exato devolvido por GET /equipment-offer-rows/establishments
-// (backend/app/schemas.py::EstablishmentRead) -- ja agregado por CNES.
-interface EstablishmentApi {
-  cnes_code: string;
-  facility_name: string | null;
-  municipality_name: string | null;
-  macro_code: string | null;
-  macro_name: string | null;
-  health_region_code: string | null;
-  health_region_name: string | null;
-  state: string;
-  existing_qty: number;
-  in_use_qty: number;
-  sus_flag: boolean;
-  latitude: number | null;
-  longitude: number | null;
-  types: TipoEquipamento[];
-}
-
-interface EstablishmentPageApi {
-  items: EstablishmentApi[];
-  total: number;
-}
-
-async function apiGet<T>(path: string, params?: Record<string, string | string[]>): Promise<T> {
+async function apiGet<T>(path: string, schema: z.ZodType<T>, params?: Record<string, string | string[]>): Promise<T> {
   const url = new URL(path, API_BASE_URL);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
@@ -63,20 +28,119 @@ async function apiGet<T>(path: string, params?: Record<string, string | string[]
       else url.searchParams.set(k, v);
     }
   }
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Falha ao consultar ${path}: ${res.status} ${res.statusText}`);
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
   }
-  return res.json() as Promise<T>;
+  if (!res.ok) {
+    throw new ApiError(`Falha ao consultar ${path}: ${res.status} ${res.statusText}`, res.status);
+  }
+  const json = await res.json();
+  const parsed = schema.safeParse(json);
+  if (!parsed.success) {
+    throw new ApiError(`Resposta de ${path} não bate com o schema esperado: ${parsed.error.message}`);
+  }
+  return parsed.data;
 }
 
-function toStatus(deficitStatus: MacroCoverageApi['deficit_status']): StatusCobertura {
+function toStatus(deficitStatus: 'deficient' | 'not_deficient' | 'not_available'): StatusCobertura {
   if (deficitStatus === 'not_deficient') return 'Hiperssuficiente';
   if (deficitStatus === 'deficient') return 'Hipossuficiente';
   return 'Dados indisponíveis';
 }
 
-function toEstabelecimentoRow(r: EstablishmentApi): EstabelecimentoRow {
+const deficitStatusSchema = z.enum(['deficient', 'not_deficient', 'not_available']);
+
+// ---- GET /macro-coverage (backend/app/schemas.py::MacroCoverageRead) ----
+const macroCoverageApiSchema = z.object({
+  id: z.number(),
+  execution_id: z.number(),
+  macro_code: z.string(),
+  macro_name: z.string(),
+  state: z.string(),
+  equipment_family: z.string(),
+  population: z.number().nullable(),
+  population_residente: z.number().nullable(),
+  population_ans: z.number().nullable(),
+  estimated_need: z.number().nullable(),
+  required_qty: z.number().nullable(),
+  available_qty: z.number().nullable(),
+  existing_qty: z.number().nullable(),
+  facility_count: z.number().nullable(),
+  balance: z.number().nullable(),
+  deficit_status: deficitStatusSchema,
+  coverage_percentage: z.number().nullable(),
+});
+
+const macroCoverageListSchema = z.array(macroCoverageApiSchema);
+
+export interface MacroCoverageResult {
+  macros: Macrorregiao[];
+  coberturaRows: CoberturaRow[];
+}
+
+export async function fetchMacroCoverage(equipmentFamily: string, macroCodes?: string[]): Promise<MacroCoverageResult> {
+  const query: Record<string, string | string[]> = { equipment_family: equipmentFamily };
+  if (macroCodes?.length) query.macro_code = macroCodes;
+  const rows = await apiGet('/macro-coverage', macroCoverageListSchema, query);
+
+  const macros = rows.map((r) => {
+    const geo = UF_INFO[r.state];
+    return {
+      id: r.macro_code,
+      nome: r.macro_name,
+      uf: r.state,
+      regiao: geo?.regiao ?? ('Norte' as const),
+      pop: r.population ?? 0,
+      popResidente: r.population_residente ?? 0,
+      popAns: r.population_ans ?? 0,
+      nomeEstado: geo?.nome ?? r.state,
+    };
+  });
+
+  const coberturaRows = rows.map((r) => ({
+    macroId: r.macro_code,
+    oferta: r.available_qty ?? 0,
+    ofertaTotal: r.existing_qty ?? 0,
+    demanda: r.required_qty ?? 0,
+    cobertura: r.coverage_percentage ?? 0,
+    status: toStatus(r.deficit_status),
+  }));
+
+  return { macros, coberturaRows };
+}
+
+// ---- GET /equipment-offer-rows/establishments (backend/app/schemas.py::EstablishmentRead) ----
+const tipoEquipamentoSchema: z.ZodType<TipoEquipamento> = z.object({
+  tipo: z.string(),
+  qtd: z.number(),
+});
+
+const establishmentApiSchema = z.object({
+  cnes_code: z.string(),
+  facility_name: z.string().nullable(),
+  municipality_name: z.string().nullable(),
+  macro_code: z.string().nullable(),
+  macro_name: z.string().nullable(),
+  health_region_code: z.string().nullable(),
+  health_region_name: z.string().nullable(),
+  state: z.string(),
+  existing_qty: z.number(),
+  in_use_qty: z.number(),
+  sus_flag: z.boolean(),
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
+  types: z.array(tipoEquipamentoSchema),
+});
+
+const establishmentPageApiSchema = z.object({
+  items: z.array(establishmentApiSchema),
+  total: z.number(),
+});
+
+function toEstabelecimentoRow(r: z.infer<typeof establishmentApiSchema>): EstabelecimentoRow {
   return {
     cnes: r.cnes_code,
     nome: r.facility_name ?? '(sem nome cadastrado)',
@@ -94,43 +158,6 @@ function toEstabelecimentoRow(r: EstablishmentApi): EstabelecimentoRow {
     longitude: r.longitude,
   };
 }
-
-export interface MacroCoverageResult {
-  macros: Macrorregiao[];
-  coberturaRows: CoberturaRow[];
-}
-
-export async function fetchMacroCoverage(equipmentFamily: string, macroCodes?: string[]): Promise<MacroCoverageResult> {
-  const query: Record<string, string | string[]> = { equipment_family: equipmentFamily };
-  if (macroCodes?.length) query.macro_code = macroCodes;
-  const rows = await apiGet<MacroCoverageApi[]>('/macro-coverage', query);
-
-  const macros: Macrorregiao[] = rows.map((r) => {
-    const geo = UF_INFO[r.state];
-    return {
-      id: r.macro_code,
-      nome: r.macro_name,
-      uf: r.state,
-      regiao: geo?.regiao ?? 'Norte',
-      pop: r.population ?? 0,
-      popResidente: r.population_residente ?? 0,
-      popAns: r.population_ans ?? 0,
-      nomeEstado: geo?.nome ?? r.state,
-    };
-  });
-
-  const coberturaRows: CoberturaRow[] = rows.map((r) => ({
-    macroId: r.macro_code,
-    oferta: r.available_qty ?? 0,
-    ofertaTotal: r.existing_qty ?? 0,
-    demanda: r.required_qty ?? 0,
-    cobertura: r.coverage_percentage ?? 0,
-    status: toStatus(r.deficit_status),
-  }));
-
-  return { macros, coberturaRows };
-}
-
 
 export interface EstabelecimentosParams {
   equipmentFamily: string;
@@ -188,10 +215,11 @@ export async function fetchEstabelecimentosPage(params: EstabelecimentosParams):
   if (params.susOnly) query.sus_flag = 'true';
   if (params.inUseSusOnly) query.in_use_sus = 'true';
 
-  const page = await apiGet<EstablishmentPageApi>('/equipment-offer-rows/establishments', query);
+  const page = await apiGet('/equipment-offer-rows/establishments', establishmentPageApiSchema, query);
   return { items: page.items.map(toEstabelecimentoRow), total: page.total };
 }
 
+// ---- GET /equipment-offer-rows/totals ----
 export interface TotaisParams {
   equipmentFamily: string;
   states?: string[];
@@ -200,6 +228,11 @@ export interface TotaisParams {
   municipalities?: string[];
   cnesCodes?: string[];
 }
+
+const equipmentTotalsApiSchema = z.object({
+  existing_qty: z.number(),
+  available_qty: z.number(),
+});
 
 export interface EquipmentTotals {
   existingQty: number;
@@ -221,9 +254,16 @@ export async function fetchEquipmentTotals(params: TotaisParams): Promise<Equipm
   if (params.healthRegionCodes?.length) query.health_region_code = params.healthRegionCodes;
   if (params.municipalities?.length) query.municipality = params.municipalities;
   if (params.cnesCodes?.length) query.cnes_code = params.cnesCodes;
-  const r = await apiGet<{ existing_qty: number; available_qty: number }>('/equipment-offer-rows/totals', query);
+  const r = await apiGet('/equipment-offer-rows/totals', equipmentTotalsApiSchema, query);
   return { existingQty: r.existing_qty, availableQty: r.available_qty };
 }
+
+// ---- GET /equipment-offer-rows/by-legal-nature ----
+const legalNatureApiSchema = z.object({
+  legal_nature: z.string(),
+  existing_qty: z.number(),
+  available_qty: z.number(),
+});
 
 export interface NaturezaJuridicaBreakdown {
   naturezaJuridica: string;
@@ -237,25 +277,23 @@ export interface NaturezaJuridicaBreakdown {
  * SUS" (2026-08-22).
  */
 export async function fetchLegalNatureBreakdown(equipmentFamily: string): Promise<NaturezaJuridicaBreakdown[]> {
-  const rows = await apiGet<{ legal_nature: string; existing_qty: number; available_qty: number }[]>(
-    '/equipment-offer-rows/by-legal-nature',
-    { equipment_family: equipmentFamily },
-  );
+  const rows = await apiGet('/equipment-offer-rows/by-legal-nature', z.array(legalNatureApiSchema), {
+    equipment_family: equipmentFamily,
+  });
   return rows.map((r) => ({ naturezaJuridica: r.legal_nature, existingQty: r.existing_qty, availableQty: r.available_qty }));
 }
 
-// Formato exato devolvido por GET /equipment-offer-rows/facilities
-// (backend/app/schemas.py::FacilityOptionRead).
-interface FacilityOptionApi {
-  cnes_code: string;
-  facility_name: string | null;
-  state: string;
-  macro_code: string | null;
-  macro_name: string | null;
-  health_region_code: string | null;
-  health_region_name: string | null;
-  municipality_name: string | null;
-}
+// ---- GET /equipment-offer-rows/facilities (backend/app/schemas.py::FacilityOptionRead) ----
+const facilityOptionApiSchema = z.object({
+  cnes_code: z.string(),
+  facility_name: z.string().nullable(),
+  state: z.string(),
+  macro_code: z.string().nullable(),
+  macro_name: z.string().nullable(),
+  health_region_code: z.string().nullable(),
+  health_region_name: z.string().nullable(),
+  municipality_name: z.string().nullable(),
+});
 
 export interface FacilityOption {
   cnes: string;
@@ -277,7 +315,7 @@ export interface FacilityOption {
  * demais ja selecionados (cascata totalmente bidirecional).
  */
 export async function fetchFacilities(equipmentFamily: string): Promise<FacilityOption[]> {
-  const rows = await apiGet<FacilityOptionApi[]>('/equipment-offer-rows/facilities', {
+  const rows = await apiGet('/equipment-offer-rows/facilities', z.array(facilityOptionApiSchema), {
     equipment_family: equipmentFamily,
   });
   return rows.map((r) => ({
@@ -292,51 +330,49 @@ export async function fetchFacilities(equipmentFamily: string): Promise<Facility
   }));
 }
 
-// Formato exato devolvido por GET /municipality-coverage
-// (backend/app/schemas.py::MunicipalityCoverageRead).
-interface MunicipalityCoverageApi {
-  ibge_code: string;
-  municipality_name: string;
-  health_region_code: string | null;
-  health_region_name: string | null;
-  macro_code: string | null;
-  macro_name: string | null;
-  state: string;
-  population: number | null;
-  population_residente: number | null;
-  population_ans: number | null;
-  existing_qty: number | null;
-  available_qty: number | null;
-  coverage_percentage: number | null;
-  deficit_status: MacroCoverageApi['deficit_status'];
+// ---- GET /municipality-coverage (backend/app/schemas.py::MunicipalityCoverageRead) ----
+const municipalityCoverageApiSchema = z.object({
+  ibge_code: z.string(),
+  municipality_name: z.string(),
+  health_region_code: z.string().nullable(),
+  health_region_name: z.string().nullable(),
+  macro_code: z.string().nullable(),
+  macro_name: z.string().nullable(),
+  state: z.string(),
+  population: z.number().nullable(),
+  population_residente: z.number().nullable(),
+  population_ans: z.number().nullable(),
+  existing_qty: z.number().nullable(),
+  available_qty: z.number().nullable(),
+  coverage_percentage: z.number().nullable(),
+  deficit_status: deficitStatusSchema,
   // So informativo -- nao entra em deficit_status. Nulo pra familias cujo
   // pipeline ainda nao calcula (so TOMOGRAFO por enquanto, ver
   // backend/app/pipeline/geo.py).
-  distance_km_nearest_equipment: number | null;
+  distance_km_nearest_equipment: z.number().nullable(),
   // Coordenada da sede do municipio -- ver comentario em
   // backend/app/schemas.py::MunicipalityCoverageRead.
-  latitude: number | null;
-  longitude: number | null;
+  latitude: z.number().nullable(),
+  longitude: z.number().nullable(),
   // Codigo IBGE de 7 digitos -- ver mesmo comentario.
-  ibge_code_7: string | null;
-}
+  ibge_code_7: z.string().nullable(),
+});
 
-// Formato exato devolvido por GET /health-region-coverage
-// (backend/app/schemas.py::HealthRegionCoverageRead).
-interface HealthRegionCoverageApi {
-  health_region_code: string;
-  health_region_name: string;
-  macro_code: string | null;
-  macro_name: string | null;
-  state: string;
-  population: number | null;
-  population_residente: number | null;
-  population_ans: number | null;
-  existing_qty: number | null;
-  available_qty: number | null;
-  coverage_percentage: number | null;
-  deficit_status: MacroCoverageApi['deficit_status'];
-}
+// ---- GET /health-region-coverage (backend/app/schemas.py::HealthRegionCoverageRead) ----
+const healthRegionCoverageApiSchema = z.object({
+  health_region_code: z.string(),
+  health_region_name: z.string(),
+  macro_code: z.string().nullable(),
+  macro_name: z.string().nullable(),
+  state: z.string(),
+  population: z.number().nullable(),
+  population_residente: z.number().nullable(),
+  population_ans: z.number().nullable(),
+  existing_qty: z.number().nullable(),
+  available_qty: z.number().nullable(),
+  coverage_percentage: z.number().nullable(),
+  deficit_status: deficitStatusSchema,
+});
 
 export interface NivelCoberturaParams {
   equipmentFamily: string;
@@ -363,7 +399,7 @@ export async function fetchMunicipalityCoverage(params: NivelCoberturaParams): P
   if (params.municipalities?.length) query.municipality = params.municipalities;
   if (params.minPopulation != null) query.min_population = String(params.minPopulation);
 
-  const rows = await apiGet<MunicipalityCoverageApi[]>('/municipality-coverage', query);
+  const rows = await apiGet('/municipality-coverage', z.array(municipalityCoverageApiSchema), query);
   return rows.map((r) => ({
     chave: r.ibge_code,
     nome: r.municipality_name,
@@ -400,7 +436,7 @@ export async function fetchHealthRegionCoverage(
   if (params.states?.length) query.state = params.states;
   if (params.macroCodes?.length) query.macro_code = params.macroCodes;
 
-  const rows = await apiGet<HealthRegionCoverageApi[]>('/health-region-coverage', query);
+  const rows = await apiGet('/health-region-coverage', z.array(healthRegionCoverageApiSchema), query);
   return rows.map((r) => ({
     chave: r.health_region_code,
     nome: r.health_region_name,

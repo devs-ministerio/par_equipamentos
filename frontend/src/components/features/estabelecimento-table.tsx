@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { fetchEstabelecimentosPage, fetchMunicipalityCoverage } from '@/services/api';
-import type { EstabelecimentoRow, NivelCoberturaRow } from '@/types/domain';
+import type { EstabelecimentoRow } from '@/types/domain';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/common/pagination';
 import { SearchInput } from '@/components/common/search-input';
+import { useEstabelecimentosPage } from '@/hooks/useEstabelecimentosPage';
+import { useEstabelecimentoDetalhe } from '@/hooks/useEstabelecimentoDetalhe';
 import { BotaoDetalhe } from './botao-detalhe';
 import { MunicipioDetalheModal } from './municipio-detalhe-modal';
 
@@ -33,30 +34,26 @@ export function EstabelecimentoTable({
   const [busca, setBusca] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('facility_name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [items, setItems] = useState<EstabelecimentoRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
-  const [carregandoDetalheCnes, setCarregandoDetalheCnes] = useState<string | null>(null);
-  const [erroDetalhe, setErroDetalhe] = useState<string | null>(null);
+  // Estabelecimento cujo botao de detalhe foi clicado -- dispara o fetch sob
+  // demanda em useEstabelecimentoDetalhe (mesmo modal de Cobertura
+  // Assistencial, mas o municipio dele so e buscado quando pedido).
+  const [alvoDetalhe, setAlvoDetalhe] = useState<{ cnes: string; municipio: string; uf: string } | null>(null);
 
-  // Botao de detalhe (mesmo modal de Cobertura Assistencial) -- o
-  // estabelecimento em si nao tem populacao/cobertura (isso e agregado por
-  // municipio, nao por CNES), entao busca o municipio dele sob demanda so
-  // quando o usuario pede, reaproveitando o MunicipioDetalheModal inteiro
-  // (que ja busca macro/regiao sozinho).
-  function abrirDetalhe(r: EstabelecimentoRow) {
-    setErroDetalhe(null);
-    setCarregandoDetalheCnes(r.cnes);
-    fetchMunicipalityCoverage({ equipmentFamily, municipalities: [`${r.municipio}|${r.uf}`] })
-      .then((rows) => {
-        if (rows[0]) setDetalheAberto(rows[0]);
-        else setErroDetalhe(`Sem dado de cobertura pra ${r.municipio} (${r.uf}).`);
-      })
-      .catch(() => setErroDetalhe(`Não foi possível carregar a cobertura de ${r.municipio} (${r.uf}).`))
-      .finally(() => setCarregandoDetalheCnes(null));
-  }
+  const { items, total, loading, error } = useEstabelecimentosPage({
+    equipmentFamily,
+    states,
+    macroCodes,
+    healthRegionCodes,
+    municipalities,
+    cnesCodes,
+    search: busca || undefined,
+    sortBy: sortKey,
+    sortDir,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+
+  const { detalhe, status: statusDetalhe } = useEstabelecimentoDetalhe(equipmentFamily, alvoDetalhe);
 
   // debounce da busca -- nao dispara uma requisicao a cada tecla digitada
   useEffect(() => {
@@ -77,42 +74,6 @@ export function EstabelecimentoTable({
     [statesKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey, busca, sortKey, sortDir],
   );
 
-  // Guarda contra corrida (mesmo bug de NivelCoberturaTable, corrigido
-  // 2026-08-22): selecionar um CNES cascateia pro Municipio num segundo
-  // instante, entao um pedido SEM filtro de municipio dispara primeiro
-  // (mais lento, lista nacional) e um pedido JA filtrado dispara logo
-  // depois (mais rapido) -- sem essa guarda, a resposta lenta e desfiltrada
-  // chegava por ultimo e sobrescrevia a tabela com a lista nacional errada.
-  useEffect(() => {
-    let cancelado = false;
-    setLoading(true);
-    setError(null);
-    fetchEstabelecimentosPage({
-      equipmentFamily,
-      states,
-      macroCodes,
-      healthRegionCodes,
-      municipalities,
-      cnesCodes,
-      search: busca || undefined,
-      sortBy: sortKey,
-      sortDir,
-      page,
-      pageSize: PAGE_SIZE,
-    })
-      .then((res) => {
-        if (cancelado) return;
-        setItems(res.items);
-        setTotal(res.total);
-      })
-      .catch((e: Error) => !cancelado && setError(e.message))
-      .finally(() => !cancelado && setLoading(false));
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipmentFamily, statesKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey, busca, sortKey, sortDir, page]);
-
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
@@ -126,13 +87,24 @@ export function EstabelecimentoTable({
     return <span className="ml-[3px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
   }
 
+  const erroDetalhe =
+    statusDetalhe === 'sem-dado' && alvoDetalhe
+      ? `Sem dado de cobertura pra ${alvoDetalhe.municipio} (${alvoDetalhe.uf}).`
+      : statusDetalhe === 'erro' && alvoDetalhe
+        ? `Não foi possível carregar a cobertura de ${alvoDetalhe.municipio} (${alvoDetalhe.uf}).`
+        : null;
+
+  function abrirDetalhe(r: EstabelecimentoRow) {
+    setAlvoDetalhe({ cnes: r.cnes, municipio: r.municipio, uf: r.uf });
+  }
+
   return (
     <div className="mt-5 rounded-lg bg-card">
       <div className="flex items-center gap-3 border-b border-border px-4.5 py-3.5">
         <div className="flex-1 text-sm font-semibold">Estabelecimentos de Saúde</div>
         <SearchInput value={buscaInput} onChange={setBuscaInput} placeholder="Buscar por nome, CNES ou município..." />
       </div>
-      {error && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({error}).</div>}
+      {error && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({error.message}).</div>}
       {erroDetalhe && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">{erroDetalhe}</div>}
       <div style={{ maxHeight: 340, overflow: 'auto', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
         <Table className="text-[12.5px]">
@@ -182,7 +154,7 @@ export function EstabelecimentoTable({
                       {r.susFlag ? 'Sim' : 'Não'}
                     </span>
                     {r.susFlag &&
-                      (carregandoDetalheCnes === r.cnes ? (
+                      (alvoDetalhe?.cnes === r.cnes && statusDetalhe === 'carregando' ? (
                         <span className="text-[10px] text-muted-foreground">Carregando...</span>
                       ) : (
                         <BotaoDetalhe onClick={() => abrirDetalhe(r)} />
@@ -191,12 +163,19 @@ export function EstabelecimentoTable({
                 </TableCell>
               </TableRow>
             ))}
+            {!loading && items.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-4 px-4.5 text-[12.5px] text-muted-foreground whitespace-normal">
+                  Nenhum resultado.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
       <Pagination page={page} totalItems={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
-      {detalheAberto && (
-        <MunicipioDetalheModal linha={detalheAberto} equipmentFamily={equipmentFamily} onClose={() => setDetalheAberto(null)} />
+      {alvoDetalhe && statusDetalhe === 'sucesso' && detalhe && (
+        <MunicipioDetalheModal linha={detalhe} equipmentFamily={equipmentFamily} onClose={() => setAlvoDetalhe(null)} />
       )}
     </div>
   );

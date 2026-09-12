@@ -1,3 +1,16 @@
+/** Dias até `dataIso` (negativo = já venceu) -- usado no contador de
+ * validade da licença de operação e no prazo de ações/inaugurações. `null`
+ * quando não há data pra calcular. Movido de MonitoramentoInterno.tsx
+ * (Seção 6 da migração) pra ser reaproveitado pelos subcomponentes depois
+ * do split, sem duplicar a mesma conta em 3 arquivos. */
+export function diasAte(dataIso: string | null | undefined): number | null {
+  if (!dataIso) return null;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const alvo = new Date(dataIso + 'T00:00:00');
+  return Math.round((alvo.getTime() - hoje.getTime()) / 86_400_000);
+}
+
 export function fmtMoeda(v: number | string | null | undefined): string {
   if (v === null || v === undefined || v === '') return '—';
   const n = typeof v === 'string' ? Number(v.replace(',', '.')) : v;

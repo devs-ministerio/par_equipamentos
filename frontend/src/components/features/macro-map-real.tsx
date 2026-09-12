@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { GeoJsonProperties, Geometry } from 'geojson';
 import { resolveThemeColor } from '@/lib/theme-colors';
+import { useLeafletMap } from '@/hooks/useLeafletMap';
 import type { PontoEstabelecimento } from './macro-map';
 
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
@@ -60,48 +61,11 @@ interface Props {
  */
 export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const conteudoRef = useRef<L.LayerGroup | null>(null);
-
-  // Cria o mapa (container + tile layer + regua de escala) uma unica vez.
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    // Guarda contra o StrictMode do React (dev) montar/desmontar/montar de
-    // novo rapido -- Leaflet marca o container (`_leaflet_id`) na primeira
-    // criacao e recusa `L.map()` de novo em cima sem isso ser limpo, mesmo
-    // com o `map.remove()` do cleanup ja tendo rodado ("Map container is
-    // already initialized"). Sem tipo oficial pro campo interno do
-    // Leaflet, daí o cast.
-    const elComEstadoLeaflet = el as HTMLDivElement & { _leaflet_id?: number };
-    if (elComEstadoLeaflet._leaflet_id) {
-      delete elComEstadoLeaflet._leaflet_id;
-    }
-
-    // View inicial obrigatoria (centro do Brasil, zoom baixo) -- sem isso o
-    // mapa fica sem tamanho/posicao internos ate o fitBounds (no efeito de
-    // conteudo) rodar, e qualquer chamada do Leaflet nesse meio tempo pode
-    // estourar "Cannot read properties of undefined (reading 'min')".
-    const map = L.map(el, { attributionControl: true, scrollWheelZoom: false }).setView([-14.235, -51.9253], 4);
-    mapRef.current = map;
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 18,
-    }).addTo(map);
-
-    L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map);
-
-    conteudoRef.current = L.layerGroup().addTo(map);
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      conteudoRef.current = null;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Ciclo de vida do L.Map em si (container + tile layer + regua de
+  // escala), criado uma unica vez -- ver docstring de useLeafletMap.ts
+  // sobre o bug real corrigido 2026-08-23 que motivou separar isso do
+  // ciclo de vida do conteudo abaixo.
+  const { mapRef, conteudoRef } = useLeafletMap(containerRef);
 
   // Redesenha SO o conteudo (contorno da macro, pontos, contorno do
   // municipio) sempre que os dados mudam -- o L.Map em si continua o mesmo

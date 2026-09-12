@@ -4,16 +4,18 @@ import { forwardRef, useEffect, useRef } from 'react';
 // nunca usada aqui (transicao, drag, zoom, force, etc.); isso sozinho
 // tirou o D3 inteiro do chunk principal do build (ver App.tsx, rotas
 // agora lazy) e reduz o que sobra so ao que este componente de fato chama.
-import { max as d3Max } from 'd3-array';
-import { geoCentroid, geoCircle, geoMercator, geoPath } from 'd3-geo';
-import { scaleLinear, scaleSqrt } from 'd3-scale';
 import { select } from 'd3-selection';
 import type { GeoJsonProperties, Geometry } from 'geojson';
-import { statusMeta } from '@/utils/status';
 import { resolveThemeColor } from '@/lib/theme-colors';
-import { formatMultiplicador } from '@/utils/format';
-import { calcularCoeficiente } from '@/utils/coeficiente';
 import type { CoberturaRow, Macrorregiao } from '@/types/domain';
+import { construirProjecaoMacro } from './macro-map-geometry';
+import {
+  construirTooltipHtml,
+  criarEscalaCor,
+  desenharPontos,
+  desenharRaioNormativo,
+  desenharReguaEscala,
+} from './macro-map-draw';
 
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
 type FeatureCollection = GeoJSON.FeatureCollection<Geometry, GeoJsonProperties>;
@@ -74,10 +76,6 @@ interface Props {
   onSelectMacro: (macroId: string) => void;
 }
 
-/** km -> graus de arco (o que geoCircle espera) -- 1 grau de grande
- * circulo na Terra equivale a raio_terra_km * (pi/180) km. */
-const KM_POR_GRAU = (Math.PI / 180) * 6371;
-
 /**
  * Coropletico por MACRORREGIAO DE SAUDE (decisao 2026-08-22) -- substitui o
  * antigo BrazilMap.tsx, que coloria por UF com a cobertura das macros
@@ -127,20 +125,11 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     const successBg = resolveThemeColor('--success-bg');
 
     // Escala de cor em DUAS gradações, cortada exatamente no mesmo corte da
-    // classificação oficial (coeficiente 1x = cobertura 100%). O status
-    // textual vem do backend para preservar "Dados indisponíveis" sem
-    // converter em Hipo/Hiper. -- 2026-09-11.
-    // (vermelho->laranja->verde) que passava por 100% sem nenhum corte
-    // visual, dando a impressão de uma transição suave onde na verdade
-    // existe uma classificação binária. Abaixo de 100%: gradação de
-    // vermelho (mais escuro/saturado = mais longe da meta, mais claro =
-    // quase lá). Igual ou acima de 100%: gradação de verde (mais claro =
-    // acabou de bater a meta, mais escuro/saturado = bem acima).
-    const escalaVermelho = scaleLinear<string>().domain([0, 100]).range([destructive, destructiveBg]).clamp(true);
-    const escalaVerde = scaleLinear<string>().domain([100, 200]).range([successBg, success]).clamp(true);
-    function escalaCor(cobertura: number): string {
-      return cobertura < 100 ? escalaVermelho(cobertura) : escalaVerde(cobertura);
-    }
+    // classificação oficial (coeficiente 1x = cobertura 100%) -- ver
+    // docstring de `criarEscalaCor` (macro-map-draw.ts). O status textual
+    // vem do backend para preservar "Dados indisponíveis" sem converter em
+    // Hipo/Hiper.
+    const escalaCor = criarEscalaCor(destructive, destructiveBg, success, successBg);
 
     const width = el.clientWidth || 700;
     const height = 560;
@@ -151,19 +140,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
       .attr('height', height)
       .attr('viewBox', `0 0 ${width} ${height}`);
 
-    const featureAlvo = zoomMacroId
-      ? geo.features.find((f) => (f as Feature).properties?.cod_macro === zoomMacroId)
-      : undefined;
-    const proj = geoMercator();
-    if (featureAlvo) {
-      // margem de ~8% em volta -- senao a macro encosta na borda do SVG
-      // (fitSize/fitExtent ajusta exatamente, sem folga nenhuma por padrao).
-      const m = { x: width * 0.08, y: height * 0.08 };
-      proj.fitExtent([[m.x, m.y], [width - m.x, height - m.y]], featureAlvo);
-    } else {
-      proj.fitSize([width, height], geo);
-    }
-    const path = geoPath().projection(proj);
+    const { proj, path, featureAlvo, featuresParaDesenhar } = construirProjecaoMacro(geo, zoomMacroId, width, height);
 
     const tooltip = document.createElement('div');
     tooltip.style.cssText =
@@ -171,13 +148,6 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
       'font-size:12px;pointer-events:none;display:none;z-index:99;line-height:1.5;' +
       'box-shadow:0 4px 12px rgba(0,0,0,0.2);';
     el.appendChild(tooltip);
-
-    // Recortado (zoomMacroId) desenha SO a macro selecionada, sem as
-    // vizinhas -- pedido explicito 2026-08-23 (antes desenhava geo.features
-    // inteiro por baixo, so pra contexto geografico; ficou preferivel focar
-    // so na area que importa, sem distrair com macro vizinha "cortada" na
-    // borda do recorte).
-    const featuresParaDesenhar = featureAlvo ? [featureAlvo] : geo.features;
 
     svg
       .selectAll('path')
@@ -197,26 +167,11 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         const macroId = (d as Feature).properties?.cod_macro as string | undefined;
         const macro = macroId ? macroById.get(macroId) : undefined;
         const row = macroId ? coberturaById.get(macroId) : undefined;
-        const meta = row ? statusMeta(row.status) : null;
-        // statusMeta devolve `variant` semantico (nao hex) -- resolve pro
-        // hex real da variavel CSS aqui, mesmo helper usado pro resto da
-        // cor imperativa deste componente.
-        const metaColor = meta ? resolveThemeColor(`--${meta.variant}`) : undefined;
-        // Mesmo indicador colorido ("1,31x") usado em todo o resto do app
-        // (StatusBadge/tabelas/cards) -- substitui "pessoas por
-        // equipamento" (2026-08-24), que nao normalizava pela produtividade
-        // da familia e nao batia com o numero mostrado em nenhum outro
-        // lugar da tela.
-        const coef = macro && row ? calcularCoeficiente(row.oferta, macro.pop, produtividade) : null;
         const rect = el.getBoundingClientRect();
         tooltip.style.display = 'block';
         tooltip.style.left = `${event.clientX - rect.left + 12}px`;
         tooltip.style.top = `${event.clientY - rect.top - 40}px`;
-        tooltip.innerHTML = macro
-          ? `<strong>${macro.nome} (${macro.uf})</strong><br>Coeficiente: <span style="color:${coef?.corTexto ?? background}">${
-              coef?.valor != null ? formatMultiplicador(coef.valor) : '—'
-            }</span><br><span style="color:${metaColor ?? background}">${meta?.label ?? ''}</span>`
-          : `<strong>Código ${macroId ?? '—'}</strong><br>Sem dado nessa competência`;
+        tooltip.innerHTML = construirTooltipHtml(macroId, macro, row, produtividade, background);
       })
       .on('mouseleave', () => {
         tooltip.style.display = 'none';
@@ -226,105 +181,9 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         if (macroId) onSelectMacro(macroId);
       });
 
-    // Raio normativo (75km do Tomografo) -- um circulo geodesico de verdade
-    // por ponto SUS (geoCircle, nao um raio fixo em pixel: um raio fixo
-    // em pixel ignoraria a distorcao da projecao Mercator, que estica muito
-    // longe do equador -- 75km em pixel na Amazonia ficaria bem diferente
-    // de 75km em pixel no Sul). So os pontos SUS (susFlag) tem raio -- o
-    // criterio e sobre equipamento SUS, mesmo denominador de D-02.
-    if (pontos && pontos.length > 0 && raioKm) {
-      const raioGraus = raioKm / KM_POR_GRAU;
-      const circulos = pontos
-        .filter((p) => p.susFlag)
-        .map((p) => geoCircle().center([p.lon, p.lat]).radius(raioGraus)());
-      svg
-        .append('g')
-        .selectAll('path')
-        .data(circulos)
-        .enter()
-        .append('path')
-        .attr('d', path as unknown as (f: GeoJSON.Geometry) => string)
-        .attr('fill', primary)
-        .attr('fill-opacity', 0.06)
-        .attr('stroke', primary)
-        .attr('stroke-opacity', 0.35)
-        .attr('stroke-width', 1)
-        .attr('pointer-events', 'none');
-    }
-
-    if (pontos && pontos.length > 0) {
-      const maiorQtd = d3Max(pontos, (p) => p.qtd) ?? 1;
-      const raio = scaleSqrt().domain([1, maiorQtd]).range([2.5, 9]).clamp(true);
-      svg
-        .append('g')
-        .selectAll('circle')
-        .data(pontos)
-        .enter()
-        .append('circle')
-        .attr('cx', (p) => proj([p.lon, p.lat])?.[0] ?? -1000)
-        .attr('cy', (p) => proj([p.lon, p.lat])?.[1] ?? -1000)
-        .attr('r', (p) => raio(p.qtd))
-        .attr('fill', (p) => (p.susFlag ? foreground : mutedForeground))
-        .attr('fill-opacity', 0.85)
-        .attr('stroke', card)
-        .attr('stroke-width', 1)
-        // decorativo -- o hover/clique continua sendo o poligono da macro
-        // por baixo, senao um ponto pequeno em cima da borda "rouba" o
-        // clique da macro.
-        .attr('pointer-events', 'none');
-    }
-
-    // Regua de escala (km reais) -- so no recorte (zoomMacroId): sem
-    // paisagem reconhecivel (rua, cidade) atras, nao da pra "sentir" se o
-    // raio de 75km desenhado esta certo so olhando; uma regua com distancia
-    // de verdade da essa referencia (2026-08-23). Mede o proprio pixel/km
-    // da projecao atual em vez de um valor fixo -- cada macro tem escala
-    // diferente (a macro unica do Acre e bem maior que uma macro pequena de
-    // capital), entao o "tamanho de 1 km na tela" muda por recorte.
-    if (featureAlvo) {
-      const [cLon, cLat] = geoCentroid(featureAlvo);
-      const grausPorKmNaLatitude = 1 / (KM_POR_GRAU * Math.cos((cLat * Math.PI) / 180));
-      const p0 = proj([cLon, cLat]);
-      const p1 = proj([cLon + grausPorKmNaLatitude, cLat]);
-      if (p0 && p1) {
-        const pxPorKm = Math.abs(p1[0] - p0[0]);
-        const candidatos = [5, 10, 20, 25, 50, 100, 150, 200, 300, 500];
-        const distanciaEscala = candidatos.find((km) => km * pxPorKm >= 60) ?? candidatos[candidatos.length - 1];
-        const larguraBarra = distanciaEscala * pxPorKm;
-        const x0 = 16;
-        const y0 = height - 16;
-
-        const escala = svg.append('g').attr('transform', `translate(${x0}, ${y0})`);
-        escala
-          .append('rect')
-          .attr('x', -6)
-          .attr('y', -22)
-          .attr('width', larguraBarra + 12)
-          .attr('height', 30)
-          .attr('rx', 4)
-          .attr('fill', card)
-          .attr('fill-opacity', 0.85);
-        escala.append('line').attr('x1', 0).attr('x2', larguraBarra).attr('y1', 0).attr('y2', 0).attr('stroke', foreground).attr('stroke-width', 2);
-        escala.append('line').attr('x1', 0).attr('x2', 0).attr('y1', -4).attr('y2', 4).attr('stroke', foreground).attr('stroke-width', 2);
-        escala
-          .append('line')
-          .attr('x1', larguraBarra)
-          .attr('x2', larguraBarra)
-          .attr('y1', -4)
-          .attr('y2', 4)
-          .attr('stroke', foreground)
-          .attr('stroke-width', 2);
-        escala
-          .append('text')
-          .attr('x', larguraBarra / 2)
-          .attr('y', -8)
-          .attr('text-anchor', 'middle')
-          .attr('font-size', 10.5)
-          .attr('font-weight', 700)
-          .attr('fill', foreground)
-          .text(`${distanciaEscala} km`);
-      }
-    }
+    desenharRaioNormativo(svg, path, pontos, raioKm, primary);
+    desenharPontos(svg, proj, pontos, foreground, mutedForeground, card);
+    desenharReguaEscala(svg, featureAlvo, proj, height, card, foreground);
   }, [geo, macros, coberturaRows, selectedMacroId, pontos, raioKm, zoomMacroId, produtividade, onSelectMacro]);
 
   return (

@@ -1,14 +1,8 @@
-import { Fragment, useState } from 'react';
+import { useState } from 'react';
 import type { NivelCoberturaRow } from '@/types/domain';
-import { calcularCoeficiente } from '@/utils/coeficiente';
-import { formatMultiplicador } from '@/utils/format';
-import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
-import { fetchMunicipalityCoverage } from '@/services/api';
-import { StatusBadge } from '@/components/common/status-badge';
-import { BotaoDetalhe } from './botao-detalhe';
+import { getEquipamento } from '@/data/constants';
+import { SubNivelRow } from './sub-nivel-row';
 import { MunicipioDetalheModal } from './municipio-detalhe-modal';
-
-type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
 
 interface Props {
   rows: NivelCoberturaRow[];
@@ -45,9 +39,10 @@ interface Props {
  *   equipamentos/Cobertura/Equipamento mais próximo/População SUS" no topo
  *   do "Recorte" em MapaPage.tsx, e continua só lá).
  * Recursiva: uma linha de Regiao de Saude pode ela mesma expandir em
- * Municipios (o proprio componente busca e se re-renderiza com
- * nivelAtual="municipio", propagando o mesmo `completo`), cobrindo a
- * cadeia completa Macrorregiao -> Regiao de Saude -> Municipio.
+ * Municipios (SubNivelRow busca sob demanda e se re-renderiza chamando este
+ * componente de novo com nivelAtual="municipio", propagando o mesmo
+ * `completo`), cobrindo a cadeia completa Macrorregiao -> Regiao de Saude ->
+ * Municipio.
  */
 // RN especifica de TOMOGRAFO (ver Metodologia): municipio abaixo do
 // parametro normativo nunca foi esperado ter equipamento proprio -- na
@@ -60,13 +55,20 @@ const POPULACAO_MINIMA_PARA_HIPO = 100_000;
 export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, completo = false }: Props) {
   const produtividade = getEquipamento(equipmentFamily).produtividade;
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
-  const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
   // Self-contido (nao recebe callback do pai) -- SubNivelRows e chamado tanto
   // de CoberturaTable quanto de NivelCoberturaTable, e recursivamente por si
   // mesmo (Regiao -> Municipio); threading um callback por 2+ niveis de
   // recursao so pra abrir o mesmo modal que MunicipioDetalheModal ja busca
   // tudo sozinho seria complexidade sem ganho.
   const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
+
+  function toggleExpandida(chave: string) {
+    setExpandidas((prev) => {
+      const next = new Set(prev);
+      next.has(chave) ? next.delete(chave) : next.add(chave);
+      return next;
+    });
+  }
 
   // Excecao ao corte: se NENHUM municipio do grupo tem >=100 mil habitantes
   // E nenhum tem tomografo nenhum, o corte normal deixaria a sub-camada
@@ -78,25 +80,6 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
       ? rows.filter((r) => r.status === 'Hiperssuficiente' || r.pop >= POPULACAO_MINIMA_PARA_HIPO)
       : rows;
   const ocultos = rows.length - rowsExibidas.length;
-
-  function toggleExpandida(chave: string) {
-    const jaExpandida = expandidas.has(chave);
-    setExpandidas((prev) => {
-      const next = new Set(prev);
-      jaExpandida ? next.delete(chave) : next.add(chave);
-      return next;
-    });
-    if (!jaExpandida && !filhosPorChave[chave]) {
-      setFilhosPorChave((prev) => ({ ...prev, [chave]: 'carregando' }));
-      // sem minPopulation aqui -- e um breakdown completo da regiao de
-      // saude, nao a lista "top" filtrada por tamanho (essa so faz sentido
-      // como recorte inicial, nao dentro de um drill-down que o usuario ja
-      // pediu explicitamente).
-      fetchMunicipalityCoverage({ equipmentFamily, healthRegionCodes: [chave] })
-        .then((filhos) => setFilhosPorChave((prev) => ({ ...prev, [chave]: filhos })))
-        .catch(() => setFilhosPorChave((prev) => ({ ...prev, [chave]: 'erro' })));
-    }
-  }
 
   if (rowsExibidas.length === 0) {
     // rows.length > 0 aqui so acontece se TODOS os municipios do grupo sao
@@ -126,105 +109,20 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
           essas 2 colunas). */}
       <table className="w-full border-collapse text-xs" style={{ tableLayout: 'fixed' }}>
         <tbody>
-          {rowsExibidas.map((linha) => {
-            const coef = calcularCoeficiente(linha.oferta, linha.pop, produtividade);
-            const expansivel = nivelAtual === 'regiaoSaude';
-            const expandida = expandidas.has(linha.chave);
-            const filhos = filhosPorChave[linha.chave];
-            const selecionada = selecionados?.includes(linha.chave);
-            return (
-              <Fragment key={linha.chave}>
-                <tr
-                  onClick={expansivel ? (e) => { e.stopPropagation(); toggleExpandida(linha.chave); } : undefined}
-                  className={`border-t border-border ${expansivel ? 'cursor-pointer' : ''} ${selecionada ? 'bg-accent' : ''}`}
-                >
-                  <td
-                    className="overflow-hidden py-1.5 pr-2 pl-1 font-medium text-foreground text-ellipsis whitespace-nowrap"
-                    title={`${linha.nome} (${linha.uf})`}
-                  >
-                    {expansivel && (
-                      <span
-                        className="mr-1.5 inline-block text-[9px] text-muted-foreground transition-transform duration-150"
-                        style={{ transform: expandida ? 'rotate(90deg)' : 'none' }}
-                      >
-                        ▶
-                      </span>
-                    )}
-                    {linha.nome} <span className="font-normal text-muted-foreground">({linha.uf})</span>
-                  </td>
-                  {completo ? (
-                    <>
-                      <td className="w-[110px] py-1.5 px-2 text-right whitespace-nowrap text-muted-foreground">
-                        {linha.pop.toLocaleString('pt-BR')}
-                      </td>
-                      <td className="w-[210px] py-1.5 pr-6 pl-2">
-                        {/* bar com largura fixa (nao flex:1) -- em
-                            table-layout:fixed sem width explicito no <td>,
-                            o navegador dividia o espaco sobrando de forma
-                            instavel entre Nome e essa coluna, esticando a
-                            barra bem alem do necessario e empurrando o
-                            rotulo/status pra longe, desalinhado com o
-                            cabecalho (bug real, 2026-08-24). */}
-                        <div className="flex items-center gap-2">
-                          <div className="relative h-[7px] w-[90px] shrink-0 overflow-clip rounded bg-muted">
-                            <div
-                              className="absolute top-0 left-0 h-full"
-                              style={{ width: `${coef.fillPercent}%`, background: coef.corBarra }}
-                            />
-                            <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 rounded-sm bg-muted-foreground" />
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-semibold" style={{ color: coef.corTexto }}>
-                              {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
-                            </div>
-                            <div className="text-[9.5px] text-muted-foreground">
-                              {formatarQuantidadeEquipamento(linha.oferta)} em uso SUS
-                              {linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal} existentes`}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      {/* width 168 (nao 130) -- "Hiperssuficiente" (rotulo
-                          mais longo do StatusBadge) + gap + BotaoDetalhe
-                          juntos passavam dos 130px, empurrando o botao pra
-                          fora da celula/quebrando linha (bug real,
-                          2026-08-24). whiteSpace:nowrap trava o layout numa
-                          linha so. */}
-                      <td className="w-[168px] py-1.5 pr-2 pl-4.5 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={linha.status} />
-                          {nivelAtual === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(linha)} />}
-                        </div>
-                      </td>
-                    </>
-                  ) : (
-                    <td className="w-[76px] py-1.5 px-2 text-right whitespace-nowrap">
-                      <span className="text-[11px] font-semibold" style={{ color: coef.corTexto }}>
-                        {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
-                      </span>
-                    </td>
-                  )}
-                </tr>
-                {expandida && (
-                  <tr>
-                    <td colSpan={completo ? 4 : 2} className="bg-background py-2 pr-2 pl-6.5">
-                      {filhos === 'carregando' && <div className="p-1 text-xs text-muted-foreground">Carregando municípios...</div>}
-                      {filhos === 'erro' && <div className="p-1 text-xs text-destructive">Não foi possível carregar os municípios.</div>}
-                      {Array.isArray(filhos) && (
-                        <SubNivelRows
-                          rows={filhos}
-                          nivelAtual="municipio"
-                          equipmentFamily={equipmentFamily}
-                          selecionados={selecionados}
-                          completo={completo}
-                        />
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            );
-          })}
+          {rowsExibidas.map((linha) => (
+            <SubNivelRow
+              key={linha.chave}
+              linha={linha}
+              nivelAtual={nivelAtual}
+              equipmentFamily={equipmentFamily}
+              produtividade={produtividade}
+              selecionados={selecionados}
+              completo={completo}
+              expandida={expandidas.has(linha.chave)}
+              onToggle={() => toggleExpandida(linha.chave)}
+              onAbrirDetalhe={setDetalheAberto}
+            />
+          ))}
         </tbody>
       </table>
       {ocultos > 0 && (

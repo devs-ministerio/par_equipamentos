@@ -1,24 +1,13 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import type { NivelCoberturaRow, StatusCobertura } from '@/types/domain';
-import { formatMultiplicador } from '@/utils/format';
-import { calcularCoeficiente } from '@/utils/coeficiente';
-import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
+import { useEffect, useMemo, useState } from 'react';
+import type { NivelCoberturaRow as NivelCoberturaRowData, StatusCobertura } from '@/types/domain';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { StatusBadge } from '@/components/common/status-badge';
-import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '@/services/api';
 import { Pagination } from '@/components/common/pagination';
+import { useNivelCobertura } from '@/hooks/useNivelCobertura';
 import { InfoIcon } from './info-icon';
-import { BotaoDetalhe } from './botao-detalhe';
-import { SubNivelRows } from './sub-nivel-rows';
+import { NivelCoberturaRow } from './nivel-cobertura-row';
 import { MunicipioDetalheModal } from './municipio-detalhe-modal';
 
 const PAGE_SIZE = 20;
-
-/** Municipio abaixo disso nunca era esperado ter tomografo proprio (RN
- * especifica de TOMOGRAFO -- ver Metodologia); so aplica no nivel municipio,
- * e so quando o usuario nao pediu um municipio/CNES especifico (nesse caso
- * ele quer ver aquele, do tamanho que for). */
-const POPULACAO_MINIMA_TOMOGRAFO = 100_000;
 
 interface Props {
   equipmentFamily: string;
@@ -39,8 +28,6 @@ interface Props {
   subNivelSelecionados: string[];
 }
 
-type Filhos = NivelCoberturaRow[] | 'carregando' | 'erro';
-
 type SortKey = 'nome' | 'uf' | 'populacao' | 'cobertura' | 'status';
 
 export function NivelCoberturaTable({
@@ -54,33 +41,21 @@ export function NivelCoberturaTable({
   statusFiltro,
   subNivelSelecionados,
 }: Props) {
-  const equipamento = getEquipamento(equipmentFamily);
   const [sortKey, setSortKey] = useState<SortKey>('nome');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [page, setPage] = useState(1);
-  const [rows, setRows] = useState<NivelCoberturaRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
-  const [filhosPorChave, setFilhosPorChave] = useState<Record<string, Filhos>>({});
-  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
+  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRowData | null>(null);
 
-  // so nivel='regiaoSaude' expande (pra Municipio) -- Municipio ja e o nivel
-  // mais fino que a base tem.
-  function toggleExpandida(chave: string) {
-    const jaExpandida = expandidas.has(chave);
-    setExpandidas((prev) => {
-      const next = new Set(prev);
-      jaExpandida ? next.delete(chave) : next.add(chave);
-      return next;
-    });
-    if (!jaExpandida && !filhosPorChave[chave]) {
-      setFilhosPorChave((prev) => ({ ...prev, [chave]: 'carregando' }));
-      fetchMunicipalityCoverage({ equipmentFamily, healthRegionCodes: [chave] })
-        .then((filhos) => setFilhosPorChave((prev) => ({ ...prev, [chave]: filhos })))
-        .catch(() => setFilhosPorChave((prev) => ({ ...prev, [chave]: 'erro' })));
-    }
-  }
+  const { rows, loading, error } = useNivelCobertura({
+    equipmentFamily,
+    nivel,
+    states,
+    macroCodes,
+    healthRegionCodes,
+    municipalities,
+    semCorteDePopulacao,
+  });
 
   const statesKey = states?.join(',') ?? '';
   const macrosKey = macroCodes?.join(',') ?? '';
@@ -92,44 +67,16 @@ export function NivelCoberturaTable({
     [statusFiltro, sortKey, sortDir, nivel, statesKey, macrosKey, regioesSaudeKey, municipiosKey],
   );
 
-  // Guarda contra corrida: selecionar um CNES cascateia pro Município num
-  // segundo instante (efeito separado no useFiltrosMacro), entao um pedido
-  // SEM filtro de municipio dispara primeiro (mais lento, ~5570 linhas) e um
-  // segundo pedido JA filtrado (rapido, 1 linha) dispara logo em seguida --
-  // sem essa guarda, a resposta lenta e desfiltrada chega depois e sobrescreve
-  // o resultado certo (bug reportado: CNES de Recife mostrando o pais
-  // inteiro). So aceita a resposta se ainda for o pedido mais recente.
-  useEffect(() => {
-    let cancelado = false;
-    setLoading(true);
-    setError(null);
-    const promessa =
-      nivel === 'municipio'
-        ? fetchMunicipalityCoverage({
-            equipmentFamily,
-            states,
-            macroCodes,
-            healthRegionCodes,
-            municipalities,
-            minPopulation: semCorteDePopulacao ? undefined : POPULACAO_MINIMA_TOMOGRAFO,
-          })
-        : fetchHealthRegionCoverage({ equipmentFamily, states, macroCodes });
-
-    promessa
-      .then((res) => {
-        if (!cancelado) setRows(res);
-      })
-      .catch((e: Error) => {
-        if (!cancelado) setError(e.message);
-      })
-      .finally(() => {
-        if (!cancelado) setLoading(false);
-      });
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipmentFamily, nivel, statesKey, macrosKey, regioesSaudeKey, municipiosKey, semCorteDePopulacao]);
+  // so nivel='regiaoSaude' expande (pra Municipio) -- Municipio ja e o nivel
+  // mais fino que a base tem. O fetch sob demanda de cada regiao mora em
+  // NivelCoberturaRow (useMunicipalityByHealthRegion).
+  function toggleExpandida(chave: string) {
+    setExpandidas((prev) => {
+      const next = new Set(prev);
+      next.has(chave) ? next.delete(chave) : next.add(chave);
+      return next;
+    });
+  }
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -184,7 +131,9 @@ export function NivelCoberturaTable({
 
   return (
     <>
-      {error && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({error}).</div>}
+      {error && (
+        <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({error.message}).</div>
+      )}
       <div
         style={{ maxHeight: 340, overflowY: 'auto', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}
       >
@@ -250,91 +199,18 @@ export function NivelCoberturaTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rowsPaginadas.map((r) => {
-              // Coeficiente = (equip. SUS x produtividade da familia) / populacao
-              // SUS-dependente -- ver CoberturaTable.tsx pro mesmo calculo no
-              // nivel macro (extraido em utils/coeficiente.ts, bug real
-              // corrigido 2026-08-21: aqui tambem tinha 100_000 fixo).
-              const { valor: coeficiente, corTexto, corBarra, fillPercent } = calcularCoeficiente(
-                r.oferta,
-                r.pop,
-                equipamento.produtividade,
-              );
-              const expansivel = nivel === 'regiaoSaude';
-              const expandida = expandidas.has(r.chave);
-              const filhos = filhosPorChave[r.chave];
-              return (
-                <Fragment key={r.chave}>
-                <TableRow
-                  onClick={expansivel ? () => toggleExpandida(r.chave) : undefined}
-                  className={`border-t border-border [&>*]:whitespace-normal ${expansivel ? 'cursor-pointer' : ''}`}
-                >
-                  <TableCell className="py-[9px] pr-1.5 pl-4.5 font-medium">
-                    {expansivel && (
-                      <span
-                        className="mr-1.5 inline-block text-[10px] text-muted-foreground transition-transform duration-150"
-                        style={{ transform: expandida ? 'rotate(90deg)' : 'none' }}
-                      >
-                        ▶
-                      </span>
-                    )}
-                    {r.nome}
-                  </TableCell>
-                  <TableCell className="py-[9px] pr-2 pl-1.5 text-muted-foreground">{r.uf}</TableCell>
-                  <TableCell className="py-[9px] px-2 text-muted-foreground">{r.macroNome ?? '—'}</TableCell>
-                  {nivel === 'municipio' && (
-                    <TableCell className="py-[9px] px-2 text-muted-foreground">{r.regiaoSaudeNome ?? '—'}</TableCell>
-                  )}
-                  <TableCell className="py-[9px] pr-2 pl-2.5 text-right text-muted-foreground">
-                    {r.pop.toLocaleString('pt-BR')}
-                  </TableCell>
-                  <TableCell className="min-w-[160px] py-[9px] pr-8 pl-2">
-                    <div className="flex items-center gap-1.5">
-                      <div className="relative h-2 flex-1 overflow-clip rounded bg-muted">
-                        <div
-                          className="absolute top-0 left-0 h-full"
-                          style={{ width: `${fillPercent}%`, background: corBarra }}
-                        />
-                        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 rounded-sm bg-muted-foreground" />
-                      </div>
-                      <div className="w-[118px]">
-                        <div className="text-[11.5px] font-semibold" style={{ color: corTexto }}>
-                          {coeficiente != null ? formatMultiplicador(coeficiente) : '—'}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {formatarQuantidadeEquipamento(r.oferta)} em uso SUS
-                          {r.ofertaTotal !== r.oferta && ` de ${r.ofertaTotal} existentes`}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-[9px] pr-4.5 pl-8">
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={r.status} />
-                      {nivel === 'municipio' && <BotaoDetalhe onClick={() => setDetalheAberto(r)} />}
-                    </div>
-                  </TableCell>
-                </TableRow>
-                {expandida && (
-                  <TableRow className="bg-muted">
-                    <TableCell colSpan={nivel === 'municipio' ? 7 : 6} className="py-2.5 pr-4.5 pl-10.5 whitespace-normal">
-                      {filhos === 'carregando' && <div className="text-xs text-muted-foreground">Carregando municípios...</div>}
-                      {filhos === 'erro' && <div className="text-xs text-destructive">Não foi possível carregar os municípios.</div>}
-                      {Array.isArray(filhos) && (
-                        <SubNivelRows
-                          rows={filhos}
-                          nivelAtual="municipio"
-                          equipmentFamily={equipmentFamily}
-                          selecionados={subNivelSelecionados}
-                          completo
-                        />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )}
-                </Fragment>
-              );
-            })}
+            {rowsPaginadas.map((r) => (
+              <NivelCoberturaRow
+                key={r.chave}
+                row={r}
+                nivel={nivel}
+                equipmentFamily={equipmentFamily}
+                subNivelSelecionados={subNivelSelecionados}
+                expandida={expandidas.has(r.chave)}
+                onToggle={() => toggleExpandida(r.chave)}
+                onAbrirDetalhe={setDetalheAberto}
+              />
+            ))}
             {!loading && rowsPaginadas.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="py-4 px-4.5 text-[12.5px] text-muted-foreground whitespace-normal">

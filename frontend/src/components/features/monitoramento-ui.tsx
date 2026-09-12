@@ -3,6 +3,8 @@
  * Dashboard/Painel Geral), pagina continua fora do AppLayout (decisao
  * 2026-09-03, ver MonitoramentoEquipamentosPage.tsx). */
 import { colors } from '@/styles/tokens';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 /** Sombra suave em vez de so borda -- cartao "flutua" sobre o fundo
  * (colors.surface) ao inves de se misturar nele, mesma linguagem visual
@@ -116,6 +118,66 @@ export function BarraDistribuicao({ itens, corBarra }: { itens: ContagemRotulo[]
         </div>
       ))}
     </div>
+  );
+}
+
+/** Card com título/subtítulo/ação opcional -- usado pelas seções operacionais
+ * de MonitoramentoInterno (Acesso, Cadastro, Fase geral, Cronograma, Ações,
+ * Timeline). Extraído do próprio arquivo (era função interna) pra ser
+ * reaproveitado pelos subcomponentes depois do split (Seção 6). */
+export function SecaoOperacional({
+  titulo,
+  subtitulo,
+  acao,
+  destaque = false,
+  children,
+}: {
+  titulo: string;
+  subtitulo?: string;
+  acao?: React.ReactNode;
+  destaque?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className={cn('mb-4 gap-0 py-0', destaque && 'bg-muted/50')}>
+      <CardHeader className="grid-cols-[1fr_auto] gap-3 border-b py-3.5">
+        <div>
+          <CardTitle className="text-sm font-semibold tracking-[-0.01em] text-foreground">{titulo}</CardTitle>
+          {subtitulo && <CardDescription className="mt-1 text-xs leading-snug">{subtitulo}</CardDescription>}
+        </div>
+        {acao}
+      </CardHeader>
+      <CardContent className="py-3.5">{children}</CardContent>
+    </Card>
+  );
+}
+
+/** `aria-describedby` composto (helper + erro do campo) -- `undefined`
+ * quando nenhum dos 2 existe, pra não poluir o DOM com atributo vazio. */
+export function idsDescricaoCampo(id: string, temErro: boolean, temHelper: boolean): string | undefined {
+  const ids = [temHelper ? `${id}-helper` : null, temErro ? `${id}-error` : null].filter(Boolean);
+  return ids.length ? ids.join(' ') : undefined;
+}
+
+/** Mensagem de erro de campo de form -- `id` é o alvo do `aria-describedby`
+ * do input correspondente (ver idsDescricaoCampo). */
+export function ErroCampo({ id, mensagem }: { id: string; mensagem?: string }) {
+  if (!mensagem) return null;
+  return (
+    <p id={id} role="alert" style={{ fontSize: 10.5, color: colors.hipoRed, margin: '4px 0 0' }}>
+      {mensagem}
+    </p>
+  );
+}
+
+/** Texto de ajuda de campo de form (ex. formato esperado) -- mesmo esquema
+ * de id do erro acima. */
+export function AjudaCampo({ id, texto }: { id: string; texto?: string }) {
+  if (!texto) return null;
+  return (
+    <p id={id} style={{ fontSize: 10.5, color: colors.mutedText, margin: '4px 0 0' }}>
+      {texto}
+    </p>
   );
 }
 

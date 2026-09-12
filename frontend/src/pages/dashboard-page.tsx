@@ -6,32 +6,19 @@ import { EstabelecimentoTable } from '@/components/features/estabelecimento-tabl
 import { InfoIcon } from '@/components/features/info-icon';
 import { NivelCoberturaTable } from '@/components/features/nivel-cobertura-table';
 import { StatusFilterButtons } from '@/components/features/status-filter-buttons';
-import {
-  fetchEquipmentTotals,
-  fetchFacilities,
-  fetchHealthRegionCoverage,
-  fetchMacroCoverage,
-  fetchMunicipalityCoverage,
-} from '@/services/api';
-import type { EquipmentTotals, FacilityOption } from '@/services/api';
 import { useFiltrosMacro } from '@/hooks/useFiltrosMacro';
+import { useDashboardCobertura } from '@/hooks/useDashboardCobertura';
+import { useDashboardTotais } from '@/hooks/useDashboardTotais';
+import { useDashboardHipo } from '@/hooks/useDashboardHipo';
 import { useFamiliaEquipamento } from '@/context/familia-equipamento-context';
 import { REGIOES } from '@/data/constants';
-import type { CoberturaRow, Macrorregiao, StatusCobertura } from '@/types/domain';
+import type { StatusCobertura } from '@/types/domain';
 
 export function DashboardPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
-  const [macros, setMacros] = useState<Macrorregiao[]>([]);
-  const [coberturaRows, setCoberturaRows] = useState<CoberturaRow[]>([]);
-  const [facilities, setFacilities] = useState<FacilityOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { macros, coberturaRows, facilities, isLoading, isError, error } = useDashboardCobertura(FAMILIA);
 
   const [statusFiltro, setStatusFiltro] = useState<Set<StatusCobertura>>(new Set());
-  const [totais, setTotais] = useState<EquipmentTotals | null>(null);
-  const [municipiosHipo, setMunicipiosHipo] = useState<number | null>(null);
-  const [regioesSaudeHipo, setRegioesSaudeHipo] = useState<number | null>(null);
-  const [regioesSaudeTotal, setRegioesSaudeTotal] = useState<number | null>(null);
   // Forca a tabela "Cobertura Assistencial" pro nivel escolhido mesmo sem um
   // filtro geografico daquele nivel especifico selecionado -- so os cards de
   // Hipo acionam isso (clicar neles quer dizer "me mostra a lista", nao
@@ -67,28 +54,6 @@ export function DashboardPage() {
     limparFiltros,
   } = useFiltrosMacro({ macros, coberturaRows, facilities });
 
-  // Re-roda ao trocar a familia selecionada no menu (SeletorEquipamento) --
-  // guarda contra corrida igual os outros efeitos: trocar de familia
-  // rapido (TOMOGRAFO -> RESSONANCIA -> TOMOGRAFO) pode fazer a resposta da
-  // familia anterior chegar depois da nova e sobrescrever o dado certo.
-  useEffect(() => {
-    let cancelado = false;
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchMacroCoverage(FAMILIA), fetchFacilities(FAMILIA)])
-      .then(([coverage, facilityOptions]) => {
-        if (cancelado) return;
-        setMacros(coverage.macros);
-        setCoberturaRows(coverage.coberturaRows);
-        setFacilities(facilityOptions);
-      })
-      .catch((e: Error) => !cancelado && setError(e.message))
-      .finally(() => !cancelado && setLoading(false));
-    return () => {
-      cancelado = true;
-    };
-  }, [FAMILIA]);
-
   const estadosKey = estadosFiltro?.join(',') ?? '';
   const macrosKey = macrosFiltro?.join(',') ?? '';
   const regioesSaudeKey = regioesSaudeFiltro?.join(',') ?? '';
@@ -104,80 +69,22 @@ export function DashboardPage() {
     setNivelForcado(null);
   }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
 
-  // Contagens dos cards clicaveis "Municípios Hipossuficientes" e "Regiões
-  // de Saúde Hipossuficientes" -- mesmo recorte geografico dos outros cards, mas
-  // sempre com o corte de 100 mil habitantes pro nivel Municipio (RN
-  // especifica de TOMOGRAFO: municipio menor nunca foi esperado ter
-  // equipamento proprio, ver Metodologia) independente de
-  // semCorteDePopulacao (que so vale quando o USUARIO ja escolheu um
-  // municipio/CNES especifico).
-  //
-  // Guarda contra corrida (mesmo bug de NivelCoberturaTable, corrigido
-  // 2026-08-22): selecionar um CNES cascateia pro Municipio num segundo
-  // instante, entao um pedido SEM filtro de municipio dispara primeiro
-  // (mais lento, lista nacional) e um pedido JA filtrado dispara logo
-  // depois (mais rapido) -- sem essa guarda, a resposta lenta e desfiltrada
-  // chegava por ultimo e sobrescrevia o card com o numero nacional errado.
-  useEffect(() => {
-    let cancelado = false;
+  const { municipiosHipo, regioesSaudeHipo, regioesSaudeTotal } = useDashboardHipo({
+    equipmentFamily: FAMILIA,
+    states: estadosFiltro,
+    macroCodes: macrosFiltro,
+    healthRegionCodes: regioesSaudeFiltro,
+    municipalities: municipiosFiltro,
+  });
 
-    fetchMunicipalityCoverage({
-      equipmentFamily: FAMILIA,
-      states: estadosFiltro,
-      macroCodes: macrosFiltro,
-      healthRegionCodes: regioesSaudeFiltro,
-      municipalities: municipiosFiltro,
-      minPopulation: 100_000,
-    })
-      .then((rows) => {
-        if (!cancelado) setMunicipiosHipo(rows.filter((r) => r.status === 'Hipossuficiente').length);
-      })
-      .catch(() => !cancelado && setMunicipiosHipo(null));
-
-    fetchHealthRegionCoverage({ equipmentFamily: FAMILIA, states: estadosFiltro, macroCodes: macrosFiltro })
-      .then((rows) => {
-        if (cancelado) return;
-        setRegioesSaudeHipo(rows.filter((r) => r.status === 'Hipossuficiente').length);
-        setRegioesSaudeTotal(rows.length);
-      })
-      .catch(() => {
-        if (cancelado) return;
-        setRegioesSaudeHipo(null);
-        setRegioesSaudeTotal(null);
-      });
-
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey]);
-
-  // Total de Equipamentos / Total de Equipamentos SUS vem direto de
-  // equipment_offer_row (soma exata pro recorte pedido), nao de
-  // macro-coverage (agregado so por macro) -- senao filtrar por um
-  // Município/Região de Saúde/CNES mostraria o total da macro inteira em vez
-  // do recorte real (bug corrigido em 2026-08-21). Mesma guarda contra
-  // corrida do efeito acima.
-  useEffect(() => {
-    let cancelado = false;
-
-    fetchEquipmentTotals({
-      equipmentFamily: FAMILIA,
-      states: estadosFiltro,
-      macroCodes: macrosFiltro,
-      healthRegionCodes: regioesSaudeFiltro,
-      municipalities: municipiosFiltro,
-      cnesCodes: cnesFiltro,
-    })
-      .then((res) => !cancelado && setTotais(res))
-      .catch(() => !cancelado && setTotais(null));
-
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [FAMILIA, estadosKey, macrosKey, regioesSaudeKey, municipiosKey, cnesKey]);
-
+  const { totais } = useDashboardTotais({
+    equipmentFamily: FAMILIA,
+    states: estadosFiltro,
+    macroCodes: macrosFiltro,
+    healthRegionCodes: regioesSaudeFiltro,
+    municipalities: municipiosFiltro,
+    cnesCodes: cnesFiltro,
+  });
 
   // fallback dos cards "Total de Equipamentos"/"Total de Equipamentos SUS"
   // enquanto fetchEquipmentTotals ainda nao respondeu (ou falhou) -- soma
@@ -213,15 +120,15 @@ export function DashboardPage() {
     setStatusFiltro(new Set());
   }
 
-  if (loading) {
+  if (isLoading) {
     return <div className="p-15 text-center text-muted-foreground">Carregando dados...</div>;
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="rounded-lg bg-destructive/10 p-6 text-destructive">
-        Não foi possível carregar os dados da API ({error}). Confirme se o backend está rodando em{' '}
-        {import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}.
+        Não foi possível carregar os dados da API ({error?.message ?? 'erro desconhecido'}). Confirme se o backend
+        está rodando em {import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}.
       </div>
     );
   }
@@ -296,6 +203,7 @@ export function DashboardPage() {
         {hasAnyFilter && (
           <button
             onClick={limparFiltros}
+            aria-label="Limpar filtros"
             className="cursor-pointer rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive"
           >
             ✕ Limpar
