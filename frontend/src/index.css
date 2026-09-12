@@ -12,23 +12,31 @@
      --primary etc). Enquanto a migracao nao move tokens.ts pra ca de
      vez, os dois arquivos precisam ficar em sincronia manualmente --
      agora com --success/--warning/--destructive-bg tambem (adicionadas
-     2026-09-10 pra reestilizacao de dashboard-cobertura/mapa-equipamentos). */
-  --background: #f4f6fb;
-  --foreground: #16213e;
+     2026-09-10 pra reestilizacao de dashboard-cobertura/mapa-equipamentos).
+
+     Paleta do protótipo anexado pelo usuário (2026-09-11, "Aplique estas
+     cores do protótipo ao tema do projeto") -- fundo levemente aquecido
+     (#f6f4ef), accent verde-petróleo (#2d6a5c), alerta terracota
+     (#a35a12 sobre #f6e6d2). Formato continua hex (não hsl(var(--x))) --
+     é o formato que este arquivo já usava antes, não tem conversão a
+     fazer. --success (oliva, "hiperssuficiente") fica como estava --
+     accent é marca, não faz parte do semáforo de status. */
+  --background: #f6f4ef;
+  --foreground: #1c1a16;
   --card: #ffffff;
-  --card-foreground: #16213e;
+  --card-foreground: #1c1a16;
   --popover: #ffffff;
-  --popover-foreground: #16213e;
-  --border: #dde2ea;
-  --input: #dde2ea;
-  --primary: #1a3a9c;
+  --popover-foreground: #1c1a16;
+  --border: #e4dfd3;
+  --input: #e4dfd3;
+  --primary: #2d6a5c;
   --primary-foreground: #ffffff;
-  --secondary: #dfe6f7;
-  --secondary-foreground: #16213e;
-  --muted: #eef1f5;
-  --muted-foreground: #667085;
-  --accent: #dfe6f7;
-  --accent-foreground: #16213e;
+  --secondary: #e1eae7;
+  --secondary-foreground: #1c1a16;
+  --muted: #efebe3;
+  --muted-foreground: #6b6459;
+  --accent: #e1eae7;
+  --accent-foreground: #1c1a16;
   --destructive: #b40d0d;
   --destructive-foreground: #ffffff;
   /* == tokens.ts colors.hipoRedBg -- variante clara SOLIDA, nao opacidade.
@@ -42,27 +50,24 @@
   /* == tokens.ts colors.hiperGreenBg -- mesma ressalva do --destructive-bg
      acima (solida, pra D3; className comum usa bg-success/15). */
   --success-bg: #eaf3e0;
-  /* == tokens.ts colors.logoOrange. */
-  --warning: #f5a623;
-  --warning-foreground: #16213e;
-  --ring: #1a3a9c;
-  --radius: 0.5rem;
-  /* chart-N e sidebar-N nao tem token equivalente ainda (app nao usa
-     grafico via shadcn nem sidebar) -- deixados no default do preset ate
-     haver uso real, pra nao inventar cor sem necessidade. */
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* == tokens.ts colors.logoOrange/logoOrangeBg -- alerta (prazo/pendencia
+     do monitoramento interno), nao "aviso" generico do preset shadcn. */
+  --warning: #a35a12;
+  --warning-foreground: #a35a12;
+  --warning-bg: #f6e6d2;
+  --ring: #2d6a5c;
+  /* --radius fica maior que o default (era 0.5rem) -- cards/dialog usam
+     essa escala (--radius-xl abaixo); botao/input pedem radius MENOR
+     (Secao 4 da constituicao: "controles com radius menor que cards"),
+     por isso button.tsx/input.tsx usam rounded-md (--radius-md) em vez de
+     rounded-lg (--radius-lg), que ficaria do mesmo tamanho do card. */
+  --radius: 0.625rem;
+  /* Sombra reservada a overlay (dialog/popover/dropdown) e a card-group
+     (Secao 5: "sombra pesada em elemento estatico" e proibido -- card
+     comum usa so borda, ver ui/card.tsx). */
+  --shadow-card: 0 1px 3px 0 rgb(28 26 22 / 0.06), 0 1px 2px -1px rgb(28 26 22 / 0.06);
+  --shadow-overlay: 0 12px 32px -8px rgb(28 26 22 / 0.28);
+  --shadow-control-focus: 0 0 0 3px rgb(45 106 92 / 0.35);
 }
 
 @theme inline {
@@ -90,20 +95,8 @@
   --color-success-bg: var(--success-bg);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-bg: var(--warning-bg);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -117,6 +110,18 @@
      index.html) -- nao trocar pro default do preset (Geist) sem decisao
      explicita de redesign. */
   --font-sans: 'Public Sans', -apple-system, sans-serif;
+  /* Par tipografico (Fundacao de identidade visual, 2026-09-11): display
+     separado do corpo (Secao 5 da constituicao -- "nunca Inter/Roboto
+     sozinha em tudo"). Carregada junto com Public Sans em index.html.
+     Uso: titulo do app (Header), titulo de secao/pagina, valor de KPI --
+     nunca em corpo de texto/label. Classe gerada automaticamente pelo
+     Tailwind v4 a partir do token: `font-display`. */
+  --font-display: 'Space Grotesk', 'Public Sans', -apple-system, sans-serif;
+  /* Fragment Mono -- numeros (valor em R$, quantidade, id) do mockup
+     completo anexado pelo usuario. Uso: `.font-data`/`font-data` em
+     valor de KPI e coluna numerica de tabela, nunca em texto corrido.
+     Carregada junto com Public Sans/Space Grotesk em index.html. */
+  --font-data: 'Fragment Mono', ui-monospace, 'Space Grotesk', monospace;
 }
 
 * {
@@ -125,21 +130,6 @@
 
 body {
   margin: 0;
-  /* App e feito quase todo de <div>/<span> clicaveis (linhas de tabela,
-     cards, chips de filtro) em vez de <button>/<a> -- sem isso, o navegador
-     trata esse texto como selecionavel por padrao e mostra o cursor de
-     escrita (I-beam) e destaca em azul ao clicar em qualquer lugar (bug
-     reportado 2026-08-22). Reabilitado so em inputs/textareas -- a maioria
-     das celulas de tabela tambem e clicavel (expande linha/abre detalhe),
-     entao reabilitar selecao ali de volta traria o mesmo problema. */
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-input,
-textarea {
-  -webkit-user-select: text;
-  user-select: text;
 }
 
 #root {
@@ -152,7 +142,7 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c7cede;
+  background: #d6cfc0;
   border-radius: 4px;
 }
 
@@ -169,5 +159,154 @@ button {
   }
   html {
     @apply font-sans;
+  }
+  /* sublinhado default do navegador nunca vaza em nav/botao/card -- so
+     aparece quando for decisao deliberada (link em texto corrido), que
+     adiciona a classe underline explicitamente. */
+  a {
+    text-decoration: none;
+  }
+}
+
+/* ---- Assinatura visual (Fundacao de identidade visual, 2026-09-11) ----
+   Utilitarios portados de theme.example.css (anexado pelo usuario),
+   adaptados as variaveis hex ja usadas neste arquivo (em vez de hsl()).
+   Disponiveis pra proxima etapa de reestilizacao pagina-a-pagina
+   (dashboard-cobertura/monitoramento) -- nao aplicados em componente
+   nenhum ainda nesta fundacao. */
+@layer components {
+  /* Elevacao seletiva por GRUPO de resultado, nunca por elemento dentro
+     do grupo -- Secao 5: "cards sao permitidos, mas so em 1 nivel". Usar
+     no container mais externo (1 card por convenio, 1 card por row de
+     metricas); por dentro, estruturar por borda/divisor, nunca card
+     aninhado dentro de card-group. */
+  .card-group {
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--shadow-card);
+  }
+  .card-group-accent {
+    height: 3px;
+    background: var(--primary);
+  }
+
+  /* Tabela editorial -- sem sombra, sem zebra, hierarquia so por
+     tipografia/borda (estetica Swiss, Secao 5 "Estruturas em vez de card
+     em tudo"). Envolver com .table-scroll quando a tabela for larga --
+     a pagina nunca rola lateralmente, so o container (Secao 14). */
+  .table-editorial {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 2px solid var(--foreground);
+  }
+  .table-editorial thead th {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .table-editorial thead th.num,
+  .table-editorial td.num {
+    text-align: right;
+  }
+  .table-editorial tbody td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    transition: background-color 0.15s ease-in-out;
+  }
+  .table-editorial tbody tr:hover td {
+    background: color-mix(in srgb, var(--muted) 40%, transparent);
+  }
+  .table-editorial tbody tr[data-state='highlight'] td:first-child {
+    border-left: 3px solid var(--primary);
+    padding-left: calc(0.75rem - 3px);
+  }
+  .table-editorial td.font-data,
+  .table-editorial .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  /* Grid de metadados (identificacao/detalhes) -- 4 colunas (2 em
+     mobile), contraste label/valor faz a hierarquia, nao tamanho de
+     fonte. */
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem 1.5rem;
+    padding: 1.5rem;
+  }
+  @media (max-width: 640px) {
+    .meta-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .meta-grid .field label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.625rem;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+  }
+  .meta-grid .field span {
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--foreground);
+  }
+
+  /* Row de KPI com faixas de altura fixa -- valor longo nunca quebra
+     linha e desalinha a linha de base com os vizinhos (encolhe via
+     clamp() em vez de quebrar). */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  @media (max-width: 900px) {
+    .kpi-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .kpi {
+    display: flex;
+    flex-direction: column;
+    padding: 1.125rem 1rem;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  .kpi .label {
+    height: 14px;
+    margin: 0 0 0.5rem;
+    overflow: hidden;
+    line-height: 14px;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.625rem;
+    color: var(--muted-foreground);
+  }
+  .kpi .value {
+    height: 1.2em;
+    overflow: hidden;
+    line-height: 1.2;
+    white-space: nowrap;
+    font-size: clamp(1rem, 2.1vw, 1.5rem);
+    font-weight: 700;
+  }
+  .kpi .sub {
+    height: 14px;
+    margin-top: 0.25rem;
+    overflow: hidden;
+    line-height: 14px;
+    white-space: nowrap;
+    font-size: 0.74rem;
+    color: var(--muted-foreground);
   }
 }

@@ -1,4 +1,4 @@
-import { UF_INFO } from '../data/geoReference';
+import { UF_INFO } from '../data/geo-reference';
 import type {
   CoberturaRow,
   EstabelecimentoRow,
@@ -70,12 +70,10 @@ async function apiGet<T>(path: string, params?: Record<string, string | string[]
   return res.json() as Promise<T>;
 }
 
-// deficit_status tem 3 estados no backend (deficient/not_deficient/not_available)
-// -- o terceiro (fonte desativada, RF-08) ainda nao tem tratamento visual
-// dedicado no front; cai em Hipossuficiente por enquanto (nao ocorre nos
-// dados de hoje, so no seed real do Modulo 5 isso passa a importar).
 function toStatus(deficitStatus: MacroCoverageApi['deficit_status']): StatusCobertura {
-  return deficitStatus === 'not_deficient' ? 'Hiperssuficiente' : 'Hipossuficiente';
+  if (deficitStatus === 'not_deficient') return 'Hiperssuficiente';
+  if (deficitStatus === 'deficient') return 'Hipossuficiente';
+  return 'Dados indisponíveis';
 }
 
 function toEstabelecimentoRow(r: EstablishmentApi): EstabelecimentoRow {
@@ -157,6 +155,9 @@ export interface EstabelecimentosParams {
    * o "equipamento mais proximo" (Mapa), mesmo criterio que "oferta" ja
    * usa em todo o resto do app. */
   susOnly?: boolean;
+  /** Só equipamento SUS efetivamente em uso — exigido por distância e
+   * "mais próximo"; não se aplica às listagens cadastrais. */
+  inUseSusOnly?: boolean;
 }
 
 export interface EstabelecimentosResult {
@@ -185,6 +186,7 @@ export async function fetchEstabelecimentosPage(params: EstabelecimentosParams):
     query.radius_km = String(params.near.radiusKm);
   }
   if (params.susOnly) query.sus_flag = 'true';
+  if (params.inUseSusOnly) query.in_use_sus = 'true';
 
   const page = await apiGet<EstablishmentPageApi>('/equipment-offer-rows/establishments', query);
   return { items: page.items.map(toEstabelecimentoRow), total: page.total };

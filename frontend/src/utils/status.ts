@@ -5,7 +5,11 @@ import type { StatusCobertura } from '../types/domain';
  * pra desenho imperativo (MacroMap.tsx, D3/Leaflet) resolve
  * `--${variant}` via src/lib/theme-colors.ts::resolveThemeColor, em vez
  * de statusMeta devolver hex cru duplicado das variaveis de index.css. */
-export function statusMeta(cobertura: number): { label: StatusCobertura; variant: 'success' | 'destructive' } {
-  if (cobertura >= 100) return { label: 'Hiperssuficiente', variant: 'success' };
-  return { label: 'Hipossuficiente', variant: 'destructive' };
+export function statusMeta(status: StatusCobertura): {
+  label: StatusCobertura;
+  variant: 'success' | 'destructive' | 'secondary';
+} {
+  if (status === 'Hiperssuficiente') return { label: status, variant: 'success' };
+  if (status === 'Hipossuficiente') return { label: status, variant: 'destructive' };
+  return { label: status, variant: 'secondary' };
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { UF_INFO } from '../data/geoReference';
+import { UF_INFO } from '../data/geo-reference';
 import type { FacilityOption } from '../services/api';
 import type { CoberturaRow, Macrorregiao } from '../types/domain';
 

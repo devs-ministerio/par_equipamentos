@@ -16,7 +16,7 @@ export interface Macrorregiao {
   nomeEstado: string;
 }
 
-export type StatusCobertura = 'Hiperssuficiente' | 'Hipossuficiente';
+export type StatusCobertura = 'Hiperssuficiente' | 'Hipossuficiente' | 'Dados indisponíveis';
 
 /** Cobertura agregada de uma macrorregiao (tabela 1 do dashboard, mapa). */
 export interface CoberturaRow {
