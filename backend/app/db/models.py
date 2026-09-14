@@ -548,6 +548,17 @@ class InstrumentoEquipamento(Base):
     # contato mas sem obrigacao de preenchimento").
     responsavel_execucao_nome: Mapped[str | None] = mapped_column(String)
     responsavel_execucao_contato: Mapped[str | None] = mapped_column(String)
+    # Situacao da PRESTACAO DE CONTAS (TransfereGov, ex. "Prestação de
+    # Contas Concluída") -- achado 2026-09-14: campo DIFERENTE do
+    # `situacao` buscado ao vivo do Portal da Transparencia (comentario
+    # acima), que e status financeiro/orcamentario do convenio ("Normal",
+    # "Inadimplente"...), nao da prestacao de contas. A API nova do
+    # TransfereGov nao tem endpoint de consulta por numero de convenio
+    # legado (so CSV bulk, ver docs/transferegov-investsus.md) -- por isso,
+    # ao contrario de `situacao`, este campo NAO da pra buscar ao vivo e
+    # precisa ser dado manual (planilha/import ou PATCH), como
+    # tecnico_titular etc.
+    situacao_prestacao_contas: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

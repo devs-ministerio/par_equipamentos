@@ -123,6 +123,14 @@ class InstrumentoEquipamentoRead(BaseModel):
     # equipe). Opcional, informativo.
     responsavel_execucao_nome: str | None
     responsavel_execucao_contato: str | None
+    # Situacao da PRESTACAO DE CONTAS (TransfereGov) -- achado 2026-09-14,
+    # DIFERENTE de `situacao` (Portal da Transparencia, buscado ao vivo em
+    # `obter_timeline`/`_convenio_ao_vivo`, nao esta neste model porque tem
+    # fonte automatica). Este campo nao tem API de consulta por convenio
+    # legado, entao e dado manual, gravado aqui como os outros campos de
+    # gestao interna (ver comentario em InstrumentoEquipamento no
+    # models.py).
+    situacao_prestacao_contas: str | None
     # So preenchido por `listar_instrumentos` (achado 2026-09-10, pedido do
     # usuario: filtro de fase na Visao Geral) -- reaproveita `_fase_atual_id`,
     # mesma regra ja usada em `obter_resumo`/no front. Fica None nos outros
@@ -158,6 +166,7 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     modalidade_onco: str | None = None
     responsavel_execucao_nome: str | None = None
     responsavel_execucao_contato: str | None = None
+    situacao_prestacao_contas: str | None = None
 
 
 class ValorSituacaoAoVivoRead(BaseModel):
