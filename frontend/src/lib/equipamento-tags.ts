@@ -58,11 +58,23 @@ function descricoesDeItem(c: ConvenioUnificado): string[] {
   return descs;
 }
 
-export function equipamentosDoConvenio(c: ConvenioUnificado): EquipamentoAlvo[] {
-  const descsNorm = descricoesDeItem(c).map(normalizarTexto).join(' | ').toUpperCase();
+/** Classifica uma lista de descrições de item cruas contra os mesmos
+ * padrões -- extraído pra reuso fora de `ConvenioUnificado` (achado
+ * 2026-09-15, pedido do usuário: "faltou aparecer os equipamentos no
+ * filtro de equipamentos" nas Linhas de financiamento -- `equipamento_detectado`
+ * da PropostaCandidata só cobre os 5 padrões originais no backend e vem
+ * null na prática pra parte das propostas; classificar aqui contra TODOS
+ * os itens de `metas_resumo`, mesmos 14 padrões usados em Instrumentos
+ * firmados, resolve sem esperar mudança no backend). */
+export function equipamentosDeDescricoes(descs: string[]): EquipamentoAlvo[] {
+  const descsNorm = descs.map(normalizarTexto).join(' | ').toUpperCase();
   const achados: EquipamentoAlvo[] = [];
   for (const [equip, padrao] of PADROES) {
     if (padrao.test(descsNorm)) achados.push(equip);
   }
   return achados;
+}
+
+export function equipamentosDoConvenio(c: ConvenioUnificado): EquipamentoAlvo[] {
+  return equipamentosDeDescricoes(descricoesDeItem(c));
 }

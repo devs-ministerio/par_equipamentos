@@ -16,12 +16,16 @@
  * descoberta (`metas_resumo` -- proposta/metas/cronograma_desembolso, ver
  * job_descoberta_transferegov.py) -- achado 2026-09-15, pedido do usuário:
  * "a equipe técnica precisará de mais informações pra aprovar ou não". */
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
 import { cn } from '@/lib/utils';
+import { normalizarTexto } from '@/utils/texto';
+import { equipamentosDeDescricoes, type EquipamentoAlvo } from '@/lib/equipamento-tags';
 import { Button } from '@/components/ui/button';
+import { SearchInput } from '@/components/common/search-input';
+import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { Campo, estiloCard, Secao, StatusPill } from './monitoramento-ui';
 import type { PropostaCandidataStatus } from '@/services/monitoramento';
 
@@ -91,6 +95,26 @@ function equipamentoPrincipal(metasResumo: unknown): { nome: string; valor: numb
     }
   }
   return melhor;
+}
+
+/** Tags de equipamento (EQUIPAMENTOS_ALVO) pra filtro -- achado 2026-09-15,
+ * pedido do usuário: "faltou aparecer os equipamentos no filtro de
+ * equipamentos". `equipamento_detectado` (campo da própria PropostaCandidata)
+ * vem null pras 10 propostas incorporadas hoje -- classifica direto contra
+ * TODOS os itens de `metas_resumo` (mesmos 14 padrões de equipamento-tags.ts),
+ * não só o de maior valor (`equipamentoPrincipal` acima), então pega
+ * qualquer equipamento-alvo presente mesmo quando não é o item mais caro. */
+function equipamentosDaProposta(metasResumo: unknown): EquipamentoAlvo[] {
+  const nomes: string[] = [];
+  for (const m of lista(metasResumo, 'metas')) {
+    for (const e of lista(m, 'etapas_proposta')) {
+      for (const it of lista(e, 'itens')) {
+        const nome = campo(it, 'nm_item');
+        if (nome) nomes.push(nome);
+      }
+    }
+  }
+  return equipamentosDeDescricoes(nomes);
 }
 
 /** Situação "de fato" -- achado 2026-09-15, pedido do usuário: "troque o
@@ -606,9 +630,92 @@ function SecaoTimelineFinanceira({
   );
 }
 
+/** Filtros -- pedido do usuário 2026-09-15: "adicione os mesmos filtros
+ * que temos disponíveis no Instrumentos firmados" (ver
+ * monitoramento-equipamentos-page.tsx). Mesmos 5 (busca/UF/equipamento/
+ * situação/ano/programa) -- "Tipo de contratação" fica de fora porque não
+ * se aplica aqui (toda PropostaCandidata é, por definição, TransfereGov
+ * Novo; convênio legado nunca entra nesta lista). Opções computadas só a
+ * partir do `propostas` já filtrado por `status` (pendente/aceita), não
+ * do universo inteiro -- mesmo padrão da página (options refletem o que
+ * está na aba atual). */
 export function SecaoPropostasCandidatas({ status }: { status: PropostaCandidataStatus }) {
   const { propostas, carregando, revisar, revisando } = usePropostasCandidatas(status);
   const sessao = useAuthSession();
+  const [busca, setBusca] = useState('');
+  const [uf, setUf] = useState<string | null>(null);
+  const [equipamento, setEquipamento] = useState<string | null>(null);
+  const [situacao, setSituacao] = useState<string | null>(null);
+  const [ano, setAno] = useState<string | null>(null);
+  const [programa, setPrograma] = useState<string | null>(null);
+
+  const ufOptions = useMemo(() => {
+    const set = new Set(propostas.map((p) => p.uf).filter((u): u is string => Boolean(u)));
+    return [...set].sort().map((u) => ({ value: u, label: u }));
+  }, [propostas]);
+
+  const equipamentosPorProposta = useMemo(() => {
+    return new Map(propostas.map((p) => [p.id, equipamentosDaProposta(p.metas_resumo)]));
+  }, [propostas]);
+
+  const equipamentoOptions = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const tags of equipamentosPorProposta.values()) {
+      for (const t of tags) contagem.set(t, (contagem.get(t) ?? 0) + 1);
+    }
+    return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([e, n]) => ({ value: e, label: `${e} (${n})` }));
+  }, [equipamentosPorProposta]);
+
+  const situacaoOptions = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const p of propostas) {
+      const s = situacaoDeFato(p);
+      if (s) contagem.set(s, (contagem.get(s) ?? 0) + 1);
+    }
+    return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([s, n]) => ({ value: s, label: `${s} (${n})` }));
+  }, [propostas]);
+
+  // Ano da proposta -- mesmo critério do filtro em Instrumentos firmados
+  // (pedido do usuário 2026-09-15 nesta mesma sessão: "adicione o ano da
+  // proposta"), aqui via data_proposta em vez do sufixo do numeroInstrumento.
+  const anoOptions = useMemo(() => {
+    const anos = new Set<string>();
+    for (const p of propostas) {
+      const a = p.data_proposta?.slice(0, 4);
+      if (a) anos.add(a);
+    }
+    return [...anos].sort().reverse().map((a) => ({ value: a, label: a }));
+  }, [propostas]);
+
+  // Por id_programa (chave limpa, não o rótulo) -- mesmo raciocínio do
+  // filtro de Instrumentos firmados, mas aqui o id já vem certo na API
+  // (sem corrupção de encoding pra contornar).
+  const programaOptions = useMemo(() => {
+    const porId = new Map<number, { nome: string; n: number }>();
+    for (const p of propostas) {
+      const atual = porId.get(p.id_programa);
+      if (atual) atual.n += 1;
+      else porId.set(p.id_programa, { nome: p.nm_programa, n: 1 });
+    }
+    return [...porId.entries()]
+      .sort((a, b) => b[1].n - a[1].n)
+      .map(([id, { nome, n }]) => ({ value: String(id), label: `${nome} (${n})` }));
+  }, [propostas]);
+
+  const filtradas = useMemo(() => {
+    return propostas.filter((p) => {
+      if (uf && p.uf !== uf) return false;
+      if (equipamento && !equipamentosPorProposta.get(p.id)?.includes(equipamento as EquipamentoAlvo)) return false;
+      if (situacao && situacaoDeFato(p) !== situacao) return false;
+      if (ano && p.data_proposta?.slice(0, 4) !== ano) return false;
+      if (programa && String(p.id_programa) !== programa) return false;
+      if (busca) {
+        const alvo = normalizarTexto(`${p.id_proposta} ${p.nm_proponente} ${p.cnpj_ente_recebedor} ${p.municipio ?? ''} ${p.nm_programa}`);
+        if (!alvo.includes(normalizarTexto(busca))) return false;
+      }
+      return true;
+    });
+  }, [propostas, uf, equipamento, situacao, ano, programa, busca, equipamentosPorProposta]);
 
   if (carregando) return <p className="text-muted-foreground">Carregando...</p>;
 
@@ -626,15 +733,32 @@ export function SecaoPropostasCandidatas({ status }: { status: PropostaCandidata
 
   return (
     <div className="mt-4">
-      {propostas.map((p) => (
-        <CardProposta
-          key={p.id}
-          p={p}
-          podeEditar={sessao.podeEditar}
-          revisando={revisando}
-          onRevisar={(decisao) => revisar({ id: p.id, decisao })}
-        />
-      ))}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-[10px] border border-border bg-card p-3.5 shadow-[0_1px_3px_rgba(22,33,62,0.06)]">
+        <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por proponente, município, CNPJ..." width={190} />
+        <SingleSelectFilter placeholder="Todas as UFs" options={ufOptions} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={100} />
+        <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={150} />
+        <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={150} />
+        <SingleSelectFilter placeholder="Ano da proposta" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={110} />
+        <SingleSelectFilter placeholder="Todos os programas" options={programaOptions} value={programa} onChange={setPrograma} clearLabel="Todos os programas" minWidth={160} />
+      </div>
+
+      <div className="mb-2.5 text-xs text-muted-foreground">
+        {filtradas.length} de {propostas.length} proposta(s)
+      </div>
+
+      {filtradas.length === 0 ? (
+        <p className="py-5 text-sm italic text-muted-foreground">Nenhuma proposta encontrada com esses filtros.</p>
+      ) : (
+        filtradas.map((p) => (
+          <CardProposta
+            key={p.id}
+            p={p}
+            podeEditar={sessao.podeEditar}
+            revisando={revisando}
+            onRevisar={(decisao) => revisar({ id: p.id, decisao })}
+          />
+        ))
+      )}
     </div>
   );
 }
