@@ -16,7 +16,6 @@ import { componenteDoProgramaSiconv } from '@/lib/componente-siconv';
 import { derivarMonitoramentoInterno } from '@/lib/monitoramento-derivado';
 import type { SiconvEntrada } from '@/types/monitoramento';
 import { ApiError } from '@/lib/api-error';
-import { MonitoramentoInternoAcesso } from './monitoramento-interno-acesso';
 import { MonitoramentoInternoCabecalho } from './monitoramento-interno-cabecalho';
 import { MonitoramentoInternoCadastro } from './monitoramento-interno-cadastro';
 import { MonitoramentoInternoFaseGeral, MonitoramentoInternoCronograma } from './monitoramento-interno-fase-cronograma';
@@ -109,19 +108,10 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         acoesAtrasadasCount={acoesAtrasadas.length}
       />
 
-      <MonitoramentoInternoAcesso
-        checandoSessao={sessao.checandoSessao}
-        nomeUsuario={sessao.usuarioAtual?.name}
-        role={sessao.usuarioAtual?.role}
-        podeEditar={sessao.podeEditar}
-        autenticado={sessao.autenticado}
-        erroLogin={sessao.erroLogin ? mensagemErro(sessao.erroLogin) : null}
-        onEntrar={async (valores) => {
-          setErroEscrita(null);
-          await sessao.login({ email: valores.email, senha: valores.senha });
-        }}
-        onSair={sessao.sair}
-      />
+      {/* "Acesso operacional" saiu daqui (achado 2026-09-15, pedido do
+          usuário: "pode remover a parte com acesso operacional") -- status
+          de sessão/login/logout já fica no UserMenu do header (todas as
+          páginas), essa seção só duplicava a mesma informação. */}
 
       <MonitoramentoInternoCadastro
         instrumento={inst}

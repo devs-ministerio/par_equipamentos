@@ -10,6 +10,9 @@ import { MonitoramentoLayout } from './components/layout/monitoramento-layout';
 // chunk principal mesmo pra quem nunca visita /mapa. Cada pagina agora e
 // seu proprio chunk, buscado so quando a rota e acessada.
 const PainelGeralPage = lazy(() => import('./pages/painel-geral-page').then((m) => ({ default: m.PainelGeralPage })));
+// Pagina de login dedicada (achado 2026-09-15) -- fora de qualquer layout,
+// mesmo padrao de "/" (ver login-page.tsx pro motivo).
+const LoginPage = lazy(() => import('./pages/login-page').then((m) => ({ default: m.LoginPage })));
 const DashboardPage = lazy(() => import('./pages/dashboard-page').then((m) => ({ default: m.DashboardPage })));
 const MapaPage = lazy(() => import('./pages/mapa-page').then((m) => ({ default: m.MapaPage })));
 const RelatoriosPage = lazy(() => import('./pages/relatorios-page').then((m) => ({ default: m.RelatoriosPage })));
@@ -75,6 +78,7 @@ function App() {
                 AppLayout/TopNav de proposito (nao pertence a uma familia
                 especifica, ver comentario em PainelGeralPage.tsx). */}
             <Route path="/" element={<PainelGeralPage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route element={<MonitoramentoLayout />}>
               <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
               <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />

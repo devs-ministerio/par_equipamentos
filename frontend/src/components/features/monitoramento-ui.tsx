@@ -138,18 +138,20 @@ export function SecaoOperacional({
   subtitulo?: string;
   acao?: React.ReactNode;
   destaque?: boolean;
-  children: React.ReactNode;
+  // Opcional (achado 2026-09-15) -- MonitoramentoInternoAcesso ficou só
+  // com header+ação depois que o login parou de abrir form inline aqui.
+  children?: React.ReactNode;
 }) {
   return (
     <Card className={cn('mb-4 gap-0 py-0', destaque && 'bg-muted/50')}>
-      <CardHeader className="grid-cols-[1fr_auto] gap-3 border-b py-3.5">
+      <CardHeader className={cn('grid-cols-[1fr_auto] gap-3 py-3.5', children != null && 'border-b')}>
         <div>
           <CardTitle className="text-sm font-semibold tracking-[-0.01em] text-foreground">{titulo}</CardTitle>
           {subtitulo && <CardDescription className="mt-1 text-xs leading-snug">{subtitulo}</CardDescription>}
         </div>
         {acao}
       </CardHeader>
-      <CardContent className="py-3.5">{children}</CardContent>
+      {children != null && <CardContent className="py-3.5">{children}</CardContent>}
     </Card>
   );
 }

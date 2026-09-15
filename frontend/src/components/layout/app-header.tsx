@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { UserMenu } from './user-menu';
 
 export interface HeaderNavItem {
   path: string;
@@ -76,6 +77,10 @@ export function AppHeader({
             })}
           </nav>
           {rightExtra}
+          {/* UserMenu fica direto no AppHeader (não num slot) -- é usado por
+              TODA página (PainelGeralPage, AppLayout, MonitoramentoLayout),
+              então 1 lugar só cobre "todas as páginas no nav". */}
+          <UserMenu />
         </div>
       </div>
     </header>

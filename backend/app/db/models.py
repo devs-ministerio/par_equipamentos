@@ -674,13 +674,16 @@ class PropostaCandidata(Base):
     captura.
 
     Quando `status` vira `aceita`, a aplicacao chama POST
-    /monitoramento/instrumentos com nr_convenio=str(id_proposta) e
-    tipo_contratacao="Parceria TransfereGov" -- mesmo padrao de
-    identificador surrogate que FAF/TED ja usam (digitos do NUP SEI, ver
-    scripts/importar_planilha_monitoramento.py::_resolver_identificador).
-    Sem FK fisica pra instrumento_equipamento de proposito (formatos de
-    identificador diferentes, ligacao e por convencao verificada na
-    aplicacao antes do POST criar)."""
+    /monitoramento/instrumentos com nr_convenio=cd_parceria (quando
+    existir) ou str(id_proposta) como surrogate (decisao 2026-09-15,
+    revertendo a versao anterior que sempre usava id_proposta -- mesmo
+    padrao de surrogate que FAF/TED ja usam com o NUP SEI, ver
+    scripts/importar_planilha_monitoramento.py::_resolver_identificador,
+    so que agora com um identificador REAL preferido quando disponivel) e
+    tipo_contratacao="Parceria TransfereGov". Sem FK fisica pra
+    instrumento_equipamento de proposito (formatos de identificador
+    diferentes, ligacao e por convencao verificada na aplicacao antes do
+    POST criar)."""
     __tablename__ = "proposta_candidata"
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -720,6 +723,16 @@ class PropostaCandidata(Base):
     # momento da descoberta -- contexto extra pra revisao, nao muda o
     # fluxo de aceitar/rejeitar.
     tem_parceria: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    # `cd_parceria` (ex. 202500044035) -- codigo formal da parceria, mais
+    # proximo do que seria um "NR_CONVENIO" do sistema novo (ano+sequencia,
+    # publicado) do que `id_proposta` (ID interno, so serve de surrogate
+    # ate a parceria existir). Preenchido so quando `tem_parceria=true` e a
+    # API `/parceria?id_proposta=` devolve pelo menos 1 registro (job de
+    # descoberta busca 1x por proposta). Achado 2026-09-15, pedido do
+    # usuario ("vamos usar cd_parceria apenas quando existir") -- ver
+    # revisar_proposta em app/routers/propostas_candidatas.py pra onde isso
+    # vira nr_convenio no aceite.
+    cd_parceria: Mapped[str | None] = mapped_column(String)
     status: Mapped[PropostaCandidataStatus] = mapped_column(
         PgEnum(PropostaCandidataStatus, name="proposta_candidata_status", native_enum=True),
         nullable=False, server_default=PropostaCandidataStatus.pendente.value,

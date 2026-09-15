@@ -188,6 +188,29 @@ export function fetchInstrumentos(): Promise<InstrumentoEquipamento[]> {
   return apiGet('/monitoramento/instrumentos', z.array(instrumentoEquipamentoSchema));
 }
 
+/** POST /monitoramento/instrumentos -- 2 portas de entrada (ver docstring
+ * do backend): candidato de proposta aceito (já feito por
+ * revisarPropostaCandidata) e esta, cadastro manual/"adicionar ao
+ * monitoramento" a partir de um convênio já conhecido (Instrumentos
+ * firmados) ou de FAF/TED/PERSUS avulso. */
+export interface CriarInstrumentoInput {
+  nr_convenio: string;
+  cnpj_convenente: string;
+  nome_convenente: string;
+  tipo_contratacao: string;
+  municipio?: string | null;
+  uf?: string | null;
+  programa?: string | null;
+  componente?: string | null;
+  ano_instrumento?: number | null;
+  tecnico_titular?: string | null;
+  tecnico_suplente?: string | null;
+}
+
+export function criarInstrumento(corpo: CriarInstrumentoInput): Promise<InstrumentoEquipamento> {
+  return apiAuthed('/monitoramento/instrumentos', instrumentoEquipamentoSchema, 'POST', corpo);
+}
+
 const valorSituacaoAoVivoSchema = z.object({
   disponivel: z.boolean(),
   valor: z.number().nullable().optional(),
@@ -389,6 +412,7 @@ const propostaCandidataSchema = z.object({
   data_proposta: z.string().nullable(),
   metas_resumo: z.record(z.string(), z.unknown()).nullable(),
   tem_parceria: z.boolean(),
+  cd_parceria: z.string().nullable(),
   status: propostaCandidataStatusSchema,
   revisado_por: z.number().nullable(),
   revisado_em: z.string().nullable(),

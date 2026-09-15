@@ -60,7 +60,10 @@ export function mesclarConvenios(
       numero: p.numero,
       numeroInstrumento: p.numero_instrumento,
       objeto: p.objeto,
-      situacao: p.situacao,
+      // SIT_CONVENIO (legado) vence -- destaque precisa refletir a fonte
+      // oficial de status de convênio, não o Portal (achado 2026-09-15).
+      situacao: sc?.SIT_CONVENIO || p.situacao,
+      situacaoPortal: p.situacao,
       situacaoContratacao: sc?.SITUACAO_CONTRATACAO || null,
       convenente: { nome: p.convenente_nome, cnpj: p.convenente_cnpj, tipo: p.convenente_tipo },
       municipio: p.municipio,

@@ -5,10 +5,13 @@ decide (aceitar/rejeitar) o que ele achou.
 
 Aceitar chama `criar_instrumento` (app/routers/monitoramento.py) direto --
 mesmo POST /monitoramento/instrumentos, mesma checagem de duplicidade e
-mesmo AuditLog -- em vez de duplicar a lógica de criação, seguindo o
-mapeamento já documentado na docstring de PropostaCandidata em
-app/db/models.py: nr_convenio=str(id_proposta),
-tipo_contratacao="Parceria TransfereGov".
+mesmo AuditLog -- em vez de duplicar a lógica de criação. nr_convenio usa
+`cd_parceria` quando existe (código formal da parceria, mais próximo de um
+identificador real do sistema novo) e só cai pro surrogate
+`str(id_proposta)` quando a proposta ainda não virou parceria (achado
+2026-09-15, pedido do usuário: "vamos usar cd_parceria apenas quando
+existir") -- ver docstring de PropostaCandidata.cd_parceria em
+app/db/models.py.
 """
 from __future__ import annotations
 
@@ -49,6 +52,7 @@ class PropostaCandidataRead(BaseModel):
     data_proposta: date | None
     metas_resumo: dict | None
     tem_parceria: bool
+    cd_parceria: str | None
     status: PropostaCandidataStatus
     revisado_por: int | None
     revisado_em: datetime | None
@@ -102,7 +106,7 @@ def revisar_proposta(
         # mas a checagem em criar_instrumento cobre qualquer inconsistência).
         criar_instrumento(
             InstrumentoEquipamentoCreate(
-                nr_convenio=str(proposta.id_proposta),
+                nr_convenio=proposta.cd_parceria or str(proposta.id_proposta),
                 cnpj_convenente=proposta.cnpj_ente_recebedor,
                 nome_convenente=proposta.nm_proponente,
                 tipo_contratacao="Parceria TransfereGov",

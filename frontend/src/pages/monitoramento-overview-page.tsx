@@ -17,8 +17,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardList, ShieldCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { CalendarClock, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
@@ -27,12 +26,14 @@ import { normalizarTexto } from '@/utils/texto';
 import { API_BASE_URL } from '@/services/monitoramento';
 import { BarraDistribuicao, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
 import { fmtData } from '@/lib/monitoramento-format';
-import { useJson } from '@/hooks/useJson';
-import type { SiconvEntrada } from '@/types/monitoramento';
+import { useAuthSession } from '@/hooks/useAuthSession';
 
 type InauguracaoApi = {
   nr_convenio: string;
   nome_convenente: string;
+  municipio: string | null;
+  uf: string | null;
+  equipamento: string | null;
   data: string;
   realizada: boolean;
   dias: number;
@@ -58,15 +59,6 @@ type LicencaVencendoApi = {
   dias: number;
 };
 
-type AcaoMonitoramentoApi = {
-  id: number;
-  nr_convenio: string;
-  descricao: string;
-  responsavel: string | null;
-  prazo: string | null;
-  concluida: boolean;
-};
-
 type InstrumentoApi = {
   nr_convenio: string;
   nome_convenente: string;
@@ -76,8 +68,6 @@ type InstrumentoApi = {
   tipo_contratacao: string | null;
   fase_atual: string | null;
 };
-
-const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function IndicadorOperacional({
   titulo, valor, detalhe, tom, icone,
@@ -102,89 +92,11 @@ function IndicadorOperacional({
   );
 }
 
-/** Linha do tempo de inaugurações -- achado 2026-09-09, 2a rodada (pedido
- * do usuario: "pensei em dashboards por mês tipo uma linha do tempo com
- * os anos, e ao passar o mouse a lista"). 1 linha por ano, 12 células
- * (Jan-Dez); célula solida = ja tem inauguração REALIZADA naquele mês,
- * contorno = so PREVISTA; hover mostra a lista daquele mês num tooltip
- * (substitui a lista sempre visivel por uma visao compacta com detalhe
- * sob demanda). So CSS/estado local, sem lib de grafico nova. */
-function LinhaDoTempoInauguracoes({ itens }: { itens: InauguracaoApi[] }) {
-  const [hover, setHover] = useState<string | null>(null);
-
-  if (itens.length === 0) {
-    return <p className="text-xs text-muted-foreground italic">Nenhuma inauguração registrada ainda.</p>;
-  }
-
-  const porAnoMes = new Map<string, InauguracaoApi[]>();
-  for (const i of itens) {
-    const d = new Date(i.data + 'T00:00:00');
-    const chave = `${d.getFullYear()}-${d.getMonth()}`;
-    if (!porAnoMes.has(chave)) porAnoMes.set(chave, []);
-    porAnoMes.get(chave)!.push(i);
-  }
-  const anos = [...new Set(itens.map((i) => new Date(i.data + 'T00:00:00').getFullYear()))].sort();
-
-  return (
-    <div className="grid gap-3.5">
-      {anos.map((ano) => (
-        <div key={ano}>
-          <div className="text-xs font-bold text-primary mb-1.5">{ano}</div>
-          <div className="grid grid-cols-12 gap-1">
-            {MESES_ABREV.map((mes, idx) => {
-              const chave = `${ano}-${idx}`;
-              const doMes = porAnoMes.get(chave) ?? [];
-              const temRealizada = doMes.some((i) => i.realizada);
-              const temPrevista = doMes.some((i) => !i.realizada);
-              return (
-                <div key={mes} className="relative" onMouseEnter={() => doMes.length && setHover(chave)} onMouseLeave={() => setHover(null)}>
-                  <div
-                    className={cn(
-                      'h-[34px] rounded-md flex items-center justify-center text-[10px] font-bold',
-                      doMes.length ? 'cursor-pointer' : 'cursor-default',
-                      temRealizada
-                        ? 'bg-success text-success-foreground border-none'
-                        : temPrevista
-                          ? 'bg-card text-primary border-[1.5px] border-dashed border-primary'
-                          : 'bg-background text-muted-foreground border border-border',
-                    )}
-                  >
-                    {mes}{doMes.length > 1 && ` ×${doMes.length}`}
-                  </div>
-                  {hover === chave && (
-                    <div className="absolute top-full left-0 z-10 mt-1 bg-card border border-border rounded-lg p-2 shadow-[0_4px_16px_rgba(0,0,0,0.12)] min-w-60 grid gap-1.5">
-                      {doMes.map((i) => (
-                        <Link
-                          key={i.nr_convenio}
-                          to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`}
-                          className="text-[11.5px] no-underline text-inherit block"
-                        >
-                          <strong className="text-primary">{fmtData(i.data)}</strong> — {i.nome_convenente} ({i.nr_convenio})
-                          {i.realizada ? ' ✓' : (
-                            <span className={i.dias < 0 ? 'text-warning' : 'text-muted-foreground'}>
-                              {' '}({i.dias < 0 ? `atrasada ${Math.abs(i.dias)}d` : `em ${i.dias}d`})
-                            </span>
-                          )}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export function MonitoramentoOverviewPage() {
   const [resumo, setResumo] = useState<ResumoApi | null>(null);
   const [instrumentos, setInstrumentos] = useState<InstrumentoApi[] | null>(null);
-  const [acoesPendentes, setAcoesPendentes] = useState<AcaoMonitoramentoApi[]>([]);
   const [erro, setErro] = useState<string | null>(null);
-  const { dados: siconvTodos } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
+  const sessao = useAuthSession();
 
   // Filtros da tabela -- achado 2026-09-10, pedido do usuario: "adicione
   // filtros uteis... como data, fase, tecnico entre outros uteis". So
@@ -201,70 +113,22 @@ export function MonitoramentoOverviewPage() {
     Promise.all([
       fetch(`${API_BASE_URL}/monitoramento/resumo`).then((r) => r.json()),
       fetch(`${API_BASE_URL}/monitoramento/instrumentos`).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/monitoramento/acoes?pendentes=true`).then((r) => r.json()),
     ])
-      .then(([r, i, a]) => { setResumo(r); setInstrumentos(i); setAcoesPendentes(a); })
+      .then(([r, i]) => { setResumo(r); setInstrumentos(i); })
       .catch((e) => setErro(String(e)));
   }, []);
-
-  // Equipamentos com pagamento ao fornecedor -- cruza com siconv.json (a
-  // mesma fonte que a aba Fornecedores do card usa), nunca fica no
-  // backend de monitoramento interno (ver docstring do arquivo).
-  const comPagamento = (() => {
-    if (!resumo || !siconvTodos) return null;
-    const siconvPorNumero = new Map(siconvTodos.map((e) => [e.convenio.NR_CONVENIO, e]));
-    return resumo.nr_convenios.filter((nr) => (siconvPorNumero.get(nr)?.pagamentos.length ?? 0) > 0).length;
-  })();
 
   if (erro) return <p className="text-destructive">Erro ao carregar: {erro}</p>;
   if (!resumo || !instrumentos) {
     return <p className="text-muted-foreground">Carregando...</p>;
   }
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const emAte30Dias = (dias: number) => dias >= 0 && dias <= 30;
-  const inauguracoesAtrasadas = resumo.inauguracoes.filter((i) => !i.realizada && i.dias < 0).length;
-  const inauguracoesProximas = resumo.inauguracoes.filter((i) => !i.realizada && emAte30Dias(i.dias)).length;
-  const acoesComPrazo = acoesPendentes.map((acao) => {
-    if (!acao.prazo) return { ...acao, dias: null as number | null };
-    const prazo = new Date(acao.prazo + 'T00:00:00');
-    return { ...acao, dias: Math.ceil((prazo.getTime() - hoje.getTime()) / 86400000) };
-  });
-
-  const filaOperacional = [
-    ...acoesComPrazo
-      .filter((a) => a.dias == null || a.dias <= 30)
-      .map((a) => ({
-        chave: `acao-${a.id}`,
-        tipo: 'Ação pendente',
-        prioridade: a.dias == null ? 3 : a.dias < 0 ? 0 : emAte30Dias(a.dias) ? 1 : 3,
-        dias: a.dias,
-        nr: a.nr_convenio,
-        titulo: a.descricao,
-        detalhe: a.responsavel ? `Responsável: ${a.responsavel}` : 'Sem responsável definido',
-      })),
-    ...resumo.licencas_vencendo.map((l) => ({
-      chave: `licenca-${l.nr_convenio}-${l.data_validade}`,
-      tipo: 'Licença CNEN',
-      prioridade: l.dias < 0 ? 0 : l.dias <= 90 ? 1 : 2,
-      dias: l.dias,
-      nr: l.nr_convenio,
-      titulo: l.nome_convenente,
-      detalhe: `Validade: ${fmtData(l.data_validade)}`,
-    })),
-    ...resumo.inauguracoes
-      .filter((i) => !i.realizada && (i.dias < 0 || emAte30Dias(i.dias)))
-      .map((i) => ({
-        chave: `inauguracao-${i.nr_convenio}-${i.data}`,
-        tipo: 'Inauguração',
-        prioridade: i.dias < 0 ? 0 : 1,
-        dias: i.dias,
-        nr: i.nr_convenio,
-        titulo: i.nome_convenente,
-        detalhe: `Previsão: ${fmtData(i.data)}`,
-      })),
-  ].sort((a, b) => a.prioridade - b.prioridade || (a.dias ?? 9999) - (b.dias ?? 9999));
+  // "Próxima inauguração" -- substituiu Ações atrasadas/Inaugurações
+  // críticas (achado 2026-09-15, pedido do usuário: "não temos meios pra
+  // monitorar ações atrasadas e inaugurações críticas") -- a mais próxima
+  // AINDA NÃO realizada, ordenada por data (resumo.inauguracoes já vem
+  // ordenado por data asc, ver obter_resumo no backend).
+  const proximaInauguracao = resumo.inauguracoes.find((i) => !i.realizada) ?? null;
 
   // Opcoes dos filtros -- geradas a partir do proprio `instrumentos`
   // (valores realmente presentes, nunca uma lista fixa que pode ficar
@@ -295,95 +159,68 @@ export function MonitoramentoOverviewPage() {
               Mesa de trabalho
             </h1>
             <p className="mt-2.5 max-w-[720px] text-[13.5px] leading-relaxed text-muted-foreground">
-              Priorize pendências, vencimentos e inaugurações que não aparecem com esse detalhe nas APIs oficiais.
+              Acompanhe entrega, licenciamento e inauguração dos instrumentos monitorados pela equipe.
             </p>
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button asChild variant="outline" size="lg" className="rounded-full bg-card text-xs font-bold">
-              <Link to="/monitoramento-equipamentos">Ver dados oficiais</Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="rounded-full bg-card text-xs font-bold">
-              <Link to="/monitoramento-equipamentos/painel">Painel de gestão</Link>
-            </Button>
+          {/* "Ver dados oficiais"/"Painel de gestão" saíram daqui -- já
+              existem no menu superior (MonitoramentoLayout), os botões só
+              duplicavam a navegação. No lugar, os 2 números que mais
+              importam pra essa mesa (achado 2026-09-15, pedido do
+              usuário: "use os cards Instrumentos e Execução média"). */}
+          <div className="grid min-w-[260px] grid-cols-2 gap-2">
+            <div className="rounded-lg border border-border bg-muted p-2.5">
+              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Instrumentos</div>
+              <strong className="text-[22px] text-foreground">{resumo.total_instrumentos}</strong>
+            </div>
+            <div className="rounded-lg border border-border bg-muted p-2.5">
+              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Execução média</div>
+              <strong className="text-[22px] text-foreground">
+                {resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—'}
+              </strong>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-4 mb-[18px]">
-        <IndicadorOperacional titulo="Ações atrasadas" valor={resumo.acoes_atrasadas} detalhe={`${resumo.acoes_pendentes} pendentes no total`} tom={resumo.acoes_atrasadas > 0 ? 'critico' : 'ok'} icone={<AlertTriangle size={17} />} />
+      {/* Ações atrasadas/Inaugurações críticas saíram (achado 2026-09-15,
+          pedido do usuário: "não temos meios pra monitorar" isso ainda) --
+          Próxima inauguração no lugar, com o detalhe que dá pra mostrar
+          hoje (data/município/UF/equipamento). Instrumentos/Execução média
+          saíram pra não duplicar os cards do cabeçalho acima. */}
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-4 mb-[18px]">
         <IndicadorOperacional titulo="Licenças a vencer" valor={resumo.licencas_vencendo.length} detalhe="CNEN vencida ou próxima" tom={resumo.licencas_vencendo.length > 0 ? 'alerta' : 'ok'} icone={<ShieldCheck size={17} />} />
-        <IndicadorOperacional titulo="Inaugurações críticas" valor={inauguracoesAtrasadas + inauguracoesProximas} detalhe={`${inauguracoesAtrasadas} atrasadas · ${inauguracoesProximas} em até 30 dias`} tom={inauguracoesAtrasadas > 0 ? 'critico' : inauguracoesProximas > 0 ? 'alerta' : 'ok'} icone={<CalendarClock size={17} />} />
-        <IndicadorOperacional titulo="Instrumentos" valor={resumo.total_instrumentos} detalhe={`${comPagamento ?? '...'} com pagamento localizado`} tom="neutro" icone={<ClipboardList size={17} />} />
         <IndicadorOperacional
-          titulo="Execução média"
-          valor={resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—'}
-          detalhe={`${resumo.licencas_cnen_deferidas} licenças deferidas`}
-          tom="ok"
-          icone={<CheckCircle2 size={17} />}
+          titulo="Próxima inauguração"
+          valor={proximaInauguracao ? fmtData(proximaInauguracao.data) : '—'}
+          detalhe={
+            proximaInauguracao
+              ? `${proximaInauguracao.municipio ?? '—'}/${proximaInauguracao.uf ?? '—'} · ${proximaInauguracao.equipamento ?? 'equipamento não informado'}`
+              : 'Nenhuma inauguração prevista registrada'
+          }
+          tom={proximaInauguracao && proximaInauguracao.dias < 0 ? 'alerta' : 'neutro'}
+          icone={<CalendarClock size={17} />}
         />
       </div>
 
-      <Card className="mb-5 py-0">
-        <CardContent className="p-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5">
-          <div>
-            <strong className="text-sm text-foreground">Fila de prioridade</strong>
-            <div className="mt-0.5 text-xs text-muted-foreground">Itens com atraso ou vencimento próximo para ação da equipe.</div>
-          </div>
-          <span className="text-xs text-muted-foreground">{filaOperacional.length} item(ns)</span>
-        </div>
-        {filaOperacional.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-4.5 text-[13px] text-muted-foreground">
-            Nada crítico no momento. Acompanhe os indicadores e mantenha os eventos atualizados.
-          </div>
-        ) : (
-          <div className="grid gap-2">
-            {filaOperacional.slice(0, 8).map((item) => {
-              const atrasado = item.dias != null && item.dias < 0;
-              const classeCor = atrasado ? 'text-destructive' : item.prioridade <= 1 ? 'text-warning' : 'text-primary';
-              return (
-                <Link
-                  key={item.chave}
-                  to={`/monitoramento-equipamentos/instrumentos/${item.nr}`}
-                  className="grid grid-cols-[minmax(110px,150px)_1fr_auto] items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-inherit no-underline transition-colors hover:bg-muted/50"
-                >
-                  <span className={`text-[11px] font-extrabold uppercase ${classeCor}`}>{item.tipo}</span>
-                  <span>
-                    <strong className="block text-[13px] text-foreground">{item.titulo}</strong>
-                    <span className="text-[11.5px] text-muted-foreground">{item.nr} · {item.detalhe}</span>
-                  </span>
-                  <span className={`text-xs font-extrabold whitespace-nowrap ${classeCor}`}>
-                    {item.dias == null ? 'sem prazo' : atrasado ? `${Math.abs(item.dias)}d atraso` : `${item.dias}d`}
-                  </span>
-                </Link>
-              );
-            })}
+        {/* Só pra admin (achado 2026-09-15, pedido do usuário) -- carga de
+            trabalho por técnico é dado de gestão de equipe, não algo que
+            todo perfil precisa ver na mesa de trabalho operacional. */}
+        {sessao.usuarioAtual?.role === 'admin' && (
+          <div className="grid [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 mb-5">
+            <div className={estiloCard}>
+              <strong className="text-sm">Distribuição por fase</strong>
+              <div className="mt-2.5">
+                <BarraDistribuicao itens={resumo.distribuicao_fase} corBarra="var(--primary)" />
+              </div>
+            </div>
+            <div className={estiloCard}>
+              <strong className="text-sm">Instrumentos por técnico titular</strong>
+              <div className="mt-2.5">
+                <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra="var(--success)" />
+              </div>
+            </div>
           </div>
         )}
-        </CardContent>
-      </Card>
-
-        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 mb-5">
-          <div className={estiloCard}>
-            <strong className="text-sm">Distribuição por fase</strong>
-            <div className="mt-2.5">
-              <BarraDistribuicao itens={resumo.distribuicao_fase} corBarra="var(--primary)" />
-            </div>
-          </div>
-          <div className={estiloCard}>
-            <strong className="text-sm">Instrumentos por técnico titular</strong>
-            <div className="mt-2.5">
-              <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra="var(--success)" />
-            </div>
-          </div>
-        </div>
-
-        <div className={cn(estiloCard, 'mb-5')}>
-          <strong className="text-sm">Inaugurações (real ou prevista)</strong>
-          <div className="mt-2.5">
-            <LinhaDoTempoInauguracoes itens={resumo.inauguracoes} />
-          </div>
-        </div>
 
         <div className={estiloCard}>
           <div className="flex justify-between items-center flex-wrap gap-2.5 mb-3">

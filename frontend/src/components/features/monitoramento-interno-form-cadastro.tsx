@@ -1,20 +1,29 @@
 /** Form de "Cadastro interno" (técnico titular/suplente, nível de
  * monitoramento, finalidade, modalidade + responsável técnico da execução
  * na instituição) -- React Hook Form + zod. Extraído de
- * MonitoramentoInterno.tsx. */
+ * MonitoramentoInterno.tsx.
+ *
+ * Todo campo é lista suspensa, EXCETO responsável técnico da execução
+ * (nome/contato da instituição/convenente -- texto livre, não tem
+ * vocabulário fechado) -- achado 2026-09-15, pedido do usuário: "no
+ * cadastro interno todos os campos deverão ser por seleção (lista
+ * suspensa) exceto os dados do responsável técnico da execução". Opções
+ * vêm de monitoramento-opcoes.ts (extraídas de dado real, nunca
+ * inventadas). */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import type { InstrumentoEquipamento } from '@/services/monitoramento';
 import { cadastroInternoSchema, type CadastroInternoFormValues } from '@/lib/validations/monitoramento';
+import { comValorAtual, FINALIDADES, MODALIDADES_ONCO, NIVEIS_MONITORAMENTO, TECNICOS_EQUIPE } from '@/lib/monitoramento-opcoes';
 import { estiloInput } from './monitoramento-ui';
 
-const CAMPOS: { nome: keyof CadastroInternoFormValues; rotulo: string }[] = [
-  { nome: 'tecnicoTitular', rotulo: 'Técnico titular' },
-  { nome: 'tecnicoSuplente', rotulo: 'Técnico suplente' },
-  { nome: 'nivelMonitoramento', rotulo: 'Nível de monitoramento' },
-  { nome: 'finalidade', rotulo: 'Finalidade' },
-  { nome: 'modalidadeOnco', rotulo: 'Modalidade' },
+const CAMPOS_SELECT: { nome: keyof CadastroInternoFormValues; rotulo: string; opcoes: string[] }[] = [
+  { nome: 'tecnicoTitular', rotulo: 'Técnico titular', opcoes: TECNICOS_EQUIPE },
+  { nome: 'tecnicoSuplente', rotulo: 'Técnico suplente', opcoes: TECNICOS_EQUIPE },
+  { nome: 'nivelMonitoramento', rotulo: 'Nível de monitoramento', opcoes: NIVEIS_MONITORAMENTO },
+  { nome: 'finalidade', rotulo: 'Finalidade', opcoes: FINALIDADES },
+  { nome: 'modalidadeOnco', rotulo: 'Modalidade', opcoes: MODALIDADES_ONCO },
 ];
 
 function valoresIniciais(inst: InstrumentoEquipamento): CadastroInternoFormValues {
@@ -48,18 +57,26 @@ export function MonitoramentoInternoFormCadastro({
   return (
     <form onSubmit={handleSubmit(onSalvar)} className="grid gap-4">
       <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
-        {CAMPOS.map(({ nome, rotulo }) => (
+        {CAMPOS_SELECT.map(({ nome, rotulo, opcoes }) => (
           <div key={nome}>
             <label htmlFor={`cadastro-${nome}`} className="text-[11px] text-muted-foreground block mb-1">
               {rotulo}
             </label>
-            <input id={`cadastro-${nome}`} className={cn(estiloInput, 'w-full')} {...register(nome)} />
+            <select id={`cadastro-${nome}`} className={cn(estiloInput, 'w-full bg-background')} {...register(nome)}>
+              <option value="">— Não informado —</option>
+              {comValorAtual(opcoes, instrumento[snakeDoCampo(nome)] as string | null).map((op) => (
+                <option key={op} value={op}>
+                  {op}
+                </option>
+              ))}
+            </select>
           </div>
         ))}
       </div>
       {/* Responsavel tecnico da execucao NA INSTITUICAO/convenente --
           DIFERENTE dos campos de tecnico titular/suplente acima (nossa
-          equipe). Opcional, sem exigir preenchimento. */}
+          equipe). Opcional, sem exigir preenchimento. So esses 2 ficam
+          texto livre -- nome/contato de pessoa nao tem vocabulario fechado. */}
       <div>
         <div className="text-[11.5px] font-bold text-primary mb-2">
           Responsável técnico da execução{' '}
@@ -89,4 +106,18 @@ export function MonitoramentoInternoFormCadastro({
       </button>
     </form>
   );
+}
+
+/** CadastroInternoFormValues usa camelCase (RHF), InstrumentoEquipamento
+ * usa snake_case (schema do backend) -- só os 5 campos-select precisam
+ * desse de-para pra achar o valor atual (comValorAtual). */
+function snakeDoCampo(nome: keyof CadastroInternoFormValues): keyof InstrumentoEquipamento {
+  const mapa: Partial<Record<keyof CadastroInternoFormValues, keyof InstrumentoEquipamento>> = {
+    tecnicoTitular: 'tecnico_titular',
+    tecnicoSuplente: 'tecnico_suplente',
+    nivelMonitoramento: 'nivel_monitoramento',
+    finalidade: 'finalidade',
+    modalidadeOnco: 'modalidade_onco',
+  };
+  return mapa[nome] ?? (nome as keyof InstrumentoEquipamento);
 }

@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import { criarAcaoSchema, type CriarAcaoFormValues } from '@/lib/validations/monitoramento';
+import { RESPONSAVEIS_ACAO } from '@/lib/monitoramento-opcoes';
 import { ErroCampo, estiloInput, idsDescricaoCampo } from './monitoramento-ui';
 
 export function MonitoramentoInternoFormAcao({
@@ -55,15 +56,32 @@ export function MonitoramentoInternoFormAcao({
         <label htmlFor="acao-responsavel" className="text-[11px] text-muted-foreground block mb-1">
           Responsável
         </label>
-        <input id="acao-responsavel" className={cn(estiloInput, 'w-full')} {...register('responsavel')} />
+        <select id="acao-responsavel" className={cn(estiloInput, 'w-full bg-background')} {...register('responsavel')}>
+          <option value="">— Não informado —</option>
+          {RESPONSAVEIS_ACAO.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
       </div>
-      <button
-        type="submit"
-        disabled={!podeEditar || isSubmitting}
-        className={cn(estiloInput, 'cursor-pointer bg-primary text-primary-foreground border-none font-semibold')}
-      >
-        {isSubmitting ? 'Adicionando...' : '+ Adicionar'}
-      </button>
+      {/* Label invisível do mesmo tamanho da dos outros campos -- achado
+          2026-09-15, pedido do usuário: "o botão adicionar do ações está
+          desalinhado". Sem isso o botão (sem label acima) ficava alinhado
+          no topo da linha (items-start), acima da altura real dos inputs
+          vizinhos (que têm label + margem antes do input). */}
+      <div>
+        <span aria-hidden="true" className="mb-1 block text-[11px] text-transparent select-none">
+          Ação
+        </span>
+        <button
+          type="submit"
+          disabled={!podeEditar || isSubmitting}
+          className={cn(estiloInput, 'cursor-pointer bg-primary text-primary-foreground border-none font-semibold')}
+        >
+          {isSubmitting ? 'Adicionando...' : '+ Adicionar'}
+        </button>
+      </div>
     </form>
   );
 }

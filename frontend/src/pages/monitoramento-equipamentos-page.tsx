@@ -41,17 +41,14 @@ import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { normalizarTexto } from '@/utils/texto';
 import { ConvenioCard } from '@/components/features/convenio-card';
-import { SecaoComponentes } from '@/components/features/secao-componentes';
 import { SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
-import { LEGENDA_STATUS, VARIANT_DOT_CLASSES } from '@/components/features/monitoramento-ui';
 import { EQUIPAMENTOS_ALVO, equipamentosDoConvenio } from '@/lib/equipamento-tags';
 import { fmtMoeda } from '@/lib/monitoramento-format';
 import { mesclarConvenios } from '@/lib/mesclar-convenios';
 import { useInstrumentosMonitorados } from '@/hooks/useInstrumentosMonitorados';
 import { useJson } from '@/hooks/useJson';
 import type {
-  ComponenteOncologia,
   ConvenioPortal,
   ProgramaTransfereGov,
   SiconvEntrada,
@@ -59,7 +56,11 @@ import type {
 } from '@/types/monitoramento';
 
 type Aba = 'convenios' | 'componentes';
-type SubAbaFinanciamento = 'radar-nacional' | 'pendentes' | 'aceitas';
+// "Radar nacional" (snapshot estático) saiu -- não faz sentido enquanto
+// nenhuma proposta foi aceita ainda (pedido do usuário 2026-09-15). Os 2
+// nomes abaixo também estão em revisão (mesmo pedido, "precisamos rever
+// estes nomes") -- ainda não trocados por falta de decisão.
+type SubAbaFinanciamento = 'pendentes' | 'aceitas';
 
 /** So "Convenio" tem dado carregado hoje (e o universo inteiro do SICONV/
  * Portal da Transparencia que a pagina cruza). PERSUS I/II, FAF e TED sao
@@ -80,7 +81,7 @@ const PAGE_SIZE = 20;
 
 export function MonitoramentoEquipamentosPage() {
   const [aba, setAba] = useState<Aba>('convenios');
-  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>('radar-nacional');
+  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>('pendentes');
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
@@ -95,7 +96,6 @@ export function MonitoramentoEquipamentosPage() {
   const { dados: portal, erro: erroPortal } = useJson<ConvenioPortal[]>('/monitoramento-equipamentos/convenios.json');
   const { dados: siconv, erro: erroSiconv } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
   const { dados: transferegov, erro: erroTransferegov } = useJson<TransfereGovEnte[]>('/monitoramento-equipamentos/transferegov.json');
-  const { dados: componentes } = useJson<ComponenteOncologia[]>('/monitoramento-equipamentos/componentes_oncologia.json');
   const { dados: programasLista } = useJson<ProgramaTransfereGov[]>('/monitoramento-equipamentos/programas_transferegov.json');
   const programas = useMemo(() => new Map((programasLista ?? []).map((p) => [p.id_programa, p])), [programasLista]);
 
@@ -128,11 +128,15 @@ export function MonitoramentoEquipamentosPage() {
     return EQUIPAMENTOS_ALVO.map((e) => ({ value: e, label: `${e} (${contagem.get(e) ?? 0})` }));
   }, [equipamentosPorNumero]);
 
+  // Ano da PROPOSTA (não da publicação) -- pedido do usuário 2026-09-15:
+  // "904824 18852/2020" -> filtro 2020. numeroInstrumento vem sempre como
+  // SEQ/ANO (Portal da Transparência), confirmado nos 403 convênios (só 2
+  // sem valor).
   const anoOptions = useMemo(() => {
     if (!convenios) return [];
     const anos = new Set<string>();
     for (const c of convenios) {
-      const ano = c.datas.publicacao?.slice(0, 4);
+      const ano = c.numeroInstrumento?.split('/')[1];
       if (ano) anos.add(ano);
     }
     return [...anos].sort().reverse().map((a) => ({ value: a, label: a }));
@@ -180,7 +184,7 @@ export function MonitoramentoEquipamentosPage() {
       if (uf && c.uf !== uf) return false;
       if (equipamento && !equipamentosPorNumero.get(c.numero)?.includes(equipamento)) return false;
       if (situacao && c.situacao !== situacao) return false;
-      if (ano && c.datas.publicacao?.slice(0, 4) !== ano) return false;
+      if (ano && c.numeroInstrumento?.split('/')[1] !== ano) return false;
       if (programa && c.siconv?.programa?.ID_PROGRAMA !== programa) return false;
       if (soMonitorados && !monitorados.has(c.numero)) return false;
       if (busca) {
@@ -206,11 +210,19 @@ export function MonitoramentoEquipamentosPage() {
   const totalEquipamentos = filtrados.reduce((a, c) => a + (equipamentosPorNumero.get(c.numero)?.length ?? 0), 0);
 
   const erro = erroPortal || erroSiconv || erroTransferegov;
-  const totalComponentes = componentes?.reduce((a, c) => a + c.total_propostas, 0) ?? 0;
 
-  // Contagem só pro rótulo da sub-aba "Propostas pendentes" -- não afeta o
-  // resto da página, busca leve e independente do resto do estado.
+  // Concluídos -- situação do SICONV legado (mesma fonte do destaque no
+  // card, ver mesclarConvenios.ts) igual a "Prestação de Contas Concluída"
+  // literal, pedido do usuário 2026-09-15.
+  const totalConcluidos = useMemo(
+    () => convenios?.filter((c) => c.situacao === 'Prestação de Contas Concluída').length ?? 0,
+    [convenios],
+  );
+
+  // Contagem só pro rótulo das sub-abas -- não afeta o resto da página,
+  // busca leve e independente do resto do estado.
   const { propostas: propostasPendentes } = usePropostasCandidatas('pendente');
+  const { propostas: propostasAceitas } = usePropostasCandidatas('aceita');
 
   return (
     <div>
@@ -227,14 +239,27 @@ export function MonitoramentoEquipamentosPage() {
               Consulte convênios, programas, valores, repasses e situação a partir de Transferegov, SICONV e Portal da Transparência.
             </p>
           </div>
-          <div className="grid min-w-[260px] grid-cols-2 gap-2">
+          <div className="grid min-w-[380px] grid-cols-3 gap-2">
             <div className="rounded-lg border border-border bg-muted p-2.5">
               <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Instrumentos</div>
               <strong className="text-[22px] text-foreground">{convenios?.length ?? '...'}</strong>
             </div>
-            <div className="rounded-lg border border-border bg-muted p-2.5">
+            {/* Toggle de "só monitorados" mudou pra cá (removido da linha de
+                KPI abaixo, que duplicava esta contagem -- achado 2026-09-15). */}
+            <button
+              type="button"
+              onClick={() => setSoMonitorados((v) => !v)}
+              className={cn(
+                'rounded-lg border p-2.5 text-left transition-colors',
+                soMonitorados ? 'border-success bg-success-bg' : 'border-border bg-muted hover:bg-secondary',
+              )}
+            >
               <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Monitorados</div>
               <strong className="text-[22px] text-foreground">{monitorados.size}</strong>
+            </button>
+            <div className="rounded-lg border border-border bg-muted p-2.5">
+              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Concluídos</div>
+              <strong className="text-[22px] text-foreground">{totalConcluidos}</strong>
             </div>
           </div>
           </CardContent>
@@ -242,11 +267,9 @@ export function MonitoramentoEquipamentosPage() {
 
         {erro && <p className="text-destructive">Erro ao carregar dados: {erro}</p>}
 
-        {/* Abas -- Convenios (299 registros, dado ja mesclado) e
-            Componentes de financiamento (agrupamento diferente do mesmo
-            universo, ver SecaoComponentes.tsx). Antes ficava tudo numa
-            rolagem so; virar aba de verdade reduz a pagina a um assunto
-            por vez. */}
+        {/* Abas -- Instrumentos firmados (convênios já assinados) e Linhas
+            de financiamento (propostas do Radar de Convênios, ver
+            SecaoPropostasCandidatas.tsx). */}
         <div className="flex gap-1 mb-5 border-b border-border">
           <button
             onClick={() => setAba('convenios')}
@@ -264,7 +287,8 @@ export function MonitoramentoEquipamentosPage() {
               aba === 'componentes' ? 'text-primary border-b-primary' : 'text-muted-foreground border-b-transparent',
             )}
           >
-            Linhas de financiamento <span className="text-muted-foreground/70 font-medium">({totalComponentes})</span>
+            Linhas de financiamento{' '}
+            <span className="text-muted-foreground/70 font-medium">({propostasPendentes.length + propostasAceitas.length})</span>
           </button>
         </div>
 
@@ -273,30 +297,15 @@ export function MonitoramentoEquipamentosPage() {
             <p className="text-muted-foreground">Carregando...</p>
           ) : (
             <>
+              {/* "Instrumentos firmados" e "Monitorados internamente"
+                  saíram daqui -- duplicavam os cards do cabeçalho acima
+                  (achado 2026-09-15, pedido do usuário: "revise e pode
+                  remover"). Legenda de cor (Em execução/Prestação de
+                  contas/Anulado/Demais) também saiu, mesmo pedido. */}
               <div className="flex gap-4 flex-wrap mb-4">
-                <KpiCard label="Instrumentos firmados" value={filtrados.length} variant="primary" />
                 <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} variant="primary" />
                 <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} variant="success" />
-                <KpiCard
-                  label="Monitorados internamente"
-                  value={monitorados.size}
-                  variant="success"
-                  onClick={() => setSoMonitorados((v) => !v)}
-                  ativo={soMonitorados}
-                />
                 <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} variant="primary" />
-              </div>
-
-              {/* Legenda de cor -- situacao de convenio tem ~9 variacoes
-                  reais, o vocabulario visual so tem 4 familias (ver
-                  situacaoVariant em ui.tsx). */}
-              <div className="flex flex-wrap gap-3.5 mb-[18px] text-[11.5px] text-muted-foreground">
-                {LEGENDA_STATUS.map((l) => (
-                  <span key={l.rotulo} className="flex items-center gap-1.5">
-                    <span className={cn('w-2 h-2 rounded-full inline-block', VARIANT_DOT_CLASSES[l.variant])} />
-                    {l.rotulo}
-                  </span>
-                ))}
               </div>
 
               {/* Busca + 6 filtro precisam caber numa linha so (pedido do
@@ -310,7 +319,7 @@ export function MonitoramentoEquipamentosPage() {
                 <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={100} />
                 <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={150} />
                 <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={150} />
-                <SingleSelectFilter placeholder="Ano de publicação" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={110} />
+                <SingleSelectFilter placeholder="Ano da proposta" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={110} />
                 <SingleSelectFilter placeholder="Todos os programas" options={programaOptions} value={programa} onChange={setPrograma} clearLabel="Todos os programas" minWidth={160} />
               </div>
 
@@ -346,18 +355,16 @@ export function MonitoramentoEquipamentosPage() {
 
         {aba === 'componentes' && (
           <>
-            {/* Radar de Convênios (2026-09-15): "Linhas de financiamento" passa
-                a ter 3 sub-blocos -- o radar nacional estático original
-                (snapshot em JSON, levantamento_convenios_oncologia.py) e 2
-                blocos AO VIVO contra o banco (job_descoberta_transferegov.py):
-                propostas ainda sem decisão da equipe e propostas já aceitas
-                (viraram instrumento monitorado, ver SecaoPropostasCandidatas). */}
+            {/* Radar de Convênios (2026-09-15): "Radar nacional" (snapshot
+                estático) saiu -- sem sentido enquanto nenhuma proposta foi
+                aceita ainda (pedido do usuário). Só as 2 sub-abas ao vivo
+                contra o banco (job_descoberta_transferegov.py) ficam --
+                nomes ainda em revisão. */}
             <div className="flex gap-1 mb-4 border-b border-border">
               {(
                 [
-                  { value: 'radar-nacional', label: 'Radar nacional', contagem: totalComponentes },
                   { value: 'pendentes', label: 'Propostas pendentes', contagem: propostasPendentes.length },
-                  { value: 'aceitas', label: 'Propostas aceitas', contagem: undefined },
+                  { value: 'aceitas', label: 'Propostas aceitas', contagem: propostasAceitas.length },
                 ] as const
               ).map((sub) => (
                 <button
@@ -368,16 +375,11 @@ export function MonitoramentoEquipamentosPage() {
                     subAbaFinanciamento === sub.value ? 'text-primary border-b-primary' : 'text-muted-foreground border-b-transparent',
                   )}
                 >
-                  {sub.label}
-                  {sub.contagem !== undefined && (
-                    <span className="ml-1 text-muted-foreground/70 font-medium">({sub.contagem})</span>
-                  )}
+                  {sub.label} <span className="ml-1 text-muted-foreground/70 font-medium">({sub.contagem})</span>
                 </button>
               ))}
             </div>
 
-            {subAbaFinanciamento === 'radar-nacional' &&
-              (componentes ? <SecaoComponentes dados={componentes} /> : <p className="text-muted-foreground">Carregando...</p>)}
             {subAbaFinanciamento === 'pendentes' && <SecaoPropostasCandidatas status="pendente" />}
             {subAbaFinanciamento === 'aceitas' && <SecaoPropostasCandidatas status="aceita" />}
           </>

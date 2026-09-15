@@ -258,9 +258,15 @@ class InauguracaoResumo(BaseModel):
     """1 por instrumento com data de inauguracao registrada (real ou
     prevista) -- alimenta a lista/"calendario" de inauguracoes da pagina
     de overview. `dias` negativo = ja passou (atrasada, se nao realizada;
-    so informativa se `realizada`)."""
+    so informativa se `realizada`). municipio/uf/equipamento adicionados
+    2026-09-15 pro card "Próxima inauguração" (substituiu Ações atrasadas/
+    Inaugurações críticas -- pedido do usuário: "não temos meios pra
+    monitorar ações atrasadas e inaugurações críticas")."""
     nr_convenio: str
     nome_convenente: str
+    municipio: str | None
+    uf: str | None
+    equipamento: str | None
     data: date
     realizada: bool
     dias: int
@@ -437,7 +443,11 @@ def criar_instrumento(
         entity_name="instrumento_equipamento",
         entity_id=instrumento.id,
         action="created",
-        details={"nr_convenio": corpo.nr_convenio, "tipo_contratacao": corpo.tipo_contratacao},
+        details={
+            "nr_convenio": corpo.nr_convenio,
+            "tipo_contratacao": corpo.tipo_contratacao,
+            "tecnico_titular": corpo.tecnico_titular,
+        },
     )
     db.commit()
     db.refresh(instrumento)
@@ -645,8 +655,17 @@ def obter_resumo(db: Session = Depends(get_db)):
             if ev:
                 data = ev.data_ocorrencia or ev.data_prevista
                 if data:
+                    # Descricao PLANEJADA (SICONV) primeiro, cai pro FISICO
+                    # (marca+modelo, so preenchido depois da entrega) --
+                    # mesma prioridade conceitual do resto do schema (ver
+                    # docstring da secao 8 em app/db/models.py).
+                    equipamento = inst.equipamento_descricao or (
+                        f"{inst.equipamento_marca} {inst.equipamento_modelo}".strip()
+                        if inst.equipamento_marca or inst.equipamento_modelo else None
+                    )
                     inauguracoes.append(InauguracaoResumo(
                         nr_convenio=inst.nr_convenio, nome_convenente=inst.nome_convenente,
+                        municipio=inst.municipio, uf=inst.uf, equipamento=equipamento,
                         data=data, realizada=ev.data_ocorrencia is not None,
                         dias=(data - hoje).days,
                     ))

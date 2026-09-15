@@ -28,6 +28,7 @@ from __future__ import annotations
 
 from app.db.base import SessionLocal
 from app.db.models import Notificacao, NotificacaoTipo, PropostaCandidata, PropostaCandidataStatus
+from app.pipeline.transferegov_parcerias import buscar_cronograma_por_proposta, buscar_metas_por_proposta
 from scripts.levantamento_convenios_oncologia import (
     PADROES_EQUIPAMENTO,
     PALAVRAS_PROGRAMA_ONCOLOGIA,
@@ -69,12 +70,21 @@ def _resolver_programas_alvo(sessao) -> dict[int, dict]:
     return alvo
 
 
-def _tem_parceria(sessao, id_proposta: int) -> bool:
+def _buscar_parceria(sessao, id_proposta: int) -> tuple[bool, str | None]:
     """1 request extra por proposta -- volume baixo (escopo e so 8
     programas-alvo, nao o dump nacional), aceitavel pra ter o dado certo em
-    vez de adivinhar."""
+    vez de adivinhar. Devolve (tem_parceria, cd_parceria) -- cd_parceria
+    (ex. 202500044035) e o codigo formal, mais proximo de um "NR_CONVENIO"
+    do sistema novo do que `id_proposta` (achado 2026-09-15, testado ao
+    vivo contra /parcerias/parceria: campo `cd_parceria` no registro).
+    Pega a 1a parceria quando ha mais de 1 (nao deveria acontecer no
+    fluxo normal proposta->parceria, mas a API nao garante 0 ou 1)."""
     from app.pipeline.transferegov_parcerias import buscar_parcerias_por_proposta
-    return len(buscar_parcerias_por_proposta(sessao, id_proposta)) > 0
+    parcerias = buscar_parcerias_por_proposta(sessao, id_proposta)
+    if not parcerias:
+        return False, None
+    cd = parcerias[0].get("cd_parceria")
+    return True, str(cd) if cd is not None else None
 
 
 def run() -> None:
@@ -103,6 +113,20 @@ def run() -> None:
                 existente = db.query(PropostaCandidata).filter_by(id_proposta=id_proposta).one_or_none()
 
                 if existente is None:
+                    tem_parceria, cd_parceria = _buscar_parceria(sessao, id_proposta)
+                    # Detalhe completo pra revisao humana (pedido do usuario
+                    # 2026-09-15: "a equipe tecnica precisara de mais
+                    # informacoes") -- metas (entregas previstas) e
+                    # cronograma_desembolso (parcelas financeiras previstas)
+                    # capturados junto da proposta, nao so o header dela.
+                    # 2 requests extras por proposta NOVA (nao repete em
+                    # diff de candidato ja existente) -- mesmo raciocinio de
+                    # volume baixo de _buscar_parceria acima.
+                    metas_resumo = {
+                        "proposta": p,
+                        "metas": buscar_metas_por_proposta(sessao, id_proposta),
+                        "cronograma_desembolso": buscar_cronograma_por_proposta(sessao, id_proposta),
+                    }
                     candidato = PropostaCandidata(
                         id_proposta=id_proposta,
                         cnpj_ente_recebedor=valores_api["cnpj_ente_recebedor"],
@@ -117,8 +141,9 @@ def run() -> None:
                         vl_global_proposta=valores_api["vl_global_proposta"],
                         situacao_proposta=valores_api["situacao_proposta"],
                         data_proposta=p.get("dt_proposta") or None,
-                        metas_resumo={"proposta": p},
-                        tem_parceria=_tem_parceria(sessao, id_proposta),
+                        metas_resumo=metas_resumo,
+                        tem_parceria=tem_parceria,
+                        cd_parceria=cd_parceria,
                         status=PropostaCandidataStatus.pendente,
                     )
                     db.add(candidato)
@@ -138,6 +163,15 @@ def run() -> None:
                         if antigo != novo:
                             mudou[campo] = {"old": antigo, "new": novo}
                             setattr(existente, campo, novo)
+                    # cd_parceria so pode SURGIR depois (proposta virou
+                    # parceria entre 1 rodada e outra) -- so vale a pena a
+                    # request extra quando ainda nao tinha parceria.
+                    if not existente.tem_parceria:
+                        tem_parceria, cd_parceria = _buscar_parceria(sessao, id_proposta)
+                        if tem_parceria != existente.tem_parceria or cd_parceria != existente.cd_parceria:
+                            mudou["cd_parceria"] = {"old": existente.cd_parceria, "new": cd_parceria}
+                            existente.tem_parceria = tem_parceria
+                            existente.cd_parceria = cd_parceria
                     if mudou:
                         db.add(Notificacao(
                             tipo=NotificacaoTipo.atualizacao_api,

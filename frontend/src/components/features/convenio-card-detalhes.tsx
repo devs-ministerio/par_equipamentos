@@ -4,6 +4,7 @@
 import { Link } from 'react-router-dom';
 import { fmtData, fmtMoeda, pct } from '@/lib/monitoramento-format';
 import { SiconvSubAbas } from './siconv-sub-abas';
+import { AdicionarMonitoramentoButton } from './adicionar-monitoramento-button';
 import type { ConvenioUnificado } from '@/types/monitoramento';
 import { Campo, Secao } from './monitoramento-ui';
 
@@ -21,6 +22,12 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
           <Campo label="Nº do processo">{c.numeroProcesso}</Campo>
           <Campo label="Região / código IBGE">{c.regiao} · {c.codigoIbge}</Campo>
           {c.situacaoContratacao && <Campo label="Situação da contratação (SICONV)">{c.situacaoContratacao}</Campo>}
+          {/* Situação em destaque na camada 1 (StatusPill) é a do SICONV
+              legado (achado 2026-09-15, pedido do usuário) -- a do Portal
+              da Transparência continua disponível aqui, sem destaque. */}
+          {c.situacaoPortal && c.situacaoPortal !== c.situacao && (
+            <Campo label="Situação (Portal da Transparência)">{c.situacaoPortal}</Campo>
+          )}
           <Campo label="Objeto">{c.objeto}</Campo>
         </div>
       </Secao>
@@ -59,22 +66,28 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
         <p className="text-xs text-muted-foreground italic mt-3.5">Não encontrado no dump SICONV.</p>
       )}
 
-      {/* Monitoramento interno mudou pra pagina propria -- so mostra o link
-          quando ha instrumento monitorado. */}
-      {monitorado && (
-        <Secao
-          titulo="Monitoramento interno"
-          acao={
+      {/* Monitoramento interno mudou pra pagina propria -- se ja tem
+          instrumento, so o link; se nao tem, o botao de adicionar (achado
+          2026-09-15, antes so existia a porta automatica via proposta
+          aceita). */}
+      <Secao
+        titulo="Monitoramento interno"
+        acao={
+          monitorado && (
             <Link to={`/monitoramento-equipamentos/instrumentos/${c.numero}`} className="text-primary no-underline">
               Ver detalhes →
             </Link>
-          }
-        >
+          )
+        }
+      >
+        {monitorado ? (
           <p className="text-xs text-muted-foreground m-0">
             Entrega, instalação, licenciamento CNEN e inauguração — acompanhamento manual pós-repasse da equipe.
           </p>
-        </Secao>
-      )}
+        ) : (
+          <AdicionarMonitoramentoButton c={c} />
+        )}
+      </Secao>
     </>
   );
 }

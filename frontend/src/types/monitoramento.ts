@@ -98,7 +98,14 @@ export type ConvenioUnificado = {
   numero: string;
   numeroInstrumento: string | null;
   objeto: string;
+  /** Situação em destaque (StatusPill na camada 1) -- SICONV legado
+   * (SIT_CONVENIO) quando disponível, senão cai pro Portal (achado
+   * 2026-09-15, pedido do usuário: destaque precisa ser a do legado). */
   situacao: string;
+  /** Situação como o Portal da Transparência devolve -- mantida à parte,
+   * sem destaque, só nos detalhes (Campo "Situação (Portal da
+   * Transparência)" em convenio-card-detalhes.tsx). */
+  situacaoPortal: string;
   situacaoContratacao: string | null;
   convenente: { nome: string; cnpj: string; tipo: string };
   municipio: string;
