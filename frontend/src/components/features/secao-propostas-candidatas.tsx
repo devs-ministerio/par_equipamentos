@@ -223,23 +223,22 @@ function CardProposta({
         <summary className="cursor-pointer text-xs font-bold text-primary">
           {detalheAberto ? 'Menos detalhes' : 'Mais detalhes'}
         </summary>
-        <div className="mt-3 grid [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))] gap-2.5">
+        <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
           <Campo label="Programa">{p.nm_programa}</Campo>
           <Campo label="Data da proposta">{p.data_proposta ? fmtData(p.data_proposta) : '—'}</Campo>
           <Campo label="Já é parceria formalizada?">{p.tem_parceria ? `Sim — cd_parceria ${p.cd_parceria}` : 'Não'}</Campo>
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
 
-        <DetalheBrutoProposta metasResumo={p.metas_resumo} />
-
-        {/* Linha do tempo por último -- ordem do artifact "Proposta 43829 —
-            Levantamento Completo" (pedido do usuário 2026-09-15: "organize
-            os outros campos de acordo com [essa ordem]"), seção 07 "Depois
-            de virar parceria" fecha o relato depois de identidade/metas/
-            cronograma/análise/origem/timeline financeira detalhada -- a
-            linha do tempo resume tudo isso numa sequência só, por isso
-            funciona melhor como o fechamento do que como abertura. */}
+        {/* Linha do tempo primeiro -- pedido do usuário 2026-09-15: "pode
+            colocar a linha do tempo no início" (revertendo a ordem
+            anterior, que seguia a seção 07 do artifact da proposta 43829 e
+            colocava a linha do tempo por último). Funciona como resumo
+            rápido da trajetória antes de entrar nos detalhes seção a
+            seção abaixo. */}
         <LinhaDoTempoProposta metasResumo={p.metas_resumo} dataProposta={p.data_proposta} />
+
+        <DetalheBrutoProposta metasResumo={p.metas_resumo} />
       </details>
     </div>
   );
@@ -369,7 +368,7 @@ function DetalheBrutoProposta({ metasResumo }: { metasResumo: Record<string, unk
   return (
     <>
       {(endereco || naturezaJuridica || unidadeGestora) && (
-        <div className="mt-3 grid [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] gap-2.5">
+        <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
           {naturezaJuridica && <Campo label="Natureza jurídica">{naturezaJuridica}</Campo>}
           {unidadeGestora && <Campo label="Unidade gestora">{unidadeGestora}</Campo>}
           {endereco && <Campo label="Endereço">{endereco}</Campo>}
@@ -442,7 +441,7 @@ function DetalheBrutoProposta({ metasResumo }: { metasResumo: Record<string, unk
 
       {cronograma.length > 0 && (
         <Secao titulo="Cronograma de desembolso previsto" contagem={cronograma.length}>
-          <div className="grid [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] gap-2.5">
+          <div className="grid [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
             {cronograma.map((c, i) => {
               const mes = Number(c.nr_ref_mes_data_especif) || 0;
               const ano = c.nr_ref_ano_data_especif;
@@ -504,7 +503,7 @@ function SecaoOrigemRecurso({ distribuicoes }: { distribuicoes: Record<string, u
   if (distribuicoes.length === 0) return null;
   return (
     <Secao titulo="Origem do recurso">
-      <div className="grid [grid-template-columns:repeat(auto-fill,minmax(160px,1fr))] gap-2.5">
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
         {distribuicoes.map((d, i) => (
           <Fragment key={i}>
             <Campo label="Tipo">{campo(d, 'in_tipo_distribuicao') || '—'}</Campo>
@@ -543,7 +542,7 @@ function SecaoTimelineFinanceira({
 
   return (
     <Secao titulo="Timeline financeira (pós-parceria)">
-      <div className="grid [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))] gap-2.5 mb-2.5">
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] gap-2.5 mb-2.5">
         <Campo label="Parceria">
           {campoTexto(parceria, 'cd_parceria') || '—'}
           <span className="ml-1 text-[10px] text-muted-foreground">(id {campoNum(parceria, 'id_parceria')})</span>
