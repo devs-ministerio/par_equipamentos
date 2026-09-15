@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { KpiCard } from '@/components/common/kpi-card';
+import { NavBoxesAnaliseMerito } from '@/components/features/nav-boxes-analise-merito';
 import { MultiSelectFilter } from '@/components/common/multi-select-filter';
 import { CoberturaTable } from '@/components/features/cobertura-table';
 import { EstabelecimentoTable } from '@/components/features/estabelecimento-table';
@@ -135,6 +137,24 @@ export function DashboardPage() {
 
   return (
     <div>
+      <Card className="mb-4 py-0">
+        <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5.5">
+          <div>
+            <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-primary uppercase">
+              Análise de mérito
+            </div>
+            <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+              Parâmetros de Necessidade
+            </h1>
+            <p className="mt-2.5 max-w-[720px] text-[13.5px] leading-relaxed text-muted-foreground">
+              Cobertura, déficit e distância por macrorregião de saúde, comparando equipamentos em uso SUS
+              com a população SUS-dependente.
+            </p>
+          </div>
+          <NavBoxesAnaliseMerito />
+        </CardContent>
+      </Card>
+
       <div className="mb-4 flex flex-wrap items-start gap-2.5 rounded-lg bg-card px-4.5 py-3.5">
         <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">
           Filtrar por
