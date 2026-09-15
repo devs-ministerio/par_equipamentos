@@ -178,6 +178,12 @@ const instrumentoEquipamentoSchema = z.object({
   modalidade_onco: z.string().nullable(),
   responsavel_execucao_nome: z.string().nullable(),
   responsavel_execucao_contato: z.string().nullable(),
+  // Situação da prestação de contas no SICONV legado -- sincronizada pelo
+  // job_verificacao_siconv.py (só tipo_contratacao="Convênio"), achado
+  // 2026-09-15, pedido do usuário: "dá pra gente monitorar os concluídos
+  // da mesma forma que monitoramos no legado?". Diferente de `situacao`
+  // (Portal da Transparência, buscada ao vivo, não é campo salvo).
+  situacao_prestacao_contas: z.string().nullable(),
   // Só vem preenchido em GET /monitoramento/instrumentos (lista) -- ver
   // docstring do backend. Ausente/null nos outros endpoints.
   fase_atual: z.string().nullable().optional(),

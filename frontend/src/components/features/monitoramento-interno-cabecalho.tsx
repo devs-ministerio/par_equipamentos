@@ -41,6 +41,17 @@ export function MonitoramentoInternoCabecalho({
     { rotulo: 'Licença CNEN', valor: statusLicenca, detalhe: textoLicenca, alerta: alertaLicenca },
     { rotulo: 'Inauguração', valor: inaugurado ? 'Realizada' : dataInauguracao ? 'Prevista' : 'Sem previsão', detalhe: dataInauguracao ? fmtData(dataInauguracao) : 'Sem marco registrado', alerta: diasInauguracao !== null && diasInauguracao < 0 },
     { rotulo: 'Ações abertas', valor: acoesAbertasCount, detalhe: `${acoesAtrasadasCount} atrasada(s)`, alerta: acoesAtrasadasCount > 0 },
+    // Situação da prestação de contas no SICONV legado (achado 2026-09-15,
+    // pedido do usuário: "monitorar os concluídos da mesma forma que
+    // monitoramos no legado, com prestação de contas concluída") --
+    // sincronizada por job_verificacao_siconv.py, só existe pra
+    // tipo_contratacao="Convênio" (FAF/TED nunca estiveram no SICONV).
+    {
+      rotulo: 'Prestação de contas (SICONV)',
+      valor: inst.situacao_prestacao_contas ?? 'Sem dado',
+      detalhe: inst.situacao_prestacao_contas === 'Prestação de Contas Concluída' ? 'Concluída' : 'Ainda não concluída',
+      alerta: false,
+    },
   ];
 
   return (

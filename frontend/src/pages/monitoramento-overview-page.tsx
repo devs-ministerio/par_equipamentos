@@ -17,7 +17,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock, ShieldCheck } from 'lucide-react';
+import { CalendarClock, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
@@ -67,7 +67,10 @@ type InstrumentoApi = {
   tecnico_titular: string | null;
   tipo_contratacao: string | null;
   fase_atual: string | null;
+  situacao_prestacao_contas: string | null;
 };
+
+const PRESTACAO_CONTAS_CONCLUIDA = 'Prestação de Contas Concluída';
 
 function IndicadorOperacional({
   titulo, valor, detalhe, tom, icone,
@@ -129,6 +132,14 @@ export function MonitoramentoOverviewPage() {
   // AINDA NÃO realizada, ordenada por data (resumo.inauguracoes já vem
   // ordenado por data asc, ver obter_resumo no backend).
   const proximaInauguracao = resumo.inauguracoes.find((i) => !i.realizada) ?? null;
+
+  // "Concluídos" -- mesmo critério do card de mesmo nome em Instrumentos
+  // firmados (SIT_CONVENIO do SICONV legado), agora sobre o subconjunto
+  // MONITORADO internamente (achado 2026-09-15, pedido do usuário: "dá pra
+  // gente monitorar os concluídos da mesma forma que monitoramos no
+  // legado?"). Só existe pra tipo_contratacao="Convênio" (FAF/TED nunca
+  // estiveram no SICONV, situacao_prestacao_contas fica sempre null neles).
+  const concluidos = instrumentos.filter((i) => i.situacao_prestacao_contas === PRESTACAO_CONTAS_CONCLUIDA).length;
 
   // Opcoes dos filtros -- geradas a partir do proprio `instrumentos`
   // (valores realmente presentes, nunca uma lista fixa que pode ficar
@@ -200,6 +211,13 @@ export function MonitoramentoOverviewPage() {
           tom={proximaInauguracao && proximaInauguracao.dias < 0 ? 'alerta' : 'neutro'}
           icone={<CalendarClock size={17} />}
         />
+        <IndicadorOperacional
+          titulo="Concluídos"
+          valor={concluidos}
+          detalhe="Prestação de contas concluída (SICONV)"
+          tom="ok"
+          icone={<CheckCircle2 size={17} />}
+        />
       </div>
 
         {/* Só pra admin (achado 2026-09-15, pedido do usuário) -- carga de
@@ -242,11 +260,12 @@ export function MonitoramentoOverviewPage() {
                   <th className="py-1 px-2">UF/Município</th>
                   <th className="py-1 px-2">Fase</th>
                   <th className="py-1 px-2">Técnico titular</th>
+                  <th className="py-1 px-2">Prestação de contas</th>
                 </tr>
               </thead>
               <tbody>
                 {instrumentosFiltrados.length === 0 ? (
-                  <tr><td colSpan={5} className="py-3.5 px-2 text-center text-muted-foreground italic">Nenhum instrumento bate com esse filtro.</td></tr>
+                  <tr><td colSpan={6} className="py-3.5 px-2 text-center text-muted-foreground italic">Nenhum instrumento bate com esse filtro.</td></tr>
                 ) : instrumentosFiltrados.map((i) => (
                   <tr key={i.nr_convenio} className="border-t border-border">
                     <td className="py-1.5 px-2">
@@ -263,6 +282,13 @@ export function MonitoramentoOverviewPage() {
                     <td className="py-1.5 px-2">{i.uf}/{i.municipio}</td>
                     <td className="py-1.5 px-2">{i.fase_atual ?? '—'}</td>
                     <td className="py-1.5 px-2">{i.tecnico_titular ?? '—'}</td>
+                    <td className="py-1.5 px-2">
+                      {i.situacao_prestacao_contas === PRESTACAO_CONTAS_CONCLUIDA ? (
+                        <span className="text-[10px] font-bold py-px px-1.5 rounded-full bg-success-bg text-success">Concluída</span>
+                      ) : (
+                        i.situacao_prestacao_contas ?? '—'
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
