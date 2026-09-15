@@ -184,6 +184,15 @@ const instrumentoEquipamentoSchema = z.object({
   // da mesma forma que monitoramos no legado?". Diferente de `situacao`
   // (Portal da Transparência, buscada ao vivo, não é campo salvo).
   situacao_prestacao_contas: z.string().nullable(),
+  // Situação da parceria/ordem de pagamento no TransfereGov Novo --
+  // sincronizada por job_verificacao_transferegov.py, achado 2026-09-15,
+  // pedido do usuário: "monitoramento de situação dos itens do transfere
+  // novo". Só existe pra tipo_contratacao="Parceria TransfereGov". Sem
+  // estado "Concluída" nesta API (testado ao vivo) -- situacao_parceria
+  // pode ficar "Aprovada" mesmo com a ordem de pagamento já "Paga",
+  // por isso são 2 campos separados, não 1.
+  situacao_parceria_transferegov: z.string().nullable(),
+  situacao_ordem_pagamento_transferegov: z.string().nullable(),
   // Só vem preenchido em GET /monitoramento/instrumentos (lista) -- ver
   // docstring do backend. Ausente/null nos outros endpoints.
   fase_atual: z.string().nullable().optional(),

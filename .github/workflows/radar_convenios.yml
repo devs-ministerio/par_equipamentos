@@ -1,4 +1,4 @@
-name: Radar de Convênios (descoberta TransfereGov / verificação SICONV)
+name: Radar de Convênios (descoberta TransfereGov / verificação SICONV / verificação TransfereGov)
 
 # So manual por enquanto, mesmo motivo/mesmo guard do pipelines.yml (sem
 # DATABASE_URL publico configurado como secret ainda) -- reativar o
@@ -58,6 +58,10 @@ jobs:
 
       - name: Job de verificacao -- SICONV legado (situação de convênio já conhecido)
         # sempre tenta, mesmo se a descoberta falhar -- fontes independentes,
-        # sem dependencia entre os dois jobs.
+        # sem dependencia entre os jobs.
         if: always() && steps.guard.outputs.tem_secret == 'true'
         run: uv run python -m scripts.job_verificacao_siconv
+
+      - name: Job de verificacao -- TransfereGov Novo (situação de parceria/ordem de pagamento)
+        if: always() && steps.guard.outputs.tem_secret == 'true'
+        run: uv run python -m scripts.job_verificacao_transferegov

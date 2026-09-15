@@ -46,12 +46,31 @@ export function MonitoramentoInternoCabecalho({
     // monitoramos no legado, com prestação de contas concluída") --
     // sincronizada por job_verificacao_siconv.py, só existe pra
     // tipo_contratacao="Convênio" (FAF/TED nunca estiveram no SICONV).
-    {
-      rotulo: 'Prestação de contas (SICONV)',
-      valor: inst.situacao_prestacao_contas ?? 'Sem dado',
-      detalhe: inst.situacao_prestacao_contas === 'Prestação de Contas Concluída' ? 'Concluída' : 'Ainda não concluída',
-      alerta: false,
-    },
+    ...(inst.tipo_contratacao === 'Convênio'
+      ? [{
+          rotulo: 'Prestação de contas (SICONV)',
+          valor: inst.situacao_prestacao_contas ?? 'Sem dado',
+          detalhe: inst.situacao_prestacao_contas === 'Prestação de Contas Concluída' ? 'Concluída' : 'Ainda não concluída',
+          alerta: false,
+        }]
+      : []),
+    // Situação no TransfereGov Novo (achado 2026-09-15, pedido do
+    // usuário: "monitoramento de situação dos itens do transfere novo")
+    // -- sincronizada por job_verificacao_transferegov.py, só existe pra
+    // tipo_contratacao="Parceria TransfereGov". Sem estado "Concluída"
+    // nesta API (testado ao vivo) -- por isso mostra a ordem de
+    // pagamento (sinal real de dinheiro executado) como detalhe, não
+    // como "concluído"/"pendente" binário.
+    ...(inst.tipo_contratacao === 'Parceria TransfereGov'
+      ? [{
+          rotulo: 'Situação (TransfereGov)',
+          valor: inst.situacao_parceria_transferegov ?? 'Sem dado',
+          detalhe: inst.situacao_ordem_pagamento_transferegov
+            ? `Ordem de pagamento: ${inst.situacao_ordem_pagamento_transferegov}`
+            : 'Sem ordem de pagamento emitida ainda',
+          alerta: false,
+        }]
+      : []),
   ];
 
   return (

@@ -567,17 +567,44 @@ class InstrumentoEquipamento(Base):
     # contato mas sem obrigacao de preenchimento").
     responsavel_execucao_nome: Mapped[str | None] = mapped_column(String)
     responsavel_execucao_contato: Mapped[str | None] = mapped_column(String)
-    # Situacao da PRESTACAO DE CONTAS (TransfereGov, ex. "Prestação de
+    # Situacao da PRESTACAO DE CONTAS (SICONV LEGADO, ex. "Prestação de
     # Contas Concluída") -- achado 2026-09-14: campo DIFERENTE do
     # `situacao` buscado ao vivo do Portal da Transparencia (comentario
     # acima), que e status financeiro/orcamentario do convenio ("Normal",
-    # "Inadimplente"...), nao da prestacao de contas. A API nova do
-    # TransfereGov nao tem endpoint de consulta por numero de convenio
-    # legado (so CSV bulk, ver docs/transferegov-investsus.md) -- por isso,
-    # ao contrario de `situacao`, este campo NAO da pra buscar ao vivo e
-    # precisa ser dado manual (planilha/import ou PATCH), como
-    # tecnico_titular etc.
+    # "Inadimplente"...), nao da prestacao de contas. So existe pra
+    # tipo_contratacao="Convênio" (universo SICONV) -- sincronizado por
+    # scripts/job_verificacao_siconv.py (dump CSV bulk, sem endpoint de
+    # consulta por numero, so HEAD-check + reprocesso, ver docstring do
+    # job). NUNCA usar pra "Parceria TransfereGov" -- ver
+    # situacao_parceria_transferegov abaixo, achado 2026-09-15: o
+    # TransfereGov NOVO (diferente do que se pensava aqui antes) TEM
+    # endpoint de consulta ao vivo por id_proposta/id_parceria (ver
+    # app/pipeline/transferegov_parcerias.py) -- so o LEGADO (SICONV) que
+    # so tem dump bulk.
     situacao_prestacao_contas: Mapped[str | None] = mapped_column(String)
+    # Situacao da PARCERIA no TransfereGov NOVO -- achado 2026-09-15, pedido
+    # do usuario: "dá pra gente fazer o mesmo monitoramento de situação dos
+    # itens do transfere novo?". So existe pra
+    # tipo_contratacao="Parceria TransfereGov" (nr_convenio=cd_parceria ou
+    # str(id_proposta), ver PropostaCandidata). Sincronizado por
+    # scripts/job_verificacao_transferegov.py -- espelha `in_situacao_parceria`
+    # da API AO VIVO (valores confirmados testando o validador do filtro da
+    # propria API: 'Em Elaboração'/'Em Análise'/'Em Captação'/'Aprovada'/
+    # 'Em Execução'/'Rejeitada'/'Inativa'). IMPORTANTE (achado 2026-09-15,
+    # testado ao vivo): NAO existe estado tipo "Concluída"/"Encerrada" aqui
+    # -- nao ha conceito de "prestacao de contas" exposto nesta API (dif.
+    # do SICONV legado, que tem SIT_CONVENIO com esse estagio explicito).
+    # O sinal mais forte de "dinheiro executado de verdade" e a ORDEM DE
+    # PAGAMENTO (guardada a parte, ver situacao_ordem_pagamento_transferegov
+    # abaixo) -- a situacao da parceria pode continuar "Aprovada" mesmo
+    # com ordem de pagamento ja paga.
+    situacao_parceria_transferegov: Mapped[str | None] = mapped_column(String)
+    # Situacao da ULTIMA ordem de pagamento vinculada a parceria (ex.
+    # "Paga") -- sinal de execucao financeira de fato, separado da
+    # situacao_parceria_transferegov acima por nao serem a mesma coisa (ver
+    # comentario acima). None quando ainda nao ha nenhuma ordem de
+    # pagamento emitida.
+    situacao_ordem_pagamento_transferegov: Mapped[str | None] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

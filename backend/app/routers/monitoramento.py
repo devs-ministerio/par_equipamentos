@@ -136,6 +136,12 @@ class InstrumentoEquipamentoRead(BaseModel):
     # gestao interna (ver comentario em InstrumentoEquipamento no
     # models.py).
     situacao_prestacao_contas: str | None
+    # Situacao da parceria/ordem de pagamento no TransfereGov NOVO --
+    # achado 2026-09-15, sincronizado por job_verificacao_transferegov.py.
+    # So existe pra tipo_contratacao="Parceria TransfereGov" -- ver
+    # docstring dos 2 campos em app/db/models.py.
+    situacao_parceria_transferegov: str | None
+    situacao_ordem_pagamento_transferegov: str | None
     # So preenchido por `listar_instrumentos` (achado 2026-09-10, pedido do
     # usuario: filtro de fase na Visao Geral) -- reaproveita `_fase_atual_id`,
     # mesma regra ja usada em `obter_resumo`/no front. Fica None nos outros
