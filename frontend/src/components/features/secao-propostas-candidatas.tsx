@@ -230,9 +230,16 @@ function CardProposta({
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
 
-        <LinhaDoTempoProposta metasResumo={p.metas_resumo} dataProposta={p.data_proposta} />
-
         <DetalheBrutoProposta metasResumo={p.metas_resumo} />
+
+        {/* Linha do tempo por último -- ordem do artifact "Proposta 43829 —
+            Levantamento Completo" (pedido do usuário 2026-09-15: "organize
+            os outros campos de acordo com [essa ordem]"), seção 07 "Depois
+            de virar parceria" fecha o relato depois de identidade/metas/
+            cronograma/análise/origem/timeline financeira detalhada -- a
+            linha do tempo resume tudo isso numa sequência só, por isso
+            funciona melhor como o fechamento do que como abertura. */}
+        <LinhaDoTempoProposta metasResumo={p.metas_resumo} dataProposta={p.data_proposta} />
       </details>
     </div>
   );

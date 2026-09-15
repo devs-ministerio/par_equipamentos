@@ -18,12 +18,16 @@ export function fmtMoeda(v: number | string | null | undefined): string {
   return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 }
 
-/** Aceita tanto "dd/mm/aaaa" (dump SICONV) quanto "aaaa-mm-dd" (Portal da
- * Transparencia / API interna) e sempre devolve dd/mm/aaaa. */
+/** Aceita "dd/mm/aaaa" (dump SICONV), "aaaa-mm-dd" (Portal da Transparencia
+ * / API interna) e "aaaa-mm-ddThh:mm:ss[.ffffff]" (datetime completo, ex.
+ * `revisado_em`) e sempre devolve dd/mm/aaaa. Achado 2026-09-15 (bug real
+ * visto ao vivo em "Mais detalhes" de proposta): sem o corte em "T" antes
+ * do split, o componente de hora vazava pro "dia" (ex. `revisado_em`
+ * virava "15T16:18:38.559465/09/2026" em vez de "15/09/2026"). */
 export function fmtData(s: string | null | undefined): string {
   if (!s) return '—';
   if (s.includes('/')) return s;
-  const [ano, mes, dia] = s.split('-');
+  const [ano, mes, dia] = s.split('T')[0].split('-');
   return `${dia}/${mes}/${ano}`;
 }
 
