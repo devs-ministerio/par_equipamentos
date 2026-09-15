@@ -295,30 +295,41 @@ function LinhaDoTempoProposta({
   if (eventos.length === 0) return null;
   eventos.sort((a, b) => a.data.localeCompare(b.data));
 
+  // Horizontal -- achado 2026-09-15, pedido do usuário: "coloque a linha
+  // do tempo na horizontal e ajuste pra melhor visualização, só dados no
+  // comprimento da página". Colunas de largura fixa (cabe texto sem
+  // quebrar feio) + conector esticando pra preencher o espaço quando
+  // sobra; `overflow-x-auto` só entra em cena se a soma ultrapassar a
+  // largura do card (muitas etapas ou tela estreita), mesmo padrão de
+  // "conteúdo largo rola no próprio contêiner" já usado nas tabelas de
+  // item (ver Metas/entregas acima).
   return (
     <Secao titulo="Linha do tempo da proposta" contagem={eventos.length}>
-      <div className="grid gap-2">
-        {eventos.map((ev, i) => {
-          const ultimo = i === eventos.length - 1;
-          return (
-            <div key={i} className={cn(estiloCard, 'flex items-center gap-3 py-2.5')}>
-              <div
-                className={cn(
-                  'flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold',
-                  ultimo ? 'bg-success-bg text-success' : 'bg-background text-muted-foreground',
-                )}
-              >
-                {String(i + 1).padStart(2, '0')}
-              </div>
-              <div className="min-w-20 text-[11px] text-muted-foreground">{fmtData(ev.data)}</div>
-              <div className="flex-1">
-                <span className="text-sm font-semibold">{ev.titulo}</span>
-                {ev.detalhe && <span className="ml-1.5 text-xs text-muted-foreground">— {ev.detalhe}</span>}
-              </div>
-              {ultimo && <span className="text-[10px] font-bold uppercase text-success">Atual</span>}
-            </div>
-          );
-        })}
+      <div className="overflow-x-auto pb-1">
+        <div className="flex w-full items-start">
+          {eventos.map((ev, i) => {
+            const ultimo = i === eventos.length - 1;
+            return (
+              <Fragment key={i}>
+                <div className="flex w-[136px] shrink-0 flex-col items-center text-center">
+                  <div className="text-[10.5px] whitespace-nowrap text-muted-foreground">{fmtData(ev.data)}</div>
+                  <div
+                    className={cn(
+                      'my-1.5 flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+                      ultimo ? 'bg-success-bg text-success' : 'bg-background border border-border text-muted-foreground',
+                    )}
+                  >
+                    {i + 1}
+                  </div>
+                  <div className="text-[11.5px] leading-tight font-semibold text-foreground">{ev.titulo}</div>
+                  {ev.detalhe && <div className="mt-0.5 text-[10.5px] leading-tight text-muted-foreground">{ev.detalhe}</div>}
+                  {ultimo && <span className="mt-1 text-[9px] font-bold uppercase tracking-wide text-success">Atual</span>}
+                </div>
+                {!ultimo && <div className="mt-[35px] h-px min-w-6 flex-1 bg-border" />}
+              </Fragment>
+            );
+          })}
+        </div>
       </div>
     </Secao>
   );
