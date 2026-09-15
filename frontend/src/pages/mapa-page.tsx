@@ -1,3 +1,5 @@
+import { Card, CardContent } from '@/components/ui/card';
+import { NavBoxesAnaliseMerito } from '@/components/features/nav-boxes-analise-merito';
 import { MacroMap } from '@/components/features/macro-map';
 import { MapaDetalheMacro } from '@/components/features/mapa-detalhe-macro';
 import { MapaRodoviarioSecao } from '@/components/features/mapa-rodoviario-secao';
@@ -121,6 +123,22 @@ export function MapaPage() {
 
   return (
     <div>
+      <Card className="mb-4 py-0">
+        <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5.5">
+          <div>
+            <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-primary uppercase">
+              Análise de mérito
+            </div>
+            <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+              Mapa de Cobertura
+            </h1>
+            <p className="mt-2.5 max-w-[720px] text-[13.5px] leading-relaxed text-muted-foreground">
+              Cobertura por macrorregião de saúde, com detalhe por região de saúde ao clicar no mapa.
+            </p>
+          </div>
+          <NavBoxesAnaliseMerito />
+        </CardContent>
+      </Card>
       <div className="grid grid-cols-[2fr_1fr] items-stretch gap-4">
         <div className="rounded-lg bg-card px-4.5 py-4">
           <div className="mb-2.5 text-sm font-semibold">Equipamentos — Cobertura por macrorregião de saúde</div>

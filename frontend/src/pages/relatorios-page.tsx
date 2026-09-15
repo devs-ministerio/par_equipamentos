@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { NavBoxesAnaliseMerito } from '@/components/features/nav-boxes-analise-merito';
 import { ExportPdfModal } from '../components/modals/export-pdf-modal';
 import { ExportXlsxModal } from '../components/modals/export-xlsx-modal';
 import { useRelatoriosDados } from '../hooks/useRelatoriosDados';
@@ -69,7 +71,22 @@ export function RelatoriosPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="text-[22px] font-extrabold text-[#16213e]">Relatórios e Informações</div>
+      <Card className="py-0">
+        <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5.5">
+          <div>
+            <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-primary uppercase">
+              Análise de mérito
+            </div>
+            <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
+              Relatórios e Informações
+            </h1>
+            <p className="mt-2.5 max-w-[720px] text-[13.5px] leading-relaxed text-muted-foreground">
+              Exporte a tabela de cobertura e a lista de estabelecimentos, e confira a metodologia de cálculo.
+            </p>
+          </div>
+          <NavBoxesAnaliseMerito />
+        </CardContent>
+      </Card>
       <div className="flex items-stretch gap-4">
         <CardExportar
           titulo="⬇ Exportar PDF"

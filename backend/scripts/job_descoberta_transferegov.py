@@ -28,7 +28,18 @@ from __future__ import annotations
 
 from app.db.base import SessionLocal
 from app.db.models import Notificacao, NotificacaoTipo, PropostaCandidata, PropostaCandidataStatus
-from app.pipeline.transferegov_parcerias import buscar_cronograma_por_proposta, buscar_metas_por_proposta
+from app.pipeline.transferegov_parcerias import (
+    buscar_analises_por_proposta,
+    buscar_contas_por_parceria,
+    buscar_cronograma_por_proposta,
+    buscar_distribuicao_recurso_por_proposta,
+    buscar_documentos_habeis_por_parceria,
+    buscar_empenhos_por_parceria,
+    buscar_itens_por_etapa,
+    buscar_metas_por_proposta,
+    buscar_ordens_pagamento_por_documento,
+    buscar_parcerias_por_proposta,
+)
 from scripts.levantamento_convenios_oncologia import (
     PADROES_EQUIPAMENTO,
     PALAVRAS_PROGRAMA_ONCOLOGIA,
@@ -70,21 +81,65 @@ def _resolver_programas_alvo(sessao) -> dict[int, dict]:
     return alvo
 
 
-def _buscar_parceria(sessao, id_proposta: int) -> tuple[bool, str | None]:
+def _buscar_parceria(sessao, id_proposta: int) -> dict | None:
     """1 request extra por proposta -- volume baixo (escopo e so 8
     programas-alvo, nao o dump nacional), aceitavel pra ter o dado certo em
-    vez de adivinhar. Devolve (tem_parceria, cd_parceria) -- cd_parceria
-    (ex. 202500044035) e o codigo formal, mais proximo de um "NR_CONVENIO"
-    do sistema novo do que `id_proposta` (achado 2026-09-15, testado ao
-    vivo contra /parcerias/parceria: campo `cd_parceria` no registro).
-    Pega a 1a parceria quando ha mais de 1 (nao deveria acontecer no
-    fluxo normal proposta->parceria, mas a API nao garante 0 ou 1)."""
-    from app.pipeline.transferegov_parcerias import buscar_parcerias_por_proposta
+    vez de adivinhar. Devolve o registro cru da 1a parceria (ou None) --
+    `cd_parceria` (ex. 202500044035) e o codigo formal, mais proximo de um
+    "NR_CONVENIO" do sistema novo do que `id_proposta` (achado 2026-09-15,
+    testado ao vivo contra /parcerias/parceria). Pega a 1a parceria quando
+    ha mais de 1 (nao deveria acontecer no fluxo normal proposta->parceria,
+    mas a API nao garante 0 ou 1)."""
     parcerias = buscar_parcerias_por_proposta(sessao, id_proposta)
-    if not parcerias:
-        return False, None
-    cd = parcerias[0].get("cd_parceria")
-    return True, str(cd) if cd is not None else None
+    return parcerias[0] if parcerias else None
+
+
+def _capturar_timeline_financeira(sessao, id_parceria: int) -> dict:
+    """So chamado quando ja existe parceria -- rastreia a execucao
+    financeira ponta a ponta (achado 2026-09-15, pedido do usuario depois
+    de revisar a proposta 43829 manualmente: "vamos trazer tudo parecer
+    tecnico, origem e timeline financeira"). Documento habil -> ordem de
+    pagamento e encadeado (1 request de OP por DH), resto e 1 request cada
+    por id_parceria."""
+    documentos = buscar_documentos_habeis_por_parceria(sessao, id_parceria)
+    ordens = []
+    for doc in documentos:
+        ordens.extend(buscar_ordens_pagamento_por_documento(sessao, doc["id_documento_habil"]))
+    return {
+        "contas": buscar_contas_por_parceria(sessao, id_parceria),
+        "empenhos": buscar_empenhos_por_parceria(sessao, id_parceria),
+        "documentos_habeis": documentos,
+        "ordens_pagamento": ordens,
+    }
+
+
+def _capturar_detalhe_completo(sessao, id_proposta: int, p: dict, parceria: dict | None) -> dict:
+    """Detalhe completo pra revisao humana (pedido do usuario 2026-09-15:
+    "a equipe tecnica precisara de mais informacoes" + depois "vamos trazer
+    tudo parecer tecnico, origem e timeline financeira") -- tudo capturado
+    UMA VEZ, no momento em que o candidato e criado (nao reconsultado nos
+    diffs de candidato ja existente, pra nao multiplicar request por
+    rodada). Guardado cru (Any) em metas_resumo, mostrado como veio."""
+    metas = buscar_metas_por_proposta(sessao, id_proposta)
+    for meta in metas:
+        for etapa in meta.get("etapas_proposta", []):
+            # Item por item do que sera comprado de verdade -- achado
+            # 2026-09-15: sem isso a equipe nao sabia dizer "qual foi o
+            # equipamento financiado" (proposta so tinha o objeto generico
+            # "AQUISICAO DE EQUIPAMENTO E MATERIAL PERMANENTE").
+            etapa["itens"] = buscar_itens_por_etapa(sessao, etapa["id_etapa_proposta"])
+
+    detalhe = {
+        "proposta": p,
+        "metas": metas,
+        "cronograma_desembolso": buscar_cronograma_por_proposta(sessao, id_proposta),
+        "analise": buscar_analises_por_proposta(sessao, id_proposta),
+        "distribuicao_recurso": buscar_distribuicao_recurso_por_proposta(sessao, id_proposta),
+    }
+    if parceria is not None:
+        detalhe["parceria"] = parceria
+        detalhe["timeline_financeira"] = _capturar_timeline_financeira(sessao, parceria["id_parceria"])
+    return detalhe
 
 
 def run() -> None:
@@ -113,20 +168,9 @@ def run() -> None:
                 existente = db.query(PropostaCandidata).filter_by(id_proposta=id_proposta).one_or_none()
 
                 if existente is None:
-                    tem_parceria, cd_parceria = _buscar_parceria(sessao, id_proposta)
-                    # Detalhe completo pra revisao humana (pedido do usuario
-                    # 2026-09-15: "a equipe tecnica precisara de mais
-                    # informacoes") -- metas (entregas previstas) e
-                    # cronograma_desembolso (parcelas financeiras previstas)
-                    # capturados junto da proposta, nao so o header dela.
-                    # 2 requests extras por proposta NOVA (nao repete em
-                    # diff de candidato ja existente) -- mesmo raciocinio de
-                    # volume baixo de _buscar_parceria acima.
-                    metas_resumo = {
-                        "proposta": p,
-                        "metas": buscar_metas_por_proposta(sessao, id_proposta),
-                        "cronograma_desembolso": buscar_cronograma_por_proposta(sessao, id_proposta),
-                    }
+                    parceria = _buscar_parceria(sessao, id_proposta)
+                    cd_parceria = str(parceria["cd_parceria"]) if parceria and parceria.get("cd_parceria") is not None else None
+                    metas_resumo = _capturar_detalhe_completo(sessao, id_proposta, p, parceria)
                     candidato = PropostaCandidata(
                         id_proposta=id_proposta,
                         cnpj_ente_recebedor=valores_api["cnpj_ente_recebedor"],
@@ -142,7 +186,7 @@ def run() -> None:
                         situacao_proposta=valores_api["situacao_proposta"],
                         data_proposta=p.get("dt_proposta") or None,
                         metas_resumo=metas_resumo,
-                        tem_parceria=tem_parceria,
+                        tem_parceria=parceria is not None,
                         cd_parceria=cd_parceria,
                         status=PropostaCandidataStatus.pendente,
                     )
@@ -165,13 +209,21 @@ def run() -> None:
                             setattr(existente, campo, novo)
                     # cd_parceria so pode SURGIR depois (proposta virou
                     # parceria entre 1 rodada e outra) -- so vale a pena a
-                    # request extra quando ainda nao tinha parceria.
+                    # request extra quando ainda nao tinha parceria. Quando
+                    # surge, tambem captura a timeline financeira (nao
+                    # existia antes, agora existe).
                     if not existente.tem_parceria:
-                        tem_parceria, cd_parceria = _buscar_parceria(sessao, id_proposta)
-                        if tem_parceria != existente.tem_parceria or cd_parceria != existente.cd_parceria:
+                        parceria = _buscar_parceria(sessao, id_proposta)
+                        cd_parceria = str(parceria["cd_parceria"]) if parceria and parceria.get("cd_parceria") is not None else None
+                        if parceria is not None:
                             mudou["cd_parceria"] = {"old": existente.cd_parceria, "new": cd_parceria}
-                            existente.tem_parceria = tem_parceria
+                            existente.tem_parceria = True
                             existente.cd_parceria = cd_parceria
+                            existente.metas_resumo = {
+                                **(existente.metas_resumo or {}),
+                                "parceria": parceria,
+                                "timeline_financeira": _capturar_timeline_financeira(sessao, parceria["id_parceria"]),
+                            }
                     if mudou:
                         db.add(Notificacao(
                             tipo=NotificacaoTipo.atualizacao_api,
