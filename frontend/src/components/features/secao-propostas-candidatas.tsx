@@ -511,9 +511,9 @@ export function SecaoPropostasCandidatas({ status }: { status: PropostaCandidata
     return (
       <p className="py-5 text-sm italic text-muted-foreground">
         {status === 'pendente'
-          ? 'Nenhuma proposta pendente de revisão no momento — o job de descoberta roda diariamente.'
+          ? 'Nenhuma proposta nova no momento — o job de descoberta roda diariamente.'
           : status === 'aceita'
-            ? 'Nenhuma proposta aceita ainda.'
+            ? 'Nenhuma proposta incorporada ainda.'
             : 'Nenhuma proposta rejeitada ainda.'}
       </p>
     );

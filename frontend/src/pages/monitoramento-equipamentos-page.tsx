@@ -359,12 +359,14 @@ export function MonitoramentoEquipamentosPage() {
                 estático) saiu -- sem sentido enquanto nenhuma proposta foi
                 aceita ainda (pedido do usuário). Só as 2 sub-abas ao vivo
                 contra o banco (job_descoberta_transferegov.py) ficam --
-                nomes ainda em revisão. */}
+                nomes "Novas propostas"/"Incorporadas" decididos pelo
+                usuário 2026-09-15 (eu sugeri 3 pares, ele escolheu essa
+                combinação). */}
             <div className="flex gap-1 mb-4 border-b border-border">
               {(
                 [
-                  { value: 'pendentes', label: 'Propostas pendentes', contagem: propostasPendentes.length },
-                  { value: 'aceitas', label: 'Propostas aceitas', contagem: propostasAceitas.length },
+                  { value: 'pendentes', label: 'Novas propostas', contagem: propostasPendentes.length },
+                  { value: 'aceitas', label: 'Incorporadas', contagem: propostasAceitas.length },
                 ] as const
               ).map((sub) => (
                 <button
