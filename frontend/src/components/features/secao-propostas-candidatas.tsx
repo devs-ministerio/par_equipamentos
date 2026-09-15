@@ -230,9 +230,97 @@ function CardProposta({
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
 
+        <LinhaDoTempoProposta metasResumo={p.metas_resumo} dataProposta={p.data_proposta} />
+
         <DetalheBrutoProposta metasResumo={p.metas_resumo} />
       </details>
     </div>
+  );
+}
+
+type EventoTimeline = { data: string; titulo: string; detalhe?: string };
+
+/** Linha do tempo da proposta -- todas as etapas que ela já passou, em
+ * ordem cronológica, até a mais recente. Pedido do usuário 2026-09-15:
+ * "preciso visualizar todas as etapas que a proposta passou até a
+ * última". Antes esse dado ficava espalhado em seções separadas (análise
+ * técnica, timeline financeira) sem uma visão só, em sequência -- mesmo
+ * visual da "Linha do tempo de eventos" do instrumento monitorado (ver
+ * monitoramento-interno-eventos.tsx), pra manter o padrão do resto do
+ * sistema. Só mostra etapa que tem DATA real -- nunca inventa uma pra
+ * completar a sequência. */
+function LinhaDoTempoProposta({
+  metasResumo,
+  dataProposta,
+}: {
+  metasResumo: Record<string, unknown> | null;
+  dataProposta: string | null;
+}) {
+  const eventos: EventoTimeline[] = [];
+
+  if (dataProposta) {
+    eventos.push({ data: dataProposta, titulo: 'Proposta enviada' });
+  }
+
+  for (const a of lista(metasResumo, 'analise')) {
+    const data = campo(a, 'dh_analise_proposta');
+    if (data) {
+      const tipos = lista(a, 'tipos_analise').map((t) => campo(t, 'tp_analise')).filter(Boolean).join(', ');
+      eventos.push({
+        data: data.slice(0, 10),
+        titulo: `Análise técnica${tipos ? ` (${tipos})` : ''}`,
+        detalhe: campo(a, 'in_resultado_analise') ?? undefined,
+      });
+    }
+  }
+
+  const tl = metasResumo?.timeline_financeira;
+  if (tl && typeof tl === 'object') {
+    for (const e of lista(tl, 'empenhos')) {
+      const data = campo(e, 'data_emissao');
+      if (data) eventos.push({ data: data.slice(0, 10), titulo: 'Empenho emitido (SIAFI)', detalhe: campo(e, 'in_situacao_siafi') ?? undefined });
+    }
+    for (const d of lista(tl, 'documentos_habeis')) {
+      const data = campo(d, 'dt_emissao');
+      if (data) eventos.push({ data: data.slice(0, 10), titulo: 'Documento hábil emitido', detalhe: campo(d, 'in_situacao_dh') ?? undefined });
+    }
+    for (const o of lista(tl, 'ordens_pagamento')) {
+      const dataOp = campo(o, 'dt_emissao_op');
+      if (dataOp) eventos.push({ data: dataOp.slice(0, 10), titulo: 'Ordem de pagamento emitida', detalhe: campo(o, 'in_situacao_op') ?? undefined });
+      const dataOb = campo(o, 'dt_emissao_ordem_bancaria');
+      if (dataOb) eventos.push({ data: dataOb.slice(0, 10), titulo: 'Ordem bancária emitida' });
+    }
+  }
+
+  if (eventos.length === 0) return null;
+  eventos.sort((a, b) => a.data.localeCompare(b.data));
+
+  return (
+    <Secao titulo="Linha do tempo da proposta" contagem={eventos.length}>
+      <div className="grid gap-2">
+        {eventos.map((ev, i) => {
+          const ultimo = i === eventos.length - 1;
+          return (
+            <div key={i} className={cn(estiloCard, 'flex items-center gap-3 py-2.5')}>
+              <div
+                className={cn(
+                  'flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[10.5px] font-bold',
+                  ultimo ? 'bg-success-bg text-success' : 'bg-background text-muted-foreground',
+                )}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </div>
+              <div className="min-w-20 text-[11px] text-muted-foreground">{fmtData(ev.data)}</div>
+              <div className="flex-1">
+                <span className="text-sm font-semibold">{ev.titulo}</span>
+                {ev.detalhe && <span className="ml-1.5 text-xs text-muted-foreground">— {ev.detalhe}</span>}
+              </div>
+              {ultimo && <span className="text-[10px] font-bold uppercase text-success">Atual</span>}
+            </div>
+          );
+        })}
+      </div>
+    </Secao>
   );
 }
 
