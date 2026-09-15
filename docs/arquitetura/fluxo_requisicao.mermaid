@@ -1,0 +1,41 @@
+%% Fluxo de requisição -- Radar de Convênios (ver fluxo_requisicao.md pro
+%% "porquê" de cada seta). Formato escolhido: mermaid em vez de PlantUML --
+%% mesma ferramenta do modelo_er.mermaid (docs/database/), renderiza nativo
+%% em mais lugares (GitHub, VS Code, Claude Artifacts) sem plugin extra.
+flowchart TB
+    subgraph FONTES["Fontes de dado -- papéis fixos, não competem"]
+        TG["TransfereGov novo<br/>API viva -- 8 id_programa + padrão de equipamento-alvo"]
+        SC["SICONV legado<br/>dump bulk, 403 convênios -- ~parado há meses"]
+        PT["Portal da Transparência<br/>1 consulta pontual por número"]
+    end
+
+    TG -->|"GET /proposta?id_programa=X<br/>diário"| JD["Job de descoberta"]
+    JD -->|"id_proposta novo<br/>(dedup contra nosso banco, não contra o legado)"| CP["Candidato pendente<br/>proposta_candidata"]
+    JD -.->|"id_proposta já conhecido:<br/>diff campo a campo"| UC
+
+    CP -->|"dispara"| NOT1["Notificação"]
+    CP -->|"revisão humana<br/>vê detalhe completo"| REV{"Aceita?"}
+    REV -->|"sim"| POST["POST /monitoramento/instrumentos<br/>(novo -- checa duplicidade por identificador)"]
+    REV -->|"não"| DESC["Descartado<br/>fica no histórico"]
+
+    TEC["Técnico<br/>cadastro manual: FAF / TED / PERSUS / avulso"] -->|"form"| POST
+    POST --> UC["Universo conhecido<br/>instrumento_equipamento"]
+
+    SC -->|"HEAD Last-Modified<br/>diário, leve"| JV["Job de verificação"]
+    JV -->|"mudou: baixa + reprocessa"| UC
+    JV -.->|"não mudou: nada (maioria dos dias)"| JV
+
+    UC --> TELA["Tela do convênio"]
+    PT -->|"situação/valor ao vivo<br/>nunca persiste"| TELA
+
+    UC -->|"edição manual via PATCH"| AUDIT["AuditLog<br/>(já existe -- app/audit.py::log_action)"]
+    AUDIT -->|"dispara"| NOT2["Notificação camada 2<br/>visível só acima de técnico (RBAC a definir)"]
+    JV -->|"mudança real detectada"| NOT3["Notificação camada 1<br/>API trouxe atualização"]
+
+    classDef fonte fill:#1e3a34,stroke:#2d6a5c,stroke-width:1.5px,color:#ffffff
+    classDef manual fill:#4a321a,stroke:#a35a12,stroke-width:1.5px,color:#ffffff
+    classDef store fill:#1e3a34,stroke:#2d6a5c,stroke-width:2px,color:#ffffff
+    
+    class TG,SC,PT fonte
+    class TEC manual
+    class UC store

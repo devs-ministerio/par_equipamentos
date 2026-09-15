@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     # navegador bloqueia toda requisicao vinda de la.
     cors_origins: str = "http://localhost:5173"
 
-    # Autenticacao nao existe na Fase 1 (ver docs/design, decisao de
-    # 2026-08-13) -- fica opcional pra aplicacao subir sem essa variavel.
+    # Usado para assinar JWTs de login. Sem ele, /auth/login e rotas
+    # autenticadas retornam 503 em vez de operar sem seguranca.
     jwt_secret: str = ""
 
     # Chave gratuita de autoatendimento (login gov.br, sem aprovacao manual)

@@ -59,6 +59,25 @@ class ReferenceFileType(str, enum.Enum):
     population = "population"
 
 
+class PropostaCandidataStatus(str, enum.Enum):
+    """Radar de Convenios (fluxo fechado 2026-09-15, ver
+    docs/arquitetura/fluxo_requisicao.md) -- candidato nunca entra direto no
+    universo conhecido, sempre passa por revisao humana."""
+    pendente = "pendente"
+    aceita = "aceita"
+    rejeitada = "rejeitada"
+
+
+class NotificacaoTipo(str, enum.Enum):
+    """3 origens -- `entidade_id` aponta pra proposta_candidata.id (1o caso)
+    ou instrumento_equipamento.id (2 ultimos), sem FK fisica de proposito
+    (mesmo padrao ja usado por AuditLog.entity_name/entity_id), ver
+    docs/database/modelo_er.md."""
+    proposta_candidata = "proposta_candidata"
+    atualizacao_api = "atualizacao_api"
+    edicao_manual = "edicao_manual"
+
+
 class IncaEstimateLevel(str, enum.Enum):
     uf = "uf"
     capital = "capital"
@@ -632,4 +651,112 @@ class AcaoMonitoramento(Base):
     # Texto livre por enquanto -- mesmo padrao de autor_nome em EventoMarco
     # (login fica pra depois, ver _compor_observacao no router).
     responsavel: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+# ----------------------------------------------------------------------------
+# 9. Radar de Convenios -- descoberta automatica de proposta nova
+# (TransfereGov novo, escopada aos 8 programas-alvo) + notificacao. Fluxo
+# completo em docs/arquitetura/fluxo_requisicao.md, schema em
+# docs/database/modelo_er.md. Decisao 2026-09-15: nao compara contra
+# nr_convenio/cnpj do SICONV legado (universos disjuntos, ver docstring de
+# PropostaCandidata.id_proposta) -- SICONV legado so alimenta
+# instrumento_equipamento.situacao_prestacao_contas via job de verificacao,
+# sem tabela propria (nao ha "candidato" do lado legado, so refresh de
+# convenio ja conhecido).
+# ----------------------------------------------------------------------------
+
+class PropostaCandidata(Base):
+    """1 linha por proposta do TransfereGov novo encontrada pelo job de
+    descoberta, ainda sem decisao da equipe. Detalhe generoso de proposito
+    (metas_resumo) -- revisao nao precisa reconsultar a API ao vivo, so o
+    link "ver ao vivo" fica disponivel caso o dado tenha mudado desde a
+    captura.
+
+    Quando `status` vira `aceita`, a aplicacao chama POST
+    /monitoramento/instrumentos com nr_convenio=str(id_proposta) e
+    tipo_contratacao="Parceria TransfereGov" -- mesmo padrao de
+    identificador surrogate que FAF/TED ja usam (digitos do NUP SEI, ver
+    scripts/importar_planilha_monitoramento.py::_resolver_identificador).
+    Sem FK fisica pra instrumento_equipamento de proposito (formatos de
+    identificador diferentes, ligacao e por convencao verificada na
+    aplicacao antes do POST criar)."""
+    __tablename__ = "proposta_candidata"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    # Chave de dedup do job de descoberta -- id_proposta e do TransfereGov
+    # novo, NUNCA comparado contra nr_convenio do SICONV legado: uma
+    # proposta nova de verdade nunca vai estar no legado (sistemas de eras
+    # diferentes, sem campo em comum), comparar contra o legado so gera
+    # falso-negativo (achado 2026-09-15, corrigindo desenho anterior).
+    id_proposta: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
+    cnpj_ente_recebedor: Mapped[str] = mapped_column(String, nullable=False)
+    nm_proponente: Mapped[str] = mapped_column(String, nullable=False)
+    municipio: Mapped[str | None] = mapped_column(String)
+    uf: Mapped[str | None] = mapped_column(String(2))
+    ds_objeto: Mapped[str] = mapped_column(String, nullable=False)
+    nm_programa: Mapped[str] = mapped_column(String, nullable=False)
+    id_programa: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # 1 dos 8 COMPONENTES_ALVO (levantamento_convenios_oncologia.py) --
+    # sempre preenchido, e o proprio job de descoberta que filtra por
+    # id_programa desses 8, nao ha candidato fora do escopo.
+    componente_batido: Mapped[str] = mapped_column(String, nullable=False)
+    # Casamento contra EQUIPAMENTOS_ALVO (mesmo padrao de
+    # frontend/src/lib/equipamento-tags.ts / PADROES_EQUIPAMENTO do
+    # levantamento) -- null quando o objeto/item nao bate com nenhum
+    # equipamento do roll prioritario (ainda assim vira candidato, o
+    # criterio de escopo e o componente, equipamento e informativo extra
+    # pedido pelo usuario 2026-09-15).
+    equipamento_detectado: Mapped[str | None] = mapped_column(String)
+    vl_global_proposta: Mapped[float | None] = mapped_column(Numeric)
+    situacao_proposta: Mapped[str | None] = mapped_column(String)
+    data_proposta: Mapped[date | None] = mapped_column(Date)
+    # meta_proposta/item_proposta capturados no momento da descoberta --
+    # estrutura crua da API (Any), sem schema fixo de proposito (o "detalhe
+    # completo" pedido pra revisao humana e mostrado como veio, nao
+    # remapeado campo a campo).
+    metas_resumo: Mapped[dict | None] = mapped_column(JSONB)
+    # Ja virou `parceria` formalizada na API (proposta -> parceria) no
+    # momento da descoberta -- contexto extra pra revisao, nao muda o
+    # fluxo de aceitar/rejeitar.
+    tem_parceria: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    status: Mapped[PropostaCandidataStatus] = mapped_column(
+        PgEnum(PropostaCandidataStatus, name="proposta_candidata_status", native_enum=True),
+        nullable=False, server_default=PropostaCandidataStatus.pendente.value,
+    )
+    revisado_por: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    revisado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Notificacao(Base):
+    """2 camadas (pedido do usuario 2026-09-15): camada 1
+    (tipo=atualizacao_api) nasce do job de verificacao/descoberta achando
+    mudanca real (diff campo a campo, nunca so presenca/ausencia) num
+    instrumento ja monitorado; camada 2 (tipo=edicao_manual) nasce de
+    AuditLog (app/audit.py::log_action, ja escrito por toda rota de mutacao
+    via PATCH) -- nao duplica rastreamento, so le audit_log filtrado por
+    entity_name='instrumento_equipamento'. `entidade_id` e polimorfico por
+    `tipo` (mesmo padrao de AuditLog.entity_name/entity_id), sem FK fisica
+    de proposito -- tipo_candidata aponta pra proposta_candidata.id, os
+    outros 2 tipos apontam pra instrumento_equipamento.id."""
+    __tablename__ = "notificacao"
+    __table_args__ = (
+        Index("ix_notificacao_lida_created", "lida", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    tipo: Mapped[NotificacaoTipo] = mapped_column(
+        PgEnum(NotificacaoTipo, name="notificacao_tipo", native_enum=True), nullable=False,
+    )
+    titulo: Mapped[str] = mapped_column(String, nullable=False)
+    corpo: Mapped[str | None] = mapped_column(String)
+    entidade_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    # RBAC ainda a definir (pedido do usuario: "isso sera mostrado apenas
+    # pra niveis de usuario acima de tecnico") -- candidato natural e
+    # UserRole (admin/colaborador/leitor) quando a hierarquia fechar, mas
+    # nao e 1:1 ainda por isso fica string livre, nao FK/enum, pra nao
+    # travar em cima de uma decisao pendente.
+    nivel_minimo: Mapped[str | None] = mapped_column(String)
+    lida: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

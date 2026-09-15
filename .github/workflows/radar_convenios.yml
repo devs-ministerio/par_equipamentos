@@ -1,0 +1,63 @@
+name: Radar de Convênios (descoberta TransfereGov / verificação SICONV)
+
+# So manual por enquanto, mesmo motivo/mesmo guard do pipelines.yml (sem
+# DATABASE_URL publico configurado como secret ainda) -- reativar o
+# "schedule:" abaixo quando o secret existir. Job de descoberta e pensado
+# pra rodar DIARIO (API paginada, sem custo real); job de verificacao roda
+# junto mas so reprocessa de fato quando o HEAD-check acusa mudanca real
+# no dump SICONV (ver docstring de scripts/job_verificacao_siconv.py) --
+# rodar os dois com a mesma cadencia diaria e seguro.
+#
+# on:
+#   schedule:
+#     - cron: "30 9 * * *"  # 09:30 UTC = 06:30 em Brasilia (depois do pipelines.yml)
+on:
+  workflow_dispatch: {}
+
+jobs:
+  radar_convenios:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      # Mesmo padrao de guard de pipelines.yml -- `secrets` nao pode ser
+      # referenciado em `jobs.<id>.if`, so em `if:` de step.
+      - name: Verifica se o secret DATABASE_URL existe
+        id: guard
+        working-directory: .
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Secret DATABASE_URL nao configurado (Settings > Secrets and variables > Actions) -- pulando o resto do job."
+            echo "tem_secret=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tem_secret=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.tem_secret == 'true'
+
+      - uses: astral-sh/setup-uv@v3
+        if: steps.guard.outputs.tem_secret == 'true'
+        with:
+          version: "latest"
+
+      - name: Instala dependencias
+        if: steps.guard.outputs.tem_secret == 'true'
+        run: uv sync --frozen
+
+      - name: Aplica migrations pendentes
+        if: steps.guard.outputs.tem_secret == 'true'
+        run: uv run alembic upgrade head
+
+      - name: Job de descoberta -- TransfereGov (novas propostas nos 8 programas-alvo)
+        if: steps.guard.outputs.tem_secret == 'true'
+        run: uv run python -m scripts.job_descoberta_transferegov
+
+      - name: Job de verificacao -- SICONV legado (situação de convênio já conhecido)
+        # sempre tenta, mesmo se a descoberta falhar -- fontes independentes,
+        # sem dependencia entre os dois jobs.
+        if: always() && steps.guard.outputs.tem_secret == 'true'
+        run: uv run python -m scripts.job_verificacao_siconv

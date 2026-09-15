@@ -1,7 +1,7 @@
 [project]
 name = "sieo-backend"
 version = "0.1.0"
-description = "API do SIEO -- cobertura de equipamentos oncologicos por macrorregiao de saude"
+description = "API do SIGEO -- cobertura de equipamentos oncologicos por macrorregiao de saude"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

@@ -5,9 +5,7 @@ evento_marco, log append-only).
 
 So 1 instrumento por enquanto (convenio 948686, ver
 scripts/seed_monitoramento.py) -- decisao deliberada do usuario pra validar
-o desenho antes de escalar pros 71. Sem autenticacao ainda (`autor` e texto
-livre no corpo do evento) -- login fica pra uma fase posterior, decisao do
-usuario 2026-09-03.
+o desenho antes de escalar pros 71. Mutacoes exigem usuario autenticado.
 """
 from __future__ import annotations
 
@@ -19,8 +17,19 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.audit import log_action
+from app.auth import require_monitoramento_editor
 from app.db.base import get_db
-from app.db.models import AcaoMonitoramento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
+from app.db.models import (
+    AcaoMonitoramento,
+    EventoMarco,
+    InstrumentoEquipamento,
+    MarcoCatalogo,
+    MarcoGrupo,
+    Notificacao,
+    NotificacaoTipo,
+    User,
+)
 from app.pipeline import portal_transparencia
 
 router = APIRouter(prefix="/monitoramento", tags=["monitoramento"])
@@ -52,7 +61,7 @@ class EventoMarcoRead(BaseModel):
     # de vencimento na pagina de monitoramento.
     data_validade: date | None
     observacao: str | None
-    autor_nome: str | None  # texto livre por enquanto -- ver EventoMarcoCreate
+    autor_nome: str | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -66,13 +75,9 @@ class EventoMarcoCreate(BaseModel):
     numero_documento: str | None = None
     data_validade: date | None = None
     observacao: str | None = None
-    # Texto livre por enquanto (nome de quem esta lancando) -- vira FK real
-    # pro usuario autenticado quando o login entrar. Guardado dentro de
-    # `observacao` com prefixo ate existir coluna propria seria gambiarra;
-    # em vez disso o front manda junto e o router prefixa na observacao de
-    # forma explicita (ver `_compor_observacao`), deixando claro no dado que
-    # e um valor auto-declarado, nao autenticado.
-    autor_nome: str
+    # Legado temporario aceito por compatibilidade com o front atual; a
+    # autoria real usada no evento vem do JWT.
+    autor_nome: str | None = None
     # Equipamento FISICO -- so usado quando marco.codigo ==
     # "cronograma_entrega" (achado 2026-09-09, pedido do usuario: "o
     # equipamento entregue pode mover para eventos"). `registrar_evento`
@@ -159,6 +164,40 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     equipamento_modelo: str | None = None
     equipamento_numero_serie: str | None = None
     equipamento_vida_util_anos: int | None = None
+    tecnico_titular: str | None = None
+    tecnico_suplente: str | None = None
+    nivel_monitoramento: str | None = None
+    finalidade: str | None = None
+    modalidade_onco: str | None = None
+    responsavel_execucao_nome: str | None = None
+    responsavel_execucao_contato: str | None = None
+    situacao_prestacao_contas: str | None = None
+
+
+class InstrumentoEquipamentoCreate(BaseModel):
+    """Radar de Convenios (fluxo 2026-09-15, ver
+    docs/arquitetura/fluxo_requisicao.md) -- 2 portas de entrada pro mesmo
+    POST: automatica (candidato de proposta_candidata aceito, nr_convenio =
+    str(id_proposta), tipo_contratacao="Parceria TransfereGov") e manual
+    (tecnico cadastrando FAF/TED/PERSUS ou convenio avulso que a equipe ja
+    conhece por fora -- nr_convenio = digitos do NUP SEI pro mesmo criterio
+    ja usado em scripts/importar_planilha_monitoramento.py::
+    _resolver_identificador). Diferente de InstrumentoEquipamentoUpdate:
+    aqui SIM entra identidade (nr_convenio/cnpj/nome/tipo_contratacao),
+    porque e o unico momento em que esses campos existem -- depois de
+    criado, ficam imutaveis (mesma decisao do PATCH, corrigir por fora da
+    aplicacao se a fonte original estava errada, nao por aqui)."""
+    nr_convenio: str
+    cnpj_convenente: str
+    nome_convenente: str
+    tipo_contratacao: str
+    municipio: str | None = None
+    uf: str | None = None
+    cnes: str | None = None
+    programa: str | None = None
+    tp_instrumento_programa: str | None = None
+    componente: str | None = None
+    ano_instrumento: int | None = None
     tecnico_titular: str | None = None
     tecnico_suplente: str | None = None
     nivel_monitoramento: str | None = None
@@ -296,10 +335,7 @@ def _fase_atual_id(fases_gerais_desc: list[MarcoCatalogo], marco_ids_com_evento:
 
 
 def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
-    """Autoria auto-declarada (sem login ainda) fica sempre visivel junto do
-    texto -- nunca silenciosa. Formato: "[Nome] texto". Trocar por FK real
-    (autor_id) quando a autenticacao entrar e so parar de prefixar aqui,
-    o dado historico ja gravado continua legivel do jeito que esta."""
+    """Autoria autenticada fica visivel junto do texto para leitura rapida."""
     prefixo = f"[{autor_nome}]"
     return f"{prefixo} {observacao}" if observacao else prefixo
 
@@ -373,8 +409,48 @@ def obter_timeline(nr_convenio: str, db: Session = Depends(get_db)):
     )
 
 
+@router.post("/instrumentos", response_model=InstrumentoEquipamentoRead, status_code=201)
+def criar_instrumento(
+    corpo: InstrumentoEquipamentoCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    """Radar de Convenios -- endpoint novo (antes so existia PATCH num
+    instrumento ja existente, criado 1x via
+    scripts/importar_planilha_monitoramento.py, bootstrap unico). 2 portas
+    de entrada: automatica (proposta_candidata aceita) e manual (tecnico
+    cadastrando FAF/TED/PERSUS ou avulso) -- ver docstring de
+    InstrumentoEquipamentoCreate. 409 se `nr_convenio` ja existe (checagem
+    de duplicidade antes de criar, mesmo criterio pras 2 portas)."""
+    ja_existe = db.execute(
+        select(InstrumentoEquipamento.id).where(InstrumentoEquipamento.nr_convenio == corpo.nr_convenio)
+    ).scalar_one_or_none()
+    if ja_existe is not None:
+        raise HTTPException(409, f"Já existe instrumento monitorado com nr_convenio={corpo.nr_convenio}.")
+
+    instrumento = InstrumentoEquipamento(**corpo.model_dump())
+    db.add(instrumento)
+    db.flush()  # popula instrumento.id antes do log_action, sem precisar de 2º commit
+    log_action(
+        db,
+        user_id=usuario.id,
+        entity_name="instrumento_equipamento",
+        entity_id=instrumento.id,
+        action="created",
+        details={"nr_convenio": corpo.nr_convenio, "tipo_contratacao": corpo.tipo_contratacao},
+    )
+    db.commit()
+    db.refresh(instrumento)
+    return instrumento
+
+
 @router.patch("/instrumentos/{nr_convenio}", response_model=InstrumentoEquipamentoRead)
-def atualizar_cadastro(nr_convenio: str, corpo: InstrumentoEquipamentoUpdate, db: Session = Depends(get_db)):
+def atualizar_cadastro(
+    nr_convenio: str,
+    corpo: InstrumentoEquipamentoUpdate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
     """Unico jeito de editar `InstrumentoEquipamento` hoje (antes so dava
     pra criar/editar via scripts/seed_monitoramento.py) -- so os campos de
     InstrumentoEquipamentoUpdate, nunca identidade/financeiro (ver docstring
@@ -386,8 +462,34 @@ def atualizar_cadastro(nr_convenio: str, corpo: InstrumentoEquipamentoUpdate, db
     if instrumento is None:
         raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
 
+    alteracoes: dict[str, dict[str, object | None]] = {}
     for campo, valor in corpo.model_dump(exclude_unset=True).items():
+        antigo = getattr(instrumento, campo)
+        if antigo != valor:
+            alteracoes[campo] = {"old": antigo, "new": valor}
         setattr(instrumento, campo, valor)
+    log_action(
+        db,
+        user_id=usuario.id,
+        entity_name="instrumento_equipamento",
+        entity_id=instrumento.id,
+        action="updated",
+        details={"nr_convenio": nr_convenio, "changes": alteracoes},
+    )
+    # Notificacao camada 2 (Radar de Convenios, 2026-09-15) -- edicao manual
+    # do tecnico, so quando algo realmente mudou (alteracoes vazio = PATCH
+    # com corpo igual ao que ja estava, nao e novidade pra ninguem).
+    # nivel_minimo fica None por enquanto (hierarquia RBAC ainda a definir,
+    # ver docstring de Notificacao em models.py) -- listar_notificacoes nao
+    # filtra por role ainda, entao fica visivel pra todo mundo ate a regra
+    # fechar, nunca escondido.
+    if alteracoes:
+        db.add(Notificacao(
+            tipo=NotificacaoTipo.edicao_manual,
+            titulo=f"{usuario.name} editou o convênio {nr_convenio}",
+            corpo=f"Campo(s) alterado(s): {', '.join(alteracoes.keys())}",
+            entidade_id=instrumento.id,
+        ))
     db.commit()
     db.refresh(instrumento)
     return instrumento
@@ -411,7 +513,12 @@ def _resumo_equipamento_entregue(corpo: EventoMarcoCreate) -> str | None:
 
 
 @router.post("/instrumentos/{nr_convenio}/eventos", response_model=EventoMarcoRead, status_code=201)
-def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = Depends(get_db)):
+def registrar_evento(
+    nr_convenio: str,
+    corpo: EventoMarcoCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
     """Append-only -- sempre INSERT, nunca UPDATE (ver comentario em
     EventoMarco). Corrigir um lançamento errado e lançar um evento novo."""
     instrumento = db.execute(
@@ -449,17 +556,26 @@ def registrar_evento(nr_convenio: str, corpo: EventoMarcoCreate, db: Session = D
         status_regulatorio=corpo.status_regulatorio,
         numero_documento=corpo.numero_documento,
         data_validade=corpo.data_validade,
-        observacao=_compor_observacao(corpo.autor_nome, observacao),
-        autor_id=None,
+        observacao=_compor_observacao(usuario.name, observacao),
+        autor_id=usuario.id,
     )
     db.add(evento)
+    db.flush()
+    log_action(
+        db,
+        user_id=usuario.id,
+        entity_name="evento_marco",
+        entity_id=evento.id,
+        action="created",
+        details={"nr_convenio": nr_convenio, "marco_id": corpo.marco_id},
+    )
     db.commit()
     db.refresh(evento)
     return EventoMarcoRead(
         id=evento.id, marco_id=evento.marco_id, data_ocorrencia=evento.data_ocorrencia,
         data_prevista=evento.data_prevista, status_regulatorio=evento.status_regulatorio,
         numero_documento=evento.numero_documento, data_validade=evento.data_validade,
-        observacao=evento.observacao, autor_nome=None, created_at=evento.created_at,
+        observacao=evento.observacao, autor_nome=usuario.name, created_at=evento.created_at,
     )
 
 
@@ -582,7 +698,12 @@ def listar_acoes(pendentes: bool = Query(False), db: Session = Depends(get_db)):
 
 
 @router.post("/instrumentos/{nr_convenio}/acoes", response_model=AcaoMonitoramentoRead, status_code=201)
-def registrar_acao(nr_convenio: str, corpo: AcaoMonitoramentoCreate, db: Session = Depends(get_db)):
+def registrar_acao(
+    nr_convenio: str,
+    corpo: AcaoMonitoramentoCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
     """Cria uma acao PENDENTE (data_conclusao null) -- diferente de
     EventoMarco, essa tabela nao esta amarrada a um catalogo fixo de
     marcos (ver docstring de AcaoMonitoramento no models.py)."""
@@ -597,6 +718,15 @@ def registrar_acao(nr_convenio: str, corpo: AcaoMonitoramentoCreate, db: Session
         data_prevista=corpo.data_prevista, responsavel=corpo.responsavel,
     )
     db.add(acao)
+    db.flush()
+    log_action(
+        db,
+        user_id=usuario.id,
+        entity_name="acao_monitoramento",
+        entity_id=acao.id,
+        action="created",
+        details={"nr_convenio": nr_convenio, "responsavel": corpo.responsavel},
+    )
     db.commit()
     db.refresh(acao)
     return AcaoMonitoramentoRead(
@@ -607,7 +737,11 @@ def registrar_acao(nr_convenio: str, corpo: AcaoMonitoramentoCreate, db: Session
 
 
 @router.patch("/acoes/{acao_id}/concluir", response_model=AcaoMonitoramentoRead)
-def concluir_acao(acao_id: int, db: Session = Depends(get_db)):
+def concluir_acao(
+    acao_id: int,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
     """Unico UPDATE que AcaoMonitoramento permite de proposito -- marcar
     como concluida (seta data_conclusao = hoje). Descricao/data_prevista/
     responsavel continuam imutaveis (ver docstring do model)."""
@@ -616,6 +750,14 @@ def concluir_acao(acao_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, f"Ação {acao_id} não encontrada.")
     if acao.data_conclusao is None:
         acao.data_conclusao = date.today()
+        log_action(
+            db,
+            user_id=usuario.id,
+            entity_name="acao_monitoramento",
+            entity_id=acao.id,
+            action="completed",
+            details={"old": None, "new": acao.data_conclusao.isoformat()},
+        )
         db.commit()
         db.refresh(acao)
     instrumento = db.get(InstrumentoEquipamento, acao.instrumento_id)
