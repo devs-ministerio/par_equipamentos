@@ -269,7 +269,7 @@ function CardProposta({
         <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
           <Campo label="Programa">{p.nm_programa}</Campo>
           <Campo label="Data da proposta">{p.data_proposta ? fmtData(p.data_proposta) : '—'}</Campo>
-          <Campo label="Parceria formalizada">{p.tem_parceria ? `Sim — nº ${p.cd_parceria}` : 'Não'}</Campo>
+          <Campo label="Parceria formalizada">{p.tem_parceria ? p.cd_parceria : 'Não'}</Campo>
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
 
