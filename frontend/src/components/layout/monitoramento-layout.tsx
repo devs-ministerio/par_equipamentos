@@ -4,34 +4,45 @@
  * completo anexado pelo usuario) -- antes cada pagina de monitoramento
  * vivia fora de qualquer layout, com breadcrumb manual proprio e nenhum
  * link de volta pro resto do app. */
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { NotificationBell } from '@/components/features/notification-bell';
-import { AppHeader } from './app-header';
+import { AppHeader, type HeaderNavItem } from './app-header';
 
-const NAV_ITEMS = [
-  // Primeiro item do menu, nao mais um botao "← Voltar" separado -- volta
-  // pra analise de merito de hipo/hiperssuficiencia (fora deste layout).
-  { path: '/dashboard', label: 'Análise de mérito' },
-  // isActive exato -- "/monitoramento-equipamentos" e prefixo de todas as
-  // outras rotas deste layout, startsWith (default) marcava esta E a
-  // rota atual como ativas ao mesmo tempo.
-  { path: '/monitoramento-equipamentos', label: 'Dados oficiais', isActive: (p: string) => p === '/monitoramento-equipamentos' },
+// Rota-mae do Monitoramento Interno (exata OU detalhe de instrumento) --
+// mesmo criterio de isActive usado no item abaixo.
+const EH_MONITORAMENTO_INTERNO = (pathname: string) =>
+  pathname === '/monitoramento-equipamentos/instrumentos' ||
+  pathname.startsWith('/monitoramento-equipamentos/instrumentos/');
+
+const NAV_ITEMS_BASE: HeaderNavItem[] = [
+  // "Análise de mérito" NAO fica mais fixo em toda pagina do layout --
+  // achado 2026-09-15, pedido do usuario: "o botão para ir para a
+  // analise de méritos pode colocar apenas na pagina de monitoramento
+  // interno, no menu". Filtrado condicionalmente no componente abaixo,
+  // nao aqui (a lista base fica sem ele -- ver NAV_ITEMS).
+  { path: '/monitoramento-equipamentos', label: 'Dados oficiais', isActive: (p) => p === '/monitoramento-equipamentos' },
   {
     path: '/monitoramento-equipamentos/instrumentos',
     label: 'Monitoramento interno',
-    // Rota exata OU rota de detalhe do instrumento (/instrumentos/{nr})
-    // conta como ativa -- ela e a secao-mae.
-    isActive: (pathname: string) =>
-      pathname === '/monitoramento-equipamentos/instrumentos' ||
-      pathname.startsWith('/monitoramento-equipamentos/instrumentos/'),
+    isActive: EH_MONITORAMENTO_INTERNO,
   },
   { path: '/monitoramento-equipamentos/painel', label: 'Painel de gestão' },
 ];
 
+const ITEM_ANALISE_MERITO: HeaderNavItem = { path: '/dashboard', label: 'Análise de mérito' };
+
 export function MonitoramentoLayout() {
+  const location = useLocation();
+  // So aparece dentro do Monitoramento Interno (pagina de overview ou
+  // detalhe de 1 instrumento) -- primeiro item da lista, mesma posicao
+  // de antes, so que agora condicional em vez de fixo em todo lugar.
+  const navItems = EH_MONITORAMENTO_INTERNO(location.pathname)
+    ? [ITEM_ANALISE_MERITO, ...NAV_ITEMS_BASE]
+    : NAV_ITEMS_BASE;
+
   return (
     <div className="min-h-screen bg-background text-sm text-foreground">
-      <AppHeader navItems={NAV_ITEMS} rightExtra={<NotificationBell />} />
+      <AppHeader navItems={navItems} rightExtra={<NotificationBell />} />
       <div className="mx-auto max-w-[1400px] px-6 py-6">
         <Outlet />
       </div>
