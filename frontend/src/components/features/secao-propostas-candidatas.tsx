@@ -93,6 +93,27 @@ function equipamentoPrincipal(metasResumo: unknown): { nome: string; valor: numb
   return melhor;
 }
 
+/** Situação "de fato" -- achado 2026-09-15, pedido do usuário: "troque o
+ * aprovada pela última situação de fato". `situacao_proposta` (Aprovada)
+ * fica ESTÁTICA pra sempre, a proposta nunca "desaprova" -- quem realmente
+ * evolui é a execução financeira, capturada em timeline_financeira. Ordem
+ * de prioridade (mais recente/real primeiro): ordem de pagamento -> DH ->
+ * empenho -> situação da parceria -> situação da proposta (só cai aqui
+ * quando não há timeline nenhuma, proposta sem parceria ainda). */
+function situacaoDeFato(p: { situacao_proposta: string | null; metas_resumo: Record<string, unknown> | null }): string | null {
+  const tl = p.metas_resumo?.timeline_financeira;
+  if (tl && typeof tl === 'object') {
+    const ordens = lista(tl, 'ordens_pagamento');
+    if (ordens.length) return campo(ordens[ordens.length - 1], 'in_situacao_op');
+    const docs = lista(tl, 'documentos_habeis');
+    if (docs.length) return campo(docs[docs.length - 1], 'in_situacao_dh');
+    const empenhos = lista(tl, 'empenhos');
+    if (empenhos.length) return campo(empenhos[empenhos.length - 1], 'in_situacao_siafi');
+  }
+  const parceriaSit = campo(p.metas_resumo?.parceria, 'in_situacao_parceria');
+  return parceriaSit || p.situacao_proposta;
+}
+
 function enderecoProposta(proposta: unknown): string | null {
   const partes = [
     campo(proposta, 'ed_logradouro'),
@@ -117,6 +138,7 @@ function CardProposta({
 }) {
   const [detalheAberto, setDetalheAberto] = useState(false);
   const principal = equipamentoPrincipal(p.metas_resumo);
+  const ano = p.data_proposta?.slice(0, 4);
 
   return (
     <div className={cn(estiloCard, 'mb-3')}>
@@ -127,6 +149,9 @@ function CardProposta({
             <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
               Proposta #{p.id_proposta}
             </span>
+            {/* Ano da proposta -- achado 2026-09-15, pedido do usuário:
+                "adicione o ano da proposta". */}
+            {ano && <span className="font-mono text-[11.5px] text-muted-foreground">{ano}</span>}
             {/* Item de maior valor (dado real de /item-proposta) --
                 prioridade sobre equipamento_detectado (regex, só pega
                 equipamento de imagem grande, fica null pra colposcópio/
@@ -150,7 +175,7 @@ function CardProposta({
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <StatusPill texto={p.situacao_proposta} />
+          <StatusPill texto={situacaoDeFato(p)} />
           <div className="text-right">
             <div className="text-[10px] uppercase text-muted-foreground">Valor planejado</div>
             <div className="text-base font-extrabold text-foreground">{fmtMoeda(p.vl_global_proposta)}</div>
