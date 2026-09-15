@@ -41,7 +41,7 @@ import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { normalizarTexto } from '@/utils/texto';
 import { ConvenioCard } from '@/components/features/convenio-card';
-import { SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
+import { propostaEhNova, SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
 import { EQUIPAMENTOS_ALVO, equipamentosDoConvenio } from '@/lib/equipamento-tags';
 import { fmtMoeda } from '@/lib/monitoramento-format';
@@ -57,10 +57,14 @@ import type {
 
 type Aba = 'convenios' | 'componentes';
 // "Radar nacional" (snapshot estático) saiu -- não faz sentido enquanto
-// nenhuma proposta foi aceita ainda (pedido do usuário 2026-09-15). Os 2
-// nomes abaixo também estão em revisão (mesmo pedido, "precisamos rever
-// estes nomes") -- ainda não trocados por falta de decisão.
-type SubAbaFinanciamento = 'pendentes' | 'aceitas';
+// nenhuma proposta foi aceita ainda (pedido do usuário 2026-09-15).
+// "Incorporadas" (status aceita, sem filtro) saiu de vez -- substituída por
+// "Propostas" (universo inteiro, pendente+aceita+rejeitada) + "Novas
+// propostas" reformulada pra também puxar aceita-ainda-não-paga (achado
+// 2026-09-15, pedido do usuário: "crie uma nova aba Proposta onde estará
+// todas as propostas... na incorporadas pode remover todas", ver
+// propostaEhNova() em secao-propostas-candidatas.tsx pro critério exato).
+type SubAbaFinanciamento = 'todas' | 'novas';
 
 /** So "Convenio" tem dado carregado hoje (e o universo inteiro do SICONV/
  * Portal da Transparencia que a pagina cruza). PERSUS I/II, FAF e TED sao
@@ -81,7 +85,7 @@ const PAGE_SIZE = 20;
 
 export function MonitoramentoEquipamentosPage() {
   const [aba, setAba] = useState<Aba>('convenios');
-  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>('pendentes');
+  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>('novas');
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
@@ -219,10 +223,11 @@ export function MonitoramentoEquipamentosPage() {
     [convenios],
   );
 
-  // Contagem só pro rótulo das sub-abas -- não afeta o resto da página,
-  // busca leve e independente do resto do estado.
-  const { propostas: propostasPendentes } = usePropostasCandidatas('pendente');
-  const { propostas: propostasAceitas } = usePropostasCandidatas('aceita');
+  // Contagem só pro rótulo das abas -- não afeta o resto da página, busca
+  // leve e independente do resto do estado (mesma queryKey sem status do
+  // SecaoPropostasCandidatas, já cacheada quando a aba abrir de verdade).
+  const { propostas: todasPropostas } = usePropostasCandidatas();
+  const totalNovas = todasPropostas.filter(propostaEhNova).length;
 
   return (
     <div>
@@ -288,7 +293,7 @@ export function MonitoramentoEquipamentosPage() {
             )}
           >
             Linhas de financiamento{' '}
-            <span className="text-muted-foreground/70 font-medium">({propostasPendentes.length + propostasAceitas.length})</span>
+            <span className="text-muted-foreground/70 font-medium">({todasPropostas.length})</span>
           </button>
         </div>
 
@@ -357,16 +362,18 @@ export function MonitoramentoEquipamentosPage() {
           <>
             {/* Radar de Convênios (2026-09-15): "Radar nacional" (snapshot
                 estático) saiu -- sem sentido enquanto nenhuma proposta foi
-                aceita ainda (pedido do usuário). Só as 2 sub-abas ao vivo
-                contra o banco (job_descoberta_transferegov.py) ficam --
-                nomes "Novas propostas"/"Incorporadas" decididos pelo
-                usuário 2026-09-15 (eu sugeri 3 pares, ele escolheu essa
-                combinação). */}
+                aceita ainda (pedido do usuário). "Incorporadas" (status
+                aceita cru, sem olhar pagamento) saiu de vez -- pedido do
+                usuário: "crie uma nova aba Proposta onde estará todas as
+                propostas... na incorporadas pode remover todas". Fica
+                "Novas propostas" (pendente + aceita-ainda-não-paga, ver
+                propostaEhNova()) e "Propostas" (universo inteiro, incl.
+                rejeitada). */}
             <div className="flex gap-1 mb-4 border-b border-border">
               {(
                 [
-                  { value: 'pendentes', label: 'Novas propostas', contagem: propostasPendentes.length },
-                  { value: 'aceitas', label: 'Incorporadas', contagem: propostasAceitas.length },
+                  { value: 'novas', label: 'Novas propostas', contagem: totalNovas },
+                  { value: 'todas', label: 'Propostas', contagem: todasPropostas.length },
                 ] as const
               ).map((sub) => (
                 <button
@@ -382,8 +389,7 @@ export function MonitoramentoEquipamentosPage() {
               ))}
             </div>
 
-            {subAbaFinanciamento === 'pendentes' && <SecaoPropostasCandidatas status="pendente" />}
-            {subAbaFinanciamento === 'aceitas' && <SecaoPropostasCandidatas status="aceita" />}
+            <SecaoPropostasCandidatas modo={subAbaFinanciamento} />
           </>
         )}
     </div>

@@ -138,6 +138,19 @@ function situacaoDeFato(p: { situacao_proposta: string | null; metas_resumo: Rec
   return parceriaSit || p.situacao_proposta;
 }
 
+/** "Novas propostas" -- achado 2026-09-15, pedido do usuário: reformulação
+ * das abas de Linhas de financiamento. Além das pendentes (nunca
+ * revisadas), inclui por ora as já aceitas mas ainda não pagas
+ * (situação de fato ≠ "Paga") -- exclusivo deste momento de implantação
+ * (10 propostas aceitas de uma vez, 2 ainda "Aprovada"), NÃO um filtro
+ * permanente de "aceitas em geral": assim que a situação virar "Paga",
+ * a proposta sai daqui sozinha (a condição converge pra só pendente no
+ * regime normal, sem precisar de flag manual nem revisão depois).
+ * Rejeitada nunca entra aqui. */
+export function propostaEhNova(p: { status: PropostaCandidataStatus; situacao_proposta: string | null; metas_resumo: Record<string, unknown> | null }): boolean {
+  return p.status === 'pendente' || (p.status === 'aceita' && situacaoDeFato(p) !== 'Paga');
+}
+
 function enderecoProposta(proposta: unknown): string | null {
   const partes = [
     campo(proposta, 'ed_logradouro'),
@@ -639,8 +652,16 @@ function SecaoTimelineFinanceira({
  * partir do `propostas` já filtrado por `status` (pendente/aceita), não
  * do universo inteiro -- mesmo padrão da página (options refletem o que
  * está na aba atual). */
-export function SecaoPropostasCandidatas({ status }: { status: PropostaCandidataStatus }) {
-  const { propostas, carregando, revisar, revisando } = usePropostasCandidatas(status);
+/** `modo`: "novas" filtra pra `propostaEhNova` (pendente + aceita ainda
+ * não paga, ver docstring acima); "todas" mostra o universo inteiro
+ * (pendente+aceita+rejeitada), sem filtro de status -- achado 2026-09-15,
+ * pedido do usuário: "crie uma nova aba Proposta onde estará todas as
+ * propostas". Busca sempre TUDO da API de uma vez (sem `status` na
+ * query) -- os dois modos só recortam client-side, então trocar de aba
+ * não refaz o fetch (mesma queryKey no cache do TanStack Query). */
+export function SecaoPropostasCandidatas({ modo }: { modo: 'todas' | 'novas' }) {
+  const { propostas: todas, carregando, revisar, revisando } = usePropostasCandidatas();
+  const propostas = useMemo(() => (modo === 'novas' ? todas.filter(propostaEhNova) : todas), [todas, modo]);
   const sessao = useAuthSession();
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
@@ -722,11 +743,9 @@ export function SecaoPropostasCandidatas({ status }: { status: PropostaCandidata
   if (propostas.length === 0) {
     return (
       <p className="py-5 text-sm italic text-muted-foreground">
-        {status === 'pendente'
-          ? 'Nenhuma proposta nova no momento — o job de descoberta roda diariamente.'
-          : status === 'aceita'
-            ? 'Nenhuma proposta incorporada ainda.'
-            : 'Nenhuma proposta rejeitada ainda.'}
+        {modo === 'novas'
+          ? 'Nenhuma proposta nova ou pendente de pagamento no momento — o job de descoberta roda diariamente.'
+          : 'Nenhuma proposta encontrada ainda.'}
       </p>
     );
   }
