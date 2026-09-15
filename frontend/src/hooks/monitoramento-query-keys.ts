@@ -9,4 +9,6 @@ export const monitoramentoKeys = {
   acoes: (pendentes?: boolean) => ['monitoramento', 'acoes', pendentes ?? 'todas'] as const,
   resumo: ['monitoramento', 'resumo'] as const,
   currentUser: ['auth', 'me'] as const,
+  notificacoes: (apenasNaoLidas?: boolean) => ['notificacoes', apenasNaoLidas ?? 'todas'] as const,
+  propostasCandidatas: (status?: string) => ['propostas-candidatas', status ?? 'todas'] as const,
 };

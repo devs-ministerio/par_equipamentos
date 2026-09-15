@@ -7,7 +7,15 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.base import get_db
 from app.errors import register_exception_handlers
-from app.routers import auth, equipment_offer, macro_coverage, monitoramento, municipality_coverage, notificacoes
+from app.routers import (
+    auth,
+    equipment_offer,
+    macro_coverage,
+    monitoramento,
+    municipality_coverage,
+    notificacoes,
+    propostas_candidatas,
+)
 
 app = FastAPI(title="SIGEO — Sistema de Gestão de Equipamentos em Oncologia")
 register_exception_handlers(app)
@@ -21,6 +29,7 @@ app.include_router(monitoramento.router)
 # Radar de Convenios -- notificacao de proposta candidata/atualizacao de
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
 app.include_router(notificacoes.router)
+app.include_router(propostas_candidatas.router)
 
 # Frontend roda em origem separada (Vite local, Vercel em producao). As
 # origens autorizadas vem da variavel CORS_ORIGINS -- nunca fixo aqui, senao

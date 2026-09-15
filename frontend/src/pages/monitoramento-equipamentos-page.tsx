@@ -42,6 +42,8 @@ import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { normalizarTexto } from '@/utils/texto';
 import { ConvenioCard } from '@/components/features/convenio-card';
 import { SecaoComponentes } from '@/components/features/secao-componentes';
+import { SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
+import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
 import { LEGENDA_STATUS, VARIANT_DOT_CLASSES } from '@/components/features/monitoramento-ui';
 import { EQUIPAMENTOS_ALVO, equipamentosDoConvenio } from '@/lib/equipamento-tags';
 import { fmtMoeda } from '@/lib/monitoramento-format';
@@ -57,6 +59,7 @@ import type {
 } from '@/types/monitoramento';
 
 type Aba = 'convenios' | 'componentes';
+type SubAbaFinanciamento = 'radar-nacional' | 'pendentes' | 'aceitas';
 
 /** So "Convenio" tem dado carregado hoje (e o universo inteiro do SICONV/
  * Portal da Transparencia que a pagina cruza). PERSUS I/II, FAF e TED sao
@@ -77,6 +80,7 @@ const PAGE_SIZE = 20;
 
 export function MonitoramentoEquipamentosPage() {
   const [aba, setAba] = useState<Aba>('convenios');
+  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>('radar-nacional');
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
@@ -203,6 +207,10 @@ export function MonitoramentoEquipamentosPage() {
 
   const erro = erroPortal || erroSiconv || erroTransferegov;
   const totalComponentes = componentes?.reduce((a, c) => a + c.total_propostas, 0) ?? 0;
+
+  // Contagem só pro rótulo da sub-aba "Propostas pendentes" -- não afeta o
+  // resto da página, busca leve e independente do resto do estado.
+  const { propostas: propostasPendentes } = usePropostasCandidatas('pendente');
 
   return (
     <div>
@@ -336,7 +344,44 @@ export function MonitoramentoEquipamentosPage() {
           )
         )}
 
-        {aba === 'componentes' && (componentes ? <SecaoComponentes dados={componentes} /> : <p className="text-muted-foreground">Carregando...</p>)}
+        {aba === 'componentes' && (
+          <>
+            {/* Radar de Convênios (2026-09-15): "Linhas de financiamento" passa
+                a ter 3 sub-blocos -- o radar nacional estático original
+                (snapshot em JSON, levantamento_convenios_oncologia.py) e 2
+                blocos AO VIVO contra o banco (job_descoberta_transferegov.py):
+                propostas ainda sem decisão da equipe e propostas já aceitas
+                (viraram instrumento monitorado, ver SecaoPropostasCandidatas). */}
+            <div className="flex gap-1 mb-4 border-b border-border">
+              {(
+                [
+                  { value: 'radar-nacional', label: 'Radar nacional', contagem: totalComponentes },
+                  { value: 'pendentes', label: 'Propostas pendentes', contagem: propostasPendentes.length },
+                  { value: 'aceitas', label: 'Propostas aceitas', contagem: undefined },
+                ] as const
+              ).map((sub) => (
+                <button
+                  key={sub.value}
+                  onClick={() => setSubAbaFinanciamento(sub.value)}
+                  className={cn(
+                    'py-2 px-3.5 text-[12.5px] font-semibold border-none bg-transparent cursor-pointer -mb-px border-b-2',
+                    subAbaFinanciamento === sub.value ? 'text-primary border-b-primary' : 'text-muted-foreground border-b-transparent',
+                  )}
+                >
+                  {sub.label}
+                  {sub.contagem !== undefined && (
+                    <span className="ml-1 text-muted-foreground/70 font-medium">({sub.contagem})</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {subAbaFinanciamento === 'radar-nacional' &&
+              (componentes ? <SecaoComponentes dados={componentes} /> : <p className="text-muted-foreground">Carregando...</p>)}
+            {subAbaFinanciamento === 'pendentes' && <SecaoPropostasCandidatas status="pendente" />}
+            {subAbaFinanciamento === 'aceitas' && <SecaoPropostasCandidatas status="aceita" />}
+          </>
+        )}
     </div>
   );
 }

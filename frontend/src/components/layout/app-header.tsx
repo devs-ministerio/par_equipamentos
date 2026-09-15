@@ -20,9 +20,19 @@ export interface HeaderNavItem {
  * usuário tem prioridade sobre a regra genérica aqui.
  *
  * `leftExtra` é o slot pro que fica entre o nome do app e a navegação --
- * hoje só o SeletorEquipamento (AppLayout). Nenhum outro layout usa por
- * enquanto. */
-export function AppHeader({ navItems, leftExtra }: { navItems: HeaderNavItem[]; leftExtra?: ReactNode }) {
+ * hoje só o SeletorEquipamento (AppLayout). `rightExtra` fica depois da
+ * navegação (hoje só o NotificationBell do MonitoramentoLayout, Radar de
+ * Convênios) -- 2 slots simétricos em vez de crescer a assinatura com 1
+ * prop por widget novo. */
+export function AppHeader({
+  navItems,
+  leftExtra,
+  rightExtra,
+}: {
+  navItems: HeaderNavItem[];
+  leftExtra?: ReactNode;
+  rightExtra?: ReactNode;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -45,25 +55,28 @@ export function AppHeader({ navItems, leftExtra }: { navItems: HeaderNavItem[]; 
           </Link>
           {leftExtra}
         </div>
-        <nav className="flex flex-wrap items-center justify-end gap-1">
-          {navItems.map((item) => {
-            const active = item.isActive ? item.isActive(location.pathname) : location.pathname.startsWith(item.path);
-            return (
-              <button
-                key={item.path}
-                type="button"
-                onClick={() => navigate(item.path)}
-                aria-current={active ? 'page' : undefined}
-                className={cn(
-                  'rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
-                  active ? 'bg-secondary font-semibold text-primary' : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="flex items-center gap-2">
+          <nav className="flex flex-wrap items-center justify-end gap-1">
+            {navItems.map((item) => {
+              const active = item.isActive ? item.isActive(location.pathname) : location.pathname.startsWith(item.path);
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => navigate(item.path)}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+                    active ? 'bg-secondary font-semibold text-primary' : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+          {rightExtra}
+        </div>
       </div>
     </header>
   );

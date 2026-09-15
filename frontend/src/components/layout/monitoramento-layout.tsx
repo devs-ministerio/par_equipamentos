@@ -5,6 +5,7 @@
  * vivia fora de qualquer layout, com breadcrumb manual proprio e nenhum
  * link de volta pro resto do app. */
 import { Outlet } from 'react-router-dom';
+import { NotificationBell } from '@/components/features/notification-bell';
 import { AppHeader } from './app-header';
 
 const NAV_ITEMS = [
@@ -30,7 +31,7 @@ const NAV_ITEMS = [
 export function MonitoramentoLayout() {
   return (
     <div className="min-h-screen bg-background text-sm text-foreground">
-      <AppHeader navItems={NAV_ITEMS} />
+      <AppHeader navItems={NAV_ITEMS} rightExtra={<NotificationBell />} />
       <div className="mx-auto max-w-[1400px] px-6 py-6">
         <Outlet />
       </div>

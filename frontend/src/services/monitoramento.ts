@@ -326,3 +326,84 @@ export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;
 export function fetchResumoMonitoramento(): Promise<ResumoMonitoramento> {
   return apiGet('/monitoramento/resumo', resumoMonitoramentoSchema);
 }
+
+// ---------------------------------------------------------------------
+// Radar de Convênios -- notificações (backend/app/routers/notificacoes.py)
+// ---------------------------------------------------------------------
+
+const notificacaoTipoSchema = z.enum(['proposta_candidata', 'atualizacao_api', 'edicao_manual']);
+export type NotificacaoTipo = z.infer<typeof notificacaoTipoSchema>;
+
+const notificacaoSchema = z.object({
+  id: z.number(),
+  tipo: notificacaoTipoSchema,
+  titulo: z.string(),
+  corpo: z.string().nullable(),
+  entidade_id: z.number(),
+  nivel_minimo: z.string().nullable(),
+  lida: z.boolean(),
+  created_at: z.string(),
+});
+export type Notificacao = z.infer<typeof notificacaoSchema>;
+
+const notificacoesListSchema = z.object({
+  itens: z.array(notificacaoSchema),
+  total: z.number(),
+  nao_lidas: z.number(),
+});
+export type NotificacoesList = z.infer<typeof notificacoesListSchema>;
+
+export function fetchNotificacoes(opts?: { limit?: number; apenasNaoLidas?: boolean }): Promise<NotificacoesList> {
+  const params = new URLSearchParams();
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  if (opts?.apenasNaoLidas) params.set('apenas_nao_lidas', 'true');
+  const query = params.toString() ? `?${params.toString()}` : '';
+  return requisitar(`/notificacoes${query}`, notificacoesListSchema, { headers: authHeaders() });
+}
+
+export function marcarNotificacaoLida(notificacaoId: number): Promise<Notificacao> {
+  return apiAuthed(`/notificacoes/${notificacaoId}`, notificacaoSchema, 'PATCH');
+}
+
+// ---------------------------------------------------------------------
+// Radar de Convênios -- propostas candidatas (backend/app/routers/propostas_candidatas.py)
+// ---------------------------------------------------------------------
+
+const propostaCandidataStatusSchema = z.enum(['pendente', 'aceita', 'rejeitada']);
+export type PropostaCandidataStatus = z.infer<typeof propostaCandidataStatusSchema>;
+
+const propostaCandidataSchema = z.object({
+  id: z.number(),
+  id_proposta: z.number(),
+  cnpj_ente_recebedor: z.string(),
+  nm_proponente: z.string(),
+  municipio: z.string().nullable(),
+  uf: z.string().nullable(),
+  ds_objeto: z.string(),
+  nm_programa: z.string(),
+  id_programa: z.number(),
+  componente_batido: z.string(),
+  equipamento_detectado: z.string().nullable(),
+  vl_global_proposta: z.number().nullable(),
+  situacao_proposta: z.string().nullable(),
+  data_proposta: z.string().nullable(),
+  metas_resumo: z.record(z.string(), z.unknown()).nullable(),
+  tem_parceria: z.boolean(),
+  status: propostaCandidataStatusSchema,
+  revisado_por: z.number().nullable(),
+  revisado_em: z.string().nullable(),
+  created_at: z.string(),
+});
+export type PropostaCandidata = z.infer<typeof propostaCandidataSchema>;
+
+export function fetchPropostasCandidatas(status?: PropostaCandidataStatus): Promise<PropostaCandidata[]> {
+  const query = status ? `?status=${status}` : '';
+  return apiGet(`/propostas-candidatas${query}`, z.array(propostaCandidataSchema));
+}
+
+export function revisarPropostaCandidata(
+  propostaId: number,
+  decisao: 'aceita' | 'rejeitada',
+): Promise<PropostaCandidata> {
+  return apiAuthed(`/propostas-candidatas/${propostaId}/revisar`, propostaCandidataSchema, 'POST', { decisao });
+}
