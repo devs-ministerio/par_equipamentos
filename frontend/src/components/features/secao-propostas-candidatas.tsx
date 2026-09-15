@@ -138,17 +138,16 @@ function situacaoDeFato(p: { situacao_proposta: string | null; metas_resumo: Rec
   return parceriaSit || p.situacao_proposta;
 }
 
-/** "Novas propostas" -- achado 2026-09-15, pedido do usuário: reformulação
- * das abas de Linhas de financiamento. Além das pendentes (nunca
- * revisadas), inclui por ora as já aceitas mas ainda não pagas
- * (situação de fato ≠ "Paga") -- exclusivo deste momento de implantação
- * (10 propostas aceitas de uma vez, 2 ainda "Aprovada"), NÃO um filtro
- * permanente de "aceitas em geral": assim que a situação virar "Paga",
- * a proposta sai daqui sozinha (a condição converge pra só pendente no
- * regime normal, sem precisar de flag manual nem revisão depois).
- * Rejeitada nunca entra aqui. */
+/** "Novas propostas" -- critério é só PAGAMENTO, não status de revisão
+ * (achado 2026-09-15: `status === 'pendente'` sozinho como atalho fazia
+ * TUDO que está pendente entrar aqui, mesmo proposta com situação de fato
+ * já "Paga" -- depois que as 10 aceitas voltaram pra pendente, ficou
+ * idêntica à aba "Propostas". Pedido do usuário: "Novas era pra ser
+ * apenas as não pagas"). Qualquer proposta com situação de fato ≠ "Paga"
+ * entra, independente de já ter sido revisada ou não -- só rejeitada
+ * nunca entra (decisão fechada, não é "nova" de novo). */
 export function propostaEhNova(p: { status: PropostaCandidataStatus; situacao_proposta: string | null; metas_resumo: Record<string, unknown> | null }): boolean {
-  return p.status === 'pendente' || (p.status === 'aceita' && situacaoDeFato(p) !== 'Paga');
+  return p.status !== 'rejeitada' && situacaoDeFato(p) !== 'Paga';
 }
 
 function enderecoProposta(proposta: unknown): string | null {
@@ -167,11 +166,18 @@ function CardProposta({
   podeEditar,
   onRevisar,
   revisando,
+  mostrarAcoes,
 }: {
   p: ReturnType<typeof usePropostasCandidatas>['propostas'][number];
   podeEditar: boolean;
   onRevisar: (decisao: 'aceita' | 'rejeitada') => void;
   revisando: boolean;
+  /** Aceitar/Rejeitar só na aba "Novas propostas" -- achado 2026-09-15,
+   * pedido do usuário: "o aceitar ou rejeitar deve está somente no novas
+   * propostas". Uma proposta pendente também aparece em "Propostas"
+   * (universo inteiro, sem filtro de status), mas lá é só consulta -- a
+   * ação de revisar mora só onde o card nasceu pra ser revisado. */
+  mostrarAcoes: boolean;
 }) {
   const [detalheAberto, setDetalheAberto] = useState(false);
   const principal = equipamentoPrincipal(p.metas_resumo);
@@ -225,7 +231,7 @@ function CardProposta({
         {p.componente_batido}
       </p>
 
-      {p.status === 'pendente' && (
+      {mostrarAcoes && p.status === 'pendente' && (
         <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
           {podeEditar ? (
             <>
@@ -263,7 +269,7 @@ function CardProposta({
         <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
           <Campo label="Programa">{p.nm_programa}</Campo>
           <Campo label="Data da proposta">{p.data_proposta ? fmtData(p.data_proposta) : '—'}</Campo>
-          <Campo label="Já é parceria formalizada?">{p.tem_parceria ? `Sim — cd_parceria ${p.cd_parceria}` : 'Não'}</Campo>
+          <Campo label="Parceria formalizada">{p.tem_parceria ? `Sim — nº ${p.cd_parceria}` : 'Não'}</Campo>
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
 
@@ -412,11 +418,28 @@ function DetalheBrutoProposta({ metasResumo }: { metasResumo: Record<string, unk
         </div>
       )}
 
+      {/* Texto rolável (mesmo tratamento do parecer técnico abaixo) --
+          achado 2026-09-15, pedido do usuário: "diminuir o tamanho dos
+          campos muito longos como problema a resolver e resultado
+          esperado" -- texto livre da API pode passar de 1 parágrafo,
+          estourava o card em vez de ficar contido num box com scroll. */}
       {(problema || resultadoEsperado || publicoAlvo) && (
         <div className="mt-3 grid gap-2">
-          {problema && <Campo label="Problema a resolver">{problema}</Campo>}
-          {resultadoEsperado && <Campo label="Resultado esperado">{resultadoEsperado}</Campo>}
-          {publicoAlvo && <Campo label="Público alvo">{publicoAlvo}</Campo>}
+          {problema && (
+            <Campo label="Problema a resolver">
+              <div className="max-h-24 overflow-y-auto rounded-md border border-border bg-background p-2 text-[11.5px] leading-relaxed">{problema}</div>
+            </Campo>
+          )}
+          {resultadoEsperado && (
+            <Campo label="Resultado esperado">
+              <div className="max-h-24 overflow-y-auto rounded-md border border-border bg-background p-2 text-[11.5px] leading-relaxed">{resultadoEsperado}</div>
+            </Campo>
+          )}
+          {publicoAlvo && (
+            <Campo label="Público alvo">
+              <div className="max-h-24 overflow-y-auto rounded-md border border-border bg-background p-2 text-[11.5px] leading-relaxed">{publicoAlvo}</div>
+            </Campo>
+          )}
         </div>
       )}
 
@@ -774,6 +797,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: 'todas' | 'novas' }) 
             p={p}
             podeEditar={sessao.podeEditar}
             revisando={revisando}
+            mostrarAcoes={modo === 'novas'}
             onRevisar={(decisao) => revisar({ id: p.id, decisao })}
           />
         ))
