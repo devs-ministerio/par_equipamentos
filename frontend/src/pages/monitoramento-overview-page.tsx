@@ -17,7 +17,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarClock, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
@@ -141,6 +141,19 @@ export function MonitoramentoOverviewPage() {
   // estiveram no SICONV, situacao_prestacao_contas fica sempre null neles).
   const concluidos = instrumentos.filter((i) => i.situacao_prestacao_contas === PRESTACAO_CONTAS_CONCLUIDA).length;
 
+  // Configuração pendente -- achado 2026-09-15: aceitar uma proposta em
+  // "Linhas de financiamento" cria o InstrumentoEquipamento (entra na
+  // contagem "Instrumentos" acima), mas só com identidade (nome/CNPJ/
+  // município/programa) -- ninguém da equipe fica de fato monitorando até
+  // alguém abrir o instrumento e preencher técnico titular/nível/
+  // finalidade. Pedido do usuário: "ao incorporar a proposta ela ainda
+  // precisa ser incluída no monitoramento interno" -- decisão (pergunta
+  // direta ao usuário, 3 opções): sinalizar como pendente em vez de mudar
+  // o fluxo de aceite ou exigir dados na hora. `tecnico_titular` null é o
+  // sinal mais direto de "ainda não configurado" (primeiro campo que
+  // qualquer cadastro preenche).
+  const configuracaoPendente = instrumentos.filter((i) => !i.tecnico_titular).length;
+
   // Opcoes dos filtros -- geradas a partir do proprio `instrumentos`
   // (valores realmente presentes, nunca uma lista fixa que pode ficar
   // desatualizada). Ordenadas alfabeticamente pra ficar facil de achar.
@@ -218,6 +231,13 @@ export function MonitoramentoOverviewPage() {
           tom="ok"
           icone={<CheckCircle2 size={17} />}
         />
+        <IndicadorOperacional
+          titulo="Configuração pendente"
+          valor={configuracaoPendente}
+          detalhe="Sem técnico titular atribuído ainda"
+          tom={configuracaoPendente > 0 ? 'alerta' : 'ok'}
+          icone={<AlertTriangle size={17} />}
+        />
       </div>
 
         {/* Só pra admin (achado 2026-09-15, pedido do usuário) -- carga de
@@ -281,7 +301,11 @@ export function MonitoramentoOverviewPage() {
                     <td className="py-1.5 px-2">{i.nome_convenente}</td>
                     <td className="py-1.5 px-2">{i.uf}/{i.municipio}</td>
                     <td className="py-1.5 px-2">{i.fase_atual ?? '—'}</td>
-                    <td className="py-1.5 px-2">{i.tecnico_titular ?? '—'}</td>
+                    <td className="py-1.5 px-2">
+                      {i.tecnico_titular ?? (
+                        <span className="text-[10px] font-bold py-px px-1.5 rounded-full bg-warning-bg text-warning">Pendente</span>
+                      )}
+                    </td>
                     <td className="py-1.5 px-2">
                       {i.situacao_prestacao_contas === PRESTACAO_CONTAS_CONCLUIDA ? (
                         <span className="text-[10px] font-bold py-px px-1.5 rounded-full bg-success-bg text-success">Concluída</span>
