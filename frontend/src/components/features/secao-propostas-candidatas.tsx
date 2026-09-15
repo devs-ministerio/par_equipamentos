@@ -68,6 +68,31 @@ function lista<T = Record<string, unknown>>(obj: unknown, chave: string): T[] {
   return Array.isArray(v) ? (v as T[]) : [];
 }
 
+/** Equipamento em destaque na camada 1 -- mesmo espírito do
+ * "equipamento em destaque" do card de convênio (ver equipamento-tags.ts/
+ * convenio-card-header.tsx), pedido do usuário 2026-09-15: "aponte qual o
+ * equipamento no principal da proposta como fizemos nos convênios".
+ * Diferente de `equipamento_detectado` (regex contra PADROES_EQUIPAMENTO,
+ * fica null pra qualquer item fora do roll de equipamento de imagem
+ * grande, ex. colposcópio/bisturi) -- aqui pega o item de MAIOR VALOR
+ * dentro de /item-proposta (dado real, já capturado em metas_resumo),
+ * então sempre acha algo quando a proposta tem item detalhado. */
+function equipamentoPrincipal(metasResumo: unknown): { nome: string; valor: number | null } | null {
+  const metas = lista(metasResumo, 'metas');
+  let melhor: { nome: string; valor: number | null } | null = null;
+  for (const m of metas) {
+    for (const e of lista(m, 'etapas_proposta')) {
+      for (const it of lista(e, 'itens')) {
+        const nome = campo(it, 'nm_item');
+        if (!nome) continue;
+        const valor = campoNum(it, 'vl_total_item');
+        if (!melhor || (valor ?? -1) > (melhor.valor ?? -1)) melhor = { nome, valor };
+      }
+    }
+  }
+  return melhor;
+}
+
 function enderecoProposta(proposta: unknown): string | null {
   const partes = [
     campo(proposta, 'ed_logradouro'),
@@ -91,6 +116,7 @@ function CardProposta({
   revisando: boolean;
 }) {
   const [detalheAberto, setDetalheAberto] = useState(false);
+  const principal = equipamentoPrincipal(p.metas_resumo);
 
   return (
     <div className={cn(estiloCard, 'mb-3')}>
@@ -101,10 +127,21 @@ function CardProposta({
             <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
               Proposta #{p.id_proposta}
             </span>
-            {p.equipamento_detectado && (
+            {/* Item de maior valor (dado real de /item-proposta) --
+                prioridade sobre equipamento_detectado (regex, só pega
+                equipamento de imagem grande, fica null pra colposcópio/
+                bisturi/etc.). Cai pro regex só quando não há item
+                detalhado nenhum (proposta ainda sem meta capturada). */}
+            {principal ? (
               <span className="rounded-full border border-border bg-background px-[11px] py-1 text-[13px] font-extrabold text-foreground">
-                {p.equipamento_detectado}
+                {principal.nome}
               </span>
+            ) : (
+              p.equipamento_detectado && (
+                <span className="rounded-full border border-border bg-background px-[11px] py-1 text-[13px] font-extrabold text-foreground">
+                  {p.equipamento_detectado}
+                </span>
+              )
             )}
           </div>
           <div className="text-[15px] font-bold text-foreground">{p.nm_proponente}</div>
