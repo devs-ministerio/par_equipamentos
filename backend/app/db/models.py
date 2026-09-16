@@ -225,6 +225,107 @@ class AcceleratorRow(Base):
     operational_qty: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
 
 
+class CnesEstabelecimento(Base):
+    """Espelho local (silver) da base pública do CNES -- achado 2026-09-16,
+    pedido do usuário: vincular CNES a todos os instrumentos/propostas, "só
+    poderá editar por outro cnes válido na base de dados". Sincronizado por
+    `scripts/sincronizar_cnes_referencia.py` a partir do parquet
+    `s3://dept-oncologia-dados/silver/cnes_estabelecimentos.parquet`
+    (635 mil estabelecimentos, fornecido pelo usuário -- as APIs públicas
+    do CNES/DataSUS/ElastiCNES não são alcançáveis do ambiente de
+    desenvolvimento, testado ao vivo 2026-09-16).
+
+    Só os campos usados pra exibição/validação (nome, endereço, CNPJ,
+    município) -- não duplica todo o schema do parquet (28 colunas, boa
+    parte irrelevante aqui como REGIAO_SAUDE/MACRORREGIAO). Usada em 2
+    papéis: (1) validar edição manual do campo `cnes` em
+    InstrumentoEquipamento/PropostaCandidata (PATCH só aceita CNES que
+    exista aqui), (2) alimentar o endpoint de busca
+    (GET /monitoramento/cnes-referencia) que vira um seletor no front, não
+    campo de texto livre."""
+    __tablename__ = "cnes_estabelecimento"
+
+    cnes: Mapped[str] = mapped_column(String(7), primary_key=True)
+    nome_estabelecimento: Mapped[str] = mapped_column(String, nullable=False)
+    cnpj: Mapped[str | None] = mapped_column(String)
+    municipio: Mapped[str | None] = mapped_column(String)
+    uf: Mapped[str | None] = mapped_column(String(2))
+    cep: Mapped[str | None] = mapped_column(String)
+    logradouro: Mapped[str | None] = mapped_column(String)
+    sincronizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Convenio(Base):
+    """1 linha por convênio do universo de "Instrumentos firmados" --
+    achado 2026-09-16, pedido do usuário: "vamos parar de usar json
+    estático, coloque tudo no banco". Substitui o merge client-side de
+    convenios.json (Portal da Transparência) + siconv.json (SICONV legado)
+    + transferegov.json (TransfereGov novo, cruzado por CNPJ) que
+    `frontend/src/lib/mesclar-convenios.ts` fazia -- mesma regra de qual
+    fonte vence em cada campo (Portal pra identificação/objeto/datas,
+    SICONV pra valores financeiros quando disponível, ver
+    scripts/importar_convenios_banco.py), agora aplicada 1x na carga em vez
+    de toda visita à página.
+
+    Os campos abaixo são só o que já era usado pra filtro/ordenação/exibição
+    de camada 1 (ver ConvenioUnificado em types/monitoramento.ts) --
+    `siconv_raw`/`transferegov_raw` guardam o restante (itens do plano de
+    aplicação, empenhos, propostas expandidas etc.) como veio das fontes,
+    mesmo padrão de `PropostaCandidata.metas_resumo` (JSON cru > normalizar
+    uma árvore de profundidade variável em tabelas relacionais)."""
+    __tablename__ = "convenio"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    numero: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    numero_instrumento: Mapped[str | None] = mapped_column(String)
+    ano_instrumento: Mapped[int | None] = mapped_column(Integer)
+    objeto: Mapped[str | None] = mapped_column(String)
+    situacao: Mapped[str | None] = mapped_column(String)
+    situacao_portal: Mapped[str | None] = mapped_column(String)
+    situacao_contratacao: Mapped[str | None] = mapped_column(String)
+    convenente_nome: Mapped[str] = mapped_column(String, nullable=False)
+    convenente_cnpj: Mapped[str] = mapped_column(String, nullable=False)
+    convenente_tipo: Mapped[str | None] = mapped_column(String)
+    municipio: Mapped[str | None] = mapped_column(String)
+    uf: Mapped[str | None] = mapped_column(String(2))
+    codigo_ibge: Mapped[str | None] = mapped_column(String)
+    regiao: Mapped[str | None] = mapped_column(String)
+    orgao: Mapped[str | None] = mapped_column(String)
+    unidade_gestora: Mapped[str | None] = mapped_column(String)
+    subfuncao: Mapped[str | None] = mapped_column(String)
+    funcao: Mapped[str | None] = mapped_column(String)
+    tipo_instrumento: Mapped[str | None] = mapped_column(String)
+    numero_processo: Mapped[str | None] = mapped_column(String)
+    programa: Mapped[str | None] = mapped_column(String)
+    data_publicacao: Mapped[date | None] = mapped_column(Date)
+    data_inicio_vigencia: Mapped[date | None] = mapped_column(Date)
+    data_final_vigencia: Mapped[date | None] = mapped_column(Date)
+    data_conclusao: Mapped[date | None] = mapped_column(Date)
+    data_ultima_liberacao: Mapped[date | None] = mapped_column(Date)
+    valor_global: Mapped[float | None] = mapped_column(Numeric)
+    valor_repasse: Mapped[float | None] = mapped_column(Numeric)
+    valor_empenhado: Mapped[float | None] = mapped_column(Numeric)
+    valor_desembolsado: Mapped[float | None] = mapped_column(Numeric)
+    valor_contrapartida: Mapped[float | None] = mapped_column(Numeric)
+    valor_saldo_conta: Mapped[float | None] = mapped_column(Numeric)
+    valor_ultima_liberacao: Mapped[float | None] = mapped_column(Numeric)
+    financeiro_fonte_confiavel: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # EQUIPAMENTOS_ALVO detectados nos itens (mesmos 14 padrões de
+    # equipamento-tags.ts) -- pré-computado na carga pra filtrar sem
+    # reprocessar itens a cada request.
+    equipamentos_tags: Mapped[list | None] = mapped_column(JSONB)
+    # CNES -- achado 2026-09-16, ver docstring de CnesEstabelecimento.
+    # `cnes_metodo` é auditoria de como foi resolvido na carga original
+    # (planilha/cnpj_exato/cnpj_multi_municipio/manual/nome_endereco) --
+    # fica None quando o CNES foi editado manualmente depois (PATCH), pra
+    # não afirmar um método que não é mais verdade.
+    cnes: Mapped[str | None] = mapped_column(String(7))
+    cnes_metodo: Mapped[str | None] = mapped_column(String)
+    siconv_raw: Mapped[dict | None] = mapped_column(JSONB)
+    transferegov_raw: Mapped[dict | None] = mapped_column(JSONB)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class MunicipalityPopulationRow(Base):
     __tablename__ = "municipality_population_row"
 
@@ -760,6 +861,18 @@ class PropostaCandidata(Base):
     # revisar_proposta em app/routers/propostas_candidatas.py pra onde isso
     # vira nr_convenio no aceite.
     cd_parceria: Mapped[str | None] = mapped_column(String)
+    # CNES -- achado 2026-09-16, pedido do usuário: "vincular um CNES a
+    # todos os instrumentos e propostas". Extraído do texto de
+    # `metas_resumo` (`nm_etapa` frequentemente embute "... - CNES
+    # 0019445", direto da API oficial -- ver job_descoberta_transferegov.py)
+    # no momento da descoberta; quando uma proposta tem MAIS de 1 CNES
+    # embutido (financia mais de 1 estabelecimento), fica o da etapa com o
+    # item de maior valor (mesmo critério de `equipamentoPrincipal()` no
+    # front) -- nunca uma lista, sempre 1 único (pedido do usuário: "preciso
+    # um cnes único"). None quando a proposta não tem etapa com CNES
+    # identificável no texto. Editável manualmente depois (PATCH em
+    # propostas_candidatas.py), validado contra CnesEstabelecimento.
+    cnes: Mapped[str | None] = mapped_column(String(7))
     status: Mapped[PropostaCandidataStatus] = mapped_column(
         PgEnum(PropostaCandidataStatus, name="proposta_candidata_status", native_enum=True),
         nullable=False, server_default=PropostaCandidataStatus.pendente.value,

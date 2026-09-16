@@ -17,6 +17,7 @@
  * job_descoberta_transferegov.py) -- achado 2026-09-15, pedido do usuário:
  * "a equipe técnica precisará de mais informações pra aprovar ou não". */
 import { Fragment, useMemo, useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
@@ -26,8 +27,9 @@ import { equipamentosDeDescricoes, type EquipamentoAlvo } from '@/lib/equipament
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
+import { CnesPicker } from '@/components/common/cnes-picker';
 import { Campo, estiloCard, Secao, StatusPill } from './monitoramento-ui';
-import type { PropostaCandidataStatus } from '@/services/monitoramento';
+import { patchCnesProposta, type PropostaCandidataStatus } from '@/services/monitoramento';
 
 const MESES = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -161,6 +163,48 @@ function enderecoProposta(proposta: unknown): string | null {
   return partes.length ? partes.join(', ') : null;
 }
 
+/** CNES editável -- achado 2026-09-16, pedido do usuário: "vamos deixar o
+ * campo cnes editável no sistema... a partir de técnico poderá editar...
+ * só poderá editar por outro cnes válido na base de dados". Mesmo gate de
+ * permissão que aceitar/rejeitar (`podeEditar`); a validação de verdade
+ * (existe no CnesEstabelecimento?) é sempre no backend -- o `CnesPicker`
+ * só evita erro de digitação. */
+function CampoCnesEditavel({ propostaId, cnes, podeEditar }: { propostaId: number; cnes: string | null; podeEditar: boolean }) {
+  const [editando, setEditando] = useState(false);
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (novoCnes: string | null) => patchCnesProposta(propostaId, novoCnes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['propostas-candidatas'] });
+      setEditando(false);
+    },
+  });
+
+  return (
+    <div className="relative">
+      <div className={cn('flex items-center justify-between', !podeEditar && 'pointer-events-none')}>
+        <Campo label="CNES">{cnes ?? '—'}</Campo>
+        {podeEditar && (
+          <button
+            type="button"
+            onClick={() => setEditando((v) => !v)}
+            className="pointer-events-auto shrink-0 text-[10.5px] font-semibold text-primary hover:underline"
+          >
+            editar
+          </button>
+        )}
+      </div>
+      {editando && (
+        <CnesPicker
+          valorAtual={cnes}
+          onEscolher={(novo) => mutation.mutate(novo)}
+          onCancelar={() => setEditando(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 function CardProposta({
   p,
   podeEditar,
@@ -270,6 +314,7 @@ function CardProposta({
           <Campo label="Programa">{p.nm_programa}</Campo>
           <Campo label="Data da proposta">{p.data_proposta ? fmtData(p.data_proposta) : '—'}</Campo>
           <Campo label="Parceria formalizada">{p.tem_parceria ? p.cd_parceria : 'Não'}</Campo>
+          <CampoCnesEditavel propostaId={p.id} cnes={p.cnes} podeEditar={podeEditar} />
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
 

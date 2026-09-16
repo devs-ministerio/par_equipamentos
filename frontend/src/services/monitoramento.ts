@@ -265,10 +265,35 @@ export interface CadastroInstrumentoInput {
   modalidade_onco?: string | null;
   responsavel_execucao_nome?: string | null;
   responsavel_execucao_contato?: string | null;
+  cnes?: string | null;
 }
 
 export function patchCadastroInstrumento(nrConvenio: string, corpo: CadastroInstrumentoInput): Promise<InstrumentoEquipamento> {
   return apiAuthed(`/monitoramento/instrumentos/${nrConvenio}`, instrumentoEquipamentoSchema, 'PATCH', corpo);
+}
+
+// ---------------------------------------------------------------------
+// CNES -- achado 2026-09-16, pedido do usuário: "vamos deixar o campo
+// cnes editável no sistema... só poderá editar por outro cnes válido na
+// base de dados". `buscarCnesReferencia` alimenta um seletor (não texto
+// livre) tanto no cadastro do instrumento quanto no card da proposta.
+// ---------------------------------------------------------------------
+
+const cnesReferenciaSchema = z.object({
+  cnes: z.string(),
+  nome_estabelecimento: z.string(),
+  municipio: z.string().nullable(),
+  uf: z.string().nullable(),
+});
+export type CnesReferencia = z.infer<typeof cnesReferenciaSchema>;
+
+export function buscarCnesReferencia(q: string): Promise<CnesReferencia[]> {
+  if (q.trim().length < 2) return Promise.resolve([]);
+  return apiGet(`/monitoramento/cnes-referencia?q=${encodeURIComponent(q)}`, z.array(cnesReferenciaSchema));
+}
+
+export function patchCnesProposta(propostaId: number, cnes: string | null): Promise<PropostaCandidata> {
+  return apiAuthed(`/propostas-candidatas/${propostaId}/cnes`, propostaCandidataSchema, 'PATCH', { cnes });
 }
 
 export interface RegistrarEventoInput {
@@ -426,6 +451,7 @@ const propostaCandidataSchema = z.object({
   situacao_proposta: z.string().nullable(),
   data_proposta: z.string().nullable(),
   metas_resumo: z.record(z.string(), z.unknown()).nullable(),
+  cnes: z.string().nullable(),
   tem_parceria: z.boolean(),
   cd_parceria: z.string().nullable(),
   status: propostaCandidataStatusSchema,

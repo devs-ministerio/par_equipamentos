@@ -22,6 +22,7 @@ from app.auth import require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import (
     AcaoMonitoramento,
+    CnesEstabelecimento,
     EventoMarco,
     InstrumentoEquipamento,
     MarcoCatalogo,
@@ -178,6 +179,11 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     responsavel_execucao_nome: str | None = None
     responsavel_execucao_contato: str | None = None
     situacao_prestacao_contas: str | None = None
+    # CNES -- achado 2026-09-16, pedido do usuário: "vamos deixar o campo
+    # cnes editável no sistema... só poderá editar por outro cnes válido na
+    # base de dados". Validado em `atualizar_cadastro` contra
+    # CnesEstabelecimento (nunca texto livre) antes de aplicar.
+    cnes: str | None = None
 
 
 class InstrumentoEquipamentoCreate(BaseModel):
@@ -352,6 +358,33 @@ def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
     return f"{prefixo} {observacao}" if observacao else prefixo
 
 
+class CnesEstabelecimentoRead(BaseModel):
+    cnes: str
+    nome_estabelecimento: str
+    municipio: str | None
+    uf: str | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+@router.get("/cnes-referencia", response_model=list[CnesEstabelecimentoRead])
+def buscar_cnes_referencia(q: str = Query(..., min_length=2), db: Session = Depends(get_db)):
+    """Busca em CnesEstabelecimento (nome ou código) -- achado 2026-09-16,
+    pedido do usuário: "só poderá editar por outro cnes válido na base de
+    dados". Alimenta um seletor no front (não campo de texto livre) tanto
+    pra editar o CNES de um instrumento/proposta já existente quanto pra
+    conferir um código antes de aplicar. `q` com só dígitos busca por
+    código (prefixo); qualquer outra coisa busca por nome (contém,
+    case-insensitive). Limitado a 20 resultados -- é autocomplete, não
+    listagem completa."""
+    query = select(CnesEstabelecimento)
+    if q.isdigit():
+        query = query.where(CnesEstabelecimento.cnes.startswith(q))
+    else:
+        query = query.where(CnesEstabelecimento.nome_estabelecimento.ilike(f"%{q}%"))
+    return db.execute(query.limit(20)).scalars().all()
+
+
 @router.get("/marcos", response_model=list[MarcoCatalogoRead])
 def listar_marcos(db: Session = Depends(get_db)):
     return db.execute(select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem)).scalars().all()
@@ -477,6 +510,9 @@ def atualizar_cadastro(
     ).scalar_one_or_none()
     if instrumento is None:
         raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
+
+    if corpo.cnes is not None and db.get(CnesEstabelecimento, corpo.cnes.zfill(7)) is None:
+        raise HTTPException(422, f"CNES {corpo.cnes} não encontrado na base de referência (CnesEstabelecimento).")
 
     alteracoes: dict[str, dict[str, object | None]] = {}
     for campo, valor in corpo.model_dump(exclude_unset=True).items():

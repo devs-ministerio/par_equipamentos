@@ -106,6 +106,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
         acoesAbertasCount={acoesAbertas.length}
         acoesAtrasadasCount={acoesAtrasadas.length}
+        podeEditar={sessao.podeEditar}
+        onSalvarCnes={(cnes) => salvarCadastro.mutate({ cnes }, { onError: tratarErroEscrita })}
       />
 
       {/* "Acesso operacional" saiu daqui (achado 2026-09-15, pedido do

@@ -1,9 +1,11 @@
 /** Cabeçalho de MonitoramentoInterno -- card de identificação/valor global +
  * grid de indicadores rápidos. Extraído do arquivo original (Seção 6 da
  * migração). */
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { InstrumentoTimeline } from '@/services/monitoramento';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
+import { CnesPicker } from '@/components/common/cnes-picker';
 import { estiloCard, StatusPill } from './monitoramento-ui';
 
 export function MonitoramentoInternoCabecalho({
@@ -18,6 +20,8 @@ export function MonitoramentoInternoCabecalho({
   alertaLicenca,
   acoesAbertasCount,
   acoesAtrasadasCount,
+  podeEditar,
+  onSalvarCnes,
 }: {
   timeline: InstrumentoTimeline;
   componenteViaSiconv: string | null;
@@ -30,9 +34,16 @@ export function MonitoramentoInternoCabecalho({
   alertaLicenca: boolean;
   acoesAbertasCount: number;
   acoesAtrasadasCount: number;
+  /** CNES editável -- achado 2026-09-16, pedido do usuário: "vamos deixar
+   * o campo cnes editável no sistema... a partir de técnico poderá
+   * editar". Mesmo gate de permissão do resto do cadastro; validação de
+   * verdade (CNES existe na base?) é sempre no backend. */
+  podeEditar: boolean;
+  onSalvarCnes: (cnes: string | null) => void;
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
+  const [editandoCnes, setEditandoCnes] = useState(false);
 
   const indicadores = [
     { rotulo: 'Equipe DECAN', valor: inst.tecnico_titular ?? '—', detalhe: inst.tecnico_suplente ? `Suplente: ${inst.tecnico_suplente}` : 'Sem suplente informado' },
@@ -89,8 +100,28 @@ export function MonitoramentoInternoCabecalho({
                 </span>
               )}
             </div>
-            <div className="text-xs text-muted-foreground">
-              {inst.municipio}/{inst.uf} · CNES {inst.cnes} ·{' '}
+            <div className="relative text-xs text-muted-foreground">
+              {inst.municipio}/{inst.uf} · CNES {inst.cnes ?? '—'}
+              {podeEditar && (
+                <button
+                  type="button"
+                  onClick={() => setEditandoCnes((v) => !v)}
+                  className="ml-1 text-[10.5px] font-semibold text-primary hover:underline"
+                >
+                  editar
+                </button>
+              )}
+              {editandoCnes && (
+                <CnesPicker
+                  valorAtual={inst.cnes}
+                  onEscolher={(cnes) => {
+                    onSalvarCnes(cnes);
+                    setEditandoCnes(false);
+                  }}
+                  onCancelar={() => setEditandoCnes(false)}
+                />
+              )}
+              {' · '}
               <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">{inst.equipamento_descricao}</span>
             </div>
             <div className="text-xs text-muted-foreground mt-1">

@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_monitoramento_editor
 from app.db.base import get_db
-from app.db.models import PropostaCandidata, PropostaCandidataStatus, User
+from app.db.models import CnesEstabelecimento, PropostaCandidata, PropostaCandidataStatus, User
 from app.routers.monitoramento import InstrumentoEquipamentoCreate, criar_instrumento
 
 router = APIRouter(prefix="/propostas-candidatas", tags=["propostas-candidatas"])
@@ -51,6 +51,7 @@ class PropostaCandidataRead(BaseModel):
     situacao_proposta: str | None
     data_proposta: date | None
     metas_resumo: dict | None
+    cnes: str | None
     tem_parceria: bool
     cd_parceria: str | None
     status: PropostaCandidataStatus
@@ -112,6 +113,7 @@ def revisar_proposta(
                 tipo_contratacao="Parceria TransfereGov",
                 municipio=proposta.municipio,
                 uf=proposta.uf,
+                cnes=proposta.cnes,
                 programa=proposta.nm_programa,
                 componente=proposta.componente_batido,
             ),
@@ -124,6 +126,36 @@ def revisar_proposta(
 
     proposta.revisado_por = usuario.id
     proposta.revisado_em = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(proposta)
+    return proposta
+
+
+class PropostaCandidataCnesUpdate(BaseModel):
+    cnes: str | None = None
+
+
+@router.patch("/{proposta_id}/cnes", response_model=PropostaCandidataRead)
+def atualizar_cnes(
+    proposta_id: int,
+    corpo: PropostaCandidataCnesUpdate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    """Corrige o CNES extraído automaticamente na descoberta (ver
+    `_extrair_cnes` em job_descoberta_transferegov.py) -- achado
+    2026-09-16, pedido do usuário: "vamos deixar o campo cnes editável...
+    só poderá editar por outro cnes válido na base de dados". `cnes=None`
+    limpa o campo (proposta sem CNES identificável, equipe decide não
+    aplicar nenhum candidato)."""
+    proposta = db.execute(
+        select(PropostaCandidata).where(PropostaCandidata.id == proposta_id)
+    ).scalar_one_or_none()
+    if proposta is None:
+        raise HTTPException(404, f"Proposta candidata {proposta_id} não encontrada.")
+    if corpo.cnes is not None and db.get(CnesEstabelecimento, corpo.cnes.zfill(7)) is None:
+        raise HTTPException(422, f"CNES {corpo.cnes} não encontrado na base de referência.")
+    proposta.cnes = corpo.cnes.zfill(7) if corpo.cnes else None
     db.commit()
     db.refresh(proposta)
     return proposta

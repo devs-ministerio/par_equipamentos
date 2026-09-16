@@ -26,6 +26,8 @@ tocado por este job (decisao da equipe fica fechada).
 """
 from __future__ import annotations
 
+import re
+
 from app.db.base import SessionLocal
 from app.db.models import Notificacao, NotificacaoTipo, PropostaCandidata, PropostaCandidataStatus
 from app.pipeline.transferegov_parcerias import (
@@ -142,6 +144,42 @@ def _capturar_detalhe_completo(sessao, id_proposta: int, p: dict, parceria: dict
     return detalhe
 
 
+_RE_CNES_NA_ETAPA = re.compile(r"CNES\s*(\d{6,7})")
+
+
+def _extrair_cnes(metas: list[dict]) -> str | None:
+    """CNES embutido no texto de `nm_etapa` (ex. "AQUISIÇÃO DE EQUIPAMENTO
+    E MATERIAL PERMANENTE - CNES 0019445") -- achado 2026-09-16, pedido do
+    usuário: "vincular um CNES a todos os instrumentos e propostas".
+    Validado ao vivo contra a base pública do CNES (município bate em
+    9/9 códigos testados na primeira leva) -- confiável porque vem direto
+    do texto que a PRÓPRIA proposta carrega, não de um cruzamento por CNPJ
+    com outra proposta qualquer (esse outro caminho, testado nos 403
+    convênios legado, mostrou-se não confiável -- CNPJ de Fundo/Secretaria
+    cobre múltiplas propostas de estabelecimentos diferentes).
+
+    Quando a proposta financia MAIS de 1 estabelecimento (etapas com CNES
+    diferentes -- caso real testado na proposta 23810, 3 CNES), fica o CNES
+    da etapa que tem o item de MAIOR valor total -- mesmo critério de
+    `equipamentoPrincipal()` no front (o "equipamento principal" exibido no
+    card e o "CNES principal" gravado aqui sempre apontam pro mesmo
+    estabelecimento). Nunca uma lista -- pedido do usuário: "preciso um
+    cnes único"."""
+    melhor_cnes: str | None = None
+    melhor_valor = -1.0
+    for meta in metas:
+        for etapa in meta.get("etapas_proposta", []):
+            m = _RE_CNES_NA_ETAPA.search(etapa.get("nm_etapa") or "")
+            if not m:
+                continue
+            cnes = m.group(1).zfill(7)
+            valor_etapa = sum((it.get("vl_total_item") or 0) for it in etapa.get("itens", []))
+            if valor_etapa > melhor_valor:
+                melhor_valor = valor_etapa
+                melhor_cnes = cnes
+    return melhor_cnes
+
+
 def run() -> None:
     sessao = _sessao_com_retry()
     programas_alvo = _resolver_programas_alvo(sessao)
@@ -186,6 +224,7 @@ def run() -> None:
                         situacao_proposta=valores_api["situacao_proposta"],
                         data_proposta=p.get("dt_proposta") or None,
                         metas_resumo=metas_resumo,
+                        cnes=_extrair_cnes(metas_resumo.get("metas", [])),
                         tem_parceria=parceria is not None,
                         cd_parceria=cd_parceria,
                         status=PropostaCandidataStatus.pendente,

@@ -9,6 +9,7 @@ from app.db.base import get_db
 from app.errors import register_exception_handlers
 from app.routers import (
     auth,
+    convenios,
     equipment_offer,
     macro_coverage,
     monitoramento,
@@ -23,6 +24,9 @@ app.include_router(auth.router)
 app.include_router(macro_coverage.router)
 app.include_router(municipality_coverage.router)
 app.include_router(equipment_offer.router)
+# Instrumentos firmados -- achado 2026-09-16, "parar de usar json estático,
+# coloque tudo no banco", ver app/routers/convenios.py.
+app.include_router(convenios.router)
 # Monitoramento de equipamento pos-repasse -- esforco separado da analise de
 # merito (decisao 2026-09-03), ver app/routers/monitoramento.py.
 app.include_router(monitoramento.router)
