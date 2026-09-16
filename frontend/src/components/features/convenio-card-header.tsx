@@ -42,6 +42,19 @@ export function ConvenioCardHeader({
             )}
           </div>
           <div className="text-[15px] font-bold text-foreground">{c.convenente.nome}</div>
+          {/* Estabelecimento (CNES) em destaque -- achado 2026-09-16,
+              pedido do usuário: "preciso que coloque o nome do
+              estabelecimento também abaixo do nome do convenente e o
+              cnes como marcador ao lado". Só aparece quando resolvido
+              (357/403 hoje) -- nunca "CNES —" vazio poluindo o card. */}
+          {c.cnes && (
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-foreground">
+              <span>{c.cnesNomeEstabelecimento}</span>
+              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 font-mono text-[10.5px] font-bold text-primary">
+                CNES {c.cnes}
+              </span>
+            </div>
+          )}
           <div className="text-xs text-muted-foreground mt-0.5">
             {c.convenente.cnpj} · {c.municipio}/{c.uf}
           </div>

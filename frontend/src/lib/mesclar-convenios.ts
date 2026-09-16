@@ -76,6 +76,8 @@ export function mesclarConvenios(
       funcao: p.funcao,
       tipoInstrumento: p.tipo_instrumento,
       numeroProcesso: p.numero_processo,
+      cnes: p.cnes,
+      cnesNomeEstabelecimento: p.cnes_nome_estabelecimento,
       datas: {
         publicacao: p.data_publicacao ?? dataSiconv(sc?.DIA_PUBL_CONV),
         inicioVigencia: p.data_inicio_vigencia ?? dataSiconv(sc?.DIA_INIC_VIGENC_CONV),

@@ -40,6 +40,15 @@ export type ConvenioPortal = {
   valor_contrapartida: number;
   valor_ultima_liberacao: number;
   numero_processo: string;
+  // CNES -- achado 2026-09-16, pedido do usuário: "coloca o cnes em
+  // destaque nos convênios". Não vem da API do Portal da Transparência
+  // (nenhuma das 3 fontes traz CNES) -- injetado no convenios.json depois
+  // da carga pela mesma metodologia validada usada pra tabela `Convenio`
+  // no banco (ver backend/scripts/importar_convenios_banco.py::resolver_cnes),
+  // 357 dos 403 resolvidos hoje. null nos outros 46 (Secretaria/Fundo sem
+  // 1 CNES único por natureza) -- nunca inventado.
+  cnes: string | null;
+  cnes_nome_estabelecimento: string | null;
 };
 
 export type SiconvEntrada = {
@@ -118,6 +127,8 @@ export type ConvenioUnificado = {
   funcao: string;
   tipoInstrumento: string;
   numeroProcesso: string;
+  cnes: string | null;
+  cnesNomeEstabelecimento: string | null;
   datas: {
     publicacao: string | null;
     inicioVigencia: string | null;
