@@ -1,9 +1,16 @@
 # Dados de monitoramento de equipamentos
 
-JSON estático consumido por `src/pages/MonitoramentoEquipamentosPage.tsx`
-(rota `/monitoramento-equipamentos`, sem link a partir do resto do app).
-Não vem de nenhuma API chamada pelo frontend — são um snapshot gerado pelos
-scripts do backend e copiado pra cá manualmente. Pra atualizar:
+**Achado 2026-09-16 ("parar de usar json estático, coloque tudo no
+banco"): `src/pages/MonitoramentoEquipamentosPage.tsx` NÃO lê mais
+`convenios.json`/`siconv.json`/`transferegov.json` -- consome
+`GET /convenios` (`backend/app/routers/convenios.py`, tabela `Convenio`).**
+Os 3 JSON abaixo continuam existindo, mas só como formato intermediário
+de saída dos scripts de coleta/descoberta -- entrada de
+`scripts/importar_convenios_banco.py`, que faz o merge (mesma regra de
+qual fonte vence em cada campo que o antigo `mesclar-convenios.ts` client-
+side fazia, agora em Python) e grava na tabela `Convenio` de onde a API
+lê. Pra atualizar o universo de convênios (convênio novo publicado,
+situação/valor mudou etc.):
 
 ```bash
 cd backend
@@ -29,22 +36,23 @@ cp scripts/output/siconv_legado.json ../frontend/public/monitoramento-equipament
 cp scripts/output/transferegov_relacional.json ../frontend/public/monitoramento-equipamentos/transferegov.json
 cp scripts/output/componentes_oncologia.json ../frontend/public/monitoramento-equipamentos/componentes_oncologia.json
 
-# CNES -- achado 2026-09-16 ("coloca o cnes em destaque nos convênios").
-# Não vem de nenhuma das 3 fontes acima; roda DEPOIS do cp de convenios.json
-# (senão os campos cnes/cnes_nome_estabelecimento somem, sobrescritos).
-uv run python -m scripts.importar_convenios_banco   # resolve CNES (múltiplos sinais, ver
-                                                      # docstring de resolver_cnes) e grava
-                                                      # na tabela `Convenio` do banco
-uv run python -m scripts.exportar_cnes_para_json     # propaga banco -> convenios.json
+# Passo que IMPORTA de verdade (os cp acima só preparam o input) -- lê os
+# 3 JSON, resolve CNES (múltiplos sinais, ver docstring de resolver_cnes)
+# e faz upsert na tabela `Convenio` (por `numero`, idempotente). GET
+# /convenios já serve tudo daqui pra frente, incluindo cnes/
+# cnes_nome_estabelecimento -- nao precisa mais propagar nada de volta
+# pro convenios.json (`scripts/exportar_cnes_para_json.py` fica só como
+# utilitário, caso algo volte a depender do JSON estático).
+uv run python -m scripts.importar_convenios_banco
 ```
 
-| Arquivo | Fonte | Chave de cruzamento |
+| Arquivo/tabela | Fonte | Chave de cruzamento |
 |---|---|---|
 | `convenios.json` | Portal da Transparência (`/convenios/numero`) | número do convênio (exato) |
 | `siconv.json` | Dump bulk SICONV (`repositorio.dados.gov.br/seges/detru/`) | `NR_CONVENIO` (exato) |
 | `transferegov.json` | API nova TransfereGov (`/parcerias`) | CNPJ do convenente (aproximação — não é o mesmo número de convênio, só o mesmo ente) |
 | `componentes_oncologia.json` | API nova TransfereGov (`/parcerias/programa` + `/proposta`) | não é por convênio — FAF SAÚDE é instrumento novo, sem número legado |
-| `convenios.json`.`cnes`/`cnes_nome_estabelecimento` | tabela `Convenio` (banco, ver `scripts/importar_convenios_banco.py::resolver_cnes`) | resolvido por CNPJ/planilha/nome contra o parquet `s3://dept-oncologia-dados/silver/cnes_estabelecimentos.parquet` -- 357/403 hoje, `null` nos outros 46 (sem 1 CNES único por natureza) |
+| `Convenio.cnes`/`cnes_nome_estabelecimento` (tabela) | tabela `CnesEstabelecimento` (banco, ver `scripts/importar_convenios_banco.py::resolver_cnes`) | resolvido por CNPJ/planilha/nome contra o parquet `s3://dept-oncologia-dados/silver/cnes_estabelecimentos.parquet` -- 357/403 hoje, `null` nos outros 46 (sem 1 CNES único por natureza) |
 
 Snapshot original gerado em 2026-09-03 pros 71 números de convênio de
 aquisição de equipamento fornecidos pelo usuário — ver
