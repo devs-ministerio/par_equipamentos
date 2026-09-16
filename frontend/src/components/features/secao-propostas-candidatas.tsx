@@ -163,13 +163,24 @@ function enderecoProposta(proposta: unknown): string | null {
   return partes.length ? partes.join(', ') : null;
 }
 
-/** CNES editável -- achado 2026-09-16, pedido do usuário: "vamos deixar o
- * campo cnes editável no sistema... a partir de técnico poderá editar...
- * só poderá editar por outro cnes válido na base de dados". Mesmo gate de
- * permissão que aceitar/rejeitar (`podeEditar`); a validação de verdade
- * (existe no CnesEstabelecimento?) é sempre no backend -- o `CnesPicker`
- * só evita erro de digitação. */
-function CampoCnesEditavel({ propostaId, cnes, podeEditar }: { propostaId: number; cnes: string | null; podeEditar: boolean }) {
+/** CNES em destaque + editável -- achado 2026-09-16, pedido do usuário:
+ * "aplique tudo que pedi para instrumentos firmados em Linhas de
+ * financiamento" (mesmo nome do estabelecimento + marcador da camada 1
+ * de convenio-card-header.tsx) e "vamos deixar o campo cnes editável no
+ * sistema... a partir de técnico poderá editar... só poderá editar por
+ * outro cnes válido na base de dados" (mesmo padrão inline de
+ * monitoramento-interno-cabecalho.tsx). Mesmo gate de permissão que
+ * aceitar/rejeitar (`podeEditar`); a validação de verdade (existe no
+ * CnesEstabelecimento?) é sempre no backend -- o `CnesPicker` só evita
+ * erro de digitação. Só aparece quando resolvido (nunca marcador vazio). */
+function CnesDestaque({
+  propostaId, cnes, nomeEstabelecimento, podeEditar,
+}: {
+  propostaId: number;
+  cnes: string | null;
+  nomeEstabelecimento: string | null;
+  podeEditar: boolean;
+}) {
   const [editando, setEditando] = useState(false);
   const queryClient = useQueryClient();
   const mutation = useMutation({
@@ -180,20 +191,25 @@ function CampoCnesEditavel({ propostaId, cnes, podeEditar }: { propostaId: numbe
     },
   });
 
+  if (!cnes && !podeEditar) return null;
+
   return (
-    <div className="relative">
-      <div className={cn('flex items-center justify-between', !podeEditar && 'pointer-events-none')}>
-        <Campo label="CNES">{cnes ?? '—'}</Campo>
-        {podeEditar && (
-          <button
-            type="button"
-            onClick={() => setEditando((v) => !v)}
-            className="pointer-events-auto shrink-0 text-[10.5px] font-semibold text-primary hover:underline"
-          >
-            editar
-          </button>
-        )}
-      </div>
+    <div className="relative mt-0.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-foreground">
+      {nomeEstabelecimento && <span>{nomeEstabelecimento}</span>}
+      {cnes && (
+        <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 font-mono text-[10.5px] font-bold text-primary">
+          CNES {cnes}
+        </span>
+      )}
+      {podeEditar && (
+        <button
+          type="button"
+          onClick={() => setEditando((v) => !v)}
+          className="shrink-0 text-[10.5px] font-semibold text-primary hover:underline"
+        >
+          editar
+        </button>
+      )}
       {editando && (
         <CnesPicker
           valorAtual={cnes}
@@ -257,6 +273,7 @@ function CardProposta({
             )}
           </div>
           <div className="text-[15px] font-bold text-foreground">{p.nm_proponente}</div>
+          <CnesDestaque propostaId={p.id} cnes={p.cnes} nomeEstabelecimento={p.cnes_nome_estabelecimento} podeEditar={podeEditar} />
           <div className="mt-0.5 text-xs text-muted-foreground">
             {p.cnpj_ente_recebedor || '—'} · {p.municipio || '—'}/{p.uf || '—'}
           </div>
@@ -314,7 +331,6 @@ function CardProposta({
           <Campo label="Programa">{p.nm_programa}</Campo>
           <Campo label="Data da proposta">{p.data_proposta ? fmtData(p.data_proposta) : '—'}</Campo>
           <Campo label="Parceria formalizada">{p.tem_parceria ? p.cd_parceria : 'Não'}</Campo>
-          <CampoCnesEditavel propostaId={p.id} cnes={p.cnes} podeEditar={podeEditar} />
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
 

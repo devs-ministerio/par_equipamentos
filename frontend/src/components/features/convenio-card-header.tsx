@@ -38,6 +38,22 @@ export function ConvenioCardHeader({
                 ● Monitorado internamente
               </span>
             )}
+            {/* Equipamento em destaque -- pedido direto do usuario
+                (2026-09-08): e o dado que motiva a pagina inteira, precisa
+                aparecer antes de qualquer clique. Achado 2026-09-16,
+                pedido do usuário: "o marcador de equipamento de
+                instrumentos firmados deve ficar igual ao de linhas de
+                financiamento ao lado do número [do convênio] e quando
+                tiver monitoramento interno após o de monitoramento
+                interno" -- reposicionado da linha própria (abaixo) pra
+                cá, mesma linha do identificador, mesmo lugar que o
+                "principal" da proposta ocupa ao lado de "Proposta #X"
+                (ver CardProposta em secao-propostas-candidatas.tsx). */}
+            {equipamentos.map((e) => (
+              <span key={e} className="text-[13px] font-extrabold text-foreground bg-background border border-border py-1 px-[11px] rounded-full">
+                {e}
+              </span>
+            ))}
           </div>
           <div className="text-[15px] font-bold text-foreground">{c.convenente.nome}</div>
           {/* Estabelecimento (CNES) em destaque -- achado 2026-09-16,
@@ -56,19 +72,6 @@ export function ConvenioCardHeader({
           <div className="text-xs text-muted-foreground mt-0.5">
             {c.convenente.cnpj} · {c.municipio}/{c.uf}
           </div>
-          {/* Equipamento em destaque -- pedido direto do usuario (2026-09-08):
-              e o dado que motiva a pagina inteira, precisa aparecer antes de
-              qualquer clique, nao so dentro do plano de aplicacao do SICONV
-              (camada 2). Ver equipamentoTags.ts pro casamento. */}
-          {equipamentos.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {equipamentos.map((e) => (
-                <span key={e} className="text-[13px] font-extrabold text-foreground bg-background border border-border py-1 px-[11px] rounded-full">
-                  {e}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           <StatusPill texto={c.situacao} />

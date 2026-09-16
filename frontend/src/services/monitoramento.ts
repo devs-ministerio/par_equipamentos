@@ -452,6 +452,7 @@ const propostaCandidataSchema = z.object({
   data_proposta: z.string().nullable(),
   metas_resumo: z.record(z.string(), z.unknown()).nullable(),
   cnes: z.string().nullable(),
+  cnes_nome_estabelecimento: z.string().nullable(),
   tem_parceria: z.boolean(),
   cd_parceria: z.string().nullable(),
   status: propostaCandidataStatusSchema,

@@ -52,6 +52,11 @@ class PropostaCandidataRead(BaseModel):
     data_proposta: date | None
     metas_resumo: dict | None
     cnes: str | None
+    # Achado 2026-09-16, pedido do usuário: "aplique tudo que pedi para
+    # instrumentos firmados em Linhas de financiamento" -- mesmo padrão de
+    # `ConvenioRead.cnes_nome_estabelecimento` (convenios.py): não é coluna
+    # de `PropostaCandidata`, resolvido em lote por `cnes` (ver `_com_nome_cnes`).
+    cnes_nome_estabelecimento: str | None = None
     tem_parceria: bool
     cd_parceria: str | None
     status: PropostaCandidataStatus
@@ -60,6 +65,20 @@ class PropostaCandidataRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+def _com_nome_cnes(db: Session, propostas: list[PropostaCandidata]) -> list[PropostaCandidataRead]:
+    codigos = {p.cnes for p in propostas if p.cnes}
+    nomes = {}
+    if codigos:
+        nomes = {
+            row.cnes: row.nome_estabelecimento
+            for row in db.execute(select(CnesEstabelecimento).where(CnesEstabelecimento.cnes.in_(codigos))).scalars()
+        }
+    return [
+        PropostaCandidataRead.model_validate(p).model_copy(update={"cnes_nome_estabelecimento": nomes.get(p.cnes)})
+        for p in propostas
+    ]
 
 
 @router.get("", response_model=list[PropostaCandidataRead])
@@ -73,7 +92,7 @@ def listar_propostas_candidatas(
     query = select(PropostaCandidata).order_by(PropostaCandidata.created_at.desc())
     if status is not None:
         query = query.where(PropostaCandidata.status == status)
-    return db.execute(query).scalars().all()
+    return _com_nome_cnes(db, db.execute(query).scalars().all())
 
 
 class DecisaoRevisao(str, Enum):
@@ -128,7 +147,7 @@ def revisar_proposta(
     proposta.revisado_em = datetime.now(timezone.utc)
     db.commit()
     db.refresh(proposta)
-    return proposta
+    return _com_nome_cnes(db, [proposta])[0]
 
 
 class PropostaCandidataCnesUpdate(BaseModel):
@@ -158,4 +177,4 @@ def atualizar_cnes(
     proposta.cnes = corpo.cnes.zfill(7) if corpo.cnes else None
     db.commit()
     db.refresh(proposta)
-    return proposta
+    return _com_nome_cnes(db, [proposta])[0]
