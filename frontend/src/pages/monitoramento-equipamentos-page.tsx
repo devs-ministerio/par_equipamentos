@@ -12,9 +12,12 @@
  * pagina nao tem irmãs pra navegar entre si, so duplicaria a barra de
  * abas logo abaixo sem necessidade).
  *
- * Um registro por convenio, cruzando as 3 fontes oficiais (ver
- * monitoramento/mesclarConvenios.ts pra qual fonte vence em cada campo
- * duplicado):
+ * Um registro por convenio, cruzando as 3 fontes oficiais -- achado
+ * 2026-09-16 ("parar de usar json estático, coloque tudo no banco"): o
+ * merge (antes client-side, ver histórico de `mesclarConvenios.ts`) agora
+ * roda 1x na carga (`backend/scripts/importar_convenios_banco.py`),
+ * gravado na tabela `Convenio`. O front busca `GET /convenios`
+ * (`src/services/convenios.ts`) em vez de 3 JSON estático + merge:
  *   - Portal da Transparencia (/convenios/numero) -- 1:1 exato por numero,
  *     unica fonte com convenente/municipio/objeto legivel pros 71
  *   - SICONV legado (dump bulk) -- 1:1 exato por numero, valores
@@ -23,16 +26,12 @@
  *   - TransfereGov novo (modulo Gestao de Parcerias) -- cruzado por CNPJ do
  *     convenente, aproximacao (a API nova nao tem numero de convenio legado)
  *
- * O monitoramento interno pos-repasse (POC, fala com o backend em vez de
- * JSON estatico) fica DENTRO de cada card, numa secao separada das 3 fontes
- * estaticas (so busca quando o card e aberto) -- ver
- * monitoramento/ConvenioCard.tsx e monitoramento/MonitoramentoInterno.tsx.
- *
- * Os 3 JSON vem de backend/scripts/coletar_*.py e validar_convenios.py --
- * copiados pra public/monitoramento-equipamentos/ (ver README la) sempre
- * que os scripts rodarem de novo.
+ * O monitoramento interno pos-repasse fica DENTRO de cada card, numa secao
+ * separada das 3 fontes (so busca quando o card e aberto) -- ver
+ * convenio-card.tsx e monitoramento-interno.tsx.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { KpiCard } from '@/components/common/kpi-card';
@@ -43,17 +42,10 @@ import { normalizarTexto } from '@/utils/texto';
 import { ConvenioCard } from '@/components/features/convenio-card';
 import { propostaEhNova, SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
-import { EQUIPAMENTOS_ALVO, equipamentosDoConvenio } from '@/lib/equipamento-tags';
+import { EQUIPAMENTOS_ALVO } from '@/lib/equipamento-tags';
 import { fmtMoeda } from '@/lib/monitoramento-format';
-import { mesclarConvenios } from '@/lib/mesclar-convenios';
+import { fetchConvenios } from '@/services/convenios';
 import { useInstrumentosMonitorados } from '@/hooks/useInstrumentosMonitorados';
-import { useJson } from '@/hooks/useJson';
-import type {
-  ConvenioPortal,
-  ProgramaTransfereGov,
-  SiconvEntrada,
-  TransfereGovEnte,
-} from '@/types/monitoramento';
 
 type Aba = 'convenios' | 'componentes';
 // "Radar nacional" (snapshot estático) saiu -- não faz sentido enquanto
@@ -97,16 +89,16 @@ export function MonitoramentoEquipamentosPage() {
   const [pagina, setPagina] = useState(1);
   const monitorados = useInstrumentosMonitorados();
 
-  const { dados: portal, erro: erroPortal } = useJson<ConvenioPortal[]>('/monitoramento-equipamentos/convenios.json');
-  const { dados: siconv, erro: erroSiconv } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
-  const { dados: transferegov, erro: erroTransferegov } = useJson<TransfereGovEnte[]>('/monitoramento-equipamentos/transferegov.json');
-  const { dados: programasLista } = useJson<ProgramaTransfereGov[]>('/monitoramento-equipamentos/programas_transferegov.json');
-  const programas = useMemo(() => new Map((programasLista ?? []).map((p) => [p.id_programa, p])), [programasLista]);
-
-  const convenios = useMemo(() => {
-    if (!portal || !siconv || !transferegov) return null;
-    return mesclarConvenios(portal, siconv, transferegov);
-  }, [portal, siconv, transferegov]);
+  // Busca os 403 inteiros de 1 vez (tamanho_pagina=500 > universo hoje) --
+  // igual ao comportamento anterior (3 JSON carregados por inteiro,
+  // paginação/filtro só no cliente), só troca a origem do dado. Página
+  // é bem mais leve que antes (sem siconv_raw/transferegov_raw na
+  // listagem, ver services/convenios.ts) mesmo carregando tudo de uma vez.
+  const conveniosQuery = useQuery({
+    queryKey: ['convenios-lista'],
+    queryFn: () => fetchConvenios({ tamanhoPagina: 500 }),
+  });
+  const convenios = conveniosQuery.data?.itens ?? null;
 
   const ufs = useMemo(() => {
     if (!convenios) return [];
@@ -116,12 +108,14 @@ export function MonitoramentoEquipamentosPage() {
       .map((u) => ({ value: u, label: u }));
   }, [convenios]);
 
-  // Tag de equipamento por convenio -- reclassifica os itens SICONV/
-  // TransfereGov que o convenio ja tem carregado, mesmos padroes do
-  // levantamento nacional (ver equipamentoTags.ts). So p/ KPI + filtro.
+  // Tag de equipamento por convenio -- achado 2026-09-16: vem pré-computada
+  // da API (`c.equipamentosTags`, mesmos padrões de equipamentoTags.ts
+  // aplicados na carga, ver importar_convenios_banco.py), não precisa mais
+  // reclassificar itens no cliente (que nem estão mais disponíveis na
+  // listagem, só siconv_raw/transferegov_raw do card expandido).
   const equipamentosPorNumero = useMemo(() => {
     if (!convenios) return new Map<string, string[]>();
-    return new Map(convenios.map((c) => [c.numero, equipamentosDoConvenio(c)]));
+    return new Map(convenios.map((c) => [c.numero, c.equipamentosTags]));
   }, [convenios]);
 
   const equipamentoOptions = useMemo(() => {
@@ -153,30 +147,26 @@ export function MonitoramentoEquipamentosPage() {
     return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([s, n]) => ({ value: s, label: `${s} (${n})` }));
   }, [convenios]);
 
-  // Programa (SICONV, exato por ID_PROPOSTA -- ver siconv.programa em
-  // types.ts) -- TODOS os programas que aparecem nos convenios, nao so os
-  // 8 componentes PNPCC nomeados (pedido do usuario 2026-09-08: "444
-  // convenios, 143 com componente PNPCC, os outros 301 tem programa de
-  // categoria mais antiga/ampla -- pode inserir todos os programas").
-  // Filtra por ID_PROGRAMA (chave limpa) mesmo com NOME_PROGRAMA vindo
-  // com corrupcao de encoding em boa parte das linhas da fonte (confirmado
-  // 2026-09-08: a corrupcao e por linha da fonte, nao por convenio -- cada
-  // ID_PROGRAMA tem sempre a MESMA grafia, entao filtrar por ID nunca
-  // erra mesmo quando o rotulo exibido vier com "?"/"�"). Ordenado por
+  // Programa (SICONV, texto já promovido pra coluna própria em `Convenio`,
+  // ver importar_convenios_banco.py) -- TODOS os programas que aparecem
+  // nos convenios, nao so os 8 componentes PNPCC nomeados (pedido do
+  // usuario 2026-09-08: "444 convenios, 143 com componente PNPCC, os
+  // outros 301 tem programa de categoria mais antiga/ampla -- pode
+  // inserir todos os programas"). Achado 2026-09-16: agrupar pelo próprio
+  // texto (em vez de ID_PROGRAMA) é seguro aqui -- confirmado 2026-09-08
+  // que a corrupção de encoding do SICONV é por linha da FONTE, nao por
+  // convenio (cada programa tem sempre a MESMA grafia). Ordenado por
   // frequencia -- 87 opcoes, os mais comuns primeiro ajudam a achar rapido.
   const programaOptions = useMemo(() => {
     if (!convenios) return [];
-    const porId = new Map<string, { nome: string; n: number }>();
+    const contagem = new Map<string, number>();
     for (const c of convenios) {
-      const prog = c.siconv?.programa;
-      if (!prog?.ID_PROGRAMA) continue;
-      const atual = porId.get(prog.ID_PROGRAMA);
-      if (atual) atual.n += 1;
-      else porId.set(prog.ID_PROGRAMA, { nome: prog.NOME_PROGRAMA || prog.ID_PROGRAMA, n: 1 });
+      if (!c.programa) continue;
+      contagem.set(c.programa, (contagem.get(c.programa) ?? 0) + 1);
     }
-    return [...porId.entries()]
-      .sort((a, b) => b[1].n - a[1].n)
-      .map(([id, { nome, n }]) => ({ value: id, label: `${nome} (${n})` }));
+    return [...contagem.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([nome, n]) => ({ value: nome, label: `${nome} (${n})` }));
   }, [convenios]);
 
   const filtrados = useMemo(() => {
@@ -189,7 +179,7 @@ export function MonitoramentoEquipamentosPage() {
       if (equipamento && !equipamentosPorNumero.get(c.numero)?.includes(equipamento)) return false;
       if (situacao && c.situacao !== situacao) return false;
       if (ano && c.numeroInstrumento?.split('/')[1] !== ano) return false;
-      if (programa && c.siconv?.programa?.ID_PROGRAMA !== programa) return false;
+      if (programa && c.programa !== programa) return false;
       if (soMonitorados && !monitorados.has(c.numero)) return false;
       if (busca) {
         const alvo = normalizarTexto(`${c.numero} ${c.convenente.nome} ${c.convenente.cnpj} ${c.municipio} ${c.objeto}`);
@@ -213,11 +203,11 @@ export function MonitoramentoEquipamentosPage() {
   const totalDesembolsado = filtrados.reduce((a, c) => a + (c.financeiro.desembolsado || 0), 0);
   const totalEquipamentos = filtrados.reduce((a, c) => a + (equipamentosPorNumero.get(c.numero)?.length ?? 0), 0);
 
-  const erro = erroPortal || erroSiconv || erroTransferegov;
+  const erro = conveniosQuery.error?.message ?? null;
 
   // Concluídos -- situação do SICONV legado (mesma fonte do destaque no
-  // card, ver mesclarConvenios.ts) igual a "Prestação de Contas Concluída"
-  // literal, pedido do usuário 2026-09-15.
+  // card, ver importar_convenios_banco.py) igual a "Prestação de Contas
+  // Concluída" literal, pedido do usuário 2026-09-15.
   const totalConcluidos = useMemo(
     () => convenios?.filter((c) => c.situacao === 'Prestação de Contas Concluída').length ?? 0,
     [convenios],
@@ -344,8 +334,6 @@ export function MonitoramentoEquipamentosPage() {
                       key={c.numero}
                       c={c}
                       monitorado={monitorados.has(c.numero)}
-                      equipamentos={equipamentosPorNumero.get(c.numero) ?? []}
-                      programas={programas}
                     />
                   ))}
 

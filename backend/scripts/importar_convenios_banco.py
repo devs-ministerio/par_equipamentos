@@ -84,6 +84,20 @@ def _data_iso(v: str | None) -> date | None:
         return None
 
 
+def _valor_pago_fornecedor(siconv_entrada: dict | None) -> tuple[float | None, int]:
+    """Soma de VL_PAGO (siconv_pagamento) -- achado 2026-09-16, mesmo
+    cálculo que `convenio-card.tsx` fazia no cliente a partir do payload
+    cru, promovido pra coluna pra não depender de `siconv_raw` na camada 1
+    (sempre visível) do card. `VL_PAGO` usa vírgula decimal ("3326,73"),
+    diferente dos VL_*_CONV (ponto) -- mesma pegadinha documentada no
+    front."""
+    pagamentos = (siconv_entrada or {}).get("pagamentos", [])
+    if not pagamentos:
+        return None, 0
+    total = sum(_num_ou_none((p.get("VL_PAGO") or "0").replace(",", ".")) or 0 for p in pagamentos)
+    return total, len(pagamentos)
+
+
 def _equipamentos_tags(siconv_entrada: dict | None, transferegov_ente: dict | None) -> list[str]:
     descs: list[str] = []
     if siconv_entrada:
@@ -217,6 +231,7 @@ def run() -> None:
             cnes, metodo = resolver_cnes(db, p, planilha)
             if metodo:
                 contagem_metodo[metodo] = contagem_metodo.get(metodo, 0) + 1
+            valor_pago_fornecedor, pagamentos_count = _valor_pago_fornecedor(s)
 
             registros.append(dict(
                 numero=numero,
@@ -253,6 +268,8 @@ def run() -> None:
                 valor_saldo_conta=_num_ou_none(sc.get("VL_SALDO_CONTA")) if sc else None,
                 valor_ultima_liberacao=_num_ou_none(p.get("valor_ultima_liberacao")),
                 financeiro_fonte_confiavel=sc is not None,
+                valor_pago_fornecedor=valor_pago_fornecedor,
+                pagamentos_count=pagamentos_count,
                 equipamentos_tags=_equipamentos_tags(s, tg),
                 cnes=cnes,
                 cnes_metodo=metodo,

@@ -309,6 +309,15 @@ class Convenio(Base):
     valor_contrapartida: Mapped[float | None] = mapped_column(Numeric)
     valor_saldo_conta: Mapped[float | None] = mapped_column(Numeric)
     valor_ultima_liberacao: Mapped[float | None] = mapped_column(Numeric)
+    # Soma de VL_PAGO (siconv_pagamento, aba Fornecedores do card) --
+    # achado 2026-09-16, pré-computado na carga pra camada 1 (sempre
+    # visível) do card de convênio não precisar do payload cru
+    # (`siconv_raw`) só pra mostrar isso -- mesmo raciocínio de
+    # `equipamentos_tags`/`programa` abaixo. None quando o convênio não
+    # tem nenhum pagamento registrado (nunca 0 -- distinção real, "sem
+    # dado" != "pago zero").
+    valor_pago_fornecedor: Mapped[float | None] = mapped_column(Numeric)
+    pagamentos_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     financeiro_fonte_confiavel: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     # EQUIPAMENTOS_ALVO detectados nos itens (mesmos 14 padrões de
     # equipamento-tags.ts) -- pré-computado na carga pra filtrar sem

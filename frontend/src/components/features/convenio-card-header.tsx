@@ -10,7 +10,6 @@ export function ConvenioCardHeader({
   monitorado,
   equipamentos,
   programaSiconv,
-  programaTransfereGovNome,
   valorPagoFornecedor,
   pagamentosCount,
 }: {
@@ -18,7 +17,6 @@ export function ConvenioCardHeader({
   monitorado: boolean;
   equipamentos: string[];
   programaSiconv: string | null;
-  programaTransfereGovNome: string | null;
   valorPagoFornecedor: number | null;
   pagamentosCount: number;
 }) {
@@ -86,7 +84,7 @@ export function ConvenioCardHeader({
           convenio dentro da politica de financiamento. */}
       <p className="text-[12.5px] leading-normal mt-3 mb-0 bg-background border border-border rounded-md py-2 px-2.5">
         <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">Programa:</strong>
-        {programaSiconv || programaTransfereGovNome || '— (não encontrado em nenhuma fonte)'}
+        {programaSiconv || '— (não encontrado em nenhuma fonte)'}
       </p>
 
       <div className="grid [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))] gap-2.5 mt-3 py-2.5 px-3 bg-background rounded-lg">

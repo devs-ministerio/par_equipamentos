@@ -1,6 +1,7 @@
-/** Tipos das 3 fontes estaticas (Portal da Transparencia, SICONV legado,
- * TransfereGov novo) e do tipo mesclado que a pagina realmente renderiza --
- * ver mesclarConvenios.ts pro cruzamento. */
+/** Tipos das 3 fontes (Portal da Transparencia, SICONV legado, TransfereGov
+ * novo) e do tipo mesclado que a pagina realmente renderiza -- o cruzamento
+ * em si roda no backend (`scripts/importar_convenios_banco.py`, achado
+ * 2026-09-16) e chega pro front já pronto via `services/convenios.ts`. */
 
 /** Lookup id_programa -> nome, gerado por
  * backend/scripts/levantamento_convenios_oncologia.py a partir dos 176
@@ -99,10 +100,11 @@ export type TransfereGovEnte = {
 };
 
 /** Um convenio com as 3 fontes ja cruzadas por numero (Portal + SICONV,
- * 1:1 exato) e por CNPJ (TransfereGov, aproximacao -- ver campo
- * `transferegovAproximado`). Campo que existe em mais de uma fonte usa UM
- * valor so (o mais confiavel), nunca os dois lado a lado -- ver
- * mesclarConvenios.ts pra qual fonte venceu em cada caso. */
+ * 1:1 exato) e por CNPJ (TransfereGov, aproximacao). Campo que existe em
+ * mais de uma fonte usa UM valor so (o mais confiavel), nunca os dois
+ * lado a lado -- ver `resolver_cnes`/lógica de merge em
+ * backend/scripts/importar_convenios_banco.py pra qual fonte venceu em
+ * cada caso. */
 export type ConvenioUnificado = {
   numero: string;
   numeroInstrumento: string | null;
@@ -129,6 +131,17 @@ export type ConvenioUnificado = {
   numeroProcesso: string;
   cnes: string | null;
   cnesNomeEstabelecimento: string | null;
+  // Achado 2026-09-16 ("parar de usar json estático, coloque tudo no
+  // banco"): os 4 campos abaixo eram computados no cliente a partir do
+  // payload cru (`siconv`/`transferegov`) -- agora vêm pré-computados da
+  // API (`GET /convenios`, ver backend/scripts/importar_convenios_banco.py),
+  // já disponíveis na listagem sem precisar do payload pesado. `programa`
+  // é sempre o NOME_PROGRAMA do SICONV (fallback TransfereGov removido --
+  // 0/403 convênios hoje dependiam dele, conferido antes de tirar).
+  programa: string | null;
+  equipamentosTags: string[];
+  valorPagoFornecedor: number | null;
+  pagamentosCount: number;
   datas: {
     publicacao: string | null;
     inicioVigencia: string | null;

@@ -21,7 +21,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.db.models import Convenio
+from app.db.models import CnesEstabelecimento, Convenio
 
 router = APIRouter(prefix="/convenios", tags=["convenios"])
 
@@ -60,9 +60,16 @@ class ConvenioRead(BaseModel):
     valor_contrapartida: float | None
     valor_saldo_conta: float | None
     valor_ultima_liberacao: float | None
+    valor_pago_fornecedor: float | None
+    pagamentos_count: int
     financeiro_fonte_confiavel: bool
     equipamentos_tags: list[str] | None
     cnes: str | None
+    # Achado 2026-09-16 ("nome do estabelecimento abaixo do nome do
+    # convenente") -- não é coluna de `Convenio` (evita duplicar o mesmo
+    # nome em 357 linhas quando já está em CnesEstabelecimento por
+    # `cnes`), resolvido aqui com 1 lookup em lote (ver `_com_nome_cnes`).
+    cnes_nome_estabelecimento: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -81,6 +88,20 @@ class ConvenioListaRead(BaseModel):
     itens: list[ConvenioRead]
 
 
+def _com_nome_cnes(db: Session, convenios: list[Convenio], modelo: type[BaseModel] = ConvenioRead) -> list[BaseModel]:
+    codigos = {c.cnes for c in convenios if c.cnes}
+    nomes = {}
+    if codigos:
+        nomes = {
+            row.cnes: row.nome_estabelecimento
+            for row in db.execute(select(CnesEstabelecimento).where(CnesEstabelecimento.cnes.in_(codigos))).scalars()
+        }
+    return [
+        modelo.model_validate(c).model_copy(update={"cnes_nome_estabelecimento": nomes.get(c.cnes)})
+        for c in convenios
+    ]
+
+
 @router.get("", response_model=ConvenioListaRead)
 def listar_convenios(
     busca: str | None = None,
@@ -90,7 +111,7 @@ def listar_convenios(
     ano: int | None = None,
     programa: str | None = None,
     pagina: int = Query(1, ge=1),
-    tamanho_pagina: int = Query(20, ge=1, le=100),
+    tamanho_pagina: int = Query(20, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
     query = select(Convenio)
@@ -118,7 +139,7 @@ def listar_convenios(
     itens = db.execute(
         query.order_by(Convenio.numero).offset((pagina - 1) * tamanho_pagina).limit(tamanho_pagina)
     ).scalars().all()
-    return ConvenioListaRead(total=total, itens=itens)
+    return ConvenioListaRead(total=total, itens=_com_nome_cnes(db, itens))
 
 
 @router.get("/{numero}", response_model=ConvenioDetalheRead)
@@ -126,4 +147,4 @@ def obter_convenio(numero: str, db: Session = Depends(get_db)):
     convenio = db.execute(select(Convenio).where(Convenio.numero == numero)).scalar_one_or_none()
     if convenio is None:
         raise HTTPException(404, f"Convênio {numero} não encontrado.")
-    return convenio
+    return _com_nome_cnes(db, [convenio], ConvenioDetalheRead)[0]

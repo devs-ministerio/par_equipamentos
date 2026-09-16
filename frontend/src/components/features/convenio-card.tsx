@@ -8,56 +8,45 @@
  * (`ConvenioCardDetalhes`) -- ambas extraidas pra arquivo proprio (Secao 6
  * da migracao: componente >200 linhas). */
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { corrigirTextoSiconv } from '@/lib/monitoramento-format';
-import type { ConvenioUnificado, ProgramaTransfereGov } from '@/types/monitoramento';
+import { fetchConvenioDetalhe } from '@/services/convenios';
+import type { ConvenioUnificado } from '@/types/monitoramento';
 import { estiloCard } from './monitoramento-ui';
 import { ConvenioCardHeader } from './convenio-card-header';
 import { ConvenioCardDetalhes } from './convenio-card-detalhes';
 
 export function ConvenioCard({
-  c, monitorado = false, equipamentos = [], programas,
+  c, monitorado = false,
 }: {
   c: ConvenioUnificado;
   monitorado?: boolean;
-  /** Tags de equipamento (ver equipamentoTags.ts) -- mostradas em destaque
-   * na camada 1, pedido direto do usuario (2026-09-08). */
-  equipamentos?: string[];
-  /** id_programa -> nome, ver types.ts::ProgramaTransfereGov. So a
-   * proposta do TransfereGov carrega o id cru, sem nome. */
-  programas?: Map<number, ProgramaTransfereGov>;
 }) {
-  const siconv = c.siconv;
-  const transferegov = c.transferegov;
   // So controla a camada 2 (dado tecnico aninhado) -- a camada 1 (status/
   // objeto/financeiro) e sempre renderizada, nao precisa de estado.
   const [detalheAberto, setDetalheAberto] = useState(false);
 
-  // Programa -- so API. Preferencia: SICONV (`siconv.programa`, exato por
-  // ID_PROPOSTA -- achado 2026-09-08) sobre TransfereGov (proposta ligada
-  // por CNPJ, resolvida por id_programa -- aproximacao). Nunca vem do
-  // monitoramento interno (decisao do usuario 2026-09-08 -- aquilo e
-  // planilha da equipe, nao API).
+  // Achado 2026-09-16 ("parar de usar json estático, coloque tudo no
+  // banco"): `GET /convenios` (listagem) não traz o payload cru
+  // (siconv_raw/transferegov_raw, ~11MB somados pros 403) -- só busca
+  // `GET /convenios/{numero}` (com o payload) quando o card expande
+  // ("Mais detalhes"), nunca antes. `programa`/`valorPagoFornecedor`/
+  // `pagamentosCount`/`equipamentosTags` (camada 1, sempre visível) já
+  // vêm prontos na listagem (pré-computados na carga, ver
+  // scripts/importar_convenios_banco.py) -- não dependem desse fetch.
+  const detalheQuery = useQuery({
+    queryKey: ['convenio-detalhe', c.numero],
+    queryFn: () => fetchConvenioDetalhe(c.numero),
+    enabled: detalheAberto,
+    staleTime: 5 * 60 * 1000,
+  });
+  const cDetalhado = detalheQuery.data ?? c;
+
   // corrigirTextoSiconv -- o dump SICONV tem acento corrompido em "?" (byte
   // perdido na origem, ver comentario em lib/monitoramento-format.ts), so
   // corrigivel na exibicao pro vocabulario burocratico fechado que se repete.
-  const programaSiconv = corrigirTextoSiconv(siconv?.programa?.NOME_PROGRAMA || null);
-  const programaTransfereGov = transferegov
-    ? programas?.get(Number((transferegov.propostas_expandidas[0]?.proposta as Record<string, unknown> | undefined)?.id_programa))
-    : undefined;
-  const programaTransfereGovNome = programaTransfereGov
-    ? `${programaTransfereGov.nm_programa}${programaTransfereGov.ano_programa ? ` (${programaTransfereGov.ano_programa})` : ''}`
-    : null;
-
-  // Valor pago ao fornecedor -- soma de VL_PAGO (siconv_pagamento, aba
-  // Fornecedores abaixo) achado 2026-09-09. VL_PAGO usa virgula decimal
-  // ("3326,73"), diferente dos VL_*_CONV (ponto). null quando o convenio
-  // nao tem nenhum pagamento registrado (nem todo convenio ja desembolsou
-  // pro fornecedor -- ver guia-dados-siconv.md).
-  const pagamentos = siconv?.pagamentos ?? [];
-  const valorPagoFornecedor = pagamentos.length
-    ? pagamentos.reduce((soma, p) => soma + (Number((p.VL_PAGO || '0').replace(',', '.')) || 0), 0)
-    : null;
+  const programaSiconv = corrigirTextoSiconv(c.programa);
 
   return (
     <div
@@ -73,11 +62,10 @@ export function ConvenioCard({
       <ConvenioCardHeader
         c={c}
         monitorado={monitorado}
-        equipamentos={equipamentos}
+        equipamentos={c.equipamentosTags}
         programaSiconv={programaSiconv}
-        programaTransfereGovNome={programaTransfereGovNome}
-        valorPagoFornecedor={valorPagoFornecedor}
-        pagamentosCount={pagamentos.length}
+        valorPagoFornecedor={c.valorPagoFornecedor}
+        pagamentosCount={c.pagamentosCount}
       />
 
       {/* ---------- Camada 2: dado tecnico aninhado, atras de 1 clique ---------- */}
@@ -89,7 +77,11 @@ export function ConvenioCard({
         <summary className="cursor-pointer text-xs font-bold text-primary">
           {detalheAberto ? 'Menos detalhes' : 'Mais detalhes'}
         </summary>
-        <ConvenioCardDetalhes c={c} monitorado={monitorado} />
+        {detalheAberto && detalheQuery.isLoading ? (
+          <p className="mt-3 text-xs text-muted-foreground">Carregando detalhes...</p>
+        ) : (
+          <ConvenioCardDetalhes c={cDetalhado} monitorado={monitorado} />
+        )}
       </details>
     </div>
   );
