@@ -18,6 +18,7 @@ _DB_TEST_MODULES = {
     "test_auth_session.py",
     "test_competency_por_familia.py",
     "test_config_decisions.py",
+    "test_csrf.py",
     "test_equipment_totals.py",
     "test_integridade_constraints.py",
     "test_integridade_fk_cnes.py",
@@ -69,15 +70,24 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
 @pytest.fixture(scope="session")
 def headers_autenticados():
-    """Header `Authorization: Bearer <token>` de um usuário de teste --
+    """Header `Cookie: sigeo_access=<token>` de um usuário de teste --
     várias leituras (monitoramento, propostas-candidatas, convênios,
     macro/municipality-coverage, equipment-offer-rows) passaram a exigir
     sessão (Plan Mode segurança 2026-09-16, decisão do usuário 2026-09-17:
     todo o app fica atrás de login). `scope="session"` -- 1 usuário/token
-    só, reaproveitado por toda a suíte, criado e limpo 1x."""
+    só, reaproveitado por toda a suíte, criado e limpo 1x.
+
+    O bearer fallback (`Authorization: Bearer`) foi removido em 2026-09-17
+    (Bloco 2 do Plan Mode consolidação) -- `require_current_user` só lê o
+    cookie `sigeo_access` agora. Setar o header `Cookie` diretamente (em
+    vez de `client.cookies.set(...)`) evita depender do ciclo de vida do
+    `TestClient`, que é function-scoped em vários módulos enquanto este
+    fixture é session-scoped. Só cobre leitura (GET) -- rotas mutáveis
+    exigem também o header CSRF (`X-CSRF-Token`), fora do escopo deste
+    fixture."""
     from uuid import uuid4
 
-    from app.auth import create_access_token, hash_password
+    from app.auth import ACCESS_COOKIE_NAME, create_access_token, hash_password
     from app.db.base import SessionLocal
     from app.db.models import User, UserRole
 
@@ -95,7 +105,7 @@ def headers_autenticados():
     user_id = user.id
     db.close()
 
-    yield {"Authorization": f"Bearer {token}"}
+    yield {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
 
     db = SessionLocal()
     db.query(User).filter_by(id=user_id).delete()

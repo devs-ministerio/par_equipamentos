@@ -6,11 +6,21 @@ framework.
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.auth import ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME, create_access_token, hash_password
+from app.auth import (
+    ACCESS_COOKIE_NAME,
+    CSRF_COOKIE_NAME,
+    CSRF_HEADER_NAME,
+    REFRESH_COOKIE_NAME,
+    create_access_token,
+    create_refresh_token,
+    hash_password,
+    rotate_refresh_token,
+)
 from app.db.base import SessionLocal
 from app.db.models import User, UserRole
 from app.main import app
@@ -31,17 +41,26 @@ def _criar_usuario(db, senha: str = "senha-teste-123") -> tuple[User, str]:
     return user, senha
 
 
-def test_login_seta_cookies_httponly_de_acesso_e_refresh():
+def test_login_seta_cookies_de_acesso_refresh_e_csrf():
     db = SessionLocal()
     try:
         user, senha = _criar_usuario(db)
         resp = client.post("/auth/login", json={"email": user.email, "password": senha})
         assert resp.status_code == 200
-        assert resp.json()["access_token"]  # compat dupla -- corpo continua devolvendo o token
+        # bearer fallback e `access_token` no corpo removidos em 2026-09-17
+        # (Bloco 2 do Plan Mode consolidacao) -- so status.
+        assert resp.json() == {"status": "ok"}
 
-        cookies_setados = [v for k, v in resp.headers.items() if k.lower() == "set-cookie"]
+        # `.items()` colapsa Set-Cookie duplicado numa unica string
+        # separada por virgula -- usar `.get_list` pra manter os 3 cookies
+        # separados (senao "HttpOnly" de outro cookie vaza pro assert).
+        cookies_setados = [v.decode() for k, v in resp.headers.raw if k.decode().lower() == "set-cookie"]
         assert any(ACCESS_COOKIE_NAME in c and "HttpOnly" in c for c in cookies_setados)
         assert any(REFRESH_COOKIE_NAME in c and "HttpOnly" in c for c in cookies_setados)
+        # Cookie CSRF (Bloco 1, double-submit) NAO e HttpOnly -- precisa ser
+        # legivel por JS pra ir no header X-CSRF-Token.
+        csrf_cookie = next(c for c in cookies_setados if CSRF_COOKIE_NAME in c)
+        assert "HttpOnly" not in csrf_cookie
     finally:
         db.close()
 
@@ -59,15 +78,17 @@ def test_me_funciona_com_cookie_sem_header_authorization():
         db.close()
 
 
-def test_me_ainda_aceita_bearer_header_compat_dupla():
-    # Fase A/B do rollout (Plan Mode, secao 2.8) -- fallback bearer
-    # continua ativo ate a Fase C confirmar que nao ha mais trafego assim.
+def test_me_nao_aceita_mais_bearer_header():
+    # Bearer fallback removido em 2026-09-17 (Bloco 2 do Plan Mode
+    # consolidacao) -- so cookie autentica agora.
     db = SessionLocal()
     try:
         user, _ = _criar_usuario(db)
         token = create_access_token(user)
-        resp = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
-        assert resp.status_code == 200
+        # Client novo, sem cookie de sessao na jar (o `client` module-level
+        # ja tem cookie valido de outros testes deste arquivo).
+        resp = TestClient(app).get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+        assert resp.status_code == 401
     finally:
         db.close()
 
@@ -80,8 +101,9 @@ def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
         c.post("/auth/login", json={"email": user.email, "password": senha})
         refresh_antigo = c.cookies.get(REFRESH_COOKIE_NAME)
         assert refresh_antigo is not None
+        csrf = c.cookies.get(CSRF_COOKIE_NAME)
 
-        primeiro = c.post("/auth/refresh")
+        primeiro = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
         assert primeiro.status_code == 200
         refresh_novo = c.cookies.get(REFRESH_COOKIE_NAME)
         assert refresh_novo != refresh_antigo
@@ -89,10 +111,54 @@ def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
         # Reuso do refresh JA ROTACIONADO (revogado) precisa falhar -- prova
         # de rotacao real, nao reemissao do mesmo token.
         c.cookies.set(REFRESH_COOKIE_NAME, refresh_antigo)
-        reuso = c.post("/auth/refresh")
+        csrf_novo = c.cookies.get(CSRF_COOKIE_NAME)
+        reuso = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf_novo})
         assert reuso.status_code == 401
     finally:
         db.close()
+
+
+def test_rotacao_concorrente_do_mesmo_token_so_uma_vence():
+    """Plan Mode database 2026-09-17, Bloco 1: duas requisicoes concorrentes
+    com o mesmo refresh token nao podiam gerar dois sucessores do mesmo
+    token pai (`SELECT` + atribuicao + `commit()` deixava uma janela onde
+    ambas passavam pela checagem `revoked_at is None` antes de qualquer
+    commit). Cada thread abre sua propria `Session`/conexao -- e a garantia
+    real que se quer provar (2 transacoes concorrentes no banco), uma
+    unica `Session` compartilhada nao exerceria a race de verdade."""
+    db_setup = SessionLocal()
+    try:
+        user = User(
+            name="Usuário Pytest Rotacao Concorrente",
+            email=f"pytest-auth-rotacao-{uuid4()}@example.com",
+            password_hash=hash_password("senha-teste-123"),
+            role=UserRole.colaborador,
+        )
+        db_setup.add(user)
+        db_setup.commit()
+        db_setup.refresh(user)
+
+        db_token = SessionLocal()
+        token = create_refresh_token(db_token, user)
+        db_token.commit()
+        db_token.close()
+    finally:
+        db_setup.close()
+
+    def tentar_rotacionar():
+        db = SessionLocal()
+        try:
+            rotate_refresh_token(db, token)
+            return "sucesso"
+        except Exception:
+            return "falhou"
+        finally:
+            db.close()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        resultados = list(executor.map(lambda _: tentar_rotacionar(), range(2)))
+
+    assert sorted(resultados) == ["falhou", "sucesso"]
 
 
 def test_logout_revoga_refresh_no_servidor():
@@ -101,20 +167,26 @@ def test_logout_revoga_refresh_no_servidor():
         user, senha = _criar_usuario(db)
         c = TestClient(app)
         c.post("/auth/login", json={"email": user.email, "password": senha})
+        csrf = c.cookies.get(CSRF_COOKIE_NAME)
+        refresh_antigo = c.cookies.get(REFRESH_COOKIE_NAME)
 
-        logout = c.post("/auth/logout")
+        logout = c.post("/auth/logout", headers={CSRF_HEADER_NAME: csrf})
         assert logout.status_code == 200
 
         # Cookie de refresh foi limpo no client -- forcar reenvio do valor
         # antigo pra provar que o SERVIDOR (nao so o cookie local) revogou.
         # (Sem isso o teste so provaria que o TestClient limpou o jar.)
-        pos_logout = c.post("/auth/refresh")
+        c.cookies.set(REFRESH_COOKIE_NAME, refresh_antigo)
+        c.cookies.set(CSRF_COOKIE_NAME, csrf)
+        pos_logout = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
         assert pos_logout.status_code == 401
     finally:
         db.close()
 
 
 def test_rate_limit_no_login():
+    from app.rate_limit import limiter
+
     c = TestClient(app)
     respostas = [
         c.post("/auth/login", json={"email": "nao-existe-rate-limit@example.com", "password": "errada"})
@@ -124,3 +196,11 @@ def test_rate_limit_no_login():
     corpo = respostas[-1].json()
     assert set(corpo.keys()) == {"error", "detail"}
     assert corpo["detail"] is None  # nunca vaza limite/janela configurados
+
+    # `limiter` e' in-memory/por-processo (ver docstring de rate_limit.py) --
+    # sem reset, este teste esgota a janela de 5/min pra chave "testclient"
+    # (mesma chave de TODO TestClient default) e qualquer login de outro
+    # arquivo que rode depois, na mesma sessao do pytest, pega 429 por
+    # tabela em vez do proprio comportamento sob teste (achado real ao
+    # escrever test_csrf.py, Bloco 1 do Plan Mode consolidacao 2026-09-17).
+    limiter.reset()

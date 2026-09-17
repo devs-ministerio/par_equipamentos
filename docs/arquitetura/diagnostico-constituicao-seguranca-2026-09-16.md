@@ -8,6 +8,31 @@
 > completo no navegador). Bloco 6 (supply chain/CI — pip-audit/npm audit/SAST/secret scan/CodeQL)
 > não foi implementado nesta rodada, por ser escopo do Plan Mode de devops; os P1/P2 correspondentes
 > abaixo continuam em aberto.
+>
+> **Achado novo, pós-fechamento (2026-09-17)**: o próprio Bloco 2 (cookie `HttpOnly`/`SameSite=None`)
+> abriu uma superfície que não existia no diagnóstico original — CSRF. Identificado na reavaliação de
+> `diagnostico-constituicao-backend-2026-09-16.md` (achado P0.1) e registrado aqui como
+> "P0 — CSRF em autenticação por cookie", **em aberto**. Ver seção própria em "Divergências
+> prioritárias" abaixo.
+>
+> **RESOLVIDO (2026-09-17, Bloco 1 de `planmode-consolidacao-2026-09-17.md`)**: double-submit
+> cookie implementado — `backend/app/auth.py` (`CSRF_COOKIE_NAME`/`CSRF_HEADER_NAME`, cookie
+> `sigeo_csrf` não-`HttpOnly` emitido junto da sessão) + `backend/app/main.py::csrf_middleware`
+> (global, toda rota `POST`/`PUT`/`PATCH`/`DELETE` exceto `/auth/login`/`/health` exige
+> `X-CSRF-Token` == cookie). Cobre exatamente as duas rotas apontadas sem defesa nenhuma
+> (`/auth/refresh`/`/auth/logout`, POSTs sem corpo) mais toda rota mutável de
+> `monitoramento.py`/`propostas_candidatas.py`/`notificacoes.py`. Os 3 clientes HTTP do frontend
+> (`api.ts`/`convenios.ts`/`monitoramento.ts`) anexam o header via `frontend/src/lib/csrf.ts`.
+> Testado em `backend/tests/test_csrf.py` (403 sem header, 403 com header divergente, 200 com header
+> correto — `/auth/refresh`, `/auth/logout`, PATCH de monitoramento). **Achado colateral real
+> encontrado ao escrever esse teste**: `REFRESH_COOKIE_PATH` era `/auth/refresh` — Path de cookie é
+> matching de prefixo, então esse cookie nunca era enviado numa requisição para `/auth/logout`
+> (paths irmãos), e `revoke_refresh_token` nunca era chamado ali; logout nunca revogava nada no
+> servidor, apesar do Bloco 2 (`planmode-seguranca-2026-09-16.md`) documentar isso como resolvido.
+> Corrigido junto (`REFRESH_COOKIE_PATH = "/auth"`, prefixo cobre `/auth/refresh` e `/auth/logout`).
+> Bearer fallback (`Authorization: Bearer`) e `access_token` no corpo de login/refresh também
+> removidos no mesmo Plan Mode (Bloco 2, decisão do usuário confirmada: sem consumidor de API além
+> do frontend Vercel).
 
 ## Escopo e método
 
@@ -50,7 +75,7 @@ A nota reconhece boas primitivas locais, mas acesso público a dados internos,
 XSS possível e gestão de sessão incompleta são bloqueadores de segurança.
 
 **Reavaliação pós-remediação (2026-09-17): 8/10.** Os quatro bloqueadores P0
-(dados internos públicos, XSS no tooltip, sessão em `localStorage` sem
+originais (dados internos públicos, XSS no tooltip, sessão em `localStorage` sem
 refresh/revogação, validação ecoando payload sensível) estão fechados, assim
 como a maior parte dos P1 (headers, CORS, rate limiting, segredo forte no
 boot, autorização movida pro Service, JSONs estáticos com CEP/telefone
@@ -60,7 +85,14 @@ Bloco 3.2), inventário formal completo de dados (Bloco 5 cobriu os JSONs
 identificados aqui, não um levantamento sistemático de todo campo do
 sistema), redaction estruturado de logs/auditoria, e todo o Bloco 6 (CI de
 segurança — pip-audit/npm audit/SAST/secret scan/CodeQL), que segue 100%
-pendente por ser escopo do Plan Mode de devops.
+pendente por ser escopo do Plan Mode de devops. **Achado novo pós-fechamento,
+já resolvido**: a própria migração para cookie (Bloco 2) abriu uma superfície
+CSRF que não estava no diagnóstico original (a sessão anterior em
+`localStorage`/bearer não tinha esse vetor) — fechada em 2026-09-17 pelo
+Bloco 1 de `planmode-consolidacao-2026-09-17.md` (double-submit cookie,
+testado). Com isso, **nota consolidada sobe para 8,5/10** — o único ponto
+que ainda impedia 9+ era esse P0; o resto do texto desta seção (matriz de
+role, inventário formal, Bloco 6 de CI) continua fora do escopo fechado.
 
 ## Evidências objetivas
 
@@ -229,6 +261,38 @@ Vercel↔Render), access token de 20min, refresh opaco rotativo com hash em
 servidor. Bearer aceito como fallback só durante a fase de compatibilidade
 dupla do rollout, documentada em `backend/app/auth.py` e no CLAUDE.md, pra
 remover quando não houver mais tráfego assim.
+
+### ~~P0 — CSRF em autenticação por cookie~~ — **RESOLVIDO (2026-09-17, Bloco 1 de `planmode-consolidacao-2026-09-17.md`)**
+
+Ver detalhe no aviso do topo do documento.
+
+Não existia no diagnóstico original (2026-09-16), porque o diagnóstico original avaliou a sessão em
+JWT/`localStorage`, sem CSRF nesse modelo (só XSS). O próprio Bloco 2 deste diagnóstico, ao migrar a
+sessão para cookie, introduziu a superfície. Identificado e confirmado no código atual pela
+reavaliação `diagnostico-constituicao-backend-2026-09-16.md` (achado P0.1).
+
+1. `set_session_cookies` (`backend/app/auth.py`) usa `SameSite=None` — exigido porque frontend
+   (Vercel) e backend (Render) são domínios cross-site; `SameSite=Strict/Lax` (a mitigação mais
+   simples da constituição, Seção "CSRF") não é aplicável aqui.
+2. Sem `SameSite=Strict/Lax`, a constituição (`padroes/seguranca/constituicao_seguranca.md`, Seção
+   "CSRF": "se autenticação usa cookie, aplicar proteção CSRF — token CSRF ou
+   `SameSite=Strict/Lax`") exige a outra opção: token CSRF explícito ou validação forte de `Origin`/
+   `Referer` nas rotas mutáveis.
+3. Nenhuma das duas existe hoje. `POST /auth/refresh` e `POST /auth/logout` são POSTs sem corpo —
+   preflight CORS reduz parte da superfície de mutações com corpo JSON, mas essas duas rotas
+   continuam acionáveis entre sites (um `<form>`/`fetch` de origem maliciosa consegue disparar o
+   POST, o navegador anexa o cookie automaticamente).
+4. Mutações do monitoramento/propostas (PATCH/POST com corpo JSON) têm proteção parcial via
+   preflight (o navegador só permite `Content-Type: application/json` cross-site depois de um
+   preflight OPTIONS que o CORS já restringe a origens explícitas) — mas isso é efeito colateral do
+   CORS, não uma defesa CSRF deliberada, e não cobre as duas rotas do item 3.
+
+**Direção**: token CSRF (double-submit cookie, verificado contra header customizado em toda mutação)
+ou validação estrita de `Origin`/`Referer` nas rotas mutáveis, priorizando `/auth/refresh` e
+`/auth/logout` por serem POST sem corpo e hoje sem nenhuma defesa. Escopo de **segurança & auth**
+(`padroes/AGENTS.md` Seção 2.2) — antecede o Plan Mode de backend na ordem de implementação entre
+áreas; o Plan Mode de backend (`planmode-backend-2026-09-17.md`) já registra este item como fora do
+seu escopo por esse motivo.
 
 ### P0 — validação reflete conteúdo sensível — **fechado 2026-09-17**
 
@@ -412,13 +476,16 @@ sem essa decisão.
 - Remover `input`/`ctx` das respostas de validação.
 - Criar testes de regressão para acesso anônimo e payload XSS.
 
-### Bloco 2 — sessão e autenticação — ✅ concluído
+### Bloco 2 — sessão e autenticação — ✅ concluído (item CSRF resolvido em 2026-09-17)
 
 - Definir modelo de sessão: cookie seguro ou bearer com risco aceito.
 - Implementar access curto, refresh rotativo e revogação/logout servidor.
 - Exigir segredo forte no boot e documentar rotação.
 - Adicionar rate limit de login e respostas 429 genéricas.
 - Cobrir token ausente, inválido, expirado, revogado e usuário desativado.
+- ~~**Reaberto (achado novo, pós-2026-09-17)**: proteção CSRF explícita~~ **RESOLVIDO** (Bloco 1 de
+  `planmode-consolidacao-2026-09-17.md`) — double-submit cookie, ver aviso no topo do documento.
+  Bearer fallback e `access_token` no corpo também removidos no mesmo Plan Mode.
 
 ### Bloco 3 — autorização — 🟡 parcial (estrutura pronta, decisão de produto pendente)
 
@@ -490,6 +557,10 @@ Implementação de `docs/arquitetura/planmode-seguranca-2026-09-16.md`, Blocos 1
   contrato morto de CPF removido do banco.
 
 **O que NÃO fechou, para não deixar a leitura enganosa:**
+- **CSRF em autenticação por cookie** (achado novo, identificado após este fechamento) — `SameSite=None`
+  exigido pela topologia cross-site Vercel↔Render tira a mitigação mais simples da mesa; falta token
+  CSRF ou validação de `Origin`/`Referer`, principalmente em `/auth/refresh` e `/auth/logout` (POST
+  sem corpo, sem defesa nenhuma hoje). Ver "P0 — CSRF em autenticação por cookie".
 - Matriz recurso×role e escopo de autorização por técnico/UF/órgão — decisão de produto pendente,
   registrada e não implementada.
 - Inventário formal completo de classificação de dados (público/interno/pessoal/sensível) — só os
@@ -524,9 +595,16 @@ Bloco 1, antes de expandir autenticação ou criar novos endpoints.
 
 **Atualização 2026-09-17**: a composição de risco descrita acima foi desfeita — sessão curta em
 cookie `HttpOnly`, XSS do tooltip eliminado, e o app inteiro (não só o monitoramento interno) atrás
-de login. O restante do risco que segue de pé é estrutural/organizacional (decisão de escopo de
-autorização por técnico/UF, inventário formal de dados, CI de segurança), não mais bloqueadores de
-implementação isolados. Ver "Fechamento do bloco segurança (2026-09-17)" acima.
+de login. O restante do risco que seguia de pé nesta data era estrutural/organizacional (decisão de
+escopo de autorização por técnico/UF, inventário formal de dados, CI de segurança), não mais
+bloqueadores de implementação isolados. Ver "Fechamento do bloco segurança (2026-09-17)" acima.
+
+**Atualização adicional (CSRF, achado novo pós-fechamento)**: a própria mudança de sessão para
+cookie `SameSite=None` reabriu um bloqueador de implementação isolado — CSRF em `/auth/refresh` e
+`/auth/logout`, sem token CSRF nem validação de `Origin`. Não é regressão do trabalho já feito (o
+cookie em si é a mitigação correta pro que ele resolve — sessão persistente em `localStorage`), é uma
+lacuna que a própria mudança introduziu e que ainda não tem Plan Mode de implementação. Ver "P0 —
+CSRF em autenticação por cookie".
 
 ## Avaliação (ciclo `padroes/AGENTS.md` Seção 2.1)
 

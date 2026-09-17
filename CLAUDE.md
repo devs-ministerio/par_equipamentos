@@ -406,14 +406,38 @@ do mesmo gate, sem exceção.
   revoked_at IS NULL RETURNING ...` atômico, não `SELECT` + atribuição +
   `commit()` (Plan Mode database 2026-09-17, Bloco 1 — duas requisições
   concorrentes com o mesmo token não geram mais dois sucessores do mesmo
-  token pai). **Compatibilidade dupla
-  temporária**: `require_current_user` ainda aceita `Authorization: Bearer`
-  como fallback (`backend/app/auth.py`) — remover quando não houver mais
-  tráfego assim (Fase C do rollout, ver Plan Mode seção 2.8). `JWT_SECRET`
+  token pai). **Bearer fallback removido em 2026-09-17** (Bloco 2 do Plan
+  Mode consolidação — `require_current_user` só aceita cookie agora;
+  confirmado com o usuário que não há consumidor de API além do frontend
+  Vercel, e os 3 clientes HTTP já operavam só por cookie). `/auth/login`/
+  `/auth/refresh` também pararam de devolver `access_token` no corpo —
+  só `{"status": "ok"}`, a sessão inteira vive nos cookies. `JWT_SECRET`
   vazio/curto (<32 chars) derruba o **boot**, não só a primeira request
   (`Settings._validar_jwt_secret`, `backend/app/config.py`). Rate limit
   (`slowapi`, `backend/app/rate_limit.py`) em `/auth/login` (5/min) e
-  `/auth/refresh` (30/min).
+  `/auth/refresh` (30/min) — é in-memory por processo (`app/rate_limit.py`),
+  então testes de integração que abrem muitos logins na mesma sessão do
+  pytest competem pela mesma janela (`limiter.reset()` depois de um teste
+  que a esgota de propósito, ver `test_auth_session.py::
+  test_rate_limit_no_login`).
+- **CSRF (Bloco 1 do Plan Mode consolidação 2026-09-17)**: double-submit
+  cookie — `sigeo_csrf` (não `HttpOnly`, legível por JS) emitido junto da
+  sessão em `set_session_cookies` (`backend/app/auth.py`); toda rota
+  mutável (`POST`/`PUT`/`PATCH`/`DELETE`, exceto `/auth/login`/`/health`)
+  exige o header `X-CSRF-Token` batendo com o cookie —
+  `backend/app/main.py::csrf_middleware`, global (não dependency por
+  rota, pra não depender de lembrar de anotar cada router novo). Frontend
+  anexa o header via `frontend/src/lib/csrf.ts::csrfHeaders()`, chamado
+  pelos 3 clientes HTTP (`api.ts`/`convenios.ts`/`monitoramento.ts`) em
+  toda chamada mutável e no retry de `/auth/refresh`. Testado em
+  `backend/tests/test_csrf.py` (403 sem header, 403 com header
+  divergente, 200 com header correto — `/auth/refresh`, `/auth/logout`,
+  PATCH de monitoramento). **Bug real encontrado ao escrever esse
+  teste**: `REFRESH_COOKIE_PATH` era `/auth/refresh` — Path de cookie é
+  matching de prefixo, então esse cookie nunca chegava numa requisição
+  pra `/auth/logout` (paths irmãos), e o logout nunca revogava nada de
+  verdade no servidor apesar do Bloco 2 dizer que sim. Corrigido pra
+  `/auth` (prefixo cobre `/auth/refresh` e `/auth/logout`).
   - **Cookie cross-site (Vercel↔Render) precisa `SameSite=None; Secure`**
     — em dev local (`http://localhost`) isso quebra silenciosamente (login
     200, mas `/auth/me` sempre 401) porque o browser não manda cookie

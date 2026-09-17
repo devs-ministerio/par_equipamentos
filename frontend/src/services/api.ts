@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiError } from '@/lib/api-error';
+import { csrfHeaders } from '@/lib/csrf';
 import { UF_INFO } from '../data/geo-reference';
 import type {
   CoberturaRow,
@@ -31,7 +32,11 @@ let renovacaoEmAndamento: Promise<boolean> | null = null;
 
 function tentarRenovarSessao(): Promise<boolean> {
   if (!renovacaoEmAndamento) {
-    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: csrfHeaders(),
+    })
       .then((r) => r.ok)
       .catch(() => false)
       .finally(() => {

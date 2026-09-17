@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiError } from '@/lib/api-error';
+import { csrfHeaders } from '@/lib/csrf';
 
 /** Base da API do backend (nao dos JSON estaticos de public/, ver
  * useJson.ts) -- so o monitoramento interno pos-repasse fala com isso, e a
@@ -47,7 +48,11 @@ let renovacaoEmAndamento: Promise<boolean> | null = null;
 
 function tentarRenovarSessao(): Promise<boolean> {
   if (!renovacaoEmAndamento) {
-    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: csrfHeaders(),
+    })
       .then((r) => r.ok)
       .catch(() => false)
       .finally(() => {
@@ -77,7 +82,14 @@ async function requisitar<T>(
   init: RequestInit | undefined,
   redirecionarEm401 = true,
 ): Promise<T> {
-  const executar = () => fetch(`${API_BASE_URL}${path}`, { ...init, credentials: 'include' });
+  const metodo = (init?.method ?? 'GET').toUpperCase();
+  const precisaCsrf = metodo !== 'GET' && path !== '/auth/login';
+  const executar = () =>
+    fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      credentials: 'include',
+      headers: { ...init?.headers, ...(precisaCsrf ? csrfHeaders() : {}) },
+    });
 
   let res: Response;
   try {
@@ -148,15 +160,14 @@ const authUserSchema = z.object({
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
 
-const tokenResponseSchema = z.object({ access_token: z.string() });
+const statusResponseSchema = z.object({ status: z.string() });
 
-/** POST /auth/login -- o backend seta os cookies HttpOnly de sessão na
- * própria resposta (Bloco 2); nada pra guardar em `localStorage` aqui.
- * `access_token` no corpo é compatibilidade transitória do rollout (Plan
- * Mode, seção 2.8) -- não usado por este service, só documentado no schema
- * pra validar o formato de resposta. */
+/** POST /auth/login -- o backend seta os cookies de sessão (access +
+ * refresh + csrf) na própria resposta (Bloco 2); nada pra guardar em
+ * `localStorage` aqui. O bearer fallback e o `access_token` no corpo
+ * foram removidos em 2026-09-17 (Bloco 2 do Plan Mode consolidação). */
 export async function login(email: string, password: string): Promise<void> {
-  await requisitar('/auth/login', tokenResponseSchema, {
+  await requisitar('/auth/login', statusResponseSchema, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -167,7 +178,7 @@ export async function login(email: string, password: string): Promise<void> {
  * do comportamento antigo (só limpava o token no cliente, JWT continuava
  * válido até expirar). */
 export async function logout(): Promise<void> {
-  await requisitar('/auth/logout', z.object({ status: z.string() }), { method: 'POST' });
+  await requisitar('/auth/logout', statusResponseSchema, { method: 'POST' });
 }
 
 export function fetchCurrentUser(): Promise<AuthUser> {

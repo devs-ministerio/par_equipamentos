@@ -6,6 +6,7 @@ from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.auth import CSRF_COOKIE_NAME, CSRF_HEADER_NAME
 from app.config import settings
 from app.db.base import get_db
 from app.errors import register_exception_handlers
@@ -33,7 +34,10 @@ app.state.limiter = limiter
 async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     # Nunca vaza o limite/janela configurados (detalhe interno) -- resposta
     # generica, mesmo padrao do resto de app/errors.py.
-    return JSONResponse(status_code=429, content={"error": "Muitas tentativas. Tente novamente em instantes.", "detail": None})
+    return JSONResponse(
+        status_code=429,
+        content={"error": "Muitas tentativas. Tente novamente em instantes.", "detail": None},
+    )
 app.include_router(auth.router)
 app.include_router(macro_coverage.router)
 app.include_router(municipality_coverage.router)
@@ -62,8 +66,34 @@ app.add_middleware(
     allow_origins=settings.cors_origins_lista,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", CSRF_HEADER_NAME],
 )
+
+# Rotas isentas de CSRF -- login ainda nao tem cookie de sessao/CSRF pra
+# comparar (e' o proprio ato que os emite); saude e publica e nao muta nada.
+_CSRF_ROTAS_ISENTAS = {"/auth/login", "/health"}
+_METODOS_MUTAVEIS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+@app.middleware("http")
+async def csrf_middleware(request: Request, call_next):
+    """Double-submit cookie (Bloco 1 do Plan Mode consolidacao 2026-09-17)
+    -- toda rota mutavel (incluindo `/auth/refresh`/`/auth/logout`, POSTs
+    sem corpo que antes nao tinham nenhuma defesa) exige que o header
+    `X-CSRF-Token` bata com o cookie `sigeo_csrf` (nao HttpOnly, legivel
+    por JS). Aplicado como middleware global -- nao como dependency por
+    rota -- justamente pra nao depender de lembrar de anotar cada router
+    novo (`monitoramento.py`/`propostas_candidatas.py`/`notificacoes.py`
+    ja tem 7 rotas mutaveis hoje, espalhadas por 3 arquivos)."""
+    if request.method in _METODOS_MUTAVEIS and request.url.path not in _CSRF_ROTAS_ISENTAS:
+        cookie_token = request.cookies.get(CSRF_COOKIE_NAME)
+        header_token = request.headers.get(CSRF_HEADER_NAME)
+        if not cookie_token or not header_token or cookie_token != header_token:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Token CSRF ausente ou invalido.", "detail": None},
+            )
+    return await call_next(request)
 
 
 @app.middleware("http")

@@ -29,11 +29,38 @@ linhas) e a maior parte dos routers de domínio continuam `Router -> SQLAlchemy`
 envelope de resposta, paginação universal ou observabilidade estruturada. Nenhum desses itens
 regrediu; todos os achados P0/P1/P2 abaixo que não foram citados como resolvidos continuam de pé.
 
+### Atualização 2026-09-17 (correção pós-consolidação)
+
+`docs/arquitetura/planmode-consolidacao-2026-09-17.md` reconferiu os achados P0 abaixo contra o
+código atual (não só releu este documento) e encontrou 3 dos 4 P0 já fechados por
+`planmode-database-2026-09-17.md`, que rodou depois deste diagnóstico ter sido escrito mas antes da
+consolidação — a redação abaixo não tinha sido atualizada para refletir isso. Confirmado no código:
+
+- ~~**P0.2 — Rotação de refresh não é atômica sob concorrência.**~~ **RESOLVIDO** em
+  `planmode-database-2026-09-17.md` — `rotate_refresh_token`/`revoke_refresh_token`
+  (`backend/app/auth.py`, linhas 90-169) usam `UPDATE ... WHERE revoked_at IS NULL RETURNING ...`
+  atômico, não mais `SELECT` + atribuição + `commit()`.
+- ~~**P0.3 — Seleção silenciosa da URL de migration.**~~ **RESOLVIDO** em
+  `planmode-database-2026-09-17.md` — `Settings.database_url_alembic` (`backend/app/config.py`)
+  agora checa `os.environ.get("DATABASE_URL")` (variável exportada de verdade no processo) antes de
+  `database_url_migration`; `backend/alembic/env.py` ecoa o host resolvido em stderr antes de
+  qualquer comando.
+- ~~**P0.4 — Rollback final inválido em banco populado.**~~ **RESOLVIDO** — a migration
+  `f8fe7ce9347c` tem `server_default=sa.text("'nao-informado'")` no `downgrade()`, não falha mais em
+  banco populado.
+
+O único P0 genuíno que restava entre os três diagnósticos (database, segurança, backend) era o P0.1
+(CSRF) — **RESOLVIDO em 2026-09-17** pelo Bloco 1 de `planmode-consolidacao-2026-09-17.md`
+(double-submit cookie, `backend/app/main.py::csrf_middleware`, testado em
+`backend/tests/test_csrf.py`). Bloco 2 do mesmo Plan Mode também removeu o bearer fallback e o
+`access_token` no corpo de login/refresh (P1 "compatibilidade dupla" listado abaixo). **Nota
+consolidada sobe para 7,6/10** (segurança de fronteira 8,0→8,5 no eixo abaixo).
+
 ## Nota por eixo
 
 | Eixo | Nota (2026-09-17 diagnóstico) | Nota (pós-execução) | Evidência principal |
 |---|---:|---:|---|
-| Segurança de fronteira | 8,0 | 8,0 | Cookie HttpOnly, refresh rotativo, rate limit, CORS e headers; ainda há CSRF e concorrência no refresh — fora de escopo deste Plan Mode |
+| Segurança de fronteira | 8,0 | 8,5 | Cookie HttpOnly, refresh rotativo, rate limit, CORS, headers e CSRF (double-submit cookie, 2026-09-17) |
 | Banco e transação | 8,0 | 8,0 | Neon em `f8fe7ce9347c`, runtime sem DDL, índice trigram e TLS no driver — inalterado |
 | Arquitetura em camadas | 4,0 | 4,5 | 2 Repositories agora (`propostas_candidatas`, `notificacoes`); contrato documentado; mas a maioria dos routers ainda consulta SQLAlchemy direto — `monitoramento.py` não migrado |
 | Contratos e validação | 6,5 | 6,5 | Pydantic e `response_model`; formatos ainda não envelopados e payload externo genérico — inalterado |
@@ -82,7 +109,8 @@ regrediu; todos os achados P0/P1/P2 abaixo que não foram citados como resolvido
 
 ### P0 — segurança e operação
 
-1. **Autenticação por cookie sem defesa CSRF explícita.** Com `SameSite=None`, falta token CSRF ou validação forte de `Origin` nas rotas mutáveis. JSON com preflight reduz parte da superfície, mas refresh e logout são POSTs sem corpo e continuam acionáveis entre sites.
+1. ~~**Autenticação por cookie sem defesa CSRF explícita.**~~ **RESOLVIDO (2026-09-17)** — ver
+   "Atualização 2026-09-17 (correção pós-consolidação)" no topo do documento.
 2. **Rotação de refresh não é atômica sob concorrência.** A consulta do token não usa `SELECT ... FOR UPDATE` nem atualização condicional. Duas requisições simultâneas podem validar o mesmo token antes de ambas o revogarem e criarem dois sucessores.
 3. **Seleção silenciosa da URL de migration.** `Settings.database_url_alembic` prefere `DATABASE_URL_MIGRATION` carregada do `.env`, mesmo quando `DATABASE_URL` é sobrescrita no comando. Isso fez um comando planejado para o PostgreSQL local atingir o Neon. A interface precisa exigir seleção explícita do alvo ou impedir fallback silencioso em ambiente local/CI.
 4. **Rollback final inválido em banco populado.** O downgrade de `f8fe7ce9347c` recria `cpf_hash` como `NOT NULL` sem default/backfill. Ele falhará se `user` tiver linhas, contrariando a reversibilidade exigida.
@@ -101,7 +129,10 @@ regrediu; todos os achados P0/P1/P2 abaixo que não foram citados como resolvido
 1. Sucessos ainda retornam objetos/listas crus e erros usam `{error, detail}`; falta o envelope constitucional. A mudança é breaking e deve ser coordenada com o frontend ou versionada.
 2. Listas de macro, município, região de saúde, instrumentos, ações, marcos e facilities ainda não possuem paginação/teto coerente.
 3. Integrações externas mantêm `dict[str, Any]` e não validam todos os payloads antes de entrar no domínio.
-4. O login ainda devolve `access_token` no corpo e mantém bearer fallback, apesar de o frontend já operar por cookie. A compatibilidade amplia a exposição do token e deve ter prazo de remoção.
+4. ~~O login ainda devolve `access_token` no corpo e mantém bearer fallback~~ **RESOLVIDO
+   (2026-09-17, Bloco 2 de `planmode-consolidacao-2026-09-17.md`)** — confirmado com o usuário que
+   não há consumidor de API além do frontend Vercel; `HTTPBearer`/fallback removidos de
+   `require_current_user`, login/refresh só devolvem `{"status": "ok"}` (cookies carregam a sessão).
 5. Logout revoga o refresh, mas o access token emitido continua válido por até 20 minutos; falta vínculo de sessão/JTI caso revogação imediata seja requisito.
 
 ### P2 — qualidade e observabilidade

@@ -13,7 +13,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.auth import create_access_token, hash_password
+from app.auth import ACCESS_COOKIE_NAME, create_access_token, hash_password
 from app.db.base import SessionLocal
 from app.db.models import User, UserRole
 from app.main import app
@@ -55,7 +55,7 @@ def test_leituras_de_monitoramento_aceitam_token_valido():
     db = SessionLocal()
     try:
         token = _token_usuario_teste(db)
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
         for rota in ROTAS_PROTEGIDAS_GET:
             resp = client.get(rota, headers=headers)
             assert resp.status_code == 200, f"{rota} deveria aceitar token válido, veio {resp.status_code}: {resp.text}"

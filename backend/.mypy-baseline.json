@@ -11,12 +11,17 @@
   },
   {
     "file": "app/auth.py",
-    "line": 138,
+    "line": 157,
     "code": "arg-type"
   },
   {
     "file": "app/auth.py",
-    "line": 143,
+    "line": 162,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/auth.py",
+    "line": 168,
     "code": "arg-type"
   },
   {

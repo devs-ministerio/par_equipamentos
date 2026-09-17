@@ -13,6 +13,7 @@
  * lista que só mostra resumo. */
 import { z } from 'zod';
 import { ApiError } from '@/lib/api-error';
+import { csrfHeaders } from '@/lib/csrf';
 import type { ConvenioUnificado } from '@/types/monitoramento';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
@@ -36,7 +37,11 @@ let renovacaoEmAndamento: Promise<boolean> | null = null;
 
 function tentarRenovarSessao(): Promise<boolean> {
   if (!renovacaoEmAndamento) {
-    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: csrfHeaders(),
+    })
       .then((r) => r.ok)
       .catch(() => false)
       .finally(() => {

@@ -9,8 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 from fastapi import Depends, HTTPException, Request, Response
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -21,15 +20,33 @@ ALGORITHM = "HS256"
 PBKDF2_ITERATIONS = 260_000
 
 # Nomes dos cookies HttpOnly de sessao -- Bloco 2 do Plan Mode seguranca
-# 2026-09-16. `path` do refresh fica restrito a /auth/refresh (ver
-# `set_session_cookies`/`clear_session_cookies` em routers/auth.py) pra
-# reduzir a superficie de exposicao do cookie de vida mais longa.
+# 2026-09-16. `path` do refresh fica restrito a /auth (prefixo -- cobre
+# /auth/refresh e /auth/logout) pra reduzir a superficie de exposicao do
+# cookie de vida mais longa sem deixar de chegar em /auth/logout.
+#
+# Bug real encontrado na consolidacao 2026-09-17 (Bloco 1, ao escrever o
+# teste de CSRF pra /auth/logout): o path era literalmente "/auth/refresh"
+# antes -- Path de cookie e' matching de PREFIXO, entao "/auth/refresh"
+# NUNCA e enviado numa requisicao pra "/auth/logout" (paths irmaos, um nao
+# e prefixo do outro). `revoke_refresh_token` em `logout()` nunca recebia o
+# token, entao o logout nunca revogava nada no servidor -- so limpava
+# cookie no cliente, exatamente o comportamento antigo que o Bloco 2 dizia
+# ter corrigido. Mascarado porque o teste
+# `test_logout_revoga_refresh_no_servidor` nao reenviava o cookie
+# manualmente apos o logout (comentario dizia que reenviava, codigo nao
+# fazia), entao o 401 esperado vinha da ausencia do cookie (limpo pelo
+# proprio logout), nao de revogacao real -- corrigido junto (ver
+# tests/test_auth_session.py).
 ACCESS_COOKIE_NAME = "sigeo_access"
 REFRESH_COOKIE_NAME = "sigeo_refresh"
-REFRESH_COOKIE_PATH = "/auth/refresh"
+REFRESH_COOKIE_PATH = "/auth"
 
-bearer_scheme = HTTPBearer(auto_error=False)
-
+# Cookie CSRF (Bloco 1 do Plan Mode consolidacao 2026-09-17) -- double-submit:
+# NAO e HttpOnly de proposito (o frontend precisa ler o valor em JS pra
+# ecoar no header abaixo). `SameSite=None`/`Secure` segue a mesma topologia
+# cross-site do restante da sessao (ver `cookie_samesite`/`cookie_secure`).
+CSRF_COOKIE_NAME = "sigeo_csrf"
+CSRF_HEADER_NAME = "X-CSRF-Token"
 
 def hash_password(password: str) -> str:
     salt = os.urandom(16)
@@ -91,35 +108,50 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str]:
     """Valida o refresh token recebido (nao revogado, nao expirado), marca
     a linha antiga como revogada e emite um par novo -- rotacao real: reuso
     do token antigo (ja revogado) falha na proxima chamada, sinal de furto
-    de sessao caso aconteca. Faz `db.commit()` (le-modifica-grava numa
-    unica operacao atomica, diferente do padrao dos services de negocio
-    que deixam o commit pro router -- aqui nao ha corpo de request pra
-    coordenar com outra escrita)."""
+    de sessao caso aconteca.
+
+    `UPDATE ... WHERE token_hash = :hash AND revoked_at IS NULL RETURNING
+    user_id` atomico (Plan Mode database 2026-09-17, Bloco 1) em vez de
+    SELECT + atribuicao + commit: duas requisicoes concorrentes com o
+    mesmo token, sem isso, passavam ambas pela checagem `revoked_at is
+    None` antes de qualquer commit e geravam dois sucessores do mesmo
+    token pai. O UPDATE ja e atomico no Postgres -- a transacao
+    concorrente bloqueia na mesma linha ate a primeira commitar e, ao
+    reavaliar o WHERE, encontra `revoked_at` ja preenchido e afeta 0
+    linhas, colapsando no mesmo 401 abaixo. Faz `db.commit()` (mesmo
+    padrao de antes -- nao ha corpo de request pra coordenar com outra
+    escrita)."""
     token_hash = _hash_refresh_token(token)
-    registro = db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    ).scalar_one_or_none()
     agora = datetime.now(timezone.utc)
-    if registro is None or registro.revoked_at is not None or registro.expires_at < agora:
+    resultado = db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=agora)
+        .returning(RefreshToken.user_id, RefreshToken.expires_at)
+    ).one_or_none()
+    if resultado is None or resultado.expires_at < agora:
+        db.rollback()
         raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
 
-    user = db.execute(select(User).where(User.id == registro.user_id)).scalar_one_or_none()
+    user = db.execute(select(User).where(User.id == resultado.user_id)).scalar_one_or_none()
     if user is None or user.status != UserStatus.active or user.deleted_at is not None:
+        db.rollback()
         raise HTTPException(status_code=403, detail="Usuario inexistente ou inativo.")
 
-    registro.revoked_at = agora
     novo_token = create_refresh_token(db, user)
     db.commit()
     return user, novo_token
 
 
-def set_session_cookies(response: Response, access_token: str, refresh_token: str) -> None:
-    """Seta os 2 cookies HttpOnly de sessao numa resposta -- usado por
-    `/auth/login` e `/auth/refresh` (Bloco 2). `secure`/`samesite`/`domain`
-    vem de settings (cross-site por padrao, ver config.py). Refresh fica
-    restrito a `REFRESH_COOKIE_PATH` -- o browser so o envia de volta pra
-    `/auth/refresh`, reduzindo a superficie de exposicao do cookie de vida
-    mais longa."""
+def set_session_cookies(response: Response, access_token: str, refresh_token: str) -> str:
+    """Seta os 3 cookies de sessao numa resposta -- usado por `/auth/login`
+    e `/auth/refresh` (Bloco 2 + Bloco 1 CSRF da consolidacao 2026-09-17).
+    `secure`/`samesite`/`domain` vem de settings (cross-site por padrao, ver
+    config.py). Refresh fica restrito a `REFRESH_COOKIE_PATH` -- o browser
+    so o envia de volta pra `/auth/refresh`, reduzindo a superficie de
+    exposicao do cookie de vida mais longa. O cookie CSRF e rotacionado
+    junto (mesmo evento de emissao) e devolvido pra quem chamar poder
+    expor o valor no corpo da resposta de login, se precisar."""
     response.set_cookie(
         ACCESS_COOKIE_NAME, access_token, max_age=settings.access_token_expire_minutes * 60,
         httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite,
@@ -130,27 +162,40 @@ def set_session_cookies(response: Response, access_token: str, refresh_token: st
         httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite,
         domain=settings.cookie_domain, path=REFRESH_COOKIE_PATH,
     )
+    csrf_token = secrets.token_urlsafe(32)
+    response.set_cookie(
+        CSRF_COOKIE_NAME, csrf_token, max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+        httponly=False, secure=settings.cookie_secure, samesite=settings.cookie_samesite,
+        domain=settings.cookie_domain, path="/",
+    )
+    return csrf_token
 
 
 def clear_session_cookies(response: Response) -> None:
-    """Logout (Bloco 2) -- limpa os 2 cookies no cliente. `path` precisa
+    """Logout (Bloco 2) -- limpa os 3 cookies no cliente. `path` precisa
     bater exatamente com o usado em `set_session_cookies` (o browser trata
     path como parte da identidade do cookie)."""
     response.delete_cookie(ACCESS_COOKIE_NAME, domain=settings.cookie_domain, path="/")
     response.delete_cookie(REFRESH_COOKIE_NAME, domain=settings.cookie_domain, path=REFRESH_COOKIE_PATH)
+    response.delete_cookie(CSRF_COOKIE_NAME, domain=settings.cookie_domain, path="/")
 
 
 def revoke_refresh_token(db: Session, token: str) -> None:
     """Logout real (Bloco 2) -- revoga no servidor, nao so limpa o cookie
     no cliente. Token ja invalido/inexistente e no-op silencioso (logout
-    de uma sessao que ja caiu nao e erro)."""
+    de uma sessao que ja caiu nao e erro).
+
+    `UPDATE` atomico (Plan Mode database 2026-09-17, Bloco 1) pelo mesmo
+    motivo de `rotate_refresh_token` -- evita a janela SELECT + atribuicao
+    + commit onde duas chamadas concorrentes (ex.: logout duplo) poderiam
+    disputar a mesma linha."""
     token_hash = _hash_refresh_token(token)
-    registro = db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    ).scalar_one_or_none()
-    if registro is not None and registro.revoked_at is None:
-        registro.revoked_at = datetime.now(timezone.utc)
-        db.commit()
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.token_hash == token_hash, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(timezone.utc))
+    )
+    db.commit()
 
 
 def _decodificar_access_token(token: str, db: Session) -> User:
@@ -168,20 +213,15 @@ def _decodificar_access_token(token: str, db: Session) -> User:
     return user
 
 
-def require_current_user(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
-) -> User:
-    """Cookie HttpOnly primeiro (Bloco 2); header `Authorization: Bearer`
-    continua aceito como fallback durante a fase de compatibilidade dupla
-    do rollout (Plan Mode seguranca 2026-09-16, secao 2.8, Fase A/B) --
-    removido quando a Fase C confirmar que nao ha mais trafego bearer."""
+def require_current_user(request: Request, db: Session = Depends(get_db)) -> User:
+    """Cookie HttpOnly (Bloco 2) -- unica via de autenticacao. O fallback
+    `Authorization: Bearer` da fase de compatibilidade dupla foi removido
+    em 2026-09-17 (Bloco 2 do Plan Mode consolidacao): confirmado que os 3
+    clientes HTTP do frontend (`api.ts`/`convenios.ts`/`monitoramento.ts`)
+    ja operam so por cookie e nao ha consumidor externo de API."""
     token = request.cookies.get(ACCESS_COOKIE_NAME)
     if token is None:
-        if credentials is None or credentials.scheme.lower() != "bearer":
-            raise HTTPException(status_code=401, detail="Token de acesso obrigatorio.")
-        token = credentials.credentials
+        raise HTTPException(status_code=401, detail="Token de acesso obrigatorio.")
     return _decodificar_access_token(token, db)
 
 

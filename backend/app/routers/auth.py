@@ -19,20 +19,19 @@ from app.auth import (
 from app.db.base import get_db
 from app.db.models import User, UserStatus
 from app.rate_limit import limiter
-from app.schemas import LoginRequest, TokenResponse, UserRead
+from app.schemas import LoginRequest, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 @limiter.limit("5/minute")
 def login(request: Request, corpo: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    """Seta cookies HttpOnly (access + refresh, Bloco 2) e -- durante a
-    fase de compatibilidade dupla do rollout (Plan Mode seguranca
-    2026-09-16, secao 2.8) -- continua devolvendo `access_token` no corpo,
-    pro frontend que ainda nao migrou de `localStorage`/`Authorization`
-    header pra `credentials: 'include'`. Remover o corpo quando a Fase C
-    confirmar que nao ha mais consumidor do token via header."""
+    """Seta cookies de sessao (access + refresh + csrf, Bloco 2 + Bloco 1
+    CSRF da consolidacao 2026-09-17). O bearer fallback e o `access_token`
+    no corpo foram removidos em 2026-09-17 (Bloco 2) -- confirmado que os 3
+    clientes HTTP do frontend ja operam so por cookie e nao ha consumidor
+    externo de API."""
     user = db.execute(select(User).where(User.email == corpo.email.lower().strip())).scalar_one_or_none()
     if user is None or user.status != UserStatus.active or user.deleted_at is not None:
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
@@ -43,10 +42,10 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     refresh_token = create_refresh_token(db, user)
     db.commit()
     set_session_cookies(response, access_token, refresh_token)
-    return TokenResponse(access_token=access_token)
+    return {"status": "ok"}
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh")
 @limiter.limit("30/minute")
 def refresh(request: Request, response: Response, db: Session = Depends(get_db)):
     """Rotaciona a sessao a partir do cookie de refresh -- reuso de um
@@ -58,7 +57,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     user, novo_refresh = rotate_refresh_token(db, token)
     novo_access = create_access_token(user)
     set_session_cookies(response, novo_access, novo_refresh)
-    return TokenResponse(access_token=novo_access)
+    return {"status": "ok"}
 
 
 @router.post("/logout")
