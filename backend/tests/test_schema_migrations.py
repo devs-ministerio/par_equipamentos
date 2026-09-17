@@ -16,22 +16,9 @@ vazia (CI/onboarding), não este teste.
 """
 from __future__ import annotations
 
-from pathlib import Path
-
-from alembic.autogenerate import compare_metadata
-from alembic.config import Config
-from alembic.runtime.migration import MigrationContext
-
 from app.db.base import Base, engine
 from app.db import models  # noqa: F401 -- registra os modelos em Base.metadata
-
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-
-
-def _alembic_config() -> Config:
-    cfg = Config(str(BACKEND_DIR / "alembic.ini"))
-    cfg.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
-    return cfg
+from scripts.schema_drift import comparar_heads, diff_metadata_vs_banco
 
 
 def test_head_aplicado_bate_com_models():
@@ -39,9 +26,7 @@ def test_head_aplicado_bate_com_models():
     migration mais recente aplicada no banco nao tem (ou vice-versa) --
     autogenerate-diff vazio significa "nada pra gerar", ou seja, banco e
     codigo estao de acordo."""
-    with engine.connect() as conn:
-        contexto = MigrationContext.configure(conn)
-        diffs = compare_metadata(contexto, Base.metadata)
+    diffs = diff_metadata_vs_banco(engine, Base.metadata)
 
     assert diffs == [], (
         "Divergencia entre app/db/models.py e o schema aplicado no banco "
@@ -55,14 +40,7 @@ def test_head_do_banco_bate_com_head_dos_arquivos_de_migration():
     ponta do historico em alembic/versions/ (banco desatualizado) --
     complementar ao teste acima, que so olha pro schema em si, nao pro
     ponteiro de revisao."""
-    from alembic.script import ScriptDirectory
-
-    script = ScriptDirectory.from_config(_alembic_config())
-    head_dos_arquivos = script.get_current_head()
-
-    with engine.connect() as conn:
-        contexto = MigrationContext.configure(conn)
-        head_do_banco = contexto.get_current_revision()
+    head_do_banco, head_dos_arquivos = comparar_heads(engine)
 
     assert head_do_banco == head_dos_arquivos, (
         f"Banco esta em {head_do_banco!r}, mas o head dos arquivos de "

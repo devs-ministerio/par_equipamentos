@@ -127,10 +127,11 @@ class MarcoGrupo(str, enum.Enum):
 
 class User(Base):
     __tablename__ = "user"
+    __table_args__ = (UniqueConstraint("email", name="uq_user_email"),)
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(String, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     cpf_hash: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[UserRole] = mapped_column(
@@ -149,7 +150,7 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     entity_name: Mapped[str] = mapped_column(String, nullable=False)
     entity_id: Mapped[int | None] = mapped_column(BigInteger)
     action: Mapped[str] = mapped_column(String, nullable=False)
@@ -176,7 +177,7 @@ class ConfigDecision(Base):
     __tablename__ = "config_decision"
     __table_args__ = (
         Index(
-            "ux_config_decision_key_vigente", "key", unique=True,
+            "uq_config_decision_key_vigente", "key", unique=True,
             postgresql_where=text("valid_to IS NULL"),
         ),
     )
@@ -187,7 +188,7 @@ class ConfigDecision(Base):
     )
     value: Mapped[str] = mapped_column(String, nullable=False)
     confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
-    confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    confirmed_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     valid_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     # NULL = vigente. Preenchido com now() no exato INSERT que a substitui
@@ -208,16 +209,17 @@ class ReferenceFile(Base):
     )
     reference_period: Mapped[date | None] = mapped_column(Date)
     original_file: Mapped[str] = mapped_column(String, nullable=False)
-    uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
 
 
 class AcceleratorRow(Base):
     __tablename__ = "accelerator_row"
+    __table_args__ = (CheckConstraint("operational_qty >= 0", name="ck_accelerator_row_operational_qty"),)
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    reference_file_id: Mapped[int] = mapped_column(ForeignKey("reference_file.id", ondelete="CASCADE"), nullable=False)
+    reference_file_id: Mapped[int] = mapped_column(ForeignKey("reference_file.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     cnes_code: Mapped[str] = mapped_column(String, nullable=False)
     facility_name: Mapped[str] = mapped_column(String, nullable=False)
     state: Mapped[str] = mapped_column(String(2), nullable=False)
@@ -242,8 +244,24 @@ class CnesEstabelecimento(Base):
     InstrumentoEquipamento/PropostaCandidata (PATCH só aceita CNES que
     exista aqui), (2) alimentar o endpoint de busca
     (GET /monitoramento/cnes-referencia) que vira um seletor no front, não
-    campo de texto livre."""
+    campo de texto livre.
+
+    Desde 2026-09-16 (bloco 7 da constituição database) também é alvo de FK
+    física a partir de `convenio`/`instrumento_equipamento`/
+    `proposta_candidata` -- a validação da aplicação continua como defesa
+    adicional, não substituta."""
     __tablename__ = "cnes_estabelecimento"
+    __table_args__ = (
+        CheckConstraint("cnes ~ '^[0-9]{7}$'", name="ck_cnes_estabelecimento_cnes_formato"),
+        CheckConstraint(
+            "latitude IS NULL OR (latitude >= -90 AND latitude <= 90)",
+            name="ck_cnes_estabelecimento_latitude",
+        ),
+        CheckConstraint(
+            "longitude IS NULL OR (longitude >= -180 AND longitude <= 180)",
+            name="ck_cnes_estabelecimento_longitude",
+        ),
+    )
 
     cnes: Mapped[str] = mapped_column(String(7), primary_key=True)
     nome_estabelecimento: Mapped[str] = mapped_column(String, nullable=False)
@@ -252,6 +270,20 @@ class CnesEstabelecimento(Base):
     uf: Mapped[str | None] = mapped_column(String(2))
     cep: Mapped[str | None] = mapped_column(String)
     logradouro: Mapped[str | None] = mapped_column(String)
+    # Achado 2026-09-16, pedido do usuário: "vamos precisar de dados como
+    # latitude e longitude... para validar o cnes dos novos instrumentos/
+    # propostas". Só vinha do parquet S3 até aqui -- `sincronizar_cnes_
+    # referencia_api.py` (ElastiCNES, roda sem precisar de credencial nova,
+    # ver docstring do script) também popula isso, pros CNES que a base
+    # local ainda não tinha ou pra refrescar os que já tinha.
+    latitude: Mapped[float | None] = mapped_column(Numeric)
+    longitude: Mapped[float | None] = mapped_column(Numeric)
+    # Qual sincronização escreveu por último ('s3'/'elasticnes') -- achado
+    # 2026-09-16, pedido do usuário: "o cnes deve ser atualizado pela API"
+    # (ElastiCNES, periódico) em vez de só a carga inicial do S3. Útil pra
+    # saber se um registro nunca foi tocado pela API (ex.: só tem cep/
+    # logradouro do S3, nunca confirmado contra fonte viva).
+    fonte_sincronizacao: Mapped[str | None] = mapped_column(String)
     sincronizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -274,9 +306,13 @@ class Convenio(Base):
     mesmo padrão de `PropostaCandidata.metas_resumo` (JSON cru > normalizar
     uma árvore de profundidade variável em tabelas relacionais)."""
     __tablename__ = "convenio"
+    __table_args__ = (
+        Index("idx_convenio_cnes", "cnes"),
+        UniqueConstraint("numero", name="uq_convenio_numero"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    numero: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    numero: Mapped[str] = mapped_column(String, nullable=False)
     numero_instrumento: Mapped[str | None] = mapped_column(String)
     ano_instrumento: Mapped[int | None] = mapped_column(Integer)
     objeto: Mapped[str | None] = mapped_column(String)
@@ -328,7 +364,10 @@ class Convenio(Base):
     # (planilha/cnpj_exato/cnpj_multi_municipio/manual/nome_endereco) --
     # fica None quando o CNES foi editado manualmente depois (PATCH), pra
     # não afirmar um método que não é mais verdade.
-    cnes: Mapped[str | None] = mapped_column(String(7))
+    cnes: Mapped[str | None] = mapped_column(
+        String(7),
+        ForeignKey("cnes_estabelecimento.cnes", ondelete="SET NULL", onupdate="RESTRICT"),
+    )
     cnes_metodo: Mapped[str | None] = mapped_column(String)
     siconv_raw: Mapped[dict | None] = mapped_column(JSONB)
     transferegov_raw: Mapped[dict | None] = mapped_column(JSONB)
@@ -337,9 +376,14 @@ class Convenio(Base):
 
 class MunicipalityPopulationRow(Base):
     __tablename__ = "municipality_population_row"
+    __table_args__ = (
+        CheckConstraint("resident_population >= 0", name="ck_municipality_population_row_resident_population"),
+        CheckConstraint("ans_population >= 0", name="ck_municipality_population_row_ans_population"),
+        CheckConstraint("sus_dependent_population >= 0", name="ck_municipality_population_row_sus_dependent_population"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    reference_file_id: Mapped[int] = mapped_column(ForeignKey("reference_file.id", ondelete="CASCADE"), nullable=False)
+    reference_file_id: Mapped[int] = mapped_column(ForeignKey("reference_file.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     ibge_code: Mapped[str] = mapped_column(String, nullable=False)
     resident_population: Mapped[int] = mapped_column(Integer, nullable=False)
     ans_population: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -348,6 +392,7 @@ class MunicipalityPopulationRow(Base):
 
 class IncaEstimate(Base):
     __tablename__ = "inca_estimate"
+    __table_args__ = (CheckConstraint("estimated_cases >= 0", name="ck_inca_estimate_estimated_cases"),)
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     level: Mapped[IncaEstimateLevel] = mapped_column(
@@ -382,7 +427,7 @@ class Competency(Base):
     equipment_family: Mapped[str] = mapped_column(String, nullable=False, server_default="TOMOGRAFO")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     published_execution_id: Mapped[int | None] = mapped_column(
-        ForeignKey("execution.id", ondelete="RESTRICT", use_alter=True, name="fk_competency_published_execution")
+        ForeignKey("execution.id", ondelete="RESTRICT", onupdate="RESTRICT", use_alter=True, name="fk_competency_published_execution")
     )
 
 
@@ -391,7 +436,7 @@ class Execution(Base):
     __table_args__ = (UniqueConstraint("competency_id", "version"),)
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    competency_id: Mapped[int] = mapped_column(ForeignKey("competency.id"), nullable=False)
+    competency_id: Mapped[int] = mapped_column(ForeignKey("competency.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     mode: Mapped[ExecutionMode] = mapped_column(
         PgEnum(ExecutionMode, name="execution_mode", native_enum=True), nullable=False,
@@ -402,15 +447,15 @@ class Execution(Base):
     )
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    executed_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    executed_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     error: Mapped[str | None] = mapped_column(String)
     config_chave_macrorregiao: Mapped[str] = mapped_column(String, nullable=False)
     config_denominador_oferta: Mapped[str] = mapped_column(String, nullable=False)
-    accelerator_file_id: Mapped[int | None] = mapped_column(ForeignKey("reference_file.id"))
-    population_file_id: Mapped[int | None] = mapped_column(ForeignKey("reference_file.id"))
+    accelerator_file_id: Mapped[int | None] = mapped_column(ForeignKey("reference_file.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    population_file_id: Mapped[int | None] = mapped_column(ForeignKey("reference_file.id", ondelete="SET NULL", onupdate="RESTRICT"))
     active_sources: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
 
 
 # ----------------------------------------------------------------------------
@@ -422,11 +467,19 @@ class MacroCoverage(Base):
     # toda leitura parte de (execucao + familia) -- sem isso o Postgres varre
     # a tabela inteira a cada request do Dashboard/Mapa.
     __table_args__ = (
-        Index("ix_macro_coverage_execution_family", "execution_id", "equipment_family"),
+        Index("idx_macro_coverage_execution_family", "execution_id", "equipment_family"),
+        CheckConstraint("population IS NULL OR population >= 0", name="ck_macro_coverage_population"),
+        CheckConstraint("population_residente IS NULL OR population_residente >= 0", name="ck_macro_coverage_population_residente"),
+        CheckConstraint("population_ans IS NULL OR population_ans >= 0", name="ck_macro_coverage_population_ans"),
+        CheckConstraint("required_qty IS NULL OR required_qty >= 0", name="ck_macro_coverage_required_qty"),
+        CheckConstraint("available_qty IS NULL OR available_qty >= 0", name="ck_macro_coverage_available_qty"),
+        CheckConstraint("existing_qty IS NULL OR existing_qty >= 0", name="ck_macro_coverage_existing_qty"),
+        CheckConstraint("facility_count IS NULL OR facility_count >= 0", name="ck_macro_coverage_facility_count"),
+        CheckConstraint("estimated_need IS NULL OR estimated_need >= 0", name="ck_macro_coverage_estimated_need"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE"), nullable=False)
+    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     macro_code: Mapped[str] = mapped_column(String, nullable=False)
     macro_name: Mapped[str] = mapped_column(String, nullable=False)
     state: Mapped[str] = mapped_column(String(2), nullable=False)
@@ -461,13 +514,25 @@ class MunicipalityCoverage(Base):
 
     __tablename__ = "municipality_coverage"
     __table_args__ = (
-        Index("ix_municipality_coverage_execution_family", "execution_id", "equipment_family"),
-        Index("ix_municipality_coverage_execution_health_region", "execution_id", "health_region_code"),
-        Index("ix_municipality_coverage_execution_macro", "execution_id", "macro_code"),
+        Index("idx_municipality_coverage_execution_family", "execution_id", "equipment_family"),
+        Index("idx_municipality_coverage_execution_health_region", "execution_id", "health_region_code"),
+        Index("idx_municipality_coverage_execution_macro", "execution_id", "macro_code"),
+        CheckConstraint("population IS NULL OR population >= 0", name="ck_municipality_coverage_population"),
+        CheckConstraint("population_residente IS NULL OR population_residente >= 0", name="ck_municipality_coverage_population_residente"),
+        CheckConstraint("population_ans IS NULL OR population_ans >= 0", name="ck_municipality_coverage_population_ans"),
+        CheckConstraint("required_qty IS NULL OR required_qty >= 0", name="ck_municipality_coverage_required_qty"),
+        CheckConstraint("available_qty IS NULL OR available_qty >= 0", name="ck_municipality_coverage_available_qty"),
+        CheckConstraint("existing_qty IS NULL OR existing_qty >= 0", name="ck_municipality_coverage_existing_qty"),
+        CheckConstraint("facility_count IS NULL OR facility_count >= 0", name="ck_municipality_coverage_facility_count"),
+        CheckConstraint("estimated_need IS NULL OR estimated_need >= 0", name="ck_municipality_coverage_estimated_need"),
+        CheckConstraint("distance_km_nearest_equipment IS NULL OR distance_km_nearest_equipment >= 0", name="ck_municipality_coverage_distance_km_nearest_equipment"),
+        CheckConstraint("distance_km_nearest_radiopharma IS NULL OR distance_km_nearest_radiopharma >= 0", name="ck_municipality_coverage_distance_km_nearest_radiopharma"),
+        CheckConstraint("hours_road_nearest_radiopharma IS NULL OR hours_road_nearest_radiopharma >= 0", name="ck_municipality_coverage_hours_road_nearest_radiopharma"),
+        CheckConstraint("hours_air_nearest_radiopharma IS NULL OR hours_air_nearest_radiopharma >= 0", name="ck_municipality_coverage_hours_air_nearest_radiopharma"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE"), nullable=False)
+    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     ibge_code: Mapped[str] = mapped_column(String, nullable=False)
     municipality_name: Mapped[str] = mapped_column(String, nullable=False)
     health_region_code: Mapped[str | None] = mapped_column(String)
@@ -520,16 +585,26 @@ class EquipmentOfferRow(Base):
     # seguem essa ordem para o Postgres conseguir usar o mesmo indice nos dois
     # niveis do filtro, em vez de varrer a tabela (Seq Scan).
     __table_args__ = (
-        Index("ix_eor_execution_family", "execution_id", "equipment_family"),
-        Index("ix_eor_execution_family_state", "execution_id", "equipment_family", "state"),
-        Index("ix_eor_execution_macro", "execution_id", "macro_code"),
-        Index("ix_eor_execution_health_region", "execution_id", "health_region_code"),
-        Index("ix_eor_execution_municipality", "execution_id", "municipality_name"),
-        Index("ix_eor_execution_cnes", "execution_id", "cnes_code"),
+        Index("idx_equipment_offer_row_execution_family", "execution_id", "equipment_family"),
+        Index("idx_equipment_offer_row_execution_family_state", "execution_id", "equipment_family", "state"),
+        Index("idx_equipment_offer_row_execution_macro", "execution_id", "macro_code"),
+        Index("idx_equipment_offer_row_execution_health_region", "execution_id", "health_region_code"),
+        Index("idx_equipment_offer_row_execution_municipality", "execution_id", "municipality_name"),
+        Index("idx_equipment_offer_row_execution_cnes", "execution_id", "cnes_code"),
+        CheckConstraint(
+            "latitude IS NULL OR (latitude >= -90 AND latitude <= 90)",
+            name="ck_equipment_offer_row_latitude",
+        ),
+        CheckConstraint(
+            "longitude IS NULL OR (longitude >= -180 AND longitude <= 180)",
+            name="ck_equipment_offer_row_longitude",
+        ),
+        CheckConstraint("existing_qty >= 0", name="ck_equipment_offer_row_existing_qty"),
+        CheckConstraint("in_use_qty >= 0", name="ck_equipment_offer_row_in_use_qty"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE"), nullable=False)
+    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     cnes_code: Mapped[str] = mapped_column(String, nullable=False)
     facility_name: Mapped[str | None] = mapped_column(String)
     ibge_code: Mapped[str] = mapped_column(String, nullable=False)
@@ -563,7 +638,7 @@ class ExecutionAlert(Base):
     __tablename__ = "execution_alert"
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE"), nullable=False)
+    execution_id: Mapped[int] = mapped_column(ForeignKey("execution.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     alert_type: Mapped[AlertType] = mapped_column(
         PgEnum(AlertType, name="alert_type", native_enum=True), nullable=False,
     )
@@ -584,9 +659,14 @@ class MarcoCatalogo(Base):
     agregar. Populado por scripts/seed_monitoramento.py a partir do
     vocabulario ja pactuado pela equipe (planilha FAF TED, aba Instrucional)."""
     __tablename__ = "marco_catalogo"
+    __table_args__ = (
+        CheckConstraint("ordem IS NULL OR ordem >= 0", name="ck_marco_catalogo_ordem"),
+        CheckConstraint("execucao_fisica_pct_referencia IS NULL OR (execucao_fisica_pct_referencia >= 0 AND execucao_fisica_pct_referencia <= 1)", name="ck_marco_catalogo_execucao_pct"),
+        UniqueConstraint("codigo", name="uq_marco_catalogo_codigo"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    codigo: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    codigo: Mapped[str] = mapped_column(String, nullable=False)
     grupo: Mapped[MarcoGrupo] = mapped_column(PgEnum(MarcoGrupo, name="marco_grupo", native_enum=True), nullable=False)
     # So preenchido em grupo=fase_geral -- define a ordem de progressao (pra
     # derivar "fase atual" = marco de maior ordem com evento registrado) e o
@@ -605,14 +685,22 @@ class InstrumentoEquipamento(Base):
     tabela nao duplica dado que ja vem das APIs (valor, situacao contratual),
     so guarda o que e especifico do monitoramento interno."""
     __tablename__ = "instrumento_equipamento"
+    __table_args__ = (
+        Index("idx_instrumento_equipamento_cnes", "cnes"),
+        CheckConstraint("equipamento_vida_util_anos IS NULL OR equipamento_vida_util_anos >= 0", name="ck_instrumento_equipamento_vida_util"),
+        UniqueConstraint("nr_convenio", name="uq_instrumento_equipamento_nr_convenio"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    nr_convenio: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    nr_convenio: Mapped[str] = mapped_column(String, nullable=False)
     cnpj_convenente: Mapped[str] = mapped_column(String, nullable=False)
     nome_convenente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
-    cnes: Mapped[str | None] = mapped_column(String)
+    cnes: Mapped[str | None] = mapped_column(
+        String(7),
+        ForeignKey("cnes_estabelecimento.cnes", ondelete="SET NULL", onupdate="RESTRICT"),
+    )
     # "ID MODELO NO SIGEM/TRANSFEREGOV" da planilha -- descricao do
     # equipamento PLANEJADO (o que o SICONV/plano de aplicacao diz que vai
     # ser comprado, ex. "Acelerador Linear so de Fotons (monoenergetico 6
@@ -730,12 +818,12 @@ class EventoMarco(Base):
     ConfigDecision)."""
     __tablename__ = "evento_marco"
     __table_args__ = (
-        Index("ix_evento_marco_instrumento_marco", "instrumento_id", "marco_id", "created_at"),
+        Index("idx_evento_marco_instrumento_marco", "instrumento_id", "marco_id", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    instrumento_id: Mapped[int] = mapped_column(ForeignKey("instrumento_equipamento.id", ondelete="CASCADE"), nullable=False)
-    marco_id: Mapped[int] = mapped_column(ForeignKey("marco_catalogo.id"), nullable=False)
+    instrumento_id: Mapped[int] = mapped_column(ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
+    marco_id: Mapped[int] = mapped_column(ForeignKey("marco_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
     data_ocorrencia: Mapped[date | None] = mapped_column(Date)
     data_prevista: Mapped[date | None] = mapped_column(Date)
     # So usado em marco de grupo=regulatorio -- vocabulario da propria CNEN/
@@ -755,7 +843,7 @@ class EventoMarco(Base):
     # pagina de monitoramento, nao so registro passivo.
     data_validade: Mapped[date | None] = mapped_column(Date)
     observacao: Mapped[str | None] = mapped_column(String)
-    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -775,11 +863,11 @@ class AcaoMonitoramento(Base):
     ação nova, nao editar a existente)."""
     __tablename__ = "acao_monitoramento"
     __table_args__ = (
-        Index("ix_acao_monitoramento_instrumento", "instrumento_id", "data_prevista"),
+        Index("idx_acao_monitoramento_instrumento", "instrumento_id", "data_prevista"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    instrumento_id: Mapped[int] = mapped_column(ForeignKey("instrumento_equipamento.id", ondelete="CASCADE"), nullable=False)
+    instrumento_id: Mapped[int] = mapped_column(ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     descricao: Mapped[str] = mapped_column(String, nullable=False)
     data_prevista: Mapped[date | None] = mapped_column(Date)
     # NULL = pendente. Preenchida quando a acao e marcada como concluida
@@ -810,18 +898,22 @@ class PropostaCandidata(Base):
     link "ver ao vivo" fica disponivel caso o dado tenha mudado desde a
     captura.
 
-    Quando `status` vira `aceita`, a aplicacao chama POST
-    /monitoramento/instrumentos com nr_convenio=cd_parceria (quando
-    existir) ou str(id_proposta) como surrogate (decisao 2026-09-15,
-    revertendo a versao anterior que sempre usava id_proposta -- mesmo
-    padrao de surrogate que FAF/TED ja usam com o NUP SEI, ver
-    scripts/importar_planilha_monitoramento.py::_resolver_identificador,
-    so que agora com um identificador REAL preferido quando disponivel) e
+    Quando `status` vira `aceita`, a aplicacao cria InstrumentoEquipamento
+    na mesma transacao com nr_convenio=cd_parceria (quando existir) ou
+    str(id_proposta) como surrogate (decisao 2026-09-15, revertendo a versao
+    anterior que sempre usava id_proposta -- mesmo padrao de surrogate que
+    FAF/TED ja usam com o NUP SEI, ver
+    scripts/importar_planilha_monitoramento.py::_resolver_identificador, so
+    que agora com um identificador REAL preferido quando disponivel) e
     tipo_contratacao="Parceria TransfereGov". Sem FK fisica pra
     instrumento_equipamento de proposito (formatos de identificador
     diferentes, ligacao e por convencao verificada na aplicacao antes do
     POST criar)."""
     __tablename__ = "proposta_candidata"
+    __table_args__ = (
+        Index("idx_proposta_candidata_cnes", "cnes"),
+        UniqueConstraint("id_proposta", name="uq_proposta_candidata_id_proposta"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     # Chave de dedup do job de descoberta -- id_proposta e do TransfereGov
@@ -829,7 +921,7 @@ class PropostaCandidata(Base):
     # proposta nova de verdade nunca vai estar no legado (sistemas de eras
     # diferentes, sem campo em comum), comparar contra o legado so gera
     # falso-negativo (achado 2026-09-15, corrigindo desenho anterior).
-    id_proposta: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True)
+    id_proposta: Mapped[int] = mapped_column(BigInteger, nullable=False)
     cnpj_ente_recebedor: Mapped[str] = mapped_column(String, nullable=False)
     nm_proponente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
@@ -881,12 +973,15 @@ class PropostaCandidata(Base):
     # um cnes único"). None quando a proposta não tem etapa com CNES
     # identificável no texto. Editável manualmente depois (PATCH em
     # propostas_candidatas.py), validado contra CnesEstabelecimento.
-    cnes: Mapped[str | None] = mapped_column(String(7))
+    cnes: Mapped[str | None] = mapped_column(
+        String(7),
+        ForeignKey("cnes_estabelecimento.cnes", ondelete="SET NULL", onupdate="RESTRICT"),
+    )
     status: Mapped[PropostaCandidataStatus] = mapped_column(
         PgEnum(PropostaCandidataStatus, name="proposta_candidata_status", native_enum=True),
         nullable=False, server_default=PropostaCandidataStatus.pendente.value,
     )
-    revisado_por: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"))
+    revisado_por: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     revisado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -904,7 +999,7 @@ class Notificacao(Base):
     outros 2 tipos apontam pra instrumento_equipamento.id."""
     __tablename__ = "notificacao"
     __table_args__ = (
-        Index("ix_notificacao_lida_created", "lida", "created_at"),
+        Index("idx_notificacao_lida_created", "lida", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
