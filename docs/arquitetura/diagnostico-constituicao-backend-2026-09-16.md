@@ -6,24 +6,41 @@ Esta reavaliação substitui o diagnóstico inicial de 2026-09-16 e considera os
 
 ## Resultado executivo
 
+### Original (2026-09-17)
+
 **Conformidade backend: 7,0/10** (antes: 6,5/10).
 
 O avanço é real: autenticação por cookie HttpOnly, refresh token rotativo, rate limit, headers, CORS validado, autorização de monitoramento no Service, papéis de banco separados e migrações manuais corrigiram os maiores riscos do diagnóstico original. O backend, porém, ainda não cumpre sua própria arquitetura: a maior parte das queries continua nos routers; Services acessam SQLAlchemy e levantam `HTTPException`; não existe hierarquia de erro de domínio, envelope unificado, paginação universal, observabilidade estruturada ou gates de lint/typecheck/coverage.
 
 O próximo bloco deve ser a fundação backend, começando por uma feature pequena e preservando contratos. Migrar todo o backend de uma vez elevaria o risco de regressão sem produzir valor proporcional.
 
+### Atualização 2026-09-17 (pós-execução do Plan Mode backend)
+
+**Conformidade backend: 7,3/10** (antes: 7,0/10).
+
+`planmode-backend-2026-09-17.md`, Bloco 1 (fundação backend), foi executado por inteiro — ver
+"Backend" em "O que os Plan Modes fecharam" e "Execução" mais abaixo para o detalhe arquivo a
+arquivo. O avanço é real mas deliberadamente pequeno: a hierarquia `DomainError` existe e está
+traduzida centralmente, o contrato Repository/Service está documentado e provado numa feature
+piloto (`notificacoes`, além de `propostas_candidatas` que já existia), `ruff`/`mypy` rodam com
+baseline versionada, e os 3 schemas mortos comprovados saíram do código. A nota sobe pouco porque o
+volume de código migrado é pequeno de propósito (evitar regressão) — `monitoramento.py` (767
+linhas) e a maior parte dos routers de domínio continuam `Router -> SQLAlchemy` direto, sem
+envelope de resposta, paginação universal ou observabilidade estruturada. Nenhum desses itens
+regrediu; todos os achados P0/P1/P2 abaixo que não foram citados como resolvidos continuam de pé.
+
 ## Nota por eixo
 
-| Eixo | Nota | Evidência principal |
-|---|---:|---|
-| Segurança de fronteira | 8,0 | Cookie HttpOnly, refresh rotativo, rate limit, CORS e headers; ainda há CSRF e concorrência no refresh |
-| Banco e transação | 8,0 | Neon em `f8fe7ce9347c`, runtime sem DDL, índice trigram e TLS no driver |
-| Arquitetura em camadas | 4,0 | Apenas 1 Repository; routers e Services ainda consultam SQLAlchemy |
-| Contratos e validação | 6,5 | Pydantic e `response_model`; formatos não envelopados e payload externo genérico |
-| Resiliência e volume | 6,0 | Timeouts/retries e algumas paginações; listas ilimitadas e race no refresh |
-| Testes e gates | 6,0 | 116/117 testes executados passaram; ruff, mypy e cobertura ausentes |
-| Observabilidade | 3,0 | Handler global existe; faltam JSON, trace, duração e métricas |
-| Código morto/organização | 6,5 | Remoções recentes; três schemas sem consumidor e responsabilidades ainda concentradas |
+| Eixo | Nota (2026-09-17 diagnóstico) | Nota (pós-execução) | Evidência principal |
+|---|---:|---:|---|
+| Segurança de fronteira | 8,0 | 8,0 | Cookie HttpOnly, refresh rotativo, rate limit, CORS e headers; ainda há CSRF e concorrência no refresh — fora de escopo deste Plan Mode |
+| Banco e transação | 8,0 | 8,0 | Neon em `f8fe7ce9347c`, runtime sem DDL, índice trigram e TLS no driver — inalterado |
+| Arquitetura em camadas | 4,0 | 4,5 | 2 Repositories agora (`propostas_candidatas`, `notificacoes`); contrato documentado; mas a maioria dos routers ainda consulta SQLAlchemy direto — `monitoramento.py` não migrado |
+| Contratos e validação | 6,5 | 6,5 | Pydantic e `response_model`; formatos ainda não envelopados e payload externo genérico — inalterado |
+| Resiliência e volume | 6,0 | 6,0 | Timeouts/retries e algumas paginações; listas ilimitadas e race no refresh — inalterado |
+| Testes e gates | 6,0 | 7,0 | `ruff`/`mypy` configurados com baseline versionada (não bloqueiam CI ainda); testes novos de erro de domínio e do piloto |
+| Observabilidade | 3,0 | 3,0 | Handler global existe; faltam JSON, trace, duração e métricas — inalterado |
+| Código morto/organização | 6,5 | 7,5 | `ErrorResponse`/`UserCreate`/`TokenPayload` removidos (comprovados sem consumidor); responsabilidades ainda concentradas em `monitoramento.py` e afins |
 
 ## O que os Plan Modes fecharam
 
@@ -48,6 +65,19 @@ O próximo bloco deve ser a fundação backend, começando por uma feature peque
 - A permissão de edição de monitoramento também é verificada no Service.
 - Erros de validação deixam de devolver input e contexto sensíveis.
 
+### Backend (Plan Mode 2026-09-17)
+
+- `DomainError`/`NotFoundError`/`ConflictError`/`ValidationError`/`AuthorizationError`
+  (`app/domain_errors.py`) existem e são traduzidos centralmente em `app/errors.py`, no mesmo
+  formato `{"error", "detail"}` de antes.
+- `app/authz.py` e `app/services/propostas_candidatas.py` não importam mais `fastapi.HTTPException`.
+- Contrato Repository/Service está escrito em `padroes/backend/constituicao_backend.md` Seção 3.
+- `notificacoes` é a segunda feature em Router → Service → Repository (`app/repositories/
+  notificacoes.py`, `app/services/notificacoes.py`) — router ficou fino, contrato HTTP preservado.
+- `ErrorResponse`, `UserCreate`, `TokenPayload` foram removidos de `app/schemas.py`.
+- `ruff`/`mypy` rodam com baseline versionada (`backend/.ruff-baseline.json`,
+  `backend/.mypy-baseline.json`) — achado legado documentado, código novo nasce limpo.
+
 ## Achados pendentes
 
 ### P0 — segurança e operação
@@ -59,10 +89,10 @@ O próximo bloco deve ser a fundação backend, começando por uma feature peque
 
 ### P1 — arquitetura
 
-1. A aplicação permanece majoritariamente `Router -> SQLAlchemy`. Há queries diretas em praticamente todos os routers de domínio.
-2. Existe só um Repository de domínio (`propostas_candidatas`).
-3. Os Services de monitoramento recebem `Session`, executam query e importam `HTTPException`; logo não são casos de uso isolados da web e do banco.
-4. Commits continuam divididos entre routers e Services. A fronteira transacional não está padronizada.
+1. A aplicação permanece majoritariamente `Router -> SQLAlchemy`. Há queries diretas em praticamente todos os routers de domínio. **Ainda vale** — só `notificacoes`/`propostas_candidatas` migraram (Plan Mode backend 2026-09-17).
+2. ~~Existe só um Repository de domínio (`propostas_candidatas`).~~ **Parcialmente resolvido**: agora são 2 (`propostas_candidatas`, `notificacoes`) — ainda pouco frente ao total de routers de domínio.
+3. Os Services de monitoramento recebem `Session`, executam query e importam `HTTPException`; logo não são casos de uso isolados da web e do banco. **Ainda vale para `monitoramento_instrumentos.py`/`monitoramento_eventos.py`** — fora de escopo do Plan Mode backend 2026-09-17 de propósito; `authz.py`/`propostas_candidatas.py` (que esses Services chamam) já levantam `DomainError`.
+4. Commits continuam divididos entre routers e Services. A fronteira transacional não está padronizada. **Ainda vale** — contrato documentado (Bloco B do Plan Mode backend) declara o padrão-alvo, mas `monitoramento.py` (commit no Router) não foi migrado.
 5. `monitoramento.py` ainda concentra cerca de 767 linhas; oferta de equipamentos, convênios e coberturas também mantêm consulta e regra no controller.
 6. Schemas vivem tanto em `app/schemas.py` quanto dentro de routers, sem organização por feature.
 
@@ -76,7 +106,7 @@ O próximo bloco deve ser a fundação backend, começando por uma feature peque
 
 ### P2 — qualidade e observabilidade
 
-1. Não há `ruff`, `mypy`, cobertura mínima ou CI de aplicação configurados.
+1. ~~Não há `ruff`, `mypy`, cobertura mínima ou CI de aplicação configurados.~~ **Parcialmente resolvido** (Plan Mode backend 2026-09-17, Bloco E): `ruff`/`mypy` configurados com baseline versionada. Segue faltando: cobertura mínima e CI de aplicação (integração em pipeline é decisão de devops, não resolvida aqui).
 2. Faltam logs JSON com `trace_id`, usuário, endpoint e `duration_ms`.
 3. Não há métrica de duração de query/chamada externa nem alerta operacional.
 4. `/docs` e `/openapi.json` permanecem públicos; isso deve ser uma decisão explícita por ambiente.
@@ -85,9 +115,9 @@ O próximo bloco deve ser a fundação backend, começando por uma feature peque
 
 ### Código morto comprovável
 
-- `UserCreate`, `TokenPayload` e `ErrorResponse` não têm consumidores no código atual e são candidatos seguros à remoção após confirmação por teste.
+- ~~`UserCreate`, `TokenPayload` e `ErrorResponse` não têm consumidores no código atual e são candidatos seguros à remoção após confirmação por teste.~~ **Resolvido** (Plan Mode backend 2026-09-17, Bloco D): as 3 classes foram removidas de `app/schemas.py`, reconfirmado por grep antes da remoção, suite completa sem quebra.
 - `require_monitoramento_editor` continua usado e não é código morto.
-- Scripts operacionais não foram classificados como mortos apenas por não serem importados; são entrypoints manuais e exigem prova de substituição antes de exclusão.
+- Scripts operacionais não foram classificados como mortos apenas por não serem importados; são entrypoints manuais e exigem prova de substituição antes de exclusão. **Ainda vale** — nenhum script foi removido neste Plan Mode.
 
 ## Incidente observado durante esta reavaliação
 
@@ -140,36 +170,27 @@ Repositories de domínio: 1
 Services de domínio: 3
 ```
 
+Atualizado pós-execução do Plan Mode backend 2026-09-17 (`pytest -m db` não rerodado nesta sessão —
+sem `TEST_DATABASE_URL` configurada no ambiente):
+
+```text
+pytest -m 'not db': 53 passed, 74 deselected
+ruff check .: 222 achados, todos na baseline (.ruff-baseline.json) — 0 novo
+mypy .: 80 achados, todos na baseline (.mypy-baseline.json) — 0 novo
+Repositories de domínio: 2 (propostas_candidatas, notificacoes)
+Services de domínio: 4 (propostas_candidatas, notificacoes, monitoramento_instrumentos, monitoramento_eventos)
+```
+
 ## Execução (2026-09-17, Plan Mode backend)
 
 `planmode-backend-2026-09-17.md`, Bloco 1 do "próximo bloco recomendado" acima, foi implementado
-por inteiro (Blocos A-E do plano):
+por inteiro (Blocos A-E do plano) — detalhe arquivo a arquivo em "Backend (Plan Mode 2026-09-17)",
+dentro de "O que os Plan Modes fecharam".
 
-- `DomainError`/`NotFoundError`/`ConflictError`/`ValidationError`/`AuthorizationError`
-  (`app/domain_errors.py`, novo) + tradutor central em `app/errors.py`. Migrados: `app/authz.py` e
-  `app/services/propostas_candidatas.py` — únicos consumidores reais de erro em Service até então.
-- Contrato Repository/Service documentado em `padroes/backend/constituicao_backend.md` Seção 3, com
-  `propostas_candidatas` como exemplo citável.
-- `notificacoes` migrado Router → Service → Repository (`app/repositories/notificacoes.py`,
-  `app/services/notificacoes.py`, novos; `app/routers/notificacoes.py` ficou fino) — contrato HTTP
-  preservado, testes de contrato (router) e unitário (service) passando.
-- `ErrorResponse`/`UserCreate`/`TokenPayload` removidos de `app/schemas.py` (zero consumidor,
-  reconfirmado por grep antes de remover).
-- `ruff`/`mypy` configurados em `pyproject.toml` (`E`/`F`/`I`, sem `strict`) com baseline versionada
-  (`.ruff-baseline.json` — 222 achados legados; `.mypy-baseline.json` — 80 achados legados). Todo
-  arquivo tocado neste bloco (`domain_errors.py`, `repositories/notificacoes.py`,
-  `services/notificacoes.py`, `routers/notificacoes.py`, `authz.py`, `services/propostas_candidatas.py`,
-  `errors.py`, `schemas.py`) está limpo em ambos, sem entrada na baseline.
-
-Escopo intocado, como o plano previa: `monitoramento.py`/services de monitoramento continuam
-levantando `HTTPException` direto e commitando fora do padrão-alvo; achado legado de ruff/mypy fora
-dos arquivos acima não foi corrigido (baseline existe exatamente pra não travar nisso agora); CSRF
-(P0 restante) segue fora, é escopo de segurança & auth.
-
-`pytest -m 'not db'`: 53 passed (era 47 — 6 testes novos: `test_errors.py` completo +
-`test_service_notificacoes.py`, gated do mesmo jeito que os demais módulos que encostam em banco
-real). Suíte completa não rodada contra banco dedicado nesta sessão (sem `TEST_DATABASE_URL`
-configurada) — só os testes que já rodavam sem banco foram usados pra confirmar paridade de
-contrato HTTP/status. Rodar `pytest -m db` com `TEST_DATABASE_URL` antes do próximo deploy pra
-confirmar os testes de banco (`test_errors.py` não depende de banco; `test_notificacoes.py`,
-`test_propostas_candidatas.py`, `test_monitoramento.py`, `test_service_notificacoes.py` dependem).
+**Ressalva de validação**: `pytest -m 'not db'` (53 passed, era 47 — 6 testes novos:
+`test_errors.py` completo + `test_service_notificacoes.py`, gated do mesmo jeito que os demais
+módulos que encostam em banco real) foi a única suíte rodada nesta sessão, sem
+`TEST_DATABASE_URL` configurada no ambiente. `pytest -m db` (que cobre `test_notificacoes.py`,
+`test_propostas_candidatas.py`, `test_monitoramento.py`, `test_service_notificacoes.py` — os 4
+módulos com escrita real testada contra banco) não foi rerodado; recomenda-se rodar antes do
+próximo deploy que inclua este bloco.
