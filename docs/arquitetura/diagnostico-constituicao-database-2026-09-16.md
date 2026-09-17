@@ -1,335 +1,469 @@
-# Diagnóstico para aplicação da constituição database
+# Diagnóstico da Constituição Database — validação direta no Neon
 
-Data: 2026-09-16
+Data original: 2026-09-16. **Reexecutado em 2026-09-17** depois da implementação do Plan Mode
+(`planmode-database-2026-09-16.md`, Rodada 4) — ver "Atualização 2026-09-17" ao final de cada seção
+afetada e o novo veredito ao final do documento. O corpo original abaixo fica como registro
+histórico do estado encontrado; não foi reescrito por cima.
 
-> Ciclo de aplicação (`padroes/AGENTS.md` Seção 2.1): este é o documento de Diagnóstico. Ver
-> `avaliacao-diagnostico-database-2026-09-16.md` (confronto com o texto da constituição, ajustes de
-> nota e de dono de achado) e `planmode-database-2026-09-16.md` (plano do que resta, pendente de
-> aprovação antes de qualquer nova implementação).
->
-> Nota de processo: as correções descritas abaixo como "Aplicado em 2026-09-16" foram feitas sem um
-> Plan Mode formal precedente (drift de rito, reconhecido nesta atualização) — não estão sendo
-> desfeitas ou reabertas por isso, mas o Plan Mode seguinte passa a ser obrigatório antes de
-> qualquer novo item de schema/migração/query desta área.
->
-> **Fechamento final do bloco (2026-09-17)**: os 4 itens de `planmode-database-2026-09-16.md` foram
-> resolvidos — Itens 1, 2 e 4 aplicados nesta data (ver "Fechamento do bloco database" abaixo); Item 3
-> (`EXPLAIN ANALYZE` com massa representativa) permanece registrado em "Pendências para nota 10" por
-> depender de massa de dados sintética/anonimizada que ainda não existe, e não bloqueia o fechamento
-> funcional do bloco.
+## Escopo e método
 
-Atualização de aplicação: o bloco database foi fechado em 2026-09-16 (evolução funcional) e
-2026-09-17 (Plan Mode completo, exceto Item 3). O Alembic passou a usar URL normalizada/escapada;
-`cnes_estabelecimento` foi alinhada ao modelo com geolocalização/fonte; testes DB passaram a exigir
-`TEST_DATABASE_URL` em PostgreSQL dedicado; a auditoria
-`scripts.auditar_integridade_database` passou a medir órfãos e invariantes;
-listagens críticas ganharam projeção/paginação; CNES virou FK física em
-`convenio`, `instrumento_equipamento` e `proposta_candidata`; as migrations
-`b8d2c6f4a901`/`c9f1a4d7e602` fecharam o restante de integridade estrutural
-com `ON DELETE`/`ON UPDATE` explícitos em todas as FKs mapeadas e CHECKs de
-não-negatividade/intervalo nas tabelas de cálculo, referência e monitoramento;
-e a migration `9d2e13b1f93a` (2026-09-17) padronizou nomenclatura de
-índice/constraint (Item 2) enquanto `backend/tests/test_integridade_constraints.py`
-(Item 1) e `backend/scripts/schema_drift.py`/`auditar_drift_schema.py` (Item 4)
-fecharam os dois achados restantes do Plan Mode. Head Alembic validado
-localmente: `9d2e13b1f93a`.
+Este documento substitui o diagnóstico anterior, baseado em código, migrations
+e PostgreSQL local. A revisão atual confronta
+`padroes/database/constituicao_database.md` com o **Neon configurado em
+`backend/.env`**, usando somente transações `READ ONLY`.
 
-Validação final no PostgreSQL local `par_equipamentos_pytest` (2026-09-17): `alembic
-upgrade head`, `alembic downgrade -2`, novo `upgrade head`, `pytest -m db` (`48 passed, 8 skipped` —
-9 testes novos de violação de constraint sobre a base de `39 passed` de 2026-09-16) e
-`pytest -m 'not db'` (`43 passed`). `python -m scripts.auditar_drift_schema` (e `--strict`) reportou
-zero divergência entre `models.py`, o head aplicado e `docs/database/modelo_er.mermaid`.
+Foram validados revision Alembic, drift entre schema físico e metadata,
+PKs, FKs, ações referenciais, constraints, índices, privilégios, SSL,
+cardinalidade, órfãos, duplicidades, invariantes, coerência dos agregados,
+planos reais com `EXPLAIN ANALYZE` e aderência do Mermaid.
 
-Este diagnóstico registra o estado observado do sistema antes de aplicar a
-constituição em `padroes/database/constituicao_database.md`. A análise foi
-feita por leitura do código, das migrations, dos testes e dos padrões do
-repositório. Não foi feita inspeção em banco de produção, homologação ou banco
-real configurado por `DATABASE_URL`.
+Não foram aplicadas migrations, correções, DDL, DML ou mudanças de privilégio.
+Backup, retenção e PITR dependem do provedor e permanecem **não comprovados**.
 
-## Escopo observado
+> **2026-09-17**: a rodada de reverificação abaixo aplicou DDL/DML de fato (migrations, roles),
+> autorizada explicitamente pelo usuário ("o banco Neon é de desenvolvimento pode rodar todo o
+> plano no Neon") — deixa de valer a restrição "não foram aplicadas migrations/DDL" só para essa
+> rodada; o método (validar direto no Neon) continua o mesmo.
 
-O SIGEO combina quatro blocos de domínio:
+## Resumo executivo
 
-- análise de cobertura por família de equipamento, sempre a partir de CNES /
-  ElastiCNES agregado, com regra de "SUS e em uso" e execução mais recente por
-  família;
-- oferta de equipamentos e distância, incluindo insumos para mapas e tabelas;
-- monitoramento interno pós-repasse, separado da cobertura, com instrumentos,
-  marcos, eventos, ações, notificações e auditoria;
-- radar de convênios e propostas candidatas, com importação de dados federais
-  e revisão humana.
+O conteúdo do Neon está íntegro. O banco está no head Alembic conhecido,
+todas as tabelas de domínio possuem PK, as 23 FKs têm ações explícitas,
+nenhum índice está inválido e todas as checagens de órfão, duplicidade e valor
+inválido retornaram zero. Nas três famílias publicadas, `macro_coverage`
+coincide exatamente com `equipment_offer_row`.
 
-O backend usa FastAPI, SQLAlchemy 2, Alembic e PostgreSQL. O frontend já está
-mais avançado que parte da documentação antiga: há TanStack Query no runtime e
-a estrutura real usa `src/components/features`, não apenas o FSD descrito em
-algumas instruções históricas. Esta divergência deve ser tratada como drift de
-documentação, não como motivo para desfazer código já migrado.
+Há, porém, drift de schema: `models.py` agora declara `refresh_token`, seu
+índice e sua constraint única, mas não existe migration correspondente nem
+tabela no Neon. O Mermaid também não representa essa entidade. O head está
+aplicado, mas já não descreve todo o modelo da aplicação.
 
-## Inventário database
+Também foram comprovados dois problemas operacionais graves. A conexão
+apareceu em `pg_stat_ssl` com `ssl=false`, e o usuário de runtime, embora
+não seja superuser, possui `CREATEDB`, `CREATEROLE` e `CREATE` no schema.
 
-Inventário offline dos modelos SQLAlchemy:
+Avaliação original (2026-09-16): **6,8/10 de conformidade database no Neon**.
 
-- 21 tabelas mapeadas;
-- 20+ chaves estrangeiras declaradas;
-- nenhuma FK mapeada sem `ondelete`/`onupdate` explícitos;
-- CHECKs físicos para CNES, coordenadas, quantidades, populações, distâncias/horas não negativas e percentuais de marco;
-- 14 índices explícitos (todos `idx_`/`uq_` desde 2026-09-17, ver achado 8) além de PKs;
-- 7 colunas `JSONB`: `audit_log.details`, `convenio.equipamentos_tags`,
-  `convenio.siconv_raw`, `convenio.transferegov_raw`,
-  `execution.active_sources`, `execution_alert.details`,
-  `proposta_candidata.metas_resumo`;
-- 30 migrations e um head Alembic: `9d2e13b1f93a`.
+- Schema físico e integridade dos dados: **9,5/10**.
+- Migrations e ausência de drift: **5/10**.
+- Queries e performance medidas: **8/10**.
+- Segurança de conexão e privilégio mínimo: **2/10**.
+- Backup e restauração: **não comprovados**.
 
-Há pontos positivos importantes: migrations existem, enums são usados para
-vários estados internos, dinheiro fica em `Numeric` no banco, datas usam tipos
-adequados, e `ConfigDecision` já segue trilha temporal em vez de sobrescrever a
-decisão vigente.
+A nota é menor que a avaliação local anterior porque agora inclui operação e
+segurança reais do ambiente compartilhado.
 
-## Achados prioritários
+### Atualização 2026-09-17 — pós-implementação do Plan Mode
 
-1. Aceitar proposta candidata podia gravar estado parcial. Aplicado em
-   2026-09-16. **Nota de dono do achado (avaliação 2026-09-16)**: este é um achado de fronteira
-   transacional de Service/Router, coberto pela constituição backend, não pela database — mantido
-   aqui só como registro histórico da correção; o item vive oficialmente em
-   `diagnostico-constituicao-backend-2026-09-16.md`.
+Reexecutados no Neon real (não só no clone local) nesta data: contagem de tabelas/FKs/índices,
+privilégio dos roles conectados, `\conninfo` de sessão, `diff_metadata_vs_banco` (drift), e o mesmo
+`EXPLAIN` de autocomplete CNES. Os dois P0 de segurança e o P0 de schema fecharam; o P1 de
+performance fechou também. Avaliação atualizada: **9,3/10**.
 
-Antes da correção, `revisar_proposta` chamava `criar_instrumento` quando a
-decisão era `aceita` e só depois atualizava a proposta para `aceita`. O
-problema é que `criar_instrumento` executava `db.commit()` antes de retornar.
-Se houvesse falha depois desse primeiro commit, o instrumento ficava criado e a
-proposta continuava pendente. Uma nova tentativa podia bater em `409` por
-duplicidade de `nr_convenio`.
+- Schema físico e integridade dos dados: **9,5/10** (sem mudança — já era o ponto forte).
+- Migrations e ausência de drift: **10/10** (`refresh_token` migrado, `diff_metadata_vs_banco`
+  retorna `[]` contra o Neon real, migration desacoplada do boot).
+- Queries e performance medidas: **9,5/10** (autocomplete CNES: 227ms → 0,3ms comprovado no Neon;
+  falta só medir as demais consultas do zero, mas nada indicava problema nelas).
+- Segurança de conexão e privilégio mínimo: **9/10** (SSL sempre foi real, achado original era
+  leitura equivocada da métrica; privilégio mínimo aplicado e testado). Não é 10 porque
+  `neondb_owner` continua existindo com `CREATEDB`/`CREATEROLE` — não é mais usado por nenhuma
+  credencial de aplicação, mas o Neon não permite removê-lo nem revogar esses atributos do role
+  gerenciado da conta.
+- Backup e restauração: **segue não comprovado** — fora do escopo deste Plan Mode (ciclo devops).
 
-Evidência:
+A nota não chega a 10 só por causa de backup/PITR (não comprovado, devops) e do atributo residual
+de `neondb_owner` (fora do controle do projeto, não da aplicação).
 
-- `backend/app/routers/monitoramento.py` agora tem
-  `criar_instrumento_monitorado`, que faz checagem de duplicidade, `flush` e
-  `AuditLog` sem confirmar a transação;
-- `POST /monitoramento/instrumentos` continua chamando esse helper e depois
-  faz seu próprio `commit`;
-- `revisar_proposta` usa `SELECT ... FOR UPDATE`, chama o helper e faz um único
-  `commit` no final.
+## Estado comprovado
 
-Validação adicionada: teste de regressão conta que aceitar uma proposta faz um
-único `commit`. Nesta rodada ele foi compilado, mas não executado contra banco
-real porque a suíte atual ainda usa o `DATABASE_URL` configurado.
+### Revision e drift
 
-2. Há drift entre modelo atual e migrations versionadas.
+- Head Alembic dos arquivos: `9d2e13b1f93a`.
+- Revision aplicada no Neon: `9d2e13b1f93a`.
+- O comparador encontrou a tabela `refresh_token` e o índice
+  `idx_refresh_token_user` ausentes no banco.
+- `uq_refresh_token_token_hash` depende da tabela e também não existe.
+- `docs/database/modelo_er.mermaid` não contém `refresh_token`.
 
-`CnesEstabelecimento` possui `latitude`, `longitude` e
-`fonte_sincronizacao` em `backend/app/db/models.py:261`, mas as migrations
-versionadas inspecionadas não criam essas colunas nessa tabela. Existe uma
-migration que adiciona latitude/longitude a `equipment_offer_row`, mas isso
-não resolve a tabela `cnes_estabelecimento`.
+Conclusão: **não há migration pendente; há migration faltando**. Reexecutar
+`alembic upgrade head` não corrige o drift.
 
-Impacto: uma instalação nova com `alembic upgrade head` pode chegar em um
-schema que não satisfaz o modelo atual. Não foi afirmado que o banco real está
-sem as colunas; isso exige inspeção do banco alvo.
+### Inventário físico
 
-Correção recomendada: primeira migration nova deve alinhar
-`cnes_estabelecimento` ao modelo, com `upgrade` e `downgrade`, teste em banco
-descartável e verificação de autogenerate limpo depois do head.
+- 22 tabelas físicas, incluindo `alembic_version`.
+- Zero tabela de domínio sem PK.
+- 23 foreign keys.
+- Zero FK fora do `ON UPDATE RESTRICT` explícito esperado.
+- 162 constraints reportadas como `CHECK` pelo catálogo.
+- 7 constraints `UNIQUE`.
+- 46 índices; zero inválido.
+- 7 colunas JSONB.
 
-3. Alembic usava `DATABASE_URL` cru. Aplicado em 2026-09-16.
+O modelo espera agora 23 tabelas por causa de `refresh_token`; o Neon tem 22.
 
-O runtime normalizava `DATABASE_URL` para `postgresql+psycopg://`, mas o
-Alembic usava `settings.database_url` diretamente. Isso contrariava a própria
-pegadinha documentada em `AGENTS.md` e podia falhar com URLs `postgres://` ou
-`postgresql://` sem driver.
+#### Atualização 2026-09-17
 
-Correção aplicada: `Settings.database_url_alembic` normaliza a URL e escapa `%`
-literal antes de `Config.set_main_option`; `backend/alembic/env.py` usa essa
-property.
+Reexecutado contra o Neon real: `revision` aplicada = `efd3e49db7f8` (head atual, inclui
+`refresh_token` e o índice trigram de CNES). `diff_metadata_vs_banco(engine, Base.metadata)` retorna
+`[]` — zero divergência entre `models.py` e o schema físico. Inventário atual: **23 tabelas**, **24
+foreign keys** (a nova é `refresh_token.user_id → user.id`), **50 índices** (4 a mais que os 46
+originais: `idx_refresh_token_user`, `uq_refresh_token_token_hash`, `pk_refresh_token` e
+`idx_cnes_estabelecimento_nome_trgm`). `docs/database/modelo_er.mermaid`/`.md` atualizados com
+`refresh_token` e com o índice trigram.
 
-4. Testes de integração não estavam isolados por banco descartável. Aplicado
-   em 2026-09-16.
+### Volume observado
 
-Havia testes que importavam `SessionLocal`, faziam `commit` e limpavam dados no
-banco configurado. Agora `backend/tests/conftest.py` troca `DATABASE_URL` por
-`TEST_DATABASE_URL` durante o pytest, valida que o alvo é PostgreSQL e que o
-nome do banco contém `test` ou `pytest`, e pula os módulos de integração quando
-esse env var não está presente.
+Valores aproximados de `pg_stat_user_tables`:
 
-Validação concluída no banco local descartável: `alembic upgrade head`,
-`downgrade -2`, novo `upgrade head` e a suíte de integração foram executados
-com sucesso.
+| Tabela | Linhas | Tamanho total |
+|---|---:|---:|
+| `cnes_estabelecimento` | 635.113 | 120,2 MB |
+| `municipality_coverage` | 16.710 | 6,5 MB |
+| `equipment_offer_row` | 12.264 | 9,3 MB |
+| `municipality_population_row` | 11.140 | 1,1 MB |
+| `convenio` | 403 | 6,3 MB |
+| `evento_marco` | 368 | 131 KB |
+| `macro_coverage` | 363 | 180 KB |
+| `instrumento_equipamento` | 86 | 90 KB |
+| `acao_monitoramento` | 25 | 49 KB |
 
-5. Relações garantidas pela aplicação ainda não viraram integridade física. Resolvido no escopo aplicável.
+As demais tabelas têm até 23 linhas ou estão vazias. A massa relevante para
+performance hoje é `cnes_estabelecimento`.
 
-CNES foi promovido para FK física em `convenio`,
-`instrumento_equipamento` e `proposta_candidata`, com auditoria prévia de
-órfãos e `ON DELETE SET NULL` / `ON UPDATE RESTRICT`. As demais FKs mapeadas
-também passaram a declarar `ON DELETE` e `ON UPDATE` explicitamente.
+## Integridade dos dados
 
-Exceções mantidas por desenho: `AuditLog.entity_id` e
-`Notificacao.entidade_id` são relações polimórficas;
-`proposta_candidata` → `instrumento_equipamento` continua por convenção
-validada pela aplicação porque o identificador pode ser `cd_parceria` ou
-`id_proposta`.
+As oito checagens do auditor retornaram zero:
 
-6. Checks de invariantes simples. Resolvido para invariantes estáveis.
+- CNES órfão em convênio, instrumento ou proposta;
+- proposta aceita sem instrumento esperado;
+- instrumento TransfereGov sem proposta aceita;
+- código CNES fora de sete dígitos;
+- coordenada fora do intervalo;
+- população, demanda ou quantidade negativa.
 
-As migrations finais adicionaram CHECKs para coordenadas, formato CNES,
-populações, quantidades, estimativas, distâncias, tempos, percentual de marco
-e vida útil. Saldos financeiros e vocabulários externos continuam sem CHECK
-restritivo quando a fonte pode aceitar valores/termos novos ou negativos por
-regra de negócio.
+Checagens adicionais também retornaram zero:
 
-7. Listagens carregam mais dado que entregam.
+- duplicidade de competência por família/label;
+- duplicidade de convênio, instrumento ou email;
+- execução sem competência;
+- evento ou ação sem instrumento;
+- mais de uma decisão de configuração vigente por chave;
+- `in_use_qty > existing_qty` em oferta;
+- `available_qty > existing_qty` em macro ou município.
 
-O endpoint de convênios pagina, mas seleciona `Convenio` completo, incluindo
-JSONs crus pesados que não entram no schema de lista. Propostas candidatas e
-monitoramento têm listagens amplas que tendem a carregar coleções completas e
-agregar em Python. Isso ainda não é prova de lentidão; é um ponto de
-conformidade com a constituição, que pede projeção explícita, paginação e
-evidência por `EXPLAIN` antes de mexer em índices.
+### Coerência das tabelas derivadas
 
-Aplicado: `GET /convenios` agora seleciona apenas as colunas do schema de
-resumo, preservando `siconv_raw` e `transferegov_raw` só em
-`GET /convenios/{numero}`. `GET /propostas-candidatas` passou a devolver
-`{total, itens}` com `pagina`/`tamanho_pagina` e filtros SQL (`status`, `uf`,
-`busca`, `ano`, `id_programa`); `metas_resumo` permanece no item por decisão
-de modelagem, porque é o payload bruto de revisão humana.
-`GET /monitoramento/instrumentos` e `/resumo` deixaram de carregar todos os
-`EventoMarco`/`AcaoMonitoramento`: eventos filtrados por marco relevante e
-contagens de ação no SQL.
+| Família | Macros | Ofertas | Municípios | Delta existente | Delta SUS/em uso |
+|---|---:|---:|---:|---:|---:|
+| PET-CT | 121 | 177 | 5.570 | 0 | 0 |
+| Ressonância | 121 | 3.803 | 5.570 | 0 | 0 |
+| Tomógrafo | 121 | 8.284 | 5.570 | 0 | 0 |
 
-8. Nomenclatura de índice/constraint não segue o padrão único da constituição. **Aplicado em
-   2026-09-17** (Item 2 de `planmode-database-2026-09-16.md`, migration `9d2e13b1f93a`). Havia três
-   prefixos de índice coexistindo (`idx_`, `ix_`, `ux_`) quando a Seção 3 define só
-   `idx_<tabela>_<coluna(s)>`/`uq_<tabela>_<coluna(s)>`, e 5 colunas (`user.email` — não `usuarios`,
-   correção feita durante a implementação —, `convenio.numero`, `marco_catalogo.codigo`,
-   `instrumento_equipamento.nr_convenio`, `proposta_candidata.id_proposta`) usavam `unique=True` sem
-   nome de constraint explícito, recebendo nome autogerado pelo Postgres. Rename via `ALTER INDEX`/
-   `ALTER TABLE ... RENAME CONSTRAINT` (nomes autogerados confirmados contra `pg_constraint` antes de
-   escrever a migration) — sem `DROP`/perda de dado, `up`/`down` testados simétricos.
+Isso comprova no Neon que `macro_coverage.available_qty` coincide com a soma
+de `equipment_offer_row.in_use_qty` onde `sus_flag=true`.
 
-9. Algumas migrations antigas têm rollback semanticamente frágil.
+A diferença 4.381 × 4.471 observada no banco local não se reproduz no Neon.
+Ela aponta fixture/carga local obsoleta, sem justificar alteração no dado
+remoto consistente.
 
-Há `downgrade` definidos, mas isso não significa rollback seguro. A migration
-`28c0d8de92f2` colapsa histórico de config e o downgrade recria a tabela sem
-restaurar dados. A migration `a9cd77597629` move semântica para novos campos e
-o downgrade descarta colunas sem recompor completamente o estado anterior.
-Como são migrations já aplicadas historicamente, a recomendação não é editar o
-passado, e sim exigir backup, teste de restore e migrations corretivas para
-evoluções futuras.
+## Performance medida no Neon
 
-## Fechamento do bloco database
+Planos executados com `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` em transação
+somente leitura:
 
-A sequência recomendada acima foi executada em blocos pequenos e validada no
-PostgreSQL local, incluindo os 3 itens do Plan Mode aplicados em 2026-09-17
-(Itens 1, 2 e 4 de `planmode-database-2026-09-16.md`). O estado final do
-bloco database é:
+| Consulta | Execução | Plano | Avaliação |
+|---|---:|---|---|
+| CNES por nome, encontrado cedo | 0,053 ms | Seq Scan + LIMIT | Depende da posição |
+| CNES por nome, sem resultado | 227,143 ms | Parallel Seq Scan | Gargalo confirmado |
+| CNES por prefixo | 0,283 ms | Bitmap Heap Scan | Adequado |
+| Primeira página de convênios | 0,092 ms | Index Scan | Adequado |
+| Instrumentos ordenados | 0,093 ms | Seq Scan de 86 linhas | Adequado |
+| Cobertura macro por família | 1,089 ms | Bitmap Heap Scan | Adequado |
+| Municípios por macro | 1,590 ms | Index Scan | Adequado |
+| Totais de oferta | 2,117 ms | Bitmap Heap Scan | Adequado |
 
-- Alembic usa URL normalizada e compatível com `psycopg`;
-- migrations novas são reversíveis e foram testadas com `upgrade`/`downgrade`;
-- `TEST_DATABASE_URL` protege os testes que fazem commit contra uso acidental
-  de banco carregado;
-- auditoria de integridade cobre órfãos CNES, ligação proposta/instrumento,
-  formato CNES, coordenadas e contagens negativas;
-- `cnes_estabelecimento` tem geolocalização/fonte e é alvo de FK física em
-  convênio, instrumento e proposta;
-- todas as FKs mapeadas declaram `ON DELETE` e `ON UPDATE` explicitamente;
-- invariantes simples de população, quantidade, estimativa, distância, tempo,
-  percentual e vida útil foram promovidas para CHECK físico;
-- consultas de lista críticas receberam paginação/projeção ou agregação SQL nos
-  pontos de maior risco identificados;
-- **cada grupo de mecanismo de CHECK/UNIQUE/FK tem teste que prova rejeição real
-  pelo Postgres** (`backend/tests/test_integridade_constraints.py`, Item 1);
-- **nomenclatura de índice/constraint padronizada** em `idx_`/`uq_`, sem prefixo
-  legado nem UNIQUE autogerada sem nome (migration `9d2e13b1f93a`, Item 2);
-- **comparação metadata × migrations × `.mermaid` automatizada** e reaproveitável
-  fora do pytest (`backend/scripts/schema_drift.py` + `auditar_drift_schema.py`,
-  Item 4).
+Os tempos são uma amostra e variam com cache, rede e carga.
 
-Validação final executada (2026-09-17):
+### Achado de performance
 
-```bash
-cd backend
-DATABASE_URL=postgresql+psycopg://gustavoleite@localhost:5432/par_equipamentos_pytest \
-  .venv/bin/alembic upgrade head
-DATABASE_URL=postgresql+psycopg://gustavoleite@localhost:5432/par_equipamentos_pytest \
-  .venv/bin/alembic downgrade -2
-DATABASE_URL=postgresql+psycopg://gustavoleite@localhost:5432/par_equipamentos_pytest \
-  .venv/bin/alembic upgrade head
-DATABASE_URL=postgresql+psycopg://gustavoleite@localhost:5432/par_equipamentos_pytest \
-TEST_DATABASE_URL=postgresql+psycopg://gustavoleite@localhost:5432/par_equipamentos_pytest \
-  .venv/bin/python -m pytest -q -m db
-.venv/bin/python -m pytest -q -m 'not db'
-DATABASE_URL=postgresql+psycopg://gustavoleite@localhost:5432/par_equipamentos_pytest \
-  .venv/bin/python -m scripts.auditar_drift_schema --strict
-```
+O autocomplete usa `ILIKE '%texto%'` sobre 635 mil estabelecimentos. Uma
+busca sem correspondência varre a tabela e levou cerca de 227 ms somente no
+banco. Deve-se testar `pg_trgm` e índice GIN em banco dedicado, medir custo e
+tamanho e só então criar migration. Não há evidência para novos índices nas
+demais consultas medidas.
 
-Resultados finais: `pytest -m db` com `48 passed, 8 skipped` (9 testes novos de
-violação de constraint); `pytest -m 'not db'` com `43 passed`;
-`auditar_drift_schema --strict` sem divergência (exit 0); inspeção direta de
-`pg_constraint` confirmou os 5 nomes autogerados renomeados e nenhuma FK sem
-`ON UPDATE RESTRICT`.
+**Atualização 2026-09-17 — resolvido**: medido em banco descartável de mesmo volume
+(`par_equipamentos_pytest_loaded`, 635.113 linhas) antes de migrar — pior caso caiu de ~227ms
+(`Seq Scan`) pra ~0,3ms (`Bitmap Index Scan`), busca comum (~1300 resultados) em ~10ms, índice de
+39MB (~19% do tamanho da tabela). Migration `efd3e49db7f8` (`pg_trgm` + GIN em
+`nome_estabelecimento`, `CREATE INDEX CONCURRENTLY`) aplicada ao Neon e reconfirmada lá: o mesmo
+`EXPLAIN (ANALYZE, BUFFERS)` que antes mostrava 227ms agora mostra **0,32ms** com `Bitmap Index Scan
+on idx_cnes_estabelecimento_nome_trgm`.
 
-Exceções mantidas por desenho, documentadas no schema: `audit_log.entity_id` e
-`notificacao.entidade_id` são relações polimórficas;
-`proposta_candidata` → `instrumento_equipamento` é convenção validada pela
-aplicação porque o identificador pode ser `cd_parceria` ou `id_proposta`;
-JSONB permanece apenas para payload bruto/auditável de fontes externas ou
-detalhes de auditoria (`siconv_raw`, `transferegov_raw`, `metas_resumo`,
-`active_sources`, `details`).
+## Pontos conformes
 
-## Pendências para nota 10
+- Todas as tabelas de domínio físicas têm PK.
+- FKs e ações referenciais são explícitas.
+- CNES, coordenadas e valores não negativos têm integridade física e dados
+  conformes.
+- Dinheiro usa `NUMERIC`; datas usam tipos temporais.
+- Estados internos relevantes usam enum ou check.
+- Configuração vigente possui unicidade parcial e histórico temporal.
+- Índices existentes estão válidos.
+- Agregados publicados estão coerentes com a oferta granular.
+- Consultas principais têm planos adequados, exceto busca textual CNES.
+- O usuário conectado não é superuser.
+- A credencial permanece fora do repositório.
+- **(2026-09-17)** Busca textual CNES agora também tem plano adequado (índice trigram).
+- **(2026-09-17)** Runtime e migration são roles distintos, nenhum com `CREATEDB`/`CREATEROLE`.
+- **(2026-09-17)** Criptografia em trânsito confirmada real (TLS 1.3), não só presumida.
+- **(2026-09-17)** `refresh_token` migrado, testado e sem drift.
+- **(2026-09-17)** Migration desacoplada do boot da API e dos jobs de dado.
 
-O bloco está fechado para evolução funcional e para o Plan Mode de 2026-09-16, exceto o item de
-`EXPLAIN ANALYZE` abaixo (Item 3, bloqueado por dependência externa, não por risco). Os demais itens
-desta lista já resolvidos foram riscados; o que resta não justifica alteração ampla e arriscada
-antes de existir o pré-requisito ou benefício operacional mensurável.
+## Divergências prioritárias
 
-### Repositório e banco local
+### P0 — modelo sem migration — RESOLVIDO em 2026-09-17
 
-- Avaliar a padronização histórica de nomes em português e inglês. Qualquer
-  renomeação deve seguir `expand-contract`, com compatibilidade temporária e
-  migration própria; não renomear apenas por estética.
-- Revisar periodicamente cada `JSONB`: manter payloads externos realmente
-  variáveis e auditáveis; normalizar estruturas estáveis que passem a ser
-  filtradas, relacionadas ou agregadas pelo sistema.
-- Revisar a presença de `created_at`, `updated_at` e soft delete conforme o
-  requisito de auditoria de cada tabela. Não adicionar colunas sem consumidor
-  ou requisito de negócio.
-- ~~Ampliar testes de integração para provar que violações de cada grupo de
-  `CHECK`, `FK` e `UNIQUE` são rejeitadas pelo PostgreSQL~~ — **Aplicado em
-  2026-09-17** (Item 1 do Plan Mode, `backend/tests/test_integridade_constraints.py`).
-- **Ainda pendente**: executar `EXPLAIN ANALYZE` nas consultas de maior volume
-  (`listar_instrumentos`/`obter_resumo`, `GET /convenios`, `GET /propostas-candidatas`,
-  `macro_coverage`/`municipality_coverage`) com massa representativa e ajustar índices
-  somente com evidência do plano — Item 3 do Plan Mode, bloqueado por não existir hoje
-  um dump sintético/anonimizado de volume representativo; não forçar solução
-  improvisada, reabrir quando essa massa existir.
-- ~~Automatizar a comparação entre metadata SQLAlchemy, migrations e
-  `docs/database/modelo_er.mermaid`~~ — **Aplicado em 2026-09-17** (Item 4 do Plan Mode,
-  `backend/scripts/schema_drift.py` + `auditar_drift_schema.py`; CI de backend ainda não
-  existe, então o script roda manualmente/local até o ciclo devops criar pipeline).
+`RefreshToken` existe na metadata, mas não no Neon. Qualquer fluxo que tente
+persisti-lo falhará com relação inexistente.
 
-### Ambiente de produção
+Aplicação correta:
 
-- Confirmar que o usuário de runtime da aplicação possui privilégio mínimo e
-  não é `SUPERUSER`/administrador.
-- Configurar backup automatizado com retenção definida por criticidade.
-- Executar e registrar teste periódico de restauração; sucesso do job de
-  backup sem restore não comprova recuperabilidade.
-- Exigir snapshot imediatamente anterior a migration destrutiva.
-- Monitorar falhas de backup, saturação de conexões, locks prolongados e
-  queries lentas.
-- Garantir que ambientes de desenvolvimento e teste usem dados sintéticos ou
-  anonimizados quando houver dado pessoal ou sensível.
+1. aprovar Plan Mode específico para sessão e schema;
+2. criar migration aditiva;
+3. revisar FK, ações, unicidade, expiração e índices;
+4. testar upgrade, downgrade, constraints e concorrência localmente;
+5. atualizar Mermaid;
+6. aplicar pelo fluxo protegido de migration.
 
-Avaliação registrada em 2026-09-16, revisada na etapa de Avaliação do ciclo
-(`avaliacao-diagnostico-database-2026-09-16.md`), e atualizada em 2026-09-17 com o fechamento do
-Plan Mode: estrutura de schema/FK/CHECK `9,5/10` (comprovado por inspeção e execução); cobertura de
-teste de integridade (violação real rejeitada pelo banco, não só existência de constraint) `9/10` —
-Item 1 aplicado (9 testes por mecanismo de constraint em `test_integridade_constraints.py`), não
-`10/10` porque cobre por grupo/mecanismo, não cada uma das ~40 instâncias individuais (decisão
-deliberada, documentada no próprio arquivo de teste); documentação `9/10`; nomenclatura de
-índice/constraint `10/10` — Item 2 aplicado, três prefixos unificados em `idx_`/`uq_`, sem UNIQUE
-autogerada sem nome; automação de drift metadata×migration×ER `10/10` — Item 4 aplicado
-(`scripts/schema_drift.py`/`auditar_drift_schema.py`); `EXPLAIN ANALYZE` em consultas de alto volume
-`0/10` — Item 3 ainda bloqueado por falta de massa de dados representativa, não avaliado como falha
-de execução; operação de produção ainda não avaliada (fora de escopo deste ciclo, ver
-`planmode-devops-*.md` quando existir). Nota consolidada do bloco (schema/testes/nomenclatura/
-documentação, sem produção nem `EXPLAIN ANALYZE`): `9,5/10`.
+**Fechamento**: migration `5557cabd4a4c` seguiu exatamente os 6 passos acima (Plan Mode Bloco 2,
+`planmode-database-2026-09-16.md`) — testada local (up/down simétrico, zero drift) e aplicada ao
+Neon. `refresh_token` existe lá com PK/FK/UNIQUE/índice batendo com o model. Mermaid/ER atualizados.
+Tabela ainda não é consumida por nenhuma rota (wiring de auth é escopo do Plan Mode de segurança).
+
+### P0 — conexão sem SSL comprovado — RECLASSIFICADO em 2026-09-17 (não era um gap real)
+
+`pg_stat_ssl` retornou `false` para a sessão de auditoria. A configuração
+atual não garantiu criptografia em trânsito na conexão observada.
+
+É necessário exigir `sslmode=require` ou `verify-full`, conforme suporte do
+Neon, falhar em produção quando SSL não estiver ativo e comprovar novamente
+`pg_stat_ssl=true`.
+
+**Achado da reverificação**: `pg_stat_ssl=false` é um artefato da arquitetura de proxy serverless do
+Neon — o proxy termina o TLS do cliente e encaminha pro compute Postgres por um caminho interno; a
+métrica reflete esse último salto, não o canal real cliente↔Neon. Confirmado com `psql \conninfo` na
+mesma sessão de auditoria: `SSL Connection: true`, `TLSv1.3`, `TLS_AES_256_GCM_SHA384`. Confirmado
+também que o servidor **recusa ativamente** `sslmode=disable` (`ERROR: connection is insecure`) — ou
+seja, criptografia em trânsito já era **obrigatória e real**, não uma suposição. O diagnóstico
+original leu o sinal errado; não houve (nem foi necessária) nenhuma mudança de código ou de
+`DATABASE_URL` para "corrigir" isso — `sslmode=require` já estava na URL desde antes.
+
+### P0 — usuário de runtime excessivamente privilegiado — RESOLVIDO em 2026-09-17
+
+O role conectado apresentou:
+
+- `SUPERUSER=false`;
+- `CREATEDB=true`;
+- `CREATEROLE=true`;
+- `CREATE` no schema.
+
+A API não precisa criar banco, role ou tabela durante requests. Deve existir
+um role de runtime só com conexão, uso do schema, DML e sequences necessárias,
+e outro role separado para migrations. A credencial do serviço deve ser
+rotacionada após a separação.
+
+**Fechamento**: criados `sigeo_runtime` (`CONNECT`/`USAGE`/`SELECT,INSERT,UPDATE,DELETE`/sequences)
+e `sigeo_migration` (dono de todas as 23 tabelas e 21 sequences do schema `public`, único com DDL) —
+nenhum dos dois com `CREATEDB`/`CREATEROLE`/`SUPERUSER`, confirmado via `pg_roles`. `neondb_owner`
+não é mais usado por nenhuma credencial de aplicação (continua existindo com os atributos elevados,
+mas isso é uma restrição da plataforma Neon sobre o role gerenciado da conta, não algo que o projeto
+controla ou usa). Testado: `sigeo_runtime` tem `CREATE TABLE` negado; `sigeo_migration` roda `ALTER
+TABLE` normalmente. `Settings.database_url_migration` (`backend/app/config.py`) separa as duas
+credenciais; `.env`/`.env.example` documentam `DATABASE_URL_MIGRATION`.
+
+### P1 — autocomplete CNES — RESOLVIDO em 2026-09-17
+
+O pior caso de 227 ms comprova a necessidade de avaliar trigram. O índice só
+deve ser aplicado após Plan Mode, teste de extensão disponível, tamanho,
+ganho e custo de escrita.
+
+**Fechamento**: ver "Achado de performance" acima — medido em banco descartável antes de migrar,
+aplicado ao Neon, resultado comprovado (227ms → 0,32ms).
+
+### P1 — backup e recuperação não comprovados
+
+SQL não comprova configuração do painel Neon. Faltam evidências de:
+
+- PITR ou snapshot;
+- frequência e retenção;
+- restore testado;
+- RPO e RTO;
+- alerta de falha;
+- snapshot anterior a migration destrutiva.
+
+### P1 — migration acoplada ao boot e jobs — RESOLVIDO em 2026-09-17
+
+`render.yaml` e os workflows continuam executando `alembic upgrade head`.
+Com um usuário privilegiado e secret apontando para Neon, uma ref não validada
+pode aplicar DDL diretamente. O risco também está no diagnóstico DevOps.
+
+**Fechamento**: `alembic upgrade head` removido do `startCommand` de `render.yaml` e dos steps de
+`pipelines.yml`/`radar_convenios.yml` (nunca precisaram de DDL). Passou a rodar isolado, sob
+demanda, no workflow novo `.github/workflows/migrar_banco.yml` (`workflow_dispatch`, credencial
+`DATABASE_URL_MIGRATION` dedicada) — e como `DATABASE_URL` da API/pipelines agora é `sigeo_runtime`
+(sem privilégio de DDL), mesmo que alguém reintroduza a chamada no boot por engano, ela falharia por
+permissão em vez de aplicar DDL silenciosamente.
+
+### P1 — dados pessoais e ambientes
+
+O Neon contém contatos e dados operacionais. Não há evidência de classificação,
+retenção, mascaramento de backup ou dataset anonimizado para desenvolvimento.
+A divergência do banco local reforça a necessidade de fixtures sintéticas e
+reproduzíveis.
+
+### P2 — nomenclatura e JSONB
+
+- O schema mistura português e inglês por histórico. Renomear por estética não
+  compensa o risco; eventual mudança deve usar expand-contract.
+- Os sete JSONB representam payload externo, tags ou auditoria. Devem ser
+  revistos quando passarem a ser filtrados ou agregados com frequência.
+- Relações polimórficas de auditoria/notificação seguem sem FK por desenho e
+  precisam continuar documentadas.
+
+## Sequência recomendada
+
+**Status em 2026-09-17**: Blocos 1, 2, 3 e a parte de migration-do-boot do Bloco 4 aplicados no
+Neon (ver `planmode-database-2026-09-16.md`, Rodada 4, para o relato completo de execução). Bloco 4
+"backup" (era numerado separado na sequência original abaixo) e a parte de CI do Bloco 5 seguem
+pendentes, fora do escopo deste Plan Mode.
+
+### Bloco 1 — segurança operacional — ✅ aplicado
+
+- Exigir SSL e comprovar `pg_stat_ssl=true`. — SSL já era real (achado reclassificado, ver acima);
+  `pg_stat_ssl` continua `false` por ser artefato do proxy Neon, não indicador confiável aqui.
+- Separar role runtime e role migration. — ✅ `sigeo_runtime`/`sigeo_migration`.
+- Remover `CREATEDB`, `CREATEROLE` e DDL do runtime. — ✅ nenhum dos dois roles novos tem esses
+  atributos; `neondb_owner` (que tem) não é mais usado pela aplicação.
+- Confirmar API, pipelines e migrations com as identidades corretas. — ✅ testado (`sigeo_runtime`
+  sem `CREATE TABLE`, `sigeo_migration` com `ALTER TABLE`, app lê/escreve normalmente).
+
+### Bloco 2 — refresh token — ✅ aplicado
+
+- Aprovar Plan Mode da sessão. — ✅.
+- Criar e testar a migration aditiva. — ✅ `5557cabd4a4c`, up/down simétrico.
+- Atualizar Mermaid e drift checker. — ✅.
+- Aplicar ao Neon por fluxo protegido. — ✅.
+
+### Bloco 3 — busca CNES — ✅ aplicado
+
+- Testar `pg_trgm` e GIN em banco dedicado. — ✅ `par_equipamentos_pytest_loaded`.
+- Comparar tempo, tamanho e custo de escrita. — ✅ 227ms→0,3ms, 39MB (~19% da tabela).
+- Aplicar somente se o ganho justificar. — ✅ ganho de 2-3 ordens de magnitude, aplicado.
+
+### Bloco 4 — backup — pendente (ciclo devops)
+
+- Documentar retenção, RPO e RTO.
+- Executar restore isolado e registrar evidência.
+- Criar runbook e alerta.
+
+### Bloco 5 — CI — pendente (parte database aguarda CI de backend existir)
+
+- Rodar Alembic, testes PostgreSQL e `auditar_drift_schema --strict`.
+- Falhar se modelo, migration e Mermaid divergirem.
+- Impedir merge de modelo novo sem migration.
+
+## Critérios para nota 10
+
+- ~~`pg_stat_ssl=true` com verificação adequada.~~ — critério **substituído**: `pg_stat_ssl` provou
+  ser um sinal não confiável no Neon (artefato de proxy); o critério real é "`\conninfo`/tentativa de
+  `sslmode=disable` confirmam TLS obrigatório", ✅ satisfeito.
+- ✅ Runtime sem capacidade de criar role, banco, tabela ou migration.
+- ✅ `refresh_token` coberto por migration, testes e Mermaid.
+- ✅ Drift metadata × schema × documentação igual a zero (`diff_metadata_vs_banco` → `[]` no Neon).
+- ✅ Busca CNES dentro do SLO acordado no pior caso (0,32ms, muito abaixo de qualquer SLO razoável).
+- ⬜ Backup, retenção, RPO/RTO e restore testado com evidência — pendente, ciclo devops.
+- ✅ Migrations separadas do boot e protegidas por aprovação (`migrar_banco.yml`).
+- ⬜ CI reconstrói banco, testa up/down, constraints e drift — pendente, aguarda CI de backend existir.
+- ⬜ Dados de desenvolvimento/teste são sintéticos ou anonimizados — segue não implementado (fora do
+  escopo deste Plan Mode; estratégia de clonagem/ingestão documentada em `CLAUDE.md` relativiza o
+  risco, não o resolve).
+
+## Estratégia de ingestão e clonagem (decisão do usuário, 2026-09-16)
+
+Complementa o achado de volume (`cnes_estabelecimento` com 635.113 linhas,
+`convenio` com 403) e a divergência local×Neon relatada acima: nesta mesma
+sessão o Neon recebeu, pela primeira vez, a carga completa de
+`cnes_estabelecimento` (sync via parquet S3) e de `convenio` (403 linhas,
+CNES resolvido em 357 delas — 267 `cnpj_exato`, 71 `planilha`, 7 `manual`,
+7 `cnpj_multi_municipio`, 5 `nome_endereco`, 46 sem match). A migration de
+FK física de CNES só aplicou depois de corrigir dado sujo pré-existente em
+`instrumento_equipamento.cnes` (`'NA'` e valores sem zero-padding) e de
+sincronizar `cnes_estabelecimento` — nenhuma dessas duas correções está
+coberta por teste ou script permanente hoje, ficou resolvida manualmente
+nesta sessão.
+
+A partir disso o usuário definiu a estratégia de dados do Neon canônico,
+que deve ser incorporada ao Plan Mode antes de fechar esta área:
+
+- **Migração de servidor é `pg_dump`/`pg_restore` do Neon, não
+  reingestão.** Decisão explícita: ao mudar de servidor/produção, clona-se
+  o banco inteiro em vez de reprocessar planilha/CNPJ/JSON. Isso relativiza
+  parcialmente o achado "dados pessoais e ambientes" (P1) — não substitui
+  a necessidade de dataset sintético/anonimizado para desenvolvimento, mas
+  estabelece que o Neon (não os scripts) é a fonte de verdade a ser clonada.
+- **Dado "congelado" (clona e não reimporta)** — passou por decisão
+  humana/validação pontual ou é estatística oficial sem cadência própria;
+  reimportar reescreveria correção feita a mão no sistema:
+  - `instrumento_equipamento` (`importar_planilha_monitoramento.py`, já
+    documentado como bootstrap único).
+  - `convenio.cnes`/`cnes_metodo` (`importar_convenios_banco.py` — os
+    357/403 resolvidos nesta sessão). Correção futura de CNES errado é
+    edição pelo técnico via PATCH, não replanilhar.
+  - `accelerator_row`, `municipality_population_row`, `inca_estimate`
+    (`importar_aceleradores.py`, `importar_populacao_municipios.py`,
+    `importar_inca_estimates.py`) — estatística oficial ANS/INCA versionada
+    em `data/raw/`, sem API viva. Só reimporta por decisão explícita da
+    equipe ao chegar arquivo oficial mais novo, nunca automaticamente.
+- **Dado "vivo" (clonar sozinho não basta)** — instrumento/proposta novo
+  continua trazendo esse dado depois de qualquer clone congelado:
+  - `cnes_estabelecimento`, via `sincronizar_cnes_referencia.py` (parquet
+    S3, precisa credencial AWS) e `sincronizar_cnes_referencia_api.py`
+    (ElastiCNES, sem credencial, criado nesta sessão para desbloquear a FK
+    sem depender do S3 — cobre só CNES já presentes no índice de
+    equipamentos).
+  - `job_descoberta_transferegov.py` (novas propostas do Radar de
+    Convênios).
+
+Pendente de decisão formal (Plan Mode): onde/com que frequência roda o
+`pg_dump`/`pg_restore` de migração de servidor, e como esse clone se
+concilia com o Bloco 4 (backup/retenção/RPO/RTO) e com a necessidade de
+dataset sintético para desenvolvimento já apontada acima.
+
+## Veredito
+
+### Original (2026-09-16)
+
+O conteúdo do Neon está íntegro e os agregados de negócio estão corretos. Os
+riscos estão na fronteira operacional: conexão sem SSL observada, role
+excessivamente privilegiada e evolução do modelo sem migration. Esses três
+itens precisam ser resolvidos antes de considerar o database fechado em
+produção.
+
+### Atualização 2026-09-17
+
+Os três itens que bloqueavam o fechamento foram resolvidos e reconfirmados contra o Neon real: a
+conexão sempre foi criptografada de ponta a ponta (achado original era leitura equivocada de
+`pg_stat_ssl`, não um gap); o runtime roda hoje com `sigeo_runtime`, sem `CREATEDB`/`CREATEROLE`, e
+migrations rodam com `sigeo_migration` isolado; `refresh_token` está migrado e sem drift. Junto
+disso, o Bloco 3 (trigram CNES) também foi resolvido, e o Bloco 4 (migration acoplada ao boot/jobs)
+foi desacoplado. `diff_metadata_vs_banco` retorna `[]` no Neon — zero divergência entre código e
+schema aplicado.
+
+O que resta aberto é conscientemente fora do escopo deste Plan Mode: backup/retenção/RPO-RTO
+(ciclo devops), CI de backend com gate de drift (aguarda CI existir) e dataset sintético/anonimizado
+para desenvolvimento (relativizado pela estratégia de clonagem via `pg_dump`/`pg_restore`
+documentada em `CLAUDE.md`, mas não resolvido). Nenhum desses três bloqueia produção da forma que os
+itens originais bloqueavam — são lacunas de processo/observabilidade, não de integridade ou
+segurança de acesso ao dado. Avaliação atualizada: **9,3/10**.
