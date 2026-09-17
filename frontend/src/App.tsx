@@ -75,29 +75,31 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={<RouteLoading />}>
           <Routes>
-            {/* Painel Geral (decisao 2026-08-22) -- pagina inicial, fora do
-                AppLayout/TopNav de proposito (nao pertence a uma familia
-                especifica, ver comentario em PainelGeralPage.tsx). */}
-            <Route path="/" element={<PainelGeralPage />} />
             <Route path="/login" element={<LoginPage />} />
-            {/* Leituras do monitoramento interno passaram a exigir sessão
-                no backend (Plan Mode segurança 2026-09-16, Bloco 1) -- gate
-                de rota pra não deixar a página montar sem token. */}
+            {/* Todo o app exige sessão desde 2026-09-17 (decisão do usuário:
+                "todas as páginas do sistema precisarão de login", exceto o
+                Painel de Gestão do monitoramento interno, candidato a
+                reabrir publicamente no futuro -- por ora fica atrás do
+                mesmo gate). Plan Mode segurança 2026-09-16, Bloco 5. */}
             <Route element={<ProtectedRoute />}>
+              {/* Painel Geral (decisao 2026-08-22) -- pagina inicial, fora do
+                  AppLayout/TopNav de proposito (nao pertence a uma familia
+                  especifica, ver comentario em PainelGeralPage.tsx). */}
+              <Route path="/" element={<PainelGeralPage />} />
               <Route element={<MonitoramentoLayout />}>
                 <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
                 <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />
                 <Route path="/monitoramento-equipamentos/painel" element={<MonitoramentoPainelPage />} />
                 <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
               </Route>
-            </Route>
-            <Route element={<AppLayout />}>
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="mapa" element={<MapaPage />} />
-              <Route path="relatorios" element={<RelatoriosPage />} />
-              {/* Metodologia virou secao de /relatorios (decisao 2026-08-22) --
-                  redirect pra nao quebrar link/favorito antigo pra /metodologia. */}
-              <Route path="metodologia" element={<Navigate to="/relatorios" replace />} />
+              <Route element={<AppLayout />}>
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="mapa" element={<MapaPage />} />
+                <Route path="relatorios" element={<RelatoriosPage />} />
+                {/* Metodologia virou secao de /relatorios (decisao 2026-08-22) --
+                    redirect pra nao quebrar link/favorito antigo pra /metodologia. */}
+                <Route path="metodologia" element={<Navigate to="/relatorios" replace />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

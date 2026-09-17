@@ -40,7 +40,6 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
-    cpf: str  # texto puro so nessa entrada -- vira cpf_hash antes de tocar o banco (RF-25)
     role: UserRole = UserRole.colaborador
 
 

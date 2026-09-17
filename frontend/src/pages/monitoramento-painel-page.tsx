@@ -8,10 +8,12 @@
  * Diferença pro Overview (MonitoramentoOverviewPage.tsx): aqui é SÓ
  * dashboard -- nenhuma tabela crua de instrumentos, nenhum form de
  * edição. Reaproveita os mesmos dados já buscados no Overview
- * (`/monitoramento/resumo` + `/monitoramento/instrumentos` +
- * `siconv.json`), sem endpoint novo, montados numa leitura mais
- * executiva: KPIs financeiros, funil de fase, ranking por UF/componente/
- * tipo de equipamento, licenças por vencer.
+ * (`/monitoramento/resumo` + `/monitoramento/instrumentos`) mais
+ * `GET /convenios` (financeiro -- valor global/pago ao fornecedor, ver
+ * `Convenio.valor_pago_fornecedor`; substituiu `siconv.json` estático,
+ * Plan Mode segurança 2026-09-16, Bloco 5), sem endpoint novo, montados
+ * numa leitura mais executiva: KPIs financeiros, funil de fase, ranking
+ * por UF/componente/tipo de equipamento, licenças por vencer.
  *
  * Achado 2026-09-10 (pedido do usuário, 3a rodada: "não temos um gráfico
  * de pizza, barras vertical... os equipamentos achei bem pobre") --
@@ -30,10 +32,10 @@ import { KpiCard } from '@/components/common/kpi-card';
 import { cn } from '@/lib/utils';
 import { normalizarTexto } from '@/utils/texto';
 import { fetchInstrumentos, fetchMarcos, fetchResumoMonitoramento } from '@/services/monitoramento';
+import { fetchConvenios } from '@/services/convenios';
+import type { ConvenioUnificado } from '@/types/monitoramento';
 import { BarraDistribuicao, classeValidade, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
-import { useJson } from '@/hooks/useJson';
-import type { SiconvEntrada } from '@/types/monitoramento';
 
 type InauguracaoApi = { nr_convenio: string; nome_convenente: string; data: string; realizada: boolean; dias: number };
 type LicencaVencendoApi = { nr_convenio: string; nome_convenente: string; data_validade: string; dias: number };
@@ -250,31 +252,41 @@ export function MonitoramentoPainelPage() {
   const [resumo, setResumo] = useState<ResumoApi | null>(null);
   const [instrumentos, setInstrumentos] = useState<InstrumentoApi[] | null>(null);
   const [marcos, setMarcos] = useState<MarcoApi[] | null>(null);
+  const [convenios, setConvenios] = useState<ConvenioUnificado[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const { dados: siconvTodos } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
 
   useEffect(() => {
     // Rotas exigem sessão desde o Plan Mode segurança 2026-09-16 (Bloco 1)
     // -- usa a camada de services (cookie via credentials:'include',
     // schema validado com Zod), não mais `fetch` cru direto na API.
-    Promise.all([fetchResumoMonitoramento(), fetchInstrumentos(), fetchMarcos()])
-      .then(([r, i, m]) => { setResumo(r); setInstrumentos(i); setMarcos(m); })
+    Promise.all([
+      fetchResumoMonitoramento(),
+      fetchInstrumentos(),
+      fetchMarcos(),
+      // Universo inteiro de uma vez (mesmo padrão transitório de
+      // MonitoramentoEquipamentosPage) -- substitui siconv.json estático
+      // (5,3MB, sem controle de acesso, Bloco 5) por `GET /convenios`
+      // (mesma tabela `convenio`, já com valor_global/valor_pago_fornecedor
+      // pré-computados, não precisa do payload cru pra esse card).
+      fetchConvenios({ tamanhoPagina: 500 }),
+    ])
+      .then(([r, i, m, c]) => { setResumo(r); setInstrumentos(i); setMarcos(m); setConvenios(c.itens); })
       .catch((e) => setErro(String(e)));
   }, []);
 
-  // Financeiro -- cruza siconv.json (mesma fonte do Overview/ConvenioCard,
-  // nunca no backend de monitoramento interno, ver docstring do arquivo).
-  // FAF/TED (chave = numero digitos-so) nunca batem aqui de proposito --
-  // nao tem registro no SICONV/TransfereGov, contribuem 0 sem fabricar valor.
+  // Financeiro -- cruza a tabela convenio (mesma fonte do Overview/
+  // ConvenioCard). FAF/TED (chave = numero digitos-so) nunca batem aqui de
+  // proposito -- nao tem registro no Portal/SICONV/TransfereGov, contribuem
+  // 0 sem fabricar valor.
   const financeiro = (() => {
-    if (!resumo || !siconvTodos) return null;
-    const siconvPorNumero = new Map(siconvTodos.map((e) => [e.convenio.NR_CONVENIO, e]));
+    if (!resumo || !convenios) return null;
+    const conveniosPorNumero = new Map(convenios.map((c) => [c.numero, c]));
     let global = 0, pago = 0, comPagamento = 0;
     for (const nr of resumo.nr_convenios) {
-      const sc = siconvPorNumero.get(nr);
-      if (!sc) continue;
-      global += Number(sc.convenio.VL_GLOBAL_CONV) || 0;
-      const pagoConvenio = sc.pagamentos.reduce((s, p) => s + (Number((p.VL_PAGO || '0').replace(',', '.')) || 0), 0);
+      const c = conveniosPorNumero.get(nr);
+      if (!c) continue;
+      global += c.financeiro.global ?? 0;
+      const pagoConvenio = c.valorPagoFornecedor ?? 0;
       pago += pagoConvenio;
       if (pagoConvenio > 0) comPagamento += 1;
     }

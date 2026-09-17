@@ -20,9 +20,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import Competency, Execution, MunicipalityCoverage
-from app.pipeline.cobertura import calcular_cobertura
+from app.db.models import Competency, Execution, MunicipalityCoverage, User
+from app.pipeline.cobertura import calcular_cobertura, produtividade_por_familia
 from app.pipeline.geo import carregar_codigo_ibge_7_digitos, carregar_coordenadas_municipios
 from app.schemas import HealthRegionCoverageRead, MunicipalityCoverageRead
 
@@ -72,6 +73,7 @@ def listar_municipality_coverage(
     # tamanho que for).
     min_population: int | None = Query(default=None, ge=0),
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> list[MunicipalityCoverageRead]:
     exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
@@ -113,6 +115,7 @@ def listar_health_region_coverage(
     state: list[str] | None = Query(default=None),
     macro_code: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> list[HealthRegionCoverageRead]:
     """Sem min_population -- o parametro de "municipio pequeno demais pra ter
     equipamento proprio" so faz sentido no nivel de municipio; uma regiao de
@@ -138,6 +141,7 @@ def listar_health_region_coverage(
             func.sum(MunicipalityCoverage.existing_qty).label("existing_qty"),
             func.sum(MunicipalityCoverage.available_qty).label("available_qty"),
             func.sum(MunicipalityCoverage.facility_count).label("facility_count"),
+            func.max(MunicipalityCoverage.equipment_family).label("equipment_family"),
         )
         .where(
             MunicipalityCoverage.execution_id == exec_id,
@@ -155,7 +159,12 @@ def listar_health_region_coverage(
     linhas = db.execute(stmt).mappings().all()
     resultado = []
     for r in linhas:
-        cobertura = calcular_cobertura(population=r["population"] or 0, in_use_sus=r["available_qty"] or 0)
+        familia = equipment_family or r["equipment_family"]
+        cobertura = calcular_cobertura(
+            population=r["population"] or 0,
+            in_use_sus=r["available_qty"] or 0,
+            produtividade=produtividade_por_familia(familia),
+        )
         coverage_percentage = round(cobertura.available_qty / cobertura.required_qty * 100, 1) if cobertura.required_qty else None
         resultado.append(
             HealthRegionCoverageRead(
@@ -164,7 +173,7 @@ def listar_health_region_coverage(
                 macro_code=r["macro_code"],
                 macro_name=r["macro_name"],
                 state=r["state"],
-                equipment_family=equipment_family or "",
+                equipment_family=familia or "",
                 population=r["population"],
                 population_residente=r["population_residente"],
                 population_ans=r["population_ans"],

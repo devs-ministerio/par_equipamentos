@@ -15,8 +15,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import Competency, EquipmentOfferRow, Execution
+from app.db.models import Competency, EquipmentOfferRow, Execution, User
 from app.pipeline.geo import distancia_km
 from app.schemas import (
     EquipmentOfferRowPage,
@@ -103,6 +104,7 @@ def listar_equipment_offer_rows(
     limit: int = Query(default=50, le=10_000, gt=0),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> EquipmentOfferRowPage:
     exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
@@ -135,6 +137,7 @@ def totais_equipamentos(
     cnes_code: list[str] | None = Query(default=None),
     search: str | None = None,
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> EquipmentTotalsRead:
     """Soma exata (existing_qty / in_use_qty-onde-sus_flag) pro recorte de
     filtro pedido, direto de equipment_offer_row -- diferente de
@@ -171,6 +174,7 @@ def totais_por_natureza_juridica(
     health_region_code: list[str] | None = Query(default=None),
     municipality: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> list[LegalNatureBreakdownRead]:
     """Soma de existing_qty/available_qty (mesma regra do /totals, ver
     comentario la) agrupada por natureza juridica do estabelecimento --
@@ -199,6 +203,7 @@ def listar_estabelecimentos_opcoes(
     equipment_family: str | None = None,
     execution_id: int | None = None,
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> list[FacilityOptionRead]:
     """Lista completa (sem filtro geografico nem paginacao) de estabelecimentos
     distintos por CNES, so com os campos que alimentam dropdowns -- o front
@@ -265,6 +270,10 @@ def listar_estabelecimentos(
     # "mais proximo" mesmo quando a distancia normativa (so-SUS) apontava
     # pra outro lugar.
     sus_flag: bool | None = Query(default=None),
+    # Para distância e "mais próximo", equipamento SUS parado não é oferta
+    # assistencial. A listagem geral continua podendo exibi-lo como dado
+    # cadastral/informativo.
+    in_use_sus: bool | None = Query(default=None),
     sort_by: str = "facility_name",
     sort_dir: str = "asc",
     # teto alto o bastante pra caber o maior estado (SP, ~1700 estabelecimentos
@@ -273,6 +282,7 @@ def listar_estabelecimentos(
     limit: int = Query(default=50, le=2000, gt=0),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> EstablishmentPage:
     """Mesma fonte do endpoint acima, mas agregada por CNES -- um
     estabelecimento pode ter mais de uma linha crua (tomografos de subtipos
@@ -287,6 +297,8 @@ def listar_estabelecimentos(
     base = _aplicar_filtros(base, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code)
     if sus_flag is not None:
         base = base.where(EquipmentOfferRow.sus_flag.is_(sus_flag))
+    if in_use_sus:
+        base = base.where(EquipmentOfferRow.sus_flag.is_(True), EquipmentOfferRow.in_use_qty > 0)
     if modo_raio:
         # ~111km por grau de latitude; longitude encolhe com cos(latitude) --
         # usa a latitude do ponto de busca (erro desprezivel num raio de

@@ -133,7 +133,6 @@ class User(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
-    cpf_hash: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[UserRole] = mapped_column(
         PgEnum(UserRole, name="user_role", native_enum=True), nullable=False,
         server_default=UserRole.colaborador.value,

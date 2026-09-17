@@ -7,13 +7,10 @@
  * partir da planilha real da equipe, ver
  * backend/scripts/importar_planilha_monitoramento.py).
  *
- * KPIs/listas vem de 2 fontes, igual o resto do monitoramento interno:
- *   - `/monitoramento/resumo` (backend, NOSSO schema -- instrumento/
- *     evento/acao) pra tudo que e dado de gestao interna.
- *   - siconv.json (estatico, mesmo arquivo que a pagina principal usa) so
- *     pra "equipamentos com pagamento ao fornecedor" -- essa info vem do
- *     SICONV, nao faz sentido o router de monitoramento interno ler um
- *     JSON de outro pipeline.
+ * KPIs/listas vem de `/monitoramento/resumo` + `/monitoramento/instrumentos`
+ * (backend, NOSSO schema -- instrumento/evento/acao), via
+ * `services/monitoramento.ts` (cookie de sessão, Plan Mode segurança
+ * 2026-09-16, Bloco 1).
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';

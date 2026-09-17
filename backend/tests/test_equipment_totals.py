@@ -11,6 +11,8 @@ scripts/run_pipeline_tomografo.py ainda).
 """
 from __future__ import annotations
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -39,6 +41,9 @@ def _exec_id_tomografo(db):
 
 
 def _tem_dado_tomografo() -> bool:
+    if not os.environ.get("TEST_DATABASE_URL"):
+        return False
+
     db = SessionLocal()
     try:
         exec_id = _exec_id_tomografo(db)
@@ -59,8 +64,8 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _totais(**params):
-    r = client.get("/equipment-offer-rows/totals", params={"equipment_family": "TOMOGRAFO", **params})
+def _totais(headers, **params):
+    r = client.get("/equipment-offer-rows/totals", params={"equipment_family": "TOMOGRAFO", **params}, headers=headers)
     assert r.status_code == 200
     return r.json()
 
@@ -88,21 +93,23 @@ def _primeiro_municipio_com_oferta() -> tuple[str, str, str]:
         db.close()
 
 
-def test_sem_filtro_bate_com_soma_de_macro_coverage():
-    coverage = client.get("/macro-coverage", params={"equipment_family": "TOMOGRAFO"}).json()
+def test_sem_filtro_bate_com_soma_de_macro_coverage(headers_autenticados):
+    coverage = client.get(
+        "/macro-coverage", params={"equipment_family": "TOMOGRAFO"}, headers=headers_autenticados
+    ).json()
     soma_existing = sum(r["existing_qty"] or 0 for r in coverage)
     soma_available = sum(r["available_qty"] or 0 for r in coverage)
 
-    totais = _totais()
+    totais = _totais(headers_autenticados)
     assert totais["existing_qty"] == soma_existing
     assert totais["available_qty"] == soma_available
 
 
-def test_filtro_por_municipio_e_mais_fino_que_por_macro():
+def test_filtro_por_municipio_e_mais_fino_que_por_macro(headers_autenticados):
     municipio, uf, macro_code = _primeiro_municipio_com_oferta()
 
-    totais_macro = _totais(macro_code=macro_code)
-    totais_municipio = _totais(municipality=f"{municipio}|{uf}")
+    totais_macro = _totais(headers_autenticados, macro_code=macro_code)
+    totais_municipio = _totais(headers_autenticados, municipality=f"{municipio}|{uf}")
 
     # o municipio e um subconjunto da macro -- nunca pode ter mais
     # equipamento que a macro inteira (essa era exatamente a inversao do
@@ -111,8 +118,8 @@ def test_filtro_por_municipio_e_mais_fino_que_por_macro():
     assert totais_municipio["available_qty"] <= totais_macro["available_qty"]
 
 
-def test_available_qty_nunca_maior_que_existing_qty():
+def test_available_qty_nunca_maior_que_existing_qty(headers_autenticados):
     # available_qty e o subconjunto SUS de existing_qty (D-02) -- nunca pode
     # inverter, em nenhuma granularidade de filtro.
-    totais = _totais()
+    totais = _totais(headers_autenticados)
     assert totais["available_qty"] <= totais["existing_qty"]

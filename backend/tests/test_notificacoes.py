@@ -18,7 +18,6 @@ def criar_usuario_teste(db):
         name="Usuário Pytest",
         email=f"pytest-notificacoes-{uuid4()}@example.com",
         password_hash=hash_password("senha"),
-        cpf_hash="cpf-pytest",
         role=UserRole.colaborador,
     )
     db.add(user)

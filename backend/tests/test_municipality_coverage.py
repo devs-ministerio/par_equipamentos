@@ -7,6 +7,8 @@ sozinho se nao houver dado carregado.
 """
 from __future__ import annotations
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -35,6 +37,9 @@ def _exec_id_tomografo(db):
 
 
 def _tem_dado() -> bool:
+    if not os.environ.get("TEST_DATABASE_URL"):
+        return False
+
     db = SessionLocal()
     try:
         exec_id = _exec_id_tomografo(db)
@@ -77,28 +82,38 @@ def _primeiro_macro_com_mais_de_uma_regiao_de_saude() -> str:
         db.close()
 
 
-def test_municipality_coverage_sem_filtro_devolve_todos_os_municipios_do_pais():
-    rows = client.get("/municipality-coverage", params={"equipment_family": "TOMOGRAFO"}).json()
+def test_municipality_coverage_sem_filtro_devolve_todos_os_municipios_do_pais(headers_autenticados):
+    rows = client.get(
+        "/municipality-coverage", params={"equipment_family": "TOMOGRAFO"}, headers=headers_autenticados
+    ).json()
     assert len(rows) >= 5000  # ~5570 municipios brasileiros
 
 
-def test_min_population_filtra_municipios_pequenos():
-    todos = client.get("/municipality-coverage", params={"equipment_family": "TOMOGRAFO"}).json()
+def test_min_population_filtra_municipios_pequenos(headers_autenticados):
+    todos = client.get(
+        "/municipality-coverage", params={"equipment_family": "TOMOGRAFO"}, headers=headers_autenticados
+    ).json()
     filtrados = client.get(
-        "/municipality-coverage", params={"equipment_family": "TOMOGRAFO", "min_population": 100_000}
+        "/municipality-coverage",
+        params={"equipment_family": "TOMOGRAFO", "min_population": 100_000},
+        headers=headers_autenticados,
     ).json()
     assert len(filtrados) < len(todos)
     assert all(m["population"] >= 100_000 for m in filtrados)
 
 
-def test_health_region_coverage_agrega_population_dos_municipios():
+def test_health_region_coverage_agrega_population_dos_municipios(headers_autenticados):
     macro_code = _primeiro_macro_com_mais_de_uma_regiao_de_saude()
 
     municipios = client.get(
-        "/municipality-coverage", params={"equipment_family": "TOMOGRAFO", "macro_code": macro_code}
+        "/municipality-coverage",
+        params={"equipment_family": "TOMOGRAFO", "macro_code": macro_code},
+        headers=headers_autenticados,
     ).json()
     regioes = client.get(
-        "/health-region-coverage", params={"equipment_family": "TOMOGRAFO", "macro_code": macro_code}
+        "/health-region-coverage",
+        params={"equipment_family": "TOMOGRAFO", "macro_code": macro_code},
+        headers=headers_autenticados,
     ).json()
 
     assert len(regioes) >= 2
@@ -110,14 +125,16 @@ def test_health_region_coverage_agrega_population_dos_municipios():
         assert regiao["available_qty"] == sum(m["available_qty"] for m in municipios_da_regiao)
 
 
-def test_health_region_required_qty_nao_e_soma_dos_ceils_dos_municipios():
+def test_health_region_required_qty_nao_e_soma_dos_ceils_dos_municipios(headers_autenticados):
     """RN: required_qty da regiao = ceil(populacao SOMADA / 100_000), nunca
     a soma dos required_qty individuais dos municipios -- senao um bolsao de
     varias cidades pequenas (cada uma < 100 mil, cada uma arredondando pra
     'precisa de 1') superestimaria a demanda da regiao."""
     macro_code = _primeiro_macro_com_mais_de_uma_regiao_de_saude()
     regioes = client.get(
-        "/health-region-coverage", params={"equipment_family": "TOMOGRAFO", "macro_code": macro_code}
+        "/health-region-coverage",
+        params={"equipment_family": "TOMOGRAFO", "macro_code": macro_code},
+        headers=headers_autenticados,
     ).json()
     import math
 

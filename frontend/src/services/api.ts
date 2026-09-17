@@ -20,6 +20,27 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000
  * então o `z.infer` do schema JÁ É o tipo de domínio -- não existe mais um
  * par de tipos (`...Api` + tipo manual) fazendo o mesmo mapeamento a mão. */
 
+/** Dedup de refresh concorrente -- mesmo mecanismo de
+ * `services/monitoramento.ts::tentarRenovarSessao` (Plan Mode segurança
+ * 2026-09-16, Bloco 2/5: dashboard/mapa/painel geral passaram a exigir
+ * sessão também). Duplicado aqui (não importado do outro arquivo) porque
+ * os dois services já existiam com formatos de `apiGet` diferentes
+ * (query-params por objeto aqui, path cru lá) antes desta mudança --
+ * unificar os dois é refatoração maior que o necessário agora. */
+let renovacaoEmAndamento: Promise<boolean> | null = null;
+
+function tentarRenovarSessao(): Promise<boolean> {
+  if (!renovacaoEmAndamento) {
+    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        renovacaoEmAndamento = null;
+      });
+  }
+  return renovacaoEmAndamento;
+}
+
 async function apiGet<T>(path: string, schema: z.ZodType<T>, params?: Record<string, string | string[]>): Promise<T> {
   const url = new URL(path, API_BASE_URL);
   if (params) {
@@ -28,11 +49,25 @@ async function apiGet<T>(path: string, schema: z.ZodType<T>, params?: Record<str
       else url.searchParams.set(k, v);
     }
   }
+  const executar = () => fetch(url, { credentials: 'include' });
   let res: Response;
   try {
-    res = await fetch(url);
+    res = await executar();
   } catch (e) {
     throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
+  }
+  if (res.status === 401) {
+    const renovou = await tentarRenovarSessao();
+    if (renovou) {
+      try {
+        res = await executar();
+      } catch (e) {
+        throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
+      }
+    }
+  }
+  if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.assign('/login');
   }
   if (!res.ok) {
     throw new ApiError(`Falha ao consultar ${path}: ${res.status} ${res.statusText}`, res.status);

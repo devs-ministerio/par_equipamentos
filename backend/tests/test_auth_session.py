@@ -23,7 +23,6 @@ def _criar_usuario(db, senha: str = "senha-teste-123") -> tuple[User, str]:
         name="Usuário Pytest Sessão",
         email=f"pytest-auth-session-{uuid4()}@example.com",
         password_hash=hash_password(senha),
-        cpf_hash="cpf-pytest",
         role=UserRole.colaborador,
     )
     db.add(user)

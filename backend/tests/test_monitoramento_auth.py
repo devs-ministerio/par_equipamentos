@@ -37,7 +37,6 @@ def _token_usuario_teste(db, role: UserRole = UserRole.colaborador) -> str:
         name="Usuário Pytest Auth",
         email=f"pytest-monitoramento-auth-{uuid4()}@example.com",
         password_hash=hash_password("senha"),
-        cpf_hash="cpf-pytest",
         role=role,
     )
     db.add(user)

@@ -4,13 +4,30 @@
 banco"): `src/pages/MonitoramentoEquipamentosPage.tsx` NÃO lê mais
 `convenios.json`/`siconv.json`/`transferegov.json` -- consome
 `GET /convenios` (`backend/app/routers/convenios.py`, tabela `Convenio`).**
-Os 3 JSON abaixo continuam existindo, mas só como formato intermediário
-de saída dos scripts de coleta/descoberta -- entrada de
-`scripts/importar_convenios_banco.py`, que faz o merge (mesma regra de
-qual fonte vence em cada campo que o antigo `mesclar-convenios.ts` client-
-side fazia, agora em Python) e grava na tabela `Convenio` de onde a API
-lê. Pra atualizar o universo de convênios (convênio novo publicado,
-situação/valor mudou etc.):
+
+**Removidos desta pasta em 2026-09-17 (Plan Mode segurança
+2026-09-16, Bloco 5)**: `convenios.json`, `siconv.json`,
+`transferegov.json`, `componentes_oncologia.json` e
+`programas_transferegov.json`. Eram cópias (`cp scripts/output/*.json`)
+de arquivos que `scripts/importar_convenios_banco.py` já lê direto de
+`backend/scripts/output/` -- essas cópias em `frontend/public/` nunca
+foram necessárias pro import (conferido no código do script) e nenhum
+componente do frontend as lia mais desde a migração pra `GET /convenios`.
+Como tudo em `frontend/public/` é servido publicamente pelo Vercel sem
+nenhum controle de acesso, `siconv.json`/`transferegov.json` vazavam
+CEP/endereço/telefone do item (`CEP_ITEM`/`ENDERECO_ITEM`/`ed_cep`) sem
+autenticação -- o mesmo dado, hoje, só é servido via `GET /convenios/
+{numero}` (`siconv_raw`/`transferegov_raw`), que exige sessão (decisão do
+usuário 2026-09-17: todo o app fica atrás de login).
+
+Os JSON de saída dos scripts de coleta/descoberta continuam existindo
+normalmente em `backend/scripts/output/` -- é de lá que
+`scripts/importar_convenios_banco.py` lê (`convenios_flat.json`,
+`siconv_legado.json`, `transferegov_relacional.json`), faz o merge (mesma
+regra de qual fonte vence em cada campo que o antigo `mesclar-convenios.ts`
+client-side fazia, agora em Python) e grava na tabela `Convenio` de onde a
+API lê. Pra atualizar o universo de convênios (convênio novo publicado,
+situação/valor mudou etc.), nenhum passo manual de cópia é necessário:
 
 ```bash
 cd backend
@@ -26,23 +43,10 @@ uv run python -m scripts.coletar_siconv_legado              # atualiza siconv_le
 uv run python -m scripts.coletar_transferegov_relacional    # atualiza transferegov_relacional.json
                                                               # (idem, por CNPJ de convenios_flat.json)
 
-# extrai so os componentes-alvo (com proposta) de
-# levantamento_componente_por_programa.json pra componentes_oncologia.json
-# -- ver bloco no fim de scripts/levantamento_convenios_oncologia.py ou
-# rodar o trecho equivalente inline.
-
-cp scripts/output/convenios_flat.json ../frontend/public/monitoramento-equipamentos/convenios.json
-cp scripts/output/siconv_legado.json ../frontend/public/monitoramento-equipamentos/siconv.json
-cp scripts/output/transferegov_relacional.json ../frontend/public/monitoramento-equipamentos/transferegov.json
-cp scripts/output/componentes_oncologia.json ../frontend/public/monitoramento-equipamentos/componentes_oncologia.json
-
-# Passo que IMPORTA de verdade (os cp acima só preparam o input) -- lê os
-# 3 JSON, resolve CNES (múltiplos sinais, ver docstring de resolver_cnes)
-# e faz upsert na tabela `Convenio` (por `numero`, idempotente). GET
-# /convenios já serve tudo daqui pra frente, incluindo cnes/
-# cnes_nome_estabelecimento -- nao precisa mais propagar nada de volta
-# pro convenios.json (`scripts/exportar_cnes_para_json.py` fica só como
-# utilitário, caso algo volte a depender do JSON estático).
+# Passo que IMPORTA de verdade -- le os 3 JSON de scripts/output/,
+# resolve CNES (multiplos sinais, ver docstring de resolver_cnes) e faz
+# upsert na tabela `Convenio` (por `numero`, idempotente). GET /convenios
+# ja serve tudo daqui pra frente, incluindo cnes/cnes_nome_estabelecimento.
 uv run python -m scripts.importar_convenios_banco
 ```
 

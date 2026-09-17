@@ -9,8 +9,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import Competency, Execution, MacroCoverage
+from app.db.models import Competency, Execution, MacroCoverage, User
 from app.schemas import MacroCoverageRead
 
 router = APIRouter(prefix="/macro-coverage", tags=["macro-coverage"])
@@ -46,12 +47,15 @@ def listar_macro_coverage(
     execution_id: int | None = None,
     macro_code: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ) -> list[MacroCoverageRead]:
     """Lista a cobertura por macrorregiao. Sem `execution_id`, usa a execucao
     mais recente (nao precisa ter conceito de competencia publicada ainda --
     isso e Modulo 5/7, nao existe nenhuma execucao alem da de seed hoje).
     `macro_code` e opcional -- usado pelo modal de detalhe do municipio pra
-    buscar so a macro dele em vez da lista inteira (~121 linhas)."""
+    buscar so a macro dele em vez da lista inteira (~121 linhas). Exige
+    sessão (decisão do usuário 2026-09-17: todo o app fica atrás de login
+    por enquanto, não só o monitoramento interno)."""
     exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
         return []

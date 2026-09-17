@@ -7,9 +7,16 @@ client-side de `convenios.json`/`siconv.json`/`transferegov.json`
 Filtros espelham o que `MonitoramentoEquipamentosPage.tsx` já filtrava
 client-side (busca/UF/equipamento/situação/ano/programa) -- movidos pro
 banco junto com a paginação, em vez de trazer os 403 inteiros pro front
-sempre. Leitura pública, mesmo padrão de `GET /monitoramento/instrumentos`
-(só mutação exige editor -- e aqui não tem mutação nenhuma, `convenio` só
-é escrito pelo script de import).
+sempre.
+
+Leitura exige sessão (`require_current_user`) desde 2026-09-17, decisão do
+usuário: todo o app fica atrás de login por enquanto (Plan Mode segurança
+2026-09-16, Bloco 5) -- não só por paridade com o resto do app, mas porque
+`GET /convenios/{numero}` devolve `siconv_raw`/`transferegov_raw` por
+inteiro, que contêm CEP/endereço do item (`CEP_ITEM`/`ENDERECO_ITEM`/
+`ed_cep`), confirmado em registro real do banco. Sem mutação (`convenio`
+só é escrito pelo script de import), então não há distinção editor/leitor
+aqui, só sessão válida.
 """
 from __future__ import annotations
 
@@ -18,10 +25,11 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 
+from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import CnesEstabelecimento, Convenio
+from app.db.models import CnesEstabelecimento, Convenio, User
 
 router = APIRouter(prefix="/convenios", tags=["convenios"])
 
@@ -88,6 +96,48 @@ class ConvenioListaRead(BaseModel):
     itens: list[ConvenioRead]
 
 
+CONVENIO_LIST_LOAD_ONLY = (
+    Convenio.numero,
+    Convenio.numero_instrumento,
+    Convenio.ano_instrumento,
+    Convenio.objeto,
+    Convenio.situacao,
+    Convenio.situacao_portal,
+    Convenio.situacao_contratacao,
+    Convenio.convenente_nome,
+    Convenio.convenente_cnpj,
+    Convenio.convenente_tipo,
+    Convenio.municipio,
+    Convenio.uf,
+    Convenio.codigo_ibge,
+    Convenio.regiao,
+    Convenio.orgao,
+    Convenio.unidade_gestora,
+    Convenio.subfuncao,
+    Convenio.funcao,
+    Convenio.tipo_instrumento,
+    Convenio.numero_processo,
+    Convenio.programa,
+    Convenio.data_publicacao,
+    Convenio.data_inicio_vigencia,
+    Convenio.data_final_vigencia,
+    Convenio.data_conclusao,
+    Convenio.data_ultima_liberacao,
+    Convenio.valor_global,
+    Convenio.valor_repasse,
+    Convenio.valor_empenhado,
+    Convenio.valor_desembolsado,
+    Convenio.valor_contrapartida,
+    Convenio.valor_saldo_conta,
+    Convenio.valor_ultima_liberacao,
+    Convenio.valor_pago_fornecedor,
+    Convenio.pagamentos_count,
+    Convenio.financeiro_fonte_confiavel,
+    Convenio.equipamentos_tags,
+    Convenio.cnes,
+)
+
+
 def _com_nome_cnes(db: Session, convenios: list[Convenio], modelo: type[BaseModel] = ConvenioRead) -> list[BaseModel]:
     codigos = {c.cnes for c in convenios if c.cnes}
     nomes = {}
@@ -102,19 +152,16 @@ def _com_nome_cnes(db: Session, convenios: list[Convenio], modelo: type[BaseMode
     ]
 
 
-@router.get("", response_model=ConvenioListaRead)
-def listar_convenios(
-    busca: str | None = None,
-    uf: str | None = None,
-    equipamento: str | None = None,
-    situacao: str | None = None,
-    ano: int | None = None,
-    programa: str | None = None,
-    pagina: int = Query(1, ge=1),
-    tamanho_pagina: int = Query(20, ge=1, le=500),
-    db: Session = Depends(get_db),
+def _aplicar_filtros_convenio(
+    query,
+    *,
+    busca: str | None,
+    uf: str | None,
+    equipamento: str | None,
+    situacao: str | None,
+    ano: int | None,
+    programa: str | None,
 ):
-    query = select(Convenio)
     if uf:
         query = query.where(Convenio.uf == uf)
     if equipamento:
@@ -134,8 +181,30 @@ def listar_convenios(
             | Convenio.municipio.ilike(alvo)
             | Convenio.objeto.ilike(alvo)
         )
+    return query
 
-    total = db.execute(select(func.count()).select_from(query.subquery())).scalar_one()
+
+@router.get("", response_model=ConvenioListaRead)
+def listar_convenios(
+    busca: str | None = None,
+    uf: str | None = None,
+    equipamento: str | None = None,
+    situacao: str | None = None,
+    ano: int | None = None,
+    programa: str | None = None,
+    pagina: int = Query(1, ge=1),
+    tamanho_pagina: int = Query(20, ge=1, le=500),
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+):
+    filtros = dict(busca=busca, uf=uf, equipamento=equipamento, situacao=situacao, ano=ano, programa=programa)
+    count_query = _aplicar_filtros_convenio(select(func.count()).select_from(Convenio), **filtros)
+    query = _aplicar_filtros_convenio(
+        select(Convenio).options(load_only(*CONVENIO_LIST_LOAD_ONLY)),
+        **filtros,
+    )
+
+    total = db.execute(count_query).scalar_one()
     itens = db.execute(
         query.order_by(Convenio.numero).offset((pagina - 1) * tamanho_pagina).limit(tamanho_pagina)
     ).scalars().all()
@@ -143,7 +212,7 @@ def listar_convenios(
 
 
 @router.get("/{numero}", response_model=ConvenioDetalheRead)
-def obter_convenio(numero: str, db: Session = Depends(get_db)):
+def obter_convenio(numero: str, db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
     convenio = db.execute(select(Convenio).where(Convenio.numero == numero)).scalar_one_or_none()
     if convenio is None:
         raise HTTPException(404, f"Convênio {numero} não encontrado.")

@@ -40,7 +40,6 @@ def main() -> None:
                 name=args.name,
                 email=email,
                 password_hash=hash_password(senha),
-                cpf_hash="nao-informado",
                 role=UserRole(args.role),
                 status=UserStatus.active,
             )

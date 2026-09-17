@@ -26,12 +26,46 @@ async function mensagemErroHttp(resp: Response): Promise<string> {
   }
 }
 
+/** Dedup de refresh concorrente -- mesmo mecanismo de
+ * `services/monitoramento.ts::tentarRenovarSessao` (Plan Mode segurança
+ * 2026-09-16, Bloco 5: Instrumentos firmados passou a exigir sessão
+ * também, decisão do usuário 2026-09-17 de colocar todo o app atrás de
+ * login). Duplicado aqui em vez de importado -- ver mesmo comentário em
+ * services/api.ts. */
+let renovacaoEmAndamento: Promise<boolean> | null = null;
+
+function tentarRenovarSessao(): Promise<boolean> {
+  if (!renovacaoEmAndamento) {
+    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        renovacaoEmAndamento = null;
+      });
+  }
+  return renovacaoEmAndamento;
+}
+
 async function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
+  const executar = () => fetch(`${API_BASE_URL}${path}`, { credentials: 'include' });
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`);
+    res = await executar();
   } catch (e) {
     throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
+  }
+  if (res.status === 401) {
+    const renovou = await tentarRenovarSessao();
+    if (renovou) {
+      try {
+        res = await executar();
+      } catch (e) {
+        throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
+      }
+    }
+  }
+  if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
+    window.location.assign('/login');
   }
   if (!res.ok) throw new ApiError(await mensagemErroHttp(res), res.status);
   const parsed = schema.safeParse(await res.json());

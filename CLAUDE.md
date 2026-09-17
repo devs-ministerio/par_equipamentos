@@ -314,11 +314,24 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
 
 `docs/arquitetura/planmode-seguranca-2026-09-16.md` (após
 `diagnostico-constituicao-seguranca-2026-09-16.md`, nota 3,4/10) definiu 5
-blocos. **Blocos 1 e 2 implementados** (2026-09-17); Bloco 4 parcialmente
-(headers/CORS, junto do Bloco 2, por se tocarem); **Bloco 3 implementado só
-na parte estrutural** (autorização movida pro Service, escopo/matriz de
-role ainda pendente de decisão de produto); Bloco 5 (LGPD/inventário) ainda
-pendente.
+blocos. **Blocos 1, 2, 4 e 5 implementados** (2026-09-17); **Bloco 3
+implementado só na parte estrutural** (autorização movida pro Service,
+escopo/matriz de role ainda pendente de decisão de produto).
+
+**Decisão do usuário 2026-09-17, ampliando o escopo original do Bloco
+1**: todo o app fica atrás de login agora — não só o monitoramento
+interno. `convenios.py`/`macro_coverage.py`/`municipality_coverage.py`/
+`equipment_offer.py` (antes públicos por serem "dado aberto de convênio",
+ver Bloco 3 abaixo) também passaram a exigir `require_current_user`, e
+`ProtectedRoute` no frontend envolve TODAS as rotas (`App.tsx`) — Painel
+Geral ("/"), Dashboard, Mapa, Relatórios, Instrumentos firmados, e todo o
+monitoramento interno. Motivo direto: `GET /convenios/{numero}` devolve
+`siconv_raw`/`transferegov_raw` por inteiro, que contêm CEP/endereço/
+telefone do item (mesmo achado do diagnóstico original, só que a fonte
+migrou de JSON estático pra API viva no meio do caminho, ver Bloco 5).
+Candidato a voltar a ser público no futuro: `/monitoramento-equipamentos/
+painel` (Painel de Gestão do monitoramento interno) — por ora fica atrás
+do mesmo gate, sem exceção.
 
 - **Bloco 1 — leituras de monitoramento exigem sessão**: as 5 leituras de
   `backend/app/routers/monitoramento.py` (exceto `/marcos`, público por
@@ -393,10 +406,29 @@ pendente.
   `colaborador` têm exatamente os mesmos poderes, nenhuma checagem de
   `UserRole.admin` existe em lugar nenhum. Escopo de autorização por
   técnico/UF/órgão e diferenciação real `admin` vs `colaborador` são
-  **decisão de produto pendente**, não implementadas. `convenios.py`/
-  `macro_coverage.py`/`municipality_coverage.py`/`equipment_offer.py`
-  continuam 100% públicos por serem dado aberto de convênio — distinto do
-  dado interno do Bloco 1, não fechar por engano.
+  **decisão de produto pendente**, não implementadas.
+- **Bloco 5 — LGPD/inventário**: `convenios.py`/`macro_coverage.py`/
+  `municipality_coverage.py`/`equipment_offer.py` também passaram a exigir
+  `require_current_user` (decisão do usuário 2026-09-17 de ampliar o Bloco
+  1, ver acima — não são mais o caso "dado aberto de convênio sem
+  necessidade de login" que a avaliação original do Bloco 3 tinha
+  registrado). `frontend/public/monitoramento-equipamentos/convenios.json`/
+  `siconv.json`/`transferegov.json`/`componentes_oncologia.json`/
+  `programas_transferegov.json` foram **removidos** — eram cópias mortas
+  (nenhum componente lia mais, `scripts/importar_convenios_banco.py` lê
+  direto de `backend/scripts/output/`) servidas publicamente pelo Vercel
+  sem controle de acesso nenhum; `siconv.json`/`transferegov.json`
+  continham CEP/endereço/telefone do item. Os 2 consumidores restantes de
+  `siconv.json` migraram para a tabela `Convenio` via API autenticada:
+  `monitoramento-interno.tsx` usa `useConvenioPrograma` (1 lookup por
+  número, `GET /convenios/{numero}`) em vez de baixar o dump inteiro;
+  `monitoramento-painel-page.tsx` usa `fetchConvenios` (`valor_global`/
+  `valor_pago_fornecedor` já pré-computados na tabela, não precisa do
+  payload cru). Contrato morto de CPF **removido** (decisão do usuário):
+  coluna `User.cpf_hash` dropada (migration `f8fe7ce9347c`, confirmado
+  antes que só continha o sentinela `"nao-informado"`, nunca dado real),
+  campo `UserCreate.cpf` removido (`schemas.py`), linha hardcoded removida
+  de `scripts/criar_usuario.py`.
 
 ## Estratégia de dados do Neon: ingestão e clonagem
 

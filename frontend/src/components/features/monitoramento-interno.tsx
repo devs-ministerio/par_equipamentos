@@ -7,14 +7,13 @@
  * toda lógica assíncrona fora do componente de UI) e delega a
  * apresentação pros subcomponentes de monitoramento-interno-*.tsx. */
 import { useState } from 'react';
-import { useJson } from '@/hooks/useJson';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useConvenioPrograma } from '@/hooks/useConvenioPrograma';
 import { useMonitoramentoMarcos } from '@/hooks/useMonitoramentoMarcos';
 import { useInstrumentoTimeline, useRegistrarEvento, useSalvarCadastroInstrumento } from '@/hooks/useInstrumentoTimeline';
 import { useAcoesDoInstrumento, useConcluirAcao, useCriarAcao } from '@/hooks/useMonitoramentoAcoes';
 import { componenteDoProgramaSiconv } from '@/lib/componente-siconv';
 import { derivarMonitoramentoInterno } from '@/lib/monitoramento-derivado';
-import type { SiconvEntrada } from '@/types/monitoramento';
 import { ApiError } from '@/lib/api-error';
 import { MonitoramentoInternoCabecalho } from './monitoramento-interno-cabecalho';
 import { MonitoramentoInternoCadastro } from './monitoramento-interno-cadastro';
@@ -33,8 +32,9 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   // convenio 991708: a planilha da equipe deixou a celula "COMPONENTES DE
   // FINANCIAMENTO" vazia pra essa linha, mas o SICONV TEM essa informacao
   // via NOME_PROGRAMA). So exibido quando `inst.componente` for nulo,
-  // nunca escrito no banco.
-  const { dados: siconvTodos } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
+  // nunca escrito no banco. Lookup autenticado por numero (Bloco 5), nao
+  // mais siconv.json inteiro (ver docstring de useConvenioPrograma).
+  const programaQuery = useConvenioPrograma(numeroConvenio);
 
   const marcosQuery = useMonitoramentoMarcos();
   const timelineQuery = useInstrumentoTimeline(numeroConvenio);
@@ -80,11 +80,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
     acoesAbertas, acoesAtrasadas, equipamentoFisico, validadeLicenca, textoLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
-  // So calcula o fallback quando precisa (inst.componente nulo) -- cruza
-  // siconv.json pelo nr_convenio, mesma logica ja usada no card principal.
-  const componenteViaSiconv = !inst.componente
-    ? componenteDoProgramaSiconv(siconvTodos?.find((e) => e.convenio.NR_CONVENIO === inst.nr_convenio)?.programa?.NOME_PROGRAMA)
-    : null;
+  // So usa o fallback quando precisa (inst.componente nulo).
+  const componenteViaSiconv = !inst.componente ? componenteDoProgramaSiconv(programaQuery.data) : null;
 
   return (
     <div>

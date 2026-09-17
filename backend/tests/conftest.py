@@ -66,6 +66,42 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     seed_monitoramento()
 
 
+@pytest.fixture(scope="session")
+def headers_autenticados():
+    """Header `Authorization: Bearer <token>` de um usuário de teste --
+    várias leituras (monitoramento, propostas-candidatas, convênios,
+    macro/municipality-coverage, equipment-offer-rows) passaram a exigir
+    sessão (Plan Mode segurança 2026-09-16, decisão do usuário 2026-09-17:
+    todo o app fica atrás de login). `scope="session"` -- 1 usuário/token
+    só, reaproveitado por toda a suíte, criado e limpo 1x."""
+    from uuid import uuid4
+
+    from app.auth import create_access_token, hash_password
+    from app.db.base import SessionLocal
+    from app.db.models import User, UserRole
+
+    db = SessionLocal()
+    user = User(
+        name="Pytest Sessão",
+        email=f"pytest-headers-autenticados-{uuid4()}@example.com",
+        password_hash=hash_password("senha-pytest"),
+        role=UserRole.colaborador,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    token = create_access_token(user)
+    user_id = user.id
+    db.close()
+
+    yield {"Authorization": f"Bearer {token}"}
+
+    db = SessionLocal()
+    db.query(User).filter_by(id=user_id).delete()
+    db.commit()
+    db.close()
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     db_marker = pytest.mark.db
     if _TEST_DATABASE_URL:

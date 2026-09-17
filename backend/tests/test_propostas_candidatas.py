@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from app.auth import hash_password
 from app.db.base import SessionLocal
-from app.db.models import InstrumentoEquipamento, PropostaCandidata, PropostaCandidataStatus, User, UserRole
+from app.db.models import AuditLog, InstrumentoEquipamento, PropostaCandidata, PropostaCandidataStatus, User, UserRole
 from app.routers.propostas_candidatas import (
     DecisaoRevisao,
     RevisarPropostaBody,
@@ -23,7 +23,6 @@ def criar_usuario_teste(db):
         name="Usuário Pytest",
         email=f"pytest-propostas-{uuid4()}@example.com",
         password_hash=hash_password("senha"),
-        cpf_hash="cpf-pytest",
         role=UserRole.colaborador,
     )
     db.add(user)
@@ -60,8 +59,10 @@ def test_aceitar_proposta_cria_instrumento_com_id_proposta_como_nr_convenio():
         usuario_teste = criar_usuario_teste(db)
         proposta = criar_proposta_teste(db, id_proposta=888_000_001)
 
-        pendentes = listar_propostas_candidatas(status=PropostaCandidataStatus.pendente, db=db)
-        assert any(p.id == proposta.id for p in pendentes)
+        pendentes = listar_propostas_candidatas(
+            status=PropostaCandidataStatus.pendente, pagina=1, tamanho_pagina=50, db=db,
+        )
+        assert any(p.id == proposta.id for p in pendentes.itens)
 
         resultado = revisar_proposta(
             proposta.id, RevisarPropostaBody(decisao=DecisaoRevisao.aceita), db=db, usuario=usuario_teste
@@ -82,6 +83,54 @@ def test_aceitar_proposta_cria_instrumento_com_id_proposta_como_nr_convenio():
         assert exc.value.status_code == 409
     finally:
         if instrumento_id is not None:
+            db.query(AuditLog).filter_by(entity_name="instrumento_equipamento", entity_id=instrumento_id).delete()
+        if instrumento_id is not None:
+            db.query(InstrumentoEquipamento).filter_by(id=instrumento_id).delete()
+        if proposta is not None:
+            db.query(PropostaCandidata).filter_by(id=proposta.id).delete()
+        if usuario_teste is not None:
+            db.query(User).filter_by(id=usuario_teste.id).delete()
+        db.commit()
+        db.close()
+
+
+def test_aceitar_proposta_faz_um_unico_commit(monkeypatch):
+    """Instrumento e proposta revisada precisam fechar na mesma transacao.
+
+    Regressao do fluxo antigo: `revisar_proposta` chamava o endpoint
+    `criar_instrumento`, que fazia um commit proprio antes da proposta mudar
+    para aceita.
+    """
+    db = SessionLocal()
+    usuario_teste = None
+    proposta = None
+    instrumento_id = None
+    original_commit = db.commit
+    commits = 0
+
+    def counting_commit():
+        nonlocal commits
+        commits += 1
+        return original_commit()
+
+    try:
+        usuario_teste = criar_usuario_teste(db)
+        proposta = criar_proposta_teste(db, id_proposta=888_000_003)
+        monkeypatch.setattr(db, "commit", counting_commit)
+
+        revisar_proposta(
+            proposta.id, RevisarPropostaBody(decisao=DecisaoRevisao.aceita), db=db, usuario=usuario_teste
+        )
+
+        assert commits == 1
+        instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=str(proposta.id_proposta)).one()
+        instrumento_id = instrumento.id
+        db.refresh(proposta)
+        assert proposta.status == PropostaCandidataStatus.aceita
+    finally:
+        monkeypatch.setattr(db, "commit", original_commit)
+        if instrumento_id is not None:
+            db.query(AuditLog).filter_by(entity_name="instrumento_equipamento", entity_id=instrumento_id).delete()
             db.query(InstrumentoEquipamento).filter_by(id=instrumento_id).delete()
         if proposta is not None:
             db.query(PropostaCandidata).filter_by(id=proposta.id).delete()
