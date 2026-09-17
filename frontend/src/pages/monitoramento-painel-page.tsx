@@ -29,7 +29,7 @@ import { Link } from 'react-router-dom';
 import { KpiCard } from '@/components/common/kpi-card';
 import { cn } from '@/lib/utils';
 import { normalizarTexto } from '@/utils/texto';
-import { API_BASE_URL } from '@/services/monitoramento';
+import { fetchInstrumentos, fetchMarcos, fetchResumoMonitoramento } from '@/services/monitoramento';
 import { BarraDistribuicao, classeValidade, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
 import { useJson } from '@/hooks/useJson';
@@ -73,15 +73,6 @@ const PALETA = ['var(--primary)', 'var(--success)', 'var(--warning)', 'var(--for
 function bgValidade(dias: number): string {
   if (dias < 180) return dias < 90 ? 'bg-destructive' : 'bg-warning';
   return 'bg-success';
-}
-
-/** Erro HTTP não é resposta válida de painel. Sem essa guarda, um 404/500
- * JSON podia ser aceito como se fosse o formato esperado e quebrar a tela
- * mais adiante, sem contexto para quem usa. */
-async function fetchMonitoramento<T>(path: string): Promise<T> {
-  const resposta = await fetch(`${API_BASE_URL}${path}`);
-  if (!resposta.ok) throw new Error(`${resposta.status} ${resposta.statusText}`);
-  return resposta.json() as Promise<T>;
 }
 
 /** Extrai a FAMILIA de equipamento (Acelerador Linear, Mamógrafo, etc.) do
@@ -263,11 +254,10 @@ export function MonitoramentoPainelPage() {
   const { dados: siconvTodos } = useJson<SiconvEntrada[]>('/monitoramento-equipamentos/siconv.json');
 
   useEffect(() => {
-    Promise.all([
-      fetchMonitoramento<ResumoApi>('/monitoramento/resumo'),
-      fetchMonitoramento<InstrumentoApi[]>('/monitoramento/instrumentos'),
-      fetchMonitoramento<MarcoApi[]>('/monitoramento/marcos'),
-    ])
+    // Rotas exigem sessão desde o Plan Mode segurança 2026-09-16 (Bloco 1)
+    // -- usa a camada de services (cookie via credentials:'include',
+    // schema validado com Zod), não mais `fetch` cru direto na API.
+    Promise.all([fetchResumoMonitoramento(), fetchInstrumentos(), fetchMarcos()])
       .then(([r, i, m]) => { setResumo(r); setInstrumentos(i); setMarcos(m); })
       .catch((e) => setErro(String(e)));
   }, []);

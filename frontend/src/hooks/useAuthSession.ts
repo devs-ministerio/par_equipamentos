@@ -1,79 +1,63 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  type AuthUser,
-  fetchCurrentUser,
-  getAuthToken,
-  login,
-  setAuthToken,
-} from '@/services/monitoramento';
+import { type AuthUser, fetchCurrentUser, login, logout } from '@/services/monitoramento';
 import { monitoramentoKeys } from './monitoramento-query-keys';
-
-/** Token vive no cache do TanStack Query (não mais `useState` local) --
- * achado 2026-09-15: com o login saindo do form inline (dentro de 1
- * convênio) pra página dedicada (login-page.tsx) + widget global no header
- * (UserMenu, presente em toda página), várias instâncias de
- * `useAuthSession()` ficam montadas ao mesmo tempo (header + página).
- * `useState` local não propaga entre instâncias -- login/logout num lugar
- * não atualizava o outro (bug real visto ao testar: deslogar pelo header
- * deixava o card "Acesso operacional" da página ainda mostrando o usuário
- * antigo). `queryClient.setQueryData` nesta chave notifica TODO `useQuery`
- * inscrito nela, em qualquer componente -- vira uma store global de graça. */
-const TOKEN_QUERY_KEY = ['auth', 'token'] as const;
 
 /** Sessão do usuário operacional do monitoramento interno (login/logout +
  * usuário atual) -- extraído de MonitoramentoInterno.tsx pra hook próprio
  * (Seção 6/C da migração: lógica assíncrona nunca dentro do componente de
- * UI). */
+ * UI).
+ *
+ * Cookie HttpOnly (Plan Mode segurança 2026-09-16, Bloco 2) -- diferente
+ * do token em `localStorage` de antes, JS não tem (nem precisa ter) acesso
+ * ao valor da sessão. "Está logado?" deixa de ser uma leitura síncrona
+ * local e vira sempre uma pergunta ao backend: `usuarioQuery` chama
+ * `GET /auth/me` (que só responde 200 se o cookie for válido) e
+ * `queryClient.setQueryData`/`invalidateQueries` nessa mesma chave
+ * (`monitoramentoKeys.currentUser`) propaga pra toda instância montada de
+ * `useAuthSession()` ao mesmo tempo (header + página), mesmo motivo do
+ * design anterior (bug real evitado: deslogar num lugar não atualizava o
+ * outro). */
 export function useAuthSession() {
   const queryClient = useQueryClient();
 
-  const { data: token = null } = useQuery({
-    queryKey: TOKEN_QUERY_KEY,
-    queryFn: () => getAuthToken(),
-    initialData: () => getAuthToken(),
-    staleTime: Infinity,
-  });
-
   const usuarioQuery = useQuery({
-    queryKey: [...monitoramentoKeys.currentUser, token],
+    queryKey: monitoramentoKeys.currentUser,
     queryFn: fetchCurrentUser,
-    enabled: Boolean(token),
     retry: false,
   });
 
-  // Token ficou inválido (401) -- some da sessão sem propagar erro pra UI
-  // além de "não autenticado" (mesmo comportamento do catch antigo).
-  if (token && usuarioQuery.isError && !getAuthToken()) {
-    queryClient.setQueryData(TOKEN_QUERY_KEY, null);
-  }
-
   const loginMutation = useMutation({
     mutationFn: (corpo: { email: string; senha: string }) => login(corpo.email, corpo.senha),
-    onSuccess: (novoToken) => {
-      queryClient.setQueryData(TOKEN_QUERY_KEY, novoToken);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.currentUser });
     },
   });
 
-  function sair() {
-    setAuthToken(null);
-    queryClient.setQueryData(TOKEN_QUERY_KEY, null);
+  async function sair() {
+    await logout().catch(() => {
+      // Revogação no servidor já é best-effort aqui -- mesmo se a chamada
+      // falhar (ex. rede fora), a sessão local (query cache) é limpa do
+      // mesmo jeito; o cookie expira sozinho na duração do access token.
+    });
+    queryClient.setQueryData(monitoramentoKeys.currentUser, null);
     queryClient.removeQueries({ queryKey: monitoramentoKeys.currentUser });
   }
 
   /** Chamado pelas mutações de escrita do módulo quando o backend recusa
-   * por falta de sessão -- mesmo papel do antigo `tratarErroEscrita`. */
+   * por falta de sessão -- mesmo papel do antigo `tratarErroEscrita`. Só
+   * força a query a revalidar; `requisitar` (services/monitoramento.ts) já
+   * tentou renovar via /auth/refresh antes de deixar o 401 chegar aqui. */
   function tratarSessaoInvalida() {
-    if (!getAuthToken()) queryClient.setQueryData(TOKEN_QUERY_KEY, null);
+    queryClient.invalidateQueries({ queryKey: monitoramentoKeys.currentUser });
   }
 
-  const usuarioAtual: AuthUser | null = token ? (usuarioQuery.data ?? null) : null;
+  const usuarioAtual: AuthUser | null = usuarioQuery.data ?? null;
 
   return {
     usuarioAtual,
     autenticado: Boolean(usuarioAtual),
     podeEditar: usuarioAtual?.role === 'admin' || usuarioAtual?.role === 'colaborador',
-    checandoSessao: Boolean(token) && usuarioQuery.isLoading,
+    checandoSessao: usuarioQuery.isLoading,
     login: loginMutation.mutateAsync,
     loginPendente: loginMutation.isPending,
     erroLogin: loginMutation.error,

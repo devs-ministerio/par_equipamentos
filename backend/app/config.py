@@ -109,6 +109,25 @@ class Settings(BaseSettings):
         url = self._normaliza_driver(self.database_url_migration) if self.database_url_migration else self.database_url_normalizada
         return url.replace("%", "%%")
 
+    @field_validator("cors_origins")
+    @classmethod
+    def _validar_cors_origins(cls, v: str) -> str:
+        """Bloco 4 do Plan Mode seguranca 2026-09-16: `*` nunca e valido
+        aqui (a API roda com `allow_credentials=True`, e wildcard com
+        credencial e exatamente a combinacao que a constituicao de
+        seguranca proibe). Origem `http://` (nao `https://`) so e aceita
+        pra localhost/127.0.0.1 -- e o unico caso de dev legitimo; qualquer
+        outra origem HTTP e presumida producao mal configurada e derruba o
+        boot em vez de servir trafego inseguro."""
+        for origem in (o.strip() for o in v.split(",") if o.strip()):
+            if origem == "*":
+                raise ValueError("CORS_ORIGINS nunca pode conter '*' (API roda com allow_credentials=True).")
+            if origem.startswith("http://") and not origem.startswith(("http://localhost", "http://127.0.0.1")):
+                raise ValueError(
+                    f"CORS_ORIGINS com origem HTTP fora de localhost ({origem!r}) -- use https:// em producao."
+                )
+        return v
+
     @property
     def cors_origins_lista(self) -> list[str]:
         return [origem.strip() for origem in self.cors_origins.split(",") if origem.strip()]

@@ -23,7 +23,7 @@ import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { cn } from '@/lib/utils';
 import { normalizarTexto } from '@/utils/texto';
-import { API_BASE_URL } from '@/services/monitoramento';
+import { fetchInstrumentos, fetchResumoMonitoramento } from '@/services/monitoramento';
 import { BarraDistribuicao, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
 import { fmtData } from '@/lib/monitoramento-format';
 import { useAuthSession } from '@/hooks/useAuthSession';
@@ -112,11 +112,13 @@ export function MonitoramentoOverviewPage() {
   const [ufFiltro, setUfFiltro] = useState<string | null>(null);
   const [tipoContratacaoFiltro, setTipoContratacaoFiltro] = useState<string | null>(null);
 
-  useEffect(() => {
-    Promise.all([
-      fetch(`${API_BASE_URL}/monitoramento/resumo`).then((r) => r.json()),
-      fetch(`${API_BASE_URL}/monitoramento/instrumentos`).then((r) => r.json()),
-    ])
+useEffect(() => {
+    // Rotas exigem sessão desde o Plan Mode segurança 2026-09-16 (Bloco 1)
+    // -- usa a camada de services (cookie via credentials:'include',
+    // schema validado com Zod), não mais `fetch` cru direto na API (esse
+    // `fetch` cru nunca mandava credencial, então passou a receber 401 e
+    // quebrava a página assim que a rota deixou de ser pública).
+    Promise.all([fetchResumoMonitoramento(), fetchInstrumentos()])
       .then(([r, i]) => { setResumo(r); setInstrumentos(i); })
       .catch((e) => setErro(String(e)));
   }, []);

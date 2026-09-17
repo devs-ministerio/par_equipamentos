@@ -1,9 +1,9 @@
 /** Página de login dedicada (achado 2026-09-15, pedido do usuário:
  * "preciso que o botão de login aponte para uma página de login e não que
  * abra dentro do próprio convênio"). Fora de qualquer layout (como "/",
- * PainelGeralPage) -- assim o AppHeader de origem desmonta ao navegar pra
- * cá e remonta com o token fresco ao voltar (useAuthSession lê o token do
- * localStorage só na inicialização do hook, ver hooks/useAuthSession.ts).
+ * PainelGeralPage). Sessão via cookie HttpOnly (Plan Mode segurança
+ * 2026-09-16, Bloco 2) -- `useAuthSession` reflete o estado perguntando ao
+ * backend (`GET /auth/me`), não lendo token de `localStorage`.
  *
  * Reaproveita MonitoramentoInternoFormLogin (RHF+Zod, mesmo padrão do
  * resto do módulo) em vez de duplicar o form. Depois de logar, volta pra

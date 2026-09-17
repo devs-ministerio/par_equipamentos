@@ -310,6 +310,74 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   `DATABASE_URL_MIGRATION`) ou `uv run alembic upgrade head` local — sempre
   **antes** de qualquer deploy/job que dependa de schema novo, nunca depois.
 
+## Segurança e sessão (Plan Mode segurança 2026-09-16)
+
+`docs/arquitetura/planmode-seguranca-2026-09-16.md` (após
+`diagnostico-constituicao-seguranca-2026-09-16.md`, nota 3,4/10) definiu 5
+blocos. **Blocos 1 e 2 implementados** (2026-09-17); Bloco 4 parcialmente
+(headers/CORS, junto do Bloco 2, por se tocarem); Bloco 3 (autorização
+central/IDOR) e Bloco 5 (LGPD/inventário) ainda pendentes.
+
+- **Bloco 1 — leituras de monitoramento exigem sessão**: as 5 leituras de
+  `backend/app/routers/monitoramento.py` (exceto `/marcos`, público por
+  decisão — catálogo fixo, sem dado interno) e `GET /propostas-candidatas`
+  usam `Depends(require_current_user)` (não `require_monitoramento_editor`
+  — leitura, qualquer role autenticada pode ler). Frontend correspondente
+  em `frontend/src/services/monitoramento.ts` manda cookie de sessão em
+  toda chamada (ver Bloco 2). **Página que chama a API de monitoramento
+  direto (`fetch` cru) sem passar por esse arquivo de service quebra** —
+  já aconteceu 2x (`monitoramento-overview-page.tsx`,
+  `monitoramento-painel-page.tsx`, corrigidas) porque o `fetch` cru nunca
+  mandava credencial; checar isso antes de adicionar uma leitura nova.
+  `backend/app/errors.py` não ecoa mais `input`/`ctx` de erro de validação
+  (evitava vazar senha em 422 malformado). XSS do tooltip do mapa
+  (`macro-map-draw.ts::construirTooltipNode`) trocado de `innerHTML` por
+  nós DOM.
+- **Bloco 2 — sessão via cookie HttpOnly + refresh rotativo**: token de
+  acesso curto (`Settings.access_token_expire_minutes`, default 20min, não
+  mais as 8h antigas) num cookie `sigeo_access`; refresh token opaco
+  (`secrets.token_urlsafe`, só o HASH SHA-256 fica no banco — tabela
+  `refresh_token`, `backend/app/db/models.py`) num cookie `sigeo_refresh`
+  restrito a `path=/auth/refresh`. `POST /auth/refresh` rotaciona (reuso do
+  token antigo falha — sinal de furto de sessão); `POST /auth/logout`
+  revoga no servidor (não só limpa cookie). **Compatibilidade dupla
+  temporária**: `require_current_user` ainda aceita `Authorization: Bearer`
+  como fallback (`backend/app/auth.py`) — remover quando não houver mais
+  tráfego assim (Fase C do rollout, ver Plan Mode seção 2.8). `JWT_SECRET`
+  vazio/curto (<32 chars) derruba o **boot**, não só a primeira request
+  (`Settings._validar_jwt_secret`, `backend/app/config.py`). Rate limit
+  (`slowapi`, `backend/app/rate_limit.py`) em `/auth/login` (5/min) e
+  `/auth/refresh` (30/min).
+  - **Cookie cross-site (Vercel↔Render) precisa `SameSite=None; Secure`**
+    — em dev local (`http://localhost`) isso quebra silenciosamente (login
+    200, mas `/auth/me` sempre 401) porque o browser não manda cookie
+    `Secure` fora de https. Local exige `COOKIE_SECURE=false` +
+    `COOKIE_SAMESITE=lax` no `.env` (ver README/`.env.example`).
+  - **Frontend não guarda mais token em lugar nenhum** (nem
+    `localStorage`, nem estado React) — `useAuthSession`
+    (`frontend/src/hooks/useAuthSession.ts`) resolve "está logado?" sempre
+    perguntando `GET /auth/me` ao backend (cookie HttpOnly, JS não lê o
+    valor). `services/monitoramento.ts::requisitar` tenta renovar via
+    `/auth/refresh` uma vez em qualquer 401 antes de desistir; só
+    redireciona pra `/login` se a renovação falhar **e** o parâmetro
+    `redirecionarEm401` (default true) não tiver sido desligado —
+    `fetchCurrentUser` desliga, porque roda em toda página (inclusive
+    pública, ver header) só pra checar sessão, e 401 ali é visitante
+    anônimo normal, não sessão expirada no meio de uma tela protegida.
+  - `frontend/src/components/layout/protected-route.tsx` (`ProtectedRoute`)
+    envolve as rotas de `MonitoramentoLayout` em `App.tsx` — mostra
+    "Verificando sessão…" enquanto `useAuthSession` checa, só redireciona
+    pra `/login` depois de confirmar que não há sessão (evita piscar
+    redirect a cada F5 com sessão válida).
+- **Bloco 4 (parcial) — headers e CORS**: `backend/app/main.py` tem
+  middleware de `Strict-Transport-Security`/`X-Content-Type-Options`/
+  `X-Frame-Options`/`Referrer-Policy` + `Content-Security-Policy-Report-Only`
+  (nunca enforcement direto — calibrar com violações reais antes). CORS
+  trocou `allow_methods`/`allow_headers` de `"*"` pra lista explícita
+  (`Authorization` continua na lista só pela compat dupla do Bloco 2).
+  `Settings._validar_cors_origins` rejeita `*` e origem `http://` fora de
+  localhost no boot.
+
 ## Estratégia de dados do Neon: ingestão e clonagem
 
 Decisão do usuário, 2026-09-16 (documentado no diagnóstico

@@ -19,22 +19,14 @@ import { ApiError } from '@/lib/api-error';
  * (ver AGENTS/CLAUDE.md do escopo desta tarefa). */
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
-const AUTH_TOKEN_STORAGE_KEY = 'sigeo.authToken';
-
-export function getAuthToken(): string | null {
-  return typeof window === 'undefined' ? null : window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
-}
-
-export function setAuthToken(token: string | null) {
-  if (typeof window === 'undefined') return;
-  if (token) window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
-  else window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-}
-
-function authHeaders(): HeadersInit {
-  const token = getAuthToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
+/** Sessão via cookie HttpOnly (Plan Mode segurança 2026-09-16, Bloco 2) --
+ * não há mais token em `localStorage` pra ler/guardar: o browser manda o
+ * cookie sozinho em toda chamada com `credentials: 'include'`, e o backend
+ * o seta em `/auth/login`/`/auth/refresh`. JS não tem (nem precisa ter)
+ * acesso ao valor -- é exatamente o ponto de HttpOnly (elimina o vetor de
+ * XSS que um token em localStorage tinha). "Está logado?" deixa de ser uma
+ * leitura síncrona local e passa a ser sempre uma pergunta ao backend (ver
+ * `useAuthSession`, que resolve isso via `GET /auth/me`). */
 
 async function mensagemErroHttp(resp: Response): Promise<string> {
   try {
@@ -45,26 +37,67 @@ async function mensagemErroHttp(resp: Response): Promise<string> {
   }
 }
 
-/** Núcleo comum a GET/POST/PATCH: monta a URL, chama `fetch`, valida
+/** Dedup de refresh concorrente -- se várias chamadas em paralelo levam
+ * 401 ao mesmo tempo (ex. página que dispara 3 queries juntas), só a
+ * primeira dispara `POST /auth/refresh`; as demais aguardam essa mesma
+ * promise em vez de cada uma rotacionar o refresh token por conta própria
+ * (rotação real invalida o anterior -- disparar 2 em paralelo faria a
+ * segunda falhar por reuso do token já rotacionado pela primeira). */
+let renovacaoEmAndamento: Promise<boolean> | null = null;
+
+function tentarRenovarSessao(): Promise<boolean> {
+  if (!renovacaoEmAndamento) {
+    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        renovacaoEmAndamento = null;
+      });
+  }
+  return renovacaoEmAndamento;
+}
+
+/** Núcleo comum a GET/POST/PATCH: monta a URL, chama `fetch` sempre com
+ * `credentials: 'include'` (manda/recebe o cookie de sessão), valida
  * status e schema, lança `ApiError` (nunca erro cru) em qualquer falha.
- * 401 limpa o token e redireciona pra /login (Plan Mode segurança
- * 2026-09-16, Bloco 1 -- as leituras de monitoramento/propostas-candidatas
- * passaram a exigir sessão; sem isso a tela ficava quebrada em silêncio).
- * Redirect fica de fora quando já se está em /login, pra não entrar em
- * loop de navegação. */
+ *
+ * 401 tenta renovar a sessão uma vez via `/auth/refresh` (Bloco 2) e repete
+ * a chamada original antes de desistir. Só redireciona pra /login depois
+ * disso quando `redirecionarEm401` for true (default) -- `fetchCurrentUser`
+ * (`GET /auth/me`) passa `false`: essa chamada roda em toda página
+ * (inclusive públicas, ex. header) só pra saber "está logado?", e 401 ali
+ * é um estado normal de visitante anônimo, não uma sessão que expirou no
+ * meio de uma tela protegida (esse caso É redirecionado, ver leituras de
+ * monitoramento/propostas-candidatas do Bloco 1). `/auth/login`,
+ * `/auth/refresh` e `/auth/logout` nunca disparam a renovação (evita loop
+ * óbvio). Redirect também fica de fora quando já se está em /login. */
 async function requisitar<T>(
   path: string,
   schema: z.ZodType<T>,
   init: RequestInit | undefined,
+  redirecionarEm401 = true,
 ): Promise<T> {
+  const executar = () => fetch(`${API_BASE_URL}${path}`, { ...init, credentials: 'include' });
+
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, init);
+    res = await executar();
   } catch (e) {
     throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
   }
-  if (res.status === 401) {
-    setAuthToken(null);
+
+  const podeRenovar = path !== '/auth/login' && path !== '/auth/refresh' && path !== '/auth/logout';
+  if (res.status === 401 && podeRenovar) {
+    const renovou = await tentarRenovarSessao();
+    if (renovou) {
+      try {
+        res = await executar();
+      } catch (e) {
+        throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
+      }
+    }
+  }
+  if (res.status === 401 && redirecionarEm401) {
     if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
       window.location.assign('/login');
     }
@@ -84,18 +117,19 @@ function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   return requisitar(path, schema, undefined);
 }
 
-/** GET autenticado -- mesmo helper de `apiGet`, mas envia `authHeaders()`.
- * Usado pelas leituras de monitoramento/propostas-candidatas que passaram
- * a exigir sessão (Bloco 1); `fetchMarcos` continua em `apiGet` porque a
- * rota fica pública por decisão explícita. */
+/** Alias documental de `apiGet` -- usado pelas leituras de monitoramento/
+ * propostas-candidatas que passaram a exigir sessão (Bloco 1). Mecanicamente
+ * igual a `apiGet` desde o Bloco 2 (o cookie já vai em toda chamada,
+ * autenticada ou não); mantido como nome próprio só pra marcar no código
+ * quem depende de sessão vs. quem é público por decisão (ex. `fetchMarcos`). */
 function apiGetAuthed<T>(path: string, schema: z.ZodType<T>): Promise<T> {
-  return requisitar(path, schema, { headers: authHeaders() });
+  return requisitar(path, schema, undefined);
 }
 
 function apiAuthed<T>(path: string, schema: z.ZodType<T>, method: 'POST' | 'PATCH', body?: unknown): Promise<T> {
   return requisitar(path, schema, {
     method,
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
@@ -116,18 +150,31 @@ export type AuthUser = z.infer<typeof authUserSchema>;
 
 const tokenResponseSchema = z.object({ access_token: z.string() });
 
-export async function login(email: string, password: string): Promise<string> {
-  const { access_token } = await requisitar('/auth/login', tokenResponseSchema, {
+/** POST /auth/login -- o backend seta os cookies HttpOnly de sessão na
+ * própria resposta (Bloco 2); nada pra guardar em `localStorage` aqui.
+ * `access_token` no corpo é compatibilidade transitória do rollout (Plan
+ * Mode, seção 2.8) -- não usado por este service, só documentado no schema
+ * pra validar o formato de resposta. */
+export async function login(email: string, password: string): Promise<void> {
+  await requisitar('/auth/login', tokenResponseSchema, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
-  setAuthToken(access_token);
-  return access_token;
+}
+
+/** POST /auth/logout -- revoga a sessão no servidor (Bloco 2), diferente
+ * do comportamento antigo (só limpava o token no cliente, JWT continuava
+ * válido até expirar). */
+export async function logout(): Promise<void> {
+  await requisitar('/auth/logout', z.object({ status: z.string() }), { method: 'POST' });
 }
 
 export function fetchCurrentUser(): Promise<AuthUser> {
-  return requisitar('/auth/me', authUserSchema, { headers: authHeaders() });
+  // redirecionarEm401=false -- roda em toda página (inclusive públicas, ver
+  // header) só pra checar sessão; 401 aqui é "visitante anônimo", estado
+  // normal, não motivo pra redirect global (ver docstring de `requisitar`).
+  return requisitar('/auth/me', authUserSchema, undefined, false);
 }
 
 // ---------------------------------------------------------------------
@@ -261,15 +308,11 @@ export type InstrumentoTimeline = z.infer<typeof instrumentoTimelineSchema>;
 /** `null` = convênio sem instrumento seedado (404 -- caso normal pros
  * convênios ainda não monitorados). Qualquer outra falha continua
  * lançando `ApiError`, igual ao resto da camada de services. Rota exige
- * sessão desde o Bloco 1 -- usa `requisitar` (com `authHeaders()`), não
- * mais `fetch` cru. */
+ * sessão desde o Bloco 1 -- usa `requisitar` (cookie via
+ * `credentials: 'include'`, ver Bloco 2), não mais `fetch` cru. */
 export async function fetchInstrumentoTimeline(nrConvenio: string): Promise<InstrumentoTimeline | null> {
   try {
-    return await requisitar(
-      `/monitoramento/instrumentos/${nrConvenio}`,
-      instrumentoTimelineSchema,
-      { headers: authHeaders() },
-    );
+    return await requisitar(`/monitoramento/instrumentos/${nrConvenio}`, instrumentoTimelineSchema, undefined);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
@@ -440,7 +483,7 @@ export function fetchNotificacoes(opts?: { limit?: number; apenasNaoLidas?: bool
   if (opts?.limit) params.set('limit', String(opts.limit));
   if (opts?.apenasNaoLidas) params.set('apenas_nao_lidas', 'true');
   const query = params.toString() ? `?${params.toString()}` : '';
-  return requisitar(`/notificacoes${query}`, notificacoesListSchema, { headers: authHeaders() });
+  return requisitar(`/notificacoes${query}`, notificacoesListSchema, undefined);
 }
 
 export function marcarNotificacaoLida(notificacaoId: number): Promise<Notificacao> {

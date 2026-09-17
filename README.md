@@ -32,6 +32,14 @@ uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
 
+`JWT_SECRET` é obrigatório e precisa ter pelo menos 32 caracteres — o boot
+falha (não só a primeira chamada de login) se estiver vazio/curto (Plan Mode
+segurança 2026-09-16, Bloco 2). Sessão usa cookie `HttpOnly`; como dev local
+roda em `http://` (não `https://`), descomente `COOKIE_SECURE=false` e
+`COOKIE_SAMESITE=lax` no `.env` — sem isso o cookie não vai/volta em http
+puro e o login "falha silenciosamente" (200 no `/auth/login`, mas
+`/auth/me` sempre 401). Ver comentário em `.env.example`.
+
 API sobe em `http://localhost:8000`. `/health` confirma que o processo
 subiu **e** que a conexão com o banco funciona.
 

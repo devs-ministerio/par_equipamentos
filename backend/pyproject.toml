@@ -21,6 +21,7 @@ dependencies = [
     "pyarrow>=25.0.1",
     "pandas>=3.0.5",
     "boto3>=1.43.95",
+    "slowapi>=0.1.10",
 ]
 
 [tool.uv]
@@ -34,3 +35,6 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "db: testes que exigem TEST_DATABASE_URL apontando para PostgreSQL dedicado de teste",
+]

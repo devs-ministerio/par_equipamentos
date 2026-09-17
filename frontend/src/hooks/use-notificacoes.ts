@@ -1,16 +1,19 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchNotificacoes, getAuthToken, marcarNotificacaoLida } from '@/services/monitoramento';
+import { fetchNotificacoes, marcarNotificacaoLida } from '@/services/monitoramento';
+import { useAuthSession } from './useAuthSession';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** Badge de notificação (Radar de Convênios) -- GET /notificacoes exige
- * usuário logado (require_current_user), então só busca quando há token
- * (evita 401 recorrente pra visitante anônimo). Poll a cada 60s -- mesmo
- * intervalo aceitável documentado pro job de descoberta/verificação (diário),
- * aqui é só pra refletir notificação nova sem exigir F5 manual, não pra
- * "tempo real" de verdade. */
+ * usuário logado (require_current_user), então só busca quando há sessão
+ * (evita 401 recorrente pra visitante anônimo). Cookie HttpOnly (Bloco 2)
+ * -- "há sessão?" vem de `useAuthSession` (pergunta ao backend via
+ * `/auth/me`), não mais de um token lido sincronamente do localStorage.
+ * Poll a cada 60s -- mesmo intervalo aceitável documentado pro job de
+ * descoberta/verificação (diário), aqui é só pra refletir notificação nova
+ * sem exigir F5 manual, não pra "tempo real" de verdade. */
 export function useNotificacoes() {
   const queryClient = useQueryClient();
-  const autenticado = Boolean(getAuthToken());
+  const { autenticado } = useAuthSession();
 
   const query = useQuery({
     queryKey: monitoramentoKeys.notificacoes(),
