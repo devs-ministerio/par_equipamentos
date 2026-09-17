@@ -315,8 +315,10 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
 `docs/arquitetura/planmode-seguranca-2026-09-16.md` (após
 `diagnostico-constituicao-seguranca-2026-09-16.md`, nota 3,4/10) definiu 5
 blocos. **Blocos 1 e 2 implementados** (2026-09-17); Bloco 4 parcialmente
-(headers/CORS, junto do Bloco 2, por se tocarem); Bloco 3 (autorização
-central/IDOR) e Bloco 5 (LGPD/inventário) ainda pendentes.
+(headers/CORS, junto do Bloco 2, por se tocarem); **Bloco 3 implementado só
+na parte estrutural** (autorização movida pro Service, escopo/matriz de
+role ainda pendente de decisão de produto); Bloco 5 (LGPD/inventário) ainda
+pendente.
 
 - **Bloco 1 — leituras de monitoramento exigem sessão**: as 5 leituras de
   `backend/app/routers/monitoramento.py` (exceto `/marcos`, público por
@@ -377,6 +379,24 @@ central/IDOR) e Bloco 5 (LGPD/inventário) ainda pendentes.
   (`Authorization` continua na lista só pela compat dupla do Bloco 2).
   `Settings._validar_cors_origins` rejeita `*` e origem `http://` fora de
   localhost no boot.
+- **Bloco 3 (parcial) — autorização movida pro Service**:
+  `backend/app/authz.py` (`assert_pode_editar_monitoramento`) é chamado de
+  dentro de `app/services/monitoramento_instrumentos.py`,
+  `app/services/monitoramento_eventos.py` (novo — extraiu a lógica que
+  antes vivia inline em `atualizar_cadastro`/`registrar_evento`/
+  `registrar_acao`/`concluir_acao` do router) e
+  `app/services/propostas_candidatas.py` — não é mais só
+  `Depends(require_monitoramento_editor)` no router; uma chamada de script/
+  job que use o Service direto também é bloqueada pra `leitor`. Baseline
+  documentado (não mudado por este bloco): `UserRole` é
+  `admin`/`colaborador`/`leitor`, mas o gate real é binário — `admin` e
+  `colaborador` têm exatamente os mesmos poderes, nenhuma checagem de
+  `UserRole.admin` existe em lugar nenhum. Escopo de autorização por
+  técnico/UF/órgão e diferenciação real `admin` vs `colaborador` são
+  **decisão de produto pendente**, não implementadas. `convenios.py`/
+  `macro_coverage.py`/`municipality_coverage.py`/`equipment_offer.py`
+  continuam 100% públicos por serem dado aberto de convênio — distinto do
+  dado interno do Bloco 1, não fechar por engano.
 
 ## Estratégia de dados do Neon: ingestão e clonagem
 

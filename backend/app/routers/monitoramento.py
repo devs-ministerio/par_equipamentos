@@ -19,8 +19,15 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.audit import log_action
 from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado
+from app.services.monitoramento_eventos import (
+    DadosEquipamentoEntregue,
+    NovoEventoMonitorado,
+    atualizar_cadastro_instrumento,
+    concluir_acao_monitorada,
+    registrar_acao_monitorada,
+    registrar_evento_monitorado,
+)
 from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import (
@@ -30,8 +37,6 @@ from app.db.models import (
     InstrumentoEquipamento,
     MarcoCatalogo,
     MarcoGrupo,
-    Notificacao,
-    NotificacaoTipo,
     User,
 )
 from app.pipeline import portal_transparencia
@@ -504,64 +509,18 @@ def atualizar_cadastro(
     pra criar/editar via scripts/seed_monitoramento.py) -- so os campos de
     InstrumentoEquipamentoUpdate, nunca identidade/financeiro (ver docstring
     do model). So aplica campo que veio preenchido no corpo (exclude_unset),
-    nunca zera um campo existente por causa de um PATCH parcial."""
-    instrumento = db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
-    ).scalar_one_or_none()
-    if instrumento is None:
-        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
-
-    if corpo.cnes is not None and db.get(CnesEstabelecimento, corpo.cnes.zfill(7)) is None:
-        raise HTTPException(422, f"CNES {corpo.cnes} não encontrado na base de referência (CnesEstabelecimento).")
-
-    alteracoes: dict[str, dict[str, object | None]] = {}
-    for campo, valor in corpo.model_dump(exclude_unset=True).items():
-        antigo = getattr(instrumento, campo)
-        if antigo != valor:
-            alteracoes[campo] = {"old": antigo, "new": valor}
-        setattr(instrumento, campo, valor)
-    log_action(
-        db,
-        user_id=usuario.id,
-        entity_name="instrumento_equipamento",
-        entity_id=instrumento.id,
-        action="updated",
-        details={"nr_convenio": nr_convenio, "changes": alteracoes},
+    nunca zera um campo existente por causa de um PATCH parcial. Lógica de
+    negócio e autorização vivem no Service (Plan Mode segurança 2026-09-16,
+    Bloco 3) -- este router só resolve a sessão HTTP e comita a transação."""
+    instrumento = atualizar_cadastro_instrumento(
+        nr_convenio=nr_convenio,
+        alteracoes_brutas=corpo.model_dump(exclude_unset=True),
+        db=db,
+        usuario=usuario,
     )
-    # Notificacao camada 2 (Radar de Convenios, 2026-09-15) -- edicao manual
-    # do tecnico, so quando algo realmente mudou (alteracoes vazio = PATCH
-    # com corpo igual ao que ja estava, nao e novidade pra ninguem).
-    # nivel_minimo fica None por enquanto (hierarquia RBAC ainda a definir,
-    # ver docstring de Notificacao em models.py) -- listar_notificacoes nao
-    # filtra por role ainda, entao fica visivel pra todo mundo ate a regra
-    # fechar, nunca escondido.
-    if alteracoes:
-        db.add(Notificacao(
-            tipo=NotificacaoTipo.edicao_manual,
-            titulo=f"{usuario.name} editou o convênio {nr_convenio}",
-            corpo=f"Campo(s) alterado(s): {', '.join(alteracoes.keys())}",
-            entidade_id=instrumento.id,
-        ))
     db.commit()
     db.refresh(instrumento)
     return instrumento
-
-
-def _resumo_equipamento_entregue(corpo: EventoMarcoCreate) -> str | None:
-    """Resumo textual do equipamento fisico informado junto do evento de
-    entrega -- vira parte da observacao (retrato historico do que foi
-    confirmado NAQUELE lancamento, mesmo que o cadastro mude depois). None
-    quando nenhum dos 4 campos veio preenchido."""
-    partes = []
-    if corpo.equipamento_marca or corpo.equipamento_modelo:
-        partes.append(f"{corpo.equipamento_marca or ''} {corpo.equipamento_modelo or ''}".strip())
-    if corpo.equipamento_numero_serie:
-        partes.append(f"Nº série {corpo.equipamento_numero_serie}")
-    if corpo.equipamento_vida_util_anos is not None:
-        partes.append(f"Vida útil {corpo.equipamento_vida_util_anos} ano(s)")
-    if not partes:
-        return None
-    return "Equipamento entregue: " + " · ".join(partes)
 
 
 @router.post("/instrumentos/{nr_convenio}/eventos", response_model=EventoMarcoRead, status_code=201)
@@ -572,54 +531,28 @@ def registrar_evento(
     usuario: User = Depends(require_monitoramento_editor),
 ):
     """Append-only -- sempre INSERT, nunca UPDATE (ver comentario em
-    EventoMarco). Corrigir um lançamento errado e lançar um evento novo."""
-    instrumento = db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
-    ).scalar_one_or_none()
-    if instrumento is None:
-        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
-    marco = db.get(MarcoCatalogo, corpo.marco_id)
-    if marco is None:
-        raise HTTPException(422, f"Marco {corpo.marco_id} não existe no catálogo.")
-
-    observacao = corpo.observacao
-    # Equipamento FISICO so se aplica ao marco de entrega (achado
-    # 2026-09-09, "o equipamento entregue pode mover para eventos") --
-    # atualiza o estado atual do instrumento E deixa retrato no proprio
-    # evento, via observacao.
-    if marco.codigo == "cronograma_entrega":
-        if corpo.equipamento_marca is not None:
-            instrumento.equipamento_marca = corpo.equipamento_marca
-        if corpo.equipamento_modelo is not None:
-            instrumento.equipamento_modelo = corpo.equipamento_modelo
-        if corpo.equipamento_numero_serie is not None:
-            instrumento.equipamento_numero_serie = corpo.equipamento_numero_serie
-        if corpo.equipamento_vida_util_anos is not None:
-            instrumento.equipamento_vida_util_anos = corpo.equipamento_vida_util_anos
-        resumo_equipamento = _resumo_equipamento_entregue(corpo)
-        if resumo_equipamento:
-            observacao = f"{observacao}. {resumo_equipamento}" if observacao else resumo_equipamento
-
-    evento = EventoMarco(
-        instrumento_id=instrumento.id,
-        marco_id=corpo.marco_id,
-        data_ocorrencia=corpo.data_ocorrencia,
-        data_prevista=corpo.data_prevista,
-        status_regulatorio=corpo.status_regulatorio,
-        numero_documento=corpo.numero_documento,
-        data_validade=corpo.data_validade,
-        observacao=_compor_observacao(usuario.name, observacao),
-        autor_id=usuario.id,
-    )
-    db.add(evento)
-    db.flush()
-    log_action(
-        db,
-        user_id=usuario.id,
-        entity_name="evento_marco",
-        entity_id=evento.id,
-        action="created",
-        details={"nr_convenio": nr_convenio, "marco_id": corpo.marco_id},
+    EventoMarco). Corrigir um lançamento errado e lançar um evento novo.
+    Lógica de negócio e autorização vivem no Service (Plan Mode segurança
+    2026-09-16, Bloco 3)."""
+    evento = registrar_evento_monitorado(
+        nr_convenio=nr_convenio,
+        dados=NovoEventoMonitorado(
+            marco_id=corpo.marco_id,
+            data_ocorrencia=corpo.data_ocorrencia,
+            data_prevista=corpo.data_prevista,
+            status_regulatorio=corpo.status_regulatorio,
+            numero_documento=corpo.numero_documento,
+            data_validade=corpo.data_validade,
+            observacao=corpo.observacao,
+            equipamento=DadosEquipamentoEntregue(
+                marca=corpo.equipamento_marca,
+                modelo=corpo.equipamento_modelo,
+                numero_serie=corpo.equipamento_numero_serie,
+                vida_util_anos=corpo.equipamento_vida_util_anos,
+            ),
+        ),
+        db=db,
+        usuario=usuario,
     )
     db.commit()
     db.refresh(evento)
@@ -792,26 +725,16 @@ def registrar_acao(
 ):
     """Cria uma acao PENDENTE (data_conclusao null) -- diferente de
     EventoMarco, essa tabela nao esta amarrada a um catalogo fixo de
-    marcos (ver docstring de AcaoMonitoramento no models.py)."""
-    instrumento = db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
-    ).scalar_one_or_none()
-    if instrumento is None:
-        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
-
-    acao = AcaoMonitoramento(
-        instrumento_id=instrumento.id, descricao=corpo.descricao,
-        data_prevista=corpo.data_prevista, responsavel=corpo.responsavel,
-    )
-    db.add(acao)
-    db.flush()
-    log_action(
-        db,
-        user_id=usuario.id,
-        entity_name="acao_monitoramento",
-        entity_id=acao.id,
-        action="created",
-        details={"nr_convenio": nr_convenio, "responsavel": corpo.responsavel},
+    marcos (ver docstring de AcaoMonitoramento no models.py). Lógica de
+    negócio e autorização vivem no Service (Plan Mode segurança 2026-09-16,
+    Bloco 3)."""
+    acao = registrar_acao_monitorada(
+        nr_convenio=nr_convenio,
+        descricao=corpo.descricao,
+        data_prevista=corpo.data_prevista,
+        responsavel=corpo.responsavel,
+        db=db,
+        usuario=usuario,
     )
     db.commit()
     db.refresh(acao)
@@ -830,22 +753,12 @@ def concluir_acao(
 ):
     """Unico UPDATE que AcaoMonitoramento permite de proposito -- marcar
     como concluida (seta data_conclusao = hoje). Descricao/data_prevista/
-    responsavel continuam imutaveis (ver docstring do model)."""
-    acao = db.get(AcaoMonitoramento, acao_id)
-    if acao is None:
-        raise HTTPException(404, f"Ação {acao_id} não encontrada.")
-    if acao.data_conclusao is None:
-        acao.data_conclusao = date.today()
-        log_action(
-            db,
-            user_id=usuario.id,
-            entity_name="acao_monitoramento",
-            entity_id=acao.id,
-            action="completed",
-            details={"old": None, "new": acao.data_conclusao.isoformat()},
-        )
-        db.commit()
-        db.refresh(acao)
+    responsavel continuam imutaveis (ver docstring do model). Lógica de
+    negócio e autorização vivem no Service (Plan Mode segurança 2026-09-16,
+    Bloco 3)."""
+    acao = concluir_acao_monitorada(acao_id=acao_id, db=db, usuario=usuario)
+    db.commit()
+    db.refresh(acao)
     instrumento = db.get(InstrumentoEquipamento, acao.instrumento_id)
     return AcaoMonitoramentoRead(
         id=acao.id, instrumento_id=acao.instrumento_id, nr_convenio=instrumento.nr_convenio,
