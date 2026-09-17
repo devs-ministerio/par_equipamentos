@@ -12,8 +12,8 @@
 > **Achado novo, pós-fechamento (2026-09-17)**: o próprio Bloco 2 (cookie `HttpOnly`/`SameSite=None`)
 > abriu uma superfície que não existia no diagnóstico original — CSRF. Identificado na reavaliação de
 > `diagnostico-constituicao-backend-2026-09-16.md` (achado P0.1) e registrado aqui como
-> "P0 — CSRF em autenticação por cookie", **em aberto**. Ver seção própria em "Divergências
-> prioritárias" abaixo.
+> "P0 — CSRF em autenticação por cookie" — **estava em aberto neste ponto da linha do tempo, ver
+> "RESOLVIDO" logo abaixo**. Ver seção própria em "Divergências prioritárias" abaixo.
 >
 > **RESOLVIDO (2026-09-17, Bloco 1 de `planmode-consolidacao-2026-09-17.md`)**: double-submit
 > cookie implementado — `backend/app/auth.py` (`CSRF_COOKIE_NAME`/`CSRF_HEADER_NAME`, cookie

@@ -1,5 +1,13 @@
 # Diagnóstico da Constituição Frontend — 2026-09-16
 
+> **Nota de escopo (2026-09-17)**: este documento não foi reescrito por inteiro após a data da
+> avaliação — vários achados abaixo (build quebrado por casing, `src/features/` vs. estrutura
+> flat) já foram superados por trabalho posterior, ver `CLAUDE.md` seção "Estrutura de pastas do
+> frontend" e "Camada de dados". Só os 2 itens explicitamente tocados pela validação de
+> `planmode-consolidacao-2026-09-17.md` foram marcados como resolvidos aqui (P1 "JWT em
+> `localStorage`" e "Bloco 6 — sessão", ambos abaixo) — o resto do documento segue como
+> fotografia da data original, não uma reavaliação completa do estado atual do frontend.
+
 ## Escopo e método
 
 Este diagnóstico confronta `padroes/frontend/constiuicao_frontend.md`,
