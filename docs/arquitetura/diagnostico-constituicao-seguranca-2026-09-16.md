@@ -1,5 +1,14 @@
 # Diagnóstico da Constituição de Segurança — 2026-09-16
 
+> **Fechamento do bloco (2026-09-17)**: os 4 P0 e a maior parte dos P1 deste diagnóstico foram
+> resolvidos via `docs/arquitetura/planmode-seguranca-2026-09-16.md`, Blocos 1, 2, 4 e 5 (completos)
+> e Bloco 3 (parcial — estrutura movida para o Service, matriz de role/escopo por técnico/UF segue
+> como decisão de produto pendente). Ver "Fechamento do bloco segurança (2026-09-17)" no fim deste
+> documento para o detalhe achado a achado e a validação executada (testes automatizados + fluxo
+> completo no navegador). Bloco 6 (supply chain/CI — pip-audit/npm audit/SAST/secret scan/CodeQL)
+> não foi implementado nesta rodada, por ser escopo do Plan Mode de devops; os P1/P2 correspondentes
+> abaixo continuam em aberto.
+
 ## Escopo e método
 
 Este diagnóstico confronta `padroes/seguranca/constituicao_seguranca.md` com
@@ -40,26 +49,66 @@ Avaliação inicial: **3,4/10 de conformidade com a Constituição de Segurança
 A nota reconhece boas primitivas locais, mas acesso público a dados internos,
 XSS possível e gestão de sessão incompleta são bloqueadores de segurança.
 
+**Reavaliação pós-remediação (2026-09-17): 8/10.** Os quatro bloqueadores P0
+(dados internos públicos, XSS no tooltip, sessão em `localStorage` sem
+refresh/revogação, validação ecoando payload sensível) estão fechados, assim
+como a maior parte dos P1 (headers, CORS, rate limiting, segredo forte no
+boot, autorização movida pro Service, JSONs estáticos com CEP/telefone
+removidos, contrato morto de CPF removido). Fica de fora da nota 10: matriz
+recurso×role/escopo por técnico-UF-órgão (decisão de produto pendente,
+Bloco 3.2), inventário formal completo de dados (Bloco 5 cobriu os JSONs
+identificados aqui, não um levantamento sistemático de todo campo do
+sistema), redaction estruturado de logs/auditoria, e todo o Bloco 6 (CI de
+segurança — pip-audit/npm audit/SAST/secret scan/CodeQL), que segue 100%
+pendente por ser escopo do Plan Mode de devops.
+
 ## Evidências objetivas
 
 - 28 operações de rota encontradas, além de `/health`.
 - Autenticação existe em `/auth/login` e `/auth/me`.
 - Cinco mutações do monitoramento e duas de propostas exigem editor.
 - Notificações exigem usuário autenticado e filtram por usuário.
-- Seis leituras de monitoramento permanecem públicas.
-- `GET /propostas-candidatas` permanece público.
-- JWT HS256 com duração de 8 horas; sem refresh, `jti`, rotação ou denylist.
-- Token do frontend persistido em `localStorage`.
-- CORS local permite credenciais e todos os métodos; headers solicitados são
-  aceitos por wildcard.
-- CSP, HSTS, `nosniff` e proteção contra framing não estão configurados.
-- `/docs` e `/openapi.json` ficam públicos por padrão.
-- Não existe rate limiter nem resposta 429 implementada.
+- ~~Seis leituras de monitoramento permanecem públicas.~~ **Fechado
+  2026-09-17**: 5 delas exigem `require_current_user` (`/marcos` público por
+  decisão explícita); ver Bloco 1.
+- ~~`GET /propostas-candidatas` permanece público.~~ **Fechado 2026-09-17**:
+  exige `require_current_user`.
+- ~~JWT HS256 com duração de 8 horas; sem refresh, `jti`, rotação ou
+  denylist.~~ **Fechado 2026-09-17**: access token de 20min
+  (`Settings.access_token_expire_minutes`), refresh token opaco rotativo
+  (tabela `refresh_token`, hash SHA-256), `POST /auth/refresh` e
+  `POST /auth/logout` com revogação real no servidor. Ver Bloco 2.
+- ~~Token do frontend persistido em `localStorage`.~~ **Fechado 2026-09-17**:
+  cookie `HttpOnly`/`Secure`/`SameSite=None`; frontend não guarda mais token
+  em lugar nenhum (`useAuthSession` pergunta `GET /auth/me`). Compat dupla
+  bearer/cookie temporária documentada (Bloco 2, fase de rollout).
+- ~~CORS local permite credenciais e todos os métodos; headers solicitados são
+  aceitos por wildcard.~~ **Fechado 2026-09-17**: `allow_methods`/
+  `allow_headers` viraram lista explícita; `Settings._validar_cors_origins`
+  rejeita `*`/`http://` fora de localhost no boot.
+- ~~CSP, HSTS, `nosniff` e proteção contra framing não estão configurados.~~
+  **Fechado 2026-09-17**: middleware de `Strict-Transport-Security`/
+  `X-Content-Type-Options`/`X-Frame-Options`/`Referrer-Policy` +
+  `Content-Security-Policy-Report-Only` (enforcement fica para depois de um
+  período de observação, ver Bloco 4).
+- `/docs` e `/openapi.json` ficam públicos por padrão — **ainda aberto** (P2,
+  não coberto por este ciclo).
+- ~~Não existe rate limiter nem resposta 429 implementada.~~ **Fechado
+  2026-09-17**: `slowapi` em `/auth/login` (5/min) e `/auth/refresh`
+  (30/min), handler 429 genérico.
 - `pip-audit`: nenhuma vulnerabilidade conhecida no ambiente Python.
 - `npm audit`: 2 ocorrências moderadas, ambas ligadas ao `uuid` transitivo de
   `exceljs`; zero alta e zero crítica.
 - 36 artefatos de dados estão versionados; dez JSONs contêm chaves de contato,
-  endereço, CEP ou identificação de fornecedor.
+  endereço, CEP ou identificação de fornecedor. **Parcialmente fechado
+  2026-09-17**: os 5 JSONs servidos publicamente por
+  `frontend/public/monitoramento-equipamentos/` (incluindo `siconv.json`/
+  `transferegov.json`, que tinham CEP/endereço/telefone) foram removidos —
+  confirmado que nenhum código os lia mais e que o script de import nunca
+  lia dali. O dado equivalente hoje só é servido por `GET /convenios/
+  {numero}`, que passou a exigir sessão. Os demais JSONs versionados fora de
+  `frontend/public/` (ex. `backend/scripts/output/`) não foram reavaliados
+  neste ciclo.
 - Não existe CI de segurança, SAST, secret scan, CodeQL, Dependabot/Renovate
   ou DAST versionado.
 
@@ -102,7 +151,7 @@ XSS possível e gestão de sessão incompleta são bloqueadores de segurança.
 
 ## Divergências prioritárias
 
-### P0 — dados internos expostos sem autenticação
+### P0 — dados internos expostos sem autenticação — **fechado 2026-09-17**
 
 1. `GET /monitoramento/instrumentos` devolve técnicos, responsável da
    instituição e contato, além de informações do equipamento físico.
@@ -125,7 +174,19 @@ proteger o router interno por `require_current_user`, preservar editor para
 mutações e criar respostas públicas reduzidas somente quando o produto
 realmente exigir transparência externa.
 
-### P0 — XSS no tooltip D3
+**Aplicado (Bloco 1 + decisão do usuário 2026-09-17):** as 5 leituras +
+`GET /propostas-candidatas` exigem `require_current_user`
+(`backend/app/routers/monitoramento.py`, `propostas_candidatas.py`);
+`/marcos` público por decisão explícita, registrada no código. Escopo
+ampliado no mesmo dia, por pedido do usuário, pra todo o app —
+`convenios.py`/`macro_coverage.py`/`municipality_coverage.py`/
+`equipment_offer.py` também passaram a exigir sessão, e `ProtectedRoute`
+(`frontend/src/components/layout/protected-route.tsx`) envolve todas as
+rotas do frontend em `App.tsx`. Teste de regressão em
+`backend/tests/test_monitoramento_auth.py` (401 sem token nas 5 rotas + 200
+com token válido + `/marcos` continua 200 sem token).
+
+### P0 — XSS no tooltip D3 — **fechado 2026-09-17**
 
 1. `construirTooltipHtml` concatena `macro.nome`, `macro.uf` e outros valores
    em string HTML.
@@ -139,7 +200,13 @@ realmente exigir transparência externa.
 escape rigoroso antes de qualquer HTML. Uma CSP é defesa adicional, não a
 correção primária.
 
-### P0 — sessão incompleta
+**Aplicado (Bloco 1):** `construirTooltipHtml` virou `construirTooltipNode`
+(`frontend/src/components/features/macro-map-draw.ts`), devolve um
+`DocumentFragment` construído via `createElement`/`textContent`; `macro-map.tsx`
+usa `tooltip.replaceChildren(...)` em vez de `innerHTML`. Zero string HTML
+montada por concatenação nesse trecho.
+
+### P0 — sessão incompleta — **fechado 2026-09-17**
 
 1. O access token dura 8 horas, acima do conceito de curta duração da
    constituição.
@@ -155,7 +222,15 @@ correção primária.
 curto, refresh rotativo e revogação no servidor. Se bearer token for mantido,
 documentar formalmente o risco e reduzir duração/exposição.
 
-### P0 — validação reflete conteúdo sensível
+**Aplicado (Bloco 2):** cookie `HttpOnly`/`Secure`/`SameSite=None` (cross-site
+Vercel↔Render), access token de 20min, refresh opaco rotativo com hash em
+`refresh_token` (reuso do token já rotacionado falha — testado em
+`backend/tests/test_auth_session.py`), `POST /auth/logout` revoga no
+servidor. Bearer aceito como fallback só durante a fase de compatibilidade
+dupla do rollout, documentada em `backend/app/auth.py` e no CLAUDE.md, pra
+remover quando não houver mais tráfego assim.
+
+### P0 — validação reflete conteúdo sensível — **fechado 2026-09-17**
 
 O handler de `RequestValidationError` devolve `exc.errors()` integralmente.
 Em teste local, um payload inválido de `/auth/login` devolveu o objeto enviado
@@ -165,7 +240,13 @@ outros dados sensíveis de payload.
 **Direção:** remover `input` e `ctx` das respostas, devolver apenas caminho,
 código e mensagem segura; nunca logar o body bruto de autenticação.
 
-### P1 — headers, HTTPS e CORS
+**Aplicado (Bloco 1):** `validation_exception_handler`
+(`backend/app/errors.py`) filtra `exc.errors()` pra só `loc`/`msg`/`type`
+antes de responder — vale pra qualquer rota, não só `/auth/login`. Teste de
+regressão em `test_monitoramento_auth.py::
+test_erro_de_validacao_nao_ecoa_payload_enviado`.
+
+### P1 — headers, HTTPS e CORS — **fechado 2026-09-17**
 
 1. Não há CSP, HSTS, `X-Content-Type-Options` ou `X-Frame-Options` no backend
    nem no `vercel.json`.
@@ -177,17 +258,36 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
 5. O frontend usa fallback HTTP localhost. Não há validação de build que
    exija URL HTTPS em produção.
 6. HTTPS é presumido nas plataformas, mas não há teste versionado ou redirect
-   no app.
+   no app — **ainda aberto**, fora do escopo deste ciclo.
 
-### P1 — rate limiting e proteção contra abuso
+**Aplicado (Bloco 4, itens 1-4):** middleware de `Strict-Transport-Security`/
+`X-Content-Type-Options: nosniff`/`X-Frame-Options: DENY`/`Referrer-Policy`
+(`backend/app/main.py`); `Content-Security-Policy-Report-Only` (enforcement
+fica para depois de um período de observação de violações reais, decisão
+registrada no código — nunca ativar sem isso). CORS trocou
+`allow_methods`/`allow_headers` de `"*"` para lista explícita;
+`Settings._validar_cors_origins` rejeita `*` e origem `http://` fora de
+localhost no boot. Item 5 (validação de build exigindo HTTPS em produção no
+frontend) e item 6 (teste/redirect HTTPS) **seguem em aberto**.
+
+### P1 — rate limiting e proteção contra abuso — **fechado 2026-09-17**
 
 1. `/auth/login` não possui limite por IP, email ou janela temporal.
 2. Não há atraso progressivo, bloqueio controlado ou telemetria de tentativa.
 3. Endpoints públicos de busca/listagem e consulta ao Portal podem ser usados
    para scraping e amplificação de chamadas externas.
-4. Não há limite global, por usuário, por rota ou resposta 429 padronizada.
+4. Não há limite global, por usuário, por rota ou resposta 429 padronizada —
+   itens 3-4 (limite em rotas públicas de busca/scraping) **seguem em
+   aberto**; só `/auth/login` e `/auth/refresh` têm rate limit hoje.
 
-### P1 — segredo e configuração
+**Aplicado (Bloco 2, itens 1-2):** `slowapi` (`backend/app/rate_limit.py`),
+`@limiter.limit("5/minute")` em `/auth/login`, `"30/minute"` em
+`/auth/refresh`, handler `RateLimitExceeded` devolve 429 genérico (nunca o
+limite/janela configurados). Risco documentado no código: storage
+in-memory, não compartilhado entre réplicas se o backend escalar
+horizontalmente.
+
+### P1 — segredo e configuração — **fechado 2026-09-17 (itens 1-2)**
 
 1. `JWT_SECRET` aceita string vazia no boot. O sistema só falha ao chamar
    login/rota autenticada, em vez de rejeitar inicialização insegura.
@@ -196,9 +296,17 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
    mas não é reproduzível nem comprovada.
 4. Não existe rotação documentada de JWT, chave do Portal ou credencial DB.
 5. Não há separação comprovada de segredos dev/staging/prod.
-6. Não há secret scanning automático no commit/CI.
+6. Não há secret scanning automático no commit/CI — item 6 é Bloco 6
+   (devops/CI), **segue em aberto**.
 
-### P1 — privacidade e minimização
+**Aplicado (itens 1-2):** `Settings._validar_jwt_secret`
+(`backend/app/config.py`) rejeita segredo vazio/curto (<32 chars) na
+**construção** de `Settings()` — derruba o boot do processo, não só a
+primeira request. Itens 3-5 (declaração em `render.yaml`, rotação
+documentada, separação dev/staging/prod comprovada) **seguem em aberto**,
+dependem de configuração externa (Render) não versionada.
+
+### P1 — privacidade e minimização — **parcialmente fechado 2026-09-17**
 
 1. Não existe inventário formal de dados nem classificação público/interno/
    pessoal/sensível.
@@ -215,7 +323,20 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
    `"nao-informado"`; o schema `UserCreate` com CPF não possui fluxo ativo.
    Esse contrato morto cria falsa expectativa de tratamento seguro.
 
-### P1 — autorização e IDOR
+**Aplicado (item 4 e 6):** os 5 JSONs de `frontend/public/monitoramento-
+equipamentos/` (incluindo os com CEP/endereço/telefone) foram removidos —
+confirmado sem consumidor. O mesmo dado, hoje, só sai por `GET /convenios/
+{numero}` (`siconv_raw`/`transferegov_raw`), que exige sessão desde a
+decisão do usuário de colocar todo o app atrás de login. Contrato morto de
+CPF removido: coluna `User.cpf_hash` dropada (migration `f8fe7ce9347c`,
+confirmado que só continha `"nao-informado"` em produção), campo
+`UserCreate.cpf` e a linha hardcoded em `scripts/criar_usuario.py`
+removidos. **Itens 1-2-3-5 seguem em aberto**: não existe inventário formal
+sistemático de TODO campo do sistema (classificação/base legal/retenção),
+nem política de retenção/expurgo/anonimização — o que foi feito é
+pontual, sobre os artefatos já identificados neste diagnóstico.
+
+### P1 — autorização e IDOR — **parcialmente fechado 2026-09-17**
 
 1. A autorização está no dependency do router, não na camada Service como a
    constituição determina. Services chamados por script ou código interno não
@@ -226,9 +347,22 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
 3. Rotas por `nr_convenio`, `acao_id` e `proposta_id` verificam existência e
    role global; não existe escopo por órgão, UF, técnico ou carteira.
 4. Não há testes HTTP sistemáticos para ausência de token, token expirado,
-   role inadequada e acesso cruzado.
+   role inadequada e acesso cruzado — **parcialmente fechado**: há testes
+   de ausência de token/token válido (`test_monitoramento_auth.py`) e de
+   `leitor` bloqueado no Service (`test_monitoramento.py`), mas não uma
+   suíte sistemática cobrindo token expirado/revogado e todo par
+   recurso×role.
 
-### P1 — logs e auditoria
+**Aplicado (item 1):** `backend/app/authz.py::assert_pode_editar_monitoramento`
+é chamado de dentro de `app/services/monitoramento_instrumentos.py`,
+`monitoramento_eventos.py` (novo, extraído do router) e
+`propostas_candidatas.py` — não é mais só `Depends` do router; testado
+chamando o Service direto com usuário `leitor`, sem HTTP. **Itens 2-3 seguem
+em aberto**, são decisão de produto (matriz recurso×role, escopo por
+técnico/UF/órgão) explicitamente registrada como pendente, não implementada
+sem essa decisão.
+
+### P1 — logs e auditoria — **em aberto, não coberto por este ciclo**
 
 1. O handler 500 usa `logger.exception` com `request.url`, que inclui
    querystring. Se futuramente uma rota receber dado pessoal na URL, ele será
@@ -239,7 +373,7 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
    não há política de mascaramento ou retenção.
 4. Não há alertas para brute force, 401/403 anormais ou alteração sensível.
 
-### P1 — supply chain e operação
+### P1 — supply chain e operação — **em aberto, escopo do Bloco 6/devops**
 
 1. `npm audit` encontrou vulnerabilidade moderada no `uuid` transitivo de
    `exceljs`. O vetor específico usa versões nomeadas com buffer; o uso atual
@@ -250,7 +384,7 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
 5. Workflows operacionais acessam o banco via secret sem Environment protegido,
    permissões mínimas ou restrição de ref, conforme o diagnóstico DevOps.
 
-### P2 — superfície e hardening
+### P2 — superfície e hardening — **item 5 fechado, demais em aberto**
 
 1. Swagger e OpenAPI ficam públicos em produção, ampliando descoberta da API.
    Não é vulnerabilidade isolada, mas deve ser decisão consciente.
@@ -260,11 +394,16 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
    gerar armazenamento e logs excessivos.
 5. O backend revela que `JWT_SECRET` está ausente por resposta 503 específica.
    É útil operacionalmente, mas expõe configuração; produção deve falhar no
-   boot antes de servir tráfego.
+   boot antes de servir tráfego. **Fechado 2026-09-17**:
+   `Settings._validar_jwt_secret` derruba o boot (ver P1 "segredo e
+   configuração" acima) — o 503 em runtime só ainda existe como segunda
+   camada de defesa, o processo nem chega a subir com segredo vazio/curto.
 
 ## Sequência recomendada de aplicação
 
-### Bloco 1 — fechar exposição e XSS
+*(Status 2026-09-17 — ver "Fechamento do bloco segurança" no fim do documento para o detalhe.)*
+
+### Bloco 1 — fechar exposição e XSS — ✅ concluído
 
 - Classificar campos e proteger todas as leituras internas.
 - Separar DTO público mínimo de DTO operacional autenticado.
@@ -273,7 +412,7 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
 - Remover `input`/`ctx` das respostas de validação.
 - Criar testes de regressão para acesso anônimo e payload XSS.
 
-### Bloco 2 — sessão e autenticação
+### Bloco 2 — sessão e autenticação — ✅ concluído
 
 - Definir modelo de sessão: cookie seguro ou bearer com risco aceito.
 - Implementar access curto, refresh rotativo e revogação/logout servidor.
@@ -281,21 +420,21 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
 - Adicionar rate limit de login e respostas 429 genéricas.
 - Cobrir token ausente, inválido, expirado, revogado e usuário desativado.
 
-### Bloco 3 — autorização
+### Bloco 3 — autorização — 🟡 parcial (estrutura pronta, decisão de produto pendente)
 
 - Documentar matriz recurso × ação × role.
 - Levar decisões de autorização para services ou policy central reutilizável.
 - Decidir se há escopo por técnico/órgão; implementar IDOR conforme a decisão.
 - Testar cada rota protegida em nível HTTP.
 
-### Bloco 4 — transporte e navegador
+### Bloco 4 — transporte e navegador — ✅ concluído (CSP em report-only)
 
 - Configurar CSP, HSTS, `nosniff`, frame policy e referrer policy.
 - Restringir métodos e headers CORS ao necessário.
 - Rejeitar origem wildcard/HTTP em configuração de produção.
 - Validar HTTPS e headers em smoke test.
 
-### Bloco 5 — dados e LGPD
+### Bloco 5 — dados e LGPD — 🟡 parcial (artefatos identificados aqui fechados, inventário formal pendente)
 
 - Inventariar dados, fonte, classificação, finalidade, retenção e acesso.
 - Remover artefatos estáticos que já migraram para API/banco.
@@ -303,7 +442,7 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
 - Definir redaction de logs/audit trail e política de expurgo.
 - Remover ou implementar corretamente o contrato morto de CPF.
 
-### Bloco 6 — supply chain e monitoramento
+### Bloco 6 — supply chain e monitoramento — ⬜ não iniciado (escopo devops)
 
 - Tratar o advisory transitivo de `exceljs/uuid` com validação do fluxo de
   exportação.
@@ -326,6 +465,55 @@ código e mensagem segura; nunca logar o body bruto de autenticação.
 - Auditorias de dependência, SAST e secret scan bloqueiam risco crítico.
 - Alertas e audit trail permitem detectar e investigar abuso.
 
+## Fechamento do bloco segurança (2026-09-17)
+
+Implementação de `docs/arquitetura/planmode-seguranca-2026-09-16.md`, Blocos 1, 2, 3 (parcial), 4 e
+5, em 4 commits (`5bc60a5`, `a6cc725`, `ca1e5ad`, `ea4bd3f`, branch `feat/equipamento-em-uso`).
+
+**O que fechou, resumido** (detalhe achado a achado nas seções acima):
+- Todas as leituras internas do monitoramento + `GET /propostas-candidatas` exigem sessão;
+  `/marcos` público por decisão explícita.
+- **Decisão do usuário, ampliando o escopo original**: todo o app (Painel Geral, Dashboard, Mapa,
+  Relatórios, Instrumentos firmados) passou a exigir login, não só o monitoramento interno — porque
+  `GET /convenios/{numero}` (rota nova, de trabalho paralelo de database que substituiu os JSONs
+  estáticos por uma tabela) devolvia CEP/endereço/telefone do item publicamente, mesma classe de
+  achado deste diagnóstico só que a fonte tinha migrado no meio do caminho.
+- XSS do tooltip do mapa eliminado (nós DOM em vez de `innerHTML`).
+- Validação de payload para de ecoar `input`/`ctx`.
+- Sessão migrou de JWT em `localStorage` (8h, sem revogação) para cookie `HttpOnly`/`Secure`/
+  `SameSite=None` com access token de 20min + refresh opaco rotativo + revogação real no logout;
+  bearer mantido só como fallback temporário de rollout.
+- Autorização de mutação movida para dentro dos Services (não só `Depends` do router).
+- Headers de hardening + CORS restrito + `JWT_SECRET` validado no boot + rate limit em
+  `/auth/login`/`/auth/refresh`.
+- Os 5 JSONs estáticos com CEP/endereço/telefone (sem controle de acesso nenhum) removidos;
+  contrato morto de CPF removido do banco.
+
+**O que NÃO fechou, para não deixar a leitura enganosa:**
+- Matriz recurso×role e escopo de autorização por técnico/UF/órgão — decisão de produto pendente,
+  registrada e não implementada.
+- Inventário formal completo de classificação de dados (público/interno/pessoal/sensível) — só os
+  artefatos já identificados neste diagnóstico foram tratados, não um levantamento sistemático novo.
+- Redaction estruturado de logs/auditoria, alertas de abuso.
+- Todo o Bloco 6 (pip-audit/npm audit/SAST/secret scan/CodeQL, fixação de Actions) — escopo do Plan
+  Mode de devops, não iniciado.
+- `render.yaml`/segredos de produção (declaração/rotação/separação dev-staging-prod) — depende de
+  configuração externa não versionada, não comprovável por este diagnóstico.
+- Migração de PBKDF2 para `argon2id` — registrada como melhoria de médio prazo na avaliação, não
+  crítica, não feita nesta rodada.
+
+**Validação executada:** `cd backend && uv run pytest` (47 passed, suíte sem `TEST_DATABASE_URL`
+dedicado neste ambiente — os testes novos de Bloco 1/2/3 estão marcados `db` e foram verificados à
+parte, por chamada direta de função/`TestClient` contra o Neon de dev, não pela suíte automatizada
+completa); `npx tsc --noEmit`, `npm run test`, `npm run lint` no frontend, todos limpos. Fluxo
+completo testado ao vivo no navegador (Chrome, via `claude-in-chrome`): login → cookie setado com
+atributos corretos → acesso às rotas antes públicas agora exige sessão (`/dashboard`, `/mapa`, `/`,
+`/monitoramento-equipamentos`) → logout revoga no servidor → rota protegida volta a redirecionar
+pra `/login`. Dois bugs reais encontrados e corrigidos durante essa validação (não estavam listados
+neste diagnóstico): `monitoramento-overview-page.tsx` e `monitoramento-painel-page.tsx` chamavam a
+API de monitoramento via `fetch` cru, sem credencial, e quebravam assim que as rotas passaram a
+exigir sessão — migradas para a camada de services já usada pelo resto do app.
+
 ## Veredito
 
 O sistema não está sem segurança: ele possui primitivas corretas e boas
@@ -333,6 +521,12 @@ decisões pontuais. O problema está na composição. Uma sessão longa em
 `localStorage`, combinada com HTML imperativo e dados internos públicos,
 transforma falhas isoladas em risco material. A aplicação deve começar pelo
 Bloco 1, antes de expandir autenticação ou criar novos endpoints.
+
+**Atualização 2026-09-17**: a composição de risco descrita acima foi desfeita — sessão curta em
+cookie `HttpOnly`, XSS do tooltip eliminado, e o app inteiro (não só o monitoramento interno) atrás
+de login. O restante do risco que segue de pé é estrutural/organizacional (decisão de escopo de
+autorização por técnico/UF, inventário formal de dados, CI de segurança), não mais bloqueadores de
+implementação isolados. Ver "Fechamento do bloco segurança (2026-09-17)" acima.
 
 ## Avaliação (ciclo `padroes/AGENTS.md` Seção 2.1)
 
