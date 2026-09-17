@@ -72,6 +72,12 @@ def listar_municipality_coverage(
     # municipio(s)/CNES especifico(s) (o usuario escolheu ver aquele, do
     # tamanho que for).
     min_population: int | None = Query(default=None, ge=0),
+    # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
+    # consolidacao 2026-09-17) -- ~5570 municipios do Brasil por familia e
+    # o teto natural do dado hoje; 10_000 da margem sem virar paginacao
+    # real (o mapa/dashboard precisa do universo filtrado inteiro de uma
+    # vez, nao faz sentido paginar isso na UI).
+    limit: int = Query(default=10_000, le=10_000, gt=0),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> list[MunicipalityCoverageRead]:
@@ -91,6 +97,7 @@ def listar_municipality_coverage(
     stmt = _filtrar_municipio(stmt, municipality)
     if min_population is not None:
         stmt = stmt.where(MunicipalityCoverage.population >= min_population)
+    stmt = stmt.limit(limit)
 
     rows = db.execute(stmt).scalars().all()
     coordenadas = carregar_coordenadas_municipios()
@@ -114,6 +121,9 @@ def listar_health_region_coverage(
     execution_id: int | None = None,
     state: list[str] | None = Query(default=None),
     macro_code: list[str] | None = Query(default=None),
+    # Teto de seguranca (Bloco 4 do Plan Mode consolidacao 2026-09-17) --
+    # ~450 regioes de saude no Brasil, bem abaixo disso.
+    limit: int = Query(default=1000, le=1000, gt=0),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> list[HealthRegionCoverageRead]:
@@ -155,6 +165,7 @@ def listar_health_region_coverage(
         stmt = stmt.where(MunicipalityCoverage.state.in_(state))
     if macro_code:
         stmt = stmt.where(MunicipalityCoverage.macro_code.in_(macro_code))
+    stmt = stmt.limit(limit)
 
     linhas = db.execute(stmt).mappings().all()
     resultado = []
@@ -165,7 +176,9 @@ def listar_health_region_coverage(
             in_use_sus=r["available_qty"] or 0,
             produtividade=produtividade_por_familia(familia),
         )
-        coverage_percentage = round(cobertura.available_qty / cobertura.required_qty * 100, 1) if cobertura.required_qty else None
+        coverage_percentage = (
+            round(cobertura.available_qty / cobertura.required_qty * 100, 1) if cobertura.required_qty else None
+        )
         resultado.append(
             HealthRegionCoverageRead(
                 health_region_code=r["health_region_code"],

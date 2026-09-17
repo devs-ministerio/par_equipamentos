@@ -229,6 +229,12 @@ def listar_estabelecimentos_opcoes(
     if equipment_family:
         stmt = stmt.where(EquipmentOfferRow.equipment_family == equipment_family)
     stmt = stmt.group_by(EquipmentOfferRow.cnes_code)
+    # Teto de seguranca invisivel (Bloco 4 do Plan Mode consolidacao
+    # 2026-09-17) -- SEM query param exposto de proposito: este endpoint e
+    # "lista completa" por design (ver docstring acima, dropdown
+    # bidirecional), 20_000 e so rede de seguranca contra crescimento
+    # descontrolado, bem acima do volume real de estabelecimentos CNES.
+    stmt = stmt.limit(20_000)
 
     rows = db.execute(stmt).mappings().all()
     return sorted(
@@ -294,7 +300,9 @@ def listar_estabelecimentos(
     modo_raio = near_lat is not None and near_lon is not None and radius_km is not None
 
     base = select(EquipmentOfferRow).where(EquipmentOfferRow.execution_id == exec_id)
-    base = _aplicar_filtros(base, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code)
+    base = _aplicar_filtros(
+        base, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code
+    )
     if sus_flag is not None:
         base = base.where(EquipmentOfferRow.sus_flag.is_(sus_flag))
     if in_use_sus:

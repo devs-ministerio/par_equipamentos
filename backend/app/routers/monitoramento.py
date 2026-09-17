@@ -14,12 +14,17 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado
+from app.services.monitoramento_instrumentos import (
+    NovoInstrumentoMonitorado,
+    criar_instrumento_monitorado,
+    listar_instrumentos_monitorados,
+    obter_timeline_instrumento,
+)
 from app.services.monitoramento_eventos import (
     DadosEquipamentoEntregue,
     NovoEventoMonitorado,
@@ -314,10 +319,12 @@ class ResumoMonitoramentoRead(BaseModel):
     usuario: pagina INDEPENDENTE, nao so o detalhe de 1 convenio) -- tudo
     que da pra calcular a partir do NOSSO schema (instrumento_equipamento/
     evento_marco/acao_monitoramento). Pagamento ao fornecedor fica de fora
-    de proposito -- essa info vem do siconv.json estatico
-    (frontend/public/monitoramento-equipamentos/), nao do banco; o front
-    cruza sozinho com a lista de nr_convenio abaixo pra nao acoplar este
-    router a um pipeline de arquivo que ele nao gerencia."""
+    de proposito -- essa info vem de `Convenio.valor_pago_fornecedor`
+    (tabela do banco, ver `app/routers/convenios.py`; o `siconv.json`
+    estatico que alimentava isso antes foi removido no Bloco 5 do Plan Mode
+    seguranca 2026-09-16), nao deste endpoint; o front busca via
+    `GET /convenios/{numero}` e cruza sozinho com a lista de nr_convenio
+    abaixo pra nao acoplar este router ao dominio de convenio."""
     total_instrumentos: int
     pct_execucao_fisica_medio: float | None
     distribuicao_fase: list[ContagemRotulo]
@@ -398,40 +405,34 @@ def buscar_cnes_referencia(
 
 
 @router.get("/marcos", response_model=list[MarcoCatalogoRead])
-def listar_marcos(db: Session = Depends(get_db)):
-    return db.execute(select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem)).scalars().all()
+def listar_marcos(
+    # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
+    # consolidacao 2026-09-17) -- catalogo fixo, 23 marcos hoje.
+    limit: int = Query(default=200, le=200, gt=0),
+    db: Session = Depends(get_db),
+):
+    return db.execute(
+        select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem).limit(limit)
+    ).scalars().all()
 
 
 @router.get("/instrumentos", response_model=list[InstrumentoEquipamentoRead])
-def listar_instrumentos(db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
-    """Inclui `fase_atual` calculado (achado 2026-09-10, pedido do usuario:
-    filtro de fase na Visao Geral) -- mesmo padrao de calculo de
-    `obter_resumo` (marco de fase_geral de maior ordem com evento), so que
-    aqui devolvido POR instrumento em vez de agregado.
-
-    Universo monitorado e pequeno (~86) -- a lista completa ainda cabe numa
-    resposta. O ganho deste bloco e nao carregar TODOS os EventoMarco: so
-    os pares (instrumento_id, marco_id) dos marcos de fase_geral."""
-    instrumentos = db.execute(select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio)).scalars().all()
-    fases_gerais_desc = db.execute(
-        select(MarcoCatalogo)
-        .where(MarcoCatalogo.grupo == MarcoGrupo.fase_geral)
-        .order_by(MarcoCatalogo.ordem.desc())
-    ).scalars().all()
-    fase_ids = [m.id for m in fases_gerais_desc]
-    eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
-    if fase_ids:
-        for instrumento_id, marco_id in db.execute(
-            select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(EventoMarco.marco_id.in_(fase_ids))
-        ):
-            eventos_por_instrumento[instrumento_id].add(marco_id)
-
-    resultado = []
-    for inst in instrumentos:
-        fase_atual_id = _fase_atual_id(fases_gerais_desc, eventos_por_instrumento.get(inst.id, set()))
-        fase_atual = next((f.rotulo for f in fases_gerais_desc if f.id == fase_atual_id), "Não iniciado")
-        resultado.append(InstrumentoEquipamentoRead.model_validate(inst).model_copy(update={"fase_atual": fase_atual}))
-    return resultado
+def listar_instrumentos(
+    # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
+    # consolidacao 2026-09-17) -- universo monitorado e pequeno hoje (86).
+    limit: int = Query(default=500, le=500, gt=0),
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+):
+    """Router fino (Bloco 3 do Plan Mode consolidação 2026-09-17) -- lógica
+    de fase atual e query vivem em `services/monitoramento_instrumentos.py`
+    + `repositories/monitoramento.py`; aqui só o mapeamento pro schema
+    HTTP (`fase_atual` não é coluna, por isso o `model_copy`)."""
+    itens = listar_instrumentos_monitorados(db=db, limit=limit)
+    return [
+        InstrumentoEquipamentoRead.model_validate(item.instrumento).model_copy(update={"fase_atual": item.fase_atual})
+        for item in itens
+    ]
 
 
 @router.get("/instrumentos/{nr_convenio}", response_model=InstrumentoTimelineRead)
@@ -440,16 +441,7 @@ def obter_timeline(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    instrumento = db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
-    ).scalar_one_or_none()
-    if instrumento is None:
-        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
-    eventos = db.execute(
-        select(EventoMarco)
-        .where(EventoMarco.instrumento_id == instrumento.id)
-        .order_by(EventoMarco.created_at.desc())
-    ).scalars().all()
+    timeline = obter_timeline_instrumento(db=db, nr_convenio=nr_convenio)
 
     # Valor e situacao SEMPRE ao vivo (decisao 2026-09-03) -- nunca lidos do
     # banco. Falha da API vira `disponivel=False`, nao propaga excecao pro
@@ -464,7 +456,7 @@ def obter_timeline(
         ao_vivo = ValorSituacaoAoVivoRead(disponivel=False)
 
     return InstrumentoTimelineRead(
-        instrumento=InstrumentoEquipamentoRead.model_validate(instrumento),
+        instrumento=InstrumentoEquipamentoRead.model_validate(timeline.instrumento),
         ao_vivo=ao_vivo,
         eventos=[
             EventoMarcoRead(
@@ -473,7 +465,7 @@ def obter_timeline(
                 numero_documento=e.numero_documento, data_validade=e.data_validade,
                 observacao=e.observacao, autor_nome=None, created_at=e.created_at,
             )
-            for e in eventos
+            for e in timeline.eventos
         ],
     )
 
@@ -491,7 +483,9 @@ def criar_instrumento(
     cadastrando FAF/TED/PERSUS ou avulso) -- ver docstring de
     InstrumentoEquipamentoCreate. 409 se `nr_convenio` ja existe (checagem
     de duplicidade antes de criar, mesmo criterio pras 2 portas)."""
-    instrumento = criar_instrumento_monitorado(dados=NovoInstrumentoMonitorado(**corpo.model_dump()), db=db, usuario=usuario)
+    instrumento = criar_instrumento_monitorado(
+        dados=NovoInstrumentoMonitorado(**corpo.model_dump()), db=db, usuario=usuario
+    )
     db.commit()
     db.refresh(instrumento)
     return instrumento
@@ -692,6 +686,10 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
 @router.get("/acoes", response_model=list[AcaoMonitoramentoRead])
 def listar_acoes(
     pendentes: bool = Query(False),
+    # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
+    # consolidacao 2026-09-17) -- volume atual e pequeno (universo de 86
+    # instrumentos monitorados), sem necessidade de paginacao real ainda.
+    limit: int = Query(default=500, le=500, gt=0),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
@@ -702,6 +700,7 @@ def listar_acoes(
         select(AcaoMonitoramento, InstrumentoEquipamento.nr_convenio)
         .join(InstrumentoEquipamento, AcaoMonitoramento.instrumento_id == InstrumentoEquipamento.id)
         .order_by(AcaoMonitoramento.data_prevista.asc().nulls_last())
+        .limit(limit)
     )
     if pendentes:
         stmt = stmt.where(AcaoMonitoramento.data_conclusao.is_(None))

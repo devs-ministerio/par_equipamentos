@@ -53,8 +53,11 @@ O único P0 genuíno que restava entre os três diagnósticos (database, seguran
 (CSRF) — **RESOLVIDO em 2026-09-17** pelo Bloco 1 de `planmode-consolidacao-2026-09-17.md`
 (double-submit cookie, `backend/app/main.py::csrf_middleware`, testado em
 `backend/tests/test_csrf.py`). Bloco 2 do mesmo Plan Mode também removeu o bearer fallback e o
-`access_token` no corpo de login/refresh (P1 "compatibilidade dupla" listado abaixo). **Nota
-consolidada sobe para 7,6/10** (segurança de fronteira 8,0→8,5 no eixo abaixo).
+`access_token` no corpo de login/refresh (P1 "compatibilidade dupla" listado abaixo). Blocos 3
+(fatia de leitura de `monitoramento.py` migrada pro contrato Repository/Service) e 4 (teto de
+segurança nas listas sem paginação) também fecharam parcialmente 2 P1 de arquitetura/contratos.
+**Nota consolidada sobe para 7,8/10** (segurança de fronteira 8,0→8,5, arquitetura em camadas
+4,0→4,8, resiliência e volume 6,0→6,5 nos eixos abaixo).
 
 ## Nota por eixo
 
@@ -62,9 +65,9 @@ consolidada sobe para 7,6/10** (segurança de fronteira 8,0→8,5 no eixo abaixo
 |---|---:|---:|---|
 | Segurança de fronteira | 8,0 | 8,5 | Cookie HttpOnly, refresh rotativo, rate limit, CORS, headers e CSRF (double-submit cookie, 2026-09-17) |
 | Banco e transação | 8,0 | 8,0 | Neon em `f8fe7ce9347c`, runtime sem DDL, índice trigram e TLS no driver — inalterado |
-| Arquitetura em camadas | 4,0 | 4,5 | 2 Repositories agora (`propostas_candidatas`, `notificacoes`); contrato documentado; mas a maioria dos routers ainda consulta SQLAlchemy direto — `monitoramento.py` não migrado |
+| Arquitetura em camadas | 4,0 | 4,8 | 3 Repositories agora (`propostas_candidatas`, `notificacoes`, `monitoramento`); contrato documentado e provado numa fatia de leitura do maior router (`monitoramento.py`); escrita e resto dos routers de domínio ainda direto |
 | Contratos e validação | 6,5 | 6,5 | Pydantic e `response_model`; formatos ainda não envelopados e payload externo genérico — inalterado |
-| Resiliência e volume | 6,0 | 6,0 | Timeouts/retries e algumas paginações; listas ilimitadas e race no refresh — inalterado |
+| Resiliência e volume | 6,0 | 6,5 | Timeouts/retries; teto de segurança agora em toda lista sem paginação real (Bloco 4, 2026-09-17) — falta paginação completa e resolver a race do refresh (já fechada, ver database) |
 | Testes e gates | 6,0 | 7,0 | `ruff`/`mypy` configurados com baseline versionada (não bloqueiam CI ainda); testes novos de erro de domínio e do piloto |
 | Observabilidade | 3,0 | 3,0 | Handler global existe; faltam JSON, trace, duração e métricas — inalterado |
 | Código morto/organização | 6,5 | 7,5 | `ErrorResponse`/`UserCreate`/`TokenPayload` removidos (comprovados sem consumidor); responsabilidades ainda concentradas em `monitoramento.py` e afins |
@@ -117,17 +120,17 @@ consolidada sobe para 7,6/10** (segurança de fronteira 8,0→8,5 no eixo abaixo
 
 ### P1 — arquitetura
 
-1. A aplicação permanece majoritariamente `Router -> SQLAlchemy`. Há queries diretas em praticamente todos os routers de domínio. **Ainda vale** — só `notificacoes`/`propostas_candidatas` migraram (Plan Mode backend 2026-09-17).
-2. ~~Existe só um Repository de domínio (`propostas_candidatas`).~~ **Parcialmente resolvido**: agora são 2 (`propostas_candidatas`, `notificacoes`) — ainda pouco frente ao total de routers de domínio.
-3. Os Services de monitoramento recebem `Session`, executam query e importam `HTTPException`; logo não são casos de uso isolados da web e do banco. **Ainda vale para `monitoramento_instrumentos.py`/`monitoramento_eventos.py`** — fora de escopo do Plan Mode backend 2026-09-17 de propósito; `authz.py`/`propostas_candidatas.py` (que esses Services chamam) já levantam `DomainError`.
-4. Commits continuam divididos entre routers e Services. A fronteira transacional não está padronizada. **Ainda vale** — contrato documentado (Bloco B do Plan Mode backend) declara o padrão-alvo, mas `monitoramento.py` (commit no Router) não foi migrado.
-5. `monitoramento.py` ainda concentra cerca de 767 linhas; oferta de equipamentos, convênios e coberturas também mantêm consulta e regra no controller.
+1. A aplicação permanece majoritariamente `Router -> SQLAlchemy`. Há queries diretas em praticamente todos os routers de domínio. **Ainda vale, parcialmente reduzido** — `notificacoes`/`propostas_candidatas` (Plan Mode backend 2026-09-17) + fatia de leitura de `monitoramento.py` (`listar_instrumentos`/`obter_timeline`, Bloco 3 de `planmode-consolidacao-2026-09-17.md`) migraram; escrita de monitoramento e o resto dos routers de domínio continuam diretos.
+2. ~~Existe só um Repository de domínio (`propostas_candidatas`).~~ **Parcialmente resolvido, avançou mais**: agora são 3 (`propostas_candidatas`, `notificacoes`, `monitoramento` — este último novo em 2026-09-17, primeira extração de query real do maior router do backend) — ainda pouco frente ao total de routers de domínio.
+3. Os Services de monitoramento recebem `Session`, executam query e importam `HTTPException`; logo não são casos de uso isolados da web e do banco. **Ainda vale para a escrita de `monitoramento_instrumentos.py` (`criar_instrumento_monitorado`) e todo `monitoramento_eventos.py`** — a fatia de leitura (`listar_instrumentos_monitorados`/`obter_timeline_instrumento`, mesmo arquivo) já levanta `NotFoundError`/não recebe mais lógica de query direto (delegada ao Repository), fechada em 2026-09-17 (Bloco 3 da consolidação).
+4. Commits continuam divididos entre routers e Services. A fronteira transacional não está padronizada. **Ainda vale** — contrato documentado (Bloco B do Plan Mode backend) declara o padrão-alvo, mas a escrita de `monitoramento.py` (commit no Router) não foi migrada; a leitura (sem commit, Bloco 3 acima) já segue o contrato.
+5. `monitoramento.py` ainda concentra a maior parte de suas ~760 linhas (a fatia de leitura ficou mais fina, ver item 1); oferta de equipamentos, convênios e coberturas também mantêm consulta e regra no controller.
 6. Schemas vivem tanto em `app/schemas.py` quanto dentro de routers, sem organização por feature.
 
 ### P1 — contratos, listas e integrações
 
 1. Sucessos ainda retornam objetos/listas crus e erros usam `{error, detail}`; falta o envelope constitucional. A mudança é breaking e deve ser coordenada com o frontend ou versionada.
-2. Listas de macro, município, região de saúde, instrumentos, ações, marcos e facilities ainda não possuem paginação/teto coerente.
+2. ~~Listas de macro, município, região de saúde, instrumentos, ações, marcos e facilities ainda não possuem paginação/teto coerente.~~ **RESOLVIDO (2026-09-17, Bloco 4 de `planmode-consolidacao-2026-09-17.md`)** — teto de segurança (`limit` com `le` server-side) em `macro-coverage`, `municipality-coverage`/`health-region-coverage`, `monitoramento/marcos`/`instrumentos`/`acoes`, e teto invisível em `/equipment-offer/facilities`; `equipment-offer`/`establishments` já tinham paginação real (`limit`/`offset`/`total`) antes deste bloco. Não é paginação de UI completa (sem `offset`/cursor de navegação nas listas de teto pequeno) — ver `padroes/backend/constituicao_backend.md` Seção 5, exceção documentada para volume pequeno e estável.
 3. Integrações externas mantêm `dict[str, Any]` e não validam todos os payloads antes de entrar no domínio.
 4. ~~O login ainda devolve `access_token` no corpo e mantém bearer fallback~~ **RESOLVIDO
    (2026-09-17, Bloco 2 de `planmode-consolidacao-2026-09-17.md`)** — confirmado com o usuário que

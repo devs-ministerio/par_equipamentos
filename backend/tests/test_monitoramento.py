@@ -412,7 +412,7 @@ def test_registrar_e_concluir_acao():
         assert criada.data_conclusao is None  # criada = pendente
         assert criada.nr_convenio == NR_CONVENIO_SEED
 
-        pendentes = listar_acoes(pendentes=True, db=db)
+        pendentes = listar_acoes(pendentes=True, limit=500, db=db)
         assert any(a.id == acao_id for a in pendentes)
 
         concluida = concluir_acao(acao_id, db, usuario_teste)
@@ -422,7 +422,7 @@ def test_registrar_e_concluir_acao():
         assert log_conclusao.user_id == usuario_teste.id
         assert log_conclusao.details["new"] == date.today().isoformat()
 
-        pendentes_depois = listar_acoes(pendentes=True, db=db)
+        pendentes_depois = listar_acoes(pendentes=True, limit=500, db=db)
         assert not any(a.id == acao_id for a in pendentes_depois)
     finally:
         for audit_log_id in audit_log_ids:

@@ -46,6 +46,11 @@ def listar_macro_coverage(
     equipment_family: str | None = None,
     execution_id: int | None = None,
     macro_code: list[str] | None = Query(default=None),
+    # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
+    # consolidacao 2026-09-17) -- volume atual (~121 macrorregioes por
+    # familia) fica bem abaixo disso; existe so pra nao devolver uma lista
+    # sem limite nenhum se o dado crescer sem que ninguem perceba.
+    limit: int = Query(default=1000, le=1000, gt=0),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> list[MacroCoverageRead]:
@@ -65,6 +70,7 @@ def listar_macro_coverage(
         stmt = stmt.where(MacroCoverage.equipment_family == equipment_family)
     if macro_code:
         stmt = stmt.where(MacroCoverage.macro_code.in_(macro_code))
+    stmt = stmt.limit(limit)
 
     rows = db.execute(stmt).scalars().all()
     return [_to_read(r) for r in rows]

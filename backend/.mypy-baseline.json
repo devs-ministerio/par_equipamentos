@@ -76,72 +76,67 @@
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 306,
+    "line": 314,
     "code": "operator"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 307,
+    "line": 315,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 315,
     "code": "arg-type"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 307,
+    "line": 319,
     "code": "operator"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 311,
+    "line": 319,
     "code": "operator"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 311,
+    "line": 320,
     "code": "operator"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 312,
+    "line": 320,
     "code": "operator"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 312,
-    "code": "operator"
-  },
-  {
-    "file": "app/routers/equipment_offer.py",
-    "line": 383,
+    "line": 391,
     "code": "arg-type"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 383,
+    "line": 391,
     "code": "arg-type"
   },
   {
     "file": "app/routers/equipment_offer.py",
-    "line": 387,
+    "line": 395,
     "code": "operator"
   },
   {
     "file": "app/routers/monitoramento.py",
-    "line": 431,
+    "line": 629,
     "code": "arg-type"
   },
   {
     "file": "app/routers/monitoramento.py",
-    "line": 635,
-    "code": "arg-type"
-  },
-  {
-    "file": "app/routers/monitoramento.py",
-    "line": 635,
+    "line": 629,
     "code": "operator"
   },
   {
     "file": "app/routers/monitoramento.py",
-    "line": 764,
+    "line": 763,
     "code": "union-attr"
   },
   {

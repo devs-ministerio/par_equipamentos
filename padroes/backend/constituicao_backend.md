@@ -180,6 +180,15 @@ Toda resposta da API segue a mesma estrutura envelopada, sucesso e erro:
 ### Paginação e Limitação Obrigatórias
 
 - Toda consulta que retorna lista é paginada por padrão (cursor ou offset), com `limit` máximo pré-definido no servidor — nunca lista sem teto de tamanho.
+- **Exceção aceita — teto de segurança sem paginação de UI real**: para uma tabela cujo volume
+  real hoje é pequeno e estável (ex. catálogo fixo, universo de poucas dezenas/centenas de
+  linhas), é aceitável expor só um `limit: int = Query(default=X, le=X)` sem `offset`/cursor de
+  navegação, em vez de paginação completa — o objetivo é rede de segurança contra a lista crescer
+  sem teto nenhum, não uma UI de páginas que o produto ainda não precisa. Referência de execução:
+  `par_equipamentos`, Plan Mode consolidação 2026-09-17, Bloco 4 (`macro-coverage`,
+  `monitoramento/marcos`/`instrumentos`/`acoes` — volume de dezenas a poucos milhares, teto único
+  sem paginação real). Promover pra paginação completa quando o volume real se aproximar do teto,
+  não antes.
 
 ---
 

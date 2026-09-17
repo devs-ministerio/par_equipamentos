@@ -343,18 +343,41 @@ backend inteiro de uma vez** — só a fundação + uma feature-piloto:
   `backend/app/repositories/notificacoes.py` + `backend/app/services/notificacoes.py` (novos),
   `backend/app/routers/notificacoes.py` ficou fino (só `Depends`, chama Service, devolve
   `response_model`). Contrato HTTP não mudou — mesmos query params, mesmo shape de resposta.
+- **`monitoramento.py` — fatia de leitura migrada (2026-09-17, Bloco 3 do Plan Mode consolidação)**:
+  `GET /monitoramento/instrumentos` e `GET /monitoramento/instrumentos/{nr_convenio}` seguem o
+  mesmo contrato de `notificacoes` — `backend/app/repositories/monitoramento.py` (novo, primeira
+  extração de query real deste domínio: `listar_instrumentos`/`listar_marcos_fase_geral_desc`/
+  `mapa_eventos_por_instrumento`/`obter_instrumento_por_nr_convenio`/
+  `listar_eventos_do_instrumento`) + `backend/app/services/monitoramento_instrumentos.py`
+  (`listar_instrumentos_monitorados`/`obter_timeline_instrumento`, já existia pra
+  `criar_instrumento_monitorado`). `obter_timeline_instrumento` levanta `NotFoundError` (não mais
+  `HTTPException` direto) — mesmo contrato HTTP (`{"error", "detail": None}`, 404). Escrita
+  (eventos/ações, `atualizar_cadastro`) e `obter_resumo` **ficam de fora** desta fatia — próximo
+  bloco futuro, mesmo padrão "uma fatia por PR" do piloto `notificacoes`.
 - **3 schemas mortos removidos** de `backend/app/schemas.py`: `ErrorResponse`, `UserCreate`,
   `TokenPayload` — zero consumidor real, reconfirmado por grep antes de remover.
 - **`ruff`/`mypy` com baseline** em `backend/pyproject.toml` — config mínima (`E`/`F`/`I` no ruff,
   sem `strict` no mypy), baseline versionada ignora achado legado; código novo (`domain_errors.py`,
   `repositories/notificacoes.py`, `services/notificacoes.py`) nasce sem exceção na baseline.
 
+**Teto de segurança nas listas sem paginação de UI (2026-09-17, Bloco 4 do Plan Mode
+consolidação)**: `macro-coverage`, `municipality-coverage`/`health-region-coverage`,
+`monitoramento/marcos`/`instrumentos`/`acoes` ganharam `limit: int = Query(default=X, le=X)` —
+volume atual de cada uma é bem menor que o teto (ex. 86 instrumentos monitorados, teto 500;
+~5570 municípios do Brasil, teto 10_000), então o comportamento observado não muda, só existe
+uma rede de segurança contra uma lista sem limite nenhum se o dado crescer. Isso **não é**
+paginação de UI real (sem `offset`/cursor de navegação) — `equipment-offer` (`GET
+/equipment-offer`, `/establishments`) já tinha paginação real (`limit`/`offset` +
+`total`) antes deste bloco, não precisou mudar. `/equipment-offer/facilities` ganhou teto
+(20_000) sem expor query param — é "lista completa" por design (dropdown bidirecional do
+frontend), o teto é só rede de segurança invisível.
+
 Fora de escopo deste Plan Mode (registrado como blocos futuros no diagnóstico): migrar
-`monitoramento.py`/coberturas/ofertas/convênios para Router→Service→Repository, envelope de
-resposta unificado (`{success, data, meta}` — mudança breaking, coordenar com frontend),
-paginação universal, observabilidade estruturada (logs JSON, `trace_id`, duração), e o P0 de CSRF
-em autenticação por cookie (escopo de segurança & auth, antecede backend na ordem de
-`padroes/AGENTS.md` Seção 2.2).
+`monitoramento.py` (escrita — eventos/ações — e `obter_resumo`)/coberturas/ofertas/convênios
+completos para Router→Service→Repository, envelope de resposta unificado (`{success, data,
+meta}` — mudança breaking, coordenar com frontend), paginação real (`offset`/cursor, distinta do
+teto de segurança acima) e observabilidade estruturada (logs JSON, `trace_id`, duração). CSRF em
+autenticação por cookie foi resolvido em 2026-09-17 (ver "Segurança e sessão" abaixo).
 
 ## Segurança e sessão (Plan Mode segurança 2026-09-16)
 
