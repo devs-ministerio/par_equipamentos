@@ -63,15 +63,16 @@ mudança nenhuma.
 Entrar no "universo conhecido" (ter um convênio validado, seja via SICONV
 seja via TransfereGov) **não** equivale a virar monitoramento interno
 (`instrumento_equipamento`) automaticamente — é uma segunda decisão manual da
-equipe. Duas portas de entrada pro mesmo `POST /monitoramento/instrumentos`
-(endpoint novo — hoje só existe `PATCH` num instrumento já existente, criado
-1x via bootstrap):
+equipe. Duas portas de entrada usam a mesma regra de criação de
+`instrumento_equipamento`:
 
 1. **Automática**: candidato aceito na revisão (ver fluxo de validação
-   abaixo).
+   abaixo). A criação do instrumento e a marcação da proposta como aceita
+   fecham no mesmo `commit`.
 2. **Manual**: técnico cadastra direto, pra `FAF`/`TED`/`PERSUS` (categorias
    de contratação sem sistema digital equivalente ao TransfereGov/SICONV) ou
-   qualquer convênio avulso que a equipe já conheça por fora.
+   qualquer convênio avulso que a equipe já conheça por fora, via
+   `POST /monitoramento/instrumentos`.
 
 As duas passam pela mesma checagem de duplicidade por identificador antes de
 criar.
@@ -96,8 +97,9 @@ nova, ao lado de `Convênio`/`FAF`/`TED`).
    mudado desde a captura.
 3. Dispara notificação.
 4. Equipe abre o **detalhe completo** da proposta (não um resumo) e decide:
-   aceita → `POST /monitoramento/instrumentos`; rejeitada → fica registrada
-   no histórico, nunca mais aparece como pendente.
+   aceita → cria `instrumento_equipamento` e marca a proposta como aceita na
+   mesma transação; rejeitada → fica registrada no histórico, nunca mais
+   aparece como pendente.
 
 Proposta pendente e proposta aceita aparecem na aba "Linhas de financiamento"
 do frontend (`frontend/src/pages/monitoramento-equipamentos-page.tsx`, aba

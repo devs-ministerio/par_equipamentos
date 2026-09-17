@@ -1,327 +1,390 @@
-# Diagnóstico da Constituição Frontend — 2026-09-16
-
-> **Nota de escopo (2026-09-17)**: este documento não foi reescrito por inteiro após a data da
-> avaliação — vários achados abaixo (build quebrado por casing, `src/features/` vs. estrutura
-> flat) já foram superados por trabalho posterior, ver `CLAUDE.md` seção "Estrutura de pastas do
-> frontend" e "Camada de dados". Só os 2 itens explicitamente tocados pela validação de
-> `planmode-consolidacao-2026-09-17.md` foram marcados como resolvidos aqui (P1 "JWT em
-> `localStorage`" e "Bloco 6 — sessão", ambos abaixo) — o resto do documento segue como
-> fotografia da data original, não uma reavaliação completa do estado atual do frontend.
+# Reavaliação da Constituição Frontend — 2026-09-17
 
 ## Escopo e método
 
-Este diagnóstico confronta `padroes/frontend/constiuicao_frontend.md`,
-`padroes/qualidade/constituicao_qualidade.md` e as convenções locais de
-`AGENTS.md` com o frontend atual. Foram analisados arquitetura, serviços,
-estado remoto, contratos Zod, formulários, design system, responsividade,
-acessibilidade, segurança, performance, testes e gates de entrega.
+Esta reavaliação substitui a fotografia de 2026-09-16. Ela confronta o frontend atual com `padroes/frontend/constiuicao_frontend.md` e considera os efeitos já implantados nos blocos de database, segurança e backend.
 
-Esta etapa não altera comportamento nem corrige os achados. O objetivo é
-estabelecer uma linha de base confiável para aplicação incremental.
+Foram inspecionados arquitetura, autenticação, contratos Zod, chamadas HTTP, estado remoto, UX, acessibilidade, responsividade, performance, testes e código residual. Os gates `lint`, `test` e `build` foram executados no estado atual do workspace. Nenhum código de produto foi alterado nesta etapa.
 
-## Resumo executivo
+## Resultado executivo
 
-O frontend possui uma base visual e técnica melhor que a organização atual
-sugere: React 19, TypeScript estrito, Tailwind v4, shadcn/Radix, identidade
-visual própria, carregamento por rota, TanStack Query, React Hook Form e Zod já
-estão presentes. Os serviços principais validam respostas com Zod e
-normalizam falhas em `ApiError`.
+**Conformidade frontend: 6,4/10** (diagnóstico anterior: 6,2/10).
 
-O bloqueador imediato é objetivo: **o build não passa**. `Modal.tsx` e
-`Pagination.tsx` têm nomes em PascalCase, mas são importados em minúsculas. O
-TypeScript detecta a divergência de casing, que também é incompatível com a
-regra de arquivos em kebab-case.
+A segurança da sessão evoluiu de forma relevante: todo o aplicativo está protegido, o JWT saiu do `localStorage`, cookies usam `HttpOnly`, os clientes enviam credenciais e o token CSRF acompanha mutações. As respostas principais continuam validadas com Zod e erros passam por `ApiError`.
 
-A migração arquitetural também divergiu do contexto local. `AGENTS.md`
-registra features em `src/features/<nome>` com `index.ts` público, mas essa
-pasta não existe no estado atual; 44 arquivos de domínios diferentes estão
-achatados em `src/components/features`. É necessário decidir e atualizar uma
-única fonte da verdade antes de continuar movendo arquivos.
+A aplicação, porém, ainda não está entregável. O build falha por dois grupos independentes: casing duplicado de `Modal/Pagination` e tipos manuais das páginas de monitoramento incompatíveis com os tipos derivados dos schemas. A estrutura FSD descrita no `AGENTS.md` também não corresponde ao código: existem 44 arquivos em `components/features` e nenhum `src/features`.
 
-Avaliação inicial: **6,2/10 de conformidade frontend**. A base de design,
-tipagem e dados remotos é boa, mas build quebrado, ausência de testes de UI,
-fetch em páginas, componentes excessivos, acessibilidade incompleta e ausência
-de CI frontend impedem uma nota maior.
+Os blocos anteriores tornaram mais urgente unificar o cliente HTTP. Cada um dos três services mantém seu próprio refresh mutex; chamadas simultâneas entre domínios podem iniciar rotações concorrentes. Os novos limites de segurança do backend preservam o formato atual, mas são tetos silenciosos e o frontend não recebe `total` para detectar truncamento.
 
-## Evidências objetivas
+## Auditoria visual sênior — conclusiva
 
-- Aproximadamente 15 mil linhas TypeScript/TSX.
-- 44 arquivos no diretório plano `components/features`.
-- 20 arquivos acima das 200 linhas recomendadas.
-- Maior componente: `secao-propostas-candidatas.tsx`, 868 linhas.
-- Maiores páginas: `monitoramento-painel-page.tsx`, 458 linhas;
-  `monitoramento-equipamentos-page.tsx`, 385;
-  `dashboard-page.tsx`, 330; `monitoramento-overview-page.tsx`, 324.
-- Serviços monolíticos: `monitoramento.ts`, 505 linhas; `api.ts`, 454.
-- Cinco arquivos fora de `services/` executam `fetch` diretamente.
-- 37 usos de `style`; parte é justificável para D3, dimensões calculadas e
-  barras, mas parte ainda representa migração visual incompleta.
-- Sete arquivos de teste, 30 testes, todos de lógica pura.
-- Zero testes de componente `.test.tsx`.
-- `npm run test -- --run`: 30 testes passando.
-- `npm run lint`: conclui com 14 warnings.
-- `npm run build`: falha por inconsistência de casing.
-- Não existe workflow de CI para lint, typecheck, teste ou build do frontend.
+A auditoria visual autenticada percorreu todas as oito rotas do produto em
+1440px, 768px e 400px. A navegação foi exercitada por cliques reais no header,
+nos cards contextuais, na logo, na tabela de instrumentos e no breadcrumb do
+detalhe. Foram avaliados hierarquia, densidade, orientação, legibilidade,
+responsividade, overflow e semântica observável. Não foram realizadas mutações
+de dados; estados destrutivos/sucesso foram avaliados pelo código e pelos
+componentes existentes.
 
-## Pontos conformes ou bem encaminhados
+Rotas auditadas:
 
-### Design system e identidade
+- `/` — Painel Geral;
+- `/dashboard` — Parâmetros de Necessidade;
+- `/mapa` — Mapa de Cobertura e mapa rodoviário;
+- `/relatorios` — exportações e metodologia;
+- `/monitoramento-equipamentos` — Instrumentos e repasses;
+- `/monitoramento-equipamentos/instrumentos` — Mesa de trabalho;
+- `/monitoramento-equipamentos/painel` — Painel de Gestão;
+- `/monitoramento-equipamentos/instrumentos/904824` e um detalhe aberto a
+  partir da tabela — operação de um instrumento.
 
-- Tailwind v4 e shadcn/Radix estão configurados corretamente para Vite.
-- A paleta substitui os defaults do shadcn por fundo aquecido, verde-petróleo
-  e cores semânticas próprias.
-- Radius de controles e cards é diferenciado; sombras são majoritariamente
-  reservadas a overlay ou agrupamento.
-- Há par tipográfico e fonte própria para dados numéricos.
-- Componentes base de botão, input, dialog, tabela, badge, popover e card são
-  reutilizados.
-- As rotas usam `lazy` e `Suspense`, evitando carregar mapas e páginas pesadas
-  no bundle inicial.
+**Nota conclusiva de UI/UX: 5,8/10.** Em desktop, a interface é funcional,
+legível e visualmente mais madura do que a arquitetura interna sugeria. Painel
+Geral, Mesa de trabalho e Painel de Gestão possuem boa hierarquia inicial e
+identidade institucional coerente. A nota cai porque mobile não é uma versão
+adaptada do produto: em vários pontos é o desktop comprimido, com navegação
+transbordando, conteúdo cortado e mapas/tabelas ilegíveis. A experiência também
+muda de linguagem entre módulos e repete informação em excesso.
 
-### Dados e formulários
+### Decisão de design
 
-- Os três services principais validam respostas com schemas Zod.
-- `ApiError` normaliza falhas de rede, HTTP e contrato.
-- TanStack Query possui `staleTime`, retry e invalidação após mutações.
-- Formulários recentes usam React Hook Form, Zod e schemas separados em
-  `lib/validations/monitoramento.ts`.
-- A aplicação já representa loading, erro e vazio em diversos fluxos.
-- Cálculos centrais de cobertura, texto, geografia e status possuem testes de
-  unidade com casos de borda relevantes.
+É necessária uma **refatoração visual sistêmica de todas as rotas**, preservando
+a fundação. Não se recomenda apagar o design atual nem fazer um rewrite único.
+A direção institucional, os tokens e algumas composições desktop devem ser a
+base do trabalho.
 
-## Divergências prioritárias
+Preservar:
 
-### P0 — build e fonte da verdade arquitetural
+- paleta aquecida e verde-petróleo;
+- Public Sans + Space Grotesk + Fragment Mono;
+- Tailwind v4, shadcn/Radix e Lucide;
+- tokens semânticos, largura máxima e gutters desktop;
+- header como ponto global, lazy loading e tabelas com paginação;
+- boas composições existentes na Mesa de trabalho e no Painel de Gestão.
 
-1. **Build quebrado por casing.** `components/common/Modal.tsx` e
-   `Pagination.tsx` são importados como `modal` e `pagination`. Em filesystem
-   case-sensitive isso também quebra resolução. Devem convergir para
-   kebab-case, sem manter aliases duplicados.
+Refatorar:
 
-2. **FSD local divergente.** `AGENTS.md` define
-   `src/features/<feature>/{components,hooks,lib,types}/index.ts`, mas o código
-   atual usa `src/components/features` sem fronteiras públicas. Escolher um
-   padrão antes do próximo bloco e sincronizar documentação e imports.
+- app shell e navegação responsiva;
+- arquitetura de informação entre análise, dados oficiais e monitoramento;
+- templates de cabeçalho, filtros, KPIs, dados e detalhe operacional;
+- tabelas e mapas em telas estreitas;
+- estados de loading, erro, vazio, sucesso e permissão;
+- acessibilidade, contraste e interação por teclado.
 
-3. **Gates não estão no CI.** Os workflows existentes executam pipelines de
-   dados, sem `npm run lint`, `typecheck`, `test` ou `build`. O erro atual
-   chegaria à entrega sem bloqueio automatizado.
+### Navegação validada
 
-### P1 — responsabilidades e tamanho
+Os caminhos funcionais abaixo foram confirmados por interação real:
 
-1. **Páginas ainda concentram regra e IO.** `monitoramento-overview-page.tsx`
-   e `monitoramento-painel-page.tsx` fazem fetch, modelam tipos, transformam
-   dados, controlam estado e renderizam dashboards.
+- Dashboard → Monitoramento interno;
+- Monitoramento interno → Dados oficiais;
+- Dados oficiais → Painel de gestão;
+- Monitoramento interno → Análise de mérito;
+- cards internos → Mapa e Relatórios;
+- logo → Painel Geral;
+- tabela de instrumentos → detalhe;
+- breadcrumb do detalhe → Mesa de trabalho.
 
-2. **Fetch fora de services.** Além das duas páginas anteriores,
-   `useContornoMunicipio`, `useMacroGeojson` e o genérico `useJson` chamam
-   `fetch`. GeoJSON pode continuar em adapter dedicado, mas não deve escapar
-   sem validação de fronteira.
+A navegação funciona tecnicamente, mas possui problemas de orientação:
 
-3. **Componentes acima do limite.** `secao-propostas-candidatas.tsx` combina
-   parsing de payload, regras de classificação, filtros, mutation e múltiplas
-   seções visuais em 868 linhas. É o maior risco de manutenção.
+1. Existem dois níveis concorrentes: header global e três cards “IR PARA” nas
+   páginas de análise. Os cards parecem conteúdo promocional, embora sejam a
+   navegação local principal.
+2. “Dados oficiais”, “Monitoramento interno” e “Painel de gestão” representam
+   contextos; “Análise de mérito” aparece apenas em parte das rotas. A volta não
+   é simétrica e depende de o usuário aprender onde o item reaparece.
+3. O estado ativo usa pill no header e card com borda no conteúdo, criando duas
+   gramáticas para a mesma função.
+4. Em 768px e 400px o nav quebra para uma segunda linha fora da altura de 57px
+   do header. Itens se sobrepõem ao conteúdo e alguns desaparecem.
+5. Não existe menu mobile, drawer, prioridade de destinos ou rótulo de contexto
+   compacto.
 
-4. **Services monolíticos.** `monitoramento.ts` reúne autenticação,
-   instrumentos, eventos, ações, resumo, notificações e propostas. `api.ts`
-   reúne todos os contratos de cobertura e oferta. Separar por domínio sem
-   duplicar o cliente HTTP.
+### Achados por rota
 
-5. **Hook excessivo.** `useFiltrosMacro.ts` possui 348 linhas e mistura estado,
-   regras de cascata, normalização de opções e agregações. A regra pura deve
-   ser extraída e testada separadamente.
+#### Painel Geral
 
-6. **Tipos duplicados nas páginas.** Overview e painel declaram manualmente
-   tipos que já deveriam derivar dos schemas do service. Isso permite drift
-   silencioso do contrato.
+- Desktop: identidade forte, bons números e visão comparativa útil.
+- Há um card grande por família com muitos subcards e gráficos, gerando uma
+  página muito longa e repetitiva.
+- Em 400px o documento alcançou `scrollWidth=504px`: existe overflow horizontal.
+- O grid mínimo de 480px é incompatível com a viewport obrigatória de 400px.
+- A navegação para cada domínio depende de CTA repetido dentro dos cards.
 
-### P1 — segurança de sessão e contratos
+#### Parâmetros de Necessidade
 
-1. ~~**JWT em `localStorage`.**~~ **RESOLVIDO** — a migração para cookie `HttpOnly`
-   (`planmode-seguranca-2026-09-16.md`, Bloco 2) já aconteceu antes deste diagnóstico ser
-   atualizado (achado da validação prévia de `planmode-consolidacao-2026-09-17.md`). Reconferido:
-   `grep -rln "Authorization|Bearer|access_token|localStorage" frontend/src/` só retorna
-   comentário/docstring explicando a migração já feita, ou uso de `localStorage` sem relação com
-   auth (preferência de família de equipamento). O bearer fallback do backend (que ainda existia
-   como compatibilidade dupla) foi removido em 2026-09-17 (Bloco 2 de
-   `planmode-consolidacao-2026-09-17.md`) — sem mais nenhum consumidor via header.
+- Desktop: filtros, KPIs e tabelas são compreensíveis e densos na medida certa.
+- Seis filtros aparecem no mesmo nível; a dependência geográfica não é visível.
+- O bloco introdutório e os cards de navegação ocupam espaço antes da tarefa.
+- Em 400px o documento alcançou `517px`; tabelas mediram 655px e 731px. Há
+  scroll horizontal da página, contrariando a constituição.
+- Cabeçalhos ordenáveis continuam sem semântica e teclado adequados.
 
-2. **Chamadas manuais sem Zod.** As páginas de overview/painel usam
-   `response.json()` e casts genéricos; payload malformado chega à UI como dado
-   confiável.
+#### Mapa
 
-3. **Cliente HTTP duplicado.** `api.ts`, `convenios.ts` e `monitoramento.ts`
-   repetem montagem de URL, tratamento de fetch, leitura de erro e parsing.
-   Isso já produz mensagens e autenticação diferentes entre domínios. **Achado
-   parcialmente tocado em 2026-09-17** (Bloco 1 de `planmode-consolidacao-2026-09-17.md`): os 3
-   anexam o header CSRF (`frontend/src/lib/csrf.ts`) de forma consistente — não fecha a duplicação
-   em si, que segue como este mesmo achado P1.3.
+- Desktop: mapa e painel lateral funcionam bem e constituem uma boa base visual.
+- A seleção inicial de AC não é explicada e pode parecer arbitrária.
+- Em 400px não há overflow global, mas a grade de duas colunas não quebra. O
+  mapa fica estreito e o painel lateral vira uma coluna de aproximadamente
+  120px, com frases quebradas palavra por palavra.
+- O mapa rodoviário aparece muito abaixo da dobra, sem navegação interna clara.
 
-4. **Erro técnico exposto.** Algumas telas exibem `error.message`, que pode
-   conter status, caminho e erro detalhado do schema Zod. A UI deve mostrar
-   mensagem adequada e preservar detalhe apenas para telemetria/desenvolvimento.
+#### Relatórios e Informações
 
-5. **Integração com backend futuro.** Quando a autenticação por padrão for
-   aplicada no backend, os GETs de cobertura, convênios e overview precisarão
-   enviar sessão de forma uniforme. A migração deve ser coordenada.
+- Desktop: metodologia é legível, porém fragmentada em muitas superfícies.
+- Os dois exports indisponíveis dominam o topo sem explicar prazo ou alternativa.
+- Em 400px os dois cards permanecem lado a lado, comprimindo texto e botões; o
+  documento alcançou `434px` e apresentou overflow horizontal.
+- Setas Unicode usadas como ícones divergem do padrão Lucide.
+- Há erro editorial visível (“quantas tomógrafos”).
 
-### P1 — acessibilidade
+#### Instrumentos e repasses
 
-1. Cabeçalhos ordenáveis usam `<span onClick>` sem semântica de botão,
-   teclado ou `aria-sort` em quatro pontos das tabelas de cobertura.
+- Desktop: é uma das telas mais maduras; filtros, valores e cards de convênio
+  comunicam bem a natureza operacional.
+- A densidade de cada convênio é alta e há card dentro de card visual.
+- Em 400px o bloco de três KPIs do cabeçalho não quebra corretamente: o terceiro
+  fica cortado dentro do container, mesmo sem overflow global reportado.
+- O header esconde “Dados oficiais”, quebra “Painel de gestão” para outra linha
+  e perde indicação clara do contexto.
+- A lista extensa precisa de estratégia mobile própria, não apenas empilhamento.
 
-2. `InfoIcon` usa `span role="button"`; funciona com foco, mas um botão real e
-   tooltip Radix oferece semântica, Escape e gerenciamento de foco melhores.
+#### Mesa de trabalho
 
-3. Não há suíte automatizada com Testing Library, `jest-dom` ou axe; portanto
-   modais, foco, navegação por teclado, labels e mensagens de erro não têm gate.
+- Desktop: melhor equilíbrio atual entre visão executiva e operação; KPIs,
+  distribuições, filtros e tabela formam uma sequência clara.
+- Gráficos de barras usam quase a mesma cor e têm pouca codificação semântica.
+- Mobile: cards principais empilham de forma legível, mas o header continua
+  quebrado e a tabela exige uma apresentação alternativa.
+- “Configuração pendente” é útil, mas precisa de ação direta para resolver.
 
-4. Estados de loading e erro frequentemente são texto simples sem
-   `role="status"`, `aria-live` ou estratégia consistente de foco.
+#### Painel de Gestão
 
-5. Tabelas e filtros precisam de revisão sistemática de caption, associação
-   label/controle e anúncio de resultados após filtro/paginação.
+- Desktop: hierarquia e leitura executiva são boas; funil, calendário, pizza e
+  rankings cobrem o objetivo declarado.
+- O título verde e a ausência do mesmo `PageHeader` das outras áreas tornam a
+  tela visualmente externa ao restante do produto.
+- Gráficos não compartilham sistema de tooltip, legenda, eixo e cores.
+- Mobile: KPIs empilham corretamente; a navegação superior continua quebrada e
+  o conteúdo gráfico inferior exige validação específica de legibilidade.
 
-### P1 — UX obrigatória
+#### Detalhe do instrumento
 
-1. Loading usa majoritariamente texto; a constituição prefere Skeleton.
+- Desktop: possui informação completa, mas repete técnico, nível, finalidade,
+  valor, status e equipamento em três áreas diferentes.
+- Sete cards de resumo geram uma última linha com apenas “Prestação de contas”,
+  quebrando a composição.
+- O emoji de inauguração contraria o padrão Lucide e a linguagem institucional.
+- “Editar” aparece como texto pequeno no meio da linha, com affordance fraca.
+- Ações, fase, cronograma, CNEN e timeline formam uma página muito longa sem
+  índice local ou agrupamento progressivo.
+- Mobile: o conteúdo principal empilha de forma aceitável, mas o header ocupa
+  linhas fora do seu container e interfere no começo da página.
 
-2. Erros raramente oferecem botão “Tentar novamente”, apesar de TanStack Query
-   disponibilizar `refetch`.
+### Achados transversais
 
-3. Estados vazios existem, mas muitas vezes não possuem CTA contextual.
+1. **App shell é o P0 visual.** Header não tem comportamento responsivo e
+   quebra em todas as áreas em 400px; também quebra em 768px.
+2. **Responsividade é local, não sistêmica.** Três rotas têm overflow global
+   comprovado em 400px; outras escondem/cortam conteúdo internamente.
+3. **Card é a unidade dominante.** O sistema usa bordas, radius e superfícies
+   para quase toda hierarquia, embora a constituição defina estética editorial.
+4. **Templates divergem.** Hero verde, card introdutório, header simples e título
+   verde representam o mesmo nível de página de quatro maneiras.
+5. **Padrões CSS ainda não chegaram às telas.** `table-editorial`, `meta-grid`,
+   `kpi-row` e `card-group` continuam sem adoção real.
+6. **Labels pequenas e uppercase são excessivas.** Em grandes volumes, 10–11px
+   reduz leitura e cria ruído institucional.
+7. **Feedback ainda é provisório.** Textos “Carregando...”, erro técnico e
+   exportações desabilitadas não têm padrão de recuperação.
+8. **Semântica interativa é irregular.** Header usa `button` para navegação,
+   cards usam links, ordenação usa `span` e ações secundárias às vezes parecem
+   texto.
+9. **Conteúdo editorial precisa revisão.** Há gramática incorreta, textos muito
+   técnicos e explicações que competem com a tarefa principal.
+10. **Login está funcionalmente incompatível com a credencial administrativa.**
+    `EmailStr` rejeita o domínio reservado `.local` tanto na entrada quanto no
+    `UserRead`; a UI transforma o detalhe 422 em `[object Object]`. A auditoria
+    só prosseguiu com flexibilização temporária local, já restaurada sem diff.
 
-4. Mutações mostram erro e estado disabled/loading em alguns fluxos, porém não
-   existe sistema consistente de toast/sucesso.
+### Padrões de composição necessários
 
-5. Não há Error Boundary para falha de renderização fora do fluxo de queries.
+Antes de migrar páginas, consolidar cinco padrões:
 
-### P1 — testes e qualidade
+1. **App shell responsivo:** desktop completo; tablet compacto; mobile com menu,
+   contexto atual e ações prioritárias.
+2. **Page header:** eyebrow, título, descrição, breadcrumb e ações com uma única
+   gramática entre todos os módulos.
+3. **Filter workspace:** filtros progressivos, chips do recorte ativo, contagem,
+   limpar e aplicar quando necessário.
+4. **Data surface:** toolbar, tabela/lista/mapa, loading, erro, vazio, paginação e
+   alternativa mobile comuns.
+5. **Operational detail:** resumo sem duplicação, navegação local, timeline,
+   tarefas e edição progressiva.
 
-1. Os 30 testes cobrem funções puras; nenhum hook, service ou componente React
-   é exercitado conforme a pirâmide exigida.
+A implementação deve começar pelo app shell e por uma tela piloto que contenha
+navegação, filtros, KPIs e tabela. O Dashboard é a melhor prova do sistema de
+análise; a Mesa de trabalho é a melhor prova do sistema operacional. Depois, a
+migração segue rota por rota, removendo o legado substituído no mesmo bloco.
 
-2. Não há teste provando que services convertem falha HTTP em `ApiError` ou
-   rejeitam payload incompatível com Zod.
+## Nota por eixo
 
-3. Não há `jsdom`, Testing Library, Playwright ou fluxo E2E crítico.
+- **Segurança de sessão: 8,5/10.** Cookie HttpOnly, CSRF, `credentials: include`, rotas protegidas e ausência de bearer/localStorage de autenticação. Perde pontos pela renovação duplicada entre services e mensagens técnicas na UI.
+- **Contratos e dados: 6,5/10.** Zod cobre os services principais, mas tipos manuais duplicados já causam falha real de TypeScript e estruturas externas ainda usam `Record<string, unknown>`.
+- **Arquitetura: 5,0/10.** Hooks e services existem, porém as features estão achatadas, páginas ainda orquestram IO e services são monolíticos.
+- **Design system: 8,0/10.** Tailwind v4, shadcn/Radix, tokens e identidade própria estão presentes.
+- **UX e acessibilidade: 5,5/10.** Há estados básicos, mas faltam retry, Skeleton consistente, toast, semântica de ordenação e testes de teclado/foco.
+- **Responsividade e performance: 6,0/10.** Lazy loading por rota e alguns layouts fluidos; faltam evidência visual nos breakpoints e virtualização de listas grandes.
+- **Testes e gates: 4,5/10.** Trinta testes puros passam, mas build falha, lint tem 15 warnings, não há testes React/E2E/cobertura nem CI frontend.
+- **Código morto e organização: 5,5/10.** CSS aspiracional e componentes antigos permanecem; 21 arquivos ultrapassam 200 linhas.
 
-4. Não existe configuração de cobertura nem threshold por camada.
+## Efeito dos blocos anteriores
 
-5. O lint possui 14 warnings, incluindo expressões sem efeito e arquivos que
-   misturam componentes com exports auxiliares, afetando Fast Refresh.
+### Database
 
-6. O TypeScript só é efetivamente validado pelo build, que está quebrado.
+- As migrations de refresh token e a remoção de `cpf_hash` são transparentes ao frontend; não existem referências ao campo removido.
+- A separação de papéis e TLS não alteram o contrato do navegador.
+- O frontend depende de a migration de autenticação estar aplicada antes do deploy da interface; não há verificação de compatibilidade/versionamento de API no cliente.
+- Os tetos adicionados pelo backend (`macro=1000`, `município=10000`, `região=1000`, `instrumentos/ações=500`, `marcos=200`) não mudam o JSON. Contudo, listas não paginadas podem ser truncadas sem o frontend saber, pois não recebem `total`/`meta`.
+
+### Segurança
+
+Fechado:
+
+- Todo o app, exceto `/login`, passa por `ProtectedRoute` e consulta `/auth/me`.
+- O token de sessão não é lido nem gravado por JavaScript.
+- Os três clientes usam `credentials: 'include'`.
+- Mutações enviam o double-submit token em `X-CSRF-Token`.
+- Bearer fallback e `access_token` no corpo foram removidos do contrato consumido.
+- Não foram encontrados segredos, `dangerouslySetInnerHTML` com dado remoto ou token de auth em storage.
+
+Pendente:
+
+1. `api.ts`, `convenios.ts` e `monitoramento.ts` possuem mutexes de refresh independentes. Requisições 401 simultâneas em services diferentes podem disparar mais de uma rotação e produzir logout/redirecionamento intermitente.
+2. A leitura/renovação, redirect e normalização de erro estão triplicados. Correções de segurança precisam ser replicadas manualmente em três lugares.
+3. Erros de Zod, status e paths são incorporados à mensagem de `ApiError`; várias telas exibem `error.message` diretamente.
+4. `LoginPage` chama `navigate()` durante render quando já autenticada. O redirecionamento deve ser declarativo ou ocorrer em efeito, evitando atualização de roteador durante render.
+5. A preferência da família em `localStorage` é apenas UX e não contém sessão; seu uso é aceitável.
+
+### Backend
+
+- A introdução de `DomainError` não quebrou o formato HTTP: erros continuam `{error, detail}` e `mensagemErroHttp` permanece compatível.
+- A extração de Repository/Service no backend preservou os payloads de notificações e instrumentos.
+- O frontend ainda espelha contratos manualmente e não há geração/checagem OpenAPI. O build atual demonstra drift: `ResumoApi`, `InauguracaoApi` e `InstrumentoApi` das páginas já não correspondem aos tipos inferidos pelos schemas do service.
+- A nova paginação/teto do backend não foi modelada como contrato comum. Onde há paginação real, cada service define seu próprio resultado; onde há apenas teto, a UI assume lista completa.
+- O envelope constitucional do backend ainda não foi adotado. Quando mudar, os três clientes e todos os schemas-raiz serão afetados; essa mudança exige Plan Mode coordenado.
+
+## Achados prioritários
+
+### P0 — build e fonte da verdade
+
+1. `npm run build` falha com TS1261 porque `Modal.tsx`/`Pagination.tsx` coexistem com imports em minúsculas. O erro persiste desde o diagnóstico anterior.
+2. `monitoramento-overview-page.tsx` declara tipos manuais mais largos que os schemas: inaugurações exigem campos inexistentes no retorno inferido e `fase_atual` não aceita `undefined`.
+3. Tipos das páginas devem ser derivados de `ResumoMonitoramento` e `InstrumentoEquipamento`, com projeções por `Pick` quando necessário. Não duplicar contratos de wire.
+4. O `AGENTS.md` declara `src/features/<nome>/index.ts`, mas o código possui 44 arquivos em `src/components/features` e zero em `src/features`. Documentação e implementação não podem continuar afirmando estados distintos.
+
+### P1 — cliente HTTP e sessão
+
+1. Criar um único cliente responsável por base URL, cookies, CSRF, refresh compartilhado, retry único, redirect e `ApiError`.
+2. Manter schemas por domínio, mas eliminar as três implementações de transporte.
+3. Garantir que um 401 simultâneo em dashboard, convênios e monitoramento resulte em apenas um `/auth/refresh`.
+4. Separar mensagem segura para usuário de detalhe técnico de contrato; o detalhe deve ficar disponível apenas para diagnóstico controlado.
+5. Testar login, refresh deduplicado, CSRF, logout, 401 definitivo e payload inválido.
+
+### P1 — arquitetura e tamanho
+
+1. Há 21 arquivos acima das 200 linhas recomendadas.
+2. `secao-propostas-candidatas.tsx` tem 868 linhas e combina parsing dinâmico, regra, filtros, mutations e várias seções visuais.
+3. `monitoramento.ts` tem 578 linhas; `api.ts`, 494; `convenios.ts`, 233. A divisão deve ser por domínio sobre um transporte comum.
+4. `monitoramento-painel-page.tsx` tem 460 linhas; overview, 323. Ambas ainda fazem `useEffect + useState + Promise.all`, apesar de TanStack Query já existir.
+5. `useFiltrosMacro.ts` mantém 348 linhas de estado e transformação.
+6. Propostas candidatas continuam processando estruturas de negócio como `Record<string, unknown>` dentro do componente.
+7. Páginas devem apenas compor features; IO e transformação assíncrona devem ficar em hooks.
+
+### P1 — qualidade, UX e acessibilidade
+
+1. Existem sete arquivos e 30 testes, todos de funções puras. Não há `.test.tsx`, Testing Library, axe ou E2E.
+2. Nenhum teste cobre `ApiError`, Zod inválido, refresh, CSRF ou `ProtectedRoute`.
+3. O lint termina com 15 warnings: seis expressões sem efeito e nove violações de Fast Refresh.
+4. Loading de overview/painel é texto simples; erros não oferecem retry e mostram detalhe técnico.
+5. Não existe sistema consistente de toast/sucesso nem Error Boundary global.
+6. Quatro cabeçalhos ordenáveis usam `span onClick`, sem botão, teclado ou `aria-sort`.
+7. Não há evidência automatizada ou manual versionada de foco, Escape, Enter, labels e anúncios dinâmicos.
 
 ### P2 — responsividade e performance
 
-1. Há uso de `auto-fit`, wrappers com overflow e alguns breakpoints, mas apenas
-   sete ocorrências de variantes responsivas Tailwind em páginas/componentes.
-   Isso não prova adaptação completa nos cinco breakpoints exigidos.
+1. O código possui wrappers de overflow e breakpoints pontuais, mas as rotas protegidas não foram verificadas visualmente em 400px e 768px nesta etapa.
+2. Mapas, filtros e tooltips ainda usam dimensões fixas que precisam de inspeção em viewport estreita.
+3. Listas do monitoramento podem chegar a 500 itens e municípios a milhares; algumas telas filtram/renderizam tudo no cliente sem virtualização.
+4. O build não chega à etapa Vite, portanto não há relatório válido de chunks/bundle nesta revisão.
+5. Rotas usam `lazy`, um ponto positivo preservado.
 
-2. Larguras fixas em pixels aparecem em filtros, mapas, tooltips e layouts.
-   Algumas são legítimas, mas `min-width` e mapas de 560px exigem inspeção real
-   em 400px e 768px.
+### P2 — código residual
 
-3. Não existe evidência versionada de teste visual nos breakpoints mínimos.
+- `card-group`, `table-editorial`, `meta-grid` e `kpi-row` existem em `index.css` sem consumidores encontrados. São candidatos a remoção ou adoção explícita.
+- `Modal` é um wrapper legado sobre Dialog; deve ser removido quando os três consumidores migrarem, sem manter dois contratos equivalentes.
+- Comentários longos de histórico ocupam services e páginas. Decisões duráveis pertencem à documentação; o código deve guardar apenas contexto local necessário.
+- Hooks de GeoJSON executam `fetch` fora de services. É aceitável separar API operacional de assets geográficos, mas os hooks precisam de schema/adapter explícito e erro normalizado.
 
-4. Listas com 100+ instrumentos/propostas são filtradas e renderizadas no
-   cliente sem virtualização em alguns fluxos, contrariando a regra de
-   virtualização acima de 100 itens.
+## Próximo bloco recomendado
 
-5. Não há medição de bundle ou orçamento de performance. Exportação PDF/XLSX
-   e mapas são dependências pesadas; o code splitting reduz o risco, mas deve
-   ser confirmado pelo relatório do build quando ele voltar a passar.
+### Bloco 0 — restaurar o estado entregável
 
-### P2 — consistência visual e código residual
+- Renomear fisicamente `Modal.tsx` e `Pagination.tsx` para kebab-case e alinhar imports.
+- Remover tipos duplicados de overview/painel e usar tipos derivados dos schemas.
+- Corrigir os 15 warnings reais.
+- Fazer `typecheck`, `test` e `build` passarem antes de refatoração arquitetural.
 
-1. O projeto está no meio da migração: 37 inline styles permanecem. Estilos
-   calculados de mapa/barra são aceitáveis; dimensões e cores estáticas devem
-   migrar para tokens/classes quando o componente for tocado.
+### Bloco 1 — transporte HTTP único
 
-2. Há componentes próprios antigos (`Modal`, `InfoIcon`) coexistindo com
-   primitives Radix/shadcn. `Modal` já delega para Dialog; pode desaparecer
-   quando os consumidores aceitarem diretamente o contrato do Dialog.
+- Extrair cliente comum com refresh mutex global, CSRF, retry, redirect e erro seguro.
+- Manter services/schemas por domínio sobre esse cliente.
+- Escrever testes do transporte e sessão.
 
-3. `card-group`, `table-editorial`, `meta-grid` e `kpi-row` foram definidos no
-   tema, mas têm pouco ou nenhum uso. Na próxima rodada deve-se decidir entre
-   adoção real e remoção, evitando CSS aspiracional morto.
+### Bloco 2 — feature piloto
 
-4. Comentários históricos extensos ajudam a preservar decisões, mas vários
-   arquivos carregam narrativa de sessão no corpo do componente. Decisões
-   duráveis devem migrar para docs; o código deve manter apenas o motivo que
-   evita regressão local.
+- Resolver formalmente a divergência FSD.
+- Migrar propostas candidatas para `src/features/propostas-candidatas` com API pública, hooks, schemas e componentes menores.
+- Remover código e tipos substituídos no mesmo bloco.
 
-## Sequência recomendada de aplicação
+### Blocos seguintes
 
-### Bloco 1 — restaurar gates
+1. Migrar monitoramento e depois cobertura/mapa, uma feature por vez.
+2. Padronizar Skeleton, retry, empty state, toast e Error Boundary.
+3. Adicionar Testing Library, axe e E2E do login + rota protegida.
+4. Validar 400px/768px e virtualizar/paginar listas grandes.
+5. Criar CI frontend com lint sem warnings, typecheck, testes e build.
 
-- Corrigir casing/nomenclatura dos componentes comuns.
-- Zerar warnings reais do lint.
-- Fazer `typecheck`, testes e build passarem.
-- Criar workflow frontend com esses quatro gates.
-
-### Bloco 2 — cliente HTTP e contratos
-
-- Criar um único cliente fetch com autenticação, normalização de erro e parsing
-  Zod.
-- Dividir schemas/services por domínio.
-- Migrar overview e painel para services + hooks TanStack Query.
-- Remover `useJson<T>` genérico ou restringi-lo a schema obrigatório.
-
-### Bloco 3 — arquitetura de features
-
-- Resolver a divergência entre `AGENTS.md` e `components/features`.
-- Migrar uma feature por vez, com API pública e sem imports profundos.
-- Começar por propostas candidatas, que concentra o maior componente.
-- Depois separar monitoramento e cobertura/mapa.
-
-### Bloco 4 — UX e acessibilidade
-
-- Padronizar Skeleton, Alert com retry, empty state e toast.
-- Trocar controles clicáveis não semânticos por Button/Tooltip/Tabs adequados.
-- Adicionar Testing Library e axe para fluxos interativos.
-- Validar foco, Escape, Enter, labels e anúncios de atualização.
-
-### Bloco 5 — responsividade e performance
-
-- Inspecionar todas as rotas em 400px, 768px, 1024px e 1440px.
-- Corrigir overflow global e larguras mínimas.
-- Paginar ou virtualizar listas acima de 100 itens.
-- Medir chunks e definir orçamento de bundle.
-
-### ~~Bloco 6 — sessão~~ — **RESOLVIDO**
-
-- ~~Coordenar com backend a migração do JWT para cookie seguro~~ — feito em
-  `planmode-seguranca-2026-09-16.md` (Bloco 2), confirmado nesta rodada (ver P1 acima).
-- Garantir que autorização continue validada no backend; ocultação por role no
-  frontend permanece apenas UX. (segue válido, sem mudança)
-
-## Critérios para considerar o frontend fechado
+## Critério de encerramento
 
 - Lint sem warnings, typecheck, testes e build passam localmente e no CI.
-- Nenhum componente/página executa fetch diretamente.
-- Todo payload externo é validado por schema; tipos de UI derivam do contrato.
-- Páginas compõem features e não concentram regra de negócio.
-- Componentes com lógica relevante ficam abaixo do limite ou têm divisão
-  justificada.
-- Hooks, services e componentes interativos possuem testes de sucesso, erro e
-  estados de borda.
-- Rotas críticas possuem pelo menos um E2E.
-- WCAG AA, teclado e foco são validados automaticamente e manualmente.
-- Todas as rotas funcionam nos breakpoints obrigatórios sem scroll horizontal
-  da página.
-- Listas grandes têm paginação ou virtualização.
-- Sessão não depende de armazenamento inseguro sem decisão de risco explícita.
-- Código, CSS, tipos e componentes substituídos são removidos ao fim de cada
-  bloco.
+- Um único transporte HTTP controla cookie, CSRF, refresh e erro.
+- Todo payload operacional é validado com Zod e os tipos da UI derivam do schema.
+- Páginas compõem features e não executam IO diretamente.
+- Estrutura real e `AGENTS.md` descrevem a mesma arquitetura.
+- Hooks, services e componentes interativos possuem testes de sucesso e falha.
+- Login e fluxos críticos possuem E2E.
+- Teclado, foco, WCAG AA, 400px e 768px são validados.
+- Listas grandes possuem paginação, teto detectável ou virtualização.
+- Código, CSS e tipos substituídos são removidos em cada bloco.
 
-## Resultado dos gates nesta etapa
+## Evidências executadas
 
 ```text
-npm run lint: concluiu com 14 warnings
-npm run test -- --run: 7 arquivos, 30 testes passando
-npm run build: falhou (TS1261, casing de Modal/Pagination)
-CI frontend: inexistente
+npm run lint: concluiu com 15 warnings
+npm run test: 7 arquivos, 30 testes passando
+npm run build: falhou com TS1261 + incompatibilidade de tipos no overview
+arquivos TypeScript/TSX: 143
+linhas TypeScript/TSX: 15.252
+arquivos acima de 200 linhas: 21
+components/features: 44 arquivos
+src/features: inexistente
+fetch operacional: concentrado em 3 services; GeoJSON em 3 hooks genéricos/específicos
 testes de componente: 0
+CI frontend: inexistente
+auditoria visual: 8/8 rotas principais em 1440px, 768px e 400px
+navegação: header, cards contextuais, logo, tabela→detalhe e breadcrumb validados
+400px: overflow global em Painel Geral (504px), Dashboard (517px) e Relatórios (434px)
+400px: mapa mantém 2 colunas; Dados oficiais corta KPI; header transborda em todos os contextos
+768px: sem overflow global medido, mas header ainda quebra item para segunda linha fora dos 57px
+login: credencial .local rejeitada por LoginRequest e UserRead; UI exibe [object Object]
 ```

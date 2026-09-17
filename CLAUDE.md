@@ -528,6 +528,49 @@ do mesmo gate, sem exceção.
   campo `UserCreate.cpf` removido (`schemas.py`), linha hardcoded removida
   de `scripts/criar_usuario.py`.
 
+## Plan Mode frontend (reavaliação 2026-09-17)
+
+`docs/arquitetura/diagnostico-constituicao-frontend-2026-09-16.md` (reescrito nesta rodada como
+"Reavaliação — 2026-09-17") reauditou o frontend contra `padroes/frontend/constiuicao_frontend.md`
+— nota de conformidade **6,4/10**, nota separada de **UI/UX 5,8/10** de uma auditoria visual
+sênior autenticada em 8 rotas × 3 breakpoints (1440/768/400px). `docs/arquitetura/
+planmode-frontend-2026-09-17.md` formaliza o roadmap de correção em blocos. **Nesta rodada só a
+documentação foi produzida/corrigida (decisão do usuário) — nenhum código de `frontend/`/
+`backend/` foi alterado**; a execução do Bloco 0 fica para uma próxima rodada aprovada.
+
+- **Build e lint quebrados (Bloco 0, planejado, não executado)**: `npm run build` falha com
+  `TS1261` (`Modal.tsx`/`Pagination.tsx` em `components/common/` coexistem com imports em
+  minúsculas — casing duplicado) e `TS2345` (tipos manuais de `monitoramento-overview-page.tsx`
+  divergindo dos schemas Zod de `services/monitoramento.ts`). `npm run lint` termina com 15
+  warnings (6 `no-unused-expressions`, 9 `react/only-export-components`). Correção: renomear os 2
+  arquivos pra kebab-case, derivar os tipos da página via `z.infer` em vez de redeclarar, corrigir
+  os warnings arquivo por arquivo — tudo detalhado no Bloco 0 do plan-mode.
+- **Bug funcional achado durante a auditoria visual**: `EmailStr` (`backend/app/schemas.py`)
+  rejeita o domínio `.local` da credencial administrativa, tanto no login quanto em `UserRead`; a
+  UI mostra `[object Object]` no 422 correspondente. Também planejado no Bloco 0, não corrigido
+  ainda.
+- **Transporte HTTP triplicado (Bloco 1, roadmap)**: `api.ts`/`convenios.ts`/`monitoramento.ts`
+  mantêm cada um seu próprio mutex de refresh — um 401 simultâneo entre domínios pode disparar
+  mais de uma rotação e produzir logout/redirecionamento intermitente. Unificar em um cliente
+  comum é mudança estrutural, exige Plan Mode próprio antes de executar.
+- **Divergência de estrutura de pastas resolvida (Bloco 2, executado nesta rodada)**: `AGENTS.md`
+  (raiz do projeto) ainda descrevia `src/features/<nome>/index.ts` (estrutura anterior à reversão
+  de 2026-09-11) — contradizia este arquivo, que já documentava a estrutura flat real. `AGENTS.md`
+  foi reescrito para espelhar as seções "Estrutura de pastas do frontend"/"Camada de dados"/
+  "Migração de arquitetura do frontend" deste `CLAUDE.md`, incluindo os nomes de arquivo em
+  kebab-case corretos (antes citava `MacroMap.tsx`, `CoberturaTable`, `KpiCard.tsx` etc., que não
+  existem mais com esse casing).
+- **Código morto sinalizado, não removido**: `.card-group`/`.card-group-accent`/
+  `.table-editorial` (+ variantes)/`.meta-grid`/`.kpi-row` em `frontend/src/index.css` não têm
+  nenhum consumidor confirmado por grep — candidatos a remoção no Bloco 0. 21 arquivos
+  `.tsx`/`.ts` passam de 200 linhas (a quebra de arquivo grande da reorganização 2026-09-11 não é
+  regra automática permanente, precisa de revisão contínua a cada feature nova).
+- **Fora de escopo desta rodada e dos próximos blocos imediatos**: refatoração visual sistêmica
+  das 8 rotas (app shell responsivo — header quebra em 768px/400px em todas as rotas —, overflow
+  horizontal comprovado em 400px no Painel Geral/Dashboard/Relatórios, padrões de composição
+  Page Header/Filter Workspace/Data Surface, Testing Library/axe/E2E inexistentes, CI frontend
+  inexistente). Ver `planmode-frontend-2026-09-17.md`, seção "Blocos seguintes".
+
 ## Estratégia de dados do Neon: ingestão e clonagem
 
 Decisão do usuário, 2026-09-16 (documentado no diagnóstico
