@@ -1,103 +1,218 @@
-%% Modelo ER -- Radar de Convênios (ver modelo_er.md pro detalhe de cada
-%% campo/decisão). Só o domínio "monitoramento de equipamento" -- schema
-%% completo em backend/app/db/models.py.
+%% Modelo ER completo do schema operacional do SIGEO.
+%% Fonte da verdade: backend/app/db/models.py; atualizado em 2026-09-16.
 erDiagram
-    USER ||--o{ EVENTO_MARCO : "autor_id"
-    USER ||--o{ AUDIT_LOG : "user_id"
-    USER ||--o{ PROPOSTA_CANDIDATA : "revisado_por"
-    USER ||--o{ NOTIFICACAO : "nivel_minimo (RBAC, a definir)"
-
-    MARCO_CATALOGO ||--o{ EVENTO_MARCO : "marco_id"
-
-    INSTRUMENTO_EQUIPAMENTO ||--o{ EVENTO_MARCO : "instrumento_id"
-    INSTRUMENTO_EQUIPAMENTO ||--o{ ACAO_MONITORAMENTO : "instrumento_id"
-    INSTRUMENTO_EQUIPAMENTO ||--o{ AUDIT_LOG : "entity_id (entity_name=instrumento_equipamento)"
-    INSTRUMENTO_EQUIPAMENTO ||--o{ NOTIFICACAO : "entidade_id (tipo=atualizacao_api|edicao_manual)"
-
-    PROPOSTA_CANDIDATA ||--o{ NOTIFICACAO : "entidade_id (tipo=proposta_candidata)"
-    PROPOSTA_CANDIDATA |o--o| INSTRUMENTO_EQUIPAMENTO : "aceita vira (nr_convenio = str(id_proposta), sem FK fisica)"
+    USER ||--o{ AUDIT_LOG : user_id
+    USER ||--o{ CONFIG_DECISION : confirmed_by
+    USER ||--o{ REFERENCE_FILE : uploaded_by
+    USER ||--o{ EXECUTION : executed_by_deleted_by
+    USER ||--o{ EVENTO_MARCO : autor_id
+    USER ||--o{ PROPOSTA_CANDIDATA : revisado_por
+    USER ||--o{ REFRESH_TOKEN : user_id
+    CNES_ESTABELECIMENTO ||--o{ CONVENIO : cnes
+    CNES_ESTABELECIMENTO ||--o{ INSTRUMENTO_EQUIPAMENTO : cnes
+    CNES_ESTABELECIMENTO ||--o{ PROPOSTA_CANDIDATA : cnes
+    REFERENCE_FILE ||--o{ ACCELERATOR_ROW : reference_file_id
+    REFERENCE_FILE ||--o{ MUNICIPALITY_POPULATION_ROW : reference_file_id
+    REFERENCE_FILE ||--o{ EXECUTION : accelerator_population_file
+    COMPETENCY ||--o{ EXECUTION : competency_id
+    EXECUTION |o--o| COMPETENCY : published_execution_id
+    EXECUTION ||--o{ MACRO_COVERAGE : execution_id
+    EXECUTION ||--o{ MUNICIPALITY_COVERAGE : execution_id
+    EXECUTION ||--o{ EQUIPMENT_OFFER_ROW : execution_id
+    EXECUTION ||--o{ EXECUTION_ALERT : execution_id
+    INSTRUMENTO_EQUIPAMENTO ||--o{ EVENTO_MARCO : instrumento_id
+    INSTRUMENTO_EQUIPAMENTO ||--o{ ACAO_MONITORAMENTO : instrumento_id
+    MARCO_CATALOGO ||--o{ EVENTO_MARCO : marco_id
 
     USER {
         bigint id PK
-        string name
         string email UK
-        enum role "admin | colaborador | leitor"
-        enum status "active | inactive | suspended"
+        enum role
+        enum status
+        datetime deleted_at
     }
-
-    INSTRUMENTO_EQUIPAMENTO {
+    REFRESH_TOKEN {
         bigint id PK
-        string nr_convenio UK "numero real | NUP SEI (FAF/TED) | id_proposta (Parceria TransfereGov)"
-        string cnpj_convenente
-        string nome_convenente
-        string tipo_contratacao "Convenio | FAF | TED | Parceria TransfereGov"
-        string tecnico_titular
-        string tecnico_suplente
-        string situacao_prestacao_contas "legado -- job de verificacao diario leve"
-        datetime created_at
+        bigint user_id FK
+        string token_hash UK
+        datetime expires_at
+        datetime revoked_at
     }
-
+    AUDIT_LOG {
+        bigint id PK
+        bigint user_id FK
+        string entity_name
+        bigint entity_id "polimorfico, sem FK"
+        string action
+        jsonb details
+    }
+    CONFIG_DECISION {
+        bigint id PK
+        enum key
+        string value
+        bigint confirmed_by FK
+        datetime valid_from
+        datetime valid_to "NULL = vigente"
+    }
+    REFERENCE_FILE {
+        bigint id PK
+        enum type
+        date reference_period
+        bigint uploaded_by FK
+        bool active
+    }
+    ACCELERATOR_ROW {
+        bigint id PK
+        bigint reference_file_id FK
+        string cnes_code
+        string ibge_code
+        int operational_qty "CHECK maior ou igual a zero"
+    }
+    MUNICIPALITY_POPULATION_ROW {
+        bigint id PK
+        bigint reference_file_id FK
+        string ibge_code
+        int resident_population "CHECK nao negativo"
+        int ans_population "CHECK nao negativo"
+        int sus_dependent_population "CHECK nao negativo"
+    }
+    INCA_ESTIMATE {
+        bigint id PK
+        enum level
+        string uf
+        string capital_ibge_code
+        int estimated_cases "CHECK nao negativo"
+        string triennium
+    }
+    CNES_ESTABELECIMENTO {
+        string cnes PK "CHECK 7 digitos"
+        string nome_estabelecimento
+        string cnpj
+        string municipio
+        string uf
+        numeric latitude "CHECK entre -90 e 90"
+        numeric longitude "CHECK entre -180 e 180"
+        string fonte_sincronizacao
+    }
+    CONVENIO {
+        bigint id PK
+        string numero UK
+        string convenente_cnpj
+        string municipio
+        string uf
+        numeric valor_global
+        string cnes FK
+        jsonb siconv_raw
+        jsonb transferegov_raw
+    }
+    COMPETENCY {
+        bigint id PK
+        string label "UK composto"
+        string equipment_family "UK composto"
+        bigint published_execution_id FK
+    }
+    EXECUTION {
+        bigint id PK
+        bigint competency_id FK
+        int version "UK com competency_id"
+        enum mode
+        enum status
+        bigint executed_by FK
+        bigint accelerator_file_id FK
+        bigint population_file_id FK
+        bigint deleted_by FK
+    }
+    MACRO_COVERAGE {
+        bigint id PK
+        bigint execution_id FK
+        string macro_code
+        string equipment_family
+        int population "CHECK nao negativo"
+        int available_qty "CHECK nao negativo"
+        int existing_qty "CHECK nao negativo"
+        int balance
+        enum deficit_status
+    }
+    MUNICIPALITY_COVERAGE {
+        bigint id PK
+        bigint execution_id FK
+        string ibge_code
+        string health_region_code
+        string macro_code
+        string equipment_family
+        int population "CHECK nao negativo"
+        int available_qty "CHECK nao negativo"
+        numeric distance_km_nearest_equipment "CHECK nao negativo"
+        numeric distance_km_nearest_radiopharma "CHECK nao negativo"
+        enum deficit_status
+    }
+    EQUIPMENT_OFFER_ROW {
+        bigint id PK
+        bigint execution_id FK
+        string cnes_code
+        string ibge_code
+        string equipment_family
+        int existing_qty "CHECK nao negativo"
+        int in_use_qty "CHECK nao negativo"
+        bool sus_flag
+        numeric latitude
+        numeric longitude
+    }
+    EXECUTION_ALERT {
+        bigint id PK
+        bigint execution_id FK
+        enum alert_type
+        jsonb details
+    }
     MARCO_CATALOGO {
         bigint id PK
         string codigo UK
-        enum grupo "fase_geral | cronograma_fisico | regulatorio"
-        int ordem
+        enum grupo
+        int ordem "CHECK nao negativo"
+        numeric execucao_fisica_pct_referencia "CHECK entre 0 e 1"
     }
-
+    INSTRUMENTO_EQUIPAMENTO {
+        bigint id PK
+        string nr_convenio UK
+        string cnes FK
+        string equipamento_descricao
+        string equipamento_numero_serie
+        int equipamento_vida_util_anos "CHECK nao negativo"
+        string tipo_contratacao
+        string tecnico_titular
+    }
     EVENTO_MARCO {
         bigint id PK
         bigint instrumento_id FK
         bigint marco_id FK
-        date data_ocorrencia
-        string status_regulatorio
         bigint autor_id FK
-        datetime created_at
+        date data_ocorrencia
+        date data_prevista
+        string status_regulatorio
     }
-
     ACAO_MONITORAMENTO {
         bigint id PK
         bigint instrumento_id FK
         string descricao
         date data_prevista
-        date data_conclusao "unico campo mutavel"
+        date data_conclusao
+        string responsavel
     }
-
     PROPOSTA_CANDIDATA {
         bigint id PK
-        int id_proposta UK "chave de dedup -- TransfereGov, nunca comparado contra o legado"
-        string cnpj_ente_recebedor
-        string nm_proponente
-        string ds_objeto
-        string componente_batido "1 dos 8 COMPONENTES_ALVO"
-        string equipamento_detectado "casamento contra EQUIPAMENTOS_ALVO"
-        numeric vl_global_proposta
-        string situacao_proposta
-        date data_proposta
+        bigint id_proposta UK
+        string cnes FK
+        string cd_parceria
         jsonb metas_resumo
         bool tem_parceria
-        string status "pendente | aceita | rejeitada"
+        enum status
         bigint revisado_por FK
-        datetime revisado_em
-        datetime created_at
     }
-
     NOTIFICACAO {
         bigint id PK
-        string tipo "proposta_candidata | atualizacao_api | edicao_manual"
-        string titulo
-        string corpo
-        bigint entidade_id "polimorfico por tipo, sem FK fisica"
-        string nivel_minimo "RBAC, a definir"
+        enum tipo
+        bigint entidade_id "polimorfico, sem FK"
+        string nivel_minimo
         bool lida
-        datetime created_at
-    }
-
-    AUDIT_LOG {
-        bigint id PK
-        bigint user_id FK
-        string entity_name
-        bigint entity_id
-        string action
-        jsonb details
         datetime created_at
     }

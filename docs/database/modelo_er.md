@@ -1,10 +1,11 @@
-# Modelo ER — Radar de Convênios
+# Modelo ER — SIGEO
 
-Espelho em prosa de [`modelo_er.mermaid`](modelo_er.mermaid). Cobre só as
-tabelas do domínio "monitoramento de equipamento" (`instrumento_equipamento`
-e as que se conectam a ela) — não duplica o restante do schema, ver
-`backend/app/db/models.py` como fonte da verdade completa. Baseado no fluxo
-fechado com o usuário em 2026-09-15 (ver
+O [`modelo_er.mermaid`](modelo_er.mermaid) cobre todas as tabelas e FKs
+físicas declaradas em `backend/app/db/models.py`, fonte da verdade do schema.
+Para manter o diagrama legível, cada entidade mostra chaves e campos de maior
+valor estrutural; a lista completa de colunas permanece nos models e nas
+migrations. As seções abaixo detalham o domínio de monitoramento, cujo fluxo
+foi fechado com o usuário em 2026-09-15 (ver
 [`../arquitetura/fluxo_requisicao.md`](../arquitetura/fluxo_requisicao.md)).
 
 ## Tabelas já existentes (sem mudança de schema, contexto pra entender as novas)
@@ -27,11 +28,28 @@ fechado com o usuário em 2026-09-15 (ver
   (`app/db/models.py`, feature de autenticação em andamento) — candidato
   natural pra virar a base do RBAC de notificação (`nivel_minimo`) quando a
   hierarquia for definida; não é 1:1 com "técnico"/"acima de técnico" ainda.
+- **`refresh_token`** — sessão de refresh do Plan Mode segurança Bloco 2
+  (migration `5557cabd4a4c`): 1 linha por token opaco emitido, `token_hash`
+  único (nunca o segredo em claro, mesmo princípio de `user.password_hash`),
+  `expires_at`/`revoked_at` sustentam expiração e revogação; rotação marca
+  `revoked_at` e cria linha nova em vez de reescrever. FK `user_id` com
+  `ON DELETE CASCADE`/`ON UPDATE RESTRICT`. Ainda não consumida por nenhuma
+  rota — tabela pronta, wiring no fluxo de auth é escopo do Plan Mode de
+  segurança, não deste.
 - **`audit_log`** — genérico (`entity_name`/`entity_id`/`action`/`details`),
   já escrito por toda rota de mutação via `app/audit.py::log_action`. A
   notificação de camada 2 (edição manual) nasce a partir daqui — não precisa
   de rastreamento novo, só uma leitura filtrada por `entity_name =
   'instrumento_equipamento'`.
+- **`cnes_estabelecimento`** — referência local de estabelecimentos CNES para
+  validação de CNES em convênios, instrumentos e propostas. Desde a migration
+  `e3a9c5b7d2f1`, inclui `latitude`, `longitude` e `fonte_sincronizacao`
+  (`s3`/`elasticnes` ou outro valor informado pelo sincronizador). Desde
+  `a7c4e1f9b203`, `convenio.cnes`, `instrumento_equipamento.cnes` e
+  `proposta_candidata.cnes` têm FK física (`ON DELETE SET NULL`,
+  `ON UPDATE RESTRICT`), com CHECKs de formato/coordenada na própria
+  referência. Desde `c9f1a4d7e602`, todas as FKs mapeadas declaram também
+  `ON UPDATE RESTRICT` explicitamente.
 
 ## Tabelas novas
 
@@ -53,6 +71,7 @@ continue disponível).
 | `nm_programa` / `id_programa` | string, int | |
 | `componente_batido` | string | 1 dos 8 `COMPONENTES_ALVO` |
 | `equipamento_detectado` | string, nullable | Casamento contra `EQUIPAMENTOS_ALVO` (mesmo padrão de `frontend/src/lib/equipamento-tags.ts`) |
+| `cnes` | string(7), nullable, FK → `cnes_estabelecimento.cnes` | `ON DELETE SET NULL` / `ON UPDATE RESTRICT` |
 | `vl_global_proposta` | numeric, nullable | |
 | `situacao_proposta` | string | |
 | `data_proposta` | date, nullable | |
@@ -63,10 +82,11 @@ continue disponível).
 | `revisado_em` | timestamptz, nullable | |
 | `created_at` | timestamptz | |
 
-Quando `status` vira `aceita`, dispara `POST /monitoramento/instrumentos`
-com `nr_convenio = str(id_proposta)` e `tipo_contratacao = "Parceria
-TransfereGov"` — mesmo padrão de identificador surrogate que `FAF`/`TED` já
-usam (NUP SEI).
+Quando `status` vira `aceita`, a aplicação cria `instrumento_equipamento` na
+mesma transação, com `nr_convenio = cd_parceria` quando existir ou
+`str(id_proposta)` como fallback, e `tipo_contratacao = "Parceria
+TransfereGov"`. É o mesmo padrão de identificador surrogate que `FAF`/`TED`
+já usam (NUP SEI), mas sem `commit` intermediário entre instrumento e proposta.
 
 ### `notificacao`
 
@@ -85,10 +105,28 @@ usam (NUP SEI).
 - `proposta_candidata` → `instrumento_equipamento`: não é FK de banco (são
   identificadores textuais diferentes, `id_proposta` int vs `nr_convenio`
   string) — a ligação é por convenção (`nr_convenio = str(id_proposta)`
-  depois de aceita), verificada na aplicação antes do `POST` criar.
+  depois de aceita, ou `cd_parceria` quando a parceria já existe), verificada
+  na aplicação antes de criar.
 - `audit_log.entity_id` → `instrumento_equipamento.id`: já existe hoje,
   usada como origem da notificação de camada 2 (não uma tabela nova).
 - `notificacao.entidade_id`: polimórfico por `tipo`, resolvido na
   aplicação — mesma decisão de design que `audit_log` já usa
   (`entity_name` + `entity_id`), pra não multiplicar tabela de notificação
   por tipo de entidade.
+- `cnes_estabelecimento.cnes`: FK física desde `a7c4e1f9b203` para
+  `convenio.cnes`, `instrumento_equipamento.cnes` e
+  `proposta_candidata.cnes` (`ON DELETE SET NULL`, `ON UPDATE RESTRICT`).
+  Auditoria prévia no clone carregado (`par_equipamentos_pytest_loaded`)
+  não encontrou órfãos.
+
+
+## Integridade física consolidada em 2026-09-16
+
+Além das FKs CNES, o fechamento da constituição database adicionou CHECKs
+físicos para invariantes simples que não dependem de regra externa mutável:
+populações, quantidades, estimativas, distâncias e tempos calculados não
+podem ser negativos; `marco_catalogo.execucao_fisica_pct_referencia` fica
+entre 0 e 1; `instrumento_equipamento.equipamento_vida_util_anos` não pode
+ser negativo. Relações polimórficas (`audit_log.entity_id` e
+`notificacao.entidade_id`) continuam sem FK física por desenho, porque a
+tabela de destino depende do tipo da entidade.
