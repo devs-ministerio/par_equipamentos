@@ -8,6 +8,11 @@ name: Radar de Convênios (descoberta TransfereGov / verificação SICONV / veri
 # no dump SICONV (ver docstring de scripts/job_verificacao_siconv.py) --
 # rodar os dois com a mesma cadencia diaria e seguro.
 #
+# Plan Mode database 2026-09-16/17, Bloco 1+4: DATABASE_URL aqui e o role
+# `sigeo_runtime` (so DML) -- NAO roda mais 'alembic upgrade head' neste
+# job. Migration pendente aplica-se pelo workflow dedicado
+# '.github/workflows/migrar_banco.yml', sempre antes de rodar este.
+#
 # on:
 #   schedule:
 #     - cron: "30 9 * * *"  # 09:30 UTC = 06:30 em Brasilia (depois do pipelines.yml)
@@ -47,10 +52,6 @@ jobs:
       - name: Instala dependencias
         if: steps.guard.outputs.tem_secret == 'true'
         run: uv sync --frozen
-
-      - name: Aplica migrations pendentes
-        if: steps.guard.outputs.tem_secret == 'true'
-        run: uv run alembic upgrade head
 
       - name: Job de descoberta -- TransfereGov (novas propostas nos 8 programas-alvo)
         if: steps.guard.outputs.tem_secret == 'true'

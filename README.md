@@ -52,6 +52,8 @@ Sobe em `http://localhost:5173` (origem já liberada por padrão em
 ```bash
 # backend
 cd backend && uv run pytest
+cd backend && TEST_DATABASE_URL=postgresql+psycopg://... uv run pytest -m db
+cd backend && TEST_DATABASE_URL=postgresql+psycopg://... uv run python -m scripts.auditar_integridade_database
 
 # frontend
 cd frontend && npm run test    # vitest run
@@ -85,22 +87,28 @@ docs/
 ## Deploy
 
 - **Backend**: Render (`render.yaml`), free tier, Postgres externo no Neon
-  (referenciado só por `DATABASE_URL`). Migration roda dentro do próprio
-  `startCommand` porque `preDeployCommand` não existe no free tier — é
-  idempotente (`alembic upgrade head`), então rodar em todo boot é seguro.
+  (referenciado só por `DATABASE_URL`, credencial `sigeo_runtime` — só DML).
+  Desde o Plan Mode database 2026-09-16/17 (Bloco 1/4), `alembic upgrade
+  head` **não roda mais** no `startCommand` — `sigeo_runtime` nem teria
+  privilégio de DDL pra isso. Migration é um passo manual/isolado, com a
+  credencial `sigeo_migration` (dona do schema), via
+  `.github/workflows/migrar_banco.yml` (`workflow_dispatch`) ou local —
+  sempre antes de qualquer deploy que dependa de schema novo, nunca depois
+  (ver `backend/README.md`, seção "Banco de dados local e roles do Neon").
   Migrar para Railway depois não muda código nenhum (tudo lido de env var,
   ver `backend/app/config.py`); só recriar o serviço lá com as mesmas envs,
   usando `backend/Procfile`.
 - **Frontend**: Vercel (`frontend/vercel.json`, rewrite de SPA).
-- **Pipelines de dado** (Tomógrafo, Ressonância): `.github/workflows/pipelines.yml`,
+- **Pipelines de dado** (Tomógrafo, Ressonância, PET-CT):
+  `.github/workflows/pipelines.yml`,
   hoje só `workflow_dispatch` (manual) — o cron diário fica comentado até
   existir deploy com `DATABASE_URL` pública alcançável pelo runner.
 
 ## Estado atual (o que é real vs. placeholder)
 
-Só **Tomógrafo** e **Ressonância Magnética** têm pipeline de dado real e
-parâmetro confirmado, em produção. PET-CT, Acelerador Linear, Ultrassom e
-Mamógrafo ainda usam produtividade placeholder (mesmo número do Tomógrafo,
-só para não quebrar o código) e não têm pipeline — ver a tabela em
+**Tomógrafo**, **Ressonância Magnética** e **PET-CT** têm pipeline de dado
+real e parâmetro confirmado. Acelerador Linear, Ultrassom e Mamógrafo ainda
+usam produtividade placeholder (mesmo número do Tomógrafo, só para não
+quebrar o código) e não têm pipeline — ver a tabela em
 [`docs/metodologia-parametros.md`](docs/metodologia-parametros.md) para o
 detalhe atualizado.

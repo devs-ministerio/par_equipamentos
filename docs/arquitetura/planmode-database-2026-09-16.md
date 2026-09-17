@@ -134,7 +134,7 @@ explícito desta rodada, **Arquivos de contexto a atualizar** e **Arquivos/scrip
 excluir** — quando não houver nada a excluir, o bloco diz isso explicitamente em vez de omitir a
 seção.
 
-## Bloco 1 — SSL obrigatório e privilégio mínimo do role de runtime (P0)
+## Bloco 1 — SSL obrigatório e privilégio mínimo do role de runtime (P0) — Aplicado em 2026-09-17
 
 **Objetivo**: `pg_stat_ssl=false` observado na conexão de auditoria contradiz a suposição de
 criptografia em trânsito; o role de runtime tem `CREATEDB`/`CREATEROLE`/`CREATE` no schema, que a
@@ -214,7 +214,7 @@ mudança de código, só nova execução de verificação).
 
 **Arquivos/scripts/código a excluir**: nenhum. `RefreshToken` já é código novo, não substitui nada.
 
-## Bloco 3 — avaliar índice trigram para busca de CNES (P1, encerra o antigo Item 3)
+## Bloco 3 — avaliar índice trigram para busca de CNES (P1, encerra o antigo Item 3) — Aplicado em 2026-09-17
 
 **Objetivo**: pior caso de 227 ms em busca sem correspondência (`Seq Scan` sobre 635 mil linhas)
 medido no Neon real. Constituição Seção 8: só criar índice depois de `EXPLAIN` real — já feito;
@@ -237,7 +237,7 @@ só é escrita depois dessa medição, como item novo de Plan Mode caso o ganho 
 
 **Arquivos/scripts/código a excluir**: nenhum.
 
-## Bloco 4 — desacoplar migration do boot e dos jobs (P1)
+## Bloco 4 — desacoplar migration do boot e dos jobs (P1) — Aplicado em 2026-09-17
 
 **Objetivo**: `render.yaml:22`, `.github/workflows/pipelines.yml:59` e
 `.github/workflows/radar_convenios.yml:53` rodam `alembic upgrade head` acoplado ao boot/job, usando
@@ -265,7 +265,7 @@ migration.
 **Arquivos/scripts/código a excluir**: nenhum arquivo — a linha `alembic upgrade head` sai do
 `startCommand`/workflow, não é um arquivo próprio para deletar.
 
-## Bloco 5 — CI de drift e evidência de backup (P1, parcialmente fora do escopo database)
+## Bloco 5 — CI de drift e evidência de backup (P1, parcialmente fora do escopo database) — Segue pendente (fora de escopo deste Plan Mode)
 
 **Objetivo**: nada garante hoje, de forma automática, que modelo/migration/Mermaid não divirjam de
 novo (o Item 4 da Rodada 1 criou a ferramenta `auditar_drift_schema.py`, mas nenhum pipeline chama
@@ -354,3 +354,80 @@ execução muda, para tratar o achado acima primeiro:
 
 Implementação segue item a item, só após aprovação explícita — nenhum código foi alterado nesta
 rodada de reaplicação.
+
+---
+
+# Rodada 4 — implementação (2026-09-17)
+
+Usuário autorizou explicitamente rodar o plano inteiro contra o Neon ("o banco Neon é de
+desenvolvimento pode rodar todo o plano no Neon"). Execução, na ordem da Rodada 3:
+
+**Item 0** (commit de higiene): commitado em `1c8989f` — as 4 migrations do Bloco 7 + testes/script
+de integridade que só existiam em disco.
+
+**Bloco 2** (`refresh_token`): commitado em `46597f1` — migration `5557cabd4a4c` testada local
+(`par_equipamentos_pytest_loaded`) e aplicada ao Neon.
+
+**Bloco 1** (SSL + privilégio mínimo):
+
+- **SSL — achado corrigido em relação ao diagnóstico original**: `pg_stat_ssl=false` observado pela
+  auditoria **não é falta de criptografia**. Confirmado com `psql \conninfo` na mesma sessão: `SSL
+  Connection: true`, `TLSv1.3`, `TLS_AES_256_GCM_SHA384`; e o servidor **recusa** ativamente
+  `sslmode=disable` com erro explícito (`connection is insecure`). O `ssl=false` em `pg_stat_ssl` é
+  um artefato da arquitetura de proxy serverless do Neon (o proxy termina o TLS do cliente e
+  encaminha pro compute Postgres por um caminho interno — a estatística reflete esse último salto,
+  não o canal real cliente↔Neon). Não havia gap de criptografia em trânsito; não foi necessária
+  nenhuma mudança de código pra isso.
+- **Privilégio mínimo — aplicado de fato**: criados dois roles novos no Neon (`CREATE ROLE ...
+  NOCREATEDB NOCREATEROLE NOSUPERUSER`), confirmado via `pg_roles` que nenhum tem os atributos
+  elevados que `neondb_owner` tinha. Posse de todas as 23 tabelas e 21 sequences do schema `public`
+  transferida (`ALTER TABLE/SEQUENCE ... OWNER TO`) de `neondb_owner` para `sigeo_migration` (a
+  tentativa de herdar via `GRANT neondb_owner TO sigeo_migration` falhou — Neon não permite
+  delegação de `ADMIN OPTION` sobre o role gerenciado da conta; transferência de posse direta é o
+  caminho padrão do Postgres e funcionou). `sigeo_runtime` recebeu só `CONNECT`/`USAGE`/
+  `SELECT,INSERT,UPDATE,DELETE`/sequences via `GRANT`, com `ALTER DEFAULT PRIVILEGES FOR ROLE
+  sigeo_migration` garantindo que tabelas futuras (criadas por migration) já nascem com esse grant.
+  Testado e confirmado: `sigeo_runtime` lê/escreve dado normalmente e tem `CREATE TABLE` **negado**;
+  `sigeo_migration` roda `ALTER TABLE` normalmente. `neondb_owner` continua existindo (Neon não
+  permite removê-lo nem revogar seus atributos — é o role gerenciado da conta) mas **não é mais
+  usado por nenhuma credencial de aplicação**.
+- **Código**: `Settings.database_url_migration` novo (`backend/app/config.py`) — Alembic usa essa
+  URL quando definida (role `sigeo_migration`), cai pro `database_url` de runtime quando vazia
+  (compatibilidade com ambiente local/teste, um único Postgres sem essa separação). `backend/.env`
+  (não versionado) atualizado com `DATABASE_URL` = `sigeo_runtime` e `DATABASE_URL_MIGRATION` =
+  `sigeo_migration`; `.env.example` documenta a variável nova. Teste novo em
+  `tests/test_config.py::test_url_do_alembic_usa_database_url_migration_quando_definida`.
+- Validado: `pytest -m "not db"` completo (47 passed) e smoke-test manual do app (`SessionLocal`
+  contando `Convenio` com `sigeo_runtime`) sem erro de permissão.
+
+**Bloco 4** (desacoplar migration do boot/jobs): `alembic upgrade head` removido do `startCommand`
+de `render.yaml` e dos steps "Aplica migrations pendentes" de `pipelines.yml`/`radar_convenios.yml`
+(esses dois jobs só faziam DML mesmo, nunca precisaram de DDL). Workflow novo
+`.github/workflows/migrar_banco.yml` (só `workflow_dispatch`, credencial `DATABASE_URL_MIGRATION`
+dedicada) é o fluxo protegido — roda manualmente, sempre antes de qualquer deploy/job que dependa de
+schema novo. `render.yaml`/os dois workflows ganharam comentário explicando a mudança de
+comportamento pra quem for debugar um deploy futuro.
+
+**Bloco 3** (trigram CNES): medido em `par_equipamentos_pytest_loaded` (mesmas 635 mil linhas do
+Neon) — pior caso (sem correspondência) caiu de ~187-227ms (`Seq Scan`) pra ~0,3ms (`Bitmap Index
+Scan`); busca comum (~1300 resultados) em ~10ms; índice de 39MB (~19% do tamanho da tabela). Ganho
+de 2-3 ordens de magnitude justifica plenamente o custo de escrita numa tabela de referência com
+sincronização periódica (não OLTP de escrita contínua). Migration `efd3e49db7f8` (`CREATE EXTENSION
+pg_trgm` + `CREATE INDEX CONCURRENTLY ... USING gin (nome_estabelecimento gin_trgm_ops)`, fora de
+transação via `autocommit_block`) testada local (up/down simétrico) e aplicada ao Neon — achado
+extra: `sigeo_migration` não tem privilégio pra `CREATE EXTENSION` mesmo sendo dono das tabelas
+(Postgres trata extensão como recurso de nível de banco, não de schema); a extensão foi criada uma
+única vez como `neondb_owner` (ação de infraestrutura, não de schema de aplicação) e a migration
+(idempotente, `IF NOT EXISTS`) roda normalmente depois disso com `sigeo_migration`. Índice declarado
+em `app/db/models.py` (`CnesEstabelecimento.__table_args__`) pra `test_head_aplicado_bate_com_models`
+não acusar drift. Confirmado no Neon real: mesma query caiu de 227ms pra 0,32ms.
+
+**Bloco 5** (CI de drift): não implementado nesta rodada — o próprio texto do bloco já delimitava
+isso ("este Plan Mode não cria CI novo, só registra o requisito para quando existir"); criar o
+primeiro workflow de CI de backend é decisão do ciclo devops (`diagnostico-constituicao-devops-
+2026-09-16.md`), não algo pra originar aqui só porque o Neon está liberado pra mudança. Quando esse
+CI existir, adicionar `pytest -m db` e `auditar_drift_schema.py --strict` como já estava planejado.
+
+Todos os testes (`pytest -m "not db"`: 47 passed; `pytest -m db` contra o clone local: 59 passed, 1
+failed — a mesma falha de fixture desatualizada já registrada, sem relação com qualquer mudança
+desta rodada) seguem sem regressão depois de todos os blocos aplicados.

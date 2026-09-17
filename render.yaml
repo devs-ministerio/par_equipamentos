@@ -8,10 +8,15 @@
 # a nova, se migrar o Postgres tambem) e CORS_ORIGINS, usando o Procfile
 # que ja existe em backend/Procfile.
 #
-# preDeployCommand nao existe no free tier (so em planos pagos) -- por isso
-# a migration entra dentro do proprio startCommand, antes do uvicorn subir.
-# Roda a cada boot (inclusive apos o servico dormir por inatividade), mas
-# 'alembic upgrade head' e idempotente quando ja esta tudo aplicado.
+# Plan Mode database 2026-09-16/17, Bloco 1+4: migration SAIU do startCommand.
+# DATABASE_URL agora e a credencial do role `sigeo_runtime` (so DML -- SELECT/
+# INSERT/UPDATE/DELETE, sem CREATE/ALTER), entao rodar 'alembic upgrade head'
+# aqui simplesmente falharia por privilegio insuficiente -- decisao proposital,
+# nao uma regressao. Migration roda a parte, com o role `sigeo_migration`
+# (dono do schema), via 'uv run alembic upgrade head' manual (Render Shell ou
+# local, DATABASE_URL_MIGRATION) ou pelo workflow dedicado
+# '.github/workflows/migrar_banco.yml' -- SEMPRE antes do deploy de qualquer
+# codigo que dependa da coluna/tabela nova (nunca depois).
 services:
   - type: web
     name: sieo-backend
@@ -19,7 +24,7 @@ services:
     rootDir: backend
     plan: free
     buildCommand: pip install uv && uv sync --frozen
-    startCommand: uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         sync: false

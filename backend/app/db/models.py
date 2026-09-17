@@ -158,6 +158,30 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class RefreshToken(Base):
+    """Sessao de refresh do Bloco 2 (Plan Mode seguranca 2026-09-16) --
+    token opaco (nao-JWT) entregue ao cliente num cookie HttpOnly; so o
+    HASH fica aqui (mesmo principio de `User.password_hash`: nunca guardar
+    o segredo em claro). `token_hash` e o que da pra revogar/rotacionar sem
+    precisar decodificar/validar assinatura -- so lookup direto. Rotacao
+    real (Bloco 2): usar um refresh marca `revoked_at` nele e cria uma nova
+    linha; reuso de um token ja revogado precisa falhar (nao e so
+    "renovar", e furto de sessao se acontecer)."""
+    __tablename__ = "refresh_token"
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_refresh_token_user", "user_id"),
+        UniqueConstraint("token_hash", name="uq_refresh_token_token_hash"),
+    )
+
+
 # ----------------------------------------------------------------------------
 # 3. Decisoes de negocio
 # ----------------------------------------------------------------------------
@@ -260,6 +284,17 @@ class CnesEstabelecimento(Base):
         CheckConstraint(
             "longitude IS NULL OR (longitude >= -180 AND longitude <= 180)",
             name="ck_cnes_estabelecimento_longitude",
+        ),
+        # GIN/trigram (Plan Mode database, Bloco 3): sustenta o ILIKE '%...%'
+        # de GET /monitoramento/cnes-referencia -- medido em banco descartavel
+        # de 635 mil linhas, pior caso caiu de ~227ms (Seq Scan) pra ~0,3ms.
+        # postgresql_ops so tem efeito quando a extensao pg_trgm ja existe
+        # (migration efd3e49db7f8 cria as duas juntas).
+        Index(
+            "idx_cnes_estabelecimento_nome_trgm",
+            "nome_estabelecimento",
+            postgresql_using="gin",
+            postgresql_ops={"nome_estabelecimento": "gin_trgm_ops"},
         ),
     )
 

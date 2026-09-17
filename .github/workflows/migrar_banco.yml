@@ -1,0 +1,54 @@
+name: Migrar banco (alembic upgrade head)
+
+# Plan Mode database 2026-09-16/17, Bloco 4: fluxo protegido e isolado pra
+# aplicar migration -- desacoplado do boot da API (render.yaml) e dos jobs
+# de dado (pipelines.yml/radar_convenios.yml), que so precisam de DML e
+# rodam com o role `sigeo_runtime`. Este workflow usa uma credencial
+# separada (`DATABASE_URL_MIGRATION`, role `sigeo_migration`, dono do
+# schema) e so dispara manualmente -- uma ref nao validada nunca aplica DDL
+# sozinha. Rodar SEMPRE antes de qualquer deploy/job que dependa de coluna
+# ou tabela nova.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATION }}
+    steps:
+      # Mesmo padrao de guard dos outros workflows -- `secrets` so pode ser
+      # referenciado em `if:` de step, nao de job.
+      - name: Verifica se o secret DATABASE_URL_MIGRATION existe
+        id: guard
+        working-directory: .
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Secret DATABASE_URL_MIGRATION nao configurado (Settings > Secrets and variables > Actions) -- pulando o resto do job."
+            echo "tem_secret=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tem_secret=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.tem_secret == 'true'
+
+      - uses: astral-sh/setup-uv@v3
+        if: steps.guard.outputs.tem_secret == 'true'
+        with:
+          version: "latest"
+
+      - name: Instala dependencias
+        if: steps.guard.outputs.tem_secret == 'true'
+        run: uv sync --frozen
+
+      - name: Mostra revision atual
+        if: steps.guard.outputs.tem_secret == 'true'
+        run: uv run alembic current
+
+      - name: Aplica migrations pendentes
+        if: steps.guard.outputs.tem_secret == 'true'
+        run: uv run alembic upgrade head

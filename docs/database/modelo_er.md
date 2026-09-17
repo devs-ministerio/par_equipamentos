@@ -130,3 +130,10 @@ entre 0 e 1; `instrumento_equipamento.equipamento_vida_util_anos` não pode
 ser negativo. Relações polimórficas (`audit_log.entity_id` e
 `notificacao.entidade_id`) continuam sem FK física por desenho, porque a
 tabela de destino depende do tipo da entidade.
+
+Desde a migration `efd3e49db7f8` (Plan Mode database, Bloco 3), a extensão
+`pg_trgm` e um índice GIN (`idx_cnes_estabelecimento_nome_trgm`) sustentam a
+busca por nome em `GET /monitoramento/cnes-referencia` — medido contra 635
+mil linhas, pior caso caiu de ~227ms (`Seq Scan`) pra ~0,3ms. Índice
+declarado em `CnesEstabelecimento.__table_args__` (não só na migration) pra
+não gerar drift entre model e schema.

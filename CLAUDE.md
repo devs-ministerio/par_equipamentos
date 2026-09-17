@@ -291,6 +291,54 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   vigente (`valid_to`) + inserir nova", nunca `UPDATE value` numa linha
   existente. Usar `app/config_decisions.py::registrar_decisao`, não montar
   isso na mão em outro lugar.
+- **Dois roles no Neon desde o Plan Mode database 2026-09-16/17 (Bloco 1)**:
+  `sigeo_runtime` (só DML — `DATABASE_URL`, usado pela API e pelos workflows
+  de dado) e `sigeo_migration` (dono de todas as tabelas/sequences, único
+  com DDL — `DATABASE_URL_MIGRATION`, usado só pelo Alembic).
+  `Settings.database_url_alembic` cai pro `database_url` de runtime quando
+  `database_url_migration` está vazio (ambiente local/teste sem essa
+  separação). `neondb_owner` (role gerenciado da conta, com
+  `CREATEDB`/`CREATEROLE`) não é mais usado por nenhuma credencial de
+  aplicação. Migration não roda mais no boot da API nem nos jobs de dado —
+  ver "Migration desacoplada do boot" logo abaixo.
+- **Migration desacoplada do boot e dos jobs (mesmo Plan Mode, Bloco 4)**:
+  `render.yaml` sobe a API direto com `uvicorn`, sem `alembic upgrade head`
+  no `startCommand` — `sigeo_runtime` nem teria privilégio pra isso.
+  `pipelines.yml`/`radar_convenios.yml` também não rodam mais migration
+  (sempre foi só DML). Aplicar migration é um passo manual/isolado:
+  `.github/workflows/migrar_banco.yml` (`workflow_dispatch`,
+  `DATABASE_URL_MIGRATION`) ou `uv run alembic upgrade head` local — sempre
+  **antes** de qualquer deploy/job que dependa de schema novo, nunca depois.
+
+## Estratégia de dados do Neon: ingestão e clonagem
+
+Decisão do usuário, 2026-09-16 (documentado no diagnóstico
+`docs/arquitetura/diagnostico-constituicao-database-2026-09-16.md`, seção "Estratégia de ingestão e
+clonagem"): **migração de servidor/ambiente é `pg_dump`/`pg_restore` do Neon inteiro, nunca
+reingestão** (reprocessar planilha/CNPJ/JSON do zero). Isso não substitui a necessidade de dataset
+sintético/anonimizado para desenvolvimento — só define que o Neon, não os scripts de importação, é
+a fonte de verdade a ser clonada ao trocar de servidor/ambiente.
+
+Três categorias de dado, para não reimportar o que já passou por correção manual nem esquecer o que
+precisa de sincronização contínua:
+
+- **Congelado (clona e não reimporta)** — passou por decisão humana/validação pontual, ou é
+  estatística oficial sem cadência própria; reimportar reescreveria correção feita a mão:
+  `instrumento_equipamento` (`importar_planilha_monitoramento.py`, bootstrap único já documentado);
+  `convenio.cnes`/`cnes_metodo` (`importar_convenios_banco.py` — correção futura de CNES errado é
+  PATCH pelo técnico, não replanilhar); `accelerator_row`, `municipality_population_row`,
+  `inca_estimate` (estatística oficial ANS/INCA versionada em `data/raw/`, sem API viva — só
+  reimporta por decisão explícita da equipe ao chegar arquivo oficial mais novo).
+- **Vivo (clonar sozinho não basta)** — instrumento/proposta novo continua trazendo esse dado
+  depois de qualquer clone congelado: `cnes_estabelecimento`, via `sincronizar_cnes_referencia.py`
+  (parquet S3, precisa credencial AWS, cobertura completa) e `sincronizar_cnes_referencia_api.py`
+  (ElastiCNES, sem credencial, cobre só CNES já presentes no índice de equipamentos — os dois
+  coexistem por escopo diferente, nenhum substitui o outro); `job_descoberta_transferegov.py`
+  (novas propostas do Radar de Convênios).
+- **Pendente de decisão formal**: onde/com que frequência roda o `pg_dump`/`pg_restore` de migração
+  de servidor, e como esse clone se concilia com backup/retenção/RPO-RTO (ciclo devops) e com o
+  dataset sintético de desenvolvimento (ainda não existe) — ver
+  `docs/arquitetura/planmode-database-2026-09-16.md`, Bloco 5.
 
 ## Comandos úteis
 

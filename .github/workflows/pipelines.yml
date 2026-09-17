@@ -7,6 +7,12 @@ name: Pipelines de dado (TOMOGRAFO / RESSONANCIA / PET_CT)
 # dia. Reativar o cron abaixo quando o deploy (Railway ou outro) e o
 # secret DATABASE_URL apontando pra URL PUBLICA do banco existirem.
 #
+# Plan Mode database 2026-09-16/17, Bloco 1+4: DATABASE_URL aqui e o role
+# `sigeo_runtime` (so DML) -- NAO roda mais 'alembic upgrade head' neste
+# job (nunca precisou de DDL, so grava linha em tabela ja existente).
+# Migration pendente aplica-se pelo workflow dedicado
+# '.github/workflows/migrar_banco.yml', sempre antes de rodar este.
+#
 # on:
 #   schedule:
 #     - cron: "0 9 * * *"  # 09:00 UTC = 06:00 em Brasilia
@@ -53,10 +59,6 @@ jobs:
       - name: Instala dependencias
         if: steps.guard.outputs.tem_secret == 'true'
         run: uv sync --frozen
-
-      - name: Aplica migrations pendentes
-        if: steps.guard.outputs.tem_secret == 'true'
-        run: uv run alembic upgrade head
 
       - name: Importa populacao ANS (POPULACAO_CNC) -- so se ainda nao tem arquivo ativo
         # Sem isso, sus_dependente cai no fallback (= residente inteiro,
