@@ -5,11 +5,11 @@ que criou no `finally`."""
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 
 from app.auth import hash_password
 from app.db.base import SessionLocal
 from app.db.models import Notificacao, NotificacaoTipo, User, UserRole
+from app.domain_errors import NotFoundError
 from app.routers.notificacoes import listar_notificacoes, marcar_lida
 
 
@@ -75,7 +75,7 @@ def test_marcar_lida_idempotente_e_404_pra_id_inexistente():
         resultado2 = marcar_lida(notificacao_id, db, usuario_teste)
         assert resultado2.lida is True
 
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(NotFoundError) as exc:
             marcar_lida(999_999_999, db, usuario_teste)
         assert exc.value.status_code == 404
     finally:

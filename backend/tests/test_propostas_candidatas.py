@@ -5,11 +5,11 @@ que criou no `finally`."""
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 
 from app.auth import hash_password
 from app.db.base import SessionLocal
 from app.db.models import AuditLog, InstrumentoEquipamento, PropostaCandidata, PropostaCandidataStatus, User, UserRole
+from app.domain_errors import ConflictError
 from app.routers.propostas_candidatas import (
     DecisaoRevisao,
     RevisarPropostaBody,
@@ -76,7 +76,7 @@ def test_aceitar_proposta_cria_instrumento_com_id_proposta_como_nr_convenio():
         assert instrumento.nome_convenente == proposta.nm_proponente
 
         # Já revisada -- revisar de novo é 409, não sobrescreve decisão.
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(ConflictError) as exc:
             revisar_proposta(
                 proposta.id, RevisarPropostaBody(decisao=DecisaoRevisao.rejeitada), db=db, usuario=usuario_teste
             )

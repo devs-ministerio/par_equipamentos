@@ -30,6 +30,7 @@ _DB_TEST_MODULES = {
     "test_pipeline_runner.py",
     "test_propostas_candidatas.py",
     "test_schema_migrations.py",
+    "test_service_notificacoes.py",
 }
 
 

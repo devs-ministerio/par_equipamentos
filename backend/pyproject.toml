@@ -31,6 +31,8 @@ package = false
 dev = [
     "pytest>=8.3",
     "httpx>=0.28",
+    "ruff>=0.16.8",
+    "mypy>=2.3.1",
 ]
 
 [tool.pytest.ini_options]
@@ -38,3 +40,21 @@ testpaths = ["tests"]
 markers = [
     "db: testes que exigem TEST_DATABASE_URL apontando para PostgreSQL dedicado de teste",
 ]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+# So erro/pyflakes/ordem de import por enquanto (Plan Mode backend
+# 2026-09-17, Bloco E) -- sem regra de estilo agressiva. Achado legado fica
+# na baseline (.ruff-baseline.json); so falha achado NOVO fora dela.
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+# Sem `strict` de cara (Bloco E) -- baseline (.ruff-baseline.json) cobre
+# tambem o mypy: achado legado ignorado, so achado novo em arquivo sem
+# excecao (domain_errors.py, repositories/notificacoes.py,
+# services/notificacoes.py) bloqueia.
+ignore_missing_imports = true

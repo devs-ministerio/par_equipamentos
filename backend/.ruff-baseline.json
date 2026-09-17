@@ -1,0 +1,1112 @@
+[
+  {
+    "file": "alembic/env.py",
+    "code": "I001",
+    "line": 1
+  },
+  {
+    "file": "alembic/env.py",
+    "code": "I001",
+    "line": 13
+  },
+  {
+    "file": "alembic/versions/06e73a1db53b_competency_unica_por_label_e_equipment_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/06e73a1db53b_competency_unica_por_label_e_equipment_.py",
+    "code": "E501",
+    "line": 34
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 25
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 28
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 36
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 37
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 38
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 42
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 47
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 48
+  },
+  {
+    "file": "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py",
+    "code": "E501",
+    "line": 49
+  },
+  {
+    "file": "alembic/versions/2c5d169b43ac_adiciona_macro_code_e_macro_name_em_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/3654a7c5717b_adiciona_facility_name_e_municipality_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/3654a7c5717b_adiciona_facility_name_e_municipality_.py",
+    "code": "E501",
+    "line": 24
+  },
+  {
+    "file": "alembic/versions/5066a7877a2c_adiciona_latitude_longitude_e_legal_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/5557cabd4a4c_cria_tabela_refresh_token.py",
+    "code": "I001",
+    "line": 13
+  },
+  {
+    "file": "alembic/versions/69b899c611d8_add_health_region_code_and_health_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/71608fab14e8_adiciona_situacao_ordem_pagamento_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/71608fab14e8_adiciona_situacao_ordem_pagamento_.py",
+    "code": "E501",
+    "line": 24
+  },
+  {
+    "file": "alembic/versions/728d0f835ed7_convenio_valor_pago_fornecedor.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/8bbc3e31caad_adiciona_distancia_e_horas_ate_radiofarmaco.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "E501",
+    "line": 29
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "E501",
+    "line": 49
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "E501",
+    "line": 50
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "E501",
+    "line": 69
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "E501",
+    "line": 117
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "E501",
+    "line": 164
+  },
+  {
+    "file": "alembic/versions/92fe48aa5b7b_initial_schema.py",
+    "code": "E501",
+    "line": 184
+  },
+  {
+    "file": "alembic/versions/94b982652d0e_adiciona_dados_fisicos_do_equipamento_.py",
+    "code": "I001",
+    "line": 15
+  },
+  {
+    "file": "alembic/versions/971645318ac4_adiciona_cd_parceria_em_proposta_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/9d2e13b1f93a_padroniza_nomenclatura_indice_constraint.py",
+    "code": "I001",
+    "line": 17
+  },
+  {
+    "file": "alembic/versions/a1f2b3c4d5e6_adiciona_tabelas_de_monitoramento_de.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/a1f2b3c4d5e6_adiciona_tabelas_de_monitoramento_de.py",
+    "code": "E501",
+    "line": 27
+  },
+  {
+    "file": "alembic/versions/a7c4e1f9b203_fk_cnes_e_checks_integridade.py",
+    "code": "I001",
+    "line": 11
+  },
+  {
+    "file": "alembic/versions/a9cd77597629_adiciona_numero_documento_e_data_.py",
+    "code": "I001",
+    "line": 17
+  },
+  {
+    "file": "alembic/versions/adfca2ad8745_cnes_estabelecimento_convenio_proposta_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/b3a934a59718_adiciona_indices_de_leitura_em_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/b3a934a59718_adiciona_indices_de_leitura_em_.py",
+    "code": "F401",
+    "line": 11
+  },
+  {
+    "file": "alembic/versions/b3a934a59718_adiciona_indices_de_leitura_em_.py",
+    "code": "E501",
+    "line": 25
+  },
+  {
+    "file": "alembic/versions/b3a934a59718_adiciona_indices_de_leitura_em_.py",
+    "code": "E501",
+    "line": 26
+  },
+  {
+    "file": "alembic/versions/b3a934a59718_adiciona_indices_de_leitura_em_.py",
+    "code": "E501",
+    "line": 27
+  },
+  {
+    "file": "alembic/versions/b3a934a59718_adiciona_indices_de_leitura_em_.py",
+    "code": "E501",
+    "line": 29
+  },
+  {
+    "file": "alembic/versions/b3a934a59718_adiciona_indices_de_leitura_em_.py",
+    "code": "E501",
+    "line": 30
+  },
+  {
+    "file": "alembic/versions/b5ce2ad8f332_adiciona_tabela_acao_monitoramento.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "I001",
+    "line": 10
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 64
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 65
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 66
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 69
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 70
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 71
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 72
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 73
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 74
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 75
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 76
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 77
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 78
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 79
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 80
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 81
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 82
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 83
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 84
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 85
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 86
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 87
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 88
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 90
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 91
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 139
+  },
+  {
+    "file": "alembic/versions/b8d2c6f4a901_integridade_schema_database_final.py",
+    "code": "E501",
+    "line": 140
+  },
+  {
+    "file": "alembic/versions/bd63b49ea150_adiciona_situacao_parceria_transferegov.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/c214b6dc6a4a_adiciona_proposta_candidata_e_.py",
+    "code": "I001",
+    "line": 23
+  },
+  {
+    "file": "alembic/versions/c214b6dc6a4a_adiciona_proposta_candidata_e_.py",
+    "code": "E501",
+    "line": 41
+  },
+  {
+    "file": "alembic/versions/c214b6dc6a4a_adiciona_proposta_candidata_e_.py",
+    "code": "E501",
+    "line": 68
+  },
+  {
+    "file": "alembic/versions/c7e2a4f81b6d_adiciona_tipo_contratacao_e_contato_da.py",
+    "code": "I001",
+    "line": 23
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "I001",
+    "line": 10
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 21
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 23
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 24
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 25
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 26
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 27
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 28
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 30
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 31
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 32
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 33
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 34
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 35
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "code": "E501",
+    "line": 43
+  },
+  {
+    "file": "alembic/versions/d1e2f3a4b5c6_adiciona_situacao_prestacao_contas.py",
+    "code": "I001",
+    "line": 30
+  },
+  {
+    "file": "alembic/versions/d5c54063c1fb_adiciona_tabela_municipality_coverage.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/d5c54063c1fb_adiciona_tabela_municipality_coverage.py",
+    "code": "E501",
+    "line": 45
+  },
+  {
+    "file": "alembic/versions/d5c54063c1fb_adiciona_tabela_municipality_coverage.py",
+    "code": "E501",
+    "line": 49
+  },
+  {
+    "file": "alembic/versions/d5c54063c1fb_adiciona_tabela_municipality_coverage.py",
+    "code": "E501",
+    "line": 50
+  },
+  {
+    "file": "alembic/versions/d5c54063c1fb_adiciona_tabela_municipality_coverage.py",
+    "code": "E501",
+    "line": 51
+  },
+  {
+    "file": "alembic/versions/e3a9c5b7d2f1_alinha_cnes_estabelecimento_geolocalizacao.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/efd3e49db7f8_indice_trigram_cnes_nome.py",
+    "code": "I001",
+    "line": 20
+  },
+  {
+    "file": "alembic/versions/f0ab29cc43ec_adiciona_population_residente_e_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/f599d15640e4_adiciona_distancia_ate_equipamento_mais_.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "alembic/versions/f8fe7ce9347c_remove_cpf_hash_contrato_morto.py",
+    "code": "I001",
+    "line": 15
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "I001",
+    "line": 5
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "F401",
+    "line": 30
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 245
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 408
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 416
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 420
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 464
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 473
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 488
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 489
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 506
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 516
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 555
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 556
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 560
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 561
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 562
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 563
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 564
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 565
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 569
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 641
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 675
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 698
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 724
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 859
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 860
+  },
+  {
+    "file": "app/db/models.py",
+    "code": "E501",
+    "line": 904
+  },
+  {
+    "file": "app/main.py",
+    "code": "I001",
+    "line": 2
+  },
+  {
+    "file": "app/main.py",
+    "code": "E501",
+    "line": 36
+  },
+  {
+    "file": "app/pipeline/cobertura.py",
+    "code": "E501",
+    "line": 46
+  },
+  {
+    "file": "app/pipeline/transferegov_parcerias.py",
+    "code": "E501",
+    "line": 147
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "code": "E501",
+    "line": 58
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "code": "E501",
+    "line": 162
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "code": "E501",
+    "line": 196
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "code": "E501",
+    "line": 297
+  },
+  {
+    "file": "app/routers/monitoramento.py",
+    "code": "I001",
+    "line": 12
+  },
+  {
+    "file": "app/routers/monitoramento.py",
+    "code": "E501",
+    "line": 415
+  },
+  {
+    "file": "app/routers/monitoramento.py",
+    "code": "E501",
+    "line": 494
+  },
+  {
+    "file": "app/routers/municipality_coverage.py",
+    "code": "E501",
+    "line": 168
+  },
+  {
+    "file": "scripts/atualizar_equipamento_b8131710.py",
+    "code": "I001",
+    "line": 65
+  },
+  {
+    "file": "scripts/atualizar_equipamento_b8131710.py",
+    "code": "E501",
+    "line": 128
+  },
+  {
+    "file": "scripts/atualizar_equipamento_b8131710.py",
+    "code": "E501",
+    "line": 238
+  },
+  {
+    "file": "scripts/atualizar_equipamento_b8131710.py",
+    "code": "E501",
+    "line": 373
+  },
+  {
+    "file": "scripts/atualizar_equipamento_b8131710.py",
+    "code": "E501",
+    "line": 374
+  },
+  {
+    "file": "scripts/auditar_drift_schema.py",
+    "code": "I001",
+    "line": 20
+  },
+  {
+    "file": "scripts/auditar_drift_schema.py",
+    "code": "F401",
+    "line": 24
+  },
+  {
+    "file": "scripts/auditar_integridade_database.py",
+    "code": "E501",
+    "line": 179
+  },
+  {
+    "file": "scripts/auditar_integridade_database.py",
+    "code": "E501",
+    "line": 181
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "code": "E501",
+    "line": 133
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "code": "E741",
+    "line": 261
+  },
+  {
+    "file": "scripts/coletar_transferegov_relacional.py",
+    "code": "E501",
+    "line": 98
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "code": "E501",
+    "line": 150
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "code": "E501",
+    "line": 191
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "code": "E501",
+    "line": 258
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "code": "E501",
+    "line": 259
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "code": "E501",
+    "line": 260
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "code": "E501",
+    "line": 267
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "code": "E501",
+    "line": 289
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 114
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 116
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 246
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 295
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 296
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 301
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 302
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 326
+  },
+  {
+    "file": "scripts/importar_planilha_monitoramento.py",
+    "code": "E501",
+    "line": 381
+  },
+  {
+    "file": "scripts/job_descoberta_transferegov.py",
+    "code": "E501",
+    "line": 210
+  },
+  {
+    "file": "scripts/job_descoberta_transferegov.py",
+    "code": "E501",
+    "line": 256
+  },
+  {
+    "file": "scripts/job_verificacao_transferegov.py",
+    "code": "I001",
+    "line": 36
+  },
+  {
+    "file": "scripts/job_verificacao_transferegov.py",
+    "code": "E501",
+    "line": 39
+  },
+  {
+    "file": "scripts/job_verificacao_transferegov.py",
+    "code": "E501",
+    "line": 58
+  },
+  {
+    "file": "scripts/job_verificacao_transferegov.py",
+    "code": "E501",
+    "line": 108
+  },
+  {
+    "file": "scripts/job_verificacao_transferegov.py",
+    "code": "E501",
+    "line": 118
+  },
+  {
+    "file": "scripts/job_verificacao_transferegov.py",
+    "code": "E501",
+    "line": 121
+  },
+  {
+    "file": "scripts/job_verificacao_transferegov.py",
+    "code": "E501",
+    "line": 136
+  },
+  {
+    "file": "scripts/levantamento_convenios_oncologia.py",
+    "code": "E501",
+    "line": 125
+  },
+  {
+    "file": "scripts/levantamento_convenios_oncologia.py",
+    "code": "E501",
+    "line": 126
+  },
+  {
+    "file": "scripts/levantamento_convenios_oncologia.py",
+    "code": "E501",
+    "line": 253
+  },
+  {
+    "file": "scripts/levantamento_convenios_oncologia.py",
+    "code": "E501",
+    "line": 371
+  },
+  {
+    "file": "scripts/levantamento_convenios_oncologia.py",
+    "code": "E501",
+    "line": 382
+  },
+  {
+    "file": "scripts/reconciliar_banco_api_xlsx.py",
+    "code": "I001",
+    "line": 45
+  },
+  {
+    "file": "scripts/reconciliar_banco_api_xlsx.py",
+    "code": "E501",
+    "line": 58
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "code": "E501",
+    "line": 207
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "code": "E501",
+    "line": 180
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "code": "E501",
+    "line": 196
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 31
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 32
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 33
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 36
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 37
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 38
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 56
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 68
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 69
+  },
+  {
+    "file": "scripts/seed_monitoramento.py",
+    "code": "E501",
+    "line": 151
+  },
+  {
+    "file": "scripts/sincronizar_cnes_referencia_api.py",
+    "code": "F401",
+    "line": 24
+  },
+  {
+    "file": "scripts/validar_convenios.py",
+    "code": "E501",
+    "line": 51
+  },
+  {
+    "file": "scripts/validar_dados_tres_fontes.py",
+    "code": "I001",
+    "line": 35
+  },
+  {
+    "file": "scripts/validar_dados_tres_fontes.py",
+    "code": "E501",
+    "line": 135
+  },
+  {
+    "file": "scripts/validar_dados_tres_fontes.py",
+    "code": "E501",
+    "line": 228
+  },
+  {
+    "file": "scripts/validar_dados_tres_fontes.py",
+    "code": "E501",
+    "line": 235
+  },
+  {
+    "file": "scripts/validar_dados_tres_fontes.py",
+    "code": "E501",
+    "line": 260
+  },
+  {
+    "file": "tests/conftest.py",
+    "code": "I001",
+    "line": 8
+  },
+  {
+    "file": "tests/test_integridade_constraints.py",
+    "code": "I001",
+    "line": 23
+  },
+  {
+    "file": "tests/test_integridade_constraints.py",
+    "code": "E501",
+    "line": 133
+  },
+  {
+    "file": "tests/test_integridade_constraints.py",
+    "code": "E501",
+    "line": 136
+  },
+  {
+    "file": "tests/test_monitoramento.py",
+    "code": "I001",
+    "line": 15
+  },
+  {
+    "file": "tests/test_monitoramento.py",
+    "code": "E501",
+    "line": 125
+  },
+  {
+    "file": "tests/test_monitoramento.py",
+    "code": "E501",
+    "line": 409
+  },
+  {
+    "file": "tests/test_monitoramento.py",
+    "code": "E501",
+    "line": 420
+  },
+  {
+    "file": "tests/test_monitoramento.py",
+    "code": "E501",
+    "line": 532
+  },
+  {
+    "file": "tests/test_municipality_coverage.py",
+    "code": "E501",
+    "line": 51
+  },
+  {
+    "file": "tests/test_schema_migrations.py",
+    "code": "I001",
+    "line": 17
+  }
+]

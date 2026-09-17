@@ -12,6 +12,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from app.domain_errors import DomainError
+
 # Registrando no HTTPException do Starlette (classe-mae da do FastAPI) --
 # assim pega tanto o 404 interno de rota nao encontrada (que o Starlette
 # levanta direto, antes do codigo da aplicacao rodar) quanto qualquer
@@ -21,6 +23,16 @@ logger = logging.getLogger("sieo")
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(DomainError)
+    async def domain_error_handler(request: Request, exc: DomainError):
+        # Mesmo formato de resposta que HTTPException abaixo -- erro de
+        # dominio (levantado de dentro de um Service, sem depender de
+        # FastAPI) e erro "de fora" convergem pro mesmo contrato HTTP.
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"error": exc.message, "detail": None},
+        )
+
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
         return JSONResponse(

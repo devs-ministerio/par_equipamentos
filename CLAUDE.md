@@ -300,7 +300,14 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   separação). `neondb_owner` (role gerenciado da conta, com
   `CREATEDB`/`CREATEROLE`) não é mais usado por nenhuma credencial de
   aplicação. Migration não roda mais no boot da API nem nos jobs de dado —
-  ver "Migration desacoplada do boot" logo abaixo.
+  ver "Migration desacoplada do boot" logo abaixo. **Precedência desde o
+  Plan Mode database 2026-09-17 (Bloco 2)**: um `DATABASE_URL` exportado de
+  verdade no processo (`os.environ`, não o valor só mesclado do `.env`
+  pelo pydantic-settings) vence sobre `database_url_migration` — corrige
+  incidente real onde `alembic upgrade head` pensado para Postgres local
+  atingiu o Neon porque o `.env` local tinha `DATABASE_URL_MIGRATION`
+  setado. `backend/alembic/env.py` sempre ecoa (stderr, informativo, não
+  gate) o host resolvido antes de rodar qualquer comando.
 - **Migration desacoplada do boot e dos jobs (mesmo Plan Mode, Bloco 4)**:
   `render.yaml` sobe a API direto com `uvicorn`, sem `alembic upgrade head`
   no `startCommand` — `sigeo_runtime` nem teria privilégio pra isso.
@@ -309,6 +316,45 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   `.github/workflows/migrar_banco.yml` (`workflow_dispatch`,
   `DATABASE_URL_MIGRATION`) ou `uv run alembic upgrade head` local — sempre
   **antes** de qualquer deploy/job que dependa de schema novo, nunca depois.
+
+## Arquitetura backend: erro de domínio + Repository/Service (Plan Mode backend 2026-09-17)
+
+`docs/arquitetura/diagnostico-constituicao-backend-2026-09-16.md` (nota 7,0/10) apontou que a
+maior parte do backend ainda é `Router -> SQLAlchemy` direto, sem hierarquia de erro de domínio.
+`docs/arquitetura/planmode-backend-2026-09-17.md` (Bloco 1) começou a fechar isso, **sem migrar o
+backend inteiro de uma vez** — só a fundação + uma feature-piloto:
+
+- **`backend/app/domain_errors.py`** (novo) — `DomainError` base +
+  `NotFoundError`/`ConflictError`/`ValidationError`/`AuthorizationError` (404/409/422/403). Service
+  levanta essas, nunca `fastapi.HTTPException` — Service não deveria importar FastAPI. Tradução pra
+  HTTP acontece só em `backend/app/errors.py` (`register_exception_handlers`), no mesmo formato
+  `{"error": ..., "detail": None}` que já existia — nenhum contrato HTTP mudou. **Migrado nesta
+  rodada**: `app/authz.py` e `app/services/propostas_candidatas.py` (únicos consumidores reais de
+  erro em Service até então). `app/services/monitoramento_instrumentos.py`/
+  `monitoramento_eventos.py` (767 linhas do `monitoramento.py` + services) **ficam de fora** —
+  ainda levantam `HTTPException` direto, migração é bloco futuro.
+- **Contrato Repository/Service documentado** em `padroes/backend/constituicao_backend.md` Seção
+  3 — Repository é função solta com `db: Session` posicional, nunca commita; Service é função
+  solta com `db` **keyword-only** (`*, db: Session`), único lugar que commita, levanta
+  `DomainError`. Exemplo de referência: `backend/app/repositories/propostas_candidatas.py` +
+  `backend/app/services/propostas_candidatas.py`. `monitoramento.py` (commit no Router, 5x) é o
+  padrão a **não** seguir — regra vale daqui pra frente, esse arquivo não foi migrado.
+- **`notificacoes` migrado como piloto** Router → Service → Repository:
+  `backend/app/repositories/notificacoes.py` + `backend/app/services/notificacoes.py` (novos),
+  `backend/app/routers/notificacoes.py` ficou fino (só `Depends`, chama Service, devolve
+  `response_model`). Contrato HTTP não mudou — mesmos query params, mesmo shape de resposta.
+- **3 schemas mortos removidos** de `backend/app/schemas.py`: `ErrorResponse`, `UserCreate`,
+  `TokenPayload` — zero consumidor real, reconfirmado por grep antes de remover.
+- **`ruff`/`mypy` com baseline** em `backend/pyproject.toml` — config mínima (`E`/`F`/`I` no ruff,
+  sem `strict` no mypy), baseline versionada ignora achado legado; código novo (`domain_errors.py`,
+  `repositories/notificacoes.py`, `services/notificacoes.py`) nasce sem exceção na baseline.
+
+Fora de escopo deste Plan Mode (registrado como blocos futuros no diagnóstico): migrar
+`monitoramento.py`/coberturas/ofertas/convênios para Router→Service→Repository, envelope de
+resposta unificado (`{success, data, meta}` — mudança breaking, coordenar com frontend),
+paginação universal, observabilidade estruturada (logs JSON, `trace_id`, duração), e o P0 de CSRF
+em autenticação por cookie (escopo de segurança & auth, antecede backend na ordem de
+`padroes/AGENTS.md` Seção 2.2).
 
 ## Segurança e sessão (Plan Mode segurança 2026-09-16)
 
@@ -355,7 +401,12 @@ do mesmo gate, sem exceção.
   `refresh_token`, `backend/app/db/models.py`) num cookie `sigeo_refresh`
   restrito a `path=/auth/refresh`. `POST /auth/refresh` rotaciona (reuso do
   token antigo falha — sinal de furto de sessão); `POST /auth/logout`
-  revoga no servidor (não só limpa cookie). **Compatibilidade dupla
+  revoga no servidor (não só limpa cookie). `rotate_refresh_token`/
+  `revoke_refresh_token` (`backend/app/auth.py`) usam `UPDATE ... WHERE
+  revoked_at IS NULL RETURNING ...` atômico, não `SELECT` + atribuição +
+  `commit()` (Plan Mode database 2026-09-17, Bloco 1 — duas requisições
+  concorrentes com o mesmo token não geram mais dois sucessores do mesmo
+  token pai). **Compatibilidade dupla
   temporária**: `require_current_user` ainda aceita `Authorization: Bearer`
   como fallback (`backend/app/auth.py`) — remover quando não houver mais
   tráfego assim (Fase C do rollout, ver Plan Mode seção 2.8). `JWT_SECRET`
@@ -464,6 +515,8 @@ precisa de sincronização contínua:
 
 ```bash
 cd backend && uv run pytest                          # testes backend
+cd backend && uv run ruff check .                     # lint backend (baseline: .ruff-baseline.json)
+cd backend && uv run mypy .                            # typecheck backend (baseline: .mypy-baseline.json)
 cd backend && uv run alembic upgrade head             # aplicar migrations
 cd backend && uv run python -m scripts.run_pipeline_tomografo
 cd backend && uv run python -m scripts.run_pipeline_ressonancia
@@ -471,6 +524,10 @@ cd backend && uv run python -m scripts.run_pipeline_pet_ct
 cd frontend && npm run test                            # vitest
 cd frontend && npm run lint                             # oxlint
 ```
+
+`ruff check .`/`mypy .` (Plan Mode backend 2026-09-17, Bloco E) ainda não bloqueiam CI — rodar à
+mão antes de PR em arquivo tocado; achado fora de `.ruff-baseline.json`/`.mypy-baseline.json` é
+regressão nova, achado dentro é legado conhecido (não corrigir sem pedir, pode ser escopo maior).
 
 Pipelines de dado também rodam via GitHub Actions
 (`.github/workflows/pipelines.yml`), mas só manual (`workflow_dispatch`) por

@@ -21,6 +21,7 @@ from fastapi import HTTPException
 from app.auth import create_access_token, hash_password, require_monitoramento_editor, verify_password
 from app.config import settings
 from app.db.base import SessionLocal
+from app.domain_errors import AuthorizationError
 from app.db.models import (
     AcaoMonitoramento,
     AuditLog,
@@ -500,7 +501,7 @@ def test_atualizar_cadastro_instrumento_bloqueia_leitor_no_service():
     db = SessionLocal()
     try:
         leitor = User(id=999001, name="Leitor", email="leitor-bloco3@example.com", role=UserRole.leitor)
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(AuthorizationError) as exc:
             atualizar_cadastro_instrumento(
                 nr_convenio=NR_CONVENIO_SEED, alteracoes_brutas={"tecnico_suplente": "X"}, db=db, usuario=leitor,
             )
@@ -513,7 +514,7 @@ def test_registrar_evento_monitorado_bloqueia_leitor_no_service():
     db = SessionLocal()
     try:
         leitor = User(id=999002, name="Leitor", email="leitor-bloco3-evento@example.com", role=UserRole.leitor)
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(AuthorizationError) as exc:
             registrar_evento_monitorado(
                 nr_convenio=NR_CONVENIO_SEED, dados=NovoEventoMonitorado(marco_id=1), db=db, usuario=leitor,
             )
@@ -526,7 +527,7 @@ def test_registrar_acao_monitorada_bloqueia_leitor_no_service():
     db = SessionLocal()
     try:
         leitor = User(id=999003, name="Leitor", email="leitor-bloco3-acao@example.com", role=UserRole.leitor)
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(AuthorizationError) as exc:
             registrar_acao_monitorada(
                 nr_convenio=NR_CONVENIO_SEED, descricao="x", data_prevista=None, responsavel=None, db=db, usuario=leitor,
             )
@@ -539,7 +540,7 @@ def test_concluir_acao_monitorada_bloqueia_leitor_no_service():
     db = SessionLocal()
     try:
         leitor = User(id=999004, name="Leitor", email="leitor-bloco3-concluir@example.com", role=UserRole.leitor)
-        with pytest.raises(HTTPException) as exc:
+        with pytest.raises(AuthorizationError) as exc:
             concluir_acao_monitorada(acao_id=1, db=db, usuario=leitor)
         assert exc.value.status_code == 403
     finally:

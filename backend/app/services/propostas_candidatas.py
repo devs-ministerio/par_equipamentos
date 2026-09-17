@@ -3,11 +3,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.authz import assert_pode_editar_monitoramento
 from app.db.models import PropostaCandidata, PropostaCandidataStatus, User
+from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories.propostas_candidatas import existe_cnes, obter_proposta, obter_proposta_para_revisao
 from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado
 
@@ -22,9 +22,9 @@ def revisar_proposta_candidata(
     assert_pode_editar_monitoramento(usuario)
     proposta = obter_proposta_para_revisao(db, proposta_id)
     if proposta is None:
-        raise HTTPException(404, f"Proposta candidata {proposta_id} não encontrada.")
+        raise NotFoundError(f"Proposta candidata {proposta_id} não encontrada.")
     if proposta.status != PropostaCandidataStatus.pendente:
-        raise HTTPException(409, f"Proposta {proposta_id} já foi revisada (status={proposta.status.value}).")
+        raise ConflictError(f"Proposta {proposta_id} já foi revisada (status={proposta.status.value}).")
 
     if decisao == "aceita":
         criar_instrumento_monitorado(
@@ -63,11 +63,11 @@ def atualizar_cnes_proposta_candidata(
     assert_pode_editar_monitoramento(usuario)
     proposta = obter_proposta(db, proposta_id)
     if proposta is None:
-        raise HTTPException(404, f"Proposta candidata {proposta_id} não encontrada.")
+        raise NotFoundError(f"Proposta candidata {proposta_id} não encontrada.")
 
     cnes_normalizado = cnes.zfill(7) if cnes else None
     if cnes_normalizado is not None and not existe_cnes(db, cnes_normalizado):
-        raise HTTPException(422, f"CNES {cnes} não encontrado na base de referência.")
+        raise ValidationError(f"CNES {cnes} não encontrado na base de referência.")
 
     proposta.cnes = cnes_normalizado
     db.commit()

@@ -1,0 +1,402 @@
+[
+  {
+    "file": "alembic/versions/06e73a1db53b_competency_unica_por_label_e_equipment_.py",
+    "line": 33,
+    "code": "arg-type"
+  },
+  {
+    "file": "alembic/versions/c9f1a4d7e602_onupdate_explicito_fks_restantes.py",
+    "line": 50,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/auth.py",
+    "line": 138,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/auth.py",
+    "line": 143,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/config.py",
+    "line": 159,
+    "code": "call-arg"
+  },
+  {
+    "file": "app/pipeline/api_elasticnes.py",
+    "line": 168,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/pipeline/transferegov_parcerias.py",
+    "line": 92,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/convenios.py",
+    "line": 150,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/convenios.py",
+    "line": 201,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/convenios.py",
+    "line": 201,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/convenios.py",
+    "line": 204,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/convenios.py",
+    "line": 204,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/convenios.py",
+    "line": 211,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/convenios.py",
+    "line": 211,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 306,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 307,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 307,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 311,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 311,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 312,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 312,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 383,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 383,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/equipment_offer.py",
+    "line": 387,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/monitoramento.py",
+    "line": 431,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/monitoramento.py",
+    "line": 635,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/routers/monitoramento.py",
+    "line": 635,
+    "code": "operator"
+  },
+  {
+    "file": "app/routers/monitoramento.py",
+    "line": 764,
+    "code": "union-attr"
+  },
+  {
+    "file": "app/routers/propostas_candidatas.py",
+    "line": 89,
+    "code": "arg-type"
+  },
+  {
+    "file": "app/services/monitoramento_eventos.py",
+    "line": 82,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/atualizar_equipamento_b8131710.py",
+    "line": 217,
+    "code": "return-value"
+  },
+  {
+    "file": "scripts/atualizar_equipamento_b8131710.py",
+    "line": 331,
+    "code": "misc"
+  },
+  {
+    "file": "scripts/auditar_integridade_database.py",
+    "line": 286,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "line": 141,
+    "code": "valid-type"
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "line": 160,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "line": 181,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "line": 202,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "line": 219,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "line": 270,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/coletar_siconv_legado.py",
+    "line": 270,
+    "code": "index"
+  },
+  {
+    "file": "scripts/coletar_transferegov_relacional.py",
+    "line": 44,
+    "code": "var-annotated"
+  },
+  {
+    "file": "scripts/coletar_transferegov_relacional.py",
+    "line": 89,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/coletar_transferegov_relacional.py",
+    "line": 94,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/importar_convenios_banco.py",
+    "line": 282,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 139,
+    "code": "dict-item"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 143,
+    "code": "dict-item"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 149,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 150,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 250,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 265,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 266,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 283,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 319,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_pet_ct.py",
+    "line": 320,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 123,
+    "code": "dict-item"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 127,
+    "code": "dict-item"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 133,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 134,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 223,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 238,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 239,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 256,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 276,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_ressonancia.py",
+    "line": 277,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 126,
+    "code": "dict-item"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 130,
+    "code": "dict-item"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 136,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 137,
+    "code": "attr-defined"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 239,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 254,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 255,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 272,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 301,
+    "code": "call-overload"
+  },
+  {
+    "file": "scripts/run_pipeline_tomografo.py",
+    "line": 302,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/sincronizar_cnes_referencia.py",
+    "line": 85,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/sincronizar_cnes_referencia_api.py",
+    "line": 98,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/validar_convenios.py",
+    "line": 39,
+    "code": "arg-type"
+  },
+  {
+    "file": "scripts/validar_dados_tres_fontes.py",
+    "line": 163,
+    "code": "assignment"
+  },
+  {
+    "file": "scripts/validar_dados_tres_fontes.py",
+    "line": 164,
+    "code": "operator"
+  },
+  {
+    "file": "tests/test_equipment_totals.py",
+    "line": 91,
+    "code": "return-value"
+  }
+]

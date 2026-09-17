@@ -17,9 +17,8 @@ código). Escopo de autorização por técnico/UF/órgão e diferenciação real
 """
 from __future__ import annotations
 
-from fastapi import HTTPException
-
 from app.db.models import User, UserRole
+from app.domain_errors import AuthorizationError
 
 
 def assert_pode_editar_monitoramento(usuario: User) -> None:
@@ -28,4 +27,4 @@ def assert_pode_editar_monitoramento(usuario: User) -> None:
     evento/ação/proposta candidata mesmo se algo chamar o service sem
     passar pelo Depends do router."""
     if usuario.role == UserRole.leitor:
-        raise HTTPException(status_code=403, detail="Perfil leitor não pode alterar monitoramento.")
+        raise AuthorizationError("Perfil leitor não pode alterar monitoramento.")

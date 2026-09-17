@@ -10,40 +10,26 @@ niveis de usuario acima de tecnico... ainda vamos definir") -- por isso
 `listar_notificacoes` NAO filtra por role ainda, so devolve tudo. Filtrar
 fica pra quando a hierarquia fechar, sem travar o resto do fluxo nessa
 decisao pendente.
+
+Router fino (Plan Mode backend 2026-09-17, Bloco C -- feature-piloto de
+Router -> Service -> Repository): so monta `Depends`, chama o Service e
+devolve o retorno. Regra de negocio e commit vivem em
+`app/services/notificacoes.py`; query direta vive em
+`app/repositories/notificacoes.py`.
 """
 from __future__ import annotations
 
-from datetime import datetime
-
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import Notificacao, NotificacaoTipo, User
+from app.db.models import User
+from app.schemas import NotificacaoRead, NotificacoesListRead
+from app.services.notificacoes import listar_notificacoes as listar_notificacoes_service
+from app.services.notificacoes import marcar_notificacao_lida
 
 router = APIRouter(prefix="/notificacoes", tags=["notificacoes"])
-
-
-class NotificacaoRead(BaseModel):
-    id: int
-    tipo: NotificacaoTipo
-    titulo: str
-    corpo: str | None
-    entidade_id: int
-    nivel_minimo: str | None
-    lida: bool
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class NotificacoesListRead(BaseModel):
-    itens: list[NotificacaoRead]
-    total: int
-    nao_lidas: int
 
 
 @router.get("", response_model=NotificacoesListRead)
@@ -54,22 +40,9 @@ def listar_notificacoes(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    """Contagem de nao lidas SEMPRE sobre o total (ignora `apenas_nao_lidas`/
-    paginacao) -- e o numero que alimenta o badge do menu, precisa ser
-    estavel independente do filtro da lista que o usuario esta vendo."""
-    base = select(Notificacao)
-    if apenas_nao_lidas:
-        base = base.where(Notificacao.lida.is_(False))
-
-    itens = db.execute(
-        base.order_by(Notificacao.created_at.desc()).limit(limit).offset(offset)
-    ).scalars().all()
-    total = db.execute(select(func.count()).select_from(Notificacao)).scalar_one()
-    nao_lidas = db.execute(
-        select(func.count()).select_from(Notificacao).where(Notificacao.lida.is_(False))
-    ).scalar_one()
-
-    return NotificacoesListRead(itens=itens, total=total, nao_lidas=nao_lidas)
+    pagina = listar_notificacoes_service(db=db, limit=limit, offset=offset, apenas_nao_lidas=apenas_nao_lidas)
+    itens = [NotificacaoRead.model_validate(n) for n in pagina.itens]
+    return NotificacoesListRead(itens=itens, total=pagina.total, nao_lidas=pagina.nao_lidas)
 
 
 @router.patch("/{notificacao_id}", response_model=NotificacaoRead)
@@ -78,12 +51,4 @@ def marcar_lida(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    notificacao = db.execute(
-        select(Notificacao).where(Notificacao.id == notificacao_id)
-    ).scalar_one_or_none()
-    if notificacao is None:
-        raise HTTPException(404, f"Notificação {notificacao_id} não encontrada.")
-    notificacao.lida = True
-    db.commit()
-    db.refresh(notificacao)
-    return notificacao
+    return marcar_notificacao_lida(db=db, notificacao_id=notificacao_id)

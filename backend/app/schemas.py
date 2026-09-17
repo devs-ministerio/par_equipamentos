@@ -9,17 +9,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
-from app.db.models import DeficitStatus, UserRole, UserStatus
-
-
-# ----------------------------------------------------------------------------
-# Erro padronizado (ver app/errors.py)
-# ----------------------------------------------------------------------------
-
-class ErrorResponse(BaseModel):
-    error: str
-    detail: str | None = None
-
+from app.db.models import DeficitStatus, NotificacaoTipo, UserRole, UserStatus
 
 # ----------------------------------------------------------------------------
 # Usuario / autenticacao
@@ -36,13 +26,6 @@ class UserRead(BaseModel):
     created_at: datetime
 
 
-class UserCreate(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-    role: UserRole = UserRole.colaborador
-
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
@@ -53,10 +36,27 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
-class TokenPayload(BaseModel):
-    sub: str  # user id, como string (padrao do JWT)
-    role: UserRole
-    exp: int
+# ----------------------------------------------------------------------------
+# Notificacoes (ver app/routers/notificacoes.py, app/services/notificacoes.py)
+# ----------------------------------------------------------------------------
+
+class NotificacaoRead(BaseModel):
+    id: int
+    tipo: NotificacaoTipo
+    titulo: str
+    corpo: str | None
+    entidade_id: int
+    nivel_minimo: str | None
+    lida: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NotificacoesListRead(BaseModel):
+    itens: list[NotificacaoRead]
+    total: int
+    nao_lidas: int
 
 
 # ----------------------------------------------------------------------------
