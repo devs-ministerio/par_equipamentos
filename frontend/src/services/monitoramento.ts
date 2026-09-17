@@ -47,8 +47,11 @@ async function mensagemErroHttp(resp: Response): Promise<string> {
 
 /** Núcleo comum a GET/POST/PATCH: monta a URL, chama `fetch`, valida
  * status e schema, lança `ApiError` (nunca erro cru) em qualquer falha.
- * `onUnauthorized` limpa o token quando o backend devolve 401 -- mesmo
- * comportamento do antigo `assertRespostaOk`. */
+ * 401 limpa o token e redireciona pra /login (Plan Mode segurança
+ * 2026-09-16, Bloco 1 -- as leituras de monitoramento/propostas-candidatas
+ * passaram a exigir sessão; sem isso a tela ficava quebrada em silêncio).
+ * Redirect fica de fora quando já se está em /login, pra não entrar em
+ * loop de navegação. */
 async function requisitar<T>(
   path: string,
   schema: z.ZodType<T>,
@@ -60,7 +63,12 @@ async function requisitar<T>(
   } catch (e) {
     throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
   }
-  if (res.status === 401) setAuthToken(null);
+  if (res.status === 401) {
+    setAuthToken(null);
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.assign('/login');
+    }
+  }
   if (!res.ok) {
     throw new ApiError(await mensagemErroHttp(res), res.status);
   }
@@ -74,6 +82,14 @@ async function requisitar<T>(
 
 function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   return requisitar(path, schema, undefined);
+}
+
+/** GET autenticado -- mesmo helper de `apiGet`, mas envia `authHeaders()`.
+ * Usado pelas leituras de monitoramento/propostas-candidatas que passaram
+ * a exigir sessão (Bloco 1); `fetchMarcos` continua em `apiGet` porque a
+ * rota fica pública por decisão explícita. */
+function apiGetAuthed<T>(path: string, schema: z.ZodType<T>): Promise<T> {
+  return requisitar(path, schema, { headers: authHeaders() });
 }
 
 function apiAuthed<T>(path: string, schema: z.ZodType<T>, method: 'POST' | 'PATCH', body?: unknown): Promise<T> {
@@ -200,7 +216,7 @@ const instrumentoEquipamentoSchema = z.object({
 export type InstrumentoEquipamento = z.infer<typeof instrumentoEquipamentoSchema>;
 
 export function fetchInstrumentos(): Promise<InstrumentoEquipamento[]> {
-  return apiGet('/monitoramento/instrumentos', z.array(instrumentoEquipamentoSchema));
+  return apiGetAuthed('/monitoramento/instrumentos', z.array(instrumentoEquipamentoSchema));
 }
 
 /** POST /monitoramento/instrumentos -- 2 portas de entrada (ver docstring
@@ -244,17 +260,20 @@ export type InstrumentoTimeline = z.infer<typeof instrumentoTimelineSchema>;
 
 /** `null` = convênio sem instrumento seedado (404 -- caso normal pros
  * convênios ainda não monitorados). Qualquer outra falha continua
- * lançando `ApiError`, igual ao resto da camada de services. */
+ * lançando `ApiError`, igual ao resto da camada de services. Rota exige
+ * sessão desde o Bloco 1 -- usa `requisitar` (com `authHeaders()`), não
+ * mais `fetch` cru. */
 export async function fetchInstrumentoTimeline(nrConvenio: string): Promise<InstrumentoTimeline | null> {
-  const res = await fetch(`${API_BASE_URL}/monitoramento/instrumentos/${nrConvenio}`);
-  if (res.status === 404) return null;
-  if (!res.ok) throw new ApiError(await mensagemErroHttp(res), res.status);
-  const json = await res.json();
-  const parsed = instrumentoTimelineSchema.safeParse(json);
-  if (!parsed.success) {
-    throw new ApiError(`Resposta de /monitoramento/instrumentos/${nrConvenio} não bate com o schema esperado: ${parsed.error.message}`);
+  try {
+    return await requisitar(
+      `/monitoramento/instrumentos/${nrConvenio}`,
+      instrumentoTimelineSchema,
+      { headers: authHeaders() },
+    );
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
   }
-  return parsed.data;
 }
 
 export interface CadastroInstrumentoInput {
@@ -289,7 +308,7 @@ export type CnesReferencia = z.infer<typeof cnesReferenciaSchema>;
 
 export function buscarCnesReferencia(q: string): Promise<CnesReferencia[]> {
   if (q.trim().length < 2) return Promise.resolve([]);
-  return apiGet(`/monitoramento/cnes-referencia?q=${encodeURIComponent(q)}`, z.array(cnesReferenciaSchema));
+  return apiGetAuthed(`/monitoramento/cnes-referencia?q=${encodeURIComponent(q)}`, z.array(cnesReferenciaSchema));
 }
 
 export function patchCnesProposta(propostaId: number, cnes: string | null): Promise<PropostaCandidata> {
@@ -331,7 +350,7 @@ export type AcaoMonitoramento = z.infer<typeof acaoMonitoramentoSchema>;
 
 export function fetchAcoes(pendentes?: boolean): Promise<AcaoMonitoramento[]> {
   const query = pendentes ? '?pendentes=true' : '';
-  return apiGet(`/monitoramento/acoes${query}`, z.array(acaoMonitoramentoSchema));
+  return apiGetAuthed(`/monitoramento/acoes${query}`, z.array(acaoMonitoramentoSchema));
 }
 
 export interface CriarAcaoInput {
@@ -387,7 +406,7 @@ const resumoMonitoramentoSchema = z.object({
 export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;
 
 export function fetchResumoMonitoramento(): Promise<ResumoMonitoramento> {
-  return apiGet('/monitoramento/resumo', resumoMonitoramentoSchema);
+  return apiGetAuthed('/monitoramento/resumo', resumoMonitoramentoSchema);
 }
 
 // ---------------------------------------------------------------------
@@ -462,9 +481,39 @@ const propostaCandidataSchema = z.object({
 });
 export type PropostaCandidata = z.infer<typeof propostaCandidataSchema>;
 
-export function fetchPropostasCandidatas(status?: PropostaCandidataStatus): Promise<PropostaCandidata[]> {
-  const query = status ? `?status=${status}` : '';
-  return apiGet(`/propostas-candidatas${query}`, z.array(propostaCandidataSchema));
+const propostaCandidataListaSchema = z.object({
+  total: z.number(),
+  itens: z.array(propostaCandidataSchema),
+});
+
+export interface FetchPropostasCandidatasOpts {
+  status?: PropostaCandidataStatus;
+  uf?: string;
+  busca?: string;
+  ano?: number;
+  idPrograma?: number;
+  pagina?: number;
+  /** Default 500 -- mesmo padrão transitório de `fetchConvenios`: filtros
+   * derivados de `metas_resumo` (equipamento / situação de fato / "novas")
+   * ainda rodam no cliente, então a página pede o universo de uma vez. */
+  tamanhoPagina?: number;
+}
+
+export function fetchPropostasCandidatas(
+  opts: FetchPropostasCandidatasOpts | PropostaCandidataStatus = {},
+): Promise<{ total: number; itens: PropostaCandidata[] }> {
+  // Compat: chamada antiga `fetchPropostasCandidatas('pendente')`.
+  const params = typeof opts === 'string' ? { status: opts } : opts;
+  const qs = new URLSearchParams();
+  if (params.status) qs.set('status', params.status);
+  if (params.uf) qs.set('uf', params.uf);
+  if (params.busca) qs.set('busca', params.busca);
+  if (params.ano != null) qs.set('ano', String(params.ano));
+  if (params.idPrograma != null) qs.set('id_programa', String(params.idPrograma));
+  qs.set('pagina', String(params.pagina ?? 1));
+  qs.set('tamanho_pagina', String(params.tamanhoPagina ?? 500));
+  const query = qs.toString() ? `?${qs}` : '';
+  return apiGetAuthed(`/propostas-candidatas${query}`, propostaCandidataListaSchema);
 }
 
 export function revisarPropostaCandidata(

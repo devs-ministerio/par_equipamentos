@@ -21,6 +21,7 @@ _DB_TEST_MODULES = {
     "test_integridade_constraints.py",
     "test_integridade_fk_cnes.py",
     "test_monitoramento.py",
+    "test_monitoramento_auth.py",
     "test_monitoramento_queries.py",
     "test_municipality_coverage.py",
     "test_notificacoes.py",

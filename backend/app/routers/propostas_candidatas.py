@@ -3,30 +3,30 @@ docs/arquitetura/fluxo_requisicao.md). Candidato nasce do job de descoberta
 (scripts/job_descoberta_transferegov.py); este router é onde a equipe
 decide (aceitar/rejeitar) o que ele achou.
 
-Aceitar chama `criar_instrumento` (app/routers/monitoramento.py) direto --
-mesmo POST /monitoramento/instrumentos, mesma checagem de duplicidade e
-mesmo AuditLog -- em vez de duplicar a lógica de criação. nr_convenio usa
-`cd_parceria` quando existe (código formal da parceria, mais próximo de um
-identificador real do sistema novo) e só cai pro surrogate
-`str(id_proposta)` quando a proposta ainda não virou parceria (achado
-2026-09-15, pedido do usuário: "vamos usar cd_parceria apenas quando
-existir") -- ver docstring de PropostaCandidata.cd_parceria em
-app/db/models.py.
+Aceitar reutiliza a mesma criação do POST /monitoramento/instrumentos, mas
+sem `commit()` intermediário: instrumento, AuditLog e status da proposta são
+confirmados numa transação só. nr_convenio usa `cd_parceria` quando existe
+(código formal da parceria, mais próximo de um identificador real do sistema
+novo) e só cai pro surrogate `str(id_proposta)` quando a proposta ainda não
+virou parceria (achado 2026-09-15, pedido do usuário: "vamos usar
+cd_parceria apenas quando existir") -- ver docstring de
+PropostaCandidata.cd_parceria em app/db/models.py.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from enum import Enum
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import require_monitoramento_editor
+from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import CnesEstabelecimento, PropostaCandidata, PropostaCandidataStatus, User
-from app.routers.monitoramento import InstrumentoEquipamentoCreate, criar_instrumento
+from app.repositories.propostas_candidatas import FiltrosPropostaCandidata, listar_propostas_paginadas
+from app.services.propostas_candidatas import atualizar_cnes_proposta_candidata, revisar_proposta_candidata
 
 router = APIRouter(prefix="/propostas-candidatas", tags=["propostas-candidatas"])
 
@@ -50,6 +50,11 @@ class PropostaCandidataRead(BaseModel):
     vl_global_proposta: float | None
     situacao_proposta: str | None
     data_proposta: date | None
+    # Mantido na listagem de propósito: o card e os filtros client-side
+    # (situação de fato, equipamento via itens) ainda leem o JSON. Diferente
+    # de `convenio.siconv_raw`, aqui não há payload "cru de detalhe" separado
+    # -- o resumo *é* o dado da revisão. Extrair colunas derivadas fica pra
+    # bloco futuro, quando o filtro de equipamento/situação subir pro SQL.
     metas_resumo: dict | None
     cnes: str | None
     # Achado 2026-09-16, pedido do usuário: "aplique tudo que pedi para
@@ -67,6 +72,11 @@ class PropostaCandidataRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PropostaCandidataListaRead(BaseModel):
+    total: int
+    itens: list[PropostaCandidataRead]
+
+
 def _com_nome_cnes(db: Session, propostas: list[PropostaCandidata]) -> list[PropostaCandidataRead]:
     codigos = {p.cnes for p in propostas if p.cnes}
     nomes = {}
@@ -81,18 +91,27 @@ def _com_nome_cnes(db: Session, propostas: list[PropostaCandidata]) -> list[Prop
     ]
 
 
-@router.get("", response_model=list[PropostaCandidataRead])
+@router.get("", response_model=PropostaCandidataListaRead)
 def listar_propostas_candidatas(
     status: PropostaCandidataStatus | None = None,
+    uf: str | None = None,
+    busca: str | None = None,
+    ano: int | None = None,
+    id_programa: int | None = None,
+    pagina: int = Query(1, ge=1),
+    tamanho_pagina: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
 ):
-    """Leitura pública (mesmo padrão de GET /monitoramento/instrumentos) --
-    só a revisão (POST .../revisar) exige editor. Sem `status` devolve
-    tudo; a aba "Propostas pendentes" do front passa status=pendente."""
-    query = select(PropostaCandidata).order_by(PropostaCandidata.created_at.desc())
-    if status is not None:
-        query = query.where(PropostaCandidata.status == status)
-    return _com_nome_cnes(db, db.execute(query).scalars().all())
+    """Leitura autenticada (Plan Mode seguranca 2026-09-16, Bloco 1 -- radar
+    de propostas expõe estado de revisão interno, não é dado público de
+    convênio já firmado) -- só a revisão (POST .../revisar) exige editor.
+    Paginação e filtros SQL simples no banco; o front ainda pode pedir
+    `tamanho_pagina=500` enquanto filtros derivados de `metas_resumo`
+    (equipamento / situação de fato / "novas") permanecem client-side."""
+    filtros = FiltrosPropostaCandidata(status=status, uf=uf, busca=busca, ano=ano, id_programa=id_programa)
+    total, itens = listar_propostas_paginadas(db, filtros=filtros, pagina=pagina, tamanho_pagina=tamanho_pagina)
+    return PropostaCandidataListaRead(total=total, itens=_com_nome_cnes(db, itens))
 
 
 class DecisaoRevisao(str, Enum):
@@ -111,42 +130,12 @@ def revisar_proposta(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_monitoramento_editor),
 ):
-    proposta = db.execute(
-        select(PropostaCandidata).where(PropostaCandidata.id == proposta_id)
-    ).scalar_one_or_none()
-    if proposta is None:
-        raise HTTPException(404, f"Proposta candidata {proposta_id} não encontrada.")
-    if proposta.status != PropostaCandidataStatus.pendente:
-        raise HTTPException(409, f"Proposta {proposta_id} já foi revisada (status={proposta.status.value}).")
-
-    if corpo.decisao == DecisaoRevisao.aceita:
-        # Mesmo POST /monitoramento/instrumentos que o cadastro manual usa
-        # -- 409 se nr_convenio=str(id_proposta) já existir (não deveria,
-        # dedup de id_proposta em proposta_candidata já impede duplicata,
-        # mas a checagem em criar_instrumento cobre qualquer inconsistência).
-        criar_instrumento(
-            InstrumentoEquipamentoCreate(
-                nr_convenio=proposta.cd_parceria or str(proposta.id_proposta),
-                cnpj_convenente=proposta.cnpj_ente_recebedor,
-                nome_convenente=proposta.nm_proponente,
-                tipo_contratacao="Parceria TransfereGov",
-                municipio=proposta.municipio,
-                uf=proposta.uf,
-                cnes=proposta.cnes,
-                programa=proposta.nm_programa,
-                componente=proposta.componente_batido,
-            ),
-            db=db,
-            usuario=usuario,
-        )
-        proposta.status = PropostaCandidataStatus.aceita
-    else:
-        proposta.status = PropostaCandidataStatus.rejeitada
-
-    proposta.revisado_por = usuario.id
-    proposta.revisado_em = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(proposta)
+    proposta = revisar_proposta_candidata(
+        db=db,
+        proposta_id=proposta_id,
+        decisao=corpo.decisao.value,
+        usuario=usuario,
+    )
     return _com_nome_cnes(db, [proposta])[0]
 
 
@@ -167,14 +156,5 @@ def atualizar_cnes(
     só poderá editar por outro cnes válido na base de dados". `cnes=None`
     limpa o campo (proposta sem CNES identificável, equipe decide não
     aplicar nenhum candidato)."""
-    proposta = db.execute(
-        select(PropostaCandidata).where(PropostaCandidata.id == proposta_id)
-    ).scalar_one_or_none()
-    if proposta is None:
-        raise HTTPException(404, f"Proposta candidata {proposta_id} não encontrada.")
-    if corpo.cnes is not None and db.get(CnesEstabelecimento, corpo.cnes.zfill(7)) is None:
-        raise HTTPException(422, f"CNES {corpo.cnes} não encontrado na base de referência.")
-    proposta.cnes = corpo.cnes.zfill(7) if corpo.cnes else None
-    db.commit()
-    db.refresh(proposta)
+    proposta = atualizar_cnes_proposta_candidata(db=db, proposta_id=proposta_id, cnes=corpo.cnes, usuario=usuario)
     return _com_nome_cnes(db, [proposta])[0]

@@ -92,18 +92,32 @@ export function desenharPontos(
 }
 
 /**
- * HTML do tooltip de hover da macro -- mostra o coeficiente (mesmo
+ * Nó DOM do tooltip de hover da macro -- mostra o coeficiente (mesmo
  * indicador colorido usado em todo o resto do app, "1,31x") e o rótulo de
  * status; extraído do handler `mousemove` de `MacroMap.tsx`.
+ *
+ * Devolve um `DocumentFragment` construído via `createElement`/`textContent`
+ * (nunca uma string HTML) -- Plan Mode segurança 2026-09-16, Bloco 1: os
+ * dados vêm de um JSON estático de referência hoje, mas nada impede uma
+ * fonte futura (import/banco) de introduzir um valor não controlado em
+ * `macro.nome`/`macro.uf`, e `innerHTML` transformaria isso em XSS
+ * armazenado. O chamador aplica com `tooltip.replaceChildren(...)`.
  */
-export function construirTooltipHtml(
+export function construirTooltipNode(
   macroId: string | undefined,
   macro: Macrorregiao | undefined,
   row: CoberturaRow | undefined,
   produtividade: number,
   background: string,
-): string {
-  if (!macro) return `<strong>Código ${macroId ?? '—'}</strong><br>Sem dado nessa competência`;
+): DocumentFragment {
+  const frag = document.createDocumentFragment();
+
+  if (!macro) {
+    const titulo = document.createElement('strong');
+    titulo.textContent = `Código ${macroId ?? '—'}`;
+    frag.append(titulo, document.createElement('br'), document.createTextNode('Sem dado nessa competência'));
+    return frag;
+  }
 
   const meta = row ? statusMeta(row.status) : null;
   // statusMeta devolve `variant` semantico (nao hex) -- resolve pro hex
@@ -112,11 +126,26 @@ export function construirTooltipHtml(
   const metaColor = meta ? resolveThemeColor(`--${meta.variant}`) : undefined;
   const coef = row ? calcularCoeficiente(row.oferta, macro.pop, produtividade) : null;
 
-  return (
-    `<strong>${macro.nome} (${macro.uf})</strong><br>Coeficiente: <span style="color:${coef?.corTexto ?? background}">` +
-    `${coef?.valor != null ? formatMultiplicador(coef.valor) : '—'}</span>` +
-    `<br><span style="color:${metaColor ?? background}">${meta?.label ?? ''}</span>`
+  const titulo = document.createElement('strong');
+  titulo.textContent = `${macro.nome} (${macro.uf})`;
+
+  const spanCoeficiente = document.createElement('span');
+  spanCoeficiente.style.color = coef?.corTexto ?? background;
+  spanCoeficiente.textContent = coef?.valor != null ? formatMultiplicador(coef.valor) : '—';
+
+  const spanStatus = document.createElement('span');
+  spanStatus.style.color = metaColor ?? background;
+  spanStatus.textContent = meta?.label ?? '';
+
+  frag.append(
+    titulo,
+    document.createElement('br'),
+    document.createTextNode('Coeficiente: '),
+    spanCoeficiente,
+    document.createElement('br'),
+    spanStatus,
   );
+  return frag;
 }
 
 /**

@@ -30,9 +30,16 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        # Nunca repassa `input`/`ctx` de exc.errors() -- ecoa o payload
+        # bruto enviado pelo cliente (ex. senha de /auth/login mal validada)
+        # de volta na resposta (Plan Mode seguranca 2026-09-16, Bloco 1).
+        detalhe = [
+            {"loc": erro.get("loc"), "msg": erro.get("msg"), "type": erro.get("type")}
+            for erro in exc.errors()
+        ]
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"error": "Dados invalidos", "detail": exc.errors()},
+            content={"error": "Dados invalidos", "detail": detalhe},
         )
 
     @app.exception_handler(Exception)

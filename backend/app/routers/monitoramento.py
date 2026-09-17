@@ -5,7 +5,9 @@ evento_marco, log append-only).
 
 So 1 instrumento por enquanto (convenio 948686, ver
 scripts/seed_monitoramento.py) -- decisao deliberada do usuario pra validar
-o desenho antes de escalar pros 71. Mutacoes exigem usuario autenticado.
+o desenho antes de escalar pros 71. Mutacoes exigem editor; leituras exigem
+usuario autenticado (Plan Mode seguranca 2026-09-16, Bloco 1) -- excecao
+deliberada: /marcos fica publico (catalogo fixo, sem dado interno).
 """
 from __future__ import annotations
 
@@ -14,11 +16,12 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.auth import require_monitoramento_editor
+from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado
+from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import (
     AcaoMonitoramento,
@@ -368,7 +371,11 @@ class CnesEstabelecimentoRead(BaseModel):
 
 
 @router.get("/cnes-referencia", response_model=list[CnesEstabelecimentoRead])
-def buscar_cnes_referencia(q: str = Query(..., min_length=2), db: Session = Depends(get_db)):
+def buscar_cnes_referencia(
+    q: str = Query(..., min_length=2),
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+):
     """Busca em CnesEstabelecimento (nome ou código) -- achado 2026-09-16,
     pedido do usuário: "só poderá editar por outro cnes válido na base de
     dados". Alimenta um seletor no front (não campo de texto livre) tanto
@@ -391,20 +398,28 @@ def listar_marcos(db: Session = Depends(get_db)):
 
 
 @router.get("/instrumentos", response_model=list[InstrumentoEquipamentoRead])
-def listar_instrumentos(db: Session = Depends(get_db)):
+def listar_instrumentos(db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
     """Inclui `fase_atual` calculado (achado 2026-09-10, pedido do usuario:
     filtro de fase na Visao Geral) -- mesmo padrao de calculo de
     `obter_resumo` (marco de fase_geral de maior ordem com evento), so que
-    aqui devolvido POR instrumento em vez de agregado."""
+    aqui devolvido POR instrumento em vez de agregado.
+
+    Universo monitorado e pequeno (~86) -- a lista completa ainda cabe numa
+    resposta. O ganho deste bloco e nao carregar TODOS os EventoMarco: so
+    os pares (instrumento_id, marco_id) dos marcos de fase_geral."""
     instrumentos = db.execute(select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio)).scalars().all()
-    marcos = db.execute(select(MarcoCatalogo)).scalars().all()
-    fases_gerais_desc = sorted(
-        (m for m in marcos if m.grupo == MarcoGrupo.fase_geral), key=lambda m: m.ordem or 0, reverse=True,
-    )
-    todos_eventos = db.execute(select(EventoMarco)).scalars().all()
+    fases_gerais_desc = db.execute(
+        select(MarcoCatalogo)
+        .where(MarcoCatalogo.grupo == MarcoGrupo.fase_geral)
+        .order_by(MarcoCatalogo.ordem.desc())
+    ).scalars().all()
+    fase_ids = [m.id for m in fases_gerais_desc]
     eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
-    for e in todos_eventos:
-        eventos_por_instrumento[e.instrumento_id].add(e.marco_id)
+    if fase_ids:
+        for instrumento_id, marco_id in db.execute(
+            select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(EventoMarco.marco_id.in_(fase_ids))
+        ):
+            eventos_por_instrumento[instrumento_id].add(marco_id)
 
     resultado = []
     for inst in instrumentos:
@@ -415,7 +430,11 @@ def listar_instrumentos(db: Session = Depends(get_db)):
 
 
 @router.get("/instrumentos/{nr_convenio}", response_model=InstrumentoTimelineRead)
-def obter_timeline(nr_convenio: str, db: Session = Depends(get_db)):
+def obter_timeline(
+    nr_convenio: str,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+):
     instrumento = db.execute(
         select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
     ).scalar_one_or_none()
@@ -467,30 +486,11 @@ def criar_instrumento(
     cadastrando FAF/TED/PERSUS ou avulso) -- ver docstring de
     InstrumentoEquipamentoCreate. 409 se `nr_convenio` ja existe (checagem
     de duplicidade antes de criar, mesmo criterio pras 2 portas)."""
-    ja_existe = db.execute(
-        select(InstrumentoEquipamento.id).where(InstrumentoEquipamento.nr_convenio == corpo.nr_convenio)
-    ).scalar_one_or_none()
-    if ja_existe is not None:
-        raise HTTPException(409, f"Já existe instrumento monitorado com nr_convenio={corpo.nr_convenio}.")
-
-    instrumento = InstrumentoEquipamento(**corpo.model_dump())
-    db.add(instrumento)
-    db.flush()  # popula instrumento.id antes do log_action, sem precisar de 2º commit
-    log_action(
-        db,
-        user_id=usuario.id,
-        entity_name="instrumento_equipamento",
-        entity_id=instrumento.id,
-        action="created",
-        details={
-            "nr_convenio": corpo.nr_convenio,
-            "tipo_contratacao": corpo.tipo_contratacao,
-            "tecnico_titular": corpo.tecnico_titular,
-        },
-    )
+    instrumento = criar_instrumento_monitorado(dados=NovoInstrumentoMonitorado(**corpo.model_dump()), db=db, usuario=usuario)
     db.commit()
     db.refresh(instrumento)
     return instrumento
+
 
 
 @router.patch("/instrumentos/{nr_convenio}", response_model=InstrumentoEquipamentoRead)
@@ -632,11 +632,15 @@ def registrar_evento(
 
 
 @router.get("/resumo", response_model=ResumoMonitoramentoRead)
-def obter_resumo(db: Session = Depends(get_db)):
+def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
     """Pagina de overview independente (achado 2026-09-09, pedido do
     usuario) -- 1 chamada so, tudo calculado a partir do NOSSO schema (ver
     docstring de ResumoMonitoramentoRead pro que fica de fora de
-    proposito)."""
+    proposito).
+
+    Eventos sao filtrados no banco pelos marcos necessarios (fase_geral +
+    licenca CNEN + inauguracao) -- nao carrega o historico inteiro de
+    EventoMarco. Contagens de acao tambem sao agregadas no SQL."""
     instrumentos = db.execute(select(InstrumentoEquipamento)).scalars().all()
     marcos = db.execute(select(MarcoCatalogo)).scalars().all()
     fases_gerais_desc = sorted(
@@ -645,10 +649,18 @@ def obter_resumo(db: Session = Depends(get_db)):
     marco_licenca = next((m for m in marcos if m.codigo == "regulatorio_licenca_operacao"), None)
     marco_inauguracao = next((m for m in marcos if m.codigo == "cronograma_previsao_inauguracao"), None)
 
-    todos_eventos = db.execute(select(EventoMarco)).scalars().all()
+    marco_ids_relevantes = {m.id for m in fases_gerais_desc}
+    if marco_licenca:
+        marco_ids_relevantes.add(marco_licenca.id)
+    if marco_inauguracao:
+        marco_ids_relevantes.add(marco_inauguracao.id)
+
     eventos_por_instrumento: dict[int, list[EventoMarco]] = defaultdict(list)
-    for e in todos_eventos:
-        eventos_por_instrumento[e.instrumento_id].append(e)
+    if marco_ids_relevantes:
+        for e in db.execute(
+            select(EventoMarco).where(EventoMarco.marco_id.in_(marco_ids_relevantes))
+        ).scalars():
+            eventos_por_instrumento[e.instrumento_id].append(e)
 
     hoje = date.today()
     pcts = []
@@ -715,11 +727,20 @@ def obter_resumo(db: Session = Depends(get_db)):
     inauguracoes.sort(key=lambda i: i.data)
     licencas_vencendo.sort(key=lambda i: i.data_validade)
 
-    acoes = db.execute(select(AcaoMonitoramento)).scalars().all()
-    acoes_pendentes = sum(1 for a in acoes if a.data_conclusao is None)
-    acoes_atrasadas = sum(
-        1 for a in acoes if a.data_conclusao is None and a.data_prevista is not None and a.data_prevista < hoje
-    )
+    acoes_pendentes = db.execute(
+        select(func.count())
+        .select_from(AcaoMonitoramento)
+        .where(AcaoMonitoramento.data_conclusao.is_(None))
+    ).scalar_one()
+    acoes_atrasadas = db.execute(
+        select(func.count())
+        .select_from(AcaoMonitoramento)
+        .where(
+            AcaoMonitoramento.data_conclusao.is_(None),
+            AcaoMonitoramento.data_prevista.is_not(None),
+            AcaoMonitoramento.data_prevista < hoje,
+        )
+    ).scalar_one()
 
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),
@@ -736,7 +757,11 @@ def obter_resumo(db: Session = Depends(get_db)):
 
 
 @router.get("/acoes", response_model=list[AcaoMonitoramentoRead])
-def listar_acoes(pendentes: bool = Query(False), db: Session = Depends(get_db)):
+def listar_acoes(
+    pendentes: bool = Query(False),
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+):
     """Todas as acoes (ou so pendentes, `?pendentes=true`) de TODOS os
     instrumentos, ordenadas por data_prevista -- alimenta a lista de
     "dividas por data" da pagina de overview."""

@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/query-client';
 import { AppLayout } from './components/layout/app-layout';
 import { MonitoramentoLayout } from './components/layout/monitoramento-layout';
+import { ProtectedRoute } from './components/layout/protected-route';
 
 // Code-splitting por rota (2026-08-24) -- antes as 4 paginas eram import
 // estatico aqui, entao MapaPage (que carrega MacroMap.tsx -> D3) ia pro
@@ -79,11 +80,16 @@ function App() {
                 especifica, ver comentario em PainelGeralPage.tsx). */}
             <Route path="/" element={<PainelGeralPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route element={<MonitoramentoLayout />}>
-              <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
-              <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />
-              <Route path="/monitoramento-equipamentos/painel" element={<MonitoramentoPainelPage />} />
-              <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
+            {/* Leituras do monitoramento interno passaram a exigir sessão
+                no backend (Plan Mode segurança 2026-09-16, Bloco 1) -- gate
+                de rota pra não deixar a página montar sem token. */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<MonitoramentoLayout />}>
+                <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
+                <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />
+                <Route path="/monitoramento-equipamentos/painel" element={<MonitoramentoPainelPage />} />
+                <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
+              </Route>
             </Route>
             <Route element={<AppLayout />}>
               <Route path="dashboard" element={<DashboardPage />} />

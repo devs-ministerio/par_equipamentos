@@ -10,7 +10,7 @@ import { resolveThemeColor } from '@/lib/theme-colors';
 import type { CoberturaRow, Macrorregiao } from '@/types/domain';
 import { construirProjecaoMacro } from './macro-map-geometry';
 import {
-  construirTooltipHtml,
+  construirTooltipNode,
   criarEscalaCor,
   desenharPontos,
   desenharRaioNormativo,
@@ -171,7 +171,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
         tooltip.style.display = 'block';
         tooltip.style.left = `${event.clientX - rect.left + 12}px`;
         tooltip.style.top = `${event.clientY - rect.top - 40}px`;
-        tooltip.innerHTML = construirTooltipHtml(macroId, macro, row, produtividade, background);
+        tooltip.replaceChildren(construirTooltipNode(macroId, macro, row, produtividade, background));
       })
       .on('mouseleave', () => {
         tooltip.style.display = 'none';
