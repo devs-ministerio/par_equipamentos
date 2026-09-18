@@ -1,83 +1,13 @@
-/** Instrumentos firmados -- achado 2026-09-16, pedido do usuário: "vamos
- * parar de usar json estático, coloque tudo no banco". Substitui os 3 fetch
- * de JSON estático (convenios.json/siconv.json/transferegov.json) +
- * `mesclarConvenios.ts` (merge client-side) por `GET /convenios`
- * (backend/app/routers/convenios.py) -- filtro/paginação movidos pro
- * servidor, resposta já mapeada pro mesmo formato `ConvenioUnificado` que
- * o resto do front consome (convenio-card*.tsx não mudam nada).
- *
- * `siconv`/`transferegov` (payload cru, usado só na camada 2 "Mais
+/** `siconv`/`transferegov` (payload cru, usado só na camada 2 "Mais
  * detalhes") vêm nulos na listagem (`fetchConvenios`) -- carregados sob
  * demanda por `fetchConvenioDetalhe` quando o card expande (ver
  * `useConvenioDetalhe`), evita puxar ~11MB de payload pra renderizar uma
  * lista que só mostra resumo. */
 import { z } from 'zod';
-import { ApiError } from '@/lib/api-error';
-import { csrfHeaders } from '@/lib/csrf';
+import { requisitar } from '@/lib/http-client';
 import type { ConvenioUnificado } from '@/types/monitoramento';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-
-async function mensagemErroHttp(resp: Response): Promise<string> {
-  try {
-    const body = (await resp.json()) as { detail?: string; error?: string };
-    return body.detail ?? body.error ?? `HTTP ${resp.status}`;
-  } catch {
-    return `HTTP ${resp.status}`;
-  }
-}
-
-/** Dedup de refresh concorrente -- mesmo mecanismo de
- * `services/monitoramento.ts::tentarRenovarSessao` (Plan Mode segurança
- * 2026-09-16, Bloco 5: Instrumentos firmados passou a exigir sessão
- * também, decisão do usuário 2026-09-17 de colocar todo o app atrás de
- * login). Duplicado aqui em vez de importado -- ver mesmo comentário em
- * services/api.ts. */
-let renovacaoEmAndamento: Promise<boolean> | null = null;
-
-function tentarRenovarSessao(): Promise<boolean> {
-  if (!renovacaoEmAndamento) {
-    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: csrfHeaders(),
-    })
-      .then((r) => r.ok)
-      .catch(() => false)
-      .finally(() => {
-        renovacaoEmAndamento = null;
-      });
-  }
-  return renovacaoEmAndamento;
-}
-
-async function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
-  const executar = () => fetch(`${API_BASE_URL}${path}`, { credentials: 'include' });
-  let res: Response;
-  try {
-    res = await executar();
-  } catch (e) {
-    throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
-  }
-  if (res.status === 401) {
-    const renovou = await tentarRenovarSessao();
-    if (renovou) {
-      try {
-        res = await executar();
-      } catch (e) {
-        throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
-      }
-    }
-  }
-  if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
-    window.location.assign('/login');
-  }
-  if (!res.ok) throw new ApiError(await mensagemErroHttp(res), res.status);
-  const parsed = schema.safeParse(await res.json());
-  if (!parsed.success) {
-    throw new ApiError(`Resposta de ${path} não bate com o schema esperado: ${parsed.error.message}`);
-  }
-  return parsed.data;
+function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
+  return requisitar(path, schema, undefined);
 }
 
 const convenioApiSchema = z.object({
@@ -89,8 +19,9 @@ const convenioApiSchema = z.object({
   situacao_portal: z.string().nullable(),
   situacao_contratacao: z.string().nullable(),
   convenente_nome: z.string(),
-  convenente_cnpj: z.string(),
+  convenente_cnpj: z.string().nullable(),
   convenente_tipo: z.string().nullable(),
+  tipo_contratacao: z.string().nullable(),
   municipio: z.string().nullable(),
   uf: z.string().nullable(),
   codigo_ibge: z.string().nullable(),
@@ -147,6 +78,7 @@ function toConvenioUnificado(c: ConvenioApi): ConvenioUnificado {
     situacao: c.situacao ?? '',
     situacaoPortal: c.situacao_portal ?? '',
     situacaoContratacao: c.situacao_contratacao,
+    tipoContratacao: c.tipo_contratacao,
     convenente: { nome: c.convenente_nome, cnpj: c.convenente_cnpj, tipo: c.convenente_tipo ?? '' },
     municipio: c.municipio ?? '',
     uf: c.uf ?? '',

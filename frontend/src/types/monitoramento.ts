@@ -118,7 +118,12 @@ export type ConvenioUnificado = {
    * Transparência)" em convenio-card-detalhes.tsx). */
   situacaoPortal: string;
   situacaoContratacao: string | null;
-  convenente: { nome: string; cnpj: string; tipo: string };
+  // Correção 2026-09-18 (Plan Mode monitoramento-ingestao): universo de
+  // "Instrumentos firmados" passou de só Convênio (SICONV/TransfereGov)
+  // pra incluir FAF/TED/PERSUS I/PERSUS II/PRONON.
+  tipoContratacao: string | null;
+  // cnpj nulo pra PERSUS/PRONON -- fonte não publica, nunca inventado.
+  convenente: { nome: string; cnpj: string | null; tipo: string };
   municipio: string;
   uf: string;
   codigoIbge: string;

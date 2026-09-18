@@ -4,7 +4,7 @@
  * AppLayout/TopNav de proposito (ver App.tsx): sem link nenhum a partir do
  * resto do app, sem FamiliaEquipamentoContext -- so acessivel indo direto na
  * URL /monitoramento-equipamentos. Reusa a paleta/tokens/componentes do
- * resto do app (styles/tokens.ts, KpiCard, SearchInput, SingleSelectFilter)
+ * resto do app (styles/tokens.ts, MetricStrip, SearchInput, SingleSelectFilter)
  * pra manter a mesma linguagem visual da analise hiper/hipo (decisao
  * 2026-09-03) -- so nao entra no AppLayout mesmo (sem Header/TopNav,
  * decisao reafirmada 2026-09-08: layout redesenhado com estrutura de abas
@@ -31,20 +31,22 @@
  * convenio-card.tsx e monitoramento-interno.tsx.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
-import { KpiCard } from '@/components/common/kpi-card';
+import { MetricStrip } from '@/components/common/metric-strip';
+import { PageHeader } from '@/components/common/page-header';
 import { Pagination } from '@/components/common/pagination';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { normalizarTexto } from '@/utils/texto';
 import { ConvenioCard } from '@/components/features/convenio-card';
-import { propostaEhNova, SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
+import { SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
+import { propostaEhNova } from '@/lib/proposta-status';
 import { EQUIPAMENTOS_ALVO } from '@/lib/equipamento-tags';
 import { fmtMoeda } from '@/lib/monitoramento-format';
-import { fetchConvenios } from '@/services/convenios';
+import { useConveniosLista } from '@/hooks/useConveniosLista';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
 import { useInstrumentosMonitorados } from '@/hooks/useInstrumentosMonitorados';
 
 type Aba = 'convenios' | 'componentes';
@@ -58,33 +60,26 @@ type Aba = 'convenios' | 'componentes';
 // propostaEhNova() em secao-propostas-candidatas.tsx pro critério exato).
 type SubAbaFinanciamento = 'todas' | 'novas';
 
-/** So "Convenio" tem dado carregado hoje (e o universo inteiro do SICONV/
- * Portal da Transparencia que a pagina cruza). PERSUS I/II, FAF e TED sao
- * outros tipos de instrumento de repasse que a equipe ainda vai trazer --
- * o filtro ja aparece pra deixar o escopo futuro visivel, mas selecionar
- * um deles hoje mostra lista vazia (nunca dado inventado). */
-const TIPOS_CONTRATACAO = [
-  { value: 'convenio', label: 'Convênios' },
-  { value: 'persus1', label: 'PERSUS I (ainda não incluído)' },
-  { value: 'persus2', label: 'PERSUS II (ainda não incluído)' },
-  { value: 'faf', label: 'FAF (ainda não incluído)' },
-  { value: 'ted', label: 'TED (ainda não incluído)' },
-];
+// Correção 2026-09-18 (Plan Mode monitoramento-ingestao): FAF/TED/
+// PERSUS I/PERSUS II/PRONON entraram no universo de "Instrumentos
+// firmados" -- opções geradas a partir do dado real (mesmo padrão de
+// `situacaoOptions`/`programaOptions` abaixo), não mais lista fixa.
 
 // Card com 2 camadas (ConvenioCard.tsx) e mais pesado que linha de tabela --
 // pagina de 20 em vez dos 50 que EstabelecimentoTable usa pra linha simples.
 const PAGE_SIZE = 20;
 
 export function MonitoramentoEquipamentosPage() {
-  const [aba, setAba] = useState<Aba>('convenios');
-  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>('novas');
+  const [searchParams] = useSearchParams();
+  const [aba, setAba] = useState<Aba>(() => searchParams.get('aba') === 'componentes' ? 'componentes' : 'convenios');
+  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>(() => searchParams.get('subaba') === 'todas' ? 'todas' : 'novas');
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<string | null>(null);
   const [ano, setAno] = useState<string | null>(null);
   const [programa, setPrograma] = useState<string | null>(null);
-  const [tipoContratacao, setTipoContratacao] = useState<string | null>('convenio');
+  const [tipoContratacao, setTipoContratacao] = useState<string | null>(null);
   const [soMonitorados, setSoMonitorados] = useState(false);
   const [pagina, setPagina] = useState(1);
   const monitorados = useInstrumentosMonitorados();
@@ -94,10 +89,7 @@ export function MonitoramentoEquipamentosPage() {
   // paginação/filtro só no cliente), só troca a origem do dado. Página
   // é bem mais leve que antes (sem siconv_raw/transferegov_raw na
   // listagem, ver services/convenios.ts) mesmo carregando tudo de uma vez.
-  const conveniosQuery = useQuery({
-    queryKey: ['convenios-lista'],
-    queryFn: () => fetchConvenios({ tamanhoPagina: 500 }),
-  });
+  const conveniosQuery = useConveniosLista();
   const convenios = conveniosQuery.data?.itens ?? null;
 
   const ufs = useMemo(() => {
@@ -143,8 +135,23 @@ export function MonitoramentoEquipamentosPage() {
   const situacaoOptions = useMemo(() => {
     if (!convenios) return [];
     const contagem = new Map<string, number>();
-    for (const c of convenios) contagem.set(c.situacao, (contagem.get(c.situacao) ?? 0) + 1);
+    for (const c of convenios) {
+      if (!c.situacao) continue;
+      contagem.set(c.situacao, (contagem.get(c.situacao) ?? 0) + 1);
+    }
     return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([s, n]) => ({ value: s, label: `${s} (${n})` }));
+  }, [convenios]);
+
+  // Tipo de contratação (correção 2026-09-18) -- Convênio/FAF/TED/
+  // PERSUS I/PERSUS II/PRONON, gerado a partir do dado real.
+  const tipoContratacaoOptions = useMemo(() => {
+    if (!convenios) return [];
+    const contagem = new Map<string, number>();
+    for (const c of convenios) {
+      const t = c.tipoContratacao ?? 'Convênio';
+      contagem.set(t, (contagem.get(t) ?? 0) + 1);
+    }
+    return [...contagem.entries()].sort((a, b) => b[1] - a[1]).map(([t, n]) => ({ value: t, label: `${t} (${n})` }));
   }, [convenios]);
 
   // Programa (SICONV, texto já promovido pra coluna própria em `Convenio`,
@@ -170,11 +177,9 @@ export function MonitoramentoEquipamentosPage() {
   }, [convenios]);
 
   const filtrados = useMemo(() => {
-    // "Convenio" e o unico tipo de contratacao com dado -- qualquer outro
-    // valor (PERSUS I/II, FAF, TED) mostra lista vazia de proposito, nunca
-    // dado inventado (ver TIPOS_CONTRATACAO acima).
-    if (!convenios || (tipoContratacao && tipoContratacao !== 'convenio')) return [];
+    if (!convenios) return [];
     const lista = convenios.filter((c) => {
+      if (tipoContratacao && (c.tipoContratacao ?? 'Convênio') !== tipoContratacao) return false;
       if (uf && c.uf !== uf) return false;
       if (equipamento && !equipamentosPorNumero.get(c.numero)?.includes(equipamento)) return false;
       if (situacao && c.situacao !== situacao) return false;
@@ -182,7 +187,7 @@ export function MonitoramentoEquipamentosPage() {
       if (programa && c.programa !== programa) return false;
       if (soMonitorados && !monitorados.has(c.numero)) return false;
       if (busca) {
-        const alvo = normalizarTexto(`${c.numero} ${c.convenente.nome} ${c.convenente.cnpj} ${c.municipio} ${c.objeto}`);
+        const alvo = normalizarTexto(`${c.numero} ${c.convenente.nome} ${c.convenente.cnpj ?? ''} ${c.municipio} ${c.objeto}`);
         if (!alvo.includes(normalizarTexto(busca))) return false;
       }
       return true;
@@ -203,7 +208,7 @@ export function MonitoramentoEquipamentosPage() {
   const totalDesembolsado = filtrados.reduce((a, c) => a + (c.financeiro.desembolsado || 0), 0);
   const totalEquipamentos = filtrados.reduce((a, c) => a + (equipamentosPorNumero.get(c.numero)?.length ?? 0), 0);
 
-  const erro = conveniosQuery.error?.message ?? null;
+  const erro = conveniosQuery.error ? mensagemSeguraDoErro(conveniosQuery.error) : null;
 
   // Concluídos -- situação do SICONV legado (mesma fonte do destaque no
   // card, ver importar_convenios_banco.py) igual a "Prestação de Contas
@@ -221,44 +226,7 @@ export function MonitoramentoEquipamentosPage() {
 
   return (
     <div>
-        <Card className="mb-4 py-0">
-          <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5.5">
-          <div>
-            <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-primary uppercase">
-              Dados oficiais
-            </div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
-              Instrumentos e repasses
-            </h1>
-            <p className="mt-2.5 max-w-[780px] text-[13.5px] leading-relaxed text-muted-foreground">
-              Consulte convênios, programas, valores, repasses e situação a partir de Transferegov, SICONV e Portal da Transparência.
-            </p>
-          </div>
-          <div className="grid min-w-[380px] grid-cols-3 gap-2">
-            <div className="rounded-lg border border-border bg-muted p-2.5">
-              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Instrumentos</div>
-              <strong className="text-[22px] text-foreground">{convenios?.length ?? '...'}</strong>
-            </div>
-            {/* Toggle de "só monitorados" mudou pra cá (removido da linha de
-                KPI abaixo, que duplicava esta contagem -- achado 2026-09-15). */}
-            <button
-              type="button"
-              onClick={() => setSoMonitorados((v) => !v)}
-              className={cn(
-                'rounded-lg border p-2.5 text-left transition-colors',
-                soMonitorados ? 'border-success bg-success-bg' : 'border-border bg-muted hover:bg-secondary',
-              )}
-            >
-              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Monitorados</div>
-              <strong className="text-[22px] text-foreground">{monitorados.size}</strong>
-            </button>
-            <div className="rounded-lg border border-border bg-muted p-2.5">
-              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Concluídos</div>
-              <strong className="text-[22px] text-foreground">{totalConcluidos}</strong>
-            </div>
-          </div>
-          </CardContent>
-        </Card>
+        <PageHeader eyebrow="Dados oficiais" title="Instrumentos e repasses" description="Convênios, propostas, valores e execução das fontes oficiais." />
 
         {erro && <p className="text-destructive">Erro ao carregar dados: {erro}</p>}
 
@@ -297,10 +265,15 @@ export function MonitoramentoEquipamentosPage() {
                   (achado 2026-09-15, pedido do usuário: "revise e pode
                   remover"). Legenda de cor (Em execução/Prestação de
                   contas/Anulado/Demais) também saiu, mesmo pedido. */}
-              <div className="flex gap-4 flex-wrap mb-4">
-                <KpiCard label="Valor global total" value={fmtMoeda(totalGlobal)} variant="primary" />
-                <KpiCard label="Valor desembolsado total" value={fmtMoeda(totalDesembolsado)} variant="success" />
-                <KpiCard label="Parque tecnológico (itens)" value={totalEquipamentos} variant="primary" />
+              <div className="mb-5">
+                <MetricStrip items={[
+                  { key: 'instrumentos', label: 'Instrumentos', value: convenios.length },
+                  { key: 'monitorados', label: 'Monitorados', value: monitorados.size, variant: 'success', onClick: () => setSoMonitorados((valor) => !valor), ativo: soMonitorados },
+                  { key: 'concluidos', label: 'Concluídos', value: totalConcluidos, variant: 'success' },
+                  { key: 'global', label: 'Valor global', value: fmtMoeda(totalGlobal) },
+                  { key: 'desembolsado', label: 'Desembolsado', value: fmtMoeda(totalDesembolsado), variant: 'success' },
+                  { key: 'equipamentos', label: 'Itens de equipamento', value: totalEquipamentos },
+                ]} />
               </div>
 
               {/* Busca + 6 filtro precisam caber numa linha so (pedido do
@@ -308,9 +281,9 @@ export function MonitoramentoEquipamentosPage() {
                   certa pra somar <1200px (cabe dentro do maxWidth de 1400
                   menos padding). wrap continua ligado so como rede de
                   seguranca pra janela bem estreita, nao pro uso normal. */}
-              <div className="bg-card border border-border rounded-[10px] p-3.5 shadow-[0_1px_3px_rgba(22,33,62,0.06)] mb-4 flex gap-2 flex-wrap items-center">
+              <div className="mb-4 flex flex-wrap items-center gap-2 border-y border-border py-3.5">
                 <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por convenente, município, número, CNPJ..." width={190} />
-                <SingleSelectFilter placeholder="Tipo de contratação" options={TIPOS_CONTRATACAO} value={tipoContratacao} onChange={setTipoContratacao} clearLabel="Todos os tipos" minWidth={120} />
+                <SingleSelectFilter placeholder="Tipo de contratação" options={tipoContratacaoOptions} value={tipoContratacao} onChange={setTipoContratacao} clearLabel="Todos os tipos" minWidth={120} />
                 <SingleSelectFilter placeholder="Todas as UFs" options={ufs} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={100} />
                 <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={150} />
                 <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={150} />
@@ -318,30 +291,21 @@ export function MonitoramentoEquipamentosPage() {
                 <SingleSelectFilter placeholder="Todos os programas" options={programaOptions} value={programa} onChange={setPrograma} clearLabel="Todos os programas" minWidth={160} />
               </div>
 
-              {tipoContratacao && tipoContratacao !== 'convenio' ? (
-                <p className="text-muted-foreground text-sm italic py-5">
-                  {TIPOS_CONTRATACAO.find((t) => t.value === tipoContratacao)?.label} ainda não foi incluído nos dados do sistema —
-                  hoje a página só cruza convênios (Portal da Transparência + SICONV + TransfereGov).
-                </p>
-              ) : (
-                <>
-                  <div className="text-muted-foreground text-xs mb-2.5">
-                    {filtrados.length} de {convenios.length} convênio(s)
-                  </div>
+              <div className="text-muted-foreground text-xs mb-2.5">
+                {filtrados.length} de {convenios.length} instrumento(s)
+              </div>
 
-                  {paginados.map((c) => (
-                    <ConvenioCard
-                      key={c.numero}
-                      c={c}
-                      monitorado={monitorados.has(c.numero)}
-                    />
-                  ))}
+              {paginados.map((c) => (
+                <ConvenioCard
+                  key={c.numero}
+                  c={c}
+                  monitorado={monitorados.has(c.numero)}
+                />
+              ))}
 
-                  <div className="bg-card border border-border rounded-[10px] mt-1">
-                    <Pagination page={pagina} totalItems={filtrados.length} pageSize={PAGE_SIZE} onPageChange={setPagina} />
-                  </div>
-                </>
-              )}
+              <div className="bg-card border border-border rounded-[10px] mt-1">
+                <Pagination page={pagina} totalItems={filtrados.length} pageSize={PAGE_SIZE} onPageChange={setPagina} />
+              </div>
             </>
           )
         )}

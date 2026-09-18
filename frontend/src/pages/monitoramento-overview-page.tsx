@@ -1,156 +1,105 @@
 /**
- * Pagina de overview do monitoramento interno -- INDEPENDENTE (achado
- * 2026-09-09, pedido do usuario: "quero que seja independente, não mostrar
- * apenas quando abrir um convênio especifico"). Antes so existia a pagina
- * de DETALHE de 1 instrumento (MonitoramentoInstrumentoPage.tsx); esta e
- * o indice/dashboard que reune todos os instrumentos monitorados (105+ a
+ * Pagina de overview do monitoramento interno -- INDEPENDENTE da página de
+ * DETALHE de 1 instrumento (MonitoramentoInstrumentoPage.tsx); esta é o
+ * índice/dashboard que reúne todos os instrumentos monitorados (105+ a
  * partir da planilha real da equipe, ver
  * backend/scripts/importar_planilha_monitoramento.py).
  *
  * KPIs/listas vem de `/monitoramento/resumo` + `/monitoramento/instrumentos`
  * (backend, NOSSO schema -- instrumento/evento/acao), via
- * `services/monitoramento.ts` (cookie de sessão, Plan Mode segurança
- * 2026-09-16, Bloco 1).
+ * `services/monitoramento.ts` (cookie de sessão).
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarClock, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/common/page-header';
+import { MetricStrip } from '@/components/common/metric-strip';
+import { ErrorAlert } from '@/components/common/error-alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
-import { cn } from '@/lib/utils';
 import { normalizarTexto } from '@/utils/texto';
-import { fetchInstrumentos, fetchResumoMonitoramento } from '@/services/monitoramento';
-import { BarraDistribuicao, estiloCard, type ContagemRotulo } from '@/components/features/monitoramento-ui';
+import type { InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
+import { useMonitoramentoResumo } from '@/hooks/useMonitoramentoResumo';
+import { useMonitoramentoInstrumentos } from '@/hooks/useInstrumentosMonitorados';
+import { estiloCard } from '@/components/features/monitoramento-ui';
 import { fmtData } from '@/lib/monitoramento-format';
-import { useAuthSession } from '@/hooks/useAuthSession';
 
-type InauguracaoApi = {
-  nr_convenio: string;
-  nome_convenente: string;
-  municipio: string | null;
-  uf: string | null;
-  equipamento: string | null;
-  data: string;
-  realizada: boolean;
-  dias: number;
-};
-
-type ResumoApi = {
-  total_instrumentos: number;
-  pct_execucao_fisica_medio: number | null;
-  distribuicao_fase: ContagemRotulo[];
-  licencas_cnen_deferidas: number;
-  licencas_vencendo: LicencaVencendoApi[];
-  acoes_pendentes: number;
-  acoes_atrasadas: number;
-  por_tecnico_titular: ContagemRotulo[];
-  inauguracoes: InauguracaoApi[];
-  nr_convenios: string[];
-};
-
-type LicencaVencendoApi = {
-  nr_convenio: string;
-  nome_convenente: string;
-  data_validade: string;
-  dias: number;
-};
-
-type InstrumentoApi = {
-  nr_convenio: string;
-  nome_convenente: string;
-  municipio: string | null;
-  uf: string | null;
-  tecnico_titular: string | null;
-  tipo_contratacao: string | null;
-  fase_atual: string | null;
-  situacao_prestacao_contas: string | null;
-};
+type InstrumentoApi = Pick<
+  InstrumentoEquipamento,
+  'nr_convenio' | 'nome_convenente' | 'municipio' | 'uf' | 'tecnico_titular' | 'tipo_contratacao' | 'fase_atual' | 'situacao_prestacao_contas'
+>;
 
 const PRESTACAO_CONTAS_CONCLUIDA = 'Prestação de Contas Concluída';
 
-function IndicadorOperacional({
-  titulo, valor, detalhe, tom, icone,
-}: {
-  titulo: string;
-  valor: ReactNode;
-  detalhe: string;
-  tom: 'critico' | 'alerta' | 'ok' | 'neutro';
-  icone: ReactNode;
-}) {
-  const corClasse = tom === 'critico' ? 'text-destructive' : tom === 'alerta' ? 'text-warning' : tom === 'ok' ? 'text-success' : 'text-primary';
-  const bgClasse = tom === 'critico' ? 'bg-destructive-bg' : tom === 'alerta' ? 'bg-warning-bg' : tom === 'ok' ? 'bg-success-bg' : 'bg-secondary';
-  return (
-    <div className={cn(estiloCard, 'p-4 grid gap-2.5')}>
-      <div className="flex justify-between items-center gap-2.5">
-        <span className="text-[11px] font-extrabold tracking-[.05em] uppercase text-muted-foreground">{titulo}</span>
-        <span className={cn('w-[30px] h-[30px] rounded-[10px] inline-flex items-center justify-center', bgClasse, corClasse)}>{icone}</span>
-      </div>
-      <strong className="text-[28px] leading-none text-foreground">{valor}</strong>
-      <span className="text-xs text-muted-foreground leading-snug">{detalhe}</span>
-    </div>
-  );
-}
-
 export function MonitoramentoOverviewPage() {
-  const [resumo, setResumo] = useState<ResumoApi | null>(null);
-  const [instrumentos, setInstrumentos] = useState<InstrumentoApi[] | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
-  const sessao = useAuthSession();
+  const resumoQuery = useMonitoramentoResumo();
+  const instrumentosQuery = useMonitoramentoInstrumentos();
 
-  // Filtros da tabela -- achado 2026-09-10, pedido do usuario: "adicione
-  // filtros uteis... como data, fase, tecnico entre outros uteis". So
-  // filtram a TABELA abaixo (client-side) -- os KPIs/graficos agregados
-  // acima continuam sendo o total, pra nao precisar refazer o resumo
-  // agregado inteiro no front por causa de um filtro (custo x beneficio).
+  // Filtros da tabela só filtram a TABELA abaixo (client-side) -- os
+  // KPIs/gráficos agregados acima continuam sendo o total, pra não
+  // precisar refazer o resumo agregado inteiro no front por um filtro.
   const [busca, setBusca] = useState('');
   const [faseFiltro, setFaseFiltro] = useState<string | null>(null);
   const [tecnicoFiltro, setTecnicoFiltro] = useState<string | null>(null);
   const [ufFiltro, setUfFiltro] = useState<string | null>(null);
   const [tipoContratacaoFiltro, setTipoContratacaoFiltro] = useState<string | null>(null);
 
-useEffect(() => {
-    // Rotas exigem sessão desde o Plan Mode segurança 2026-09-16 (Bloco 1)
-    // -- usa a camada de services (cookie via credentials:'include',
-    // schema validado com Zod), não mais `fetch` cru direto na API (esse
-    // `fetch` cru nunca mandava credencial, então passou a receber 401 e
-    // quebrava a página assim que a rota deixou de ser pública).
-    Promise.all([fetchResumoMonitoramento(), fetchInstrumentos()])
-      .then(([r, i]) => { setResumo(r); setInstrumentos(i); })
-      .catch((e) => setErro(String(e)));
-  }, []);
+  const header = (
+    <PageHeader eyebrow="Monitoramento interno" title="Mesa de trabalho" description="Acompanhe entrega, licenciamento e inauguração dos instrumentos monitorados pela equipe." />
+  );
 
-  if (erro) return <p className="text-destructive">Erro ao carregar: {erro}</p>;
-  if (!resumo || !instrumentos) {
-    return <p className="text-muted-foreground">Carregando...</p>;
+  if (resumoQuery.isError || instrumentosQuery.isError) {
+    return (
+      <div>
+        {header}
+        <ErrorAlert
+          mensagem="Não foi possível carregar os dados do monitoramento interno."
+          onRetry={() => {
+            resumoQuery.refetch();
+            instrumentosQuery.refetch();
+          }}
+        />
+      </div>
+    );
+  }
+  if (resumoQuery.isLoading || instrumentosQuery.isLoading || !resumoQuery.data || !instrumentosQuery.data) {
+    return (
+      <div>
+        {header}
+        <div className="grid gap-2" role="status" aria-label="Carregando">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
   }
 
-  // "Próxima inauguração" -- substituiu Ações atrasadas/Inaugurações
-  // críticas (achado 2026-09-15, pedido do usuário: "não temos meios pra
-  // monitorar ações atrasadas e inaugurações críticas") -- a mais próxima
-  // AINDA NÃO realizada, ordenada por data (resumo.inauguracoes já vem
-  // ordenado por data asc, ver obter_resumo no backend).
-  const proximaInauguracao = resumo.inauguracoes.find((i) => !i.realizada) ?? null;
+  const resumo = resumoQuery.data;
+  const instrumentos = instrumentosQuery.data as InstrumentoApi[];
+
+  // "Próxima inauguração" -- a mais próxima AINDA NÃO realizada E ainda no
+  // futuro, ordenada por data (resumo.inauguracoes já vem ordenado por data
+  // asc, ver obter_resumo no backend). Uma previsão vencida sem confirmação
+  // é uma pendência atrasada, não uma "próxima" -- achado 2026-09-18: o
+  // filtro antigo (só `!realizada`) apontava pra previsão mais antiga já no
+  // passado em vez da mais próxima no futuro.
+  const proximaInauguracao = resumo.inauguracoes.find((i) => !i.realizada && i.dias >= 0) ?? null;
 
   // "Concluídos" -- mesmo critério do card de mesmo nome em Instrumentos
   // firmados (SIT_CONVENIO do SICONV legado), agora sobre o subconjunto
-  // MONITORADO internamente (achado 2026-09-15, pedido do usuário: "dá pra
-  // gente monitorar os concluídos da mesma forma que monitoramos no
-  // legado?"). Só existe pra tipo_contratacao="Convênio" (FAF/TED nunca
-  // estiveram no SICONV, situacao_prestacao_contas fica sempre null neles).
+  // MONITORADO internamente. Só existe pra tipo_contratacao="Convênio"
+  // (FAF/TED nunca estiveram no SICONV, situacao_prestacao_contas fica
+  // sempre null neles).
   const concluidos = instrumentos.filter((i) => i.situacao_prestacao_contas === PRESTACAO_CONTAS_CONCLUIDA).length;
 
-  // Configuração pendente -- achado 2026-09-15: aceitar uma proposta em
-  // "Linhas de financiamento" cria o InstrumentoEquipamento (entra na
-  // contagem "Instrumentos" acima), mas só com identidade (nome/CNPJ/
-  // município/programa) -- ninguém da equipe fica de fato monitorando até
-  // alguém abrir o instrumento e preencher técnico titular/nível/
-  // finalidade. Pedido do usuário: "ao incorporar a proposta ela ainda
-  // precisa ser incluída no monitoramento interno" -- decisão (pergunta
-  // direta ao usuário, 3 opções): sinalizar como pendente em vez de mudar
-  // o fluxo de aceite ou exigir dados na hora. `tecnico_titular` null é o
-  // sinal mais direto de "ainda não configurado" (primeiro campo que
-  // qualquer cadastro preenche).
+  // Configuração pendente -- aceitar uma proposta em "Linhas de
+  // financiamento" cria o InstrumentoEquipamento (entra na contagem
+  // "Instrumentos" acima), mas só com identidade (nome/CNPJ/município/
+  // programa) -- ninguém da equipe fica de fato monitorando até alguém
+  // abrir o instrumento e preencher técnico titular/nível/finalidade.
+  // `tecnico_titular` null é o sinal mais direto de "ainda não
+  // configurado" (primeiro campo que qualquer cadastro preenche).
   const configuracaoPendente = instrumentos.filter((i) => !i.tecnico_titular).length;
 
   // Opcoes dos filtros -- geradas a partir do proprio `instrumentos`
@@ -172,92 +121,21 @@ useEffect(() => {
 
   return (
     <div>
-      <Card className="mb-4 bg-linear-to-br from-card to-accent py-0">
-        <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5.5">
-          <div>
-            <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-primary uppercase">
-              Monitoramento interno
-            </div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
-              Mesa de trabalho
-            </h1>
-            <p className="mt-2.5 max-w-[720px] text-[13.5px] leading-relaxed text-muted-foreground">
-              Acompanhe entrega, licenciamento e inauguração dos instrumentos monitorados pela equipe.
-            </p>
-          </div>
-          {/* "Ver dados oficiais"/"Painel de gestão" saíram daqui -- já
-              existem no menu superior (MonitoramentoLayout), os botões só
-              duplicavam a navegação. No lugar, os 2 números que mais
-              importam pra essa mesa (achado 2026-09-15, pedido do
-              usuário: "use os cards Instrumentos e Execução média"). */}
-          <div className="grid min-w-[260px] grid-cols-2 gap-2">
-            <div className="rounded-lg border border-border bg-muted p-2.5">
-              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Instrumentos</div>
-              <strong className="text-[22px] text-foreground">{resumo.total_instrumentos}</strong>
-            </div>
-            <div className="rounded-lg border border-border bg-muted p-2.5">
-              <div className="text-[10.5px] font-extrabold text-muted-foreground uppercase">Execução média</div>
-              <strong className="text-[22px] text-foreground">
-                {resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—'}
-              </strong>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <PageHeader eyebrow="Monitoramento interno" title="Mesa de trabalho" description="Instrumentos que exigem acompanhamento da equipe." />
 
-      {/* Ações atrasadas/Inaugurações críticas saíram (achado 2026-09-15,
-          pedido do usuário: "não temos meios pra monitorar" isso ainda) --
-          Próxima inauguração no lugar, com o detalhe que dá pra mostrar
-          hoje (data/município/UF/equipamento). Instrumentos/Execução média
-          saíram pra não duplicar os cards do cabeçalho acima. */}
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] gap-4 mb-[18px]">
-        <IndicadorOperacional titulo="Licenças a vencer" valor={resumo.licencas_vencendo.length} detalhe="CNEN vencida ou próxima" tom={resumo.licencas_vencendo.length > 0 ? 'alerta' : 'ok'} icone={<ShieldCheck size={17} />} />
-        <IndicadorOperacional
-          titulo="Próxima inauguração"
-          valor={proximaInauguracao ? fmtData(proximaInauguracao.data) : '—'}
-          detalhe={
-            proximaInauguracao
-              ? `${proximaInauguracao.municipio ?? '—'}/${proximaInauguracao.uf ?? '—'} · ${proximaInauguracao.equipamento ?? 'equipamento não informado'}`
-              : 'Nenhuma inauguração prevista registrada'
-          }
-          tom={proximaInauguracao && proximaInauguracao.dias < 0 ? 'alerta' : 'neutro'}
-          icone={<CalendarClock size={17} />}
-        />
-        <IndicadorOperacional
-          titulo="Concluídos"
-          valor={concluidos}
-          detalhe="Prestação de contas concluída (SICONV)"
-          tom="ok"
-          icone={<CheckCircle2 size={17} />}
-        />
-        <IndicadorOperacional
-          titulo="Configuração pendente"
-          valor={configuracaoPendente}
-          detalhe="Sem técnico titular atribuído ainda"
-          tom={configuracaoPendente > 0 ? 'alerta' : 'ok'}
-          icone={<AlertTriangle size={17} />}
-        />
+      {/* Próxima inauguração mostra o detalhe disponível hoje (data/
+          município/UF/equipamento). Instrumentos/Execução média saíram
+          pra não duplicar os cards do cabeçalho acima. */}
+      <div className="mb-6">
+        <MetricStrip items={[
+          { key: 'instrumentos', label: 'Instrumentos', value: resumo.total_instrumentos },
+          { key: 'execucao', label: 'Execução média', value: resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—' },
+          { key: 'licencas', label: 'Licenças a vencer', value: resumo.licencas_vencendo.length, variant: resumo.licencas_vencendo.length ? 'warning' : 'success' },
+          { key: 'inauguracao', label: 'Próxima inauguração', value: proximaInauguracao ? fmtData(proximaInauguracao.data) : '—', variant: 'primary' },
+          { key: 'concluidos', label: 'Concluídos', value: concluidos, variant: 'success' },
+          { key: 'pendentes', label: 'Sem técnico', value: configuracaoPendente, variant: configuracaoPendente ? 'warning' : 'success' },
+        ]} />
       </div>
-
-        {/* Só pra admin (achado 2026-09-15, pedido do usuário) -- carga de
-            trabalho por técnico é dado de gestão de equipe, não algo que
-            todo perfil precisa ver na mesa de trabalho operacional. */}
-        {sessao.usuarioAtual?.role === 'admin' && (
-          <div className="grid [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))] gap-4 mb-5">
-            <div className={estiloCard}>
-              <strong className="text-sm">Distribuição por fase</strong>
-              <div className="mt-2.5">
-                <BarraDistribuicao itens={resumo.distribuicao_fase} corBarra="var(--primary)" />
-              </div>
-            </div>
-            <div className={estiloCard}>
-              <strong className="text-sm">Instrumentos por técnico titular</strong>
-              <div className="mt-2.5">
-                <BarraDistribuicao itens={resumo.por_tecnico_titular} corBarra="var(--success)" />
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className={estiloCard}>
           <div className="flex justify-between items-center flex-wrap gap-2.5 mb-3">
@@ -274,7 +152,7 @@ useEffect(() => {
             <table className="w-full border-collapse text-[12.5px]">
               <thead>
                 <tr className="text-left text-muted-foreground text-[11px] uppercase">
-                  <th className="py-1 px-2">Convênio</th>
+                  <th className="py-1 px-2">Instrumentos/Programas</th>
                   <th className="py-1 px-2">Convenente</th>
                   <th className="py-1 px-2">UF/Município</th>
                   <th className="py-1 px-2">Fase</th>
@@ -291,11 +169,9 @@ useEffect(() => {
                       <Link to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`} className="text-primary no-underline font-semibold">
                         {i.nr_convenio}
                       </Link>
-                      {i.tipo_contratacao && i.tipo_contratacao !== 'Convênio' && (
-                        <span className="ml-1.5 text-[9.5px] font-bold py-px px-1.5 rounded-full bg-warning-bg text-warning">
-                          {i.tipo_contratacao}
-                        </span>
-                      )}
+                      <span className="ml-1.5 text-[9.5px] font-bold py-px px-1.5 rounded-full bg-warning-bg text-warning">
+                        {i.tipo_contratacao ?? 'Convênio'}
+                      </span>
                     </td>
                     <td className="py-1.5 px-2">{i.nome_convenente}</td>
                     <td className="py-1.5 px-2">{i.uf}/{i.municipio}</td>

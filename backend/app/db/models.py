@@ -142,6 +142,11 @@ class User(Base):
         server_default=UserStatus.active.value,
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_login_attempts: Mapped[int] = mapped_column(nullable=False, server_default="0")
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activation_token_hash: Mapped[str | None] = mapped_column(String, unique=True)
+    activation_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -354,7 +359,11 @@ class Convenio(Base):
     situacao_portal: Mapped[str | None] = mapped_column(String)
     situacao_contratacao: Mapped[str | None] = mapped_column(String)
     convenente_nome: Mapped[str] = mapped_column(String, nullable=False)
-    convenente_cnpj: Mapped[str] = mapped_column(String, nullable=False)
+    # Nulo pra PERSUS/PRONON (achado 2026-09-18, correção do Plan Mode
+    # monitoramento-ingestao: essas fontes chegam por CNES e não publicam
+    # CNPJ, mesma regra já aplicada em InstrumentoEquipamento.cnpj_convenente
+    # -- nunca preencher com sentinela ou CNPJ inventado).
+    convenente_cnpj: Mapped[str | None] = mapped_column(String)
     convenente_tipo: Mapped[str | None] = mapped_column(String)
     municipio: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
@@ -403,6 +412,23 @@ class Convenio(Base):
         ForeignKey("cnes_estabelecimento.cnes", ondelete="SET NULL", onupdate="RESTRICT"),
     )
     cnes_metodo: Mapped[str | None] = mapped_column(String)
+    # Correção 2026-09-18 (Plan Mode monitoramento-ingestao): FAF/TED/
+    # PERSUS I/PERSUS II/PRONON entram aqui também -- "Instrumentos
+    # firmados" é o universo completo de repasse, não só SICONV/
+    # TransfereGov. `None` (backfilled "Convênio" pelos 403 originais)
+    # distingue o universo de origem; nunca editável a mão, só carga.
+    tipo_contratacao: Mapped[str | None] = mapped_column(String)
+    # Proveniência da carga pra fonte que não é SICONV/Portal/TransfereGov
+    # (ex. "PERSUS I · Apresentação PER-SUS.xlsx · sha256:..."). Nulo pros
+    # 403 convênios reais (proveniência já é o próprio merge de 3 fontes).
+    origem_dado: Mapped[str | None] = mapped_column(String)
+    # Chave estável de upsert pra origem sem número oficial (NUP SEI dígitos
+    # p/ FAF/TED; "PERSUS1-{cnes}-{tipologia}" etc.) -- nunca exposta na API/
+    # UI, só usada pelos scripts de carga pra reencontrar o registro em
+    # reexecuções sem duplicar nem sem precisar que `numero` (aleatório
+    # pra essas origens, ver scripts/lib_identificadores.py) fique estável
+    # sozinho. Nula pros 403 convênios reais (`numero` já é estável).
+    chave_origem: Mapped[str | None] = mapped_column(String, unique=True)
     siconv_raw: Mapped[dict | None] = mapped_column(JSONB)
     transferegov_raw: Mapped[dict | None] = mapped_column(JSONB)
     atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -721,13 +747,30 @@ class InstrumentoEquipamento(Base):
     __tablename__ = "instrumento_equipamento"
     __table_args__ = (
         Index("idx_instrumento_equipamento_cnes", "cnes"),
+        Index("idx_instrumento_equipamento_programa_situacao", "programa", "situacao_programa"),
         CheckConstraint("equipamento_vida_util_anos IS NULL OR equipamento_vida_util_anos >= 0", name="ck_instrumento_equipamento_vida_util"),
+        CheckConstraint(
+            "tipologia IS NULL OR tipologia IN ('A', 'CV', 'C', 'EO', 'C.B', 'NA')",
+            name="ck_instrumento_equipamento_tipologia",
+        ),
+        CheckConstraint(
+            "investimento_aquisicao IS NULL OR investimento_aquisicao >= 0",
+            name="ck_instrumento_equipamento_investimento",
+        ),
         UniqueConstraint("nr_convenio", name="uq_instrumento_equipamento_nr_convenio"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     nr_convenio: Mapped[str] = mapped_column(String, nullable=False)
-    cnpj_convenente: Mapped[str] = mapped_column(String, nullable=False)
+    # Mesma chave estável descrita em Convenio.chave_origem, pro mesmo motivo
+    # (PERSUS/PRONON/FAF/TED sem número oficial -- `nr_convenio` pra essas
+    # origens é aleatório, gerado 1x, e não pode ser reconstruído a partir
+    # da fonte). Nula pros convênios/FAF/TED com número real (`nr_convenio`
+    # já é estável sozinho).
+    chave_origem: Mapped[str | None] = mapped_column(String, unique=True)
+    # PERSUS/PRONON chegam por CNES e não publicam CNPJ nesta fonte. Nulo é
+    # dado desconhecido; nunca preencher com sentinela ou CNPJ inventado.
+    cnpj_convenente: Mapped[str | None] = mapped_column(String)
     nome_convenente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
@@ -779,6 +822,14 @@ class InstrumentoEquipamento(Base):
     # documenta a resolucao de identificador). None quando a propria
     # planilha nao sabia.
     tipo_contratacao: Mapped[str | None] = mapped_column(String)
+    # Metadados de programas que não seguem o contrato SICONV. A origem
+    # identifica a proveniência da carga; os demais campos preservam o
+    # vocabulário oficial da fonte sem tentar convertê-lo em fase interna.
+    origem_dado: Mapped[str | None] = mapped_column(String)
+    tipologia: Mapped[str | None] = mapped_column(String(3))
+    investimento_aquisicao: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    situacao_programa: Mapped[str | None] = mapped_column(String)
+    natureza_servico: Mapped[str | None] = mapped_column(String)
     # Deliberadamente SEM valor_global/valor_repasse/valor_contrapartida/situacao
     # aqui (decisao do usuario, 2026-09-03): esses campos JA existem em API
     # (Portal da Transparencia /convenios/numero) -- guardar uma copia
@@ -1005,8 +1056,8 @@ class PropostaCandidata(Base):
     # item de maior valor (mesmo critério de `equipamentoPrincipal()` no
     # front) -- nunca uma lista, sempre 1 único (pedido do usuário: "preciso
     # um cnes único"). None quando a proposta não tem etapa com CNES
-    # identificável no texto. Editável manualmente depois (PATCH em
-    # propostas_candidatas.py), validado contra CnesEstabelecimento.
+    # identificável no texto. Somente leitura enquanto for proposta; após
+    # o aceite, qualquer correção ocorre no instrumento monitorado.
     cnes: Mapped[str | None] = mapped_column(
         String(7),
         ForeignKey("cnes_estabelecimento.cnes", ondelete="SET NULL", onupdate="RESTRICT"),

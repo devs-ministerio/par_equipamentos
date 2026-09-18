@@ -79,14 +79,17 @@ from datetime import date, datetime
 from pathlib import Path
 
 import openpyxl
+from sqlalchemy import select
 
 from app.db.base import SessionLocal
 from app.db.models import (
     AcaoMonitoramento,
+    Convenio,
     EventoMarco,
     InstrumentoEquipamento,
     MarcoCatalogo,
 )
+from scripts.lib_monitoramento_convenio import espelhar_convenio
 
 PLANILHA = Path(__file__).parent.parent.parent / "data" / "Monitoramento Base de Dados - Convênio FAF TED.xlsx"
 ABA = "Planilha Monitoramento "  # espaco no final e do arquivo real, nao erro de digitacao
@@ -225,8 +228,29 @@ def _cnpj_formatado(v) -> str:
     return _texto(v) or ""
 
 
-def run() -> None:
-    wb = openpyxl.load_workbook(PLANILHA, data_only=True)
+def _cnes_normalizado(v) -> str | None:
+    """Preserva zeros à esquerda perdidos pelo Excel e só aceita 7 dígitos."""
+    digitos = re.sub(r"\D", "", _texto(v) or "")
+    if not digitos or len(digitos) > 7:
+        return None
+    return digitos.zfill(7)
+
+
+def run(
+    planilha: Path = PLANILHA,
+    *,
+    somente_ausentes: bool = False,
+    dry_run: bool = False,
+) -> None:
+    """Importa a fonte escolhida.
+
+    ``somente_ausentes`` preserva todo valor já mantido pela aplicação e é
+    o modo obrigatório para reconciliar uma edição posterior da planilha.
+    ``dry_run`` executa a mesma transação, imprime o resultado e faz rollback.
+    """
+    wb = openpyxl.load_workbook(planilha, data_only=True)
+    # Contrato explícito da fonte: somente esta aba é operacional. As demais
+    # abas do arquivo não participam da ingestão nem servem como fallback.
     ws = wb[ABA]
     header = [c.value for c in ws[1]]
     idx = {h: i for i, h in enumerate(header) if isinstance(h, str)}
@@ -246,7 +270,21 @@ def run() -> None:
             c["numero"] for c in json.loads((Path(__file__).parent / "output" / "convenios_flat.json").read_text(encoding="utf-8"))
         }
 
-        criados, atualizados, fora_do_universo, colisoes = 0, 0, [], []
+        # Lookup por chave_origem pro caminho FAF/TED (correção 2026-09-18)
+        # -- identifica a linha já corrigida (nr_convenio aleatório) sem
+        # depender do NUP SEI bater com o `nr_convenio` armazenado.
+        instrumentos_por_chave = {
+            i.chave_origem: i for i in db.execute(
+                select(InstrumentoEquipamento).where(InstrumentoEquipamento.chave_origem.isnot(None))
+            ).scalars()
+        }
+        convenios_por_chave = {
+            c.chave_origem: c for c in db.execute(
+                select(Convenio).where(Convenio.chave_origem.isnot(None))
+            ).scalars()
+        }
+        criados, atualizados, campos_preenchidos, fora_do_universo, colisoes = 0, 0, 0, [], []
+        campos_preenchidos_chaves: set[tuple[str, str]] = set()
         eventos_criados, acoes_criadas = 0, 0
 
         for linha in ws.iter_rows(min_row=2, values_only=True):
@@ -258,8 +296,10 @@ def run() -> None:
 
             if registro_raw and registro_raw in convenios_validos:
                 # Caminho normal: numero TransfereGov real, dentro do
-                # universo de 403 (sempre "Convênio" nesse caso).
+                # universo de 403 (sempre "Convênio" nesse caso). Já tem
+                # identidade estável por si só -- sem chave_origem.
                 nr_convenio = registro_raw
+                chave_origem = None
             else:
                 # Achado 2026-09-09, 2a rodada (pedido do usuario: "inclua
                 # nos tipos de contratação equivalentes"): FAF/TED nunca
@@ -281,15 +321,25 @@ def run() -> None:
                     # pulava em vez de atualizar).
                     colisoes.append((identificador, _texto(linha[idx["PROPONENTE / ENTIDADE"]])))
                     continue
+                # FAF/TED têm identidade oficial (NUP SEI) mesmo sem número
+                # TransfereGov -- decisão do usuário 2026-09-18: usar o NUP
+                # SEI (dígitos) direto como identificador, sem indireção
+                # (diferente de PERSUS/PRONON, que não têm NENHUM
+                # identificador oficial -- só esses usam id aleatório, ver
+                # importar_programas_monitoramento.py). `chave_origem` fica
+                # igual a `nr_convenio` só pra dar uma chave estável ao
+                # upsert de `convenio` (espelhar_convenio exige uma).
                 nr_convenio = identificador
+                chave_origem = identificador
 
             dados_instrumento = dict(
                 nr_convenio=nr_convenio,
+                chave_origem=chave_origem,
                 cnpj_convenente=_cnpj_formatado(linha[idx["CNPJ"]]),
                 nome_convenente=_texto(linha[idx["PROPONENTE / ENTIDADE"]]) or "",
                 municipio=_texto(linha[idx["MUNICIPIO"]]),
                 uf=_texto(linha[idx["UF"]]),
-                cnes=_texto(linha[idx["CNES"]]),
+                cnes=_cnes_normalizado(linha[idx["CNES"]]),
                 equipamento_descricao=_texto(linha[idx["ID MODELO NO SIGEM/TRANSFEREGOV"]]),
                 componente=_texto(linha[idx["COMPONENTES DE FINANCIAMENTO - INVESTUSUS"]]),
                 ano_instrumento=int(m.group()) if (v := _texto(linha[idx["ANO DO INSTRUMENTO"]])) and (m := re.search(r"\d{4}", v)) else None,
@@ -303,37 +353,78 @@ def run() -> None:
                 modalidade_onco=_texto(linha[idx["MODALIDADE - ONCO"]]),
             )
 
-            instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=nr_convenio).one_or_none()
+            instrumento = (
+                instrumentos_por_chave.get(chave_origem) if chave_origem is not None
+                else db.query(InstrumentoEquipamento).filter_by(nr_convenio=nr_convenio).one_or_none()
+            )
             if instrumento is None:
                 instrumento = InstrumentoEquipamento(**dados_instrumento)
                 db.add(instrumento)
                 db.flush()
+                if chave_origem is not None:
+                    instrumentos_por_chave[chave_origem] = instrumento
                 criados += 1
             else:
                 # Upsert -- so sobrescreve campo de CADASTRO (nao mexe em
                 # equipamento_marca/modelo/numero_serie/vida_util_anos,
                 # que sao pos-entrega e nao vem desta planilha).
                 for campo, valor in dados_instrumento.items():
-                    if campo != "nr_convenio" and valor is not None:
+                    valor_atual = getattr(instrumento, campo)
+                    pode_atualizar = not somente_ausentes or valor_atual is None or valor_atual == ""
+                    tem_valor_fonte = valor is not None and (not somente_ausentes or valor != "")
+                    if campo not in ("nr_convenio", "chave_origem") and tem_valor_fonte and pode_atualizar:
                         setattr(instrumento, campo, valor)
+                        campos_preenchidos += 1
+                        campos_preenchidos_chaves.add((nr_convenio, campo))
                 atualizados += 1
 
+            # FAF/TED (identidade sintética) ganham espelho em `convenio`
+            # ("Instrumentos firmados") -- decisão do usuário 2026-09-18:
+            # continuam TAMBÉM no monitoramento interno, diferente de
+            # PERSUS I concluído/PERSUS II/PRONON (só `convenio`, ver
+            # importar_programas_monitoramento.py).
+            if chave_origem is not None:
+                convenio_espelho = espelhar_convenio(
+                    db,
+                    numero=nr_convenio,
+                    chave_origem=chave_origem,
+                    tipo_contratacao=instrumento.tipo_contratacao,
+                    origem_dado=None,
+                    nome_convenente=instrumento.nome_convenente,
+                    cnpj_convenente=instrumento.cnpj_convenente,
+                    municipio=instrumento.municipio,
+                    uf=instrumento.uf,
+                    cnes=instrumento.cnes,
+                    programa=instrumento.programa,
+                    ano_instrumento=instrumento.ano_instrumento,
+                    objeto=instrumento.finalidade,
+                    situacao=None,
+                    investimento=None,
+                    equipamento_descricao=instrumento.equipamento_descricao,
+                    componente=instrumento.componente,
+                )
+                convenios_por_chave[chave_origem] = convenio_espelho
+
             eventos_existentes = {
-                (e.marco_id, e.data_ocorrencia, e.observacao)
+                (e.marco_id, e.data_ocorrencia, e.data_prevista, e.observacao)
                 for e in db.query(EventoMarco).filter_by(instrumento_id=instrumento.id).all()
             }
 
-            def _adicionar_evento(marco_codigo, data_ocorrencia=None, status_regulatorio=None, numero_documento=None, observacao=None):
+            def _adicionar_evento(
+                marco_codigo, data_ocorrencia=None, data_prevista=None,
+                status_regulatorio=None, numero_documento=None, observacao=None,
+            ):
                 nonlocal eventos_criados
                 marco = marcos_por_codigo.get(marco_codigo)
                 if marco is None:
                     return
-                chave = (marco.id, data_ocorrencia, observacao)
+                chave = (marco.id, data_ocorrencia, data_prevista, observacao)
                 if chave in eventos_existentes:
                     return
                 db.add(EventoMarco(
                     instrumento_id=instrumento.id, marco_id=marco.id,
-                    data_ocorrencia=data_ocorrencia, status_regulatorio=status_regulatorio,
+                    data_ocorrencia=data_ocorrencia, data_prevista=data_prevista,
+                    status_regulatorio=status_regulatorio,
                     numero_documento=numero_documento, observacao=observacao,
                 ))
                 eventos_existentes.add(chave)
@@ -347,7 +438,7 @@ def run() -> None:
             # observacao diferente.
             fase_rotulo = _texto(linha[idx["FASE"]])
             marco_fase = fases_por_rotulo.get(fase_rotulo) if fase_rotulo else None
-            ja_tem_fase = any(mid in {m.id for m in fases_por_rotulo.values()} for mid, _, _ in eventos_existentes)
+            ja_tem_fase = any(mid in {m.id for m in fases_por_rotulo.values()} for mid, _, _, _ in eventos_existentes)
             if marco_fase and not ja_tem_fase:
                 _adicionar_evento(marco_fase.codigo, observacao="Importado de Planilha Monitoramento (FASE).")
 
@@ -361,7 +452,14 @@ def run() -> None:
                 bruto = linha[idx[nome_coluna]]
                 data = _parse_data(bruto)
                 if data:
-                    _adicionar_evento(codigo, data_ocorrencia=data)
+                    if codigo == "cronograma_previsao_inauguracao":
+                        _adicionar_evento(
+                            codigo,
+                            data_prevista=data,
+                            observacao="Previsão importada da planilha de monitoramento.",
+                        )
+                    else:
+                        _adicionar_evento(codigo, data_ocorrencia=data)
                 else:
                     texto_bruto = _texto(bruto)
                     if texto_bruto and texto_bruto.upper() not in PLACEHOLDERS:
@@ -403,8 +501,29 @@ def run() -> None:
                     ))
                     acoes_criadas += 1
 
-        db.commit()
-        print(f"Instrumentos: {criados} criado(s), {atualizados} atualizado(s).")
+            # A planilha pode repetir o mesmo instrumento em linhas
+            # diferentes. Torna eventos/ações desta linha visíveis para a
+            # consulta da próxima e preserva a idempotência dentro da mesma
+            # transação (SessionLocal usa autoflush=False).
+            db.flush()
+
+        if dry_run:
+            db.rollback()
+            print("SIMULAÇÃO: transação revertida; nenhum dado foi alterado.")
+        else:
+            db.commit()
+        if somente_ausentes:
+            print(
+                f"Instrumentos: {criados} criado(s), {atualizados} linha(s) reconciliada(s), "
+                f"{campos_preenchidos} campo(s) vazio(s) preenchido(s)."
+            )
+            if campos_preenchidos_chaves:
+                campos_resumo = ", ".join(
+                    f"{nr}:{campo}" for nr, campo in sorted(campos_preenchidos_chaves)
+                )
+                print("Campos vazios encontrados: " + campos_resumo)
+        else:
+            print(f"Instrumentos: {criados} criado(s), {atualizados} atualizado(s).")
         print(f"Eventos novos: {eventos_criados}. Ações novas: {acoes_criadas}.")
         print(f"Sem identificador utilizável (nem REGISTRO/CÓDIGO nem NUP SEI): {len(fora_do_universo)}")
         for registro, nup_sei, nome in fora_do_universo:

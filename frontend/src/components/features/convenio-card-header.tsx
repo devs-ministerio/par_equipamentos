@@ -30,7 +30,7 @@ export function ConvenioCardHeader({
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-[11.5px] font-bold text-primary bg-secondary py-0.5 px-[9px] rounded-[5px] font-mono">
-              Convênio {c.numero}
+              {c.tipoContratacao ?? 'Convênio'} {c.numero}
             </span>
             {c.numeroInstrumento && <span className="text-[11px] text-muted-foreground/70 font-mono">{c.numeroInstrumento}</span>}
             {monitorado && (
@@ -38,17 +38,11 @@ export function ConvenioCardHeader({
                 ● Monitorado internamente
               </span>
             )}
-            {/* Equipamento em destaque -- pedido direto do usuario
-                (2026-09-08): e o dado que motiva a pagina inteira, precisa
-                aparecer antes de qualquer clique. Achado 2026-09-16,
-                pedido do usuário: "o marcador de equipamento de
-                instrumentos firmados deve ficar igual ao de linhas de
-                financiamento ao lado do número [do convênio] e quando
-                tiver monitoramento interno após o de monitoramento
-                interno" -- reposicionado da linha própria (abaixo) pra
-                cá, mesma linha do identificador, mesmo lugar que o
-                "principal" da proposta ocupa ao lado de "Proposta #X"
-                (ver CardProposta em secao-propostas-candidatas.tsx). */}
+            {/* Equipamento em destaque -- é o dado que motiva a página
+                inteira, precisa aparecer antes de qualquer clique, mesma
+                linha do identificador, mesmo lugar que o "principal" da
+                proposta ocupa ao lado de "Proposta #X" (ver CardProposta
+                em secao-propostas-candidatas.tsx). */}
             {equipamentos.map((e) => (
               <span key={e} className="text-[13px] font-extrabold text-foreground bg-background border border-border py-1 px-[11px] rounded-full">
                 {e}
@@ -56,11 +50,9 @@ export function ConvenioCardHeader({
             ))}
           </div>
           <div className="text-[15px] font-bold text-foreground">{c.convenente.nome}</div>
-          {/* Estabelecimento (CNES) em destaque -- achado 2026-09-16,
-              pedido do usuário: "preciso que coloque o nome do
-              estabelecimento também abaixo do nome do convenente e o
-              cnes como marcador ao lado". Só aparece quando resolvido
-              (357/403 hoje) -- nunca "CNES —" vazio poluindo o card. */}
+          {/* Estabelecimento (CNES) em destaque -- só aparece quando
+              resolvido (357/403 hoje), nunca "CNES —" vazio poluindo o
+              card. */}
           {c.cnes && (
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-foreground">
               <span>{c.cnesNomeEstabelecimento}</span>
@@ -70,7 +62,7 @@ export function ConvenioCardHeader({
             </div>
           )}
           <div className="text-xs text-muted-foreground mt-0.5">
-            {c.convenente.cnpj} · {c.municipio}/{c.uf}
+            {c.convenente.cnpj ?? 'CNPJ não informado'} · {c.municipio}/{c.uf}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -102,10 +94,14 @@ export function ConvenioCardHeader({
           {fmtMoeda(valorPagoFornecedor)}
         </Campo>
       </div>
-      {!c.financeiro.fonteConfiavel && (
+      {/* Correção 2026-09-18: FAF/TED/PERSUS/PRONON nunca tiveram dump
+          SICONV pra começo (não é o caso que este aviso descreve -- é só
+          "sem financeiro confiável" por padrão, nunca setado True pra
+          essas fontes) -- aviso só faz sentido pro universo real de
+          Convênio/SICONV/Portal. */}
+      {!c.financeiro.fonteConfiavel && (c.tipoContratacao === null || c.tipoContratacao === 'Convênio') && (
         <p className="text-[11px] text-warning mt-2 mb-0">
-          ⚠️ Não encontrado no dump SICONV — valores acima vêm do Portal da Transparência, que tem bug de truncamento
-          conhecido nesse campo. Conferir manualmente.
+          Atenção: não encontrado no dump SICONV — os valores acima vêm do Portal da Transparência e podem sofrer truncamento conhecido nesse campo. Conferir manualmente.
         </p>
       )}
     </>

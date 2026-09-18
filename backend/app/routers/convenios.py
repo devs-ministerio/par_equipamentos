@@ -43,8 +43,15 @@ class ConvenioRead(BaseModel):
     situacao_portal: str | None
     situacao_contratacao: str | None
     convenente_nome: str
-    convenente_cnpj: str
+    # Nulo pra PERSUS/PRONON (correção 2026-09-18, Plan Mode monitoramento-
+    # ingestao) -- fonte não publica CNPJ, nunca inventado.
+    convenente_cnpj: str | None
     convenente_tipo: str | None
+    # Universo de "Instrumentos firmados" agora vai além de SICONV/
+    # TransfereGov (correção 2026-09-18) -- distingue Convênio/FAF/TED/
+    # PERSUS I/PERSUS II/PRONON. `None` só nos poucos registros antigos que
+    # a migration não conseguiu backfillar (não deveria existir hoje).
+    tipo_contratacao: str | None
     municipio: str | None
     uf: str | None
     codigo_ibge: str | None
@@ -107,6 +114,7 @@ CONVENIO_LIST_LOAD_ONLY = (
     Convenio.convenente_nome,
     Convenio.convenente_cnpj,
     Convenio.convenente_tipo,
+    Convenio.tipo_contratacao,
     Convenio.municipio,
     Convenio.uf,
     Convenio.codigo_ibge,
@@ -161,7 +169,10 @@ def _aplicar_filtros_convenio(
     situacao: str | None,
     ano: int | None,
     programa: str | None,
+    tipo_contratacao: str | None,
 ):
+    if tipo_contratacao:
+        query = query.where(Convenio.tipo_contratacao == tipo_contratacao)
     if uf:
         query = query.where(Convenio.uf == uf)
     if equipamento:
@@ -192,12 +203,21 @@ def listar_convenios(
     situacao: str | None = None,
     ano: int | None = None,
     programa: str | None = None,
+    tipo_contratacao: str | None = None,
     pagina: int = Query(1, ge=1),
-    tamanho_pagina: int = Query(20, ge=1, le=500),
+    # Teto subiu de 500 pra 1000 (correção 2026-09-18): universo de
+    # "Instrumentos firmados" passou de 403 pra 581 com a entrada de FAF/
+    # TED/PERSUS I/PERSUS II/PRONON -- ainda rede de segurança, não
+    # paginação de UI real (ver CLAUDE.md, mesmo padrão do Plan Mode
+    # consolidação 2026-09-17, Bloco 4).
+    tamanho_pagina: int = Query(20, ge=1, le=1000),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    filtros = dict(busca=busca, uf=uf, equipamento=equipamento, situacao=situacao, ano=ano, programa=programa)
+    filtros = dict(
+        busca=busca, uf=uf, equipamento=equipamento, situacao=situacao, ano=ano,
+        programa=programa, tipo_contratacao=tipo_contratacao,
+    )
     count_query = _aplicar_filtros_convenio(select(func.count()).select_from(Convenio), **filtros)
     query = _aplicar_filtros_convenio(
         select(Convenio).options(load_only(*CONVENIO_LIST_LOAD_ONLY)),

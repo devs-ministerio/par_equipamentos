@@ -80,21 +80,52 @@ reintroduzir o erro:
   (marco `cronograma_entrega`, ver `registrar_evento`), não mais num
   form de cadastro separado — o PATCH continua existindo só pra corrigir
   depois.
-- **Escopo bem menor que os 403 convênios, e nem tudo é Convênio**: só
-  cobre os instrumentos que a equipe decide monitorar (86 hoje,
-  importados de `backend/scripts/importar_planilha_monitoramento.py` a
-  partir da planilha real da equipe — import é bootstrap único, não
-  rodar de novo como sincronização recorrente). Convênio sem
+- **Escopo bem menor que os 581 "Instrumentos firmados", e nem tudo que é
+  firmado é monitorado internamente**: `convenio` ("Instrumentos
+  firmados", `backend/app/routers/convenios.py`) é o universo completo de
+  repasse — 581 registros desde a correção de 2026-09-18 (403 Convênio/
+  SICONV/TransfereGov originais + 178 de FAF/TED/PERSUS I/PERSUS II/PRONON,
+  ver `docs/arquitetura/diagnostico-ingestao-dados-2026-09-18.md`).
+  `instrumento_equipamento` (monitoramento interno pós-repasse) é um
+  subconjunto BEM menor — só o que a equipe decide acompanhar
+  manualmente: **91** hoje (71 Convênio + 12 FAF + 3 TED + 5 PERSUS I
+  ainda não inaugurado). PERSUS I inaugurado (87), PERSUS II (50) e
+  PRONON (21) existem só em `convenio`, nunca em
+  `instrumento_equipamento` — não é lacuna, é o desenho: só entra no
+  monitoramento interno o que ainda precisa de acompanhamento ativo.
+  Convênio/FAF/TED em `instrumento_equipamento` vêm de
+  `backend/scripts/importar_planilha_monitoramento.py` (planilha real da
+  equipe); PERSUS/PRONON em `convenio` (e PERSUS I não inaugurado também
+  em `instrumento_equipamento`) vêm de
+  `backend/scripts/importar_programas_monitoramento.py` — imports são
+  cargas controladas, não sincronizações recorrentes. Convênio sem
   `InstrumentoEquipamento` não é erro — é o caso normal. Desde
   2026-09-09 o campo `tipo_contratacao` distingue "Convênio" (universo
-  Portal/TransfereGov, `nr_convenio` real) de "FAF"/"TED" (nunca tiveram
-  número TransfereGov — `nr_convenio` aqui guarda só os DÍGITOS do NUP SEI
-  (ex. NUP `25000.198305/2024-59` vira `25000198305202459`) — decisão
-  2026-09-10, pedido do usuário: "tirar os caracteres especiais". Sem
-  colisão entre os que existem hoje, conferido antes de aplicar. Versão
-  anterior trocava `/` por `_` (motivo: `/` cru quebra a rota
-  `/instrumentos/{nr_convenio}` mesmo como `%2F`, testado ao vivo) — ainda
-  vale o alerta de nunca usar `/` cru nesse identificador.
+  Portal/TransfereGov, `nr_convenio` real) de "FAF"/"TED"/"PERSUS I"/
+  "PERSUS II"/"PRONON". **Identificador visível por origem, revisado
+  2x em 2026-09-18** (1ª rodada: tudo aleatório; 2ª rodada, depois de ver
+  o resultado renderizado: distinguir quem TEM identidade oficial de quem
+  não tem):
+  - **FAF/TED têm identidade oficial** — o NUP SEI (só dígitos, decisão
+    2026-09-10 de tirar caracteres especiais, ex. NUP `25000.198305/2024-59`
+    vira `25000198305202459`). `nr_convenio`/`Convenio.numero` é esse
+    valor direto, sem indireção — mesmo esquema desde 2026-09-09/10, só
+    que agora com espelho em `convenio` também.
+  - **PERSUS I/PERSUS II/PRONON não têm NENHUM identificador oficial**
+    (confirmado com o usuário pro PERSUS I; PRONON ainda sem fonte
+    estudada, pendência registrada no diagnóstico de ingestão — não
+    fabricar algo "melhor" sem essa decisão). `nr_convenio`/
+    `Convenio.numero` é aleatório com prefixo curto do tipo (`PS1-503028`,
+    `PS2-...`, `PN-...`, ver `backend/scripts/lib_identificadores.py`) —
+    prefixo encurtado na 2ª rodada porque o nome completo (`PERSUS1-`)
+    repetia o badge de tipo já exibido ao lado. O identificador
+    determinístico original (`PERSUS1-{cnes}-{tipologia}` etc.) fica em
+    `chave_origem` (`Convenio`/`InstrumentoEquipamento`), usado só pelos
+    scripts de carga pra reencontrar o registro em execuções futuras,
+    nunca exposto na API/UI.
+  Nunca usar `/` cru em identificador de rota (`/instrumentos/{nr_convenio}`
+  quebra mesmo como `%2F`, testado ao vivo) — por isso o NUP SEI de FAF/TED
+  usa só dígitos, nunca a pontuação/barra original.
 - **`tecnico_titular/suplente` (nossa equipe) ≠ `responsavel_execucao_nome/
   contato` (da instituição/convenente)**: campos parecidos, fontes
   diferentes — não confundir ao exibir ou editar.
@@ -528,48 +559,190 @@ do mesmo gate, sem exceção.
   campo `UserCreate.cpf` removido (`schemas.py`), linha hardcoded removida
   de `scripts/criar_usuario.py`.
 
+## Gestão de usuários (Módulo Admin, 2026-09-17)
+
+Antes deste módulo, a única forma de criar/editar um usuário era rodar `backend/scripts/
+criar_usuario.py` manualmente no servidor — sem API, sem tela, sem RBAC real (`admin`/`colaborador`
+eram idênticos em poderes), sem auditoria (`AuditLog` existia na tabela desde a base do projeto,
+zero uso no código) e sem bloqueio de conta (só rate limit por IP em `/auth/login`). Login/sessão em
+si **não foi reconstruído** — já era maduro (JWT + refresh cookie rotativo + CSRF + rate limit,
+Plan Mode segurança 2026-09-16/17, ver seção acima); este módulo fechou especificamente a lacuna de
+gestão de usuários, seguindo o mesmo padrão Router → Service → Repository de `notificacoes`.
+
+- **RBAC real, só para este módulo**: `require_admin_user` (`app/auth.py`) e `assert_e_admin`
+  (`app/authz.py`, chamado dentro do Service — não só `Depends`) exigem `role=admin`. Primeira
+  checagem real de `UserRole.admin` no código — o resto do app continua no gate binário
+  (`leitor` bloqueado, `admin`/`colaborador` idênticos), decisão de produto ainda pendente para
+  qualquer diferenciação além deste módulo.
+- **CRUD em `backend/app/routers/usuarios.py`** (`GET/POST /usuarios`, `PATCH /usuarios/{id}`,
+  `POST /usuarios/{id}/resetar-senha`, `POST /usuarios/{id}/{in,re}ativar`) — regra de negócio em
+  `app/services/usuarios.py`, query em `app/repositories/usuarios.py`. Frontend em
+  `frontend/src/pages/usuarios-page.tsx` (rota `/admin/usuarios`, atrás de `AdminRoute`, distinto de
+  `ProtectedRoute` — checa `role`, não só sessão) + `components/features/usuario-*.tsx`.
+- **Reset de senha sem e-mail** (decisão do usuário, 2026-09-17): o projeto não tem provedor de
+  e-mail configurado — admin gera uma senha temporária aleatória, exibida **uma única vez** na tela
+  (`usuario-dialog-resetar-senha.tsx`) para copiar/repassar manualmente. Não fica recuperável depois
+  (não persiste em claro em lugar nenhum, nem no audit log).
+- **Auto-proteção**: um admin não pode remover o próprio papel de admin nem se auto-inativar via
+  este módulo (`atualizar_usuario`/`inativar_usuario` em `services/usuarios.py`) — evita lockout
+  acidental do sistema por engano do próprio admin.
+- **Inativação revoga sessão de verdade**: `revoke_all_refresh_tokens_for_user` (`app/auth.py`)
+  revoga em lote os refresh tokens do usuário — sem isso uma sessão já aberta continuaria válida até
+  o access token expirar (até `access_token_expire_minutes`) mesmo com a conta inativada.
+- **Bloqueio de conta** (além do rate limit por IP já existente): `User.failed_login_attempts`/
+  `locked_until` (migration `01a01055b1af`) — 10 falhas seguidas bloqueiam a conta por 15min, mesmo
+  vindo de IPs diferentes/rotativos. Mensagem de erro em conta bloqueada é a mesma genérica de
+  credencial inválida (não sinaliza pro atacante que acertou o e-mail).
+- **`AuditLog` ativado** — `registrar_auditoria` em `services/usuarios.py` grava toda ação de
+  escrita (criar/editar/resetar senha/inativar/reativar) com `user_id` do admin que executou. Só
+  este módulo escreve nele por enquanto — generalizar para um módulo `app/audit.py` próprio fica
+  para quando um segundo consumidor precisar.
+- `scripts/criar_usuario.py` continua existindo (bootstrap do primeiro admin antes de qualquer
+  usuário existir via UI) — não foi removido, mas deixou de ser o único caminho.
+
 ## Plan Mode frontend (reavaliação 2026-09-17)
 
-`docs/arquitetura/diagnostico-constituicao-frontend-2026-09-16.md` (reescrito nesta rodada como
-"Reavaliação — 2026-09-17") reauditou o frontend contra `padroes/frontend/constiuicao_frontend.md`
-— nota de conformidade **6,4/10**, nota separada de **UI/UX 5,8/10** de uma auditoria visual
-sênior autenticada em 8 rotas × 3 breakpoints (1440/768/400px). `docs/arquitetura/
-planmode-frontend-2026-09-17.md` formaliza o roadmap de correção em blocos. **Nesta rodada só a
-documentação foi produzida/corrigida (decisão do usuário) — nenhum código de `frontend/`/
-`backend/` foi alterado**; a execução do Bloco 0 fica para uma próxima rodada aprovada.
+`docs/arquitetura/diagnostico-constituicao-frontend-2026-09-16.md` (reescrito como "Reavaliação —
+2026-09-17") reauditou o frontend contra `padroes/frontend/constiuicao_frontend.md` — nota de
+conformidade **7,2/10** após os Blocos 0/1/2, nota separada de **UI/UX 5,8/10** de uma auditoria
+visual sênior autenticada em 8 rotas × 3 breakpoints (1440/768/400px). `docs/arquitetura/
+planmode-frontend-2026-09-17.md` formaliza o roadmap de correção em blocos, executados um de cada
+vez (mesma cadência dos Plan Mode backend/segurança — nunca "refatoração completa" numa tacada só).
 
-- **Build e lint quebrados (Bloco 0, planejado, não executado)**: `npm run build` falha com
-  `TS1261` (`Modal.tsx`/`Pagination.tsx` em `components/common/` coexistem com imports em
-  minúsculas — casing duplicado) e `TS2345` (tipos manuais de `monitoramento-overview-page.tsx`
-  divergindo dos schemas Zod de `services/monitoramento.ts`). `npm run lint` termina com 15
-  warnings (6 `no-unused-expressions`, 9 `react/only-export-components`). Correção: renomear os 2
-  arquivos pra kebab-case, derivar os tipos da página via `z.infer` em vez de redeclarar, corrigir
-  os warnings arquivo por arquivo — tudo detalhado no Bloco 0 do plan-mode.
-- **Bug funcional achado durante a auditoria visual**: `EmailStr` (`backend/app/schemas.py`)
-  rejeita o domínio `.local` da credencial administrativa, tanto no login quanto em `UserRead`; a
-  UI mostra `[object Object]` no 422 correspondente. Também planejado no Bloco 0, não corrigido
-  ainda.
-- **Transporte HTTP triplicado (Bloco 1, roadmap)**: `api.ts`/`convenios.ts`/`monitoramento.ts`
-  mantêm cada um seu próprio mutex de refresh — um 401 simultâneo entre domínios pode disparar
-  mais de uma rotação e produzir logout/redirecionamento intermitente. Unificar em um cliente
-  comum é mudança estrutural, exige Plan Mode próprio antes de executar.
-- **Divergência de estrutura de pastas resolvida (Bloco 2, executado nesta rodada)**: `AGENTS.md`
-  (raiz do projeto) ainda descrevia `src/features/<nome>/index.ts` (estrutura anterior à reversão
-  de 2026-09-11) — contradizia este arquivo, que já documentava a estrutura flat real. `AGENTS.md`
-  foi reescrito para espelhar as seções "Estrutura de pastas do frontend"/"Camada de dados"/
-  "Migração de arquitetura do frontend" deste `CLAUDE.md`, incluindo os nomes de arquivo em
-  kebab-case corretos (antes citava `MacroMap.tsx`, `CoberturaTable`, `KpiCard.tsx` etc., que não
-  existem mais com esse casing).
-- **Código morto sinalizado, não removido**: `.card-group`/`.card-group-accent`/
-  `.table-editorial` (+ variantes)/`.meta-grid`/`.kpi-row` em `frontend/src/index.css` não têm
-  nenhum consumidor confirmado por grep — candidatos a remoção no Bloco 0. 21 arquivos
-  `.tsx`/`.ts` passam de 200 linhas (a quebra de arquivo grande da reorganização 2026-09-11 não é
-  regra automática permanente, precisa de revisão contínua a cada feature nova).
-- **Fora de escopo desta rodada e dos próximos blocos imediatos**: refatoração visual sistêmica
-  das 8 rotas (app shell responsivo — header quebra em 768px/400px em todas as rotas —, overflow
-  horizontal comprovado em 400px no Painel Geral/Dashboard/Relatórios, padrões de composição
-  Page Header/Filter Workspace/Data Surface, Testing Library/axe/E2E inexistentes, CI frontend
-  inexistente). Ver `planmode-frontend-2026-09-17.md`, seção "Blocos seguintes".
+**Blocos 0, 1 e 2 executados no mesmo dia da reavaliação (2026-09-17)**:
+- **Bloco 0 (build/lint/tipos)**: `Modal.tsx`/`Pagination.tsx` renomeados pra kebab-case
+  (`modal.tsx`/`pagination.tsx`, resolvia `TS1261`); tipos manuais de `monitoramento-{overview,
+  painel}-page.tsx` substituídos por `z.infer` dos schemas de `services/monitoramento.ts`
+  (resolvia `TS2345`); 15 warnings de lint corrigidos; `.card-group`/`.table-editorial`/
+  `.meta-grid`/`.kpi-row` removidos de `index.css` (zero consumidor confirmado por grep);
+  `EmailStr` (`backend/app/schemas.py`) trocado por validador próprio que aceita `.local`.
+- **Bloco 1 (transporte HTTP único)**: `frontend/src/lib/http-client.ts` concentra o que estava
+  triplicado em `api.ts`/`convenios.ts`/`monitoramento.ts` — 1 mutex de refresh (não mais 3), CSRF,
+  retry único, redirect em 401 definitivo, `ApiError` — 12 testes novos (`http-client.test.ts`).
+- **Bloco 2 (docs)**: `AGENTS.md` reescrito pra espelhar a estrutura flat real (não mais
+  `src/features/<nome>/index.ts`).
+
+**Bloco 3 (app shell responsivo, Etapa 3 do plan-mode, executado 2026-09-17)**: o P0 visual
+documentado ("header não tem comportamento responsivo, quebra em 400px e 768px em todas as
+rotas") foi fechado. `AppHeader` (`frontend/src/components/layout/app-header.tsx`) colapsa
+nav/`leftExtra`/`rightExtra`/`UserMenu` num menu mobile (`Sheet` do shadcn, `npx shadcn add sheet`)
+abaixo de `lg` (1024px) — testado que em exatamente 768px o nav completo de 4 itens não cabia
+numa linha só sem quebrar pra fora dos 56px do header (`md`/768px não bastava como corte, só
+`lg`/1024px resolvia de verdade). Container/gutter (`max-w-[1400px] px-6`), antes duplicado 3x em
+`app-header.tsx`/`app-layout.tsx`/`monitoramento-layout.tsx`, virou `CONTAINER_CLASS`
+(`frontend/src/lib/layout.ts`). `NavBoxesAnaliseMerito` (cards "Ir para" do cabeçalho de Dashboard/
+Mapa/Relatórios) empilha em 1 coluna abaixo de `sm` (640px) — antes fixo em 3 colunas, estourava em
+400px. Verificado ao vivo (dev server + Chrome, login real): 1440px sem mudança visual, 768px
+mantém o header numa linha só com hambúrguer funcional (abre, navega, fecha), ~500px (o mínimo que
+a janela do Chrome aceita — mais perto de 400px do que 768px) confirma que o **header** não gera
+overflow (492px de conteúdo dentro de 500px de viewport); overflow de página ainda presente em
+Painel Geral/Dashboard/Relatórios nesse teste vem do **conteúdo** das páginas (grid/filtros), não
+do header — é escopo dos Blocos seguintes (Etapas 5/6 do plan-mode), não deste bloco.
+
+**Higiene do mesmo bloco**: `components/common/modal.tsx` (wrapper fino sobre `Dialog`) removido —
+os 3 consumidores (`municipio-detalhe-modal.tsx`, `modals/export-{xlsx,pdf}-modal.tsx`) usam
+`<Dialog>/<DialogContent>` direto agora. `.table-scroll`/`.kpi` (+ `.label`/`.value`/`.sub`)
+removidos de `index.css` (zero consumidor, nunca tiveram adoção real). Comentários de histórico
+datado ("achado 2026-09-XX, pedido do usuário: '...'") podados em `services/{api,convenios,
+monitoramento}.ts`, `pages/monitoramento-{overview,painel}-page.tsx`, `convenio-card-header.tsx` e
+`monitoramento-interno-cabecalho.tsx`, mantendo só o WHY local (a narrativa de quem pediu o quê já
+vive no histórico de decisões deste arquivo, não precisa duplicar no código).
+`secao-propostas-candidatas.tsx` tem os mesmos comentários datados mas foi deixado de fora de
+propósito — é alvo de split completo na Etapa 5, reescrever comentário ali agora seria descartado
+na mesma rodada em que o arquivo for dividido.
+
+- **Transporte HTTP unificado, mensagem de erro ainda não separada (P1 #4, pendente)**: o Bloco 1
+  normalizou onde a mensagem de erro nasce (1 lugar em vez de 3), mas não introduziu a separação
+  entre mensagem segura pro usuário e detalhe técnico de contrato — várias telas ainda exibem
+  `error.message` direto.
+**Bloco 4 (fundação visual, executado 2026-09-17)**: `PageHeader`/`FilterWorkspace`/`DataSurface`/
+`MetricStrip`/`OperationalDetailSection`/`EmptyState`/`ErrorAlert` criados em `frontend/src/
+components/common/` + primitivas shadcn `Skeleton`/`Alert`/`Sonner` (toast global em `App.tsx`,
+tema fixo light — `next-themes` não foi adotado). Só fundação, nenhuma página migrada ainda
+(migração real começa na Etapa 5, que também remove os wrappers ad hoc equivalentes no mesmo
+bloco em que migra cada consumidor).
+
+**Bloco 5 (pilotos, executado 2026-09-17)**: Dashboard e Mesa de trabalho (`monitoramento-
+overview-page.tsx`) migraram cabeçalho/filtros/loading/erro pra `PageHeader`/`FilterWorkspace`/
+`ErrorAlert`/`Skeleton` do Bloco 4. Mesa de trabalho parou de fazer `useEffect+useState+
+Promise.all` — passou a usar `useMonitoramentoResumo`/`useMonitoramentoInstrumentos` (hooks
+TanStack Query que já existiam, só não eram consumidos por essa página ainda).
+`secao-propostas-candidatas.tsx` (796 linhas) dividido em `lib/proposta-metas-resumo.ts` +
+`proposta-card.tsx` + `proposta-linha-do-tempo.tsx` + `proposta-detalhe-bruto.tsx`; novo helper
+`campoObjeto` em `lib/campo-cru.ts` — `Record<string, unknown>` cru fica confinado a
+`campo-cru.ts`/`proposta-metas-resumo.ts`, nunca mais tocado direto em JSX de componente
+(`monitoramento-painel-page.tsx` continua com `useEffect+Promise.all` — fica pra Etapa 7).
+
+**Bloco 6 (rotas analíticas, executado 2026-09-17)**: Mapa e Relatórios migraram cabeçalho pra
+`PageHeader`; Painel Geral (fora de layout, sem `PageHeader` aplicável) passou a usar
+`CONTAINER_CLASS`. Fix real do P0 de overflow em 400px da auditoria: grid de cards do Painel
+Geral (`minmax(480px,1fr)`, causava 504px de `scrollWidth`) virou `minmax(min(480px,100%),1fr)`;
+grid do Mapa (`grid-cols-[2fr_1fr]`, painel lateral virava coluna de ~120px) virou `grid-cols-1
+lg:grid-cols-[2fr_1fr]`; `CardExportar` de Relatórios (dois cards lado a lado, 434px) virou
+`flex-col sm:flex-row`. `ExportPdfModal`/`ExportXlsxModal` (jspdf+exceljs, ~1,3MB) viraram
+`lazy()`/`Suspense` — chunk de `relatorios-page` caiu de 35,79kB pra 11,20kB gzip. Dashboard
+(517px de overflow) **continua pendente** — a causa é um bloco de filtros do conteúdo, não do
+shell, fica pra revisão de página específica.
+
+**Bloco 7 (Monitoramento, executado 2026-09-17)**: Painel de Gestão parou de fazer `useEffect+
+useState+Promise.all` — migrou pra `useMonitoramentoResumo`/`useMonitoramentoInstrumentos`/
+`useMonitoramentoMarcos` + `useConveniosLista` (hook novo, mesma `queryKey` `['convenios-lista']`
+que `monitoramento-equipamentos-page.tsx` já usava inline — os dois consumidores agora
+compartilham cache). Cabeçalho das 3 telas (Dados oficiais, Painel de Gestão, Detalhe) migrado
+pra `PageHeader` (`PageHeader` já suporta `breadcrumb`, usado no Detalhe). `OperationalDetail
+Section` (Bloco 4) agrupa Fase/cronograma, Ações e Linha do tempo de eventos na página de
+Detalhe, fechando o achado "página muito longa sem índice local ou agrupamento progressivo" —
+Cabeçalho/Cadastro continuam sempre visíveis. 2 usos de emoji "⚠️" como ícone de erro trocados
+por `ErrorAlert`.
+
+**Bloco 8 (contratos, parcial, executado 2026-09-17)**: `services/monitoramento.ts` (457 linhas,
+23 consumidores) dividido em `auth.ts`, `monitoramento-{marcos,instrumentos,acoes,resumo}.ts`,
+`notificacoes.ts`, `propostas-candidatas.ts`, `cnes-referencia.ts` + `monitoramento-client.ts`
+(helpers `apiGet`/`apiGetAuthed`/`apiAuthed` compartilhados). `ApiError` ganhou `publicMessage`
+(Seção 17 — mensagem segura pro usuário, separada do detalhe técnico em `.message`) + helper
+`mensagemSeguraDoErro()`, substituindo todo `error.message` renderizado direto na UI. Paginação/
+`total`/virtualização **não fechado** — bloqueado no backend não devolver `total`/`meta` (envelope
+de resposta unificado, mudança breaking que precisa de Plan Mode coordenado); nenhuma lista real
+do app hoje chega perto do teto de segurança do backend pra justificar virtualização client-side
+sem isso.
+
+**Bloco 9 (acessibilidade, parcial, executado 2026-09-17)**: os 13 cabeçalhos ordenáveis sem
+semântica (`cobertura-table.tsx`/`nivel-cobertura-table.tsx`/`estabelecimento-table.tsx`) viraram
+`SortableTableHead` (`frontend/src/components/common/sortable-table-head.tsx`, novo) — `<button>`
+real + `aria-sort`, testado ao vivo. Auditoria completa de WCAG AA (contraste, foco tab-a-tab,
+labels) **não executada** — fica pra rodada dedicada.
+
+**Bloco 10 (testes, parcial, executado 2026-09-17)**: `jsdom`+`@testing-library/react`+
+`jest-axe` instalados (`vite.config.ts`: `environment: 'jsdom'`, `globals: true`, `setupFiles:
+src/test-setup.ts`). 18 testes novos (`EmptyState`/`ErrorAlert`/`PageHeader`/`SortableTableHead`/
+`AppHeader` + 1 hook em sucesso/falha) — 14 arquivos/60 testes no total (era 8/42).
+`@playwright/test` instalado + `playwright.config.ts` + `e2e/login.spec.ts` (credencial só via
+`E2E_EMAIL`/`E2E_SENHA`, nunca hardcoded) — **scaffolded, não executado** (precisa `npx
+playwright install chromium`).
+
+**Bloco 11 (CI e performance, executado 2026-09-17)**: `.github/workflows/frontend_ci.yml` (novo)
+— dispara em push/PR tocando `frontend/**`, roda `npm ci` (lockfile travado) + lint + typecheck +
+test + build, os 4 gates que já rodavam manualmente antes de todo PR. E2E fica fora do workflow
+(precisa de backend rodando + credencial de teste, infraestrutura que a CI ainda não tem).
+`build.chunkSizeWarningLimit` subiu de 500kB pra 1MB (documentado no `vite.config.ts`) — os únicos
+2 chunks que passam de 500kB (jspdf/exceljs) são `lazy()` desde o Bloco 6, nunca entram no
+carregamento inicial. Verificado ao vivo: `npm ci` limpo reproduzindo exatamente o que a CI roda.
+
+**Bloco 12 (higiene final, executado 2026-09-17)**: varredura de arquivo-sem-importador (heurística
+por grep) achou `data-surface.tsx`/`metric-strip.tsx` (fundação do Bloco 4) sem consumidor real —
+`MetricStrip` foi cabeado no Dashboard (substituiu os 5 `KpiCard` soltos, testado ao vivo, visual
+idêntico); `DataSurface` **removido** (nenhum ponto de encaixe de baixo risco sem tocar lógica de
+página). `useJson.ts` (hook pré-existente, não desta rodada) também aparece sem importador —
+registrado como candidato, não removido sem confirmar com mais busca.
+
+Com isso, **as Etapas 1-12 do `planmode-frontend-2026-09-17.md` estão concluídas** (Etapas 8, 9 e
+10 parciais, ver detalhe de cada bloco acima). Os itens explicitamente bloqueados (E2E de fato
+executado — decisão do usuário, falta `npx playwright install chromium`; paginação/virtualização
+real — mudança de contrato do backend) ficam pra uma rodada futura, fora do que este Plan Mode
+decide sozinho.
+  Cópia desatualizada `frontend/constiuicao_frontend.md` (2026-09-15 09:06, sem a Seção 18-Testes
+  e o checklist de segurança expandido do `padroes/frontend/constiuicao_frontend.md` real) foi
+  removida a pedido do usuário — só o arquivo em `padroes/` é a fonte de verdade.
 
 ## Estratégia de dados do Neon: ingestão e clonagem
 

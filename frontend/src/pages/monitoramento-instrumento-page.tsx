@@ -12,7 +12,7 @@
  * conteudo especifico da pagina.
  */
 import { Link, useParams } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/common/page-header';
 import { MonitoramentoInterno } from '@/components/features/monitoramento-interno';
 
 export function MonitoramentoInstrumentoPage() {
@@ -24,23 +24,18 @@ export function MonitoramentoInstrumentoPage() {
 
   return (
     <div>
-      <Card className="mb-4 py-0">
-        <CardContent className="p-5.5">
-        <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-muted-foreground uppercase">
-          <Link to="/monitoramento-equipamentos/instrumentos" className="text-muted-foreground no-underline hover:text-primary">Monitoramento interno</Link>
-          <span className="mx-1.5">›</span>
-          <Link to="/monitoramento-equipamentos" className="text-muted-foreground no-underline hover:text-primary">Dados oficiais</Link>
-          <span className="mx-1.5">›</span>
-          <span className="text-primary">Convênio {nrConvenio}</span>
-        </div>
-        <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
-          Convênio {nrConvenio}
-        </h1>
-        <p className="mt-2.5 max-w-[760px] text-[13.5px] leading-relaxed text-muted-foreground">
-          Registre eventos e ações acompanhados pela equipe, complementando o que as APIs oficiais não detalham.
-        </p>
-        </CardContent>
-      </Card>
+      <PageHeader
+        breadcrumb={
+          <>
+            <Link to="/monitoramento-equipamentos/instrumentos" className="text-muted-foreground no-underline hover:text-primary">Monitoramento interno</Link>
+            <span className="mx-1.5">›</span>
+            <span className="text-primary">Convênio {nrConvenio}</span>
+          </>
+        }
+        eyebrow="Monitoramento interno"
+        title={`Convênio ${nrConvenio}`}
+        description="Eventos, prazos e pendências do instrumento."
+      />
 
       <MonitoramentoInterno numeroConvenio={nrConvenio} />
     </div>
