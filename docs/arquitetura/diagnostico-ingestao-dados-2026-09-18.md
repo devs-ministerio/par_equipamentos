@@ -87,7 +87,8 @@ A validação acima confirmou que a carga estava correta *tecnicamente* (idempot
 fabricar dado, CNES validado), mas o **destino** estava errado: os 249 instrumentos foram
 gravados só em `instrumento_equipamento` (monitoramento interno). O usuário corrigiu o
 requisito depois de ver o resultado: FAF/TED/PERSUS I/PERSUS II/PRONON pertencem ao universo
-de `convenio` ("Instrumentos firmados", igual aos 403 Convênio/SICONV) — só permanecem
+  de `convenio` (etapa de interface **Instrumentos/Programas**, igual aos 403 registros
+  Convênio/SICONV) — só permanecem
 *também* no monitoramento interno o que a equipe já acompanhava manualmente (Convênio, FAF,
 TED) e PERSUS I ainda não inaugurado.
 
@@ -106,6 +107,9 @@ corrigiram os 249 registros já commitados sem perder histórico:
 Estado final no Neon: **91 instrumentos no monitoramento interno** (71 Convênio + 12 FAF +
 3 TED + 5 PERSUS I não inaugurado) e **581 registros em `convenio`** (403 originais + 178
 novos: FAF, TED, PERSUS I completo, PERSUS II, PRONON).
+
+Na interface, essa etapa é denominada **Instrumentos/Programas**. `convenio` permanece apenas
+como nome técnico da tabela e da camada de persistência legada.
 
 ### Identificador visível vs. chave de upsert
 
@@ -170,3 +174,96 @@ idempotente contra o Neon já corrigido: `convenio_atualizados=163`, `monitorame
 zero criação nova; reconciliação da planilha (`somente_ausentes=True`) devolveu 0 criados/
 126 reconciliados, confirmando que o FAF/TED corrigido é reencontrado pelo `chave_origem` sem
 duplicar sob o novo `nr_convenio` aleatório.
+
+### Auditoria sênior PERSUS — revisão visual e semântica (2026-09-18)
+
+A planilha `Apresentação PER-SUS.xlsx` foi conferida pela aba operacional `Panorama PER-SUS`.
+Os 92 projetos válidos são aceleradores lineares; `A`, `C`, `C.B`, `CV` e `EO` descrevem a
+forma de implantação (infraestrutura/equipamento), não modelos de equipamento. A interface
+agora mantém “Acelerador linear” como equipamento do programa e apresenta a tipologia em
+chip próprio, com o dicionário da fonte. O programa passou a ser exibido como
+**Plano de Expansão da Radioterapia no SUS - PERSUS** (com a fase I/II).
+
+As abas `Obras retomadas`, `Norte`, `Nordeste`, `Centro Oeste`, `Sudeste` e `Sul` são
+resumos/recortes de conferência e não entram como linhas de ingestão. A reconciliação confirmou
+92 PERSUS I, sendo 87 inaugurados e 5 ainda monitorados internamente; PERSUS II tem 50 e
+PRONON 21. O Neon ficou com 92 PERSUS I, 50 PERSUS II e 21 PRONON em `convenio`, tipologia
+preenchida em todos os PERSUS, cinco instrumentos PERSUS I no monitoramento interno e zero
+rejeições na carga corrigida.
+
+A etapa visual também encontrou e corrigiu a apresentação que rotulava todos os projetos como
+“Acelerador Linear Radioterapia” sem distinguir a tipologia. A carga continua inicial,
+idempotente e controlada; as alterações posteriores devem ocorrer pelos eventos e ações do
+monitoramento interno.
+
+### Auditoria complementar FAF/TED
+
+No Neon existem 12 FAF e 3 TED. A comparação dos campos de cadastro mostrou que as lacunas
+não são falha silenciosa da carga: a aba operacional da planilha também não fornece esses
+dados para todos os registros. O quadro atual é:
+
+- FAF: 1 sem equipamento planejado, 6 sem componente, 1 sem finalidade, 3 sem suplente,
+  5 sem nível de monitoramento, 1 sem modalidade oncológica e 12 sem responsável técnico;
+- TED: nenhum sem equipamento planejado, 2 sem componente, 2 sem finalidade, 2 sem suplente,
+  2 sem nível de monitoramento, nenhum sem modalidade oncológica e 3 sem responsável técnico.
+
+CNES e técnico titular estão preenchidos nos 15 registros. Os campos físico (marca, modelo,
+número de série e vida útil) permanecem corretamente vazios até a confirmação da entrega pelo
+estabelecimento. O marcador “Radioterapia” foi removido por ser componente/serviço, não
+equipamento; o marcador automático fica reservado a “Acelerador Linear”. Tipologia não é
+marcador visual: aparece apenas como informação textual junto ao programa PERSUS.
+
+O único FAF sem equipamento planejado é o NUP `25000083818202628`, da Unidade Mista Carlos
+Modesto dos Santos (Ituiutaba/MG). A linha correspondente da aba `Planilha Monitoramento `
+não possui `ID MODELO NO SIGEM/TRANSFEREGOV`, componente ou finalidade; portanto o vazio é
+fiel à fonte e não deve ser preenchido por inferência.
+
+### Correção final do escopo do monitoramento interno (2026-09-18)
+
+Após revisão, o usuário confirmou que somente os PERSUS I ainda não entregues devem ser
+acompanhados internamente. PERSUS I entregues, PERSUS II e PRONON permanecem exclusivamente
+em `convenio`/Instrumentos firmados. Os 158 registros que haviam sido incluídos indevidamente
+foram removidos com autorização explícita, preservando os registros da fonte em `convenio`.
+
+Estado final no Neon: **91 instrumentos no monitoramento interno** — 71 Convênios, 12 FAF,
+3 TED e 5 PERSUS I não entregues. O catálogo continua com os marcos específicos do PERSUS I
+(Ordem de Serviço, TRP, TRD, Chegada na obra, licença CNEN e inauguração); `PRAZO TOTAL` é
+preservado como duração na observação do evento, sem conversão artificial em data.
+
+### Auditoria PRONON contra a API pública TransfereGov Parcerias (2026-09-18)
+
+Pedido do usuário: conferir se os 21 PRONON da carga (`pronon.csv`) já existem oficialmente na
+API pública `api-publica.transferegov.gestao.gov.br/parcerias`, e se essa API tem mais casos de
+equipamento prioritário (Acelerador Linear, Mamógrafo, PET/CT, Gama-câmara/SPECT,
+Braquiterapia) que a carga original não cobriu.
+
+- **`cd_parceria` (ex. `202500023008`) não é o NUP SEI.** É o código formal gerado pelo
+  TransfereGov novo quando uma proposta é formalizada em parceria; o NUP SEI (`cd_processo_sei`
+  na API) é de outro sistema e pode vir vazio mesmo quando a parceria já existe.
+- Batimento por CNPJ dos 21 PRONON contra a API: **16 de 21 já têm parceria formalizada e NUP
+  SEI reais** na API (`in_finalidade='PRONON'`, `id_programa` 96/97/98); 5 não têm proposta de
+  Acelerador Linear localizável por esse CNPJ na API.
+- Varredura ampliada (sem restringir aos CNPJs já carregados) nos 3 ciclos PRONON reais
+  (`id_programa` 4, 96, 97, 98, 11 — nomes variam por ciclo/ano, todos com `in_finalidade` ligado
+  a PRONON) achou mais **16 propostas de Acelerador Linear** fora da carga original — todas com
+  `cd_parceria`/NUP SEI já formalizados.
+- Varredura nos 18 programas de saúde/oncologia relacionados (nome contendo
+  CANCER/CÂNCER/ONCOLOG/PRONON) filtrando pelos 5 equipamentos prioritários achou 136 propostas
+  candidatas por palavra-chave; **curadoria manual do `ds_objeto` completo** (não só o trecho
+  truncado) descartou 7 como falso positivo puro (capacitação de recursos humanos, prestação de
+  serviço/exame sem aquisição de equipamento, menção genérica dentro de um texto de dashboard) e
+  marcou 5 como ambíguo (não fica claro no texto se é aquisição de equipamento novo ou uso de um
+  já existente/serviço móvel).
+- **18 entidades com aquisição real de equipamento prioritário, confirmada por leitura completa
+  do objeto, ficaram fora da carga original** — nenhuma delas ainda tem `cd_parceria`/NUP SEI
+  formalizado na API (todas em estágio de "Proposta", não "Parceria" ainda). Carregadas por
+  `scripts/importar_pronon_api_complementar.py` (idempotente por `chave_origem =
+  f"PRONON-API-{id_proposta}"`, testado local antes do Neon) só em `convenio` — nenhuma vai para
+  o monitoramento interno (mesmo critério do resto do PRONON: sem parceria formalizada, não é
+  caso de acompanhamento ativo da equipe). Sociedade Beneficente Hospital Sírio-Libanês entrou
+  como 2 linhas (Braquiterapia e Acelerador Linear são propostas/ciclos distintos do mesmo CNPJ).
+  Estado final: **40 PRONON em `convenio`** (21 originais + 19 novos), **600 registros totais em
+  `convenio`**.
+- Campos não disponíveis nesta fonte (API de proposta, não de estabelecimento): CNES (não
+  resolvido por CNPJ — nenhum cruzamento inventado), valor financeiro (`nr_vlr_total` não veio
+  preenchido nas propostas consultadas).
