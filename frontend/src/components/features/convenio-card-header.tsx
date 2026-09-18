@@ -30,7 +30,7 @@ export function ConvenioCardHeader({
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-[11.5px] font-bold text-primary bg-secondary py-0.5 px-[9px] rounded-[5px] font-mono">
-              {c.tipoContratacao ?? 'Convênio'} {c.numero}
+              {c.numero}
             </span>
             {c.numeroInstrumento && <span className="text-[11px] text-muted-foreground/70 font-mono">{c.numeroInstrumento}</span>}
             {monitorado && (
