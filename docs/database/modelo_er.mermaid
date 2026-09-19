@@ -1,5 +1,5 @@
 %% Modelo ER completo do schema operacional do SIGEO.
-%% Fonte da verdade: backend/app/db/models.py; atualizado em 2026-09-16.
+%% Fonte da verdade: backend/app/db/models.py; atualizado em 2026-09-19.
 erDiagram
     USER ||--o{ AUDIT_LOG : user_id
     USER ||--o{ CONFIG_DECISION : confirmed_by
@@ -23,6 +23,11 @@ erDiagram
     INSTRUMENTO_EQUIPAMENTO ||--o{ EVENTO_MARCO : instrumento_id
     INSTRUMENTO_EQUIPAMENTO ||--o{ ACAO_MONITORAMENTO : instrumento_id
     MARCO_CATALOGO ||--o{ EVENTO_MARCO : marco_id
+    MARCO_CATALOGO |o--o{ EVENTO_MARCO : fase_geral_id
+    USER |o--o{ ACAO_MONITORAMENTO : responsavel_id
+    USER |o--o{ ACAO_MONITORAMENTO : criado_por_id
+    EVENTO_MARCO |o--o| EVENTO_MARCO : substituido_por_id
+    ACAO_MONITORAMENTO |o--o| ACAO_MONITORAMENTO : substituido_por_id
 
     USER {
         bigint id PK
@@ -181,7 +186,8 @@ erDiagram
         int equipamento_vida_util_anos "CHECK nao negativo"
         string tipo_contratacao
         string origem_dado
-        string tipologia "CHECK A/CV/C/EO/C.B/NA"
+        string tipologia "CHECK A/CV/C/EO/C.B/NA, unificado com finalidade (removida) 2026-09-19"
+        string modalidade_onco "CHECK Apoio/Diagnostico/Rastreamento/Tratamento/Multiplas"
         numeric investimento_aquisicao "CHECK nao negativo"
         string situacao_programa
         string natureza_servico
@@ -191,10 +197,16 @@ erDiagram
         bigint id PK
         bigint instrumento_id FK
         bigint marco_id FK
+        bigint fase_geral_id FK "obrigatorio p/ marco fisico/regulatorio, 2026-09-19"
         bigint autor_id FK
         date data_ocorrencia
         date data_prevista
         string status_regulatorio
+        datetime atualizado_em "ciclo de vida append-only, 2026-09-19"
+        bigint substituido_por_id FK "self, correcao aponta pro evento novo"
+        datetime deletado_em "soft delete, nunca DELETE fisico"
+        bigint deletado_por_id FK
+        string motivo_exclusao
     }
     ACAO_MONITORAMENTO {
         bigint id PK
@@ -202,7 +214,14 @@ erDiagram
         string descricao
         date data_prevista
         date data_conclusao
-        string responsavel
+        string responsavel "legado texto livre"
+        bigint responsavel_id FK "2026-09-19, substitui responsavel"
+        bigint criado_por_id FK "marcador de criador, 2026-09-19"
+        datetime atualizado_em "ciclo de vida append-only, 2026-09-19"
+        bigint substituido_por_id FK "self, correcao aponta pra acao nova"
+        datetime deletado_em "soft delete, nunca DELETE fisico"
+        bigint deletado_por_id FK
+        string motivo_exclusao
     }
     PROPOSTA_CANDIDATA {
         bigint id PK

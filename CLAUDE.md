@@ -68,7 +68,10 @@ reintroduzir o erro:
   regulatório CNEN), sempre fechado, append-only. Ação é texto livre da
   equipe (reunião, pendência), pendente até `data_conclusao` ser
   preenchida — é o único campo que uma ação recebe depois de criada.
-  Não reaproveitar uma tabela pra fazer o papel da outra.
+  Não reaproveitar uma tabela pra fazer o papel da outra. Desde
+  2026-09-19 (Plan Mode monitoramento-evolucao, ver seção própria abaixo)
+  as duas ganharam "editar"/"excluir" na UI, mas continuam append-only:
+  nunca UPDATE/DELETE físico numa linha existente.
 - **Equipamento PLANEJADO (`equipamento_descricao`, vem do SICONV) ≠
   equipamento FÍSICO entregue (`equipamento_marca/modelo/numero_serie/
   vida_util_anos`, cadastrado pela equipe)**: o planejado nunca é
@@ -129,6 +132,74 @@ reintroduzir o erro:
 - **`tecnico_titular/suplente` (nossa equipe) ≠ `responsavel_execucao_nome/
   contato` (da instituição/convenente)**: campos parecidos, fontes
   diferentes — não confundir ao exibir ou editar.
+
+## Plan Mode monitoramento-evolucao (2026-09-19)
+
+`docs/arquitetura/planmode-monitoramento-evolucao-2026-09-19.md` fechou o vínculo entre fase
+geral e cronograma físico/regulatório, tornou evento/ação editáveis/excluíveis de forma
+auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
+
+- **Ciclo de vida append-only real (Bloco 0/1)**: `EventoMarco`/`AcaoMonitoramento` ganharam
+  `atualizado_em`, `substituido_por_id` (self-FK) e `deletado_em`/`deletado_por_id`/
+  `motivo_exclusao`. "Editar" nunca faz UPDATE no lançamento original — cria um registro novo
+  corrigido e aponta o antigo pra ele via `substituido_por_id` (decisão do usuário, mantendo a
+  mesma disciplina do `ConfigDecision`); "excluir" é soft delete com motivo obrigatório, nunca
+  `DELETE` físico. "Ativo"/vigente = `substituido_por_id IS NULL AND deletado_em IS NULL` — só
+  isso entra no cálculo de fase e nas listagens padrão (`app/repositories/monitoramento.py`);
+  exclusão/correção nunca some de verdade, só sai da timeline visível.
+- **`EventoMarco.fase_geral_id`** (novo, obrigatório no service — `_validar_fase_geral_id` em
+  `app/services/monitoramento_eventos.py` — pra marco de grupo físico/regulatório; nulo quando o
+  próprio evento já é de grupo=fase_geral) fecha um bug real confirmado ao vivo: evento de
+  cronograma físico sendo lançado sem nunca mover a fase geral do instrumento. No frontend
+  (`monitoramento-interno-form-evento.tsx`) o seletor de fase aparece só depois que um marco
+  físico/regulatório é escolhido (não "fase primeiro, marco depois" como cogitado inicialmente —
+  desvio de UX registrado no plan-mode, aceito por ser mais simples sobre a estrutura existente e
+  ainda impedir o lançamento sem vínculo).
+- **`finalidade` foi REMOVIDA e unificada em `tipologia`** (decisão do usuário: "é a mesma
+  tipologia, use para todos") — `tipologia` (dicionário fechado `A`/`CV`/`C`/`EO`/`C.B`/`NA`, CHECK
+  em `InstrumentoEquipamento`) deixou de ser exclusiva de PERSUS e passou a valer pra todo
+  `tipo_contratacao`; o gate `tipoContratacao?.startsWith('PERSUS')` foi removido de
+  `convenio-card-header.tsx`. Mapeamento fechado aplicado no backfill da migration
+  (`e39d87b25964`): `Substituição→EO`, `Ampliação`/`Ampliação (cobalto)→A` — 61+18+2 registros
+  reais migrados, sem tentativa de reconstruir a distinção "cobalto" perdida no processo.
+- **`modalidade_onco` restrita por CHECK** a `Apoio`/`Diagnóstico`/`Rastreamento`/`Tratamento`/
+  `Múltiplas` (frontend `MODALIDADES_ONCO` em `lib/monitoramento-opcoes.ts` reduzido dos 10
+  valores antigos, nenhum dos removidos tinha uso real no banco).
+- **`AcaoMonitoramento.responsavel_id`/`criado_por_id`** (FK de `User`, novos) — `responsavel_id`
+  substitui o texto livre `responsavel` (mantido só como campo legado de leitura); `criado_por_id`
+  é o marcador de quem criou a ação, preenchido sempre pelo backend a partir do usuário
+  autenticado, nunca aceito do cliente. `EventoMarco.autor_id` já existia — só passou a ser
+  exibido na UI (`autor_nome` resolvido via `resolver_nomes_usuarios`, sem N+1).
+- **"Editar CNES" deixou de ser um picker solto no cabeçalho** — agora abre o mesmo dialog de
+  "Editar cadastro" (`monitoramento-interno-form-cadastro.tsx`), com todos os campos exceto CNES
+  desabilitados via `<fieldset disabled>` (prop `somenteCnes`, estado de abertura levantado pro
+  orquestrador `monitoramento-interno.tsx` pra o botão do cabeçalho conseguir forçar esse modo).
+- **Componente/Programa mesclados num único rótulo** no cabeçalho do detalhe do instrumento
+  (`monitoramento-interno-cabecalho.tsx`) — prioridade: `componente` (planilha) →
+  `componenteViaSiconv` (fallback já existente) → `programa` → `tp_instrumento_programa`. As
+  colunas continuam separadas no banco (proveniência diferente); só a apresentação unificou. Não
+  confundir com o formato `programa`/`componente` da feature de casamento de propostas
+  TransfereGov (`types/monitoramento.ts`), que é outro contexto e não foi tocado.
+- **Subtítulo "Convênio {nr}" removido** — breadcrumb/título/cabeçalho mostram só o número em
+  todo lugar (`monitoramento-instrumento-page.tsx`, `monitoramento-interno-cabecalho.tsx`).
+- **Fallback de "Valor global" pro dado do banco**: quando `ao_vivo.disponivel` é `false`
+  (Portal da Transparência só cobre Convênio/SICONV — FAF/TED/PERSUS/PRONON nunca têm essa fonte),
+  o cabeçalho do instrumento mostra `investimento_aquisicao` persistido no banco em vez de só
+  "indisponível", quando esse valor existir.
+- **Mesa de Trabalho**: colunas "Fase" e "Prestação de contas" trocaram de ordem; card
+  "Prestação concluída" virou "Concluídos", recalculado por `fase_atual === 'Concluído'` (antes
+  contava `situacao_prestacao_contas`, que só existe pra `tipo_contratacao="Convênio"`).
+- **Reversão do 877881**: era um `InstrumentoEquipamento` criado no mesmo dia só pra testar a
+  execução deste Plan Mode (nunca teve monitoramento real antes) — removido por completo
+  (cascata: evento + ações de teste), não só zerado, com `AuditLog` (`reverted_by_request`)
+  gravado antes do delete e snapshot local salvo fora do repo.
+- **Achado ao vivo, corrigido**: `allow_methods` do CORS (`backend/app/main.py`) não incluía
+  `DELETE` — os endpoints `DELETE /monitoramento/eventos/{id}` e `DELETE /monitoramento/acoes/{id}`
+  são novos deste Plan Mode e nunca tinham sido exercitados contra um browser real antes; preflight
+  `OPTIONS` falhava com 400. Lista passou a ser `GET/POST/PATCH/DELETE`.
+- Reordenação do cronograma físico (`MarcoCatalogo.ordem` pra grupo físico/regulatório, hoje só
+  populado pra fase_geral) ficou **fora desta rodada** por decisão do usuário — mesma pendência já
+  registrada como "em revisão com a equipe técnica" antes deste Plan Mode.
 
 ## Limitações conhecidas
 

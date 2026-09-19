@@ -272,15 +272,20 @@ A navegação funciona tecnicamente, mas possui problemas de orientação:
 
 #### Detalhe do instrumento
 
-- Desktop: possui informação completa, mas repete técnico, nível, finalidade,
-  valor, status e equipamento em três áreas diferentes.
+- Desktop: possui informação completa, mas repete técnico, nível, tipologia
+  (renomeado de "finalidade" no Plan Mode monitoramento-evolucao 2026-09-19),
+  valor, status e equipamento em três áreas diferentes. **Continua pendente**
+  — o Plan Mode 2026-09-19 mesclou Componente/Programa num único rótulo, mas
+  não reestruturou essa duplicação maior entre as três áreas.
 - Sete cards de resumo geram uma última linha com apenas “Prestação de contas”,
   quebrando a composição.
 - O emoji de inauguração contraria o padrão Lucide e a linguagem institucional. **Continua
   pendente** — fora do escopo literal do Bloco 7 (achado de composição visual, não de
   arquitetura de dado).
-- “Editar” aparece como texto pequeno no meio da linha, com affordance fraca. **Continua
-  pendente.**
+- ~~“Editar” aparece como texto pequeno no meio da linha, com affordance fraca.~~
+  *(resolvido no Plan Mode monitoramento-evolucao 2026-09-19 — "Editar CNES" virou
+  o mesmo dialog completo de "Editar cadastro"; "Editar"/"Excluir" de evento e ação
+  viraram botões com borda, lado a lado, no canto direito de cada card)*.
 - ~~Ações, fase, cronograma, CNEN e timeline formam uma página muito longa sem
   índice local ou agrupamento progressivo.~~ *(resolvido no Bloco 7, 2026-09-17 —
   `OperationalDetailSection` (`<details>` nativo) agrupa Fase/cronograma (aberto por padrão),
