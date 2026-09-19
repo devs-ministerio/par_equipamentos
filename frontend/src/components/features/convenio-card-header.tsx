@@ -81,7 +81,11 @@ export function ConvenioCardHeader({
       <p className="text-[12.5px] leading-normal mt-3 mb-0 bg-background border border-border rounded-md py-2 px-2.5">
         <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">Programa:</strong>
         {programaSiconv || '— (não encontrado em nenhuma fonte)'}
-        {c.tipologia && c.tipoContratacao?.startsWith('PERSUS') && (
+        {/* Tipologia deixou de ser exclusiva do PERSUS (Plan Mode
+            monitoramento-evolucao 2026-09-19, decisão do usuário: "é a
+            mesma tipologia, use para todos") -- mostra pra qualquer tipo
+            de contratação que tiver o campo preenchido. */}
+        {c.tipologia && (
           <span className="ml-2 text-muted-foreground">· Tipologia: {TIPOLOGIA_PERSUS[c.tipologia] ?? c.tipologia}</span>
         )}
       </p>

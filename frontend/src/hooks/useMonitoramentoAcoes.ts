@@ -1,5 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type CriarAcaoInput, concluirAcao, criarAcao, fetchAcoes } from '@/services/monitoramento-acoes';
+import {
+  type CriarAcaoInput,
+  type EditarAcaoInput,
+  concluirAcao,
+  criarAcao,
+  editarAcao,
+  excluirAcao,
+  fetchAcoes,
+} from '@/services/monitoramento-acoes';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** Todas as ações (ou só pendentes, `pendentes=true`) de todos os
@@ -40,6 +48,24 @@ export function useConcluirAcao() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (acaoId: number) => concluirAcao(acaoId),
+    onSuccess: () => invalidarAcoes(queryClient),
+  });
+}
+
+/** Corrigir uma ação (append-only, Plan Mode monitoramento-evolucao
+ * 2026-09-19) -- lança uma ação nova e fecha a antiga. */
+export function useEditarAcao() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ acaoId, corpo }: { acaoId: number; corpo: EditarAcaoInput }) => editarAcao(acaoId, corpo),
+    onSuccess: () => invalidarAcoes(queryClient),
+  });
+}
+
+export function useExcluirAcao() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ acaoId, motivo }: { acaoId: number; motivo: string }) => excluirAcao(acaoId, motivo),
     onSuccess: () => invalidarAcoes(queryClient),
   });
 }

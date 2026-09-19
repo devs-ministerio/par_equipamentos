@@ -1,12 +1,9 @@
 /** Cabeçalho de MonitoramentoInterno -- card de identificação/valor global +
  * grid de indicadores rápidos. Extraído do arquivo original (Seção 6 da
  * migração). */
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { InstrumentoTimeline } from '@/services/monitoramento-instrumentos';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
-import { CnesPicker } from '@/components/common/cnes-picker';
-import { TIPOLOGIA_PERSUS } from '@/data/constants';
 import { estiloCard, StatusPill } from './monitoramento-ui';
 
 export function MonitoramentoInternoCabecalho({
@@ -22,7 +19,7 @@ export function MonitoramentoInternoCabecalho({
   acoesAbertasCount,
   acoesAtrasadasCount,
   podeEditar,
-  onSalvarCnes,
+  onEditarCnes,
 }: {
   timeline: InstrumentoTimeline;
   componenteViaSiconv: string | null;
@@ -38,15 +35,14 @@ export function MonitoramentoInternoCabecalho({
   /** CNES editável -- mesmo gate de permissão do resto do cadastro;
    * validação de verdade (CNES existe na base?) é sempre no backend. */
   podeEditar: boolean;
-  onSalvarCnes: (cnes: string | null) => void;
+  /** Abre a seção "Cadastro interno" em modo somente-CNES (Plan Mode
+   * monitoramento-evolucao 2026-09-19) -- substitui o picker inline que
+   * existia direto aqui no cabeçalho. */
+  onEditarCnes: () => void;
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
-  const [editandoCnes, setEditandoCnes] = useState(false);
   const equipamentoReferencia = inst.equipamento_descricao ?? 'Não informado';
-  const programaFonte = [inst.tp_instrumento_programa, inst.tipologia && `Tipologia: ${TIPOLOGIA_PERSUS[inst.tipologia] ?? inst.tipologia}`]
-    .filter(Boolean)
-    .join(' · ');
   const origemAlternativa = Boolean(inst.origem_dado);
   const prestacaoConcluida = inst.situacao_prestacao_contas?.toLocaleLowerCase('pt-BR').includes('concluída') ?? false;
   const divergenciaInauguracao = inaugurado && inst.tipo_contratacao === 'Convênio' && !prestacaoConcluida;
@@ -102,7 +98,7 @@ export function MonitoramentoInternoCabecalho({
         <div className="flex justify-between flex-wrap gap-3">
           <div>
             <div className="font-bold text-[15px] flex items-center gap-2">
-              Convênio {inst.nr_convenio} — {inst.nome_convenente}
+              {inst.nr_convenio} — {inst.nome_convenente}
               {/* Chip de tipo_contratacao -- os 28 registros FAF/TED (sem
                   numero TransfereGov, usam o NUP SEI como identificador
                   aqui) agora convivem com os Convênio de verdade. */}
@@ -117,33 +113,33 @@ export function MonitoramentoInternoCabecalho({
               {podeEditar && (
                 <button
                   type="button"
-                  onClick={() => setEditandoCnes((v) => !v)}
+                  onClick={onEditarCnes}
                   className="ml-1 text-[10.5px] font-semibold text-primary hover:underline"
                 >
                   editar
                 </button>
               )}
-              {editandoCnes && (
-                <CnesPicker
-                  valorAtual={inst.cnes}
-                  onEscolher={(cnes) => {
-                    onSalvarCnes(cnes);
-                    setEditandoCnes(false);
-                  }}
-                  onCancelar={() => setEditandoCnes(false)}
-                />
-              )}
               {' · '}
               <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">{inst.equipamento_descricao}</span>
             </div>
+            {/* Componente/Programa mesclados num único rótulo (Plan Mode
+                monitoramento-evolucao 2026-09-19, decisão do usuário: "serve
+                pra todo o sistema") -- as duas colunas de proveniência
+                continuam separadas no banco (planilha vs. TransfereGov), só
+                a APRESENTAÇÃO unifica, com prioridade pra quem tem dado
+                mais específico. */}
             <div className="text-xs text-muted-foreground mt-1">
-              Programa: {inst.programa ?? '—'}{programaFonte ? ` (${programaFonte})` : ''} · Componente:{' '}
+              Componente/Programa:{' '}
               {inst.componente ? (
                 <strong>{inst.componente}</strong>
               ) : componenteViaSiconv ? (
                 <span title="Não preenchido na planilha da equipe — derivado do programa SICONV pra esse convênio">
                   <strong>{componenteViaSiconv}</strong> <em className="not-italic text-muted-foreground/70">(via SICONV)</em>
                 </span>
+              ) : inst.programa ? (
+                <strong>{inst.programa}</strong>
+              ) : inst.tp_instrumento_programa ? (
+                <strong>{inst.tp_instrumento_programa}</strong>
               ) : (
                 <strong>—</strong>
               )}
@@ -170,8 +166,18 @@ export function MonitoramentoInternoCabecalho({
                   </div>
                 )}
               </>
+            ) : inst.investimento_aquisicao != null ? (
+              // Sem fonte oficial ao vivo (Portal da Transparência só
+              // cobre Convênio/SICONV) -- mostra o valor persistido no
+              // banco, seja qual for a origem (FAF/TED/PERSUS/PRONON),
+              // em vez de só dizer "indisponível" quando o dado existe
+              // localmente (Plan Mode monitoramento-evolucao 2026-09-19).
+              <>
+                <div className="text-base font-semibold">{fmtMoeda(inst.investimento_aquisicao)}</div>
+                <div className="text-[11px] text-muted-foreground">Valor de investimento (base interna)</div>
+              </>
             ) : (
-              <div className="text-xs font-semibold text-warning">Indisponível no Portal da Transparência</div>
+              <div className="text-xs font-semibold text-warning">Sem dado de valor global disponível</div>
             )}
           </div>
         </div>

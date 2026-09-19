@@ -2,8 +2,10 @@
  * paleta clara reaproveitando as variaveis Tailwind/shadcn (mesma linguagem
  * visual do Dashboard/Painel Geral), pagina continua fora do AppLayout
  * (decisao 2026-09-03, ver MonitoramentoEquipamentosPage.tsx). */
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { situacaoVariant, VARIANT_DOT_CLASSES, type SituacaoVariant } from '@/lib/monitoramento-status';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
 
 /** Sombra suave em vez de so borda -- cartao "flutua" sobre o fundo
  * (bg-background) ao inves de se misturar nele, mesma linguagem visual
@@ -107,6 +109,62 @@ export function AjudaCampo({ id, texto }: { id: string; texto?: string }) {
     <p id={id} className="text-[10.5px] text-muted-foreground mt-1 mb-0">
       {texto}
     </p>
+  );
+}
+
+/** Confirmação de exclusão lógica com motivo obrigatório (Plan Mode
+ * monitoramento-evolucao 2026-09-19) -- compartilhado entre eventos e
+ * ações, já que os dois seguem a mesma disciplina append-only (nunca
+ * DELETE físico, sempre motivo + autor registrados). */
+export function ConfirmarExclusaoComMotivo({
+  onExcluir,
+  onCancelar,
+}: {
+  onExcluir: (motivo: string) => Promise<void>;
+  onCancelar: () => void;
+}) {
+  const [motivo, setMotivo] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  return (
+    <div className="mt-2 rounded-md border border-destructive/30 bg-destructive-bg/40 p-2.5">
+      <label className="text-[11px] text-muted-foreground block mb-1">Motivo da exclusão</label>
+      <textarea
+        className={cn(estiloInput, 'w-full min-h-[50px] bg-background')}
+        value={motivo}
+        onChange={(e) => setMotivo(e.target.value)}
+        placeholder="Explique por que este lançamento está sendo excluído..."
+      />
+      <ErroCampo id="motivo-exclusao-error" mensagem={erro ?? undefined} />
+      <div className="flex gap-2 mt-2">
+        <button
+          type="button"
+          disabled={enviando}
+          onClick={async () => {
+            if (motivo.trim().length < 3) {
+              setErro('Explique o motivo (mínimo 3 caracteres).');
+              return;
+            }
+            setErro(null);
+            setEnviando(true);
+            try {
+              await onExcluir(motivo.trim());
+            } catch (e) {
+              setErro(mensagemSeguraDoErro(e));
+            } finally {
+              setEnviando(false);
+            }
+          }}
+          className={cn(estiloInput, 'cursor-pointer bg-destructive text-destructive-foreground border-none text-[11.5px] font-semibold py-1 px-2.5')}
+        >
+          {enviando ? 'Excluindo...' : 'Confirmar exclusão'}
+        </button>
+        <button type="button" onClick={onCancelar} className="text-[11.5px] text-muted-foreground hover:underline">
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }
 

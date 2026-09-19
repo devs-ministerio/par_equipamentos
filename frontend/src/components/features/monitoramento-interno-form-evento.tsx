@@ -21,27 +21,53 @@ const GRUPOS: { chave: MarcoCatalogo['grupo']; rotulo: string }[] = [
 export function MonitoramentoInternoFormEvento({
   marcos,
   onRegistrar,
+  valoresIniciais,
+  marcoFixo,
+  rotuloSubmit = 'Registrar evento',
 }: {
   marcos: MarcoCatalogo[];
   onRegistrar: (valores: EnviarEventoFormValues) => Promise<void>;
+  /** Pré-preenche o form pra correção (Plan Mode monitoramento-evolucao
+   * 2026-09-19) -- "editar" é sempre uma correção append-only, nunca um
+   * UPDATE do lançamento original. */
+  valoresIniciais?: Partial<EnviarEventoFormValues>;
+  /** Em modo correção o marco/instrumento do evento original nunca mudam
+   * (ver docstring do backend) -- mostra o marco como texto fixo em vez de
+   * select editável. */
+  marcoFixo?: MarcoCatalogo;
+  rotuloSubmit?: string;
 }) {
   const {
     register,
     handleSubmit,
     watch,
+    setError,
     formState: { errors, isSubmitting },
-  } = useForm<EnviarEventoFormValues>({ resolver: zodResolver(enviarEventoSchema) });
+  } = useForm<EnviarEventoFormValues>({
+    resolver: zodResolver(enviarEventoSchema),
+    defaultValues: valoresIniciais ?? (marcoFixo ? { marcoId: String(marcoFixo.id) } : undefined),
+  });
 
   const marcoIdSelecionado = watch('marcoId');
-  const marcoDoForm = marcos.find((m) => String(m.id) === marcoIdSelecionado);
+  const marcoDoForm = marcoFixo ?? marcos.find((m) => String(m.id) === marcoIdSelecionado);
   const ehRegulatorio = marcoDoForm?.grupo === 'regulatorio';
   const ehLicencaOperacao = marcoDoForm?.codigo === 'regulatorio_licenca_operacao';
+  // Marco de cronograma físico/regulatório precisa indicar a fase geral
+  // correspondente (Plan Mode monitoramento-evolucao 2026-09-19 -- fecha o
+  // bug de evento registrado sem mover a fase geral). Obrigatório aqui e
+  // validado de novo no backend.
+  const precisaFaseGeral = Boolean(marcoDoForm) && marcoDoForm?.grupo !== 'fase_geral';
+  const fasesGerais = marcos.filter((m) => m.grupo === 'fase_geral');
   // Achado 2026-09-09, 2a rodada (pedido do usuario: "o equipamento
   // entregue pode mover para eventos") -- so o marco de entrega pede os
   // campos fisicos, junto do mesmo lancamento.
   const ehEntrega = marcoDoForm?.codigo === 'cronograma_entrega';
 
   async function aoSubmeter(valores: EnviarEventoFormValues) {
+    if (precisaFaseGeral && !valores.faseGeralId) {
+      setError('faseGeralId', { message: 'Selecione a fase geral correspondente.' });
+      return;
+    }
     try {
       await onRegistrar(valores);
     } catch {
@@ -56,25 +82,52 @@ export function MonitoramentoInternoFormEvento({
           <label htmlFor="evento-marco" className="text-[11px] text-muted-foreground block mb-1">
             Marco
           </label>
-          <select
-            id="evento-marco"
-            className={cn(estiloInput, 'w-full')}
-            aria-invalid={Boolean(errors.marcoId)}
-            aria-describedby={idsDescricaoCampo('evento-marco', Boolean(errors.marcoId), false)}
-            defaultValue=""
-            {...register('marcoId')}
-          >
-            <option value="" disabled>Selecione o marco...</option>
-            {GRUPOS.map(({ chave, rotulo }) => (
-              <optgroup key={chave} label={rotulo}>
-                {marcos.filter((m) => m.grupo === chave).map((m) => (
-                  <option key={m.id} value={m.id}>{m.rotulo}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+          {marcoFixo ? (
+            // Corrigir não muda o marco/instrumento do lançamento original
+            // (ver docstring do backend) -- mostra fixo em vez de editável.
+            <div className={cn(estiloInput, 'w-full bg-background text-muted-foreground')}>{marcoFixo.rotulo}</div>
+          ) : (
+            <select
+              id="evento-marco"
+              className={cn(estiloInput, 'w-full')}
+              aria-invalid={Boolean(errors.marcoId)}
+              aria-describedby={idsDescricaoCampo('evento-marco', Boolean(errors.marcoId), false)}
+              defaultValue=""
+              {...register('marcoId')}
+            >
+              <option value="" disabled>Selecione o marco...</option>
+              {GRUPOS.map(({ chave, rotulo }) => (
+                <optgroup key={chave} label={rotulo}>
+                  {marcos.filter((m) => m.grupo === chave).map((m) => (
+                    <option key={m.id} value={m.id}>{m.rotulo}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          )}
           <ErroCampo id="evento-marco-error" mensagem={errors.marcoId?.message} />
         </div>
+        {precisaFaseGeral && (
+          <div className="flex-1 min-w-52">
+            <label htmlFor="evento-fase-geral" className="text-[11px] text-muted-foreground block mb-1">
+              Fase geral correspondente
+            </label>
+            <select
+              id="evento-fase-geral"
+              className={cn(estiloInput, 'w-full')}
+              aria-invalid={Boolean(errors.faseGeralId)}
+              aria-describedby={idsDescricaoCampo('evento-fase-geral', Boolean(errors.faseGeralId), false)}
+              defaultValue=""
+              {...register('faseGeralId')}
+            >
+              <option value="" disabled>Selecione a fase...</option>
+              {fasesGerais.map((f) => (
+                <option key={f.id} value={f.id}>{f.rotulo}</option>
+              ))}
+            </select>
+            <ErroCampo id="evento-fase-geral-error" mensagem={errors.faseGeralId?.message} />
+          </div>
+        )}
         <div>
           {/* Rotulo dinamico -- pedido do usuario 2026-09-09: "a licenca
               cnen vamos precisar da data da licença e da data de validade
@@ -161,7 +214,7 @@ export function MonitoramentoInternoFormEvento({
         disabled={isSubmitting}
         className={cn(estiloInput, 'cursor-pointer bg-success text-success-foreground border-none justify-self-start font-semibold')}
       >
-        {isSubmitting ? 'Enviando...' : 'Registrar evento'}
+        {isSubmitting ? 'Enviando...' : rotuloSubmit}
       </button>
     </form>
   );

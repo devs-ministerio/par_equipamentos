@@ -68,7 +68,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_lista,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH"],
+    # DELETE adicionado no Plan Mode monitoramento-evolucao 2026-09-19
+    # (PATCH/DELETE de eventos/ações) -- achado ao vivo: preflight OPTIONS
+    # falhava com a lista antiga (GET/POST/PATCH), sem DELETE.
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", CSRF_HEADER_NAME],
 )
 

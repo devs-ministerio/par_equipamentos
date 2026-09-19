@@ -29,11 +29,11 @@ export function MonitoramentoInstrumentoPage() {
           <>
             <Link to="/monitoramento-equipamentos/instrumentos" className="text-muted-foreground no-underline hover:text-primary">Monitoramento interno</Link>
             <span className="mx-1.5">›</span>
-            <span className="text-primary">Convênio {nrConvenio}</span>
+            <span className="text-primary">{nrConvenio}</span>
           </>
         }
         eyebrow="Monitoramento interno"
-        title={`Convênio ${nrConvenio}`}
+        title={nrConvenio}
         description="Eventos, prazos e pendências do instrumento."
       />
 

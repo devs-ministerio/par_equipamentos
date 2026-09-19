@@ -86,12 +86,12 @@ export function MonitoramentoOverviewPage() {
   // passado em vez da mais próxima no futuro.
   const proximaInauguracao = resumo.inauguracoes.find((i) => !i.realizada && i.dias >= 0) ?? null;
 
-  // "Concluídos" -- mesmo critério do card de mesmo nome em Instrumentos
-  // firmados (SIT_CONVENIO do SICONV legado), agora sobre o subconjunto
-  // MONITORADO internamente. Só existe pra tipo_contratacao="Convênio"
-  // (FAF/TED nunca estiveram no SICONV, situacao_prestacao_contas fica
-  // sempre null neles).
-  const concluidos = instrumentos.filter((i) => i.situacao_prestacao_contas === PRESTACAO_CONTAS_CONCLUIDA).length;
+  // "Concluídos" -- Plan Mode monitoramento-evolucao 2026-09-19: passou a
+  // contar por `fase_atual === 'Concluído'` (marco de fase geral, mesmo
+  // catálogo pro instrumento inteiro), não mais por
+  // `situacao_prestacao_contas` (SICONV legado, só existia pra tipo_
+  // contratacao="Convênio" -- FAF/TED/PERSUS nunca tinham esse dado).
+  const concluidos = instrumentos.filter((i) => i.fase_atual === 'Concluído').length;
 
   // Configuração pendente -- aceitar uma proposta em "Linhas de
   // financiamento" cria o InstrumentoEquipamento (entra na contagem
@@ -132,7 +132,7 @@ export function MonitoramentoOverviewPage() {
           { key: 'execucao', label: 'Execução média', value: resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—' },
           { key: 'licencas', label: 'Licenças a vencer', value: resumo.licencas_vencendo.length, variant: resumo.licencas_vencendo.length ? 'warning' : 'success' },
           { key: 'inauguracao', label: 'Próxima inauguração', value: proximaInauguracao ? fmtData(proximaInauguracao.data) : '—', variant: 'primary' },
-          { key: 'concluidos', label: 'Prestação concluída', value: concluidos, variant: 'success' },
+          { key: 'concluidos', label: 'Concluídos', value: concluidos, variant: 'success' },
           { key: 'pendentes', label: 'Sem técnico', value: configuracaoPendente, variant: configuracaoPendente ? 'warning' : 'success' },
         ]} />
       </div>
@@ -155,9 +155,9 @@ export function MonitoramentoOverviewPage() {
                   <th className="py-1 px-2">Instrumentos/Programas</th>
                   <th className="py-1 px-2">Convenente</th>
                   <th className="py-1 px-2">UF/Município</th>
-                  <th className="py-1 px-2">Fase</th>
-                  <th className="py-1 px-2">Técnico titular</th>
                   <th className="py-1 px-2">Prestação de contas</th>
+                  <th className="py-1 px-2">Técnico titular</th>
+                  <th className="py-1 px-2">Fase</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,12 +175,6 @@ export function MonitoramentoOverviewPage() {
                     </td>
                     <td className="py-1.5 px-2">{i.nome_convenente}</td>
                     <td className="py-1.5 px-2">{i.uf}/{i.municipio}</td>
-                    <td className="py-1.5 px-2">{i.fase_atual ?? '—'}</td>
-                    <td className="py-1.5 px-2">
-                      {i.tecnico_titular ?? (
-                        <span className="text-[10px] font-bold py-px px-1.5 rounded-full bg-warning-bg text-warning">Pendente</span>
-                      )}
-                    </td>
                     <td className="py-1.5 px-2">
                       {i.situacao_prestacao_contas === PRESTACAO_CONTAS_CONCLUIDA ? (
                         <span className="text-[10px] font-bold py-px px-1.5 rounded-full bg-success-bg text-success">Concluída</span>
@@ -188,6 +182,12 @@ export function MonitoramentoOverviewPage() {
                         i.situacao_prestacao_contas ?? '—'
                       )}
                     </td>
+                    <td className="py-1.5 px-2">
+                      {i.tecnico_titular ?? (
+                        <span className="text-[10px] font-bold py-px px-1.5 rounded-full bg-warning-bg text-warning">Pendente</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 px-2">{i.fase_atual ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

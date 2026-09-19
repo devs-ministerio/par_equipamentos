@@ -10,8 +10,8 @@ import { useState } from 'react';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useConvenioPrograma } from '@/hooks/useConvenioPrograma';
 import { useMonitoramentoMarcos } from '@/hooks/useMonitoramentoMarcos';
-import { useInstrumentoTimeline, useRegistrarEvento, useSalvarCadastroInstrumento } from '@/hooks/useInstrumentoTimeline';
-import { useAcoesDoInstrumento, useConcluirAcao, useCriarAcao } from '@/hooks/useMonitoramentoAcoes';
+import { useEditarEvento, useExcluirEvento, useInstrumentoTimeline, useRegistrarEvento, useSalvarCadastroInstrumento } from '@/hooks/useInstrumentoTimeline';
+import { useAcoesDoInstrumento, useConcluirAcao, useCriarAcao, useEditarAcao, useExcluirAcao } from '@/hooks/useMonitoramentoAcoes';
 import { componenteDoProgramaSiconv } from '@/lib/componente-siconv';
 import { derivarMonitoramentoInterno } from '@/lib/monitoramento-derivado';
 import { mensagemSeguraDoErro } from '@/lib/api-error';
@@ -26,6 +26,12 @@ import { MonitoramentoInternoEventos } from './monitoramento-interno-eventos';
 
 export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: string }) {
   const [erroEscrita, setErroEscrita] = useState<string | null>(null);
+  // Estado de abertura do "Cadastro interno" levantado pra cá (Plan Mode
+  // monitoramento-evolucao 2026-09-19) -- o botão "Editar CNES" do
+  // cabeçalho precisa poder forçar a abertura desta seção em modo
+  // somente-CNES, então o controle não pode ficar só dentro dela.
+  const [cadastroAberto, setCadastroAberto] = useState(false);
+  const [cadastroSomenteCnes, setCadastroSomenteCnes] = useState(false);
 
   // Fallback de componente via SICONV -- achado 2026-09-10 (bug real do
   // convenio 991708: a planilha da equipe deixou a celula "COMPONENTES DE
@@ -42,8 +48,12 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
 
   const salvarCadastro = useSalvarCadastroInstrumento(numeroConvenio);
   const registrarEventoMutation = useRegistrarEvento(numeroConvenio);
+  const editarEventoMutation = useEditarEvento(numeroConvenio);
+  const excluirEventoMutation = useExcluirEvento(numeroConvenio);
   const criarAcaoMutation = useCriarAcao(numeroConvenio);
   const concluirAcaoMutation = useConcluirAcao();
+  const editarAcaoMutation = useEditarAcao();
+  const excluirAcaoMutation = useExcluirAcao();
   const [concluindoAcaoId, setConcluindoAcaoId] = useState<number | null>(null);
 
   function tratarErroEscrita(e: unknown): never {
@@ -117,7 +127,10 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         acoesAbertasCount={acoesAbertas.length}
         acoesAtrasadasCount={acoesAtrasadas.length}
         podeEditar={sessao.podeEditar}
-        onSalvarCnes={(cnes) => salvarCadastro.mutate({ cnes }, { onError: tratarErroEscrita })}
+        onEditarCnes={() => {
+          setCadastroSomenteCnes(true);
+          setCadastroAberto(true);
+        }}
       />
 
       {/* "Acesso operacional" saiu daqui (achado 2026-09-15, pedido do
@@ -128,6 +141,16 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
       <MonitoramentoInternoCadastro
         instrumento={inst}
         podeEditar={sessao.podeEditar}
+        aberto={cadastroAberto}
+        somenteCnes={cadastroSomenteCnes}
+        onAbrir={() => {
+          setCadastroSomenteCnes(false);
+          setCadastroAberto(true);
+        }}
+        onFechar={() => {
+          setCadastroAberto(false);
+          setCadastroSomenteCnes(false);
+        }}
         onSalvar={async (valores) => {
           setErroEscrita(null);
           try {
@@ -135,10 +158,11 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
               tecnico_titular: valores.tecnicoTitular || null,
               tecnico_suplente: valores.tecnicoSuplente || null,
               nivel_monitoramento: valores.nivelMonitoramento || null,
-              finalidade: valores.finalidade || null,
+              tipologia: valores.tipologia || null,
               modalidade_onco: valores.modalidadeOnco || null,
               responsavel_execucao_nome: valores.responsavelExecucaoNome || null,
               responsavel_execucao_contato: valores.responsavelExecucaoContato || null,
+              cnes: valores.cnes || null,
             });
           } catch (e) {
             tratarErroEscrita(e);
@@ -187,6 +211,31 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                 onSettled: () => setConcluindoAcaoId(null),
               });
             }}
+            onEditar={async (acaoId, valores) => {
+              setErroEscrita(null);
+              try {
+                await editarAcaoMutation.mutateAsync({
+                  acaoId,
+                  corpo: {
+                    descricao: valores.descricao,
+                    data_prevista: valores.dataPrevista || null,
+                    responsavel: valores.responsavel || null,
+                  },
+                });
+              } catch (e) {
+                tratarErroEscrita(e);
+                throw e;
+              }
+            }}
+            onExcluir={async (acaoId, motivo) => {
+              setErroEscrita(null);
+              try {
+                await excluirAcaoMutation.mutateAsync({ acaoId, motivo });
+              } catch (e) {
+                tratarErroEscrita(e);
+                throw e;
+              }
+            }}
           />
         </OperationalDetailSection>
 
@@ -200,6 +249,7 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
               try {
                 await registrarEventoMutation.mutateAsync({
                   marco_id: Number(valores.marcoId),
+                  fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
                   data_ocorrencia: valores.dataOcorrencia || null,
                   data_prevista: valores.dataPrevista || null,
                   status_regulatorio: valores.statusRegulatorio || null,
@@ -215,6 +265,35 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                 });
               } catch (e) {
                 tratarErroEscrita(e);
+              }
+            }}
+            onEditar={async (eventoId, valores) => {
+              setErroEscrita(null);
+              try {
+                await editarEventoMutation.mutateAsync({
+                  eventoId,
+                  corpo: {
+                    fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
+                    data_ocorrencia: valores.dataOcorrencia || null,
+                    data_prevista: valores.dataPrevista || null,
+                    status_regulatorio: valores.statusRegulatorio || null,
+                    numero_documento: valores.numeroDocumento || null,
+                    data_validade: valores.dataValidade || null,
+                    observacao: valores.observacao || null,
+                  },
+                });
+              } catch (e) {
+                tratarErroEscrita(e);
+                throw e;
+              }
+            }}
+            onExcluir={async (eventoId, motivo) => {
+              setErroEscrita(null);
+              try {
+                await excluirEventoMutation.mutateAsync({ eventoId, motivo });
+              } catch (e) {
+                tratarErroEscrita(e);
+                throw e;
               }
             }}
           />

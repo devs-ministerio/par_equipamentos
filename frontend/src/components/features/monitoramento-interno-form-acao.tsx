@@ -11,21 +11,31 @@ import { idsDescricaoCampo } from '@/lib/monitoramento-status';
 export function MonitoramentoInternoFormAcao({
   podeEditar,
   onCriar,
+  valoresIniciais,
+  rotuloSubmit = '+ Adicionar',
+  rotuloEnviando = 'Adicionando...',
+  limparAoEnviar = true,
 }: {
   podeEditar: boolean;
   onCriar: (valores: CriarAcaoFormValues) => Promise<void>;
+  /** Pré-preenche pra correção (Plan Mode monitoramento-evolucao
+   * 2026-09-19) -- "editar" é sempre uma correção append-only. */
+  valoresIniciais?: Partial<CriarAcaoFormValues>;
+  rotuloSubmit?: string;
+  rotuloEnviando?: string;
+  limparAoEnviar?: boolean;
 }) {
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CriarAcaoFormValues>({ resolver: zodResolver(criarAcaoSchema) });
+  } = useForm<CriarAcaoFormValues>({ resolver: zodResolver(criarAcaoSchema), defaultValues: valoresIniciais });
 
   async function aoSubmeter(valores: CriarAcaoFormValues) {
     try {
       await onCriar(valores);
-      reset();
+      if (limparAoEnviar) reset();
     } catch {
       // Erro de escrita vira o banner global da página.
     }
@@ -80,7 +90,7 @@ export function MonitoramentoInternoFormAcao({
           disabled={!podeEditar || isSubmitting}
           className={cn(estiloInput, 'cursor-pointer bg-primary text-primary-foreground border-none font-semibold')}
         >
-          {isSubmitting ? 'Adicionando...' : '+ Adicionar'}
+          {isSubmitting ? rotuloEnviando : rotuloSubmit}
         </button>
       </div>
     </form>

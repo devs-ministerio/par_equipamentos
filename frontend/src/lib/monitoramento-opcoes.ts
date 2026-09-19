@@ -20,20 +20,11 @@ export const TECNICOS_EQUIPE = ['BRUNA', 'BRUNA MACHADO', 'LAYANE', 'LEONARDO BA
  * (ESTRATÉGICO, TÁTICO E SIMPLIFICADO)"). */
 export const NIVEIS_MONITORAMENTO = ['Estratégico', 'Tático', 'Simplificado'];
 
-export const FINALIDADES = ['Ampliação', 'Ampliação (cobalto)', 'Substituição', 'Substituição e Ampliação', 'Várias'];
-
-export const MODALIDADES_ONCO = [
-  'Apoio',
-  'Diagnóstico',
-  'Diagnóstico e apoio',
-  'Multiplas',
-  'Rastreamento',
-  'Rastreamento e diagnóstico',
-  'Tratamento',
-  'Tratamento e apoio',
-  'Várias',
-  'Vários',
-];
+/** Dicionário reduzido (Plan Mode monitoramento-evolucao 2026-09-19, decisão
+ * do usuário) -- substitui a lista anterior de 10 opções (incluía
+ * combinações como "Diagnóstico e apoio" que nunca tiveram uso real, ver
+ * CHECK constraint em InstrumentoEquipamento.modalidade_onco no backend). */
+export const MODALIDADES_ONCO = ['Apoio', 'Diagnóstico', 'Rastreamento', 'Tratamento', 'Múltiplas'];
 
 /** Responsável por uma AÇÃO de monitoramento (pendência/reunião) -- não
  * tinha vocabulário fechado (campo era 100% livre) -- pedido do usuário

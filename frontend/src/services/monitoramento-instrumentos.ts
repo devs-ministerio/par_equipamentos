@@ -10,6 +10,10 @@ import { apiAuthed, apiGetAuthed } from './monitoramento-client';
 const eventoMarcoSchema = z.object({
   id: z.number(),
   marco_id: z.number(),
+  // Obrigatório pra marco de grupo físico/regulatório, null quando o
+  // próprio evento já é de grupo=fase_geral (Plan Mode monitoramento-
+  // evolucao 2026-09-19).
+  fase_geral_id: z.number().nullable().optional(),
   data_ocorrencia: z.string().nullable(),
   data_prevista: z.string().nullable(),
   status_regulatorio: z.string().nullable(),
@@ -18,6 +22,13 @@ const eventoMarcoSchema = z.object({
   observacao: z.string().nullable(),
   autor_nome: z.string().nullable().optional(),
   created_at: z.string(),
+  // Ciclo de vida append-only -- ver docstring do model no backend.
+  atualizado_em: z.string().nullable().optional(),
+  substituido_por_id: z.number().nullable().optional(),
+  deletado_em: z.string().nullable().optional(),
+  deletado_por_nome: z.string().nullable().optional(),
+  motivo_exclusao: z.string().nullable().optional(),
+  ativo: z.boolean().optional().default(true),
 });
 export type EventoMarco = z.infer<typeof eventoMarcoSchema>;
 
@@ -47,7 +58,6 @@ const instrumentoEquipamentoSchema = z.object({
   tecnico_titular: z.string().nullable(),
   tecnico_suplente: z.string().nullable(),
   nivel_monitoramento: z.string().nullable(),
-  finalidade: z.string().nullable(),
   modalidade_onco: z.string().nullable(),
   responsavel_execucao_nome: z.string().nullable(),
   responsavel_execucao_contato: z.string().nullable(),
@@ -128,7 +138,7 @@ export interface CadastroInstrumentoInput {
   tecnico_titular?: string | null;
   tecnico_suplente?: string | null;
   nivel_monitoramento?: string | null;
-  finalidade?: string | null;
+  tipologia?: string | null;
   modalidade_onco?: string | null;
   responsavel_execucao_nome?: string | null;
   responsavel_execucao_contato?: string | null;
@@ -141,6 +151,9 @@ export function patchCadastroInstrumento(nrConvenio: string, corpo: CadastroInst
 
 export interface RegistrarEventoInput {
   marco_id: number;
+  // Obrigatório quando o marco escolhido é de cronograma físico/
+  // regulatório (validado no backend) -- ver eventoMarcoSchema.
+  fase_geral_id?: number | null;
   data_ocorrencia?: string | null;
   data_prevista?: string | null;
   status_regulatorio?: string | null;
@@ -155,4 +168,24 @@ export interface RegistrarEventoInput {
 
 export function registrarEvento(nrConvenio: string, corpo: RegistrarEventoInput): Promise<EventoMarco> {
   return apiAuthed(`/monitoramento/instrumentos/${nrConvenio}/eventos`, eventoMarcoSchema, 'POST', corpo);
+}
+
+/** Corrigir (append-only, ver docstring do model no backend) -- lança um
+ * evento novo e fecha o antigo; nunca UPDATE. */
+export interface EditarEventoInput {
+  fase_geral_id?: number | null;
+  data_ocorrencia?: string | null;
+  data_prevista?: string | null;
+  status_regulatorio?: string | null;
+  numero_documento?: string | null;
+  data_validade?: string | null;
+  observacao?: string | null;
+}
+
+export function editarEvento(eventoId: number, corpo: EditarEventoInput): Promise<EventoMarco> {
+  return apiAuthed(`/monitoramento/eventos/${eventoId}`, eventoMarcoSchema, 'PATCH', corpo);
+}
+
+export function excluirEvento(eventoId: number, motivo: string): Promise<EventoMarco> {
+  return apiAuthed(`/monitoramento/eventos/${eventoId}`, eventoMarcoSchema, 'DELETE', { motivo });
 }

@@ -21,7 +21,7 @@ export function apiGetAuthed<T>(path: string, schema: z.ZodType<T>): Promise<T> 
   return requisitar(path, schema, undefined);
 }
 
-export function apiAuthed<T>(path: string, schema: z.ZodType<T>, method: 'POST' | 'PATCH', body?: unknown): Promise<T> {
+export function apiAuthed<T>(path: string, schema: z.ZodType<T>, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown): Promise<T> {
   return requisitar(path, schema, {
     method,
     headers: { 'Content-Type': 'application/json' },
