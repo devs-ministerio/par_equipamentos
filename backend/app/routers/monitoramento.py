@@ -741,7 +741,15 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
     eventos_por_instrumento: dict[int, list[EventoMarco]] = defaultdict(list)
     if marco_ids_relevantes:
         for e in db.execute(
-            select(EventoMarco).where(EventoMarco.marco_id.in_(marco_ids_relevantes))
+            select(EventoMarco).where(
+                EventoMarco.marco_id.in_(marco_ids_relevantes),
+                # Só ATIVO entra no cálculo (Plan Mode monitoramento-evolucao
+                # 2026-09-19) -- achado ao vivo: faltava esse filtro aqui,
+                # evento corrigido/excluído continuava empurrando fase,
+                # licença e inauguração igual um vigente.
+                EventoMarco.substituido_por_id.is_(None),
+                EventoMarco.deletado_em.is_(None),
+            )
         ).scalars():
             eventos_por_instrumento[e.instrumento_id].append(e)
 
@@ -776,8 +784,11 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
             # Evento mais recente com data_validade preenchida -- mesma
             # regra ja usada no front (MonitoramentoInterno.tsx) pro
             # contador de vencimento no detalhe do instrumento.
+            # Desempate por id além de created_at (achado ao vivo,
+            # convênio 947527) -- carga em lote grava vários eventos do
+            # mesmo marco com o MESMO created_at (timestamp do processo).
             ev_validade = max(
-                (e for e in evs_licenca if e.data_validade), key=lambda e: e.created_at, default=None,
+                (e for e in evs_licenca if e.data_validade), key=lambda e: (e.created_at, e.id), default=None,
             )
             if ev_validade:
                 licencas_vencendo.append(LicencaVencendoResumo(
@@ -787,8 +798,9 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
 
         if marco_inauguracao:
             evs_inaug = [e for e in eventos_inst if e.marco_id == marco_inauguracao.id]
-            # Mais recente por created_at -- so 1 por instrumento na lista.
-            ev = max(evs_inaug, key=lambda e: e.created_at, default=None)
+            # Mais recente por (created_at, id) -- so 1 por instrumento na
+            # lista; id desempata created_at empatado (ver comentario acima).
+            ev = max(evs_inaug, key=lambda e: (e.created_at, e.id), default=None)
             if ev:
                 data = ev.data_ocorrencia or ev.data_prevista
                 if data:

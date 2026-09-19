@@ -74,11 +74,22 @@ def listar_eventos_do_instrumento(
     db: Session, instrumento_id: int, *, apenas_ativos: bool = True
 ) -> list[EventoMarco]:
     """`apenas_ativos=False` devolve também os corrigidos/excluídos -- uso
-    restrito à trilha de auditoria, nunca à timeline padrão."""
+    restrito à trilha de auditoria, nunca à timeline padrão.
+
+    Desempate por `id` além de `created_at` (achado 2026-09-19, ao vivo,
+    convênio 947527): cargas em lote gravam vários eventos do mesmo marco
+    com o MESMO `created_at` (timestamp do processo, não do evento) --
+    sem desempate, a ordem de retorno do Postgres pra empate não é
+    garantida, e o front pode achar que "o mais recente" é qualquer um
+    deles. `id` cresce sempre na ordem real de inserção, então serve de
+    desempate determinístico -- mesmo critério já usado em
+    `obter_evento_mais_recente_do_marco` abaixo."""
     stmt = select(EventoMarco).where(EventoMarco.instrumento_id == instrumento_id)
     if apenas_ativos:
         stmt = stmt.where(_EVENTO_ATIVO)
-    return list(db.execute(stmt.order_by(EventoMarco.created_at.desc())).scalars().all())
+    return list(
+        db.execute(stmt.order_by(EventoMarco.created_at.desc(), EventoMarco.id.desc())).scalars().all()
+    )
 
 
 def obter_evento_mais_recente_do_marco(
