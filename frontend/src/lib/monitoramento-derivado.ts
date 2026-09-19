@@ -3,7 +3,9 @@
  * tudo calculado inline no corpo da função) pra função testável e
  * reaproveitável pelos subcomponentes depois do split (Seção 6 da
  * migração). Mesma lógica de antes, char por char, só organizada. */
-import type { AcaoMonitoramento, EventoMarco, InstrumentoTimeline, MarcoCatalogo } from '@/services/monitoramento';
+import type { AcaoMonitoramento } from '@/services/monitoramento-acoes';
+import type { EventoMarco, InstrumentoTimeline } from '@/services/monitoramento-instrumentos';
+import type { MarcoCatalogo } from '@/services/monitoramento-marcos';
 import { diasAte } from './monitoramento-format';
 
 export function derivarMonitoramentoInterno(

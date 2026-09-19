@@ -10,6 +10,14 @@ from pydantic import ValidationError
 from app.config import Settings
 
 
+@pytest.fixture
+def sem_database_url_no_ambiente(monkeypatch):
+    """Garante que o teste nao herda um `DATABASE_URL` de verdade do
+    ambiente de execucao (ex.: CI, shell do dev) -- os cenarios abaixo
+    controlam essa variavel explicitamente."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+
 def test_normaliza_formato_heroku_postgres():
     s = Settings(database_url="postgres://user:pass@host:5432/db")
     assert s.database_url_normalizada == "postgresql+psycopg://user:pass@host:5432/db"
@@ -35,13 +43,13 @@ def test_normalizado_nunca_aponta_pro_psycopg2():
         assert "psycopg2" not in s.database_url_normalizada
 
 
-def test_url_do_alembic_usa_driver_psycopg_e_escapa_percentual():
+def test_url_do_alembic_usa_driver_psycopg_e_escapa_percentual(sem_database_url_no_ambiente):
     s = Settings(database_url="postgres://user:p%25ss@host:5432/db", database_url_migration="")
 
     assert s.database_url_alembic == "postgresql+psycopg://user:p%%25ss@host:5432/db"
 
 
-def test_url_do_alembic_usa_database_url_migration_quando_definida():
+def test_url_do_alembic_usa_database_url_migration_quando_definida(sem_database_url_no_ambiente):
     """Bloco 1 do Plan Mode database: Alembic roda com o role `sigeo_migration`
     (dono do schema), separado do `sigeo_runtime` de runtime -- ver
     `Settings.database_url_migration`."""
@@ -51,6 +59,22 @@ def test_url_do_alembic_usa_database_url_migration_quando_definida():
     )
 
     assert s.database_url_alembic == "postgresql+psycopg://migration:p%%25ss@host:5432/db"
+
+
+def test_url_do_alembic_prioriza_database_url_exportada_no_processo(monkeypatch):
+    """Plan Mode database 2026-09-17, Bloco 2: incidente real onde
+    `alembic upgrade head` pensado para Postgres local atingiu o Neon
+    porque `.env` local tinha `DATABASE_URL_MIGRATION` setado. Uma
+    `DATABASE_URL` exportada de verdade no shell (`os.environ`, nao o
+    valor so mesclado pelo pydantic-settings a partir do `.env`) precisa
+    vencer sobre `database_url_migration` para permitir override pontual."""
+    monkeypatch.setenv("DATABASE_URL", "postgres://local:pass@localhost:5432/db")
+    s = Settings(
+        database_url="postgres://runtime:pass@host:5432/db",
+        database_url_migration="postgres://migration:pass@neon-host:5432/db",
+    )
+
+    assert s.database_url_alembic == "postgresql+psycopg://local:pass@localhost:5432/db"
 
 
 def test_jwt_secret_vazio_derruba_o_boot():

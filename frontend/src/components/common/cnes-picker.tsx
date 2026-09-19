@@ -7,7 +7,7 @@
  * digitação chegar até lá. */
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { buscarCnesReferencia } from '@/services/monitoramento';
+import { buscarCnesReferencia } from '@/services/cnes-referencia';
 import { cn } from '@/lib/utils';
 
 export function CnesPicker({

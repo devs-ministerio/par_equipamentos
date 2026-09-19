@@ -1,14 +1,19 @@
 ## Usuario operacional
 
 As rotas de escrita do monitoramento interno exigem JWT. Configure
-`JWT_SECRET` no `.env` e crie pelo menos um usuario:
+`JWT_SECRET` no `.env` e crie o primeiro usuario (bootstrap, antes de
+qualquer usuario existir via UI):
 
 ```bash
-uv run python scripts/criar_usuario.py --name "Nome" --email nome@org.gov.br --role colaborador
+uv run python scripts/criar_usuario.py --name "Nome" --email nome@org.gov.br --role admin
 ```
 
 Perfis `admin` e `colaborador` podem alterar o monitoramento; `leitor` so
-consulta.
+consulta. **Gestão de usuários (Módulo Admin, 2026-09-17)**: com pelo menos
+um `admin` criado, criação/edição/reset de senha/inativação de usuário passam
+a ser feitos pela tela `/admin/usuarios` (API em `app/routers/usuarios.py`,
+só acessível por `role=admin`) -- o script acima continua existindo só para
+esse bootstrap inicial.
 
 ## Banco de dados local (migration) e roles do Neon
 
@@ -38,6 +43,13 @@ mantido de propósito pra não precisar `ALTER DATABASE` numa base que
 outras ferramentas locais podem já referenciar). Pra rodar migration
 contra ele sem tocar no `.env` (que continua apontando pro Neon, usado
 pelo `uv run uvicorn ...` do dia a dia):
+
+**Desde o Plan Mode database 2026-09-17 (Bloco 2)**: um `DATABASE_URL`
+exportado de verdade no shell (como nos comandos abaixo) sempre vence
+sobre `DATABASE_URL_MIGRATION` do `.env` só pro Alembic -- é a via de
+override explícita que evita repetir o incidente onde um `alembic upgrade
+head` pensado pra local acabou atingindo o Neon porque o `.env` tinha
+`DATABASE_URL_MIGRATION` setado.
 
 ```bash
 export DATABASE_URL_LOCAL="postgresql+psycopg://$(whoami)@localhost:5432/SIEO-Sistema-de-Informacao-de-Equipamentos-Oncologicos"

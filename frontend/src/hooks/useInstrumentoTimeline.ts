@@ -5,7 +5,7 @@ import {
   fetchInstrumentoTimeline,
   patchCadastroInstrumento,
   registrarEvento,
-} from '@/services/monitoramento';
+} from '@/services/monitoramento-instrumentos';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** Timeline completa de 1 instrumento (dados + eventos + valor ao vivo) --

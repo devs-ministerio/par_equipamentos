@@ -1,14 +1,16 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppHeader } from '../components/layout/app-header';
+import { CONTAINER_CLASS } from '@/lib/layout';
 import { MacroMap } from '@/components/features/macro-map';
 import { PainelGeralSecao } from '@/components/features/painel-geral-secao';
 import { PainelGeralCardFamilia } from '@/components/features/painel-geral-card-familia';
 import { usePainelGeralResumos } from '@/hooks/usePainelGeralResumos';
 import { useMacroGeojson } from '@/hooks/useMacroGeojson';
-import { CHAVE_STORAGE_FAMILIA } from '../context/familia-equipamento-context';
+import { CHAVE_STORAGE_FAMILIA } from '../hooks/use-familia-equipamento';
 import { EQUIPAMENTOS, getEquipamento } from '../data/constants';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/common/page-header';
 
 function irParaEquipamentos(
   navigate: ReturnType<typeof useNavigate>,
@@ -60,20 +62,20 @@ export function PainelGeralPage() {
       {/* Painel Geral e a pagina inicial (fora de AppLayout/MonitoramentoLayout
           de proposito) -- sem itens de nav, so a logo do header unificado. */}
       <AppHeader navItems={[]} />
-      <div className="mx-auto max-w-[1400px] px-6 py-6">
-        {/* Hero */}
-        <div className="flex flex-col gap-2.5 rounded-xl bg-primary px-10 py-9 text-primary-foreground">
-          <div className="text-[11px] font-bold uppercase tracking-[0.08em] opacity-75">
-            DECAN · Ministério da Saúde
-          </div>
-          <div className="font-display text-[26px] font-extrabold">
-            SIGEO — Sistema de Gestão de Equipamentos em Oncologia
-          </div>
-        </div>
+      <div className={`${CONTAINER_CLASS} py-6`}>
+        <PageHeader
+          eyebrow="Visão nacional"
+          title="Cobertura de equipamentos em oncologia"
+          description="Situação da oferta SUS por família de equipamento e território."
+        />
 
         {/* Resumo por familia */}
-        <PainelGeralSecao titulo="Cobertura por Equipamento">
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(480px,1fr))] gap-5">
+        <PainelGeralSecao titulo="Cobertura por equipamento">
+          {/* `minmax(480px,1fr)` estourava a viewport obrigatória de 400px
+              (achado da auditoria visual, overflow de 504px) -- `min(480px,
+              100%)` mantém a largura mínima confortável em telas largas mas
+              nunca ultrapassa o container em telas estreitas (Seção 14). */}
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(480px,100%),1fr))] gap-5">
             {familiasDisponiveis.map((eq) => (
               <PainelGeralCardFamilia
                 key={eq.familia}
@@ -86,7 +88,7 @@ export function PainelGeralPage() {
         </PainelGeralSecao>
 
         {/* Mapa nacional */}
-        <PainelGeralSecao titulo="Mapa nacional" subtitulo="Cobertura por macrorregião de saúde, coloreada por Hipo/Hiperssuficiência.">
+        <PainelGeralSecao titulo="Mapa nacional" subtitulo="Cobertura por macrorregião de saúde.">
           <div className="rounded-[10px] bg-card px-5 py-[18px]">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex gap-1.5">
@@ -157,13 +159,11 @@ export function PainelGeralPage() {
         </PainelGeralSecao>
 
         {/* Metodologia (teaser) */}
-        <PainelGeralSecao titulo="Como a suficiência é calculada">
+        <PainelGeralSecao titulo="Critério de suficiência">
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-[10px] bg-card px-6 py-5">
-            <div className="max-w-[640px] text-[13px] leading-[1.7] text-muted-foreground">
-              Cada macrorregião, região de saúde ou município recebe um <strong>coeficiente</strong>, comparando a
-              quantidade de equipamentos em uso SUS com a demanda estimada da população SUS-dependente. Abaixo de 1x é{' '}
-              <strong>Hipossuficiente</strong>; 1x ou mais é <strong>Hiperssuficiente</strong>. Os parâmetros de
-              cada equipamento estão detalhados na Metodologia completa.
+            <div className="max-w-[640px] text-sm leading-relaxed text-muted-foreground">
+              O coeficiente compara equipamentos em uso SUS com a demanda estimada da população SUS-dependente.
+              Valores abaixo de 1 indicam insuficiência; os parâmetros completos estão na metodologia.
             </div>
             <button
               onClick={() => irParaEquipamentos(navigate, familiasDisponiveis[0]?.familia ?? 'TOMOGRAFO', 'relatorios')}

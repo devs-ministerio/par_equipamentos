@@ -2,6 +2,15 @@ import type { Regiao } from '../types/domain';
 
 export const REGIOES: Regiao[] = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'];
 
+export const TIPOLOGIA_PERSUS: Record<string, string> = {
+  A: 'Ampliação (Infraestrutura + equipamento)',
+  CV: 'Casamata Vazia (Equipamento)',
+  C: 'Construção (Infraestrutura + equipamento)',
+  EO: 'Equipamento Obsoleto (Equipamento)',
+  'C.B': 'Construção com Braquiterapia (Infraestrutura + equipamento)',
+  NA: 'Não se aplica',
+};
+
 // Geometria das 121 macrorregioes de saude, vendorizada localmente em
 // public/geo/macrorregioes.geojson (resolve o TODO antigo de depender de
 // CDN de terceiro sem fallback -- ver comentario em MacroMap.tsx). Gerada a

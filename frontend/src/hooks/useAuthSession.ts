@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type AuthUser, fetchCurrentUser, login, logout } from '@/services/monitoramento';
+import { type AuthUser, fetchCurrentUser, login, logout } from '@/services/auth';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** Sessão do usuário operacional do monitoramento interno (login/logout +

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Modal } from '../common/modal';
+import { Dialog, DialogContent } from '../ui/dialog';
 import { MultiSelectFilter } from '../common/multi-select-filter';
 import { ExportSecaoAba } from '../features/export-secao-aba';
 import { REGIOES } from '../../data/constants';
@@ -27,7 +27,7 @@ interface Props {
 
 function toggleNoSet(set: Set<string>, key: string): Set<string> {
   const next = new Set(set);
-  next.has(key) ? next.delete(key) : next.add(key);
+  if (next.has(key)) next.delete(key); else next.add(key);
   return next;
 }
 
@@ -103,7 +103,12 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
   const erro = gerarMutation.isError ? 'Não foi possível gerar a planilha. Tente novamente.' : null;
 
   return (
-    <Modal onClose={onClose} maxWidth={580}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        aria-label="Janela de diálogo"
+        showCloseButton={false}
+        className="max-h-[90vh] w-full max-w-[580px] overflow-auto rounded-[10px] bg-card p-8"
+      >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[22px] font-extrabold text-[#16213e]">Exportar Excel</div>
@@ -251,6 +256,7 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
           {gerando ? 'Gerando...' : '⬇ Gerar Excel'}
         </button>
       </div>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -15,24 +15,10 @@ from collections import Counter, defaultdict
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.services.monitoramento_instrumentos import (
-    NovoInstrumentoMonitorado,
-    criar_instrumento_monitorado,
-    listar_instrumentos_monitorados,
-    obter_timeline_instrumento,
-)
-from app.services.monitoramento_eventos import (
-    DadosEquipamentoEntregue,
-    NovoEventoMonitorado,
-    atualizar_cadastro_instrumento,
-    concluir_acao_monitorada,
-    registrar_acao_monitorada,
-    registrar_evento_monitorado,
-)
 from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import (
@@ -45,6 +31,25 @@ from app.db.models import (
     User,
 )
 from app.pipeline import portal_transparencia
+from app.repositories import monitoramento as monitoramento_repo
+from app.services.monitoramento_eventos import (
+    DadosEquipamentoEntregue,
+    NovoEventoMonitorado,
+    atualizar_cadastro_instrumento,
+    concluir_acao_monitorada,
+    editar_acao_monitorada,
+    editar_evento_monitorado,
+    excluir_acao_monitorada,
+    excluir_evento_monitorado,
+    registrar_acao_monitorada,
+    registrar_evento_monitorado,
+)
+from app.services.monitoramento_instrumentos import (
+    NovoInstrumentoMonitorado,
+    criar_instrumento_monitorado,
+    listar_instrumentos_monitorados,
+    obter_timeline_instrumento,
+)
 
 router = APIRouter(prefix="/monitoramento", tags=["monitoramento"])
 
@@ -64,6 +69,10 @@ class MarcoCatalogoRead(BaseModel):
 class EventoMarcoRead(BaseModel):
     id: int
     marco_id: int
+    # Obrigatório pra marco de grupo fisico/regulatorio, None quando o
+    # proprio evento JA é de grupo=fase_geral (Plan Mode monitoramento-
+    # evolucao 2026-09-19).
+    fase_geral_id: int | None
     data_ocorrencia: date | None
     data_prevista: date | None
     status_regulatorio: str | None
@@ -77,6 +86,14 @@ class EventoMarcoRead(BaseModel):
     observacao: str | None
     autor_nome: str | None
     created_at: datetime
+    # Ciclo de vida (Plan Mode monitoramento-evolucao 2026-09-19) -- `ativo`
+    # é conveniência calculada pro front não reimplementar a regra.
+    atualizado_em: datetime | None = None
+    substituido_por_id: int | None = None
+    deletado_em: datetime | None = None
+    deletado_por_nome: str | None = None
+    motivo_exclusao: str | None = None
+    ativo: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -92,6 +109,9 @@ class EventoMarcoCreate(BaseModel):
     # Legado temporario aceito por compatibilidade com o front atual; a
     # autoria real usada no evento vem do JWT.
     autor_nome: str | None = None
+    # Obrigatório pra marco de grupo fisico/regulatorio -- ver
+    # EventoMarcoRead. Validado no service, não só aqui.
+    fase_geral_id: int | None = None
     # Equipamento FISICO -- so usado quando marco.codigo ==
     # "cronograma_entrega" (achado 2026-09-09, pedido do usuario: "o
     # equipamento entregue pode mover para eventos"). `registrar_evento`
@@ -105,10 +125,28 @@ class EventoMarcoCreate(BaseModel):
     equipamento_vida_util_anos: int | None = None
 
 
+class EventoMarcoUpdate(BaseModel):
+    """Corrigir um evento (Plan Mode monitoramento-evolucao 2026-09-19) --
+    mesmo shape de EventoMarcoCreate menos `marco_id`/equipamento (marco não
+    muda numa correção; equipamento físico é editado por
+    InstrumentoEquipamentoUpdate, não aqui)."""
+    data_ocorrencia: date | None = None
+    data_prevista: date | None = None
+    status_regulatorio: str | None = None
+    numero_documento: str | None = None
+    data_validade: date | None = None
+    observacao: str | None = None
+    fase_geral_id: int | None = None
+
+
+class MotivoExclusao(BaseModel):
+    motivo: str = Field(min_length=3, max_length=500)
+
+
 class InstrumentoEquipamentoRead(BaseModel):
     id: int
     nr_convenio: str
-    cnpj_convenente: str
+    cnpj_convenente: str | None
     nome_convenente: str
     municipio: str | None
     uf: str | None
@@ -132,10 +170,14 @@ class InstrumentoEquipamentoRead(BaseModel):
     # 2026-09-09, so vem da planilha/import, nunca editavel a mao (fora do
     # Update abaixo de proposito).
     tipo_contratacao: str | None
+    origem_dado: str | None
+    tipologia: str | None
+    investimento_aquisicao: float | None
+    situacao_programa: str | None
+    natureza_servico: str | None
     tecnico_titular: str | None
     tecnico_suplente: str | None
     nivel_monitoramento: str | None
-    finalidade: str | None
     modalidade_onco: str | None
     # Responsavel tecnico da execucao NA INSTITUICAO/convenente -- achado
     # 2026-09-09, DIFERENTE de tecnico_titular/suplente (que sao da nossa
@@ -187,7 +229,11 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     tecnico_titular: str | None = None
     tecnico_suplente: str | None = None
     nivel_monitoramento: str | None = None
-    finalidade: str | None = None
+    # Tipologia (dicionário fechado A/CV/C/EO/C.B/NA) -- editável aqui desde
+    # Plan Mode monitoramento-evolucao 2026-09-19, que absorveu o antigo
+    # campo "finalidade" (removido, ver models.py). Validado no service
+    # contra o mesmo dicionário do CHECK constraint.
+    tipologia: str | None = None
     modalidade_onco: str | None = None
     responsavel_execucao_nome: str | None = None
     responsavel_execucao_contato: str | None = None
@@ -213,7 +259,7 @@ class InstrumentoEquipamentoCreate(BaseModel):
     criado, ficam imutaveis (mesma decisao do PATCH, corrigir por fora da
     aplicacao se a fonte original estava errada, nao por aqui)."""
     nr_convenio: str
-    cnpj_convenente: str
+    cnpj_convenente: str | None = None
     nome_convenente: str
     tipo_contratacao: str
     municipio: str | None = None
@@ -226,11 +272,15 @@ class InstrumentoEquipamentoCreate(BaseModel):
     tecnico_titular: str | None = None
     tecnico_suplente: str | None = None
     nivel_monitoramento: str | None = None
-    finalidade: str | None = None
     modalidade_onco: str | None = None
     responsavel_execucao_nome: str | None = None
     responsavel_execucao_contato: str | None = None
     situacao_prestacao_contas: str | None = None
+    origem_dado: str | None = None
+    tipologia: str | None = None
+    investimento_aquisicao: float | None = None
+    situacao_programa: str | None = None
+    natureza_servico: str | None = None
 
 
 class ValorSituacaoAoVivoRead(BaseModel):
@@ -267,8 +317,20 @@ class AcaoMonitoramentoRead(BaseModel):
     descricao: str
     data_prevista: date | None
     data_conclusao: date | None
+    # Legado texto livre (dado histórico) -- leitura cai pra ele quando
+    # `responsavel_id` for None (Plan Mode monitoramento-evolucao
+    # 2026-09-19).
     responsavel: str | None
+    responsavel_id: int | None = None
+    responsavel_nome: str | None = None
+    criado_por_nome: str | None = None
     created_at: datetime
+    atualizado_em: datetime | None = None
+    substituido_por_id: int | None = None
+    deletado_em: datetime | None = None
+    deletado_por_nome: str | None = None
+    motivo_exclusao: str | None = None
+    ativo: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -277,6 +339,16 @@ class AcaoMonitoramentoCreate(BaseModel):
     descricao: str
     data_prevista: date | None = None
     responsavel: str | None = None
+    responsavel_id: int | None = None
+
+
+class AcaoMonitoramentoUpdate(BaseModel):
+    """Corrigir uma ação (Plan Mode monitoramento-evolucao 2026-09-19) --
+    mesma disciplina append-only de EventoMarcoUpdate."""
+    descricao: str
+    data_prevista: date | None = None
+    responsavel: str | None = None
+    responsavel_id: int | None = None
 
 
 class InauguracaoResumo(BaseModel):
@@ -373,6 +445,53 @@ def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
     return f"{prefixo} {observacao}" if observacao else prefixo
 
 
+def _evento_read(evento: EventoMarco, nomes: dict[int, str]) -> EventoMarcoRead:
+    """Monta EventoMarcoRead resolvendo autor/exclusão a partir do mapa de
+    nomes já carregado (evita N+1 query por evento, ver
+    `monitoramento_repo.resolver_nomes_usuarios`)."""
+    return EventoMarcoRead(
+        id=evento.id,
+        marco_id=evento.marco_id,
+        fase_geral_id=evento.fase_geral_id,
+        data_ocorrencia=evento.data_ocorrencia,
+        data_prevista=evento.data_prevista,
+        status_regulatorio=evento.status_regulatorio,
+        numero_documento=evento.numero_documento,
+        data_validade=evento.data_validade,
+        observacao=evento.observacao,
+        autor_nome=nomes.get(evento.autor_id) if evento.autor_id else None,
+        created_at=evento.created_at,
+        atualizado_em=evento.atualizado_em,
+        substituido_por_id=evento.substituido_por_id,
+        deletado_em=evento.deletado_em,
+        deletado_por_nome=nomes.get(evento.deletado_por_id) if evento.deletado_por_id else None,
+        motivo_exclusao=evento.motivo_exclusao,
+        ativo=evento.deletado_em is None and evento.substituido_por_id is None,
+    )
+
+
+def _acao_read(acao: AcaoMonitoramento, nr_convenio: str, nomes: dict[int, str]) -> AcaoMonitoramentoRead:
+    return AcaoMonitoramentoRead(
+        id=acao.id,
+        instrumento_id=acao.instrumento_id,
+        nr_convenio=nr_convenio,
+        descricao=acao.descricao,
+        data_prevista=acao.data_prevista,
+        data_conclusao=acao.data_conclusao,
+        responsavel=acao.responsavel,
+        responsavel_id=acao.responsavel_id,
+        responsavel_nome=nomes.get(acao.responsavel_id) if acao.responsavel_id else None,
+        criado_por_nome=nomes.get(acao.criado_por_id) if acao.criado_por_id else None,
+        created_at=acao.created_at,
+        atualizado_em=acao.atualizado_em,
+        substituido_por_id=acao.substituido_por_id,
+        deletado_em=acao.deletado_em,
+        deletado_por_nome=nomes.get(acao.deletado_por_id) if acao.deletado_por_id else None,
+        motivo_exclusao=acao.motivo_exclusao,
+        ativo=acao.deletado_em is None and acao.substituido_por_id is None,
+    )
+
+
 class CnesEstabelecimentoRead(BaseModel):
     cnes: str
     nome_estabelecimento: str
@@ -455,18 +574,15 @@ def obter_timeline(
         # falha aqui rebaixa pra "indisponivel", nunca derruba a timeline.
         ao_vivo = ValorSituacaoAoVivoRead(disponivel=False)
 
+    ids_usuarios = {e.autor_id for e in timeline.eventos if e.autor_id} | {
+        e.deletado_por_id for e in timeline.eventos if e.deletado_por_id
+    }
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
+
     return InstrumentoTimelineRead(
         instrumento=InstrumentoEquipamentoRead.model_validate(timeline.instrumento),
         ao_vivo=ao_vivo,
-        eventos=[
-            EventoMarcoRead(
-                id=e.id, marco_id=e.marco_id, data_ocorrencia=e.data_ocorrencia,
-                data_prevista=e.data_prevista, status_regulatorio=e.status_regulatorio,
-                numero_documento=e.numero_documento, data_validade=e.data_validade,
-                observacao=e.observacao, autor_nome=None, created_at=e.created_at,
-            )
-            for e in timeline.eventos
-        ],
+        eventos=[_evento_read(e, nomes) for e in timeline.eventos],
     )
 
 
@@ -538,6 +654,7 @@ def registrar_evento(
             numero_documento=corpo.numero_documento,
             data_validade=corpo.data_validade,
             observacao=corpo.observacao,
+            fase_geral_id=corpo.fase_geral_id,
             equipamento=DadosEquipamentoEntregue(
                 marca=corpo.equipamento_marca,
                 modelo=corpo.equipamento_modelo,
@@ -550,12 +667,51 @@ def registrar_evento(
     )
     db.commit()
     db.refresh(evento)
-    return EventoMarcoRead(
-        id=evento.id, marco_id=evento.marco_id, data_ocorrencia=evento.data_ocorrencia,
-        data_prevista=evento.data_prevista, status_regulatorio=evento.status_regulatorio,
-        numero_documento=evento.numero_documento, data_validade=evento.data_validade,
-        observacao=evento.observacao, autor_nome=usuario.name, created_at=evento.created_at,
+    return _evento_read(evento, {usuario.id: usuario.name})
+
+
+@router.patch("/eventos/{evento_id}", response_model=EventoMarcoRead)
+def editar_evento(
+    evento_id: int,
+    corpo: EventoMarcoUpdate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    """Corrigir (append-only, ver docstring do model) -- lança um evento
+    novo e fecha o antigo via `substituido_por_id`. Lógica de negócio e
+    autorização vivem no Service."""
+    novo = editar_evento_monitorado(
+        evento_id=evento_id,
+        dados=NovoEventoMonitorado(
+            marco_id=0,  # ignorado -- editar_evento_monitorado mantém o marco do evento original
+            data_ocorrencia=corpo.data_ocorrencia,
+            data_prevista=corpo.data_prevista,
+            status_regulatorio=corpo.status_regulatorio,
+            numero_documento=corpo.numero_documento,
+            data_validade=corpo.data_validade,
+            observacao=corpo.observacao,
+            fase_geral_id=corpo.fase_geral_id,
+        ),
+        db=db,
+        usuario=usuario,
     )
+    db.commit()
+    db.refresh(novo)
+    return _evento_read(novo, {usuario.id: usuario.name})
+
+
+@router.delete("/eventos/{evento_id}", response_model=EventoMarcoRead)
+def excluir_evento(
+    evento_id: int,
+    corpo: MotivoExclusao,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    """Exclusão lógica (ver docstring do model) -- nunca DELETE físico."""
+    evento = excluir_evento_monitorado(evento_id=evento_id, motivo=corpo.motivo, db=db, usuario=usuario)
+    db.commit()
+    db.refresh(evento)
+    return _evento_read(evento, {usuario.id: usuario.name})
 
 
 @router.get("/resumo", response_model=ResumoMonitoramentoRead)
@@ -693,26 +849,25 @@ def listar_acoes(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    """Todas as acoes (ou so pendentes, `?pendentes=true`) de TODOS os
-    instrumentos, ordenadas por data_prevista -- alimenta a lista de
-    "dividas por data" da pagina de overview."""
+    """Todas as acoes ATIVAS (ou so pendentes, `?pendentes=true`) de TODOS
+    os instrumentos, ordenadas por data_prevista -- alimenta a lista de
+    "dividas por data" da pagina de overview. Ação corrigida/excluída não
+    aparece aqui (ver docstring do model)."""
     stmt = (
         select(AcaoMonitoramento, InstrumentoEquipamento.nr_convenio)
         .join(InstrumentoEquipamento, AcaoMonitoramento.instrumento_id == InstrumentoEquipamento.id)
+        .where(AcaoMonitoramento.substituido_por_id.is_(None), AcaoMonitoramento.deletado_em.is_(None))
         .order_by(AcaoMonitoramento.data_prevista.asc().nulls_last())
         .limit(limit)
     )
     if pendentes:
         stmt = stmt.where(AcaoMonitoramento.data_conclusao.is_(None))
     linhas = db.execute(stmt).all()
-    return [
-        AcaoMonitoramentoRead(
-            id=a.id, instrumento_id=a.instrumento_id, nr_convenio=nr, descricao=a.descricao,
-            data_prevista=a.data_prevista, data_conclusao=a.data_conclusao,
-            responsavel=a.responsavel, created_at=a.created_at,
-        )
-        for a, nr in linhas
-    ]
+    ids_usuarios = {a.responsavel_id for a, _ in linhas if a.responsavel_id} | {
+        a.criado_por_id for a, _ in linhas if a.criado_por_id
+    }
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
+    return [_acao_read(a, nr, nomes) for a, nr in linhas]
 
 
 @router.post("/instrumentos/{nr_convenio}/acoes", response_model=AcaoMonitoramentoRead, status_code=201)
@@ -732,16 +887,55 @@ def registrar_acao(
         descricao=corpo.descricao,
         data_prevista=corpo.data_prevista,
         responsavel=corpo.responsavel,
+        responsavel_id=corpo.responsavel_id,
         db=db,
         usuario=usuario,
     )
     db.commit()
     db.refresh(acao)
-    return AcaoMonitoramentoRead(
-        id=acao.id, instrumento_id=acao.instrumento_id, nr_convenio=nr_convenio, descricao=acao.descricao,
-        data_prevista=acao.data_prevista, data_conclusao=acao.data_conclusao,
-        responsavel=acao.responsavel, created_at=acao.created_at,
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, {corpo.responsavel_id, usuario.id})
+    return _acao_read(acao, nr_convenio, nomes)
+
+
+@router.patch("/acoes/{acao_id}", response_model=AcaoMonitoramentoRead)
+def editar_acao(
+    acao_id: int,
+    corpo: AcaoMonitoramentoUpdate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    """Corrigir (append-only, ver docstring do model) -- lança uma ação
+    nova e fecha a antiga via `substituido_por_id`."""
+    nova = editar_acao_monitorada(
+        acao_id=acao_id,
+        descricao=corpo.descricao,
+        data_prevista=corpo.data_prevista,
+        responsavel=corpo.responsavel,
+        responsavel_id=corpo.responsavel_id,
+        db=db,
+        usuario=usuario,
     )
+    db.commit()
+    db.refresh(nova)
+    instrumento = db.get(InstrumentoEquipamento, nova.instrumento_id)
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, {corpo.responsavel_id, usuario.id})
+    return _acao_read(nova, instrumento.nr_convenio, nomes)
+
+
+@router.delete("/acoes/{acao_id}", response_model=AcaoMonitoramentoRead)
+def excluir_acao(
+    acao_id: int,
+    corpo: MotivoExclusao,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    """Exclusão lógica (ver docstring do model) -- nunca DELETE físico."""
+    acao = excluir_acao_monitorada(acao_id=acao_id, motivo=corpo.motivo, db=db, usuario=usuario)
+    db.commit()
+    db.refresh(acao)
+    instrumento = db.get(InstrumentoEquipamento, acao.instrumento_id)
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, {usuario.id})
+    return _acao_read(acao, instrumento.nr_convenio, nomes)
 
 
 @router.patch("/acoes/{acao_id}/concluir", response_model=AcaoMonitoramentoRead)
@@ -759,8 +953,7 @@ def concluir_acao(
     db.commit()
     db.refresh(acao)
     instrumento = db.get(InstrumentoEquipamento, acao.instrumento_id)
-    return AcaoMonitoramentoRead(
-        id=acao.id, instrumento_id=acao.instrumento_id, nr_convenio=instrumento.nr_convenio,
-        descricao=acao.descricao, data_prevista=acao.data_prevista, data_conclusao=acao.data_conclusao,
-        responsavel=acao.responsavel, created_at=acao.created_at,
+    nomes = monitoramento_repo.resolver_nomes_usuarios(
+        db, {acao.responsavel_id, acao.criado_por_id}
     )
+    return _acao_read(acao, instrumento.nr_convenio, nomes)

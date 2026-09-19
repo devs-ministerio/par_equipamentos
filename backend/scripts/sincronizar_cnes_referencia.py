@@ -46,6 +46,10 @@ def _valor(v) -> str | None:
     return str(v) if pd.notna(v) else None
 
 
+def _numero(v) -> float | None:
+    return float(v) if pd.notna(v) else None
+
+
 def run() -> None:
     print(f"Baixando s3://{BUCKET}/{KEY}...")
     _baixar()
@@ -65,6 +69,9 @@ def run() -> None:
             uf=_valor(row.SG_UF),
             cep=_valor(row.CEP),
             logradouro=_valor(row.LOGRADOURO),
+            latitude=_numero(row.LATITUDE_CNES),
+            longitude=_numero(row.LONGITUDE_CNES),
+            fonte_sincronizacao="s3",
         ))
 
     # Upsert em lote (INSERT ... ON CONFLICT DO UPDATE) -- 635 mil linhas

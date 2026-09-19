@@ -1,10 +1,13 @@
-import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/common/page-header';
+import { ErrorAlert } from '@/components/common/error-alert';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
+import { Skeleton } from '@/components/ui/skeleton';
 import { NavBoxesAnaliseMerito } from '@/components/features/nav-boxes-analise-merito';
 import { MacroMap } from '@/components/features/macro-map';
 import { MapaDetalheMacro } from '@/components/features/mapa-detalhe-macro';
 import { MapaRodoviarioSecao } from '@/components/features/mapa-rodoviario-secao';
 import { calcularCoeficiente } from '../utils/coeficiente';
-import { useFamiliaEquipamento } from '../context/familia-equipamento-context';
+import { useFamiliaEquipamento } from '../hooks/use-familia-equipamento';
 import { getEquipamento } from '../data/constants';
 import { useMacroGeojson } from '../hooks/useMacroGeojson';
 import { useMapaFiltros } from '../hooks/useMapaFiltros';
@@ -96,50 +99,53 @@ export function MapaPage() {
       ? macroSelecionada.pop / coberturaSelecionada.oferta
       : null;
 
+  const header = (
+    <PageHeader
+      eyebrow="Análise de mérito"
+      title="Mapa de cobertura"
+      description="Distribuição territorial da oferta em uso SUS."
+      actions={<NavBoxesAnaliseMerito />}
+    />
+  );
+
   if (isLoading || geoQuery.isLoading) {
     return (
-      <div role="status" className="p-[60px] text-center text-muted-foreground">
-        Carregando dados...
+      <div>
+        {header}
+        <div className="grid gap-2" role="status" aria-label="Carregando">
+          <Skeleton className="h-96 w-full" />
+        </div>
       </div>
     );
   }
 
   if (isError || geoQuery.isError) {
     return (
-      <div role="alert" className="rounded-lg bg-destructive-bg p-6 text-destructive">
-        Não foi possível carregar os dados
-        {error instanceof Error ? ` (${error.message})` : ''}.
+      <div>
+        {header}
+        <ErrorAlert mensagem={mensagemSeguraDoErro(error)} />
       </div>
     );
   }
 
   if (macros.length === 0) {
     return (
-      <div className="rounded-lg bg-card p-6 text-center text-muted-foreground">
-        Nenhuma macrorregião com dado de cobertura pra essa família de equipamento.
+      <div>
+        {header}
+        <div className="rounded-lg bg-card p-6 text-center text-muted-foreground">
+          Nenhuma macrorregião com dado de cobertura pra essa família de equipamento.
+        </div>
       </div>
     );
   }
 
   return (
     <div>
-      <Card className="mb-4 py-0">
-        <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5.5">
-          <div>
-            <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-primary uppercase">
-              Análise de mérito
-            </div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
-              Mapa de Cobertura
-            </h1>
-            <p className="mt-2.5 max-w-[720px] text-[13.5px] leading-relaxed text-muted-foreground">
-              Cobertura por macrorregião de saúde, com detalhe por região de saúde ao clicar no mapa.
-            </p>
-          </div>
-          <NavBoxesAnaliseMerito />
-        </CardContent>
-      </Card>
-      <div className="grid grid-cols-[2fr_1fr] items-stretch gap-4">
+      {header}
+      {/* 1 coluna abaixo de `lg` (1024px) -- em telas estreitas o painel
+          lateral de detalhe (1fr) ficava com ~120px de largura e o texto
+          quebrava palavra por palavra (achado da auditoria visual). */}
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="rounded-lg bg-card px-4.5 py-4">
           <div className="mb-2.5 text-sm font-semibold">Equipamentos — Cobertura por macrorregião de saúde</div>
           {geo && (

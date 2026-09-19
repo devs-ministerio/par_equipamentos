@@ -13,9 +13,6 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
-)
-from sqlalchemy import Enum as PgEnum
-from sqlalchemy import (
     ForeignKey,
     Identity,
     Index,
@@ -26,11 +23,11 @@ from sqlalchemy import (
     func,
     text,
 )
+from sqlalchemy import Enum as PgEnum
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-
 
 # ----------------------------------------------------------------------------
 # Enums (Python) -- mapeados para os tipos ENUM do Postgres pelo mesmo nome
@@ -418,6 +415,7 @@ class Convenio(Base):
     # TransfereGov. `None` (backfilled "Convênio" pelos 403 originais)
     # distingue o universo de origem; nunca editável a mão, só carga.
     tipo_contratacao: Mapped[str | None] = mapped_column(String)
+    tipologia: Mapped[str | None] = mapped_column(String(3))
     # Proveniência da carga pra fonte que não é SICONV/Portal/TransfereGov
     # (ex. "PERSUS I · Apresentação PER-SUS.xlsx · sha256:..."). Nulo pros
     # 403 convênios reais (proveniência já é o próprio merge de 3 fontes).
@@ -728,10 +726,15 @@ class MarcoCatalogo(Base):
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     codigo: Mapped[str] = mapped_column(String, nullable=False)
     grupo: Mapped[MarcoGrupo] = mapped_column(PgEnum(MarcoGrupo, name="marco_grupo", native_enum=True), nullable=False)
-    # So preenchido em grupo=fase_geral -- define a ordem de progressao (pra
-    # derivar "fase atual" = marco de maior ordem com evento registrado) e o
-    # % de execucao fisica de referencia (0 a 1) que a planilha ja usa.
+    # Ordem de progressao DENTRO do proprio grupo -- pra grupo=fase_geral
+    # deriva "fase atual" (marco de maior ordem com evento registrado); pra
+    # grupo=fisico/regulatorio define a sequencia logica do fluxo exibida no
+    # cronograma (Plan Mode monitoramento-evolucao 2026-09-19 -- antes so
+    # fase_geral tinha ordem populada, cronograma fisico/regulatorio vinha
+    # na ordem de insercao do seed, sem sequencia logica garantida).
     ordem: Mapped[int | None] = mapped_column(Integer)
+    # So preenchido em grupo=fase_geral -- % de execucao fisica de
+    # referencia (0 a 1) que a planilha ja usa.
     execucao_fisica_pct_referencia: Mapped[float | None] = mapped_column(Numeric)
     rotulo: Mapped[str] = mapped_column(String, nullable=False)
     descricao_referencia: Mapped[str | None] = mapped_column(String)
@@ -756,6 +759,10 @@ class InstrumentoEquipamento(Base):
         CheckConstraint(
             "investimento_aquisicao IS NULL OR investimento_aquisicao >= 0",
             name="ck_instrumento_equipamento_investimento",
+        ),
+        CheckConstraint(
+            "modalidade_onco IS NULL OR modalidade_onco IN ('Apoio', 'Diagnóstico', 'Rastreamento', 'Tratamento', 'Múltiplas')",
+            name="ck_instrumento_equipamento_modalidade_onco",
         ),
         UniqueConstraint("nr_convenio", name="uq_instrumento_equipamento_nr_convenio"),
     )
@@ -841,7 +848,13 @@ class InstrumentoEquipamento(Base):
     tecnico_titular: Mapped[str | None] = mapped_column(String)
     tecnico_suplente: Mapped[str | None] = mapped_column(String)
     nivel_monitoramento: Mapped[str | None] = mapped_column(String)
-    finalidade: Mapped[str | None] = mapped_column(String)
+    # Ate 2026-09-19 existia tambem uma coluna `finalidade` (vocabulario
+    # livre: "Ampliação"/"Substituição"/...) tratada como conceito
+    # separado de `tipologia`. Plan Mode monitoramento-evolucao 2026-09-19
+    # (decisao do usuario: "É a mesma tipologia, use para todos") unificou
+    # os dois -- `tipologia` (dicionario fechado acima) passa a valer pra
+    # todo tipo_contratacao, nao so PERSUS; `finalidade` foi migrada pra
+    # cá (Substituição->EO, Ampliação/Ampliação(cobalto)->A) e removida.
     modalidade_onco: Mapped[str | None] = mapped_column(String)
     # Responsavel tecnico da execucao NA INSTITUICAO/convenente (colunas 42-43
     # da planilha) -- achado 2026-09-09, DIFERENTE de tecnico_titular/suplente
@@ -895,20 +908,44 @@ class EventoMarco(Base):
     """Log append-only -- MESMA filosofia do ConfigDecision (nunca UPDATE):
     corrigir um marco e lancar um evento novo, nunca editar um existente.
     "Estado atual" de um instrumento e sempre DERIVADO na aplicacao (o
-    evento mais recente de cada marco; a fase geral atual = marco de
-    grupo=fase_geral com maior `ordem` que tenha evento com
+    evento ATIVO mais recente de cada marco; a fase geral atual = marco de
+    grupo=fase_geral com maior `ordem` que tenha evento ativo com
     data_ocorrencia preenchida) -- nao existe coluna de status mutavel
     em `instrumento_equipamento` de proposito, pra nao correr o risco de
     status e historico saírem de sincronia (mesma razao documentada no
-    ConfigDecision)."""
+    ConfigDecision).
+
+    Plan Mode monitoramento-evolucao 2026-09-19 (decisao do usuario: manter
+    append-only em vez de UPDATE mutavel) formalizou "editar"/"excluir"
+    dentro dessa mesma filosofia -- nunca sobrescreve uma linha:
+    - "Editar" = lancar um evento novo corrigido e apontar o antigo pra ele
+      via `substituido_por_id`. O antigo nunca some, so deixa de ser o
+      vigente.
+    - "Excluir" = marcar `deletado_em`/`deletado_por_id`/`motivo_exclusao`,
+      sem DELETE fisico.
+    - Evento ATIVO/vigente = `substituido_por_id IS NULL AND deletado_em
+      IS NULL`. So eventos ativos entram no calculo de fase/timeline.
+    """
     __tablename__ = "evento_marco"
     __table_args__ = (
         Index("idx_evento_marco_instrumento_marco", "instrumento_id", "marco_id", "created_at"),
+        Index(
+            "idx_evento_marco_ativo",
+            "instrumento_id",
+            "marco_id",
+            postgresql_where=text("substituido_por_id IS NULL AND deletado_em IS NULL"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     instrumento_id: Mapped[int] = mapped_column(ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False)
     marco_id: Mapped[int] = mapped_column(ForeignKey("marco_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    # Obrigatorio (validado no service, nao so no banco -- FK simples nao
+    # expressa "so quando marco.grupo != fase_geral") pra marco de grupo
+    # fisico/regulatorio: aponta pro MarcoCatalogo (grupo=fase_geral) que
+    # esse evento pertence. Nulo quando o proprio evento JA E de
+    # grupo=fase_geral (nesse caso ele MESMO e a fase, nao aponta pra si).
+    fase_geral_id: Mapped[int | None] = mapped_column(ForeignKey("marco_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT"))
     data_ocorrencia: Mapped[date | None] = mapped_column(Date)
     data_prevista: Mapped[date | None] = mapped_column(Date)
     # So usado em marco de grupo=regulatorio -- vocabulario da propria CNEN/
@@ -930,6 +967,12 @@ class EventoMarco(Base):
     observacao: Mapped[str | None] = mapped_column(String)
     autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Ciclo de vida (Plan Mode 2026-09-19) -- ver docstring da classe.
+    atualizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    substituido_por_id: Mapped[int | None] = mapped_column(ForeignKey("evento_marco.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(String)
 
 
 class AcaoMonitoramento(Base):
@@ -941,11 +984,14 @@ class AcaoMonitoramento(Base):
     ESTADO (pendente/concluida) e data de vencimento -- e o que alimenta
     "dividas em acoes por data" na pagina de overview.
 
-    `data_conclusao` e o UNICO campo desta tabela pensado pra ser
-    preenchido depois de criado (marcar concluida) -- descricao/
-    data_prevista/responsavel continuam imutaveis apos o registro, mesma
-    disciplina do restante do monitoramento interno (corrigir e lancar
-    ação nova, nao editar a existente)."""
+    `data_conclusao` continua o UNICO campo pensado pra UPDATE direto
+    (marcar concluida). Descricao/data_prevista/responsavel continuam
+    imutaveis DEPOIS de criados -- "editar" (Plan Mode monitoramento-
+    evolucao 2026-09-19, mesma decisao de EventoMarco: manter append-only)
+    cria uma acao nova corrigida e aponta a antiga pra ela via
+    `substituido_por_id`; "excluir" marca `deletado_em`/`deletado_por_id`/
+    `motivo_exclusao`, sem DELETE fisico. Acao ATIVA/vigente =
+    `substituido_por_id IS NULL AND deletado_em IS NULL`."""
     __tablename__ = "acao_monitoramento"
     __table_args__ = (
         Index("idx_acao_monitoramento_instrumento", "instrumento_id", "data_prevista"),
@@ -958,10 +1004,23 @@ class AcaoMonitoramento(Base):
     # NULL = pendente. Preenchida quando a acao e marcada como concluida
     # (unico UPDATE que esta tabela permite de proposito).
     data_conclusao: Mapped[date | None] = mapped_column(Date)
-    # Texto livre por enquanto -- mesmo padrao de autor_nome em EventoMarco
-    # (login fica pra depois, ver _compor_observacao no router).
+    # Texto livre legado (dado historico anterior a 2026-09-19, mantido pra
+    # nao perder registro antigo). Escrita nova usa `responsavel_id`; leitura
+    # cai pra este texto quando `responsavel_id` for nulo.
     responsavel: Mapped[str | None] = mapped_column(String)
+    responsavel_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    # Quem CRIOU a acao (marcador de responsavel pedido no Plan Mode
+    # 2026-09-19) -- diferente de `responsavel_id` acima, que e quem deve
+    # EXECUTAR a acao. Nunca confiar em autor vindo do cliente -- preenchido
+    # pelo service a partir do usuario autenticado.
+    criado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Ciclo de vida (Plan Mode 2026-09-19) -- ver docstring da classe.
+    atualizado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    substituido_por_id: Mapped[int | None] = mapped_column(ForeignKey("acao_monitoramento.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(String)
 
 
 # ----------------------------------------------------------------------------

@@ -5,15 +5,43 @@ precisam.
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from email_validator import EmailNotValidError, validate_email
+from pydantic import AfterValidator, BaseModel, ConfigDict
 
 from app.db.models import DeficitStatus, NotificacaoTipo, UserRole, UserStatus
 
 # ----------------------------------------------------------------------------
 # Usuario / autenticacao
 # ----------------------------------------------------------------------------
+
+# TLDs reservados (RFC 2606) que a lib email_validator rejeita por padrao
+# (erro "special-use or reserved name") mas que precisam ser aceitos aqui --
+# achado da auditoria visual do Plan Mode frontend 2026-09-17 (P0 #10):
+# a credencial administrativa usa domínio ".local", e login/UserRead
+# rejeitavam com 422 (UI mostrava "[object Object]"). Continua rejeitando
+# e-mail malformado nos demais casos -- so pula a checagem de
+# deliverability/TLD publico pra esses sufixos especificos.
+_TLDS_RESERVADOS_ACEITOS = {"local"}
+_EMAIL_SINTAXE_BASICA = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _validar_email(v: str) -> str:
+    try:
+        return validate_email(v, check_deliverability=False).normalized
+    except EmailNotValidError as exc:
+        dominio = v.rsplit("@", 1)[-1].lower() if "@" in v else ""
+        tld = dominio.rsplit(".", 1)[-1] if "." in dominio else dominio
+        if tld in _TLDS_RESERVADOS_ACEITOS and _EMAIL_SINTAXE_BASICA.match(v):
+            return v
+        raise ValueError(str(exc)) from exc
+
+
+EmailStr = Annotated[str, AfterValidator(_validar_email)]
+
 
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -32,6 +60,55 @@ class LoginRequest(BaseModel):
 
 
 # ----------------------------------------------------------------------------
+# Gestao de usuarios (Modulo Admin, 2026-09-17 -- ver app/routers/usuarios.py,
+# app/services/usuarios.py)
+# ----------------------------------------------------------------------------
+
+def _validar_senha(v: str) -> str:
+    if len(v) < 10:
+        raise ValueError("A senha precisa ter pelo menos 10 caracteres.")
+    return v
+
+
+SenhaStr = Annotated[str, AfterValidator(_validar_senha)]
+
+
+class UserCreateRequest(BaseModel):
+    name: str
+    email: EmailStr
+    role: UserRole
+    password: SenhaStr | None = None
+
+
+class UserActivationRequest(BaseModel):
+    token: str = Annotated[str, AfterValidator(lambda v: v.strip())]
+    password: SenhaStr
+
+
+class PasswordRecoveryRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetRequest(BaseModel):
+    token: str = Annotated[str, AfterValidator(lambda v: v.strip())]
+    password: SenhaStr
+
+
+class UserUpdateRequest(BaseModel):
+    name: str
+    role: UserRole
+
+
+class UserResetPasswordResponse(BaseModel):
+    senha_temporaria: str
+
+
+class UserListResponse(BaseModel):
+    itens: list[UserRead]
+    total: int
+
+
+# ----------------------------------------------------------------------------
 # Notificacoes (ver app/routers/notificacoes.py, app/services/notificacoes.py)
 # ----------------------------------------------------------------------------
 
@@ -44,6 +121,7 @@ class NotificacaoRead(BaseModel):
     nivel_minimo: str | None
     lida: bool
     created_at: datetime
+    destino: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

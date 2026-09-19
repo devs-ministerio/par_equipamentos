@@ -34,6 +34,7 @@ export type CriarAcaoFormValues = z.infer<typeof criarAcaoSchema>;
 export const enviarEventoSchema = z.object({
   marcoId: z.string().min(1, 'Selecione o marco.'),
   dataOcorrencia: z.string().optional(),
+  dataPrevista: z.string().optional(),
   statusRegulatorio: z.string().optional(),
   numeroDocumento: z.string().optional(),
   dataValidade: z.string().optional(),

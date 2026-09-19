@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useFamiliaEquipamento } from '../../context/familia-equipamento-context';
+import { useFamiliaEquipamento } from '../../hooks/use-familia-equipamento';
 import { EQUIPAMENTOS } from '../../data/constants';
 
 /** Seletor de familia de equipamento -- troca a familia lida por

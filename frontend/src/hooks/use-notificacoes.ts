@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchNotificacoes, marcarNotificacaoLida } from '@/services/monitoramento';
+import { fetchNotificacoes, marcarNotificacaoLida } from '@/services/notificacoes';
 import { useAuthSession } from './useAuthSession';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 

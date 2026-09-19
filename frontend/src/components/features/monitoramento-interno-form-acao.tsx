@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import { criarAcaoSchema, type CriarAcaoFormValues } from '@/lib/validations/monitoramento';
 import { RESPONSAVEIS_ACAO } from '@/lib/monitoramento-opcoes';
-import { ErroCampo, estiloInput, idsDescricaoCampo } from './monitoramento-ui';
+import { ErroCampo, estiloInput } from './monitoramento-ui';
+import { idsDescricaoCampo } from '@/lib/monitoramento-status';
 
 export function MonitoramentoInternoFormAcao({
   podeEditar,

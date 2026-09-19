@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchMarcos } from '@/services/monitoramento';
+import { fetchMarcos } from '@/services/monitoramento-marcos';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** Catálogo fixo de marcos (fase geral / cronograma físico / regulatório)

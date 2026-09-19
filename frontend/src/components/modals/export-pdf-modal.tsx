@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Modal } from '../common/modal';
+import { Dialog, DialogContent } from '../ui/dialog';
 import { MultiSelectFilter } from '../common/multi-select-filter';
 import { ExportSecaoTabela } from '../features/export-secao-tabela';
 import { REGIOES } from '../../data/constants';
@@ -32,7 +32,7 @@ interface Props {
 
 function toggleNoSet(set: Set<string>, key: string): Set<string> {
   const next = new Set(set);
-  next.has(key) ? next.delete(key) : next.add(key);
+  if (next.has(key)) next.delete(key); else next.add(key);
   return next;
 }
 
@@ -175,7 +175,12 @@ export function ExportPdfModal({
   const erro = gerarMutation.isError ? 'Não foi possível gerar o PDF. Tente novamente.' : null;
 
   return (
-    <Modal onClose={onClose} maxWidth={560}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        aria-label="Janela de diálogo"
+        showCloseButton={false}
+        className="max-h-[90vh] w-full max-w-[560px] overflow-auto rounded-[10px] bg-card p-8"
+      >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[22px] font-extrabold text-[#16213e]">Exportar PDF</div>
@@ -305,6 +310,7 @@ export function ExportPdfModal({
           {gerando ? 'Gerando...' : '⬇ Gerar PDF'}
         </button>
       </div>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }

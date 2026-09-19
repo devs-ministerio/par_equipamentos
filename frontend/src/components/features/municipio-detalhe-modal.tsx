@@ -3,7 +3,7 @@ import type { NivelCoberturaRow, StatusCobertura } from '@/types/domain';
 import { calcularCoeficiente } from '@/utils/coeficiente';
 import { formatMultiplicador } from '@/utils/format';
 import { fetchHealthRegionCoverage, fetchMacroCoverage } from '@/services/api';
-import { Modal } from '@/components/common/modal';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
 import { getEquipamento, formatarQuantidadeEquipamento } from '@/data/constants';
@@ -73,7 +73,12 @@ export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props
   const regiao = paraNivelComparado(regiaoQuery);
 
   return (
-    <Modal onClose={onClose} maxWidth={460}>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        aria-label="Janela de diálogo"
+        showCloseButton={false}
+        className="max-h-[90vh] w-full max-w-[460px] overflow-auto rounded-[10px] bg-card p-8"
+      >
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xl font-extrabold text-foreground">{linha.nome}</div>
@@ -131,7 +136,8 @@ export function MunicipioDetalheModal({ linha, equipmentFamily, onClose }: Props
       <Button variant="outline" onClick={onClose} className="mt-5 h-auto w-full py-2.75 text-[13px] font-semibold">
         Fechar
       </Button>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 }
 

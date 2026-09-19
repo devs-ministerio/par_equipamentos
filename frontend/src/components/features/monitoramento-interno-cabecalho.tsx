@@ -3,9 +3,10 @@
  * migração). */
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { InstrumentoTimeline } from '@/services/monitoramento';
+import type { InstrumentoTimeline } from '@/services/monitoramento-instrumentos';
 import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
 import { CnesPicker } from '@/components/common/cnes-picker';
+import { TIPOLOGIA_PERSUS } from '@/data/constants';
 import { estiloCard, StatusPill } from './monitoramento-ui';
 
 export function MonitoramentoInternoCabecalho({
@@ -34,40 +35,51 @@ export function MonitoramentoInternoCabecalho({
   alertaLicenca: boolean;
   acoesAbertasCount: number;
   acoesAtrasadasCount: number;
-  /** CNES editável -- achado 2026-09-16, pedido do usuário: "vamos deixar
-   * o campo cnes editável no sistema... a partir de técnico poderá
-   * editar". Mesmo gate de permissão do resto do cadastro; validação de
-   * verdade (CNES existe na base?) é sempre no backend. */
+  /** CNES editável -- mesmo gate de permissão do resto do cadastro;
+   * validação de verdade (CNES existe na base?) é sempre no backend. */
   podeEditar: boolean;
   onSalvarCnes: (cnes: string | null) => void;
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
   const [editandoCnes, setEditandoCnes] = useState(false);
+  const equipamentoReferencia = inst.equipamento_descricao ?? 'Não informado';
+  const programaFonte = [inst.tp_instrumento_programa, inst.tipologia && `Tipologia: ${TIPOLOGIA_PERSUS[inst.tipologia] ?? inst.tipologia}`]
+    .filter(Boolean)
+    .join(' · ');
+  const origemAlternativa = Boolean(inst.origem_dado);
+  const prestacaoConcluida = inst.situacao_prestacao_contas?.toLocaleLowerCase('pt-BR').includes('concluída') ?? false;
+  const divergenciaInauguracao = inaugurado && inst.tipo_contratacao === 'Convênio' && !prestacaoConcluida;
 
   const indicadores = [
-    { rotulo: 'Equipe DECAN', valor: inst.tecnico_titular ?? '—', detalhe: inst.tecnico_suplente ? `Suplente: ${inst.tecnico_suplente}` : 'Sem suplente informado' },
-    { rotulo: 'Monitoramento', valor: inst.nivel_monitoramento ?? '—', detalhe: [inst.finalidade, inst.modalidade_onco].filter(Boolean).join(' · ') || 'Sem classificação complementar' },
-    { rotulo: 'Equipamento físico', valor: equipamentoFisico ?? 'Não informado', detalhe: inst.equipamento_numero_serie ? `Série ${inst.equipamento_numero_serie}` : 'Registro feito no evento de entrega' },
-    { rotulo: 'Licença CNEN', valor: statusLicenca, detalhe: textoLicenca, alerta: alertaLicenca },
-    { rotulo: 'Inauguração', valor: inaugurado ? 'Realizada' : dataInauguracao ? 'Prevista' : 'Sem previsão', detalhe: dataInauguracao ? fmtData(dataInauguracao) : 'Sem marco registrado', alerta: diasInauguracao !== null && diasInauguracao < 0 },
+    {
+      rotulo: 'Equipamento físico',
+      valor: equipamentoFisico ?? equipamentoReferencia,
+      detalhe: inst.equipamento_numero_serie
+        ? `Série ${inst.equipamento_numero_serie}`
+        : equipamentoFisico ? 'Registro feito no evento de entrega' : 'Referência planejada; físico ainda não confirmado',
+    },
+    { rotulo: 'Licença CNEN', valor: !statusLicenca || statusLicenca === 'Sem registro' ? (origemAlternativa ? 'Não informada na fonte' : 'Sem registro') : statusLicenca, detalhe: textoLicenca === 'Sem validade registrada' && origemAlternativa ? 'A fonte de ingestão não informou licença CNEN' : textoLicenca, alerta: alertaLicenca },
+    { rotulo: 'Inauguração', valor: inaugurado ? 'Realizada' : dataInauguracao ? 'Prevista' : (origemAlternativa ? 'Não informada na fonte' : 'Sem previsão'), detalhe: dataInauguracao ? fmtData(dataInauguracao) : (origemAlternativa ? 'A fonte de ingestão não informou data ou previsão' : 'Sem marco registrado'), alerta: diasInauguracao !== null && diasInauguracao < 0 },
     { rotulo: 'Ações abertas', valor: acoesAbertasCount, detalhe: `${acoesAtrasadasCount} atrasada(s)`, alerta: acoesAtrasadasCount > 0 },
-    // Situação da prestação de contas no SICONV legado (achado 2026-09-15,
-    // pedido do usuário: "monitorar os concluídos da mesma forma que
-    // monitoramos no legado, com prestação de contas concluída") --
-    // sincronizada por job_verificacao_siconv.py, só existe pra
-    // tipo_contratacao="Convênio" (FAF/TED nunca estiveram no SICONV).
+    // Situação da prestação de contas no SICONV legado -- sincronizada por
+    // job_verificacao_siconv.py, só existe pra tipo_contratacao="Convênio"
+    // (FAF/TED nunca estiveram no SICONV).
     ...(inst.tipo_contratacao === 'Convênio'
       ? [{
           rotulo: 'Prestação de contas (SICONV)',
           valor: inst.situacao_prestacao_contas ?? 'Sem dado',
-          detalhe: inst.situacao_prestacao_contas === 'Prestação de Contas Concluída' ? 'Concluída' : 'Ainda não concluída',
-          alerta: false,
+          detalhe: divergenciaInauguracao
+            ? 'Alerta: equipamento inaugurado, mas a situação externa ainda não foi concluída'
+            : prestacaoConcluida ? 'Concluída' : 'Ainda não concluída',
+          alerta: divergenciaInauguracao,
         }]
       : []),
-    // Situação no TransfereGov Novo (achado 2026-09-15, pedido do
-    // usuário: "monitoramento de situação dos itens do transfere novo")
-    // -- sincronizada por job_verificacao_transferegov.py, só existe pra
+    ...(inst.situacao_programa
+      ? [{ rotulo: 'Situação do programa', valor: inst.situacao_programa, detalhe: inst.origem_dado ?? 'Fonte de ingestão', alerta: false }]
+      : []),
+    // Situação no TransfereGov Novo -- sincronizada por
+    // job_verificacao_transferegov.py, só existe pra
     // tipo_contratacao="Parceria TransfereGov". Sem estado "Concluída"
     // nesta API (testado ao vivo) -- por isso mostra a ordem de
     // pagamento (sinal real de dinheiro executado) como detalhe, não
@@ -125,7 +137,7 @@ export function MonitoramentoInternoCabecalho({
               <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">{inst.equipamento_descricao}</span>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Programa: {inst.programa} ({inst.tp_instrumento_programa}) · Componente:{' '}
+              Programa: {inst.programa ?? '—'}{programaFonte ? ` (${programaFonte})` : ''} · Componente:{' '}
               {inst.componente ? (
                 <strong>{inst.componente}</strong>
               ) : componenteViaSiconv ? (
@@ -142,13 +154,6 @@ export function MonitoramentoInternoCabecalho({
                 {inst.responsavel_execucao_contato && <> · {inst.responsavel_execucao_contato}</>}
               </div>
             )}
-            <div className="text-[11.5px] text-muted-foreground mt-1.5 flex flex-wrap gap-3">
-              <span>Técnico titular: <strong className="text-primary">{inst.tecnico_titular ?? '—'}</strong></span>
-              <span>Suplente: <strong>{inst.tecnico_suplente ?? '—'}</strong></span>
-              <span>Nível: <strong>{inst.nivel_monitoramento ?? '—'}</strong></span>
-              <span>Finalidade: <strong>{inst.finalidade ?? '—'}</strong></span>
-              <span>Modalidade: <strong>{inst.modalidade_onco ?? '—'}</strong></span>
-            </div>
           </div>
           <div className="text-right">
             <div className="text-[10.5px] text-muted-foreground uppercase">
@@ -161,12 +166,12 @@ export function MonitoramentoInternoCabecalho({
                 {aoVivo.situacao && <div className="mt-1"><StatusPill texto={aoVivo.situacao} /></div>}
                 {aoVivo.valor_suspeito && (
                   <div className="text-[10.5px] text-warning mt-1 max-w-[200px] text-right">
-                    ⚠️ Valor global menor que o liberado — bug de truncamento conhecido do Portal da Transparência, conferir manualmente.
+                    Atenção: valor global menor que o liberado — possível truncamento no Portal da Transparência; confira manualmente.
                   </div>
                 )}
               </>
             ) : (
-              <div className="text-xs text-warning">⚠️ Indisponível (Portal da Transparência)</div>
+              <div className="text-xs font-semibold text-warning">Indisponível no Portal da Transparência</div>
             )}
           </div>
         </div>
@@ -176,18 +181,18 @@ export function MonitoramentoInternoCabecalho({
         {dataInauguracao && (
           <div className="mt-3 pt-2.5 border-t border-border flex justify-between items-center flex-wrap gap-2">
             <span className="text-[12.5px] font-semibold">
-              {inaugurado ? '🎉 Inaugurado em' : '📅 Previsão de inauguração:'} {fmtData(dataInauguracao)}
+              {inaugurado ? 'Inaugurado em' : 'Previsão de inauguração:'} {fmtData(dataInauguracao)}
             </span>
             {!inaugurado && diasInauguracao !== null && (
               <span className={cn('text-[11.5px] font-bold', diasInauguracao < 0 ? 'text-warning' : 'text-primary')}>
-                {diasInauguracao < 0 ? `⚠️ Atrasada há ${Math.abs(diasInauguracao)} dia(s)` : `Faltam ${diasInauguracao} dia(s)`}
+                {diasInauguracao < 0 ? `Atrasada há ${Math.abs(diasInauguracao)} dia(s)` : `Faltam ${diasInauguracao} dia(s)`}
               </span>
             )}
           </div>
         )}
       </div>
 
-      <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-3">
+      <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(min(190px,100%),1fr))] gap-3">
         {indicadores.map((item) => (
           <div
             key={item.rotulo}

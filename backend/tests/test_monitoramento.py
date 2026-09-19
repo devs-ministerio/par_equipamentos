@@ -12,7 +12,7 @@ internamente (append-only / PATCH de verdade, nao dado de teste que se
 descarta com rollback) -- por isso cada teste que escreve limpa o que
 criou/reverte o que mudou no `finally`, pra nao deixar sujeira no banco de
 dev compartilhado."""
-from datetime import date
+from datetime import date, timedelta
 from uuid import uuid4
 
 import pytest
@@ -21,7 +21,7 @@ from fastapi import HTTPException
 from app.auth import create_access_token, hash_password, require_monitoramento_editor, verify_password
 from app.config import settings
 from app.db.base import SessionLocal
-from app.domain_errors import AuthorizationError
+from app.domain_errors import AuthorizationError, ValidationError
 from app.db.models import (
     AcaoMonitoramento,
     AuditLog,
@@ -520,6 +520,52 @@ def test_registrar_evento_monitorado_bloqueia_leitor_no_service():
             )
         assert exc.value.status_code == 403
     finally:
+        db.close()
+
+
+def test_evento_realizado_rejeita_data_futura_e_orienta_atualizacao():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db)
+    try:
+        marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+        with pytest.raises(ValidationError, match="Atualize-a para a data real"):
+            registrar_evento_monitorado(
+                nr_convenio=NR_CONVENIO_SEED,
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date.today() + timedelta(days=1)),
+                db=db,
+                usuario=usuario,
+            )
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
+        db.close()
+
+
+def test_reprogramacao_de_data_prevista_exige_justificativa():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db)
+    try:
+        instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
+        marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+        db.add(EventoMarco(
+            instrumento_id=instrumento.id,
+            marco_id=marco.id,
+            data_prevista=date.today() + timedelta(days=10),
+            autor_id=usuario.id,
+        ))
+        db.flush()
+        with pytest.raises(ValidationError, match="justificativa"):
+            registrar_evento_monitorado(
+                nr_convenio=NR_CONVENIO_SEED,
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_prevista=date.today() + timedelta(days=20)),
+                db=db,
+                usuario=usuario,
+            )
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
         db.close()
 
 

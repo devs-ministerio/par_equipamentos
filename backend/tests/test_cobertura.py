@@ -4,7 +4,7 @@ em uso e SUS) isolada de banco e das APIs externas -- extraida em
 app/pipeline/cobertura.py justamente pra poder ser testada assim.
 """
 from app.db.models import DeficitStatus
-from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente
+from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente, produtividade_por_familia
 
 
 def test_sus_dependente_subtrai_ans_do_residente():
@@ -28,14 +28,13 @@ def test_demanda_arredonda_pra_cima():
     assert r.required_qty == 2
 
 
-def test_macro_sem_populacao_nunca_fica_em_deficit():
-    # RN-05: macro sem match no SIDRA ainda aparece, com demanda zero --
-    # balance = oferta - 0 >= 0 sempre, entao nunca deficit por falta de
-    # dado de populacao (deficit so quando ha demanda real descoberta).
+def test_macro_sem_populacao_fica_indisponivel():
+    # RN-05: macro sem match no SIDRA ainda aparece, mas sem classificar
+    # falta de população como hipersuficiência.
     r = calcular_cobertura(population=0, in_use_sus=0)
     assert r.required_qty == 0
     assert r.balance == 0
-    assert r.deficit_status == DeficitStatus.not_deficient
+    assert r.deficit_status == DeficitStatus.not_available
 
 
 def test_deficit_quando_oferta_menor_que_demanda():
@@ -58,3 +57,10 @@ def test_produtividade_customizavel():
     r = calcular_cobertura(population=1_000_000, in_use_sus=1, produtividade=500_000)
     assert r.required_qty == 2
     assert r.balance == -1
+
+
+def test_produtividade_por_familia_mantem_parametros_reais():
+    assert produtividade_por_familia("TOMOGRAFO") == 100_000
+    assert produtividade_por_familia("RESSONANCIA") == 5_000 / (30 / 1_000)
+    assert produtividade_por_familia("PET_CT") == 1_500_000
+

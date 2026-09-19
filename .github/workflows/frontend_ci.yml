@@ -1,0 +1,43 @@
+name: Frontend CI
+
+# Etapa 11 do plan-mode frontend (2026-09-17) -- gate automático de
+# lint/typecheck/test/build a cada push/PR que toque frontend/. `npm ci`
+# (não `npm install`) trava a instalação no que o lockfile já tem --
+# lockfile desalinhado falha o job em vez de silenciosamente instalar
+# outra versão.
+on:
+  push:
+    branches: [master]
+    paths: ["frontend/**", ".github/workflows/frontend_ci.yml"]
+  pull_request:
+    paths: ["frontend/**", ".github/workflows/frontend_ci.yml"]
+
+jobs:
+  build_e_testes:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências (lockfile travado)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Testes
+        run: npm run test
+
+      - name: Build
+        run: npm run build

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { EstabelecimentoRow } from '@/types/domain';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/common/pagination';
 import { SearchInput } from '@/components/common/search-input';
 import { useEstabelecimentosPage } from '@/hooks/useEstabelecimentosPage';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
+import { SortableTableHead } from '@/components/common/sortable-table-head';
 import { useEstabelecimentoDetalhe } from '@/hooks/useEstabelecimentoDetalhe';
 import { BotaoDetalhe } from './botao-detalhe';
 import { MunicipioDetalheModal } from './municipio-detalhe-modal';
@@ -82,11 +84,6 @@ export function EstabelecimentoTable({
     }
   }
 
-  function arrow(key: SortKey) {
-    if (sortKey !== key) return null;
-    return <span className="ml-[3px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
-  }
-
   const erroDetalhe =
     statusDetalhe === 'sem-dado' && alvoDetalhe
       ? `Sem dado de cobertura pra ${alvoDetalhe.municipio} (${alvoDetalhe.uf}).`
@@ -104,33 +101,33 @@ export function EstabelecimentoTable({
         <div className="flex-1 text-sm font-semibold">Estabelecimentos de Saúde</div>
         <SearchInput value={buscaInput} onChange={setBuscaInput} placeholder="Buscar por nome, CNES ou município..." />
       </div>
-      {error && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({error.message}).</div>}
+      {error && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({mensagemSeguraDoErro(error)}).</div>}
       {erroDetalhe && <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">{erroDetalhe}</div>}
       <div style={{ maxHeight: 340, overflow: 'auto', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}>
         <Table className="text-[12.5px]">
           <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
             <TableRow>
-              <TableHead className="cursor-pointer py-[9px] px-4.5" onClick={() => toggleSort('cnes_code')}>
-                CNES{arrow('cnes_code')}
-              </TableHead>
-              <TableHead className="cursor-pointer py-[9px] px-2.5" onClick={() => toggleSort('facility_name')}>
-                Nome do estabelecimento{arrow('facility_name')}
-              </TableHead>
-              <TableHead className="cursor-pointer py-[9px] px-2.5" onClick={() => toggleSort('municipality_name')}>
-                Município{arrow('municipality_name')}
-              </TableHead>
-              <TableHead className="cursor-pointer py-[9px] px-2.5" onClick={() => toggleSort('state')}>
-                UF{arrow('state')}
-              </TableHead>
-              <TableHead className="cursor-pointer py-[9px] px-2.5 text-right" onClick={() => toggleSort('existing_qty')}>
-                Qtd equipamento{arrow('existing_qty')}
-              </TableHead>
-              <TableHead className="cursor-pointer py-[9px] px-2.5 text-right" onClick={() => toggleSort('in_use_qty')}>
-                Equipamentos em uso{arrow('in_use_qty')}
-              </TableHead>
-              <TableHead className="cursor-pointer py-[9px] px-4.5" onClick={() => toggleSort('sus_flag')}>
-                SUS{arrow('sus_flag')}
-              </TableHead>
+              <SortableTableHead className="py-[9px] px-4.5" ativo={sortKey === 'cnes_code'} direcao={sortDir} onToggle={() => toggleSort('cnes_code')}>
+                CNES
+              </SortableTableHead>
+              <SortableTableHead className="py-[9px] px-2.5" ativo={sortKey === 'facility_name'} direcao={sortDir} onToggle={() => toggleSort('facility_name')}>
+                Nome do estabelecimento
+              </SortableTableHead>
+              <SortableTableHead className="py-[9px] px-2.5" ativo={sortKey === 'municipality_name'} direcao={sortDir} onToggle={() => toggleSort('municipality_name')}>
+                Município
+              </SortableTableHead>
+              <SortableTableHead className="py-[9px] px-2.5" ativo={sortKey === 'state'} direcao={sortDir} onToggle={() => toggleSort('state')}>
+                UF
+              </SortableTableHead>
+              <SortableTableHead className="py-[9px] px-2.5 text-right" align="right" ativo={sortKey === 'existing_qty'} direcao={sortDir} onToggle={() => toggleSort('existing_qty')}>
+                Qtd equipamento
+              </SortableTableHead>
+              <SortableTableHead className="py-[9px] px-2.5 text-right" align="right" ativo={sortKey === 'in_use_qty'} direcao={sortDir} onToggle={() => toggleSort('in_use_qty')}>
+                Equipamentos em uso
+              </SortableTableHead>
+              <SortableTableHead className="py-[9px] px-4.5" ativo={sortKey === 'sus_flag'} direcao={sortDir} onToggle={() => toggleSort('sus_flag')}>
+                SUS
+              </SortableTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

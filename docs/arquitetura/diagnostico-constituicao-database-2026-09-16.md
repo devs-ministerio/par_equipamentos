@@ -5,6 +5,12 @@ Data original: 2026-09-16. **Reexecutado em 2026-09-17** depois da implementaç�
 afetada e o novo veredito ao final do documento. O corpo original abaixo fica como registro
 histórico do estado encontrado; não foi reescrito por cima.
 
+**Segunda atualização, mesma data (2026-09-17)**: a reavaliação `diagnostico-constituicao-backend-
+2026-09-16.md` (executada depois da rodada acima) encontrou 3 achados P0 novos, de essência
+database, fora do escopo do Plan Mode anterior — cobertos e fechados por
+`planmode-database-2026-09-17.md`. Ver seção "Atualização 2026-09-17 (Plan Mode database
+2026-09-17)" ao final de cada seção afetada e o veredito final revisado.
+
 ## Escopo e método
 
 Este documento substitui o diagnóstico anterior, baseado em código, migrations
@@ -74,6 +80,28 @@ performance fechou também. Avaliação atualizada: **9,3/10**.
 
 A nota não chega a 10 só por causa de backup/PITR (não comprovado, devops) e do atributo residual
 de `neondb_owner` (fora do controle do projeto, não da aplicação).
+
+### Atualização 2026-09-17 (Plan Mode database 2026-09-17) — 3 achados P0 novos, fechados
+
+A reavaliação `diagnostico-constituicao-backend-2026-09-16.md` (executada depois da rodada acima)
+achou 3 problemas de essência database que a rodada anterior não cobria — concorrência de transação
+em `rotate_refresh_token`/`revoke_refresh_token`, seleção silenciosa de credencial de migration
+(`DATABASE_URL` vs. `DATABASE_URL_MIGRATION`) e `downgrade()` inválido em banco populado na migration
+`f8fe7ce9347c`. Os três eram reais (confirmados no código antes de escrever o plano) e foram fechados
+por `planmode-database-2026-09-17.md`, validados contra `par_equipamentos_pytest` (clone local):
+`pytest -m "not db"` (48 passed) e `pytest -m db` (63 passed, 8 skipped), incluindo 2 testes novos
+(concorrência real de rotação, precedência de `DATABASE_URL` exportada) e `alembic
+upgrade`/`downgrade`/`upgrade` simétrico contra tabela `user` populada. Avaliação atualizada:
+**9,6/10**.
+
+- Schema físico e integridade dos dados: **9,5/10** (sem mudança).
+- Migrations e ausência de drift: **10/10** (mantido — os 2 achados de migration desta rodada eram
+  de segurança operacional/reversibilidade, não de drift entre `models.py` e o schema aplicado).
+- Queries e performance medidas: **9,5/10** (sem mudança).
+- Segurança de conexão, privilégio mínimo e transação: **9,5/10** (+0,5 — fecha a lacuna de
+  concorrência em `rotate_refresh_token`/`revoke_refresh_token`, que a rodada anterior não havia
+  testado). Segue não sendo 10 pelo mesmo motivo residual de `neondb_owner`.
+- Backup e restauração: **segue não comprovado** — fora do escopo, ciclo devops.
 
 ## Estado comprovado
 
@@ -220,6 +248,12 @@ on idx_cnes_estabelecimento_nome_trgm`.
 - **(2026-09-17)** Criptografia em trânsito confirmada real (TLS 1.3), não só presumida.
 - **(2026-09-17)** `refresh_token` migrado, testado e sem drift.
 - **(2026-09-17)** Migration desacoplada do boot da API e dos jobs de dado.
+- **(2026-09-17, 2ª rodada)** Rotação/revogação de refresh token é atômica (`UPDATE ...
+  RETURNING`), sem janela de race condition entre requisições concorrentes.
+- **(2026-09-17, 2ª rodada)** Credencial de migration nunca é selecionada silenciosamente —
+  `DATABASE_URL` exportada no processo vence sobre `DATABASE_URL_MIGRATION` do `.env`.
+- **(2026-09-17, 2ª rodada)** `downgrade()` de toda migration aditiva testado contra tabela
+  populada (`f8fe7ce9347c` corrigido).
 
 ## Divergências prioritárias
 
@@ -323,6 +357,50 @@ retenção, mascaramento de backup ou dataset anonimizado para desenvolvimento.
 A divergência do banco local reforça a necessidade de fixtures sintéticas e
 reproduzíveis.
 
+### P0 — race condition em rotação/revogação de refresh token — RESOLVIDO em 2026-09-17
+
+`rotate_refresh_token`/`revoke_refresh_token` (`backend/app/auth.py`) faziam `SELECT` + mutação de
+atributo + `commit()` final — duas requisições concorrentes com o mesmo token passavam ambas pela
+checagem `revoked_at is None` antes de qualquer commit, gerando dois sucessores do mesmo token pai.
+Quebrava a premissa "reuso de token revogado = furto de sessão" de que o Bloco 2 do Plan Mode de
+segurança depende.
+
+**Fechamento**: trocado por `UPDATE refresh_token SET revoked_at = :agora WHERE token_hash = :hash
+AND revoked_at IS NULL RETURNING user_id, expires_at` atômico — o `UPDATE` já é atômico no Postgres,
+a transação concorrente bloqueia na mesma linha e, ao reavaliar o `WHERE`, encontra `revoked_at` já
+preenchido, afetando 0 linhas. Coberto por teste de concorrência real (duas `Session`/conexões
+distintas, mesmo token, via `ThreadPoolExecutor` — `tests/test_auth_session.py::
+test_rotacao_concorrente_do_mesmo_token_so_uma_vence`), que confirma que só uma das duas chamadas
+concorrentes sucede.
+
+### P0 — seleção silenciosa da URL de migration — RESOLVIDO em 2026-09-17
+
+`Settings.database_url_alembic` sempre priorizava `database_url_migration` quando definida, mesmo
+quando o operador exportava `DATABASE_URL=...` na própria linha de comando para uma execução
+pontual — causou incidente real (`alembic upgrade head` pensado para Postgres local atingiu o Neon
+porque o `.env` local tinha `DATABASE_URL_MIGRATION` setado).
+
+**Fechamento**: `database_url_alembic` passou a checar `os.environ.get("DATABASE_URL")` (ambiente
+real do processo, não o valor já mesclado pelo pydantic-settings a partir do `.env`) antes de olhar
+`database_url_migration` — se a variável foi exportada de verdade no shell/no `env:` do job, ela
+vence. `backend/alembic/env.py` passou a ecoar (stderr, sempre, informativo) o host resolvido antes
+de rodar qualquer comando, para visibilidade. Testado nos 3 cenários (só `.env`, `DATABASE_URL`
+exportada + `.env` com `DATABASE_URL_MIGRATION`, `migrar_banco.yml` com `DATABASE_URL` no `env:` do
+job) — teste novo `tests/test_config.py::test_url_do_alembic_prioriza_database_url_exportada_no_processo`
+cobre o cenário do incidente.
+
+### P0 — `downgrade()` inválido em banco populado — RESOLVIDO em 2026-09-17
+
+`downgrade()` da migration `f8fe7ce9347c` (remoção de `user.cpf_hash`) recriava a coluna como
+`NOT NULL` sem `server_default` — falharia com `ADD COLUMN` em qualquer `user` com linha existente
+(produção tem), contrariando a exigência de reversibilidade da constituição.
+
+**Fechamento**: `server_default=sa.text("'nao-informado'")` adicionado ao `add_column` do
+`downgrade`, mantendo `NOT NULL` — reproduz fielmente o único valor real já confirmado em produção
+(`SELECT DISTINCT cpf_hash FROM "user"`, nunca CPF real). Validado contra `par_equipamentos_pytest`
+com um `user` inserido antes do `downgrade -1`: sucesso, `cpf_hash` recuperado como
+`'nao-informado'`, `upgrade head` de volta simétrico.
+
 ### P2 — nomenclatura e JSONB
 
 - O schema mistura português e inglês por histórico. Renomear por estética não
@@ -338,6 +416,11 @@ reproduzíveis.
 Neon (ver `planmode-database-2026-09-16.md`, Rodada 4, para o relato completo de execução). Bloco 4
 "backup" (era numerado separado na sequência original abaixo) e a parte de CI do Bloco 5 seguem
 pendentes, fora do escopo deste Plan Mode.
+
+**Segunda atualização (mesma data)**: os 3 achados P0 da reavaliação backend (concorrência de
+`rotate_refresh_token`/`revoke_refresh_token`, seleção de `DATABASE_URL`, `downgrade()` de
+`f8fe7ce9347c`) também fechados — ver `planmode-database-2026-09-17.md` e a seção "Divergências
+prioritárias" acima.
 
 ### Bloco 1 — segurança operacional — ✅ aplicado
 
@@ -389,6 +472,10 @@ pendentes, fora do escopo deste Plan Mode.
 - ⬜ Dados de desenvolvimento/teste são sintéticos ou anonimizados — segue não implementado (fora do
   escopo deste Plan Mode; estratégia de clonagem/ingestão documentada em `CLAUDE.md` relativiza o
   risco, não o resolve).
+- ✅ Rotação/revogação de refresh token atômica — coberta por teste de concorrência real.
+- ✅ Credencial de migration nunca selecionada silenciosamente — `DATABASE_URL` exportada tem
+  precedência explícita, host ecoado antes de rodar.
+- ✅ `downgrade()` de toda migration testado contra banco populado — `f8fe7ce9347c` corrigido.
 
 ## Estratégia de ingestão e clonagem (decisão do usuário, 2026-09-16)
 
@@ -467,3 +554,15 @@ para desenvolvimento (relativizado pela estratégia de clonagem via `pg_dump`/`p
 documentada em `CLAUDE.md`, mas não resolvido). Nenhum desses três bloqueia produção da forma que os
 itens originais bloqueavam — são lacunas de processo/observabilidade, não de integridade ou
 segurança de acesso ao dado. Avaliação atualizada: **9,3/10**.
+
+### Segunda atualização 2026-09-17 (Plan Mode database 2026-09-17)
+
+A reavaliação backend, feita depois da rodada acima, achou 3 problemas reais adicionais de essência
+database — race condition em rotação/revogação de refresh token, seleção silenciosa de credencial de
+migration e `downgrade()` inválido em banco populado. Nenhum tinha sido testado/coberto pela rodada
+de 2026-09-17 anterior (que focou schema/role/índice/CI); os três foram confirmados presentes no
+código antes de escrever `planmode-database-2026-09-17.md` e fechados na mesma sessão, cada um com
+teste de regressão novo (concorrência real de rotação, precedência de `DATABASE_URL` exportada,
+`downgrade` contra tabela `user` populada). O que resta aberto continua sendo só o que já era
+conscientemente fora de escopo (backup/RPO-RTO, CI de backend, dataset sintético). Avaliação
+atualizada: **9,6/10**.

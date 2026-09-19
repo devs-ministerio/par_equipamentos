@@ -81,10 +81,13 @@ reintroduzir o erro:
   form de cadastro separado — o PATCH continua existindo só pra corrigir
   depois.
 - **Escopo bem menor que os 403 convênios, e nem tudo é Convênio**: só
-  cobre os instrumentos que a equipe decide monitorar (86 hoje,
-  importados de `backend/scripts/importar_planilha_monitoramento.py` a
-  partir da planilha real da equipe — import é bootstrap único, não
-  rodar de novo como sincronização recorrente). Convênio sem
+  cobre os instrumentos que a equipe decide monitorar (249 após a carga
+  validada em 2026-09-18: 71 Convênio, 12 FAF, 3 TED, 92 PERSUS I,
+  50 PERSUS II e 21 PRONON;
+  Convênio/FAF/TED importados de `backend/scripts/importar_planilha_monitoramento.py` a
+  partir da planilha real da equipe; PERSUS/PRONON por
+  `backend/scripts/importar_programas_monitoramento.py` — imports são
+  cargas controladas, não sincronizações recorrentes). Convênio sem
   `InstrumentoEquipamento` não é erro — é o caso normal. Desde
   2026-09-09 o campo `tipo_contratacao` distingue "Convênio" (universo
   Portal/TransfereGov, `nr_convenio` real) de "FAF"/"TED" (nunca tiveram
@@ -271,13 +274,24 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   estilo. Call sites fora do dashboard (`monitoramento-{overview,
   equipamentos,painel}-page.tsx`) foram atualizados só nessa prop, sem
   reestilizar mais nada nessas páginas (continuam fora de escopo).
-- **Reavaliação 2026-09-17**: build quebrado por casing duplicado
-  (`Modal.tsx`/`Pagination.tsx` em `components/common/` coexistindo com
-  imports em minúsculas), 15 warnings de lint (expressões sem efeito +
-  violações de Fast Refresh), e CSS aspiracional sem consumidor
-  (`.card-group`/`.table-editorial`/`.meta-grid`/`.kpi-row` em `index.css`).
-  Correção planejada no Bloco 0 de `planmode-frontend-2026-09-17.md`, ainda
-  não executada.
+- **Reavaliação 2026-09-17, Bloco 0 (executado no mesmo dia)**: build
+  quebrado por casing duplicado (`Modal.tsx`/`Pagination.tsx` em
+  `components/common/` coexistindo com imports em minúsculas) corrigido —
+  arquivos renomeados via `git mv` pra `modal.tsx`/`pagination.tsx`; 15
+  warnings de lint corrigidos; CSS aspiracional sem consumidor
+  (`.card-group`/`.table-editorial`/`.meta-grid`/`.kpi-row` em `index.css`)
+  removido. Ver `CLAUDE.md`, seção "Plan Mode frontend", pro detalhe
+  completo dos Blocos 0-3.
+- **Bloco 3 (app shell responsivo, 2026-09-17)**: `AppHeader`
+  (`components/layout/app-header.tsx`) colapsa nav/extras/`UserMenu` num
+  menu mobile (`Sheet` do shadcn) abaixo de `lg` (1024px — testado que
+  768px não bastava como corte, o nav completo não cabia numa linha só).
+  Container/gutter duplicado 3x virou `CONTAINER_CLASS`
+  (`lib/layout.ts`), importado por `app-header.tsx`/`app-layout.tsx`/
+  `monitoramento-layout.tsx`. `components/common/modal.tsx` (wrapper sobre
+  `Dialog`) foi removido — os 3 consumidores usam `<Dialog>/<DialogContent>`
+  direto agora; `.table-scroll`/`.kpi*` (zero consumidor) também saíram de
+  `index.css`.
 
 ## Config e deploy — pegadinhas já resolvidas
 

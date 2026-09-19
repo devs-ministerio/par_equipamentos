@@ -4,7 +4,7 @@
  * MonitoramentoInterno.tsx. */
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { InstrumentoEquipamento } from '@/services/monitoramento';
+import type { InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
 import type { CadastroInternoFormValues } from '@/lib/validations/monitoramento';
 import { MonitoramentoInternoFormCadastro } from './monitoramento-interno-form-cadastro';
 import { SecaoOperacional, estiloInput } from './monitoramento-ui';
@@ -32,7 +32,6 @@ export function MonitoramentoInternoCadastro({
   return (
     <SecaoOperacional
       titulo="Cadastro interno"
-      subtitulo="Campos mantidos pela equipe para qualificar o acompanhamento do instrumento."
       acao={
         <button
           onClick={() => setCadastroAberto((v) => !v)}
@@ -59,7 +58,7 @@ export function MonitoramentoInternoCadastro({
           }}
         />
       ) : (
-        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(190px,1fr))] gap-2.5">
+        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr))] gap-2.5">
           {CAMPOS_VISAO.map(({ rotulo, campo }) => (
             <div key={rotulo} className="border-t border-border pt-2">
               <div className="text-[10.5px] text-muted-foreground font-extrabold uppercase">{rotulo}</div>

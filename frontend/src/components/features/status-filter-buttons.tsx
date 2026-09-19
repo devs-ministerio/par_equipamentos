@@ -18,7 +18,7 @@ interface Props {
 export function StatusFilterButtons({ selecionados, onChange }: Props) {
   function toggle(status: StatusCobertura) {
     const proximo = new Set(selecionados);
-    proximo.has(status) ? proximo.delete(status) : proximo.add(status);
+    if (proximo.has(status)) proximo.delete(status); else proximo.add(status);
     onChange(proximo);
   }
 
@@ -27,7 +27,7 @@ export function StatusFilterButtons({ selecionados, onChange }: Props) {
   const indisponivelAtivo = selecionados.has('Dados indisponíveis');
 
   return (
-    <div className="flex gap-1.5">
+    <div className="flex flex-wrap gap-1.5">
       <Button
         variant="outline"
         onClick={() => toggle('Hipossuficiente')}

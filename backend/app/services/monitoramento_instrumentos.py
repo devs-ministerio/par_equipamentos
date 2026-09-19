@@ -17,7 +17,7 @@ from app.repositories import monitoramento as monitoramento_repo
 @dataclass(frozen=True)
 class NovoInstrumentoMonitorado:
     nr_convenio: str
-    cnpj_convenente: str
+    cnpj_convenente: str | None
     nome_convenente: str
     tipo_contratacao: str
     municipio: str | None = None
@@ -30,11 +30,15 @@ class NovoInstrumentoMonitorado:
     tecnico_titular: str | None = None
     tecnico_suplente: str | None = None
     nivel_monitoramento: str | None = None
-    finalidade: str | None = None
     modalidade_onco: str | None = None
     responsavel_execucao_nome: str | None = None
     responsavel_execucao_contato: str | None = None
     situacao_prestacao_contas: str | None = None
+    origem_dado: str | None = None
+    tipologia: str | None = None
+    investimento_aquisicao: float | None = None
+    situacao_programa: str | None = None
+    natureza_servico: str | None = None
 
 
 def criar_instrumento_monitorado(

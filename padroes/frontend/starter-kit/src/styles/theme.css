@@ -1,0 +1,329 @@
+/**
+ * styles/theme.css
+ *
+ * Substitui o globals.css gerado pelo `shadcn init` (defaults crus) por um tema
+ * já customizado nos 5 pontos da Seção 4 da constiuicao_frontend.md.
+ *
+ * Como usar:
+ * 1. Copiar por cima do globals.css do projeto (mantém as camadas @tailwind).
+ * 2. Trocar a fonte do @import pela fonte real do projeto (Google Fonts ou
+ *    self-hosted) — a daqui é só exemplo de par com personalidade.
+ * 3. Ajustar --primary (HSL) para a cor de destaque definida em lib/design-tokens.ts.
+ * 4. Preencher os campos marcados com "// AJUSTAR" antes de gerar a 1ª tela.
+ *
+ * Classes prontas: .card-group (elevação seletiva por grupo), .kpi-row/.kpi
+ * (métricas alinhadas), .table-editorial + .table-scroll (tabela sem sombra,
+ * sem scroll de página), .meta-grid (grid de identificação/detalhes), .tabs
+ * (aba ativa por borda), .alert/.badge/.btn-outline (toque Bootstrap).
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fontes — nunca deixar cair no default Inter do create-next-app/shadcn.
+   Direção "Modern Tech / Editorial Grotesk": Space Grotesk no corpo/títulos,
+   com peso maior (700) para dar impacto pontual (ex.: nome da marca no header)
+   — sem introduzir uma família mono para dados. Mono ("textura técnica") foi
+   testado e descartado: lê como "dashboard gerado por IA/dev tool", não como
+   produto. Números tabulares usam a mesma família com font-variant-numeric.
+   Alternativa self-hosted (não disponível no Google Fonts): trocar título/corpo
+   por Cabinet Grotesk + Satoshi via Fontshare, com @font-face local. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* ---- Cores base (viés de matiz na direção do accent, nunca cinza puro) ---- */
+    --background: 40 20% 97%;          /* AJUSTAR — ground do produto */
+    --foreground: 30 8% 12%;
+    --card: 40 20% 100%;
+    --card-foreground: 30 8% 12%;
+    --muted: 38 14% 92%;               /* cinza com viés quente, não neutro puro */
+    --muted-foreground: 30 6% 40%;
+    --border: 38 14% 87%;
+
+    /* ---- Accent — mesma cor definida em design-tokens.example.ts ---- */
+    --primary: 38 62% 42%;             /* AJUSTAR — copiar de designTokens.accent */
+    --primary-foreground: 40 30% 98%;
+
+    --destructive: 4 62% 45%;
+    --destructive-foreground: 40 30% 98%;
+
+    /* ---- Radius: escala própria, não um valor único repetido em tudo ---- */
+    --radius-control: 0.375rem;  /* botão, input, badge */
+    --radius-surface: 0.5rem;    /* card, painel */
+    --radius-overlay: 0.75rem;   /* modal, popover, dropdown */
+    --radius: var(--radius-surface); /* fallback p/ componentes shadcn legados */
+
+    /* ---- Sombra: overlay (modal/popover) + card de nível de grupo ---- */
+    --shadow-overlay: 0 12px 32px -8px hsl(30 8% 12% / 0.28);
+    --shadow-control-focus: 0 0 0 3px hsl(var(--primary) / 0.35);
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  }
+
+  /* Tema único: sempre light (Seção 4). Só reativar dark mode se o projeto
+     pedir explicitamente — nesse caso, reintroduzir aqui um bloco `.dark`
+     redefinindo as mesmas variáveis com valores escuros. */
+
+  body {
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Space Grotesk', system-ui, sans-serif; /* AJUSTAR se trocar o par de fontes */
+    font-weight: 400; /* corpo em peso leve — o contraste com o título vem do peso, não de outra família */
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none; /* nunca deixar o sublinhado default do navegador vazar em nav/botão/card */
+  }
+
+  h1, h2, h3 {
+    font-family: 'Space Grotesk', system-ui, sans-serif; /* mesma família do corpo — contraste vem do peso/tamanho, estética grotesk contemporânea */
+    font-weight: 700;
+    letter-spacing: -0.02em;  /* tracking-tight — escala agressiva, não default do navegador */
+    text-wrap: balance;
+  }
+  h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.05; }
+  h2 { font-size: clamp(1.5rem, 2.6vw, 2rem); line-height: 1.15; }
+
+  .font-data {
+    font-variant-numeric: tabular-nums; /* números tabulares (preço, id, data) sem trocar de família */
+  }
+}
+
+@layer components {
+  /* Regras que corrigem o comportamento default do shadcn diretamente nos primitivos */
+
+  .card {
+    border-radius: var(--radius-surface);
+    box-shadow: none;                 /* card estático nunca tem sombra por default */
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* ---- Card de nível de grupo — elevação seletiva, não "card em tudo" ----
+     Use .card-group SÓ no container mais externo de um resultado (um item de
+     lista, um painel de métricas) — nunca dentro de outro .card-group nem em
+     cada campo individual. Por dentro, continue estruturando por borda/divisor
+     (Seção 5 "Estruturas em vez de card em tudo"), não com mais cards aninhados. */
+  .card-group {
+    border-radius: var(--radius-surface);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-card);
+    background: hsl(var(--card));
+    overflow: hidden;
+  }
+  .card-group .card-group-accent {
+    height: 3px;
+    background: hsl(var(--primary)); /* assinatura visual dentro do card, no lugar da régua reta */
+  }
+
+  button, .btn, input, select, textarea {
+    border-radius: var(--radius-control); /* controles têm radius menor que cards */
+  }
+
+  [role="dialog"], [role="menu"], [data-radix-popper-content-wrapper] {
+    border-radius: var(--radius-overlay);
+    box-shadow: var(--shadow-overlay);    /* sombra fica só aqui */
+  }
+
+  /* ---- Toque Bootstrap: bordas visíveis e feedback explícito de estado ----
+     Diferente do shadcn (que tende a borderless, foco discreto), Bootstrap
+     sempre deixa o limite do controle visível e o estado de foco/validação
+     óbvio. Aplica isso aos primitivos sem abandonar os tokens do shadcn. */
+
+  input, select, textarea, .form-control {
+    border: 1px solid hsl(var(--border));
+    padding: 0.375rem 0.75rem;               /* espaçamento Bootstrap clássico */
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, select:focus, textarea:focus, .form-control:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: var(--shadow-control-focus); /* glow de foco = marca registrada do Bootstrap */
+  }
+  input[aria-invalid="true"], .form-control.is-invalid {
+    border-color: hsl(var(--destructive));
+    box-shadow: 0 0 0 3px hsl(var(--destructive) / 0.25);
+  }
+
+  button, .btn {
+    border: 1px solid transparent;
+    padding: 0.375rem 0.75rem;
+    font-weight: 500;
+    transition: background-color .15s ease-in-out, border-color .15s ease-in-out,
+                box-shadow .15s ease-in-out, transform .1s ease-in-out; /* feedback tátil, nunca estático */
+  }
+  button:hover, .btn:hover { filter: brightness(1.05); }
+  button:active, .btn:active { transform: translateY(1px); }
+  button:focus-visible, .btn:focus-visible, a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary)); /* anel de foco, nunca o outline default do navegador */
+  }
+  .btn-outline {
+    background: transparent;
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+  }
+
+  /* Alert — componente clássico do Bootstrap que o shadcn não tem por padrão */
+  .alert {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    padding: 0.75rem 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    font-size: 0.875rem;
+  }
+  .alert-success {
+    background: hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.35);
+    color: hsl(var(--primary));
+  }
+  .alert-destructive {
+    background: hsl(var(--destructive) / 0.08);
+    border-color: hsl(var(--destructive) / 0.35);
+    color: hsl(var(--destructive));
+  }
+
+  /* Badge estilo pill do Bootstrap, no lugar do badge quadrado do shadcn default */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  /* Tabela listrada clássica — útil para telas densas de dado tabular */
+  table.table-striped tbody tr:nth-child(odd) {
+    background: hsl(var(--muted) / 0.5);
+  }
+  table.table-striped th, table.table-striped td {
+    border-bottom: 1px solid hsl(var(--border));
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* ---- Tabela editorial — a versão com personalidade (usar por padrão) ----
+     Estética Swiss/editorial: sem sombra, sem zebra, hierarquia só por
+     tipografia e borda. É a estrutura recomendada pela Seção 5
+     ("Estruturas em vez de card em tudo"). */
+  .table-editorial {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 2px solid hsl(var(--foreground)); /* regra estrutural forte no topo, estilo masthead */
+  }
+  .table-editorial thead th {
+    text-align: left;
+    font-size: 0.625rem;       /* label curta: 10px + tracking-wider, nunca frase em caixa alta */
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+  /* Coluna numérica (qtd, valor unitário, valor total) sempre alinhada à direita */
+  .table-editorial thead th.num,
+  .table-editorial td.num {
+    text-align: right;
+  }
+  .table-editorial tbody td {
+    padding: 0.75rem;
+    border-bottom: 1px solid hsl(var(--border));
+    font-size: 0.9rem;
+    transition: background-color .15s ease-in-out;
+  }
+  .table-editorial tbody tr:hover td {
+    background: hsl(var(--muted) / 0.4); /* feedback tátil no hover, não zebra estática */
+  }
+  .table-editorial tbody tr[data-state="highlight"] td:first-child {
+    border-left: 3px solid hsl(var(--primary)); /* assinatura visual da Seção 5, não cor de fundo inteira */
+    padding-left: calc(0.75rem - 3px);
+  }
+  .table-editorial td.font-data,
+  .table-editorial .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Tabela larga rola dentro do próprio container — a página nunca rola
+     lateralmente (Seção 14, Responsividade). Envolver toda .table-editorial
+     larga com <div class="table-scroll">. */
+  .table-scroll {
+    overflow-x: auto;
+  }
+
+  /* ---- Abas (tabs) — aba ativa por borda inferior, nunca fundo escuro ---- */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid hsl(var(--border)); }
+  .tabs button {
+    background: none; border: none; border-bottom: 2px solid transparent;
+    padding: 0.5rem 0.9rem; font-size: 0.8rem; font-weight: 500;
+    color: hsl(var(--foreground)); cursor: pointer;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .tabs button[aria-selected="true"] {
+    color: hsl(var(--primary)); border-color: hsl(var(--primary)); font-weight: 700;
+  }
+  .tabs button:disabled { color: hsl(var(--muted-foreground)); opacity: .55; cursor: default; }
+
+  /* ---- Grid de metadados (identificação/detalhes) ----
+     4 colunas, padding generoso, contraste label/valor — nunca 5+ colunas
+     nem label e valor com o mesmo peso de cor. */
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem 1.5rem;
+    padding: 1.5rem;
+  }
+  @media (max-width: 640px) {
+    .meta-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .meta-grid .field label {
+    display: block;
+    font-size: 0.625rem;
+    letter-spacing: 0.04em;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 0.3rem;
+  }
+  .meta-grid .field span {
+    font-size: 0.86rem;
+    color: hsl(var(--foreground));   /* valor sempre no texto principal, não no muted */
+    font-weight: 500;
+  }
+
+  /* ---- Row de métricas/KPI — faixas de altura fixa, nunca altura por conteúdo ----
+     Bug clássico: um valor longo ("R$ 1.205.526.630") quebra linha e desalinha
+     a linha de base com os KPIs vizinhos. Corrige com 3 faixas fixas
+     (label/valor/sub) + valor que encolhe via clamp() em vez de quebrar. */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+  }
+  @media (max-width: 900px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  .kpi {
+    display: flex;
+    flex-direction: column;
+    padding: 1.125rem 1rem;
+    border-right: 1px solid hsl(var(--border));
+    border-top: 1px solid hsl(var(--border));
+  }
+  .kpi .label {
+    height: 14px; line-height: 14px; margin: 0 0 0.5rem;
+    font-size: 0.625rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: hsl(var(--muted-foreground)); white-space: nowrap; overflow: hidden;
+  }
+  .kpi .value {
+    height: 1.2em; line-height: 1.2;
+    font-size: clamp(1rem, 2.1vw, 1.5rem); font-weight: 700;
+    white-space: nowrap; overflow: hidden; /* nunca quebra — encolhe via clamp() */
+  }
+  .kpi .sub {
+    height: 14px; line-height: 14px; margin-top: 0.25rem;
+    font-size: 0.74rem; color: hsl(var(--muted-foreground));
+    white-space: nowrap; overflow: hidden;
+    /* sempre presente no HTML mesmo vazio (&nbsp;), pra reservar a altura
+       e manter a linha de base igual entre todos os KPIs da row */
+  }
+}

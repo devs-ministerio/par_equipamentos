@@ -19,7 +19,8 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthSession } from '@/hooks/useAuthSession';
-import { criarInstrumento } from '@/services/monitoramento';
+import { criarInstrumento } from '@/services/monitoramento-instrumentos';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
 import { monitoramentoKeys } from '@/hooks/monitoramento-query-keys';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,7 +55,7 @@ export function AdicionarMonitoramentoButton({ c }: { c: ConvenioUnificado }) {
     mutationFn: () =>
       criarInstrumento({
         nr_convenio: c.numero,
-        cnpj_convenente: c.convenente.cnpj,
+        cnpj_convenente: c.convenente.cnpj ?? '',
         nome_convenente: c.convenente.nome,
         tipo_contratacao: 'Convênio',
         municipio: c.municipio,
@@ -65,7 +66,7 @@ export function AdicionarMonitoramentoButton({ c }: { c: ConvenioUnificado }) {
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumentos });
       fechar();
     },
-    onError: (e) => setErro(e instanceof Error ? e.message : 'Falha ao adicionar.'),
+    onError: (e) => setErro(mensagemSeguraDoErro(e)),
   });
 
   if (!sessao.podeEditar) {

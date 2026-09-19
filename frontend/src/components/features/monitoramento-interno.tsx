@@ -14,16 +14,15 @@ import { useInstrumentoTimeline, useRegistrarEvento, useSalvarCadastroInstrument
 import { useAcoesDoInstrumento, useConcluirAcao, useCriarAcao } from '@/hooks/useMonitoramentoAcoes';
 import { componenteDoProgramaSiconv } from '@/lib/componente-siconv';
 import { derivarMonitoramentoInterno } from '@/lib/monitoramento-derivado';
-import { ApiError } from '@/lib/api-error';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
+import { ErrorAlert } from '@/components/common/error-alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { OperationalDetailSection } from '@/components/common/operational-detail-section';
 import { MonitoramentoInternoCabecalho } from './monitoramento-interno-cabecalho';
 import { MonitoramentoInternoCadastro } from './monitoramento-interno-cadastro';
 import { MonitoramentoInternoFaseGeral, MonitoramentoInternoCronograma } from './monitoramento-interno-fase-cronograma';
 import { MonitoramentoInternoAcoes } from './monitoramento-interno-acoes';
 import { MonitoramentoInternoEventos } from './monitoramento-interno-eventos';
-
-function mensagemErro(e: unknown): string {
-  return e instanceof ApiError || e instanceof Error ? e.message : String(e);
-}
 
 export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: string }) {
   const [erroEscrita, setErroEscrita] = useState<string | null>(null);
@@ -49,13 +48,22 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
 
   function tratarErroEscrita(e: unknown): never {
     sessao.tratarSessaoInvalida();
-    setErroEscrita(mensagemErro(e));
+    setErroEscrita(mensagemSeguraDoErro(e));
     throw e;
   }
 
   const erroCarregamento = marcosQuery.error || timelineQuery.error || acoesQuery.error;
   if (erroCarregamento) {
-    return <p className="text-warning text-sm">⚠️ {mensagemErro(erroCarregamento)}</p>;
+    return (
+      <ErrorAlert
+        mensagem={mensagemSeguraDoErro(erroCarregamento)}
+        onRetry={() => {
+          marcosQuery.refetch();
+          timelineQuery.refetch();
+          acoesQuery.refetch();
+        }}
+      />
+    );
   }
   if (timelineQuery.isSuccess && timelineQuery.data === null) {
     return (
@@ -66,7 +74,12 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
     );
   }
   if (!marcosQuery.data || !timelineQuery.data) {
-    return <p className="text-sm text-muted-foreground">Carregando...</p>;
+    return (
+      <div className="grid gap-2" role="status" aria-label="Carregando">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
   }
 
   const marcos = marcosQuery.data;
@@ -86,9 +99,9 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   return (
     <div>
       {erroEscrita && (
-        <p className="text-warning text-[12.5px] mb-3" role="alert">
-          ⚠️ {erroEscrita}
-        </p>
+        <div className="mb-3">
+          <ErrorAlert mensagem={erroEscrita} />
+        </div>
       )}
 
       <MonitoramentoInternoCabecalho
@@ -133,68 +146,80 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         }}
       />
 
-      <MonitoramentoInternoFaseGeral fasesGerais={fasesGerais} faseAtual={faseAtual} pctAtual={pctAtual} />
+      {/* Agrupamento progressivo (achado da auditoria visual: "página muito
+          longa sem índice local ou agrupamento progressivo") -- fase/
+          cronograma abertos por padrão (visão executiva do estado atual),
+          ações/timeline fecháveis (histórico, consultado sob demanda). */}
+      <div className="grid gap-4">
+        <OperationalDetailSection titulo="Fase e cronograma">
+          <MonitoramentoInternoFaseGeral fasesGerais={fasesGerais} faseAtual={faseAtual} pctAtual={pctAtual} />
+          <MonitoramentoInternoCronograma
+            cronogramaFisico={cronogramaFisico}
+            regulatorio={regulatorio}
+            eventosPorMarco={eventosPorMarco}
+            eventoLicenca={eventoLicenca}
+            diasValidade={diasValidade}
+          />
+        </OperationalDetailSection>
 
-      <MonitoramentoInternoCronograma
-        cronogramaFisico={cronogramaFisico}
-        regulatorio={regulatorio}
-        eventosPorMarco={eventosPorMarco}
-        eventoLicenca={eventoLicenca}
-        diasValidade={diasValidade}
-      />
+        <OperationalDetailSection titulo={`Ações (${acoes?.length ?? 0})`} abertoPorPadrao={acoesAbertas.length > 0}>
+          <MonitoramentoInternoAcoes
+            acoes={acoes}
+            podeEditar={sessao.podeEditar}
+            concluindoAcaoId={concluindoAcaoId}
+            onCriar={async (valores) => {
+              setErroEscrita(null);
+              try {
+                await criarAcaoMutation.mutateAsync({
+                  descricao: valores.descricao,
+                  data_prevista: valores.dataPrevista || null,
+                  responsavel: valores.responsavel || null,
+                });
+              } catch (e) {
+                tratarErroEscrita(e);
+              }
+            }}
+            onConcluir={(acaoId) => {
+              setErroEscrita(null);
+              setConcluindoAcaoId(acaoId);
+              concluirAcaoMutation.mutate(acaoId, {
+                onError: (e) => tratarErroEscrita(e),
+                onSettled: () => setConcluindoAcaoId(null),
+              });
+            }}
+          />
+        </OperationalDetailSection>
 
-      <MonitoramentoInternoAcoes
-        acoes={acoes}
-        podeEditar={sessao.podeEditar}
-        concluindoAcaoId={concluindoAcaoId}
-        onCriar={async (valores) => {
-          setErroEscrita(null);
-          try {
-            await criarAcaoMutation.mutateAsync({
-              descricao: valores.descricao,
-              data_prevista: valores.dataPrevista || null,
-              responsavel: valores.responsavel || null,
-            });
-          } catch (e) {
-            tratarErroEscrita(e);
-          }
-        }}
-        onConcluir={(acaoId) => {
-          setErroEscrita(null);
-          setConcluindoAcaoId(acaoId);
-          concluirAcaoMutation.mutate(acaoId, {
-            onError: (e) => tratarErroEscrita(e),
-            onSettled: () => setConcluindoAcaoId(null),
-          });
-        }}
-      />
-
-      <MonitoramentoInternoEventos
-        marcos={marcos}
-        eventos={timeline.eventos}
-        podeEditar={sessao.podeEditar}
-        onRegistrar={async (valores) => {
-          setErroEscrita(null);
-          try {
-            await registrarEventoMutation.mutateAsync({
-              marco_id: Number(valores.marcoId),
-              data_ocorrencia: valores.dataOcorrencia || null,
-              status_regulatorio: valores.statusRegulatorio || null,
-              numero_documento: valores.numeroDocumento || null,
-              data_validade: valores.dataValidade || null,
-              observacao: valores.observacao || null,
-              // So tem efeito no backend quando o marco e cronograma_entrega
-              // -- ignorado pra qualquer outro.
-              equipamento_marca: valores.equipamentoMarca || null,
-              equipamento_modelo: valores.equipamentoModelo || null,
-              equipamento_numero_serie: valores.equipamentoNumeroSerie || null,
-              equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos ? Number(valores.equipamentoVidaUtilAnos) : null,
-            });
-          } catch (e) {
-            tratarErroEscrita(e);
-          }
-        }}
-      />
+        <OperationalDetailSection titulo="Linha do tempo de eventos" abertoPorPadrao={false}>
+          <MonitoramentoInternoEventos
+            marcos={marcos}
+            eventos={timeline.eventos}
+            podeEditar={sessao.podeEditar}
+            onRegistrar={async (valores) => {
+              setErroEscrita(null);
+              try {
+                await registrarEventoMutation.mutateAsync({
+                  marco_id: Number(valores.marcoId),
+                  data_ocorrencia: valores.dataOcorrencia || null,
+                  data_prevista: valores.dataPrevista || null,
+                  status_regulatorio: valores.statusRegulatorio || null,
+                  numero_documento: valores.numeroDocumento || null,
+                  data_validade: valores.dataValidade || null,
+                  observacao: valores.observacao || null,
+                  // So tem efeito no backend quando o marco e cronograma_entrega
+                  // -- ignorado pra qualquer outro.
+                  equipamento_marca: valores.equipamentoMarca || null,
+                  equipamento_modelo: valores.equipamentoModelo || null,
+                  equipamento_numero_serie: valores.equipamentoNumeroSerie || null,
+                  equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos ? Number(valores.equipamentoVidaUtilAnos) : null,
+                });
+              } catch (e) {
+                tratarErroEscrita(e);
+              }
+            }}
+          />
+        </OperationalDetailSection>
+      </div>
     </div>
   );
 }

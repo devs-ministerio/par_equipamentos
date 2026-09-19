@@ -1,41 +1,113 @@
-%% Fluxo de requisição -- Radar de Convênios (ver fluxo_requisicao.md pro
-%% "porquê" de cada seta). Formato escolhido: mermaid em vez de PlantUML --
-%% mesma ferramenta do modelo_er.mermaid (docs/database/), renderiza nativo
-%% em mais lugares (GitHub, VS Code, Claude Artifacts) sem plugin extra.
+%% Radar de Convênios — ingestão, revisão e automações (estado real em 2026-09-17)
 flowchart TB
-    subgraph FONTES["Fontes de dado -- papéis fixos, não competem"]
-        TG["TransfereGov novo<br/>API viva -- 8 id_programa + padrão de equipamento-alvo"]
-        SC["SICONV legado<br/>dump bulk, 403 convênios -- ~parado há meses"]
-        PT["Portal da Transparência<br/>1 consulta pontual por número"]
+    subgraph AUTO["Automação GitHub Actions — radar_convenios.yml"]
+        REMOTE["Branch padrão no GitHub:<br/>workflow ausente — API retorna 404"]
+        LOCALWF["Workflow definido somente<br/>no workspace atual"]
+        SECRET["Repository secret DATABASE_URL<br/>existe — valor não exposto"]
+        CRON["Cron diário 09:30 UTC<br/>COMENTADO / INATIVO"]
+        MANUAL["workflow_dispatch<br/>único gatilho ativo"]
+        GUARD{"Secret DATABASE_URL<br/>configurado?"}
+        SKIP["Não: encerra sem erro<br/>e não ingere dados"]
+        SETUP["Sim: checkout + setup-uv<br/>uv sync --frozen"]
+        DISC["1. Descoberta TransfereGov"]
+        VS["2. Verificação SICONV<br/>always(), mesmo se descoberta falhar"]
+        VT["3. Verificação TransfereGov<br/>always(), mesmo se anteriores falharem"]
+        REMOTE -.->|precisa chegar à branch padrão| LOCALWF
+        SECRET --> GUARD
+        LOCALWF --> MANUAL --> GUARD
+        LOCALWF --> CRON
+        CRON -.-> GUARD
+        GUARD -->|não| SKIP
+        GUARD -->|sim| SETUP --> DISC --> VS --> VT
     end
 
-    TG -->|"GET /proposta?id_programa=X<br/>diário"| JD["Job de descoberta"]
-    JD -->|"id_proposta novo<br/>(dedup contra nosso banco, não contra o legado)"| CP["Candidato pendente<br/>proposta_candidata"]
-    JD -.->|"id_proposta já conhecido:<br/>diff campo a campo"| UC
+    subgraph DESCOBERTA["job_descoberta_transferegov.py — uma transação por execução"]
+        API_PROG["API pública /programa<br/>sem autenticação"]
+        FILTRO["Normaliza nome + objetivo<br/>oncologia/PRONON/PRONAS<br/>e resolve 8 componentes"]
+        API_PROP["Para cada id_programa:<br/>GET /proposta, páginas de 50<br/>timeout 30s + retry 3x em 429/5xx"]
+        DEDUP{"id_proposta já existe?"}
+        DET["Novo: busca parceria, metas, etapas/itens,<br/>cronograma, análise e origem do recurso"]
+        FIN["Se há parceria: conta, empenho,<br/>documento hábil e ordem de pagamento"]
+        CNES["Extrai CNES da etapa cujo item<br/>tem maior valor; detecta equipamento no objeto"]
+        INSERT["INSERT proposta_candidata<br/>status=pendente + notificação"]
+        STATUS{"Registro existente<br/>ainda pendente?"}
+        DIFF["Compara situação, valor,<br/>proponente e CNPJ"]
+        PARC["Se parceria surgiu: grava cd_parceria<br/>e captura timeline financeira"]
+        UPDATE["UPDATE somente campos alterados<br/>+ notificação de atualização"]
+        CLOSED["Aceita/rejeitada: decisão fechada<br/>job não altera"]
+        COMMIT{"Execução completa?"}
+        ROLLBACK["Falha antes do commit:<br/>sessão fecha e toda a rodada é revertida"]
 
-    CP -->|"dispara"| NOT1["Notificação"]
-    CP -->|"revisão humana<br/>vê detalhe completo"| REV{"Aceita?"}
-    REV -->|"sim"| POST["POST /monitoramento/instrumentos<br/>(novo -- checa duplicidade por identificador)"]
-    REV -->|"não"| DESC["Descartado<br/>fica no histórico"]
+        API_PROG --> FILTRO --> API_PROP --> DEDUP
+        DEDUP -->|não| DET --> FIN --> CNES --> INSERT --> COMMIT
+        DEDUP -->|sim| STATUS
+        STATUS -->|sim| DIFF --> PARC --> UPDATE --> COMMIT
+        STATUS -->|não| CLOSED --> COMMIT
+        COMMIT -->|sim| NEON
+        COMMIT -.->|exceção| ROLLBACK
+    end
 
-    TEC["Técnico<br/>cadastro manual: FAF / TED / PERSUS / avulso"] -->|"form"| POST
-    POST --> UC["Universo conhecido<br/>instrumento_equipamento"]
+    DISC --> API_PROG
 
-    SC -->|"HEAD Last-Modified<br/>diário, leve"| JV["Job de verificação"]
-    JV -->|"mudou: baixa + reprocessa"| UC
-    JV -.->|"não mudou: nada (maioria dos dias)"| JV
+    subgraph VERIFICACAO["Jobs de atualização de instrumentos já monitorados"]
+        SHEAD["SICONV: HEAD Last-Modified diário"]
+        SCHG{"Dump mudou?"}
+        SDUMP["Baixa/filtra dump pelos<br/>nr_convenio conhecidos"]
+        SDIFF["Atualiza situação somente se mudou<br/>+ notificação"]
+        TGLIVE["TransfereGov novo:<br/>para cada Parceria TransfereGov aceita"]
+        TGRES["Resolve id_proposta pela candidata<br/>e consulta parceria + última OP"]
+        TGDIFF["Atualiza situação da parceria/pagamento<br/>somente se mudou + notificação"]
+        VS --> SHEAD --> SCHG
+        SCHG -->|não| SNOP["Nada a fazer"]
+        SCHG -->|sim ou primeiro check| SDUMP --> SDIFF --> NEON
+        VT --> TGLIVE --> TGRES --> TGDIFF --> NEON
+    end
 
-    UC --> TELA["Tela do convênio"]
-    PT -->|"situação/valor ao vivo<br/>nunca persiste"| TELA
+    subgraph STORE["Neon PostgreSQL — role sigeo_runtime, somente DML"]
+        NEON[("proposta_candidata<br/>UNIQUE id_proposta")]
+        NOTIF[("notificacao")]
+        INST[("instrumento_equipamento")]
+        AUDIT[("audit_log")]
+        NEON --> NOTIF
+    end
 
-    UC -->|"edição manual via PATCH"| AUDIT["AuditLog<br/>(já existe -- app/audit.py::log_action)"]
-    AUDIT -->|"dispara"| NOT2["Notificação camada 2<br/>visível só acima de técnico (RBAC a definir)"]
-    JV -->|"mudança real detectada"| NOT3["Notificação camada 1<br/>API trouxe atualização"]
+    subgraph PRODUTO["API e interface"]
+        GET["GET /propostas-candidatas<br/>autenticado, paginado até 500"]
+        UI["Linhas de Financiamento<br/>Novas propostas / Propostas"]
+        REV{"Revisão humana<br/>aceitar ou rejeitar"}
+        ACCEPT["Aceitar: cria instrumento<br/>e fecha proposta na mesma transação"]
+        REJECT["Rejeitar: mantém histórico<br/>e não reaparece como nova"]
+        PATCH["Edições manuais do instrumento<br/>geram AuditLog/notificação"]
+        CLICK["Clique na notificação:<br/>marca lida + navega ao instrumento"]
+        NEON --> GET --> UI --> REV
+        REV -->|aceitar| ACCEPT --> INST
+        REV -->|rejeitar| REJECT --> NEON
+        INST --> PATCH --> AUDIT
+        NOTIF --> CLICK --> UI
+    end
 
-    classDef fonte fill:#1e3a34,stroke:#2d6a5c,stroke-width:1.5px,color:#ffffff
-    classDef manual fill:#4a321a,stroke:#a35a12,stroke-width:1.5px,color:#ffffff
-    classDef store fill:#1e3a34,stroke:#2d6a5c,stroke-width:2px,color:#ffffff
-    
-    class TG,SC,PT fonte
-    class TEC manual
-    class UC store
+    subgraph CARGAS["Cargas controladas — transacionais e idempotentes"]
+        XLSX["Planilha Convênio / FAF / TED<br/>previsão de inauguração"]
+        P1["PERSUS I<br/>Panorama PER-SUS"]
+        P2["PERSUS II<br/>CSV versionado"]
+        PRO["PRONON 2024/2025<br/>CSV versionado"]
+        NORM["Normaliza CNES (7 dígitos)<br/>valida tipologia e moeda"]
+        REF[("cnes_estabelecimento")]
+        DRY{"--dry-run?"}
+        RB["Rollback + relatório"]
+        UPSERT["Upsert instrumento<br/>evento append-only sem duplicação"]
+        XLSX --> NORM
+        P1 --> NORM
+        P2 --> NORM
+        PRO --> NORM
+        NORM --> REF --> DRY
+        DRY -->|sim| RB
+        DRY -->|não| UPSERT --> INST
+    end
+
+    classDef risk fill:#fff3cd,stroke:#a16207,color:#422006
+    classDef source fill:#e8f3ef,stroke:#2d6a5c,color:#173f36
+    classDef store fill:#e8eef8,stroke:#34558b,color:#172554
+    class REMOTE,CRON,SKIP,ROLLBACK risk
+    class API_PROG,API_PROP,SHEAD,TGLIVE source
+    class NEON,NOTIF,INST,AUDIT store

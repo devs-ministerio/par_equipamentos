@@ -75,6 +75,22 @@ export function equipamentosDeDescricoes(descs: string[]): EquipamentoAlvo[] {
   return achados;
 }
 
+/** 1 descrição -> 1 tag (a mais específica que bater, já que `PADROES`
+ * lista "Acelerador Linear" antes do genérico "Radioterapia") -- achado
+ * 2026-09-18, pedido do usuário: o badge de destaque do card de proposta
+ * mostrava o `nm_item` cru da API (ex. "UPGRADE DO ACELERADOR LINEAR DA
+ * RADIOTERAPIA"), verboso e inconsistente item a item; aqui normaliza pro
+ * nome curto do equipamento quando bate um padrão conhecido, null quando
+ * não bate (nunca inventa, ver equipamentoPrincipal() em
+ * proposta-metas-resumo.ts pro fallback pro texto cru). */
+export function equipamentoTagDe(desc: string): EquipamentoAlvo | null {
+  const descNorm = normalizarTexto(desc).toUpperCase();
+  for (const [equip, padrao] of PADROES) {
+    if (padrao.test(descNorm)) return equip;
+  }
+  return null;
+}
+
 export function equipamentosDoConvenio(c: ConvenioUnificado): EquipamentoAlvo[] {
   return equipamentosDeDescricoes(descricoesDeItem(c));
 }

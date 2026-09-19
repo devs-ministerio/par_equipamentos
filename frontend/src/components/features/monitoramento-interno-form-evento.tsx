@@ -5,9 +5,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { cn } from '@/lib/utils';
-import type { MarcoCatalogo } from '@/services/monitoramento';
+import type { MarcoCatalogo } from '@/services/monitoramento-marcos';
 import { enviarEventoSchema, type EnviarEventoFormValues } from '@/lib/validations/monitoramento';
-import { ErroCampo, estiloCard, estiloInput, idsDescricaoCampo } from './monitoramento-ui';
+import { ErroCampo, estiloCard, estiloInput } from './monitoramento-ui';
+import { idsDescricaoCampo } from '@/lib/monitoramento-status';
 
 const STATUS_REGULATORIO_OPCOES = ['NI', 'NA', 'Em análise', 'Em diligência', 'Deferido', 'Indeferido'];
 
@@ -83,6 +84,12 @@ export function MonitoramentoInternoFormEvento({
           </label>
           <input id="evento-data-ocorrencia" type="date" className={estiloInput} {...register('dataOcorrencia')} />
         </div>
+        <div>
+          <label htmlFor="evento-data-prevista" className="text-[11px] text-muted-foreground block mb-1">
+            Data prevista
+          </label>
+          <input id="evento-data-prevista" type="date" className={estiloInput} {...register('dataPrevista')} />
+        </div>
       </div>
 
       {ehRegulatorio && (
@@ -145,7 +152,7 @@ export function MonitoramentoInternoFormEvento({
         <textarea
           id="evento-observacao"
           className={cn(estiloInput, 'w-full min-h-[60px]')}
-          placeholder="O que aconteceu..."
+          placeholder="O que aconteceu ou justificativa da reprogramação..."
           {...register('observacao')}
         />
       </div>

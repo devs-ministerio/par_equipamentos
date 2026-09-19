@@ -1,4 +1,4 @@
-# Metodologia e parâmetros — SIEO
+# Metodologia e parâmetros — SIGEO
 
 Referência rápida dos parâmetros e regras normativas que o sistema já aplica hoje. Cobre só o que está **implementado e em uso** — não é a especificação completa da Metodologia, é um espelho do que o código realmente faz, com o arquivo/linha de onde tirei cada regra pra você conferir.
 
@@ -49,13 +49,13 @@ coverage_percentage = equipamentos_em_uso_sus / required_qty × 100   (null se r
 coeficiente         = (equipamentos_em_uso_sus × produtividade) / população_sus_dependente
 ```
 
-`coverage_percentage` e `coeficiente` medem a mesma coisa em unidades diferentes (percentual vs. multiplicador "1,3x") — `coeficiente ≥ 1` equivale a `coverage_percentage ≥ 100`, é o mesmo corte que decide Hipo/Hiperssuficiente.
+`coverage_percentage` e `coeficiente` usam a mesma oferta e população, mas não são conversões exatas: a cobertura usa `required_qty` arredondado para cima, enquanto o coeficiente usa a população sem arredondamento. O corte classificatório continua equivalente para oferta inteira e população positiva: `coeficiente ≥ 1` e `coverage_percentage ≥ 100` levam a Hiperssuficiente.
 
 - `required_qty`/`balance`/`deficit_status`: `backend/app/pipeline/cobertura.py::calcular_cobertura`.
 - `coeficiente` (frontend, usado nos cards/tabelas/mapa): `frontend/src/utils/coeficiente.ts::calcularCoeficiente`.
-- Classificação Hipo/Hiperssuficiente (rótulo e cor): `frontend/src/utils/status.ts::statusMeta` — `cobertura >= 100` = Hiperssuficiente.
+- Classificação Hipo/Hiperssuficiente/Dados indisponíveis (rótulo e cor): `frontend/src/utils/status.ts::statusMeta` — o frontend preserva o `deficit_status` vindo do backend, sem inferir classificação apenas por `coverage_percentage`.
 
-**Macro sem população cadastrada** nunca fica em déficit por falta de dado (não é "deficiente", fica sem classificação de demanda) — só classifica quando há demanda real e a oferta não cobre.
+**Macro sem população cadastrada** não deve ser lida como superávit. Quando a API devolver `deficit_status = "not_available"`, o frontend mostra **Dados indisponíveis** em vez de converter a linha para Hipo/Hiper.
 
 ## Níveis de agregação
 
@@ -71,7 +71,7 @@ Regra específica do **Tomógrafo**, não generalizada pras demais famílias: ao
 
 Município pequeno e Hipossuficiente fica oculto (com um aviso "+N município(s) oculto(s)") — o parâmetro nunca esperou que ele tivesse equipamento próprio.
 
-Fonte: `frontend/src/components/dashboard/SubNivelRows.tsx` (`POPULACAO_MINIMA_PARA_HIPO`).
+Fonte: `frontend/src/components/features/sub-nivel-rows.tsx` (`POPULACAO_MINIMA_PARA_HIPO`).
 
 ## Distância / raio de 75 km — **informativo, não é parâmetro oficial**
 
@@ -79,7 +79,7 @@ O Caderno 1 (SUS, 2017) prevê o critério "1 por 100 mil habitantes **OU** raio
 
 O que já existe:
 - `distance_km_nearest_equipment` (só Tomógrafo, calculado no pipeline): Haversine entre a sede do município (coordenada do IBGE) e o tomógrafo em uso e SUS geocodificado mais próximo, em **qualquer lugar do Brasil** — sem respeitar fronteira de macro/UF, sem limite de raio. `backend/app/pipeline/geo.py` + `backend/scripts/run_pipeline_tomografo.py`.
-- Demais famílias: sem campo pré-calculado — calculado ao vivo no navegador (mesma fórmula, SUS-only) quando o usuário seleciona um município no Mapa. `frontend/src/utils/geo.ts`.
+- Demais famílias: sem campo pré-calculado — calculado ao vivo no navegador quando o usuário seleciona um município no Mapa, filtrando equipamento SUS **em uso**. `frontend/src/utils/geo.ts` + `frontend/src/pages/mapa-page.tsx`.
 - Cards "Distância mais próxima" / "Equipamento mais próximo" e o contorno do município no mapa (polígono oficial, API do IBGE) usam esse dado — só no Mapa, só visual.
 
 **Por que não virou parâmetro oficial**: testei aplicar "dentro de 75km de QUALQUER tomógrafo do Brasil → não deficiente" e isso mudaria **99,95%** dos municípios hoje deficientes pra não-deficientes — sinal forte de que o critério real precisa respeitar uma rede de referência regional (não distância nacional pura), o que não foi confirmado com a normativa/DECAN ainda. Fica pendente até essa confirmação.

@@ -222,6 +222,25 @@ def _normalizar_status(v) -> str | None:
     return STATUS_MAP.get(s.lower(), s)
 
 
+# Unificação finalidade->tipologia (Plan Mode monitoramento-evolucao
+# 2026-09-19, decisão do usuário: "É a mesma tipologia, use para todos") --
+# mesmo de-para fechado aplicado na migration pro dado já existente; este
+# script é bootstrap único (não roda de novo), mas não pode escrever num
+# campo que não existe mais no model.
+_FINALIDADE_PARA_TIPOLOGIA = {
+    "substituição": "EO",
+    "ampliação": "A",
+    "ampliação (cobalto)": "A",
+}
+
+
+def _tipologia_de_finalidade(v) -> str | None:
+    s = _texto(v)
+    if not s:
+        return None
+    return _FINALIDADE_PARA_TIPOLOGIA.get(s.lower())
+
+
 def _cnpj_formatado(v) -> str:
     s = re.sub(r"\D", "", str(v or ""))
     if len(s) == 14:
@@ -367,7 +386,7 @@ def run(
                 tecnico_titular=_nome_padronizado(linha[idx["TÉCNICO RESPONSÁVEL - TITULAR"]]),
                 tecnico_suplente=_nome_padronizado(linha[idx["TÉCNICO RESPONSÁVEL - SUPLENTE"]]),
                 nivel_monitoramento=_texto(linha[idx["NÍVEL DE MONITORAMENTO (ESTRATÉGICO, TÁTICO E SIMPLIFICADO)"]]),
-                finalidade=_texto(linha[idx["FINALIDADE"]]),
+                tipologia=_tipologia_de_finalidade(linha[idx["FINALIDADE"]]),
                 responsavel_execucao_nome=_texto(linha[idx["NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO"]]) if "NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO" in idx else None,
                 responsavel_execucao_contato=_texto(linha[idx["CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO"]]) if "CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO" in idx else None,
                 modalidade_onco=_texto(linha[idx["MODALIDADE - ONCO"]]),
@@ -437,7 +456,7 @@ def run(
                     cnes=instrumento.cnes,
                     programa=instrumento.programa,
                     ano_instrumento=instrumento.ano_instrumento,
-                    objeto=instrumento.finalidade,
+                    objeto=instrumento.tipologia,
                     situacao=None,
                     investimento=instrumento.investimento_aquisicao,
                     equipamento_descricao=instrumento.equipamento_descricao,

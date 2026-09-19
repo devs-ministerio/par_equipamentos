@@ -9,11 +9,19 @@ Seção 3).
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
+from app.db.models import AcaoMonitoramento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo, User
+
+# Evento/ação ATIVO = ainda vigente (não corrigido nem excluído) -- ver
+# docstring de EventoMarco/AcaoMonitoramento em models.py (Plan Mode
+# monitoramento-evolucao 2026-09-19). Só o ativo entra em cálculo de fase,
+# timeline e listagens padrão.
+_EVENTO_ATIVO = and_(EventoMarco.substituido_por_id.is_(None), EventoMarco.deletado_em.is_(None))
+_ACAO_ATIVA = and_(AcaoMonitoramento.substituido_por_id.is_(None), AcaoMonitoramento.deletado_em.is_(None))
 
 
 def listar_instrumentos(db: Session, *, limit: int = 500) -> list[InstrumentoEquipamento]:
@@ -43,11 +51,14 @@ def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:
 def mapa_eventos_por_instrumento(db: Session, marco_ids: list[int]) -> dict[int, set[int]]:
     """`{instrumento_id: {marco_id, ...}}` -- só os pares relevantes pros
     `marco_ids` pedidos (fase_geral), não todo `EventoMarco` da tabela
-    (universo monitorado é pequeno hoje, mas a query já nasce restrita)."""
+    (universo monitorado é pequeno hoje, mas a query já nasce restrita).
+    Só considera evento ATIVO -- um evento corrigido/excluído não pode mais
+    empurrar a fase pra frente."""
     eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
     if marco_ids:
         for instrumento_id, marco_id in db.execute(
-            select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(EventoMarco.marco_id.in_(marco_ids))
+            select(EventoMarco.instrumento_id, EventoMarco.marco_id)
+            .where(EventoMarco.marco_id.in_(marco_ids), _EVENTO_ATIVO)
         ):
             eventos_por_instrumento[instrumento_id].add(marco_id)
     return eventos_por_instrumento
@@ -59,13 +70,47 @@ def obter_instrumento_por_nr_convenio(db: Session, nr_convenio: str) -> Instrume
     ).scalar_one_or_none()
 
 
-def listar_eventos_do_instrumento(db: Session, instrumento_id: int) -> list[EventoMarco]:
-    return list(
-        db.execute(
-            select(EventoMarco)
-            .where(EventoMarco.instrumento_id == instrumento_id)
-            .order_by(EventoMarco.created_at.desc())
-        )
-        .scalars()
-        .all()
-    )
+def listar_eventos_do_instrumento(
+    db: Session, instrumento_id: int, *, apenas_ativos: bool = True
+) -> list[EventoMarco]:
+    """`apenas_ativos=False` devolve também os corrigidos/excluídos -- uso
+    restrito à trilha de auditoria, nunca à timeline padrão."""
+    stmt = select(EventoMarco).where(EventoMarco.instrumento_id == instrumento_id)
+    if apenas_ativos:
+        stmt = stmt.where(_EVENTO_ATIVO)
+    return list(db.execute(stmt.order_by(EventoMarco.created_at.desc())).scalars().all())
+
+
+def obter_evento_mais_recente_do_marco(
+    db: Session,
+    *,
+    instrumento_id: int,
+    marco_id: int,
+) -> EventoMarco | None:
+    """Só entre os ATIVOS -- reprogramação/justificativa compara contra o
+    que está vigente, não contra um lançamento já corrigido."""
+    return db.execute(
+        select(EventoMarco)
+        .where(EventoMarco.instrumento_id == instrumento_id, EventoMarco.marco_id == marco_id, _EVENTO_ATIVO)
+        .order_by(EventoMarco.created_at.desc(), EventoMarco.id.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def obter_evento_por_id(db: Session, evento_id: int) -> EventoMarco | None:
+    return db.get(EventoMarco, evento_id)
+
+
+def obter_acao_por_id(db: Session, acao_id: int) -> AcaoMonitoramento | None:
+    return db.get(AcaoMonitoramento, acao_id)
+
+
+def resolver_nomes_usuarios(db: Session, ids: Iterable[int | None]) -> dict[int, str]:
+    """`{user_id: name}` pros ids pedidos -- usado pra montar `autor_nome`/
+    `atualizado_por_nome`/`deletado_por_nome` sem N+1 query por evento/ação.
+    Aceita ids `None` na entrada (comum quando o campo é opcional no
+    chamador) -- só filtra, nunca falha."""
+    ids_validos = {i for i in ids if i is not None}
+    if not ids_validos:
+        return {}
+    return {row[0]: row[1] for row in db.execute(select(User.id, User.name).where(User.id.in_(ids_validos)))}

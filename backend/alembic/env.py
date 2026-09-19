@@ -1,6 +1,7 @@
 import sys
 from logging.config import fileConfig
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -16,7 +17,17 @@ from app.db import models  # noqa: F401 -- registra os modelos em Base.metadata
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", settings.database_url_alembic)
+
+# Eco informativo (nao gate) do host resolvido -- Plan Mode database
+# 2026-09-17, Bloco 2: `database_url_alembic` agora tem 3 fontes possiveis
+# (DATABASE_URL exportada > DATABASE_URL_MIGRATION > DATABASE_URL de
+# runtime); imprimir o host antes de qualquer upgrade/downgrade torna
+# visivel qual delas venceu, sempre, independente do comando.
+print(
+    f"[alembic] host resolvido para migration: {urlsplit(settings.database_url_alembic).hostname}",
+    file=sys.stderr,
+)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

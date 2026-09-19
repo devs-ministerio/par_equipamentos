@@ -1,5 +1,5 @@
 """Cliente do ElastiCNES -- inventario de equipamentos direto do CNES.
-Portado de src/extract/api_elasticnes.py (pipeline legado), Fase 1 do SIEO
+Portado de src/extract/api_elasticnes.py (pipeline legado), Fase 1 do SIGEO
 era so TOMOGRAFO (decisao 2026-08-13); RESSONANCIA entrou em 2026-08-21
 reaproveitando a mesma busca generica (`_buscar_equipamentos`), so troca o
 de-para (tipo, codigo) -> subtipo.

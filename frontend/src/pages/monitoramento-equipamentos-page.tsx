@@ -42,7 +42,7 @@ import { normalizarTexto } from '@/utils/texto';
 import { ConvenioCard } from '@/components/features/convenio-card';
 import { SecaoPropostasCandidatas } from '@/components/features/secao-propostas-candidatas';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
-import { propostaEhNova } from '@/lib/proposta-status';
+import { ESTAGIO_LABEL, estagioDeFato, type EstagioProposta } from '@/lib/proposta-status';
 import { EQUIPAMENTOS_ALVO } from '@/lib/equipamento-tags';
 import { fmtMoeda } from '@/lib/monitoramento-format';
 import { useConveniosLista } from '@/hooks/useConveniosLista';
@@ -50,15 +50,12 @@ import { mensagemSeguraDoErro } from '@/lib/api-error';
 import { useInstrumentosMonitorados } from '@/hooks/useInstrumentosMonitorados';
 
 type Aba = 'convenios' | 'componentes';
-// "Radar nacional" (snapshot estático) saiu -- não faz sentido enquanto
-// nenhuma proposta foi aceita ainda (pedido do usuário 2026-09-15).
-// "Incorporadas" (status aceita, sem filtro) saiu de vez -- substituída por
-// "Propostas" (universo inteiro, pendente+aceita+rejeitada) + "Novas
-// propostas" reformulada pra também puxar aceita-ainda-não-paga (achado
-// 2026-09-15, pedido do usuário: "crie uma nova aba Proposta onde estará
-// todas as propostas... na incorporadas pode remover todas", ver
-// propostaEhNova() em secao-propostas-candidatas.tsx pro critério exato).
-type SubAbaFinanciamento = 'todas' | 'novas';
+// "Radar nacional" (snapshot estático) e "Incorporadas" saíram (pedido do
+// usuário 2026-09-15). "Novas propostas"/"Propostas" (critério de
+// pagamento) saíram por sua vez em 2026-09-18, substituídas pelo estágio
+// real no funil TransfereGov: "Confirmada (parceria)" (já formalizada, tem
+// cd_parceria/NUP SEI) e "Em tramitação (proposta)" (pode virar parceria
+// ou ser rejeitada) -- ver estagioDeFato() em lib/proposta-status.ts.
 
 // Correção 2026-09-18 (Plan Mode monitoramento-ingestao): FAF/TED/
 // PERSUS I/PERSUS II/PRONON entraram no universo de "Instrumentos
@@ -69,10 +66,19 @@ type SubAbaFinanciamento = 'todas' | 'novas';
 // pagina de 20 em vez dos 50 que EstabelecimentoTable usa pra linha simples.
 const PAGE_SIZE = 20;
 
+// "Concluídos" -- ampliado 2026-09-18 (pedido do usuário) pra somar as
+// situações que representam "chegou ao fim" em cada universo de fonte:
+// "Prestação de Contas Concluída" (SICONV legado, achado 2026-09-15) e
+// "Em operação" (PERSUS I inaugurado/PERSUS II/PRONON -- "Inaugurada"
+// unificada em "Em operação" pra usar o mesmo vocabulário entre fontes).
+const SITUACOES_CONCLUIDO = new Set(['Prestação de Contas Concluída', 'Em operação']);
+
 export function MonitoramentoEquipamentosPage() {
   const [searchParams] = useSearchParams();
   const [aba, setAba] = useState<Aba>(() => searchParams.get('aba') === 'componentes' ? 'componentes' : 'convenios');
-  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<SubAbaFinanciamento>(() => searchParams.get('subaba') === 'todas' ? 'todas' : 'novas');
+  const [subAbaFinanciamento, setSubAbaFinanciamento] = useState<EstagioProposta>(
+    () => searchParams.get('subaba') === 'confirmada' ? 'confirmada' : 'tramitacao',
+  );
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
@@ -210,11 +216,8 @@ export function MonitoramentoEquipamentosPage() {
 
   const erro = conveniosQuery.error ? mensagemSeguraDoErro(conveniosQuery.error) : null;
 
-  // Concluídos -- situação do SICONV legado (mesma fonte do destaque no
-  // card, ver importar_convenios_banco.py) igual a "Prestação de Contas
-  // Concluída" literal, pedido do usuário 2026-09-15.
   const totalConcluidos = useMemo(
-    () => convenios?.filter((c) => c.situacao === 'Prestação de Contas Concluída').length ?? 0,
+    () => convenios?.filter((c) => c.situacao && SITUACOES_CONCLUIDO.has(c.situacao)).length ?? 0,
     [convenios],
   );
 
@@ -222,7 +225,8 @@ export function MonitoramentoEquipamentosPage() {
   // leve e independente do resto do estado (mesma queryKey sem status do
   // SecaoPropostasCandidatas, já cacheada quando a aba abrir de verdade).
   const { propostas: todasPropostas } = usePropostasCandidatas();
-  const totalNovas = todasPropostas.filter(propostaEhNova).length;
+  const totalConfirmadas = todasPropostas.filter((p) => estagioDeFato(p) === 'confirmada').length;
+  const totalEmTramitacao = todasPropostas.length - totalConfirmadas;
 
   return (
     <div>
@@ -230,7 +234,8 @@ export function MonitoramentoEquipamentosPage() {
 
         {erro && <p className="text-destructive">Erro ao carregar dados: {erro}</p>}
 
-        {/* Abas -- Instrumentos firmados (convênios já assinados) e Linhas
+        {/* Abas -- Instrumentos/Programas (registros oficiais e cargas
+            programáticas) e Linhas
             de financiamento (propostas do Radar de Convênios, ver
             SecaoPropostasCandidatas.tsx). */}
         <div className="flex gap-1 mb-5 border-b border-border">
@@ -241,7 +246,7 @@ export function MonitoramentoEquipamentosPage() {
               aba === 'convenios' ? 'text-primary border-b-primary' : 'text-muted-foreground border-b-transparent',
             )}
           >
-            Instrumentos firmados <span className="text-muted-foreground/70 font-medium">({convenios?.length ?? 0})</span>
+            Instrumentos/Programas <span className="text-muted-foreground/70 font-medium">({convenios?.length ?? 0})</span>
           </button>
           <button
             onClick={() => setAba('componentes')}
@@ -260,7 +265,7 @@ export function MonitoramentoEquipamentosPage() {
             <p className="text-muted-foreground">Carregando...</p>
           ) : (
             <>
-              {/* "Instrumentos firmados" e "Monitorados internamente"
+              {/* "Instrumentos/Programas" e "Monitorados internamente"
                   saíram daqui -- duplicavam os cards do cabeçalho acima
                   (achado 2026-09-15, pedido do usuário: "revise e pode
                   remover"). Legenda de cor (Em execução/Prestação de
@@ -312,20 +317,17 @@ export function MonitoramentoEquipamentosPage() {
 
         {aba === 'componentes' && (
           <>
-            {/* Radar de Convênios (2026-09-15): "Radar nacional" (snapshot
-                estático) saiu -- sem sentido enquanto nenhuma proposta foi
-                aceita ainda (pedido do usuário). "Incorporadas" (status
-                aceita cru, sem olhar pagamento) saiu de vez -- pedido do
-                usuário: "crie uma nova aba Proposta onde estará todas as
-                propostas... na incorporadas pode remover todas". Fica
-                "Novas propostas" (pendente + aceita-ainda-não-paga, ver
-                propostaEhNova()) e "Propostas" (universo inteiro, incl.
-                rejeitada). */}
+            {/* Radar de Convênios -- organizado pelo estágio real no funil
+                TransfereGov (pedido do usuário 2026-09-18, substituindo as
+                antigas "Novas propostas"/"Propostas" que separavam por
+                critério de pagamento): "Confirmada (parceria)" primeiro
+                (fato consumado), "Em tramitação (proposta)" depois (pode
+                virar parceria ou ser rejeitada). */}
             <div className="flex gap-1 mb-4 border-b border-border">
               {(
                 [
-                  { value: 'novas', label: 'Novas propostas', contagem: totalNovas },
-                  { value: 'todas', label: 'Propostas', contagem: todasPropostas.length },
+                  { value: 'confirmada', label: ESTAGIO_LABEL.confirmada, contagem: totalConfirmadas },
+                  { value: 'tramitacao', label: ESTAGIO_LABEL.tramitacao, contagem: totalEmTramitacao },
                 ] as const
               ).map((sub) => (
                 <button

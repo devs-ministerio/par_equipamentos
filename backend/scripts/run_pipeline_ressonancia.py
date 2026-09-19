@@ -1,5 +1,5 @@
 """Roda o pipeline real de RESSONANCIA (DEMAS + SIDRA + ElastiCNES) e grava o
-resultado no banco -- segunda familia do SIEO (decisao 2026-08-21), copiado
+resultado no banco -- segunda familia do SIGEO (decisao 2026-08-21), copiado
 de scripts/run_pipeline_tomografo.py trocando so o que e especifico da
 familia (fetch do ElastiCNES e a produtividade).
 

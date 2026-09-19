@@ -5,6 +5,8 @@ import { queryClient } from './lib/query-client';
 import { AppLayout } from './components/layout/app-layout';
 import { MonitoramentoLayout } from './components/layout/monitoramento-layout';
 import { ProtectedRoute } from './components/layout/protected-route';
+import { AdminRoute } from './components/layout/admin-route';
+import { Toaster } from './components/ui/sonner';
 
 // Code-splitting por rota (2026-08-24) -- antes as 4 paginas eram import
 // estatico aqui, entao MapaPage (que carrega MacroMap.tsx -> D3) ia pro
@@ -44,6 +46,12 @@ const MonitoramentoOverviewPage = lazy(() =>
 const MonitoramentoPainelPage = lazy(() =>
   import('./pages/monitoramento-painel-page').then((m) => ({ default: m.MonitoramentoPainelPage }))
 );
+// Gestao de usuarios (Modulo Admin, 2026-09-17) -- so role=admin acessa
+// (AdminRoute), fora de AppLayout/MonitoramentoLayout de proposito (nao
+// pertence a uma familia de equipamento).
+const UsuariosPage = lazy(() => import('./pages/usuarios-page').then((m) => ({ default: m.UsuariosPage })));
+const AccountActionPage = lazy(() => import('./pages/account-action-page').then((m) => ({ default: m.AccountActionPage })));
+const ForgotPasswordPage = lazy(() => import('./pages/account-action-page').then((m) => ({ default: m.ForgotPasswordPage })));
 
 /** Feedback visível durante o carregamento de uma rota. `null` aqui fazia a
  * troca de página parecer uma falha, principalmente em conexões mais lentas. */
@@ -61,8 +69,8 @@ function NotFoundPage() {
       <div>
         <p className="text-sm font-semibold text-muted-foreground">Página não encontrada</p>
         <h1 className="mt-2 text-2xl font-bold text-foreground">Este endereço não existe no SIGEO.</h1>
-        <Link className="mt-5 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline" to="/">
-          Voltar ao painel geral
+        <Link className="mt-5 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline" to="/monitoramento-equipamentos">
+          Voltar aos Dados Oficiais
         </Link>
       </div>
     </main>
@@ -73,24 +81,34 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        {/* 1 Toaster global (Seção 12/13 da constituição -- toda ação de
+            sucesso usa toast) -- montado fora do <Suspense> pra sobreviver
+            à troca de rota e não empilhar instâncias por página. */}
+        <Toaster position="top-right" />
         <Suspense fallback={<RouteLoading />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/ativar" element={<AccountActionPage mode="activate" />} />
+            <Route path="/redefinir-senha" element={<AccountActionPage mode="reset" />} />
+            <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
             {/* Todo o app exige sessão desde 2026-09-17 (decisão do usuário:
                 "todas as páginas do sistema precisarão de login", exceto o
                 Painel de Gestão do monitoramento interno, candidato a
                 reabrir publicamente no futuro -- por ora fica atrás do
                 mesmo gate). Plan Mode segurança 2026-09-16, Bloco 5. */}
             <Route element={<ProtectedRoute />}>
-              {/* Painel Geral (decisao 2026-08-22) -- pagina inicial, fora do
-                  AppLayout/TopNav de proposito (nao pertence a uma familia
-                  especifica, ver comentario em PainelGeralPage.tsx). */}
-              <Route path="/" element={<PainelGeralPage />} />
+              {/* Dados Oficiais é a entrada operacional após o login. A
+                  visão nacional continua disponível em URL própria. */}
+              <Route path="/" element={<Navigate to="/monitoramento-equipamentos" replace />} />
+              <Route path="/painel-geral" element={<PainelGeralPage />} />
               <Route element={<MonitoramentoLayout />}>
                 <Route path="/monitoramento-equipamentos" element={<MonitoramentoEquipamentosPage />} />
                 <Route path="/monitoramento-equipamentos/instrumentos" element={<MonitoramentoOverviewPage />} />
                 <Route path="/monitoramento-equipamentos/painel" element={<MonitoramentoPainelPage />} />
                 <Route path="/monitoramento-equipamentos/instrumentos/:nrConvenio" element={<MonitoramentoInstrumentoPage />} />
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin/usuarios" element={<UsuariosPage />} />
+                </Route>
               </Route>
               <Route element={<AppLayout />}>
                 <Route path="dashboard" element={<DashboardPage />} />

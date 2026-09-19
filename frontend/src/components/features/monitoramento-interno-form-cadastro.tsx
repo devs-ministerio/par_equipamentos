@@ -13,7 +13,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { cn } from '@/lib/utils';
-import type { InstrumentoEquipamento } from '@/services/monitoramento';
+import type { InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
 import { cadastroInternoSchema, type CadastroInternoFormValues } from '@/lib/validations/monitoramento';
 import { comValorAtual, FINALIDADES, MODALIDADES_ONCO, NIVEIS_MONITORAMENTO, TECNICOS_EQUIPE } from '@/lib/monitoramento-opcoes';
 import { estiloInput } from './monitoramento-ui';

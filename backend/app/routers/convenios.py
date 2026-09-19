@@ -52,6 +52,7 @@ class ConvenioRead(BaseModel):
     # PERSUS I/PERSUS II/PRONON. `None` só nos poucos registros antigos que
     # a migration não conseguiu backfillar (não deveria existir hoje).
     tipo_contratacao: str | None
+    tipologia: str | None
     municipio: str | None
     uf: str | None
     codigo_ibge: str | None
@@ -115,6 +116,7 @@ CONVENIO_LIST_LOAD_ONLY = (
     Convenio.convenente_cnpj,
     Convenio.convenente_tipo,
     Convenio.tipo_contratacao,
+    Convenio.tipologia,
     Convenio.municipio,
     Convenio.uf,
     Convenio.codigo_ibge,

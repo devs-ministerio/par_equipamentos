@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { KpiCard } from '@/components/common/kpi-card';
+import { MetricStrip } from '@/components/common/metric-strip';
+import { PageHeader } from '@/components/common/page-header';
+import { FilterWorkspace } from '@/components/common/filter-workspace';
+import { ErrorAlert } from '@/components/common/error-alert';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
+import { Skeleton } from '@/components/ui/skeleton';
 import { NavBoxesAnaliseMerito } from '@/components/features/nav-boxes-analise-merito';
 import { MultiSelectFilter } from '@/components/common/multi-select-filter';
 import { CoberturaTable } from '@/components/features/cobertura-table';
@@ -12,7 +16,7 @@ import { useFiltrosMacro } from '@/hooks/useFiltrosMacro';
 import { useDashboardCobertura } from '@/hooks/useDashboardCobertura';
 import { useDashboardTotais } from '@/hooks/useDashboardTotais';
 import { useDashboardHipo } from '@/hooks/useDashboardHipo';
-import { useFamiliaEquipamento } from '@/context/familia-equipamento-context';
+import { useFamiliaEquipamento } from '@/hooks/use-familia-equipamento';
 import { REGIOES } from '@/data/constants';
 import type { StatusCobertura } from '@/types/domain';
 
@@ -122,43 +126,42 @@ export function DashboardPage() {
     setStatusFiltro(new Set());
   }
 
+  const header = (
+    <PageHeader
+      eyebrow="Análise de mérito"
+      title="Parâmetros de necessidade"
+      description="Cobertura, déficit e distância segundo a oferta em uso SUS."
+      actions={<NavBoxesAnaliseMerito />}
+    />
+  );
+
   if (isLoading) {
-    return <div className="p-15 text-center text-muted-foreground">Carregando dados...</div>;
+    return (
+      <div>
+        {header}
+        <div className="grid gap-2" role="status" aria-label="Carregando">
+          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
   }
 
   if (isError) {
     return (
-      <div className="rounded-lg bg-destructive/10 p-6 text-destructive">
-        Não foi possível carregar os dados da API ({error?.message ?? 'erro desconhecido'}). Confirme se o backend
-        está rodando em {import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}.
+      <div>
+        {header}
+        <ErrorAlert mensagem={mensagemSeguraDoErro(error)} />
       </div>
     );
   }
 
   return (
     <div>
-      <Card className="mb-4 py-0">
-        <CardContent className="flex flex-wrap items-start justify-between gap-4 p-5.5">
-          <div>
-            <div className="mb-2 text-[11px] font-extrabold tracking-[0.08em] text-primary uppercase">
-              Análise de mérito
-            </div>
-            <h1 className="m-0 text-3xl font-extrabold tracking-[-0.03em] text-foreground">
-              Parâmetros de Necessidade
-            </h1>
-            <p className="mt-2.5 max-w-[720px] text-[13.5px] leading-relaxed text-muted-foreground">
-              Cobertura, déficit e distância por macrorregião de saúde, comparando equipamentos em uso SUS
-              com a população SUS-dependente.
-            </p>
-          </div>
-          <NavBoxesAnaliseMerito />
-        </CardContent>
-      </Card>
+      {header}
 
-      <div className="mb-4 flex flex-wrap items-start gap-2.5 rounded-lg bg-card px-4.5 py-3.5">
-        <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">
-          Filtrar por
-        </span>
+      <FilterWorkspace hasAnyFilter={hasAnyFilter} onClear={limparFiltros}>
         <MultiSelectFilter
           placeholder="CNES"
           options={cnesOptions}
@@ -220,68 +223,64 @@ export function DashboardPage() {
             setFiltroCnes([]);
           }}
         />
-        {hasAnyFilter && (
-          <button
-            onClick={limparFiltros}
-            aria-label="Limpar filtros"
-            className="cursor-pointer rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive"
-          >
-            ✕ Limpar
-          </button>
-        )}
-      </div>
+      </FilterWorkspace>
 
-      <div className="flex flex-wrap items-stretch justify-center gap-4">
-        <KpiCard
-          label="Total de Equipamentos"
-          value={totais?.existingQty ?? totalEquipGeralMacro}
-          variant="primary"
-          info={
-            <InfoIcon>
-              Inclui equipamentos privados. Só o card ao lado (em uso e SUS) entra no cálculo de cobertura.
-            </InfoIcon>
-          }
-        />
-        <KpiCard
-          label="Total de Equipamentos em uso SUS"
-          value={totais?.availableQty ?? totalEquipMacro}
-          variant="primary"
-        />
-        <KpiCard
-          label="Municípios Hipossuficientes"
-          value={municipiosHipo ?? '—'}
-          variant="destructive"
-          onClick={() => verHipo('municipio')}
-          ativo={nivelForcado === 'municipio'}
-          info={
-            <InfoIcon>
-              Municípios com mais de 100 mil habitantes e equipamentos em uso SUS abaixo do necessário. Clique pra ver a
-              lista.
-            </InfoIcon>
-          }
-        />
-        <KpiCard
-          label="Regiões de Saúde Hipossuficientes"
-          value={regioesSaudeHipo != null && regioesSaudeTotal != null ? `${regioesSaudeHipo} de ${regioesSaudeTotal}` : '—'}
-          variant="destructive"
-          onClick={() => verHipo('regiaoSaude')}
-          ativo={nivelForcado === 'regiaoSaude'}
-          info={
-            <InfoIcon>Regiões de saúde com equipamentos em uso SUS abaixo do necessário. Clique pra ver a lista.</InfoIcon>
-          }
-        />
-        <KpiCard
-          label="Macrorregiões com Hipossuficiente"
-          value={`${macrosHipo} de ${filteredRows.length}`}
-          variant="destructive"
-          onClick={() => verHipo('macro')}
-          ativo={nivelForcado === 'macro'}
-        />
-      </div>
+      <MetricStrip
+        items={[
+          {
+            key: 'total',
+            label: 'Total de Equipamentos',
+            value: totais?.existingQty ?? totalEquipGeralMacro,
+            variant: 'primary',
+            info: (
+              <InfoIcon>
+                Inclui equipamentos privados. Só o card ao lado (em uso e SUS) entra no cálculo de cobertura.
+              </InfoIcon>
+            ),
+          },
+          {
+            key: 'total-sus',
+            label: 'Total de Equipamentos em uso SUS',
+            value: totais?.availableQty ?? totalEquipMacro,
+            variant: 'primary',
+          },
+          {
+            key: 'municipios-hipo',
+            label: 'Municípios Hipossuficientes',
+            value: municipiosHipo ?? '—',
+            variant: 'destructive',
+            onClick: () => verHipo('municipio'),
+            ativo: nivelForcado === 'municipio',
+            info: (
+              <InfoIcon>
+                Municípios com mais de 100 mil habitantes e equipamentos em uso SUS abaixo do necessário. Clique pra ver a
+                lista.
+              </InfoIcon>
+            ),
+          },
+          {
+            key: 'regioes-saude-hipo',
+            label: 'Regiões de Saúde Hipossuficientes',
+            value: regioesSaudeHipo != null && regioesSaudeTotal != null ? `${regioesSaudeHipo} de ${regioesSaudeTotal}` : '—',
+            variant: 'destructive',
+            onClick: () => verHipo('regiaoSaude'),
+            ativo: nivelForcado === 'regiaoSaude',
+            info: <InfoIcon>Regiões de saúde com equipamentos em uso SUS abaixo do necessário. Clique pra ver a lista.</InfoIcon>,
+          },
+          {
+            key: 'macros-hipo',
+            label: 'Macrorregiões com Hipossuficiente',
+            value: `${macrosHipo} de ${filteredRows.length}`,
+            variant: 'destructive',
+            onClick: () => verHipo('macro'),
+            ativo: nivelForcado === 'macro',
+          },
+        ]}
+      />
 
       <div className="mt-5 rounded-lg bg-card">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4.5 py-3.5">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-col items-stretch gap-3 border-b border-border px-4.5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2.5">
             <div className="text-sm font-semibold">Cobertura Assistencial</div>
             {nivelForcado && (
               <button

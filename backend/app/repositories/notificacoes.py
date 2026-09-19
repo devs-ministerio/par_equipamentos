@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Notificacao
+from app.db.models import InstrumentoEquipamento, Notificacao, PropostaCandidata
 
 
 @dataclass(frozen=True)
@@ -40,3 +40,18 @@ def listar_notificacoes_paginadas(
 
 def obter_notificacao(db: Session, notificacao_id: int) -> Notificacao | None:
     return db.execute(select(Notificacao).where(Notificacao.id == notificacao_id)).scalar_one_or_none()
+
+
+def mapear_identificadores_instrumentos(db: Session, ids: set[int]) -> dict[int, str]:
+    if not ids:
+        return {}
+    return dict(db.execute(
+        select(InstrumentoEquipamento.id, InstrumentoEquipamento.nr_convenio)
+        .where(InstrumentoEquipamento.id.in_(ids))
+    ).all())
+
+
+def mapear_ids_propostas(db: Session, ids: set[int]) -> set[int]:
+    if not ids:
+        return set()
+    return set(db.execute(select(PropostaCandidata.id).where(PropostaCandidata.id.in_(ids))).scalars())

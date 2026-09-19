@@ -20,7 +20,7 @@ from __future__ import annotations
 from datetime import date
 
 from app.db.base import SessionLocal
-from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
+from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
 
 # Catalogo -- (codigo, grupo, ordem, pct_referencia, rotulo, descricao_referencia).
 # ordem/pct so fazem sentido em fase_geral (definem a barra de progresso);
@@ -48,6 +48,10 @@ CATALOGO = [
     ("cronograma_obra_ponto_critico", MarcoGrupo.cronograma_fisico, None, None, "Ponto crítico da obra", None),
     ("cronograma_obra_fim", MarcoGrupo.cronograma_fisico, None, None, "Fim da reforma/obra", None),
     ("cronograma_previsao_inauguracao", MarcoGrupo.cronograma_fisico, None, None, "Previsão de inauguração", None),
+    ("cronograma_ordem_servico", MarcoGrupo.cronograma_fisico, None, None, "Ordem de serviço", None),
+    ("cronograma_trp", MarcoGrupo.cronograma_fisico, None, None, "TRP — recebimento provisório", None),
+    ("cronograma_trd", MarcoGrupo.cronograma_fisico, None, None, "TRD — recebimento definitivo", None),
+    ("cronograma_chegada_obra", MarcoGrupo.cronograma_fisico, None, None, "Chegada na obra", None),
 
     # --- regulatorio: so relevante pra equipamento que emite radiacao (linac,
     # braquiterapia, PET-CT, gama camara) -- status vem do vocabulario da
@@ -76,8 +80,17 @@ INSTRUMENTO_948686 = dict(
     tecnico_titular="PRISCILA",
     tecnico_suplente="BRUNA",
     nivel_monitoramento="ESTRATÉGICO",
-    finalidade="Substituição",
+    tipologia="EO",
     modalidade_onco="Tratamento",
+)
+
+CNES_948686 = dict(
+    cnes="0010456",
+    nome_estabelecimento="INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+    cnpj="28481233000172",
+    municipio="BRASILIA",
+    uf="DF",
+    fonte_sincronizacao="seed_monitoramento",
 )
 
 # Eventos reconstruidos da planilha real (2026-09-03) -- a "fase atual" la e
@@ -117,6 +130,13 @@ def run() -> None:
         db.flush()
         marcos_por_codigo = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
         print(f"Catálogo: {len(marcos_por_codigo)} marco(s).")
+
+        cnes = db.get(CnesEstabelecimento, CNES_948686["cnes"])
+        if cnes is None:
+            db.add(CnesEstabelecimento(**CNES_948686))
+            print(f"CNES {CNES_948686['cnes']} criado para o instrumento 948686.")
+        else:
+            print(f"CNES {CNES_948686['cnes']} já existe — não duplicado.")
 
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio="948686").one_or_none()
         if instrumento is None:

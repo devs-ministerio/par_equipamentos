@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.authz import assert_pode_editar_monitoramento
 from app.db.models import PropostaCandidata, PropostaCandidataStatus, User
-from app.domain_errors import ConflictError, NotFoundError, ValidationError
-from app.repositories.propostas_candidatas import existe_cnes, obter_proposta, obter_proposta_para_revisao
+from app.domain_errors import ConflictError, NotFoundError
+from app.repositories.propostas_candidatas import obter_proposta_para_revisao
 from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado
 
 
@@ -48,28 +48,6 @@ def revisar_proposta_candidata(
 
     proposta.revisado_por = usuario.id
     proposta.revisado_em = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(proposta)
-    return proposta
-
-
-def atualizar_cnes_proposta_candidata(
-    *,
-    db: Session,
-    proposta_id: int,
-    cnes: str | None,
-    usuario: User,
-) -> PropostaCandidata:
-    assert_pode_editar_monitoramento(usuario)
-    proposta = obter_proposta(db, proposta_id)
-    if proposta is None:
-        raise NotFoundError(f"Proposta candidata {proposta_id} não encontrada.")
-
-    cnes_normalizado = cnes.zfill(7) if cnes else None
-    if cnes_normalizado is not None and not existe_cnes(db, cnes_normalizado):
-        raise ValidationError(f"CNES {cnes} não encontrado na base de referência.")
-
-    proposta.cnes = cnes_normalizado
     db.commit()
     db.refresh(proposta)
     return proposta

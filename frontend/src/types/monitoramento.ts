@@ -122,6 +122,7 @@ export type ConvenioUnificado = {
   // "Instrumentos firmados" passou de só Convênio (SICONV/TransfereGov)
   // pra incluir FAF/TED/PERSUS I/PERSUS II/PRONON.
   tipoContratacao: string | null;
+  tipologia: string | null;
   // cnpj nulo pra PERSUS/PRONON -- fonte não publica, nunca inventado.
   convenente: { nome: string; cnpj: string | null; tipo: string };
   municipio: string;

@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { FamiliaEquipamentoProvider } from '../../context/familia-equipamento-context';
+import { CONTAINER_CLASS } from '@/lib/layout';
 import { AppHeader } from './app-header';
 import { SeletorEquipamento } from './top-nav';
 import { NAV_ITEMS_MONITORAMENTO } from './monitoramento-nav-items';
@@ -17,7 +18,7 @@ export function AppLayout() {
     <FamiliaEquipamentoProvider>
       <div className="min-h-screen bg-background text-sm text-foreground">
         <AppHeader navItems={NAV_ITEMS_MONITORAMENTO} leftExtra={<SeletorEquipamento />} />
-        <div className="mx-auto max-w-[1400px] px-6 py-6">
+        <div className={`${CONTAINER_CLASS} py-6`}>
           <Outlet />
         </div>
       </div>

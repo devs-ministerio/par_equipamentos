@@ -1,12 +1,5 @@
-/** Botões de navegação entre as 3 páginas de Análise de mérito (Dashboard/
- * Mapa/Relatórios), no formato "caixa" (label pequeno + valor em negrito)
- * -- mesmo visual dos cards "Instrumentos"/"Execução média" do cabeçalho
- * de Mesa de trabalho (achado 2026-09-15, pedido do usuário: "quero os
- * botões [...] neste formato da imagem [...] Instrumentos e Repasses tem
- * cards a direita [...] no canto direito os botões de navegação
- * monitoramento interno, mapa e relatorios"). Usado no cabeçalho de cada
- * uma das 3 páginas (mesmo padrão repetido -- "basta replicar o que foi
- * feito nas outras páginas"). */
+/** Navegação contextual compacta. Aba ativa usa sublinhado de accent, como
+ * definido pela constituição, sem criar três cards dentro do cabeçalho. */
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -19,7 +12,7 @@ const ITENS = [
 export function NavBoxesAnaliseMerito() {
   const location = useLocation();
   return (
-    <div className="grid min-w-[260px] grid-cols-3 gap-2">
+    <nav className="flex w-full flex-wrap gap-5 border-b border-border sm:w-auto" aria-label="Seções da análise de mérito">
       {ITENS.map((item) => {
         const ativo = location.pathname === item.path;
         return (
@@ -27,17 +20,14 @@ export function NavBoxesAnaliseMerito() {
             key={item.path}
             to={item.path}
             className={cn(
-              'rounded-lg border p-2.5 no-underline transition-colors',
-              ativo ? 'border-primary bg-secondary' : 'border-border bg-muted hover:bg-secondary/60',
+              '-mb-px border-b-2 px-0.5 pb-2 text-sm no-underline transition-colors',
+              ativo ? 'border-primary font-semibold text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
-            <div className="text-[10.5px] font-extrabold uppercase text-muted-foreground">Ir para</div>
-            <strong className={cn('text-[13.5px] leading-tight', ativo ? 'text-primary' : 'text-foreground')}>
-              {item.label}
-            </strong>
+            {item.label}
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

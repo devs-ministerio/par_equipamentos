@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchPropostasCandidatas, revisarPropostaCandidata, type PropostaCandidataStatus } from '@/services/monitoramento';
+import { fetchPropostasCandidatas, revisarPropostaCandidata, type PropostaCandidataStatus } from '@/services/propostas-candidatas';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** Candidatos do job de descoberta TransfereGov (Radar de Convênios) --
@@ -11,7 +11,7 @@ export function usePropostasCandidatas(status?: PropostaCandidataStatus) {
 
   const query = useQuery({
     queryKey: monitoramentoKeys.propostasCandidatas(status),
-    queryFn: () => fetchPropostasCandidatas(status),
+    queryFn: () => fetchPropostasCandidatas({ status, tamanhoPagina: 500 }),
   });
 
   const revisarMutation = useMutation({
@@ -26,7 +26,8 @@ export function usePropostasCandidatas(status?: PropostaCandidataStatus) {
   });
 
   return {
-    propostas: query.data ?? [],
+    propostas: query.data?.itens ?? [],
+    total: query.data?.total ?? 0,
     carregando: query.isLoading,
     erro: query.error,
     revisar: revisarMutation.mutateAsync,

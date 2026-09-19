@@ -127,14 +127,14 @@ do projeto **precisa** substituir:
 
 | Default do shadcn | Nunca manter | Substituir por |
 |---|---|---|
-| Fonte `Inter` (ou nenhuma definida) | Inter, Space Grotesk | Par de fontes do projeto (ver `theme.example.css`) |
+| Fonte `Inter` (ou nenhuma definida) | Inter, Space Grotesk | Par de fontes do projeto (ver `starter-kit/src/styles/theme.css`) |
 | `--radius: 0.5rem` global | mesmo radius em todo componente | Escala própria — ex.: botões/inputs com radius menor que cards |
 | Cinza neutro puro (`--muted`, `--border`) | cinza sem viés de matiz | Cinza com leve viés de matiz na direção do accent |
 | `shadow-sm`/`shadow` em cards estáticos | sombra em todo `Card` | Sombra reservada a overlay/modal/dropdown; card estático usa borda |
-| Paleta base sem accent customizado | primary = azul default | Accent definido em `design-tokens.example.ts` (Seção 5) |
+| Paleta base sem accent customizado | primary = azul default | Accent definido em `starter-kit/src/lib/design-tokens.ts` (Seção 5) |
 
-> Modelo pronto para copiar: `theme.example.css` — substitui o `globals.css` gerado pelo
-> `shadcn init` já com esses 5 pontos resolvidos, para a IA nunca partir do template cru.
+> Modelo pronto para copiar: `starter-kit/src/styles/theme.css` — substitui o `globals.css` gerado
+> pelo `shadcn init` já com esses 5 pontos resolvidos, para a IA nunca partir do template cru.
 
 ### Tema
 
@@ -192,7 +192,7 @@ Definir explicitamente, em 1 linha cada:
 
 Sem essas 3 definições, a IA aplica o default do design system "cru" e o resultado fica genérico. Isso é a principal causa da "cara de IA".
 
-> Modelo de referência: `design-tokens.example.ts` (copiar para `lib/design-tokens.ts` no início do projeto e preencher os 3 campos).
+> Modelo de referência: `starter-kit/src/lib/design-tokens.ts` (copiar para `lib/design-tokens.ts` no início do projeto e preencher os 3 campos).
 
 ### Nunca (causas diretas de "cara de IA")
 
@@ -225,7 +225,7 @@ Sem essas 3 definições, a IA aplica o default do design system "cru" e o resul
 (visual mais tátil, menos editorial puro), a regra é **elevação por grupo de resultado, nunca por
 elemento dentro do grupo**: 1 card envolve o item inteiro (ex.: um card por convênio, um card
 único agrupando toda a row de métricas), e por dentro continua tudo estruturado por borda/divisor
-— nunca um card dentro de outro card. Usar a classe `.card-group` do `theme.example.css` (borda +
+— nunca um card dentro de outro card. Usar a classe `.card-group` do `starter-kit/src/styles/theme.css` (borda +
 `--shadow-card`, sombra de 1 nível só — não `shadow-lg`) e uma faixa de accent de 3px como
 assinatura no topo, no lugar da régua preta reta.
 
@@ -246,7 +246,7 @@ assinatura no topo, no lugar da régua preta reta.
 - Coluna numérica (qtd, valor unitário, valor total) **sempre** `text-align: right` no `<th>` e no `<td>` — nunca numérico alinhado à esquerda.
 - Aba ativa em grupo de tabs: `border-bottom` de 2px na cor do accent + peso de fonte maior — nunca fundo sólido/escuro na aba ativa (isso é o padrão datado que estamos evitando).
 
-> Modelo de referência: `theme.example.css` já traz um exemplo de tabela editorial (`.table-editorial`) seguindo essa regra.
+> Modelo de referência: `starter-kit/src/styles/theme.css` já traz um exemplo de tabela editorial (`.table-editorial`) seguindo essa regra.
 
 ---
 
@@ -481,13 +481,34 @@ Configurar:
 
 ## 17. Segurança
 
-Nunca usar dangerouslySetInnerHTML sem sanitização.
+> Política completa e detalhada em [constituicao_seguranca.md](../seguranca/constituicao_seguranca.md).
+> Esta seção é o checklist mínimo de aplicação no frontend — em caso de dúvida ou cenário não
+> coberto aqui (auth, CORS, LGPD, rate limit, headers), consultar o documento compartilhado.
 
-Validar todos os dados antes de enviar à API.
+- [ ] Nunca `dangerouslySetInnerHTML`/`innerHTML` com dado não sanitizado.
+- [ ] Todo dado validado (schema Zod) antes de enviar à API — nunca payload não tipado.
+- [ ] Token/sessão nunca em `localStorage` sem avaliação de risco de XSS — preferir cookie `httpOnly`/`secure`/`SameSite`.
+- [ ] Nenhum segredo/chave de API embutido no bundle do client — tudo que vai pro frontend é público por definição.
+- [ ] Ocultação de UI por permissão/role é só UX — nunca tratada como controle de acesso real (o backend sempre valida de novo).
+- [ ] Dado sensível (CPF, dado financeiro) nunca logado no console nem exposto em URL/querystring.
+- [ ] Mensagem de erro exibida ao usuário nunca repassa detalhe técnico cru vindo da API (stack trace, SQL, path de servidor).
 
 ---
 
-## 18. Fluxo de Implementação
+## 18. Testes
+
+> Política completa em [constituicao_qualidade.md](../qualidade/constituicao_qualidade.md) (pirâmide
+> de testes, edge cases obrigatórios, política de mock, cobertura mínima). Esta seção é o resumo de
+> aplicação no frontend.
+
+- [ ] Hook testado nos casos de sucesso e de falha de service (estado, loading, error, ação).
+- [ ] Componente com lógica testado pelo comportamento visível ao usuário, não por detalhe interno de implementação.
+- [ ] Service com erro de API normalizado corretamente em `ApiError`, schema Zod rejeitando payload malformado testado.
+- [ ] Nenhum mock do próprio hook/componente sob teste — só fronteira externa (fetch, timer, storage) é mockada.
+
+---
+
+## 19. Fluxo de Implementação
 
 1. Tipos e dados.
 2. UI mockada.
@@ -504,7 +525,7 @@ pnpm test
 
 ---
 
-## 19. Checklist de Entrega
+## 20. Checklist de Entrega
 
 - [ ] Plan aprovado.
 - [ ] Accent, assinatura visual e densidade definidos (Seção 5).

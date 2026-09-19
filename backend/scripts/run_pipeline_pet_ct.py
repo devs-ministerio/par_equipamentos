@@ -1,5 +1,5 @@
 """Roda o pipeline real de PET_CT (DEMAS + SIDRA + ElastiCNES) e grava o
-resultado no banco -- terceira familia do SIEO (decisao 2026-08-28), copiado
+resultado no banco -- terceira familia do SIGEO (decisao 2026-08-28), copiado
 de scripts/run_pipeline_ressonancia.py trocando o que e especifico da
 familia (fetch do ElastiCNES e a produtividade), mais o calculo de
 distancia/tempo ate o radiofarmaco mais proximo (nao existe no Tomografo

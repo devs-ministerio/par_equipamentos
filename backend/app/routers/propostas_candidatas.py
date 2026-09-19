@@ -26,7 +26,7 @@ from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import CnesEstabelecimento, PropostaCandidata, PropostaCandidataStatus, User
 from app.repositories.propostas_candidatas import FiltrosPropostaCandidata, listar_propostas_paginadas
-from app.services.propostas_candidatas import atualizar_cnes_proposta_candidata, revisar_proposta_candidata
+from app.services.propostas_candidatas import revisar_proposta_candidata
 
 router = APIRouter(prefix="/propostas-candidatas", tags=["propostas-candidatas"])
 
@@ -136,25 +136,4 @@ def revisar_proposta(
         decisao=corpo.decisao.value,
         usuario=usuario,
     )
-    return _com_nome_cnes(db, [proposta])[0]
-
-
-class PropostaCandidataCnesUpdate(BaseModel):
-    cnes: str | None = None
-
-
-@router.patch("/{proposta_id}/cnes", response_model=PropostaCandidataRead)
-def atualizar_cnes(
-    proposta_id: int,
-    corpo: PropostaCandidataCnesUpdate,
-    db: Session = Depends(get_db),
-    usuario: User = Depends(require_monitoramento_editor),
-):
-    """Corrige o CNES extraído automaticamente na descoberta (ver
-    `_extrair_cnes` em job_descoberta_transferegov.py) -- achado
-    2026-09-16, pedido do usuário: "vamos deixar o campo cnes editável...
-    só poderá editar por outro cnes válido na base de dados". `cnes=None`
-    limpa o campo (proposta sem CNES identificável, equipe decide não
-    aplicar nenhum candidato)."""
-    proposta = atualizar_cnes_proposta_candidata(db=db, proposta_id=proposta_id, cnes=corpo.cnes, usuario=usuario)
     return _com_nome_cnes(db, [proposta])[0]

@@ -2,7 +2,7 @@
  * separada da timeline de eventos (design pedido pelo usuário 2026-09-09).
  * Extraído de MonitoramentoInterno.tsx. */
 import { cn } from '@/lib/utils';
-import type { AcaoMonitoramento } from '@/services/monitoramento';
+import type { AcaoMonitoramento } from '@/services/monitoramento-acoes';
 import { diasAte, fmtData } from '@/lib/monitoramento-format';
 import type { CriarAcaoFormValues } from '@/lib/validations/monitoramento';
 import { MonitoramentoInternoFormAcao } from './monitoramento-interno-form-acao';
@@ -24,7 +24,6 @@ export function MonitoramentoInternoAcoes({
   return (
     <SecaoOperacional
       titulo="Ações de monitoramento"
-      subtitulo="Pendências operacionais da equipe, separadas dos eventos históricos."
       destaque
     >
       <MonitoramentoInternoFormAcao podeEditar={podeEditar} onCriar={onCriar} />
@@ -58,7 +57,7 @@ export function MonitoramentoInternoAcoes({
                         : acao.data_prevista
                           ? `Prazo: ${fmtData(acao.data_prevista)}`
                           : 'Sem prazo definido'}
-                      {atrasada && <span className="text-destructive font-bold"> · ⚠️ atrasada há {Math.abs(diasPrazo!)} dia(s)</span>}
+                      {atrasada && <span className="text-destructive font-bold"> · atrasada há {Math.abs(diasPrazo!)} dia(s)</span>}
                     </div>
                   </div>
                   {!acao.data_conclusao && (

@@ -8,10 +8,8 @@ referência CNES e rejeita CNES inexistente.
 Destino (correção 2026-09-18, Plan Mode monitoramento-ingestao -- a carga
 original tinha jogado tudo em `instrumento_equipamento`, monitoramento
 interno; o universo correto é `convenio`, "Instrumentos firmados"):
-  - PERSUS I NÃO inaugurado: entra em `convenio` E em `instrumento_
-    equipamento` (só esse subconjunto é ativamente acompanhado pela
-    equipe, mesmo padrão do Convênio/FAF/TED já monitorados).
-  - PERSUS I inaugurado, PERSUS II e PRONON: entram só em `convenio`.
+  - PERSUS I não entregue entra em `convenio` e `instrumento_equipamento`.
+  - PERSUS I entregue, PERSUS II e PRONON entram somente em `convenio`.
 
 Identificador visível (`numero`/`nr_convenio`) é aleatório com prefixo do
 tipo (ver `scripts/lib_identificadores.py` -- essas fontes nunca têm NUP/
@@ -43,6 +41,7 @@ from scripts.lib_identificadores import gerar_identificador_aleatorio
 from scripts.lib_monitoramento_convenio import espelhar_convenio
 
 PREFIXOS = {"PERSUS I": "PS1", "PERSUS II": "PS2", "PRONON": "PN"}
+NOME_PERSUS = "Plano de Expansão da Radioterapia no SUS - PERSUS"
 
 ROOT = Path(__file__).resolve().parents[2]
 PERSUS_I = ROOT / "docs/monitoramento-equipamentos/Apresentação PER-SUS.xlsx"
@@ -68,6 +67,11 @@ class RegistroPrograma:
     inauguracao: date | None = None
     licenca_operacao: date | None = None
     observacao: str | None = None
+    ordem_servico: date | None = None
+    trp: date | None = None
+    trd: date | None = None
+    chegada_obra: date | None = None
+    prazo_total_dias: int | None = None
 
 
 def _data(valor: object) -> date | None:
@@ -87,6 +91,24 @@ def _cnes(valor: object) -> str | None:
     return digitos.zfill(7) if 1 <= len(digitos) <= 7 else None
 
 
+# Vocabulário de situação normalizado (pedido do usuário 2026-09-18): a
+# planilha PERSUS I usa "Inaugurada"/"Não inaugurada"; os CSVs PERSUS
+# II/PRONON vêm em CAIXA ALTA. `Convenio.situacao` (Instrumentos firmados)
+# precisa do mesmo vocabulário sentence-case usado pelas fontes reais
+# (SICONV já devolve "Em execução") -- unifica "Inaugurada"/"Não
+# inaugurada" no mesmo rótulo operacional que PERSUS II/PRONON usam.
+_MAPA_SITUACAO = {"INAUGURADA": "Em operação", "NÃO INAUGURADA": "Em execução"}
+
+
+def _situacao_normalizada(situacao: str | None) -> str | None:
+    if not situacao:
+        return situacao
+    mapeada = _MAPA_SITUACAO.get(situacao.upper())
+    if mapeada:
+        return mapeada
+    return situacao.capitalize()
+
+
 def _ler_persus_i() -> list[RegistroPrograma]:
     ws = openpyxl.load_workbook(PERSUS_I, read_only=True, data_only=True)["Panorama PER-SUS"]
     origem = f"PERSUS I · Apresentação PER-SUS.xlsx · sha256:{_sha256(PERSUS_I)}"
@@ -100,7 +122,7 @@ def _ler_persus_i() -> list[RegistroPrograma]:
         registros.append(RegistroPrograma(
             identificador=f"PERSUS1-{cnes}-{tipologia}",
             cnes=cnes,
-            programa="PERSUS I",
+            programa=f"{NOME_PERSUS} I",
             tipo_contratacao="PERSUS I",
             origem_dado=origem,
             tipologia=tipologia,
@@ -113,6 +135,11 @@ def _ler_persus_i() -> list[RegistroPrograma]:
             inauguracao=_data(linha[15]),
             licenca_operacao=_data(linha[12]),
             observacao=str(linha[17]).strip() if linha[17] not in (None, "", "-") else None,
+            ordem_servico=_data(linha[9]),
+            trp=_data(linha[10]),
+            trd=_data(linha[11]),
+            chegada_obra=_data(linha[19]),
+            prazo_total_dias=int(linha[20]) if isinstance(linha[20], (int, float)) else None,
         ))
     return registros
 
@@ -131,10 +158,11 @@ def _ler_csv(path: Path, *, tipo: str) -> list[RegistroPrograma]:
                 f"PERSUS2-{cnes}" if tipo == "PERSUS II"
                 else f"PRONON-{ano.group(0) if ano else 'SEM-ANO'}-{cnes}"
             )
+            programa = (f"{NOME_PERSUS} II" if tipo == "PERSUS II" else linha["programa"].strip())
             registros.append(RegistroPrograma(
                 identificador=identificador,
                 cnes=cnes,
-                programa=linha["programa"].strip(),
+                programa=programa,
                 tipo_contratacao=tipo,
                 origem_dado=origem,
                 tipologia=tipologia,
@@ -149,7 +177,7 @@ def _adicionar_evento_se_ausente(
     *, db, instrumento_id: int, marco: MarcoCatalogo | None, data_ocorrencia: date | None,
     data_prevista: date | None, observacao: str | None,
 ) -> bool:
-    if marco is None or (data_ocorrencia is None and data_prevista is None):
+    if marco is None or (data_ocorrencia is None and data_prevista is None and not observacao):
         return False
     existe = db.execute(select(EventoMarco.id).where(
         EventoMarco.instrumento_id == instrumento_id,
@@ -197,9 +225,15 @@ def executar(*, dry_run: bool) -> dict[str, int]:
                 select(Convenio).where(Convenio.chave_origem.in_({x.identificador for x in registros}))
             ).scalars()
         }
+        # Todos os marcos usados pela fonte PERSUS precisam estar carregados.
+        # Antes só inauguração/licença eram buscados; por isso Ordem de
+        # Serviço, TRP, TRD e Chegada na obra eram lidos da planilha, mas
+        # silenciosamente não viravam eventos.
         marcos = {
             m.codigo: m for m in db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo.in_({
-                "cronograma_previsao_inauguracao", "regulatorio_licenca_operacao",
+                "cronograma_previsao_inauguracao", "cronograma_ordem_servico",
+                "cronograma_trp", "cronograma_trd", "cronograma_chegada_obra",
+                "regulatorio_licenca_operacao",
             }))).scalars()
         }
         existentes = (
@@ -214,10 +248,8 @@ def executar(*, dry_run: bool) -> dict[str, int]:
                 print(f"[REJEITADO] {registro.identificador}: CNES {registro.cnes} não existe na referência")
                 continue
 
-            # Só o subconjunto PERSUS I ainda não inaugurado é ativamente
-            # acompanhado no monitoramento interno -- ver docstring do
-            # módulo. Todo o resto (PERSUS I concluído, PERSUS II, PRONON)
-            # entra só em "Instrumentos firmados".
+            # Só o PERSUS I ainda não entregue é acompanhado internamente.
+            # Os demais programas permanecem em Instrumentos firmados.
             fica_no_monitoramento = registro.tipo_contratacao == "PERSUS I" and (
                 not registro.situacao or "INAUGURADA" not in registro.situacao.upper()
                 or "NÃO" in registro.situacao.upper()
@@ -246,9 +278,12 @@ def executar(*, dry_run: bool) -> dict[str, int]:
                     "origem_dado": registro.origem_dado,
                     "tipologia": registro.tipologia,
                     "investimento_aquisicao": registro.investimento,
-                    "situacao_programa": registro.situacao,
+                    "situacao_programa": _situacao_normalizada(registro.situacao),
                     "natureza_servico": registro.natureza_servico,
-                    "equipamento_descricao": "Acelerador linear / serviço de radioterapia",
+                    # A planilha identifica a tipologia da obra, mas o
+                    # programa PERSUS é integralmente de aceleradores
+                    # lineares. A tipologia descreve a forma de implantação.
+                    "equipamento_descricao": "Acelerador linear",
                     "chave_origem": registro.identificador,
                 }
                 if instrumento is None:
@@ -272,6 +307,29 @@ def executar(*, dry_run: bool) -> dict[str, int]:
                     observacao=f"Importado de {registro.origem_dado}. {registro.observacao or ''}".strip(),
                 ):
                     resultado["eventos"] += 1
+                for codigo, data in (
+                    ("cronograma_ordem_servico", registro.ordem_servico),
+                    ("cronograma_trp", registro.trp),
+                    ("cronograma_trd", registro.trd),
+                    ("cronograma_chegada_obra", registro.chegada_obra),
+                ):
+                    if _adicionar_evento_se_ausente(
+                        db=db, instrumento_id=instrumento.id, marco=marcos.get(codigo),
+                        data_ocorrencia=data, data_prevista=None,
+                        observacao=f"Importado de {registro.origem_dado}.",
+                    ):
+                        resultado["eventos"] += 1
+                if registro.prazo_total_dias is not None:
+                    # Prazo total é duração, não data; preservá-lo na
+                    # observação evita fabricar uma data de referência.
+                    registro_observacao = f"Prazo total informado na fonte: {registro.prazo_total_dias} dias."
+                    if _adicionar_evento_se_ausente(
+                        db=db, instrumento_id=instrumento.id,
+                        marco=marcos.get("cronograma_previsao_inauguracao"),
+                        data_ocorrencia=None, data_prevista=None,
+                        observacao=registro_observacao,
+                    ):
+                        resultado["eventos"] += 1
                 if _adicionar_evento_se_ausente(
                     db=db,
                     instrumento_id=instrumento.id,
@@ -296,6 +354,7 @@ def executar(*, dry_run: bool) -> dict[str, int]:
                 numero=numero,
                 chave_origem=registro.identificador,
                 tipo_contratacao=registro.tipo_contratacao,
+                tipologia=registro.tipologia,
                 origem_dado=registro.origem_dado,
                 nome_convenente=nome_convenente,
                 cnpj_convenente=referencia.cnpj,
@@ -305,9 +364,9 @@ def executar(*, dry_run: bool) -> dict[str, int]:
                 programa=registro.programa,
                 ano_instrumento=None,
                 objeto=registro.natureza_servico,
-                situacao=registro.situacao,
+                situacao=_situacao_normalizada(registro.situacao),
                 investimento=registro.investimento,
-                equipamento_descricao="Acelerador linear / serviço de radioterapia",
+                equipamento_descricao="Acelerador linear",
                 componente=None,
             )
             resultado["convenio_atualizados" if existe_convenio else "convenio_criados"] += 1

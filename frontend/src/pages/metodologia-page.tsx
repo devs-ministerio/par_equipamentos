@@ -77,7 +77,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="rounded-[10px] bg-white px-8 py-7">
+      <div className="rounded-[10px] bg-white px-5 py-6 sm:px-8 sm:py-7">
         <div className="mb-1.5 text-[11px] font-bold tracking-[0.08em] text-primary uppercase">Escopo</div>
         <div className="mb-2 text-xl font-bold text-[#16213e]">Verificação por Município</div>
         <div className="max-w-[680px] text-[13px] leading-[1.7] text-muted-foreground">
@@ -87,7 +87,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="rounded-[10px] border-t-[3px] border-t-primary bg-white px-6.5 py-6">
           <div className="mb-2.5 text-[11px] font-bold tracking-[0.06em] text-primary uppercase">Parâmetro</div>
           <div className="mb-1 text-[19px] font-extrabold text-[#16213e]">{p.parametroTitulo}</div>
@@ -112,7 +112,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
 
         <div className="rounded-[10px] border-t-[3px] border-t-[#475066] bg-white px-6.5 py-6">
           <div className="mb-2.5 text-[11px] font-bold tracking-[0.06em] text-[#475066] uppercase">Fórmula</div>
-          <div className="rounded-[6px] bg-background px-3.5 py-2.5 font-mono text-xs leading-[1.6] text-[#16213e]">
+          <div className="max-w-full overflow-x-auto rounded-[6px] bg-background px-3.5 py-2.5 font-mono text-xs leading-[1.6] whitespace-nowrap text-[#16213e]">
             Qtd SUS em uso
             <br />
             ──────────────────
@@ -134,7 +134,7 @@ export function MetodologiaPage({ equipmentFamily = 'TOMOGRAFO' }: { equipmentFa
         </div>
       </div>
 
-      <div className="rounded-[10px] bg-white px-8 py-6">
+      <div className="rounded-[10px] bg-white px-5 py-6 sm:px-8">
         <div className="mb-3.5 text-[13px] font-bold text-[#16213e]">Fontes de dados</div>
         <div className="flex flex-col gap-3">
           <FonteItem

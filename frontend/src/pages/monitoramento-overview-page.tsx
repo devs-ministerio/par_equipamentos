@@ -45,7 +45,7 @@ export function MonitoramentoOverviewPage() {
   const [tipoContratacaoFiltro, setTipoContratacaoFiltro] = useState<string | null>(null);
 
   const header = (
-    <PageHeader eyebrow="Monitoramento interno" title="Mesa de trabalho" description="Acompanhe entrega, licenciamento e inauguração dos instrumentos monitorados pela equipe." />
+    <PageHeader eyebrow="Monitoramento interno" title="Mesa de trabalho" description="Entrega, instalação, licenciamento CNEN e inauguração." />
   );
 
   if (resumoQuery.isError || instrumentosQuery.isError) {
@@ -121,7 +121,7 @@ export function MonitoramentoOverviewPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="Monitoramento interno" title="Mesa de trabalho" description="Instrumentos que exigem acompanhamento da equipe." />
+      <PageHeader eyebrow="Monitoramento interno" title="Mesa de trabalho" description="Entrega, instalação, licenciamento CNEN e inauguração." />
 
       {/* Próxima inauguração mostra o detalhe disponível hoje (data/
           município/UF/equipamento). Instrumentos/Execução média saíram
@@ -132,7 +132,7 @@ export function MonitoramentoOverviewPage() {
           { key: 'execucao', label: 'Execução média', value: resumo.pct_execucao_fisica_medio != null ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%` : '—' },
           { key: 'licencas', label: 'Licenças a vencer', value: resumo.licencas_vencendo.length, variant: resumo.licencas_vencendo.length ? 'warning' : 'success' },
           { key: 'inauguracao', label: 'Próxima inauguração', value: proximaInauguracao ? fmtData(proximaInauguracao.data) : '—', variant: 'primary' },
-          { key: 'concluidos', label: 'Concluídos', value: concluidos, variant: 'success' },
+          { key: 'concluidos', label: 'Prestação concluída', value: concluidos, variant: 'success' },
           { key: 'pendentes', label: 'Sem técnico', value: configuracaoPendente, variant: configuracaoPendente ? 'warning' : 'success' },
         ]} />
       </div>

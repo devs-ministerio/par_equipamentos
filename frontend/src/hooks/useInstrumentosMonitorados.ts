@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchInstrumentos, type InstrumentoEquipamento } from '@/services/monitoramento';
+import { fetchInstrumentos, type InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** GET /monitoramento/instrumentos completo -- usado pelas páginas de

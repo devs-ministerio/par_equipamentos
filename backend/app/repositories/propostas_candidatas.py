@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from sqlalchemy import String, cast, extract, func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import CnesEstabelecimento, PropostaCandidata, PropostaCandidataStatus
+from app.db.models import PropostaCandidata, PropostaCandidataStatus
 
 
 @dataclass(frozen=True)
@@ -64,11 +64,3 @@ def obter_proposta_para_revisao(db: Session, proposta_id: int) -> PropostaCandid
         .where(PropostaCandidata.id == proposta_id)
         .with_for_update()
     ).scalar_one_or_none()
-
-
-def obter_proposta(db: Session, proposta_id: int) -> PropostaCandidata | None:
-    return db.execute(select(PropostaCandidata).where(PropostaCandidata.id == proposta_id)).scalar_one_or_none()
-
-
-def existe_cnes(db: Session, cnes: str) -> bool:
-    return db.get(CnesEstabelecimento, cnes) is not None

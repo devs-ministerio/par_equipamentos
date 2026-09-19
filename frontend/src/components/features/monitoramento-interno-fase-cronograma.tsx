@@ -1,8 +1,10 @@
 /** Seções "Fase geral" (stepper) + "Cronograma físico"/"Regulatório (CNEN)"
  * -- extraído de MonitoramentoInterno.tsx. */
 import { cn } from '@/lib/utils';
-import type { EventoMarco, MarcoCatalogo } from '@/services/monitoramento';
-import { classeValidade, SecaoOperacional, StatusPill } from './monitoramento-ui';
+import type { EventoMarco } from '@/services/monitoramento-instrumentos';
+import type { MarcoCatalogo } from '@/services/monitoramento-marcos';
+import { SecaoOperacional, StatusPill } from './monitoramento-ui';
+import { classeValidade } from '@/lib/monitoramento-status';
 import { fmtData } from '@/lib/monitoramento-format';
 
 export function MonitoramentoInternoFaseGeral({
@@ -54,8 +56,8 @@ export function MonitoramentoInternoCronograma({
   diasValidade: number | null;
 }) {
   return (
-    <div className="grid [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] gap-4 mb-4">
-      <SecaoOperacional titulo="Cronograma físico" subtitulo="Fabricação, chegada, entrega, instalação, comissionamento e inauguração.">
+    <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-4 mb-4">
+      <SecaoOperacional titulo="Cronograma físico" subtitulo="Entrega, instalação, licenciamento CNEN e inauguração.">
         <div className="mt-2.5 grid gap-2">
           {cronogramaFisico.map((m) => {
             const evs = eventosPorMarco.get(m.id);
@@ -94,7 +96,7 @@ export function MonitoramentoInternoCronograma({
                 {ehLicenca && diasValidade !== null && (
                   <div className={cn('text-[10.5px] font-semibold text-right', classeValidade(diasValidade))}>
                     {diasValidade < 0
-                      ? `⚠️ Vencida há ${Math.abs(diasValidade)} dia(s) (${fmtData(eventoLicenca?.data_validade)})`
+                      ? `Vencida há ${Math.abs(diasValidade)} dia(s) (${fmtData(eventoLicenca?.data_validade)})`
                       : `Vence em ${diasValidade} dia(s) (${fmtData(eventoLicenca?.data_validade)})`}
                   </div>
                 )}

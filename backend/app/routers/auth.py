@@ -1,6 +1,10 @@
 """Rotas de autenticacao."""
 from __future__ import annotations
 
+import hashlib
+import secrets
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,16 +14,22 @@ from app.auth import (
     clear_session_cookies,
     create_access_token,
     create_refresh_token,
+    hash_password,
+    registrar_falha_login,
+    registrar_sucesso_login,
     require_current_user,
+    revoke_all_refresh_tokens_for_user,
     revoke_refresh_token,
     rotate_refresh_token,
     set_session_cookies,
     verify_password,
 )
+from app.config import settings
 from app.db.base import get_db
 from app.db.models import User, UserStatus
+from app.email import enviar_link
 from app.rate_limit import limiter
-from app.schemas import LoginRequest, UserRead
+from app.schemas import LoginRequest, PasswordRecoveryRequest, PasswordResetRequest, UserActivationRequest, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -33,15 +43,73 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     clientes HTTP do frontend ja operam so por cookie e nao ha consumidor
     externo de API."""
     user = db.execute(select(User).where(User.email == corpo.email.lower().strip())).scalar_one_or_none()
-    if user is None or user.status != UserStatus.active or user.deleted_at is not None:
+    if user is None or user.status != UserStatus.active or user.deleted_at is not None or user.activation_token_hash is not None:
+        raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
+    if user.locked_until is not None and user.locked_until > datetime.now(timezone.utc):
+        # Mesma mensagem generica de credencial invalida -- nao sinalizar
+        # pra quem tenta logar que a conta esta bloqueada (diferenciar
+        # ajudaria um atacante a saber que acertou o e-mail).
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
     if not verify_password(corpo.password, user.password_hash):
+        registrar_falha_login(db, user)
+        db.commit()
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
 
+    registrar_sucesso_login(user)
     access_token = create_access_token(user)
     refresh_token = create_refresh_token(db, user)
     db.commit()
     set_session_cookies(response, access_token, refresh_token)
+    return {"status": "ok"}
+
+
+@router.post("/ativar")
+@limiter.limit("5/minute")
+def ativar(request: Request, corpo: UserActivationRequest, response: Response, db: Session = Depends(get_db)):
+    user = db.execute(select(User).where(User.activation_token_hash == hashlib.sha256(corpo.token.encode()).hexdigest())).scalar_one_or_none()
+    if user is None or user.activation_expires_at is None or user.activation_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Convite inválido ou expirado.")
+    user.password_hash = hash_password(corpo.password)
+    user.activation_token_hash = None
+    user.activation_expires_at = None
+    user.activated_at = datetime.now(timezone.utc)
+    registrar_sucesso_login(user)
+    db.commit()
+    set_session_cookies(response, create_access_token(user), create_refresh_token(db, user))
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/esqueci-senha")
+@limiter.limit("3/minute")
+def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session = Depends(get_db)):
+    user = db.execute(select(User).where(User.email == corpo.email.lower().strip(), User.deleted_at.is_(None))).scalar_one_or_none()
+    if user is not None and settings.smtp_host and settings.smtp_from:
+        token = secrets.token_urlsafe(32)
+        user.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
+        user.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        db.commit()
+        try:
+            enviar_link(destinatario=user.email, nome=user.name, token=token, assunto="Redefina sua senha do SIGEO", caminho="/redefinir-senha")
+        except Exception:
+            db.rollback()
+    return {"status": "ok"}
+
+
+@router.post("/redefinir-senha")
+@limiter.limit("5/minute")
+def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Response, db: Session = Depends(get_db)):
+    user = db.execute(select(User).where(User.activation_token_hash == hashlib.sha256(corpo.token.encode()).hexdigest())).scalar_one_or_none()
+    if user is None or user.activation_expires_at is None or user.activation_expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
+    user.password_hash = hash_password(corpo.password)
+    user.activation_token_hash = None
+    user.activation_expires_at = None
+    user.activated_at = user.activated_at or datetime.now(timezone.utc)
+    revoke_all_refresh_tokens_for_user(db, user.id)
+    db.commit()
+    set_session_cookies(response, create_access_token(user), create_refresh_token(db, user))
+    db.commit()
     return {"status": "ok"}
 
 

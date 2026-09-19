@@ -3,6 +3,8 @@ import type { NivelCoberturaRow as NivelCoberturaRowData, StatusCobertura } from
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/common/pagination';
 import { useNivelCobertura } from '@/hooks/useNivelCobertura';
+import { mensagemSeguraDoErro } from '@/lib/api-error';
+import { SortableTableHead } from '@/components/common/sortable-table-head';
 import { InfoIcon } from './info-icon';
 import { NivelCoberturaRow } from './nivel-cobertura-row';
 import { MunicipioDetalheModal } from './municipio-detalhe-modal';
@@ -73,7 +75,7 @@ export function NivelCoberturaTable({
   function toggleExpandida(chave: string) {
     setExpandidas((prev) => {
       const next = new Set(prev);
-      next.has(chave) ? next.delete(chave) : next.add(chave);
+      if (next.has(chave)) next.delete(chave); else next.add(chave);
       return next;
     });
   }
@@ -84,11 +86,6 @@ export function NivelCoberturaTable({
       setSortKey(key);
       setSortDir('asc');
     }
-  }
-
-  function arrow(key: SortKey) {
-    if (sortKey !== key) return null;
-    return <span className="ml-[3px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
   }
 
   const rowsFiltradas = useMemo(() => {
@@ -132,7 +129,7 @@ export function NivelCoberturaTable({
   return (
     <>
       {error && (
-        <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({error.message}).</div>
+        <div className="px-4.5 py-2.5 text-[12.5px] text-destructive">Não foi possível carregar ({mensagemSeguraDoErro(error)}).</div>
       )}
       <div
         style={{ maxHeight: 340, overflowY: 'auto', opacity: loading ? 0.6 : 1, transition: 'opacity .15s' }}
@@ -140,23 +137,39 @@ export function NivelCoberturaTable({
         <Table className="text-[12.5px]">
           <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
             <TableRow className="[&>*]:whitespace-normal">
-              <TableHead className="cursor-pointer py-2.5 pr-1.5 pl-4.5" onClick={() => toggleSort('nome')}>
+              <SortableTableHead
+                className="py-2.5 pr-1.5 pl-4.5"
+                ativo={sortKey === 'nome'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('nome')}
+              >
                 {tituloColuna}
-                {arrow('nome')}
-              </TableHead>
-              <TableHead className="w-[46px] cursor-pointer py-2.5 pr-2 pl-1.5" onClick={() => toggleSort('uf')}>
-                UF{arrow('uf')}
-              </TableHead>
+              </SortableTableHead>
+              <SortableTableHead
+                className="w-[46px] py-2.5 pr-2 pl-1.5"
+                ativo={sortKey === 'uf'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('uf')}
+              >
+                UF
+              </SortableTableHead>
               <TableHead className="w-[220px] py-2.5 px-2">Macrorregião</TableHead>
               {nivel === 'municipio' && <TableHead className="w-[180px] py-2.5 px-2">Região de saúde</TableHead>}
-              <TableHead className="w-[190px] cursor-pointer py-2.5 pr-2 pl-2.5 text-right" onClick={() => toggleSort('populacao')}>
-                População SUS-dep.{arrow('populacao')}
-              </TableHead>
-              <TableHead className="w-[259px] py-2.5 pr-8 pl-2">
-                <span className="flex items-center gap-1">
-                  <span className="cursor-pointer" onClick={() => toggleSort('cobertura')}>
-                    Cobertura{arrow('cobertura')}
-                  </span>
+              <SortableTableHead
+                className="w-[190px] py-2.5 pr-2 pl-2.5 text-right"
+                align="right"
+                ativo={sortKey === 'populacao'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('populacao')}
+              >
+                População SUS-dep.
+              </SortableTableHead>
+              <SortableTableHead
+                className="w-[259px] py-2.5 pr-8 pl-2"
+                ativo={sortKey === 'cobertura'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('cobertura')}
+                extra={
                   <InfoIcon>
                     <div className="mb-1.5 font-bold text-[#93c5fd]">Coeficiente</div>
                     <div className="rounded bg-white/10 px-2 py-1.5 font-mono text-[11px]">
@@ -171,8 +184,10 @@ export function NivelCoberturaTable({
                       </div>
                     )}
                   </InfoIcon>
-                </span>
-              </TableHead>
+                }
+              >
+                Cobertura
+              </SortableTableHead>
               <TableHead className="w-[220px] py-2.5 pr-4.5 pl-8">
                 <span className="flex items-center gap-1">
                   Status

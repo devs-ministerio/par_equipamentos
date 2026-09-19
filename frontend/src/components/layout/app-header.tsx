@@ -1,6 +1,10 @@
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CONTAINER_CLASS } from '@/lib/layout';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { UserMenu } from './user-menu';
 
 export interface HeaderNavItem {
@@ -12,19 +16,46 @@ export interface HeaderNavItem {
   isActive?: (pathname: string) => boolean;
 }
 
-/** Header unificado: logo + nome do app + navegação numa barra só (achado
- * 2026-09-11, mockup completo anexado pelo usuário -- substitui o par
- * Header.tsx + TopNav.tsx/MonitoramentoTopNav.tsx, que empilhava 2 barras
- * separadas). Aba ativa é pill preenchida (bg-secondary + texto primary),
- * não borda inferior -- padrão literal do mockup, mesmo a Seção 5 da
- * constituicao_frontend.md preferir borda; a imagem de referência do
- * usuário tem prioridade sobre a regra genérica aqui.
+function NavButton({
+  item,
+  active,
+  onNavigate,
+  className,
+}: {
+  item: HeaderNavItem;
+  active: boolean;
+  onNavigate: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
+        active ? 'bg-secondary font-semibold text-primary' : 'text-muted-foreground hover:text-foreground',
+        className,
+      )}
+    >
+      {item.label}
+    </button>
+  );
+}
+
+/** Header unificado: logo + nome do app + navegação numa barra só. Aba ativa
+ * é pill preenchida (bg-secondary + texto primary), não borda inferior --
+ * decisão deliberada, mantida mesmo a Seção 5 da constituicao_frontend.md
+ * preferir borda.
  *
  * `leftExtra` é o slot pro que fica entre o nome do app e a navegação --
  * hoje só o SeletorEquipamento (AppLayout). `rightExtra` fica depois da
- * navegação (hoje só o NotificationBell do MonitoramentoLayout, Radar de
- * Convênios) -- 2 slots simétricos em vez de crescer a assinatura com 1
- * prop por widget novo. */
+ * navegação (hoje só o NotificationBell do MonitoramentoLayout) -- 2 slots
+ * simétricos em vez de crescer a assinatura com 1 prop por widget novo.
+ *
+ * Abaixo de `md` (768px) nav/leftExtra/rightExtra/UserMenu colapsam num
+ * menu mobile (Sheet) atrás de um botão hambúrguer -- Radix Dialog já
+ * fecha com Escape e devolve foco ao trigger, sem código extra aqui. */
 export function AppHeader({
   navItems,
   leftExtra,
@@ -36,44 +67,40 @@ export function AppHeader({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  function irPara(path: string) {
+    navigate(path);
+    setMenuAberto(false);
+  }
 
   return (
     <header className="border-b border-border bg-card">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-4 px-6">
+      <div className={cn(CONTAINER_CLASS, 'flex h-14 items-center justify-between gap-4')}>
         <div className="flex min-w-0 items-center gap-4">
-          {/* Clicar na logo volta pro Painel Geral (pagina inicial, fora de
-              qualquer layout) -- unica forma de sair do app sem usar o
-              botao Voltar do navegador. */}
-          <Link to="/" className="flex shrink-0 items-center gap-2.5 text-foreground">
+          {/* A marca leva à entrada operacional definida para o sistema. */}
+          <Link to="/monitoramento-equipamentos" className="flex shrink-0 items-center gap-2.5 text-foreground">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
-              D
+              S
             </span>
             <span className="flex items-baseline gap-2 whitespace-nowrap">
-              <span className="font-display text-[15px] font-bold tracking-tight">DECAN</span>
+              <span className="font-display text-[15px] font-bold tracking-tight">SIGEO</span>
               <span className="h-3.5 w-px bg-border" aria-hidden="true" />
-              <span className="hidden text-xs text-muted-foreground sm:inline">Equipamentos Oncológicos</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">Gestão de Equipamentos em Oncologia</span>
             </span>
           </Link>
-          {leftExtra}
+          <div className="hidden lg:block">{leftExtra}</div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Desktop (>=1024px): tudo na própria barra -- em 768px o nav
+            completo (4 itens + extras + UserMenu) não cabe numa linha só
+            sem quebrar pra fora dos 56px do header, então tablet também
+            usa o menu mobile abaixo. */}
+        <div className="hidden items-center gap-2 lg:flex">
           <nav className="flex flex-wrap items-center justify-end gap-1">
             {navItems.map((item) => {
               const active = item.isActive ? item.isActive(location.pathname) : location.pathname.startsWith(item.path);
-              return (
-                <button
-                  key={item.path}
-                  type="button"
-                  onClick={() => navigate(item.path)}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
-                    active ? 'bg-secondary font-semibold text-primary' : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {item.label}
-                </button>
-              );
+              return <NavButton key={item.path} item={item} active={active} onNavigate={() => navigate(item.path)} />;
             })}
           </nav>
           {rightExtra}
@@ -82,6 +109,43 @@ export function AppHeader({
               então 1 lugar só cobre "todas as páginas no nav". */}
           <UserMenu />
         </div>
+
+        {/* Mobile (<768px): tudo colapsa atrás do hambúrguer. */}
+        <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Abrir menu">
+              <Menu />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[85vw] max-w-[320px]">
+            <SheetHeader>
+              <SheetTitle>Menu</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
+              {leftExtra && <div>{leftExtra}</div>}
+              <nav className="flex flex-col items-stretch gap-1">
+                {navItems.map((item) => {
+                  const active = item.isActive ? item.isActive(location.pathname) : location.pathname.startsWith(item.path);
+                  return (
+                    <NavButton
+                      key={item.path}
+                      item={item}
+                      active={active}
+                      onNavigate={() => irPara(item.path)}
+                      className="w-full rounded-lg py-2.5 text-left"
+                    />
+                  );
+                })}
+              </nav>
+              {rightExtra}
+              <SheetClose asChild>
+                <div>
+                  <UserMenu />
+                </div>
+              </SheetClose>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   );

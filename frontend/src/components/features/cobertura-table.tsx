@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CoberturaRow, Macrorregiao, StatusCobertura } from '@/types/domain';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination } from '@/components/common/pagination';
+import { SortableTableHead } from '@/components/common/sortable-table-head';
 import { InfoIcon } from './info-icon';
 import { CoberturaMacroRow } from './cobertura-macro-row';
 
@@ -45,7 +46,7 @@ export function CoberturaTable({
   function toggleExpandida(macroId: string) {
     setExpandidas((prev) => {
       const next = new Set(prev);
-      next.has(macroId) ? next.delete(macroId) : next.add(macroId);
+      if (next.has(macroId)) next.delete(macroId); else next.add(macroId);
       return next;
     });
   }
@@ -56,11 +57,6 @@ export function CoberturaTable({
       setSortKey(key);
       setSortDir('asc');
     }
-  }
-
-  function arrow(key: SortKey) {
-    if (sortKey !== key) return null;
-    return <span className="ml-[3px]">{sortDir === 'asc' ? '▲' : '▼'}</span>;
   }
 
   const rowsFiltradas = useMemo(() => {
@@ -118,33 +114,53 @@ export function CoberturaTable({
         <Table className="text-[12.5px]">
           <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
             <TableRow className="[&>*]:whitespace-normal">
-              <TableHead className="w-[150px] cursor-pointer py-2.5 pr-2 pl-4.5" onClick={() => toggleSort('codigo')}>
-                Código macro de saúde{arrow('codigo')}
-              </TableHead>
-              <TableHead className="w-[260px] cursor-pointer py-2.5 pr-1.5 pl-2" onClick={() => toggleSort('macro')}>
-                Macrorregião de saúde{arrow('macro')}
-              </TableHead>
-              <TableHead className="w-[46px] cursor-pointer py-2.5 pr-2 pl-1.5" onClick={() => toggleSort('uf')}>
-                UF{arrow('uf')}
-              </TableHead>
-              <TableHead className="w-[210px] py-2.5 pr-2 pl-2.5 text-right">
-                <span className="flex items-center justify-end gap-1">
-                  <span className="cursor-pointer" onClick={() => toggleSort('populacao')}>
-                    População SUS-dependente{arrow('populacao')}
-                  </span>
+              <SortableTableHead
+                className="w-[150px] py-2.5 pr-2 pl-4.5"
+                ativo={sortKey === 'codigo'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('codigo')}
+              >
+                Código macro de saúde
+              </SortableTableHead>
+              <SortableTableHead
+                className="w-[260px] py-2.5 pr-1.5 pl-2"
+                ativo={sortKey === 'macro'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('macro')}
+              >
+                Macrorregião de saúde
+              </SortableTableHead>
+              <SortableTableHead
+                className="w-[46px] py-2.5 pr-2 pl-1.5"
+                ativo={sortKey === 'uf'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('uf')}
+              >
+                UF
+              </SortableTableHead>
+              <SortableTableHead
+                className="w-[210px] py-2.5 pr-2 pl-2.5 text-right"
+                align="right"
+                ativo={sortKey === 'populacao'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('populacao')}
+                extra={
                   <InfoIcon align="right">
                     <div className="mb-1.5 font-bold text-[#93c5fd]">População usada no cálculo</div>
                     <div className="font-mono text-[11px]">
                       SUS-dependente = IBGE (residente) − beneficiários de plano de saúde
                     </div>
                   </InfoIcon>
-                </span>
-              </TableHead>
-              <TableHead className="w-[259px] py-2.5 pr-8 pl-2">
-                <span className="flex items-center gap-1">
-                  <span className="cursor-pointer" onClick={() => toggleSort('cobertura')}>
-                    Cobertura{arrow('cobertura')}
-                  </span>
+                }
+              >
+                População SUS-dependente
+              </SortableTableHead>
+              <SortableTableHead
+                className="w-[259px] py-2.5 pr-8 pl-2"
+                ativo={sortKey === 'cobertura'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('cobertura')}
+                extra={
                   <InfoIcon>
                     <div className="mb-1.5 font-bold text-[#93c5fd]">Coeficiente</div>
                     <div className="rounded bg-white/10 px-2 py-1.5 font-mono text-[11px]">
@@ -155,13 +171,16 @@ export function CoberturaTable({
                       exatamente o coeficiente 1.
                     </div>
                   </InfoIcon>
-                </span>
-              </TableHead>
-              <TableHead className="w-[220px] py-2.5 pr-4.5 pl-8">
-                <span className="flex items-center gap-1">
-                  <span className="cursor-pointer" onClick={() => toggleSort('status')}>
-                    Status{arrow('status')}
-                  </span>
+                }
+              >
+                Cobertura
+              </SortableTableHead>
+              <SortableTableHead
+                className="w-[220px] py-2.5 pr-4.5 pl-8"
+                ativo={sortKey === 'status'}
+                direcao={sortDir}
+                onToggle={() => toggleSort('status')}
+                extra={
                   <InfoIcon align="right">
                     <div className="mb-1.5 flex items-center gap-2">
                       <span className="size-2.5 shrink-0 rounded-full bg-destructive" />
@@ -180,8 +199,10 @@ export function CoberturaTable({
                       </div>
                     </div>
                   </InfoIcon>
-                </span>
-              </TableHead>
+                }
+              >
+                Status
+              </SortableTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

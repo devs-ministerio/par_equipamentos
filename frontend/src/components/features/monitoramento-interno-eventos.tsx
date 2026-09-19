@@ -2,7 +2,8 @@
  * histórico. Extraído de MonitoramentoInterno.tsx. */
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import type { EventoMarco, MarcoCatalogo } from '@/services/monitoramento';
+import type { EventoMarco } from '@/services/monitoramento-instrumentos';
+import type { MarcoCatalogo } from '@/services/monitoramento-marcos';
 import { fmtData } from '@/lib/monitoramento-format';
 import type { EnviarEventoFormValues } from '@/lib/validations/monitoramento';
 import { MonitoramentoInternoFormEvento } from './monitoramento-interno-form-evento';

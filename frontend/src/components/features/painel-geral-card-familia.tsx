@@ -15,8 +15,7 @@ export function PainelGeralCardFamilia({
 }) {
   return (
     <div
-      className="box-border flex w-full flex-col gap-[18px] rounded-[14px] border-t-[3px] border-t-primary bg-card px-[26px] py-6"
-      style={{ boxShadow: '0 1px 2px rgba(22, 33, 62, 0.04), 0 4px 16px rgba(22, 33, 62, 0.06)' }}
+      className="box-border flex w-full flex-col gap-[18px] rounded-xl border border-border border-t-[3px] border-t-primary bg-card px-[26px] py-6"
     >
       <div className="text-[17px] font-extrabold tracking-[-0.01em] text-[#16213e]">{rotulo}</div>
 

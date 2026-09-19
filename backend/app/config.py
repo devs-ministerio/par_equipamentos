@@ -4,6 +4,8 @@ Local: valores vem do arquivo .env. Em nuvem (Railway/Render/etc) vem das
 variaveis de ambiente do proprio servico -- por isso nada aqui pode ter
 valor fixo de localhost.
 """
+import os
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -54,6 +56,15 @@ class Settings(BaseSettings):
     # (ver ConvenioClient.__init__).
     portal_transparencia_api_key: str = ""
 
+    # Convites de ativação. SMTP ausente bloqueia criação de usuário pendente;
+    # não existe fallback que exponha token ou senha na resposta da API.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    app_public_url: str = "http://localhost:5173"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @field_validator("jwt_secret")
@@ -102,11 +113,32 @@ class Settings(BaseSettings):
         pro `database_url` de runtime (ambiente local/teste sem a separacao
         de role ainda aplicada).
 
+        `os.environ["DATABASE_URL"]` (variavel exportada de verdade no
+        processo, nao o valor ja mesclado pelo pydantic-settings a partir
+        do `.env`) tem precedencia sobre `database_url_migration` quando
+        presente -- Plan Mode database 2026-09-17, Bloco 2. Sem isso, um
+        operador que exporta `DATABASE_URL=...` no shell pra rodar
+        `alembic upgrade head` contra um Postgres local pontual acaba
+        atingindo o Neon, porque `.env` local tem `DATABASE_URL_MIGRATION`
+        setado (incidente real, ver Plan Mode). `env_file=".env"` do
+        `SettingsConfigDict` nao grava o `.env` em `os.environ` -- so
+        mescla internamente no objeto `Settings` -- entao
+        `os.environ.get("DATABASE_URL")` so existe quando alguem exportou
+        de verdade ou um workflow define `env:` no job (caso de
+        `migrar_banco.yml`, que ja seta `DATABASE_URL` e continua
+        funcionando sem mudanca).
+
         `Config.set_main_option` passa pelo parser de interpolacao do
         configparser, entao `%` literal em senha/usuario precisa ser escapado
         antes de entrar no sqlalchemy.url.
         """
-        url = self._normaliza_driver(self.database_url_migration) if self.database_url_migration else self.database_url_normalizada
+        database_url_exportada = os.environ.get("DATABASE_URL")
+        if database_url_exportada:
+            url = self._normaliza_driver(database_url_exportada)
+        elif self.database_url_migration:
+            url = self._normaliza_driver(self.database_url_migration)
+        else:
+            url = self.database_url_normalizada
         return url.replace("%", "%%")
 
     @field_validator("cors_origins")

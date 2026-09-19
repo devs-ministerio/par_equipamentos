@@ -8,12 +8,13 @@ esbarrava em checagem nenhuma. As funções abaixo são chamadas de DENTRO dos
 services (não só do router), pra fechar essa lacuna.
 
 Baseline documentado aqui, não mudado por este bloco: `UserRole` é
-`admin`/`colaborador`/`leitor`; o único gate real hoje é binário (`leitor`
-bloqueado de mutação; `admin` e `colaborador` têm exatamente os mesmos
-poderes -- nenhuma checagem de `UserRole.admin` existe em lugar nenhum do
-código). Escopo de autorização por técnico/UF/órgão e diferenciação real
-`admin` vs `colaborador` são decisão de produto pendente (Plan Mode, seção
-3.2) -- não implementados aqui.
+`admin`/`colaborador`/`leitor`; o único gate real até 2026-09-17 era binário
+(`leitor` bloqueado de mutação; `admin` e `colaborador` têm exatamente os
+mesmos poderes). Escopo de autorização por técnico/UF/órgão continua
+decisão de produto pendente -- não implementado aqui. `assert_e_admin`
+(Módulo de gestão de usuários, 2026-09-17) é a primeira checagem real de
+`UserRole.admin` no código, só pra esse módulo específico -- não altera o
+gate binário do resto do app.
 """
 from __future__ import annotations
 
@@ -28,3 +29,11 @@ def assert_pode_editar_monitoramento(usuario: User) -> None:
     passar pelo Depends do router."""
     if usuario.role == UserRole.leitor:
         raise AuthorizationError("Perfil leitor não pode alterar monitoramento.")
+
+
+def assert_e_admin(usuario: User) -> None:
+    """Mesma regra de `require_admin_user` (`app/auth.py`), chamável de
+    dentro de um Service -- protege o módulo de gestão de usuários mesmo se
+    algo chamar o service sem passar pelo Depends do router."""
+    if usuario.role != UserRole.admin:
+        raise AuthorizationError("Apenas administradores podem realizar esta ação.")

@@ -77,6 +77,25 @@ equipe. Duas portas de entrada usam a mesma regra de criação de
 As duas passam pela mesma checagem de duplicidade por identificador antes de
 criar.
 
+### Cargas controladas de programas sem API consolidada
+
+`scripts/importar_programas_monitoramento.py` lê a aba canônica do PERSUS I e
+os CSVs versionados de PERSUS II/PRONON. Antes de escrever, normaliza o CNES
+para sete dígitos, valida-o em `cnes_estabelecimento`, enriquece somente os
+campos disponíveis nessa referência e rejeita a linha quando o CNES não
+existe. A transação inteira é revertida em `--dry-run`; reexecuções fazem
+upsert do instrumento e não duplicam evento.
+
+`scripts/importar_planilha_monitoramento.py` continua sendo a entrada de
+Convênio/FAF/TED. A coluna “PREVISÃO DE INAUGURAÇÃO...” gera
+`EventoMarco.data_prevista`; uma confirmação posterior gera outro evento com
+`data_ocorrencia`. Reprogramar cria novo evento e exige justificativa.
+
+O CNES capturado numa proposta é somente leitura. Ele só pode ser corrigido
+depois que a proposta vira instrumento monitorado, pelo PATCH do detalhe do
+monitoramento, com validação na referência CNES e `AuditLog` de autor e
+valores anterior/novo.
+
 ### Identificador quando não existe número de convênio
 
 `FAF`/`TED` já resolvem isso hoje
@@ -122,6 +141,10 @@ aceitas.
   hierarquia ainda a definir, mas o modelo já reaproveita o enum
   `UserRole` (`backend/app/db/models.py`, `admin`/`colaborador`/`leitor`) como
   candidato natural quando a regra for fechada.
+
+Cada notificação recebe do backend um `destino` resolvido. Ao clicar, o
+frontend marca a notificação como lida e navega para o detalhe do instrumento;
+notificações de proposta ainda não aceita levam à aba de novas propostas.
 
 ## Bloqueio de infraestrutura — provavelmente já resolvido
 

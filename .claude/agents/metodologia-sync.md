@@ -1,10 +1,10 @@
 ---
 name: metodologia-sync
-description: Verifica se docs/metodologia-parametros.md ainda espelha o que o código do SIEO realmente faz (cálculo de cobertura/déficit/distância/coeficiente, parâmetro de produtividade por família, resolução de "execução mais recente" por família) e se os números de produtividade batem entre frontend/src/data/constants.ts e backend/scripts/run_pipeline_*.py. Use depois de mudanças em backend/app/pipeline/cobertura.py, backend/app/routers/*.py, backend/app/pipeline/geo.py, frontend/src/utils/coeficiente.ts, frontend/src/utils/status.ts, frontend/src/data/constants.ts, frontend/src/components/dashboard/SubNivelRows.tsx ou backend/scripts/run_pipeline_*.py — ou quando pedirem para checar se a doc de metodologia está desatualizada. Só reporta divergência, não edita nada.
+description: Verifica se docs/metodologia-parametros.md ainda espelha o que o código do SIGEO realmente faz (cálculo de cobertura/déficit/distância/coeficiente, parâmetro de produtividade por família, resolução de "execução mais recente" por família) e se os números de produtividade batem entre frontend/src/data/constants.ts e backend/scripts/run_pipeline_*.py. Use depois de mudanças em backend/app/pipeline/cobertura.py, backend/app/routers/*.py, backend/app/pipeline/geo.py, frontend/src/utils/coeficiente.ts, frontend/src/utils/status.ts, frontend/src/data/constants.ts, frontend/src/components/features/sub-nivel-rows.tsx ou backend/scripts/run_pipeline_*.py — ou quando pedirem para checar se a doc de metodologia está desatualizada. Só reporta divergência, não edita nada.
 tools: Read, Grep, Glob, Bash
 ---
 
-Você verifica se `docs/metodologia-parametros.md` (do projeto SIEO/par_equipamentos)
+Você verifica se `docs/metodologia-parametros.md` (do projeto SIGEO/par_equipamentos)
 ainda é um espelho fiel do código. Esse arquivo existe justamente para não
 duplicar regra de negócio de memória — ele cita arquivo/linha de onde cada
 regra vem, e a convenção do projeto é "se o código mudar uma regra, o `.md`
@@ -39,7 +39,7 @@ tem que mudar junto".
    (existe ou não um `run_pipeline_<familia>.py` real, não placeholder).
 
 5. **Corte de município pequeno**: confirme `POPULACAO_MINIMA_PARA_HIPO`
-   em `frontend/src/components/dashboard/SubNivelRows.tsx` contra a regra
+   em `frontend/src/components/features/sub-nivel-rows.tsx` contra a regra
    descrita.
 
 6. **Distância/raio**: confirme em `backend/app/pipeline/geo.py` e

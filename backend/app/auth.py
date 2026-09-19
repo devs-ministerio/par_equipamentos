@@ -19,6 +19,12 @@ from app.db.models import RefreshToken, User, UserRole, UserStatus
 ALGORITHM = "HS256"
 PBKDF2_ITERATIONS = 260_000
 
+# Bloqueio de conta (Modulo de gestao de usuarios, 2026-09-17) -- alem do
+# rate limit por IP (5/min em /auth/login, ver app/rate_limit.py), protege
+# uma conta especifica sendo atacada de varios IPs/rotativos.
+MAX_TENTATIVAS_LOGIN = 10
+DURACAO_BLOQUEIO_CONTA = timedelta(minutes=15)
+
 # Nomes dos cookies HttpOnly de sessao -- Bloco 2 do Plan Mode seguranca
 # 2026-09-16. `path` do refresh fica restrito a /auth (prefixo -- cobre
 # /auth/refresh e /auth/logout) pra reduzir a superficie de exposicao do
@@ -68,6 +74,23 @@ def verify_password(password: str, password_hash: str) -> bool:
         return hmac.compare_digest(digest.hex(), digest_hex)
     except (ValueError, TypeError):
         return False
+
+
+def registrar_falha_login(db: Session, user: User) -> None:
+    """Incrementa o contador de tentativas invalidas; ao atingir
+    MAX_TENTATIVAS_LOGIN, bloqueia a conta por DURACAO_BLOQUEIO_CONTA e zera
+    o contador (o bloqueio em si e o sinal, nao precisa continuar somando).
+    Sem `db.commit()` -- quem chama decide (mesmo padrao do resto do
+    modulo)."""
+    user.failed_login_attempts += 1
+    if user.failed_login_attempts >= MAX_TENTATIVAS_LOGIN:
+        user.locked_until = datetime.now(timezone.utc) + DURACAO_BLOQUEIO_CONTA
+        user.failed_login_attempts = 0
+
+
+def registrar_sucesso_login(user: User) -> None:
+    user.failed_login_attempts = 0
+    user.locked_until = None
 
 
 def create_access_token(user: User) -> str:
@@ -198,6 +221,19 @@ def revoke_refresh_token(db: Session, token: str) -> None:
     db.commit()
 
 
+def revoke_all_refresh_tokens_for_user(db: Session, user_id: int) -> None:
+    """Inativacao de usuario (Modulo de gestao de usuarios, 2026-09-17) --
+    sem isso, uma sessao ja aberta continuaria valida ate o access token
+    expirar (ate `access_token_expire_minutes`) mesmo com a conta
+    inativada. Nao faz `db.commit()` -- quem chama (Service) decide, junto
+    da mudanca de `status`."""
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=datetime.now(timezone.utc))
+    )
+
+
 def _decodificar_access_token(token: str, db: Session) -> User:
     if not settings.jwt_secret:
         raise HTTPException(status_code=503, detail="JWT_SECRET nao configurado.")
@@ -228,4 +264,14 @@ def require_current_user(request: Request, db: Session = Depends(get_db)) -> Use
 def require_monitoramento_editor(user: User = Depends(require_current_user)) -> User:
     if user.role == UserRole.leitor:
         raise HTTPException(status_code=403, detail="Perfil leitor nao pode alterar monitoramento.")
+    return user
+
+
+def require_admin_user(user: User = Depends(require_current_user)) -> User:
+    """Gate do modulo de gestao de usuarios -- diferente de
+    `require_monitoramento_editor` (binario leitor vs resto), aqui so
+    `role=admin` passa. `colaborador` mantem os poderes que ja tem no
+    resto do app, so nao entra neste modulo."""
+    if user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Apenas administradores podem acessar este recurso.")
     return user

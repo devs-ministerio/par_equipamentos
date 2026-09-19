@@ -1,5 +1,5 @@
 """Ponto de entrada da API do SIGEO."""
-from fastapi import FastAPI, Depends, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
@@ -20,6 +20,7 @@ from app.routers import (
     municipality_coverage,
     notificacoes,
     propostas_candidatas,
+    usuarios,
 )
 
 app = FastAPI(title="SIGEO — Sistema de Gestão de Equipamentos em Oncologia")
@@ -52,15 +53,17 @@ app.include_router(monitoramento.router)
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
 app.include_router(notificacoes.router)
 app.include_router(propostas_candidatas.router)
+# Gestao de usuarios (Modulo Admin) -- so role=admin acessa
+# (require_admin_user, app/auth.py), diferente do gate binario
+# leitor/resto do resto do app.
+app.include_router(usuarios.router)
 
 # Frontend roda em origem separada (Vite local, Vercel em producao). As
 # origens autorizadas vem da variavel CORS_ORIGINS -- nunca fixo aqui, senao
 # o deploy em nuvem bloqueia o proprio frontend. Metodos/headers explicitos
 # (Plan Mode seguranca 2026-09-16, Bloco 4) -- wildcard com
 # allow_credentials=True e a combinacao que o diagnostico apontou como
-# achado P1. `Authorization` continua na lista so durante a fase de
-# compatibilidade dupla bearer/cookie do Bloco 2 (secao 2.8) -- remover
-# quando essa fase fechar.
+# achado P1.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_lista,

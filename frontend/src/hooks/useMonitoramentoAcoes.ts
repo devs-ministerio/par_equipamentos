@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type CriarAcaoInput, concluirAcao, criarAcao, fetchAcoes } from '@/services/monitoramento';
+import { type CriarAcaoInput, concluirAcao, criarAcao, fetchAcoes } from '@/services/monitoramento-acoes';
 import { monitoramentoKeys } from './monitoramento-query-keys';
 
 /** Todas as ações (ou só pendentes, `pendentes=true`) de todos os

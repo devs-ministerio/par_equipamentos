@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import { ApiError } from '@/lib/api-error';
-import { csrfHeaders } from '@/lib/csrf';
+import { API_BASE_URL, requisitar } from '@/lib/http-client';
 import { UF_INFO } from '../data/geo-reference';
 import type {
   CoberturaRow,
@@ -11,40 +10,10 @@ import type {
   TipoEquipamento,
 } from '../types/domain';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
-
-/** Seção 8/9 da constiuicao_frontend.md anexada pelo usuário: todo payload de
- * API é validado com Zod na camada de services antes de voltar pra UI --
- * tipo usado na UI deriva do schema (`z.infer`), não de interface manual
- * desacoplada. Cada schema já faz `.transform()` snake_case (wire, formato
- * exato do backend)→camelCase (domínio, `types/domain.ts`) num passo só,
- * então o `z.infer` do schema JÁ É o tipo de domínio -- não existe mais um
- * par de tipos (`...Api` + tipo manual) fazendo o mesmo mapeamento a mão. */
-
-/** Dedup de refresh concorrente -- mesmo mecanismo de
- * `services/monitoramento.ts::tentarRenovarSessao` (Plan Mode segurança
- * 2026-09-16, Bloco 2/5: dashboard/mapa/painel geral passaram a exigir
- * sessão também). Duplicado aqui (não importado do outro arquivo) porque
- * os dois services já existiam com formatos de `apiGet` diferentes
- * (query-params por objeto aqui, path cru lá) antes desta mudança --
- * unificar os dois é refatoração maior que o necessário agora. */
-let renovacaoEmAndamento: Promise<boolean> | null = null;
-
-function tentarRenovarSessao(): Promise<boolean> {
-  if (!renovacaoEmAndamento) {
-    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: csrfHeaders(),
-    })
-      .then((r) => r.ok)
-      .catch(() => false)
-      .finally(() => {
-        renovacaoEmAndamento = null;
-      });
-  }
-  return renovacaoEmAndamento;
-}
+/** Cada schema faz `.transform()` snake_case (wire) → camelCase (domínio)
+ * num passo só, então `z.infer` do schema já é o tipo de domínio -- nunca
+ * duplicar como interface manual. `apiGet` só monta a query string por
+ * objeto e delega transporte/erro pra `lib/http-client.ts`. */
 
 async function apiGet<T>(path: string, schema: z.ZodType<T>, params?: Record<string, string | string[]>): Promise<T> {
   const url = new URL(path, API_BASE_URL);
@@ -54,35 +23,7 @@ async function apiGet<T>(path: string, schema: z.ZodType<T>, params?: Record<str
       else url.searchParams.set(k, v);
     }
   }
-  const executar = () => fetch(url, { credentials: 'include' });
-  let res: Response;
-  try {
-    res = await executar();
-  } catch (e) {
-    throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
-  }
-  if (res.status === 401) {
-    const renovou = await tentarRenovarSessao();
-    if (renovou) {
-      try {
-        res = await executar();
-      } catch (e) {
-        throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
-      }
-    }
-  }
-  if (res.status === 401 && typeof window !== 'undefined' && window.location.pathname !== '/login') {
-    window.location.assign('/login');
-  }
-  if (!res.ok) {
-    throw new ApiError(`Falha ao consultar ${path}: ${res.status} ${res.statusText}`, res.status);
-  }
-  const json = await res.json();
-  const parsed = schema.safeParse(json);
-  if (!parsed.success) {
-    throw new ApiError(`Resposta de ${path} não bate com o schema esperado: ${parsed.error.message}`);
-  }
-  return parsed.data;
+  return requisitar(url.pathname + url.search, schema);
 }
 
 function toStatus(deficitStatus: 'deficient' | 'not_deficient' | 'not_available'): StatusCobertura {

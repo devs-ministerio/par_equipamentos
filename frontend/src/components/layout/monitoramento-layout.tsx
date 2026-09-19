@@ -6,6 +6,7 @@
  * link de volta pro resto do app. */
 import { Outlet, useLocation } from 'react-router-dom';
 import { NotificationBell } from '@/components/features/notification-bell';
+import { CONTAINER_CLASS } from '@/lib/layout';
 import { AppHeader } from './app-header';
 import { EH_MONITORAMENTO_INTERNO, ITEM_ANALISE_MERITO, NAV_ITEMS_MONITORAMENTO } from './monitoramento-nav-items';
 
@@ -21,7 +22,7 @@ export function MonitoramentoLayout() {
   return (
     <div className="min-h-screen bg-background text-sm text-foreground">
       <AppHeader navItems={navItems} rightExtra={<NotificationBell />} />
-      <div className="mx-auto max-w-[1400px] px-6 py-6">
+      <div className={`${CONTAINER_CLASS} py-6`}>
         <Outlet />
       </div>
     </div>

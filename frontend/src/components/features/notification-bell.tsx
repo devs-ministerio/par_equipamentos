@@ -1,11 +1,12 @@
 import { Bell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { fmtData } from '@/lib/monitoramento-format';
 import { useNotificacoes } from '@/hooks/use-notificacoes';
-import type { Notificacao } from '@/services/monitoramento';
+import type { Notificacao } from '@/services/notificacoes';
 
 /** Sino de notificação do Radar de Convênios (docs/arquitetura/
  * fluxo_requisicao.md) -- 3 tipos misturados na mesma lista
@@ -21,6 +22,12 @@ const RÓTULO_TIPO: Record<Notificacao['tipo'], string> = {
 
 export function NotificationBell() {
   const { notificacoes, naoLidas, carregando, marcarLida, habilitado } = useNotificacoes();
+  const navigate = useNavigate();
+
+  async function abrirNotificacao(notificacao: Notificacao) {
+    if (!notificacao.lida) await marcarLida(notificacao.id);
+    if (notificacao.destino) navigate(notificacao.destino);
+  }
 
   if (!habilitado) return null;
 
@@ -59,7 +66,7 @@ export function NotificationBell() {
               <button
                 key={n.id}
                 type="button"
-                onClick={() => !n.lida && marcarLida(n.id)}
+                onClick={() => void abrirNotificacao(n)}
                 className={cn(
                   'block w-full border-b border-border px-3.5 py-2.5 text-left last:border-b-0 hover:bg-muted',
                   !n.lida && 'bg-secondary/40',

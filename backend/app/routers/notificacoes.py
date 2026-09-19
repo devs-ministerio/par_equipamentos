@@ -41,7 +41,10 @@ def listar_notificacoes(
     usuario: User = Depends(require_current_user),
 ):
     pagina = listar_notificacoes_service(db=db, limit=limit, offset=offset, apenas_nao_lidas=apenas_nao_lidas)
-    itens = [NotificacaoRead.model_validate(n) for n in pagina.itens]
+    itens = [
+        NotificacaoRead.model_validate(item.notificacao).model_copy(update={"destino": item.destino})
+        for item in pagina.itens
+    ]
     return NotificacoesListRead(itens=itens, total=pagina.total, nao_lidas=pagina.nao_lidas)
 
 

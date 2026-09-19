@@ -65,7 +65,7 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
   function toggleExpandida(chave: string) {
     setExpandidas((prev) => {
       const next = new Set(prev);
-      next.has(chave) ? next.delete(chave) : next.add(chave);
+      if (next.has(chave)) next.delete(chave); else next.add(chave);
       return next;
     });
   }

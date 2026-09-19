@@ -13,7 +13,7 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
   return (
     <>
       <Secao titulo="Identificação">
-        <div className="grid [grid-template-columns:repeat(auto-fill,minmax(190px,1fr))] gap-2.5">
+        <div className="grid [grid-template-columns:repeat(auto-fill,minmax(min(190px,100%),1fr))] gap-2.5">
           <Campo label="Tipo convenente">{c.convenente.tipo}</Campo>
           <Campo label="Órgão">{c.orgao}</Campo>
           <Campo label="Unidade gestora">{c.unidadeGestora}</Campo>
@@ -37,7 +37,7 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
       <div className="flex gap-6 flex-wrap">
         <div className="flex-[1_1_260px]">
           <Secao titulo="Vigência">
-            <div className="grid [grid-template-columns:repeat(auto-fill,minmax(190px,1fr))] gap-2.5">
+            <div className="grid [grid-template-columns:repeat(auto-fill,minmax(min(190px,100%),1fr))] gap-2.5">
               <Campo label="Publicação">{fmtData(c.datas.publicacao)}</Campo>
               <Campo label="Início vigência">{fmtData(c.datas.inicioVigencia)}</Campo>
               <Campo label="Fim vigência">{fmtData(c.datas.fimVigencia)}</Campo>
@@ -50,7 +50,7 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
             disponiveis aqui, nao apagados. */}
         <div className="flex-[1_1_260px]">
           <Secao titulo="Financeiro detalhado">
-            <div className="grid [grid-template-columns:repeat(auto-fill,minmax(190px,1fr))] gap-2.5">
+            <div className="grid [grid-template-columns:repeat(auto-fill,minmax(min(190px,100%),1fr))] gap-2.5">
               <Campo label="Empenhado" legenda={pct(c.financeiro.empenhado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.empenhado)}</Campo>
               <Campo label="Desembolsado" legenda={pct(c.financeiro.desembolsado, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.desembolsado)}</Campo>
             </div>
@@ -82,7 +82,7 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
       >
         {monitorado ? (
           <p className="text-xs text-muted-foreground m-0">
-            Entrega, instalação, licenciamento CNEN e inauguração — acompanhamento manual pós-repasse da equipe.
+        Entrega, instalação, licenciamento CNEN e inauguração.
           </p>
         ) : (
           <AdicionarMonitoramentoButton c={c} />

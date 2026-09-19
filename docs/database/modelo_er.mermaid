@@ -175,10 +175,16 @@ erDiagram
         bigint id PK
         string nr_convenio UK
         string cnes FK
+        string cnpj_convenente "nullable em PERSUS/PRONON"
         string equipamento_descricao
         string equipamento_numero_serie
         int equipamento_vida_util_anos "CHECK nao negativo"
         string tipo_contratacao
+        string origem_dado
+        string tipologia "CHECK A/CV/C/EO/C.B/NA"
+        numeric investimento_aquisicao "CHECK nao negativo"
+        string situacao_programa
+        string natureza_servico
         string tecnico_titular
     }
     EVENTO_MARCO {

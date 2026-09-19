@@ -31,6 +31,11 @@ export function UserMenu() {
         {sessao.usuarioAtual?.name}
         {!sessao.podeEditar && ' · leitor'}
       </span>
+      {sessao.usuarioAtual?.role === 'admin' && (
+        <Button size="sm" variant="ghost" onClick={() => navigate('/admin/usuarios')}>
+          Usuários
+        </Button>
+      )}
       <Button size="sm" variant="ghost" onClick={sessao.sair}>
         Sair
       </Button>

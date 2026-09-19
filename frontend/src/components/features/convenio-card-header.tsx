@@ -2,6 +2,7 @@
  * programa, grade financeira. Extraído de convenio-card.tsx (Seção 6 da
  * migração: componente >200 linhas). */
 import { fmtData, fmtMoeda, pct } from '@/lib/monitoramento-format';
+import { TIPOLOGIA_PERSUS } from '@/data/constants';
 import type { ConvenioUnificado } from '@/types/monitoramento';
 import { Campo, StatusPill } from './monitoramento-ui';
 
@@ -80,6 +81,9 @@ export function ConvenioCardHeader({
       <p className="text-[12.5px] leading-normal mt-3 mb-0 bg-background border border-border rounded-md py-2 px-2.5">
         <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">Programa:</strong>
         {programaSiconv || '— (não encontrado em nenhuma fonte)'}
+        {c.tipologia && c.tipoContratacao?.startsWith('PERSUS') && (
+          <span className="ml-2 text-muted-foreground">· Tipologia: {TIPOLOGIA_PERSUS[c.tipologia] ?? c.tipologia}</span>
+        )}
       </p>
 
       <div className="grid [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))] gap-2.5 mt-3 py-2.5 px-3 bg-background rounded-lg">
