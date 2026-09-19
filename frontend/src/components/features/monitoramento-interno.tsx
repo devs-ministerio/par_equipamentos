@@ -26,12 +26,7 @@ import { MonitoramentoInternoEventos } from './monitoramento-interno-eventos';
 
 export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: string }) {
   const [erroEscrita, setErroEscrita] = useState<string | null>(null);
-  // Estado de abertura do "Cadastro interno" levantado pra cá (Plan Mode
-  // monitoramento-evolucao 2026-09-19) -- o botão "Editar CNES" do
-  // cabeçalho precisa poder forçar a abertura desta seção em modo
-  // somente-CNES, então o controle não pode ficar só dentro dela.
   const [cadastroAberto, setCadastroAberto] = useState(false);
-  const [cadastroSomenteCnes, setCadastroSomenteCnes] = useState(false);
 
   // Fallback de componente via SICONV -- achado 2026-09-10 (bug real do
   // convenio 991708: a planilha da equipe deixou a celula "COMPONENTES DE
@@ -100,7 +95,7 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const {
     fasesGerais, eventosPorMarco, faseAtual, pctAtual, cronogramaFisico, regulatorio,
     eventoLicenca, diasValidade, dataInauguracao, inaugurado, diasInauguracao,
-    acoesAbertas, acoesAtrasadas, equipamentoFisico, validadeLicenca, textoLicenca,
+    acoesAbertas, acoesAtrasadas, equipamentoFisico, validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
   // So usa o fallback quando precisa (inst.componente nulo).
@@ -122,15 +117,9 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         diasInauguracao={diasInauguracao}
         equipamentoFisico={equipamentoFisico}
         statusLicenca={eventoLicenca?.status_regulatorio ?? 'Sem registro'}
-        textoLicenca={textoLicenca}
         alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
         acoesAbertasCount={acoesAbertas.length}
         acoesAtrasadasCount={acoesAtrasadas.length}
-        podeEditar={sessao.podeEditar}
-        onEditarCnes={() => {
-          setCadastroSomenteCnes(true);
-          setCadastroAberto(true);
-        }}
       />
 
       {/* "Acesso operacional" saiu daqui (achado 2026-09-15, pedido do
@@ -142,15 +131,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         instrumento={inst}
         podeEditar={sessao.podeEditar}
         aberto={cadastroAberto}
-        somenteCnes={cadastroSomenteCnes}
-        onAbrir={() => {
-          setCadastroSomenteCnes(false);
-          setCadastroAberto(true);
-        }}
-        onFechar={() => {
-          setCadastroAberto(false);
-          setCadastroSomenteCnes(false);
-        }}
+        onAbrir={() => setCadastroAberto(true)}
+        onFechar={() => setCadastroAberto(false)}
         onSalvar={async (valores) => {
           setErroEscrita(null);
           try {

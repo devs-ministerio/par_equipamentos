@@ -14,10 +14,17 @@ export function CnesPicker({
   valorAtual,
   onEscolher,
   onCancelar,
+  /** Renderiza como campo normal do form (largura total, sem overlay
+   * flutuante) em vez de dropdown posicionado sobre outro conteúdo --
+   * usado quando o CNES já é um campo comum dentro de "Cadastro interno"
+   * (Plan Mode monitoramento-evolucao 2026-09-19), sem toggle de
+   * "editar" antes. */
+  inline,
 }: {
   valorAtual: string | null;
   onEscolher: (cnes: string | null) => void;
-  onCancelar: () => void;
+  onCancelar?: () => void;
+  inline?: boolean;
 }) {
   const [busca, setBusca] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -33,7 +40,13 @@ export function CnesPicker({
   });
 
   return (
-    <div className="absolute z-50 mt-1 w-80 rounded-lg border border-border bg-card p-2 shadow-lg">
+    <div
+      className={
+        inline
+          ? 'w-full rounded-lg border border-border bg-card p-2'
+          : 'absolute z-50 mt-1 w-80 rounded-lg border border-border bg-card p-2 shadow-lg'
+      }
+    >
       <div className="flex items-center gap-1.5">
         <input
           ref={inputRef}
@@ -43,9 +56,11 @@ export function CnesPicker({
           placeholder="Buscar por nome ou código CNES..."
           className="box-border w-full rounded-md border border-border px-2 py-1.5 text-xs outline-none"
         />
-        <button type="button" onClick={onCancelar} className="shrink-0 text-xs text-muted-foreground hover:text-foreground">
-          Cancelar
-        </button>
+        {onCancelar && (
+          <button type="button" onClick={onCancelar} className="shrink-0 text-xs text-muted-foreground hover:text-foreground">
+            Cancelar
+          </button>
+        )}
       </div>
       {valorAtual && (
         <button

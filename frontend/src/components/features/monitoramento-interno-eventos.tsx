@@ -48,6 +48,16 @@ export function MonitoramentoInternoEventos({
   const [eventoEmExclusao, setEventoEmExclusao] = useState<number | null>(null);
   const marcoPorId = new Map(marcos.map((m) => [m.id, m]));
 
+  // Organizado por data (mais recente primeiro) -- data_ocorrencia (fato
+  // consumado) tem prioridade sobre data_prevista (só planejamento); sem
+  // nenhuma das duas, cai pra created_at (evento sem data nenhuma, ex.
+  // "Aguardando repasse" importado da planilha).
+  const eventosOrdenados = [...eventos].sort((a, b) => {
+    const dataA = a.data_ocorrencia ?? a.data_prevista ?? a.created_at;
+    const dataB = b.data_ocorrencia ?? b.data_prevista ?? b.created_at;
+    return dataB.localeCompare(dataA);
+  });
+
   return (
     <SecaoOperacional
       titulo="Linha do tempo de eventos"
@@ -73,16 +83,17 @@ export function MonitoramentoInternoEventos({
         />
       )}
 
-      {eventos.length === 0 ? (
+      {eventosOrdenados.length === 0 ? (
         <p className="text-muted-foreground italic text-sm">Nenhum evento lançado ainda.</p>
       ) : (
         <div className="grid gap-2">
-          {/* Backend ja devolve mais recente primeiro -- numera decrescente
-              (evento mais antigo = 01) pra ficar claro que e sequencia de
-              lancamento, nao ranking. */}
-          {eventos.map((ev, i) => {
+          {/* Organizado por data (mais recente primeiro, ver
+              eventosOrdenados acima) -- numera decrescente (evento mais
+              antigo = 01) pra ficar claro que e sequencia cronologica, nao
+              ranking. */}
+          {eventosOrdenados.map((ev, i) => {
             const marco = marcoPorId.get(ev.marco_id);
-            const numero = String(eventos.length - i).padStart(2, '0');
+            const numero = String(eventosOrdenados.length - i).padStart(2, '0');
             const emEdicao = eventoEmEdicao === ev.id;
             const emExclusao = eventoEmExclusao === ev.id;
             return (

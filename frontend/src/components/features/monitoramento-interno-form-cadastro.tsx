@@ -1,6 +1,6 @@
-/** Form de "Cadastro interno" (técnico titular/suplente, nível de
- * monitoramento, tipologia, modalidade, CNES + responsável técnico da
- * execução na instituição) -- React Hook Form + zod. Extraído de
+/** Form de "Cadastro interno" (CNES, técnico titular/suplente, nível de
+ * monitoramento, tipologia, modalidade + responsável técnico da execução
+ * na instituição) -- React Hook Form + zod. Extraído de
  * MonitoramentoInterno.tsx.
  *
  * Todo campo é lista suspensa, EXCETO responsável técnico da execução
@@ -11,12 +11,11 @@
  * vêm de monitoramento-opcoes.ts (extraídas de dado real, nunca
  * inventadas).
  *
- * `somenteCnes` (Plan Mode monitoramento-evolucao 2026-09-19, decisão do
- * usuário: "o botão Editar CNES ... vai abrir pra editar tudo do card, mas
- * apenas o CNES estará disponível") -- mesmo form de "Editar cadastro",
- * só que com todos os campos exceto CNES desabilitados via `<fieldset
- * disabled>`. Substitui o toggle inline que existia antes no cabeçalho. */
-import { useState } from 'react';
+ * CNES (Plan Mode monitoramento-evolucao 2026-09-19) mora aqui dentro do
+ * grid, antes de "Técnico titular", alinhado horizontalmente com os
+ * demais campos -- não é mais um toggle solto no cabeçalho nem um modo
+ * "somente CNES" à parte; "Editar cadastro" edita tudo de uma vez,
+ * incluindo o CNES. */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { cn } from '@/lib/utils';
@@ -52,11 +51,9 @@ function valoresIniciais(inst: InstrumentoEquipamento): CadastroInternoFormValue
 export function MonitoramentoInternoFormCadastro({
   instrumento,
   onSalvar,
-  somenteCnes = false,
 }: {
   instrumento: InstrumentoEquipamento;
   onSalvar: (valores: CadastroInternoFormValues) => Promise<void>;
-  somenteCnes?: boolean;
 }) {
   const {
     register,
@@ -68,90 +65,72 @@ export function MonitoramentoInternoFormCadastro({
     resolver: zodResolver(cadastroInternoSchema),
     defaultValues: valoresIniciais(instrumento),
   });
-  const [editandoCnes, setEditandoCnes] = useState(false);
   const cnesAtual = watch('cnes');
 
   return (
     <form onSubmit={handleSubmit(onSalvar)} className="grid gap-4">
-      <div>
-        <label className="text-[11px] text-muted-foreground block mb-1">CNES</label>
-        <div className="relative flex items-center gap-2">
-          <span className={cn(estiloInput, 'inline-block min-w-[110px]')}>{cnesAtual || '— Não informado —'}</span>
-          <button
-            type="button"
-            onClick={() => setEditandoCnes((v) => !v)}
-            className="text-[10.5px] font-semibold text-primary hover:underline"
-          >
-            editar
-          </button>
-          {editandoCnes && (
-            <CnesPicker
-              valorAtual={cnesAtual || null}
-              onEscolher={(cnes) => {
-                setValue('cnes', cnes ?? '');
-                setEditandoCnes(false);
-              }}
-              onCancelar={() => setEditandoCnes(false)}
-            />
-          )}
+      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
+        <div>
+          <label className="text-[11px] text-muted-foreground block mb-1">CNES</label>
+          <CnesPicker
+            inline
+            valorAtual={cnesAtual || null}
+            onEscolher={(cnes) => setValue('cnes', cnes ?? '')}
+          />
         </div>
-      </div>
-      <fieldset disabled={somenteCnes} className={cn('grid gap-4', somenteCnes && 'opacity-50')}>
-        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
-          {CAMPOS_SELECT.map(({ nome, rotulo, opcoes }) => (
-            <div key={nome}>
-              <label htmlFor={`cadastro-${nome}`} className="text-[11px] text-muted-foreground block mb-1">
-                {rotulo}
-              </label>
-              <select id={`cadastro-${nome}`} className={cn(estiloInput, 'w-full bg-background')} {...register(nome)}>
-                <option value="">— Não informado —</option>
-                {comValorAtual(opcoes, instrumento[snakeDoCampo(nome)] as string | null).map((op) => (
-                  <option key={op} value={op}>
-                    {op}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-          <div>
-            <label htmlFor="cadastro-tipologia" className="text-[11px] text-muted-foreground block mb-1">
-              Tipologia
+        {CAMPOS_SELECT.map(({ nome, rotulo, opcoes }) => (
+          <div key={nome}>
+            <label htmlFor={`cadastro-${nome}`} className="text-[11px] text-muted-foreground block mb-1">
+              {rotulo}
             </label>
-            <select id="cadastro-tipologia" className={cn(estiloInput, 'w-full bg-background')} {...register('tipologia')}>
+            <select id={`cadastro-${nome}`} className={cn(estiloInput, 'w-full bg-background')} {...register(nome)}>
               <option value="">— Não informado —</option>
-              {comValorAtual(TIPOLOGIA_CODIGOS, instrumento.tipologia).map((codigo) => (
-                <option key={codigo} value={codigo}>
-                  {TIPOLOGIA_PERSUS[codigo] ?? codigo}
+              {comValorAtual(opcoes, instrumento[snakeDoCampo(nome)] as string | null).map((op) => (
+                <option key={op} value={op}>
+                  {op}
                 </option>
               ))}
             </select>
           </div>
-        </div>
-        {/* Responsavel tecnico da execucao NA INSTITUICAO/convenente --
-            DIFERENTE dos campos de tecnico titular/suplente acima (nossa
-            equipe). Opcional, sem exigir preenchimento. So esses 2 ficam
-            texto livre -- nome/contato de pessoa nao tem vocabulario fechado. */}
+        ))}
         <div>
-          <div className="text-[11.5px] font-bold text-primary mb-2">
-            Responsável técnico da execução{' '}
-            <span className="font-normal text-muted-foreground normal-case">(na instituição/convenente, opcional)</span>
+          <label htmlFor="cadastro-tipologia" className="text-[11px] text-muted-foreground block mb-1">
+            Tipologia
+          </label>
+          <select id="cadastro-tipologia" className={cn(estiloInput, 'w-full bg-background')} {...register('tipologia')}>
+            <option value="">— Não informado —</option>
+            {comValorAtual(TIPOLOGIA_CODIGOS, instrumento.tipologia).map((codigo) => (
+              <option key={codigo} value={codigo}>
+                {TIPOLOGIA_PERSUS[codigo] ?? codigo}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      {/* Responsavel tecnico da execucao NA INSTITUICAO/convenente --
+          DIFERENTE dos campos de tecnico titular/suplente acima (nossa
+          equipe). Opcional, sem exigir preenchimento. So esses 2 ficam
+          texto livre -- nome/contato de pessoa nao tem vocabulario fechado. */}
+      <div>
+        <div className="text-[11.5px] font-bold text-primary mb-2">
+          Responsável técnico da execução{' '}
+          <span className="font-normal text-muted-foreground normal-case">(na instituição/convenente, opcional)</span>
+        </div>
+        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
+          <div>
+            <label htmlFor="cadastro-responsavelExecucaoNome" className="text-[11px] text-muted-foreground block mb-1">
+              Nome
+            </label>
+            <input id="cadastro-responsavelExecucaoNome" className={cn(estiloInput, 'w-full')} {...register('responsavelExecucaoNome')} />
           </div>
-          <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
-            <div>
-              <label htmlFor="cadastro-responsavelExecucaoNome" className="text-[11px] text-muted-foreground block mb-1">
-                Nome
-              </label>
-              <input id="cadastro-responsavelExecucaoNome" className={cn(estiloInput, 'w-full')} {...register('responsavelExecucaoNome')} />
-            </div>
-            <div>
-              <label htmlFor="cadastro-responsavelExecucaoContato" className="text-[11px] text-muted-foreground block mb-1">
-                Contato
-              </label>
-              <input id="cadastro-responsavelExecucaoContato" className={cn(estiloInput, 'w-full')} {...register('responsavelExecucaoContato')} />
-            </div>
+          <div>
+            <label htmlFor="cadastro-responsavelExecucaoContato" className="text-[11px] text-muted-foreground block mb-1">
+              Contato
+            </label>
+            <input id="cadastro-responsavelExecucaoContato" className={cn(estiloInput, 'w-full')} {...register('responsavelExecucaoContato')} />
           </div>
         </div>
-      </fieldset>
+      </div>
       <button
         type="submit"
         disabled={isSubmitting}

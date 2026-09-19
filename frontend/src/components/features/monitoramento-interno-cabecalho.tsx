@@ -14,12 +14,9 @@ export function MonitoramentoInternoCabecalho({
   diasInauguracao,
   equipamentoFisico,
   statusLicenca,
-  textoLicenca,
   alertaLicenca,
   acoesAbertasCount,
   acoesAtrasadasCount,
-  podeEditar,
-  onEditarCnes,
 }: {
   timeline: InstrumentoTimeline;
   componenteViaSiconv: string | null;
@@ -28,17 +25,9 @@ export function MonitoramentoInternoCabecalho({
   diasInauguracao: number | null;
   equipamentoFisico: string | null;
   statusLicenca: string;
-  textoLicenca: string;
   alertaLicenca: boolean;
   acoesAbertasCount: number;
   acoesAtrasadasCount: number;
-  /** CNES editável -- mesmo gate de permissão do resto do cadastro;
-   * validação de verdade (CNES existe na base?) é sempre no backend. */
-  podeEditar: boolean;
-  /** Abre a seção "Cadastro interno" em modo somente-CNES (Plan Mode
-   * monitoramento-evolucao 2026-09-19) -- substitui o picker inline que
-   * existia direto aqui no cabeçalho. */
-  onEditarCnes: () => void;
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
@@ -51,12 +40,9 @@ export function MonitoramentoInternoCabecalho({
     {
       rotulo: 'Equipamento físico',
       valor: equipamentoFisico ?? equipamentoReferencia,
-      detalhe: inst.equipamento_numero_serie
-        ? `Série ${inst.equipamento_numero_serie}`
-        : equipamentoFisico ? 'Registro feito no evento de entrega' : 'Referência planejada; físico ainda não confirmado',
     },
-    { rotulo: 'Licença CNEN', valor: !statusLicenca || statusLicenca === 'Sem registro' ? (origemAlternativa ? 'Não informada na fonte' : 'Sem registro') : statusLicenca, detalhe: textoLicenca === 'Sem validade registrada' && origemAlternativa ? 'A fonte de ingestão não informou licença CNEN' : textoLicenca, alerta: alertaLicenca },
-    { rotulo: 'Inauguração', valor: inaugurado ? 'Realizada' : dataInauguracao ? 'Prevista' : (origemAlternativa ? 'Não informada na fonte' : 'Sem previsão'), detalhe: dataInauguracao ? fmtData(dataInauguracao) : (origemAlternativa ? 'A fonte de ingestão não informou data ou previsão' : 'Sem marco registrado'), alerta: diasInauguracao !== null && diasInauguracao < 0 },
+    { rotulo: 'Licença CNEN', valor: !statusLicenca || statusLicenca === 'Sem registro' ? (origemAlternativa ? 'Não informada na fonte' : 'Sem registro') : statusLicenca, alerta: alertaLicenca },
+    { rotulo: 'Inauguração', valor: inaugurado ? 'Realizada' : dataInauguracao ? 'Prevista' : (origemAlternativa ? 'Não informada na fonte' : 'Sem previsão'), alerta: diasInauguracao !== null && diasInauguracao < 0 },
     { rotulo: 'Ações abertas', valor: acoesAbertasCount, detalhe: `${acoesAtrasadasCount} atrasada(s)`, alerta: acoesAtrasadasCount > 0 },
     // Situação da prestação de contas no SICONV legado -- sincronizada por
     // job_verificacao_siconv.py, só existe pra tipo_contratacao="Convênio"
@@ -110,15 +96,6 @@ export function MonitoramentoInternoCabecalho({
             </div>
             <div className="relative text-xs text-muted-foreground">
               {inst.municipio}/{inst.uf} · CNES {inst.cnes ?? '—'}
-              {podeEditar && (
-                <button
-                  type="button"
-                  onClick={onEditarCnes}
-                  className="ml-1 text-[10.5px] font-semibold text-primary hover:underline"
-                >
-                  editar
-                </button>
-              )}
               {' · '}
               <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">{inst.equipamento_descricao}</span>
             </div>
@@ -158,7 +135,7 @@ export function MonitoramentoInternoCabecalho({
             {aoVivo.disponivel ? (
               <>
                 <div className="text-base font-semibold">{fmtMoeda(aoVivo.valor)}</div>
-                <div className="text-[11px] text-muted-foreground">Liberado: {fmtMoeda(aoVivo.valor_liberado)}</div>
+                <div className="text-[11px] text-muted-foreground">Repassado: {fmtMoeda(aoVivo.valor_liberado)}</div>
                 {aoVivo.situacao && <div className="mt-1"><StatusPill texto={aoVivo.situacao} /></div>}
                 {aoVivo.valor_suspeito && (
                   <div className="text-[10.5px] text-warning mt-1 max-w-[200px] text-right">
@@ -172,10 +149,7 @@ export function MonitoramentoInternoCabecalho({
               // banco, seja qual for a origem (FAF/TED/PERSUS/PRONON),
               // em vez de só dizer "indisponível" quando o dado existe
               // localmente (Plan Mode monitoramento-evolucao 2026-09-19).
-              <>
-                <div className="text-base font-semibold">{fmtMoeda(inst.investimento_aquisicao)}</div>
-                <div className="text-[11px] text-muted-foreground">Valor de investimento (base interna)</div>
-              </>
+              <div className="text-base font-semibold">{fmtMoeda(inst.investimento_aquisicao)}</div>
             ) : (
               <div className="text-xs font-semibold text-warning">Sem dado de valor global disponível</div>
             )}
@@ -206,7 +180,9 @@ export function MonitoramentoInternoCabecalho({
           >
             <div className="mb-1.5 text-[10.5px] font-extrabold tracking-[0.05em] text-muted-foreground uppercase">{item.rotulo}</div>
             <strong className="block text-[15px] leading-tight text-foreground">{item.valor}</strong>
-            <div className={cn('mt-1 text-[11.5px] leading-snug', item.alerta ? 'text-warning' : 'text-muted-foreground')}>{item.detalhe}</div>
+            {item.detalhe && (
+              <div className={cn('mt-1 text-[11.5px] leading-snug', item.alerta ? 'text-warning' : 'text-muted-foreground')}>{item.detalhe}</div>
+            )}
           </div>
         ))}
       </div>

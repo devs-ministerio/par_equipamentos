@@ -3,9 +3,9 @@
  * além de rodar o script de seed de novo). Extraído de
  * MonitoramentoInterno.tsx.
  *
- * Estado de abertura CONTROLADO pelo pai (Plan Mode monitoramento-evolucao
- * 2026-09-19) -- o botão "Editar CNES" do cabeçalho abre esta mesma seção
- * em modo `somenteCnes`, então o pai precisa poder forçar a abertura. */
+ * Estado de abertura controlado pelo pai. CNES mora dentro do form de
+ * edição (Plan Mode monitoramento-evolucao 2026-09-19) -- "Editar
+ * cadastro" edita tudo de uma vez, sem modo especial só pra CNES. */
 import { cn } from '@/lib/utils';
 import type { InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
 import type { CadastroInternoFormValues } from '@/lib/validations/monitoramento';
@@ -26,7 +26,6 @@ export function MonitoramentoInternoCadastro({
   instrumento,
   podeEditar,
   aberto,
-  somenteCnes,
   onAbrir,
   onFechar,
   onSalvar,
@@ -34,7 +33,6 @@ export function MonitoramentoInternoCadastro({
   instrumento: InstrumentoEquipamento;
   podeEditar: boolean;
   aberto: boolean;
-  somenteCnes: boolean;
   onAbrir: () => void;
   onFechar: () => void;
   onSalvar: (valores: CadastroInternoFormValues) => Promise<void>;
@@ -56,7 +54,6 @@ export function MonitoramentoInternoCadastro({
       {aberto ? (
         <MonitoramentoInternoFormCadastro
           instrumento={instrumento}
-          somenteCnes={somenteCnes}
           onSalvar={async (valores) => {
             try {
               await onSalvar(valores);

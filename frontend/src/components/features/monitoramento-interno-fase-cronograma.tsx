@@ -17,7 +17,7 @@ export function MonitoramentoInternoFaseGeral({
   pctAtual: number;
 }) {
   return (
-    <SecaoOperacional titulo="Fase geral" subtitulo="Marco mais avançado registrado no acompanhamento interno.">
+    <SecaoOperacional titulo="Fase geral">
       <div className="flex justify-between mb-2 text-sm">
         <span>{faseAtual?.rotulo ?? 'Não iniciado'} — {Math.round(pctAtual * 100)}%</span>
       </div>

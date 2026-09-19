@@ -54,16 +54,11 @@ export function derivarMonitoramentoInterno(
   const inst = timeline.instrumento;
   const equipamentoFisico = [inst.equipamento_marca, inst.equipamento_modelo].filter(Boolean).join(' ') || null;
   const validadeLicenca = eventoLicenca?.data_validade ? diasAte(eventoLicenca.data_validade) : null;
-  const textoLicenca = validadeLicenca === null
-    ? 'Sem validade registrada'
-    : validadeLicenca < 0
-      ? `Vencida há ${Math.abs(validadeLicenca)} dia(s)`
-      : `Vence em ${validadeLicenca} dia(s)`;
 
   return {
     fasesGerais, eventosPorMarco, faseAtual, pctAtual, cronogramaFisico, regulatorio,
     marcoLicenca, eventoLicenca, diasValidade, marcoInauguracao, eventoInauguracao,
     inaugurado, dataInauguracao, diasInauguracao, acoesAbertas, acoesAtrasadas,
-    equipamentoFisico, validadeLicenca, textoLicenca,
+    equipamentoFisico, validadeLicenca,
   };
 }

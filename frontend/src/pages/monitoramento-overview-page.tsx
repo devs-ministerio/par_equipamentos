@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { MetricStrip } from '@/components/common/metric-strip';
 import { ErrorAlert } from '@/components/common/error-alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination } from '@/components/common/pagination';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { normalizarTexto } from '@/utils/texto';
@@ -30,6 +31,11 @@ type InstrumentoApi = Pick<
 >;
 
 const PRESTACAO_CONTAS_CONCLUIDA = 'Prestação de Contas Concluída';
+// Paginação client-side -- a API já devolve a lista inteira (teto de
+// segurança de 500, não cursor real, ver backend/app/routers/
+// monitoramento.py); só a tabela "Instrumentos monitorados" pagina a
+// exibição, filtros continuam avaliados sobre a lista completa.
+const PAGE_SIZE = 20;
 
 export function MonitoramentoOverviewPage() {
   const resumoQuery = useMonitoramentoResumo();
@@ -43,6 +49,7 @@ export function MonitoramentoOverviewPage() {
   const [tecnicoFiltro, setTecnicoFiltro] = useState<string | null>(null);
   const [ufFiltro, setUfFiltro] = useState<string | null>(null);
   const [tipoContratacaoFiltro, setTipoContratacaoFiltro] = useState<string | null>(null);
+  const [pagina, setPagina] = useState(1);
 
   const header = (
     <PageHeader eyebrow="Monitoramento interno" title="Mesa de trabalho" description="Entrega, instalação, licenciamento CNEN e inauguração." />
@@ -118,6 +125,7 @@ export function MonitoramentoOverviewPage() {
     if (busca && !normalizarTexto(`${i.nr_convenio} ${i.nome_convenente}`).includes(normalizarTexto(busca))) return false;
     return true;
   });
+  const instrumentosDaPagina = instrumentosFiltrados.slice((pagina - 1) * PAGE_SIZE, pagina * PAGE_SIZE);
 
   return (
     <div>
@@ -142,11 +150,11 @@ export function MonitoramentoOverviewPage() {
             <strong className="text-sm">Instrumentos monitorados ({instrumentosFiltrados.length}{instrumentosFiltrados.length !== instrumentos.length ? ` de ${instrumentos.length}` : ''})</strong>
           </div>
           <div className="flex gap-2 flex-wrap mb-3.5">
-            <SearchInput value={busca} onChange={setBusca} placeholder="Buscar convênio/convenente..." width={220} />
-            <SingleSelectFilter placeholder="Fase" options={opcoesDe('fase_atual')} value={faseFiltro} onChange={setFaseFiltro} clearLabel="Todas as fases" minWidth={150} />
-            <SingleSelectFilter placeholder="Técnico titular" options={opcoesDe('tecnico_titular')} value={tecnicoFiltro} onChange={setTecnicoFiltro} clearLabel="Todos os técnicos" minWidth={170} />
-            <SingleSelectFilter placeholder="UF" options={opcoesDe('uf')} value={ufFiltro} onChange={setUfFiltro} clearLabel="Todas as UF" minWidth={110} />
-            <SingleSelectFilter placeholder="Tipo de contratação" options={opcoesDe('tipo_contratacao')} value={tipoContratacaoFiltro} onChange={setTipoContratacaoFiltro} clearLabel="Todos os tipos" minWidth={170} />
+            <SearchInput value={busca} onChange={(v) => { setBusca(v); setPagina(1); }} placeholder="Buscar convênio/convenente..." width={220} />
+            <SingleSelectFilter placeholder="Fase" options={opcoesDe('fase_atual')} value={faseFiltro} onChange={(v) => { setFaseFiltro(v); setPagina(1); }} clearLabel="Todas as fases" minWidth={150} />
+            <SingleSelectFilter placeholder="Técnico titular" options={opcoesDe('tecnico_titular')} value={tecnicoFiltro} onChange={(v) => { setTecnicoFiltro(v); setPagina(1); }} clearLabel="Todos os técnicos" minWidth={170} />
+            <SingleSelectFilter placeholder="UF" options={opcoesDe('uf')} value={ufFiltro} onChange={(v) => { setUfFiltro(v); setPagina(1); }} clearLabel="Todas as UF" minWidth={110} />
+            <SingleSelectFilter placeholder="Tipo de contratação" options={opcoesDe('tipo_contratacao')} value={tipoContratacaoFiltro} onChange={(v) => { setTipoContratacaoFiltro(v); setPagina(1); }} clearLabel="Todos os tipos" minWidth={170} />
           </div>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[12.5px]">
@@ -163,7 +171,7 @@ export function MonitoramentoOverviewPage() {
               <tbody>
                 {instrumentosFiltrados.length === 0 ? (
                   <tr><td colSpan={6} className="py-3.5 px-2 text-center text-muted-foreground italic">Nenhum instrumento bate com esse filtro.</td></tr>
-                ) : instrumentosFiltrados.map((i) => (
+                ) : instrumentosDaPagina.map((i) => (
                   <tr key={i.nr_convenio} className="border-t border-border">
                     <td className="py-1.5 px-2">
                       <Link to={`/monitoramento-equipamentos/instrumentos/${i.nr_convenio}`} className="text-primary no-underline font-semibold">
@@ -193,6 +201,9 @@ export function MonitoramentoOverviewPage() {
               </tbody>
             </table>
           </div>
+          {instrumentosFiltrados.length > 0 && (
+            <Pagination page={pagina} totalItems={instrumentosFiltrados.length} pageSize={PAGE_SIZE} onPageChange={setPagina} />
+          )}
         </div>
     </div>
   );
