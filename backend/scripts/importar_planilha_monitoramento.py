@@ -76,6 +76,7 @@ from __future__ import annotations
 
 import re
 from datetime import date, datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 import openpyxl
@@ -228,6 +229,24 @@ def _cnpj_formatado(v) -> str:
     return _texto(v) or ""
 
 
+def _valor_monetario(v) -> Decimal | None:
+    """`VALOR TOTAL DE INVESTIMENTO (VALOR GLOBAL)` vem em dois formatos na
+    planilha real: número puro (`8000000`) ou string formatada BR
+    (`'R$ 1.990.263,00'`) -- achado 2026-09-19 ao carregar valor de
+    investimento pros FAF/TED (campo nunca lido por este script até então).
+    Nunca fabrica valor pra placeholder ('NI'/'NA'/vazio)."""
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return Decimal(str(v))
+    s = _texto(v)
+    if not s or s.upper() in PLACEHOLDERS:
+        return None
+    s = s.replace("R$", "").strip().replace(".", "").replace(",", ".")
+    try:
+        return Decimal(s)
+    except InvalidOperation:
+        return None
+
+
 def _cnes_normalizado(v) -> str | None:
     """Preserva zeros à esquerda perdidos pelo Excel e só aceita 7 dígitos."""
     digitos = re.sub(r"\D", "", _texto(v) or "")
@@ -340,7 +359,8 @@ def run(
                 municipio=_texto(linha[idx["MUNICIPIO"]]),
                 uf=_texto(linha[idx["UF"]]),
                 cnes=_cnes_normalizado(linha[idx["CNES"]]),
-                equipamento_descricao=_texto(linha[idx["ID MODELO NO SIGEM/TRANSFEREGOV"]]),
+                equipamento_descricao=_sem_placeholder(linha[idx["ID MODELO NO SIGEM/TRANSFEREGOV"]]),
+                investimento_aquisicao=_valor_monetario(linha[idx["VALOR TOTAL DE INVESTIMENTO (VALOR GLOBAL)"]]) if "VALOR TOTAL DE INVESTIMENTO (VALOR GLOBAL)" in idx else None,
                 componente=_texto(linha[idx["COMPONENTES DE FINANCIAMENTO - INVESTUSUS"]]),
                 ano_instrumento=int(m.group()) if (v := _texto(linha[idx["ANO DO INSTRUMENTO"]])) and (m := re.search(r"\d{4}", v)) else None,
                 tipo_contratacao=_sem_placeholder(linha[idx["TIPO DE CONTRATAÇÃO"]]) if "TIPO DE CONTRATAÇÃO" in idx else None,
@@ -365,10 +385,29 @@ def run(
                     instrumentos_por_chave[chave_origem] = instrumento
                 criados += 1
             else:
+                # Achado 2026-09-19 (Boa Vista/RR, 25000083829202616): a
+                # planilha as vezes lista MAIS DE UM equipamento pro mesmo
+                # convenio em linhas separadas (ex. Mamografo + Ultrassom).
+                # `equipamento_descricao` e coluna unica -- sobrescrever direto
+                # perdia silenciosamente o equipamento da linha anterior. Faz
+                # merge textual (nunca fabrica, so concatena o que a planilha
+                # ja trouxe) ANTES do loop generico abaixo, que trataria isso
+                # como upsert comum e perderia o mesmo jeito.
+                nova_descricao = dados_instrumento.get("equipamento_descricao")
+                descricao_atual = instrumento.equipamento_descricao
+                if nova_descricao and (not descricao_atual or nova_descricao not in descricao_atual):
+                    instrumento.equipamento_descricao = (
+                        f"{descricao_atual} + {nova_descricao}" if descricao_atual else nova_descricao
+                    )
+                    campos_preenchidos += 1
+                    campos_preenchidos_chaves.add((nr_convenio, "equipamento_descricao"))
+
                 # Upsert -- so sobrescreve campo de CADASTRO (nao mexe em
                 # equipamento_marca/modelo/numero_serie/vida_util_anos,
                 # que sao pos-entrega e nao vem desta planilha).
                 for campo, valor in dados_instrumento.items():
+                    if campo == "equipamento_descricao":
+                        continue  # tratado acima, com merge em vez de overwrite
                     valor_atual = getattr(instrumento, campo)
                     pode_atualizar = not somente_ausentes or valor_atual is None or valor_atual == ""
                     tem_valor_fonte = valor is not None and (not somente_ausentes or valor != "")
@@ -389,6 +428,7 @@ def run(
                     numero=nr_convenio,
                     chave_origem=chave_origem,
                     tipo_contratacao=instrumento.tipo_contratacao,
+                    tipologia=None,
                     origem_dado=None,
                     nome_convenente=instrumento.nome_convenente,
                     cnpj_convenente=instrumento.cnpj_convenente,
@@ -399,7 +439,7 @@ def run(
                     ano_instrumento=instrumento.ano_instrumento,
                     objeto=instrumento.finalidade,
                     situacao=None,
-                    investimento=None,
+                    investimento=instrumento.investimento_aquisicao,
                     equipamento_descricao=instrumento.equipamento_descricao,
                     componente=instrumento.componente,
                 )
