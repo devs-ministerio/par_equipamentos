@@ -17,13 +17,20 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Convenio
 
-# Só os 2 padrões relevantes pro universo destas fontes (equipamento é
-# sempre Acelerador Linear/radioterapia aqui) -- os outros 12 de
-# `importar_convenios_banco.py::PADROES_EQUIPAMENTO` não se aplicam a
-# PERSUS/PRONON/FAF/TED, evitaria falso positivo sem necessidade.
+# O componente/serviço "Radioterapia" não é equipamento e não deve virar
+# marcador visual -- por isso esta lista NÃO reaproveita os 14 padrões de
+# `frontend/src/lib/equipamento-tags.ts` (que classificam item bruto de
+# SICONV/TransfereGov, fonte que FAF/TED/PERSUS/PRONON não têm) nem os de
+# `importar_convenios_banco.py::PADROES_EQUIPAMENTO`, só os 4 equipamentos
+# que já apareceram de fato em `equipamento_descricao` desta origem (achado
+# 2026-09-19: Mamógrafo/Braquiterapia/Ultrassom ficavam SEM nenhum
+# marcador em "Instrumentos firmados" -- só Acelerador Linear era
+# reconhecido desde o POC original de 2026-09-03).
 _PADROES_EQUIPAMENTO: list[tuple[str, re.Pattern]] = [
     ("Acelerador Linear", re.compile(r"ACELERADOR\s*LINEAR")),
-    ("Radioterapia", re.compile(r"RADIOTERAPIA")),
+    ("Mamógrafo", re.compile(r"MAMOGRAFO")),
+    ("Braquiterapia", re.compile(r"BRAQUITERAPIA")),
+    ("Ultrassom", re.compile(r"ULTRA\s*SS?OM")),
 ]
 
 
@@ -43,6 +50,7 @@ def espelhar_convenio(
     numero: str,
     chave_origem: str,
     tipo_contratacao: str,
+    tipologia: str | None,
     origem_dado: str | None,
     nome_convenente: str,
     cnpj_convenente: str | None,
@@ -76,6 +84,7 @@ def espelhar_convenio(
         objeto=objeto,
         situacao=situacao,
         valor_global=(Decimal(str(investimento)) if investimento is not None else None),
+        tipologia=tipologia,
         equipamentos_tags=equipamentos_tags(equipamento_descricao, componente),
         pagamentos_count=0,
         financeiro_fonte_confiavel=False,
