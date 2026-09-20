@@ -33,7 +33,6 @@ export function derivarMonitoramentoInterno(
   // data_validade preenchida.
   const marcoLicenca = regulatorio.find((m) => m.codigo === 'regulatorio_licenca_operacao');
   const eventoLicenca = (marcoLicenca && eventosPorMarco.get(marcoLicenca.id)?.find((e) => e.data_validade)) || null;
-  const diasValidade = diasAte(eventoLicenca?.data_validade);
 
   // Previsao de inauguracao -- destaque pedido pelo usuario 2026-09-09
   // ("também é um dado que se destaca pra nós"). Se ja tem data_ocorrencia
@@ -57,7 +56,7 @@ export function derivarMonitoramentoInterno(
 
   return {
     fasesGerais, eventosPorMarco, faseAtual, pctAtual, cronogramaFisico, regulatorio,
-    marcoLicenca, eventoLicenca, diasValidade, marcoInauguracao, eventoInauguracao,
+    marcoLicenca, eventoLicenca, marcoInauguracao, eventoInauguracao,
     inaugurado, dataInauguracao, diasInauguracao, acoesAbertas, acoesAtrasadas,
     equipamentoFisico, validadeLicenca,
   };

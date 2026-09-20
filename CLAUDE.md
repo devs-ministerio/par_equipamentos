@@ -132,6 +132,44 @@ reintroduzir o erro:
 - **`tecnico_titular/suplente` (nossa equipe) ≠ `responsavel_execucao_nome/
   contato` (da instituição/convenente)**: campos parecidos, fontes
   diferentes — não confundir ao exibir ou editar.
+- **Convênio pode financiar mais de 1 equipamento físico** (achado ao vivo
+  2026-09-19, convênio 947527 — 2 aceleradores lineares, um entregue e
+  outro só previsto pra 2027): o schema (`InstrumentoEquipamento`/
+  `EventoMarco`) rastreia por CONVÊNIO, não por unidade física — não tem
+  campo estruturado pra dizer "esse evento é do equipamento X". Heurística
+  adotada (decisão do usuário, sem mudar schema): `equipamento_descricao`
+  concatena os itens com `" + "` quando há mais de 1; quando esse padrão
+  bate (`monitoramento-interno.tsx::multiploEquipamento`), o Cronograma
+  físico/Regulatório (`monitoramento-interno-fase-cronograma.tsx`) mostra
+  TODOS os eventos ativos do marco em vez de só o mais recente — pro caso
+  normal (1 equipamento) continua mostrando só 1, tratando múltiplos
+  eventos ativos como histórico de correção, não como equipamentos
+  distintos. Os cards de resumo no topo (Inauguração/Licença CNEN)
+  continuam mostrando 1 valor simplificado mesmo com múltiplos
+  equipamentos — não foram redesenhados nesta rodada.
+  - **Bug relacionado, corrigido na mesma investigação**: `listar_eventos_do_instrumento`
+    (`app/repositories/monitoramento.py`) só ordenava por `created_at`, sem
+    desempate por `id` — carga em lote grava vários eventos do mesmo marco
+    com o MESMO `created_at` (timestamp do processo), e sem desempate a
+    timeline podia escolher "o mais recente" errado. `obter_resumo`
+    (`app/routers/monitoramento.py`) tinha o mesmo problema nos 2
+    `max(..., key=created_at)` de licença/inauguração, e **nunca filtrava
+    evento ativo** (`substituido_por_id`/`deletado_em`) — gap real do
+    Bloco 1 do Plan Mode monitoramento-evolucao, que só cobriu
+    `listar_instrumentos`/`obter_timeline`. Os três corrigidos.
+  - **Limpeza de dados legados executada em 2026-09-19** (decisão do
+    usuário): 33 grupos (instrumento, marco) tinham eventos duplicados do
+    bug documentado em `diagnostico-ingestao-dados-2026-09-18.md`
+    ("previsão de inauguração gravada como `data_ocorrencia` por engano,
+    corrigida depois pra `data_prevista`") — o evento antigo (ocorrência
+    errada) nunca tinha sido marcado como substituído pelo novo (previsão
+    correta, mesma data). Vinculados via `substituido_por_id` (nenhuma
+    linha apagada, `AuditLog` com `action=corrected_by_request` por
+    vínculo). **16 grupos ficaram de fora de propósito** — não batem no
+    padrão simples "mesma data, ocorrência→previsão" (ex. matrícula CNEN/
+    SCRA duplicados sem data, possivelmente legítimos por serem de
+    equipamentos diferentes) — não fabricar o vínculo sem revisão da
+    equipe.
 
 ## Plan Mode monitoramento-evolucao (2026-09-19)
 

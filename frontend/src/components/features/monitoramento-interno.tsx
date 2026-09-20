@@ -94,12 +94,21 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
 
   const {
     fasesGerais, eventosPorMarco, faseAtual, pctAtual, cronogramaFisico, regulatorio,
-    eventoLicenca, diasValidade, dataInauguracao, inaugurado, diasInauguracao,
+    eventoLicenca, dataInauguracao, inaugurado, diasInauguracao,
     acoesAbertas, acoesAtrasadas, equipamentoFisico, validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
   // So usa o fallback quando precisa (inst.componente nulo).
   const componenteViaSiconv = !inst.componente ? componenteDoProgramaSiconv(programaQuery.data) : null;
+
+  // Heurística de "mais de 1 equipamento no mesmo convênio" (Plan Mode
+  // monitoramento-evolucao 2026-09-19, pedido do usuário: "só use essa
+  // possibilidade pra instrumentos que tem mais de um acelerador") --
+  // equipamento_descricao (texto do SICONV) já concatena os itens com
+  // " + " quando o convênio financia mais de 1 (ex. convênio 947527, "...
+  // + ..."). Não existe campo estruturado de quantidade; isso é
+  // aproximação sobre texto livre, não uma contagem garantida.
+  const multiploEquipamento = (inst.equipamento_descricao ?? '').includes(' + ');
 
   return (
     <div>
@@ -163,8 +172,7 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
             cronogramaFisico={cronogramaFisico}
             regulatorio={regulatorio}
             eventosPorMarco={eventosPorMarco}
-            eventoLicenca={eventoLicenca}
-            diasValidade={diasValidade}
+            multiploEquipamento={multiploEquipamento}
           />
         </OperationalDetailSection>
 
