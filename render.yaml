@@ -23,3 +23,11 @@ services:
         value: stdout
       - key: NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
         value: "true"
+      # O agente encaminha somente os registros já emitidos pela aplicação;
+      # não habilitar context data, para não ampliar os atributos enviados.
+      - key: NEW_RELIC_APPLICATION_LOGGING_ENABLED
+        value: "true"
+      - key: NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED
+        value: "true"
+      - key: NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED
+        value: "1000"
