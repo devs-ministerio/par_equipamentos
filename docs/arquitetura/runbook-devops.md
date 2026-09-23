@@ -64,13 +64,14 @@ no GitHub Actions.
   destinatário, severidade e condição documentados no New Relic.
 - Configuração vigente em 23/09/2026: a política `SIGEO — Produção` possui
   condições críticas para taxa de erro acima de 5% por 5 minutos, latência p95
-  acima de 2 s por 10 minutos e menos de uma transação por 10 minutos (com
-  abertura por perda de sinal). O workflow ativo `SIGEO — Notificações de
-  Produção` filtra essa política e encaminha os eventos de ciclo de vida ao
-  destino de e-mail operacional. Em 23/09/2026, uma única notificação de
-  teste aprovada foi enviada pelo canal e recebida na caixa operacional. Em
-  futuras alterações do destino ou da mensagem, repita e registre o teste;
-  não gere erro ou indisponibilidade reais para isso.
+  acima de 2 s por 10 minutos, menos de uma transação por 10 minutos (com
+  abertura por perda de sinal) e duas falhas do Ping externo em até 10 minutos.
+  O workflow ativo `SIGEO — Notificações de Produção` filtra essa política e
+  encaminha os eventos de ciclo de vida ao destino de e-mail operacional. Em
+  23/09/2026, uma única notificação de teste aprovada foi enviada pelo canal e
+  recebida na caixa operacional. Em futuras alterações do destino ou da
+  mensagem, repita e registre o teste; não gere erro ou indisponibilidade reais
+  para isso.
 - O dashboard `SIGEO — Operação de Produção` acompanha a latência p95 em
   série temporal e a taxa de erro da `SIGEO API` na janela selecionada. Use-o
   como ponto de partida para incidentes: confirme o alerta, filtre o período,

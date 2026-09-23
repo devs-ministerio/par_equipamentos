@@ -32,7 +32,7 @@ principal risco operacional.
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
-| Observabilidade | 8,9 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95 e indisponibilidade e workflow de e-mail com envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional, e o monitor externo Ping consulta `/health` a cada 5 min com TLS validado. Faltam política explícita de retenção, métricas de recurso, tracing fim a fim e redundância de localização. |
+| Observabilidade | 8,9 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional, e o monitor externo Ping consulta `/health` a cada 5 min com TLS validado. Faltam política explícita de retenção, métricas de recurso, tracing fim a fim e redundância de localização. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
@@ -64,10 +64,11 @@ CodeQL (runs 35908489235 e 35909097669)               → análise concluída; u
 GitHub Actions (commit 3306bfa)                       → Varredura de segredos, Backend CI e segurança, SBOM e segurança da imagem: sucesso
 Render (deploy `dep-daq3aanlk1mc73bjl1jg`)            → `uv run sh ./start-server.sh`, health 200 e serviço live
 New Relic                                             → APM `SIGEO API`: transação HTTP, 235 ms, 0% de erro no momento da validação
-New Relic e Gmail                                      → política com três condições; teste de e-mail enviado e recebido
+New Relic e Gmail                                      → política com quatro condições; teste de e-mail enviado e recebido
 New Relic                                              → dashboard `SIGEO — Operação de Produção`: p95 e taxa de erro da API
 New Relic Logs                                         → 172 logs recentes recebidos após o deploy, incluindo `GET /health` 200
 New Relic Synthetics                                   → Ping externo habilitado: 1/1 check bem-sucedido em São Paulo, 1,04 s, TLS validado
+New Relic Alerts                                       → condição crítica ativa após duas falhas do Ping em 10 min, policy `SIGEO — Produção`
 Render (deploy `dep-daq62tegekts73bnulqg`)             → deploy live com encaminhamento de logs habilitado
 ```
 
@@ -199,8 +200,9 @@ de ambiente usado tinha valores sintéticos locais e foi apagado.
 
 O New Relic APM está efetivamente recebendo a aplicação `SIGEO API`: transação
 HTTP, tempo de resposta e taxa de erro estão confirmados. A política
-`SIGEO — Produção` já formaliza três condições críticas (erro, p95 e ausência
-de sinal) e o workflow ativo encaminha seus eventos por e-mail operacional.
+`SIGEO — Produção` já formaliza quatro condições críticas (erro, p95, ausência
+de sinal e duas falhas do Ping em 10 minutos) e o workflow ativo encaminha seus
+eventos por e-mail operacional.
 Os eventos estruturados continuam no stdout e o agente do New Relic os
 encaminha sem atributos de contexto, limitado a 1.000 amostras por minuto. O
 Render também envia alertas de falha por e-mail. O monitor Ping externo `SIGEO
