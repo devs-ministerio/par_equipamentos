@@ -26,6 +26,10 @@
    `/health`; o Render atual ainda recompila o código e não consome esse
    artefato diretamente. Não chame esse processo de promoção até haver um
    registry e staging aprovados.
+   O primeiro smoke deste fluxo foi feito no OrbStack para o SHA `946ac4c`:
+   imagem carregada do GitHub, Postgres descartável, `/health` com banco
+   conectado e processo com UID 10001. Ao final, containers, rede, arquivo
+   baixado e imagem local foram removidos.
 
 ## Desenvolvimento com OrbStack
 

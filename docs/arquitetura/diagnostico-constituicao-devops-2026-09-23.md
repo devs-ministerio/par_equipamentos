@@ -54,6 +54,7 @@ GitHub Actions monitor (run 35904108197)             → `/health` concluído co
 actionlint 1.7.10                                    → nove workflows validados localmente; gate usa digest imutável
 GitHub Actions supply chain (run 35907832991)         → Dockerfile Trixie, SBOM SPDX e scan de CVE crítico: sucesso
 GitHub Actions supply chain (run 35911555849)         → imagem `946ac4c`, artefato OCI (259,6 MB), SBOM e scan crítico: sucesso
+OrbStack (artefato `946ac4c`)                          → imagem baixada/carregada do GitHub, Postgres descartável e `/health` 200; processo UID 10001; recursos locais removidos
 GitHub Actions Gitleaks (run 35907833023)             → histórico e conteúdo rastreado: sucesso
 GitHub Actions backend (run 35907833242)              → lint, tipos, Alembic, testes e audit: sucesso
 CodeQL (runs 35908489235 e 35909097669)               → análise concluída; upload bloqueado porque code scanning está desativado no repositório
