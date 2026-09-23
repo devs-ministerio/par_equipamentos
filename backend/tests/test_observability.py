@@ -1,9 +1,16 @@
 import json
 import logging
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from app.main import app
+
+
+def test_boot_desativa_access_log_cru_do_uvicorn():
+    script = (Path(__file__).parents[1] / "start-server.sh").read_text()
+
+    assert script.count("--no-access-log") == 2
 
 
 def test_log_http_nao_registra_querystring_ou_segredo(caplog):
