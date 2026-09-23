@@ -20,9 +20,8 @@ OrbStack, incluindo Postgres isolado, health e encerramento limpo. O backend
 publicado também reporta transações, latência e erro ao New Relic como
 `SIGEO API`.
 
-Ainda faltam backup externo/retenção ampliada, logs centralizados com
-retenção, dashboard operacional, monitor externo independente, artefato
-promovível/staging e proteção nativa
+Ainda faltam backup externo/retenção ampliada, política explícita de retenção
+de logs, métricas de recurso e tracing fim a fim, artefato promovível/staging e proteção nativa
 de branch no GitHub. O Neon tem PITR de somente seis horas; RPO/RTO foram
 formalizados e a recuperação isolada foi exercitada, mas a janela continua o
 principal risco operacional.
@@ -33,7 +32,7 @@ principal risco operacional.
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
-| Observabilidade | 8,7 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95 e indisponibilidade e workflow de e-mail com envio e recebimento de teste confirmados. O dashboard operacional expõe p95 e taxa de erro. Faltam coleta/retenção central de logs, métricas de recurso e monitor externo independente. |
+| Observabilidade | 8,9 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95 e indisponibilidade e workflow de e-mail com envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional, e o monitor externo Ping consulta `/health` a cada 5 min com TLS validado. Faltam política explícita de retenção, métricas de recurso, tracing fim a fim e redundância de localização. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
@@ -67,6 +66,9 @@ Render (deploy `dep-daq3aanlk1mc73bjl1jg`)            → `uv run sh ./start-ser
 New Relic                                             → APM `SIGEO API`: transação HTTP, 235 ms, 0% de erro no momento da validação
 New Relic e Gmail                                      → política com três condições; teste de e-mail enviado e recebido
 New Relic                                              → dashboard `SIGEO — Operação de Produção`: p95 e taxa de erro da API
+New Relic Logs                                         → 172 logs recentes recebidos após o deploy, incluindo `GET /health` 200
+New Relic Synthetics                                   → Ping externo habilitado: 1/1 check bem-sucedido em São Paulo, 1,04 s, TLS validado
+Render (deploy `dep-daq62tegekts73bnulqg`)             → deploy live com encaminhamento de logs habilitado
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -174,13 +176,14 @@ atingido o timeout interno; mutações nunca são repetidas, evitando duplicidad
 de escrita. A medida reduz a fricção do cold start, mas não remove o risco de
 disponibilidade da instância Free.
 
-Como mitigação transitória, o workflow `monitor-render-health.yml` consulta
-`/health` a cada cinco minutos, com retentativas e execução manual. O cron usa
-minutos fora do topo da hora e só passa a executar quando estiver publicado na
-branch padrão. Ele reduz cold starts enquanto a API permanecer no Render Free,
-mas não constitui garantia: o GitHub pode atrasar jobs agendados e o Render
-continua podendo reiniciar a instância. A primeira execução manual publicada
-(`35904108197`) concluiu com sucesso.
+O workflow temporário do GitHub foi removido porque suas execuções agendadas
+não mantiveram a cadência necessária. Em seu lugar, o Ping externo `SIGEO API
+— health externo`, do New Relic, consulta `/health` a cada cinco minutos a
+partir de São Paulo, com TLS validado. Além de reduzir cold starts, ele produz evidência
+independente da disponibilidade externa. A cobertura inicial tem uma região;
+não protege contra falha exclusiva daquela localidade e deve ser ampliada após
+revisão de franquia/custo. A migração para Railway ou instância sempre ativa
+continua sendo a correção definitiva.
 
 ### Resolvido — container local validado com Postgres isolado
 
@@ -192,16 +195,19 @@ rodou como UID `10001`/usuário `sigeo`. Ao final, containers, rede e volume
 desse projeto foram removidos, confirmando também o shutdown limpo. O arquivo
 de ambiente usado tinha valores sintéticos locais e foi apagado.
 
-### P1 — observabilidade ainda não cobre logs e resposta operacional
+### P1 — observabilidade ainda não cobre métricas de recurso e tracing fim a fim
 
 O New Relic APM está efetivamente recebendo a aplicação `SIGEO API`: transação
 HTTP, tempo de resposta e taxa de erro estão confirmados. A política
 `SIGEO — Produção` já formaliza três condições críticas (erro, p95 e ausência
 de sinal) e o workflow ativo encaminha seus eventos por e-mail operacional.
-Os eventos estruturados continuam no stdout e o Render envia alertas de falha
-por e-mail. Ainda não há encaminhamento e retenção de logs no New Relic,
-métricas de recurso, tracing ponta a ponta envolvendo frontend e jobs ou
-monitor externo independente. O dashboard operacional agora expõe p95 e taxa
+Os eventos estruturados continuam no stdout e o agente do New Relic os
+encaminha sem atributos de contexto, limitado a 1.000 amostras por minuto. O
+Render também envia alertas de falha por e-mail. O monitor Ping externo `SIGEO
+API — health externo` consulta o endpoint público a cada cinco minutos, a
+partir de São Paulo e valida TLS. Ainda faltam uma política explícita de
+retenção de logs, métricas de recurso, tracing ponta a ponta envolvendo
+frontend e jobs e redundância de localização. O dashboard operacional agora expõe p95 e taxa
 de erro da API. Logs no painel do Render não são
 suficientes como política operacional versionada. O teste controlado de
 entrega foi concluído, sem gerar erro ou indisponibilidade real na API.
@@ -242,8 +248,8 @@ manual e pode ser recuperado pelo histórico se necessário.
 
 - Staging e segredos próprios desse ambiente; proteção nativa de branch e MFA
   dos administradores GitHub/Render/Neon.
-- Encaminhamento/retenção central de logs, métricas de recurso, tracing
-  ponta a ponta e monitor externo no New Relic; domínio
+- Política explícita de retenção de logs, métricas de recurso, tracing ponta a
+  ponta e mais localizações para o monitor externo no New Relic; domínio
   customizado/TLS e política de preview no Vercel.
 - Backup externo e retenção PITR maior que seis horas.
 - Permissões de consoles cloud, MFA e trilha de auditoria de deploy.

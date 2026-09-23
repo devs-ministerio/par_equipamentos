@@ -76,9 +76,11 @@ no GitHub Actions.
   como ponto de partida para incidentes: confirme o alerta, filtre o período,
   abra APM/Traces e só então consulte os logs do Render. Ele não substitui
   monitor externo nem centralização de logs.
-- Logs JSON do backend continuam no stdout; sua retenção e correlação devem
-  ser configuradas pelo pipeline de logs do provedor, sem enviar corpos,
-  querystrings ou segredos.
+- Os logs JSON do backend continuam no stdout e são encaminhados pelo agente
+  New Relic quando `NEW_RELIC_APPLICATION_LOGGING_ENABLED=true` e
+  `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true` estão ativos no
+  provedor. O limite é de 1.000 amostras por minuto; não habilite atributos de
+  contexto nem envie corpos, querystrings ou segredos.
 - Objetivo operacional aprovado enquanto o plano atual do Neon for mantido:
   **RPO de até 6 horas** (a janela PITR contratada) e **RTO de até 4 horas**
   para recuperar uma branch isolada e comprovar sua integridade. Isso não é
@@ -101,14 +103,16 @@ no GitHub Actions.
 - Não remova snapshots versionados antes de mapear consumidores e aprovar a
   retenção alternativa.
 
-## Mitigação transitória do Render Free
+## Monitor externo transitório do Render Free
 
-Enquanto a API estiver no plano Free, `Monitorar saúde do Render` chama o
-endpoint público `/health` a cada cinco minutos, fora do minuto cheio. Isso
-reduz cold starts, mas não é garantia de disponibilidade: agendamentos do
-GitHub podem atrasar e a instância Free pode reiniciar. O workflow tem execução
-manual, timeout e retentativas; uma falha fica visível no histórico de Actions.
+Enquanto a API estiver no plano Free, o monitor Ping do New Relic `SIGEO API —
+health externo` consulta `https://sieo-backend.onrender.com/health` a cada
+cinco minutos a partir de São Paulo. Diferentemente do agendamento do GitHub,
+ele é executado pela plataforma de observabilidade, registra a disponibilidade
+externa, valida TLS e mantém tráfego periódico para reduzir cold starts.
 
-Remover esse workflow ao migrar a API para Railway ou para uma instância sempre
-ativa. O monitor é provisório e não substitui monitor externo, alertas, RPO/RTO
-ou política de recuperação.
+O monitor começou com uma localização para conter consumo do plano. Uma única
+região não elimina falso positivo regional: ampliar para ao menos três
+localizações depende de revisar a franquia/custo. Remova o monitor ao migrar a
+API para Railway ou uma instância sempre ativa; ele continua provisório e não
+substitui alertas, RPO/RTO ou política de recuperação.
