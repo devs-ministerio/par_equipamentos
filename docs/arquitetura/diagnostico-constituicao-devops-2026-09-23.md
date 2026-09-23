@@ -12,7 +12,7 @@ comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 8,0/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+**Conformidade atual: 8,3/10** (ante 3,5/10 em 16/09). O projeto tem CI de
 backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
 serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
 health check real em `/health`. O compose foi validado integralmente no
@@ -25,7 +25,7 @@ seis horas; esse é o risco operacional principal.
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
 | Reprodutibilidade e containerização | 9,0 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; smoke completo executou como usuário não-root, com Postgres local isolado, health e shutdown limpo. |
-| CI e supply chain | 8,5 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint` passa e virou gate com imagem por digest. Ainda faltam CodeQL, secret scan, SBOM e scan de imagem. |
+| CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. Falta CodeQL. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,0 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. Vercel recebeu smoke E2E autenticado com sucesso. Faltam staging, artefato de imagem e rollback ensaiado. |
 | Observabilidade | 6,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; Render avisa falhas por e-mail e o Vercel expõe métrica básica. Faltam coleta/retenção, métricas completas, tracing, dashboard e monitor externo. |
@@ -49,7 +49,10 @@ Vercel                                               → deploy `85bAN8ZzHMhA9oH
 E2E publicado                                        → login aprovado; rota protegida carregou 560 instrumentos
 Preflight CORS                                       → origem Vercel autorizada, credenciais e métodos esperados
 GitHub Actions monitor (run 35904108197)             → `/health` concluído com sucesso
-actionlint 1.7.10                                    → sete workflows validados localmente; gate usa digest imutável
+actionlint 1.7.10                                    → nove workflows validados localmente; gate usa digest imutável
+GitHub Actions supply chain (run 35907832991)         → Dockerfile Trixie, SBOM SPDX e scan de CVE crítico: sucesso
+GitHub Actions Gitleaks (run 35907833023)             → histórico e conteúdo rastreado: sucesso
+GitHub Actions backend (run 35907833242)              → lint, tipos, Alembic, testes e audit: sucesso
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -64,6 +67,9 @@ serviço e o health check HTTP.
   concorrência por ref e actions fixadas por SHA.
 - `workflow_lint.yml` valida sintaxe e semântica dos workflows em push/PR que
   os alterem, com `actionlint` fixado por digest OCI.
+- `secret_scan.yml` executa Gitleaks em todo push/PR; `supply_chain.yml`
+  constrói a imagem do backend, publica SBOM SPDX por 30 dias e bloqueia CVE
+  crítico conhecido. Anchore e Trivy também estão fixados por SHA.
 - `render.yaml` não executa mais Alembic no `startCommand`; os workflows de
   pipelines e Radar também não executam DDL. `migrar_banco.yml` é o único
   fluxo versionado que chama `alembic upgrade head`.
@@ -155,9 +161,13 @@ política operacional versionada.
 
 Backend CI agora provisiona PostgreSQL e executa Alembic/testes nesse caminho.
 `Varredura de segredos` executa Gitleaks no histórico completo, fixado no
-commit `e0c47f4`, e a primeira execução publicada (`35905838285`) passou.
-Ainda faltam CodeQL, SBOM e scan de imagem; os pins por SHA devem ser
-completados nos fluxos restantes.
+commit `e0c47f4`, e passou novamente no run `35907833023`. O workflow de
+supply chain gera SBOM SPDX retido por 30 dias e passou no scan de CVE crítico
+no run `35907832991`. A primeira imagem em Debian 12 revelou cinco CVEs
+críticos; a troca para Debian 13 (Trixie) reduziu-os a três de `perl-base`, e
+`apt-get upgrade` no runtime aplicou a versão corrigida, mantendo o gate
+estrito verde. Falta CodeQL; os pins por SHA devem ser completados nos fluxos
+restantes.
 
 ### P2 — contexto e artefatos de entrega
 
