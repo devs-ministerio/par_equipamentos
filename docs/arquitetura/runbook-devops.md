@@ -86,6 +86,12 @@ no GitHub Actions.
   para o coletor. A única telemetria HTTP encaminhada é o evento
   `sigeo.http`, que contém método, caminho sem querystring, status, duração e
   `trace_id` aleatório — nunca corpo, cabeçalhos, usuário ou token.
+- A [política de retenção de observabilidade](politica-retencao-observabilidade.md)
+  define os prazos efetivos, minimização, acesso e resposta a eventual envio
+  indevido. Em 23/09/2026, a conta New Relic confirmou 30 dias para `Log`, 8
+  dias para APM/erros/traces e 395 dias para dados de Synthetic; não use logs
+  como arquivo de auditoria e não crie archive/partição de longa duração sem
+  exceção formal.
 - Objetivo operacional aprovado enquanto o plano atual do Neon for mantido:
   **RPO de até 6 horas** (a janela PITR contratada) e **RTO de até 4 horas**
   para recuperar uma branch isolada e comprovar sua integridade. Isso não é
