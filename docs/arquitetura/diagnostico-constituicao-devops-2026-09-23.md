@@ -154,16 +154,23 @@ política operacional versionada.
 ### P1 — CI não testa o caminho de banco nem toda a supply chain
 
 Backend CI agora provisiona PostgreSQL e executa Alembic/testes nesse caminho.
-Ainda faltam CodeQL, secret scan, SBOM e scan de imagem; os pins por SHA devem
-ser completados no frontend e nos fluxos restantes.
+`Varredura de segredos` executa Gitleaks no histórico completo, fixado no
+commit `e0c47f4`, e a primeira execução publicada (`35905838285`) passou.
+Ainda faltam CodeQL, SBOM e scan de imagem; os pins por SHA devem ser
+completados nos fluxos restantes.
 
 ### P2 — contexto e artefatos de entrega
 
 A reinspeção do Blueprint confirmou que não há campos raiz `release:` ou
 `web:` em `render.yaml`; a suspeita inicial resultava de uma leitura
-concatenada com arquivos auxiliares e foi descartada. Persistem snapshots rastreados de até
-15 MB, incluindo dados brutos e saídas de scripts. Nenhum foi removido nesta
-rodada porque há consumidores e valor de auditoria a confirmar.
+concatenada com arquivos auxiliares e foi descartada. O mapa de consumidores
+identificou os insumos ainda necessários: população e planilha CNES alimentam
+importadores, `siconv_legado.json` e `transferegov_relacional.json` alimentam
+o importador de convênios, e `macroregiao.geojson` alimenta o mapa. A captura
+`transferegov.html` permanece como evidência documental. O único artefato sem
+leitor, `levantamento_componente_por_programa.json` (14,36 MB), foi removido
+do Git e deixou de ser emitido; ele era apenas resultado auxiliar de consulta
+manual e pode ser recuperado pelo histórico se necessário.
 
 ## Itens não comprovados externamente
 

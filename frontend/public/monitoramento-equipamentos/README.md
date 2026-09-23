@@ -34,7 +34,6 @@ cd backend
 uv run python -m scripts.levantamento_convenios_oncologia  # varre o dump nacional SICONV +
                                                              # TransfereGov, gera
                                                              # levantamento_equipamento_por_convenio.json
-                                                             # e levantamento_componente_por_programa.json
 uv run python -m scripts.expandir_universo_convenios       # busca no Portal da Transparencia so os
                                                              # numeros NOVOS achados acima, faz merge em
                                                              # convenios_flat.json (idempotente)

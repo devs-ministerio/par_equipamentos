@@ -394,10 +394,7 @@ def run() -> None:
         json.dumps(equipamento, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    componente = levantar_componente()
-    (DIR_SAIDA / "levantamento_componente_por_programa.json").write_text(
-        json.dumps(componente, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    levantar_componente()
 
     componente_siconv = levantar_componente_siconv()
     (DIR_SAIDA / "levantamento_componente_siconv.json").write_text(
@@ -405,7 +402,6 @@ def run() -> None:
     )
 
     print("\nGravado em scripts/output/levantamento_equipamento_por_convenio.json")
-    print("Gravado em scripts/output/levantamento_componente_por_programa.json")
     print("Gravado em scripts/output/levantamento_componente_siconv.json")
 
 
