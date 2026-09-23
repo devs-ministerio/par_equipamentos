@@ -22,6 +22,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Construir imagem do backend
         run: docker build --tag sigeo-backend-ci:${{ github.sha }} backend
+      - name: Exportar artefato imutável da imagem
+        run: docker save sigeo-backend-ci:${{ github.sha }} | gzip --stdout > sigeo-backend-${{ github.sha }}.tar.gz
+      - name: Publicar artefato de imagem por SHA
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sigeo-backend-image-${{ github.sha }}
+          path: sigeo-backend-${{ github.sha }}.tar.gz
+          if-no-files-found: error
+          retention-days: 30
       - name: Gerar SBOM SPDX da imagem
         uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:
