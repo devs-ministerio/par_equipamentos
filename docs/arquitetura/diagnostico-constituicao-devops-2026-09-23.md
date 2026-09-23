@@ -25,7 +25,7 @@ seis horas; esse é o risco operacional principal.
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
 | Reprodutibilidade e containerização | 9,0 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; smoke completo executou como usuário não-root, com Postgres local isolado, health e shutdown limpo. |
-| CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. Falta CodeQL. |
+| CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,0 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. Vercel recebeu smoke E2E autenticado com sucesso. Faltam staging, artefato de imagem e rollback ensaiado. |
 | Observabilidade | 6,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; Render avisa falhas por e-mail e o Vercel expõe métrica básica. Faltam coleta/retenção, métricas completas, tracing, dashboard e monitor externo. |
@@ -53,6 +53,7 @@ actionlint 1.7.10                                    → nove workflows validado
 GitHub Actions supply chain (run 35907832991)         → Dockerfile Trixie, SBOM SPDX e scan de CVE crítico: sucesso
 GitHub Actions Gitleaks (run 35907833023)             → histórico e conteúdo rastreado: sucesso
 GitHub Actions backend (run 35907833242)              → lint, tipos, Alembic, testes e audit: sucesso
+CodeQL (runs 35908489235 e 35909097669)               → análise concluída; upload bloqueado porque code scanning está desativado no repositório
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -168,6 +169,13 @@ críticos; a troca para Debian 13 (Trixie) reduziu-os a três de `perl-base`, e
 `apt-get upgrade` no runtime aplicou a versão corrigida, mantendo o gate
 estrito verde. Falta CodeQL; os pins por SHA devem ser completados nos fluxos
 restantes.
+
+O CodeQL foi configurado e executou a análise de Python, TypeScript,
+workflows e HTML, mas o GitHub recusou o upload do SARIF nos runs
+`35908489235` e `35909097669`: code scanning está desativado no repositório
+privado. O workflow foi removido para não manter um gate permanentemente
+vermelho. Retomar somente após habilitar esse recurso no GitHub e confirmar
+eventual impacto de plano/custo.
 
 ### P2 — contexto e artefatos de entrega
 
