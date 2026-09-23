@@ -7,7 +7,7 @@ services:
     rootDir: backend
     plan: free
     buildCommand: pip install 'uv==0.12.17' && uv sync --frozen
-    startCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uv run sh ./start-server.sh
     healthCheckPath: /health
     autoDeployTrigger: checksPass
     envVars:
@@ -15,3 +15,11 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      - key: NEW_RELIC_LICENSE_KEY
+        sync: false
+      - key: NEW_RELIC_APP_NAME
+        value: SIGEO API
+      - key: NEW_RELIC_LOG
+        value: stdout
+      - key: NEW_RELIC_DISTRIBUTED_TRACING_ENABLED
+        value: "true"

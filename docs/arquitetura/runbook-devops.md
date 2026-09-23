@@ -53,8 +53,18 @@ no GitHub Actions.
 
 ## Observabilidade e recuperação
 
-- Encaminhe logs JSON do Render para um destino com retenção; alerte health,
-  erro, latência e recurso com severidade e responsável definidos.
+- O New Relic é o destino central de APM. No Render, mantenha
+  `NEW_RELIC_LICENSE_KEY` somente como segredo e defina
+  `NEW_RELIC_APP_NAME=SIGEO API`; não versionar nem imprimir a chave. O
+  `start-server.sh` ativa o agente Python apenas quando a chave existe, e o
+  mesmo comando funciona em Docker e no futuro Railway.
+- Depois de cada alteração de instrumentação, confirme no New Relic a entidade
+  APM `SIGEO API`, uma transação HTTP e o health do serviço. Alertas de erro,
+  latência e disponibilidade só são considerados configurados após terem
+  destinatário, severidade e condição documentados no New Relic.
+- Logs JSON do backend continuam no stdout; sua retenção e correlação devem
+  ser configuradas pelo pipeline de logs do provedor, sem enviar corpos,
+  querystrings ou segredos.
 - Objetivo operacional aprovado enquanto o plano atual do Neon for mantido:
   **RPO de até 6 horas** (a janela PITR contratada) e **RTO de até 4 horas**
   para recuperar uma branch isolada e comprovar sua integridade. Isso não é

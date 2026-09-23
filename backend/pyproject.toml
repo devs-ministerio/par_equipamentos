@@ -22,6 +22,7 @@ dependencies = [
     "pandas>=3.0.5",
     "boto3>=1.43.95",
     "slowapi>=0.1.10",
+    "newrelic>=13.6.1",
 ]
 
 [tool.uv]
