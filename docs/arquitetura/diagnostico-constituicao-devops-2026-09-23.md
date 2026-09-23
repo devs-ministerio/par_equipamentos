@@ -21,7 +21,8 @@ publicado também reporta transações, latência e erro ao New Relic como
 `SIGEO API`.
 
 Ainda faltam backup externo/retenção ampliada, logs centralizados com
-retenção, alertas operacionais, artefato promovível/staging e proteção nativa
+retenção, dashboard operacional, monitor externo independente, artefato
+promovível/staging e proteção nativa
 de branch no GitHub. O Neon tem PITR de somente seis horas; RPO/RTO foram
 formalizados e a recuperação isolada foi exercitada, mas a janela continua o
 principal risco operacional.
@@ -32,7 +33,7 @@ principal risco operacional.
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
-| Observabilidade | 8,0 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. Faltam coleta/retenção central de logs, alertas com destinatário e matriz de severidade, dashboard operacional e monitor externo independente. |
+| Observabilidade | 8,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95 e indisponibilidade e um workflow ativo para o e-mail operacional. Faltam coleta/retenção central de logs, dashboard, métricas de recurso, monitor externo independente e teste controlado de entrega. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
@@ -64,6 +65,7 @@ CodeQL (runs 35908489235 e 35909097669)               → análise concluída; u
 GitHub Actions (commit 3306bfa)                       → Varredura de segredos, Backend CI e segurança, SBOM e segurança da imagem: sucesso
 Render (deploy `dep-daq3aanlk1mc73bjl1jg`)            → `uv run sh ./start-server.sh`, health 200 e serviço live
 New Relic                                             → APM `SIGEO API`: transação HTTP, 235 ms, 0% de erro no momento da validação
+New Relic                                             → política `SIGEO — Produção` com três condições e workflow de e-mail ativo
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -107,6 +109,14 @@ serviço e o health check HTTP.
   transação HTTP, 235 ms de resposta e 0% de erro no instante da conferência.
   A entidade transitória `Python Application`, criada antes de definir o nome
   estável, não é usada pela configuração atual.
+- New Relic Alerts: a política `SIGEO — Produção` está ativa com condições
+  críticas de taxa de erro acima de 5% por 5 minutos, latência p95 acima de
+  2 s por 10 minutos e ausência de transações por 10 minutos (inclusive perda
+  de sinal). O workflow `SIGEO — Notificações de Produção` está habilitado,
+  filtrado por essa política e entrega eventos de ciclo de vida ao destino de
+  e-mail operacional. O envio de uma notificação de teste não foi disparado
+  nesta rodada, portanto a entrega ponta a ponta ainda requer validação
+  controlada.
 - Neon: branch `production` é a padrão e oferece PITR, com histórico de seis
   horas. O exercício autorizado de 23/09 criou a branch isolada
   `sigeo-restore-drill-2026-09-23` a partir de 13:37 BRT, com expiração de um
@@ -179,13 +189,16 @@ de ambiente usado tinha valores sintéticos locais e foi apagado.
 ### P1 — observabilidade ainda não cobre logs e resposta operacional
 
 O New Relic APM está efetivamente recebendo a aplicação `SIGEO API`: transação
-HTTP, tempo de resposta e taxa de erro estão confirmados. Os eventos
-estruturados continuam no stdout e o Render envia alertas de falha por e-mail.
-Ainda não há encaminhamento e retenção de logs no New Relic, métricas de
-recurso, tracing ponta a ponta envolvendo frontend e jobs, dashboard,
-monitor externo independente ou alertas com destinatário, condição e
-severidade formalizados. Logs no painel do Render não são suficientes como
-política operacional versionada.
+HTTP, tempo de resposta e taxa de erro estão confirmados. A política
+`SIGEO — Produção` já formaliza três condições críticas (erro, p95 e ausência
+de sinal) e o workflow ativo encaminha seus eventos por e-mail operacional.
+Os eventos estruturados continuam no stdout e o Render envia alertas de falha
+por e-mail. Ainda não há encaminhamento e retenção de logs no New Relic,
+métricas de recurso, tracing ponta a ponta envolvendo frontend e jobs,
+dashboard ou monitor externo independente. Logs no painel do Render não são
+suficientes como política operacional versionada; falta também executar um
+teste controlado de entrega da notificação antes de elevá-la a evidência de
+resposta ponta a ponta.
 
 ### P1 — CI não testa o caminho de banco nem toda a supply chain
 
@@ -224,8 +237,8 @@ manual e pode ser recuperado pelo histórico se necessário.
 - Staging e segredos próprios desse ambiente; proteção nativa de branch e MFA
   dos administradores GitHub/Render/Neon.
 - Encaminhamento/retenção central de logs, métricas de recurso, tracing
-  ponta a ponta, dashboard, monitor externo, alertas e matriz de severidade
-  no New Relic; domínio customizado/TLS e política de preview no Vercel.
+  ponta a ponta, dashboard, monitor externo e teste controlado de entrega no
+  New Relic; domínio customizado/TLS e política de preview no Vercel.
 - Backup externo e retenção PITR maior que seis horas.
 - Permissões de consoles cloud, MFA e trilha de auditoria de deploy.
 

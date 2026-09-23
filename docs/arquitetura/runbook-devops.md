@@ -62,6 +62,14 @@ no GitHub Actions.
   APM `SIGEO API`, uma transação HTTP e o health do serviço. Alertas de erro,
   latência e disponibilidade só são considerados configurados após terem
   destinatário, severidade e condição documentados no New Relic.
+- Configuração vigente em 23/09/2026: a política `SIGEO — Produção` possui
+  condições críticas para taxa de erro acima de 5% por 5 minutos, latência p95
+  acima de 2 s por 10 minutos e menos de uma transação por 10 minutos (com
+  abertura por perda de sinal). O workflow ativo `SIGEO — Notificações de
+  Produção` filtra essa política e encaminha os eventos de ciclo de vida ao
+  destino de e-mail operacional. Antes de declarar a cadeia comprovada,
+  execute uma única notificação de teste aprovada e registre o recebimento;
+  não gere erro ou indisponibilidade reais para esse teste.
 - Logs JSON do backend continuam no stdout; sua retenção e correlação devem
   ser configuradas pelo pipeline de logs do provedor, sem enviar corpos,
   querystrings ou segredos.
