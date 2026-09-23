@@ -1,11 +1,11 @@
-FROM python:3.12.13-slim-bookworm AS builder
+FROM python:3.12.13-slim-trixie AS builder
 WORKDIR /app
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 RUN pip install --no-cache-dir uv==0.12.17
 COPY pyproject.toml uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 
-FROM python:3.12.13-slim-bookworm AS runtime
+FROM python:3.12.13-slim-trixie AS runtime
 ENV VIRTUAL_ENV=/app/.venv PATH="/app/.venv/bin:$PATH" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin sigeo
 WORKDIR /app
