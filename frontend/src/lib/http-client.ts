@@ -14,6 +14,7 @@ import { csrfHeaders } from '@/lib/csrf';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 const HTTP_TIMEOUT_MS = 15_000;
+const MENSAGEM_TIMEOUT_HTTP = `A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`;
 
 /** Sessão via cookie HttpOnly (Plan Mode segurança 2026-09-16, Bloco 2) --
  * não há mais token em `localStorage` pra ler/guardar: o browser manda o
@@ -110,7 +111,7 @@ export async function httpFetch(path: string, init?: RequestInit, opts: Requisit
       });
     } catch (erro) {
       if (controller.signal.aborted) {
-        throw new Error(`A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`);
+        throw new Error(MENSAGEM_TIMEOUT_HTTP);
       }
       throw erro;
     } finally {
@@ -122,7 +123,21 @@ export async function httpFetch(path: string, init?: RequestInit, opts: Requisit
   try {
     res = await executar();
   } catch (e) {
-    throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
+    // Render Free pode estar acordando a instância quando chega a primeira
+    // leitura. Só GET/HEAD são idempotentes: repete uma única vez o timeout
+    // interno, nunca POST/PATCH/DELETE nem abort solicitado pelo chamador.
+    const podeTentarAquecimento = (metodo === 'GET' || metodo === 'HEAD')
+      && e instanceof Error
+      && e.message === MENSAGEM_TIMEOUT_HTTP;
+    if (podeTentarAquecimento) {
+      try {
+        res = await executar();
+      } catch (erroAquecimento) {
+        throw new ApiError(`Falha de rede ao consultar ${path}: ${(erroAquecimento as Error).message}`);
+      }
+    } else {
+      throw new ApiError(`Falha de rede ao consultar ${path}: ${(e as Error).message}`);
+    }
   }
 
   const podeRenovar = !ROTAS_SEM_RENOVACAO.has(path);

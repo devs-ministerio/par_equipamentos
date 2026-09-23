@@ -112,6 +112,11 @@ disponível, o mesmo smoke E2E passou. Para não depender da intervenção do
 usuário no primeiro acesso, é preciso adotar instância sem cold start ou
 implementar retentativa/estado de aquecimento apropriado.
 
+O cliente agora repete uma única vez apenas leituras `GET`/`HEAD` que tenham
+atingido o timeout interno; mutações nunca são repetidas, evitando duplicidade
+de escrita. A medida reduz a fricção do cold start, mas não remove o risco de
+disponibilidade da instância Free.
+
 Como mitigação transitória, o workflow `monitor-render-health.yml` consulta
 `/health` a cada cinco minutos, com retentativas e execução manual. O cron usa
 minutos fora do topo da hora e só passa a executar quando estiver publicado na

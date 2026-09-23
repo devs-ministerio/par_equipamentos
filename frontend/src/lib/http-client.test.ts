@@ -61,6 +61,22 @@ describe('lib/http-client', () => {
     await expect(requisitar('/qualquer', z.object({}), undefined)).rejects.toThrow(/Falha de rede/);
   });
 
+  it('repete uma única leitura após timeout interno para absorver aquecimento do serviço', async () => {
+    fetchMock
+      .mockRejectedValueOnce(new Error('A solicitação excedeu 15 segundos.'))
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+
+    await expect(requisitar('/auth/me', z.object({ ok: z.boolean() }), undefined)).resolves.toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('nunca repete mutação após timeout para não duplicar escrita', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('A solicitação excedeu 15 segundos.'));
+
+    await expect(requisitar('/monitoramento/acoes', z.object({}), { method: 'POST' })).rejects.toThrow(/Falha de rede/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('junta as mensagens de um detail de 422 em ARRAY ({loc,msg,type}) em vez de virar [object Object]', async () => {
     fetchMock.mockImplementation(() =>
       Promise.resolve(
