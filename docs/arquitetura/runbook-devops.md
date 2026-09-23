@@ -20,6 +20,12 @@
    horário e operador.
 3. Se o smoke falhar, retorne a aplicação ao SHA anterior. Não faça downgrade
    automático do banco: siga o plano de restauração aprovado.
+4. O gate `SBOM e segurança da imagem` publica `sigeo-backend-image-<SHA>`
+   por 30 dias, junto do SBOM do mesmo SHA. Antes de qualquer promoção futura,
+   baixe o artefato, execute `docker load` em ambiente isolado e faça
+   `/health`; o Render atual ainda recompila o código e não consome esse
+   artefato diretamente. Não chame esse processo de promoção até haver um
+   registry e staging aprovados.
 
 ## Desenvolvimento com OrbStack
 

@@ -12,7 +12,7 @@ comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 8,6/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+**Conformidade atual: 8,7/10** (ante 3,5/10 em 16/09). O projeto tem CI de
 backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
 serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
 health check real em `/health`. O compose foi validado integralmente no
@@ -28,7 +28,7 @@ isolada foi exercitada, mas a janela continua o principal risco operacional.
 | Reprodutibilidade e containerização | 9,0 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; smoke completo executou como usuário não-root, com Postgres local isolado, health e shutdown limpo. |
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
-| Deploy e rollback | 8,0 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. Vercel recebeu smoke E2E autenticado com sucesso. Faltam staging, artefato de imagem e rollback ensaiado. |
+| Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
 | Observabilidade | 6,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; Render avisa falhas por e-mail e o Vercel expõe métrica básica. Faltam coleta/retenção, métricas completas, tracing, dashboard e monitor externo. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
@@ -53,6 +53,7 @@ Preflight CORS                                       → origem Vercel autorizad
 GitHub Actions monitor (run 35904108197)             → `/health` concluído com sucesso
 actionlint 1.7.10                                    → nove workflows validados localmente; gate usa digest imutável
 GitHub Actions supply chain (run 35907832991)         → Dockerfile Trixie, SBOM SPDX e scan de CVE crítico: sucesso
+GitHub Actions supply chain (run 35911555849)         → imagem `946ac4c`, artefato OCI (259,6 MB), SBOM e scan crítico: sucesso
 GitHub Actions Gitleaks (run 35907833023)             → histórico e conteúdo rastreado: sucesso
 GitHub Actions backend (run 35907833242)              → lint, tipos, Alembic, testes e audit: sucesso
 CodeQL (runs 35908489235 e 35909097669)               → análise concluída; upload bloqueado porque code scanning está desativado no repositório
@@ -123,9 +124,11 @@ exige mudança de plano/custo e deve ser decidido antes de alterar o serviço.
 ### P1 — entrega ainda sem artefato promovível
 
 O Render espera os checks de CI, executa health check e mantém DDL fora do
-boot, mas ainda recompila o código no provedor. O smoke autenticado publicado
-foi aprovado, porém não há imagem por SHA, staging ou rollback ensaiado. A
-mudança de aplicação deve continuar separada de qualquer rollback de schema.
+boot, mas ainda recompila o código no provedor. A CI agora publica imagem e
+SBOM por SHA, com retenção de 30 dias, porém o artefato não é a unidade de
+deploy do Render. O smoke autenticado publicado foi aprovado; ainda faltam
+registry/staging, promoção desse artefato e rollback ensaiado. A mudança de
+aplicação deve continuar separada de qualquer rollback de schema.
 
 ### P1 — primeiro acesso pode exceder o timeout do cliente
 
