@@ -45,7 +45,25 @@ no GitHub Actions.
 
 - Encaminhe logs JSON do Render para um destino com retenção; alerte health,
   erro, latência e recurso com severidade e responsável definidos.
-- Registre RPO/RTO, retenção/PITR Neon e um teste periódico de restauração.
+- Objetivo operacional aprovado enquanto o plano atual do Neon for mantido:
+  **RPO de até 6 horas** (a janela PITR contratada) e **RTO de até 4 horas**
+  para recuperar uma branch isolada e comprovar sua integridade. Isso não é
+  substituto de backup externo nem cobre uma janela maior que o PITR.
+- Para o exercício semestral, registre início, timestamp de recuperação, fim e
+  operador; crie uma branch temporária a partir de um ponto PITR, nunca sobre
+  `production`, com expiração automática de no máximo um dia. Faça somente
+  consultas de leitura nela: conectividade, `alembic_version` e inventário
+  esperado de tabelas. Compare a revisão com `production` e anote qualquer
+  diferença deliberada. A exclusão antecipada da branch de teste requer nova
+  aprovação, pois é uma ação destrutiva.
+- Exercício de 23/09/2026: a branch
+  `sigeo-restore-drill-2026-09-23` foi criada de `production` no ponto
+  13:37 America/Sao_Paulo, validada antes de 16:42 e configurada para expirar
+  em um dia. A revisão Alembic foi `b7e3d9f4a621`, igual à produção, e o
+  inventário funcional foi de 27 tabelas. A branch continha uma tabela extra
+  (`playing_with_neon`) criada pelo exemplo inicial do editor; ela não existe
+  em produção e expira junto da branch. Não houve escrita nem alteração na
+  branch de produção.
 - Não remova snapshots versionados antes de mapear consumidores e aprovar a
   retenção alternativa.
 

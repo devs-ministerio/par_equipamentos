@@ -12,15 +12,16 @@ comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 8,3/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+**Conformidade atual: 8,6/10** (ante 3,5/10 em 16/09). O projeto tem CI de
 backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
 serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
 health check real em `/health`. O compose foi validado integralmente no
 OrbStack, incluindo Postgres isolado, health e encerramento limpo.
 
-Ainda faltam política de retenção, teste de restauração, RPO/RTO formal e
-proteção nativa de branch no GitHub. A janela PITR atual do Neon é somente
-seis horas; esse é o risco operacional principal.
+Ainda faltam backup externo/retenção ampliada, observabilidade centralizada,
+artefato promovível/staging e proteção nativa de branch no GitHub. O Neon tem
+PITR de somente seis horas; RPO/RTO foram formalizados e a recuperação
+isolada foi exercitada, mas a janela continua o principal risco operacional.
 
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
@@ -30,7 +31,7 @@ seis horas; esse é o risco operacional principal.
 | Deploy e rollback | 8,0 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. Vercel recebeu smoke E2E autenticado com sucesso. Faltam staging, artefato de imagem e rollback ensaiado. |
 | Observabilidade | 6,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; Render avisa falhas por e-mail e o Vercel expõe métrica básica. Faltam coleta/retenção, métricas completas, tracing, dashboard e monitor externo. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
-| Recuperação e custo operacional | 5,0 | Neon comprova PITR, mas somente por seis horas; não há RPO/RTO, retenção ampliada ou restore ensaiado. |
+| Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
 ## Evidências executadas
 
@@ -41,6 +42,7 @@ Render (commit c92bf11)                             → deploy live; GET /health
 Render                                               → uv 0.12.17 fixado; Uvicorn sem Alembic no boot
 Render                                               → notificações de falha do serviço ativadas por e-mail
 Neon                                                 → PITR disponível; janela de 6 horas
+Neon (restore drill)                                 → branch isolada de 13:37 BRT; revisão `b7e3d9f4a621` e 27 tabelas funcionais validadas antes de 16:42 BRT
 OrbStack                                             → imagem `sigeo-backend:dev` construída; usuário `sigeo` e health check presentes
 OrbStack (compose `sigeo-devops-smoke`)               → Postgres saudável, `/health` 200 com banco conectado, UID 10001; containers/rede/volume removidos ao final
 Vercel                                               → produção pronta, `master`/`c92bf11`, domínio padrão ativo; 0% de erro em 6 h
@@ -90,7 +92,12 @@ serviço e o health check HTTP.
   `uv==0.12.17`; deploy ocorre após CI; `startCommand` executa somente
   Uvicorn; `healthCheckPath=/health` foi validado com respostas 200.
 - Neon: branch `production` é a padrão e oferece PITR, com histórico de seis
-  horas. Nenhuma restauração foi executada e não houve alteração de plano.
+  horas. O exercício autorizado de 23/09 criou a branch isolada
+  `sigeo-restore-drill-2026-09-23` a partir de 13:37 BRT, com expiração de um
+  dia; a revisão Alembic `b7e3d9f4a621` e 27 tabelas funcionais coincidiram
+  com produção. Nenhuma escrita ocorreu em `production` e não houve alteração
+  de plano. A tabela extra `playing_with_neon` foi um artefato do exemplo do
+  editor SQL na branch temporária, já coberto pela expiração automática.
 - Vercel: projeto `par-equipamentos` publicou `master` no commit `c92bf11`,
   está pronto no domínio padrão e reportou 17 requisições de borda e 0% de
   erro nas últimas seis horas. A variável pública `VITE_API_BASE_URL` foi
@@ -106,11 +113,12 @@ serviço e o health check HTTP.
 
 ## Achados prioritários
 
-### P1 — recuperação ainda insuficiente
+### P1 — recuperação ainda limitada à janela PITR
 
-O Neon confirma apenas seis horas de PITR. Não há RPO/RTO aprovados, backup
-externo, retenção ampliada ou exercício de restauração. Ampliar a janela exige
-mudança de plano/custo e deve ser decidido antes de alterar o serviço.
+O Neon confirma apenas seis horas de PITR. O RPO de até seis horas e o RTO de
+até quatro horas foram aprovados e o restore isolado foi exercitado com
+sucesso, mas não existe backup externo nem retenção ampliada. Ampliar a janela
+exige mudança de plano/custo e deve ser decidido antes de alterar o serviço.
 
 ### P1 — entrega ainda sem artefato promovível
 
@@ -196,8 +204,7 @@ manual e pode ser recuperado pelo histórico se necessário.
   dos administradores GitHub/Render/Neon.
 - Retenção de logs, métricas, tracing, domínio customizado/TLS e política de
   preview no Vercel.
-- Backup externo, retenção PITR maior que seis horas, restauração testada, RPO
-  e RTO aprovados.
+- Backup externo e retenção PITR maior que seis horas.
 - Permissões de consoles cloud, MFA e trilha de auditoria de deploy.
 
 ## Limpeza e contexto
