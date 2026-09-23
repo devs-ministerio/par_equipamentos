@@ -67,9 +67,10 @@ no GitHub Actions.
   acima de 2 s por 10 minutos e menos de uma transação por 10 minutos (com
   abertura por perda de sinal). O workflow ativo `SIGEO — Notificações de
   Produção` filtra essa política e encaminha os eventos de ciclo de vida ao
-  destino de e-mail operacional. Antes de declarar a cadeia comprovada,
-  execute uma única notificação de teste aprovada e registre o recebimento;
-  não gere erro ou indisponibilidade reais para esse teste.
+  destino de e-mail operacional. Em 23/09/2026, uma única notificação de
+  teste aprovada foi enviada pelo canal e recebida na caixa operacional. Em
+  futuras alterações do destino ou da mensagem, repita e registre o teste;
+  não gere erro ou indisponibilidade reais para isso.
 - Logs JSON do backend continuam no stdout; sua retenção e correlação devem
   ser configuradas pelo pipeline de logs do provedor, sem enviar corpos,
   querystrings ou segredos.
