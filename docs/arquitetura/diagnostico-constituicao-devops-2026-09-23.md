@@ -12,19 +12,20 @@ comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 7,6/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+**Conformidade atual: 8,0/10** (ante 3,5/10 em 16/09). O projeto tem CI de
 backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
 serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
-health check real em `/health`.
+health check real em `/health`. O compose foi validado integralmente no
+OrbStack, incluindo Postgres isolado, health e encerramento limpo.
 
-Ainda faltam smoke completo no OrbStack, política de retenção, teste de
-restauração, RPO/RTO formal e proteção nativa de branch no GitHub. A janela
-PITR atual do Neon é somente seis horas; esse é o risco operacional principal.
+Ainda faltam política de retenção, teste de restauração, RPO/RTO formal e
+proteção nativa de branch no GitHub. A janela PITR atual do Neon é somente
+seis horas; esse é o risco operacional principal.
 
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
-| Reprodutibilidade e containerização | 7,5 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; imagem foi construída no OrbStack como usuário não-root com health check. Falta smoke com Postgres local isolado. |
-| CI e supply chain | 8,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit. Ainda faltam CodeQL, secret scan, SBOM e scan de imagem. |
+| Reprodutibilidade e containerização | 9,0 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; smoke completo executou como usuário não-root, com Postgres local isolado, health e shutdown limpo. |
+| CI e supply chain | 8,5 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint` passa e virou gate com imagem por digest. Ainda faltam CodeQL, secret scan, SBOM e scan de imagem. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,0 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. Vercel recebeu smoke E2E autenticado com sucesso. Faltam staging, artefato de imagem e rollback ensaiado. |
 | Observabilidade | 6,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; Render avisa falhas por e-mail e o Vercel expõe métrica básica. Faltam coleta/retenção, métricas completas, tracing, dashboard e monitor externo. |
@@ -41,30 +42,36 @@ Render                                               → uv 0.12.17 fixado; Uvic
 Render                                               → notificações de falha do serviço ativadas por e-mail
 Neon                                                 → PITR disponível; janela de 6 horas
 OrbStack                                             → imagem `sigeo-backend:dev` construída; usuário `sigeo` e health check presentes
+OrbStack (compose `sigeo-devops-smoke`)               → Postgres saudável, `/health` 200 com banco conectado, UID 10001; containers/rede/volume removidos ao final
 Vercel                                               → produção pronta, `master`/`c92bf11`, domínio padrão ativo; 0% de erro em 6 h
 Vercel                                               → redeploy `26RKeA7N` pronto com `VITE_API_BASE_URL` em Production/Preview
+Vercel                                               → deploy `85bAN8ZzHMhA9oHfncmRnoKuVG18` pronto a partir de `master`/`1b4f9af`
 E2E publicado                                        → login aprovado; rota protegida carregou 560 instrumentos
 Preflight CORS                                       → origem Vercel autorizada, credenciais e métodos esperados
 GitHub Actions monitor (run 35904108197)             → `/health` concluído com sucesso
+actionlint 1.7.10                                    → sete workflows validados localmente; gate usa digest imutável
 ```
 
-Os YAMLs são parseáveis. `actionlint` e Render CLI continuam ausentes para a
-validação semântica local completa; a execução real no Render confirmou o
-Blueprint aplicado no serviço e o health check HTTP.
+Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
+continua ausente; a execução real no Render confirmou o Blueprint aplicado no
+serviço e o health check HTTP.
 
 ## Avanços desde 16/09
 
 - `.github/workflows/backend_ci.yml` executa `uv sync --frozen`, Ruff, mypy,
   pytest e `pip-audit`; `frontend_ci.yml` executa `npm ci`, audit, lint,
-  typecheck, testes e build em push/PR.
+  typecheck, testes e build em push/PR. Ambos usam permissões mínimas,
+  concorrência por ref e actions fixadas por SHA.
+- `workflow_lint.yml` valida sintaxe e semântica dos workflows em push/PR que
+  os alterem, com `actionlint` fixado por digest OCI.
 - `render.yaml` não executa mais Alembic no `startCommand`; os workflows de
   pipelines e Radar também não executam DDL. `migrar_banco.yml` é o único
   fluxo versionado que chama `alembic upgrade head`.
 - O backend tem `/health` com conectividade real ao Postgres, cabeçalhos de
   segurança e middleware que devolve/propaga `X-Trace-Id` e emite eventos JSON
   de request e chamadas externas, sem querystring ou corpo sensível.
-- `backend_ci.yml` fixa `actions/checkout` e `setup-uv` por SHA e define
-  `permissions: read-all`; frontend CI também restringe permissões.
+- `backend_ci.yml` fixa `actions/checkout` e `setup-uv` por SHA; o frontend
+  também fixa `checkout` e `setup-node` e ambos restringem permissões.
 
 ## Evidência externa confirmada em 23/09
 
@@ -82,8 +89,9 @@ Blueprint aplicado no serviço e o health check HTTP.
   erro nas últimas seis horas. A variável pública `VITE_API_BASE_URL` foi
   corrigida (antes registrada indevidamente como segredo), passou a apontar
   para a API Render em Production/Preview, e o redeploy `26RKeA7N` ficou
-  pronto. Analytics ainda não está ativado; alertas de anomalia exigem plano
-  pago.
+  pronto. O deploy posterior `85bAN8ZzHMhA9oHfncmRnoKuVG18`, originado em
+  `master`/`1b4f9af`, também ficou pronto. Analytics ainda não está ativado;
+  alertas de anomalia exigem plano pago.
 - Smoke E2E: o login no domínio publicado foi aprovado e a rota protegida
   carregou a listagem de 560 instrumentos. O preflight da API retornou origem
   Vercel, credenciais, métodos e cabeçalhos esperados. O `CORS_ORIGINS` já
@@ -100,9 +108,9 @@ mudança de plano/custo e deve ser decidido antes de alterar o serviço.
 ### P1 — entrega ainda sem artefato promovível
 
 O Render espera os checks de CI, executa health check e mantém DDL fora do
-boot, mas ainda recompila o código no provedor. Não há imagem por SHA,
-staging, smoke test autenticado ou rollback ensaiado. A mudança de aplicação
-deve continuar separada de qualquer rollback de schema.
+boot, mas ainda recompila o código no provedor. O smoke autenticado publicado
+foi aprovado, porém não há imagem por SHA, staging ou rollback ensaiado. A
+mudança de aplicação deve continuar separada de qualquer rollback de schema.
 
 ### P1 — primeiro acesso pode exceder o timeout do cliente
 
@@ -125,13 +133,15 @@ mas não constitui garantia: o GitHub pode atrasar jobs agendados e o Render
 continua podendo reiniciar a instância. A primeira execução manual publicada
 (`35904108197`) concluiu com sucesso.
 
-### P2 — container local aguarda smoke com Postgres
+### Resolvido — container local validado com Postgres isolado
 
 Dockerfile multi-stage, usuário não-root, `.dockerignore`, compose e exemplo
-de ambiente OrbStack foram criados. A imagem `sigeo-backend:dev` foi construída
-e expõe health check. A tentativa de smoke isolado com Postgres não gerou
-estado consultável no Docker CLI, apesar do OrbStack estar ativo; portanto o
-smoke e o desligamento continuam sem evidência de aprovação.
+de ambiente OrbStack foram criados. Em 23/09, o compose temporário
+`sigeo-devops-smoke` subiu com Postgres saudável; a API respondeu
+`{"status":"ok","database":"connected"}` em `/health` e seu processo
+rodou como UID `10001`/usuário `sigeo`. Ao final, containers, rede e volume
+desse projeto foram removidos, confirmando também o shutdown limpo. O arquivo
+de ambiente usado tinha valores sintéticos locais e foi apagado.
 
 ### P1 — observabilidade termina no stdout da aplicação
 

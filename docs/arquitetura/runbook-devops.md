@@ -28,6 +28,18 @@
 2. Use `docker compose up --build`; o Docker CLI é servido pelo OrbStack.
 3. Aplique migrations localmente com a URL do Postgres do compose antes de
    testar rotas dependentes de schema; valide `http://localhost:8000/health`.
+4. Para um smoke descartável, use um project name isolado (por exemplo,
+   `docker compose -p sigeo-devops-smoke up --build --detach`), confira
+   `docker compose -p sigeo-devops-smoke ps`, `/health` e o usuário `sigeo`.
+   Finalize com `docker compose -p sigeo-devops-smoke down --volumes` para não
+   preservar dados locais de validação.
+
+## Validação de workflows
+
+`Validar workflows` executa `actionlint` em toda alteração de
+`.github/workflows/`, com imagem OCI fixada por digest. Antes de publicar
+mudanças nos workflows, rode o mesmo comando do job ou confirme o gate verde
+no GitHub Actions.
 
 ## Observabilidade e recuperação
 
