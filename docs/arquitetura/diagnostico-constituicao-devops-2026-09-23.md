@@ -45,6 +45,7 @@ Vercel                                               → produção pronta, `mas
 Vercel                                               → redeploy `26RKeA7N` pronto com `VITE_API_BASE_URL` em Production/Preview
 E2E publicado                                        → login aprovado; rota protegida carregou 560 instrumentos
 Preflight CORS                                       → origem Vercel autorizada, credenciais e métodos esperados
+GitHub Actions monitor (run 35904108197)             → `/health` concluído com sucesso
 ```
 
 Os YAMLs são parseáveis. `actionlint` e Render CLI continuam ausentes para a
@@ -116,7 +117,8 @@ Como mitigação transitória, o workflow `monitor-render-health.yml` consulta
 minutos fora do topo da hora e só passa a executar quando estiver publicado na
 branch padrão. Ele reduz cold starts enquanto a API permanecer no Render Free,
 mas não constitui garantia: o GitHub pode atrasar jobs agendados e o Render
-continua podendo reiniciar a instância.
+continua podendo reiniciar a instância. A primeira execução manual publicada
+(`35904108197`) concluiu com sucesso.
 
 ### P2 — container local aguarda smoke com Postgres
 
