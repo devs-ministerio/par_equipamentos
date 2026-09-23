@@ -7,6 +7,9 @@ RUN uv sync --locked --no-dev --no-install-project
 
 FROM python:3.12.13-slim-trixie AS runtime
 ENV VIRTUAL_ENV=/app/.venv PATH="/app/.venv/bin:$PATH" PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+RUN apt-get update \
+    && apt-get upgrade --yes \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin sigeo
 WORKDIR /app
 COPY --from=builder --chown=sigeo:sigeo /app/.venv /app/.venv
