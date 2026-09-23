@@ -71,6 +71,11 @@ no GitHub Actions.
   teste aprovada foi enviada pelo canal e recebida na caixa operacional. Em
   futuras alterações do destino ou da mensagem, repita e registre o teste;
   não gere erro ou indisponibilidade reais para isso.
+- O dashboard `SIGEO — Operação de Produção` acompanha a latência p95 em
+  série temporal e a taxa de erro da `SIGEO API` na janela selecionada. Use-o
+  como ponto de partida para incidentes: confirme o alerta, filtre o período,
+  abra APM/Traces e só então consulte os logs do Render. Ele não substitui
+  monitor externo nem centralização de logs.
 - Logs JSON do backend continuam no stdout; sua retenção e correlação devem
   ser configuradas pelo pipeline de logs do provedor, sem enviar corpos,
   querystrings ou segredos.

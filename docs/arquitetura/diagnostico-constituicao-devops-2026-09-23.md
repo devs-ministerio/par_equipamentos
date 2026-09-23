@@ -33,7 +33,7 @@ principal risco operacional.
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
-| Observabilidade | 8,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95 e indisponibilidade e workflow de e-mail com envio e recebimento de teste confirmados. Faltam coleta/retenção central de logs, dashboard, métricas de recurso e monitor externo independente. |
+| Observabilidade | 8,7 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95 e indisponibilidade e workflow de e-mail com envio e recebimento de teste confirmados. O dashboard operacional expõe p95 e taxa de erro. Faltam coleta/retenção central de logs, métricas de recurso e monitor externo independente. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
@@ -66,6 +66,7 @@ GitHub Actions (commit 3306bfa)                       → Varredura de segredos,
 Render (deploy `dep-daq3aanlk1mc73bjl1jg`)            → `uv run sh ./start-server.sh`, health 200 e serviço live
 New Relic                                             → APM `SIGEO API`: transação HTTP, 235 ms, 0% de erro no momento da validação
 New Relic e Gmail                                      → política com três condições; teste de e-mail enviado e recebido
+New Relic                                              → dashboard `SIGEO — Operação de Produção`: p95 e taxa de erro da API
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -117,6 +118,11 @@ serviço e o health check HTTP.
   e-mail operacional. Um teste direto do canal foi enviado com sucesso e
   recebido na caixa de entrada operacional, validando a entrega ponta a ponta
   sem provocar incidente real na API.
+- New Relic Dashboard: `SIGEO — Operação de Produção` foi criado para a
+  conta do projeto. Ele consulta `Transaction` filtrado por
+  `appName = 'SIGEO API'` e exibe latência p95 em série temporal e taxa de
+  erro em painel numérico. As duas consultas executaram com dados da aplicação
+  antes de serem salvas no dashboard.
 - Neon: branch `production` é a padrão e oferece PITR, com histórico de seis
   horas. O exercício autorizado de 23/09 criou a branch isolada
   `sigeo-restore-drill-2026-09-23` a partir de 13:37 BRT, com expiração de um
@@ -194,8 +200,9 @@ HTTP, tempo de resposta e taxa de erro estão confirmados. A política
 de sinal) e o workflow ativo encaminha seus eventos por e-mail operacional.
 Os eventos estruturados continuam no stdout e o Render envia alertas de falha
 por e-mail. Ainda não há encaminhamento e retenção de logs no New Relic,
-métricas de recurso, tracing ponta a ponta envolvendo frontend e jobs,
-dashboard ou monitor externo independente. Logs no painel do Render não são
+métricas de recurso, tracing ponta a ponta envolvendo frontend e jobs ou
+monitor externo independente. O dashboard operacional agora expõe p95 e taxa
+de erro da API. Logs no painel do Render não são
 suficientes como política operacional versionada. O teste controlado de
 entrega foi concluído, sem gerar erro ou indisponibilidade real na API.
 
@@ -236,7 +243,7 @@ manual e pode ser recuperado pelo histórico se necessário.
 - Staging e segredos próprios desse ambiente; proteção nativa de branch e MFA
   dos administradores GitHub/Render/Neon.
 - Encaminhamento/retenção central de logs, métricas de recurso, tracing
-  ponta a ponta, dashboard e monitor externo no New Relic; domínio
+  ponta a ponta e monitor externo no New Relic; domínio
   customizado/TLS e política de preview no Vercel.
 - Backup externo e retenção PITR maior que seis horas.
 - Permissões de consoles cloud, MFA e trilha de auditoria de deploy.
