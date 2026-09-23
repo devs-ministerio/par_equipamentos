@@ -32,7 +32,7 @@ principal risco operacional.
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
-| Observabilidade | 8,9 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional, e o monitor externo Ping consulta `/health` a cada 5 min com TLS validado. Faltam política explícita de retenção, métricas de recurso, tracing fim a fim e redundância de localização. |
+| Observabilidade | 9,0 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. O monitor externo Ping consulta `/health` a cada 5 min com TLS validado. Faltam política explícita de retenção, métricas de recurso, tracing fim a fim e redundância de localização. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
@@ -92,7 +92,10 @@ serviço e o health check HTTP.
   fluxo versionado que chama `alembic upgrade head`.
 - O backend tem `/health` com conectividade real ao Postgres, cabeçalhos de
   segurança e middleware que devolve/propaga `X-Trace-Id` e emite eventos JSON
-  de request e chamadas externas, sem querystring ou corpo sensível.
+  de request e chamadas externas, sem querystring ou corpo sensível. O access
+  log cru do Uvicorn está desativado no boot para que IP e request line não
+  alcancem o encaminhamento centralizado; o teste de observabilidade bloqueia
+  regressão de querystring em evento HTTP.
 - `backend_ci.yml` fixa `actions/checkout` e `setup-uv` por SHA; o frontend
   também fixa `checkout` e `setup-node` e ambos restringem permissões.
 

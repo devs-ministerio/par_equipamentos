@@ -77,11 +77,15 @@ no GitHub Actions.
   como ponto de partida para incidentes: confirme o alerta, filtre o período,
   abra APM/Traces e só então consulte os logs do Render. Ele não substitui
   monitor externo nem centralização de logs.
-- Os logs JSON do backend continuam no stdout e são encaminhados pelo agente
-  New Relic quando `NEW_RELIC_APPLICATION_LOGGING_ENABLED=true` e
+- Os logs JSON sanitizados do backend continuam no stdout e são encaminhados
+  pelo agente New Relic quando `NEW_RELIC_APPLICATION_LOGGING_ENABLED=true` e
   `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true` estão ativos no
   provedor. O limite é de 1.000 amostras por minuto; não habilite atributos de
-  contexto nem envie corpos, querystrings ou segredos.
+  contexto adicionais. O `start-server.sh` usa `uvicorn --no-access-log`: o
+  access log padrão carregaria IP e request line bruta (inclusive querystring)
+  para o coletor. A única telemetria HTTP encaminhada é o evento
+  `sigeo.http`, que contém método, caminho sem querystring, status, duração e
+  `trace_id` aleatório — nunca corpo, cabeçalhos, usuário ou token.
 - Objetivo operacional aprovado enquanto o plano atual do Neon for mantido:
   **RPO de até 6 horas** (a janela PITR contratada) e **RTO de até 4 horas**
   para recuperar uma branch isolada e comprovar sua integridade. Isso não é
