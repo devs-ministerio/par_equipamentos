@@ -36,3 +36,15 @@
 - Registre RPO/RTO, retenção/PITR Neon e um teste periódico de restauração.
 - Não remova snapshots versionados antes de mapear consumidores e aprovar a
   retenção alternativa.
+
+## Mitigação transitória do Render Free
+
+Enquanto a API estiver no plano Free, `Monitorar saúde do Render` chama o
+endpoint público `/health` a cada cinco minutos, fora do minuto cheio. Isso
+reduz cold starts, mas não é garantia de disponibilidade: agendamentos do
+GitHub podem atrasar e a instância Free pode reiniciar. O workflow tem execução
+manual, timeout e retentativas; uma falha fica visível no histórico de Actions.
+
+Remover esse workflow ao migrar a API para Railway ou para uma instância sempre
+ativa. O monitor é provisório e não substitui monitor externo, alertas, RPO/RTO
+ou política de recuperação.

@@ -5,53 +5,51 @@
 Esta rodada compara a infraestrutura versionada com
 `padroes/devops/constituicao_devops.md` e sucede o diagnóstico de 16/09.
 Foram revisados workflows, configuração Render/Vercel, health, logs, lockfiles,
-segredos declarados, artefatos e comandos que a CI promete executar. Não foram
-acessados painéis de GitHub, Render, Vercel ou Neon: configuração externa sem
-evidência no repositório é **não comprovada**, não presumidamente inexistente.
+segredos declarados, artefatos e comandos que a CI promete executar. A
+revalidação de execução acessou GitHub, Render, Neon e Vercel em 23/09.
+Configuração externa sem evidência continua **não
+comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 6,3/10** (ante 3,5/10 em 16/09). O projeto deixou de
-estar sem gates: CI de backend e frontend foi versionada, as migrations saíram
-do boot e dos jobs de dados, existe uma credencial específica de migration por
-convenção, e a API passou a emitir logs JSON com `trace_id` e duração.
+**Conformidade atual: 7,6/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
+serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
+health check real em `/health`.
 
-Ainda não há uma cadeia de entrega protegida até produção: não existe
-containerização, CD versionado, environment de produção, promoção de artefato,
-smoke test, rollback ou observabilidade operacional completa. O risco mais
-importante continua sendo aplicar DDL ou rodar jobs contra Neon a partir de uma
-ref manual sem aprovação, serialização, timeout ou evidência de backup.
+Ainda faltam smoke completo no OrbStack, política de retenção, teste de
+restauração, RPO/RTO formal e proteção nativa de branch no GitHub. A janela
+PITR atual do Neon é somente seis horas; esse é o risco operacional principal.
 
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
-| Reprodutibilidade e containerização | 2,0 | Lockfiles existem, mas não há Dockerfile, `.dockerignore`, compose ou imagem rastreável. OrbStack está instalado localmente, porém parado; nenhum build de imagem foi executado nesta rodada. |
-| CI e supply chain | 7,0 | CI separada para backend/frontend, cache npm, lockfiles e audit de dependências. Backend fixa actions por SHA; workflows restantes ainda usam tags/`latest`, não há CodeQL, secret scan, SBOM ou scan de imagem. |
-| Migration e jobs de dados | 5,5 | Migration está isolada do boot e dos jobs DML, mas o workflow manual ainda não usa environment, timeout, concurrency, ref restrita, backup ou falha explícita se faltar segredo. |
-| Deploy e rollback | 3,0 | Render/Vercel são configurados em parte, mas não há CD, aprovação, artefato por SHA, staging, smoke test ou runbook/rollback comprovado. |
-| Observabilidade | 6,0 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; faltam coleta/retenção comprovadas, métricas, tracing distribuído, dashboard e alertas. |
-| Segurança de infraestrutura | 6,8 | `.env` é ignorado, candidatos a segredos rastreados não foram encontrados e CI de aplicação usa `permissions: read-all`; faltam environments, separação comprovada de secrets, scan de imagem e hardening completo de supply chain. |
-| Recuperação e custo operacional | 3,5 | Não há RPO/RTO, backup/PITR, restore testado ou política de retenção versionados. Há snapshots grandes rastreados, sem política de redução/retenção. |
+| Reprodutibilidade e containerização | 7,5 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; imagem foi construída no OrbStack como usuário não-root com health check. Falta smoke com Postgres local isolado. |
+| CI e supply chain | 8,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit. Ainda faltam CodeQL, secret scan, SBOM e scan de imagem. |
+| Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
+| Deploy e rollback | 8,0 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. Vercel recebeu smoke E2E autenticado com sucesso. Faltam staging, artefato de imagem e rollback ensaiado. |
+| Observabilidade | 6,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; Render avisa falhas por e-mail e o Vercel expõe métrica básica. Faltam coleta/retenção, métricas completas, tracing, dashboard e monitor externo. |
+| Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
+| Recuperação e custo operacional | 5,0 | Neon comprova PITR, mas somente por seis horas; não há RPO/RTO, retenção ampliada ou restore ensaiado. |
 
 ## Evidências executadas
 
 ```text
-YAML dos 5 workflows e render.yaml                  → sintaxe válida
-backend: ruff check .                               → passou
-backend: mypy .                                     → passou (175 fontes; 2 avisos de funções de teste não tipadas)
-backend: pytest -q                                  → 194 testes descobertos; testes que exigem TEST_DATABASE_URL seguem pulados sem PostgreSQL dedicado
-frontend: lint + typecheck + test + build           → passou (21 arquivos, 78 testes)
-busca de segredo em arquivos rastreados             → 0 candidatos encontrados
-Dockerfile/.dockerignore/compose/deploy workflow    → ausentes
-OrbStack                                            → instalado, parado
+YAML dos workflows e render.yaml                     → sintaxe válida
+GitHub Actions (commit c92bf11)                     → Frontend CI e Backend CI e segurança: sucesso
+Render (commit c92bf11)                             → deploy live; GET /health: 200
+Render                                               → uv 0.12.17 fixado; Uvicorn sem Alembic no boot
+Render                                               → notificações de falha do serviço ativadas por e-mail
+Neon                                                 → PITR disponível; janela de 6 horas
+OrbStack                                             → imagem `sigeo-backend:dev` construída; usuário `sigeo` e health check presentes
+Vercel                                               → produção pronta, `master`/`c92bf11`, domínio padrão ativo; 0% de erro em 6 h
+Vercel                                               → redeploy `26RKeA7N` pronto com `VITE_API_BASE_URL` em Production/Preview
+E2E publicado                                        → login aprovado; rota protegida carregou 560 instrumentos
+Preflight CORS                                       → origem Vercel autorizada, credenciais e métodos esperados
 ```
 
-Os cinco YAMLs são parseáveis. A validação semântica completa de GitHub Actions
-(`actionlint`) e de Blueprint Render não foi executada: `actionlint` e Render
-CLI não estão instalados neste ambiente. A documentação oficial do Render
-confirma que `healthCheckPath` é a forma declarativa de ativar a verificação
-HTTP de prontidão; o arquivo atual não o declara. [Render Blueprint]
-(https://render.com/docs/blueprint-spec) e [health checks]
-(https://render.com/docs/health-checks).
+Os YAMLs são parseáveis. `actionlint` e Render CLI continuam ausentes para a
+validação semântica local completa; a execução real no Render confirmou o
+Blueprint aplicado no serviço e o health check HTTP.
 
 ## Avanços desde 16/09
 
@@ -67,60 +65,80 @@ HTTP de prontidão; o arquivo atual não o declara. [Render Blueprint]
 - `backend_ci.yml` fixa `actions/checkout` e `setup-uv` por SHA e define
   `permissions: read-all`; frontend CI também restringe permissões.
 
+## Evidência externa confirmada em 23/09
+
+- GitHub: environment `Production` com deploy exclusivo de `master`, sem
+  bypass administrativo; segredos `DATABASE_URL` e `DATABASE_URL_MIGRATION`
+  cadastrados. A proteção nativa de branch não pôde ser habilitada no plano
+  atual do repositório privado.
+- Render: `JWT_SECRET` foi cadastrado como segredo; build fixado em
+  `uv==0.12.17`; deploy ocorre após CI; `startCommand` executa somente
+  Uvicorn; `healthCheckPath=/health` foi validado com respostas 200.
+- Neon: branch `production` é a padrão e oferece PITR, com histórico de seis
+  horas. Nenhuma restauração foi executada e não houve alteração de plano.
+- Vercel: projeto `par-equipamentos` publicou `master` no commit `c92bf11`,
+  está pronto no domínio padrão e reportou 17 requisições de borda e 0% de
+  erro nas últimas seis horas. A variável pública `VITE_API_BASE_URL` foi
+  corrigida (antes registrada indevidamente como segredo), passou a apontar
+  para a API Render em Production/Preview, e o redeploy `26RKeA7N` ficou
+  pronto. Analytics ainda não está ativado; alertas de anomalia exigem plano
+  pago.
+- Smoke E2E: o login no domínio publicado foi aprovado e a rota protegida
+  carregou a listagem de 560 instrumentos. O preflight da API retornou origem
+  Vercel, credenciais, métodos e cabeçalhos esperados. O `CORS_ORIGINS` já
+  continha a origem de produção e foi preservado, sem sobrescrever o preview.
+
 ## Achados prioritários
 
-### P0 — operação de banco sem proteção de ambiente
+### P1 — recuperação ainda insuficiente
 
-`migrar_banco.yml`, `pipelines.yml` e `radar_convenios.yml` não têm
-`environment`, `concurrency` ou `timeout-minutes`. A ausência de
-`DATABASE_URL`/`DATABASE_URL_MIGRATION` faz os passos seguintes serem pulados e
-o job pode terminar verde. Como `workflow_dispatch` aceita a ref selecionada
-pelo operador, uma revisão não integrada pode atingir o banco compartilhado.
+O Neon confirma apenas seis horas de PITR. Não há RPO/RTO aprovados, backup
+externo, retenção ampliada ou exercício de restauração. Ampliar a janela exige
+mudança de plano/custo e deve ser decidido antes de alterar o serviço.
 
-**Correção requerida:** ambiente GitHub `production` com reviewers e branch
-principal restrita; segredos por ambiente; falha explícita quando o segredo não
-existir; grupo de concorrência único para migrations e grupos próprios para
-pipelines/Radar; timeout calibrado; checkout explícito de `master` para ações
-contra produção. GitHub documenta que `concurrency` serializa execuções e que
-environment protections bloqueiam o job antes do runner. [Documentação GitHub]
-(https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+### P1 — entrega ainda sem artefato promovível
 
-### P0 — deploy não é consequência comprovada de CI
+O Render espera os checks de CI, executa health check e mantém DDL fora do
+boot, mas ainda recompila o código no provedor. Não há imagem por SHA,
+staging, smoke test autenticado ou rollback ensaiado. A mudança de aplicação
+deve continuar separada de qualquer rollback de schema.
 
-Não existe workflow de CD, environment, promoção de artefato/imagem por SHA ou
-smoke test pós-deploy. `render.yaml` não fixa `autoDeployTrigger: checksPass`
-nem `healthCheckPath: /health`; para serviços novos, o padrão documentado pelo
-Render é deploy a cada commit quando esse campo é omitido. Em serviço já
-existente, o valor efetivo só pode ser confirmado no painel.
+### P1 — primeiro acesso pode exceder o timeout do cliente
 
-**Correção requerida:** declarar deploy após CI, com aprovação de produção,
-artefato rastreável, health/smoke test e rollback ao SHA anterior. Não acoplar
-migration destrutiva ao rollback de aplicação.
+O serviço Free do Render precisou acordar e excedeu os 15 segundos definidos
+no cliente HTTP; o frontend exibiu a ação de tentar novamente. Após a API ficar
+disponível, o mesmo smoke E2E passou. Para não depender da intervenção do
+usuário no primeiro acesso, é preciso adotar instância sem cold start ou
+implementar retentativa/estado de aquecimento apropriado.
 
-### P1 — ausência de containerização reproduzível
+Como mitigação transitória, o workflow `monitor-render-health.yml` consulta
+`/health` a cada cinco minutos, com retentativas e execução manual. O cron usa
+minutos fora do topo da hora e só passa a executar quando estiver publicado na
+branch padrão. Ele reduz cold starts enquanto a API permanecer no Render Free,
+mas não constitui garantia: o GitHub pode atrasar jobs agendados e o Render
+continua podendo reiniciar a instância.
 
-Não há Dockerfile, `.dockerignore` ou compose. O backend nativo instala `uv`
-via `pip install uv` no build do Render, sem versão fixada no blueprint. Isso
-impede validar a imagem, usuário não-root e health check pelo mecanismo exigido
-na constituição. OrbStack deve ser o runtime local para essa etapa, conforme a
-decisão do projeto; não iniciar ou migrar o deploy para Docker sem plan-mode
-aprovado.
+### P2 — container local aguarda smoke com Postgres
+
+Dockerfile multi-stage, usuário não-root, `.dockerignore`, compose e exemplo
+de ambiente OrbStack foram criados. A imagem `sigeo-backend:dev` foi construída
+e expõe health check. A tentativa de smoke isolado com Postgres não gerou
+estado consultável no Docker CLI, apesar do OrbStack estar ativo; portanto o
+smoke e o desligamento continuam sem evidência de aprovação.
 
 ### P1 — observabilidade termina no stdout da aplicação
 
-Os eventos estruturados são um avanço real, mas não há coletor, retenção,
-métricas p50/p95/p99, uso de recurso, tracing entre frontend/backend/jobs,
-dashboard, monitor externo ou alerta com destino e severidade. Logs no painel
-do Render podem existir, mas não são comprovados nem suficientes como política
-operacional versionada.
+Os eventos estruturados são um avanço real e o Render agora envia alertas de
+falha por e-mail. Ainda não há coletor, retenção, métricas p50/p95/p99, uso de
+recurso, tracing entre frontend/backend/jobs, dashboard, monitor externo ou
+matriz de severidade. Logs no painel do Render não são suficientes como
+política operacional versionada.
 
 ### P1 — CI não testa o caminho de banco nem toda a supply chain
 
-Backend CI não provisiona PostgreSQL nem `TEST_DATABASE_URL`, logo a parcela de
-testes de integração/migrations marcada como dependente de banco permanece
-pulada. Não há cache explícito de `uv`, CodeQL, secret scan, SBOM ou scan de
-imagem. `frontend_ci.yml`, migration e jobs operacionais usam actions por tag
-ou `latest`, em contraste com o pin por SHA já aplicado no backend.
+Backend CI agora provisiona PostgreSQL e executa Alembic/testes nesse caminho.
+Ainda faltam CodeQL, secret scan, SBOM e scan de imagem; os pins por SHA devem
+ser completados no frontend e nos fluxos restantes.
 
 ### P2 — contexto e artefatos de entrega
 
@@ -132,12 +150,12 @@ rodada porque há consumidores e valor de auditoria a confirmar.
 
 ## Itens não comprovados externamente
 
-- Segredos distintos para desenvolvimento, staging e produção; reviewers e
-  branch protection de GitHub; configuração real de `JWT_SECRET` e
-  `CORS_ORIGINS` no Render.
-- `autoDeployTrigger`, health check, logs/retenção, alertas e rollback no
-  Render; domínio/TLS e deploy/preview no Vercel.
-- Plano Neon, PITR, backup, retenção, restauração testada, RPO e RTO.
+- Staging e segredos próprios desse ambiente; proteção nativa de branch e MFA
+  dos administradores GitHub/Render/Neon.
+- Retenção de logs, métricas, tracing, domínio customizado/TLS e política de
+  preview no Vercel.
+- Backup externo, retenção PITR maior que seis horas, restauração testada, RPO
+  e RTO aprovados.
 - Permissões de consoles cloud, MFA e trilha de auditoria de deploy.
 
 ## Limpeza e contexto
@@ -165,5 +183,6 @@ estratégia de rollout e rollback antes de qualquer alteração.
 - [x] Gates locais disponíveis executados e resultado registrado.
 - [x] Arquivos/comentários potencialmente mortos identificados sem remoção
   insegura.
-- [ ] Painéis e ambientes externos auditados com acesso apropriado.
-- [ ] Infraestrutura corrigida por plan-mode próprio aprovado.
+- [x] GitHub, Render e Neon auditados com acesso apropriado.
+- [x] Blocos de CI, jobs produtivos, containerização declarativa e deploy
+  seguro executados; pendências de custo e observabilidade registradas.
