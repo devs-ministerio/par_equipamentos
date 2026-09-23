@@ -29,7 +29,7 @@ no final e imprime o que seria feito.
 """
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.db.base import SessionLocal
 from app.db.models import AcaoMonitoramento, Convenio, EventoMarco, InstrumentoEquipamento
@@ -40,11 +40,14 @@ PREFIXOS = {"FAF": "FAF", "TED": "TED", "PERSUS I": "PERSUS1", "PERSUS II": "PER
 
 
 def _espelhar(*, db, instrumento: InstrumentoEquipamento, numero: str, chave_origem: str) -> Convenio:
+    tipo_contratacao = instrumento.tipo_contratacao
+    if tipo_contratacao is None:
+        raise ValueError("Instrumento sem tipo_contratacao não pode ser espelhado.")
     return espelhar_convenio(
         db,
         numero=numero,
         chave_origem=chave_origem,
-        tipo_contratacao=instrumento.tipo_contratacao,
+        tipo_contratacao=tipo_contratacao,
         tipologia=instrumento.tipologia,
         origem_dado=instrumento.origem_dado,
         nome_convenente=instrumento.nome_convenente,
@@ -82,8 +85,11 @@ def executar(*, dry_run: bool) -> dict[str, int]:
         ).scalars().all()
 
         for inst in instrumentos:
-            fica_no_monitoramento = inst.tipo_contratacao in ("FAF", "TED") or (
-                inst.tipo_contratacao == "PERSUS I" and inst.situacao_programa != "Inaugurada"
+            tipo_contratacao = inst.tipo_contratacao
+            if tipo_contratacao not in PREFIXOS:
+                continue
+            fica_no_monitoramento = tipo_contratacao in ("FAF", "TED") or (
+                tipo_contratacao == "PERSUS I" and inst.situacao_programa != "Inaugurada"
             )
 
             if inst.chave_origem is not None:
@@ -95,20 +101,20 @@ def executar(*, dry_run: bool) -> dict[str, int]:
                 continue
 
             chave_origem = inst.nr_convenio  # identificador antigo (NUP SEI/PERSUSx-CNES), preservado só pra upsert
-            novo_id = gerar_identificador_aleatorio(PREFIXOS[inst.tipo_contratacao], existentes)
+            novo_id = gerar_identificador_aleatorio(PREFIXOS[tipo_contratacao], existentes)
 
             if fica_no_monitoramento:
                 inst.chave_origem = chave_origem
                 inst.nr_convenio = novo_id
                 _espelhar(db=db, instrumento=inst, numero=novo_id, chave_origem=chave_origem)
-                if inst.tipo_contratacao == "PERSUS I":
+                if tipo_contratacao == "PERSUS I":
                     resultado["persus1_nao_concluido_migrado"] += 1
                 else:
                     resultado["faf_ted_migrados"] += 1
             else:
                 _espelhar(db=db, instrumento=inst, numero=novo_id, chave_origem=chave_origem)
-                db.execute(EventoMarco.__table__.delete().where(EventoMarco.instrumento_id == inst.id))
-                db.execute(AcaoMonitoramento.__table__.delete().where(AcaoMonitoramento.instrumento_id == inst.id))
+                db.execute(delete(EventoMarco).where(EventoMarco.instrumento_id == inst.id))
+                db.execute(delete(AcaoMonitoramento).where(AcaoMonitoramento.instrumento_id == inst.id))
                 db.delete(inst)
                 resultado["movidos_para_convenio_apenas"] += 1
                 resultado["instrumentos_removidos"] += 1

@@ -1,4 +1,6 @@
-"""Importa os FAF/TED "realmente novos" da planilha `data/B8131710.xlsx`
+"""ARQUIVO HISTÓRICO ONE-SHOT — não é carga operacional vigente.
+
+Importa os FAF/TED "realmente novos" da planilha `data/B8131710.xlsx`
 (aba "Batimento sistema 2026-09") pro monitoramento interno -- achado
 2026-09-11, pedido do usuario: "Os pronons, faf e ted pode subir no
 sistema" (depois de validar os 6 "Convênio" nao encontrados contra a API
@@ -47,6 +49,10 @@ nr_convenio, roda de novo sem duplicar.
 
 Uso: python -m scripts.importar_batimento_b8131710 (de dentro de
 backend/, venv ativo, DATABASE_URL configurada).
+
+Antes de qualquer nova execução, revisar o inventário de fontes do Plan Mode
+database/ingestão de 2026-09-21: a planilha é defasada para parte das cargas
+e este script não substitui os importadores FAF/TED ativos.
 """
 from __future__ import annotations
 

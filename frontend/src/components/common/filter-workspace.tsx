@@ -3,11 +3,10 @@ import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 
 /** Barra de filtros (Seção "Filter workspace" do plan-mode) -- mesma
- * composição já usada ad hoc em Dashboard/Mapa/Relatórios/Mesa de
+ * composição usada em Dashboard, Dados Oficiais, Mapa, Relatórios e Mesa de
  * trabalho: label "Filtrar por" + controles (`children`, um por domínio,
  * sem reimplementar aqui) + "Limpar" quando algum filtro está ativo +
- * contagem opcional de resultado. Formalizada aqui pra virar o único
- * padrão, migrado rota a rota nas Etapas 5-7 (não aplicado ainda). */
+ * contagem opcional de resultado. */
 export function FilterWorkspace({
   children,
   hasAnyFilter,

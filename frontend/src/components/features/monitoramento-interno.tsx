@@ -1,11 +1,4 @@
-/** Monitoramento interno pos-repasse -- acompanhamento manual de entrega/
- * instalação/licenciamento CNEN/inauguração de UM instrumento, depois do
- * repasse (ver backend/app/routers/monitoramento.py). Vive em página
- * própria (pages/monitoramento-instrumento-page.tsx).
- *
- * Orquestrador: busca dado via hooks próprios (Seção 6/C da migração --
- * toda lógica assíncrona fora do componente de UI) e delega a
- * apresentação pros subcomponentes de monitoramento-interno-*.tsx. */
+/** Orquestra dados e ações do monitoramento pós-repasse de um instrumento. */
 import { useState } from 'react';
 import { useAuthSession } from '@/hooks/useAuthSession';
 import { useConvenioPrograma } from '@/hooks/useConvenioPrograma';
@@ -28,14 +21,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const [erroEscrita, setErroEscrita] = useState<string | null>(null);
   const [cadastroAberto, setCadastroAberto] = useState(false);
 
-  // Fallback de componente via SICONV -- achado 2026-09-10 (bug real do
-  // convenio 991708: a planilha da equipe deixou a celula "COMPONENTES DE
-  // FINANCIAMENTO" vazia pra essa linha, mas o SICONV TEM essa informacao
-  // via NOME_PROGRAMA). So exibido quando `inst.componente` for nulo,
-  // nunca escrito no banco. Lookup autenticado por numero (Bloco 5), nao
-  // mais siconv.json inteiro (ver docstring de useConvenioPrograma).
+  // Fallback de leitura SICONV; nunca escreve componente no banco.
   const programaQuery = useConvenioPrograma(numeroConvenio);
-
   const marcosQuery = useMonitoramentoMarcos();
   const timelineQuery = useInstrumentoTimeline(numeroConvenio);
   const acoesQuery = useAcoesDoInstrumento(numeroConvenio);
@@ -55,6 +42,15 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
     sessao.tratarSessaoInvalida();
     setErroEscrita(mensagemSeguraDoErro(e));
     throw e;
+  }
+
+  async function executarEscrita(acao: () => Promise<unknown>): Promise<void> {
+    setErroEscrita(null);
+    try {
+      await acao();
+    } catch (erro) {
+      tratarErroEscrita(erro);
+    }
   }
 
   const erroCarregamento = marcosQuery.error || timelineQuery.error || acoesQuery.error;
@@ -98,16 +94,9 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
     acoesAbertas, acoesAtrasadas, equipamentoFisico, validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
-  // So usa o fallback quando precisa (inst.componente nulo).
   const componenteViaSiconv = !inst.componente ? componenteDoProgramaSiconv(programaQuery.data) : null;
 
-  // Heurística de "mais de 1 equipamento no mesmo convênio" (Plan Mode
-  // monitoramento-evolucao 2026-09-19, pedido do usuário: "só use essa
-  // possibilidade pra instrumentos que tem mais de um acelerador") --
-  // equipamento_descricao (texto do SICONV) já concatena os itens com
-  // " + " quando o convênio financia mais de 1 (ex. convênio 947527, "...
-  // + ..."). Não existe campo estruturado de quantidade; isso é
-  // aproximação sobre texto livre, não uma contagem garantida.
+  // A fonte não expõe quantidade estruturada; " + " indica múltiplos itens.
   const multiploEquipamento = (inst.equipamento_descricao ?? '').includes(' + ');
 
   return (
@@ -118,23 +107,7 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         </div>
       )}
 
-      <MonitoramentoInternoCabecalho
-        timeline={timeline}
-        componenteViaSiconv={componenteViaSiconv}
-        dataInauguracao={dataInauguracao}
-        inaugurado={inaugurado}
-        diasInauguracao={diasInauguracao}
-        equipamentoFisico={equipamentoFisico}
-        statusLicenca={eventoLicenca?.status_regulatorio ?? 'Sem registro'}
-        alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
-        acoesAbertasCount={acoesAbertas.length}
-        acoesAtrasadasCount={acoesAtrasadas.length}
-      />
-
-      {/* "Acesso operacional" saiu daqui (achado 2026-09-15, pedido do
-          usuário: "pode remover a parte com acesso operacional") -- status
-          de sessão/login/logout já fica no UserMenu do header (todas as
-          páginas), essa seção só duplicava a mesma informação. */}
+      <MonitoramentoInternoCabecalho timeline={timeline} componenteViaSiconv={componenteViaSiconv} dataInauguracao={dataInauguracao} inaugurado={inaugurado} diasInauguracao={diasInauguracao} equipamentoFisico={equipamentoFisico} statusLicenca={eventoLicenca?.status_regulatorio ?? 'Sem registro'} alertaLicenca={validadeLicenca !== null && validadeLicenca < 90} acoesAbertasCount={acoesAbertas.length} acoesAtrasadasCount={acoesAtrasadas.length} />
 
       <MonitoramentoInternoCadastro
         instrumento={inst}
@@ -142,10 +115,7 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         aberto={cadastroAberto}
         onAbrir={() => setCadastroAberto(true)}
         onFechar={() => setCadastroAberto(false)}
-        onSalvar={async (valores) => {
-          setErroEscrita(null);
-          try {
-            await salvarCadastro.mutateAsync({
+        onSalvar={(valores) => executarEscrita(() => salvarCadastro.mutateAsync({
               tecnico_titular: valores.tecnicoTitular || null,
               tecnico_suplente: valores.tecnicoSuplente || null,
               nivel_monitoramento: valores.nivelMonitoramento || null,
@@ -154,17 +124,9 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
               responsavel_execucao_nome: valores.responsavelExecucaoNome || null,
               responsavel_execucao_contato: valores.responsavelExecucaoContato || null,
               cnes: valores.cnes || null,
-            });
-          } catch (e) {
-            tratarErroEscrita(e);
-          }
-        }}
+            }))}
       />
 
-      {/* Agrupamento progressivo (achado da auditoria visual: "página muito
-          longa sem índice local ou agrupamento progressivo") -- fase/
-          cronograma abertos por padrão (visão executiva do estado atual),
-          ações/timeline fecháveis (histórico, consultado sob demanda). */}
       <div className="grid gap-4">
         <OperationalDetailSection titulo="Fase e cronograma">
           <MonitoramentoInternoFaseGeral fasesGerais={fasesGerais} faseAtual={faseAtual} pctAtual={pctAtual} />
@@ -181,18 +143,11 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
             acoes={acoes}
             podeEditar={sessao.podeEditar}
             concluindoAcaoId={concluindoAcaoId}
-            onCriar={async (valores) => {
-              setErroEscrita(null);
-              try {
-                await criarAcaoMutation.mutateAsync({
+            onCriar={(valores) => executarEscrita(() => criarAcaoMutation.mutateAsync({
                   descricao: valores.descricao,
                   data_prevista: valores.dataPrevista || null,
                   responsavel: valores.responsavel || null,
-                });
-              } catch (e) {
-                tratarErroEscrita(e);
-              }
-            }}
+                }))}
             onConcluir={(acaoId) => {
               setErroEscrita(null);
               setConcluindoAcaoId(acaoId);
@@ -201,31 +156,15 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                 onSettled: () => setConcluindoAcaoId(null),
               });
             }}
-            onEditar={async (acaoId, valores) => {
-              setErroEscrita(null);
-              try {
-                await editarAcaoMutation.mutateAsync({
+            onEditar={(acaoId, valores) => executarEscrita(() => editarAcaoMutation.mutateAsync({
                   acaoId,
                   corpo: {
                     descricao: valores.descricao,
                     data_prevista: valores.dataPrevista || null,
                     responsavel: valores.responsavel || null,
                   },
-                });
-              } catch (e) {
-                tratarErroEscrita(e);
-                throw e;
-              }
-            }}
-            onExcluir={async (acaoId, motivo) => {
-              setErroEscrita(null);
-              try {
-                await excluirAcaoMutation.mutateAsync({ acaoId, motivo });
-              } catch (e) {
-                tratarErroEscrita(e);
-                throw e;
-              }
-            }}
+                }))}
+            onExcluir={(acaoId, motivo) => executarEscrita(() => excluirAcaoMutation.mutateAsync({ acaoId, motivo }))}
           />
         </OperationalDetailSection>
 
@@ -234,33 +173,22 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
             marcos={marcos}
             eventos={timeline.eventos}
             podeEditar={sessao.podeEditar}
-            onRegistrar={async (valores) => {
-              setErroEscrita(null);
-              try {
-                await registrarEventoMutation.mutateAsync({
+            onRegistrar={(valores) => executarEscrita(() => registrarEventoMutation.mutateAsync({
                   marco_id: Number(valores.marcoId),
                   fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
+                  confirmar_inauguracao: valores.confirmarInauguracao ?? false,
                   data_ocorrencia: valores.dataOcorrencia || null,
                   data_prevista: valores.dataPrevista || null,
                   status_regulatorio: valores.statusRegulatorio || null,
                   numero_documento: valores.numeroDocumento || null,
                   data_validade: valores.dataValidade || null,
                   observacao: valores.observacao || null,
-                  // So tem efeito no backend quando o marco e cronograma_entrega
-                  // -- ignorado pra qualquer outro.
                   equipamento_marca: valores.equipamentoMarca || null,
                   equipamento_modelo: valores.equipamentoModelo || null,
                   equipamento_numero_serie: valores.equipamentoNumeroSerie || null,
                   equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos ? Number(valores.equipamentoVidaUtilAnos) : null,
-                });
-              } catch (e) {
-                tratarErroEscrita(e);
-              }
-            }}
-            onEditar={async (eventoId, valores) => {
-              setErroEscrita(null);
-              try {
-                await editarEventoMutation.mutateAsync({
+                }))}
+            onEditar={(eventoId, valores) => executarEscrita(() => editarEventoMutation.mutateAsync({
                   eventoId,
                   corpo: {
                     fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
@@ -271,21 +199,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                     data_validade: valores.dataValidade || null,
                     observacao: valores.observacao || null,
                   },
-                });
-              } catch (e) {
-                tratarErroEscrita(e);
-                throw e;
-              }
-            }}
-            onExcluir={async (eventoId, motivo) => {
-              setErroEscrita(null);
-              try {
-                await excluirEventoMutation.mutateAsync({ eventoId, motivo });
-              } catch (e) {
-                tratarErroEscrita(e);
-                throw e;
-              }
-            }}
+                }))}
+            onExcluir={(eventoId, motivo) => executarEscrita(() => excluirEventoMutation.mutateAsync({ eventoId, motivo }))}
           />
         </OperationalDetailSection>
       </div>

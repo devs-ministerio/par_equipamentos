@@ -7,6 +7,7 @@
  * ainda precisa cair aqui. */
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { ErrorAlert } from '@/components/common/error-alert';
 
 export function AdminRoute() {
   const sessao = useAuthSession();
@@ -17,6 +18,10 @@ export function AdminRoute() {
         Verificando sessão…
       </main>
     );
+  }
+
+  if (sessao.erroSessao) {
+    return <ErrorAlert mensagem="Não foi possível verificar a sessão." onRetry={() => { void sessao.tentarNovamenteSessao(); }} />;
   }
 
   if (sessao.usuarioAtual?.role !== 'admin') {

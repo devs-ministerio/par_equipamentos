@@ -13,6 +13,7 @@ backend/, venv ativo, precisa dos 3 JSON em scripts/output/ -- ver
 frontend/public/monitoramento-equipamentos/README.md pra como gerá-los).
 Idempotente -- upsert por `numero`.
 """
+
 from __future__ import annotations
 
 import json
@@ -20,11 +21,16 @@ import re
 import unicodedata
 from datetime import date
 from pathlib import Path
+from typing import cast
 
+from sqlalchemy import Table, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.db.base import SessionLocal
 from app.db.models import CnesEstabelecimento, Convenio
+from app.equipamentos import classificar_descricoes, extrair_descricoes
+from app.repositories.equipamento_marcadores import OrigemMarcador, catalogo_por_codigo
+from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
 
 OUTPUT = Path(__file__).parent / "output"
 
@@ -98,25 +104,6 @@ def _valor_pago_fornecedor(siconv_entrada: dict | None) -> tuple[float | None, i
     return total, len(pagamentos)
 
 
-def _equipamentos_tags(siconv_entrada: dict | None, transferegov_ente: dict | None) -> list[str]:
-    descs: list[str] = []
-    if siconv_entrada:
-        for it in siconv_entrada.get("itens_plano_aplicacao", []):
-            d = it.get("DESCRICAO_ITEM")
-            if d:
-                descs.append(d)
-    if transferegov_ente:
-        for p in transferegov_ente.get("propostas_expandidas", []):
-            for m in p.get("metas", []):
-                for et in m.get("etapas_proposta", []):
-                    for it in et.get("itens", []):
-                        nome = it.get("nm_item")
-                        if isinstance(nome, str):
-                            descs.append(nome)
-    texto = _norm(" | ".join(descs))
-    return [tag for tag, padrao in PADROES_EQUIPAMENTO if padrao.search(texto)]
-
-
 def _cnes_de_planilha() -> dict[str, str]:
     import openpyxl
 
@@ -147,7 +134,9 @@ _MANUAL = {
     "797270": "2748223",  # Hospital das Clínicas da Faculdade de Medicina de Botucatu
     "823874": "2748223",
     "836418": "0011746",  # Irmandade da Santa Casa de Misericórdia de Vitória
-    "997347": "8101353",  # Fundação Educacional D. André Arcoverde -- matriz em Valença, único CNES é em Barra do Piraí (confirmado via web)
+    # Fundação Educacional D. André Arcoverde -- matriz em Valença, único
+    # CNES é em Barra do Piraí (confirmado via web).
+    "997347": "8101353",
 }
 _NOME_ENDERECO = {
     "UNIVERSIDADE ESTADUAL DE CAMPINAS": "2079798",  # Hospital das Clínicas da UNICAMP
@@ -188,7 +177,11 @@ def resolver_cnes(db, convenio: dict, planilha: dict[str, str]) -> tuple[str | N
         bate = [c for c in candidatos if _norm(c.municipio) == muni]
         if len(bate) == 1:
             return bate[0].cnes, "cnpj_multi_municipio"
-        fixos = [c for c in bate if "MOVEL" not in _norm(c.nome_estabelecimento) and "CARRETA" not in _norm(c.nome_estabelecimento)]
+        fixos = [
+            c
+            for c in bate
+            if "MOVEL" not in _norm(c.nome_estabelecimento) and "CARRETA" not in _norm(c.nome_estabelecimento)
+        ]
         if len(fixos) == 1:
             return fixos[0].cnes, "cnpj_multi_fixa_movel"
     return None, None
@@ -233,51 +226,59 @@ def run() -> None:
                 contagem_metodo[metodo] = contagem_metodo.get(metodo, 0) + 1
             valor_pago_fornecedor, pagamentos_count = _valor_pago_fornecedor(s)
 
-            registros.append(dict(
-                numero=numero,
-                numero_instrumento=p.get("numero_instrumento"),
-                ano_instrumento=ano,
-                objeto=p.get("objeto"),
-                situacao=(sc.get("SIT_CONVENIO") if sc else None) or p.get("situacao"),
-                situacao_portal=p.get("situacao"),
-                situacao_contratacao=(sc.get("SITUACAO_CONTRATACAO") if sc else None) or None,
-                convenente_nome=p.get("convenente_nome") or "",
-                convenente_cnpj=p.get("convenente_cnpj") or "",
-                convenente_tipo=p.get("convenente_tipo"),
-                municipio=p.get("municipio"),
-                uf=p.get("uf"),
-                codigo_ibge=p.get("codigo_ibge"),
-                regiao=p.get("regiao"),
-                orgao=p.get("orgao"),
-                unidade_gestora=p.get("unidade_gestora"),
-                subfuncao=p.get("subfuncao"),
-                funcao=p.get("funcao"),
-                tipo_instrumento=p.get("tipo_instrumento"),
-                numero_processo=p.get("numero_processo"),
-                programa=(s.get("programa", {}) or {}).get("NOME_PROGRAMA") if s else None,
-                data_publicacao=_data_iso(p.get("data_publicacao")) or _data_siconv(sc.get("DIA_PUBL_CONV") if sc else None),
-                data_inicio_vigencia=_data_iso(p.get("data_inicio_vigencia")) or _data_siconv(sc.get("DIA_INIC_VIGENC_CONV") if sc else None),
-                data_final_vigencia=_data_iso(p.get("data_final_vigencia")) or _data_siconv(sc.get("DIA_FIM_VIGENC_CONV") if sc else None),
-                data_conclusao=_data_iso(p.get("data_conclusao")),
-                data_ultima_liberacao=_data_iso(p.get("data_ultima_liberacao")),
-                valor_global=global_ if global_ is not None else _num_ou_none(p.get("valor")),
-                valor_repasse=_num_ou_none(sc.get("VL_REPASSE_CONV")) if sc else None,
-                valor_empenhado=_num_ou_none(sc.get("VL_EMPENHADO_CONV")) if sc else None,
-                valor_desembolsado=desembolsado if desembolsado is not None else _num_ou_none(p.get("valor_liberado")),
-                valor_contrapartida=contrapartida if contrapartida is not None else _num_ou_none(p.get("valor_contrapartida")),
-                valor_saldo_conta=_num_ou_none(sc.get("VL_SALDO_CONTA")) if sc else None,
-                valor_ultima_liberacao=_num_ou_none(p.get("valor_ultima_liberacao")),
-                financeiro_fonte_confiavel=sc is not None,
-                valor_pago_fornecedor=valor_pago_fornecedor,
-                pagamentos_count=pagamentos_count,
-                equipamentos_tags=_equipamentos_tags(s, tg),
-                cnes=cnes,
-                cnes_metodo=metodo,
-                siconv_raw=s,
-                transferegov_raw=tg,
-            ))
+            registros.append(
+                dict(
+                    numero=numero,
+                    numero_instrumento=p.get("numero_instrumento"),
+                    ano_instrumento=ano,
+                    objeto=p.get("objeto"),
+                    situacao=(sc.get("SIT_CONVENIO") if sc else None) or p.get("situacao"),
+                    situacao_portal=p.get("situacao"),
+                    situacao_contratacao=(sc.get("SITUACAO_CONTRATACAO") if sc else None) or None,
+                    convenente_nome=p.get("convenente_nome") or "",
+                    convenente_cnpj=p.get("convenente_cnpj") or "",
+                    convenente_tipo=p.get("convenente_tipo"),
+                    municipio=p.get("municipio"),
+                    uf=p.get("uf"),
+                    codigo_ibge=p.get("codigo_ibge"),
+                    regiao=p.get("regiao"),
+                    orgao=p.get("orgao"),
+                    unidade_gestora=p.get("unidade_gestora"),
+                    subfuncao=p.get("subfuncao"),
+                    funcao=p.get("funcao"),
+                    tipo_instrumento=p.get("tipo_instrumento"),
+                    numero_processo=p.get("numero_processo"),
+                    programa=(s.get("programa", {}) or {}).get("NOME_PROGRAMA") if s else None,
+                    data_publicacao=_data_iso(p.get("data_publicacao"))
+                    or _data_siconv(sc.get("DIA_PUBL_CONV") if sc else None),
+                    data_inicio_vigencia=_data_iso(p.get("data_inicio_vigencia"))
+                    or _data_siconv(sc.get("DIA_INIC_VIGENC_CONV") if sc else None),
+                    data_final_vigencia=_data_iso(p.get("data_final_vigencia"))
+                    or _data_siconv(sc.get("DIA_FIM_VIGENC_CONV") if sc else None),
+                    data_conclusao=_data_iso(p.get("data_conclusao")),
+                    data_ultima_liberacao=_data_iso(p.get("data_ultima_liberacao")),
+                    valor_global=global_ if global_ is not None else _num_ou_none(p.get("valor")),
+                    valor_repasse=_num_ou_none(sc.get("VL_REPASSE_CONV")) if sc else None,
+                    valor_empenhado=_num_ou_none(sc.get("VL_EMPENHADO_CONV")) if sc else None,
+                    valor_desembolsado=desembolsado
+                    if desembolsado is not None
+                    else _num_ou_none(p.get("valor_liberado")),
+                    valor_contrapartida=contrapartida
+                    if contrapartida is not None
+                    else _num_ou_none(p.get("valor_contrapartida")),
+                    valor_saldo_conta=_num_ou_none(sc.get("VL_SALDO_CONTA")) if sc else None,
+                    valor_ultima_liberacao=_num_ou_none(p.get("valor_ultima_liberacao")),
+                    financeiro_fonte_confiavel=sc is not None,
+                    valor_pago_fornecedor=valor_pago_fornecedor,
+                    pagamentos_count=pagamentos_count,
+                    cnes=cnes,
+                    cnes_metodo=metodo,
+                    siconv_raw=s,
+                    transferegov_raw=tg,
+                )
+            )
 
-        tabela = Convenio.__table__
+        tabela: Table = cast(Table, Convenio.__table__)
         for reg in registros:
             stmt = pg_insert(tabela).values(**reg)
             campos_update = {k: getattr(stmt.excluded, k) for k in reg if k != "numero"}
@@ -285,8 +286,38 @@ def run() -> None:
             db.execute(stmt)
         db.commit()
 
+        catalogo = catalogo_por_codigo(db)
+        chaves_existentes: set[tuple[OrigemMarcador, int, int, str]] = set()
+        numeros = {registro["numero"] for registro in registros}
+        for convenio in db.execute(select(Convenio).where(Convenio.numero.in_(numeros))).scalars():
+            descricoes = extrair_descricoes(convenio.siconv_raw, {"DESCRICAO_ITEM", "descricao_item"})
+            registrar_marcadores(
+                db=db,
+                origem="convenio",
+                origem_id=convenio.id,
+                marcadores=[
+                    DadosMarcador(
+                        evidencia=evidencia,
+                        tipo_evidencia="item_orcamentario",
+                        confianca=100,
+                        origem_dado="API SICONV/TransfereGov",
+                    )
+                    for evidencia in classificar_descricoes(descricoes)
+                ],
+                catalogo=catalogo,
+                chaves_existentes=chaves_existentes,
+            )
+        db.commit()
+
         print(f"Concluído: {len(registros)} convênio(s) gravado(s).")
-        print("CNES por método:", contagem_metodo, "-- total com CNES:", sum(contagem_metodo.values()), "/", len(registros))
+        print(
+            "CNES por método:",
+            contagem_metodo,
+            "-- total com CNES:",
+            sum(contagem_metodo.values()),
+            "/",
+            len(registros),
+        )
     finally:
         db.close()
 

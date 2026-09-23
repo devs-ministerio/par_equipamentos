@@ -228,3 +228,26 @@ módulos que encostam em banco real) foi a única suíte rodada nesta sessão, s
 `test_propostas_candidatas.py`, `test_monitoramento.py`, `test_service_notificacoes.py` — os 4
 módulos com escrita real testada contra banco) não foi rerodado; recomenda-se rodar antes do
 próximo deploy que inclua este bloco.
+
+## Atualização 2026-09-20 — classificadores e ingestão manual
+
+A ingestão de equipamentos está inconsistente: `importar_convenios_banco.py`,
+`job_descoberta_transferegov.py`, `lib_monitoramento_convenio.py`,
+`importar_programas_monitoramento.py` e `importar_propostas_pronon_radar.py` possuem regras
+parcialmente sobrepostas, além de classificadores distintos no frontend. O caso mais perigoso é
+o valor fixo “Acelerador linear” na carga programática, que não comprova o equipamento de cada
+registro. No PRONON manual, o equipamento curado também pode divergir dos itens da API e somente
+um equipamento é persistido.
+
+O risco foi incorporado ao Plan Mode de centralização: primeiro inventário e dry-run, depois
+classificador único e backfill idempotente, e só então migração dos contratos para
+Repository → Service → Router. Até a execução, os marcadores legados não são fonte confiável de
+confirmação de aquisição.
+
+### Execução 2026-09-20
+
+O classificador canônico passou a morar em `app/equipamentos.py`; importadores e descoberta
+TransfereGov registram evidência central pelo serviço idempotente. As listagens de Convênios e
+Propostas carregam marcadores em lote, sem N+1, e o filtro de equipamento de Convênios usa
+`EXISTS` sobre a relação central. O classificador anterior de primeiro termo e a atribuição fixa
+de Acelerador Linear a PERSUS II/PRONON deixaram de ser fonte de marcador.

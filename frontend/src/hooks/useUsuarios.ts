@@ -5,7 +5,7 @@ import {
   fetchUsuarios,
   inativarUsuario,
   reativarUsuario,
-  resetarSenhaUsuario,
+  enviarRedefinicaoUsuario,
   type AtualizarUsuarioInput,
   type CriarUsuarioInput,
   type FiltroUsuarios,
@@ -38,8 +38,8 @@ export function useUsuarios(filtro: FiltroUsuarios) {
     onSuccess: invalidarLista,
   });
 
-  const resetarSenhaMutation = useMutation({
-    mutationFn: (id: number) => resetarSenhaUsuario(id),
+  const enviarRedefinicaoMutation = useMutation({
+    mutationFn: (id: number) => enviarRedefinicaoUsuario(id),
   });
 
   const inativarMutation = useMutation({
@@ -63,8 +63,8 @@ export function useUsuarios(filtro: FiltroUsuarios) {
     atualizar: atualizarMutation.mutateAsync,
     atualizando: atualizarMutation.isPending,
     erroAtualizar: atualizarMutation.error,
-    resetarSenha: resetarSenhaMutation.mutateAsync,
-    resetandoSenha: resetarSenhaMutation.isPending,
+    enviarRedefinicao: enviarRedefinicaoMutation.mutateAsync,
+    enviandoRedefinicao: enviarRedefinicaoMutation.isPending,
     inativar: inativarMutation.mutateAsync,
     inativando: inativarMutation.isPending,
     reativar: reativarMutation.mutateAsync,

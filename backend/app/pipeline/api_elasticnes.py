@@ -28,18 +28,39 @@ import time
 from typing import TypedDict
 
 import requests
+from pydantic import BaseModel, ConfigDict, Field
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from app.observability import executar_chamada_externa
 
 BASE_URL = "https://elasticnes.saude.gov.br/kibana"
 INDICE = "cnes-equipamentos*"
 TIMEOUT = 60
 TAMANHO_PAGINA = 5000
 
+
+class RegistroElastiCNES(BaseModel):
+    """Projeção mínima do `_source` usada na oferta de equipamentos."""
+
+    model_config = ConfigDict(extra="allow")
+
+    cnes: str | int = Field(validation_alias="CNES")
+    municipio: str | int = Field(validation_alias="CÓDIGO DO MUNICÍPIO")
+    uf: str = Field(validation_alias="UF")
+    tipo: str = Field(validation_alias="EQUIPAMENTO - TIPO")
+    codigo: str = Field(validation_alias="EQUIPAMENTO - CÓDIGO")
+    quantidade_existente: int | str | None = Field(default=None, validation_alias="EQUIPAMENTO - QTD EXISTENTE")
+    quantidade_uso: int | str | None = Field(default=None, validation_alias="EQUIPAMENTO - QTD EM USO")
+    sus: str | None = Field(default=None, validation_alias="EQUIPAMENTO - SUS?")
+    location: str | None = None
+    nome_fantasia: str | None = Field(default=None, validation_alias="NOME FANTASIA")
+    natureza_juridica: str | None = Field(default=None, validation_alias="NATUREZA JURÍDICA CATEGORIA")
+
 # (EQUIPAMENTO - TIPO, EQUIPAMENTO - CÓDIGO) -> subtipo (canais). Codigos da
 # Portaria SAES/MS 3.695/2026; "11" e o codigo antigo, ainda aparece durante
 # a transicao.
-_DE_PARA_TOMOGRAFO = {
+_DE_PARA_TOMOGRAFO: dict[tuple[str, str], str | None] = {
     ("DIAGNOSTICO POR IMAGEM", "11"): None,
     ("DIAGNOSTICO POR IMAGEM", "26"): "4_CANAIS",
     ("DIAGNOSTICO POR IMAGEM", "27"): "16_CANAIS",
@@ -48,7 +69,7 @@ _DE_PARA_TOMOGRAFO = {
     ("DIAGNOSTICO POR IMAGEM", "30"): "128_CANAIS",
 }
 
-_DE_PARA_RESSONANCIA = {
+_DE_PARA_RESSONANCIA: dict[tuple[str, str], str | None] = {
     ("DIAGNOSTICO POR IMAGEM", "12"): None,
     ("DIAGNOSTICO POR IMAGEM", "32"): "0_5_TESLA",
     ("DIAGNOSTICO POR IMAGEM", "33"): "1_5_TESLA",
@@ -56,7 +77,7 @@ _DE_PARA_RESSONANCIA = {
     ("DIAGNOSTICO POR IMAGEM", "35"): "CAMPO_ABERTO",
 }
 
-_DE_PARA_PET_CT = {
+_DE_PARA_PET_CT: dict[tuple[str, str], str | None] = {
     ("DIAGNOSTICO POR IMAGEM", "18"): None,
 }
 
@@ -125,7 +146,11 @@ def _sessao_com_retry() -> requests.Session:
 def _bsearch(session: requests.Session, body: dict) -> dict:
     headers = {"kbn-xsrf": "true", "Content-Type": "application/json; charset=utf-8"}
     payload = {"batch": [{"request": body, "options": {"strategy": "ese"}}]}
-    resp = session.post(f"{BASE_URL}/internal/bsearch", json=payload, headers=headers, timeout=TIMEOUT)
+    resp = executar_chamada_externa(
+        fonte="ElastiCNES",
+        operacao="bsearch_iniciar",
+        chamada=lambda: session.post(f"{BASE_URL}/internal/bsearch", json=payload, headers=headers, timeout=TIMEOUT),
+    )
     resp.raise_for_status()
     resultado = resp.json()["result"]
 
@@ -133,7 +158,11 @@ def _bsearch(session: requests.Session, body: dict) -> dict:
     while (resultado.get("isRunning") or resultado.get("isPartial")) and tentativas < 15:
         time.sleep(1.5)
         payload = {"batch": [{"request": {"id": resultado["id"]}, "options": {"strategy": "ese"}}]}
-        resp = session.post(f"{BASE_URL}/internal/bsearch", json=payload, headers=headers, timeout=TIMEOUT)
+        resp = executar_chamada_externa(
+            fonte="ElastiCNES",
+            operacao="bsearch_consultar",
+            chamada=lambda: session.post(f"{BASE_URL}/internal/bsearch", json=payload, headers=headers, timeout=TIMEOUT),
+        )
         resp.raise_for_status()
         resultado = resp.json()["result"]
         tentativas += 1
@@ -213,23 +242,23 @@ def _buscar_equipamentos(
 
     registros: list[EquipamentoRow] = []
     for h in linhas:
-        f = h["_source"]
-        chave = (f.get("EQUIPAMENTO - TIPO"), f.get("EQUIPAMENTO - CÓDIGO"))
+        f = RegistroElastiCNES.model_validate(h["_source"])
+        chave = (f.tipo, f.codigo)
         if chave not in de_para:
             continue  # nao deveria acontecer (filtro ja restringe), mas nunca inventa dado
-        latitude, longitude = _parse_location(f.get("location"))
+        latitude, longitude = _parse_location(f.location)
         registros.append(EquipamentoRow(
-            co_cnes=str(f.get("CNES")),
-            no_fantasia=f.get("NOME FANTASIA") or None,
-            co_ibge=str(f.get("CÓDIGO DO MUNICÍPIO")),
-            sg_uf=f.get("UF"),
+            co_cnes=str(f.cnes),
+            no_fantasia=f.nome_fantasia,
+            co_ibge=str(f.municipio),
+            sg_uf=f.uf,
             ds_subtipo=de_para[chave],
-            qt_existente=int(f.get("EQUIPAMENTO - QTD EXISTENTE") or 0),
-            qt_uso=int(f.get("EQUIPAMENTO - QTD EM USO") or 0),
-            fl_sus=str(f.get("EQUIPAMENTO - SUS?")).strip().upper() == "SIM",
+            qt_existente=int(f.quantidade_existente or 0),
+            qt_uso=int(f.quantidade_uso or 0),
+            fl_sus=str(f.sus).strip().upper() == "SIM",
             latitude=latitude,
             longitude=longitude,
-            natureza_juridica=f.get("NATUREZA JURÍDICA CATEGORIA") or None,
+            natureza_juridica=f.natureza_juridica,
         ))
 
     return registros, competencia

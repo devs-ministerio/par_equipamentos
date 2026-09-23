@@ -88,7 +88,10 @@ def _primeiro_municipio_com_oferta() -> tuple[str, str, str]:
             .limit(1)
         ).first()
         assert row is not None
-        return row
+        municipio, uf, macro_code = row
+        assert municipio is not None
+        assert macro_code is not None
+        return municipio, uf, macro_code
     finally:
         db.close()
 

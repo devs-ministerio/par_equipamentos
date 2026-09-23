@@ -1,12 +1,12 @@
 %% Modelo ER completo do schema operacional do SIGEO.
-%% Fonte da verdade: backend/app/db/models.py; atualizado em 2026-09-19.
+%% Fonte da verdade: backend/app/db/models.py; contexto revisado em 2026-09-21.
 erDiagram
     USER ||--o{ AUDIT_LOG : user_id
     USER ||--o{ CONFIG_DECISION : confirmed_by
     USER ||--o{ REFERENCE_FILE : uploaded_by
     USER ||--o{ EXECUTION : executed_by_deleted_by
     USER ||--o{ EVENTO_MARCO : autor_id
-    USER ||--o{ PROPOSTA_CANDIDATA : revisado_por
+    USER ||--o{ PROPOSTA_CANDIDATA : revisado_por_legado
     USER ||--o{ REFRESH_TOKEN : user_id
     CNES_ESTABELECIMENTO ||--o{ CONVENIO : cnes
     CNES_ESTABELECIMENTO ||--o{ INSTRUMENTO_EQUIPAMENTO : cnes
@@ -28,6 +28,12 @@ erDiagram
     USER |o--o{ ACAO_MONITORAMENTO : criado_por_id
     EVENTO_MARCO |o--o| EVENTO_MARCO : substituido_por_id
     ACAO_MONITORAMENTO |o--o| ACAO_MONITORAMENTO : substituido_por_id
+    EQUIPAMENTO_CATALOGO ||--o{ EQUIPAMENTO_ALIAS : equipamento_catalogo_id
+    EQUIPAMENTO_CATALOGO ||--o{ EQUIPAMENTO_MARCADOR : equipamento_catalogo_id
+    CONVENIO |o--o{ EQUIPAMENTO_MARCADOR : convenio_id
+    PROPOSTA_CANDIDATA |o--o{ EQUIPAMENTO_MARCADOR : proposta_candidata_id
+    PROPOSTA_CANDIDATA ||--o{ EVIDENCIA_TRANSFEREGOV : proposta_candidata_id
+    INSTRUMENTO_EQUIPAMENTO |o--o{ EQUIPAMENTO_MARCADOR : instrumento_equipamento_id
 
     USER {
         bigint id PK
@@ -230,8 +236,8 @@ erDiagram
         string cd_parceria
         jsonb metas_resumo
         bool tem_parceria
-        enum status
-        bigint revisado_por FK
+        enum status "legado"
+        bigint revisado_por FK "legado"
     }
     NOTIFICACAO {
         bigint id PK
@@ -240,4 +246,39 @@ erDiagram
         string nivel_minimo
         bool lida
         datetime created_at
+    }
+    EQUIPAMENTO_CATALOGO {
+        bigint id PK
+        string codigo UK
+        string nome
+        bool prioritario
+        bool ativo
+    }
+    EQUIPAMENTO_ALIAS {
+        bigint id PK
+        bigint equipamento_catalogo_id FK
+        string alias_normalizado UK
+    }
+    EQUIPAMENTO_MARCADOR {
+        bigint id PK
+        bigint equipamento_catalogo_id FK
+        bigint convenio_id FK
+        bigint proposta_candidata_id FK
+        bigint instrumento_equipamento_id FK
+        string chave_evidencia
+        enum tipo_evidencia
+        enum relacao
+        int confianca "CHECK entre 0 e 100"
+        string origem_dado
+    }
+    EVIDENCIA_TRANSFEREGOV {
+        bigint id PK
+        bigint proposta_candidata_id FK
+        string tipo_recurso
+        string chave_externa
+        string caminho UK
+        string caminho_pai
+        jsonb payload
+        string hash_conteudo
+        datetime capturado_em
     }

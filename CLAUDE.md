@@ -684,14 +684,13 @@ gestão de usuários, seguindo o mesmo padrão Router → Service → Repository
   (`leitor` bloqueado, `admin`/`colaborador` idênticos), decisão de produto ainda pendente para
   qualquer diferenciação além deste módulo.
 - **CRUD em `backend/app/routers/usuarios.py`** (`GET/POST /usuarios`, `PATCH /usuarios/{id}`,
-  `POST /usuarios/{id}/resetar-senha`, `POST /usuarios/{id}/{in,re}ativar`) — regra de negócio em
+  `POST /usuarios/{id}/enviar-redefinicao`, `POST /usuarios/{id}/{in,re}ativar`) — regra de negócio em
   `app/services/usuarios.py`, query em `app/repositories/usuarios.py`. Frontend em
   `frontend/src/pages/usuarios-page.tsx` (rota `/admin/usuarios`, atrás de `AdminRoute`, distinto de
   `ProtectedRoute` — checa `role`, não só sessão) + `components/features/usuario-*.tsx`.
-- **Reset de senha sem e-mail** (decisão do usuário, 2026-09-17): o projeto não tem provedor de
-  e-mail configurado — admin gera uma senha temporária aleatória, exibida **uma única vez** na tela
-  (`usuario-dialog-resetar-senha.tsx`) para copiar/repassar manualmente. Não fica recuperável depois
-  (não persiste em claro em lugar nenhum, nem no audit log).
+- **Redefinição por e-mail** (Segurança, 2026-09-22): administrador dispara link de uso único;
+  senha nunca é devolvida pela API, exibida na tela ou incluída em URL. O token fica no fragmento
+  do link e só segue no corpo do POST de ativação/redefinição.
 - **Auto-proteção**: um admin não pode remover o próprio papel de admin nem se auto-inativar via
   este módulo (`atualizar_usuario`/`inativar_usuario` em `services/usuarios.py`) — evita lockout
   acidental do sistema por engano do próprio admin.

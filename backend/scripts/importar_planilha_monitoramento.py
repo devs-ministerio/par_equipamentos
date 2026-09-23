@@ -74,10 +74,12 @@ backend/, venv ativo, com DATABASE_URL configurada).
 """
 from __future__ import annotations
 
+import argparse
 import re
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from typing import cast
 
 import openpyxl
 from sqlalchemy import select
@@ -279,7 +281,7 @@ def run(
     *,
     somente_ausentes: bool = False,
     dry_run: bool = False,
-) -> None:
+) -> dict[str, int]:
     """Importa a fonte escolhida.
 
     ``somente_ausentes`` preserva todo valor já mantido pela aplicação e é
@@ -412,7 +414,7 @@ def run(
                 # merge textual (nunca fabrica, so concatena o que a planilha
                 # ja trouxe) ANTES do loop generico abaixo, que trataria isso
                 # como upsert comum e perderia o mesmo jeito.
-                nova_descricao = dados_instrumento.get("equipamento_descricao")
+                nova_descricao = cast(str | None, dados_instrumento.get("equipamento_descricao"))
                 descricao_atual = instrumento.equipamento_descricao
                 if nova_descricao and (not descricao_atual or nova_descricao not in descricao_atual):
                     instrumento.equipamento_descricao = (
@@ -442,11 +444,14 @@ def run(
             # PERSUS I concluído/PERSUS II/PRONON (só `convenio`, ver
             # importar_programas_monitoramento.py).
             if chave_origem is not None:
+                tipo_contratacao = instrumento.tipo_contratacao
+                if tipo_contratacao is None:
+                    raise ValueError("Instrumento sem tipo de contratação não pode gerar espelho de convênio.")
                 convenio_espelho = espelhar_convenio(
                     db,
                     numero=nr_convenio,
                     chave_origem=chave_origem,
-                    tipo_contratacao=instrumento.tipo_contratacao,
+                    tipo_contratacao=tipo_contratacao,
                     tipologia=None,
                     origem_dado=None,
                     nome_convenente=instrumento.nome_convenente,
@@ -571,6 +576,15 @@ def run(
             print("SIMULAÇÃO: transação revertida; nenhum dado foi alterado.")
         else:
             db.commit()
+        resultado = {
+            "instrumentos_criados": criados,
+            "linhas_atualizadas": atualizados,
+            "campos_preenchidos": campos_preenchidos,
+            "eventos_criados": eventos_criados,
+            "acoes_criadas": acoes_criadas,
+            "rejeitados_sem_identificador": len(fora_do_universo),
+            "colisoes": len(colisoes),
+        }
         if somente_ausentes:
             print(
                 f"Instrumentos: {criados} criado(s), {atualizados} linha(s) reconciliada(s), "
@@ -591,9 +605,19 @@ def run(
             print(f"Colisão de identificador (pulado, já existe): {len(colisoes)}")
             for identificador, nome in colisoes:
                 print(f"   [AVISO] {identificador!r} — {nome}")
+        return resultado
     finally:
         db.close()
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dry-run", action="store_true", help="executa a carga e reverte a transação")
+    parser.add_argument(
+        "--somente-ausentes",
+        action="store_true",
+        help="preenche somente campos de cadastro vazios, preservando edição posterior",
+    )
+    parser.add_argument("--planilha", type=Path, default=PLANILHA, help="fonte XLSX a importar")
+    args = parser.parse_args()
+    run(planilha=args.planilha, somente_ausentes=args.somente_ausentes, dry_run=args.dry_run)

@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from app.auth import CSRF_COOKIE_NAME, CSRF_HEADER_NAME, REFRESH_COOKIE_NAME, hash_password
 from app.db.base import SessionLocal
 from app.db.models import User, UserRole
+from app.email import montar_url_acesso
 from app.main import app
 from app.rate_limit import limiter
 
@@ -33,6 +34,13 @@ def _cliente_logado(user: User, senha: str) -> TestClient:
     resp = c.post("/auth/login", json={"email": user.email, "password": senha})
     assert resp.status_code == 200
     return c
+
+
+def test_link_de_acesso_usa_fragmento_nunca_querystring(monkeypatch):
+    monkeypatch.setattr("app.email.settings.app_public_url", "https://sigeo.example")
+    url = montar_url_acesso(token="token-unico", caminho="/redefinir-senha")
+    assert url == "https://sigeo.example/redefinir-senha#token=token-unico"
+    assert "?token=" not in url
 
 
 def _csrf_headers(c: TestClient) -> dict:
@@ -120,25 +128,23 @@ def test_criar_e_editar_usuario():
         db.close()
 
 
-def test_resetar_senha_permite_login_com_a_senha_temporaria():
+def test_admin_envia_redefinicao_sem_devolver_senha(monkeypatch):
     db = SessionLocal()
     try:
         admin, senha_admin = _criar_usuario(db, role=UserRole.admin)
-        alvo, senha_antiga = _criar_usuario(db, role=UserRole.colaborador)
+        alvo, _senha_antiga = _criar_usuario(db, role=UserRole.colaborador)
         c = _cliente_logado(admin, senha_admin)
+        monkeypatch.setattr("app.services.usuarios.settings.mail_api_url", "https://mail.test/send")
+        monkeypatch.setattr("app.services.usuarios.settings.mail_api_secret", "secret-test")
+        enviados = []
+        monkeypatch.setattr("app.services.usuarios.enviar_link", lambda **kwargs: enviados.append(kwargs))
 
-        resp = c.post(f"/usuarios/{alvo.id}/resetar-senha", headers=_csrf_headers(c))
+        resp = c.post(f"/usuarios/{alvo.id}/enviar-redefinicao", headers=_csrf_headers(c))
         assert resp.status_code == 200
-        senha_temporaria = resp.json()["senha_temporaria"]
-        assert len(senha_temporaria) >= 12
-
-        limiter.reset()
-        login_antigo = TestClient(app).post("/auth/login", json={"email": alvo.email, "password": senha_antiga})
-        assert login_antigo.status_code == 401
-
-        limiter.reset()
-        login_novo = TestClient(app).post("/auth/login", json={"email": alvo.email, "password": senha_temporaria})
-        assert login_novo.status_code == 200
+        assert "senha" not in resp.text.lower()
+        assert enviados
+        db.refresh(alvo)
+        assert alvo.activation_token_hash is not None
     finally:
         db.close()
 

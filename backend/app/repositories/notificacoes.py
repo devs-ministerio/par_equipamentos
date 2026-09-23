@@ -45,10 +45,10 @@ def obter_notificacao(db: Session, notificacao_id: int) -> Notificacao | None:
 def mapear_identificadores_instrumentos(db: Session, ids: set[int]) -> dict[int, str]:
     if not ids:
         return {}
-    return dict(db.execute(
+    return {instrumento_id: nr_convenio for instrumento_id, nr_convenio in db.execute(
         select(InstrumentoEquipamento.id, InstrumentoEquipamento.nr_convenio)
         .where(InstrumentoEquipamento.id.in_(ids))
-    ).all())
+    )}
 
 
 def mapear_ids_propostas(db: Session, ids: set[int]) -> set[int]:

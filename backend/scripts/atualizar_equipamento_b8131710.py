@@ -1,4 +1,6 @@
-"""Atualiza as colunas `Equipamento`/`Equipamentos secundários` da aba
+"""ARQUIVO HISTÓRICO ONE-SHOT — não é pipeline operacional vigente.
+
+Atualiza as colunas `Equipamento`/`Equipamentos secundários` da aba
 "Batimento sistema 2026-09" de `data/B8131710.xlsx`, SÓ pras linhas
 `Tipo de Contratação == "Convênio"` (409 das 463) -- pedido do usuário
 2026-09-11: "atualize a coluna equipamento com o equipamento de maior
@@ -77,7 +79,7 @@ from pathlib import Path
 import openpyxl
 import requests
 
-from app.pipeline.portal_transparencia import ChaveApiAusenteError, buscar_convenio_por_numero, _sessao_com_retry
+from app.pipeline.portal_transparencia import ChaveApiAusenteError, _sessao_com_retry, buscar_convenio_por_numero
 
 PLANILHA = Path(__file__).parent.parent.parent / "data" / "B8131710.xlsx"
 ABA = "Batimento sistema 2026-09"
@@ -191,7 +193,7 @@ def _valor(s: str | None) -> float:
         return 0.0
 
 
-def _ler_convenios_alvo() -> tuple[list[dict], set[str]]:
+def _ler_convenios_alvo() -> tuple[dict[str, int], set[str], list[str]]:
     """Lê a planilha e devolve (linhas cruas pra edição, set de nr_convenio
     alvo) -- só linhas `Tipo de Contratação == "Convênio"` com um
     `Convênio` numérico de verdade (exclui os 6 sem identificador

@@ -22,16 +22,36 @@ usuario gov.br gera na hora).
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, TypedDict
 
 import requests
+from pydantic import BaseModel, ConfigDict
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 from app.config import settings
+from app.observability import executar_chamada_externa
+from app.pipeline.contratos_externos import validar_lista_objetos_externos, validar_objeto_externo
 
 BASE_URL = "https://api.portaldatransparencia.gov.br/api-de-dados"
 TIMEOUT = 30
+
+
+class ConvenioPortalTransparencia(BaseModel):
+    """Campos efetivamente consumidos; extras são preservados como evidência."""
+
+    model_config = ConfigDict(extra="allow")
+
+    situacao: str | None = None
+    valor: float | None = None
+    valorLiberado: float | None = None
+    valorContrapartida: float | None = None
+    valorDaUltimaLiberacao: float | None = None
+
+
+def _validar_convenio_portal(dado: dict[str, Any]) -> ConvenioPortalTransparencia:
+    return ConvenioPortalTransparencia.model_validate(dado)
 
 
 class ChaveApiAusenteError(RuntimeError):
@@ -64,17 +84,20 @@ def _headers() -> dict[str, str]:
     return {"chave-api-dados": settings.portal_transparencia_api_key}
 
 
-def buscar_convenio_por_numero(numero: str | int, session: requests.Session | None = None) -> dict[str, Any] | None:
-    """Consulta um convenio pelo numero (ex. 904824). Devolve o dict cru da
-    API (primeiro item da lista, quando existe) ou None se a API responder
-    404/lista vazia -- nao levanta excecao pra "nao encontrado", so pra erro
-    de fato (rede, auth). Chamador decide o que fazer com None."""
+def buscar_convenio_por_numero_dto(
+    numero: str | int, session: requests.Session | None = None
+) -> ConvenioPortalTransparencia | None:
+    """Consulta tipada do convênio; ``None`` representa 404/lista vazia."""
     session = session or _sessao_com_retry()
-    resp = session.get(
-        f"{BASE_URL}/convenios/numero",
-        params={"numero": str(numero)},
-        headers=_headers(),
-        timeout=TIMEOUT,
+    resp = executar_chamada_externa(
+        fonte="Portal da Transparência",
+        operacao="convenio_por_numero",
+        chamada=lambda: session.get(
+            f"{BASE_URL}/convenios/numero",
+            params={"numero": str(numero)},
+            headers=_headers(),
+            timeout=TIMEOUT,
+        ),
     )
     if resp.status_code == 404:
         return None
@@ -86,8 +109,17 @@ def buscar_convenio_por_numero(numero: str | int, session: requests.Session | No
     resp.encoding = "utf-8"
     corpo = resp.json()
     if isinstance(corpo, list):
-        return corpo[0] if corpo else None
-    return corpo or None
+        itens = validar_lista_objetos_externos(corpo, fonte="Portal da Transparência")
+        return _validar_convenio_portal(itens[0]) if itens else None
+    if corpo is None:
+        return None
+    return _validar_convenio_portal(validar_objeto_externo(corpo, fonte="Portal da Transparência"))
+
+
+def buscar_convenio_por_numero(numero: str | int, session: requests.Session | None = None) -> dict[str, Any] | None:
+    """Adaptador de compatibilidade para cargas que ainda montam JSON cru."""
+    convenio = buscar_convenio_por_numero_dto(numero, session=session)
+    return convenio.model_dump() if convenio is not None else None
 
 
 class ResultadoConsulta(TypedDict):
@@ -97,7 +129,7 @@ class ResultadoConsulta(TypedDict):
     erro: str | None
 
 
-def validar_convenios(numeros: list[str | int]) -> list[ResultadoConsulta]:
+def validar_convenios(numeros: Sequence[str | int]) -> list[ResultadoConsulta]:
     """Consulta uma lista de numeros de convenio em sequencia (a API do
     Portal da Transparencia nao documenta busca em lote pra esse endpoint,
     so por numero individual). Erros de rede/auth num numero nao interrompem

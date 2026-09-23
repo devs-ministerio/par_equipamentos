@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
-import { GEOJSON_MACRORREGIOES_URL } from '../data/constants';
+import { buscarMacrorregioesGeoJson } from '@/services/geojson';
 
 /**
  * Geometria das 121 macrorregiões de saúde (vendorizada em public/geo/, ver
@@ -12,11 +11,7 @@ import { GEOJSON_MACRORREGIOES_URL } from '../data/constants';
 export function useMacroGeojson() {
   return useQuery({
     queryKey: ['macro-geojson'],
-    queryFn: async () => {
-      const res = await fetch(GEOJSON_MACRORREGIOES_URL);
-      if (!res.ok) throw new Error(`Falha ao carregar geometria das macrorregiões: HTTP ${res.status}`);
-      return (await res.json()) as FeatureCollection<Geometry, GeoJsonProperties>;
-    },
+    queryFn: buscarMacrorregioesGeoJson,
     staleTime: Infinity,
   });
 }

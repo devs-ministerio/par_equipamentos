@@ -3,12 +3,15 @@
  * validade; marco de entrega pede o equipamento físico). Extraído de
  * MonitoramentoInterno.tsx. */
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import type { MarcoCatalogo } from '@/services/monitoramento-marcos';
 import { enviarEventoSchema, type EnviarEventoFormValues } from '@/lib/validations/monitoramento';
 import { ErroCampo, estiloCard, estiloInput } from './monitoramento-ui';
 import { idsDescricaoCampo } from '@/lib/monitoramento-status';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const STATUS_REGULATORIO_OPCOES = ['NI', 'NA', 'Em análise', 'Em diligência', 'Deferido', 'Indeferido'];
 
@@ -24,6 +27,7 @@ export function MonitoramentoInternoFormEvento({
   valoresIniciais,
   marcoFixo,
   rotuloSubmit = 'Registrar evento',
+  previsaoInauguracao,
 }: {
   marcos: MarcoCatalogo[];
   onRegistrar: (valores: EnviarEventoFormValues) => Promise<void>;
@@ -36,17 +40,20 @@ export function MonitoramentoInternoFormEvento({
    * select editável. */
   marcoFixo?: MarcoCatalogo;
   rotuloSubmit?: string;
+  previsaoInauguracao?: string | null;
 }) {
   const {
     register,
     handleSubmit,
     watch,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<EnviarEventoFormValues>({
     resolver: zodResolver(enviarEventoSchema),
     defaultValues: valoresIniciais ?? (marcoFixo ? { marcoId: String(marcoFixo.id) } : undefined),
   });
+  const [conclusaoPendente, setConclusaoPendente] = useState<EnviarEventoFormValues | null>(null);
 
   const marcoIdSelecionado = watch('marcoId');
   const marcoDoForm = marcoFixo ?? marcos.find((m) => String(m.id) === marcoIdSelecionado);
@@ -62,10 +69,23 @@ export function MonitoramentoInternoFormEvento({
   // entregue pode mover para eventos") -- so o marco de entrega pede os
   // campos fisicos, junto do mesmo lancamento.
   const ehEntrega = marcoDoForm?.codigo === 'cronograma_entrega';
+  const ehConclusao = marcoDoForm?.codigo === 'fase_concluido';
+
+  useEffect(() => {
+    if (marcoDoForm?.grupo === 'fase_geral') setValue('dataPrevista', '');
+  }, [marcoDoForm?.grupo, setValue]);
 
   async function aoSubmeter(valores: EnviarEventoFormValues) {
     if (precisaFaseGeral && !valores.faseGeralId) {
       setError('faseGeralId', { message: 'Selecione a fase geral correspondente.' });
+      return;
+    }
+    if (ehConclusao && !marcoFixo) {
+      if (!valores.dataOcorrencia) {
+        setError('dataOcorrencia', { message: 'Informe a data de conclusão.' });
+        return;
+      }
+      setConclusaoPendente(valores);
       return;
     }
     try {
@@ -76,7 +96,8 @@ export function MonitoramentoInternoFormEvento({
   }
 
   return (
-    <form onSubmit={handleSubmit(aoSubmeter)} className={cn(estiloCard, 'mb-4 grid gap-2.5')}>
+    <>
+      <form onSubmit={handleSubmit(aoSubmeter)} className={cn(estiloCard, 'mb-4 grid gap-2.5')}>
       <div className="flex gap-2.5 flex-wrap items-start">
         <div className="flex-1 min-w-60">
           <label htmlFor="evento-marco" className="text-[11px] text-muted-foreground block mb-1">
@@ -137,12 +158,12 @@ export function MonitoramentoInternoFormEvento({
           </label>
           <input id="evento-data-ocorrencia" type="date" className={estiloInput} {...register('dataOcorrencia')} />
         </div>
-        <div>
+        {marcoDoForm?.grupo !== 'fase_geral' && <div>
           <label htmlFor="evento-data-prevista" className="text-[11px] text-muted-foreground block mb-1">
             Data prevista
           </label>
           <input id="evento-data-prevista" type="date" className={estiloInput} {...register('dataPrevista')} />
-        </div>
+        </div>}
       </div>
 
       {ehRegulatorio && (
@@ -216,6 +237,33 @@ export function MonitoramentoInternoFormEvento({
       >
         {isSubmitting ? 'Enviando...' : rotuloSubmit}
       </button>
-    </form>
+      </form>
+      <Dialog open={Boolean(conclusaoPendente)} onOpenChange={(aberto) => !aberto && setConclusaoPendente(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar inauguração</DialogTitle>
+            <DialogDescription>
+              {previsaoInauguracao === conclusaoPendente?.dataOcorrencia
+                ? `A previsão registrada (${previsaoInauguracao}) é igual à data de conclusão. Confirme a inauguração nessa data.`
+                : previsaoInauguracao
+                ? `A previsão registrada é ${previsaoInauguracao}. Confirme a inauguração na data real de conclusão informada.`
+                : 'Não há previsão registrada. A inauguração será registrada na data de conclusão informada.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConclusaoPendente(null)}>Voltar</Button>
+            <Button
+              onClick={async () => {
+                if (!conclusaoPendente) return;
+                await onRegistrar({ ...conclusaoPendente, confirmarInauguracao: true });
+                setConclusaoPendente(null);
+              }}
+            >
+              Confirmar inauguração
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

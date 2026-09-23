@@ -11,7 +11,7 @@ import { normalizarTexto } from '@/utils/texto';
 import { fmtMoeda } from '@/lib/monitoramento-format';
 import type { ContagemRotulo } from '@/services/monitoramento-resumo';
 import type { InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
-import { AgendaExecutiva, DistribuicaoHorizontal, MetricasExecutivas, PainelSecao } from '@/components/features/monitoramento-painel-visuals';
+import { AgendaExecutiva, DistribuicaoHorizontal, DivergenciasConclusao, MetricasExecutivas, PainelSecao } from '@/components/features/monitoramento-painel-visuals';
 
 type InstrumentoPainel = Pick<InstrumentoEquipamento, 'nr_convenio' | 'uf' | 'componente' | 'tipo_contratacao' | 'equipamento_descricao' | 'tecnico_titular'>;
 
@@ -85,6 +85,7 @@ export function MonitoramentoPainelPage() {
     equipamentos.set(familia, (equipamentos.get(familia) ?? 0) + 1);
   }
   const porEquipamento = [...equipamentos.entries()].map(([rotulo, quantidade]) => ({ rotulo, quantidade })).sort((a, b) => b.quantidade - a.quantidade);
+  const divergenciasPorFonte = resumo.divergencias_conclusao_por_fonte.map((item) => `${item.rotulo}: ${item.quantidade}`).join(' · ');
 
   return (
     <div>
@@ -93,12 +94,13 @@ export function MonitoramentoPainelPage() {
         { rotulo: 'Instrumentos', valor: resumo.total_instrumentos, detalhe: `${fasesPorRotulo.get('Concluído') ?? 0} em fase concluída` },
         { rotulo: 'Execução física média', valor: resumo.pct_execucao_fisica_medio == null ? '—' : `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%`, detalhe: 'Avanço médio dos marcos' },
         { rotulo: 'Investimento monitorado', valor: fmtMoeda(valorGlobal), detalhe: `${percentualPago == null ? '—' : Math.round(percentualPago * 100) + '%'} pago ao fornecedor`, tom: 'ok' },
-        { rotulo: 'Pontos de atenção', valor: alertas, detalhe: `${resumo.acoes_atrasadas} ações · ${licencasCriticas} licenças · ${inauguracoesAtrasadas} inaugurações`, tom: alertas > 0 ? 'alerta' : 'ok' },
+        { rotulo: 'Pontos de atenção', valor: alertas + resumo.divergencias_conclusao.length, detalhe: `${resumo.acoes_atrasadas} ações · ${licencasCriticas} licenças · ${inauguracoesAtrasadas} inaugurações · ${resumo.divergencias_conclusao.length} conclusões externas`, tom: alertas + resumo.divergencias_conclusao.length > 0 ? 'alerta' : 'ok' },
       ]} />
 
       <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(300px,0.8fr)]">
         <div className="grid gap-8">
           <PainelSecao titulo="Estágio dos instrumentos" apoio="Distribuição atual, não acumulada"><DistribuicaoHorizontal itens={fases} total={resumo.total_instrumentos} /></PainelSecao>
+          <PainelSecao titulo="Divergências de conclusão" apoio={divergenciasPorFonte || 'Concluído internamente, pendente na fonte externa'}><DivergenciasConclusao itens={resumo.divergencias_conclusao} /></PainelSecao>
           <PainelSecao titulo="Composição da carteira" apoio={`${resumo.total_instrumentos} instrumentos monitorados`}>
             <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
               <div><h3 className="mb-2 text-xs font-semibold text-muted-foreground">Por equipamento</h3><DistribuicaoHorizontal itens={porEquipamento} limite={7} /></div>

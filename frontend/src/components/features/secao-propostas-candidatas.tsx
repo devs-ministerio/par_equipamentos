@@ -1,15 +1,10 @@
 /** Propostas do TransfereGov novo encontradas pelo job de descoberta
  * (backend/scripts/job_descoberta_transferegov.py, Radar de Convênios) --
  * sub-aba de "Linhas de financiamento" (ver monitoramento-equipamentos-page.tsx).
- * Ao vivo contra o banco (PropostaCandidata), com ação de aceitar/rejeitar
- * pra quem tem sessão de editor. Camada 1/camada 2 (resumo sempre visível +
+ * Ao vivo contra o banco (PropostaCandidata), com inclusão explícita no
+ * monitoramento interno. Camada 1/camada 2 (resumo sempre visível +
  * "Mais detalhes" atrás de 1 clique) no mesmo método do card de convênio
  * (ver convenio-card.tsx).
- *
- * Aceitar chama POST /propostas-candidatas/{id}/revisar, que por sua vez
- * cria o InstrumentoEquipamento (nr_convenio=cd_parceria quando existir,
- * senão str(id_proposta)), tipo_contratacao="Parceria TransfereGov") -- ver
- * docstring de PropostaCandidata em backend/app/db/models.py.
  *
  * "Mais detalhes" (`CardProposta` -> `DetalheBrutoProposta`, ver
  * proposta-card.tsx/proposta-detalhe-bruto.tsx) mostra o que foi capturado
@@ -18,15 +13,13 @@
  *
  * Arquivo dividido em 4 (Etapa 5 do plan-mode frontend, 2026-09-17):
  * `lib/proposta-metas-resumo.ts` (parsing puro do `metas_resumo` cru),
- * `proposta-card.tsx` (camada 1 do card + CNES editável),
+ * `proposta-card.tsx` (camada 1 do card e inclusão no monitoramento),
  * `proposta-linha-do-tempo.tsx` e `proposta-detalhe-bruto.tsx` (camada 2).
  * Este arquivo ficou só com a orquestração de filtros/lista. */
 import { useMemo, useState } from 'react';
-import { useAuthSession } from '@/hooks/useAuthSession';
 import { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
+import { useMonitoramentoInstrumentos } from '@/hooks/useInstrumentosMonitorados';
 import { normalizarTexto } from '@/utils/texto';
-import { equipamentosDaProposta } from '@/lib/proposta-metas-resumo';
-import type { EquipamentoAlvo } from '@/lib/equipamento-tags';
 import {
   ORDEM_SITUACAO_POR_ESTAGIO,
   estagioDeFato,
@@ -35,6 +28,7 @@ import {
 } from '@/lib/proposta-status';
 import { SearchInput } from '@/components/common/search-input';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
+import { FilterWorkspace } from '@/components/common/filter-workspace';
 import { CardProposta } from './proposta-card';
 
 /** `modo`: as 2 abas de "Linhas de financiamento" -- "Confirmada
@@ -52,9 +46,13 @@ import { CardProposta } from './proposta-card';
  * aplica aqui (toda PropostaCandidata é, por definição, TransfereGov
  * Novo; convênio legado nunca entra nesta lista). */
 export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
-  const { propostas: todas, carregando, revisar, revisando } = usePropostasCandidatas();
+  const { propostas: todas, carregando } = usePropostasCandidatas();
+  const { data: instrumentos = [] } = useMonitoramentoInstrumentos();
   const propostas = useMemo(() => todas.filter((p) => estagioDeFato(p) === modo), [todas, modo]);
-  const sessao = useAuthSession();
+  const instrumentosPorNumero = useMemo(
+    () => new Map(instrumentos.map((instrumento) => [instrumento.nr_convenio, instrumento])),
+    [instrumentos],
+  );
   const [busca, setBusca] = useState('');
   const [uf, setUf] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
@@ -62,13 +60,24 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
   const [ano, setAno] = useState<string | null>(null);
   const [programa, setPrograma] = useState<string | null>(null);
 
+  const limparFiltros = () => {
+    setBusca('');
+    setUf(null);
+    setEquipamento(null);
+    setSituacao(null);
+    setAno(null);
+    setPrograma(null);
+  };
+
+  const hasFiltros = Boolean(busca || uf || equipamento || situacao || ano || programa);
+
   const ufOptions = useMemo(() => {
     const set = new Set(propostas.map((p) => p.uf).filter((u): u is string => Boolean(u)));
     return [...set].sort().map((u) => ({ value: u, label: u }));
   }, [propostas]);
 
   const equipamentosPorProposta = useMemo(() => {
-    return new Map(propostas.map((p) => [p.id, equipamentosDaProposta(p.metas_resumo)]));
+    return new Map(propostas.map((p) => [p.id, [...new Set(p.equipamentos.map((item) => item.nome))]]));
   }, [propostas]);
 
   const equipamentoOptions = useMemo(() => {
@@ -117,7 +126,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
   const filtradas = useMemo(() => {
     return propostas.filter((p) => {
       if (uf && p.uf !== uf) return false;
-      if (equipamento && !equipamentosPorProposta.get(p.id)?.includes(equipamento as EquipamentoAlvo)) return false;
+      if (equipamento && !equipamentosPorProposta.get(p.id)?.includes(equipamento)) return false;
       if (situacao && situacaoDeFato(p) !== situacao) return false;
       if (ano && p.data_proposta?.slice(0, 4) !== ano) return false;
       if (programa && String(p.id_programa) !== programa) return false;
@@ -166,18 +175,18 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
 
   return (
     <div className="mt-4">
-      <div className="mb-4 flex flex-wrap items-center gap-2 border-y border-border py-3.5">
+      <FilterWorkspace
+        hasAnyFilter={hasFiltros}
+        onClear={limparFiltros}
+        contagem={`${filtradas.length} de ${propostas.length} propostas`}
+      >
         <SearchInput value={busca} onChange={setBusca} placeholder="Buscar por proponente, município, CNPJ..." width={190} />
         <SingleSelectFilter placeholder="Todas as UFs" options={ufOptions} value={uf} onChange={setUf} clearLabel="Todas as UFs" minWidth={100} />
         <SingleSelectFilter placeholder="Todos os equipamentos" options={equipamentoOptions} value={equipamento} onChange={setEquipamento} clearLabel="Todos os equipamentos" minWidth={150} />
         <SingleSelectFilter placeholder="Todas as situações" options={situacaoOptions} value={situacao} onChange={setSituacao} clearLabel="Todas as situações" minWidth={150} />
         <SingleSelectFilter placeholder="Ano da proposta" options={anoOptions} value={ano} onChange={setAno} clearLabel="Todos os anos" minWidth={110} />
         <SingleSelectFilter placeholder="Todos os programas" options={programaOptions} value={programa} onChange={setPrograma} clearLabel="Todos os programas" minWidth={160} />
-      </div>
-
-      <div className="mb-2.5 text-xs text-muted-foreground">
-        {filtradas.length} de {propostas.length} proposta(s)
-      </div>
+      </FilterWorkspace>
 
       {filtradas.length === 0 ? (
         <p className="py-5 text-sm italic text-muted-foreground">Nenhuma proposta encontrada com esses filtros.</p>
@@ -188,10 +197,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
               <CardProposta
                 key={p.id}
                 p={p}
-                podeEditar={sessao.podeEditar}
-                revisando={revisando}
-                mostrarAcoes={p.status === 'pendente'}
-                onRevisar={(decisao) => revisar({ id: p.id, decisao })}
+                instrumentoMonitorado={instrumentosPorNumero.get(p.cd_parceria || String(p.id_proposta))}
               />
             ))}
           </div>

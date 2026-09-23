@@ -23,9 +23,11 @@ Idempotente -- upsert por `cnes`, roda de novo sem duplicar.
 """
 from __future__ import annotations
 
+from typing import cast
+
 import boto3
 import pandas as pd
-from sqlalchemy import func
+from sqlalchemy import Table, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.db.base import SessionLocal
@@ -79,7 +81,7 @@ def run() -> None:
     # 5000 fica da ordem de segundos.
     db = SessionLocal()
     try:
-        tabela = CnesEstabelecimento.__table__
+        tabela: Table = cast(Table, CnesEstabelecimento.__table__)
         for i in range(0, len(registros), LOTE):
             lote = registros[i : i + LOTE]
             stmt = pg_insert(tabela).values(lote)

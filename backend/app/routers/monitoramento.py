@@ -3,35 +3,33 @@ de merito de hipo/hipersuficiencia (decisao 2026-09-03). Ver app/db/models.py
 (secao 8) pro desenho (instrumento_equipamento / marco_catalogo /
 evento_marco, log append-only).
 
-So 1 instrumento por enquanto (convenio 948686, ver
-scripts/seed_monitoramento.py) -- decisao deliberada do usuario pra validar
-o desenho antes de escalar pros 71. Mutacoes exigem editor; leituras exigem
-usuario autenticado (Plan Mode seguranca 2026-09-16, Bloco 1) -- excecao
-deliberada: /marcos fica publico (catalogo fixo, sem dado interno).
+O monitoramento cobre os instrumentos que a equipe escolheu acompanhar (91
+na conferência de 2026-09-21); o seed de testes continua usando o convênio
+948686. Mutações exigem editor; leituras exigem usuário autenticado (Plan
+Mode segurança 2026-09-16, Bloco 1) -- exceção deliberada: /marcos fica
+público (catálogo fixo, sem dado interno).
 """
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import (
     AcaoMonitoramento,
-    CnesEstabelecimento,
     EventoMarco,
-    InstrumentoEquipamento,
     MarcoCatalogo,
     MarcoGrupo,
     User,
 )
 from app.pipeline import portal_transparencia
 from app.repositories import monitoramento as monitoramento_repo
+from app.services.monitoramento_divergencias import divergencia_conclusao
 from app.services.monitoramento_eventos import (
     DadosEquipamentoEntregue,
     NovoEventoMonitorado,
@@ -41,13 +39,17 @@ from app.services.monitoramento_eventos import (
     editar_evento_monitorado,
     excluir_acao_monitorada,
     excluir_evento_monitorado,
+    listar_acoes_monitoradas,
+    obter_nr_convenio_da_acao_monitorada,
     registrar_acao_monitorada,
     registrar_evento_monitorado,
 )
 from app.services.monitoramento_instrumentos import (
     NovoInstrumentoMonitorado,
+    buscar_cnes_monitoramento,
     criar_instrumento_monitorado,
     listar_instrumentos_monitorados,
+    listar_marcos_monitoramento,
     obter_timeline_instrumento,
 )
 
@@ -112,6 +114,7 @@ class EventoMarcoCreate(BaseModel):
     # Obrigatório pra marco de grupo fisico/regulatorio -- ver
     # EventoMarcoRead. Validado no service, não só aqui.
     fase_geral_id: int | None = None
+    confirmar_inauguracao: bool = False
     # Equipamento FISICO -- so usado quando marco.codigo ==
     # "cronograma_entrega" (achado 2026-09-09, pedido do usuario: "o
     # equipamento entregue pode mover para eventos"). `registrar_evento`
@@ -246,14 +249,10 @@ class InstrumentoEquipamentoUpdate(BaseModel):
 
 
 class InstrumentoEquipamentoCreate(BaseModel):
-    """Radar de Convenios (fluxo 2026-09-15, ver
-    docs/arquitetura/fluxo_requisicao.md) -- 2 portas de entrada pro mesmo
-    POST: automatica (candidato de proposta_candidata aceito, nr_convenio =
-    str(id_proposta), tipo_contratacao="Parceria TransfereGov") e manual
-    (tecnico cadastrando FAF/TED/PERSUS ou convenio avulso que a equipe ja
-    conhece por fora -- nr_convenio = digitos do NUP SEI pro mesmo criterio
-    ja usado em scripts/importar_planilha_monitoramento.py::
-    _resolver_identificador). Diferente de InstrumentoEquipamentoUpdate:
+    """Entrada explícita de um instrumento no monitoramento interno.
+
+    Convênios, propostas e cargas manuais usam este mesmo POST. Diferente
+    de InstrumentoEquipamentoUpdate:
     aqui SIM entra identidade (nr_convenio/cnpj/nome/tipo_contratacao),
     porque e o unico momento em que esses campos existem -- depois de
     criado, ficam imutaveis (mesma decisao do PATCH, corrigir por fora da
@@ -386,6 +385,18 @@ class LicencaVencendoResumo(BaseModel):
     dias: int
 
 
+class DivergenciaConclusaoRead(BaseModel):
+    nr_convenio: str
+    nome_convenente: str
+    tipo_contratacao: str | None
+    fase_interna: str
+    fonte_externa: str
+    status_externo_original: str
+    status_externo_normalizado: str
+    atualizado_em: datetime
+    risco: str
+
+
 class ResumoMonitoramentoRead(BaseModel):
     """1 chamada so pra pagina de overview (achado 2026-09-09, pedido do
     usuario: pagina INDEPENDENTE, nao so o detalhe de 1 convenio) -- tudo
@@ -407,9 +418,13 @@ class ResumoMonitoramentoRead(BaseModel):
     acoes_pendentes: int
     acoes_atrasadas: int
     nr_convenios: list[str]
+    divergencias_conclusao: list[DivergenciaConclusaoRead]
+    divergencias_conclusao_por_fonte: list[ContagemRotulo]
 
 
-def _ao_vivo_de(dado: dict | None) -> ValorSituacaoAoVivoRead:
+def _ao_vivo_de(
+    dado: portal_transparencia.ConvenioPortalTransparencia | dict | None,
+) -> ValorSituacaoAoVivoRead:
     """Monta o `ao_vivo` a partir da resposta crua do Portal da Transparencia
     (ou `None` quando a consulta falhou/nao achou). Extraida do endpoint pra
     dar pra testar a deteccao de `valor_suspeito` sem precisar de banco nem
@@ -417,14 +432,17 @@ def _ao_vivo_de(dado: dict | None) -> ValorSituacaoAoVivoRead:
     if dado is None:
         return ValorSituacaoAoVivoRead(disponivel=False)
 
-    valor = dado.get("valor")
-    valor_liberado = dado.get("valorLiberado")
+    if isinstance(dado, dict):
+        dado = portal_transparencia.ConvenioPortalTransparencia.model_validate(dado)
+
+    valor = dado.valor
+    valor_liberado = dado.valorLiberado
     suspeito = valor is not None and valor_liberado is not None and valor_liberado > valor
     return ValorSituacaoAoVivoRead(
         disponivel=True,
         valor=valor,
         valor_liberado=valor_liberado,
-        situacao=dado.get("situacao"),
+        situacao=dado.situacao,
         valor_suspeito=suspeito,
     )
 
@@ -515,12 +533,7 @@ def buscar_cnes_referencia(
     código (prefixo); qualquer outra coisa busca por nome (contém,
     case-insensitive). Limitado a 20 resultados -- é autocomplete, não
     listagem completa."""
-    query = select(CnesEstabelecimento)
-    if q.isdigit():
-        query = query.where(CnesEstabelecimento.cnes.startswith(q))
-    else:
-        query = query.where(CnesEstabelecimento.nome_estabelecimento.ilike(f"%{q}%"))
-    return db.execute(query.limit(20)).scalars().all()
+    return buscar_cnes_monitoramento(termo=q, db=db)
 
 
 @router.get("/marcos", response_model=list[MarcoCatalogoRead])
@@ -530,9 +543,7 @@ def listar_marcos(
     limit: int = Query(default=200, le=200, gt=0),
     db: Session = Depends(get_db),
 ):
-    return db.execute(
-        select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem).limit(limit)
-    ).scalars().all()
+    return listar_marcos_monitoramento(db=db, limit=limit)
 
 
 @router.get("/instrumentos", response_model=list[InstrumentoEquipamentoRead])
@@ -567,7 +578,7 @@ def obter_timeline(
     # front (a timeline continua util mesmo se o Portal da Transparencia
     # estiver fora do ar).
     try:
-        dado = portal_transparencia.buscar_convenio_por_numero(nr_convenio)
+        dado = portal_transparencia.buscar_convenio_por_numero_dto(nr_convenio)
         ao_vivo = _ao_vivo_de(dado)
     except Exception:
         # Chave ausente, rede fora, 500 do Portal da Transparencia -- qualquer
@@ -602,8 +613,6 @@ def criar_instrumento(
     instrumento = criar_instrumento_monitorado(
         dados=NovoInstrumentoMonitorado(**corpo.model_dump()), db=db, usuario=usuario
     )
-    db.commit()
-    db.refresh(instrumento)
     return instrumento
 
 
@@ -628,8 +637,6 @@ def atualizar_cadastro(
         db=db,
         usuario=usuario,
     )
-    db.commit()
-    db.refresh(instrumento)
     return instrumento
 
 
@@ -655,6 +662,7 @@ def registrar_evento(
             data_validade=corpo.data_validade,
             observacao=corpo.observacao,
             fase_geral_id=corpo.fase_geral_id,
+            confirmar_inauguracao=corpo.confirmar_inauguracao,
             equipamento=DadosEquipamentoEntregue(
                 marca=corpo.equipamento_marca,
                 modelo=corpo.equipamento_modelo,
@@ -665,8 +673,6 @@ def registrar_evento(
         db=db,
         usuario=usuario,
     )
-    db.commit()
-    db.refresh(evento)
     return _evento_read(evento, {usuario.id: usuario.name})
 
 
@@ -695,8 +701,6 @@ def editar_evento(
         db=db,
         usuario=usuario,
     )
-    db.commit()
-    db.refresh(novo)
     return _evento_read(novo, {usuario.id: usuario.name})
 
 
@@ -709,8 +713,6 @@ def excluir_evento(
 ):
     """Exclusão lógica (ver docstring do model) -- nunca DELETE físico."""
     evento = excluir_evento_monitorado(evento_id=evento_id, motivo=corpo.motivo, db=db, usuario=usuario)
-    db.commit()
-    db.refresh(evento)
     return _evento_read(evento, {usuario.id: usuario.name})
 
 
@@ -724,42 +726,26 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
     Eventos sao filtrados no banco pelos marcos necessarios (fase_geral +
     licenca CNEN + inauguracao) -- nao carrega o historico inteiro de
     EventoMarco. Contagens de acao tambem sao agregadas no SQL."""
-    instrumentos = db.execute(select(InstrumentoEquipamento)).scalars().all()
-    marcos = db.execute(select(MarcoCatalogo)).scalars().all()
+    hoje = date.today()
+    dados = monitoramento_repo.carregar_dados_resumo_monitoramento(db, hoje=hoje)
+    instrumentos = dados.instrumentos
+    propostas_por_chave = dados.propostas_por_chave
+    marcos = dados.marcos
     fases_gerais_desc = sorted(
         (m for m in marcos if m.grupo == MarcoGrupo.fase_geral), key=lambda m: m.ordem or 0, reverse=True,
     )
     marco_licenca = next((m for m in marcos if m.codigo == "regulatorio_licenca_operacao"), None)
     marco_inauguracao = next((m for m in marcos if m.codigo == "cronograma_previsao_inauguracao"), None)
 
-    marco_ids_relevantes = {m.id for m in fases_gerais_desc}
-    if marco_licenca:
-        marco_ids_relevantes.add(marco_licenca.id)
-    if marco_inauguracao:
-        marco_ids_relevantes.add(marco_inauguracao.id)
-
-    eventos_por_instrumento: dict[int, list[EventoMarco]] = defaultdict(list)
-    if marco_ids_relevantes:
-        for e in db.execute(
-            select(EventoMarco).where(
-                EventoMarco.marco_id.in_(marco_ids_relevantes),
-                # Só ATIVO entra no cálculo (Plan Mode monitoramento-evolucao
-                # 2026-09-19) -- achado ao vivo: faltava esse filtro aqui,
-                # evento corrigido/excluído continuava empurrando fase,
-                # licença e inauguração igual um vigente.
-                EventoMarco.substituido_por_id.is_(None),
-                EventoMarco.deletado_em.is_(None),
-            )
-        ).scalars():
-            eventos_por_instrumento[e.instrumento_id].append(e)
-
-    hoje = date.today()
+    eventos_por_instrumento = dados.eventos_por_instrumento
     pcts = []
     contagem_fase: Counter[str] = Counter()
     contagem_tecnico: Counter[str] = Counter()
     licencas_deferidas = 0
     licencas_vencendo: list[LicencaVencendoResumo] = []
     inauguracoes: list[InauguracaoResumo] = []
+    divergencias_conclusao: list[DivergenciaConclusaoRead] = []
+    divergencias_por_fonte: Counter[str] = Counter()
 
     for inst in instrumentos:
         eventos_inst = eventos_por_instrumento.get(inst.id, [])
@@ -770,6 +756,29 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
         if fase_atual and fase_atual.execucao_fisica_pct_referencia is not None:
             pcts.append(fase_atual.execucao_fisica_pct_referencia)
         contagem_fase[fase_atual.rotulo if fase_atual else "Não iniciado"] += 1
+
+        fase_concluida = bool(
+            fase_atual
+            and fase_atual.codigo == "fase_concluido"
+            and any(e.marco_id == fase_atual.id and e.data_ocorrencia for e in eventos_inst)
+        )
+        if fase_concluida:
+            assert fase_atual is not None
+            proposta = propostas_por_chave.get(inst.nr_convenio)
+            divergencia = divergencia_conclusao(inst, fase_concluida=fase_concluida, proposta=proposta)
+            if divergencia:
+                divergencias_conclusao.append(DivergenciaConclusaoRead(
+                    nr_convenio=inst.nr_convenio,
+                    nome_convenente=inst.nome_convenente,
+                    tipo_contratacao=inst.tipo_contratacao,
+                    fase_interna=fase_atual.rotulo,
+                    fonte_externa=divergencia.fonte_externa,
+                    status_externo_original=divergencia.status_externo_original,
+                    status_externo_normalizado=divergencia.status_externo_normalizado,
+                    atualizado_em=divergencia.atualizado_em,
+                    risco="Conclusão externa pendente",
+                ))
+                divergencias_por_fonte[divergencia.fonte_externa] += 1
 
         # Achado 2026-09-09 (pedido do usuario): NA/NI ja viram NULL na
         # importacao/migration -- sempre conta, nunca pula, com rotulo
@@ -791,6 +800,7 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
                 (e for e in evs_licenca if e.data_validade), key=lambda e: (e.created_at, e.id), default=None,
             )
             if ev_validade:
+                assert ev_validade.data_validade is not None
                 licencas_vencendo.append(LicencaVencendoResumo(
                     nr_convenio=inst.nr_convenio, nome_convenente=inst.nome_convenente,
                     data_validade=ev_validade.data_validade, dias=(ev_validade.data_validade - hoje).days,
@@ -822,21 +832,6 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
     inauguracoes.sort(key=lambda i: i.data)
     licencas_vencendo.sort(key=lambda i: i.data_validade)
 
-    acoes_pendentes = db.execute(
-        select(func.count())
-        .select_from(AcaoMonitoramento)
-        .where(AcaoMonitoramento.data_conclusao.is_(None))
-    ).scalar_one()
-    acoes_atrasadas = db.execute(
-        select(func.count())
-        .select_from(AcaoMonitoramento)
-        .where(
-            AcaoMonitoramento.data_conclusao.is_(None),
-            AcaoMonitoramento.data_prevista.is_not(None),
-            AcaoMonitoramento.data_prevista < hoje,
-        )
-    ).scalar_one()
-
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),
         pct_execucao_fisica_medio=(sum(pcts) / len(pcts)) if pcts else None,
@@ -845,9 +840,14 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
         licencas_vencendo=licencas_vencendo,
         por_tecnico_titular=[ContagemRotulo(rotulo=r, quantidade=q) for r, q in contagem_tecnico.most_common()],
         inauguracoes=inauguracoes,
-        acoes_pendentes=acoes_pendentes,
-        acoes_atrasadas=acoes_atrasadas,
+        acoes_pendentes=dados.acoes_pendentes,
+        acoes_atrasadas=dados.acoes_atrasadas,
         nr_convenios=[i.nr_convenio for i in instrumentos],
+        divergencias_conclusao=sorted(divergencias_conclusao, key=lambda item: item.nr_convenio),
+        divergencias_conclusao_por_fonte=[
+            ContagemRotulo(rotulo=rotulo, quantidade=quantidade)
+            for rotulo, quantidade in divergencias_por_fonte.most_common()
+        ],
     )
 
 
@@ -855,7 +855,7 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
 def listar_acoes(
     pendentes: bool = Query(False),
     # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
-    # consolidacao 2026-09-17) -- volume atual e pequeno (universo de 86
+    # consolidacao 2026-09-17) -- volume atual e pequeno (universo de 91
     # instrumentos monitorados), sem necessidade de paginacao real ainda.
     limit: int = Query(default=500, le=500, gt=0),
     db: Session = Depends(get_db),
@@ -865,16 +865,7 @@ def listar_acoes(
     os instrumentos, ordenadas por data_prevista -- alimenta a lista de
     "dividas por data" da pagina de overview. Ação corrigida/excluída não
     aparece aqui (ver docstring do model)."""
-    stmt = (
-        select(AcaoMonitoramento, InstrumentoEquipamento.nr_convenio)
-        .join(InstrumentoEquipamento, AcaoMonitoramento.instrumento_id == InstrumentoEquipamento.id)
-        .where(AcaoMonitoramento.substituido_por_id.is_(None), AcaoMonitoramento.deletado_em.is_(None))
-        .order_by(AcaoMonitoramento.data_prevista.asc().nulls_last())
-        .limit(limit)
-    )
-    if pendentes:
-        stmt = stmt.where(AcaoMonitoramento.data_conclusao.is_(None))
-    linhas = db.execute(stmt).all()
+    linhas = listar_acoes_monitoradas(pendentes=pendentes, limit=limit, db=db)
     ids_usuarios = {a.responsavel_id for a, _ in linhas if a.responsavel_id} | {
         a.criado_por_id for a, _ in linhas if a.criado_por_id
     }
@@ -903,8 +894,6 @@ def registrar_acao(
         db=db,
         usuario=usuario,
     )
-    db.commit()
-    db.refresh(acao)
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, {corpo.responsavel_id, usuario.id})
     return _acao_read(acao, nr_convenio, nomes)
 
@@ -927,11 +916,9 @@ def editar_acao(
         db=db,
         usuario=usuario,
     )
-    db.commit()
-    db.refresh(nova)
-    instrumento = db.get(InstrumentoEquipamento, nova.instrumento_id)
+    nr_convenio = obter_nr_convenio_da_acao_monitorada(acao=nova, db=db)
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, {corpo.responsavel_id, usuario.id})
-    return _acao_read(nova, instrumento.nr_convenio, nomes)
+    return _acao_read(nova, nr_convenio, nomes)
 
 
 @router.delete("/acoes/{acao_id}", response_model=AcaoMonitoramentoRead)
@@ -943,11 +930,9 @@ def excluir_acao(
 ):
     """Exclusão lógica (ver docstring do model) -- nunca DELETE físico."""
     acao = excluir_acao_monitorada(acao_id=acao_id, motivo=corpo.motivo, db=db, usuario=usuario)
-    db.commit()
-    db.refresh(acao)
-    instrumento = db.get(InstrumentoEquipamento, acao.instrumento_id)
+    nr_convenio = obter_nr_convenio_da_acao_monitorada(acao=acao, db=db)
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, {usuario.id})
-    return _acao_read(acao, instrumento.nr_convenio, nomes)
+    return _acao_read(acao, nr_convenio, nomes)
 
 
 @router.patch("/acoes/{acao_id}/concluir", response_model=AcaoMonitoramentoRead)
@@ -962,10 +947,8 @@ def concluir_acao(
     negócio e autorização vivem no Service (Plan Mode segurança 2026-09-16,
     Bloco 3)."""
     acao = concluir_acao_monitorada(acao_id=acao_id, db=db, usuario=usuario)
-    db.commit()
-    db.refresh(acao)
-    instrumento = db.get(InstrumentoEquipamento, acao.instrumento_id)
+    nr_convenio = obter_nr_convenio_da_acao_monitorada(acao=acao, db=db)
     nomes = monitoramento_repo.resolver_nomes_usuarios(
         db, {acao.responsavel_id, acao.criado_por_id}
     )
-    return _acao_read(acao, instrumento.nr_convenio, nomes)
+    return _acao_read(acao, nr_convenio, nomes)

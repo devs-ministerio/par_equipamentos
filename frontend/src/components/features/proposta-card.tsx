@@ -1,17 +1,16 @@
 import { useState } from 'react';
-import { fmtData, fmtMoeda } from '@/lib/monitoramento-format';
+import { fmtMoeda } from '@/lib/monitoramento-format';
 import { cn } from '@/lib/utils';
-import { equipamentoPrincipal } from '@/lib/proposta-metas-resumo';
 import { situacaoDeFato } from '@/lib/proposta-status';
-import { Button } from '@/components/ui/button';
 import { Campo, estiloCard, StatusPill } from './monitoramento-ui';
 import { DetalheBrutoProposta } from './proposta-detalhe-bruto';
 import { LinhaDoTempoProposta } from './proposta-linha-do-tempo';
 import type { usePropostasCandidatas } from '@/hooks/use-propostas-candidatas';
+import type { InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
+import { AdicionarMonitoramentoButton } from './adicionar-monitoramento-button';
 
-/** O CNES descoberto é somente leitura enquanto a proposta ainda não faz
- * parte do monitoramento. Correções são permitidas apenas no instrumento
- * aceito, dentro da aba Monitoramento interno. */
+/** O CNES descoberto é somente leitura na proposta; correções são feitas no
+ * instrumento monitorado após a inclusão explícita. */
 function CnesDestaque({ cnes, nomeEstabelecimento }: {
   cnes: string | null;
   nomeEstabelecimento: string | null;
@@ -32,23 +31,13 @@ function CnesDestaque({ cnes, nomeEstabelecimento }: {
 
 export function CardProposta({
   p,
-  podeEditar,
-  onRevisar,
-  revisando,
-  mostrarAcoes,
+  instrumentoMonitorado,
 }: {
   p: ReturnType<typeof usePropostasCandidatas>['propostas'][number];
-  podeEditar: boolean;
-  onRevisar: (decisao: 'aceita' | 'rejeitada') => void;
-  revisando: boolean;
-  /** Aceitar/Rejeitar só na aba "Novas propostas" -- uma proposta pendente
-   * também aparece em "Propostas" (universo inteiro, sem filtro de
-   * status), mas lá é só consulta -- a ação de revisar mora só onde o
-   * card nasceu pra ser revisado. */
-  mostrarAcoes: boolean;
+  instrumentoMonitorado?: InstrumentoEquipamento;
 }) {
   const [detalheAberto, setDetalheAberto] = useState(false);
-  const principal = equipamentoPrincipal(p.metas_resumo);
+  const principal = p.equipamentos.find((equipamento) => equipamento.relacao !== 'mencao') ?? p.equipamentos[0];
   const ano = p.data_proposta?.slice(0, 4);
 
   return (
@@ -61,22 +50,12 @@ export function CardProposta({
               Proposta #{p.id_proposta}
             </span>
             {ano && <span className="font-mono text-[11.5px] text-muted-foreground">{ano}</span>}
-            {/* Item de maior valor (dado real de /item-proposta) --
-                prioridade sobre equipamento_detectado (regex, só pega
-                equipamento de imagem grande, fica null pra colposcópio/
-                bisturi/etc.). Cai pro regex só quando não há item
-                detalhado nenhum (proposta ainda sem meta capturada). */}
+            {/* A evidência vem exclusivamente do catálogo central do backend. */}
             {principal ? (
               <span className="rounded-full border border-border bg-background px-[11px] py-1 text-[13px] font-extrabold text-foreground">
                 {principal.nome}
               </span>
-            ) : (
-              p.equipamento_detectado && (
-                <span className="rounded-full border border-border bg-background px-[11px] py-1 text-[13px] font-extrabold text-foreground">
-                  {p.equipamento_detectado}
-                </span>
-              )
-            )}
+            ) : null}
           </div>
           <div className="text-[15px] font-bold text-foreground">{p.nm_proponente}</div>
           <CnesDestaque cnes={p.cnes} nomeEstabelecimento={p.cnes_nome_estabelecimento} />
@@ -98,32 +77,6 @@ export function CardProposta({
         {p.componente_batido}
       </p>
 
-      {mostrarAcoes && p.status === 'pendente' && (
-        <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-          {podeEditar ? (
-            <>
-              <Button size="sm" onClick={() => onRevisar('aceita')} disabled={revisando}>
-                Aceitar — criar instrumento monitorado
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => onRevisar('rejeitada')} disabled={revisando}>
-                Rejeitar
-              </Button>
-            </>
-          ) : (
-            <p className="text-[11px] italic text-muted-foreground">
-              Faça login (dentro de um convênio, aba "Monitoramento interno") pra aceitar ou rejeitar.
-            </p>
-          )}
-        </div>
-      )}
-
-      {p.status !== 'pendente' && p.revisado_em && (
-        <p className="mb-0 mt-3 border-t border-border pt-2.5 text-[11px] text-muted-foreground">
-          Revisado em {fmtData(p.revisado_em)}
-          {p.status === 'aceita' && ` — instrumento criado com nr_convenio=${p.cd_parceria || p.id_proposta}`}
-        </p>
-      )}
-
       {/* ---------- Camada 2: dado técnico aninhado, atrás de 1 clique ---------- */}
       <details
         className="mt-3 border-t border-border pt-2.5"
@@ -135,7 +88,7 @@ export function CardProposta({
         </summary>
         <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
           <Campo label="Programa">{p.nm_programa}</Campo>
-          <Campo label="Data da proposta">{p.data_proposta ? fmtData(p.data_proposta) : '—'}</Campo>
+          <Campo label="Data da proposta">{p.data_proposta ? p.data_proposta.split('-').reverse().join('/') : '—'}</Campo>
           <Campo label="Parceria formalizada">{p.tem_parceria ? p.cd_parceria : 'Não'}</Campo>
         </div>
         {p.ds_objeto && <p className="mb-0 mt-2.5 text-xs text-muted-foreground">{p.ds_objeto}</p>}
@@ -143,6 +96,31 @@ export function CardProposta({
         <LinhaDoTempoProposta metasResumo={p.metas_resumo} dataProposta={p.data_proposta} />
 
         <DetalheBrutoProposta metasResumo={p.metas_resumo} />
+
+        <div className="mt-3 border-t border-border pt-3">
+          <p className="mb-2 text-xs font-bold uppercase text-muted-foreground">Monitoramento interno</p>
+          {instrumentoMonitorado ? (
+            <p className="m-0 text-[11px] text-muted-foreground">
+              Este instrumento já está no monitoramento interno ({instrumentoMonitorado.nr_convenio}).
+            </p>
+          ) : (
+            <AdicionarMonitoramentoButton
+              dados={{
+                nr_convenio: p.cd_parceria || String(p.id_proposta),
+                cnpj_convenente: p.cnpj_ente_recebedor,
+                nome_convenente: p.nm_proponente,
+                tipo_contratacao: 'Parceria TransfereGov',
+                municipio: p.municipio,
+                uf: p.uf,
+                cnes: p.cnes,
+                programa: p.nm_programa,
+                componente: p.componente_batido,
+                referencia: `proposta #${p.id_proposta}`,
+                descricao: `${p.nm_proponente} — ${p.municipio || '—'}/${p.uf || '—'}`,
+              }}
+            />
+          )}
+        </div>
       </details>
     </div>
   );

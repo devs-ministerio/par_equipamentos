@@ -57,7 +57,9 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
         # Nunca vaza detalhe de erro interno pro cliente -- so loga.
-        logger.exception("Erro nao tratado em %s", request.url)
+        # Nunca registra querystring: qualquer parâmetro sensível futuro não
+        # pode parar no log de infraestrutura por acidente.
+        logger.exception("Erro nao tratado em %s %s", request.method, request.url.path)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Erro interno", "detail": None},

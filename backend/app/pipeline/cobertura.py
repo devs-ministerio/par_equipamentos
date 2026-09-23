@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import TypedDict
 
 from app.db.models import DeficitStatus
 
@@ -17,6 +18,18 @@ PRODUTIVIDADE_POR_FAMILIA = {
     "RESSONANCIA": 5_000 / (30 / 1_000),
     "PET_CT": 1_500_000,
 }
+
+
+class OfertaAgregada(TypedDict):
+    """Acumulador da oferta; não participa da fórmula de cobertura."""
+
+    existente: int
+    uso_sus: int
+    estabelecimentos: set[str]
+
+
+def nova_oferta_agregada() -> OfertaAgregada:
+    return {"existente": 0, "uso_sus": 0, "estabelecimentos": set()}
 
 
 def produtividade_por_familia(equipment_family: str | None) -> float:

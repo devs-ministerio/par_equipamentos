@@ -1,0 +1,11 @@
+.env
+.env.*
+.venv
+__pycache__
+*.pyc
+tests
+scripts/output
+scripts/data
+build
+dist
+.git

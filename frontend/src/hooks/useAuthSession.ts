@@ -61,6 +61,8 @@ export function useAuthSession() {
     login: loginMutation.mutateAsync,
     loginPendente: loginMutation.isPending,
     erroLogin: loginMutation.error,
+    erroSessao: usuarioQuery.error,
+    tentarNovamenteSessao: usuarioQuery.refetch,
     sair,
     tratarSessaoInvalida,
   };

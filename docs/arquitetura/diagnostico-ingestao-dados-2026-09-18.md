@@ -170,3 +170,43 @@ idempotente contra o Neon já corrigido: `convenio_atualizados=163`, `monitorame
 zero criação nova; reconciliação da planilha (`somente_ausentes=True`) devolveu 0 criados/
 126 reconciliados, confirmando que o FAF/TED corrigido é reencontrado pelo `chave_origem` sem
 duplicar sob o novo `nr_convenio` aleatório.
+
+## Atualização 2026-09-20 — auditoria de marcadores e fontes manuais
+
+A correção de destino resolveu a separação entre Instrumentos Firmados e Monitoramento Interno,
+mas não resolveu a fonte de verdade dos equipamentos. Registros manuais de PERSUS/PRONON e
+registros de API continuam chegando por caminhos distintos e seus marcadores são gravados em
+campos diferentes. O espelhamento em `convenio` coloca a origem no mesmo universo de instrumentos,
+mas `equipamentos_tags` ainda é uma lista derivada, não uma relação de evidência.
+
+Inventário confirmado: planilhas FAF/TED e PERSUS I, CSVs PERSUS II/PRONON, registros manuais de
+PRONON no radar, seeds e scripts de batimento. Os escritores relevantes são
+`importar_planilha_monitoramento.py`, `importar_programas_monitoramento.py`,
+`importar_propostas_pronon_radar.py`, `job_descoberta_transferegov.py`,
+`importar_convenios_banco.py` e `lib_monitoramento_convenio.py`. Seeds e scripts one-shot devem ser
+classificados antes de qualquer remoção; não serão apagados nem tratados como banco canônico.
+
+O marcador atual não confirma sozinho que o equipamento será adquirido: há classificação pelo
+primeiro termo no objeto, seleção do maior item no frontend, varredura de todos os itens no filtro
+e o valor fixo “Acelerador linear” na carga programática. O novo plano exige evidência individual,
+relação (aquisição, upgrade, existente ou menção), múltiplos equipamentos e reconciliação antes
+de substituir os campos legados.
+
+### Execução 2026-09-20
+
+O backfill central foi aplicado após snapshot e simulação idempotente. Foram materializadas 1.415
+evidências por item/meta/planilha/programa, preservando origem e relação. PERSUS II e PRONON não
+recebem mais “Acelerador linear” por inferência de programa; PERSUS I é registrado como evidência
+programática explícita. As 86 tags legadas sem evidência seguem registradas para auditoria, mas não
+alimentam API, filtros ou marcadores visuais.
+
+## Revalidação 2026-09-21 — divergência PRONON a reconciliar
+
+O estado final acima é registro histórico da execução de 18/09, não confirmação
+do estado atual. A auditoria de ingestão de 21/09 encontrou zero registros
+`PRONON` em `convenio`. O usuário confirmou que o CSV de PRONON não é mais
+usado e ele foi removido; o importador atual de programas lê somente PERSUS I
+e II, enquanto o script de propostas PRONON cria candidatos no Radar.
+
+Não reintroduzir PRONON em Instrumentos Firmados sem uma nova decisão de
+produto e fonte aprovada; ver `diagnostico-ingestao-dados-2026-09-21.md`.

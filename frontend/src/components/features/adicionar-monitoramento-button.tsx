@@ -1,21 +1,6 @@
-/** Botão "Adicionar ao monitoramento interno" -- entrada manual pra um
- * convênio que já está na lista oficial (Portal/SICONV) mas ainda não tem
- * `InstrumentoEquipamento` (achado 2026-09-15, pergunta direta do
- * usuário: "onde está a parte de incluir o convênio no monitoramento
- * interno?" -- só existia a porta automática via proposta aceita).
- * Identidade (nr_convenio/cnpj/nome/programa) já é conhecida pelo card;
- * só o técnico titular precisa ser informado na hora -- pedido do usuário
- * (mesma rodada): "preciso que apareça [uma janela] para incluir o nome
- * do técnico que será responsável" + "uma janelinha de confirmação
- * também". O `log_action` do backend (AuditLog, action="created") já
- * registra quem fez e com qual técnico -- "preciso que fique registrado
- * (log) deste feito".
- *
- * 2 etapas dentro do mesmo Dialog (achado 2026-09-15, pedido do usuário
- * numa rodada seguinte: "ao clicar em confirmar, preciso que apareça a
- * janela de NOVA confirmação") -- 'form' (nome do técnico) -> 'confirmar'
- * (resumo final, só aí a criação de verdade acontece). "Cancelar"/"Voltar"
- * nunca perde o nome já digitado, só troca de etapa. */
+/** Inclusão explícita de um item já conhecido no monitoramento interno.
+ * O técnico é informado antes da confirmação final e a criação fica em
+ * AuditLog no backend. */
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthSession } from '@/hooks/useAuthSession';
@@ -32,11 +17,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Campo, estiloInput } from './monitoramento-ui';
-import type { ConvenioUnificado } from '@/types/monitoramento';
+import type { CriarInstrumentoInput } from '@/services/monitoramento-instrumentos';
 
 type Etapa = 'form' | 'confirmar';
 
-export function AdicionarMonitoramentoButton({ c }: { c: ConvenioUnificado }) {
+export interface DadosAdicionarMonitoramento extends Omit<CriarInstrumentoInput, 'tecnico_titular' | 'tecnico_suplente'> {
+  referencia: string;
+  descricao: string;
+}
+
+export function AdicionarMonitoramentoButton({ dados }: { dados: DadosAdicionarMonitoramento }) {
   const sessao = useAuthSession();
   const queryClient = useQueryClient();
   const [aberto, setAberto] = useState(false);
@@ -52,16 +42,10 @@ export function AdicionarMonitoramentoButton({ c }: { c: ConvenioUnificado }) {
   }
 
   const mutation = useMutation({
-    mutationFn: () =>
-      criarInstrumento({
-        nr_convenio: c.numero,
-        cnpj_convenente: c.convenente.cnpj ?? '',
-        nome_convenente: c.convenente.nome,
-        tipo_contratacao: 'Convênio',
-        municipio: c.municipio,
-        uf: c.uf,
-        tecnico_titular: tecnicoTitular.trim() || null,
-      }),
+    mutationFn: () => {
+      const { referencia: _referencia, descricao: _descricao, ...corpo } = dados;
+      return criarInstrumento({ ...corpo, tecnico_titular: tecnicoTitular.trim() || null });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumentos });
       fechar();
@@ -72,7 +56,7 @@ export function AdicionarMonitoramentoButton({ c }: { c: ConvenioUnificado }) {
   if (!sessao.podeEditar) {
     return (
       <p className="text-xs text-muted-foreground italic m-0">
-        Faça login (em qualquer convênio já monitorado, aba "Monitoramento interno") pra adicionar este ao monitoramento.
+        Faça login para adicionar este item ao monitoramento.
       </p>
     );
   }
@@ -86,9 +70,9 @@ export function AdicionarMonitoramentoButton({ c }: { c: ConvenioUnificado }) {
         {etapa === 'form' ? (
           <>
             <DialogHeader>
-              <DialogTitle>Adicionar convênio {c.numero} ao monitoramento interno</DialogTitle>
+              <DialogTitle>Adicionar {dados.referencia} ao monitoramento interno</DialogTitle>
               <DialogDescription>
-                {c.convenente.nome} — {c.municipio}/{c.uf}. Informe o técnico titular responsável.
+                {dados.descricao}. Informe o técnico titular responsável.
               </DialogDescription>
             </DialogHeader>
 
@@ -133,9 +117,9 @@ export function AdicionarMonitoramentoButton({ c }: { c: ConvenioUnificado }) {
             </DialogHeader>
 
             <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-background p-3">
-              <Campo label="Convênio">{c.numero}</Campo>
-              <Campo label="Convenente">{c.convenente.nome}</Campo>
-              <Campo label="Município/UF">{c.municipio}/{c.uf}</Campo>
+              <Campo label="Instrumento">{dados.referencia}</Campo>
+              <Campo label="Convenente">{dados.nome_convenente}</Campo>
+              <Campo label="Município/UF">{dados.municipio || '—'}/{dados.uf || '—'}</Campo>
               <Campo label="Técnico titular">{tecnicoTitular.trim()}</Campo>
             </div>
             {erro && <p className="text-xs text-destructive mt-1.5">{erro}</p>}

@@ -10,6 +10,16 @@ function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   return requisitar(path, schema, undefined);
 }
 
+const equipamentoMarcadorApiSchema = z.object({
+  codigo: z.string(),
+  nome: z.string(),
+  prioritario: z.boolean(),
+  descricao_original: z.string(),
+  tipo_evidencia: z.string(),
+  relacao: z.string(),
+  confianca: z.number(),
+});
+
 const convenioApiSchema = z.object({
   numero: z.string(),
   numero_instrumento: z.string().nullable(),
@@ -49,7 +59,9 @@ const convenioApiSchema = z.object({
   valor_pago_fornecedor: z.number().nullable(),
   pagamentos_count: z.number(),
   financeiro_fonte_confiavel: z.boolean(),
-  equipamentos_tags: z.array(z.string()).nullable(),
+  dados_oficiais_disponiveis: z.boolean(),
+  desembolso_integral_da_carga: z.boolean(),
+  equipamentos: z.array(equipamentoMarcadorApiSchema),
   cnes: z.string().nullable(),
   cnes_nome_estabelecimento: z.string().nullable(),
 });
@@ -95,7 +107,17 @@ function toConvenioUnificado(c: ConvenioApi): ConvenioUnificado {
     cnes: c.cnes,
     cnesNomeEstabelecimento: c.cnes_nome_estabelecimento,
     programa: c.programa,
-    equipamentosTags: c.equipamentos_tags ?? [],
+    equipamentos: c.equipamentos.map((equipamento) => ({
+      codigo: equipamento.codigo,
+      nome: equipamento.nome,
+      prioritario: equipamento.prioritario,
+      descricaoOriginal: equipamento.descricao_original,
+      tipoEvidencia: equipamento.tipo_evidencia,
+      relacao: equipamento.relacao,
+      confianca: equipamento.confianca,
+    })),
+    dadosOficiaisDisponiveis: c.dados_oficiais_disponiveis,
+    desembolsoIntegralDaCarga: c.desembolso_integral_da_carga,
     valorPagoFornecedor: c.valor_pago_fornecedor,
     pagamentosCount: c.pagamentos_count,
     datas: {
@@ -161,7 +183,7 @@ export async function fetchConvenioDetalhe(numero: string): Promise<ConvenioUnif
   const c = await apiGet(`/convenios/${encodeURIComponent(numero)}`, convenioDetalheApiSchema);
   return {
     ...toConvenioUnificado(c),
-    siconv: (c.siconv_raw as ConvenioUnificado['siconv']) ?? null,
-    transferegov: (c.transferegov_raw as ConvenioUnificado['transferegov']) ?? null,
+    siconv: c.dados_oficiais_disponiveis ? (c.siconv_raw as ConvenioUnificado['siconv']) ?? null : null,
+    transferegov: c.dados_oficiais_disponiveis ? (c.transferegov_raw as ConvenioUnificado['transferegov']) ?? null : null,
   };
 }

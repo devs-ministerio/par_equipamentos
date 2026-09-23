@@ -84,7 +84,7 @@ def ativar(request: Request, corpo: UserActivationRequest, response: Response, d
 @limiter.limit("3/minute")
 def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session = Depends(get_db)):
     user = db.execute(select(User).where(User.email == corpo.email.lower().strip(), User.deleted_at.is_(None))).scalar_one_or_none()
-    if user is not None and settings.smtp_host and settings.smtp_from:
+    if user is not None and settings.servico_email_configurado:
         token = secrets.token_urlsafe(32)
         user.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
         user.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)

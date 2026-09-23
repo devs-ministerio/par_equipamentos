@@ -1,23 +1,15 @@
 import { useEffect, useState } from 'react';
-import { MetricStrip } from '@/components/common/metric-strip';
 import { PageHeader } from '@/components/common/page-header';
-import { FilterWorkspace } from '@/components/common/filter-workspace';
 import { ErrorAlert } from '@/components/common/error-alert';
 import { mensagemSeguraDoErro } from '@/lib/api-error';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NavBoxesAnaliseMerito } from '@/components/features/nav-boxes-analise-merito';
-import { MultiSelectFilter } from '@/components/common/multi-select-filter';
-import { CoberturaTable } from '@/components/features/cobertura-table';
-import { EstabelecimentoTable } from '@/components/features/estabelecimento-table';
-import { InfoIcon } from '@/components/features/info-icon';
-import { NivelCoberturaTable } from '@/components/features/nivel-cobertura-table';
-import { StatusFilterButtons } from '@/components/features/status-filter-buttons';
+import { DashboardConteudo } from '@/components/features/dashboard-conteudo';
 import { useFiltrosMacro } from '@/hooks/useFiltrosMacro';
 import { useDashboardCobertura } from '@/hooks/useDashboardCobertura';
 import { useDashboardTotais } from '@/hooks/useDashboardTotais';
 import { useDashboardHipo } from '@/hooks/useDashboardHipo';
 import { useFamiliaEquipamento } from '@/hooks/use-familia-equipamento';
-import { REGIOES } from '@/data/constants';
 import type { StatusCobertura } from '@/types/domain';
 
 export function DashboardPage() {
@@ -157,173 +149,5 @@ export function DashboardPage() {
     );
   }
 
-  return (
-    <div>
-      {header}
-
-      <FilterWorkspace hasAnyFilter={hasAnyFilter} onClear={limparFiltros}>
-        <MultiSelectFilter
-          placeholder="CNES"
-          options={cnesOptions}
-          selected={filtroCnes}
-          onChange={setFiltroCnes}
-        />
-        <MultiSelectFilter
-          placeholder="Região"
-          options={REGIOES.map((r) => ({ value: r, label: r }))}
-          selected={filtroRegioes}
-          onChange={(v) => {
-            setFiltroRegioes(v);
-            setFiltroUfs([]);
-            setFiltroMacros([]);
-            setFiltroRegioesSaude([]);
-            setFiltroMunicipios([]);
-            setFiltroCnes([]);
-          }}
-        />
-        <MultiSelectFilter
-          placeholder="Estado (UF)"
-          options={ufOptions}
-          selected={filtroUfs}
-          onChange={(v) => {
-            setFiltroUfs(v);
-            setFiltroMacros([]);
-            setFiltroRegioesSaude([]);
-            setFiltroMunicipios([]);
-            setFiltroCnes([]);
-          }}
-        />
-        <MultiSelectFilter
-          placeholder="Macrorregião de Saúde"
-          options={macroOptions}
-          selected={filtroMacros}
-          onChange={(v) => {
-            setFiltroMacros(v);
-            setFiltroRegioesSaude([]);
-            setFiltroMunicipios([]);
-            setFiltroCnes([]);
-          }}
-        />
-        <MultiSelectFilter
-          placeholder="Região de Saúde"
-          options={regiaoSaudeOptions}
-          selected={filtroRegioesSaude}
-          onChange={(v) => {
-            setFiltroRegioesSaude(v);
-            setFiltroMunicipios([]);
-            setFiltroCnes([]);
-          }}
-        />
-        <MultiSelectFilter
-          placeholder="Município"
-          options={municipioOptions}
-          selected={filtroMunicipios}
-          onChange={(v) => {
-            setFiltroMunicipios(v);
-            setFiltroCnes([]);
-          }}
-        />
-      </FilterWorkspace>
-
-      <MetricStrip
-        items={[
-          {
-            key: 'total',
-            label: 'Total de Equipamentos',
-            value: totais?.existingQty ?? totalEquipGeralMacro,
-            variant: 'primary',
-            info: (
-              <InfoIcon>
-                Inclui equipamentos privados. Só o card ao lado (em uso e SUS) entra no cálculo de cobertura.
-              </InfoIcon>
-            ),
-          },
-          {
-            key: 'total-sus',
-            label: 'Total de Equipamentos em uso SUS',
-            value: totais?.availableQty ?? totalEquipMacro,
-            variant: 'primary',
-          },
-          {
-            key: 'municipios-hipo',
-            label: 'Municípios Hipossuficientes',
-            value: municipiosHipo ?? '—',
-            variant: 'destructive',
-            onClick: () => verHipo('municipio'),
-            ativo: nivelForcado === 'municipio',
-            info: (
-              <InfoIcon>
-                Municípios com mais de 100 mil habitantes e equipamentos em uso SUS abaixo do necessário. Clique pra ver a
-                lista.
-              </InfoIcon>
-            ),
-          },
-          {
-            key: 'regioes-saude-hipo',
-            label: 'Regiões de Saúde Hipossuficientes',
-            value: regioesSaudeHipo != null && regioesSaudeTotal != null ? `${regioesSaudeHipo} de ${regioesSaudeTotal}` : '—',
-            variant: 'destructive',
-            onClick: () => verHipo('regiaoSaude'),
-            ativo: nivelForcado === 'regiaoSaude',
-            info: <InfoIcon>Regiões de saúde com equipamentos em uso SUS abaixo do necessário. Clique pra ver a lista.</InfoIcon>,
-          },
-          {
-            key: 'macros-hipo',
-            label: 'Macrorregiões com Hipossuficiente',
-            value: `${macrosHipo} de ${filteredRows.length}`,
-            variant: 'destructive',
-            onClick: () => verHipo('macro'),
-            ativo: nivelForcado === 'macro',
-          },
-        ]}
-      />
-
-      <div className="mt-5 rounded-lg bg-card">
-        <div className="flex flex-col items-stretch gap-3 border-b border-border px-4.5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <div className="text-sm font-semibold">Cobertura Assistencial</div>
-            {nivelForcado && (
-              <button
-                onClick={sairDoHipo}
-                className="cursor-pointer rounded-full border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[11px] font-semibold text-destructive"
-              >
-                ✕ Sair da visão Hipo
-              </button>
-            )}
-          </div>
-          <StatusFilterButtons selecionados={statusFiltro} onChange={setStatusFiltro} />
-        </div>
-        {nivelTabela === 'macro' && (
-          <CoberturaTable
-            equipmentFamily={FAMILIA}
-            rows={filteredRows}
-            macros={macros}
-            subNivelSelecionados={[...filtroRegioesSaude, ...filtroMunicipios]}
-            statusFiltro={statusFiltro}
-          />
-        )}
-        {nivelTabela !== 'macro' && (
-          <NivelCoberturaTable
-            equipmentFamily={FAMILIA}
-            nivel={nivelTabela}
-            states={estadosFiltro}
-            macroCodes={macrosFiltro}
-            healthRegionCodes={regioesSaudeFiltro}
-            municipalities={municipiosFiltro}
-            semCorteDePopulacao={Boolean(municipiosFiltro || cnesFiltro)}
-            statusFiltro={statusFiltro}
-            subNivelSelecionados={[...filtroRegioesSaude, ...filtroMunicipios]}
-          />
-        )}
-      </div>
-      <EstabelecimentoTable
-        equipmentFamily={FAMILIA}
-        states={estadosFiltro}
-        macroCodes={macrosFiltro}
-        healthRegionCodes={regioesSaudeFiltro}
-        municipalities={municipiosFiltro}
-        cnesCodes={cnesFiltro}
-      />
-    </div>
-  );
+  return <div>{header}<DashboardConteudo familia={FAMILIA} macros={macros} rows={filteredRows} filtros={{ regioes: filtroRegioes, ufs: filtroUfs, macros: filtroMacros, regioesSaude: filtroRegioesSaude, municipios: filtroMunicipios, cnes: filtroCnes }} options={{ uf: ufOptions, macro: macroOptions, regiaoSaude: regiaoSaudeOptions, municipio: municipioOptions, cnes: cnesOptions }} hasAnyFilter={hasAnyFilter} limparFiltros={limparFiltros} totais={totais} totalEquipMacro={totalEquipMacro} totalEquipGeralMacro={totalEquipGeralMacro} municipiosHipo={municipiosHipo} regioesSaudeHipo={regioesSaudeHipo} regioesSaudeTotal={regioesSaudeTotal} macrosHipo={macrosHipo} nivelTabela={nivelTabela} nivelForcado={nivelForcado} statusFiltro={statusFiltro} setStatusFiltro={setStatusFiltro} verHipo={verHipo} sairDoHipo={sairDoHipo} setFiltroRegioes={setFiltroRegioes} setFiltroUfs={setFiltroUfs} setFiltroMacros={setFiltroMacros} setFiltroRegioesSaude={setFiltroRegioesSaude} setFiltroMunicipios={setFiltroMunicipios} setFiltroCnes={setFiltroCnes} /></div>;
 }

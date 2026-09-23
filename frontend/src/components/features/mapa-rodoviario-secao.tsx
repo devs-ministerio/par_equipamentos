@@ -1,6 +1,7 @@
 import { lazy, Suspense, useMemo } from 'react';
 import type { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 import type { PontoEstabelecimento } from '@/components/features/macro-map';
+import { FilterWorkspace } from '@/components/common/filter-workspace';
 import { SingleSelectFilter } from '@/components/common/single-select-filter';
 import { RAIO_BUSCA_MUNICIPIO_KM } from '@/hooks/useEstabelecimentosMapa';
 import type { Macrorregiao, NivelCoberturaRow } from '@/types/domain';
@@ -52,6 +53,7 @@ interface Props {
   pontosMacro: PontoEstabelecimento[];
   totalEstabelecimentosNoRaio: number | null;
   contornoMunicipio: GeoJSON.Feature | null;
+  erroContornoMunicipio: Error | null;
 }
 
 /**
@@ -76,6 +78,7 @@ export function MapaRodoviarioSecao({
   pontosMacro,
   totalEstabelecimentosNoRaio,
   contornoMunicipio,
+  erroContornoMunicipio,
 }: Props) {
   // Objeto estavel (mesma referencia entre renders iguais) -- MacroMapReal
   // redesenha o mapa (Leaflet) sempre que este prop muda de referencia; sem
@@ -116,30 +119,34 @@ export function MapaRodoviarioSecao({
         </div>
       )}
 
-      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2.5">
-        <div className="text-xs font-semibold text-muted-foreground">Filtrar por</div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SingleSelectFilter
-            placeholder="Selecione uma macrorregião"
-            value={selectedMacroId}
-            onChange={setSelectedMacroId}
-            options={[...macros]
-              .sort((a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome))
-              .map((m) => ({ value: m.id, label: `${m.uf} · ${m.id} · ${m.nome}` }))}
-            minWidth={260}
-          />
-          <SingleSelectFilter
-            placeholder="Toda a macrorregião"
-            value={selectedMunicipioId}
-            onChange={setSelectedMunicipioId}
-            clearLabel="Toda a macrorregião"
-            options={[...municipiosMacro]
-              .sort((a, b) => a.nome.localeCompare(b.nome))
-              .map((m) => ({ value: m.chave, label: `${m.nome} (${m.uf})` }))}
-            minWidth={220}
-          />
-        </div>
-      </div>
+      <FilterWorkspace
+        className="mt-3.5"
+        hasAnyFilter={Boolean(selectedMacroId || selectedMunicipioId)}
+        onClear={() => {
+          setSelectedMacroId(null);
+          setSelectedMunicipioId(null);
+        }}
+      >
+        <SingleSelectFilter
+          placeholder="Selecione uma macrorregião"
+          value={selectedMacroId}
+          onChange={setSelectedMacroId}
+          options={[...macros]
+            .sort((a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome))
+            .map((m) => ({ value: m.id, label: `${m.uf} · ${m.id} · ${m.nome}` }))}
+          minWidth={260}
+        />
+        <SingleSelectFilter
+          placeholder="Toda a macrorregião"
+          value={selectedMunicipioId}
+          onChange={setSelectedMunicipioId}
+          clearLabel="Toda a macrorregião"
+          options={[...municipiosMacro]
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+            .map((m) => ({ value: m.chave, label: `${m.nome} (${m.uf})` }))}
+          minWidth={220}
+        />
+      </FilterWorkspace>
 
       {municipioSelecionado && (
         <div className="mt-2.5 text-[12.5px] text-muted-foreground">
@@ -190,10 +197,19 @@ export function MapaRodoviarioSecao({
             {municipioSelecionado && (
               <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="inline-block h-2 w-3 rounded-[3px] border-[1.5px] border-dashed border-destructive" aria-hidden="true" />
-                {contornoMunicipio ? 'contorno do município selecionado' : 'buscando contorno do município...'}
+                {erroContornoMunicipio
+                  ? 'contorno indisponível'
+                  : contornoMunicipio
+                    ? 'contorno do município selecionado'
+                    : 'buscando contorno do município...'}
               </span>
             )}
           </div>
+          {erroContornoMunicipio && (
+            <p className="mt-2 text-xs text-warning" role="status">
+              Não foi possível carregar o contorno do município selecionado.
+            </p>
+          )}
         </>
       )}
     </div>

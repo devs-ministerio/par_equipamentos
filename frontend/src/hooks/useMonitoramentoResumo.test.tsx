@@ -23,6 +23,8 @@ const RESUMO_EXEMPLO: ResumoMonitoramento = {
   acoes_pendentes: 0,
   acoes_atrasadas: 0,
   nr_convenios: [],
+  divergencias_conclusao: [],
+  divergencias_conclusao_por_fonte: [],
 };
 
 function wrapper({ children }: { children: ReactNode }) {

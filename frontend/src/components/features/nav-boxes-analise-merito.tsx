@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 const ITENS = [
-  { path: '/monitoramento-equipamentos/instrumentos', label: 'Monitoramento interno' },
+  { path: '/dashboard', label: 'Visão geral' },
   { path: '/mapa', label: 'Mapa' },
   { path: '/relatorios', label: 'Relatórios' },
 ];

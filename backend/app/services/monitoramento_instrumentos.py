@@ -3,14 +3,12 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-from fastapi import HTTPException
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_monitoramento
-from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
-from app.domain_errors import NotFoundError
+from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
+from app.domain_errors import ConflictError, NotFoundError
 from app.repositories import monitoramento as monitoramento_repo
 
 
@@ -48,15 +46,12 @@ def criar_instrumento_monitorado(
     usuario: User,
 ) -> InstrumentoEquipamento:
     assert_pode_editar_monitoramento(usuario)
-    ja_existe = db.execute(
-        select(InstrumentoEquipamento.id).where(InstrumentoEquipamento.nr_convenio == dados.nr_convenio)
-    ).scalar_one_or_none()
+    ja_existe = monitoramento_repo.obter_instrumento_por_nr_convenio(db, dados.nr_convenio)
     if ja_existe is not None:
-        raise HTTPException(409, f"Já existe instrumento monitorado com nr_convenio={dados.nr_convenio}.")
+        raise ConflictError(f"Já existe instrumento monitorado com nr_convenio={dados.nr_convenio}.")
 
     instrumento = InstrumentoEquipamento(**asdict(dados))
-    db.add(instrumento)
-    db.flush()
+    monitoramento_repo.adicionar_instrumento(db, instrumento)
     log_action(
         db,
         user_id=usuario.id,
@@ -69,6 +64,8 @@ def criar_instrumento_monitorado(
             "tecnico_titular": dados.tecnico_titular,
         },
     )
+    db.commit()
+    db.refresh(instrumento)
     return instrumento
 
 
@@ -104,6 +101,14 @@ def listar_instrumentos_monitorados(*, db: Session, limit: int = 500) -> list[In
         fase_atual = next((f.rotulo for f in fases_gerais_desc if f.id == fase_atual_id), "Não iniciado")
         resultado.append(InstrumentoComFase(instrumento=inst, fase_atual=fase_atual))
     return resultado
+
+
+def listar_marcos_monitoramento(*, db: Session, limit: int) -> list[MarcoCatalogo]:
+    return monitoramento_repo.listar_marcos_catalogo(db, limit=limit)
+
+
+def buscar_cnes_monitoramento(*, termo: str, db: Session, limit: int = 20) -> list[CnesEstabelecimento]:
+    return monitoramento_repo.buscar_cnes(db, termo=termo, limit=limit)
 
 
 @dataclass(frozen=True)

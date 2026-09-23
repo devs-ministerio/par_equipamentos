@@ -1,30 +1,15 @@
-# Deploy do backend no Render (free tier, sem cartao) -- alternativa
-# temporaria ao Railway (sem trial disponivel no momento). O banco fica no
-# Neon (Postgres free), referenciado so pela env var DATABASE_URL abaixo --
-# nao ha "database:" declarado aqui porque o Neon eh externo ao Render.
-#
-# Migrar pro Railway depois: nada no codigo muda (app/config.py ja le tudo
-# de env var). Basta recriar o servico la, colar a mesma DATABASE_URL (ou
-# a nova, se migrar o Postgres tambem) e CORS_ORIGINS, usando o Procfile
-# que ja existe em backend/Procfile.
-#
-# Plan Mode database 2026-09-16/17, Bloco 1+4: migration SAIU do startCommand.
-# DATABASE_URL agora e a credencial do role `sigeo_runtime` (so DML -- SELECT/
-# INSERT/UPDATE/DELETE, sem CREATE/ALTER), entao rodar 'alembic upgrade head'
-# aqui simplesmente falharia por privilegio insuficiente -- decisao proposital,
-# nao uma regressao. Migration roda a parte, com o role `sigeo_migration`
-# (dono do schema), via 'uv run alembic upgrade head' manual (Render Shell ou
-# local, DATABASE_URL_MIGRATION) ou pelo workflow dedicado
-# '.github/workflows/migrar_banco.yml' -- SEMPRE antes do deploy de qualquer
-# codigo que dependa da coluna/tabela nova (nunca depois).
+# Backend no Render com Neon externo. Migrations são executadas pelo workflow
+# isolado `migrar_banco.yml`, antes do código dependente do schema.
 services:
   - type: web
     name: sieo-backend
     runtime: python
     rootDir: backend
     plan: free
-    buildCommand: pip install uv && uv sync --frozen
+    buildCommand: pip install 'uv==0.12.17' && uv sync --frozen
     startCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
     envVars:
       - key: DATABASE_URL
         sync: false

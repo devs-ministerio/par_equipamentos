@@ -81,7 +81,7 @@ class UserCreateRequest(BaseModel):
 
 
 class UserActivationRequest(BaseModel):
-    token: str = Annotated[str, AfterValidator(lambda v: v.strip())]
+    token: Annotated[str, AfterValidator(lambda v: v.strip())]
     password: SenhaStr
 
 
@@ -90,17 +90,13 @@ class PasswordRecoveryRequest(BaseModel):
 
 
 class PasswordResetRequest(BaseModel):
-    token: str = Annotated[str, AfterValidator(lambda v: v.strip())]
+    token: Annotated[str, AfterValidator(lambda v: v.strip())]
     password: SenhaStr
 
 
 class UserUpdateRequest(BaseModel):
     name: str
     role: UserRole
-
-
-class UserResetPasswordResponse(BaseModel):
-    senha_temporaria: str
 
 
 class UserListResponse(BaseModel):

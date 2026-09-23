@@ -53,6 +53,27 @@ foi fechado com o usuário em 2026-09-15 (ver
 
 ## Tabelas novas
 
+### Catálogo e evidências de equipamentos
+
+Desde a migration `f4c7e1d9a820`, o filtro e os marcadores de equipamento
+usam relações normalizadas, em vez de inferir a interface a partir de
+`convenio.equipamentos_tags`.
+
+- **`equipamento_catalogo`** — vocabulário canônico, com código único, nome
+  exibível, prioridade e ativação.
+- **`equipamento_alias`** — aliases normalizados que promovem uma descrição
+  para o item canônico; `alias_normalizado` é único.
+- **`equipamento_marcador`** — evidência individual ligada a exatamente uma
+  origem (`convenio`, `proposta_candidata` ou `instrumento_equipamento`) e a
+  um item do catálogo. O CHECK físico impede mais de uma origem; os três
+  índices únicos parciais impedem duplicar a mesma `chave_evidencia` para o
+  mesmo item e origem.
+
+`equipamentos_tags` permanece temporariamente como compatibilidade de banco;
+não é fonte da interface. A auditoria de 2026-09-21 encontrou zero tags sem
+evidência centralizada e os importadores deixaram de escrevê-la. A coluna fica
+somente para observação/auditoria até a migration expand-contract posterior.
+
 ### `proposta_candidata`
 
 Uma linha por proposta do TransfereGov novo encontrada pelo job de
@@ -77,16 +98,25 @@ continue disponível).
 | `data_proposta` | date, nullable | |
 | `metas_resumo` | jsonb | `meta_proposta`/`item_proposta` capturados no momento da descoberta |
 | `tem_parceria` | bool | Já virou `parceria` formalizada na API? |
-| `status` | enum: `pendente`/`aceita`/`rejeitada` | |
-| `revisado_por` | FK → `user.id`, nullable | |
-| `revisado_em` | timestamptz, nullable | |
+| `status` | enum legado: `pendente`/`aceita`/`rejeitada` | Não exposto nem usado no fluxo atual; preservado até reconciliação/migration própria. |
+| `revisado_por` | FK → `user.id`, nullable, legado | Mesmo tratamento do status. |
+| `revisado_em` | timestamptz, nullable, legado | Mesmo tratamento do status. |
 | `created_at` | timestamptz | |
 
-Quando `status` vira `aceita`, a aplicação cria `instrumento_equipamento` na
-mesma transação, com `nr_convenio = cd_parceria` quando existir ou
-`str(id_proposta)` como fallback, e `tipo_contratacao = "Parceria
-TransfereGov"`. É o mesmo padrão de identificador surrogate que `FAF`/`TED`
-já usam (NUP SEI), mas sem `commit` intermediário entre instrumento e proposta.
+A equipe inclui uma proposta explicitamente pelo mesmo `POST
+/monitoramento/instrumentos` usado pelos demais instrumentos. O identificador
+é `cd_parceria` quando existir ou `str(id_proposta)` como fallback, com
+`tipo_contratacao = "Parceria TransfereGov"`.
+
+### `evidencia_transferegov`
+
+Árvore de evidências oficiais do TransfereGov ligada à proposta candidata.
+Cada linha representa um recurso externo (proposta, meta, etapa, item,
+parceria ou execução financeira), com chave externa, caminho e caminho-pai
+consultáveis. O `payload` JSONB mantém a resposta íntegra para auditoria; os
+campos relacionais são o contrato de consulta. `hash_conteudo` evita regravar
+nós idênticos em uma reexecução. `proposta_candidata.metas_resumo` permanece
+somente como adaptador de compatibilidade até os leitores migrarem.
 
 ### `notificacao`
 

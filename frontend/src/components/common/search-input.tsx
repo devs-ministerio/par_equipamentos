@@ -17,8 +17,8 @@ export function SearchInput({ value, onChange, placeholder, width = 240 }: Props
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="text-xs"
-      style={{ width }}
+      className="w-full text-xs sm:w-auto"
+      style={{ width: `min(100%, ${width}px)` }}
     />
   );
 }

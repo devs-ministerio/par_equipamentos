@@ -83,11 +83,8 @@ export function fetchInstrumentos(): Promise<InstrumentoEquipamento[]> {
   return apiGetAuthed('/monitoramento/instrumentos', z.array(instrumentoEquipamentoSchema));
 }
 
-/** POST /monitoramento/instrumentos -- 2 portas de entrada (ver docstring
- * do backend): candidato de proposta aceito (já feito por
- * revisarPropostaCandidata) e esta, cadastro manual/"adicionar ao
- * monitoramento" a partir de um convênio já conhecido (Instrumentos
- * firmados) ou de FAF/TED/PERSUS avulso. */
+/** POST /monitoramento/instrumentos: entrada explícita no monitoramento
+ * para convênios, propostas ou instrumentos/programas conhecidos. */
 export interface CriarInstrumentoInput {
   nr_convenio: string;
   cnpj_convenente: string;
@@ -95,6 +92,7 @@ export interface CriarInstrumentoInput {
   tipo_contratacao: string;
   municipio?: string | null;
   uf?: string | null;
+  cnes?: string | null;
   programa?: string | null;
   componente?: string | null;
   ano_instrumento?: number | null;
@@ -154,6 +152,7 @@ export interface RegistrarEventoInput {
   // Obrigatório quando o marco escolhido é de cronograma físico/
   // regulatório (validado no backend) -- ver eventoMarcoSchema.
   fase_geral_id?: number | null;
+  confirmar_inauguracao?: boolean;
   data_ocorrencia?: string | null;
   data_prevista?: string | null;
   status_regulatorio?: string | null;

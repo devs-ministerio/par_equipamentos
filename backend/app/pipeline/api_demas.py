@@ -9,18 +9,35 @@ Endpoint verificado ao vivo em 2026-07-24:
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import requests
+from pydantic import BaseModel, ConfigDict
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from app.observability import executar_chamada_externa
+from app.pipeline.contratos_externos import validar_lista_objetos_externos, validar_objeto_externo
 from app.pipeline.texto import normalizar_texto
 
 BASE_URL = "https://apidadosabertos.saude.gov.br"
 ENDPOINT_MUNICIPIO = "/macrorregiao-e-regiao-de-saude/municipio"
 LIMITE_PAGINA = 860
 TIMEOUT = 120
+
+
+class RegistroMunicipioDemas(BaseModel):
+    """Contrato mínimo da dimensão geográfica usada pelos pipelines."""
+
+    model_config = ConfigDict(extra="allow")
+
+    codigo_macrorregiao_saude: str | int
+    macrorregiao_saude: str
+    codigo_regiao_saude: str | int
+    regiao_saude: str
+    codigo_municipio: str | int
+    municipio: str
+    uf: str
 
 
 class Municipio(TypedDict):
@@ -60,33 +77,44 @@ def _sessao_com_retry() -> requests.Session:
     return session
 
 
-def _paginar(endpoint: str, params: dict) -> Iterator[dict]:
+def _validar_registro_municipio(registro: dict[str, Any]) -> RegistroMunicipioDemas:
+    return RegistroMunicipioDemas.model_validate(registro)
+
+
+def _paginar(endpoint: str, params: dict[str, str | int]) -> Iterator[RegistroMunicipioDemas]:
     offset = 0
     session = _sessao_com_retry()
     while True:
-        resp = session.get(
-            f"{BASE_URL}{endpoint}",
-            params={**params, "limit": LIMITE_PAGINA, "offset": offset},
-            timeout=TIMEOUT,
+        resp = executar_chamada_externa(
+            fonte="DEMAS",
+            operacao=endpoint,
+            chamada=lambda: session.get(
+                f"{BASE_URL}{endpoint}",
+                params={**params, "limit": LIMITE_PAGINA, "offset": offset},
+                timeout=TIMEOUT,
+            ),
         )
         resp.raise_for_status()
-        chave = next(iter(resp.json()))
-        pagina = resp.json()[chave]
+        envelope = validar_objeto_externo(resp.json(), fonte="DEMAS")
+        if not envelope:
+            return
+        chave = next(iter(envelope))
+        pagina = validar_lista_objetos_externos(envelope[chave], fonte="DEMAS.municípios")
         if not pagina:
             return
-        yield from pagina
+        yield from (_validar_registro_municipio(registro) for registro in pagina)
         if len(pagina) < LIMITE_PAGINA:
             return
         offset += LIMITE_PAGINA
 
 
-def buscar_municipios_macrorregiao() -> list[dict]:
-    """Baixa a lista completa de municipios com macrorregiao de saude."""
+def buscar_municipios_macrorregiao() -> list[RegistroMunicipioDemas]:
+    """Baixa a lista completa de municípios como DTOs validados."""
     return list(_paginar(ENDPOINT_MUNICIPIO, params={}))
 
 
 def montar_dimensoes(
-    registros_api: list[dict],
+    registros_api: list[RegistroMunicipioDemas],
 ) -> tuple[dict[str, Macrorregiao], dict[str, RegiaoSaude], dict[str, Municipio]]:
     """Deriva dim_macrorregiao (por co_macro), dim_regiao_saude (por co_regiao)
     e dim_municipio (por co_ibge) a partir dos registros crus da API."""
@@ -95,19 +123,19 @@ def montar_dimensoes(
     municipios: dict[str, Municipio] = {}
 
     for r in registros_api:
-        co_macro = str(r["codigo_macrorregiao_saude"])
-        sg_uf = sigla_uf(r["uf"])
+        co_macro = str(r.codigo_macrorregiao_saude)
+        sg_uf = sigla_uf(r.uf)
         if co_macro not in macros:
-            macros[co_macro] = Macrorregiao(co_macro=co_macro, no_macro=r["macrorregiao_saude"], sg_uf=sg_uf)
-        co_regiao = str(r["codigo_regiao_saude"])
+            macros[co_macro] = Macrorregiao(co_macro=co_macro, no_macro=r.macrorregiao_saude, sg_uf=sg_uf)
+        co_regiao = str(r.codigo_regiao_saude)
         if co_regiao not in regioes:
             regioes[co_regiao] = RegiaoSaude(
-                co_regiao=co_regiao, no_regiao=r["regiao_saude"], co_macro=co_macro, sg_uf=sg_uf,
+                co_regiao=co_regiao, no_regiao=r.regiao_saude, co_macro=co_macro, sg_uf=sg_uf,
             )
-        co_ibge = str(r["codigo_municipio"])
+        co_ibge = str(r.codigo_municipio)
         municipios[co_ibge] = Municipio(
             co_ibge=co_ibge,
-            no_municipio=_limpar_nome_municipio(r["municipio"]),
+            no_municipio=_limpar_nome_municipio(r.municipio),
             sg_uf=sg_uf,
             co_macro=co_macro,
             co_regiao=co_regiao,

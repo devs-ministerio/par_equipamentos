@@ -1,8 +1,9 @@
-import { Fragment } from 'react';
-import { campo, campoData, campoNum, campoObjeto, campoTexto, lista } from '@/lib/campo-cru';
+import { campo, campoData, campoNum, campoObjeto, lista } from '@/lib/campo-cru';
 import { enderecoProposta } from '@/lib/proposta-metas-resumo';
 import { fmtMoeda } from '@/lib/monitoramento-format';
-import { Campo, Secao, StatusPill } from './monitoramento-ui';
+import { Campo, Secao } from './monitoramento-ui';
+import { SecaoAnaliseTecnica, SecaoOrigemRecurso } from './proposta-detalhe-parecer';
+import { PropostaDetalheTimelineFinanceira } from './proposta-detalhe-timeline-financeira';
 
 const MESES = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -136,141 +137,7 @@ export function DetalheBrutoProposta({ metasResumo }: { metasResumo: unknown }) 
 
       <SecaoAnaliseTecnica analises={lista(metasResumo, 'analise')} />
       <SecaoOrigemRecurso distribuicoes={lista(metasResumo, 'distribuicao_recurso')} />
-      <SecaoTimelineFinanceira parceria={campoObjeto(metasResumo, 'parceria')} timeline={campoObjeto(metasResumo, 'timeline_financeira')} />
+      <PropostaDetalheTimelineFinanceira parceria={campoObjeto(metasResumo, 'parceria')} timeline={campoObjeto(metasResumo, 'timeline_financeira')} />
     </>
-  );
-}
-
-/** Parecer técnico completo (quem aprovou, quando, texto integral). Texto
- * rolável (pode ser bem longo) em vez de estourar o card. */
-function SecaoAnaliseTecnica({ analises }: { analises: unknown[] }) {
-  if (analises.length === 0) return null;
-  return (
-    <Secao titulo="Análise técnica (parecer)">
-      {analises.map((a, i) => {
-        const tipos = lista(a, 'tipos_analise').map((t) => campo(t, 'tp_analise')).filter(Boolean);
-        return (
-          <div key={i} className="mb-2.5 last:mb-0">
-            <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-              <StatusPill texto={campo(a, 'in_resultado_analise')} />
-              <span>{campo(a, 'in_fase_analise')}</span>
-              {tipos.length > 0 && <span>· {tipos.join(', ')}</span>}
-              {campo(a, 'dh_analise_proposta') && <span>· {campoData(a, 'dh_analise_proposta')}</span>}
-            </div>
-            {campo(a, 'ds_parecer') && (
-              <div className="max-h-52 overflow-y-auto rounded-md border border-border bg-background p-2.5 text-[11.5px] leading-relaxed text-foreground">
-                {campo(a, 'ds_parecer')}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </Secao>
-  );
-}
-
-/** Origem do recurso (emenda parlamentar ou dotação direta). */
-function SecaoOrigemRecurso({ distribuicoes }: { distribuicoes: unknown[] }) {
-  if (distribuicoes.length === 0) return null;
-  return (
-    <Secao titulo="Origem do recurso">
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
-        {distribuicoes.map((d, i) => (
-          <Fragment key={i}>
-            <Campo label="Tipo">{campo(d, 'in_tipo_distribuicao') || '—'}</Campo>
-            {campo(d, 'nr_emenda_proposta') && <Campo label="Nº da emenda">{campo(d, 'nr_emenda_proposta')}</Campo>}
-            {campo(d, 'nm_parlamentar_proposta') && (
-              <Campo label="Autor">
-                {campo(d, 'nm_parlamentar_proposta')}
-                {campo(d, 'in_tipo_emenda_parlamentar_proposta') && ` (${campo(d, 'in_tipo_emenda_parlamentar_proposta')})`}
-              </Campo>
-            )}
-            <Campo label="Valor">{fmtMoeda(campoNum(d, 'valor_emenda'))}</Campo>
-          </Fragment>
-        ))}
-      </div>
-    </Secao>
-  );
-}
-
-/** Timeline financeira ponta a ponta -- proposta virou parceria, abriu
- * conta, foi empenhada, gerou documento hábil e foi paga. Só aparece
- * quando a proposta já tem parceria. */
-function SecaoTimelineFinanceira({
-  parceria,
-  timeline,
-}: {
-  parceria: Record<string, unknown> | null;
-  timeline: Record<string, unknown> | null;
-}) {
-  if (!parceria) return null;
-  const contas = timeline ? lista(timeline, 'contas') : [];
-  const empenhos = timeline ? lista(timeline, 'empenhos') : [];
-  const documentos = timeline ? lista(timeline, 'documentos_habeis') : [];
-  const ordens = timeline ? lista(timeline, 'ordens_pagamento') : [];
-
-  return (
-    <Secao titulo="Timeline financeira (pós-parceria)">
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] gap-2.5 mb-2.5">
-        <Campo label="Parceria">
-          {campoTexto(parceria, 'cd_parceria') || '—'}
-          <span className="ml-1 text-[10px] text-muted-foreground">(id {campoNum(parceria, 'id_parceria')})</span>
-        </Campo>
-        <Campo label="Situação da parceria">{campo(parceria, 'in_situacao_parceria') || '—'}</Campo>
-      </div>
-
-      {contas.map((c, i) => (
-        <Campo key={`conta-${i}`} label="Conta bancária" legenda={campo(c, 'tx_descricao') ?? undefined}>
-          {campo(c, 'nm_banco')} — ag. {campo(c, 'nm_agencia')} ({campo(c, 'sg_uf_agencia')}), conta {campo(c, 'tx_conta')}
-        </Campo>
-      ))}
-
-      {(empenhos.length > 0 || documentos.length > 0 || ordens.length > 0) && (
-        <div className="mt-2.5 overflow-x-auto">
-          <table className="w-full min-w-[480px] border-collapse text-[11.5px]">
-            <thead>
-              <tr className="text-left text-[10px] uppercase text-muted-foreground">
-                <th className="py-0.5 pr-2">Etapa</th>
-                <th className="py-0.5 pr-2">Nº</th>
-                <th className="py-0.5 pr-2">Situação</th>
-                <th className="py-0.5 pr-2">Data</th>
-                <th className="py-0.5 text-right">Valor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {empenhos.map((e, i) => (
-                <tr key={`emp-${i}`} className="border-t border-border">
-                  <td className="py-1 pr-2 text-muted-foreground">Empenho (SIAFI)</td>
-                  <td className="py-1 pr-2 font-mono">{campoTexto(e, 'numero_empenho') || campoNum(e, 'nr_empenho')}</td>
-                  <td className="py-1 pr-2">{campo(e, 'in_situacao_siafi')}</td>
-                  <td className="py-1 pr-2">{campoData(e, 'data_emissao')}</td>
-                  <td className="py-1 text-right tabular-nums">{fmtMoeda(campoNum(e, 'valor_empenho'))}</td>
-                </tr>
-              ))}
-              {documentos.map((d, i) => (
-                <tr key={`doc-${i}`} className="border-t border-border">
-                  <td className="py-1 pr-2 text-muted-foreground">Documento hábil</td>
-                  <td className="py-1 pr-2 font-mono">{campo(d, 'nr_documento_habil')}</td>
-                  <td className="py-1 pr-2">{campo(d, 'in_situacao_dh')}</td>
-                  <td className="py-1 pr-2">{campoData(d, 'dt_emissao')}</td>
-                  <td className="py-1 text-right tabular-nums">{fmtMoeda(campoNum(d, 'vl_documento_habil'))}</td>
-                </tr>
-              ))}
-              {ordens.map((o, i) => (
-                <tr key={`op-${i}`} className="border-t border-border">
-                  <td className="py-1 pr-2 text-muted-foreground">Ordem de pagamento</td>
-                  <td className="py-1 pr-2 font-mono">{campo(o, 'nr_ordem_pagamento')}</td>
-                  <td className="py-1 pr-2">
-                    <StatusPill texto={campo(o, 'in_situacao_op')} />
-                  </td>
-                  <td className="py-1 pr-2">{campoData(o, 'dt_emissao_op')}</td>
-                  <td className="py-1 text-right tabular-nums">{fmtMoeda(campoNum(o, 'vl_ordem_pagamento'))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Secao>
   );
 }

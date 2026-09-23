@@ -59,6 +59,11 @@ vivem dentro de `MonitoramentoLayout` (`frontend/src/components/layout/
 monitoramento-layout.tsx`), com nav própria (header unificado, ver
 `app-header.tsx`) incluindo o link de volta pra análise de mérito
 (`/dashboard`) — não são mais standalone fora de qualquer layout.
+O Painel de Gestão também expõe divergências de conclusão: fase interna
+`fase_concluido` com fonte externa ainda aberta. Para Convênio, a fonte
+conclusiva é a prestação de contas; para proposta TransfereGov, é `Pago`; para
+cargas manuais sem API não se cria divergência externa. A regra é calculada no
+backend em `GET /monitoramento/resumo`, nunca reimplementada na UI.
 
 Quatro distinções que já causaram confusão ao mexer nisso, para não
 reintroduzir o erro:
@@ -81,13 +86,14 @@ reintroduzir o erro:
   form de cadastro separado — o PATCH continua existindo só pra corrigir
   depois.
 - **Escopo bem menor que os 403 convênios, e nem tudo é Convênio**: só
-  cobre os instrumentos que a equipe decide monitorar (249 após a carga
-  validada em 2026-09-18: 71 Convênio, 12 FAF, 3 TED, 92 PERSUS I,
-  50 PERSUS II e 21 PRONON;
-  Convênio/FAF/TED importados de `backend/scripts/importar_planilha_monitoramento.py` a
-  partir da planilha real da equipe; PERSUS/PRONON por
-  `backend/scripts/importar_programas_monitoramento.py` — imports são
-  cargas controladas, não sincronizações recorrentes). Convênio sem
+  cobre os instrumentos que a equipe decide monitorar (91 na conferência de
+  2026-09-21: 71 Convênio, 12 FAF, 3 TED e 5 PERSUS I).
+  Convênio/FAF/TED vêm de `backend/scripts/importar_planilha_monitoramento.py`
+  a partir da planilha real da equipe; PERSUS I não inaugurado vem de
+  `backend/scripts/importar_programas_monitoramento.py` — são cargas
+  controladas, não sincronizações recorrentes. PERSUS II fica apenas em
+  Instrumentos Firmados. PRONON é tratado somente como proposta no Radar;
+  não há CSV nem carga PRONON em Instrumentos Firmados. Convênio sem
   `InstrumentoEquipamento` não é erro — é o caso normal. Desde
   2026-09-09 o campo `tipo_contratacao` distingue "Convênio" (universo
   Portal/TransfereGov, `nr_convenio` real) de "FAF"/"TED" (nunca tiveram
@@ -98,9 +104,29 @@ reintroduzir o erro:
   anterior trocava `/` por `_` (motivo: `/` cru quebra a rota
   `/instrumentos/{nr_convenio}` mesmo como `%2F`, testado ao vivo) — ainda
   vale o alerta de nunca usar `/` cru nesse identificador.
+- **Disponibilidade de detalhe depende da fonte, não de JSON parcial**:
+  Convênio usa os dados oficiais disponíveis (SICONV/Portal); FAF, TED e
+  PERSUS I/II são cargas internas e exibem somente Valor Global
+  (considerado 100% desembolsado conforme a carga) e Monitoramento Interno
+  no detalhe. Nunca renderizar subabas SICONV para essas cargas, mesmo que
+  `siconv_raw` contenha item manual usado exclusivamente como evidência de
+  equipamento.
+- **Filtro de equipamentos vem de `equipamento_marcador`**: priorizados e
+  outros equipamentos identificados são duas classes de opção; um marcador
+  não prioritário continua selecionável mesmo quando o mesmo instrumento
+  também tem marcador prioritário. `equipamentos_tags` é legado de
+  compatibilidade do banco, não fonte da interface nem destino de novas
+  escritas desde a auditoria de 2026-09-21. Fica somente para observação até
+  a migration expand-contract posterior. Nome que corresponda a alias
+  prioritário (inclusive LINAC/Acelerador) nunca aparece em "Outros";
+  o classificador canônico precisa promovê-lo ao catálogo prioritário.
 - **`tecnico_titular/suplente` (nossa equipe) ≠ `responsavel_execucao_nome/
   contato` (da instituição/convenente)**: campos parecidos, fontes
   diferentes — não confundir ao exibir ou editar.
+- **Conclusão confirma inauguração**: registrar `fase_concluido` exige data
+  de ocorrência e confirmação da inauguração na mesma transação; uma previsão
+  ativa é fechada append-only e a data real prevalece. `data_prevista` nunca
+  é aceita para marco de `fase_geral`, somente físico/regulatório.
 
 ## Limitações conhecidas
 
@@ -311,8 +337,8 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
 
 ```bash
 cd backend && uv run pytest                          # testes backend
-cd backend && uv run ruff check .                     # lint backend (baseline: .ruff-baseline.json)
-cd backend && uv run mypy .                            # typecheck backend (baseline: .mypy-baseline.json)
+cd backend && uv run ruff check app                     # lint do código de aplicação
+cd backend && uv run mypy app                            # typecheck do código de aplicação
 cd backend && uv run alembic upgrade head             # aplicar migrations
 cd backend && uv run python -m scripts.run_pipeline_tomografo
 cd backend && uv run python -m scripts.run_pipeline_ressonancia

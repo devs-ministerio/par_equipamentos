@@ -13,6 +13,7 @@ import { csrfHeaders } from '@/lib/csrf';
  * cada service continua dono só do seu schema Zod por domínio. */
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+const HTTP_TIMEOUT_MS = 15_000;
 
 /** Sessão via cookie HttpOnly (Plan Mode segurança 2026-09-16, Bloco 2) --
  * não há mais token em `localStorage` pra ler/guardar: o browser manda o
@@ -97,12 +98,25 @@ export async function httpFetch(path: string, init?: RequestInit, opts: Requisit
   const { redirecionarEm401 = true } = opts;
   const metodo = (init?.method ?? 'GET').toUpperCase();
   const precisaCsrf = metodo !== 'GET' && path !== '/auth/login';
-  const executar = () =>
-    fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      credentials: 'include',
-      headers: { ...init?.headers, ...(precisaCsrf ? csrfHeaders() : {}) },
-    });
+  const executar = async () => {
+    const controller = new AbortController();
+    const timeout = globalThis.setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
+    try {
+      return await fetch(`${API_BASE_URL}${path}`, {
+        ...init,
+        signal: init?.signal ?? controller.signal,
+        credentials: 'include',
+        headers: { ...init?.headers, ...(precisaCsrf ? csrfHeaders() : {}) },
+      });
+    } catch (erro) {
+      if (controller.signal.aborted) {
+        throw new Error(`A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`);
+      }
+      throw erro;
+    } finally {
+      globalThis.clearTimeout(timeout);
+    }
+  };
 
   let res: Response;
   try {

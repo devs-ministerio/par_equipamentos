@@ -1,4 +1,6 @@
-"""Validação sênior cruzando as 3 fontes do monitoramento interno: Banco de
+"""Validador histórico do batimento B813 — não é rotina operacional vigente.
+
+Validação sênior cruzando as 3 fontes do monitoramento interno: Banco de
 Dados (`InstrumentoEquipamento`, 86 linhas) vs API ao vivo (Portal da
 Transparência, pros que são `tipo_contratacao == "Convênio"`) vs planilha
 `data/B8131710.xlsx` (batimento da equipe, 463 linhas, das quais 409
@@ -45,7 +47,7 @@ import requests
 
 from app.db.base import SessionLocal
 from app.db.models import InstrumentoEquipamento
-from app.pipeline.portal_transparencia import ChaveApiAusenteError, buscar_convenio_por_numero, _sessao_com_retry
+from app.pipeline.portal_transparencia import ChaveApiAusenteError, _sessao_com_retry, buscar_convenio_por_numero
 
 PLANILHA = Path(__file__).parent.parent.parent / "data" / "B8131710.xlsx"
 ABA = "Batimento sistema 2026-09"
@@ -160,9 +162,9 @@ def run() -> None:
     divergencia_nome = []
     divergencia_categoria = []
 
-    for i, inst in enumerate(convenios_db, 1):
-        if i % 20 == 0:
-            print(f"   ... {i}/{len(convenios_db)}")
+    for indice, inst in enumerate(convenios_db, 1):
+        if indice % 20 == 0:
+            print(f"   ... {indice}/{len(convenios_db)}")
         linha_xlsx = por_convenio.get(inst.nr_convenio)
         if linha_xlsx is None:
             nao_achados_xlsx.append(inst.nr_convenio)

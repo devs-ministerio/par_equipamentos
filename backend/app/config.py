@@ -56,14 +56,18 @@ class Settings(BaseSettings):
     # (ver ConvenioClient.__init__).
     portal_transparencia_api_key: str = ""
 
-    # Convites de ativação. SMTP ausente bloqueia criação de usuário pendente;
-    # não existe fallback que exponha token ou senha na resposta da API.
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_username: str = ""
-    smtp_password: str = ""
-    smtp_from: str = ""
+    # Gateway HTTP de e-mail. A aplicação só entrega conteúdo ao gateway;
+    # não mantém transporte SMTP, remetente ou credenciais do provedor.
+    # Configuração ausente bloqueia convite/redefinição e nunca expõe token
+    # ou senha na resposta da API.
+    mail_api_url: str = ""
+    mail_api_secret: str = ""
     app_public_url: str = "http://localhost:5173"
+
+    # Em produção, configurar URI de storage compartilhado compatível com
+    # limits/slowapi (ex.: Redis). `memory://` é aceitável apenas no dev local
+    # e preserva a execução sem serviço externo.
+    rate_limit_storage_uri: str = "memory://"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
@@ -164,5 +168,9 @@ class Settings(BaseSettings):
     def cors_origins_lista(self) -> list[str]:
         return [origem.strip() for origem in self.cors_origins.split(",") if origem.strip()]
 
+    @property
+    def servico_email_configurado(self) -> bool:
+        return bool(self.mail_api_url and self.mail_api_secret)
 
-settings = Settings()
+
+settings = Settings()  # type: ignore[call-arg]  # valores obrigatórios vêm do ambiente no boot

@@ -47,6 +47,13 @@ export function MonitoramentoInternoEventos({
   const [eventoEmEdicao, setEventoEmEdicao] = useState<number | null>(null);
   const [eventoEmExclusao, setEventoEmExclusao] = useState<number | null>(null);
   const marcoPorId = new Map(marcos.map((m) => [m.id, m]));
+  const marcoInauguracao = marcos.find((marco) => marco.codigo === 'cronograma_previsao_inauguracao');
+  const eventoInauguracao = marcoInauguracao
+    ? eventos.filter((evento) => evento.marco_id === marcoInauguracao.id).reduce<EventoMarco | null>(
+      (maisRecente, evento) => !maisRecente || `${evento.created_at}-${evento.id}` > `${maisRecente.created_at}-${maisRecente.id}` ? evento : maisRecente,
+      null,
+    )
+    : null;
 
   // Organizado por data (mais recente primeiro) -- data_ocorrencia (fato
   // consumado) tem prioridade sobre data_prevista (só planejamento); sem
@@ -76,6 +83,7 @@ export function MonitoramentoInternoEventos({
       {formAberto && (
         <MonitoramentoInternoFormEvento
           marcos={marcos}
+          previsaoInauguracao={eventoInauguracao?.data_ocorrencia ? null : eventoInauguracao?.data_prevista ?? null}
           onRegistrar={async (valores) => {
             await onRegistrar(valores);
             setFormAberto(false);

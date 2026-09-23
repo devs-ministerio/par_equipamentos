@@ -11,7 +11,6 @@ from typing import Sequence, Union
 
 from alembic import op
 
-
 revision: str = "c9f1a4d7e602"
 down_revision: Union[str, Sequence[str], None] = "b8d2c6f4a901"
 branch_labels: Union[str, Sequence[str], None] = None
@@ -46,5 +45,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     for table, old_name, new_name, ref_table, local_cols, remote_cols, ondelete in reversed(FKS):
         op.drop_constraint(new_name, table, type_="foreignkey")
-        kwargs = {"ondelete": ondelete} if ondelete else {}
-        op.create_foreign_key(old_name, table, ref_table, local_cols, remote_cols, **kwargs)
+        if ondelete:
+            op.create_foreign_key(old_name, table, ref_table, local_cols, remote_cols, ondelete=ondelete)
+        else:
+            op.create_foreign_key(old_name, table, ref_table, local_cols, remote_cols)

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { buscarContornoMunicipio } from '@/services/geojson';
 
 /**
  * Contorno REAL (poligono oficial) do municipio selecionado -- buscado sob
@@ -17,16 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 export function useContornoMunicipio(ibgeCode7: string | null | undefined) {
   const query = useQuery({
     queryKey: ['municipio-contorno', ibgeCode7],
-    queryFn: async () => {
-      const res = await fetch(
-        `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${ibgeCode7}?formato=application/vnd.geo+json`,
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const geoJson = (await res.json()) as GeoJSON.FeatureCollection;
-      const feature = geoJson.features[0];
-      if (!feature) throw new Error('malha sem feature');
-      return feature;
-    },
+    queryFn: () => buscarContornoMunicipio(ibgeCode7!),
     enabled: Boolean(ibgeCode7),
     staleTime: Infinity,
     // silencia e segue -- mapa fica so sem o contorno extra (pin do
@@ -35,5 +27,5 @@ export function useContornoMunicipio(ibgeCode7: string | null | undefined) {
     retry: 1,
   });
 
-  return query.isSuccess ? query.data : null;
+  return { contorno: query.isSuccess ? query.data : null, erro: query.isError ? query.error : null };
 }

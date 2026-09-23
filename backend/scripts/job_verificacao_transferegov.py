@@ -27,16 +27,17 @@ cd_parceria ou str(id_proposta), ver PropostaCandidata). O
 id_proposta/id_parceria não têm coluna própria em InstrumentoEquipamento
 (decisão deliberada, sem FK física) -- resolvidos aqui por convenção,
 igual o resto do fluxo: casa contra proposta_candidata.cd_parceria ou
-proposta_candidata.id_proposta (como string) igual a nr_convenio, com
-status="aceita".
+proposta_candidata.id_proposta (como string) igual a nr_convenio.
 
 Uso: python -m scripts.job_verificacao_transferegov (de dentro de
 backend/, venv ativo).
 """
 from __future__ import annotations
 
+from sqlalchemy import or_
+
 from app.db.base import SessionLocal
-from app.db.models import InstrumentoEquipamento, Notificacao, NotificacaoTipo, PropostaCandidata, PropostaCandidataStatus
+from app.db.models import InstrumentoEquipamento, Notificacao, NotificacaoTipo, PropostaCandidata
 from app.pipeline.transferegov_parcerias import (
     buscar_documentos_habeis_por_parceria,
     buscar_ordens_pagamento_por_documento,
@@ -50,13 +51,14 @@ def _resolver_id_proposta(db, nr_convenio: str) -> int | None:
     propósito (formatos de identificador diferentes) -- resolve por
     convenção, mesmo critério documentado na docstring de
     PropostaCandidata.cd_parceria: nr_convenio é ou o cd_parceria ou o
-    str(id_proposta) da proposta que foi aceita."""
+    str(id_proposta) da proposta incluída no monitoramento."""
+    criterios = [PropostaCandidata.cd_parceria == nr_convenio]
+    id_proposta = _int_ou_none(nr_convenio)
+    if id_proposta is not None:
+        criterios.append(PropostaCandidata.id_proposta == id_proposta)
     candidata = (
         db.query(PropostaCandidata)
-        .filter(
-            PropostaCandidata.status == PropostaCandidataStatus.aceita,
-            (PropostaCandidata.cd_parceria == nr_convenio) | (PropostaCandidata.id_proposta == _int_ou_none(nr_convenio)),
-        )
+        .filter(or_(*criterios))
         .one_or_none()
     )
     return candidata.id_proposta if candidata else None

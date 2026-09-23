@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Dialog, DialogContent } from '../ui/dialog';
+import { FilterWorkspace } from '../common/filter-workspace';
 import { MultiSelectFilter } from '../common/multi-select-filter';
 import { ExportSecaoTabela } from '../features/export-secao-tabela';
 import { REGIOES } from '../../data/constants';
@@ -198,8 +199,7 @@ export function ExportPdfModal({
       </div>
 
       <div className="mt-3 rounded-[6px] border border-border bg-background p-3">
-        <div className="mb-2 text-[11.5px] font-bold text-muted-foreground">Filtros aplicados</div>
-        <div className="flex flex-wrap gap-2">
+        <FilterWorkspace className="mb-0 border-0 py-0" hasAnyFilter={hasAnyFilter} onClear={limparFiltros}>
           <MultiSelectFilter placeholder="CNES" options={cnesOptions} selected={filtroCnes} onChange={setFiltroCnes} />
           <MultiSelectFilter
             placeholder="Região"
@@ -256,15 +256,7 @@ export function ExportPdfModal({
               setFiltroCnes([]);
             }}
           />
-          {hasAnyFilter && (
-            <button
-              onClick={limparFiltros}
-              className="cursor-pointer rounded-[6px] border border-[#f0a0a0] bg-[#fff0f0] px-3 py-1.5 text-xs font-medium text-[#c0392b]"
-            >
-              ✕ Limpar
-            </button>
-          )}
-        </div>
+        </FilterWorkspace>
       </div>
 
       {modoMapa ? (

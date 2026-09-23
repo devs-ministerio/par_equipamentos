@@ -67,14 +67,10 @@ export function atualizarUsuario(userId: number, corpo: AtualizarUsuarioInput): 
   return apiAuthed(`/usuarios/${userId}`, userSchema, 'PATCH', corpo);
 }
 
-const resetSenhaSchema = z.object({ senha_temporaria: z.string() });
-
-/** Senha temporária vem em claro SÓ nesta resposta (ver
- * `services/usuarios.py::resetar_senha` no backend) -- não fica
- * recuperável depois, quem chama precisa exibir/copiar na hora. */
-export async function resetarSenhaUsuario(userId: number): Promise<string> {
-  const resp = await apiAuthed(`/usuarios/${userId}/resetar-senha`, resetSenhaSchema, 'POST');
-  return resp.senha_temporaria;
+/** Solicita link de redefinição por e-mail; nenhuma senha transita pela API
+ * ou pela interface administrativa. */
+export function enviarRedefinicaoUsuario(userId: number): Promise<Usuario> {
+  return apiAuthed(`/usuarios/${userId}/enviar-redefinicao`, userSchema, 'POST');
 }
 
 export function inativarUsuario(userId: number): Promise<Usuario> {

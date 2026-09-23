@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -96,8 +97,8 @@ CHECKS: tuple[IntegrityCheck, ...] = (
         """,
     ),
     IntegrityCheck(
-        name="proposta_aceita_sem_instrumento",
-        description="proposta aceita sem instrumento no identificador esperado",
+        name="proposta_legada_aceita_sem_instrumento",
+        description="registro legado de proposta aceita sem instrumento no identificador esperado",
         count_sql="""
             SELECT count(*)
             FROM proposta_candidata p
@@ -123,8 +124,8 @@ CHECKS: tuple[IntegrityCheck, ...] = (
         """,
     ),
     IntegrityCheck(
-        name="instrumento_transferegov_sem_proposta_aceita",
-        description="instrumento Parceria TransfereGov sem proposta aceita correspondente",
+        name="instrumento_transferegov_sem_proposta_correspondente",
+        description="instrumento Parceria TransfereGov sem proposta correspondente",
         count_sql="""
             SELECT count(*)
             FROM instrumento_equipamento i
@@ -132,8 +133,7 @@ CHECKS: tuple[IntegrityCheck, ...] = (
               AND NOT EXISTS (
                 SELECT 1
                 FROM proposta_candidata p
-                WHERE p.status = 'aceita'
-                  AND (
+                WHERE (
                     i.nr_convenio = p.cd_parceria
                     OR i.nr_convenio = p.id_proposta::text
                   )
@@ -146,8 +146,7 @@ CHECKS: tuple[IntegrityCheck, ...] = (
               AND NOT EXISTS (
                 SELECT 1
                 FROM proposta_candidata p
-                WHERE p.status = 'aceita'
-                  AND (
+                WHERE (
                     i.nr_convenio = p.cd_parceria
                     OR i.nr_convenio = p.id_proposta::text
                   )
@@ -275,7 +274,7 @@ def _configure_database_url() -> None:
     os.environ["DATABASE_URL"] = url
 
 
-def _rows_as_dicts(rows: list[Any]) -> list[dict[str, Any]]:
+def _rows_as_dicts(rows: Sequence[Any]) -> list[dict[str, Any]]:
     return [dict(row._mapping) for row in rows]
 
 

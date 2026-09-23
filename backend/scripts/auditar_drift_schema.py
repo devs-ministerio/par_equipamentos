@@ -21,10 +21,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
 
-from app.db.base import Base, engine
 from app.db import models  # noqa: F401 -- registra os modelos em Base.metadata
+from app.db.base import Base, engine
 from scripts.schema_drift import BACKEND_DIR, comparar_heads, diff_metadata_vs_banco, tabelas_do_mermaid
 
 MERMAID_PATH = BACKEND_DIR.parent / "docs" / "database" / "modelo_er.mermaid"

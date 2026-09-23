@@ -7,12 +7,10 @@
  * Cobalto apareciam em volume real (2.250 itens nao mapeados no total,
  * a maioria mobiliario/informatica hospitalar generico, mas esses 9 sao
  * equipamento de imagem/tratamento especifico) sem tag nenhuma.
- * Reaproveitado aqui pra computar o KPI "Parque Tecnológico" e o filtro
- * por equipamento na lista principal, sem duplicar a varredura nacional
- * (so re-classifica os itens SICONV/TransfereGov que o convenio ja tem
- * carregado). Se os padroes do backend mudarem, atualizar os dois juntos. */
+ * Reaproveitado somente nas propostas que ainda exibem texto bruto da API.
+ * Convênios consomem marcadores canônicos do backend e não são
+ * reclassificados no cliente. */
 import { normalizarTexto } from '@/utils/texto';
-import type { ConvenioUnificado } from '@/types/monitoramento';
 
 export const EQUIPAMENTOS_ALVO = [
   'Acelerador Linear', 'Mamógrafo', 'PET/CT', 'Gama-câmara/SPECT', 'Braquiterapia',
@@ -36,27 +34,6 @@ const PADROES: [EquipamentoAlvo, RegExp][] = [
   ['Angiografia', /ANGIOGRAF/],
   ['Cobalto', /COBALTO/],
 ];
-
-/** Descricoes de item (SICONV `DESCRICAO_ITEM` + TransfereGov `nm_item`)
- * que o convenio tem, ja carregadas no objeto mesclado -- sem chamada de
- * rede nova. */
-function descricoesDeItem(c: ConvenioUnificado): string[] {
-  const descs: string[] = [];
-  for (const it of c.siconv?.itens_plano_aplicacao ?? []) {
-    if (it.DESCRICAO_ITEM) descs.push(it.DESCRICAO_ITEM);
-  }
-  for (const p of c.transferegov?.propostas_expandidas ?? []) {
-    for (const m of p.metas) {
-      for (const et of m.etapas_proposta) {
-        for (const it of et.itens) {
-          const nome = (it as Record<string, unknown>).nm_item;
-          if (typeof nome === 'string') descs.push(nome);
-        }
-      }
-    }
-  }
-  return descs;
-}
 
 /** Classifica uma lista de descrições de item cruas contra os mesmos
  * padrões -- extraído pra reuso fora de `ConvenioUnificado` (achado
@@ -89,8 +66,4 @@ export function equipamentoTagDe(desc: string): EquipamentoAlvo | null {
     if (padrao.test(descNorm)) return equip;
   }
   return null;
-}
-
-export function equipamentosDoConvenio(c: ConvenioUnificado): EquipamentoAlvo[] {
-  return equipamentosDeDescricoes(descricoesDeItem(c));
 }

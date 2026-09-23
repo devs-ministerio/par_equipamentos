@@ -9,13 +9,41 @@ nivel territorial N6 (municipio).
 from __future__ import annotations
 
 import requests
+from pydantic import BaseModel
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from app.observability import executar_chamada_externa
 
 BASE_URL = "https://servicodados.ibge.gov.br/api/v3"
 AGREGADO_POPULACAO = 6579
 VARIAVEL_POPULACAO = 9324
 TIMEOUT = 60
+
+
+class _PeriodicidadeSidra(BaseModel):
+    fim: int
+
+
+class _MetadadosSidra(BaseModel):
+    periodicidade: _PeriodicidadeSidra
+
+
+class _LocalidadeSidra(BaseModel):
+    id: str
+
+
+class _SerieSidra(BaseModel):
+    localidade: _LocalidadeSidra
+    serie: dict[str, str | int | None]
+
+
+class _ResultadoSidra(BaseModel):
+    series: list[_SerieSidra]
+
+
+class _RespostaSidra(BaseModel):
+    resultados: list[_ResultadoSidra]
 
 
 def _sessao_com_retry() -> requests.Session:
@@ -31,19 +59,27 @@ def _sessao_com_retry() -> requests.Session:
 
 def _ano_mais_recente() -> int:
     session = _sessao_com_retry()
-    resp = session.get(f"{BASE_URL}/agregados/{AGREGADO_POPULACAO}/metadados", timeout=TIMEOUT)
+    resp = executar_chamada_externa(
+        fonte="SIDRA",
+        operacao="metadados_populacao",
+        chamada=lambda: session.get(f"{BASE_URL}/agregados/{AGREGADO_POPULACAO}/metadados", timeout=TIMEOUT),
+    )
     resp.raise_for_status()
-    return resp.json()["periodicidade"]["fim"]
+    return _MetadadosSidra.model_validate(resp.json()).periodicidade.fim
 
 
 def buscar_populacao_municipios(ano: int | None = None) -> tuple[dict[str, int], int]:
     """Retorna ({co_ibge de 6 digitos: populacao}, ano_usado)."""
     ano = ano or _ano_mais_recente()
     session = _sessao_com_retry()
-    resp = session.get(
-        f"{BASE_URL}/agregados/{AGREGADO_POPULACAO}/periodos/{ano}/variaveis/{VARIAVEL_POPULACAO}",
-        params={"localidades": "N6[all]"},
-        timeout=TIMEOUT,
+    resp = executar_chamada_externa(
+        fonte="SIDRA",
+        operacao="populacao_municipios",
+        chamada=lambda: session.get(
+            f"{BASE_URL}/agregados/{AGREGADO_POPULACAO}/periodos/{ano}/variaveis/{VARIAVEL_POPULACAO}",
+            params={"localidades": "N6[all]"},
+            timeout=TIMEOUT,
+        ),
     )
     resp.raise_for_status()
     corpo = resp.json()
@@ -51,9 +87,12 @@ def buscar_populacao_municipios(ano: int | None = None) -> tuple[dict[str, int],
         raise ValueError(f"SIDRA nao retornou dados de populacao pro ano {ano}.")
 
     populacao: dict[str, int] = {}
-    for serie in corpo[0]["resultados"][0]["series"]:
-        co_ibge_7 = serie["localidade"]["id"]
-        valor = serie["serie"].get(str(ano))
+    resposta = _RespostaSidra.model_validate(corpo[0])
+    if not resposta.resultados:
+        raise ValueError(f"SIDRA não retornou séries de população pro ano {ano}.")
+    for serie in resposta.resultados[0].series:
+        co_ibge_7 = serie.localidade.id
+        valor = serie.serie.get(str(ano))
         if valor is None or valor in ("...", "-", "X"):
             continue
         populacao[co_ibge_7[:6]] = int(valor)

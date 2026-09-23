@@ -30,6 +30,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import Any, TypedDict
 
 from app.pipeline import transferegov_parcerias as tg
 
@@ -39,9 +40,14 @@ SAIDA = Path(__file__).parent / "output" / "transferegov_relacional.json"
 FILTRO_OBJETO = re.compile(r"EQUIPAMENTO", re.IGNORECASE)
 
 
+class ConvenenteLegado(TypedDict):
+    nome: str
+    convenios_legados: list[str]
+
+
 def run() -> None:
     convenios = json.loads(ENTRADA.read_text(encoding="utf-8"))
-    cnpjs_por_convenente = {}
+    cnpjs_por_convenente: dict[str, ConvenenteLegado] = {}
     for c in convenios:
         cnpj = re.sub(r"\D", "", c["convenente_cnpj"])
         cnpjs_por_convenente.setdefault(cnpj, {"nome": c["convenente_nome"], "convenios_legados": []})
@@ -53,7 +59,7 @@ def run() -> None:
     for i, (cnpj, info) in enumerate(cnpjs_por_convenente.items(), 1):
         print(f"[{i}/{len(cnpjs_por_convenente)}] {info['nome']} (CNPJ {cnpj})...")
         total = tg.total_propostas_por_cnpj(session, cnpj)
-        entrada_ente = {
+        entrada_ente: dict[str, Any] = {
             "cnpj": cnpj,
             "nome": info["nome"],
             "convenios_legados_relacionados": info["convenios_legados"],
@@ -71,7 +77,7 @@ def run() -> None:
 
         for p in propostas_equipamento:
             id_proposta = p["id_proposta"]
-            bloco_proposta = {
+            bloco_proposta: dict[str, Any] = {
                 "proposta": p,
                 "metas": tg.buscar_metas_por_proposta(session, id_proposta),
                 "cronograma_desembolso": tg.buscar_cronograma_por_proposta(session, id_proposta),

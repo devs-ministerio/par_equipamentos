@@ -7,9 +7,14 @@ import { SiconvSubAbas } from './siconv-sub-abas';
 import { AdicionarMonitoramentoButton } from './adicionar-monitoramento-button';
 import type { ConvenioUnificado } from '@/types/monitoramento';
 import { Campo, Secao } from './monitoramento-ui';
+import { LinhaDoTempoEventos, type EventoLinhaDoTempo } from './linha-do-tempo-eventos';
 
 export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; monitorado: boolean }) {
+  if (!c.dadosOficiaisDisponiveis) {
+    return <SecaoMonitoramentoInterno c={c} monitorado={monitorado} />;
+  }
   const siconv = c.siconv;
+  const eventosFinanceiros = construirEventosFinanceiros(c);
   return (
     <>
       <Secao titulo="Identificação">
@@ -58,6 +63,8 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
         </div>
       </div>
 
+      <LinhaDoTempoEventos titulo="Linha do tempo financeira" eventos={eventosFinanceiros} />
+
       {siconv ? (
         <Secao titulo="Dados aninhados (SICONV)">
           <SiconvSubAbas siconv={siconv} />
@@ -66,28 +73,72 @@ export function ConvenioCardDetalhes({ c, monitorado }: { c: ConvenioUnificado; 
         <p className="text-xs text-muted-foreground italic mt-3.5">Não encontrado no dump SICONV.</p>
       )}
 
-      {/* Monitoramento interno mudou pra pagina propria -- se ja tem
-          instrumento, so o link; se nao tem, o botao de adicionar (achado
-          2026-09-15, antes so existia a porta automatica via proposta
-          aceita). */}
-      <Secao
-        titulo="Monitoramento interno"
-        acao={
-          monitorado && (
-            <Link to={`/monitoramento-equipamentos/instrumentos/${c.numero}`} className="text-primary no-underline">
-              Ver detalhes →
-            </Link>
-          )
-        }
-      >
-        {monitorado ? (
-          <p className="text-xs text-muted-foreground m-0">
-        Entrega, instalação, licenciamento CNEN e inauguração.
-          </p>
-        ) : (
-          <AdicionarMonitoramentoButton c={c} />
-        )}
-      </Secao>
+      <SecaoMonitoramentoInterno c={c} monitorado={monitorado} />
     </>
+  );
+}
+
+function construirEventosFinanceiros(c: ConvenioUnificado): EventoLinhaDoTempo[] {
+  const eventos: EventoLinhaDoTempo[] = [];
+  if (c.datas.publicacao) eventos.push({ data: c.datas.publicacao, titulo: 'Instrumento publicado' });
+
+  for (const desembolso of c.siconv?.desembolsos ?? []) {
+    if (!desembolso.DATA_DESEMBOLSO) continue;
+    eventos.push({
+      data: desembolso.DATA_DESEMBOLSO,
+      titulo: 'Desembolso registrado',
+      detalhe: fmtMoeda(desembolso.VL_DESEMBOLSADO),
+    });
+  }
+
+  for (const pagamento of c.siconv?.pagamentos ?? []) {
+    if (!pagamento.DATA_PAG) continue;
+    eventos.push({
+      data: pagamento.DATA_PAG,
+      titulo: 'Pagamento ao fornecedor',
+      detalhe: fmtMoeda(pagamento.VL_PAGO),
+    });
+  }
+
+  return eventos.sort((a, b) => dataOrdenavel(a.data).localeCompare(dataOrdenavel(b.data)));
+}
+
+function dataOrdenavel(data: string): string {
+  if (data.includes('/')) {
+    const [dia, mes, ano] = data.split('/');
+    return `${ano}-${mes}-${dia}`;
+  }
+  return data.slice(0, 10);
+}
+
+function SecaoMonitoramentoInterno({ c, monitorado }: { c: ConvenioUnificado; monitorado: boolean }) {
+  return (
+    <Secao
+      titulo="Monitoramento interno"
+      acao={
+        monitorado && (
+          <Link to={`/monitoramento-equipamentos/instrumentos/${c.numero}`} className="text-primary no-underline">
+            Ver detalhes →
+          </Link>
+        )
+      }
+    >
+      {monitorado ? (
+        <p className="m-0 text-xs text-muted-foreground">Entrega, instalação, licenciamento CNEN e inauguração.</p>
+      ) : (
+        <AdicionarMonitoramentoButton
+          dados={{
+            nr_convenio: c.numero,
+            cnpj_convenente: c.convenente.cnpj ?? '',
+            nome_convenente: c.convenente.nome,
+            tipo_contratacao: 'Convênio',
+            municipio: c.municipio,
+            uf: c.uf,
+            referencia: `convênio ${c.numero}`,
+            descricao: `${c.convenente.nome} — ${c.municipio}/${c.uf}`,
+          }}
+        />
+      )}
+    </Secao>
   );
 }

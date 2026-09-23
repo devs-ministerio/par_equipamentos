@@ -6,12 +6,11 @@ from dataclasses import dataclass
 from sqlalchemy import String, cast, extract, func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import PropostaCandidata, PropostaCandidataStatus
+from app.db.models import PropostaCandidata
 
 
 @dataclass(frozen=True)
 class FiltrosPropostaCandidata:
-    status: PropostaCandidataStatus | None = None
     uf: str | None = None
     busca: str | None = None
     ano: int | None = None
@@ -19,8 +18,6 @@ class FiltrosPropostaCandidata:
 
 
 def aplicar_filtros_proposta(query, filtros: FiltrosPropostaCandidata):
-    if filtros.status is not None:
-        query = query.where(PropostaCandidata.status == filtros.status)
     if filtros.uf:
         query = query.where(PropostaCandidata.uf == filtros.uf)
     if filtros.id_programa is not None:
@@ -56,11 +53,3 @@ def listar_propostas_paginadas(
         .limit(tamanho_pagina)
     ).scalars().all()
     return total, list(itens)
-
-
-def obter_proposta_para_revisao(db: Session, proposta_id: int) -> PropostaCandidata | None:
-    return db.execute(
-        select(PropostaCandidata)
-        .where(PropostaCandidata.id == proposta_id)
-        .with_for_update()
-    ).scalar_one_or_none()

@@ -566,3 +566,23 @@ teste de regressão novo (concorrência real de rotação, precedência de `DATA
 `downgrade` contra tabela `user` populada). O que resta aberto continua sendo só o que já era
 conscientemente fora de escopo (backup/RPO-RTO, CI de backend, dataset sintético). Avaliação
 atualizada: **9,6/10**.
+
+### Atualização 2026-09-20 — centralização de evidências de equipamentos
+
+A auditoria da ingestão encontrou uma lacuna de modelagem: equipamentos vindos de API e inseridos
+por planilha/script não possuem uma relação normalizada única. O dado fica distribuído entre
+`convenio.equipamentos_tags`, `proposta_candidata.equipamento_detectado` e
+`instrumento_equipamento.equipamento_descricao`. Isso impede diferenciar aquisição, upgrade,
+equipamento já existente e simples menção textual.
+
+O Plan Mode `planmode-centralizacao-equipamentos-marcadores-2026-09-20.md` propõe um catálogo
+canônico e uma relação central `equipamento_marcador`, com FK para a origem, evidência, relação,
+confiança, hash e auditoria. A proposta é aditiva, reversível e não altera dados nesta etapa.
+
+### Execução 2026-09-20
+
+A migration `f4c7e1d9a820` foi aplicada no Neon após snapshot validado. Ela criou
+`equipamento_catalogo`, `equipamento_alias` e `equipamento_marcador`, com FKs para Convênio,
+Proposta e Instrumento, `CHECK` de uma única origem, domínio fechado de evidência/relação e
+índices de leitura. O backfill idempotente materializou 1.415 evidências. `equipamentos_tags`
+continua no schema apenas como campo legado; 86 tags sem evidência não foram migradas.

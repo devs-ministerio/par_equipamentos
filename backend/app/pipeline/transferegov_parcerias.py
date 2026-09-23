@@ -42,12 +42,75 @@ from __future__ import annotations
 from typing import Any
 
 import requests
+from pydantic import BaseModel, ConfigDict, Field
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from app.observability import executar_chamada_externa
+from app.pipeline.contratos_externos import validar_lista_objetos_externos, validar_objeto_externo
 
 BASE_URL = "https://api-publica.transferegov.gestao.gov.br/parcerias"
 TIMEOUT = 30
 TAMANHO_PAGINA_PADRAO = 100
+
+
+class _RegistroTransfereGov(BaseModel):
+    """DTO progressivo: campos extras são preservados para auditoria."""
+
+    model_config = ConfigDict(extra="allow")
+
+
+class PropostaTransfereGov(_RegistroTransfereGov):
+    id_proposta: int
+    ds_objeto: str | None = None
+    cnpj_ente_recebedor: str | None = None
+
+
+class ParceriaTransfereGov(_RegistroTransfereGov):
+    id_parceria: int
+
+
+class MetaPropostaTransfereGov(_RegistroTransfereGov):
+    etapas_proposta: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ItemPropostaTransfereGov(_RegistroTransfereGov):
+    id_item_proposta: int | None = None
+
+
+class DocumentoHabilTransfereGov(_RegistroTransfereGov):
+    id_documento_habil: int
+
+
+class OrdemPagamentoTransfereGov(_RegistroTransfereGov):
+    id_ordem_pagamento: int | None = None
+
+
+class ContaParceriaTransfereGov(_RegistroTransfereGov):
+    id_parceria_conta: int | None = None
+
+
+class EmpenhoParceriaTransfereGov(_RegistroTransfereGov):
+    id_empenho_parceria: int | None = None
+
+
+_DTO_POR_ENDPOINT: dict[str, type[_RegistroTransfereGov]] = {
+    "proposta": PropostaTransfereGov,
+    "parceria": ParceriaTransfereGov,
+    "meta-proposta": MetaPropostaTransfereGov,
+    "item-proposta": ItemPropostaTransfereGov,
+    "documento-habil": DocumentoHabilTransfereGov,
+    "ordem-pagamento": OrdemPagamentoTransfereGov,
+    "parceria-conta": ContaParceriaTransfereGov,
+    "empenho-parceria": EmpenhoParceriaTransfereGov,
+}
+
+
+def _validar_registros_do_endpoint(endpoint: str, registros: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    dto = _DTO_POR_ENDPOINT.get(endpoint)
+    if dto is None:
+        return registros
+    return [dto.model_validate(registro).model_dump() for registro in registros]
 
 
 def _sessao_com_retry() -> requests.Session:
@@ -62,19 +125,23 @@ def _sessao_com_retry() -> requests.Session:
 
 
 def _buscar_paginado(
-    session: requests.Session, endpoint: str, filtros: dict[str, Any], limite: int | None = None,
+    session: requests.Session, endpoint: str, filtros: dict[str, str | int], limite: int | None = None,
 ) -> list[dict[str, Any]]:
     """Pagina um endpoint ate esgotar ou atingir `limite` registros (None =
     sem limite, cuidado: alguns entes tem centenas/milhares de propostas)."""
     registros: list[dict[str, Any]] = []
     pagina = 1
     while True:
-        params = {**filtros, "pagina": pagina, "tamanho_da_pagina": TAMANHO_PAGINA_PADRAO}
-        resp = session.get(f"{BASE_URL}/{endpoint}", params=params, timeout=TIMEOUT)
+        params: dict[str, str | int] = {**filtros, "pagina": pagina, "tamanho_da_pagina": TAMANHO_PAGINA_PADRAO}
+        resp = executar_chamada_externa(
+            fonte="TransfereGov",
+            operacao=endpoint,
+            chamada=lambda: session.get(f"{BASE_URL}/{endpoint}", params=params, timeout=TIMEOUT),
+        )
         resp.raise_for_status()
-        corpo = resp.json()
-        dados = corpo.get("data", [])
-        registros.extend(dados)
+        corpo = validar_objeto_externo(resp.json(), fonte=f"TransfereGov/{endpoint}")
+        dados = validar_lista_objetos_externos(corpo.get("data", []), fonte=f"TransfereGov/{endpoint}.data")
+        registros.extend(_validar_registros_do_endpoint(endpoint, dados))
         if limite is not None and len(registros) >= limite:
             return registros[:limite]
         if len(dados) < TAMANHO_PAGINA_PADRAO or pagina >= corpo.get("total_pages", pagina):
@@ -87,10 +154,15 @@ def total_propostas_por_cnpj(session: requests.Session, cnpj: str) -> int:
     """So a contagem (1 pagina, tamanho 1) -- usado pra decidir se vale a
     pena expandir um CNPJ com muitas propostas (ex. fundo estadual de saude
     pode ter centenas, a maioria sem relacao com equipamento)."""
-    resp = session.get(
-        f"{BASE_URL}/proposta",
-        params={"cnpj_ente_recebedor": cnpj, "pagina": 1, "tamanho_da_pagina": 1},
-        timeout=TIMEOUT,
+    params: dict[str, str | int] = {"cnpj_ente_recebedor": cnpj, "pagina": 1, "tamanho_da_pagina": 1}
+    resp = executar_chamada_externa(
+        fonte="TransfereGov",
+        operacao="proposta_total",
+        chamada=lambda: session.get(
+            f"{BASE_URL}/proposta",
+            params=params,
+            timeout=TIMEOUT,
+        ),
     )
     resp.raise_for_status()
     return resp.json().get("total_items", 0)
@@ -110,6 +182,20 @@ def buscar_metas_por_proposta(session: requests.Session, id_proposta: int) -> li
     """Cada linha ja vem com os campos `etapa_*` embutidos (ver nota no topo
     do arquivo) -- nao precisa de uma segunda chamada pra etapa."""
     return _buscar_paginado(session, "meta-proposta", {"id_proposta": id_proposta})
+
+
+def buscar_metas_por_proposta_dto(
+    session: requests.Session, id_proposta: int
+) -> list[MetaPropostaTransfereGov]:
+    """Porta tipada para consumidores novos.
+
+    A função legada continua para jobs que montam artefatos JSON cru. Quem
+    migrou recebe DTO e usa ``model_dump`` apenas ao gravar evidência JSONB.
+    """
+    return [
+        MetaPropostaTransfereGov.model_validate(registro)
+        for registro in _buscar_paginado(session, "meta-proposta", {"id_proposta": id_proposta})
+    ]
 
 
 def buscar_itens_por_etapa(session: requests.Session, id_etapa_proposta: int) -> list[dict[str, Any]]:

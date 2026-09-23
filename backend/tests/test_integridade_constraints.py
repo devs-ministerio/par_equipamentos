@@ -30,16 +30,51 @@ from app.db.models import (
     CnesEstabelecimento,
     Competency,
     ConfigDecision,
+    Convenio,
+    DeficitStatus,
+    EquipamentoCatalogo,
+    EquipamentoMarcador,
     Execution,
     ExecutionMode,
     IncaEstimate,
     IncaEstimateLevel,
     InstrumentoEquipamento,
     MacroCoverage,
-    DeficitStatus,
     MarcoCatalogo,
     MarcoGrupo,
 )
+
+
+@pytest.mark.db
+def test_unique_parcial_marcador_rejeita_mesma_evidencia_no_mesmo_convenio():
+    """Os índices parciais preservam uma evidência por origem/item/chave."""
+    db = SessionLocal()
+    try:
+        catalogo = EquipamentoCatalogo(
+            codigo="__teste_marcador_catalogo__", nome="__teste_marcador_catalogo__",
+        )
+        convenio = Convenio(numero="__teste_marcador_convenio__", convenente_nome="__teste__")
+        db.add_all([catalogo, convenio])
+        db.flush()
+
+        comum = dict(
+            equipamento_catalogo_id=catalogo.id,
+            convenio_id=convenio.id,
+            descricao_original="__teste__",
+            tipo_evidencia="legado",
+            relacao="mencao",
+            confianca=0,
+            chave_evidencia="__teste_marcador_chave__",
+        )
+        db.add(EquipamentoMarcador(**comum))
+        db.flush()
+
+        db.add(EquipamentoMarcador(**comum))
+        with pytest.raises(IntegrityError):
+            db.flush()
+        db.rollback()
+    finally:
+        db.close()
 
 
 @pytest.mark.db
@@ -130,10 +165,22 @@ def test_unique_simples_rejeitado():
     db = SessionLocal()
     try:
         comum = "__teste_unique_simples__"
-        db.add(InstrumentoEquipamento(nr_convenio=comum, cnpj_convenente="00000000000000", nome_convenente="__teste_a__"))
+        db.add(
+            InstrumentoEquipamento(
+                nr_convenio=comum,
+                cnpj_convenente="00000000000000",
+                nome_convenente="__teste_a__",
+            )
+        )
         db.flush()
 
-        db.add(InstrumentoEquipamento(nr_convenio=comum, cnpj_convenente="00000000000000", nome_convenente="__teste_b__"))
+        db.add(
+            InstrumentoEquipamento(
+                nr_convenio=comum,
+                cnpj_convenente="00000000000000",
+                nome_convenente="__teste_b__",
+            )
+        )
         with pytest.raises(IntegrityError):
             db.flush()
 

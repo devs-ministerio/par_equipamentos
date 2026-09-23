@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { ContagemRotulo, InauguracaoResumo, LicencaVencendoResumo } from '@/services/monitoramento-resumo';
+import type { ContagemRotulo, DivergenciaConclusao, InauguracaoResumo, LicencaVencendoResumo } from '@/services/monitoramento-resumo';
 import { fmtData } from '@/lib/monitoramento-format';
 
 export function PainelSecao({ titulo, apoio, children, className }: { titulo: string; apoio?: string; children: ReactNode; className?: string }) {
@@ -89,6 +89,27 @@ export function AgendaExecutiva({ inauguracoes, licencas }: { inauguracoes: Inau
           </div>
         </Link>
       ))}
+    </div>
+  );
+}
+
+export function DivergenciasConclusao({ itens }: { itens: DivergenciaConclusao[] }) {
+  if (itens.length === 0) return <p className="py-4 text-sm text-muted-foreground">Nenhuma divergência de conclusão registrada.</p>;
+  return (
+    <div className="divide-y divide-border">
+      {itens.slice(0, 8).map((item) => (
+        <Link key={item.nr_convenio} to={`/monitoramento-equipamentos/instrumentos/${item.nr_convenio}`} className="group grid gap-1 py-3 text-inherit sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-medium">{item.nome_convenente}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">{item.nr_convenio} · {item.tipo_contratacao ?? 'Fonte não informada'} · {item.fase_interna}</div>
+          </div>
+          <div className="text-left text-xs sm:text-right">
+            <div className="font-semibold text-destructive">{item.risco}</div>
+            <div className="text-muted-foreground">{item.status_externo_original}</div>
+          </div>
+        </Link>
+      ))}
+      {itens.length > 8 && <p className="pt-3 text-xs text-muted-foreground">Exibindo 8 de {itens.length} casos. Use os filtros da mesa de trabalho para tratar o restante.</p>}
     </div>
   );
 }

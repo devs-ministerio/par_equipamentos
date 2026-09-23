@@ -10,6 +10,7 @@ from app.auth import CSRF_COOKIE_NAME, CSRF_HEADER_NAME
 from app.config import settings
 from app.db.base import get_db
 from app.errors import register_exception_handlers
+from app.observability import registrar_requisicao
 from app.rate_limit import limiter
 from app.routers import (
     auth,
@@ -29,6 +30,11 @@ register_exception_handlers(app)
 # Rate limiting (Plan Mode seguranca 2026-09-16, Bloco 2) -- so /auth/login
 # e /auth/refresh usam `@limiter.limit(...)` hoje (ver app/routers/auth.py).
 app.state.limiter = limiter
+
+
+@app.middleware("http")
+async def observability_middleware(request: Request, call_next):
+    return await registrar_requisicao(request, call_next)
 
 
 @app.exception_handler(RateLimitExceeded)
@@ -117,6 +123,10 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Content-Security-Policy-Report-Only"] = "default-src 'none'; frame-ancestors 'none'"
+    # A API só entrega dados autenticados ou operacionais; não permitir que
+    # browser/proxy compartilhe respostas em cache entre sessões.
+    if request.url.path != "/health":
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 

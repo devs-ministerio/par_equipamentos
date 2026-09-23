@@ -308,6 +308,7 @@ def listar_estabelecimentos(
     if in_use_sus:
         base = base.where(EquipmentOfferRow.sus_flag.is_(True), EquipmentOfferRow.in_use_qty > 0)
     if modo_raio:
+        assert near_lat is not None and near_lon is not None and radius_km is not None
         # ~111km por grau de latitude; longitude encolhe com cos(latitude) --
         # usa a latitude do ponto de busca (erro desprezivel num raio de
         # dezenas/centenas de km, nao precisa recalcular por linha).
@@ -383,6 +384,7 @@ def listar_estabelecimentos(
         items.append(EstablishmentRead.model_validate(dados))
 
     if modo_raio:
+        assert near_lat is not None and near_lon is not None and radius_km is not None
         # Corte exato (Haversine) -- o bbox acima e so um pre-filtro
         # retangular, mais largo que o circulo real (sobra estabelecimento
         # nos "cantos" do quadrado fora do raio real). Guarda a distancia de

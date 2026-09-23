@@ -28,6 +28,19 @@ const licencaVencendoResumoSchema = z.object({
 });
 export type LicencaVencendoResumo = z.infer<typeof licencaVencendoResumoSchema>;
 
+const divergenciaConclusaoSchema = z.object({
+  nr_convenio: z.string(),
+  nome_convenente: z.string(),
+  tipo_contratacao: z.string().nullable(),
+  fase_interna: z.string(),
+  fonte_externa: z.string(),
+  status_externo_original: z.string(),
+  status_externo_normalizado: z.string(),
+  atualizado_em: z.string(),
+  risco: z.string(),
+});
+export type DivergenciaConclusao = z.infer<typeof divergenciaConclusaoSchema>;
+
 const resumoMonitoramentoSchema = z.object({
   total_instrumentos: z.number(),
   pct_execucao_fisica_medio: z.number().nullable(),
@@ -39,6 +52,8 @@ const resumoMonitoramentoSchema = z.object({
   acoes_pendentes: z.number(),
   acoes_atrasadas: z.number(),
   nr_convenios: z.array(z.string()),
+  divergencias_conclusao: z.array(divergenciaConclusaoSchema),
+  divergencias_conclusao_por_fonte: z.array(contagemRotuloSchema),
 });
 export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;
 

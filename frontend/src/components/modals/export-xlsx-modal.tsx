@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Dialog, DialogContent } from '../ui/dialog';
+import { FilterWorkspace } from '../common/filter-workspace';
 import { MultiSelectFilter } from '../common/multi-select-filter';
 import { ExportSecaoAba } from '../features/export-secao-aba';
 import { REGIOES } from '../../data/constants';
@@ -143,7 +144,11 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
         </div>
 
         {usarFiltros && (
-          <div className="flex flex-wrap gap-2">
+          <FilterWorkspace
+            className="mb-0 border-0 py-0"
+            hasAnyFilter={filtros.hasAnyFilter}
+            onClear={filtros.limparFiltros}
+          >
             <MultiSelectFilter
               placeholder="CNES"
               options={filtros.cnesOptions}
@@ -205,15 +210,7 @@ export function ExportXlsxModal({ onClose, equipmentFamily, macros, coberturaRow
                 filtros.setFiltroCnes([]);
               }}
             />
-            {filtros.hasAnyFilter && (
-              <button
-                onClick={filtros.limparFiltros}
-                className="cursor-pointer rounded-[6px] border border-[#f0a0a0] bg-[#fff0f0] px-3 py-1.5 text-xs font-medium text-[#c0392b]"
-              >
-                ✕ Limpar
-              </button>
-            )}
-          </div>
+          </FilterWorkspace>
         )}
       </div>
 

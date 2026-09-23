@@ -12,8 +12,7 @@ interface Props {
  * explicito) -- dois botoes clicaveis (toggle) que filtram a lista por
  * status. Nenhum selecionado = mostra tudo; um ou os dois selecionados =
  * so as linhas daquele(s) status. Hipossuficiente primeiro (vermelho antes
- * do verde, mesma ordem ja adotada nas legendas); dado indisponivel entra
- * como terceiro estado, separado de suficiencia.
+ * do verde, mesma ordem ja adotada nas legendas).
  */
 export function StatusFilterButtons({ selecionados, onChange }: Props) {
   function toggle(status: StatusCobertura) {
@@ -24,7 +23,6 @@ export function StatusFilterButtons({ selecionados, onChange }: Props) {
 
   const hipoAtivo = selecionados.has('Hipossuficiente');
   const hiperAtivo = selecionados.has('Hiperssuficiente');
-  const indisponivelAtivo = selecionados.has('Dados indisponíveis');
 
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -47,16 +45,6 @@ export function StatusFilterButtons({ selecionados, onChange }: Props) {
         )}
       >
         Hiperssuficiente
-      </Button>
-      <Button
-        variant="outline"
-        onClick={() => toggle('Dados indisponíveis')}
-        className={cn(
-          'h-auto rounded-full px-3 py-1.5 text-xs font-semibold',
-          indisponivelAtivo && 'border-muted-foreground bg-muted text-muted-foreground hover:bg-muted',
-        )}
-      >
-        Dados indisponíveis
       </Button>
     </div>
   );

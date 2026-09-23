@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { normalizarTexto } from '@/utils/texto';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +35,7 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -59,16 +60,27 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
     setOpen(false);
   }
 
+  function fechar() {
+    setOpen(false);
+  }
+
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative w-full sm:w-auto" style={{ maxWidth: `min(100%, ${Math.max(minWidth, 320)}px)` }}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') fechar();
+          if (event.key === 'ArrowDown' && !open) setOpen(true);
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         className={cn(
-          'flex items-center justify-between gap-2 rounded-md border-[1.5px] px-3.5 py-1.5 text-left text-[12.5px] font-medium',
+          'flex w-full items-center justify-between gap-2 rounded-md border-[1.5px] px-3.5 py-1.5 text-left text-[12.5px] font-medium',
           value || open ? 'border-primary text-primary' : 'border-border text-foreground',
           value ? 'bg-secondary' : open ? 'bg-accent/60' : 'bg-card',
         )}
-        style={{ minWidth, maxWidth: Math.max(minWidth, 320) }}
       >
         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
           {selecionado?.label ?? placeholder}
@@ -82,42 +94,54 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
           // logo abaixo desse seletor tampava o painel de busca com
           // z-index baixo. 1000 nao bastava dependendo do zoom/tile pane;
           // usa uma margem folgada.
-          className="absolute top-full left-0 z-[2000] mt-1 rounded-lg border border-border bg-card py-2 shadow-lg"
-          style={{ minWidth: Math.max(minWidth, 260), maxWidth: 420 }}
+          className="absolute top-full left-0 z-[2000] mt-1 w-full min-w-0 rounded-lg border border-border bg-card py-2 shadow-lg sm:min-w-[260px]"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              fechar();
+            }
+          }}
         >
           <div className="border-b border-border px-2.5 py-1.5">
             <input
               ref={inputRef}
               type="text"
+              aria-label={`Pesquisar em ${placeholder}`}
               placeholder="Pesquisar..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="box-border w-full rounded-md border border-border px-2 py-1.5 text-xs outline-none"
             />
           </div>
-          <div className="max-h-65 overflow-y-auto">
+          <div id={listboxId} role="listbox" className="max-h-65 overflow-y-auto">
             {clearLabel && (
-              <div
+              <button
+                type="button"
+                role="option"
+                aria-selected={!value}
                 onClick={() => escolher(null)}
                 className={cn(
-                  'cursor-pointer border-b border-border px-3 py-1.5 text-[13px]',
+                  'block w-full cursor-pointer border-b border-border px-3 py-1.5 text-left text-[13px]',
                   value ? 'font-normal text-muted-foreground' : 'font-semibold text-primary',
                 )}
               >
                 {clearLabel}
-              </div>
+              </button>
             )}
             {filtered.map((opt) => (
-              <div
+              <button
+                type="button"
+                role="option"
+                aria-selected={opt.value === value}
                 key={opt.value}
                 onClick={() => escolher(opt.value)}
                 className={cn(
-                  'cursor-pointer px-3 py-1.5 text-[13px]',
+                  'block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]',
                   opt.value === value ? 'bg-secondary font-semibold text-primary' : 'font-normal text-foreground',
                 )}
               >
                 {opt.label}
-              </div>
+              </button>
             ))}
             {filtered.length === 0 && (
               <div className="px-3 py-2.5 text-xs text-muted-foreground">Nenhum resultado</div>

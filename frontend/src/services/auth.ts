@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ApiError } from '@/lib/api-error';
 import { requisitar } from '@/lib/http-client';
 
 const authUserSchema = z.object({
@@ -44,9 +45,15 @@ export async function redefinirSenha(token: string, password: string): Promise<v
   await requisitar('/auth/redefinir-senha', statusResponseSchema, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, password }) });
 }
 
-export function fetchCurrentUser(): Promise<AuthUser> {
+export async function fetchCurrentUser(): Promise<AuthUser | null> {
   // redirecionarEm401=false -- roda em toda página (inclusive públicas, ver
   // header) só pra checar sessão; 401 aqui é "visitante anônimo", estado
-  // normal, não motivo pra redirect global (ver docstring de `requisitar`).
-  return requisitar('/auth/me', authUserSchema, undefined, { redirecionarEm401: false });
+  // normal, não motivo pra erro de infraestrutura. Falhas de rede e demais
+  // respostas continuam subindo para que a rota exiba retry apropriado.
+  try {
+    return await requisitar('/auth/me', authUserSchema, undefined, { redirecionarEm401: false });
+  } catch (erro) {
+    if (erro instanceof ApiError && erro.status === 401) return null;
+    throw erro;
+  }
 }

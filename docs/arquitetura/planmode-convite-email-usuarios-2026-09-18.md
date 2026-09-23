@@ -14,8 +14,10 @@ então passa a ter acesso.
 - A URL não será registrada em logs nem retornada pela API administrativa.
 - Criação e reenvio exigem `admin` no backend; ativação é pública, mas com rate limit.
 - Erros de ativação permanecem genéricos para evitar enumeração de usuários.
-- E-mail é enviado por SMTP configurado exclusivamente por variáveis de ambiente.
-- Sem SMTP em desenvolvimento, o convite não é enviado: a operação falha de forma explícita,
+- E-mail é entregue por gateway HTTP configurado exclusivamente por `MAIL_API_URL` e
+  `MAIL_API_SECRET` no ambiente. O backend envia `to`, `subject`, `subtitle`, `body` e
+  `html` e autentica no cabeçalho `x-api-key`; não mantém credenciais SMTP.
+- Sem gateway em desenvolvimento, o convite não é enviado: a operação falha de forma explícita,
   sem criar uma conta parcialmente ativável.
 
 ## Contrato
@@ -39,11 +41,12 @@ enquanto não houver usuários pendentes sem os campos novos.
 
 Testar token expirado, token reutilizado, reenvio, senha inválida, usuário pendente impedido
 de login, ativação bem-sucedida, recuperação para e-mail existente e inexistente, revogação de
-sessões e ausência de SMTP. Depois executar testes backend/frontend e validar migration local
+sessões e ausência do gateway de e-mail. Depois executar testes backend/frontend e validar migration local
 antes de aplicar no Neon.
 
 ## Estado da execução
 
 Implementado no backend e frontend; migration `8d2e4f6a1b90` aplicada no Neon. O build e o
-typecheck do frontend passaram. A entrega real de e-mail depende apenas de preencher as
-variáveis SMTP no ambiente de execução; sem elas o cadastro por convite falha de forma segura.
+typecheck do frontend passaram. Desde 2026-09-22, a entrega real usa o gateway HTTP
+configurado por `MAIL_API_URL`/`MAIL_API_SECRET`; sem ambos, o cadastro por convite falha
+de forma segura.

@@ -51,6 +51,7 @@ export const enviarEventoSchema = z.object({
   equipamentoModelo: z.string().optional(),
   equipamentoNumeroSerie: z.string().optional(),
   equipamentoVidaUtilAnos: z.string().optional(),
+  confirmarInauguracao: z.boolean().optional(),
 });
 export type EnviarEventoFormValues = z.infer<typeof enviarEventoSchema>;
 

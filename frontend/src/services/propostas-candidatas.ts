@@ -1,12 +1,19 @@
 import { z } from 'zod';
-import { apiAuthed, apiGetAuthed } from './monitoramento-client';
+import { apiGetAuthed } from './monitoramento-client';
 
 // ---------------------------------------------------------------------
 // Radar de Convênios -- propostas candidatas (backend/app/routers/propostas_candidatas.py)
 // ---------------------------------------------------------------------
 
-const propostaCandidataStatusSchema = z.enum(['pendente', 'aceita', 'rejeitada']);
-export type PropostaCandidataStatus = z.infer<typeof propostaCandidataStatusSchema>;
+const equipamentoMarcadorSchema = z.object({
+  codigo: z.string(),
+  nome: z.string(),
+  prioritario: z.boolean(),
+  descricao_original: z.string(),
+  tipo_evidencia: z.string(),
+  relacao: z.string(),
+  confianca: z.number(),
+});
 
 const propostaCandidataSchema = z.object({
   id: z.number(),
@@ -19,6 +26,7 @@ const propostaCandidataSchema = z.object({
   nm_programa: z.string(),
   id_programa: z.number(),
   componente_batido: z.string(),
+  equipamentos: z.array(equipamentoMarcadorSchema),
   equipamento_detectado: z.string().nullable(),
   vl_global_proposta: z.number().nullable(),
   situacao_proposta: z.string().nullable(),
@@ -28,9 +36,6 @@ const propostaCandidataSchema = z.object({
   cnes_nome_estabelecimento: z.string().nullable(),
   tem_parceria: z.boolean(),
   cd_parceria: z.string().nullable(),
-  status: propostaCandidataStatusSchema,
-  revisado_por: z.number().nullable(),
-  revisado_em: z.string().nullable(),
   created_at: z.string(),
 });
 export type PropostaCandidata = z.infer<typeof propostaCandidataSchema>;
@@ -41,7 +46,6 @@ const propostaCandidataListaSchema = z.object({
 });
 
 export interface FetchPropostasCandidatasOpts {
-  status?: PropostaCandidataStatus;
   uf?: string;
   busca?: string;
   ano?: number;
@@ -54,12 +58,9 @@ export interface FetchPropostasCandidatasOpts {
 }
 
 export function fetchPropostasCandidatas(
-  opts: FetchPropostasCandidatasOpts | PropostaCandidataStatus = {},
+  params: FetchPropostasCandidatasOpts = {},
 ): Promise<{ total: number; itens: PropostaCandidata[] }> {
-  // Compat: chamada antiga `fetchPropostasCandidatas('pendente')`.
-  const params = typeof opts === 'string' ? { status: opts } : opts;
   const qs = new URLSearchParams();
-  if (params.status) qs.set('status', params.status);
   if (params.uf) qs.set('uf', params.uf);
   if (params.busca) qs.set('busca', params.busca);
   if (params.ano != null) qs.set('ano', String(params.ano));
@@ -68,11 +69,4 @@ export function fetchPropostasCandidatas(
   qs.set('tamanho_pagina', String(params.tamanhoPagina ?? 500));
   const query = qs.toString() ? `?${qs}` : '';
   return apiGetAuthed(`/propostas-candidatas${query}`, propostaCandidataListaSchema);
-}
-
-export function revisarPropostaCandidata(
-  propostaId: number,
-  decisao: 'aceita' | 'rejeitada',
-): Promise<PropostaCandidata> {
-  return apiAuthed(`/propostas-candidatas/${propostaId}/revisar`, propostaCandidataSchema, 'POST', { decisao });
 }

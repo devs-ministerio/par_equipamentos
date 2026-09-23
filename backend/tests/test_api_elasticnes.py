@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-from app.pipeline.api_elasticnes import _parse_location
+from app.pipeline.api_elasticnes import RegistroElastiCNES, _parse_location
 
 
 def test_parse_location_coordenada_valida_no_brasil():
@@ -34,3 +34,11 @@ def test_parse_location_vazia_ou_sem_virgula():
 
 def test_parse_location_formato_invalido_nao_quebra():
     assert _parse_location("abc,def") == (None, None)
+
+
+def test_registro_cnes_exige_chaves_usadas_na_oferta():
+    registro = RegistroElastiCNES.model_validate({
+        "CNES": "001", "CÓDIGO DO MUNICÍPIO": "3550308", "UF": "SP",
+        "EQUIPAMENTO - TIPO": "DIAGNOSTICO POR IMAGEM", "EQUIPAMENTO - CÓDIGO": "26",
+    })
+    assert registro.cnes == "001"

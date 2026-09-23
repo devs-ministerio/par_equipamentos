@@ -57,9 +57,11 @@ class ReferenceFileType(str, enum.Enum):
 
 
 class PropostaCandidataStatus(str, enum.Enum):
-    """Radar de Convenios (fluxo fechado 2026-09-15, ver
-    docs/arquitetura/fluxo_requisicao.md) -- candidato nunca entra direto no
-    universo conhecido, sempre passa por revisao humana."""
+    """Estado legado do antigo fluxo de revisão de propostas.
+
+    Não participa mais de regras, filtros ou APIs; será removido apenas após
+    reconciliação e migration de dados específica.
+    """
     pendente = "pendente"
     aceita = "aceita"
     rejeitada = "rejeitada"
@@ -1037,22 +1039,14 @@ class AcaoMonitoramento(Base):
 
 class PropostaCandidata(Base):
     """1 linha por proposta do TransfereGov novo encontrada pelo job de
-    descoberta, ainda sem decisao da equipe. Detalhe generoso de proposito
-    (metas_resumo) -- revisao nao precisa reconsultar a API ao vivo, so o
+    descoberta. Detalhe generoso de proposito
+    (metas_resumo) -- a consulta não precisa reconsultar a API ao vivo, so o
     link "ver ao vivo" fica disponivel caso o dado tenha mudado desde a
     captura.
 
-    Quando `status` vira `aceita`, a aplicacao cria InstrumentoEquipamento
-    na mesma transacao com nr_convenio=cd_parceria (quando existir) ou
-    str(id_proposta) como surrogate (decisao 2026-09-15, revertendo a versao
-    anterior que sempre usava id_proposta -- mesmo padrao de surrogate que
-    FAF/TED ja usam com o NUP SEI, ver
-    scripts/importar_planilha_monitoramento.py::_resolver_identificador, so
-    que agora com um identificador REAL preferido quando disponivel) e
-    tipo_contratacao="Parceria TransfereGov". Sem FK fisica pra
-    instrumento_equipamento de proposito (formatos de identificador
-    diferentes, ligacao e por convencao verificada na aplicacao antes do
-    POST criar)."""
+    Quando a equipe inclui a proposta no monitoramento, a interface usa
+    `cd_parceria` (quando existir) ou `str(id_proposta)` como identificador
+    do instrumento, sem FK física: a ligação é por essa convenção."""
     __tablename__ = "proposta_candidata"
     __table_args__ = (
         Index("idx_proposta_candidata_cnes", "cnes"),
@@ -1089,12 +1083,11 @@ class PropostaCandidata(Base):
     data_proposta: Mapped[date | None] = mapped_column(Date)
     # meta_proposta/item_proposta capturados no momento da descoberta --
     # estrutura crua da API (Any), sem schema fixo de proposito (o "detalhe
-    # completo" pedido pra revisao humana e mostrado como veio, nao
+    # completo da fonte é mostrado como veio, nao
     # remapeado campo a campo).
     metas_resumo: Mapped[dict | None] = mapped_column(JSONB)
     # Ja virou `parceria` formalizada na API (proposta -> parceria) no
-    # momento da descoberta -- contexto extra pra revisao, nao muda o
-    # fluxo de aceitar/rejeitar.
+    # momento da descoberta -- contexto extra de consulta.
     tem_parceria: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     # `cd_parceria` (ex. 202500044035) -- codigo formal da parceria, mais
     # proximo do que seria um "NR_CONVENIO" do sistema novo (ano+sequencia,
@@ -1102,9 +1095,8 @@ class PropostaCandidata(Base):
     # ate a parceria existir). Preenchido so quando `tem_parceria=true` e a
     # API `/parceria?id_proposta=` devolve pelo menos 1 registro (job de
     # descoberta busca 1x por proposta). Achado 2026-09-15, pedido do
-    # usuario ("vamos usar cd_parceria apenas quando existir") -- ver
-    # revisar_proposta em app/routers/propostas_candidatas.py pra onde isso
-    # vira nr_convenio no aceite.
+    # usuario ("vamos usar cd_parceria apenas quando existir"). A inclusão
+    # explícita no monitoramento o usa como nr_convenio preferencial.
     cd_parceria: Mapped[str | None] = mapped_column(String)
     # CNES -- achado 2026-09-16, pedido do usuário: "vincular um CNES a
     # todos os instrumentos e propostas". Extraído do texto de
@@ -1115,8 +1107,8 @@ class PropostaCandidata(Base):
     # item de maior valor (mesmo critério de `equipamentoPrincipal()` no
     # front) -- nunca uma lista, sempre 1 único (pedido do usuário: "preciso
     # um cnes único"). None quando a proposta não tem etapa com CNES
-    # identificável no texto. Somente leitura enquanto for proposta; após
-    # o aceite, qualquer correção ocorre no instrumento monitorado.
+    # identificável no texto. Somente leitura na proposta; correções ocorrem
+    # no instrumento monitorado após a inclusão explícita.
     cnes: Mapped[str | None] = mapped_column(
         String(7),
         ForeignKey("cnes_estabelecimento.cnes", ondelete="SET NULL", onupdate="RESTRICT"),
@@ -1128,6 +1120,147 @@ class PropostaCandidata(Base):
     revisado_por: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     revisado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class EvidenciaTransfereGov(Base):
+    """Nó auditável da árvore relacional capturada do TransfereGov.
+
+    ``metas_resumo`` continua temporariamente como adaptador de leitura para
+    não quebrar o detalhe já publicado. Esta tabela é a fonte relacional da
+    evidência: cada nó tem tipo, chave estável e caminho do pai consultáveis
+    sem percorrer JSONB. O payload permanece íntegro como prova da resposta
+    oficial, não como contrato de domínio.
+    """
+
+    __tablename__ = "evidencia_transferegov"
+    __table_args__ = (
+        UniqueConstraint(
+            "proposta_candidata_id",
+            "caminho",
+            name="uq_evidencia_transferegov_proposta_caminho",
+        ),
+        Index("idx_evidencia_transferegov_proposta_tipo", "proposta_candidata_id", "tipo_recurso"),
+        Index("idx_evidencia_transferegov_chave", "tipo_recurso", "chave_externa"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    proposta_candidata_id: Mapped[int] = mapped_column(
+        ForeignKey("proposta_candidata.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    tipo_recurso: Mapped[str] = mapped_column(String, nullable=False)
+    chave_externa: Mapped[str] = mapped_column(String, nullable=False)
+    caminho: Mapped[str] = mapped_column(String, nullable=False)
+    caminho_pai: Mapped[str | None] = mapped_column(String)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    hash_conteudo: Mapped[str] = mapped_column(String(64), nullable=False)
+    capturado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class EquipamentoCatalogo(Base):
+    """Dicionário canônico dos equipamentos acompanhados pelo SIGEO."""
+    __tablename__ = "equipamento_catalogo"
+    __table_args__ = (
+        UniqueConstraint("codigo", name="uq_equipamento_catalogo_codigo"),
+        UniqueConstraint("nome", name="uq_equipamento_catalogo_nome"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo: Mapped[str] = mapped_column(String, nullable=False)
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+    prioritario: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class EquipamentoAlias(Base):
+    """Alias normalizado, auditável e vinculado ao catálogo canônico."""
+    __tablename__ = "equipamento_alias"
+    __table_args__ = (UniqueConstraint("alias_normalizado", name="uq_equipamento_alias_normalizado"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    equipamento_catalogo_id: Mapped[int] = mapped_column(
+        ForeignKey("equipamento_catalogo.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    alias_normalizado: Mapped[str] = mapped_column(String, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class EquipamentoMarcador(Base):
+    """Evidência de equipamento ligada a exatamente uma entidade de origem.
+
+    Substitui decisões operacionais tomadas por arrays/JSONB e preserva a
+    distinção entre aquisição, modernização, equipamento existente e menção.
+    """
+    __tablename__ = "equipamento_marcador"
+    __table_args__ = (
+        CheckConstraint(
+            "((convenio_id IS NOT NULL)::int + (proposta_candidata_id IS NOT NULL)::int + "
+            "(instrumento_equipamento_id IS NOT NULL)::int) = 1",
+            name="ck_equipamento_marcador_uma_origem",
+        ),
+        CheckConstraint(
+            "tipo_evidencia IN ('item_orcamentario', 'meta', 'objeto', 'planilha', 'programa', 'legado')",
+            name="ck_equipamento_marcador_tipo_evidencia",
+        ),
+        CheckConstraint(
+            "relacao IN ('aquisicao', 'modernizacao', 'existente', 'mencao')",
+            name="ck_equipamento_marcador_relacao",
+        ),
+        CheckConstraint("confianca >= 0 AND confianca <= 100", name="ck_equipamento_marcador_confianca"),
+        Index("idx_equipamento_marcador_catalogo", "equipamento_catalogo_id"),
+        Index("idx_equipamento_marcador_convenio", "convenio_id"),
+        Index("idx_equipamento_marcador_proposta", "proposta_candidata_id"),
+        Index("idx_equipamento_marcador_instrumento", "instrumento_equipamento_id"),
+        Index(
+            "uq_equipamento_marcador_convenio",
+            "convenio_id",
+            "equipamento_catalogo_id",
+            "chave_evidencia",
+            unique=True,
+            postgresql_where=text("convenio_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_equipamento_marcador_proposta",
+            "proposta_candidata_id",
+            "equipamento_catalogo_id",
+            "chave_evidencia",
+            unique=True,
+            postgresql_where=text("proposta_candidata_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_equipamento_marcador_instrumento",
+            "instrumento_equipamento_id",
+            "equipamento_catalogo_id",
+            "chave_evidencia",
+            unique=True,
+            postgresql_where=text("instrumento_equipamento_id IS NOT NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    equipamento_catalogo_id: Mapped[int] = mapped_column(
+        ForeignKey("equipamento_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    convenio_id: Mapped[int | None] = mapped_column(
+        ForeignKey("convenio.id", ondelete="CASCADE", onupdate="RESTRICT")
+    )
+    proposta_candidata_id: Mapped[int | None] = mapped_column(
+        ForeignKey("proposta_candidata.id", ondelete="CASCADE", onupdate="RESTRICT")
+    )
+    instrumento_equipamento_id: Mapped[int | None] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT")
+    )
+    descricao_original: Mapped[str] = mapped_column(String, nullable=False)
+    tipo_evidencia: Mapped[str] = mapped_column(String, nullable=False)
+    relacao: Mapped[str] = mapped_column(String, nullable=False)
+    confianca: Mapped[int] = mapped_column(Integer, nullable=False)
+    chave_evidencia: Mapped[str] = mapped_column(String, nullable=False)
+    origem_dado: Mapped[str | None] = mapped_column(String)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class Notificacao(Base):

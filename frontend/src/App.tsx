@@ -7,6 +7,7 @@ import { MonitoramentoLayout } from './components/layout/monitoramento-layout';
 import { ProtectedRoute } from './components/layout/protected-route';
 import { AdminRoute } from './components/layout/admin-route';
 import { Toaster } from './components/ui/sonner';
+import { AppErrorBoundary } from './components/common/app-error-boundary';
 
 // Code-splitting por rota (2026-08-24) -- antes as 4 paginas eram import
 // estatico aqui, entao MapaPage (que carrega MacroMap.tsx -> D3) ia pro
@@ -80,7 +81,8 @@ function NotFoundPage() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <AppErrorBoundary>
+        <BrowserRouter>
         {/* 1 Toaster global (Seção 12/13 da constituição -- toda ação de
             sucesso usa toast) -- montado fora do <Suspense> pra sobreviver
             à troca de rota e não empilhar instâncias por página. */}
@@ -122,7 +124,8 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AppErrorBoundary>
     </QueryClientProvider>
   );
 }

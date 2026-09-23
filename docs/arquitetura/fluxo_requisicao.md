@@ -63,19 +63,29 @@ mudança nenhuma.
 Entrar no "universo conhecido" (ter um convênio validado, seja via SICONV
 seja via TransfereGov) **não** equivale a virar monitoramento interno
 (`instrumento_equipamento`) automaticamente — é uma segunda decisão manual da
-equipe. Duas portas de entrada usam a mesma regra de criação de
-`instrumento_equipamento`:
+equipe. A inclusão é sempre explícita, via `POST /monitoramento/instrumentos`:
+serve tanto às propostas TransfereGov quanto a `FAF`/`TED`/`PERSUS` e a
+convênios já conhecidos. Todas as origens passam pela mesma checagem de
+duplicidade por identificador antes de criar.
 
-1. **Automática**: candidato aceito na revisão (ver fluxo de validação
-   abaixo). A criação do instrumento e a marcação da proposta como aceita
-   fecham no mesmo `commit`.
-2. **Manual**: técnico cadastra direto, pra `FAF`/`TED`/`PERSUS` (categorias
-   de contratação sem sistema digital equivalente ao TransfereGov/SICONV) ou
-   qualquer convênio avulso que a equipe já conheça por fora, via
-   `POST /monitoramento/instrumentos`.
+### Disponibilidade de dados no detalhe
 
-As duas passam pela mesma checagem de duplicidade por identificador antes de
-criar.
+Convênios com fonte oficial podem exibir identificação, execução financeira e
+subabas SICONV. FAF, TED, PERSUS I/II e PRONON são cargas internas sem esse
+contrato externo: no Radar, exibem apenas Valor Global — tratado como 100%
+desembolsado conforme a carga — e, em “Mais detalhes”, somente o
+Monitoramento Interno. Um `siconv_raw` parcial pode guardar item manual como
+evidência de equipamento, mas nunca habilita dados ou subabas SICONV.
+
+### Divergência de conclusão no Painel de Gestão
+
+O resumo do monitoramento compara apenas registros com evento vigente
+`fase_concluido` e uma fonte externa conhecida. Para Convênio, o estado
+externo conclusivo é “Prestação de contas concluída”; para proposta
+TransfereGov, é “Pago”. Cargas manuais FAF/TED/PERSUS sem API não entram nessa
+comparação. O backend expõe a lista normalizada em
+`GET /monitoramento/resumo.divergencias_conclusao`; a interface não interpreta
+os payloads crus das fontes.
 
 ### Cargas controladas de programas sem API consolidada
 
@@ -89,7 +99,10 @@ upsert do instrumento e não duplicam evento.
 `scripts/importar_planilha_monitoramento.py` continua sendo a entrada de
 Convênio/FAF/TED. A coluna “PREVISÃO DE INAUGURAÇÃO...” gera
 `EventoMarco.data_prevista`; uma confirmação posterior gera outro evento com
-`data_ocorrencia`. Reprogramar cria novo evento e exige justificativa.
+`data_ocorrencia`. Ao registrar a fase **Concluído**, a interface exige essa
+confirmação e o backend cria ambos os eventos na mesma transação; se as datas
+divergirem, a data real prevalece. Reprogramar cria novo evento e exige
+justificativa. Marcos de fase geral não recebem data prevista.
 
 O CNES capturado numa proposta é somente leitura. Ele só pode ser corrigido
 depois que a proposta vira instrumento monitorado, pelo PATCH do detalhe do
@@ -100,10 +113,10 @@ valores anterior/novo.
 
 `FAF`/`TED` já resolvem isso hoje
 (`backend/scripts/importar_planilha_monitoramento.py::_resolver_identificador`):
-sem número TransfereGov real, usa os dígitos do NUP SEI. Proposta aceita do
-TransfereGov novo segue o mesmo padrão — usa o próprio `id_proposta` como
-identificador, com `tipo_contratacao = "Parceria TransfereGov"` (categoria
-nova, ao lado de `Convênio`/`FAF`/`TED`).
+sem número TransfereGov real, usa os dígitos do NUP SEI. Uma proposta do
+TransfereGov novo incluída no monitoramento usa `cd_parceria`, quando existir,
+ou o próprio `id_proposta` como fallback, com `tipo_contratacao = "Parceria
+TransfereGov"`.
 
 ## Fluxo de validação de proposta nova
 
@@ -112,20 +125,19 @@ nova, ao lado de `Convênio`/`FAF`/`TED`).
 2. Cria 1 linha em `proposta_candidata` (schema completo em
    [`../database/modelo_er.md`](../database/modelo_er.md)) com todo o detalhe
    capturado no momento — a equipe não precisa reconsultar a API ao vivo pra
-   revisar, mas o link "ver ao vivo" continua disponível caso o dado tenha
+   consultar, mas o link "ver ao vivo" continua disponível caso o dado tenha
    mudado desde a captura.
 3. Dispara notificação.
-4. Equipe abre o **detalhe completo** da proposta (não um resumo) e decide:
-   aceita → cria `instrumento_equipamento` e marca a proposta como aceita na
-   mesma transação; rejeitada → fica registrada no histórico, nunca mais
-   aparece como pendente.
+4. Equipe abre o **detalhe completo** e, quando decidir acompanhar o caso,
+   escolhe **+ Adicionar ao monitoramento interno**, informa o técnico e
+   confirma a inclusão. A proposta continua disponível como dado de descoberta;
+   o instrumento é criado com `AuditLog` e pode ser localizado pela chave
+   canônica `cd_parceria`/`id_proposta`.
 
-Proposta pendente e proposta aceita aparecem na aba "Linhas de financiamento"
-do frontend (`frontend/src/pages/monitoramento-equipamentos-page.tsx`, aba
-`componentes`) — é a aba já organizada por componente/programa, mesmo eixo
-que a descoberta usa (`id_programa`). Dentro de cada linha de financiamento,
-3 sub-blocos: Convênios conhecidos / Propostas pendentes / Propostas
-aceitas.
+As propostas aparecem na aba "Linhas de financiamento" do frontend
+(`frontend/src/pages/monitoramento-equipamentos-page.tsx`, aba `componentes`),
+organizadas pelo estágio externo do TransfereGov: parceria confirmada ou
+proposta em tramitação.
 
 ## Notificações — 2 camadas
 
@@ -144,7 +156,7 @@ aceitas.
 
 Cada notificação recebe do backend um `destino` resolvido. Ao clicar, o
 frontend marca a notificação como lida e navega para o detalhe do instrumento;
-notificações de proposta ainda não aceita levam à aba de novas propostas.
+notificações de proposta levam à aba de linhas de financiamento.
 
 ## Bloqueio de infraestrutura — provavelmente já resolvido
 

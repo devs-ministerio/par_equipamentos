@@ -13,7 +13,6 @@ from pathlib import Path
 import pytest
 from sqlalchemy.engine import make_url
 
-
 _DB_TEST_MODULES = {
     "test_auth_session.py",
     "test_competency_por_familia.py",

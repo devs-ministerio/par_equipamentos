@@ -99,6 +99,16 @@ export type TransfereGovEnte = {
   propostas_expandidas: PropostaExpandida[];
 };
 
+export type EquipamentoMarcador = {
+  codigo: string;
+  nome: string;
+  prioritario: boolean;
+  descricaoOriginal: string;
+  tipoEvidencia: string;
+  relacao: string;
+  confianca: number;
+};
+
 /** Um convenio com as 3 fontes ja cruzadas por numero (Portal + SICONV,
  * 1:1 exato) e por CNPJ (TransfereGov, aproximacao). Campo que existe em
  * mais de uma fonte usa UM valor so (o mais confiavel), nunca os dois
@@ -145,7 +155,9 @@ export type ConvenioUnificado = {
   // é sempre o NOME_PROGRAMA do SICONV (fallback TransfereGov removido --
   // 0/403 convênios hoje dependiam dele, conferido antes de tirar).
   programa: string | null;
-  equipamentosTags: string[];
+  equipamentos: EquipamentoMarcador[];
+  dadosOficiaisDisponiveis: boolean;
+  desembolsoIntegralDaCarga: boolean;
   valorPagoFornecedor: number | null;
   pagamentosCount: number;
   datas: {

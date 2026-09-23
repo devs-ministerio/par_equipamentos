@@ -15,31 +15,6 @@ import { useEstabelecimentosMapa } from '../hooks/useEstabelecimentosMapa';
 import { useEquipamentoMaisProximo } from '../hooks/useEquipamentoMaisProximo';
 import { useContornoMunicipio } from '../hooks/useContornoMunicipio';
 
-/**
- * Mapa nacional por macrorregiao de saude, com drill-down no painel lateral
- * (decisao 2026-08-22): clicar numa macro no mapa busca as regioes de saude
- * dela (GET /health-region-coverage?macro_code=) e mostra com SubNivelRows --
- * MESMO componente que o Dashboard usa pra expandir uma linha de macro
- * (CoberturaTable), entao a cadeia Regiao de Saude -> Municipio vem de
- * graca, sem duplicar logica (sem botao de detalhe nessa sub-camada --
- * removido 2026-08-24, os cards de resumo acima do filtro substituem essa
- * necessidade).
- *
- * Substitui a versao anterior (mapa colorido por UF, clicar no estado listava
- * as macros dele com a lista crua de estabelecimentos) -- o mapa agora colore
- * CADA MACRO com o dado exato dela (sem media por UF, ver MacroMap.tsx), e o
- * drill-down vai direto a fundo (Regiao de Saude -> Municipio) em vez de
- * parar em "lista de estabelecimentos da macro". A lista crua de
- * estabelecimentos por CNES continua disponivel no Dashboard
- * (EstabelecimentoTable, filtravel por macro).
- *
- * Toda a busca de dado mora em hooks dedicados (`useMapaFiltros`,
- * `useEstabelecimentosMapa`, `useEquipamentoMaisProximo`,
- * `useContornoMunicipio`, `useMacroGeojson`), e o layout foi partido em
- * `MapaDetalheMacro` (painel de detalhe da macro selecionada) e
- * `MapaRodoviarioSecao` (filtro + mapa de ruas) -- essa pagina só compõe a
- * UI a partir do que eles devolvem.
- */
 export function MapaPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
   const equipamento = getEquipamento(FAMILIA);
@@ -78,12 +53,8 @@ export function MapaPage() {
     pontosMacro,
   );
 
-  const contornoMunicipio = useContornoMunicipio(municipioSelecionado?.ibgeCode7);
+  const { contorno: contornoMunicipio, erro: erroContornoMunicipio } = useContornoMunicipio(municipioSelecionado?.ibgeCode7);
 
-  // Dado unificado pros cards de resumo do "Recorte" -- municipio
-  // selecionado tem prioridade (granularidade mais fina); sem municipio,
-  // cai pra macro. Mesmo shape dos dois lados (pop/ofertaTotal) pra nao
-  // duplicar o JSX dos cards por fonte.
   const infoSelecionado = municipioSelecionado
     ? { pop: municipioSelecionado.pop, ofertaTotal: municipioSelecionado.ofertaTotal }
     : macroSelecionada && coberturaSelecionada
@@ -142,9 +113,6 @@ export function MapaPage() {
   return (
     <div>
       {header}
-      {/* 1 coluna abaixo de `lg` (1024px) -- em telas estreitas o painel
-          lateral de detalhe (1fr) ficava com ~120px de largura e o texto
-          quebrava palavra por palavra (achado da auditoria visual). */}
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="rounded-lg bg-card px-4.5 py-4">
           <div className="mb-2.5 text-sm font-semibold">Equipamentos — Cobertura por macrorregião de saúde</div>
@@ -159,9 +127,6 @@ export function MapaPage() {
             />
           )}
           <div className="mt-3 flex flex-wrap items-center gap-3.5">
-            {/* Mesma logica de MacroMap.tsx::escalaCor -- duas gradacoes com
-                corte duro em 100%. var() em vez de hex cru -- 4 paradas na
-                mesma barra, arbitrary-value Tailwind ficaria ilegivel. */}
             <div
               className="h-2 w-[140px] rounded"
               style={{
@@ -174,9 +139,6 @@ export function MapaPage() {
           </div>
         </div>
 
-        {/* Sem altura fixa/maxHeight aqui -- deixa o grid (alignItems:
-            'stretch', explicito acima por clareza) esticar esse card pra
-            bater exatamente com a altura do mapa ao lado. */}
         <div className="overflow-auto rounded-lg bg-card px-4.5 py-4">
           <MapaDetalheMacro
             macroSelecionada={macroSelecionada}
@@ -207,6 +169,7 @@ export function MapaPage() {
         pontosMacro={pontosMacro}
         totalEstabelecimentosNoRaio={totalEstabelecimentosNoRaio}
         contornoMunicipio={contornoMunicipio}
+        erroContornoMunicipio={erroContornoMunicipio}
       />
     </div>
   );

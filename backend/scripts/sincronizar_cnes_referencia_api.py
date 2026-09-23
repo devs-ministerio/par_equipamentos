@@ -16,12 +16,14 @@ estão desatualizados) em cnes_estabelecimento. Idempotente -- upsert por
 """
 from __future__ import annotations
 
-from sqlalchemy import func, text
+from typing import cast
+
+from sqlalchemy import Table, func, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.db.base import SessionLocal
 from app.db.models import CnesEstabelecimento
-from app.pipeline.api_elasticnes import BASE_URL, INDICE, _bsearch, _parse_location, _sessao_com_retry
+from app.pipeline.api_elasticnes import INDICE, _bsearch, _parse_location, _sessao_com_retry
 
 
 def _cnes_referenciados(db) -> set[str]:
@@ -94,7 +96,7 @@ def run(cnes_codes: set[str] | None = None) -> None:
             print(f"  {cnes}: {registro['nome_estabelecimento']}")
 
         if encontrados:
-            tabela = CnesEstabelecimento.__table__
+            tabela: Table = cast(Table, CnesEstabelecimento.__table__)
             stmt = pg_insert(tabela).values(encontrados)
             stmt = stmt.on_conflict_do_update(
                 index_elements=["cnes"],

@@ -52,7 +52,7 @@ export function MonitoramentoInternoCabecalho({
           rotulo: 'Prestação de contas (SICONV)',
           valor: inst.situacao_prestacao_contas ?? 'Sem dado',
           detalhe: divergenciaInauguracao
-            ? 'Alerta: equipamento inaugurado, mas a situação externa ainda não foi concluída'
+            ? 'Atenção: Equipamento entregue, pendente de conclusão no TransfereGov'
             : prestacaoConcluida ? 'Concluída' : 'Ainda não concluída',
           alerta: divergenciaInauguracao,
         }]

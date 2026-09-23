@@ -9,6 +9,7 @@ import { Campo, StatusPill } from './monitoramento-ui';
 export function ConvenioCardHeader({
   c,
   monitorado,
+  faseMonitoramento,
   equipamentos,
   programaSiconv,
   valorPagoFornecedor,
@@ -16,6 +17,7 @@ export function ConvenioCardHeader({
 }: {
   c: ConvenioUnificado;
   monitorado: boolean;
+  faseMonitoramento: string | null;
   equipamentos: string[];
   programaSiconv: string | null;
   valorPagoFornecedor: number | null;
@@ -67,11 +69,16 @@ export function ConvenioCardHeader({
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <StatusPill texto={c.situacao} />
+          <StatusPill texto={monitorado ? faseMonitoramento ?? 'Não iniciado' : c.situacao} />
           <div className="text-right">
             <div className="text-[10px] text-muted-foreground uppercase">Valor global</div>
             <div className="text-base font-extrabold text-foreground">{fmtMoeda(c.financeiro.global)}</div>
-            {pctDesembolsado !== null && <div className="text-[10.5px] text-muted-foreground">{pctDesembolsado}% desembolsado</div>}
+            {pctDesembolsado !== null && (
+              <div className="text-[10.5px] text-muted-foreground">
+                {pctDesembolsado}% desembolsado
+                {c.desembolsoIntegralDaCarga && ' · conforme carga interna'}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -90,18 +97,20 @@ export function ConvenioCardHeader({
         )}
       </p>
 
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))] gap-2.5 mt-3 py-2.5 px-3 bg-background rounded-lg">
-        <Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo>
-        <Campo label="Valor repasse" legenda={pct(c.financeiro.repasse, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.repasse)}</Campo>
-        <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
-        <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
-        <Campo label="Última liberação" legenda={fmtData(c.datas.ultimaLiberacao) !== '—' ? fmtData(c.datas.ultimaLiberacao) : undefined}>
-          {fmtMoeda(c.financeiro.ultimaLiberacaoValor)}
-        </Campo>
-        <Campo label="Valor pago ao fornecedor" legenda={pagamentosCount ? `${pagamentosCount} pagamento(s)` : undefined}>
-          {fmtMoeda(valorPagoFornecedor)}
-        </Campo>
-      </div>
+      {c.dadosOficiaisDisponiveis && (
+        <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))] gap-2.5 rounded-lg bg-background px-3 py-2.5">
+          <Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo>
+          <Campo label="Valor repasse" legenda={pct(c.financeiro.repasse, c.financeiro.global, 'do global')}>{fmtMoeda(c.financeiro.repasse)}</Campo>
+          <Campo label="Contrapartida">{fmtMoeda(c.financeiro.contrapartida)}</Campo>
+          <Campo label="Saldo em conta">{fmtMoeda(c.financeiro.saldoConta)}</Campo>
+          <Campo label="Última liberação" legenda={fmtData(c.datas.ultimaLiberacao) !== '—' ? fmtData(c.datas.ultimaLiberacao) : undefined}>
+            {fmtMoeda(c.financeiro.ultimaLiberacaoValor)}
+          </Campo>
+          <Campo label="Valor pago ao fornecedor" legenda={pagamentosCount ? `${pagamentosCount} pagamento(s)` : undefined}>
+            {fmtMoeda(valorPagoFornecedor)}
+          </Campo>
+        </div>
+      )}
       {/* Correção 2026-09-18: FAF/TED/PERSUS/PRONON nunca tiveram dump
           SICONV pra começo (não é o caso que este aviso descreve -- é só
           "sem financeiro confiável" por padrão, nunca setado True pra

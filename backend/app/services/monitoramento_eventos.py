@@ -9,17 +9,14 @@ router antes desta extração; nada muda do ponto de vista da API.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 
-from fastapi import HTTPException
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_monitoramento
 from app.db.models import (
     AcaoMonitoramento,
-    CnesEstabelecimento,
     EventoMarco,
     InstrumentoEquipamento,
     MarcoCatalogo,
@@ -36,6 +33,10 @@ from app.repositories import monitoramento as monitoramento_repo
 # Postgres (Plan Mode monitoramento-evolucao 2026-09-19).
 _TIPOLOGIAS_VALIDAS = {"A", "CV", "C", "EO", "C.B", "NA"}
 _MODALIDADES_ONCO_VALIDAS = {"Apoio", "Diagnóstico", "Rastreamento", "Tratamento", "Múltiplas"}
+
+
+def _agora_utc() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
@@ -81,15 +82,15 @@ def atualizar_cadastro_instrumento(
     por `exclude_unset` no router), nunca zera um campo existente por causa
     de um PATCH parcial."""
     assert_pode_editar_monitoramento(usuario)
-    instrumento = db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
-    ).scalar_one_or_none()
+    instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if instrumento is None:
-        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
+        raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
 
     cnes_novo = alteracoes_brutas.get("cnes")
-    if cnes_novo is not None and db.get(CnesEstabelecimento, cnes_novo.zfill(7)) is None:
-        raise HTTPException(422, f"CNES {cnes_novo} não encontrado na base de referência (CnesEstabelecimento).")
+    if cnes_novo is not None and (
+        not isinstance(cnes_novo, str) or monitoramento_repo.obter_cnes_por_codigo(db, cnes_novo.zfill(7)) is None
+    ):
+        raise ValidationError(f"CNES {cnes_novo} não encontrado na base de referência (CnesEstabelecimento).")
 
     tipologia_nova = alteracoes_brutas.get("tipologia")
     if tipologia_nova is not None and tipologia_nova not in _TIPOLOGIAS_VALIDAS:
@@ -118,12 +119,17 @@ def atualizar_cadastro_instrumento(
     # do tecnico, so quando algo realmente mudou (alteracoes vazio = PATCH
     # com corpo igual ao que ja estava, nao e novidade pra ninguem).
     if alteracoes:
-        db.add(Notificacao(
-            tipo=NotificacaoTipo.edicao_manual,
-            titulo=f"{usuario.name} editou o convênio {nr_convenio}",
-            corpo=f"Campo(s) alterado(s): {', '.join(alteracoes.keys())}",
-            entidade_id=instrumento.id,
-        ))
+        monitoramento_repo.adicionar_notificacao(
+            db,
+            Notificacao(
+                tipo=NotificacaoTipo.edicao_manual,
+                titulo=f"{usuario.name} editou o convênio {nr_convenio}",
+                corpo=f"Campo(s) alterado(s): {', '.join(alteracoes.keys())}",
+                entidade_id=instrumento.id,
+            ),
+        )
+    db.commit()
+    db.refresh(instrumento)
     return instrumento
 
 
@@ -142,6 +148,7 @@ class NovoEventoMonitorado:
     # físico/regulatório à fase geral que ele pertence. Ignorado quando o
     # próprio marco JÁ é de grupo=fase_geral.
     fase_geral_id: int | None = None
+    confirmar_inauguracao: bool = False
 
 
 def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int | None) -> int | None:
@@ -151,7 +158,7 @@ def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int
         raise ValidationError(
             "Indique a fase geral correspondente a este marco de cronograma físico/regulatório."
         )
-    fase = db.get(MarcoCatalogo, fase_geral_id)
+    fase = monitoramento_repo.obter_marco_por_id(db, fase_geral_id)
     if fase is None or fase.grupo != MarcoGrupo.fase_geral:
         raise ValidationError(f"fase_geral_id {fase_geral_id} não corresponde a um marco de fase geral válido.")
     return fase_geral_id
@@ -168,20 +175,30 @@ def registrar_evento_monitorado(
     EventoMarco no models.py). Corrigir um lançamento errado é lançar um
     evento novo (ver `editar_evento_monitorado`)."""
     assert_pode_editar_monitoramento(usuario)
-    instrumento = db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
-    ).scalar_one_or_none()
+    instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if instrumento is None:
-        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
-    marco = db.get(MarcoCatalogo, dados.marco_id)
+        raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
+    marco = monitoramento_repo.obter_marco_por_id(db, dados.marco_id)
     if marco is None:
-        raise HTTPException(422, f"Marco {dados.marco_id} não existe no catálogo.")
+        raise ValidationError(f"Marco {dados.marco_id} não existe no catálogo.")
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
+
+    if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
+        raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
 
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
         raise ValidationError(
             "A data realizada não pode estar no futuro. Atualize-a para a data real da ocorrência."
         )
+
+    if marco.codigo == "fase_concluido":
+        if dados.data_ocorrencia is None:
+            raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
+        if not dados.confirmar_inauguracao:
+            raise ValidationError("Confirme a inauguração na data de conclusão antes de registrar o evento.")
+        assert dados.data_ocorrencia is not None
+
+    data_conclusao = dados.data_ocorrencia
 
     evento_anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
         db, instrumento_id=instrumento.id, marco_id=dados.marco_id
@@ -225,8 +242,46 @@ def registrar_evento_monitorado(
         observacao=_compor_observacao(usuario.name, observacao),
         autor_id=usuario.id,
     )
-    db.add(evento)
-    db.flush()
+    monitoramento_repo.adicionar_evento(db, evento)
+    inauguracao_id = None
+    previsao_anterior = None
+    if marco.codigo == "fase_concluido":
+        marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, "cronograma_previsao_inauguracao")
+        if marco_inauguracao is None:
+            raise ValidationError("Marco de previsão de inauguração não encontrado no catálogo.")
+        anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
+            db, instrumento_id=instrumento.id, marco_id=marco_inauguracao.id
+        )
+        if anterior and anterior.data_ocorrencia is not None:
+            raise ValidationError("Já existe uma inauguração realizada para este instrumento.")
+        previsao_anterior = anterior.data_prevista if anterior else None
+        inauguracao = EventoMarco(
+            instrumento_id=instrumento.id,
+            marco_id=marco_inauguracao.id,
+            fase_geral_id=marco.id,
+            data_ocorrencia=dados.data_ocorrencia,
+            observacao=_compor_observacao(usuario.name, "Inauguração confirmada ao concluir o instrumento."),
+            autor_id=usuario.id,
+        )
+        monitoramento_repo.adicionar_evento(db, inauguracao)
+        if anterior is not None:
+            anterior.substituido_por_id = inauguracao.id
+            anterior.atualizado_em = _agora_utc()
+        inauguracao_id = inauguracao.id
+        log_action(
+            db,
+            user_id=usuario.id,
+            entity_name="evento_marco",
+            entity_id=inauguracao.id,
+            action="created",
+            details={
+                "nr_convenio": nr_convenio,
+                "marco_id": marco_inauguracao.id,
+                "data_prevista_anterior": previsao_anterior.isoformat() if previsao_anterior else None,
+                "data_ocorrencia": data_conclusao.isoformat() if data_conclusao else None,
+                "confirmada_com_conclusao": True,
+            },
+        )
     log_action(
         db,
         user_id=usuario.id,
@@ -241,8 +296,12 @@ def registrar_evento_monitorado(
             "data_prevista_nova": dados.data_prevista.isoformat() if dados.data_prevista else None,
             "data_ocorrencia": dados.data_ocorrencia.isoformat() if dados.data_ocorrencia else None,
             "reprogramacao": reprogramou,
+            "inauguracao_confirmada": inauguracao_id is not None,
+            "evento_inauguracao_id": inauguracao_id,
         },
     )
+    db.commit()
+    db.refresh(evento)
     return evento
 
 
@@ -276,10 +335,12 @@ def editar_evento_monitorado(
     if antigo.deletado_em is not None or antigo.substituido_por_id is not None:
         raise ValidationError(f"Evento {evento_id} já foi excluído ou corrigido -- não pode editar de novo.")
 
-    marco = db.get(MarcoCatalogo, antigo.marco_id)
+    marco = monitoramento_repo.obter_marco_por_id(db, antigo.marco_id)
     if marco is None:
         raise NotFoundError(f"Marco {antigo.marco_id} não existe mais no catálogo.")
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
+    if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
+        raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
         raise ValidationError("A data realizada não pode estar no futuro.")
 
@@ -295,10 +356,9 @@ def editar_evento_monitorado(
         observacao=_compor_observacao(usuario.name, dados.observacao),
         autor_id=usuario.id,
     )
-    db.add(novo)
-    db.flush()
+    monitoramento_repo.adicionar_evento(db, novo)
     antigo.substituido_por_id = novo.id
-    antigo.atualizado_em = func.now()
+    antigo.atualizado_em = _agora_utc()
     log_action(
         db,
         user_id=usuario.id,
@@ -307,6 +367,8 @@ def editar_evento_monitorado(
         action="updated",
         details={"evento_original_id": evento_id, "old": _resumo_evento(antigo), "new": _resumo_evento(novo)},
     )
+    db.commit()
+    db.refresh(novo)
     return novo
 
 
@@ -323,7 +385,7 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
     if not motivo.strip():
         raise ValidationError("Informe o motivo da exclusão.")
 
-    evento.deletado_em = func.now()
+    evento.deletado_em = _agora_utc()
     evento.deletado_por_id = usuario.id
     evento.motivo_exclusao = motivo
     log_action(
@@ -334,6 +396,12 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
         action="deleted",
         details={"motivo": motivo},
     )
+    # O chamador pode recalcular a fase ainda nesta mesma transação. Garante
+    # que a exclusão lógica já participe das queries seguintes, sem depender
+    # de um autoflush implícito do SQLAlchemy.
+    monitoramento_repo.sincronizar(db)
+    db.commit()
+    db.refresh(evento)
     return evento
 
 
@@ -354,19 +422,16 @@ def registrar_acao_monitorada(
     monitoramento-evolucao 2026-09-19) vem sempre do usuário autenticado,
     nunca do cliente."""
     assert_pode_editar_monitoramento(usuario)
-    instrumento = db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
-    ).scalar_one_or_none()
+    instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if instrumento is None:
-        raise HTTPException(404, f"Instrumento {nr_convenio} não monitorado.")
+        raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
 
     acao = AcaoMonitoramento(
         instrumento_id=instrumento.id, descricao=descricao,
         data_prevista=data_prevista, responsavel=responsavel, responsavel_id=responsavel_id,
         criado_por_id=usuario.id,
     )
-    db.add(acao)
-    db.flush()
+    monitoramento_repo.adicionar_acao(db, acao)
     log_action(
         db,
         user_id=usuario.id,
@@ -375,6 +440,8 @@ def registrar_acao_monitorada(
         action="created",
         details={"nr_convenio": nr_convenio, "responsavel": responsavel, "responsavel_id": responsavel_id},
     )
+    db.commit()
+    db.refresh(acao)
     return acao
 
 
@@ -417,10 +484,9 @@ def editar_acao_monitorada(
         responsavel_id=responsavel_id,
         criado_por_id=usuario.id,
     )
-    db.add(nova)
-    db.flush()
+    monitoramento_repo.adicionar_acao(db, nova)
     antiga.substituido_por_id = nova.id
-    antiga.atualizado_em = func.now()
+    antiga.atualizado_em = _agora_utc()
     log_action(
         db,
         user_id=usuario.id,
@@ -429,6 +495,8 @@ def editar_acao_monitorada(
         action="updated",
         details={"acao_original_id": acao_id, "old": _resumo_acao(antiga), "new": _resumo_acao(nova)},
     )
+    db.commit()
+    db.refresh(nova)
     return nova
 
 
@@ -444,7 +512,7 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
     if not motivo.strip():
         raise ValidationError("Informe o motivo da exclusão.")
 
-    acao.deletado_em = func.now()
+    acao.deletado_em = _agora_utc()
     acao.deletado_por_id = usuario.id
     acao.motivo_exclusao = motivo
     log_action(
@@ -455,6 +523,8 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
         action="deleted",
         details={"motivo": motivo},
     )
+    db.commit()
+    db.refresh(acao)
     return acao
 
 
@@ -463,9 +533,9 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
     como concluida (seta data_conclusao = hoje). Descricao/data_prevista/
     responsavel continuam imutaveis (ver docstring do model)."""
     assert_pode_editar_monitoramento(usuario)
-    acao = db.get(AcaoMonitoramento, acao_id)
+    acao = monitoramento_repo.obter_acao_por_id(db, acao_id)
     if acao is None:
-        raise HTTPException(404, f"Ação {acao_id} não encontrada.")
+        raise NotFoundError(f"Ação {acao_id} não encontrada.")
     if acao.deletado_em is not None or acao.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode concluir.")
     if acao.data_conclusao is None:
@@ -478,4 +548,19 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
             action="completed",
             details={"old": None, "new": acao.data_conclusao.isoformat()},
         )
+    db.commit()
+    db.refresh(acao)
     return acao
+
+
+def obter_nr_convenio_da_acao_monitorada(*, acao: AcaoMonitoramento, db: Session) -> str:
+    """Resolve o instrumento pai para a resposta HTTP sem expor query ao router."""
+    instrumento = monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id)
+    if instrumento is None:
+        raise NotFoundError(f"Instrumento {acao.instrumento_id} não encontrado.")
+    return instrumento.nr_convenio
+
+
+def listar_acoes_monitoradas(*, pendentes: bool, limit: int, db: Session) -> list[tuple[AcaoMonitoramento, str]]:
+    """Leitura operacional: filtro e query permanecem fora da camada HTTP."""
+    return monitoramento_repo.listar_acoes_monitoradas(db, pendentes=pendentes, limit=limit)

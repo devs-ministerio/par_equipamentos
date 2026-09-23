@@ -8,6 +8,13 @@ import type { EventoMarco, InstrumentoTimeline } from '@/services/monitoramento-
 import type { MarcoCatalogo } from '@/services/monitoramento-marcos';
 import { diasAte } from './monitoramento-format';
 
+function eventoMaisRecente(eventos: EventoMarco[]): EventoMarco | null {
+  return eventos.reduce<EventoMarco | null>(
+    (maisRecente, evento) => !maisRecente || `${evento.created_at}-${evento.id}` > `${maisRecente.created_at}-${maisRecente.id}` ? evento : maisRecente,
+    null,
+  );
+}
+
 export function derivarMonitoramentoInterno(
   marcos: MarcoCatalogo[],
   timeline: InstrumentoTimeline,
@@ -32,14 +39,18 @@ export function derivarMonitoramentoInterno(
   // prazo de renovacao no mesmo sentido). Evento mais recente com
   // data_validade preenchida.
   const marcoLicenca = regulatorio.find((m) => m.codigo === 'regulatorio_licenca_operacao');
-  const eventoLicenca = (marcoLicenca && eventosPorMarco.get(marcoLicenca.id)?.find((e) => e.data_validade)) || null;
+  const eventoLicenca = marcoLicenca
+    ? eventoMaisRecente((eventosPorMarco.get(marcoLicenca.id) ?? []).filter((evento) => Boolean(evento.data_validade)))
+    : null;
 
   // Previsao de inauguracao -- destaque pedido pelo usuario 2026-09-09
   // ("também é um dado que se destaca pra nós"). Se ja tem data_ocorrencia
   // no marco, o equipamento ja foi inaugurado (fato consumado); senao usa
   // data_prevista (previsao ainda em aberto) pra contar dias.
   const marcoInauguracao = cronogramaFisico.find((m) => m.codigo === 'cronograma_previsao_inauguracao');
-  const eventoInauguracao = (marcoInauguracao && eventosPorMarco.get(marcoInauguracao.id)?.[0]) || null;
+  const eventoInauguracao = marcoInauguracao
+    ? eventoMaisRecente(eventosPorMarco.get(marcoInauguracao.id) ?? [])
+    : null;
   const inaugurado = !!eventoInauguracao?.data_ocorrencia;
   const dataInauguracao = eventoInauguracao?.data_ocorrencia || eventoInauguracao?.data_prevista || null;
   const diasInauguracao = !inaugurado ? diasAte(dataInauguracao) : null;

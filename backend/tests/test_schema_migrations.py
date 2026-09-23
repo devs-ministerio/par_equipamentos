@@ -16,8 +16,10 @@ vazia (CI/onboarding), não este teste.
 """
 from __future__ import annotations
 
-from app.db.base import Base, engine
+from sqlalchemy import inspect
+
 from app.db import models  # noqa: F401 -- registra os modelos em Base.metadata
+from app.db.base import Base, engine
 from scripts.schema_drift import comparar_heads, diff_metadata_vs_banco
 
 
@@ -46,3 +48,11 @@ def test_head_do_banco_bate_com_head_dos_arquivos_de_migration():
         f"Banco esta em {head_do_banco!r}, mas o head dos arquivos de "
         f"migration e {head_dos_arquivos!r} -- rode 'alembic upgrade head'."
     )
+
+
+def test_fk_fase_geral_declara_acoes_restritivas():
+    """A FK não pode depender do default de ON DELETE do PostgreSQL."""
+    fks = inspect(engine).get_foreign_keys("evento_marco")
+    fase_geral = next(fk for fk in fks if fk["constrained_columns"] == ["fase_geral_id"])
+
+    assert fase_geral["options"] == {"ondelete": "RESTRICT", "onupdate": "RESTRICT"}

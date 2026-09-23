@@ -10,7 +10,7 @@ import { Pagination } from '@/components/common/pagination';
 import { PageHeader } from '@/components/common/page-header';
 import { UsuarioFormCriar } from '@/components/features/usuario-form-criar';
 import { UsuarioFormEditar } from '@/components/features/usuario-form-editar';
-import { UsuarioDialogResetarSenha } from '@/components/features/usuario-dialog-resetar-senha';
+import { UsuarioDialogEnviarRedefinicao } from '@/components/features/usuario-dialog-enviar-redefinicao';
 import { UsuarioDialogInativar } from '@/components/features/usuario-dialog-inativar';
 import { useUsuarios } from '@/hooks/useUsuarios';
 import type { Usuario, UserRole } from '@/services/usuarios';
@@ -28,7 +28,7 @@ export function UsuariosPage() {
   const [page, setPage] = useState(1);
   const [criarAberto, setCriarAberto] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
-  const [usuarioResetandoSenha, setUsuarioResetandoSenha] = useState<Usuario | null>(null);
+  const [usuarioRedefinindoSenha, setUsuarioRedefinindoSenha] = useState<Usuario | null>(null);
   const [usuarioInativando, setUsuarioInativando] = useState<Usuario | null>(null);
 
   const {
@@ -37,7 +37,7 @@ export function UsuariosPage() {
     carregando,
     criar,
     atualizar,
-    resetarSenha,
+    enviarRedefinicao,
     inativar,
     inativando,
     reativar,
@@ -120,8 +120,8 @@ export function UsuariosPage() {
                     <Button size="sm" variant="ghost" onClick={() => setUsuarioEditando(usuario)}>
                       Editar
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setUsuarioResetandoSenha(usuario)}>
-                      Resetar senha
+                    <Button size="sm" variant="ghost" onClick={() => setUsuarioRedefinindoSenha(usuario)}>
+                      Enviar redefinição
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setUsuarioInativando(usuario)}>
                       {usuario.status === 'active' ? 'Inativar' : 'Reativar'}
@@ -137,10 +137,10 @@ export function UsuariosPage() {
 
       <UsuarioFormCriar open={criarAberto} onOpenChange={setCriarAberto} onCriar={criar} />
       <UsuarioFormEditar usuario={usuarioEditando} onOpenChange={(open) => !open && setUsuarioEditando(null)} onEditar={(id, v) => atualizar({ id, corpo: v })} />
-      <UsuarioDialogResetarSenha
-        usuario={usuarioResetandoSenha}
-        onOpenChange={(open) => !open && setUsuarioResetandoSenha(null)}
-        onResetar={resetarSenha}
+      <UsuarioDialogEnviarRedefinicao
+        usuario={usuarioRedefinindoSenha}
+        onOpenChange={(open) => !open && setUsuarioRedefinindoSenha(null)}
+        onEnviar={enviarRedefinicao}
       />
       <UsuarioDialogInativar
         usuario={usuarioInativando}

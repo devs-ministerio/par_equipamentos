@@ -6,16 +6,45 @@ registros já carregados) e `importar_programas_monitoramento.py`/
 `importar_planilha_monitoramento.py` (carga daqui pra frente), pra não
 triplicar a mesma regra de mapeamento de campo.
 """
+
 from __future__ import annotations
 
-import re
-import unicodedata
 from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import Convenio
+from app.equipamentos import classificar_descricoes
+from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
+
+ORIGEM_ITEM_MANUAL_INICIAL = "carga_manual_inicial"
+
+
+def adicionar_item_manual_inicial(convenio: Convenio, descricao: str | None, origem_dado: str | None) -> None:
+    """Inclui a evidência manual na mesma coleção de itens do plano.
+
+    A estrutura continua sendo ``siconv_raw.itens_plano_aplicacao``, que é a
+    fonte única dos marcadores de convênio. Os dois campos de proveniência
+    deixam claro que este item não foi devolvido pela API SICONV.
+    """
+    if not descricao or not descricao.strip():
+        return
+    bruto = dict(convenio.siconv_raw or {})
+    itens = list(bruto.get("itens_plano_aplicacao") or [])
+    descricao = descricao.strip()
+    if any(isinstance(item, dict) and item.get("DESCRICAO_ITEM") == descricao for item in itens):
+        return
+    itens.append(
+        {
+            "DESCRICAO_ITEM": descricao,
+            "ORIGEM_ITEM": ORIGEM_ITEM_MANUAL_INICIAL,
+            "FONTE_ITEM": origem_dado or "carga manual inicial",
+        }
+    )
+    bruto["itens_plano_aplicacao"] = itens
+    convenio.siconv_raw = bruto
+
 
 # O componente/serviço "Radioterapia" não é equipamento e não deve virar
 # marcador visual -- por isso esta lista NÃO reaproveita os 14 padrões de
@@ -26,24 +55,6 @@ from app.db.models import Convenio
 # 2026-09-19: Mamógrafo/Braquiterapia/Ultrassom ficavam SEM nenhum
 # marcador em "Instrumentos firmados" -- só Acelerador Linear era
 # reconhecido desde o POC original de 2026-09-03).
-_PADROES_EQUIPAMENTO: list[tuple[str, re.Pattern]] = [
-    ("Acelerador Linear", re.compile(r"ACELERADOR\s*LINEAR")),
-    ("Mamógrafo", re.compile(r"MAMOGRAFO")),
-    ("Braquiterapia", re.compile(r"BRAQUITERAPIA")),
-    ("Ultrassom", re.compile(r"ULTRA\s*SS?OM")),
-]
-
-
-def _norm(s: object) -> str:
-    s = unicodedata.normalize("NFD", str(s) if s is not None else "")
-    return "".join(c for c in s if unicodedata.category(c) != "Mn").upper().strip()
-
-
-def equipamentos_tags(*textos: str | None) -> list[str]:
-    texto = _norm(" | ".join(t for t in textos if t))
-    return [tag for tag, padrao in _PADROES_EQUIPAMENTO if padrao.search(texto)]
-
-
 def espelhar_convenio(
     db: Session,
     *,
@@ -85,7 +96,6 @@ def espelhar_convenio(
         situacao=situacao,
         valor_global=(Decimal(str(investimento)) if investimento is not None else None),
         tipologia=tipologia,
-        equipamentos_tags=equipamentos_tags(equipamento_descricao, componente),
         pagamentos_count=0,
         financeiro_fonte_confiavel=False,
     )
@@ -95,4 +105,21 @@ def espelhar_convenio(
     else:
         for campo, valor in campos.items():
             setattr(convenio, campo, valor)
+    adicionar_item_manual_inicial(convenio, equipamento_descricao, origem_dado)
+    db.flush()
+    evidencias = classificar_descricoes([equipamento_descricao or ""])
+    registrar_marcadores(
+        db=db,
+        origem="convenio",
+        origem_id=convenio.id,
+        marcadores=[
+            DadosMarcador(
+                evidencia=evidencia,
+                tipo_evidencia="programa" if tipo_contratacao == "PERSUS I" else "planilha",
+                confianca=75 if tipo_contratacao == "PERSUS I" else 90,
+                origem_dado=origem_dado,
+            )
+            for evidencia in evidencias
+        ],
+    )
     return convenio

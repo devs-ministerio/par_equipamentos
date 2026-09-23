@@ -111,6 +111,9 @@ docs/
   `.github/workflows/pipelines.yml`,
   hoje só `workflow_dispatch` (manual) — o cron diário fica comentado até
   existir deploy com `DATABASE_URL` pública alcançável pelo runner.
+- **Operação DevOps**: workflow de migration e jobs usam o environment GitHub
+  `production`; o procedimento de deploy, rollback, OrbStack e recuperação está
+  em [`docs/arquitetura/runbook-devops.md`](docs/arquitetura/runbook-devops.md).
 
 ## Estado atual (o que é real vs. placeholder)
 

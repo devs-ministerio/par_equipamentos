@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-import string
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
@@ -27,8 +26,6 @@ from app.repositories.usuarios import (
     obter_usuario_por_id,
 )
 from app.schemas import UserCreateRequest, UserUpdateRequest
-
-_ALFABETO_SENHA_TEMPORARIA = string.ascii_letters + string.digits
 
 
 def registrar_auditoria(
@@ -56,7 +53,7 @@ def criar_usuario(*, db: Session, admin_atual: User, dados: UserCreateRequest) -
     if obter_usuario_por_email(db, dados.email) is not None:
         raise ConflictError(f"Ja existe um usuario com o e-mail {dados.email}.")
 
-    if dados.password is None and (not settings.smtp_host or not settings.smtp_from):
+    if dados.password is None and not settings.servico_email_configurado:
         raise ValidationError("Serviço de e-mail não configurado para enviar o convite.")
     token = secrets.token_urlsafe(32)
     usuario = User(
@@ -77,7 +74,13 @@ def criar_usuario(*, db: Session, admin_atual: User, dados: UserCreateRequest) -
     )
     if dados.password is None:
         try:
-            enviar_link(destinatario=usuario.email, nome=usuario.name, token=token, assunto="Ative seu acesso ao SIGEO", caminho="/ativar")
+            enviar_link(
+                destinatario=usuario.email,
+                nome=usuario.name,
+                token=token,
+                assunto="Ative seu acesso ao SIGEO",
+                caminho="/ativar",
+            )
         except Exception as exc:
             db.rollback()
             raise ValidationError("Não foi possível enviar o convite por e-mail.") from exc
@@ -114,7 +117,13 @@ def reenviar_convite(*, db: Session, admin_atual: User, user_id: int) -> User:
     usuario.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
     usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
     try:
-        enviar_link(destinatario=usuario.email, nome=usuario.name, token=token, assunto="Ative seu acesso ao SIGEO", caminho="/ativar")
+        enviar_link(
+            destinatario=usuario.email,
+            nome=usuario.name,
+            token=token,
+            assunto="Ative seu acesso ao SIGEO",
+            caminho="/ativar",
+        )
     except Exception as exc:
         db.rollback()
         raise ValidationError("Não foi possível enviar o convite por e-mail.") from exc
@@ -124,26 +133,37 @@ def reenviar_convite(*, db: Session, admin_atual: User, user_id: int) -> User:
     return usuario
 
 
-def resetar_senha(*, db: Session, admin_atual: User, user_id: int) -> str:
-    """Gera uma senha temporaria aleatoria (sem servico de e-mail
-    configurado no projeto -- decisao registrada em CLAUDE.md) e devolve em
-    claro SO neste retorno; nunca fica persistida em texto claro em lugar
-    nenhum, nem no audit log (so a acao fica registrada, nao a senha)."""
+def enviar_redefinicao_senha(*, db: Session, admin_atual: User, user_id: int) -> User:
+    """Envia ao usuário um token opaco de redefinição, sem nunca gerar ou
+    devolver senha em claro. O token só existe neste escopo para compor o
+    e-mail; o banco guarda exclusivamente seu hash."""
     assert_e_admin(admin_atual)
     usuario = obter_usuario_por_id(db, user_id)
     if usuario is None:
         raise NotFoundError(f"Usuario {user_id} nao encontrado.")
+    if not settings.servico_email_configurado:
+        raise ValidationError("Serviço de e-mail não configurado para enviar a redefinição.")
 
-    senha_temporaria = "".join(secrets.choice(_ALFABETO_SENHA_TEMPORARIA) for _ in range(16))
-    usuario.password_hash = hash_password(senha_temporaria)
-    usuario.failed_login_attempts = 0
-    usuario.locked_until = None
-    revoke_all_refresh_tokens_for_user(db, usuario.id)
+    token = secrets.token_urlsafe(32)
+    usuario.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
+    usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    try:
+        enviar_link(
+            destinatario=usuario.email,
+            nome=usuario.name,
+            token=token,
+            assunto="Redefina sua senha do SIGEO",
+            caminho="/redefinir-senha",
+        )
+    except Exception as exc:
+        db.rollback()
+        raise ValidationError("Não foi possível enviar a redefinição por e-mail.") from exc
     registrar_auditoria(
-        db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="resetar_senha",
+        db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="enviar_redefinicao_senha",
     )
     db.commit()
-    return senha_temporaria
+    db.refresh(usuario)
+    return usuario
 
 
 def inativar_usuario(*, db: Session, admin_atual: User, user_id: int) -> User:

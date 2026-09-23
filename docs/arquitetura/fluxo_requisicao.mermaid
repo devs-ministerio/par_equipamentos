@@ -73,15 +73,12 @@ flowchart TB
 
     subgraph PRODUTO["API e interface"]
         GET["GET /propostas-candidatas<br/>autenticado, paginado até 500"]
-        UI["Linhas de Financiamento<br/>Novas propostas / Propostas"]
-        REV{"Revisão humana<br/>aceitar ou rejeitar"}
-        ACCEPT["Aceitar: cria instrumento<br/>e fecha proposta na mesma transação"]
-        REJECT["Rejeitar: mantém histórico<br/>e não reaparece como nova"]
+        UI["Linhas de Financiamento<br/>Propostas em tramitação / confirmadas"]
+        ADD["+ Adicionar ao monitoramento interno<br/>técnico + dupla confirmação"]
+        CREATE["POST /monitoramento/instrumentos<br/>cria instrumento + AuditLog"]
         PATCH["Edições manuais do instrumento<br/>geram AuditLog/notificação"]
         CLICK["Clique na notificação:<br/>marca lida + navega ao instrumento"]
-        NEON --> GET --> UI --> REV
-        REV -->|aceitar| ACCEPT --> INST
-        REV -->|rejeitar| REJECT --> NEON
+        NEON --> GET --> UI --> ADD --> CREATE --> INST
         INST --> PATCH --> AUDIT
         NOTIF --> CLICK --> UI
     end

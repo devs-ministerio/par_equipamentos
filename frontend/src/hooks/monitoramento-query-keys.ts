@@ -10,6 +10,6 @@ export const monitoramentoKeys = {
   resumo: ['monitoramento', 'resumo'] as const,
   currentUser: ['auth', 'me'] as const,
   notificacoes: (apenasNaoLidas?: boolean) => ['notificacoes', apenasNaoLidas ?? 'todas'] as const,
-  propostasCandidatas: (status?: string) => ['propostas-candidatas', status ?? 'todas'] as const,
+  propostasCandidatas: () => ['propostas-candidatas'] as const,
   usuarios: (filtro?: unknown) => ['usuarios', filtro ?? 'todos'] as const,
 };

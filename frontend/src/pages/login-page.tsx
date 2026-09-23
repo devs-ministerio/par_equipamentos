@@ -37,7 +37,7 @@ export function LoginPage() {
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">Entrar no SIGEO</h1>
           <p className="mt-1.5 mb-5 text-sm text-muted-foreground">
-            Acesso operacional -- edição de monitoramento interno, revisão de propostas e notificações.
+            Acesso operacional -- edição de monitoramento interno, inclusão de propostas e notificações.
           </p>
           <MonitoramentoInternoFormLogin
             onEntrar={async (valores) => {

@@ -24,12 +24,14 @@ atualiza campo que mudou de verdade (diff campo a campo) num candidato
 ainda PENDENTE e notifica -- candidato ja aceito/rejeitado nao e mais
 tocado por este job (decisao da equipe fica fechada).
 """
+
 from __future__ import annotations
 
 import re
 
 from app.db.base import SessionLocal
-from app.db.models import Notificacao, NotificacaoTipo, PropostaCandidata, PropostaCandidataStatus
+from app.db.models import Notificacao, NotificacaoTipo, PropostaCandidata
+from app.equipamentos import classificar_descricoes, extrair_descricoes
 from app.pipeline.transferegov_parcerias import (
     buscar_analises_por_proposta,
     buscar_contas_por_parceria,
@@ -42,8 +44,9 @@ from app.pipeline.transferegov_parcerias import (
     buscar_ordens_pagamento_por_documento,
     buscar_parcerias_por_proposta,
 )
+from app.services.equipamento_marcadores import DadosMarcador, TipoEvidencia, registrar_marcadores
+from app.services.evidencias_transferegov import registrar_evidencias_relacionais
 from scripts.levantamento_convenios_oncologia import (
-    PADROES_EQUIPAMENTO,
     PALAVRAS_PROGRAMA_ONCOLOGIA,
     _componente_alvo_de,
     _normalizar,
@@ -59,11 +62,8 @@ CAMPOS_DIFF = ("situacao_proposta", "vl_global_proposta", "nm_proponente", "cnpj
 
 
 def _equipamento_detectado(texto: str) -> str | None:
-    norm = _normalizar(texto or "")
-    for nome, padrao in PADROES_EQUIPAMENTO.items():
-        if padrao.search(norm):
-            return nome
-    return None
+    evidencias = classificar_descricoes([texto], relacao_padrao="mencao")
+    return evidencias[0].nome if evidencias else None
 
 
 def _resolver_programas_alvo(sessao) -> dict[int, dict]:
@@ -207,7 +207,9 @@ def run() -> None:
 
                 if existente is None:
                     parceria = _buscar_parceria(sessao, id_proposta)
-                    cd_parceria = str(parceria["cd_parceria"]) if parceria and parceria.get("cd_parceria") is not None else None
+                    cd_parceria = (
+                        str(parceria["cd_parceria"]) if parceria and parceria.get("cd_parceria") is not None else None
+                    )
                     metas_resumo = _capturar_detalhe_completo(sessao, id_proposta, p, parceria)
                     candidato = PropostaCandidata(
                         id_proposta=id_proposta,
@@ -227,18 +229,45 @@ def run() -> None:
                         cnes=_extrair_cnes(metas_resumo.get("metas", [])),
                         tem_parceria=parceria is not None,
                         cd_parceria=cd_parceria,
-                        status=PropostaCandidataStatus.pendente,
                     )
                     db.add(candidato)
                     db.flush()
-                    db.add(Notificacao(
-                        tipo=NotificacaoTipo.proposta_candidata,
-                        titulo=f"Proposta nova: {valores_api['nm_proponente'] or id_proposta}",
-                        corpo=f"{info['componente_alvo']} — {ds_objeto[:140]}",
-                        entidade_id=candidato.id,
-                    ))
+                    registrar_evidencias_relacionais(
+                        db,
+                        proposta_candidata_id=candidato.id,
+                        detalhe=metas_resumo,
+                    )
+                    evidencias = classificar_descricoes(extrair_descricoes(metas_resumo, {"nm_item"}))
+                    tipo_evidencia: TipoEvidencia = "meta"
+                    confianca = 100
+                    if not evidencias:
+                        evidencias = classificar_descricoes([ds_objeto], relacao_padrao="mencao")
+                        tipo_evidencia = "objeto"
+                        confianca = 40
+                    registrar_marcadores(
+                        db=db,
+                        origem="proposta_candidata",
+                        origem_id=candidato.id,
+                        marcadores=[
+                            DadosMarcador(
+                                evidencia=evidencia,
+                                tipo_evidencia=tipo_evidencia,
+                                confianca=confianca,
+                                origem_dado="API TransfereGov",
+                            )
+                            for evidencia in evidencias
+                        ],
+                    )
+                    db.add(
+                        Notificacao(
+                            tipo=NotificacaoTipo.proposta_candidata,
+                            titulo=f"Proposta nova: {valores_api['nm_proponente'] or id_proposta}",
+                            corpo=f"{info['componente_alvo']} — {ds_objeto[:140]}",
+                            entidade_id=candidato.id,
+                        )
+                    )
                     novos += 1
-                elif existente.status == PropostaCandidataStatus.pendente:
+                else:
                     mudou: dict[str, dict] = {}
                     for campo in CAMPOS_DIFF:
                         antigo = getattr(existente, campo)
@@ -253,7 +282,11 @@ def run() -> None:
                     # existia antes, agora existe).
                     if not existente.tem_parceria:
                         parceria = _buscar_parceria(sessao, id_proposta)
-                        cd_parceria = str(parceria["cd_parceria"]) if parceria and parceria.get("cd_parceria") is not None else None
+                        cd_parceria = (
+                            str(parceria["cd_parceria"])
+                            if parceria and parceria.get("cd_parceria") is not None
+                            else None
+                        )
                         if parceria is not None:
                             mudou["cd_parceria"] = {"old": existente.cd_parceria, "new": cd_parceria}
                             existente.tem_parceria = True
@@ -263,13 +296,20 @@ def run() -> None:
                                 "parceria": parceria,
                                 "timeline_financeira": _capturar_timeline_financeira(sessao, parceria["id_parceria"]),
                             }
+                            registrar_evidencias_relacionais(
+                                db,
+                                proposta_candidata_id=existente.id,
+                                detalhe=existente.metas_resumo,
+                            )
                     if mudou:
-                        db.add(Notificacao(
-                            tipo=NotificacaoTipo.atualizacao_api,
-                            titulo=f"Proposta {id_proposta} atualizada",
-                            corpo=f"Campo(s) alterado(s): {', '.join(mudou.keys())}",
-                            entidade_id=existente.id,
-                        ))
+                        db.add(
+                            Notificacao(
+                                tipo=NotificacaoTipo.atualizacao_api,
+                                titulo=f"Proposta {id_proposta} atualizada",
+                                corpo=f"Campo(s) alterado(s): {', '.join(mudou.keys())}",
+                                entidade_id=existente.id,
+                            )
+                        )
                         atualizados += 1
         db.commit()
     finally:

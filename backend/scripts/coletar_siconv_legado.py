@@ -73,7 +73,9 @@ import csv
 import io
 import json
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import requests
 
@@ -138,7 +140,7 @@ def _baixar_zip(nome: str) -> bytes:
     return caminho.read_bytes()
 
 
-def _linhas_csv_do_zip(conteudo_zip: bytes) -> tuple[list[str], "csv.reader"]:
+def _linhas_csv_do_zip(conteudo_zip: bytes) -> tuple[list[str], Iterator[list[str]]]:
     """Zip do SICONV tem 1 arquivo dentro, mas o nome nem sempre bate com o
     nome do zip (ex. siconv_plano_aplicacao.csv.zip -> contem
     siconv_plano_aplicacao_detalhado.csv) -- pega sempre o primeiro (e unico)
@@ -243,13 +245,13 @@ def run() -> None:
     # Agrupa tudo por NR_CONVENIO (chave em comum de quase toda tabela --
     # plano_aplicacao/programa entram via ID_PROPOSTA, resolvido no dict `convenio_de_proposta`).
     convenio_de_proposta = {c["ID_PROPOSTA"]: c["NR_CONVENIO"] for c in por_arquivo["siconv_convenio"]}
-    itens_por_convenio: dict[str, list[dict]] = {}
+    itens_por_convenio: dict[str, list[dict[str, str]]] = {}
     for item in itens_plano:
         nr = convenio_de_proposta.get(item["ID_PROPOSTA"])
         if nr:
             itens_por_convenio.setdefault(nr, []).append(item)
 
-    resultado = []
+    resultado: list[dict[str, Any]] = []
     for convenio in por_arquivo["siconv_convenio"]:
         nr = convenio["NR_CONVENIO"]
         id_programa = programa_de_proposta.get(convenio.get("ID_PROPOSTA", ""))
@@ -258,7 +260,7 @@ def run() -> None:
             "programa": programas_por_id.get(id_programa) if id_programa else None,
             "empenhos": [e for e in por_arquivo["siconv_empenho"] if e["NR_CONVENIO"] == nr],
             "desembolsos": [d for d in por_arquivo["siconv_desembolso"] if d["NR_CONVENIO"] == nr],
-            "licitacoes": [l for l in por_arquivo["siconv_licitacao"] if l["NR_CONVENIO"] == nr],
+            "licitacoes": [licitacao for licitacao in por_arquivo["siconv_licitacao"] if licitacao["NR_CONVENIO"] == nr],
             "termos_aditivos": [t for t in por_arquivo["siconv_termo_aditivo"] if t["NR_CONVENIO"] == nr],
             "pagamentos": [p for p in por_arquivo["siconv_pagamento"] if p["NR_CONVENIO"] == nr],
             "itens_plano_aplicacao": itens_por_convenio.get(nr, []),
@@ -267,7 +269,7 @@ def run() -> None:
     SAIDA_JSON.parent.mkdir(parents=True, exist_ok=True)
     SAIDA_JSON.write_text(json.dumps(resultado, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    faltantes = numeros_set - {c["convenio"]["NR_CONVENIO"] for c in resultado}
+    faltantes = numeros_set - {entrada["convenio"]["NR_CONVENIO"] for entrada in resultado}
     print(f"\nConcluido: {len(resultado)}/{len(numeros)} convenio(s) encontrado(s) no dump SICONV.")
     if faltantes:
         print(f"   [AVISO] nao encontrados: {sorted(faltantes)}")

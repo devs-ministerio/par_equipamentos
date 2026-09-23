@@ -12,6 +12,7 @@ import { MonitoramentoInternoFormEvento } from './monitoramento-interno-form-eve
 const MARCOS: MarcoCatalogo[] = [
   { id: 1, codigo: 'fase_em_licitacao', grupo: 'fase_geral', ordem: 1, execucao_fisica_pct_referencia: 0.1, rotulo: 'Em licitação', descricao_referencia: null },
   { id: 2, codigo: 'fase_contratado', grupo: 'fase_geral', ordem: 4, execucao_fisica_pct_referencia: 0.5, rotulo: 'Contratado', descricao_referencia: null },
+  { id: 3, codigo: 'fase_concluido', grupo: 'fase_geral', ordem: 8, execucao_fisica_pct_referencia: 1, rotulo: 'Concluído', descricao_referencia: null },
   { id: 12, codigo: 'cronograma_entrega', grupo: 'cronograma_fisico', ordem: null, execucao_fisica_pct_referencia: null, rotulo: 'Entrega no estabelecimento', descricao_referencia: null },
 ];
 
@@ -30,6 +31,28 @@ describe('MonitoramentoInternoFormEvento', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Registrar evento' }));
     expect(onRegistrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('oculta data prevista para fase geral', async () => {
+    render(<MonitoramentoInternoFormEvento marcos={MARCOS} onRegistrar={vi.fn()} />);
+    await selecionarMarco('Em licitação');
+    expect(screen.queryByLabelText('Data prevista')).not.toBeInTheDocument();
+
+    await selecionarMarco('Entrega no estabelecimento');
+    expect(screen.getByLabelText('Data prevista')).toBeInTheDocument();
+  });
+
+  it('pede confirmação antes de concluir e inaugurar', async () => {
+    const onRegistrar = vi.fn().mockResolvedValue(undefined);
+    render(<MonitoramentoInternoFormEvento marcos={MARCOS} previsaoInauguracao="2025-09-01" onRegistrar={onRegistrar} />);
+    await selecionarMarco('Concluído');
+    await userEvent.type(screen.getByLabelText('Data de ocorrência'), '2025-09-02');
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar evento' }));
+
+    expect(screen.getByRole('heading', { name: 'Confirmar inauguração' })).toBeInTheDocument();
+    expect(onRegistrar).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar inauguração' }));
+    expect(onRegistrar).toHaveBeenCalledWith(expect.objectContaining({ confirmarInauguracao: true }));
   });
 
   it('exige fase geral pra marco de cronograma físico e bloqueia o submit sem ela', async () => {
@@ -60,7 +83,7 @@ describe('MonitoramentoInternoFormEvento', () => {
     render(
       <MonitoramentoInternoFormEvento
         marcos={MARCOS}
-        marcoFixo={MARCOS[2]}
+        marcoFixo={MARCOS.find((marco) => marco.codigo === 'cronograma_entrega')!}
         rotuloSubmit="Salvar correção"
         onRegistrar={vi.fn()}
       />,

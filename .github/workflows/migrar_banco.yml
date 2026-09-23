@@ -11,44 +11,45 @@ name: Migrar banco (alembic upgrade head)
 on:
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   migrar:
     runs-on: ubuntu-latest
+    environment: Production
+    timeout-minutes: 20
+    concurrency:
+      group: sigeo-production-database
+      cancel-in-progress: false
     defaults:
       run:
         working-directory: backend
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATION }}
     steps:
-      # Mesmo padrao de guard dos outros workflows -- `secrets` so pode ser
-      # referenciado em `if:` de step, nao de job.
-      - name: Verifica se o secret DATABASE_URL_MIGRATION existe
-        id: guard
+      - name: Exige o secret DATABASE_URL_MIGRATION
         working-directory: .
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "Secret DATABASE_URL_MIGRATION nao configurado (Settings > Secrets and variables > Actions) -- pulando o resto do job."
-            echo "tem_secret=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "tem_secret=true" >> "$GITHUB_OUTPUT"
+            echo "DATABASE_URL_MIGRATION ausente no environment Production." >&2
+            exit 1
           fi
 
-      - uses: actions/checkout@v4
-        if: steps.guard.outputs.tem_secret == 'true'
-
-      - uses: astral-sh/setup-uv@v3
-        if: steps.guard.outputs.tem_secret == 'true'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          version: "latest"
+          ref: master
+
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.17"
+          enable-cache: true
 
       - name: Instala dependencias
-        if: steps.guard.outputs.tem_secret == 'true'
         run: uv sync --frozen
 
       - name: Mostra revision atual
-        if: steps.guard.outputs.tem_secret == 'true'
         run: uv run alembic current
 
       - name: Aplica migrations pendentes
-        if: steps.guard.outputs.tem_secret == 'true'
         run: uv run alembic upgrade head

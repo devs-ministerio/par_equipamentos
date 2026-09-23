@@ -1,32 +1,25 @@
-"""Revisão de PropostaCandidata -- Radar de Convênios (fluxo em
-docs/arquitetura/fluxo_requisicao.md). Candidato nasce do job de descoberta
-(scripts/job_descoberta_transferegov.py); este router é onde a equipe
-decide (aceitar/rejeitar) o que ele achou.
+"""Leitura das propostas descobertas pelo Radar de Convênios.
 
-Aceitar reutiliza a mesma criação do POST /monitoramento/instrumentos, mas
-sem `commit()` intermediário: instrumento, AuditLog e status da proposta são
-confirmados numa transação só. nr_convenio usa `cd_parceria` quando existe
-(código formal da parceria, mais próximo de um identificador real do sistema
-novo) e só cai pro surrogate `str(id_proposta)` quando a proposta ainda não
-virou parceria (achado 2026-09-15, pedido do usuário: "vamos usar
-cd_parceria apenas quando existir") -- ver docstring de
-PropostaCandidata.cd_parceria em app/db/models.py.
+A inclusão no monitoramento é explícita na interface e reutiliza
+``POST /monitoramento/instrumentos``. Esta rota não mantém um ciclo interno
+de aceite/rejeição.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
-from enum import Enum
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import require_current_user, require_monitoramento_editor
+from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import CnesEstabelecimento, PropostaCandidata, PropostaCandidataStatus, User
+from app.db.models import CnesEstabelecimento, PropostaCandidata, User
+from app.repositories.equipamento_marcadores import listar_por_origens
 from app.repositories.propostas_candidatas import FiltrosPropostaCandidata, listar_propostas_paginadas
-from app.services.propostas_candidatas import revisar_proposta_candidata
+from app.schemas_equipamentos import EquipamentoMarcadorRead, serializar_marcadores
 
 router = APIRouter(prefix="/propostas-candidatas", tags=["propostas-candidatas"])
 
@@ -42,6 +35,7 @@ class PropostaCandidataRead(BaseModel):
     nm_programa: str
     id_programa: int
     componente_batido: str
+    equipamentos: list[EquipamentoMarcadorRead] = Field(default_factory=list)
     equipamento_detectado: str | None
     # float, não Decimal -- Pydantic v2 serializa Decimal como STRING no
     # JSON (perde precisão de float de propósito), quebrando o parse do
@@ -53,7 +47,7 @@ class PropostaCandidataRead(BaseModel):
     # Mantido na listagem de propósito: o card e os filtros client-side
     # (situação de fato, equipamento via itens) ainda leem o JSON. Diferente
     # de `convenio.siconv_raw`, aqui não há payload "cru de detalhe" separado
-    # -- o resumo *é* o dado da revisão. Extrair colunas derivadas fica pra
+    # -- o resumo *é* o dado exibido. Extrair colunas derivadas fica pra
     # bloco futuro, quando o filtro de equipamento/situação subir pro SQL.
     metas_resumo: dict | None
     cnes: str | None
@@ -64,9 +58,6 @@ class PropostaCandidataRead(BaseModel):
     cnes_nome_estabelecimento: str | None = None
     tem_parceria: bool
     cd_parceria: str | None
-    status: PropostaCandidataStatus
-    revisado_por: int | None
-    revisado_em: datetime | None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -85,15 +76,20 @@ def _com_nome_cnes(db: Session, propostas: list[PropostaCandidata]) -> list[Prop
             row.cnes: row.nome_estabelecimento
             for row in db.execute(select(CnesEstabelecimento).where(CnesEstabelecimento.cnes.in_(codigos))).scalars()
         }
+    marcadores = listar_por_origens(db, proposta_ids={p.id for p in propostas})
     return [
-        PropostaCandidataRead.model_validate(p).model_copy(update={"cnes_nome_estabelecimento": nomes.get(p.cnes)})
+        PropostaCandidataRead.model_validate(p).model_copy(
+            update={
+                "cnes_nome_estabelecimento": nomes.get(p.cnes or ""),
+                "equipamentos": serializar_marcadores(marcadores.get(("proposta_candidata", p.id), [])),
+            }
+        )
         for p in propostas
     ]
 
 
 @router.get("", response_model=PropostaCandidataListaRead)
 def listar_propostas_candidatas(
-    status: PropostaCandidataStatus | None = None,
     uf: str | None = None,
     busca: str | None = None,
     ano: int | None = None,
@@ -103,37 +99,11 @@ def listar_propostas_candidatas(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    """Leitura autenticada (Plan Mode seguranca 2026-09-16, Bloco 1 -- radar
-    de propostas expõe estado de revisão interno, não é dado público de
-    convênio já firmado) -- só a revisão (POST .../revisar) exige editor.
+    """Leitura autenticada do radar de propostas.
+
     Paginação e filtros SQL simples no banco; o front ainda pode pedir
     `tamanho_pagina=500` enquanto filtros derivados de `metas_resumo`
     (equipamento / situação de fato / "novas") permanecem client-side."""
-    filtros = FiltrosPropostaCandidata(status=status, uf=uf, busca=busca, ano=ano, id_programa=id_programa)
+    filtros = FiltrosPropostaCandidata(uf=uf, busca=busca, ano=ano, id_programa=id_programa)
     total, itens = listar_propostas_paginadas(db, filtros=filtros, pagina=pagina, tamanho_pagina=tamanho_pagina)
     return PropostaCandidataListaRead(total=total, itens=_com_nome_cnes(db, itens))
-
-
-class DecisaoRevisao(str, Enum):
-    aceita = "aceita"
-    rejeitada = "rejeitada"
-
-
-class RevisarPropostaBody(BaseModel):
-    decisao: DecisaoRevisao
-
-
-@router.post("/{proposta_id}/revisar", response_model=PropostaCandidataRead)
-def revisar_proposta(
-    proposta_id: int,
-    corpo: RevisarPropostaBody,
-    db: Session = Depends(get_db),
-    usuario: User = Depends(require_monitoramento_editor),
-):
-    proposta = revisar_proposta_candidata(
-        db=db,
-        proposta_id=proposta_id,
-        decisao=corpo.decisao.value,
-        usuario=usuario,
-    )
-    return _com_nome_cnes(db, [proposta])[0]

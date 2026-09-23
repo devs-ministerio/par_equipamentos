@@ -8,7 +8,10 @@ import { defineConfig, devices } from '@playwright/test';
  * playwright test`. */
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  // O limite de login é por IP. A suíte compartilha uma credencial E2E e
+  // precisa autenticar em ordem para não simular brute force no próprio CI.
+  fullyParallel: false,
+  workers: 1,
   retries: 0,
   reporter: 'list',
   use: {

@@ -18,23 +18,18 @@ import { ConvenioCardHeader } from './convenio-card-header';
 import { ConvenioCardDetalhes } from './convenio-card-detalhes';
 
 export function ConvenioCard({
-  c, monitorado = false,
+  c, monitorado = false, faseMonitoramento = null,
 }: {
   c: ConvenioUnificado;
   monitorado?: boolean;
+  faseMonitoramento?: string | null;
 }) {
   // So controla a camada 2 (dado tecnico aninhado) -- a camada 1 (status/
   // objeto/financeiro) e sempre renderizada, nao precisa de estado.
   const [detalheAberto, setDetalheAberto] = useState(false);
 
-  // Achado 2026-09-16 ("parar de usar json estático, coloque tudo no
-  // banco"): `GET /convenios` (listagem) não traz o payload cru
-  // (siconv_raw/transferegov_raw, ~11MB somados pros 403) -- só busca
-  // `GET /convenios/{numero}` (com o payload) quando o card expande
-  // ("Mais detalhes"), nunca antes. `programa`/`valorPagoFornecedor`/
-  // `pagamentosCount`/`equipamentosTags` (camada 1, sempre visível) já
-  // vêm prontos na listagem (pré-computados na carga, ver
-  // scripts/importar_convenios_banco.py) -- não dependem desse fetch.
+  // A carga oficial ganha payload técnico sob demanda; a manual nunca o
+  // consulta como se fosse SICONV, pois seu detalhe é só monitoramento.
   const detalheQuery = useQuery({
     queryKey: ['convenio-detalhe', c.numero],
     queryFn: () => fetchConvenioDetalhe(c.numero),
@@ -62,7 +57,8 @@ export function ConvenioCard({
       <ConvenioCardHeader
         c={c}
         monitorado={monitorado}
-        equipamentos={c.equipamentosTags}
+        faseMonitoramento={faseMonitoramento}
+        equipamentos={[...new Set(c.equipamentos.map((equipamento) => equipamento.nome))]}
         programaSiconv={programaSiconv}
         valorPagoFornecedor={c.valorPagoFornecedor}
         pagamentosCount={c.pagamentosCount}

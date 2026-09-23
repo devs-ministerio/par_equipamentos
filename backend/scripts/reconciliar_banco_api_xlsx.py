@@ -46,12 +46,13 @@ from __future__ import annotations
 
 import sys
 import time
+from typing import Any
 
 import requests
 
 from app.db.base import SessionLocal
 from app.db.models import InstrumentoEquipamento
-from app.pipeline.portal_transparencia import ChaveApiAusenteError, buscar_convenio_por_numero, _sessao_com_retry
+from app.pipeline.portal_transparencia import ChaveApiAusenteError, _sessao_com_retry, buscar_convenio_por_numero
 
 
 def run(aplicar: bool) -> None:
@@ -62,7 +63,7 @@ def run(aplicar: bool) -> None:
     print(f"{len(instrumentos)} instrumento(s) 'Convênio' no banco.\n")
 
     sessao = _sessao_com_retry()
-    diffs = []
+    diffs: list[tuple[InstrumentoEquipamento, dict[str, tuple[str | None, str]]]] = []
     for i, inst in enumerate(instrumentos, 1):
         if i % 20 == 0:
             print(f"   ... {i}/{len(instrumentos)}")
@@ -79,14 +80,14 @@ def run(aplicar: bool) -> None:
             print(f"   [AVISO] {inst.nr_convenio} não encontrado na API agora -- pulado, nada alterado.")
             continue
 
-        convenente = dado_api.get("convenente") or {}
+        convenente: dict[str, Any] = dado_api.get("convenente") or {}
         nome_api = convenente.get("nome")
         cnpj_api = convenente.get("cnpjFormatado")
 
-        mudancas = {}
-        if nome_api and nome_api != inst.nome_convenente:
+        mudancas: dict[str, tuple[str | None, str]] = {}
+        if isinstance(nome_api, str) and nome_api != inst.nome_convenente:
             mudancas["nome_convenente"] = (inst.nome_convenente, nome_api)
-        if cnpj_api and cnpj_api != inst.cnpj_convenente:
+        if isinstance(cnpj_api, str) and cnpj_api != inst.cnpj_convenente:
             mudancas["cnpj_convenente"] = (inst.cnpj_convenente, cnpj_api)
 
         if mudancas:

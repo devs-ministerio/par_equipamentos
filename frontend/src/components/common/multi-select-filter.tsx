@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { normalizarTexto } from '@/utils/texto';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,8 @@ export function MultiSelectFilter({ placeholder, options, selected, onChange }: 
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -30,6 +32,13 @@ export function MultiSelectFilter({ placeholder, options, selected, onChange }: 
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (open) {
+      setSearch('');
+      inputRef.current?.focus();
+    }
+  }, [open]);
 
   const filtered = options.filter((o) => normalizarTexto(o.label).includes(normalizarTexto(search)));
   const active = selected.length > 0 || open;
@@ -40,11 +49,19 @@ export function MultiSelectFilter({ placeholder, options, selected, onChange }: 
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative w-full sm:w-auto">
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setOpen(false);
+          if (event.key === 'ArrowDown' && !open) setOpen(true);
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
         className={cn(
-          'rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-medium',
+          'w-full rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-medium sm:w-auto',
           active
             ? 'border-primary text-primary'
             : 'border-border text-muted-foreground',
@@ -54,17 +71,24 @@ export function MultiSelectFilter({ placeholder, options, selected, onChange }: 
         {label} ▾
       </button>
       {open && (
-        <div className="absolute top-full left-0 z-[100] mt-1 min-w-[220px] rounded-lg border border-border bg-card py-2 shadow-lg">
+        <div
+          className="absolute top-full left-0 z-[100] mt-1 w-full min-w-0 rounded-lg border border-border bg-card py-2 shadow-lg sm:min-w-[220px]"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setOpen(false);
+          }}
+        >
           <div className="border-b border-muted px-2.5 py-1.5">
             <input
+              ref={inputRef}
               type="text"
+              aria-label={`Pesquisar em ${placeholder}`}
               placeholder="Pesquisar..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="box-border w-full rounded-md border border-border px-2 py-1.5 text-xs outline-none"
             />
           </div>
-          <div className="max-h-55 overflow-y-auto">
+          <div id={listboxId} role="group" aria-label={placeholder} className="max-h-55 overflow-y-auto">
             {filtered.map((opt) => (
               <label
                 key={opt.value}

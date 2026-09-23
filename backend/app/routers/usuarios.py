@@ -16,17 +16,16 @@ from app.schemas import (
     UserCreateRequest,
     UserListResponse,
     UserRead,
-    UserResetPasswordResponse,
     UserUpdateRequest,
 )
 from app.services.usuarios import (
     atualizar_usuario,
     criar_usuario,
+    enviar_redefinicao_senha,
     inativar_usuario,
     listar_usuarios,
     reativar_usuario,
     reenviar_convite,
-    resetar_senha,
 )
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
@@ -68,14 +67,13 @@ def atualizar(
     return atualizar_usuario(db=db, admin_atual=admin_atual, user_id=user_id, dados=corpo)
 
 
-@router.post("/{user_id}/resetar-senha", response_model=UserResetPasswordResponse)
-def resetar_senha_usuario(
+@router.post("/{user_id}/enviar-redefinicao", response_model=UserRead)
+def enviar_redefinicao(
     user_id: int,
     db: Session = Depends(get_db),
     admin_atual: User = Depends(require_admin_user),
 ):
-    senha_temporaria = resetar_senha(db=db, admin_atual=admin_atual, user_id=user_id)
-    return UserResetPasswordResponse(senha_temporaria=senha_temporaria)
+    return enviar_redefinicao_senha(db=db, admin_atual=admin_atual, user_id=user_id)
 
 
 @router.post("/{user_id}/reenviar-convite", response_model=UserRead)

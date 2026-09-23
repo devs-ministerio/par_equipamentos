@@ -718,3 +718,22 @@ Auditoria autenticada: todas as nove rotas em 400px, 768px e 1440px, sem overflo
 documento. Gates finais: lint limpo, TypeScript limpo, 60 testes aprovados e build de produção
 aprovado. **Conformidade visual estimada: 9,1/10**; os limitadores restantes continuam sendo E2E
 executado, auditoria WCAG AA integral e paginação coordenada com o backend.
+
+## Atualização 2026-09-20 — marcador não é fonte única
+
+O frontend toma decisões diferentes para o mesmo equipamento: o filtro de propostas varre
+metas/itens, o card escolhe o item de maior valor e usa `equipamento_detectado` como fallback,
+enquanto o monitoramento lê `equipamentos_tags` de `Convenio`. Assim, o marcador exibido, filtrado
+e contabilizado pode não ser o mesmo. A duplicidade também mantém regex e aliases no cliente, em
+vez de consumir um contrato validado pelo backend.
+
+O Plan Mode `planmode-centralizacao-equipamentos-marcadores-2026-09-20.md` determina uma coleção
+única de equipamentos/evidências na API. Depois do backfill, card, filtros, KPIs, detalhe e painel
+deverão consumir exclusivamente essa coleção.
+
+### Execução 2026-09-20
+
+Os schemas de Convênios e Propostas agora validam a coleção central de equipamentos. O cartão de
+proposta e seus filtros usam essa coleção, e a adaptação de Convênio não possui mais fallback para
+`equipamentos_tags`. Assim, o badge, o filtro e o KPI recebem a mesma projeção da API; o JSON de
+metas continua somente para o detalhe técnico e linha do tempo.

@@ -1,0 +1,222 @@
+# Diagnóstico sênior — Constituição Backend (rodada 3, 2026-09-22)
+
+## Objetivo, escopo e método
+
+Esta rodada sucede o diagnóstico de Backend de 2026-09-16/17 e usa o mesmo
+fluxo aplicado a Database e Segurança: leitura da Constituição e do relatório
+anterior, inventário estático, validação controlada no PostgreSQL isolado do
+OrbStack, verificação de qualidade e identificação de código/comentários e
+contexto defasados. Não houve alteração de regra de negócio, schema ou dado de
+produção durante este diagnóstico.
+
+Foram revisados `backend/app`, `backend/scripts`, testes, configurações de
+qualidade e workflows. Configurações externas de Render, Neon, Vercel e GitHub
+não são consideradas comprovadas apenas porque possuem referência no código.
+
+## Resultado executivo
+
+**Conformidade atual: 8,8/10** (medição inicial desta rodada: 6,9/10;
+última nota consolidada anterior: 7,8/10).
+
+A segurança de fronteira e o comportamento funcional seguem sólidos: sessão
+por cookie, CSRF, autorização, erros sem payload sensível e a suíte completa
+passaram. Após a execução do plan-mode, `ruff check .` e `mypy .` são gates
+reais no CI; monitoramento passou à fronteira Router → Service → Repository;
+e as integrações externas críticas validam contratos antes da normalização.
+Os itens abaixo preservam a fotografia inicial e o fechamento posterior
+registra o estado vigente sem apagar o histórico do diagnóstico.
+
+| Eixo | Nota | Evidência resumida |
+|---|---:|---|
+| Segurança de fronteira | 8,4 | Sessão, CSRF e autorização cobertos por testes; pendências operacionais estão no diagnóstico de Segurança. |
+| Banco, transação e idempotência | 8,4 | Migrations e rotação atômica preservadas; migration nova foi testada em upgrade/downgrade no PostgreSQL isolado. |
+| Arquitetura em camadas | 7,8 | Monitoramento está na fronteira Repository → Service → Router; demais domínios seguem como evolução incremental. |
+| Contratos, tipagem e integrações | 8,6 | DTOs e evidência relacional auditável cobrem integrações críticas; o envelope HTTP versionado é decisão futura. |
+| Resiliência, listas e volume | 7,8 | Tetos e paginação nas partes críticas; telemetria externa informa duração/falha sem expor payload. |
+| Testes e gates | 9,5 | `ruff check .`, `mypy .` e 183 testes no PostgreSQL isolado passam; 8 pulados dependem de integrações opcionais. |
+| Observabilidade e operação | 8,0 | Logs JSON, correlação e duração de rota/chamada externa implementados; métricas e alertas centralizados são evolução DevOps. |
+| Código morto e contexto | 8,6 | Contextos corrigidos; nenhum script foi removido sem prova de que deixou de ser entrypoint operacional. |
+
+## Evidências executadas
+
+```text
+TEST_DATABASE_URL=<PostgreSQL isolado OrbStack> uv run pytest
+165 passed, 8 skipped, 2 warnings
+
+uv run ruff check .
+221 erros; 48 corrigíveis automaticamente
+
+uv run mypy .
+100 erros em 33 arquivos
+```
+
+O `ruff` encontra 221 erros enquanto `.ruff-baseline.json` contém 222 itens;
+`mypy` encontra 100 erros enquanto `.mypy-baseline.json` contém 80. Mais
+importante que a diferença numérica: `pyproject.toml` apenas comenta a
+intenção de baseline — nem Ruff nem mypy a leem. O novo workflow de backend
+executa `ruff` e testes, mas não `mypy`; logo uma mudança que mantenha essa
+dívida não tem gate confiável e uma mudança nova não é comparada à baseline.
+
+Inventário atual: 9 routers de domínio, 6 services e 5 repositories. A busca
+encontrou 52 ocorrências de query ou `commit` em routers; o número é um
+indicador de fronteira violada, não uma contagem de endpoints. Das 42 rotas
+declaradas, 36 usam `response_model`.
+
+## Achados prioritários
+
+### P1 — gates de lint e typecheck não correspondem ao contrato declarado
+
+A Constituição exige `ruff check .`, `mypy .` e testes passando. Hoje os dois
+primeiros comandos falham. A baseline versionada não é aplicada por qualquer
+wrapper, plugin ou job; os comentários em `pyproject.toml` descrevem uma
+política que a ferramenta não executa. O CI de backend recém-criado roda Ruff
+e, portanto falhará no estado atual se o workflow for acionado; não executa
+mypy.
+
+Os erros não são apenas formatação histórica: mypy inclui `None` usado como
+valor numérico em `equipment_offer.py`, tipos inconsistentes nos pipelines e
+possíveis nulos em `monitoramento.py`. Não devem ser simplesmente silenciados
+ou adicionados a uma baseline maior.
+
+**Encaminhamento:** escolher e implementar um mecanismo real de baseline
+(comparador versionado ou escopo explícito por diretório), fazer o CI executar
+Ruff e mypy por esse mecanismo, e reduzir a dívida por blocos de domínio. Dar
+prioridade aos erros de `app/` antes de migrations/scripts históricos.
+
+### P1 — separação Router → Service → Repository permanece exceção
+
+`repositories/` avançou de 3 para 5 módulos, incluindo marcadores e usuários.
+Apesar disso, todos os routers de domínio inspecionados ainda contêm sinais de
+acesso ao banco; `monitoramento.py` chegou a 1.021 linhas e concentra listagem,
+resumo, mapeamento de resposta, eventos, ações e mutações. `equipment_offer.py`
+tem 411 linhas e `convenios.py`, 295.
+
+`monitoramento_eventos.py` e `monitoramento_instrumentos.py` ainda importam
+`fastapi.HTTPException`, executam queries e misturam regras, acesso e erro HTTP.
+Isso viola a fronteira explícita da Constituição e torna difícil testar casos
+de uso sem aplicação/DB.
+
+**Encaminhamento:** migrar verticalmente por casos de uso, começando pelas
+mutações de monitoramento (instrumento, evento e ação): schema → repository →
+service com `DomainError` → router fino → testes unitário, integração e HTTP.
+Não reescrever routers inteiros de uma vez e não alterar o payload público no
+mesmo bloco.
+
+### P1 — contratos HTTP e integrações externas ainda são parcialmente genéricos
+
+Há respostas sem `response_model`, payloads de terceiros em
+`dict[str, Any]`/JSONB bruto e helpers de integração que retornam dados sem
+parse estrutural (`portal_transparencia.py`, `transferegov_parcerias.py` e
+partes de `api_demas.py`). Isso impede validar mudança de fornecedor na
+fronteira e transfere suposições de tipo ao controller/pipeline.
+
+O envelope constitucional `{success, data, meta}` também ainda não foi adotado.
+É uma mudança breaking; não deve ser aplicada unilateralmente antes de um
+contrato de compatibilidade acordado com o frontend.
+
+**Encaminhamento:** primeiro tipar e validar os payloads externos que alimentam
+monitoramento e propostas, mantendo o JSON bruto somente como evidência. Em
+bloco separado, desenhar a versão/envelope de API e migrar frontend e backend
+coordenadamente.
+
+### P2 — observabilidade não mede a operação
+
+O handler global evita expor exceções cruas e já não registra querystring, mas
+os logs ainda não são JSON nem carregam `trace_id`, usuário, endpoint ou
+`duration_ms`. Não há métrica de duração de rota, query ou chamada externa,
+nem alerta de falha/retry. Essa lacuna impede avaliar gargalos nas listagens e
+nas integrações federais antes que virem incidente.
+
+**Encaminhamento:** introduzir middleware de correlação/duração e logger
+estruturado sem incluir tokens, CPF, payloads brutos ou dados financeiros.
+Instrumentar primeiro chamadas externas e queries das rotas de maior volume.
+
+### P2 — pendências de contrato operacional continuam fora do backend puro
+
+Rate limit distribuído necessita `RATE_LIMIT_STORAGE_URI` com storage
+compartilhado; a ausência mantém `memory://`. `/docs` e `/openapi.json` seguem
+públicos por configuração padrão do FastAPI, sem decisão explícita por
+ambiente. Política de retenção/redaction de `AuditLog.details`, hosts confiáveis
+e telemetria de abuso também permanecem pendentes, conforme o diagnóstico de
+Segurança de 2026-09-22.
+
+## Código morto e contexto desatualizado
+
+Nenhum arquivo Python foi removido: scripts sem import não são automaticamente
+mortos, pois são entrypoints operacionais de pipeline, auditoria ou reconciliação.
+Não há prova suficiente de substituição para apagá-los com segurança.
+
+Foram identificados na fotografia inicial itens de contexto, todos corrigidos
+na execução abaixo:
+
+- `CLAUDE.md` afirmava que existia `POST /usuarios/{id}/resetar-senha` e o
+  diálogo `usuario-dialog-resetar-senha.tsx`; ambos foram removidos na rodada
+  de Segurança e substituídos por envio de link de redefinição.
+- O diagnóstico de Backend de 2026-09-16 preserva corretamente histórico, mas
+  relata `monitoramento.py` com cerca de 760 linhas, 3 repositories e baseline
+  efetiva; hoje há 1.021 linhas, 5 repositories e a baseline não é aplicada.
+- Comentários em `pyproject.toml` prometiam que achados legados ficavam fora
+  dos gates sem mecanismo executável. Foram substituídos por exceções nominais
+  de Ruff, restritas às migrations históricas afetadas.
+
+## Critério de fechamento da rodada
+
+- [x] Revisão estática de routers, services, repositories, contratos,
+      integrações, scripts e contexto.
+- [x] Suíte completa validada em banco PostgreSQL isolado.
+- [x] Código morto distinguido de entrypoint operacional antes de qualquer
+      exclusão.
+- [x] Ruff e mypy bloqueando regressões por configuração executável; exceções
+      de migrations históricas são nominais, fechadas e apenas mecânicas.
+- [x] Router sem query/commit; Service sem FastAPI/SQL; Repository como única
+      fronteira de dados nas features migradas de monitoramento.
+- [x] Parse explícito das integrações externas críticas e evidência relacional
+      TransfereGov validada, sem quebrar o contrato HTTP público.
+- [x] Logs JSON, correlação e duração de rota/chamada externa implementados.
+- [x] Contextos defasados corrigidos; nenhum código foi removido sem
+      substituto e sem prova de desuso.
+
+## Atualização de execução — 2026-09-22
+
+Foi adicionado middleware de observabilidade que emite JSON com `trace_id`,
+método, path, status e duração, sem corpo ou querystring; o identificador é
+devolvido em `X-Trace-Id`. As integrações de Portal da Transparência,
+TransfereGov, DEMAS, ElastiCNES e SIDRA também registram somente fonte,
+operação, status/duração e tipo de erro. Nenhum desses eventos registra URL,
+parâmetro, token, documento ou payload.
+
+As mutações e leituras de instrumento/evento/ação, incluindo o agregado de
+`/monitoramento/resumo`, passaram a resolver consultas e persistência pelo
+repository. Os services retornam `DomainError` em vez de `HTTPException`,
+orquestram a transação e preservam as regras append-only, de autorização e de
+confirmação de inauguração. As fontes externas agora validam envelope e campos
+consumidos antes da normalização, mantendo os dicionários compatíveis aos
+consumidores atuais. O inventário de scripts não identificou exclusão segura:
+os restantes são usados por CI, testes, pipelines ou cargas manuais documentadas.
+
+Os gates foram fechados sem ampliar baseline: `ruff check .` passa com uma
+lista explícita e fechada de exceções exclusivamente mecânicas nas migrations
+já aplicadas; migrations novas continuam integralmente verificadas. O
+typecheck completo `mypy .` passou nos 174 arquivos após tipar scripts, testes
+e migrations sem alterar a lógica de ingestão ou cálculos. A regressão final
+em PostgreSQL isolado passou com **183 testes**, 8 pulados por integrações
+opcionais e 2 avisos de deprecação de dependências.
+
+A evidência relacional TransfereGov foi formalizada em
+`evidencia_transferegov`: proposta, meta, etapa, item, parceria e execução
+financeira passam a ter tipo, chave externa, caminho pai/filho, hash e payload
+auditável. O backfill é idempotente e deve ser executado somente no deploy com
+credencial de migration; `metas_resumo` permanece como adaptador de leitura
+até a migração coordenada dos consumidores HTTP, sem receber usos novos.
+
+O CI foi alinhado aos gates completos (`ruff check .` e `mypy .`). A migration
+`b7e3d9f4a621` foi aplicada, revertida e reaplicada com sucesso no PostgreSQL
+isolado. Nenhuma migration ou backfill foi executado no Neon nesta rodada.
+
+## Próximo passo recomendado
+
+Planejar em rodada própria: (1) migrar os leitores HTTP de `metas_resumo` para
+`evidencia_transferegov`, removendo o adaptador somente após reconciliação; e
+(2) decidir um envelope HTTP versionado com o frontend. Cada bloco deve
+preservar o contrato público, executar testes relevantes e repetir a revisão
+de código morto antes de qualquer exclusão.
