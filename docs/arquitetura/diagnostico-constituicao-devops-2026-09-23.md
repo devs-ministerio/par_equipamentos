@@ -12,16 +12,19 @@ comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 8,7/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+**Conformidade atual: 8,9/10** (ante 3,5/10 em 16/09). O projeto tem CI de
 backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
 serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
 health check real em `/health`. O compose foi validado integralmente no
-OrbStack, incluindo Postgres isolado, health e encerramento limpo.
+OrbStack, incluindo Postgres isolado, health e encerramento limpo. O backend
+publicado também reporta transações, latência e erro ao New Relic como
+`SIGEO API`.
 
-Ainda faltam backup externo/retenção ampliada, observabilidade centralizada,
-artefato promovível/staging e proteção nativa de branch no GitHub. O Neon tem
-PITR de somente seis horas; RPO/RTO foram formalizados e a recuperação
-isolada foi exercitada, mas a janela continua o principal risco operacional.
+Ainda faltam backup externo/retenção ampliada, logs centralizados com
+retenção, alertas operacionais, artefato promovível/staging e proteção nativa
+de branch no GitHub. O Neon tem PITR de somente seis horas; RPO/RTO foram
+formalizados e a recuperação isolada foi exercitada, mas a janela continua o
+principal risco operacional.
 
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
@@ -29,7 +32,7 @@ isolada foi exercitada, mas a janela continua o principal risco operacional.
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
-| Observabilidade | 6,5 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; Render avisa falhas por e-mail e o Vercel expõe métrica básica. Faltam coleta/retenção, métricas completas, tracing, dashboard e monitor externo. |
+| Observabilidade | 8,0 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. Faltam coleta/retenção central de logs, alertas com destinatário e matriz de severidade, dashboard operacional e monitor externo independente. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
@@ -58,6 +61,9 @@ OrbStack (artefato `946ac4c`)                          → imagem baixada/carreg
 GitHub Actions Gitleaks (run 35907833023)             → histórico e conteúdo rastreado: sucesso
 GitHub Actions backend (run 35907833242)              → lint, tipos, Alembic, testes e audit: sucesso
 CodeQL (runs 35908489235 e 35909097669)               → análise concluída; upload bloqueado porque code scanning está desativado no repositório
+GitHub Actions (commit 3306bfa)                       → Varredura de segredos, Backend CI e segurança, SBOM e segurança da imagem: sucesso
+Render (deploy `dep-daq3aanlk1mc73bjl1jg`)            → `uv run sh ./start-server.sh`, health 200 e serviço live
+New Relic                                             → APM `SIGEO API`: transação HTTP, 235 ms, 0% de erro no momento da validação
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -91,8 +97,16 @@ serviço e o health check HTTP.
   cadastrados. A proteção nativa de branch não pôde ser habilitada no plano
   atual do repositório privado.
 - Render: `JWT_SECRET` foi cadastrado como segredo; build fixado em
-  `uv==0.12.17`; deploy ocorre após CI; `startCommand` executa somente
-  Uvicorn; `healthCheckPath=/health` foi validado com respostas 200.
+  `uv==0.12.17`; deploy ocorre após CI; `startCommand` inicia somente o
+  servidor via wrapper, sem DDL; `healthCheckPath=/health` foi validado com
+  respostas 200. Em 23/09, o serviço publicou com `uv run sh
+  ./start-server.sh` e a licença do New Relic permaneceu exclusivamente como
+  segredo no provedor.
+- New Relic: a entidade APM `SIGEO API` foi descoberta após o deploy
+  instrumentado e a chamada pública de `/health`; o painel confirmou uma
+  transação HTTP, 235 ms de resposta e 0% de erro no instante da conferência.
+  A entidade transitória `Python Application`, criada antes de definir o nome
+  estável, não é usada pela configuração atual.
 - Neon: branch `production` é a padrão e oferece PITR, com histórico de seis
   horas. O exercício autorizado de 23/09 criou a branch isolada
   `sigeo-restore-drill-2026-09-23` a partir de 13:37 BRT, com expiração de um
@@ -162,12 +176,15 @@ rodou como UID `10001`/usuário `sigeo`. Ao final, containers, rede e volume
 desse projeto foram removidos, confirmando também o shutdown limpo. O arquivo
 de ambiente usado tinha valores sintéticos locais e foi apagado.
 
-### P1 — observabilidade termina no stdout da aplicação
+### P1 — observabilidade ainda não cobre logs e resposta operacional
 
-Os eventos estruturados são um avanço real e o Render agora envia alertas de
-falha por e-mail. Ainda não há coletor, retenção, métricas p50/p95/p99, uso de
-recurso, tracing entre frontend/backend/jobs, dashboard, monitor externo ou
-matriz de severidade. Logs no painel do Render não são suficientes como
+O New Relic APM está efetivamente recebendo a aplicação `SIGEO API`: transação
+HTTP, tempo de resposta e taxa de erro estão confirmados. Os eventos
+estruturados continuam no stdout e o Render envia alertas de falha por e-mail.
+Ainda não há encaminhamento e retenção de logs no New Relic, métricas de
+recurso, tracing ponta a ponta envolvendo frontend e jobs, dashboard,
+monitor externo independente ou alertas com destinatário, condição e
+severidade formalizados. Logs no painel do Render não são suficientes como
 política operacional versionada.
 
 ### P1 — CI não testa o caminho de banco nem toda a supply chain
@@ -206,8 +223,9 @@ manual e pode ser recuperado pelo histórico se necessário.
 
 - Staging e segredos próprios desse ambiente; proteção nativa de branch e MFA
   dos administradores GitHub/Render/Neon.
-- Retenção de logs, métricas, tracing, domínio customizado/TLS e política de
-  preview no Vercel.
+- Encaminhamento/retenção central de logs, métricas de recurso, tracing
+  ponta a ponta, dashboard, monitor externo, alertas e matriz de severidade
+  no New Relic; domínio customizado/TLS e política de preview no Vercel.
 - Backup externo e retenção PITR maior que seis horas.
 - Permissões de consoles cloud, MFA e trilha de auditoria de deploy.
 
