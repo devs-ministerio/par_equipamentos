@@ -725,6 +725,45 @@ def excluir_evento(
     return _evento_read(evento, {usuario.id: usuario.name})
 
 
+def _acumular_divergencia_conclusao(
+    *,
+    instrumento,
+    fase_atual,
+    eventos_instrumento,
+    propostas_por_chave,
+    divergencias: list[DivergenciaConclusaoRead],
+    por_fonte: Counter[str],
+) -> None:
+    fase_concluida = bool(
+        fase_atual
+        and fase_atual.codigo == "fase_concluido"
+        and any(evento.marco_id == fase_atual.id and evento.data_ocorrencia for evento in eventos_instrumento)
+    )
+    if not fase_concluida:
+        return
+    divergencia = divergencia_conclusao(
+        instrumento,
+        fase_concluida=True,
+        proposta=propostas_por_chave.get(instrumento.nr_convenio),
+    )
+    if divergencia is None:
+        return
+    divergencias.append(
+        DivergenciaConclusaoRead(
+            nr_convenio=instrumento.nr_convenio,
+            nome_convenente=instrumento.nome_convenente,
+            tipo_contratacao=instrumento.tipo_contratacao,
+            fase_interna=fase_atual.rotulo,
+            fonte_externa=divergencia.fonte_externa,
+            status_externo_original=divergencia.status_externo_original,
+            status_externo_normalizado=divergencia.status_externo_normalizado,
+            atualizado_em=divergencia.atualizado_em,
+            risco="Conclusão externa pendente",
+        )
+    )
+    por_fonte[divergencia.fonte_externa] += 1
+
+
 @router.get("/resumo", response_model=ResumoMonitoramentoRead)
 def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
     """Pagina de overview independente (achado 2026-09-09, pedido do
@@ -768,30 +807,14 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
             pcts.append(fase_atual.execucao_fisica_pct_referencia)
         contagem_fase[fase_atual.rotulo if fase_atual else "Não iniciado"] += 1
 
-        fase_concluida = bool(
-            fase_atual
-            and fase_atual.codigo == "fase_concluido"
-            and any(e.marco_id == fase_atual.id and e.data_ocorrencia for e in eventos_inst)
+        _acumular_divergencia_conclusao(
+            instrumento=inst,
+            fase_atual=fase_atual,
+            eventos_instrumento=eventos_inst,
+            propostas_por_chave=propostas_por_chave,
+            divergencias=divergencias_conclusao,
+            por_fonte=divergencias_por_fonte,
         )
-        if fase_concluida:
-            assert fase_atual is not None
-            proposta = propostas_por_chave.get(inst.nr_convenio)
-            divergencia = divergencia_conclusao(inst, fase_concluida=fase_concluida, proposta=proposta)
-            if divergencia:
-                divergencias_conclusao.append(
-                    DivergenciaConclusaoRead(
-                        nr_convenio=inst.nr_convenio,
-                        nome_convenente=inst.nome_convenente,
-                        tipo_contratacao=inst.tipo_contratacao,
-                        fase_interna=fase_atual.rotulo,
-                        fonte_externa=divergencia.fonte_externa,
-                        status_externo_original=divergencia.status_externo_original,
-                        status_externo_normalizado=divergencia.status_externo_normalizado,
-                        atualizado_em=divergencia.atualizado_em,
-                        risco="Conclusão externa pendente",
-                    )
-                )
-                divergencias_por_fonte[divergencia.fonte_externa] += 1
 
         # Achado 2026-09-09 (pedido do usuario): NA/NI ja viram NULL na
         # importacao/migration -- sempre conta, nunca pula, com rotulo
