@@ -107,8 +107,8 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 - `@vitest/coverage-v8` foi versionado e a execução com relatório JSON/LCOV
   está configurada.
-- A suíte passou a **94 testes em 23 arquivos**, com **73,49% linhas** e
-  **63,17% branches** globais. A melhoria não é usada como substituta de
+- A suíte passou a **101 testes em 25 arquivos**, com **75,69% linhas** e
+  **64,01% branches** globais. A melhoria não é usada como substituta de
   régua por camada.
 - `services/auth.ts` está coberto em **100% de statements e branches**:
   login, logout, ativação, recuperação, redefinição, sessão válida, 401
@@ -116,6 +116,10 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   invalidação após login, erro e limpeza local mesmo com logout remoto
   indisponível. O threshold de 70% para hooks/componentes lógicos continua
   pendente até cobrir os demais consumidores prioritários.
+- `monitoramento-instrumentos.ts` cobre lista, criação, cadastro, eventos
+  append-only, edição, exclusão, linha do tempo, 404 normal de item ainda
+  não monitorado e 5xx. O hook de lista também cobre sucesso e falha sem
+  retry implícito de teste.
 
 ### Implementação
 
