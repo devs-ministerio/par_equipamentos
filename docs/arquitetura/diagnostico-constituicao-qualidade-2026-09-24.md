@@ -16,16 +16,16 @@ preview Vercel.
 
 ## Resumo executivo
 
-O SIGEO saiu de uma linha de base de **3,8/10** para **8,8/10** em aderência à
+O SIGEO saiu de uma linha de base de **3,8/10** para **9,0/10** em aderência à
 Constituição de Qualidade. Os critérios críticos do plano são agora
 reproduzíveis e bloqueantes: cobertura por camada no backend e frontend,
 fixture determinística para as regras SUS/em uso, matriz de 42 contratos HTTP
 e E2E autenticado em stack efêmera.
 
 A nota não é 10 porque três melhorias de higiene foram separadas para evitar
-uma mudança cosmética ou uma baseline que escondesse problemas: formatter
-progressivo e extração das 15 funções acima do limite C901. Ambas permanecem
-visíveis no CI/documentação e não reduzem os gates atuais.
+uma baseline que escondesse problemas: extração das 14 funções acima do limite
+C901. Elas permanecem visíveis no CI/documentação e não reduzem os gates
+atuais.
 
 ## Evidências atuais
 
@@ -84,17 +84,12 @@ nenhum resultado de coverage, Playwright ou credencial é versionado.
 
 ## Pendências deliberadas para 9–10
 
-1. **Formatter progressivo.** `ruff format --check` identifica 118 arquivos
-   backend e Prettier 229 frontend fora do formato candidato. Não se fez uma
-   regravação em massa — especialmente de migrations históricas — apenas para
-   ativar um gate. A próxima etapa deve adotar check por diretório novo/tocado
-   e normalizar o legado em PR próprio.
-2. **Complexidade.** Há 15 funções C901 acima de 10 ramos. O Backend CI alerta
+1. **Complexidade.** Há 14 funções C901 acima de 10 ramos. O Backend CI alerta
    sem bloquear e aponta este diagnóstico; prioridades são
    `registrar_evento_monitorado` (19), `obter_resumo` (11) e importadores/
    pipelines. A extração precisa preservar regra de domínio e não deve ser
    feita como refatoração cosmética.
-3. **Evoluções futuras, fora do aceite atual.** Teste de carga, acessibilidade
+2. **Evoluções futuras, fora do aceite atual.** Teste de carga, acessibilidade
    automatizada abrangente e mutation testing agregam confiança, mas não são
    substitutos dos gates implementados.
 
@@ -109,8 +104,8 @@ segura.
 
 ## Nota e decisão
 
-**Nota atual: 8,8/10.** A entrega atingiu todos os critérios executáveis de
+**Nota atual: 9,0/10.** A entrega atingiu todos os critérios executáveis de
 cobertura, integração, contrato, E2E, segurança e CI previstos no plan-mode.
 O fechamento administrativo do plano permanece **parcial**, e não “100%”,
-até que as duas pendências de higiene acima sejam resolvidas sem maquiar a
+até que a pendência de higiene acima seja resolvida sem maquiar a
 base. Esse é o caminho para alcançar 9–10 com qualidade mensurável.

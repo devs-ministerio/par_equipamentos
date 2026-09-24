@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Literal
 
-from sqlalchemy import or_, select
+from sqlalchemy import ColumnElement, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models import EquipamentoCatalogo, EquipamentoMarcador
@@ -30,6 +30,41 @@ def catalogo_por_codigo(db: Session) -> dict[str, EquipamentoCatalogo]:
     return {item.codigo: item for item in itens}
 
 
+def _filtros_por_origem(
+    convenio_ids: set[int] | None,
+    proposta_ids: set[int] | None,
+    instrumento_ids: set[int] | None,
+) -> list[ColumnElement[bool]]:
+    filtros: list[ColumnElement[bool]] = []
+    if convenio_ids:
+        filtros.append(EquipamentoMarcador.convenio_id.in_(convenio_ids))
+    if proposta_ids:
+        filtros.append(EquipamentoMarcador.proposta_candidata_id.in_(proposta_ids))
+    if instrumento_ids:
+        filtros.append(EquipamentoMarcador.instrumento_equipamento_id.in_(instrumento_ids))
+    return filtros
+
+
+def _origem_do_marcador(marcador: EquipamentoMarcador) -> tuple[OrigemMarcador, int]:
+    if marcador.convenio_id is not None:
+        return "convenio", marcador.convenio_id
+    if marcador.proposta_candidata_id is not None:
+        return "proposta_candidata", marcador.proposta_candidata_id
+    assert marcador.instrumento_equipamento_id is not None
+    return "instrumento_equipamento", marcador.instrumento_equipamento_id
+
+
+def _marcadores_visiveis(marcadores: list[MarcadorLido]) -> list[MarcadorLido]:
+    candidatos = [marcador for marcador in marcadores if marcador.prioritario] or marcadores
+    vistos: set[str] = set()
+    resultado = []
+    for marcador in candidatos:
+        if marcador.codigo not in vistos:
+            vistos.add(marcador.codigo)
+            resultado.append(marcador)
+    return resultado
+
+
 def listar_por_origens(
     db: Session,
     *,
@@ -37,13 +72,7 @@ def listar_por_origens(
     proposta_ids: set[int] | None = None,
     instrumento_ids: set[int] | None = None,
 ) -> dict[tuple[OrigemMarcador, int], list[MarcadorLido]]:
-    filtros = []
-    if convenio_ids:
-        filtros.append(EquipamentoMarcador.convenio_id.in_(convenio_ids))
-    if proposta_ids:
-        filtros.append(EquipamentoMarcador.proposta_candidata_id.in_(proposta_ids))
-    if instrumento_ids:
-        filtros.append(EquipamentoMarcador.instrumento_equipamento_id.in_(instrumento_ids))
+    filtros = _filtros_por_origem(convenio_ids, proposta_ids, instrumento_ids)
     if not filtros:
         return {}
     linhas = db.execute(
@@ -54,16 +83,7 @@ def listar_por_origens(
     ).all()
     resultado: dict[tuple[OrigemMarcador, int], list[MarcadorLido]] = defaultdict(list)
     for marcador, catalogo in linhas:
-        if marcador.convenio_id is not None:
-            origem: OrigemMarcador = "convenio"
-            identificador = marcador.convenio_id
-        elif marcador.proposta_candidata_id is not None:
-            origem = "proposta_candidata"
-            identificador = marcador.proposta_candidata_id
-        else:
-            origem = "instrumento_equipamento"
-            identificador = marcador.instrumento_equipamento_id
-        resultado[(origem, identificador)].append(
+        resultado[_origem_do_marcador(marcador)].append(
             MarcadorLido(
                 codigo=catalogo.codigo,
                 nome=catalogo.nome,
@@ -80,18 +100,7 @@ def listar_por_origens(
     # não são devolvidos para consumo visual enquanto houver prioritário na
     # mesma origem.
     for chave, marcadores in resultado.items():
-        if any(marcador.prioritario for marcador in marcadores):
-            marcadores = [marcador for marcador in marcadores if marcador.prioritario]
-        # A mesma família pode aparecer em mais de um item do plano. A API
-        # entrega um marcador visual por equipamento; todas as evidências
-        # continuam registradas na tabela para auditoria.
-        vistos: set[str] = set()
-        sem_repeticao = []
-        for marcador in marcadores:
-            if marcador.codigo not in vistos:
-                vistos.add(marcador.codigo)
-                sem_repeticao.append(marcador)
-        resultado[chave] = sem_repeticao
+        resultado[chave] = _marcadores_visiveis(marcadores)
     return resultado
 
 

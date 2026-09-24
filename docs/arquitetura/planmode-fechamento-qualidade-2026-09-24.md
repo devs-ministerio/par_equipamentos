@@ -8,8 +8,8 @@ O plano só estará concluído quando a cobertura for medida e bloqueada por cam
 
 **Status em 2026-09-24:** os blocos críticos 0–4 e os warnings do bloco 5
 foram executados e a rodada remota final do PR 13 está verde. O plano não pode
-ser declarado 100% enquanto formatter progressivo e a extração das funções
-C901 permanecerem deliberadamente pendentes; ver o
+ser declarado 100% enquanto a extração das funções C901 permanecer
+deliberadamente pendente; ver o
 diagnóstico atualizado para o inventário e a decisão de não mascará-los.
 
 ## Regras transversais
@@ -227,12 +227,13 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - A política versionada de flakiness em
   `docs/arquitetura/politica-flakiness-testes.md` define bloqueio, dono,
   issue, prazo máximo de sete dias e remoção obrigatória de quarentena.
-- A verificação exploratória de formatação encontrou 118 arquivos backend e
-  229 frontend fora do formatter candidato. Não foi feita regravação em massa
-  — sobretudo não em migrations históricas — e a adoção precisa ser por
-  diretório/arquivo novo com uma etapa própria de normalização.
+- Ruff formatou `app`, `tests` e `scripts` do backend sem tocar migrations
+  históricas. Prettier 3.8.2 foi versionado, normalizou o frontend e ambos os
+  workflows passaram a bloquear divergência com `ruff format --check` e
+  `npm run format:check`.
 - A checagem C901 foi adicionada como alerta não bloqueante no Backend CI.
-  O inventário inicial tem 15 funções acima de 10 ramos; as prioridades de
+  `listar_por_origens` foi decomposta e o inventário tem 14 funções acima de
+  10 ramos; as prioridades de
   extração são `registrar_evento_monitorado` (19), `obter_resumo` (11) e os
   importadores/pipelines, que exigem plano por responsabilidade para não
   misturar regra de ingestão com mudança cosmética.
