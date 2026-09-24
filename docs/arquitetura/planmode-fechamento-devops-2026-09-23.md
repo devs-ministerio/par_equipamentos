@@ -38,3 +38,19 @@
 - Aceite: CI com Postgres verde; imagem OrbStack saudável/não-root; produção
   protegida; deploy/smoke/rollback, alertas e backup comprovados; sem segredo
   ou artefato morto no Git.
+
+## Estado de execução em 23/09/2026
+
+As etapas versionáveis 1–7 foram executadas: workflows e gates, compose
+OrbStack, imagem não-root, deploy com health, observabilidade, retenção,
+inventário de consumidores e atualização do diagnóstico/runbooks. O dashboard
+`SIGEO — Operação de Produção` também recebeu CPU e memória física emitidas
+pelo agente Python; limiares de capacidade só serão aprovados após sete dias
+de linha de base representativa.
+
+Não são pendências de implementação local: backup externo ou PITR superior a
+seis horas, registry/staging e promoção de imagem, rollback ensaiado,
+redundância geográfica do Ping, tracing de frontend/jobs e proteção nativa de
+branch/CodeQL dependem de plano, franquia ou configuração administrativa dos
+provedores. Elas permanecem abertas e não podem ser declaradas concluídas por
+alterações no repositório.

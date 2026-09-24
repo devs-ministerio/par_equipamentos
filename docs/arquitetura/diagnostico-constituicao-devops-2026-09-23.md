@@ -12,7 +12,7 @@ comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 8,9/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+**Conformidade atual: 9,0/10** (ante 3,5/10 em 16/09). O projeto tem CI de
 backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
 serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
 health check real em `/health`. O compose foi validado integralmente no
