@@ -76,6 +76,7 @@ GitHub Actions (commit `d016c6e`)                      → Varredura de segredos
 Render (deploy `dep-daq6nbrbc2fs73fg4re0`)             → auto-deploy de `d016c6e` live; `/health` 200 com banco conectado e `X-Trace-Id` confirmado ponta a ponta
 GitHub Actions                                          → `upload-artifact` migrou de v4 (Node 20) para SHA imutável de v6.0.0 (Node 24)
 GitHub Actions                                          → runners fixados em `ubuntu-24.04`; removida dependência de mudança futura do `ubuntu-latest`
+GitHub Actions (commit `a01ad05`)                      → workflows, segredos, Backend CI/PostgreSQL, Frontend CI, SBOM e scan crítico: sucesso em Ubuntu 24.04
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -141,6 +142,13 @@ serviço e o health check HTTP.
   auto-deploy `dep-daq6nbrbc2fs73fg4re0`; o smoke público em `/health`
   devolveu 200, banco conectado e o mesmo `X-Trace-Id` opaco enviado pelo
   cliente de teste. Não foram enviados dados de usuário, corpo ou querystring.
+- Compatibilidade da CI: o aviso de runtime Node 20 foi eliminado ao fixar
+  `actions/upload-artifact` no SHA de v6.0.0 (Node 24); o aviso de futura
+  migração de `ubuntu-latest` foi eliminado com `ubuntu-24.04` em todos os
+  workflows. A validação completa do commit `a01ad05` passou no GitHub:
+  workflows `35939990629`, segredos `35939990657`, frontend `35939990641`,
+  backend com PostgreSQL efêmero `35939990642` e imagem/SBOM/scan crítico
+  `35939990653`.
 - Neon: branch `production` é a padrão e oferece PITR, com histórico de seis
   horas. O exercício autorizado de 23/09 criou a branch isolada
   `sigeo-restore-drill-2026-09-23` a partir de 13:37 BRT, com expiração de um
