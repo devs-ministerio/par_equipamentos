@@ -63,8 +63,10 @@ def pytest_sessionstart(session: pytest.Session) -> None:
         return
 
     from scripts.seed_monitoramento import run as seed_monitoramento
+    from tests.fixtures_cobertura import seed_cobertura
 
     seed_monitoramento()
+    seed_cobertura()
 
 
 @pytest.fixture(scope="session")

@@ -75,6 +75,14 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - `uv run ruff check .`, `uv run mypy .` e `uv run pytest` verdes, sem os oito skips dos domínios centrais.
 - `pytest --cov --cov-branch` bloqueia abaixo dos pisos e o workflow backend publica o relatório.
 
+### Andamento parcial — 2026-09-24
+
+- `pytest-cov` e branch coverage foram adicionados e travados.
+- Fixture sintética determinística de TOMOGRAFO elimina os oito skips de
+  cenário central; a suíte passou com **197/197**.
+- Nova baseline exploratória: **80%** total. Ainda faltam testes dos módulos
+  abaixo do piso, o verificador por camada e a publicação do relatório no CI.
+
 ## 2. Cobertura frontend e testes comportamentais
 
 ### Implementação

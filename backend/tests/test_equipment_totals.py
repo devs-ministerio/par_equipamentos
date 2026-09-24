@@ -11,9 +11,6 @@ scripts/run_pipeline_tomografo.py ainda).
 """
 from __future__ import annotations
 
-import os
-
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -38,30 +35,6 @@ def _exec_id_tomografo(db):
         .order_by(Execution.started_at.desc())
         .limit(1)
     ).scalar_one_or_none()
-
-
-def _tem_dado_tomografo() -> bool:
-    if not os.environ.get("TEST_DATABASE_URL"):
-        return False
-
-    db = SessionLocal()
-    try:
-        exec_id = _exec_id_tomografo(db)
-        if exec_id is None:
-            return False
-        tem_linha = db.execute(
-            select(EquipmentOfferRow.id)
-            .where(EquipmentOfferRow.execution_id == exec_id, EquipmentOfferRow.equipment_family == "TOMOGRAFO")
-            .limit(1)
-        ).scalar_one_or_none()
-        return tem_linha is not None
-    finally:
-        db.close()
-
-
-pytestmark = pytest.mark.skipif(
-    not _tem_dado_tomografo(), reason="banco sem execucao TOMOGRAFO carregada (rode o pipeline/seed primeiro)"
-)
 
 
 def _totais(headers, **params):

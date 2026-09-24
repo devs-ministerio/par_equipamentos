@@ -12,9 +12,7 @@ from app.db.models import Convenio
 def test_banco_rejeita_convenio_com_cnes_orfao():
     db = SessionLocal()
     try:
-        convenio = db.query(Convenio).order_by(Convenio.numero).first()
-        if convenio is None:
-            pytest.skip("sem convenio no banco de teste")
+        convenio = db.query(Convenio).filter_by(numero="__pytest_cnes_fk__").one()
 
         original = convenio.cnes
         convenio.cnes = "0000000"  # 7 digitos, mas fora de cnes_estabelecimento
@@ -34,9 +32,8 @@ def test_banco_rejeita_latitude_cnes_invalida():
 
     db = SessionLocal()
     try:
-        est = db.query(CnesEstabelecimento).order_by(CnesEstabelecimento.cnes).first()
-        if est is None:
-            pytest.skip("sem cnes_estabelecimento no banco de teste")
+        est = db.get(CnesEstabelecimento, "9000001")
+        assert est is not None
 
         original = est.latitude
         est.latitude = 999
