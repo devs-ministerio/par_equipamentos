@@ -80,6 +80,7 @@ GitHub Actions (commit `a01ad05`)                      → workflows, segredos, 
 GitHub Code Scanning API                                → 403: recurso não habilitado para o repositório privado; nenhuma ativação automática realizada
 OrbStack (`sigeo_constitution_test`, porta 55432)        → banco dedicado confirmado; testes de runner de pipeline e observabilidade: 6 aprovados
 OrbStack (Semgrep CE 1.159.0, digest fixado)            → 355 arquivos, 3 regras locais, 0 achados; rede, métricas e escrita no repositório desabilitadas
+GitHub Actions Semgrep CE (run 35942100236)              → workflow manual no `master`/`fd57b8e`: sucesso
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
