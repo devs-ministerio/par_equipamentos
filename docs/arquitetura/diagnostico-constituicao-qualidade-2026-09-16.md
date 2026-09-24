@@ -1,5 +1,11 @@
 # Diagnóstico da Constituição de Testes & Qualidade — 2026-09-16
 
+> **Histórico — substituído para o estado atual.** Este registro preserva a
+> linha de base de 16/09. As conclusões operacionais devem ser lidas no
+> [diagnóstico de 2026-09-24](diagnostico-constituicao-qualidade-2026-09-24.md),
+> pois CI, tipagem, lint, testes de componente e E2E foram alterados desde
+> então.
+
 ## Escopo e método
 
 Este diagnóstico confronta `padroes/qualidade/constituicao_qualidade.md` com
