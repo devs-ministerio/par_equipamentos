@@ -104,6 +104,10 @@ antes de promovê-la.
   `X-Trace-Id`, confirmando resposta `200`, banco conectado e eco do mesmo
   cabeçalho. Em 23/09/2026, esse teste passou no deploy
   `dep-daq6nbrbc2fs73fg4re0` (`d016c6e`).
+- Falha de pipeline grava no `AuditLog` somente `pipeline` e `error_type`.
+  Não armazene mensagem, traceback, URL ou resposta externa nesse registro de
+  longa retenção; o processo continua relançando o erro para o executor
+  autorizado (terminal ou job de CI), que preserva seu exit code.
 - Os logs JSON sanitizados do backend continuam no stdout e são encaminhados
   pelo agente New Relic quando `NEW_RELIC_APPLICATION_LOGGING_ENABLED=true` e
   `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true` estão ativos no

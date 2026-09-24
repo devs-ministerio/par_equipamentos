@@ -11,11 +11,11 @@ from app.db.models import AuditLog
 from app.pipeline.runner import executar_com_registro_de_falha
 
 
-def test_falha_e_registrada_em_audit_log_e_excecao_sobe():
+def test_falha_e_registrada_sem_mensagem_ou_traceback_e_excecao_sobe():
     def _run_que_falha():
-        raise RuntimeError("ElastiCNES fora do ar (simulado)")
+        raise RuntimeError("token=segredo-nao-auditavel")
 
-    with pytest.raises(RuntimeError, match="ElastiCNES fora do ar"):
+    with pytest.raises(RuntimeError, match="segredo-nao-auditavel"):
         executar_com_registro_de_falha("__TESTE__", _run_que_falha)
 
     db = SessionLocal()
@@ -27,7 +27,9 @@ def test_falha_e_registrada_em_audit_log_e_excecao_sobe():
             .limit(1)
         ).scalar_one()
         assert registro.details["pipeline"] == "__TESTE__"
-        assert "ElastiCNES fora do ar" in registro.details["erro"]
+        assert registro.details["error_type"] == "RuntimeError"
+        assert "segredo-nao-auditavel" not in str(registro.details)
+        assert "traceback" not in registro.details
     finally:
         # log_action de propósito commita sozinho (via executar_com_registro_de_falha,
         # nao pela sessao deste teste) -- limpa explicitamente pra nao poluir

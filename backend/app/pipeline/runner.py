@@ -15,7 +15,6 @@ falhou, o registro no banco e adicional, nao substitui isso.
 """
 from __future__ import annotations
 
-import traceback
 from typing import Callable
 
 from app.audit import log_action
@@ -36,8 +35,12 @@ def executar_com_registro_de_falha(nome_pipeline: str, run: Callable[[], None]) 
                 action="failed",
                 details={
                     "pipeline": nome_pipeline,
-                    "erro": str(exc),
-                    "traceback": traceback.format_exc(),
+                    # AuditLog é evidência operacional de longa duração, não
+                    # cofre de diagnóstico. Mensagem e traceback podem conter
+                    # URL, parâmetros ou respostas de integrações; o tipo é
+                    # suficiente para triagem e o processo ainda relança a
+                    # exceção ao executor autorizado.
+                    "error_type": type(exc).__name__,
                 },
             )
             db.commit()

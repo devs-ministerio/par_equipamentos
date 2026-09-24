@@ -104,6 +104,9 @@ serviço e o health check HTTP.
   log cru do Uvicorn está desativado no boot para que IP e request line não
   alcancem o encaminhamento centralizado; os testes de observabilidade
   bloqueiam regressão de querystring no evento HTTP e da flag de boot.
+- Falhas de pipeline mantêm evidência mínima no `AuditLog` (`pipeline` e
+  `error_type`), sem mensagem ou traceback de integração; a exceção continua
+  subindo ao executor para preservar diagnóstico autorizado e falha do job.
 - `backend_ci.yml` fixa `actions/checkout` e `setup-uv` por SHA; o frontend
   também fixa `checkout` e `setup-node` e ambos restringem permissões.
 
