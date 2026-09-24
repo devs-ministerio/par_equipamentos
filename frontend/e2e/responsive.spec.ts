@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-const EMAIL = process.env.E2E_EMAIL;
-const SENHA = process.env.E2E_SENHA;
+const EMAIL = process.env.E2E_EMAIL!;
+const SENHA = process.env.E2E_SENHA!;
 const TEMPO_SESSAO_MS = 20_000;
 
 const DIMENSOES = [320, 375, 400, 768, 1024, 1440] as const;
@@ -15,7 +15,6 @@ const ROTAS_CRITICAS = [
 
 test.describe('Responsividade autenticada', () => {
   test('rotas críticas não têm overflow horizontal global', async ({ page }) => {
-    test.skip(!EMAIL || !SENHA, 'E2E_EMAIL/E2E_SENHA não configurados neste ambiente.');
     test.setTimeout(120_000);
 
     await page.goto('/login');

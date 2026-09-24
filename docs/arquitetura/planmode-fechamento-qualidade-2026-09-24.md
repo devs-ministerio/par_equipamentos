@@ -164,6 +164,21 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 ## 4. E2E autenticado como gate de CI
 
+### Andamento parcial — 2026-09-24
+
+- Smoke sem sessão e E2E autenticado foram separados em projetos Playwright;
+  sem credenciais o `--list` expõe somente o smoke e não inicializa browser
+  autenticado.
+- O workflow `e2e_ci.yml` sobe PostgreSQL efêmero, aplica migrations, semeia
+  dados sintéticos e provisiona uma conta colaboradora apenas com
+  `E2E_ISOLATED_DATABASE=true`. O provisionador recusa qualquer outro
+  ambiente e nunca imprime e-mail ou senha.
+- A configuração desliga trace (que pode reter digitação de senha) e publica
+  somente screenshot/logs em falha. Ainda falta cadastrar **os nomes**
+  `E2E_EMAIL` e `E2E_SENHA` como GitHub Actions secrets: a leitura remota de
+  2026-09-24 encontrou apenas `DATABASE_URL`; sem os dois secrets o job
+  falhará cedo, de modo intencional e sem iniciar a aplicação.
+
 ### Implementação
 
 1. Separar smoke anônimo da suíte autenticada para que ausência de credenciais não crie browser antes do skip.

@@ -16,9 +16,16 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5173',
-    trace: 'on-first-retry',
+    // Trace pode registrar interações com campo de senha. A evidência de
+    // falha fica limitada a screenshot depois do login, sem persistir a
+    // credencial em artefato.
+    trace: 'off',
+    screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'smoke-chromium', testMatch: /smoke\.spec\.ts/, use: { ...devices['Desktop Chrome'] } },
+    ...(process.env.E2E_EMAIL && process.env.E2E_SENHA
+      ? [{ name: 'autenticado-chromium', testMatch: /(?:authenticated|responsive)\.spec\.ts/, use: { ...devices['Desktop Chrome'] } }]
+      : []),
   ],
 });
