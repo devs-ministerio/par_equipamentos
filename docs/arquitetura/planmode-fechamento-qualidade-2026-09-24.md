@@ -232,8 +232,8 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   workflows passaram a bloquear divergência com `ruff format --check` e
   `npm run format:check`.
 - A checagem C901 foi adicionada como alerta não bloqueante no Backend CI.
-  `listar_por_origens` foi decomposta e o inventário tem 14 funções acima de
-  10 ramos; as prioridades de
+  `listar_por_origens` e `registrar_evento_monitorado` foram decompostas e o
+  inventário tem 13 funções acima de 10 ramos; as prioridades de
   extração são `registrar_evento_monitorado` (19), `obter_resumo` (11) e os
   importadores/pipelines, que exigem plano por responsabilidade para não
   misturar regra de ingestão com mudança cosmética.
