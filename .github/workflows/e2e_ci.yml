@@ -78,7 +78,7 @@ jobs:
         run: |
           (cd backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/sigeo-api.log" 2>&1) &
           (cd frontend && npm run dev -- --host 127.0.0.1 --port 5173 > "$RUNNER_TEMP/sigeo-frontend.log" 2>&1) &
-          for tentativa in {1..30}; do
+          for ((tentativa = 1; tentativa <= 30; tentativa++)); do
             if curl --fail --silent http://127.0.0.1:8000/health >/dev/null \
               && curl --fail --silent http://127.0.0.1:5173/login >/dev/null; then
               exit 0
