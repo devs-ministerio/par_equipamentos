@@ -303,17 +303,19 @@ manual e pode ser recuperado pelo histórico se necessário.
   instância sempre ativa no Render ou migração ao Railway.
 - **Franquia ou custo a confirmar:** tracing Browser/jobs e segunda localização
   no New Relic; ativar somente após consultar consumo e limite contratado.
+- **Plano necessário:** auditoria exportável do Render. A retenção de ao menos
+  90 dias e a exportação de eventos de workspace começam somente em workspace
+  Pro ou superior; o histórico não é retroativo. O Neon não apresentou trilha
+  de auditoria exportável no plano atual, portanto não é evidência a presumir.
 - **Plano/licença necessária:** CodeQL/Code Scanning e proteção nativa de
   branch para este repositório privado. O GitHub confirmou ambos indisponíveis
   no plano atual. CodeQL permanece inativo; Semgrep CE e pinning obrigatório
   por SHA são os controles locais complementares, não alegações de
   equivalência.
-- **Configuração administrativa sem custo direto, ainda pendente de interação
-  do titular:** trilha de auditoria de acesso nos consoles Render e Neon. MFA
-  está confirmado para GitHub, Render e Neon; neste último, também é
-  obrigatório para toda a organização. A trilha restante exige confirmar a
-  retenção, acesso e responsável em cada provedor; isso não pode ser feito de
-  forma segura pelo repositório ou por uma API de leitura.
+- **Controles administrativos sem custo:** concluídos. MFA está confirmado
+  para GitHub, Render e Neon; neste último, também é obrigatório para toda a
+  organização. A trilha de auditoria foi reclassificada acima como pendência
+  de plano, pois não há exportação/retenção gratuita comprovada nos provedores.
 
 ## Limpeza e contexto
 
