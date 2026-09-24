@@ -77,6 +77,7 @@ Render (deploy `dep-daq6nbrbc2fs73fg4re0`)             → auto-deploy de `d016c
 GitHub Actions                                          → `upload-artifact` migrou de v4 (Node 20) para SHA imutável de v6.0.0 (Node 24)
 GitHub Actions                                          → runners fixados em `ubuntu-24.04`; removida dependência de mudança futura do `ubuntu-latest`
 GitHub Actions (commit `a01ad05`)                      → workflows, segredos, Backend CI/PostgreSQL, Frontend CI, SBOM e scan crítico: sucesso em Ubuntu 24.04
+GitHub Code Scanning API                                → 403: recurso não habilitado para o repositório privado; nenhuma ativação automática realizada
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -258,8 +259,10 @@ O CodeQL foi configurado e executou a análise de Python, TypeScript,
 workflows e HTML, mas o GitHub recusou o upload do SARIF nos runs
 `35908489235` e `35909097669`: code scanning está desativado no repositório
 privado. O workflow foi removido para não manter um gate permanentemente
-vermelho. Retomar somente após habilitar esse recurso no GitHub e confirmar
-eventual impacto de plano/custo.
+vermelho. A consulta de leitura à API de alertas em 23/09 retornou 403 com a
+confirmação explícita de que Code Scanning não está habilitado. Retomar somente
+após habilitar esse recurso no GitHub e confirmar eventual impacto de
+plano/custo; não ativar automaticamente.
 
 ### P2 — contexto e artefatos de entrega
 
