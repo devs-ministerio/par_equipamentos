@@ -107,9 +107,15 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 - `@vitest/coverage-v8` foi versionado e a execução com relatório JSON/LCOV
   está configurada.
-- Baseline atual: **69,18% linhas** e **61,5% branches** globais. Hooks
-  (11,11%) e services (35,41%) são as lacunas prioritárias; o threshold de
-  70% só será ativado após testes de comportamento suficientes.
+- A suíte passou a **94 testes em 23 arquivos**, com **73,49% linhas** e
+  **63,17% branches** globais. A melhoria não é usada como substituta de
+  régua por camada.
+- `services/auth.ts` está coberto em **100% de statements e branches**:
+  login, logout, ativação, recuperação, redefinição, sessão válida, 401
+  anônimo e indisponibilidade. `useAuthSession` cobre sessão, papéis,
+  invalidação após login, erro e limpeza local mesmo com logout remoto
+  indisponível. O threshold de 70% para hooks/componentes lógicos continua
+  pendente até cobrir os demais consumidores prioritários.
 
 ### Implementação
 
