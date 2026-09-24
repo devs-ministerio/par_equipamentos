@@ -47,6 +47,12 @@ O plano só estará concluído quando a cobertura for medida e bloqueada por cam
 - Constituição reproduz exatamente ferramentas e comandos do repositório.
 - Thresholds e evidência de revisão deixam de ser ambíguos.
 
+### Andamento
+
+**Concluído em 2026-09-24.** Constituição atualizada para npm/Oxlint,
+mapeamento por camada e contrato mínimo; template de PR versionado em
+`.github/PULL_REQUEST_TEMPLATE.md`.
+
 ## 1. Cobertura backend e fixture de integração
 
 ### Implementação

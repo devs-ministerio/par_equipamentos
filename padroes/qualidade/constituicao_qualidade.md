@@ -227,6 +227,21 @@ plano da Seção 2 com o motivo):
 | Hooks e componentes com lógica | 70% |
 | Componente puramente apresentacional | Não exigido — coberto por E2E de smoke |
 
+### Mapeamento obrigatório de camadas
+
+- **Backend service/regra:** `backend/app/services/**` e funções de domínio
+  isoladas explicitamente incluídas na configuração de coverage.
+- **Backend repository:** `backend/app/repositories/**`.
+- **Backend route/controller:** `backend/app/routers/**`.
+- **Frontend hook/componente lógico:** `frontend/src/hooks/**` e componentes
+  que possuem estado, efeito, mutation, formulário ou regra de interação.
+- Bootstrap, tipos, mocks e componentes comprovadamente apresentacionais só
+  podem ser excluídos por padrão de path e justificativa versionada; nunca por
+  uma lista opaca de arquivos para elevar percentual.
+
+O CI mede linhas e branches por esses grupos e bloqueia a queda abaixo do piso
+da camada. Percentual global é informativo, nunca substitui o gate por camada.
+
 ### Cobertura Não é o Objetivo, é o Piso
 
 - 100% de cobertura com `expect(true).toBe(true)` ou sem asserção de valor/contrato de retorno não
@@ -241,7 +256,7 @@ plano da Seção 2 com o motivo):
 
 ### Gates Obrigatórios (bloqueiam merge)
 
-- Lint sem warning (ESLint/Ruff conforme o stack) — zero tolerância a warning acumulado.
+- Lint sem warning (Oxlint no frontend e Ruff no backend) — zero tolerância a warning acumulado.
 - Typecheck sem erro (`tsc --noEmit`, `mypy`) — zero `any`/`dict` genérico não justificado.
 - Formatação automática (Prettier/Black) aplicada — nunca diff de formatação misturado com diff de
   lógica no mesmo commit.
@@ -268,6 +283,16 @@ plano da Seção 2 com o motivo):
 - Nenhum `console.log`/`print` de debug esquecido, nenhum código morto/comentado.
 - Segredo, dado sensível ou credencial não aparece no diff (alinhado à
   [constituicao_seguranca.md](../seguranca/constituicao_seguranca.md)).
+
+### Evidência versionada
+
+- Mudança não trivial usa o template de PR em `.github/PULL_REQUEST_TEMPLATE.md`
+  para registrar plano, camadas, edge cases, fixtures/mocks, impacto em CI e
+  trade-offs. O link ao plan-mode aprovado é a evidência de aprovação prévia.
+- Cada operação HTTP pública tem teste de sucesso e os erros de autenticação,
+  validação e domínio que lhe forem aplicáveis; a matriz de contratos aponta o
+  arquivo de teste. Não se exige erro impossível para uma rota, nem se aceita
+  marcar contrato como completo sem teste executável.
 
 ### Tamanho de PR
 
@@ -346,9 +371,9 @@ Uma mudança só é considerada pronta quando:
 
 ```bash
 # Node/TypeScript
-pnpm lint
-pnpm typecheck
-pnpm test -- --coverage
+npm run lint
+npm run typecheck
+npm run test -- --coverage
 
 # Python
 ruff check .
