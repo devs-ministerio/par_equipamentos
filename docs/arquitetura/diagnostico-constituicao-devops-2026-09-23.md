@@ -78,6 +78,7 @@ GitHub Actions                                          → `upload-artifact` mi
 GitHub Actions                                          → runners fixados em `ubuntu-24.04`; removida dependência de mudança futura do `ubuntu-latest`
 GitHub Actions (commit `a01ad05`)                      → workflows, segredos, Backend CI/PostgreSQL, Frontend CI, SBOM e scan crítico: sucesso em Ubuntu 24.04
 GitHub Code Scanning API                                → 403: recurso não habilitado para o repositório privado; nenhuma ativação automática realizada
+OrbStack (`sigeo_constitution_test`, porta 55432)        → banco dedicado confirmado; testes de runner de pipeline e observabilidade: 6 aprovados
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
