@@ -174,10 +174,11 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   `E2E_ISOLATED_DATABASE=true`. O provisionador recusa qualquer outro
   ambiente e nunca imprime e-mail ou senha.
 - A configuração desliga trace (que pode reter digitação de senha) e publica
-  somente screenshot/logs em falha. Ainda falta cadastrar **os nomes**
-  `E2E_EMAIL` e `E2E_SENHA` como GitHub Actions secrets: a leitura remota de
-  2026-09-24 encontrou apenas `DATABASE_URL`; sem os dois secrets o job
-  falhará cedo, de modo intencional e sem iniciar a aplicação.
+  somente screenshot/logs em falha. Os secrets de repositório `E2E_EMAIL` e
+  `E2E_SENHA` foram confirmados em 2026-09-24 sem leitura de valores. Falta
+  apenas a primeira execução remota do workflow após publicar este commit;
+  ela é a evidência final do ambiente efêmero, não uma dependência de
+  produção.
 
 ### Implementação
 
