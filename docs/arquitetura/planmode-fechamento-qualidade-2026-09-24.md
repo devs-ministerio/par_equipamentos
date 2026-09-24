@@ -6,6 +6,12 @@ Executar 100% das pendências do [diagnóstico de qualidade de 2026-09-24](diagn
 
 O plano só estará concluído quando a cobertura for medida e bloqueada por camada, os cenários centrais SUS/em uso não dependerem de `skip`, os contratos HTTP tiverem matriz auditável, E2E crítico rodar no CI e todos os gates terminarem sem warnings. Não reduzir thresholds para acomodar a base atual.
 
+**Status em 2026-09-24:** os blocos críticos 0–4 e os warnings do bloco 5
+foram executados e a rodada remota final do PR 13 está verde. O plano não pode
+ser declarado 100% enquanto formatter progressivo, `check_untyped_defs` e a
+extração das funções C901 permanecerem deliberadamente pendentes; ver o
+diagnóstico atualizado para o inventário e a decisão de não mascará-los.
+
 ## Regras transversais
 
 - Testes usam somente fixtures sintéticas e PostgreSQL de teste; nunca Neon, produção ou dados reais.
@@ -145,7 +151,7 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 ## 3. Matriz e testes de contrato HTTP
 
-### Andamento parcial — 2026-09-24
+### Andamento — concluído em 2026-09-24
 
 - A matriz versionada das **42 operações** foi criada em
   `docs/arquitetura/contratos-http-sigeo.md`, com consumidor, resposta de
@@ -169,7 +175,7 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 ## 4. E2E autenticado como gate de CI
 
-### Andamento parcial — 2026-09-24
+### Andamento — concluído em 2026-09-24
 
 - Smoke sem sessão e E2E autenticado foram separados em projetos Playwright;
   sem credenciais o `--list` expõe somente o smoke e não inicializa browser

@@ -10,162 +10,112 @@ gates versionados no GitHub Actions.
 Foram executados os gates locais no estado do repositório em 24/09 e
 consultadas as últimas execuções de CI. A suíte backend usou exclusivamente o
 PostgreSQL local dedicado de testes no OrbStack; não houve leitura nem escrita
-no Neon ou em produção. Não foi alterado código produtivo neste diagnóstico.
+no Neon ou em produção. A rodada remota final do PR 13 aprovou Backend CI,
+Frontend CI, E2E autenticado, SBOM/imagem, Semgrep, Gitleaks, actionlint e
+preview Vercel.
 
 ## Resumo executivo
 
-O SIGEO saiu de uma linha de base de **3,8/10** para **7,0/10** em aderência à
-Constituição de Qualidade. A mudança é material: há CI separado para backend e
-frontend, lint e tipagem verdes, builds verdes, 197 testes backend (189
-aprovados), 81 testes frontend aprovados, testes de hooks/componentes/services
-e uma suíte Playwright inicial.
+O SIGEO saiu de uma linha de base de **3,8/10** para **8,8/10** em aderência à
+Constituição de Qualidade. Os critérios críticos do plano são agora
+reproduzíveis e bloqueantes: cobertura por camada no backend e frontend,
+fixture determinística para as regras SUS/em uso, matriz de 42 contratos HTTP
+e E2E autenticado em stack efêmera.
 
-O principal impeditivo para uma nota alta é mensuração e enforcement: cobertura
-por camada não está configurada nem bloqueia regressão; o frontend não possui
-provedor de cobertura versionado; e o CI não executa E2E. Além disso, oito
-testes de integração essenciais são pulados porque a fixture do CI só semeia
-monitoramento, não o cenário de cobertura CNES/SUS. Portanto, uma execução
-verde ainda não demonstra integralmente a pirâmide exigida pela constituição.
+A nota não é 10 porque três melhorias de higiene foram separadas para evitar
+uma mudança cosmética ou uma baseline que escondesse problemas: formatter
+progressivo, correção dos 42 erros experimentais de `check_untyped_defs` nos
+testes e extração das 15 funções acima do limite C901. Elas estão visíveis no
+CI/documentação e não reduzem os gates atuais.
 
 ## Evidências atuais
 
 | Verificação | Resultado em 24/09 |
 |---|---|
-| Backend: Ruff | `ruff check .` aprovado |
-| Backend: tipos | `mypy .` aprovado em 175 arquivos; 2 notas para corpos de funções de teste sem anotação não verificados |
-| Backend: testes | 189 aprovados, 8 pulados, 2 avisos de depreciação; 197 coletados |
-| Backend: cobertura exploratória | 77% total (linha/branch combinadas); sem threshold ou relatório no CI |
+| Backend: Ruff e tipos | `ruff check .` e `mypy .` aprovados, sem warnings acumulados |
+| Backend: dados e cobertura | fixture sintética elimina os 8 skips centrais; services 93,4%/82,5%, repositories 94,7%/77,6%, routes 90,1%/63,0% (linhas/branches) |
 | Frontend: lint | `npm run lint` aprovado |
 | Frontend: tipos e build | `npm run typecheck` e `npm run build` aprovados |
-| Frontend: testes | 21 arquivos, 81 testes aprovados |
-| Frontend: cobertura | não mensurável: `@vitest/coverage-v8` não é dependência/configuração versionada |
-| E2E | 3 cenários Playwright (barreira de rota, login, responsividade); não é executado no CI |
-| CI GitHub | últimos gates backend e frontend concluídos com sucesso em 24/09 |
+| Frontend: testes | 29 arquivos, 108 testes aprovados |
+| Frontend: cobertura | `@vitest/coverage-v8`, JSON/LCOV e gate: hooks 83,3%, componentes de domínio 92,1% (linhas; piso 70%) |
+| E2E | smoke anônimo e fluxo autenticado isolados; CI cria banco/usuário efêmeros e executa Chromium serialmente |
+| CI GitHub | rodada final do PR 13 aprovada em 24/09: backend, frontend, E2E, imagem/SBOM, Semgrep, Gitleaks, actionlint e Vercel |
 
-As duas advertências backend vêm de APIs do Starlette/HTTPX em depreciação
-(`TestClient` e constante HTTP 422), não de falha de produto. Ainda assim,
-violam a meta de execução sem warning acumulado e devem ser eliminadas.
+Os relatórios de cobertura são publicados como artifacts do CI por 14 dias;
+nenhum resultado de coverage, Playwright ou credencial é versionado.
 
 ## Aderência por eixo
 
-### Conformes ou substancialmente evoluídos
+### Cobertura, integração e regra de domínio
 
-- Há 40 arquivos de teste backend cobrindo autenticação, CSRF, integrações
-  externas, pipelines, regras de cobertura, integridade, monitoramento,
-  notificações, usuários e migrations.
-- Há testes de contrato HTTP e de autorização, além de testes PostgreSQL reais
-  para constraints, transações, schema e queries não triviais.
-- A proteção de `TEST_DATABASE_URL` impede que a suíte use acidentalmente o
-  banco principal. O seed de monitoramento é determinístico e idempotente.
-- O frontend agora tem 21 suítes: lógica pura, cliente HTTP, services, hooks,
-  componentes de formulário, feedback de erro/vazio, filtros e cabeçalho.
-- Lint, typecheck, testes e build são gates versionados em workflows distintos;
-  os últimos runs consultados estão verdes.
-- Não foram encontrados `test.only`, `xfail`, asserts vazios ou skips sem
-  motivo. Os skips existentes descrevem a ausência de dado de fixture.
-- Há três cenários E2E com Playwright, credenciais somente por variáveis de
-  ambiente e execução serial para respeitar o limite de login.
+- `pytest-cov` mede linhas e branches por camada; o verificador bloqueia os
+  pisos constitucionais sem usar percentual global como substituto.
+- A fixture de TOMOGRAFO é sintética, pequena e idempotente. Ela testa
+  execução mais recente por família e `sus_flag` + equipamento em uso sem
+  depender de carga externa.
+- Services, repositories e routes de oferta, marcadores, usuários, evidências
+  TransfereGov e convênios receberam testes de sucesso, vazio, validação,
+  autorização e falhas externas aplicáveis.
+- O frontend mede hooks e componentes de domínio; `components/ui` puramente
+  apresentacional não infla nem reduz o piso e é coberto no smoke quando
+  compõe rota crítica.
 
-### P0 — cobertura exigida, mas não controlada
+### Contratos e E2E
 
-1. A constituição exige mínimos por camada (service 80%, repository 70%, rota
-   60%, hook/componente lógico 70%). Não há mapeamento de paths, relatório
-   versionado nem threshold bloqueante em nenhum workflow.
-2. A medição exploratória do backend foi **77% total**, que não prova os
-   mínimos por camada. Há lacunas relevantes: `equipment_offer` (14%),
-   `municipality_coverage` (15%), `macro_coverage` (31%), services de
-   marcadores (32%) e pipelines de APIs externas (43–57%).
-3. O frontend executa Vitest sem provider de coverage. A tentativa de medição
-   transitória não pôde gerar dados justamente porque o provider não integra o
-   ambiente do projeto. Não se deve inferir cobertura a partir de 81 testes.
+- `docs/arquitetura/contratos-http-sigeo.md` registra a evidência das 42
+  operações públicas. Entradas inválidas, 401/403, 422 e erros de domínio são
+  cobertos quando aplicáveis; ativação/redefinição não ecoam token.
+- O workflow E2E aplica migrations, semeia dados e provisiona colaborador de
+  menor privilégio somente com `E2E_ISOLATED_DATABASE=true`, recusando outro
+  ambiente. Secrets ficam apenas no GitHub.
+- A execução aprovada cobre redirecionamento sem sessão, login, leitura de
+  instrumentos e responsividade em seis larguras. Trace fica desabilitado;
+  somente screenshot/logs de falha são publicados.
 
-### P1 — integração de cobertura depende de estado ausente
+### Governança e contexto
 
-1. O CI aplica migrations e semeia apenas monitoramento. Não carrega um
-   conjunto sintético de `Execution`, `EquipmentOfferRow` e
-   `MunicipalityCoverage`.
-2. Por isso, três testes de totais e quatro de cobertura municipal são pulados;
-   um teste de FK também fica condicional. São **8 skips** no total, todos
-   justificáveis, mas a cobertura de regras centrais SUS/em uso não é
-   obrigatória no CI.
-3. Deve existir uma fixture única, sintética e pequena que permita executar
-   esses casos sem `skip`, preservando os testes de invariância já existentes.
+- A constituição passou a refletir npm/package-lock e Oxlint; o template de PR
+  exige plano de teste, risco, fixture/mock e revisão de código/comentário
+  morto.
+- A política de flakiness estabelece bloqueio, responsável, issue e prazo
+  máximo de sete dias para qualquer quarentena.
+- Não há `test.only`, `xfail`, assert vazio ou skip dos cenários centrais.
+  Migrations históricas e compatibilidades documentadas não são código morto,
+  pois removê-las alteraria contratos já aplicados.
 
-### P1 — E2E não é uma garantia de entrega
+## Pendências deliberadas para 9–10
 
-1. Playwright não roda em GitHub Actions nem possui provisionamento de browser,
-   URL de ambiente e segredo E2E no workflow. Assim, login e responsividade
-   não bloqueiam regressão em PR.
-2. Neste host a execução direta não alcançou os asserts: o sandbox macOS negou
-   a porta de rendezvous do Chromium headless. É limitação do executor local,
-   não evidência de defeito da aplicação. As credenciais E2E também não estão
-   injetadas neste processo.
-3. Os specs chamam `test.skip` dentro do corpo do teste autenticado. Como o
-   fixture `page` é criado antes do corpo, o browser ainda precisa iniciar sem
-   credenciais. O plano deve mover a condição para o nível de definição do
-   teste ou separar o cenário anônimo, tornando o skip realmente independente
-   do browser.
+1. **Formatter progressivo.** `ruff format --check` identifica 118 arquivos
+   backend e Prettier 229 frontend fora do formato candidato. Não se fez uma
+   regravação em massa — especialmente de migrations históricas — apenas para
+   ativar um gate. A próxima etapa deve adotar check por diretório novo/tocado
+   e normalizar o legado em PR próprio.
+2. **Tipagem de corpos de teste.** `mypy --check-untyped-defs .` encontra 42
+   erros em 12 arquivos de teste (opcionais de cookie/JSON, mocks
+   `SimpleNamespace` e coleções sem anotação). O modo não foi ligado com
+   baseline ou `type: ignore` amplo; a correção incremental vem antes do gate.
+3. **Complexidade.** Há 15 funções C901 acima de 10 ramos. O Backend CI alerta
+   sem bloquear e aponta este diagnóstico; prioridades são
+   `registrar_evento_monitorado` (19), `obter_resumo` (11) e importadores/
+   pipelines. A extração precisa preservar regra de domínio e não deve ser
+   feita como refatoração cosmética.
+4. **Evoluções futuras, fora do aceite atual.** Teste de carga, acessibilidade
+   automatizada abrangente e mutation testing agregam confiança, mas não são
+   substitutos dos gates implementados.
 
-### P1 — contratos ainda são parciais
+## Itens mortos e limpeza
 
-Há 42 operações de rota e há boa cobertura de domínios sensíveis, especialmente
-monitoramento e autenticação. Porém não existe uma matriz versionada
-operação × sucesso × erro de domínio × autorização. Rotas de oferta de
-equipamentos, cobertura municipal e cobertura macro são justamente as que
-aparecem com menor cobertura exploratória. A matriz deve priorizar essas
-rotas, sem duplicar regra já coberta em service.
+Não foi identificado código produtivo morto comprovado nesta execução.
+Artefatos transitórios de coverage e Playwright foram removidos; documentação
+de contexto foi atualizada (constituição, matriz HTTP, política de flakiness,
+diagnóstico e plan-mode). Compatibilidades de SICONV/TransfereGov e migrations
+permanecem por decisão técnica documentada, até que haja migration de contrato
+segura.
 
-### P2 — estática, governança e contexto
+## Nota e decisão
 
-- Ruff e mypy estão configurados, mas o mypy não usa modo estrito nem
-  `check_untyped_defs`; as duas notas observadas comprovam a lacuna.
-- Ruff só seleciona `E`, `F` e `I`; não há formatter Python nem verificação de
-  formatação frontend. A exceção de imports é deliberada e fechada para
-  migrations históricas, portanto não é código morto a remover.
-- Não há análise de complexidade/duplicação no CI. Arquivos grandes continuam
-  candidatos à revisão por responsabilidade: `models.py` (1.296 linhas),
-  `routers/monitoramento.py` (954), `services/monitoramento_eventos.py` (566),
-  `services/api.ts` (435) e `utils/export-xlsx.ts` (388).
-- Não há evidência versionada de template/checklist de PR, catálogo de testes
-  flaky ou regra automática de teste de regressão para bugs.
-- A constituição está desatualizada em dois pontos operacionais: ainda cita
-  `pnpm` e ESLint, enquanto o repositório usa `npm`/`package-lock.json` e
-  Oxlint. O documento histórico de 16/09 foi marcado como substituído para
-  não ser tomado como estado atual.
-
-## Itens mortos e contexto
-
-Não foi encontrado código morto comprovado para remoção nesta rodada. Os usos
-de “legado” encontrados representam compatibilidade de SICONV/TransfereGov ou
-migrations históricas documentadas; removê-los sem migration de contrato seria
-regressão. Artefatos temporários criados durante a medição (coverage e
-resultados Playwright) foram removidos e não permaneceram no repositório.
-
-O contexto histórico de qualidade foi atualizado com ponte explícita para este
-diagnóstico. A atualização da constituição para comandos reais deve fazer parte
-do próximo plan-mode, junto com a definição operacional dos thresholds, para
-não transformar um texto em gate ambíguo.
-
-## Nota e próximos blocos recomendados
-
-**Nota atual: 7,0/10.** A linha de base está verde e protegida por CI, mas não
-é possível declarar conformidade plena enquanto os pisos de cobertura, os
-cenários de dados críticos e o E2E não forem gates reproduzíveis.
-
-1. **Medição e piso:** adicionar providers de coverage, branch coverage e
-   thresholds por diretório/camada, primeiro como relatório de baseline e em
-   seguida como gate sem redução dos mínimos constitucionais.
-2. **Fixture de integração:** reconstruir, no CI, um conjunto sintético mínimo
-   para cobertura/macro/oferta; remover os oito skips condicionais desses
-   domínios.
-3. **Contratos:** criar a matriz de 42 operações e completar primeiro as rotas
-   com cobertura baixa, incluindo 401/403/422 e erro de domínio aplicáveis.
-4. **E2E em CI:** provisionar Chromium, segredo de conta descartável e URL
-   segura; executar os poucos fluxos críticos após deploy de preview ou stack
-   efêmero. Separar o smoke anônimo dos testes autenticados.
-5. **Higiene estática:** eliminar os dois avisos, ampliar mypy de modo
-   progressivo, adicionar formatter e análise de complexidade/duplicação como
-   alerta. Atualizar a constituição de `pnpm`/ESLint para npm/Oxlint.
-
-Esses blocos exigem um novo plan-mode de qualidade antes de implementação,
-conforme a própria constituição.
+**Nota atual: 8,8/10.** A entrega atingiu todos os critérios executáveis de
+cobertura, integração, contrato, E2E, segurança e CI previstos no plan-mode.
+O fechamento administrativo do plano permanece **parcial**, e não “100%”,
+até que as três pendências de higiene acima sejam resolvidas sem maquiar a
+base. Esse é o caminho para alcançar 9–10 com qualidade mensurável.
