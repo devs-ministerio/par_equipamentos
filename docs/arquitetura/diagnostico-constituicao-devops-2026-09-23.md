@@ -74,6 +74,7 @@ New Relic Metrics                                      → `CPU/*` e `Memory/Phy
 Frontend/API                                           → `X-Trace-Id` opaco por operação, preservado em retry de leitura; validação anti-injeção e testes de regressão aprovados
 GitHub Actions (commit `d016c6e`)                      → Varredura de segredos, Backend CI, Frontend CI, SBOM e bloqueio de CVE crítico: sucesso
 Render (deploy `dep-daq6nbrbc2fs73fg4re0`)             → auto-deploy de `d016c6e` live; `/health` 200 com banco conectado e `X-Trace-Id` confirmado ponta a ponta
+GitHub Actions                                          → `upload-artifact` migrou de v4 (Node 20) para SHA imutável de v6.0.0 (Node 24)
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI

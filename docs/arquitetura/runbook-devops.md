@@ -51,6 +51,11 @@
 mudanças nos workflows, rode o mesmo comando do job ou confirme o gate verde
 no GitHub Actions.
 
+As actions JavaScript devem usar runtime suportado pelo GitHub-hosted runner.
+Em 23/09/2026, `actions/upload-artifact` foi fixada no SHA de `v6.0.0`, que
+executa em Node 24; não reduza esse pin a uma tag móvel nem retorne à v4, que
+gerava o aviso de depreciação de Node 20.
+
 ## Observabilidade e recuperação
 
 - O New Relic é o destino central de APM. No Render, mantenha
