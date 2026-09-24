@@ -47,7 +47,9 @@ def _logar_usuario_novo(role: UserRole = UserRole.colaborador) -> tuple[TestClie
     c = TestClient(app)
     resp = c.post("/auth/login", json={"email": email, "password": senha})
     assert resp.status_code == 200
-    return c, c.cookies.get(CSRF_COOKIE_NAME)
+    csrf = c.cookies.get(CSRF_COOKIE_NAME)
+    assert csrf is not None
+    return c, csrf
 
 
 def test_refresh_exige_header_csrf_correto():
