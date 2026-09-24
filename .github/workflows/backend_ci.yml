@@ -48,6 +48,14 @@ jobs:
         run: uv sync --frozen
       - name: Lint
         run: uv run ruff check .
+      - name: Alertar complexidade ciclomática
+        # Alerta deliberadamente não bloqueante: os arquivos listados no
+        # diagnóstico exigem extração por responsabilidade, não refatoração
+        # cosmética junto de uma mudança de produto.
+        run: |
+          if ! uv run ruff check --select C901 app scripts; then
+            echo "::warning::Há funções acima da complexidade C901; ver docs/arquitetura/diagnostico-constituicao-qualidade-2026-09-24.md."
+          fi
       - name: Tipos
         run: uv run mypy .
       - name: Preparar schema PostgreSQL efêmero

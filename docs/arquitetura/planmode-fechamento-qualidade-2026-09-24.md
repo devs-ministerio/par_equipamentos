@@ -222,6 +222,11 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   229 frontend fora do formatter candidato. Não foi feita regravação em massa
   — sobretudo não em migrations históricas — e a adoção precisa ser por
   diretório/arquivo novo com uma etapa própria de normalização.
+- A checagem C901 foi adicionada como alerta não bloqueante no Backend CI.
+  O inventário inicial tem 15 funções acima de 10 ramos; as prioridades de
+  extração são `registrar_evento_monitorado` (19), `obter_resumo` (11) e os
+  importadores/pipelines, que exigem plano por responsabilidade para não
+  misturar regra de ingestão com mudança cosmética.
 
 ### Implementação
 
