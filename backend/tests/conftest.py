@@ -16,6 +16,7 @@ from sqlalchemy.engine import make_url
 _DB_TEST_MODULES = {
     "test_auth_session.py",
     "test_competency_por_familia.py",
+    "test_convenios_contracts.py",
     "test_config_decisions.py",
     "test_csrf.py",
     "test_equipment_totals.py",

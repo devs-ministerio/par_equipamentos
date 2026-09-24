@@ -133,8 +133,14 @@ def seed_cobertura() -> None:
         cnes = db.get(CnesEstabelecimento, "9000001")
         if cnes is None:
             db.add(CnesEstabelecimento(cnes="9000001", nome_estabelecimento="CNES Pytest", uf="DF"))
-        if db.scalar(select(Convenio.id).where(Convenio.numero == "__pytest_cnes_fk__")) is None:
-            db.add(Convenio(numero="__pytest_cnes_fk__", convenente_nome="Convênio Pytest", cnes="9000001"))
+        convenio = db.scalar(select(Convenio).where(Convenio.numero == "__pytest_cnes_fk__"))
+        if convenio is None:
+            convenio = Convenio(numero="__pytest_cnes_fk__", convenente_nome="Convênio Pytest")
+            db.add(convenio)
+        convenio.cnes = "9000001"
+        convenio.tipo_contratacao = "FAF"
+        convenio.valor_global = 125_000
+        convenio.siconv_raw = {"item_manual": "evidência sintética"}
         db.commit()
     finally:
         db.close()

@@ -93,6 +93,9 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - Serviço de evidências relacionais do TransfereGov atingiu **100%**, cobrindo
   payload inválido, persistência, idempotência e atualização incremental sem
   remover o adaptador JSON compatível.
+- Rota de convênios atingiu **90%**, com contratos de autenticação, filtro,
+  paginação, 404 e regra das cargas manuais (desembolso integral, sem payload
+  oficial simulado no detalhe).
 
 ## 2. Cobertura frontend e testes comportamentais
 
