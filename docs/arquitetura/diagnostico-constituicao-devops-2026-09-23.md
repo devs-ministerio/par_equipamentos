@@ -33,7 +33,7 @@ principal risco operacional.
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
 | Observabilidade | 9,4 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência, taxa de erro e métricas de CPU/memória física do processo. O frontend envia um ID opaco por operação e a API valida/devolve/registra o mesmo valor, permitindo correlação web→API sem payload sensível. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. A política versionada confirma 30 dias para logs, 8 para APM/traces e 395 para Synthetic; o Ping consulta `/health` a cada 5 min com TLS validado. Faltam tracing distribuído entre browser/jobs, baseline para limiares de capacidade e redundância de localização. |
-| Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
+| Segurança de infraestrutura | 8,2 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Actions agora exigem referências por SHA imutável. Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
 ## Evidências executadas
@@ -81,6 +81,7 @@ GitHub Code Scanning API                                → 403: recurso não ha
 OrbStack (`sigeo_constitution_test`, porta 55432)        → banco dedicado confirmado; testes de runner de pipeline e observabilidade: 6 aprovados
 OrbStack (Semgrep CE 1.159.0, digest fixado)            → 355 arquivos, 3 regras locais, 0 achados; rede, métricas e escrita no repositório desabilitadas
 GitHub Actions Semgrep CE (run 35942100236)              → workflow manual no `master`/`fd57b8e`: sucesso
+GitHub Actions permissions                               → `sha_pinning_required=true` confirmado; todos os workflows já usam SHA imutável
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -298,12 +299,16 @@ manual e pode ser recuperado pelo histórico se necessário.
   instância sempre ativa no Render ou migração ao Railway.
 - **Franquia ou custo a confirmar:** tracing Browser/jobs e segunda localização
   no New Relic; ativar somente após consultar consumo e limite contratado.
-- **Plano/licença necessária:** CodeQL/Code Scanning para este repositório
-  privado. Permanece inativo por decisão explícita; Semgrep CE é o gate local
-  complementar, não uma alegação de equivalência.
-- **Configuração administrativa sem custo direto, ainda não comprovada:**
-  staging e seus segredos, proteção nativa de branch, MFA e trilha de auditoria
-  dos consoles GitHub/Render/Neon; dependem de acesso de administrador.
+- **Plano/licença necessária:** CodeQL/Code Scanning e proteção nativa de
+  branch para este repositório privado. O GitHub confirmou ambos indisponíveis
+  no plano atual. CodeQL permanece inativo; Semgrep CE e pinning obrigatório
+  por SHA são os controles locais complementares, não alegações de
+  equivalência.
+- **Configuração administrativa sem custo direto, ainda pendente de interação
+  do titular:** MFA e trilha de auditoria dos consoles GitHub/Render/Neon.
+  Ativá-las exige cadastrar um autenticador físico/aplicativo, guardar códigos
+  de recuperação e confirmar a política de acesso; isso não pode ser feito de
+  forma segura pelo repositório ou por uma API de leitura.
 
 ## Limpeza e contexto
 

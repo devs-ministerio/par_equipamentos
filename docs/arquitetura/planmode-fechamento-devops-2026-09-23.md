@@ -55,6 +55,11 @@ usuário ou querystring.
 
 **Status: concluído — 100% do escopo versionável e sem custo.**
 
+Após o encerramento original, o controle administrativo gratuito disponível
+pela API do GitHub também foi aplicado: `sha_pinning_required=true`. A medida
+foi precedida pela conferência de que todos os workflows usam referências de
+Actions fixadas por SHA.
+
 Não são pendências de implementação local: backup externo ou PITR superior a
 seis horas, registry/staging e promoção de imagem, rollback ensaiado,
 redundância geográfica do Ping, tracing de frontend/jobs e proteção nativa de
