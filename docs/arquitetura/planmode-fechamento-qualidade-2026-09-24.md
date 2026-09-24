@@ -103,7 +103,7 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 ## 2. Cobertura frontend e testes comportamentais
 
-### Andamento parcial — 2026-09-24
+### Andamento — 2026-09-24
 
 - `@vitest/coverage-v8` foi versionado e a execução com relatório JSON/LCOV
   está configurada.
@@ -175,10 +175,11 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   ambiente e nunca imprime e-mail ou senha.
 - A configuração desliga trace (que pode reter digitação de senha) e publica
   somente screenshot/logs em falha. Os secrets de repositório `E2E_EMAIL` e
-  `E2E_SENHA` foram confirmados em 2026-09-24 sem leitura de valores. Falta
-  apenas a primeira execução remota do workflow após publicar este commit;
-  ela é a evidência final do ambiente efêmero, não uma dependência de
-  produção.
+  `E2E_SENHA` foram confirmados sem leitura de valores.
+- O primeiro E2E completo passou no PR 13 em 2026-09-24: smoke sem sessão,
+  login, leitura de instrumentos e responsividade em seis larguras. A origem
+  do ambiente isolado foi fixada em `127.0.0.1` tanto no Vite quanto em CORS,
+  evitando cruzamento de origem entre browser e API.
 
 ### Implementação
 
@@ -203,6 +204,12 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - O handler de validação usa `HTTP_422_UNPROCESSABLE_CONTENT`, eliminando o
   segundo warning. Os contratos autenticados executaram **13/13 sem
   warnings**, com Ruff e mypy verdes.
+- A medição exploratória de `mypy --check-untyped-defs .` encontrou **42
+  erros em 12 arquivos de teste**. Eles não são suprimíveis por baseline:
+  predominam opcionais de cookie/JSON sem assert, `SimpleNamespace` usado
+  como mock de model e coleções sem tipo. A ativação fica pendente da
+  correção incremental desses testes; o gate atual segue sem erros e sem
+  `type: ignore` amplo.
 
 ### Implementação
 
