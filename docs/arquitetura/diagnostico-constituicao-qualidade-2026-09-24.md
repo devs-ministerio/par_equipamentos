@@ -23,7 +23,7 @@ fixture determinística para as regras SUS/em uso, matriz de 42 contratos HTTP
 e E2E autenticado em stack efêmera.
 
 A nota não é 10 porque três melhorias de higiene foram separadas para evitar
-uma baseline que escondesse problemas: extração das 8 funções acima do limite
+uma baseline que escondesse problemas: extração das 6 funções acima do limite
 C901. Elas permanecem visíveis no CI/documentação e não reduzem os gates
 atuais.
 
@@ -84,7 +84,7 @@ nenhum resultado de coverage, Playwright ou credencial é versionado.
 
 ## Pendências deliberadas para 9–10
 
-1. **Complexidade.** Há 8 funções C901 acima de 10 ramos. O Backend CI alerta
+1. **Complexidade.** Há 6 funções C901 acima de 10 ramos. O Backend CI alerta
    sem bloquear e aponta este diagnóstico; prioridades são
    `registrar_evento_monitorado` (19), `obter_resumo` (11) e importadores/
    pipelines. A extração precisa preservar regra de domínio e não deve ser

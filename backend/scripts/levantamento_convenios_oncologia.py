@@ -188,6 +188,57 @@ def _linhas_csv_do_zip(caminho: Path):
     return cabecalho, leitor
 
 
+def _convenios_por_proposta() -> dict[str, dict]:
+    caminho_convenio = _baixar_zip_siconv("siconv_convenio")
+    cabecalho, leitor = _linhas_csv_do_zip(caminho_convenio)
+    resultado = {}
+    for linha in leitor:
+        if len(linha) != len(cabecalho):
+            continue
+        convenio = dict(zip(cabecalho, linha))
+        if convenio.get("ID_PROPOSTA"):
+            resultado[convenio["ID_PROPOSTA"]] = convenio
+    return resultado
+
+
+def _programas_alvo_siconv() -> dict[str, dict]:
+    caminho_programa = _baixar_zip_siconv("siconv_programa")
+    cabecalho, leitor = _linhas_csv_do_zip(caminho_programa)
+    idx_id = cabecalho.index("ID_PROGRAMA")
+    idx_nome = cabecalho.index("NOME_PROGRAMA")
+    programas: dict[str, dict] = {}
+    total = 0
+    pre_filtrados = 0
+    for linha in leitor:
+        total += 1
+        if total % 200_000 == 0:
+            print(f"   ... {total} linha(s) processada(s)")
+        if len(linha) != len(cabecalho) or linha[idx_id] in programas:
+            continue
+        nome_norm = _normalizar(linha[idx_nome])
+        if not any(chave in nome_norm for chave in PALAVRAS_PROGRAMA_ONCOLOGIA):
+            continue
+        pre_filtrados += 1
+        componente = _componente_alvo_de(linha[idx_nome])
+        if componente:
+            programas[linha[idx_id]] = {"nome_programa": linha[idx_nome], "componente_alvo": componente}
+    print(f"   {total} linha(s) no total, {pre_filtrados} passou no pre-filtro por palavra-chave.")
+    print(f"   {len(programas)} programa(s) do SICONV batem com um dos 8 componentes-alvo.")
+    return programas
+
+
+def _propostas_por_programa(programas_alvo: dict[str, dict]) -> dict[str, list[str]]:
+    caminho = _baixar_zip_siconv("siconv_programa_proposta")
+    cabecalho, leitor = _linhas_csv_do_zip(caminho)
+    idx_proposta = cabecalho.index("ID_PROPOSTA")
+    idx_programa = cabecalho.index("ID_PROGRAMA")
+    resultado: dict[str, list[str]] = defaultdict(list)
+    for linha in leitor:
+        if len(linha) == len(cabecalho) and linha[idx_programa] in programas_alvo:
+            resultado[linha[idx_programa]].append(linha[idx_proposta])
+    return resultado
+
+
 def levantar_equipamento() -> dict[str, list[dict]]:
     """Varre o dump NACIONAL de itens do SICONV (nao so os convenios ja
     conhecidos) procurando os 5 equipamentos, depois cruza com
@@ -210,15 +261,7 @@ def levantar_equipamento() -> dict[str, list[dict]]:
                 break
     print(f"   {total} linha(s) de item processadas.")
 
-    caminho_convenio = _baixar_zip_siconv("siconv_convenio")
-    cab_conv, leitor_conv = _linhas_csv_do_zip(caminho_convenio)
-    convenio_por_proposta = {}
-    for linha in leitor_conv:
-        if len(linha) != len(cab_conv):
-            continue
-        d = dict(zip(cab_conv, linha))
-        if d.get("ID_PROPOSTA"):
-            convenio_por_proposta[d["ID_PROPOSTA"]] = d
+    convenio_por_proposta = _convenios_por_proposta()
 
     resultado: dict[str, list[dict]] = defaultdict(list)
     for equip, itens in itens_por_equip.items():
@@ -286,54 +329,12 @@ def levantar_componente_siconv() -> dict[str, list[dict]]:
     ONCOL/CANCER) antes do fuzzy match -- so as pouquissimas linhas que
     sobram do pre-filtro pagam o custo do SequenceMatcher."""
     print("\n=== COMPONENTE (siconv_programa, dump nacional SICONV) ===")
-    caminho_programa = _baixar_zip_siconv("siconv_programa")
-    cabecalho, leitor = _linhas_csv_do_zip(caminho_programa)
-    idx_id = cabecalho.index("ID_PROGRAMA")
-    idx_nome = cabecalho.index("NOME_PROGRAMA")
-
-    programas_alvo: dict[str, dict] = {}  # id_programa -> {nome_programa, componente_alvo}
-    total = 0
-    pre_filtrados = 0
-    for linha in leitor:
-        total += 1
-        if total % 200_000 == 0:
-            print(f"   ... {total} linha(s) processada(s)")
-        if len(linha) != len(cabecalho):
-            continue
-        if linha[idx_id] in programas_alvo:
-            continue  # catalogo tem linha duplicada por regiao/UF, so a 1a importa
-        nome_norm = _normalizar(linha[idx_nome])
-        if not any(k in nome_norm for k in PALAVRAS_PROGRAMA_ONCOLOGIA):
-            continue  # pre-filtro barato -- evita SequenceMatcher em 1,25mi de linha
-        pre_filtrados += 1
-        componente = _componente_alvo_de(linha[idx_nome])
-        if componente:
-            programas_alvo[linha[idx_id]] = {"nome_programa": linha[idx_nome], "componente_alvo": componente}
-    print(f"   {total} linha(s) no total, {pre_filtrados} passou no pre-filtro por palavra-chave.")
-    print(f"   {len(programas_alvo)} programa(s) do SICONV batem com um dos 8 componentes-alvo.")
-
-    caminho_prop = _baixar_zip_siconv("siconv_programa_proposta")
-    cab_pp, leitor_pp = _linhas_csv_do_zip(caminho_prop)
-    idx_pp_proposta = cab_pp.index("ID_PROPOSTA")
-    idx_pp_programa = cab_pp.index("ID_PROGRAMA")
-    propostas_por_programa: dict[str, list[str]] = defaultdict(list)
-    for linha in leitor_pp:
-        if len(linha) != len(cab_pp):
-            continue
-        if linha[idx_pp_programa] in programas_alvo:
-            propostas_por_programa[linha[idx_pp_programa]].append(linha[idx_pp_proposta])
+    programas_alvo = _programas_alvo_siconv()
+    propostas_por_programa = _propostas_por_programa(programas_alvo)
     total_propostas = sum(len(v) for v in propostas_por_programa.values())
     print(f"   {total_propostas} proposta(s) vinculada(s) a esses programas.")
 
-    caminho_convenio = _baixar_zip_siconv("siconv_convenio")
-    cab_conv, leitor_conv = _linhas_csv_do_zip(caminho_convenio)
-    convenio_por_proposta = {}
-    for linha in leitor_conv:
-        if len(linha) != len(cab_conv):
-            continue
-        d = dict(zip(cab_conv, linha))
-        if d.get("ID_PROPOSTA"):
-            convenio_por_proposta[d["ID_PROPOSTA"]] = d
+    convenio_por_proposta = _convenios_por_proposta()
 
     resultado: dict[str, list[dict]] = defaultdict(list)
     for id_programa, info in programas_alvo.items():
