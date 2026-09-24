@@ -33,7 +33,7 @@ principal risco operacional.
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
 | Observabilidade | 9,4 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência, taxa de erro e métricas de CPU/memória física do processo. O frontend envia um ID opaco por operação e a API valida/devolve/registra o mesmo valor, permitindo correlação web→API sem payload sensível. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. A política versionada confirma 30 dias para logs, 8 para APM/traces e 395 para Synthetic; o Ping consulta `/health` a cada 5 min com TLS validado. Faltam tracing distribuído entre browser/jobs, baseline para limiares de capacidade e redundância de localização. |
-| Segurança de infraestrutura | 8,4 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Actions agora exigem referências por SHA imutável e a conta administradora tem MFA configurado. Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
+| Segurança de infraestrutura | 8,6 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Actions agora exigem referências por SHA imutável e a conta administradora tem MFA configurado. Render também tem MFA TOTP e códigos de recuperação salvos pelo titular; seus segredos incluem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
 ## Evidências executadas
@@ -83,6 +83,7 @@ OrbStack (Semgrep CE 1.159.0, digest fixado)            → 355 arquivos, 3 regr
 GitHub Actions Semgrep CE (run 35942100236)              → workflow manual no `master`/`fd57b8e`: sucesso
 GitHub Actions permissions                               → `sha_pinning_required=true` confirmado; todos os workflows já usam SHA imutável
 GitHub account security                                  → MFA confirmado: aplicativo autenticador e GitHub Mobile; códigos de recuperação visualizados pelo titular
+Render account security                                  → MFA TOTP confirmado; códigos de recuperação salvos pelo titular e removidos da tela
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -306,12 +307,12 @@ manual e pode ser recuperado pelo histórico se necessário.
   por SHA são os controles locais complementares, não alegações de
   equivalência.
 - **Configuração administrativa sem custo direto, ainda pendente de interação
-  do titular:** MFA e trilha de auditoria dos consoles Render/Neon. O MFA da
-  conta administradora GitHub foi confirmado com aplicativo autenticador,
-  GitHub Mobile e códigos de recuperação. Os controles restantes exigem
-  cadastrar autenticador físico/aplicativo, guardar códigos de recuperação e
-  confirmar a política de acesso em cada provedor; isso não pode ser feito de
-  forma segura pelo repositório ou por uma API de leitura.
+  do titular:** MFA e trilha de auditoria do console Neon. O MFA das contas
+  administradoras GitHub e Render foi confirmado com autenticador e códigos de
+  recuperação. Os controles restantes exigem cadastrar autenticador
+  físico/aplicativo, guardar códigos de recuperação e confirmar a política de
+  acesso em cada provedor; isso não pode ser feito de forma segura pelo
+  repositório ou por uma API de leitura.
 
 ## Limpeza e contexto
 
