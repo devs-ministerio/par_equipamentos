@@ -1,6 +1,7 @@
 name: Análise estática de segurança
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     paths: ["backend/**", "frontend/**", ".semgrep/**", ".github/workflows/static_security.yml"]
