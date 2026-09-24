@@ -19,7 +19,9 @@ def test_primeira_decisao_da_chave_fica_vigente():
             confirmed=True, confirmed_by=None,
         )
         assert decisao.valid_to is None
-        assert decisao_vigente(db, ConfigDecisionKey.metrica_cobertura).id == decisao.id
+        vigente = decisao_vigente(db, ConfigDecisionKey.metrica_cobertura)
+        assert vigente is not None
+        assert vigente.id == decisao.id
     finally:
         db.rollback()
         db.close()
@@ -40,7 +42,9 @@ def test_trocar_decisao_fecha_a_vigente_anterior_e_abre_a_nova():
         db.refresh(antiga)
         assert antiga.valid_to is not None  # fechada, nunca apagada -- historico preservado
         assert nova.valid_to is None
-        assert decisao_vigente(db, ConfigDecisionKey.denominador_oferta).id == nova.id
+        vigente = decisao_vigente(db, ConfigDecisionKey.denominador_oferta)
+        assert vigente is not None
+        assert vigente.id == nova.id
     finally:
         db.rollback()
         db.close()

@@ -8,8 +8,8 @@ O plano só estará concluído quando a cobertura for medida e bloqueada por cam
 
 **Status em 2026-09-24:** os blocos críticos 0–4 e os warnings do bloco 5
 foram executados e a rodada remota final do PR 13 está verde. O plano não pode
-ser declarado 100% enquanto formatter progressivo, `check_untyped_defs` e a
-extração das funções C901 permanecerem deliberadamente pendentes; ver o
+ser declarado 100% enquanto formatter progressivo e a extração das funções
+C901 permanecerem deliberadamente pendentes; ver o
 diagnóstico atualizado para o inventário e a decisão de não mascará-los.
 
 ## Regras transversais
@@ -19,6 +19,10 @@ diagnóstico atualizado para o inventário e a decisão de não mascará-los.
 - Correção de bug recebe teste de regressão no mesmo bloco.
 - Não criar `skip`, `only`, `xfail` ou baseline genérica para tornar o gate verde. Exceção exige decisão, prazo e issue.
 - Remover artefatos temporários, comentários mortos e contexto desatualizado encontrados. Migrations históricas e adaptadores TransfereGov/SICONV documentados não são código morto.
+- Ao identificar evidência verificável que afete Database, Segurança, Backend,
+  Frontend ou DevOps, enriquecer o diagnóstico da categoria com evidência,
+  impacto, recomendação e referência cruzada. Isso não autoriza alterar regra
+  de negócio, dado real ou infraestrutura fora da Constituição correspondente.
 - Ao final de cada bloco, executar os gates afetados e atualizar o diagnóstico/plano com a evidência.
 
 ## Linha de base
@@ -215,12 +219,11 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - O handler de validação usa `HTTP_422_UNPROCESSABLE_CONTENT`, eliminando o
   segundo warning. Os contratos autenticados executaram **13/13 sem
   warnings**, com Ruff e mypy verdes.
-- A medição exploratória de `mypy --check-untyped-defs .` encontrou **42
-  erros em 12 arquivos de teste**. Eles não são suprimíveis por baseline:
-  predominam opcionais de cookie/JSON sem assert, `SimpleNamespace` usado
-  como mock de model e coleções sem tipo. A ativação fica pendente da
-  correção incremental desses testes; o gate atual segue sem erros e sem
-  `type: ignore` amplo.
+- Os **42 erros em 12 arquivos de teste** de
+  `mypy --check-untyped-defs .` foram corrigidos sem baseline nem
+  `type: ignore` amplo: asserts de nulidade, mocks explicitamente convertidos
+  ao contrato e coleções anotadas. `check_untyped_defs = true` está ativo no
+  `pyproject.toml`, portanto o job de tipos bloqueia regressões nesses corpos.
 - A política versionada de flakiness em
   `docs/arquitetura/politica-flakiness-testes.md` define bloqueio, dono,
   issue, prazo máximo de sete dias e remoção obrigatória de quarentena.

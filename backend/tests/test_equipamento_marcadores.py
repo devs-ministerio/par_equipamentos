@@ -4,15 +4,15 @@ from __future__ import annotations
 from app.db.base import SessionLocal
 from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
 from app.equipamentos import EvidenciaEquipamento
-from app.repositories.equipamento_marcadores import listar_por_origens
+from app.repositories.equipamento_marcadores import OrigemMarcador, listar_por_origens
 from app.services.equipamento_marcadores import DadosMarcador, chave_da_evidencia, registrar_marcadores
 
 
 def test_chave_da_evidencia_normaliza_apenas_espaco_externo():
-    comum = dict(origem="convenio", origem_id=7, codigo="tomografo", tipo_evidencia="planilha")
-
-    assert chave_da_evidencia(descricao=" Tomógrafo ", **comum) == chave_da_evidencia(
-        descricao="Tomógrafo", **comum
+    assert chave_da_evidencia(
+        descricao=" Tomógrafo ", origem="convenio", origem_id=7, codigo="tomografo", tipo_evidencia="planilha"
+    ) == chave_da_evidencia(
+        descricao="Tomógrafo", origem="convenio", origem_id=7, codigo="tomografo", tipo_evidencia="planilha"
     )
 
 
@@ -33,7 +33,7 @@ def test_registrar_marcador_generico_e_idempotente_com_cache():
             confianca=90,
             origem_dado="fixture",
         )
-        chaves: set[tuple[str, int, int, str]] = set()
+        chaves: set[tuple[OrigemMarcador, int, int, str]] = set()
 
         assert registrar_marcadores(
             db=db, origem="convenio", origem_id=convenio.id, marcadores=[marcador], chaves_existentes=chaves

@@ -19,6 +19,18 @@ ficar dessincronizada.
   verdade — código não passa por "parece bom" de quem revisou, passa porque o gate automatizado
   confirmou.
 
+### Mandato transversal de diagnóstico
+
+A atuação de Qualidade tem mandato para enriquecer os diagnósticos de
+Database, Segurança, Backend, Frontend e DevOps sempre que encontrar evidência
+verificável de impacto: falha de teste, cobertura insuficiente, contrato sem
+prova, risco de fixture/dado, gate ausente ou contexto técnico desatualizado.
+O enriquecimento registra evidência, impacto, recomendação e vínculo para o
+diagnóstico de Qualidade; não autoriza mudar regra de negócio, dados reais,
+infraestrutura ou nota de outra categoria sem validação pela respectiva
+Constituição. Itens mortos comprovados e contexto obsoleto devem ser limpos ou
+atualizados dentro desse mesmo limite.
+
 ---
 
 ## 2. PLAN MODE (Obrigatório para suíte de teste nova ou estratégia de qualidade)

@@ -128,6 +128,7 @@ def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
         refresh_antigo = c.cookies.get(REFRESH_COOKIE_NAME)
         assert refresh_antigo is not None
         csrf = c.cookies.get(CSRF_COOKIE_NAME)
+        assert csrf is not None
 
         primeiro = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
         assert primeiro.status_code == 200
@@ -138,6 +139,7 @@ def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
         # de rotacao real, nao reemissao do mesmo token.
         c.cookies.set(REFRESH_COOKIE_NAME, refresh_antigo)
         csrf_novo = c.cookies.get(CSRF_COOKIE_NAME)
+        assert csrf_novo is not None
         reuso = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf_novo})
         assert reuso.status_code == 401
     finally:
@@ -195,6 +197,8 @@ def test_logout_revoga_refresh_no_servidor():
         c.post("/auth/login", json={"email": user.email, "password": senha})
         csrf = c.cookies.get(CSRF_COOKIE_NAME)
         refresh_antigo = c.cookies.get(REFRESH_COOKIE_NAME)
+        assert csrf is not None
+        assert refresh_antigo is not None
 
         logout = c.post("/auth/logout", headers={CSRF_HEADER_NAME: csrf})
         assert logout.status_code == 200

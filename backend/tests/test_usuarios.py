@@ -162,6 +162,8 @@ def test_inativar_usuario_revoga_sessao_e_bloqueia_login():
         sessao_alvo = _cliente_logado(alvo, senha_alvo)
         refresh_alvo = sessao_alvo.cookies.get(REFRESH_COOKIE_NAME)
         csrf_alvo = sessao_alvo.cookies.get(CSRF_COOKIE_NAME)
+        assert refresh_alvo is not None
+        assert csrf_alvo is not None
 
         c_admin = _cliente_logado(admin, senha_admin)
         resp = c_admin.post(f"/usuarios/{alvo.id}/inativar", headers=_csrf_headers(c_admin))

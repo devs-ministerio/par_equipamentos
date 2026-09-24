@@ -26,6 +26,7 @@ def test_falha_e_registrada_sem_mensagem_ou_traceback_e_excecao_sobe():
             .order_by(AuditLog.id.desc())
             .limit(1)
         ).scalar_one()
+        assert registro.details is not None
         assert registro.details["pipeline"] == "__TESTE__"
         assert registro.details["error_type"] == "RuntimeError"
         assert "segredo-nao-auditavel" not in str(registro.details)

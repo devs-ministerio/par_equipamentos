@@ -110,8 +110,8 @@ ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
-# Sem `strict` de cara (Bloco E) -- baseline (.ruff-baseline.json) cobre
-# tambem o mypy: achado legado ignorado, so achado novo em arquivo sem
-# excecao (domain_errors.py, repositories/notificacoes.py,
-# services/notificacoes.py) bloqueia.
+# Não habilitamos `strict` de uma vez porque exige revisão de contrato por
+# módulo. Corpos não anotados, inclusive dos testes, são verificados: não há
+# baseline que oculte erro de tipo.
 ignore_missing_imports = true
+check_untyped_defs = true

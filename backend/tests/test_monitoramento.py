@@ -13,6 +13,7 @@ descarta com rollback) -- por isso cada teste que escreve limpa o que
 criou/reverte o que mudou no `finally`, pra nao deixar sujeira no banco de
 dev compartilhado."""
 from datetime import date, timedelta
+from typing import cast
 from uuid import uuid4
 
 import pytest
@@ -135,6 +136,7 @@ def test_patch_cadastro_atualiza_so_o_campo_enviado():
             .first()
         )
         assert log is not None
+        assert log.details is not None
         audit_log_id = log.id
         assert log.user_id == usuario_teste.id
         assert log.action == "updated"
@@ -147,6 +149,7 @@ def test_patch_cadastro_atualiza_so_o_campo_enviado():
             tipo=NotificacaoTipo.edicao_manual, entidade_id=instrumento.id,
         ).order_by(Notificacao.id.desc()).first()
         assert notificacao is not None
+        assert notificacao.corpo is not None
         notificacao_id = notificacao.id
         assert "equipamento_marca" in notificacao.corpo
     finally:
@@ -208,7 +211,9 @@ def test_criar_instrumento_via_post_cadastro_manual():
             entity_name="instrumento_equipamento", entity_id=resultado.id,
         ).order_by(AuditLog.id.desc()).first()
         assert log is not None
+        assert log.details is not None
         audit_log_id = log.id
+        assert log.details is not None
         assert log.action == "created"
         assert log.details["nr_convenio"] == nr_convenio_teste
 
@@ -273,6 +278,7 @@ def test_registrar_evento_persiste_numero_documento_e_data_validade():
         audit_log_id = log.id
         assert log.user_id == usuario_teste.id
         assert log.action == "created"
+        assert log.details is not None
         assert log.details["nr_convenio"] == NR_CONVENIO_SEED
     finally:
         if evento_id is not None:
@@ -333,10 +339,10 @@ def test_registrar_evento_de_entrega_atualiza_equipamento_e_observacao():
             db.query(EventoMarco).filter_by(id=evento_id).delete()
         if usuario_teste is not None:
             db.query(User).filter_by(id=usuario_teste.id).delete()
-        instrumento.equipamento_marca = original["marca"]
-        instrumento.equipamento_modelo = original["modelo"]
-        instrumento.equipamento_numero_serie = original["serie"]
-        instrumento.equipamento_vida_util_anos = original["vida_util"]
+        instrumento.equipamento_marca = cast(str | None, original["marca"])
+        instrumento.equipamento_modelo = cast(str | None, original["modelo"])
+        instrumento.equipamento_numero_serie = cast(str | None, original["serie"])
+        instrumento.equipamento_vida_util_anos = cast(int | None, original["vida_util"])
         db.commit()
         db.close()
 
@@ -444,6 +450,7 @@ def test_registrar_e_concluir_acao():
             .one()
         )
         audit_log_ids.append(log_conclusao.id)
+        assert log_conclusao.details is not None
         assert log_conclusao.user_id == usuario_teste.id
         assert log_conclusao.details["new"] == date.today().isoformat()
 

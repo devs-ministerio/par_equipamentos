@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.email import enviar_link, montar_conteudo_acesso, montar_url_acesso
 
 
@@ -14,7 +16,7 @@ def test_mensagem_de_acesso_preserva_token_no_fragmento_e_escapa_nome(monkeypatc
 
 
 def test_enviar_link_entrega_payload_completo_ao_gateway(monkeypatch):
-    capturado = {}
+    capturado: dict[str, Any] = {}
 
     class Resposta:
         def raise_for_status(self):
