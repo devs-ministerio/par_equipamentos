@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   radar_convenios:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: Production
     timeout-minutes: 45
     concurrency:

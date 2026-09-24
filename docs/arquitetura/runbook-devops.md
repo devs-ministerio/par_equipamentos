@@ -56,6 +56,11 @@ Em 23/09/2026, `actions/upload-artifact` foi fixada no SHA de `v6.0.0`, que
 executa em Node 24; não reduza esse pin a uma tag móvel nem retorne à v4, que
 gerava o aviso de depreciação de Node 20.
 
+Os workflows usam `ubuntu-24.04`, não `ubuntu-latest`, para evitar mudança
+automática de imagem do runner sem validação prévia. Reavalie a próxima versão
+LTS como alteração de infraestrutura: execute `actionlint`, CI e supply chain
+antes de promovê-la.
+
 ## Observabilidade e recuperação
 
 - O New Relic é o destino central de APM. No Render, mantenha
