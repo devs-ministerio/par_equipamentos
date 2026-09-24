@@ -12,7 +12,7 @@ comprovada**, não presumidamente inexistente.
 
 ## Resultado executivo
 
-**Conformidade atual: 9,0/10** (ante 3,5/10 em 16/09). O projeto tem CI de
+**Conformidade atual: 9,1/10** (ante 3,5/10 em 16/09). O projeto tem CI de
 backend e frontend verde, ambiente `Production` no GitHub, jobs produtivos
 serializados e protegidos, deploy Render condicionado a CI, boot sem DDL e
 health check real em `/health`. O compose foi validado integralmente no
@@ -33,7 +33,7 @@ principal risco operacional.
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
 | Observabilidade | 9,4 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência, taxa de erro e métricas de CPU/memória física do processo. O frontend envia um ID opaco por operação e a API valida/devolve/registra o mesmo valor, permitindo correlação web→API sem payload sensível. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. A política versionada confirma 30 dias para logs, 8 para APM/traces e 395 para Synthetic; o Ping consulta `/health` a cada 5 min com TLS validado. Faltam tracing distribuído entre browser/jobs, baseline para limiares de capacidade e redundância de localização. |
-| Segurança de infraestrutura | 8,6 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Actions agora exigem referências por SHA imutável e a conta administradora tem MFA configurado. Render também tem MFA TOTP e códigos de recuperação salvos pelo titular; seus segredos incluem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
+| Segurança de infraestrutura | 9,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Actions agora exigem referências por SHA imutável. MFA está confirmado em GitHub, Render e Neon; a organização Neon também o exige para todos os membros. Render mantém `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
 ## Evidências executadas
@@ -84,6 +84,8 @@ GitHub Actions Semgrep CE (run 35942100236)              → workflow manual no 
 GitHub Actions permissions                               → `sha_pinning_required=true` confirmado; todos os workflows já usam SHA imutável
 GitHub account security                                  → MFA confirmado: aplicativo autenticador e GitHub Mobile; códigos de recuperação visualizados pelo titular
 Render account security                                  → MFA TOTP confirmado; códigos de recuperação salvos pelo titular e removidos da tela
+Neon account security                                    → MFA TOTP confirmado; Neon não oferece códigos de recuperação
+Neon organization security                               → MFA obrigatório para todos os membros; uma conta ativa já protegida e um convite pendente
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -307,12 +309,11 @@ manual e pode ser recuperado pelo histórico se necessário.
   por SHA são os controles locais complementares, não alegações de
   equivalência.
 - **Configuração administrativa sem custo direto, ainda pendente de interação
-  do titular:** MFA e trilha de auditoria do console Neon. O MFA das contas
-  administradoras GitHub e Render foi confirmado com autenticador e códigos de
-  recuperação. Os controles restantes exigem cadastrar autenticador
-  físico/aplicativo, guardar códigos de recuperação e confirmar a política de
-  acesso em cada provedor; isso não pode ser feito de forma segura pelo
-  repositório ou por uma API de leitura.
+  do titular:** trilha de auditoria de acesso nos consoles Render e Neon. MFA
+  está confirmado para GitHub, Render e Neon; neste último, também é
+  obrigatório para toda a organização. A trilha restante exige confirmar a
+  retenção, acesso e responsável em cada provedor; isso não pode ser feito de
+  forma segura pelo repositório ou por uma API de leitura.
 
 ## Limpeza e contexto
 
@@ -322,11 +323,12 @@ existe para apagar e os artefatos grandes ainda requerem mapa de consumidores.
 O diagnóstico de 16/09 permanece como fotografia histórica; este arquivo é a
 referência operacional atual para DevOps.
 
-## Nota de conformidade DevOps — 9,0/10
+## Nota de conformidade DevOps — 9,1/10
 
-A nota permanece **9,0/10**. O plano fechou todos os controles versionáveis e
-sem custo aprovados, incluindo o gate Semgrep CE. Não há elevação artificial
-da nota enquanto recuperação além de seis horas, promoção/rollback por
+A nota é **9,1/10**. O plano fechou todos os controles versionáveis e sem
+custo aprovados, incluindo o gate Semgrep CE e MFA em todos os provedores
+críticos. Não há elevação artificial da nota enquanto recuperação além de seis
+horas, promoção/rollback por
 artefato, disponibilidade sem cold start e controles administrativos externos
 não tiverem evidência operacional.
 
