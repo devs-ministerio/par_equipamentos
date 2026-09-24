@@ -73,10 +73,16 @@ no GitHub Actions.
   mensagem, repita e registre o teste; não gere erro ou indisponibilidade reais
   para isso.
 - O dashboard `SIGEO — Operação de Produção` acompanha a latência p95 em
-  série temporal e a taxa de erro da `SIGEO API` na janela selecionada. Use-o
-  como ponto de partida para incidentes: confirme o alerta, filtre o período,
-  abra APM/Traces e só então consulte os logs do Render. Ele não substitui
-  monitor externo nem centralização de logs.
+  série temporal, a taxa de erro e o bloco `Recursos do processo — CPU e
+  memória` da `SIGEO API` na janela selecionada. CPU e memória física são
+  métricas de runtime emitidas pelo agente Python; não instalar outro coletor
+  apenas para duplicá-las. Use-o como ponto de partida para incidentes:
+  confirme o alerta, filtre o período, abra APM/Traces e só então consulte os
+  logs do Render. Ele não substitui monitor externo nem centralização de logs.
+- Não criar limiar de alerta de CPU ou memória por conveniência. Após pelo
+  menos sete dias incluindo um período de carga representativa, registre no
+  dashboard a linha de base, o limite do plano do provedor e o limiar proposto;
+  só então aprove a condição e documente sua justificativa neste runbook.
 - Os logs JSON sanitizados do backend continuam no stdout e são encaminhados
   pelo agente New Relic quando `NEW_RELIC_APPLICATION_LOGGING_ENABLED=true` e
   `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true` estão ativos no

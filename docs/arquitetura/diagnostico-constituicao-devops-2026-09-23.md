@@ -20,8 +20,8 @@ OrbStack, incluindo Postgres isolado, health e encerramento limpo. O backend
 publicado também reporta transações, latência e erro ao New Relic como
 `SIGEO API`.
 
-Ainda faltam backup externo/retenção ampliada, métricas de recurso e tracing
-fim a fim, artefato promovível/staging e proteção nativa de branch no GitHub.
+Ainda faltam backup externo/retenção ampliada, tracing fim a fim,
+artefato promovível/staging e proteção nativa de branch no GitHub.
 O Neon tem PITR de somente seis horas; RPO/RTO foram
 formalizados e a recuperação isolada foi exercitada, mas a janela continua o
 principal risco operacional.
@@ -32,7 +32,7 @@ principal risco operacional.
 | CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
-| Observabilidade | 9,2 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência e taxa de erro. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. A política versionada confirma 30 dias para logs, 8 para APM/traces e 395 para Synthetic; o Ping consulta `/health` a cada 5 min com TLS validado. Faltam métricas de recurso, tracing fim a fim e redundância de localização. |
+| Observabilidade | 9,4 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência, taxa de erro e métricas de CPU/memória física do processo. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. A política versionada confirma 30 dias para logs, 8 para APM/traces e 395 para Synthetic; o Ping consulta `/health` a cada 5 min com TLS validado. Faltam tracing fim a fim, baseline para limiares de capacidade e redundância de localização. |
 | Segurança de infraestrutura | 8,0 | Ambiente GitHub `Production` restringe jobs a `master`, sem bypass administrativo, com segredos separados; Render tem `JWT_SECRET`, `DATABASE_URL` e `CORS_ORIGINS`. Branch protection nativa do GitHub continua indisponível no plano atual. |
 | Recuperação e custo operacional | 7,5 | RPO ≤ 6 h e RTO ≤ 4 h estão formalizados; restore isolado PITR foi validado. Ainda faltam backup externo e retenção maior que seis horas. |
 
@@ -70,6 +70,7 @@ New Relic Logs                                         → 172 logs recentes rec
 New Relic Synthetics                                   → Ping externo habilitado: 1/1 check bem-sucedido em São Paulo, 1,04 s, TLS validado
 New Relic Alerts                                       → condição crítica ativa após duas falhas do Ping em 10 min, policy `SIGEO — Produção`
 Render (deploy `dep-daq62tegekts73bnulqg`)             → deploy live com encaminhamento de logs habilitado
+New Relic Metrics                                      → `CPU/*` e `Memory/Physical` recebidos para `SIGEO API`; bloco de recursos salvo no dashboard operacional
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -199,7 +200,7 @@ rodou como UID `10001`/usuário `sigeo`. Ao final, containers, rede e volume
 desse projeto foram removidos, confirmando também o shutdown limpo. O arquivo
 de ambiente usado tinha valores sintéticos locais e foi apagado.
 
-### P1 — observabilidade ainda não cobre métricas de recurso e tracing fim a fim
+### P1 — observabilidade ainda não cobre tracing fim a fim e redundância de localização
 
 O New Relic APM está efetivamente recebendo a aplicação `SIGEO API`: transação
 HTTP, tempo de resposta e taxa de erro estão confirmados. A política
@@ -212,10 +213,12 @@ Render também envia alertas de falha por e-mail. O monitor Ping externo `SIGEO
 API — health externo` consulta o endpoint público a cada cinco minutos, a
 partir de São Paulo e valida TLS. A política versionada de retenção foi
 confirmada na conta: `Log` por 30 dias, APM/erros/traces por 8 e Synthetic por
-395, sem archive de logs sanitizados. Ainda faltam métricas de recurso,
-tracing ponta a ponta envolvendo frontend e jobs e redundância de localização. O dashboard operacional agora expõe p95 e taxa
-de erro da API. Logs no painel do Render não são
-suficientes como política operacional versionada. O teste controlado de
+395, sem archive de logs sanitizados. O agente Python já publica CPU e memória
+física do processo, confirmadas no New Relic e exibidas no dashboard
+operacional; antes de criar alerta de capacidade, faltam sete dias de baseline
+e a justificativa do limiar. Permanecem pendentes tracing ponta a ponta
+envolvendo frontend e jobs e redundância de localização. Logs no painel do
+Render não são suficientes como política operacional versionada. O teste controlado de
 entrega foi concluído, sem gerar erro ou indisponibilidade real na API.
 
 ### P1 — CI não testa o caminho de banco nem toda a supply chain
@@ -254,8 +257,8 @@ manual e pode ser recuperado pelo histórico se necessário.
 
 - Staging e segredos próprios desse ambiente; proteção nativa de branch e MFA
   dos administradores GitHub/Render/Neon.
-- Métricas de recurso, tracing ponta a ponta e mais localizações para o monitor
-  externo no New Relic; domínio customizado/TLS e política de preview no
+- Tracing ponta a ponta e mais localizações para o monitor externo no New
+  Relic; domínio customizado/TLS e política de preview no
   Vercel.
 - Backup externo e retenção PITR maior que seis horas.
 - Permissões de consoles cloud, MFA e trilha de auditoria de deploy.
