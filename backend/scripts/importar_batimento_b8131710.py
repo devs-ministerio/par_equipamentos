@@ -54,6 +54,7 @@ Antes de qualquer nova execução, revisar o inventário de fontes do Plan Mode
 database/ingestão de 2026-09-21: a planilha é defasada para parte das cargas
 e este script não substitui os importadores FAF/TED ativos.
 """
+
 from __future__ import annotations
 
 import re
@@ -92,6 +93,34 @@ def _cnpj_formatado(digitos: str) -> str:
     return digitos
 
 
+def _dados_instrumento(linha, idx: dict[str, int], *, identificador: str, tipo: str) -> dict[str, object | None]:
+    equipamento = _texto(linha[idx["Equipamento"]])
+    if equipamento and equipamento.upper() in PLACEHOLDER_EQUIPAMENTO:
+        equipamento = None
+    cnpj_digitos = _so_digitos(linha[idx["NU_PROPOSTA"]])
+    return {
+        "nr_convenio": identificador,
+        "cnpj_convenente": _cnpj_formatado(cnpj_digitos) if cnpj_digitos else "",
+        "nome_convenente": _texto(linha[idx["Entidade"]]) or "",
+        "municipio": _texto(linha[idx["Município"]]),
+        "uf": _texto(linha[idx["UF"]]),
+        "equipamento_descricao": equipamento,
+        "ano_instrumento": int(linha[idx["Ano"]]) if linha[idx["Ano"]] else None,
+        "tipo_contratacao": tipo,
+    }
+
+
+def _imprimir_pendencias(
+    ja_existia: list[tuple[str, str | None, str]], sem_identificador: list[tuple[str, str | None]]
+) -> None:
+    print(f"Ja existiam no banco (nr_convenio bateu, planilha desatualizada): {len(ja_existia)}")
+    for tipo, nome, identificador in ja_existia:
+        print(f"   [INFO] {tipo} {identificador!r} — {nome}")
+    print(f"Sem identificador (nem NU_PROCESSO nem NU_PROPOSTA) -- fora, logado: {len(sem_identificador)}")
+    for tipo, nome in sem_identificador:
+        print(f"   [AVISO] {tipo} — {nome}")
+
+
 def run() -> None:
     wb = openpyxl.load_workbook(PLANILHA, data_only=True)
     ws = wb[ABA]
@@ -125,21 +154,7 @@ def run() -> None:
                 ja_existia.append((tipo, _texto(linha[idx["Entidade"]]), identificador))
                 continue
 
-            equipamento = _texto(linha[idx["Equipamento"]])
-            if equipamento and equipamento.upper() in PLACEHOLDER_EQUIPAMENTO:
-                equipamento = None
-
-            cnpj_digitos = _so_digitos(linha[idx["NU_PROPOSTA"]])
-            dados_instrumento = dict(
-                nr_convenio=identificador,
-                cnpj_convenente=_cnpj_formatado(cnpj_digitos) if cnpj_digitos else "",
-                nome_convenente=_texto(linha[idx["Entidade"]]) or "",
-                municipio=_texto(linha[idx["Município"]]),
-                uf=_texto(linha[idx["UF"]]),
-                equipamento_descricao=equipamento,
-                ano_instrumento=int(linha[idx["Ano"]]) if linha[idx["Ano"]] else None,
-                tipo_contratacao=tipo,
-            )
+            dados_instrumento = _dados_instrumento(linha, idx, identificador=identificador, tipo=tipo)
 
             instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=identificador).one_or_none()
             if instrumento is None:
@@ -154,12 +169,7 @@ def run() -> None:
 
         db.commit()
         print(f"Instrumentos: {criados} criado(s), {atualizados} atualizado(s).")
-        print(f"Ja existiam no banco (nr_convenio bateu, planilha desatualizada): {len(ja_existia)}")
-        for tipo, nome, ident in ja_existia:
-            print(f"   [INFO] {tipo} {ident!r} — {nome}")
-        print(f"Sem identificador (nem NU_PROCESSO nem NU_PROPOSTA) -- fora, logado: {len(sem_identificador)}")
-        for tipo, nome in sem_identificador:
-            print(f"   [AVISO] {tipo} — {nome}")
+        _imprimir_pendencias(ja_existia, sem_identificador)
     finally:
         db.close()
 

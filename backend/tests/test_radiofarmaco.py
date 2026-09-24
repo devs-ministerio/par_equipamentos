@@ -1,6 +1,7 @@
 """Testa distancia/tempo ate o radiofarmaco PET mais proximo, isolado de
 banco e das APIs externas -- mesmo espirito de test_cobertura.py e
 test_geo.py. Ver app/pipeline/radiofarmaco.py."""
+
 from app.pipeline.radiofarmaco import (
     ProdutorRadiofarmaco,
     carregar_produtores_radiofarmaco_pet,
@@ -10,12 +11,22 @@ from app.pipeline.radiofarmaco import (
 )
 
 SAO_PAULO = ProdutorRadiofarmaco(
-    id="1", empresa="teste SP", municipio="Sao Paulo", uf="SP",
-    status_producao="confirmada", latitude=-23.5589, longitude=-46.7337,
+    id="1",
+    empresa="teste SP",
+    municipio="Sao Paulo",
+    uf="SP",
+    status_producao="confirmada",
+    latitude=-23.5589,
+    longitude=-46.7337,
 )
 BELEM = ProdutorRadiofarmaco(
-    id="2", empresa="teste PA", municipio="Belem", uf="PA",
-    status_producao="confirmada", latitude=-1.4558, longitude=-48.5044,
+    id="2",
+    empresa="teste PA",
+    municipio="Belem",
+    uf="PA",
+    status_producao="confirmada",
+    latitude=-1.4558,
+    longitude=-48.5044,
 )
 
 

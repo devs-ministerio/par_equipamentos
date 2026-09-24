@@ -1,4 +1,4 @@
-export type Regiao = 'Norte' | 'Nordeste' | 'Centro-Oeste' | 'Sudeste' | 'Sul';
+export type Regiao = "Norte" | "Nordeste" | "Centro-Oeste" | "Sudeste" | "Sul";
 
 export interface Macrorregiao {
   id: string;
@@ -16,7 +16,10 @@ export interface Macrorregiao {
   nomeEstado: string;
 }
 
-export type StatusCobertura = 'Hiperssuficiente' | 'Hipossuficiente' | 'Dados indisponíveis';
+export type StatusCobertura =
+  | "Hiperssuficiente"
+  | "Hipossuficiente"
+  | "Dados indisponíveis";
 
 /** Cobertura agregada de uma macrorregiao (tabela 1 do dashboard, mapa). */
 export interface CoberturaRow {

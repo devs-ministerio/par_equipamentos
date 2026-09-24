@@ -1,4 +1,5 @@
 """Acesso a dados de User -- Modulo de gestao de usuarios (Admin), 2026-09-17."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -35,18 +36,14 @@ def listar_usuarios_paginados(
     if status is not None:
         base = base.where(User.status == status)
 
-    itens = db.execute(
-        base.order_by(User.name.asc()).limit(limit).offset(offset)
-    ).scalars().all()
+    itens = db.execute(base.order_by(User.name.asc()).limit(limit).offset(offset)).scalars().all()
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
 
     return PaginaUsuarios(itens=list(itens), total=total)
 
 
 def obter_usuario_por_id(db: Session, user_id: int) -> User | None:
-    return db.execute(
-        select(User).where(User.id == user_id, User.deleted_at.is_(None))
-    ).scalar_one_or_none()
+    return db.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None))).scalar_one_or_none()
 
 
 def obter_usuario_por_email(db: Session, email: str) -> User | None:

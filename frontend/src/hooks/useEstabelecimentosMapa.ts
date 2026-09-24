@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchEstabelecimentosPage } from '../services/api';
-import type { PontoEstabelecimento } from '@/components/features/macro-map';
-import type { NivelCoberturaRow } from '../types/domain';
+import { useQuery } from "@tanstack/react-query";
+import { fetchEstabelecimentosPage } from "../services/api";
+import type { PontoEstabelecimento } from "@/components/features/macro-map";
+import type { NivelCoberturaRow } from "../types/domain";
 
 // Maior macro nacional (Tomógrafo) tem 964 estabelecimentos distintos --
 // folga confortável abaixo do teto de 2000 do endpoint (mesmo já usado pelo
@@ -60,12 +60,19 @@ export function useEstabelecimentosMapa(
   selectedMacroId: string | null,
   municipioSelecionado: NivelCoberturaRow | undefined,
 ) {
-  const modoMunicipio = municipioSelecionado?.latitude != null && municipioSelecionado.longitude != null;
+  const modoMunicipio =
+    municipioSelecionado?.latitude != null &&
+    municipioSelecionado.longitude != null;
 
   const query = useQuery({
     queryKey: modoMunicipio
-      ? ['estabelecimentos-raio', familia, municipioSelecionado?.chave, RAIO_BUSCA_MUNICIPIO_KM]
-      : ['estabelecimentos-macro', familia, selectedMacroId],
+      ? [
+          "estabelecimentos-raio",
+          familia,
+          municipioSelecionado?.chave,
+          RAIO_BUSCA_MUNICIPIO_KM,
+        ]
+      : ["estabelecimentos-macro", familia, selectedMacroId],
     queryFn: () =>
       modoMunicipio
         ? fetchEstabelecimentosPage({
@@ -91,13 +98,19 @@ export function useEstabelecimentosMapa(
   // esse modo ja ordenado por distancia (mais proximo primeiro, ver
   // app/routers/equipment_offer.py), entao pontos[0] e sempre o
   // estabelecimento mais proximo do municipio selecionado.
-  const pontosMacro: PontoEstabelecimento[] = query.data ? query.data.items.map(toPonto).filter((p): p is PontoEstabelecimento => p !== null) : [];
+  const pontosMacro: PontoEstabelecimento[] = query.data
+    ? query.data.items
+        .map(toPonto)
+        .filter((p): p is PontoEstabelecimento => p !== null)
+    : [];
 
   return {
     pontosMacro,
     // Total real dentro do raio de busca (pode ser bem maior que os pontos
     // efetivamente plotados) -- so faz sentido no modo municipio.
-    totalEstabelecimentosNoRaio: modoMunicipio ? (query.data?.total ?? null) : null,
+    totalEstabelecimentosNoRaio: modoMunicipio
+      ? (query.data?.total ?? null)
+      : null,
     isLoading: query.isLoading,
   };
 }

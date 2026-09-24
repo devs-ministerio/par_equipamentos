@@ -1,6 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '@/services/api';
-import type { NivelCoberturaRow } from '@/types/domain';
+import { useQuery } from "@tanstack/react-query";
+import {
+  fetchHealthRegionCoverage,
+  fetchMunicipalityCoverage,
+} from "@/services/api";
+import type { NivelCoberturaRow } from "@/types/domain";
 
 // Municipio abaixo disso nunca era esperado ter tomografo proprio (RN
 // especifica de TOMOGRAFO -- ver Metodologia); so aplica no nivel municipio,
@@ -10,7 +13,7 @@ const POPULACAO_MINIMA_TOMOGRAFO = 100_000;
 
 interface UseNivelCoberturaParams {
   equipmentFamily: string;
-  nivel: 'regiaoSaude' | 'municipio';
+  nivel: "regiaoSaude" | "municipio";
   states?: string[];
   macroCodes?: string[];
   healthRegionCodes?: string[];
@@ -35,14 +38,14 @@ interface UseNivelCoberturaParams {
  * Query nunca deixa a mais antiga sobrescrever a mais nova.
  */
 export function useNivelCobertura(params: UseNivelCoberturaParams) {
-  const statesKey = params.states?.join(',') ?? '';
-  const macrosKey = params.macroCodes?.join(',') ?? '';
-  const regioesSaudeKey = params.healthRegionCodes?.join(',') ?? '';
-  const municipiosKey = params.municipalities?.join(',') ?? '';
+  const statesKey = params.states?.join(",") ?? "";
+  const macrosKey = params.macroCodes?.join(",") ?? "";
+  const regioesSaudeKey = params.healthRegionCodes?.join(",") ?? "";
+  const municipiosKey = params.municipalities?.join(",") ?? "";
 
   const query = useQuery({
     queryKey: [
-      'nivel-cobertura',
+      "nivel-cobertura",
       params.equipmentFamily,
       params.nivel,
       statesKey,
@@ -52,14 +55,16 @@ export function useNivelCobertura(params: UseNivelCoberturaParams) {
       params.semCorteDePopulacao ?? false,
     ],
     queryFn: (): Promise<NivelCoberturaRow[]> =>
-      params.nivel === 'municipio'
+      params.nivel === "municipio"
         ? fetchMunicipalityCoverage({
             equipmentFamily: params.equipmentFamily,
             states: params.states,
             macroCodes: params.macroCodes,
             healthRegionCodes: params.healthRegionCodes,
             municipalities: params.municipalities,
-            minPopulation: params.semCorteDePopulacao ? undefined : POPULACAO_MINIMA_TOMOGRAFO,
+            minPopulation: params.semCorteDePopulacao
+              ? undefined
+              : POPULACAO_MINIMA_TOMOGRAFO,
           })
         : fetchHealthRegionCoverage({
             equipmentFamily: params.equipmentFamily,

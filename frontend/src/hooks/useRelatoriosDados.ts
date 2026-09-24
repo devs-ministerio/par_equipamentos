@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchFacilities, fetchMacroCoverage } from '@/services/api';
-import type { FacilityOption } from '@/services/api';
-import type { CoberturaRow, Macrorregiao } from '@/types/domain';
+import { useQuery } from "@tanstack/react-query";
+import { fetchFacilities, fetchMacroCoverage } from "@/services/api";
+import type { FacilityOption } from "@/services/api";
+import type { CoberturaRow, Macrorregiao } from "@/types/domain";
 
 interface RelatoriosDados {
   macros: Macrorregiao[];
@@ -19,13 +19,17 @@ interface RelatoriosDados {
  */
 export function useRelatoriosDados(equipmentFamily: string) {
   const query = useQuery({
-    queryKey: ['relatorios-dados', equipmentFamily],
+    queryKey: ["relatorios-dados", equipmentFamily],
     queryFn: async (): Promise<RelatoriosDados> => {
       const [coverage, facilityOptions] = await Promise.all([
         fetchMacroCoverage(equipmentFamily),
         fetchFacilities(equipmentFamily),
       ]);
-      return { macros: coverage.macros, coberturaRows: coverage.coberturaRows, facilities: facilityOptions };
+      return {
+        macros: coverage.macros,
+        coberturaRows: coverage.coberturaRows,
+        facilities: facilityOptions,
+      };
     },
   });
 

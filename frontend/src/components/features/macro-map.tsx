@@ -1,21 +1,21 @@
-import { forwardRef, useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useRef } from "react";
 // Imports nomeados dos submodulos do D3 em vez de `import * as d3 from 'd3'`
 // (2026-08-24) -- o metapacote 'd3' reexporta ~30 submodulos, a maioria
 // nunca usada aqui (transicao, drag, zoom, force, etc.); isso sozinho
 // tirou o D3 inteiro do chunk principal do build (ver App.tsx, rotas
 // agora lazy) e reduz o que sobra so ao que este componente de fato chama.
-import { select } from 'd3-selection';
-import type { GeoJsonProperties, Geometry } from 'geojson';
-import { resolveThemeColor } from '@/lib/theme-colors';
-import type { CoberturaRow, Macrorregiao } from '@/types/domain';
-import { construirProjecaoMacro } from './macro-map-geometry';
+import { select } from "d3-selection";
+import type { GeoJsonProperties, Geometry } from "geojson";
+import { resolveThemeColor } from "@/lib/theme-colors";
+import type { CoberturaRow, Macrorregiao } from "@/types/domain";
+import { construirProjecaoMacro } from "./macro-map-geometry";
 import {
   construirTooltipNode,
   criarEscalaCor,
   desenharPontos,
   desenharRaioNormativo,
   desenharReguaEscala,
-} from './macro-map-draw';
+} from "./macro-map-draw";
 
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
 type FeatureCollection = GeoJSON.FeatureCollection<Geometry, GeoJsonProperties>;
@@ -95,7 +95,17 @@ interface Props {
  * só de index.css (nunca hex cru), lida em runtime a cada render do efeito.
  */
 export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
-  { geo, macros, coberturaRows, selectedMacroId, pontos, raioKm, zoomMacroId, produtividade = 100_000, onSelectMacro },
+  {
+    geo,
+    macros,
+    coberturaRows,
+    selectedMacroId,
+    pontos,
+    raioKm,
+    zoomMacroId,
+    produtividade = 100_000,
+    onSelectMacro,
+  },
   encaminharRef,
 ) {
   const localRef = useRef<HTMLDivElement>(null);
@@ -103,8 +113,8 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
   useEffect(() => {
     const el = localRef.current;
     if (!el || !geo) return;
-    el.innerHTML = '';
-    el.style.position = 'relative';
+    el.innerHTML = "";
+    el.style.position = "relative";
 
     const macroById = new Map(macros.map((m) => [m.id, m]));
     const coberturaById = new Map(coberturaRows.map((r) => [r.macroId, r]));
@@ -113,87 +123,117 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     // getComputedStyle em cada elemento de uma selecao .data().enter() faria
     // layout thrashing sem necessidade, o valor da variavel e o mesmo pra
     // todos os elementos desenhados nesta passada.
-    const primary = resolveThemeColor('--primary');
-    const foreground = resolveThemeColor('--foreground');
-    const background = resolveThemeColor('--background');
-    const card = resolveThemeColor('--card');
-    const muted = resolveThemeColor('--muted');
-    const mutedForeground = resolveThemeColor('--muted-foreground');
-    const destructive = resolveThemeColor('--destructive');
-    const destructiveBg = resolveThemeColor('--destructive-bg');
-    const success = resolveThemeColor('--success');
-    const successBg = resolveThemeColor('--success-bg');
+    const primary = resolveThemeColor("--primary");
+    const foreground = resolveThemeColor("--foreground");
+    const background = resolveThemeColor("--background");
+    const card = resolveThemeColor("--card");
+    const muted = resolveThemeColor("--muted");
+    const mutedForeground = resolveThemeColor("--muted-foreground");
+    const destructive = resolveThemeColor("--destructive");
+    const destructiveBg = resolveThemeColor("--destructive-bg");
+    const success = resolveThemeColor("--success");
+    const successBg = resolveThemeColor("--success-bg");
 
     // Escala de cor em DUAS gradações, cortada exatamente no mesmo corte da
     // classificação oficial (coeficiente 1x = cobertura 100%) -- ver
     // docstring de `criarEscalaCor` (macro-map-draw.ts). O status textual
     // vem do backend para preservar "Dados indisponíveis" sem converter em
     // Hipo/Hiper.
-    const escalaCor = criarEscalaCor(destructive, destructiveBg, success, successBg);
+    const escalaCor = criarEscalaCor(
+      destructive,
+      destructiveBg,
+      success,
+      successBg,
+    );
 
     const width = el.clientWidth || 700;
     const height = 560;
 
     const svg = select(el)
-      .append('svg')
-      .attr('width', '100%')
-      .attr('height', height)
-      .attr('viewBox', `0 0 ${width} ${height}`);
+      .append("svg")
+      .attr("width", "100%")
+      .attr("height", height)
+      .attr("viewBox", `0 0 ${width} ${height}`);
 
-    const { proj, path, featureAlvo, featuresParaDesenhar } = construirProjecaoMacro(geo, zoomMacroId, width, height);
+    const { proj, path, featureAlvo, featuresParaDesenhar } =
+      construirProjecaoMacro(geo, zoomMacroId, width, height);
 
-    const tooltip = document.createElement('div');
+    const tooltip = document.createElement("div");
     tooltip.style.cssText =
       `position:absolute;background:${foreground};color:${background};padding:8px 12px;border-radius:8px;` +
-      'font-size:12px;pointer-events:none;display:none;z-index:99;line-height:1.5;' +
-      'box-shadow:0 4px 12px rgba(0,0,0,0.2);';
+      "font-size:12px;pointer-events:none;display:none;z-index:99;line-height:1.5;" +
+      "box-shadow:0 4px 12px rgba(0,0,0,0.2);";
     el.appendChild(tooltip);
 
     svg
-      .selectAll('path')
+      .selectAll("path")
       .data(featuresParaDesenhar)
       .enter()
-      .append('path')
-      .attr('d', path as unknown as (f: Feature) => string)
-      .attr('stroke', card)
-      .attr('stroke-width', (d) => ((d as Feature).properties?.cod_macro === selectedMacroId ? 2 : 0.6))
-      .attr('cursor', 'pointer')
-      .attr('fill', (d) => {
-        const macroId = (d as Feature).properties?.cod_macro as string | undefined;
+      .append("path")
+      .attr("d", path as unknown as (f: Feature) => string)
+      .attr("stroke", card)
+      .attr("stroke-width", (d) =>
+        (d as Feature).properties?.cod_macro === selectedMacroId ? 2 : 0.6,
+      )
+      .attr("cursor", "pointer")
+      .attr("fill", (d) => {
+        const macroId = (d as Feature).properties?.cod_macro as
+          | string
+          | undefined;
         const row = macroId ? coberturaById.get(macroId) : undefined;
-        return row?.status === 'Dados indisponíveis' ? muted : row ? escalaCor(row.cobertura) : muted;
+        return row?.status === "Dados indisponíveis"
+          ? muted
+          : row
+            ? escalaCor(row.cobertura)
+            : muted;
       })
-      .on('mousemove', (event: MouseEvent, d) => {
-        const macroId = (d as Feature).properties?.cod_macro as string | undefined;
+      .on("mousemove", (event: MouseEvent, d) => {
+        const macroId = (d as Feature).properties?.cod_macro as
+          | string
+          | undefined;
         const macro = macroId ? macroById.get(macroId) : undefined;
         const row = macroId ? coberturaById.get(macroId) : undefined;
         const rect = el.getBoundingClientRect();
-        tooltip.style.display = 'block';
+        tooltip.style.display = "block";
         tooltip.style.left = `${event.clientX - rect.left + 12}px`;
         tooltip.style.top = `${event.clientY - rect.top - 40}px`;
-        tooltip.replaceChildren(construirTooltipNode(macroId, macro, row, produtividade, background));
+        tooltip.replaceChildren(
+          construirTooltipNode(macroId, macro, row, produtividade, background),
+        );
       })
-      .on('mouseleave', () => {
-        tooltip.style.display = 'none';
+      .on("mouseleave", () => {
+        tooltip.style.display = "none";
       })
-      .on('click', (_event: MouseEvent, d) => {
-        const macroId = (d as Feature).properties?.cod_macro as string | undefined;
+      .on("click", (_event: MouseEvent, d) => {
+        const macroId = (d as Feature).properties?.cod_macro as
+          | string
+          | undefined;
         if (macroId) onSelectMacro(macroId);
       });
 
     desenharRaioNormativo(svg, path, pontos, raioKm, primary);
     desenharPontos(svg, proj, pontos, foreground, mutedForeground, card);
     desenharReguaEscala(svg, featureAlvo, proj, height, card, foreground);
-  }, [geo, macros, coberturaRows, selectedMacroId, pontos, raioKm, zoomMacroId, produtividade, onSelectMacro]);
+  }, [
+    geo,
+    macros,
+    coberturaRows,
+    selectedMacroId,
+    pontos,
+    raioKm,
+    zoomMacroId,
+    produtividade,
+    onSelectMacro,
+  ]);
 
   return (
     <div
       ref={(node) => {
         localRef.current = node;
-        if (typeof encaminharRef === 'function') encaminharRef(node);
+        if (typeof encaminharRef === "function") encaminharRef(node);
         else if (encaminharRef) encaminharRef.current = node;
       }}
-      style={{ width: '100%', minHeight: 560 }}
+      style={{ width: "100%", minHeight: 560 }}
     />
   );
 });

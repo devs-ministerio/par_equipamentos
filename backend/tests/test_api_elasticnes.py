@@ -3,6 +3,7 @@
 "-22.887661,48.445866" no proprio CNES, sem o sinal de menos na longitude
 -- jogava o ponto pro Oceano Indico (~9700km de distancia), nao pro Brasil.
 """
+
 from __future__ import annotations
 
 from app.pipeline.api_elasticnes import RegistroElastiCNES, _parse_location
@@ -37,8 +38,13 @@ def test_parse_location_formato_invalido_nao_quebra():
 
 
 def test_registro_cnes_exige_chaves_usadas_na_oferta():
-    registro = RegistroElastiCNES.model_validate({
-        "CNES": "001", "CÓDIGO DO MUNICÍPIO": "3550308", "UF": "SP",
-        "EQUIPAMENTO - TIPO": "DIAGNOSTICO POR IMAGEM", "EQUIPAMENTO - CÓDIGO": "26",
-    })
+    registro = RegistroElastiCNES.model_validate(
+        {
+            "CNES": "001",
+            "CÓDIGO DO MUNICÍPIO": "3550308",
+            "UF": "SP",
+            "EQUIPAMENTO - TIPO": "DIAGNOSTICO POR IMAGEM",
+            "EQUIPAMENTO - CÓDIGO": "26",
+        }
+    )
     assert registro.cnes == "001"

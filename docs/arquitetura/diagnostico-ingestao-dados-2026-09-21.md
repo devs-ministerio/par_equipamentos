@@ -70,3 +70,24 @@ O docstring do importador de programas e o diagnóstico de 18/09 foram atualizad
 - [ ] Classificação e tratamento das cópias/scripts B813.
 - [x] Auditoria de tags: zero pendências e novos escritores removidos.
 - [ ] Evidência arquivada de dry-run, aplicação e reexecução de cada fonte.
+
+## Atualização de fonte complementar — PERSUS, 2026-09-24
+
+`data/Controle PERSUS.xlsx` não substitui a apresentação canônica PERSUS I,
+nem cria uma segunda origem de instrumentos. É fonte complementar, controlada
+por hash, para preencher dados operacionais de PERSUS já existentes. O CNES
+definitivo continua sendo o do registro PERSUS no banco; um CNES informado na
+planilha é evidência de conciliação e não pode sobrescrever a referência.
+
+A aplicação aprovada conciliou as 34 linhas após quatro validações explícitas
+da equipe. O escopo foi deliberadamente seletivo: 29 monitoramentos foram
+criados e 5 existentes foram complementados, totalizando 34; os outros 58
+PERSUS I permanecem em Instrumentos Firmados sem monitoramento interno. Foram
+adicionados 185 eventos e 102 ações concluídas, além de 21 anos e 22 NUPs
+ausentes. A rotina preserva conflito de ano, NUP ou inauguração como relatório
+e nunca faz sobrescrita silenciosa.
+
+Esse fluxo não muda a regra de reconstrução: um novo servidor deve receber
+clone lógico integral do Neon. A planilha e a rotina complementar não são
+substituto de `pg_dump`/`pg_restore` nem devem ser reexecutadas para reconstruir
+dados manuais de uma base clonada.

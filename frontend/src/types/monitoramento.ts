@@ -85,10 +85,19 @@ export type EtapaExpandida = {
 
 export type PropostaExpandida = {
   proposta: Record<string, unknown>;
-  metas: { cd_meta: number; nm_meta: string; ds_meta: string | null; etapas_proposta: EtapaExpandida[] }[];
+  metas: {
+    cd_meta: number;
+    nm_meta: string;
+    ds_meta: string | null;
+    etapas_proposta: EtapaExpandida[];
+  }[];
   cronograma_desembolso: Record<string, unknown>[];
   distribuicao_recurso: Record<string, unknown>[];
-  parcerias: { parceria: Record<string, unknown>; empenhos: Record<string, unknown>[]; documentos_habeis: Record<string, unknown>[] }[];
+  parcerias: {
+    parceria: Record<string, unknown>;
+    empenhos: Record<string, unknown>[];
+    documentos_habeis: Record<string, unknown>[];
+  }[];
 };
 
 export type TransfereGovEnte = {

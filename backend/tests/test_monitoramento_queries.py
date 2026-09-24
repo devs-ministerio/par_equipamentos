@@ -4,6 +4,7 @@ Valida contra banco real que as listagens agregadas filtram o universo de
 EventoMarco/AcaoMonitoramento no SQL, sem depender de inspeção textual do
 código-fonte do router.
 """
+
 from __future__ import annotations
 
 import re

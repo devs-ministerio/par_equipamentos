@@ -34,6 +34,7 @@ scripts/output/validacao_tres_fontes_relatorio.json.
 Uso: python -m scripts.validar_dados_tres_fontes (de dentro de backend/,
 venv ativo, DATABASE_URL configurada).
 """
+
 from __future__ import annotations
 
 import json
@@ -134,7 +135,9 @@ def run() -> None:
     print(f"Banco de Dados: {len(instrumentos)} instrumento(s) monitorado(s).")
 
     por_convenio, por_digitos = _ler_planilha()
-    print(f"Planilha: {len(por_convenio)} linha(s) 'Convênio' com número válido, {len(por_digitos)} linha(s) FAF/TED/Convênio com NUP-SEI/CNPJ dígitos.\n")
+    print(
+        f"Planilha: {len(por_convenio)} linha(s) 'Convênio' com número válido, {len(por_digitos)} linha(s) FAF/TED/Convênio com NUP-SEI/CNPJ dígitos.\n"
+    )
 
     # --- Sanidade de formato (E) ---
     achados_formato = []
@@ -187,54 +190,65 @@ def run() -> None:
 
         nome_bate_xlsx = None
         if linha_xlsx:
-            nome_bate_xlsx = _normalizar(inst.nome_convenente)[:25] in _normalizar(linha_xlsx.get("Entidade")) or \
-                _normalizar(linha_xlsx.get("Entidade"))[:25] in _normalizar(inst.nome_convenente)
+            nome_bate_xlsx = _normalizar(inst.nome_convenente)[:25] in _normalizar(
+                linha_xlsx.get("Entidade")
+            ) or _normalizar(linha_xlsx.get("Entidade"))[:25] in _normalizar(inst.nome_convenente)
             if not nome_bate_xlsx:
-                divergencia_nome.append({
-                    "nr_convenio": inst.nr_convenio,
-                    "banco": inst.nome_convenente,
-                    "xlsx": linha_xlsx.get("Entidade"),
-                })
+                divergencia_nome.append(
+                    {
+                        "nr_convenio": inst.nr_convenio,
+                        "banco": inst.nome_convenente,
+                        "xlsx": linha_xlsx.get("Entidade"),
+                    }
+                )
 
         cat_banco = categoria(inst.equipamento_descricao)
         cat_xlsx = categoria(linha_xlsx.get("Equipamento")) if linha_xlsx else None
         if cat_banco and cat_xlsx and cat_banco != cat_xlsx:
-            divergencia_categoria.append({
-                "nr_convenio": inst.nr_convenio,
-                "convenente": inst.nome_convenente,
-                "banco_equipamento_descricao": inst.equipamento_descricao,
-                "banco_categoria": cat_banco,
-                "xlsx_equipamento": linha_xlsx.get("Equipamento") if linha_xlsx else None,
-                "xlsx_categoria": cat_xlsx,
-            })
+            divergencia_categoria.append(
+                {
+                    "nr_convenio": inst.nr_convenio,
+                    "convenente": inst.nome_convenente,
+                    "banco_equipamento_descricao": inst.equipamento_descricao,
+                    "banco_categoria": cat_banco,
+                    "xlsx_equipamento": linha_xlsx.get("Equipamento") if linha_xlsx else None,
+                    "xlsx_categoria": cat_xlsx,
+                }
+            )
 
-        resultado_convenio.append({
-            "nr_convenio": inst.nr_convenio,
-            "banco_nome_convenente": inst.nome_convenente,
-            "banco_cnpj": inst.cnpj_convenente,
-            "banco_equipamento_descricao": inst.equipamento_descricao,
-            "xlsx_encontrado": linha_xlsx is not None,
-            "xlsx_entidade": linha_xlsx.get("Entidade") if linha_xlsx else None,
-            "xlsx_equipamento": linha_xlsx.get("Equipamento") if linha_xlsx else None,
-            "xlsx_equipamentos_secundarios": linha_xlsx.get("Equipamentos secundários") if linha_xlsx else None,
-            "api_encontrado": dado_api is not None,
-            "api_situacao": situacao_api,
-            "api_cnpj": cnpj_api,
-            "api_nome_convenente": nome_api,
-            "nome_bate_xlsx": nome_bate_xlsx,
-        })
+        resultado_convenio.append(
+            {
+                "nr_convenio": inst.nr_convenio,
+                "banco_nome_convenente": inst.nome_convenente,
+                "banco_cnpj": inst.cnpj_convenente,
+                "banco_equipamento_descricao": inst.equipamento_descricao,
+                "xlsx_encontrado": linha_xlsx is not None,
+                "xlsx_entidade": linha_xlsx.get("Entidade") if linha_xlsx else None,
+                "xlsx_equipamento": linha_xlsx.get("Equipamento") if linha_xlsx else None,
+                "xlsx_equipamentos_secundarios": linha_xlsx.get("Equipamentos secundários") if linha_xlsx else None,
+                "api_encontrado": dado_api is not None,
+                "api_situacao": situacao_api,
+                "api_cnpj": cnpj_api,
+                "api_nome_convenente": nome_api,
+                "nome_bate_xlsx": nome_bate_xlsx,
+            }
+        )
 
     print(f"\n[A] {len(convenios_db) - len(nao_achados_api)}/{len(convenios_db)} confirmado(s) na API ao vivo.")
     if nao_achados_api:
         print(f"   [AVISO] NÃO encontrado(s) na API: {nao_achados_api}")
-    print(f"[B] {len(convenios_db) - len(nao_achados_xlsx)}/{len(convenios_db)} encontrado(s) na planilha; {len(divergencia_nome)} com nome de convenente divergente.")
+    print(
+        f"[B] {len(convenios_db) - len(nao_achados_xlsx)}/{len(convenios_db)} encontrado(s) na planilha; {len(divergencia_nome)} com nome de convenente divergente."
+    )
     if nao_achados_xlsx:
         print(f"   [AVISO] NÃO encontrado(s) na planilha: {nao_achados_xlsx}")
     for d in divergencia_nome:
         print(f"   [AVISO] nome diverge {d['nr_convenio']}: banco={d['banco']!r} vs xlsx={d['xlsx']!r}")
     print(f"[C] {len(divergencia_categoria)} divergência(s) de CATEGORIA de equipamento (banco vs planilha).")
     for d in divergencia_categoria:
-        print(f"   [AVISO] {d['nr_convenio']} ({d['convenente']}): banco={d['banco_categoria']} ({d['banco_equipamento_descricao']!r}) vs xlsx={d['xlsx_categoria']} ({d['xlsx_equipamento']!r})")
+        print(
+            f"   [AVISO] {d['nr_convenio']} ({d['convenente']}): banco={d['banco_categoria']} ({d['banco_equipamento_descricao']!r}) vs xlsx={d['xlsx_categoria']} ({d['xlsx_equipamento']!r})"
+        )
 
     # --- FAF/TED: banco vs planilha (D) ---
     faf_ted_db = [i for i in instrumentos if i.tipo_contratacao in ("FAF", "TED")]
@@ -245,13 +259,15 @@ def run() -> None:
         linha_xlsx = por_digitos.get(inst.nr_convenio)
         if linha_xlsx is None:
             faf_ted_nao_achados.append((inst.nr_convenio, inst.nome_convenente))
-        faf_ted_resultado.append({
-            "nr_convenio": inst.nr_convenio,
-            "banco_nome_convenente": inst.nome_convenente,
-            "banco_tipo": inst.tipo_contratacao,
-            "xlsx_encontrado": linha_xlsx is not None,
-            "xlsx_entidade": linha_xlsx.get("Entidade") if linha_xlsx else None,
-        })
+        faf_ted_resultado.append(
+            {
+                "nr_convenio": inst.nr_convenio,
+                "banco_nome_convenente": inst.nome_convenente,
+                "banco_tipo": inst.tipo_contratacao,
+                "xlsx_encontrado": linha_xlsx is not None,
+                "xlsx_entidade": linha_xlsx.get("Entidade") if linha_xlsx else None,
+            }
+        )
     print(f"   {len(faf_ted_db) - len(faf_ted_nao_achados)}/{len(faf_ted_db)} encontrado(s) na planilha.")
     for nr, nome in faf_ted_nao_achados:
         print(f"   [AVISO] NÃO encontrado na planilha: {nr} ({nome})")
@@ -259,7 +275,9 @@ def run() -> None:
     # --- Escopo (contagem, não erro) ---
     convenios_db_set = {i.nr_convenio for i in convenios_db}
     fora_do_banco = set(por_convenio) - convenios_db_set
-    print(f"\n[Escopo] {len(fora_do_banco)} convênio(s) da planilha NÃO estão no banco (esperado -- banco cobre só o que a equipe decide monitorar, ver CLAUDE.md).")
+    print(
+        f"\n[Escopo] {len(fora_do_banco)} convênio(s) da planilha NÃO estão no banco (esperado -- banco cobre só o que a equipe decide monitorar, ver CLAUDE.md)."
+    )
 
     DIR_SAIDA.mkdir(parents=True, exist_ok=True)
     relatorio = {

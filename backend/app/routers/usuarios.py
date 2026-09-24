@@ -4,6 +4,7 @@ o retorno. Regra de negocio e commit vivem em `app/services/usuarios.py`;
 query direta vive em `app/repositories/usuarios.py`. Toda rota exige
 `require_admin_user` -- diferente do resto do app (gate binario
 leitor/resto), aqui so `role=admin` passa (ver `app/auth.py`)."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

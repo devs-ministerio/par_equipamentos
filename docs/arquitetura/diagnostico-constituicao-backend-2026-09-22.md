@@ -220,3 +220,35 @@ Planejar em rodada própria: (1) migrar os leitores HTTP de `metas_resumo` para
 (2) decidir um envelope HTTP versionado com o frontend. Cada bloco deve
 preservar o contrato público, executar testes relevantes e repetir a revisão
 de código morto antes de qualquer exclusão.
+
+## Atualização de regressão — 2026-09-24 (sessão)
+
+O diagnóstico histórico de 2026-09-16 apontava que logout revogava somente o
+refresh e mantinha o access JWT aceito até o seu vencimento. Esse achado foi
+fechado sem migration: a identidade já existente de `RefreshToken` passa a
+compor o JWT de acesso, e `require_current_user` valida a sessão por id,
+usuário, revogação e expiração antes de devolver o usuário. Login, ativação,
+redefinição e refresh sempre emitem o par da mesma nova sessão; refresh
+rotacionado torna o access anterior inválido pelo mesmo mecanismo.
+
+O contrato HTTP não mudou: login, refresh e logout continuam retornando apenas
+`{"status": "ok"}` e os cookies continuam `HttpOnly`. A nova prova HTTP
+reinsere um access cookie capturado antes do logout e exige `401` em
+`GET /auth/me`. Ruff e mypy passaram nesta alteração; os testes dependentes de
+banco foram coletados, mas ficaram skip nesta máquina porque
+`TEST_DATABASE_URL` não estava configurada.
+
+## Atualização de ingestão PERSUS — 2026-09-24
+
+Foi criada uma rotina de complementação controlada para `Controle PERSUS.xlsx`.
+Ela separa conciliação, garantia de instrumento monitorado, complemento de
+campos, eventos e ações; não cria `Convenio`, não altera CNES e recusa vínculo
+ambíguo até validação explícita. Após a conciliação aprovada, a execução no
+Neon registrou somente o escopo autorizado: 29 instrumentos criados, 5
+existentes preservados, 185 eventos e 102 ações concluídas.
+
+A rotina passou `ruff check`, `mypy` e `ruff format --check`; a decomposição
+também elimina o C901 que teria sido introduzido por uma nova carga manual.
+Na validação final da Constituição de Qualidade, migrations do zero e a suíte
+backend foram executadas em PostgreSQL efêmero do OrbStack: **224/224** testes
+aprovados, sem usar Neon como banco de teste.

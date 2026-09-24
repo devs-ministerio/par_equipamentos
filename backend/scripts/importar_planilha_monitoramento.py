@@ -72,6 +72,7 @@ descricao pro mesmo instrumento.
 Uso: python -m scripts.importar_planilha_monitoramento (de dentro de
 backend/, venv ativo, com DATABASE_URL configurada).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -117,9 +118,19 @@ STATUS_MAP = {
 # Colunas regulatorio: (codigo do marco, indice numero_documento, indice status, indice data)
 COLUNAS_REGULATORIO = [
     ("regulatorio_matricula_cnen", "MATRÍCULA CNEN", None, None),
-    ("regulatorio_descomissionamento", "SCRA PARA LICENÇA DE ALTERAÇÃO DE OPERAÇÃO (DESCOMISSIONAMENTO)", "STATUS DESCOMISSIONAMENTO", None),
+    (
+        "regulatorio_descomissionamento",
+        "SCRA PARA LICENÇA DE ALTERAÇÃO DE OPERAÇÃO (DESCOMISSIONAMENTO)",
+        "STATUS DESCOMISSIONAMENTO",
+        None,
+    ),
     ("regulatorio_modificacao_casamata", "SCRA PARA MODIFICAÇÃO/CASAMATA", "STATUS MOD. CASAMATA", None),
-    ("regulatorio_licenca_operacao", "LICENÇA DE OPERAÇÃO / ALTERAÇÃO DE OPERAÇÃO", "STATUS LICENÇA DE OPERAÇÃO", "DATA LICENÇA DE OPERAÇÃO"),
+    (
+        "regulatorio_licenca_operacao",
+        "LICENÇA DE OPERAÇÃO / ALTERAÇÃO DE OPERAÇÃO",
+        "STATUS LICENÇA DE OPERAÇÃO",
+        "DATA LICENÇA DE OPERAÇÃO",
+    ),
 ]
 
 # Colunas cronograma_fisico: (codigo do marco, nome da coluna) -- nome da
@@ -306,22 +317,23 @@ def run(
         # cross-referencia direto com o arquivo pra saber quais dos 403 sao
         # validos, sem precisar que ja exista instrumento seedado).
         import json
+
         convenios_validos = {
-            c["numero"] for c in json.loads((Path(__file__).parent / "output" / "convenios_flat.json").read_text(encoding="utf-8"))
+            c["numero"]
+            for c in json.loads((Path(__file__).parent / "output" / "convenios_flat.json").read_text(encoding="utf-8"))
         }
 
         # Lookup por chave_origem pro caminho FAF/TED (correção 2026-09-18)
         # -- identifica a linha já corrigida (nr_convenio aleatório) sem
         # depender do NUP SEI bater com o `nr_convenio` armazenado.
         instrumentos_por_chave = {
-            i.chave_origem: i for i in db.execute(
+            i.chave_origem: i
+            for i in db.execute(
                 select(InstrumentoEquipamento).where(InstrumentoEquipamento.chave_origem.isnot(None))
             ).scalars()
         }
         convenios_por_chave = {
-            c.chave_origem: c for c in db.execute(
-                select(Convenio).where(Convenio.chave_origem.isnot(None))
-            ).scalars()
+            c.chave_origem: c for c in db.execute(select(Convenio).where(Convenio.chave_origem.isnot(None))).scalars()
         }
         criados, atualizados, campos_preenchidos, fora_do_universo, colisoes = 0, 0, 0, [], []
         campos_preenchidos_chaves: set[tuple[str, str]] = set()
@@ -381,21 +393,34 @@ def run(
                 uf=_texto(linha[idx["UF"]]),
                 cnes=_cnes_normalizado(linha[idx["CNES"]]),
                 equipamento_descricao=_sem_placeholder(linha[idx["ID MODELO NO SIGEM/TRANSFEREGOV"]]),
-                investimento_aquisicao=_valor_monetario(linha[idx["VALOR TOTAL DE INVESTIMENTO (VALOR GLOBAL)"]]) if "VALOR TOTAL DE INVESTIMENTO (VALOR GLOBAL)" in idx else None,
+                investimento_aquisicao=_valor_monetario(linha[idx["VALOR TOTAL DE INVESTIMENTO (VALOR GLOBAL)"]])
+                if "VALOR TOTAL DE INVESTIMENTO (VALOR GLOBAL)" in idx
+                else None,
                 componente=_texto(linha[idx["COMPONENTES DE FINANCIAMENTO - INVESTUSUS"]]),
-                ano_instrumento=int(m.group()) if (v := _texto(linha[idx["ANO DO INSTRUMENTO"]])) and (m := re.search(r"\d{4}", v)) else None,
-                tipo_contratacao=_sem_placeholder(linha[idx["TIPO DE CONTRATAÇÃO"]]) if "TIPO DE CONTRATAÇÃO" in idx else None,
+                ano_instrumento=int(m.group())
+                if (v := _texto(linha[idx["ANO DO INSTRUMENTO"]])) and (m := re.search(r"\d{4}", v))
+                else None,
+                tipo_contratacao=_sem_placeholder(linha[idx["TIPO DE CONTRATAÇÃO"]])
+                if "TIPO DE CONTRATAÇÃO" in idx
+                else None,
                 tecnico_titular=_nome_padronizado(linha[idx["TÉCNICO RESPONSÁVEL - TITULAR"]]),
                 tecnico_suplente=_nome_padronizado(linha[idx["TÉCNICO RESPONSÁVEL - SUPLENTE"]]),
                 nivel_monitoramento=_texto(linha[idx["NÍVEL DE MONITORAMENTO (ESTRATÉGICO, TÁTICO E SIMPLIFICADO)"]]),
                 tipologia=_tipologia_de_finalidade(linha[idx["FINALIDADE"]]),
-                responsavel_execucao_nome=_texto(linha[idx["NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO"]]) if "NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO" in idx else None,
-                responsavel_execucao_contato=_texto(linha[idx["CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO"]]) if "CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO" in idx else None,
+                responsavel_execucao_nome=_texto(linha[idx["NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO"]])
+                if "NOME DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSTITUIÇÃO" in idx
+                else None,
+                responsavel_execucao_contato=_texto(
+                    linha[idx["CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO"]]
+                )
+                if "CONTATO DO RESPONSÁVEL TÉCNICO DA EXECUÇÃO / INSITUIÇÃO" in idx
+                else None,
                 modalidade_onco=_texto(linha[idx["MODALIDADE - ONCO"]]),
             )
 
             instrumento = (
-                instrumentos_por_chave.get(chave_origem) if chave_origem is not None
+                instrumentos_por_chave.get(chave_origem)
+                if chave_origem is not None
                 else db.query(InstrumentoEquipamento).filter_by(nr_convenio=nr_convenio).one_or_none()
             )
             if instrumento is None:
@@ -475,8 +500,12 @@ def run(
             }
 
             def _adicionar_evento(
-                marco_codigo, data_ocorrencia=None, data_prevista=None,
-                status_regulatorio=None, numero_documento=None, observacao=None,
+                marco_codigo,
+                data_ocorrencia=None,
+                data_prevista=None,
+                status_regulatorio=None,
+                numero_documento=None,
+                observacao=None,
             ):
                 nonlocal eventos_criados
                 marco = marcos_por_codigo.get(marco_codigo)
@@ -485,12 +514,17 @@ def run(
                 chave = (marco.id, data_ocorrencia, data_prevista, observacao)
                 if chave in eventos_existentes:
                     return
-                db.add(EventoMarco(
-                    instrumento_id=instrumento.id, marco_id=marco.id,
-                    data_ocorrencia=data_ocorrencia, data_prevista=data_prevista,
-                    status_regulatorio=status_regulatorio,
-                    numero_documento=numero_documento, observacao=observacao,
-                ))
+                db.add(
+                    EventoMarco(
+                        instrumento_id=instrumento.id,
+                        marco_id=marco.id,
+                        data_ocorrencia=data_ocorrencia,
+                        data_prevista=data_prevista,
+                        status_regulatorio=status_regulatorio,
+                        numero_documento=numero_documento,
+                        observacao=observacao,
+                    )
+                )
                 eventos_existentes.add(chave)
                 eventos_criados += 1
 
@@ -540,7 +574,9 @@ def run(
                 status = _normalizar_status(linha[idx[col_status]]) if col_status and col_status in idx else None
                 data_ev = _parse_data(linha[idx[col_data]]) if col_data and col_data in idx else None
                 if numero_doc or status or data_ev:
-                    _adicionar_evento(codigo, data_ocorrencia=data_ev, status_regulatorio=status, numero_documento=numero_doc)
+                    _adicionar_evento(
+                        codigo, data_ocorrencia=data_ev, status_regulatorio=status, numero_documento=numero_doc
+                    )
 
             # --- Ações de monitoramento (separadas dos eventos) ---
             acoes_existentes = {
@@ -549,20 +585,26 @@ def run(
             ultima_acao_texto = _texto(linha[idx["ÚLTIMA AÇÃO MONITORAMENTO"]])
             ultima_acao_data = _parse_data(linha[idx["DATA DA ÚLTIMA AÇÃO/REUNIÃO VIRTUAL"]])
             if ultima_acao_texto and ultima_acao_data and ultima_acao_texto not in acoes_existentes:
-                db.add(AcaoMonitoramento(
-                    instrumento_id=instrumento.id, descricao=ultima_acao_texto,
-                    data_conclusao=ultima_acao_data,
-                ))
+                db.add(
+                    AcaoMonitoramento(
+                        instrumento_id=instrumento.id,
+                        descricao=ultima_acao_texto,
+                        data_conclusao=ultima_acao_data,
+                    )
+                )
                 acoes_criadas += 1
 
             proxima_reuniao_data = _parse_data(linha[idx["PRÓXIMA REUNIÃO "]]) if "PRÓXIMA REUNIÃO " in idx else None
             if proxima_reuniao_data:
                 descricao_reuniao = f"Próxima reunião ({proxima_reuniao_data.strftime('%d/%m/%Y')})"
                 if descricao_reuniao not in acoes_existentes:
-                    db.add(AcaoMonitoramento(
-                        instrumento_id=instrumento.id, descricao=descricao_reuniao,
-                        data_prevista=proxima_reuniao_data,
-                    ))
+                    db.add(
+                        AcaoMonitoramento(
+                            instrumento_id=instrumento.id,
+                            descricao=descricao_reuniao,
+                            data_prevista=proxima_reuniao_data,
+                        )
+                    )
                     acoes_criadas += 1
 
             # A planilha pode repetir o mesmo instrumento em linhas
@@ -591,9 +633,7 @@ def run(
                 f"{campos_preenchidos} campo(s) vazio(s) preenchido(s)."
             )
             if campos_preenchidos_chaves:
-                campos_resumo = ", ".join(
-                    f"{nr}:{campo}" for nr, campo in sorted(campos_preenchidos_chaves)
-                )
+                campos_resumo = ", ".join(f"{nr}:{campo}" for nr, campo in sorted(campos_preenchidos_chaves))
                 print("Campos vazios encontrados: " + campos_resumo)
         else:
             print(f"Instrumentos: {criados} criado(s), {atualizados} atualizado(s).")

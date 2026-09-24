@@ -1,8 +1,15 @@
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { Usuario } from '@/services/usuarios';
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { Usuario } from "@/services/usuarios";
 
 /** Confirma o envio de link de redefinição; senha nunca passa pela UI. */
 export function UsuarioDialogEnviarRedefinicao({
@@ -21,10 +28,14 @@ export function UsuarioDialogEnviarRedefinicao({
     setEnviando(true);
     try {
       await onEnviar(usuario.id);
-      toast.success('Link de redefinição enviado por e-mail.');
+      toast.success("Link de redefinição enviado por e-mail.");
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Não foi possível enviar a redefinição.');
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : "Não foi possível enviar a redefinição.",
+      );
     } finally {
       setEnviando(false);
     }
@@ -36,15 +47,20 @@ export function UsuarioDialogEnviarRedefinicao({
         <DialogHeader>
           <DialogTitle>Enviar redefinição de senha</DialogTitle>
           <DialogDescription>
-            Um link de uso único será enviado para {usuario?.email}. Nenhuma senha será exibida aqui.
+            Um link de uso único será enviado para {usuario?.email}. Nenhuma
+            senha será exibida aqui.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancelar
           </Button>
           <Button type="button" onClick={confirmar} disabled={enviando}>
-            {enviando ? 'Enviando...' : 'Enviar link'}
+            {enviando ? "Enviando..." : "Enviar link"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,4 +1,5 @@
 """Autenticacao e autorizacao do backend."""
+
 from __future__ import annotations
 
 import hashlib
@@ -55,6 +56,7 @@ REFRESH_COOKIE_PATH = "/auth"
 CSRF_COOKIE_NAME = "sigeo_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 
+
 def hash_password(password: str) -> str:
     salt = os.urandom(16)
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
@@ -94,13 +96,17 @@ def registrar_sucesso_login(user: User) -> None:
     user.locked_until = None
 
 
-def create_access_token(user: User) -> str:
+def create_access_token(user: User, refresh_token_id: int) -> str:
     if not settings.jwt_secret:
         raise HTTPException(status_code=503, detail="JWT_SECRET nao configurado.")
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user.id),
         "role": user.role.value,
+        # O access token pertence a uma sessão de refresh concreta. Assim,
+        # revogar aquela sessão no logout também invalida imediatamente um
+        # access cookie que tenha sido copiado antes de o navegador apagá-lo.
+        "sid": refresh_token_id,
         "iat": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=settings.access_token_expire_minutes)).timestamp()),
     }
@@ -117,18 +123,22 @@ def _hash_refresh_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def create_refresh_token(db: Session, user: User) -> str:
+def create_refresh_token(db: Session, user: User) -> tuple[str, int]:
     """Gera um refresh token opaco novo, grava o HASH em `refresh_token`
     (Bloco 2) e devolve o valor bruto -- so existe em claro neste retorno,
     pra ser setado no cookie HttpOnly pelo router. Nao faz `db.commit()`
     (quem chama decide, mesmo padrao dos services de monitoramento)."""
     token = secrets.token_urlsafe(32)
     expira_em = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
-    db.add(RefreshToken(user_id=user.id, token_hash=_hash_refresh_token(token), expires_at=expira_em))
-    return token
+    sessao = RefreshToken(user_id=user.id, token_hash=_hash_refresh_token(token), expires_at=expira_em)
+    db.add(sessao)
+    # O id e colocado no JWT de acesso. `flush` preserva a transação para
+    # quem chama decidir o commit, mas já materializa a identidade da sessão.
+    db.flush()
+    return token, sessao.id
 
 
-def rotate_refresh_token(db: Session, token: str) -> tuple[User, str]:
+def rotate_refresh_token(db: Session, token: str) -> tuple[User, str, int]:
     """Valida o refresh token recebido (nao revogado, nao expirado), marca
     a linha antiga como revogada e emite um par novo -- rotacao real: reuso
     do token antigo (ja revogado) falha na proxima chamada, sinal de furto
@@ -162,9 +172,9 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str]:
         db.rollback()
         raise HTTPException(status_code=403, detail="Usuario inexistente ou inativo.")
 
-    novo_token = create_refresh_token(db, user)
+    novo_token, nova_sessao_id = create_refresh_token(db, user)
     db.commit()
-    return user, novo_token
+    return user, novo_token, nova_sessao_id
 
 
 def set_session_cookies(response: Response, access_token: str, refresh_token: str) -> str:
@@ -178,20 +188,35 @@ def set_session_cookies(response: Response, access_token: str, refresh_token: st
     expor o valor no corpo da resposta de login, se precisar."""
     same_site = cast(Literal["lax", "strict", "none"] | None, settings.cookie_samesite)
     response.set_cookie(
-        ACCESS_COOKIE_NAME, access_token, max_age=settings.access_token_expire_minutes * 60,
-        httponly=True, secure=settings.cookie_secure, samesite=same_site,
-        domain=settings.cookie_domain, path="/",
+        ACCESS_COOKIE_NAME,
+        access_token,
+        max_age=settings.access_token_expire_minutes * 60,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=same_site,
+        domain=settings.cookie_domain,
+        path="/",
     )
     response.set_cookie(
-        REFRESH_COOKIE_NAME, refresh_token, max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
-        httponly=True, secure=settings.cookie_secure, samesite=same_site,
-        domain=settings.cookie_domain, path=REFRESH_COOKIE_PATH,
+        REFRESH_COOKIE_NAME,
+        refresh_token,
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=same_site,
+        domain=settings.cookie_domain,
+        path=REFRESH_COOKIE_PATH,
     )
     csrf_token = secrets.token_urlsafe(32)
     response.set_cookie(
-        CSRF_COOKIE_NAME, csrf_token, max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
-        httponly=False, secure=settings.cookie_secure, samesite=same_site,
-        domain=settings.cookie_domain, path="/",
+        CSRF_COOKIE_NAME,
+        csrf_token,
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+        httponly=False,
+        secure=settings.cookie_secure,
+        samesite=same_site,
+        domain=settings.cookie_domain,
+        path="/",
     )
     return csrf_token
 
@@ -242,8 +267,21 @@ def _decodificar_access_token(token: str, db: Session) -> User:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[ALGORITHM])
         user_id = int(payload["sub"])
+        refresh_token_id = int(payload["sid"])
     except (jwt.InvalidTokenError, KeyError, TypeError, ValueError):
         raise HTTPException(status_code=401, detail="Token de acesso invalido.")
+
+    agora = datetime.now(timezone.utc)
+    sessao = db.execute(
+        select(RefreshToken).where(
+            RefreshToken.id == refresh_token_id,
+            RefreshToken.user_id == user_id,
+            RefreshToken.revoked_at.is_(None),
+            RefreshToken.expires_at > agora,
+        )
+    ).scalar_one_or_none()
+    if sessao is None:
+        raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
 
     user = db.execute(select(User).where(User.id == user_id)).scalar_one_or_none()
     if user is None or user.status != UserStatus.active or user.deleted_at is not None:

@@ -2,6 +2,7 @@
 candidatas pagina na origem e expoe contrato {total, itens}, sem voltar
 ao array cru. `metas_resumo` permanece no item de listagem de proposito
 (card/filtros client-side ainda dependem dele)."""
+
 from __future__ import annotations
 
 import inspect

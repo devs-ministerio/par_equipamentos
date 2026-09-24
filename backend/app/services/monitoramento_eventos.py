@@ -6,6 +6,7 @@ router -- protege contra qualquer chamada que não passe pelo HTTP (script,
 outro service, job futuro). Comportamento idêntico ao que estava inline no
 router antes desta extração; nada muda do ponto de vista da API.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -155,13 +156,92 @@ def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int
     if marco.grupo == MarcoGrupo.fase_geral:
         return None
     if fase_geral_id is None:
-        raise ValidationError(
-            "Indique a fase geral correspondente a este marco de cronograma físico/regulatório."
-        )
+        raise ValidationError("Indique a fase geral correspondente a este marco de cronograma físico/regulatório.")
     fase = monitoramento_repo.obter_marco_por_id(db, fase_geral_id)
     if fase is None or fase.grupo != MarcoGrupo.fase_geral:
         raise ValidationError(f"fase_geral_id {fase_geral_id} não corresponde a um marco de fase geral válido.")
     return fase_geral_id
+
+
+def _validar_dados_novo_evento(marco: MarcoCatalogo, dados: NovoEventoMonitorado) -> None:
+    if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
+        raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
+    if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
+        raise ValidationError("A data realizada não pode estar no futuro. Atualize-a para a data real da ocorrência.")
+    if marco.codigo != "fase_concluido":
+        return
+    if dados.data_ocorrencia is None:
+        raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
+    if not dados.confirmar_inauguracao:
+        raise ValidationError("Confirme a inauguração na data de conclusão antes de registrar o evento.")
+
+
+def _aplicar_dados_equipamento_entregue(
+    instrumento: InstrumentoEquipamento, marco: MarcoCatalogo, dados: NovoEventoMonitorado
+) -> str | None:
+    observacao = dados.observacao
+    if marco.codigo != "cronograma_entrega":
+        return observacao
+    equipamento = dados.equipamento
+    if equipamento.marca is not None:
+        instrumento.equipamento_marca = equipamento.marca
+    if equipamento.modelo is not None:
+        instrumento.equipamento_modelo = equipamento.modelo
+    if equipamento.numero_serie is not None:
+        instrumento.equipamento_numero_serie = equipamento.numero_serie
+    if equipamento.vida_util_anos is not None:
+        instrumento.equipamento_vida_util_anos = equipamento.vida_util_anos
+    resumo = _resumo_equipamento_entregue(equipamento)
+    return f"{observacao}. {resumo}" if observacao and resumo else resumo or observacao
+
+
+def _registrar_inauguracao_confirmada(
+    *,
+    db: Session,
+    instrumento: InstrumentoEquipamento,
+    marco: MarcoCatalogo,
+    dados: NovoEventoMonitorado,
+    usuario: User,
+    nr_convenio: str,
+) -> tuple[int | None, date | None]:
+    if marco.codigo != "fase_concluido":
+        return None, None
+    marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, "cronograma_previsao_inauguracao")
+    if marco_inauguracao is None:
+        raise ValidationError("Marco de previsão de inauguração não encontrado no catálogo.")
+    anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
+        db, instrumento_id=instrumento.id, marco_id=marco_inauguracao.id
+    )
+    if anterior and anterior.data_ocorrencia is not None:
+        raise ValidationError("Já existe uma inauguração realizada para este instrumento.")
+    previsao_anterior = anterior.data_prevista if anterior else None
+    inauguracao = EventoMarco(
+        instrumento_id=instrumento.id,
+        marco_id=marco_inauguracao.id,
+        fase_geral_id=marco.id,
+        data_ocorrencia=dados.data_ocorrencia,
+        observacao=_compor_observacao(usuario.name, "Inauguração confirmada ao concluir o instrumento."),
+        autor_id=usuario.id,
+    )
+    monitoramento_repo.adicionar_evento(db, inauguracao)
+    if anterior is not None:
+        anterior.substituido_por_id = inauguracao.id
+        anterior.atualizado_em = _agora_utc()
+    log_action(
+        db,
+        user_id=usuario.id,
+        entity_name="evento_marco",
+        entity_id=inauguracao.id,
+        action="created",
+        details={
+            "nr_convenio": nr_convenio,
+            "marco_id": marco_inauguracao.id,
+            "data_prevista_anterior": previsao_anterior.isoformat() if previsao_anterior else None,
+            "data_ocorrencia": dados.data_ocorrencia.isoformat() if dados.data_ocorrencia else None,
+            "confirmada_com_conclusao": True,
+        },
+    )
+    return inauguracao.id, previsao_anterior
 
 
 def registrar_evento_monitorado(
@@ -183,22 +263,7 @@ def registrar_evento_monitorado(
         raise ValidationError(f"Marco {dados.marco_id} não existe no catálogo.")
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
 
-    if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
-        raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
-
-    if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
-        raise ValidationError(
-            "A data realizada não pode estar no futuro. Atualize-a para a data real da ocorrência."
-        )
-
-    if marco.codigo == "fase_concluido":
-        if dados.data_ocorrencia is None:
-            raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
-        if not dados.confirmar_inauguracao:
-            raise ValidationError("Confirme a inauguração na data de conclusão antes de registrar o evento.")
-        assert dados.data_ocorrencia is not None
-
-    data_conclusao = dados.data_ocorrencia
+    _validar_dados_novo_evento(marco, dados)
 
     evento_anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
         db, instrumento_id=instrumento.id, marco_id=dados.marco_id
@@ -212,23 +277,7 @@ def registrar_evento_monitorado(
     if reprogramou and not (dados.observacao or "").strip():
         raise ValidationError("Informe a justificativa para alterar a data prevista.")
 
-    observacao = dados.observacao
-    # Equipamento FISICO so se aplica ao marco de entrega (achado
-    # 2026-09-09, "o equipamento entregue pode mover para eventos") --
-    # atualiza o estado atual do instrumento E deixa retrato no proprio
-    # evento, via observacao.
-    if marco.codigo == "cronograma_entrega":
-        if dados.equipamento.marca is not None:
-            instrumento.equipamento_marca = dados.equipamento.marca
-        if dados.equipamento.modelo is not None:
-            instrumento.equipamento_modelo = dados.equipamento.modelo
-        if dados.equipamento.numero_serie is not None:
-            instrumento.equipamento_numero_serie = dados.equipamento.numero_serie
-        if dados.equipamento.vida_util_anos is not None:
-            instrumento.equipamento_vida_util_anos = dados.equipamento.vida_util_anos
-        resumo_equipamento = _resumo_equipamento_entregue(dados.equipamento)
-        if resumo_equipamento:
-            observacao = f"{observacao}. {resumo_equipamento}" if observacao else resumo_equipamento
+    observacao = _aplicar_dados_equipamento_entregue(instrumento, marco, dados)
 
     evento = EventoMarco(
         instrumento_id=instrumento.id,
@@ -243,45 +292,9 @@ def registrar_evento_monitorado(
         autor_id=usuario.id,
     )
     monitoramento_repo.adicionar_evento(db, evento)
-    inauguracao_id = None
-    previsao_anterior = None
-    if marco.codigo == "fase_concluido":
-        marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, "cronograma_previsao_inauguracao")
-        if marco_inauguracao is None:
-            raise ValidationError("Marco de previsão de inauguração não encontrado no catálogo.")
-        anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
-            db, instrumento_id=instrumento.id, marco_id=marco_inauguracao.id
-        )
-        if anterior and anterior.data_ocorrencia is not None:
-            raise ValidationError("Já existe uma inauguração realizada para este instrumento.")
-        previsao_anterior = anterior.data_prevista if anterior else None
-        inauguracao = EventoMarco(
-            instrumento_id=instrumento.id,
-            marco_id=marco_inauguracao.id,
-            fase_geral_id=marco.id,
-            data_ocorrencia=dados.data_ocorrencia,
-            observacao=_compor_observacao(usuario.name, "Inauguração confirmada ao concluir o instrumento."),
-            autor_id=usuario.id,
-        )
-        monitoramento_repo.adicionar_evento(db, inauguracao)
-        if anterior is not None:
-            anterior.substituido_por_id = inauguracao.id
-            anterior.atualizado_em = _agora_utc()
-        inauguracao_id = inauguracao.id
-        log_action(
-            db,
-            user_id=usuario.id,
-            entity_name="evento_marco",
-            entity_id=inauguracao.id,
-            action="created",
-            details={
-                "nr_convenio": nr_convenio,
-                "marco_id": marco_inauguracao.id,
-                "data_prevista_anterior": previsao_anterior.isoformat() if previsao_anterior else None,
-                "data_ocorrencia": data_conclusao.isoformat() if data_conclusao else None,
-                "confirmada_com_conclusao": True,
-            },
-        )
+    inauguracao_id, _ = _registrar_inauguracao_confirmada(
+        db=db, instrumento=instrumento, marco=marco, dados=dados, usuario=usuario, nr_convenio=nr_convenio
+    )
     log_action(
         db,
         user_id=usuario.id,
@@ -292,7 +305,8 @@ def registrar_evento_monitorado(
             "nr_convenio": nr_convenio,
             "marco_id": dados.marco_id,
             "data_prevista_anterior": evento_anterior.data_prevista.isoformat()
-            if reprogramou and evento_anterior and evento_anterior.data_prevista else None,
+            if reprogramou and evento_anterior and evento_anterior.data_prevista
+            else None,
             "data_prevista_nova": dados.data_prevista.isoformat() if dados.data_prevista else None,
             "data_ocorrencia": dados.data_ocorrencia.isoformat() if dados.data_ocorrencia else None,
             "reprogramacao": reprogramou,
@@ -323,7 +337,7 @@ def editar_evento_monitorado(
     db: Session,
     usuario: User,
 ) -> EventoMarco:
-    """"Editar" continua append-only (decisão do usuário, Plan Mode
+    """ "Editar" continua append-only (decisão do usuário, Plan Mode
     monitoramento-evolucao 2026-09-19): lança um evento novo corrigido e
     aponta o antigo pra ele via `substituido_por_id` -- nunca UPDATE nos
     campos do lançamento original. Marco/instrumento do evento não mudam
@@ -427,8 +441,11 @@ def registrar_acao_monitorada(
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
 
     acao = AcaoMonitoramento(
-        instrumento_id=instrumento.id, descricao=descricao,
-        data_prevista=data_prevista, responsavel=responsavel, responsavel_id=responsavel_id,
+        instrumento_id=instrumento.id,
+        descricao=descricao,
+        data_prevista=data_prevista,
+        responsavel=responsavel,
+        responsavel_id=responsavel_id,
         criado_por_id=usuario.id,
     )
     monitoramento_repo.adicionar_acao(db, acao)

@@ -6,6 +6,7 @@ web). Tradução pra HTTP acontece num único lugar, `app/errors.py`
 propósito -- deixa explícito, por import, quando um Service depende de
 FastAPI (não deveria) vs. só de `app.domain_errors` (esperado).
 """
+
 from __future__ import annotations
 
 

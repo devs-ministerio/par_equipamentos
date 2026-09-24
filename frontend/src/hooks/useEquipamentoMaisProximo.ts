@@ -1,9 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchEstabelecimentosPage } from '../services/api';
-import type { PontoEstabelecimento } from '@/components/features/macro-map';
-import { RAIO_BUSCA_MUNICIPIO_KM } from './useEstabelecimentosMapa';
-import { distanciaKm } from '../utils/geo';
-import type { NivelCoberturaRow } from '../types/domain';
+import { useQuery } from "@tanstack/react-query";
+import { fetchEstabelecimentosPage } from "../services/api";
+import type { PontoEstabelecimento } from "@/components/features/macro-map";
+import { RAIO_BUSCA_MUNICIPIO_KM } from "./useEstabelecimentosMapa";
+import { distanciaKm } from "../utils/geo";
+import type { NivelCoberturaRow } from "../types/domain";
 
 // Maior distancia possivel entre 2 pontos dentro do Brasil e ~4300km
 // (extremo norte a extremo sul) -- 4500km cobre com folga, uma unica
@@ -13,7 +13,10 @@ const RAIO_CONTINENTAL_KM = 4500;
 // "Municipio - UF" -- municipio sozinho e ambiguo (varios nomes se repetem
 // entre estados, mesmo motivo da chave composta usada nos outros filtros
 // da tela).
-function formatarMunicipioUf(municipio?: string | null, uf?: string | null): string | null {
+function formatarMunicipioUf(
+  municipio?: string | null,
+  uf?: string | null,
+): string | null {
   if (!municipio) return null;
   return uf ? `${municipio} - ${uf}` : municipio;
 }
@@ -49,31 +52,50 @@ export function useEquipamentoMaisProximo(
     municipioSelecionado.oferta === 0 &&
     municipioSelecionado.latitude != null &&
     municipioSelecionado.longitude != null
-      ? { lat: municipioSelecionado.latitude, lon: municipioSelecionado.longitude }
+      ? {
+          lat: municipioSelecionado.latitude,
+          lon: municipioSelecionado.longitude,
+        }
       : null;
 
   // pontosMacro NAO e filtrado por SUS (mostra os dois tipos no mapa, de
   // proposito). Pra achar o mais proximo que ATENDE SUS e EM USO
   // (2026-08-24, a pedido), procura o primeiro com susFlag na lista ja
   // ordenada por distancia.
-  const maisProximoSusNoRaioVisual = pontosMacro.find((p) => p.susFlag && p.qtdUso > 0);
+  const maisProximoSusNoRaioVisual = pontosMacro.find(
+    (p) => p.susFlag && p.qtdUso > 0,
+  );
 
   const distanciaPipeline =
-    familia === 'TOMOGRAFO' ? (municipioSelecionado?.distanciaKmEquipamentoMaisProximo ?? null) : null;
+    familia === "TOMOGRAFO"
+      ? (municipioSelecionado?.distanciaKmEquipamentoMaisProximo ?? null)
+      : null;
 
   const usaRaioVisual =
     centro != null &&
-    (familia === 'TOMOGRAFO'
-      ? distanciaPipeline != null && distanciaPipeline <= RAIO_BUSCA_MUNICIPIO_KM && Boolean(maisProximoSusNoRaioVisual)
+    (familia === "TOMOGRAFO"
+      ? distanciaPipeline != null &&
+        distanciaPipeline <= RAIO_BUSCA_MUNICIPIO_KM &&
+        Boolean(maisProximoSusNoRaioVisual)
       : Boolean(maisProximoSusNoRaioVisual));
 
   const habilitarFallback =
-    centro != null && !usaRaioVisual && (familia !== 'TOMOGRAFO' || distanciaPipeline != null);
+    centro != null &&
+    !usaRaioVisual &&
+    (familia !== "TOMOGRAFO" || distanciaPipeline != null);
 
-  const radiusKm = familia === 'TOMOGRAFO' ? (distanciaPipeline as number) + 2 : RAIO_CONTINENTAL_KM;
+  const radiusKm =
+    familia === "TOMOGRAFO"
+      ? (distanciaPipeline as number) + 2
+      : RAIO_CONTINENTAL_KM;
 
   const fallbackQuery = useQuery({
-    queryKey: ['equipamento-mais-proximo', familia, municipioSelecionado?.chave, radiusKm],
+    queryKey: [
+      "equipamento-mais-proximo",
+      familia,
+      municipioSelecionado?.chave,
+      radiusKm,
+    ],
     queryFn: () =>
       fetchEstabelecimentosPage({
         equipmentFamily: familia,
@@ -88,10 +110,12 @@ export function useEquipamentoMaisProximo(
 
   if (!centro) return { nome: null, distanciaKm: null };
 
-  const pontoUsado = usaRaioVisual ? maisProximoSusNoRaioVisual : fallbackQuery.data?.items[0];
+  const pontoUsado = usaRaioVisual
+    ? maisProximoSusNoRaioVisual
+    : fallbackQuery.data?.items[0];
   if (pontoUsado) {
-    const lat = 'lat' in pontoUsado ? pontoUsado.lat : pontoUsado.latitude;
-    const lon = 'lon' in pontoUsado ? pontoUsado.lon : pontoUsado.longitude;
+    const lat = "lat" in pontoUsado ? pontoUsado.lat : pontoUsado.latitude;
+    const lon = "lon" in pontoUsado ? pontoUsado.lon : pontoUsado.longitude;
     if (lat != null && lon != null) {
       return {
         nome: formatarMunicipioUf(pontoUsado.municipio, pontoUsado.uf),
@@ -103,7 +127,7 @@ export function useEquipamentoMaisProximo(
   // Enquanto a busca de fallback ainda nao resolveu (ou falhou), TOMOGRAFO
   // mostra a distancia ja conhecida do pipeline -- as demais familias nao
   // tem nenhum valor pra mostrar ate a busca completar.
-  if (familia === 'TOMOGRAFO' && distanciaPipeline != null) {
+  if (familia === "TOMOGRAFO" && distanciaPipeline != null) {
     return { nome: null, distanciaKm: distanciaPipeline };
   }
   return { nome: null, distanciaKm: null };

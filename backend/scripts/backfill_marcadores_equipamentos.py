@@ -50,6 +50,43 @@ def _dados(
     ]
 
 
+def _integrar_itens_manuais(db, instrumentos_por_numero: dict[str, InstrumentoEquipamento]) -> int:
+    integrados = 0
+    for convenio in db.execute(select(Convenio)).scalars():
+        instrumento = instrumentos_por_numero.get(convenio.numero)
+        descricao_manual = instrumento.equipamento_descricao if instrumento is not None else None
+        if descricao_manual is None and convenio.tipo_contratacao == "PERSUS I":
+            descricao_manual = "Acelerador Linear"
+        if not descricao_manual:
+            continue
+        antes = list((convenio.siconv_raw or {}).get("itens_plano_aplicacao") or [])
+        adicionar_item_manual_inicial(
+            convenio,
+            descricao_manual,
+            instrumento.origem_dado if instrumento is not None else convenio.origem_dado,
+        )
+        depois = list((convenio.siconv_raw or {}).get("itens_plano_aplicacao") or [])
+        integrados += int(len(depois) > len(antes))
+    return integrados
+
+
+def _chaves_existentes(db, aplicar: bool) -> set[tuple[OrigemMarcador, int, int, str]]:
+    chaves: set[tuple[OrigemMarcador, int, int, str]] = set()
+    marcadores = [] if aplicar else db.execute(select(EquipamentoMarcador)).scalars()
+    for marcador in marcadores:
+        origem: OrigemMarcador
+        origem_id: int | None
+        if marcador.convenio_id is not None:
+            origem, origem_id = "convenio", marcador.convenio_id
+        elif marcador.proposta_candidata_id is not None:
+            origem, origem_id = "proposta_candidata", marcador.proposta_candidata_id
+        else:
+            origem, origem_id = "instrumento_equipamento", marcador.instrumento_equipamento_id
+        assert origem_id is not None
+        chaves.add((origem, origem_id, marcador.equipamento_catalogo_id, marcador.chave_evidencia))
+    return chaves
+
+
 def executar(*, aplicar: bool) -> dict[str, int]:
     resultado = {
         "convenios": 0,
@@ -69,44 +106,12 @@ def executar(*, aplicar: bool) -> dict[str, int]:
             resultado["marcadores_removidos"] = exclusao.rowcount or 0
 
         instrumentos_por_numero = {
-            instrumento.nr_convenio: instrumento
-            for instrumento in db.execute(select(InstrumentoEquipamento)).scalars()
+            instrumento.nr_convenio: instrumento for instrumento in db.execute(select(InstrumentoEquipamento)).scalars()
         }
-        for convenio in db.execute(select(Convenio)).scalars():
-            instrumento = instrumentos_por_numero.get(convenio.numero)
-            descricao_manual = instrumento.equipamento_descricao if instrumento is not None else None
-            # A planilha PERSUS I é exclusivamente de aceleradores lineares;
-            # essa é a descrição declarada pela própria carga inicial, não
-            # uma inferência por CNPJ nem por componente.
-            if descricao_manual is None and convenio.tipo_contratacao == "PERSUS I":
-                descricao_manual = "Acelerador Linear"
-            if not descricao_manual:
-                continue
-            antes = list((convenio.siconv_raw or {}).get("itens_plano_aplicacao") or [])
-            adicionar_item_manual_inicial(
-                convenio,
-                descricao_manual,
-                instrumento.origem_dado if instrumento is not None else convenio.origem_dado,
-            )
-            depois = list((convenio.siconv_raw or {}).get("itens_plano_aplicacao") or [])
-            if len(depois) > len(antes):
-                resultado["itens_manuais_integrados"] += 1
+        resultado["itens_manuais_integrados"] = _integrar_itens_manuais(db, instrumentos_por_numero)
 
         catalogo = catalogo_por_codigo(db)
-        chaves_existentes: set[tuple[OrigemMarcador, int, int, str]] = set()
-        for marcador in ([] if aplicar else db.execute(select(EquipamentoMarcador)).scalars()):
-            origem_id: int | None
-            if marcador.convenio_id is not None:
-                origem: OrigemMarcador = "convenio"
-                origem_id = marcador.convenio_id
-            elif marcador.proposta_candidata_id is not None:
-                origem = "proposta_candidata"
-                origem_id = marcador.proposta_candidata_id
-            else:
-                origem = "instrumento_equipamento"
-                origem_id = marcador.instrumento_equipamento_id
-            assert origem_id is not None
-            chaves_existentes.add((origem, origem_id, marcador.equipamento_catalogo_id, marcador.chave_evidencia))
+        chaves_existentes = _chaves_existentes(db, aplicar)
         resultado["marcadores_ja_existentes"] = len(chaves_existentes)
 
         for convenio in db.execute(select(Convenio)).scalars():

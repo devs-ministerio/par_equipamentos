@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { buscarMacrorregioesGeoJson } from '@/services/geojson';
+import { useQuery } from "@tanstack/react-query";
+import { buscarMacrorregioesGeoJson } from "@/services/geojson";
 
 /**
  * Geometria das 121 macrorregiões de saúde (vendorizada em public/geo/, ver
@@ -10,7 +10,7 @@ import { buscarMacrorregioesGeoJson } from '@/services/geojson';
  */
 export function useMacroGeojson() {
   return useQuery({
-    queryKey: ['macro-geojson'],
+    queryKey: ["macro-geojson"],
     queryFn: buscarMacrorregioesGeoJson,
     staleTime: Infinity,
   });

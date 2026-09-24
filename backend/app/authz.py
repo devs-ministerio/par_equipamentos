@@ -16,6 +16,7 @@ decisão de produto pendente -- não implementado aqui. `assert_e_admin`
 `UserRole.admin` no código, só pra esse módulo específico -- não altera o
 gate binário do resto do app.
 """
+
 from __future__ import annotations
 
 from app.db.models import User, UserRole

@@ -32,6 +32,7 @@ proposta_candidata.id_proposta (como string) igual a nr_convenio.
 Uso: python -m scripts.job_verificacao_transferegov (de dentro de
 backend/, venv ativo).
 """
+
 from __future__ import annotations
 
 from sqlalchemy import or_
@@ -56,11 +57,7 @@ def _resolver_id_proposta(db, nr_convenio: str) -> int | None:
     id_proposta = _int_ou_none(nr_convenio)
     if id_proposta is not None:
         criterios.append(PropostaCandidata.id_proposta == id_proposta)
-    candidata = (
-        db.query(PropostaCandidata)
-        .filter(or_(*criterios))
-        .one_or_none()
-    )
+    candidata = db.query(PropostaCandidata).filter(or_(*criterios)).one_or_none()
     return candidata.id_proposta if candidata else None
 
 
@@ -107,7 +104,9 @@ def run() -> None:
             .all()
         )
         if not instrumentos:
-            print("Nenhum InstrumentoEquipamento com tipo_contratacao='Parceria TransfereGov' cadastrado -- nada pra verificar.")
+            print(
+                "Nenhum InstrumentoEquipamento com tipo_contratacao='Parceria TransfereGov' cadastrado -- nada pra verificar."
+            )
         for inst in instrumentos:
             id_proposta = _resolver_id_proposta(db, inst.nr_convenio)
             if id_proposta is None:
@@ -117,25 +116,36 @@ def run() -> None:
             situacao_parceria, situacao_op = _situacao_atual(sessao, id_proposta)
             mudou: dict[str, dict] = {}
             if situacao_parceria != inst.situacao_parceria_transferegov:
-                mudou["situacao_parceria_transferegov"] = {"old": inst.situacao_parceria_transferegov, "new": situacao_parceria}
+                mudou["situacao_parceria_transferegov"] = {
+                    "old": inst.situacao_parceria_transferegov,
+                    "new": situacao_parceria,
+                }
                 inst.situacao_parceria_transferegov = situacao_parceria
             if situacao_op != inst.situacao_ordem_pagamento_transferegov:
-                mudou["situacao_ordem_pagamento_transferegov"] = {"old": inst.situacao_ordem_pagamento_transferegov, "new": situacao_op}
+                mudou["situacao_ordem_pagamento_transferegov"] = {
+                    "old": inst.situacao_ordem_pagamento_transferegov,
+                    "new": situacao_op,
+                }
                 inst.situacao_ordem_pagamento_transferegov = situacao_op
 
             if mudou:
-                db.add(Notificacao(
-                    tipo=NotificacaoTipo.atualizacao_api,
-                    titulo=f"Convênio {inst.nr_convenio} mudou de situação no TransfereGov",
-                    corpo=", ".join(f"{c}: {v['old'] or '(vazio)'} → {v['new']}" for c, v in mudou.items()),
-                    entidade_id=inst.id,
-                ))
+                db.add(
+                    Notificacao(
+                        tipo=NotificacaoTipo.atualizacao_api,
+                        titulo=f"Convênio {inst.nr_convenio} mudou de situação no TransfereGov",
+                        corpo=", ".join(f"{c}: {v['old'] or '(vazio)'} → {v['new']}" for c, v in mudou.items()),
+                        entidade_id=inst.id,
+                    )
+                )
                 atualizados += 1
         db.commit()
     finally:
         db.close()
 
-    print(f"Concluído: {atualizados} instrumento(s) com situação atualizada" + (f", {sem_id_proposta} sem proposta candidata correspondente (ignorado)." if sem_id_proposta else "."))
+    print(
+        f"Concluído: {atualizados} instrumento(s) com situação atualizada"
+        + (f", {sem_id_proposta} sem proposta candidata correspondente (ignorado)." if sem_id_proposta else ".")
+    )
 
 
 if __name__ == "__main__":

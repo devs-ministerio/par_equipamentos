@@ -1,5 +1,5 @@
-import type { z } from 'zod';
-import { requisitar } from '@/lib/http-client';
+import type { z } from "zod";
+import { requisitar } from "@/lib/http-client";
 
 /** Ao contrário de `services/api.ts`, o formato de domínio dos services de
  * `monitoramento-*.ts`/`notificacoes.ts`/`propostas-candidatas.ts` continua
@@ -17,14 +17,22 @@ export function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
  * vai em toda chamada, autenticada ou não); mantido como nome próprio só
  * pra marcar no código quem depende de sessão vs. quem é público por
  * decisão (ex. `fetchMarcos`). */
-export function apiGetAuthed<T>(path: string, schema: z.ZodType<T>): Promise<T> {
+export function apiGetAuthed<T>(
+  path: string,
+  schema: z.ZodType<T>,
+): Promise<T> {
   return requisitar(path, schema, undefined);
 }
 
-export function apiAuthed<T>(path: string, schema: z.ZodType<T>, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown): Promise<T> {
+export function apiAuthed<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  method: "POST" | "PATCH" | "DELETE",
+  body?: unknown,
+): Promise<T> {
   return requisitar(path, schema, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }

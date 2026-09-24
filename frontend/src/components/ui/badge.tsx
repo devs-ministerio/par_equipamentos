@@ -1,8 +1,8 @@
-import * as React from "react"
-import { type VariantProps } from "class-variance-authority"
-import { cn } from "cn"
-import { Slot } from "radix-ui"
-import { badgeVariants } from "./badge-variants"
+import * as React from "react";
+import { type VariantProps } from "class-variance-authority";
+import { cn } from "cn";
+import { Slot } from "radix-ui";
+import { badgeVariants } from "./badge-variants";
 
 function Badge({
   className,
@@ -11,7 +11,7 @@ function Badge({
   ...props
 }: React.ComponentProps<"span"> &
   VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : "span"
+  const Comp = asChild ? Slot.Root : "span";
 
   return (
     <Comp
@@ -20,7 +20,7 @@ function Badge({
       className={cn(badgeVariants({ variant }), className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Badge }
+export { Badge };

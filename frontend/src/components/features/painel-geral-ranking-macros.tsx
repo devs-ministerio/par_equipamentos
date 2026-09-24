@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import type { MacroRankItem } from '@/hooks/usePainelGeralResumos';
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import type { MacroRankItem } from "@/hooks/usePainelGeralResumos";
 
 /**
  * Ranking (leaderboard) das 5 macros mais Hipo ou mais Hiper, com toggle
@@ -23,12 +23,19 @@ import type { MacroRankItem } from '@/hooks/usePainelGeralResumos';
  * O modo Hiper nao tinha esse problema (maior cobertura = mais barra = mais
  * folga, direcao ja intuitiva) e continua igual.
  */
-export function PainelGeralRankingMacros({ hipo, hiper }: { hipo: MacroRankItem[]; hiper: MacroRankItem[] }) {
-  const [modo, setModo] = useState<'hipo' | 'hiper'>('hipo');
-  const itens = modo === 'hipo' ? hipo : hiper;
-  const corTexto = modo === 'hipo' ? 'text-destructive' : 'text-success';
-  const corBarra = modo === 'hipo' ? 'bg-destructive' : 'bg-success';
-  const valorBarra = (item: MacroRankItem) => (modo === 'hipo' ? Math.max(0, 100 - item.cobertura) : item.cobertura);
+export function PainelGeralRankingMacros({
+  hipo,
+  hiper,
+}: {
+  hipo: MacroRankItem[];
+  hiper: MacroRankItem[];
+}) {
+  const [modo, setModo] = useState<"hipo" | "hiper">("hipo");
+  const itens = modo === "hipo" ? hipo : hiper;
+  const corTexto = modo === "hipo" ? "text-destructive" : "text-success";
+  const corBarra = modo === "hipo" ? "bg-destructive" : "bg-success";
+  const valorBarra = (item: MacroRankItem) =>
+    modo === "hipo" ? Math.max(0, 100 - item.cobertura) : item.cobertura;
   // Hipo usa escala ABSOLUTA (0-100, o proprio valor de severidade vira a
   // largura direto) -- diferente do Hiper, que so faz sentido relativo ao
   // maior dos 5 exibidos (bug real corrigido 2026-08-22: OESTE a 17% tinha
@@ -37,7 +44,8 @@ export function PainelGeralRankingMacros({ hipo, hiper }: { hipo: MacroRankItem[
   // literalmente 83% de barra). Hiper continua relativo porque nao tem teto
   // natural (chega a 570%) -- uma escala absoluta ali faria a maioria das
   // barras saturar no maximo e perder a diferenca entre os 5.
-  const maiorValor = modo === 'hipo' ? 100 : Math.max(...itens.map(valorBarra), 1);
+  const maiorValor =
+    modo === "hipo" ? 100 : Math.max(...itens.map(valorBarra), 1);
 
   if (hipo.length === 0 && hiper.length === 0) return null;
 
@@ -45,25 +53,35 @@ export function PainelGeralRankingMacros({ hipo, hiper }: { hipo: MacroRankItem[
     <div>
       <div className="mb-2.5 flex gap-1.5">
         <button
-          onClick={() => setModo('hipo')}
+          onClick={() => setModo("hipo")}
           disabled={hipo.length === 0}
           className={cn(
-            'rounded-full border-[1.5px] bg-card px-[11px] py-1 text-[11px] font-bold',
-            hipo.length === 0 ? 'cursor-default opacity-50' : 'cursor-pointer',
-            modo === 'hipo' ? 'border-destructive bg-destructive-bg text-destructive' : 'border-border',
-            modo !== 'hipo' && (hipo.length === 0 ? 'text-muted-foreground/70' : 'text-muted-foreground'),
+            "rounded-full border-[1.5px] bg-card px-[11px] py-1 text-[11px] font-bold",
+            hipo.length === 0 ? "cursor-default opacity-50" : "cursor-pointer",
+            modo === "hipo"
+              ? "border-destructive bg-destructive-bg text-destructive"
+              : "border-border",
+            modo !== "hipo" &&
+              (hipo.length === 0
+                ? "text-muted-foreground/70"
+                : "text-muted-foreground"),
           )}
         >
           ▾ 5 mais Hipo
         </button>
         <button
-          onClick={() => setModo('hiper')}
+          onClick={() => setModo("hiper")}
           disabled={hiper.length === 0}
           className={cn(
-            'rounded-full border-[1.5px] bg-card px-[11px] py-1 text-[11px] font-bold',
-            hiper.length === 0 ? 'cursor-default opacity-50' : 'cursor-pointer',
-            modo === 'hiper' ? 'border-success bg-success-bg text-success' : 'border-border',
-            modo !== 'hiper' && (hiper.length === 0 ? 'text-muted-foreground/70' : 'text-muted-foreground'),
+            "rounded-full border-[1.5px] bg-card px-[11px] py-1 text-[11px] font-bold",
+            hiper.length === 0 ? "cursor-default opacity-50" : "cursor-pointer",
+            modo === "hiper"
+              ? "border-success bg-success-bg text-success"
+              : "border-border",
+            modo !== "hiper" &&
+              (hiper.length === 0
+                ? "text-muted-foreground/70"
+                : "text-muted-foreground"),
           )}
         >
           ▴ 5 mais Hiper
@@ -83,9 +101,17 @@ export function PainelGeralRankingMacros({ hipo, hiper }: { hipo: MacroRankItem[
               {item.nome} ({item.uf})
             </span>
             <div className="h-1.5 flex-1 overflow-clip rounded-[3px] bg-[#eef0f4]">
-              <div className={cn('h-full', corBarra)} style={{ width: `${(valorBarra(item) / maiorValor) * 100}%` }} />
+              <div
+                className={cn("h-full", corBarra)}
+                style={{ width: `${(valorBarra(item) / maiorValor) * 100}%` }}
+              />
             </div>
-            <span className={cn('w-9 flex-shrink-0 whitespace-nowrap text-right text-[11.5px] font-bold', corTexto)}>
+            <span
+              className={cn(
+                "w-9 flex-shrink-0 whitespace-nowrap text-right text-[11.5px] font-bold",
+                corTexto,
+              )}
+            >
               {item.cobertura.toFixed(0)}%
             </span>
           </div>

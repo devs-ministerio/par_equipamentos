@@ -9,6 +9,7 @@ limite nao e compartilhado entre elas (cada replica conta separado). Para o
 volume atual do projeto isso e aceitavel; documentado aqui para nao virar
 suposicao de protecao mais forte do que realmente existe.
 """
+
 from __future__ import annotations
 
 from slowapi import Limiter

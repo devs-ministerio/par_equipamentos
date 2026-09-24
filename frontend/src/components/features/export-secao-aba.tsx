@@ -25,7 +25,7 @@ export function ExportSecaoAba({
   return (
     <div className="mt-3.5 overflow-hidden rounded-[8px] border border-border">
       <label
-        className={`block cursor-pointer bg-[#fafbfd] px-3.5 py-2.5 ${ativa ? 'border-b border-border' : ''}`}
+        className={`block cursor-pointer bg-[#fafbfd] px-3.5 py-2.5 ${ativa ? "border-b border-border" : ""}`}
       >
         <span className="flex items-center gap-2 text-[13px] font-bold text-[#16213e]">
           <input

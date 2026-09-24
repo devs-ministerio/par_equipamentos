@@ -6,20 +6,31 @@
  * abrir inline dentro do card de convênio (MonitoramentoInternoAcesso
  * agora só linka pra /login, ver docstring lá) -- pedido do usuário:
  * "preciso que o botão de login aponte para uma página de login". */
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuthSession } from '@/hooks/useAuthSession';
-import { Button } from '@/components/ui/button';
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { Button } from "@/components/ui/button";
 
 export function UserMenu() {
   const sessao = useAuthSession();
   const navigate = useNavigate();
   const location = useLocation();
 
+  function sairDaSessao() {
+    void sessao.sair();
+    navigate("/login", { replace: true });
+  }
+
   if (sessao.checandoSessao) return null;
 
   if (!sessao.autenticado) {
     return (
-      <Button size="sm" variant="outline" onClick={() => navigate('/login', { state: { from: location.pathname } })}>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() =>
+          navigate("/login", { state: { from: location.pathname } })
+        }
+      >
         Login
       </Button>
     );
@@ -29,14 +40,18 @@ export function UserMenu() {
     <div className="flex items-center gap-2">
       <span className="hidden text-xs text-muted-foreground sm:inline">
         {sessao.usuarioAtual?.name}
-        {!sessao.podeEditar && ' · leitor'}
+        {!sessao.podeEditar && " · leitor"}
       </span>
-      {sessao.usuarioAtual?.role === 'admin' && (
-        <Button size="sm" variant="ghost" onClick={() => navigate('/admin/usuarios')}>
+      {sessao.usuarioAtual?.role === "admin" && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => navigate("/admin/usuarios")}
+        >
           Usuários
         </Button>
       )}
-      <Button size="sm" variant="ghost" onClick={sessao.sair}>
+      <Button size="sm" variant="ghost" onClick={sairDaSessao}>
         Sair
       </Button>
     </div>

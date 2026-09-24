@@ -1,5 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchHealthRegionCoverage, fetchMunicipalityCoverage } from '@/services/api';
+import { useQuery } from "@tanstack/react-query";
+import {
+  fetchHealthRegionCoverage,
+  fetchMunicipalityCoverage,
+} from "@/services/api";
 
 interface UseDashboardHipoParams {
   equipmentFamily: string;
@@ -33,13 +36,20 @@ const POPULACAO_MINIMA_TOMOGRAFO = 100_000;
  * nova.
  */
 export function useDashboardHipo(params: UseDashboardHipoParams) {
-  const statesKey = params.states?.join(',') ?? '';
-  const macrosKey = params.macroCodes?.join(',') ?? '';
-  const regioesSaudeKey = params.healthRegionCodes?.join(',') ?? '';
-  const municipiosKey = params.municipalities?.join(',') ?? '';
+  const statesKey = params.states?.join(",") ?? "";
+  const macrosKey = params.macroCodes?.join(",") ?? "";
+  const regioesSaudeKey = params.healthRegionCodes?.join(",") ?? "";
+  const municipiosKey = params.municipalities?.join(",") ?? "";
 
   const municipiosQuery = useQuery({
-    queryKey: ['municipios-hipo', params.equipmentFamily, statesKey, macrosKey, regioesSaudeKey, municipiosKey],
+    queryKey: [
+      "municipios-hipo",
+      params.equipmentFamily,
+      statesKey,
+      macrosKey,
+      regioesSaudeKey,
+      municipiosKey,
+    ],
     queryFn: async () => {
       const rows = await fetchMunicipalityCoverage({
         equipmentFamily: params.equipmentFamily,
@@ -49,19 +59,27 @@ export function useDashboardHipo(params: UseDashboardHipoParams) {
         municipalities: params.municipalities,
         minPopulation: POPULACAO_MINIMA_TOMOGRAFO,
       });
-      return rows.filter((r) => r.status === 'Hipossuficiente').length;
+      return rows.filter((r) => r.status === "Hipossuficiente").length;
     },
   });
 
   const regioesSaudeQuery = useQuery({
-    queryKey: ['regioes-saude-hipo', params.equipmentFamily, statesKey, macrosKey],
+    queryKey: [
+      "regioes-saude-hipo",
+      params.equipmentFamily,
+      statesKey,
+      macrosKey,
+    ],
     queryFn: async () => {
       const rows = await fetchHealthRegionCoverage({
         equipmentFamily: params.equipmentFamily,
         states: params.states,
         macroCodes: params.macroCodes,
       });
-      return { hipo: rows.filter((r) => r.status === 'Hipossuficiente').length, total: rows.length };
+      return {
+        hipo: rows.filter((r) => r.status === "Hipossuficiente").length,
+        total: rows.length,
+      };
     },
   });
 

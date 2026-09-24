@@ -43,11 +43,25 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Formatação
+        run: npm run format:check
+
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Testes
-        run: npm run test
+      - name: Testes com cobertura
+        run: npm run test:coverage
+
+      - name: Publicar relatório de cobertura
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-coverage
+          path: |
+            frontend/coverage/coverage-final.json
+            frontend/coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Build
         run: npm run build

@@ -1,5 +1,8 @@
+from typing import cast
+
 import pytest
 from pydantic import ValidationError
+from requests import Session
 
 from app.pipeline import transferegov_parcerias
 from app.pipeline.transferegov_parcerias import _validar_registros_do_endpoint
@@ -35,7 +38,7 @@ def test_porta_dto_de_metas_expoe_modelo_tipado(monkeypatch):
         lambda *_args, **_kwargs: [{"etapas_proposta": [{"id_etapa_proposta": 7}]}],
     )
 
-    metas = transferegov_parcerias.buscar_metas_por_proposta_dto(object(), 123)
+    metas = transferegov_parcerias.buscar_metas_por_proposta_dto(cast(Session, object()), 123)
 
     assert len(metas) == 1
     assert isinstance(metas[0], transferegov_parcerias.MetaPropostaTransfereGov)

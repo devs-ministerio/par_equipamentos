@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { apiGetAuthed } from './monitoramento-client';
+import { z } from "zod";
+import { apiGetAuthed } from "./monitoramento-client";
 
 // ---------------------------------------------------------------------
 // Radar de Convênios -- propostas candidatas (backend/app/routers/propostas_candidatas.py)
@@ -61,12 +61,16 @@ export function fetchPropostasCandidatas(
   params: FetchPropostasCandidatasOpts = {},
 ): Promise<{ total: number; itens: PropostaCandidata[] }> {
   const qs = new URLSearchParams();
-  if (params.uf) qs.set('uf', params.uf);
-  if (params.busca) qs.set('busca', params.busca);
-  if (params.ano != null) qs.set('ano', String(params.ano));
-  if (params.idPrograma != null) qs.set('id_programa', String(params.idPrograma));
-  qs.set('pagina', String(params.pagina ?? 1));
-  qs.set('tamanho_pagina', String(params.tamanhoPagina ?? 500));
-  const query = qs.toString() ? `?${qs}` : '';
-  return apiGetAuthed(`/propostas-candidatas${query}`, propostaCandidataListaSchema);
+  if (params.uf) qs.set("uf", params.uf);
+  if (params.busca) qs.set("busca", params.busca);
+  if (params.ano != null) qs.set("ano", String(params.ano));
+  if (params.idPrograma != null)
+    qs.set("id_programa", String(params.idPrograma));
+  qs.set("pagina", String(params.pagina ?? 1));
+  qs.set("tamanho_pagina", String(params.tamanhoPagina ?? 500));
+  const query = qs.toString() ? `?${qs}` : "";
+  return apiGetAuthed(
+    `/propostas-candidatas${query}`,
+    propostaCandidataListaSchema,
+  );
 }

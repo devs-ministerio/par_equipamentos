@@ -180,6 +180,16 @@ def _extrair_cnes(metas: list[dict]) -> str | None:
     return melhor_cnes
 
 
+def _propostas_com_identificador(propostas: list[dict]) -> list[tuple[dict, int]]:
+    """Descarta payloads inválidos na borda antes da persistência."""
+    resultado = []
+    for proposta in propostas:
+        identificador = proposta.get("id_proposta")
+        if isinstance(identificador, int):
+            resultado.append((proposta, identificador))
+    return resultado
+
+
 def run() -> None:
     sessao = _sessao_com_retry()
     programas_alvo = _resolver_programas_alvo(sessao)
@@ -191,10 +201,7 @@ def run() -> None:
     try:
         for id_programa, info in programas_alvo.items():
             propostas = _paginar_transferegov("proposta", {"id_programa": id_programa}, sessao)
-            for p in propostas:
-                id_proposta = p.get("id_proposta")
-                if id_proposta is None:
-                    continue
+            for p, id_proposta in _propostas_com_identificador(propostas):
                 ds_objeto = p.get("ds_objeto") or ""
                 valores_api = {
                     "situacao_proposta": p.get("situacao_proposta"),

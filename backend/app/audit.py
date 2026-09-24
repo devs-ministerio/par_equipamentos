@@ -2,6 +2,7 @@
 de log chama log_action() em vez de inserir em audit_log na mao. Mantem o
 formato consistente e evita repetir logica em cada endpoint.
 """
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session

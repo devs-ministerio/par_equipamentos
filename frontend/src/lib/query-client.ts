@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient } from "@tanstack/react-query";
 
 /** Instância única do TanStack Query pro app inteiro (Parte C da migração
  * pra constituição, 2026-09-11) -- substitui o padrão manual

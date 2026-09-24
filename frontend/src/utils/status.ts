@@ -1,4 +1,4 @@
-import type { StatusCobertura } from '../types/domain';
+import type { StatusCobertura } from "../types/domain";
 
 /** `variant` em vez de hex direto (desde 2026-09-10) -- quem precisa do
  * className usa `variant` direto (StatusBadge); quem precisa do hex real
@@ -7,9 +7,11 @@ import type { StatusCobertura } from '../types/domain';
  * de statusMeta devolver hex cru duplicado das variaveis de index.css. */
 export function statusMeta(status: StatusCobertura): {
   label: StatusCobertura;
-  variant: 'success' | 'destructive' | 'secondary';
+  variant: "success" | "destructive" | "secondary";
 } {
-  if (status === 'Hiperssuficiente') return { label: status, variant: 'success' };
-  if (status === 'Hipossuficiente') return { label: status, variant: 'destructive' };
-  return { label: status, variant: 'secondary' };
+  if (status === "Hiperssuficiente")
+    return { label: status, variant: "success" };
+  if (status === "Hipossuficiente")
+    return { label: status, variant: "destructive" };
+  return { label: status, variant: "secondary" };
 }

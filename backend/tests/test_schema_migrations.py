@@ -14,6 +14,7 @@ inesperado se o head mudar no meio do caminho. Quem quer validar que as
 migrations rodam limpo do zero usa `alembic upgrade head` numa base
 vazia (CI/onboarding), não este teste.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import inspect

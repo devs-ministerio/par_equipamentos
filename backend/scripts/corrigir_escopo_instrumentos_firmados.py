@@ -27,6 +27,7 @@ Idempotente por `chave_origem` -- reexecutar não duplica nem gera novo
 identificador aleatório pra quem já foi corrigido. `--dry-run` faz rollback
 no final e imprime o que seria feito.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import delete, select
@@ -67,22 +68,24 @@ def _espelhar(*, db, instrumento: InstrumentoEquipamento, numero: str, chave_ori
 
 def executar(*, dry_run: bool) -> dict[str, int]:
     resultado = {
-        "faf_ted_migrados": 0, "persus1_nao_concluido_migrado": 0,
-        "movidos_para_convenio_apenas": 0, "instrumentos_removidos": 0,
+        "faf_ted_migrados": 0,
+        "persus1_nao_concluido_migrado": 0,
+        "movidos_para_convenio_apenas": 0,
+        "instrumentos_removidos": 0,
         "ja_corrigidos": 0,
     }
     with SessionLocal() as db:
-        existentes = {
-            n for n in db.execute(select(Convenio.numero)).scalars()
-        } | {
+        existentes = {n for n in db.execute(select(Convenio.numero)).scalars()} | {
             n for n in db.execute(select(InstrumentoEquipamento.nr_convenio)).scalars()
         }
 
-        instrumentos = db.execute(
-            select(InstrumentoEquipamento).where(
-                InstrumentoEquipamento.tipo_contratacao.in_(list(PREFIXOS))
+        instrumentos = (
+            db.execute(
+                select(InstrumentoEquipamento).where(InstrumentoEquipamento.tipo_contratacao.in_(list(PREFIXOS)))
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         for inst in instrumentos:
             tipo_contratacao = inst.tipo_contratacao

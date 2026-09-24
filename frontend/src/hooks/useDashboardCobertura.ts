@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchFacilities, fetchMacroCoverage } from '@/services/api';
-import type { FacilityOption } from '@/services/api';
-import type { CoberturaRow, Macrorregiao } from '@/types/domain';
+import { useQuery } from "@tanstack/react-query";
+import { fetchFacilities, fetchMacroCoverage } from "@/services/api";
+import type { FacilityOption } from "@/services/api";
+import type { CoberturaRow, Macrorregiao } from "@/types/domain";
 
 interface DashboardCoberturaData {
   macros: Macrorregiao[];
@@ -20,13 +20,17 @@ interface DashboardCoberturaData {
  */
 export function useDashboardCobertura(equipmentFamily: string) {
   const query = useQuery({
-    queryKey: ['dashboard-cobertura', equipmentFamily],
+    queryKey: ["dashboard-cobertura", equipmentFamily],
     queryFn: async (): Promise<DashboardCoberturaData> => {
       const [coverage, facilities] = await Promise.all([
         fetchMacroCoverage(equipmentFamily),
         fetchFacilities(equipmentFamily),
       ]);
-      return { macros: coverage.macros, coberturaRows: coverage.coberturaRows, facilities };
+      return {
+        macros: coverage.macros,
+        coberturaRows: coverage.coberturaRows,
+        facilities,
+      };
     },
   });
 

@@ -2,6 +2,7 @@
 cada subclasse de DomainError precisa cair no mesmo status/formato de
 corpo que HTTPException produzia antes da migração (Plan Mode backend
 2026-09-17, Bloco A)."""
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 

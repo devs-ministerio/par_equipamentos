@@ -20,9 +20,11 @@ export class ApiError extends Error {
 
   constructor(message: string, status?: number, publicMessage?: string) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
-    this.publicMessage = publicMessage ?? 'Não foi possível completar a operação. Tente novamente em instantes.';
+    this.publicMessage =
+      publicMessage ??
+      "Não foi possível completar a operação. Tente novamente em instantes.";
   }
 }
 
@@ -30,5 +32,5 @@ export class ApiError extends Error {
  * de erro visível, nunca `error.message`/`String(error)` direto. */
 export function mensagemSeguraDoErro(erro: unknown): string {
   if (erro instanceof ApiError) return erro.publicMessage;
-  return 'Não foi possível completar a operação. Tente novamente em instantes.';
+  return "Não foi possível completar a operação. Tente novamente em instantes.";
 }

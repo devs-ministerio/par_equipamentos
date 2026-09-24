@@ -1,5 +1,6 @@
 """app/pipeline/geo.py -- Haversine e o carregamento de coordenadas de
 municipio (raio de 75 km do Tomografo, ver comentario no proprio modulo)."""
+
 from __future__ import annotations
 
 from app.pipeline.geo import carregar_coordenadas_municipios, distancia_km, distancia_minima_km
@@ -27,7 +28,9 @@ def test_distancia_minima_km_acha_o_mais_perto():
         (-15.7939, -47.8828),  # Brasilia -- ~870km
         (-23.5329, -46.6395),  # quase o mesmo ponto -- deveria ganhar
     ]
-    assert distancia_minima_km(ponto, candidatos) < 5
+    distancia = distancia_minima_km(ponto, candidatos)
+    assert distancia is not None
+    assert distancia < 5
 
 
 def test_distancia_minima_km_vazio_e_none():

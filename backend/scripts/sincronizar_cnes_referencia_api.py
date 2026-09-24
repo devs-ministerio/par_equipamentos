@@ -14,6 +14,7 @@ convenio/instrumento_equipamento/proposta_candidata que ainda não estão (ou
 estão desatualizados) em cnes_estabelecimento. Idempotente -- upsert por
 `cnes`, roda de novo sem duplicar.
 """
+
 from __future__ import annotations
 
 from typing import cast
@@ -33,14 +34,10 @@ def _cnes_referenciados(db) -> set[str]:
     docs/arquitetura/planmode-database-2026-09-16.md)."""
     codigos: set[str] = set()
     for tabela in ("instrumento_equipamento", "convenio", "proposta_candidata"):
-        existe = db.execute(
-            text("select to_regclass(:t) is not null"), {"t": tabela}
-        ).scalar()
+        existe = db.execute(text("select to_regclass(:t) is not null"), {"t": tabela}).scalar()
         if not existe:
             continue
-        linhas = db.execute(
-            text(f"select distinct cnes from {tabela} where cnes ~ '^[0-9]{{7}}$'")
-        ).fetchall()
+        linhas = db.execute(text(f"select distinct cnes from {tabela} where cnes ~ '^[0-9]{{7}}$'")).fetchall()
         codigos.update(r[0] for r in linhas)
     return codigos
 

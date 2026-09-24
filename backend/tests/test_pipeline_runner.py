@@ -1,6 +1,7 @@
 """app/pipeline/runner.py -- garante que uma falha do pipeline fica
 registrada em AuditLog (nao so no stdout) e que a excecao original ainda
 sobe (exit code != 0 pro cron/GitHub Actions saber que falhou)."""
+
 from __future__ import annotations
 
 import pytest
@@ -26,6 +27,7 @@ def test_falha_e_registrada_sem_mensagem_ou_traceback_e_excecao_sobe():
             .order_by(AuditLog.id.desc())
             .limit(1)
         ).scalar_one()
+        assert registro.details is not None
         assert registro.details["pipeline"] == "__TESTE__"
         assert registro.details["error_type"] == "RuntimeError"
         assert "segredo-nao-auditavel" not in str(registro.details)

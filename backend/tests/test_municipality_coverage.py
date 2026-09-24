@@ -5,11 +5,9 @@ computado em tempo de leitura). Roda contra o banco configurado, como os
 outros testes de endpoint (sem camada de repositorio pra mockar) -- pula
 sozinho se nao houver dado carregado.
 """
+
 from __future__ import annotations
 
-import os
-
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -36,30 +34,6 @@ def _exec_id_tomografo(db):
     ).scalar_one_or_none()
 
 
-def _tem_dado() -> bool:
-    if not os.environ.get("TEST_DATABASE_URL"):
-        return False
-
-    db = SessionLocal()
-    try:
-        exec_id = _exec_id_tomografo(db)
-        if exec_id is None:
-            return False
-        return (
-            db.execute(
-                select(MunicipalityCoverage.id)
-                .where(MunicipalityCoverage.execution_id == exec_id, MunicipalityCoverage.equipment_family == "TOMOGRAFO")
-                .limit(1)
-            ).scalar_one_or_none()
-            is not None
-        )
-    finally:
-        db.close()
-
-
-pytestmark = pytest.mark.skipif(not _tem_dado(), reason="banco sem municipality_coverage carregada")
-
-
 def _primeiro_macro_com_mais_de_uma_regiao_de_saude() -> str:
     """Acha um macro_code com >=2 regioes de saude distintas -- pra testar a
     agregacao do /health-region-coverage com um caso nao-trivial."""
@@ -82,11 +56,11 @@ def _primeiro_macro_com_mais_de_uma_regiao_de_saude() -> str:
         db.close()
 
 
-def test_municipality_coverage_sem_filtro_devolve_todos_os_municipios_do_pais(headers_autenticados):
+def test_municipality_coverage_sem_filtro_devolve_cenario_sintetico_completo(headers_autenticados):
     rows = client.get(
         "/municipality-coverage", params={"equipment_family": "TOMOGRAFO"}, headers=headers_autenticados
     ).json()
-    assert len(rows) >= 5000  # ~5570 municipios brasileiros
+    assert {row["municipality_name"] for row in rows} == {"Cidade Alfa", "Cidade Beta", "Cidade Gama"}
 
 
 def test_min_population_filtra_municipios_pequenos(headers_autenticados):

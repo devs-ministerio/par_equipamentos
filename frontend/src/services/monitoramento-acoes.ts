@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { apiAuthed, apiGetAuthed } from './monitoramento-client';
+import { z } from "zod";
+import { apiAuthed, apiGetAuthed } from "./monitoramento-client";
 
 // ---------------------------------------------------------------------
 // Monitoramento -- ações
@@ -29,8 +29,11 @@ const acaoMonitoramentoSchema = z.object({
 export type AcaoMonitoramento = z.infer<typeof acaoMonitoramentoSchema>;
 
 export function fetchAcoes(pendentes?: boolean): Promise<AcaoMonitoramento[]> {
-  const query = pendentes ? '?pendentes=true' : '';
-  return apiGetAuthed(`/monitoramento/acoes${query}`, z.array(acaoMonitoramentoSchema));
+  const query = pendentes ? "?pendentes=true" : "";
+  return apiGetAuthed(
+    `/monitoramento/acoes${query}`,
+    z.array(acaoMonitoramentoSchema),
+  );
 }
 
 export interface CriarAcaoInput {
@@ -40,12 +43,24 @@ export interface CriarAcaoInput {
   responsavel_id?: number | null;
 }
 
-export function criarAcao(nrConvenio: string, corpo: CriarAcaoInput): Promise<AcaoMonitoramento> {
-  return apiAuthed(`/monitoramento/instrumentos/${nrConvenio}/acoes`, acaoMonitoramentoSchema, 'POST', corpo);
+export function criarAcao(
+  nrConvenio: string,
+  corpo: CriarAcaoInput,
+): Promise<AcaoMonitoramento> {
+  return apiAuthed(
+    `/monitoramento/instrumentos/${nrConvenio}/acoes`,
+    acaoMonitoramentoSchema,
+    "POST",
+    corpo,
+  );
 }
 
 export function concluirAcao(acaoId: number): Promise<AcaoMonitoramento> {
-  return apiAuthed(`/monitoramento/acoes/${acaoId}/concluir`, acaoMonitoramentoSchema, 'PATCH');
+  return apiAuthed(
+    `/monitoramento/acoes/${acaoId}/concluir`,
+    acaoMonitoramentoSchema,
+    "PATCH",
+  );
 }
 
 /** Corrigir (append-only, ver docstring do model no backend) -- lança uma
@@ -57,10 +72,26 @@ export interface EditarAcaoInput {
   responsavel_id?: number | null;
 }
 
-export function editarAcao(acaoId: number, corpo: EditarAcaoInput): Promise<AcaoMonitoramento> {
-  return apiAuthed(`/monitoramento/acoes/${acaoId}`, acaoMonitoramentoSchema, 'PATCH', corpo);
+export function editarAcao(
+  acaoId: number,
+  corpo: EditarAcaoInput,
+): Promise<AcaoMonitoramento> {
+  return apiAuthed(
+    `/monitoramento/acoes/${acaoId}`,
+    acaoMonitoramentoSchema,
+    "PATCH",
+    corpo,
+  );
 }
 
-export function excluirAcao(acaoId: number, motivo: string): Promise<AcaoMonitoramento> {
-  return apiAuthed(`/monitoramento/acoes/${acaoId}`, acaoMonitoramentoSchema, 'DELETE', { motivo });
+export function excluirAcao(
+  acaoId: number,
+  motivo: string,
+): Promise<AcaoMonitoramento> {
+  return apiAuthed(
+    `/monitoramento/acoes/${acaoId}`,
+    acaoMonitoramentoSchema,
+    "DELETE",
+    { motivo },
+  );
 }

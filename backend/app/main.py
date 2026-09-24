@@ -1,4 +1,5 @@
 """Ponto de entrada da API do SIGEO."""
+
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -45,6 +46,8 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         status_code=429,
         content={"error": "Muitas tentativas. Tente novamente em instantes.", "detail": None},
     )
+
+
 app.include_router(auth.router)
 app.include_router(macro_coverage.router)
 app.include_router(municipality_coverage.router)

@@ -1,8 +1,12 @@
-import { SubNivelRows } from '@/components/features/sub-nivel-rows';
-import { StatusBadge } from '@/components/common/status-badge';
-import { formatMilhar, formatMultiplicador } from '@/utils/format';
-import type { CoberturaRow, Macrorregiao, NivelCoberturaRow } from '@/types/domain';
-import type { CoeficienteInfo } from '@/utils/coeficiente';
+import { SubNivelRows } from "@/components/features/sub-nivel-rows";
+import { StatusBadge } from "@/components/common/status-badge";
+import { formatMilhar, formatMultiplicador } from "@/utils/format";
+import type {
+  CoberturaRow,
+  Macrorregiao,
+  NivelCoberturaRow,
+} from "@/types/domain";
+import type { CoeficienteInfo } from "@/utils/coeficiente";
 
 interface Props {
   macroSelecionada: Macrorregiao | undefined;
@@ -34,7 +38,8 @@ export function MapaDetalheMacro({
   if (!macroSelecionada || !coberturaSelecionada) {
     return (
       <div className="text-[13px] text-muted-foreground">
-        Selecione uma macrorregião no mapa para ver o detalhe por região de saúde.
+        Selecione uma macrorregião no mapa para ver o detalhe por região de
+        saúde.
       </div>
     );
   }
@@ -42,43 +47,70 @@ export function MapaDetalheMacro({
   return (
     <div>
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[11px] text-muted-foreground">{macroSelecionada.id}</span>
+        <span className="font-mono text-[11px] text-muted-foreground">
+          {macroSelecionada.id}
+        </span>
         <div className="text-[15px] font-semibold">
-          {macroSelecionada.nome} <span className="font-normal text-muted-foreground">({macroSelecionada.uf})</span>
+          {macroSelecionada.nome}{" "}
+          <span className="font-normal text-muted-foreground">
+            ({macroSelecionada.uf})
+          </span>
         </div>
       </div>
 
       <div className="mt-2.5 flex items-center gap-2.5">
         <StatusBadge status={coberturaSelecionada.status} />
         {coefSelecionada?.valor != null && (
-          <span className="text-[12.5px] font-semibold" style={{ color: coefSelecionada.corTexto }}>
+          <span
+            className="text-[12.5px] font-semibold"
+            style={{ color: coefSelecionada.corTexto }}
+          >
             {formatMultiplicador(coefSelecionada.valor)}
           </span>
         )}
       </div>
 
       <div className="mt-2.5 text-xs leading-[1.7] text-muted-foreground">
-        {macroSelecionada.pop.toLocaleString('pt-BR')} hab. SUS-dependentes · {coberturaSelecionada.oferta} equipamento
-        {coberturaSelecionada.oferta === 1 ? '' : 's'} SUS
+        {macroSelecionada.pop.toLocaleString("pt-BR")} hab. SUS-dependentes ·{" "}
+        {coberturaSelecionada.oferta} equipamento
+        {coberturaSelecionada.oferta === 1 ? "" : "s"} SUS
         {coberturaSelecionada.ofertaTotal !== coberturaSelecionada.oferta &&
           ` de ${coberturaSelecionada.ofertaTotal} no total`}
         <br />
-        Pessoas por equipamento: {pessoasPorEquipSelecionada != null ? `${formatMilhar(pessoasPorEquipSelecionada)}/1` : '—'}
+        Pessoas por equipamento:{" "}
+        {pessoasPorEquipSelecionada != null
+          ? `${formatMilhar(pessoasPorEquipSelecionada)}/1`
+          : "—"}
       </div>
 
-      <div className="mt-4 text-[11px] font-bold tracking-[0.04em] text-muted-foreground uppercase">Regiões de saúde</div>
+      <div className="mt-4 text-[11px] font-bold tracking-[0.04em] text-muted-foreground uppercase">
+        Regiões de saúde
+      </div>
       <div className="mt-1.5">
-        {regioesSaudeLoading && <div className="py-2 text-xs text-muted-foreground">Carregando regiões de saúde...</div>}
+        {regioesSaudeLoading && (
+          <div className="py-2 text-xs text-muted-foreground">
+            Carregando regiões de saúde...
+          </div>
+        )}
         {regioesSaudeError && (
           <div role="alert" className="py-2 text-xs text-destructive">
             Não foi possível carregar as regiões de saúde.
           </div>
         )}
-        {!regioesSaudeLoading && !regioesSaudeError && regioesSaude && regioesSaude.length === 0 && (
-          <div className="py-2 text-xs text-muted-foreground">Nenhuma região de saúde encontrada.</div>
-        )}
+        {!regioesSaudeLoading &&
+          !regioesSaudeError &&
+          regioesSaude &&
+          regioesSaude.length === 0 && (
+            <div className="py-2 text-xs text-muted-foreground">
+              Nenhuma região de saúde encontrada.
+            </div>
+          )}
         {regioesSaude && regioesSaude.length > 0 && (
-          <SubNivelRows rows={regioesSaude} nivelAtual="regiaoSaude" equipmentFamily={equipmentFamily} />
+          <SubNivelRows
+            rows={regioesSaude}
+            nivelAtual="regiaoSaude"
+            equipmentFamily={equipmentFamily}
+          />
         )}
       </div>
     </div>

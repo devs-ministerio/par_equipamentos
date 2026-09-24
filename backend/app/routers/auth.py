@@ -1,4 +1,5 @@
 """Rotas de autenticacao."""
+
 from __future__ import annotations
 
 import hashlib
@@ -43,7 +44,12 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     clientes HTTP do frontend ja operam so por cookie e nao ha consumidor
     externo de API."""
     user = db.execute(select(User).where(User.email == corpo.email.lower().strip())).scalar_one_or_none()
-    if user is None or user.status != UserStatus.active or user.deleted_at is not None or user.activation_token_hash is not None:
+    if (
+        user is None
+        or user.status != UserStatus.active
+        or user.deleted_at is not None
+        or user.activation_token_hash is not None
+    ):
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
     if user.locked_until is not None and user.locked_until > datetime.now(timezone.utc):
         # Mesma mensagem generica de credencial invalida -- nao sinalizar
@@ -56,8 +62,8 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
 
     registrar_sucesso_login(user)
-    access_token = create_access_token(user)
-    refresh_token = create_refresh_token(db, user)
+    refresh_token, refresh_token_id = create_refresh_token(db, user)
+    access_token = create_access_token(user, refresh_token_id)
     db.commit()
     set_session_cookies(response, access_token, refresh_token)
     return {"status": "ok"}
@@ -66,7 +72,9 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
 @router.post("/ativar")
 @limiter.limit("5/minute")
 def ativar(request: Request, corpo: UserActivationRequest, response: Response, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.activation_token_hash == hashlib.sha256(corpo.token.encode()).hexdigest())).scalar_one_or_none()
+    user = db.execute(
+        select(User).where(User.activation_token_hash == hashlib.sha256(corpo.token.encode()).hexdigest())
+    ).scalar_one_or_none()
     if user is None or user.activation_expires_at is None or user.activation_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Convite inválido ou expirado.")
     user.password_hash = hash_password(corpo.password)
@@ -75,7 +83,8 @@ def ativar(request: Request, corpo: UserActivationRequest, response: Response, d
     user.activated_at = datetime.now(timezone.utc)
     registrar_sucesso_login(user)
     db.commit()
-    set_session_cookies(response, create_access_token(user), create_refresh_token(db, user))
+    refresh_token, refresh_token_id = create_refresh_token(db, user)
+    set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
     db.commit()
     return {"status": "ok"}
 
@@ -83,14 +92,22 @@ def ativar(request: Request, corpo: UserActivationRequest, response: Response, d
 @router.post("/esqueci-senha")
 @limiter.limit("3/minute")
 def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.email == corpo.email.lower().strip(), User.deleted_at.is_(None))).scalar_one_or_none()
+    user = db.execute(
+        select(User).where(User.email == corpo.email.lower().strip(), User.deleted_at.is_(None))
+    ).scalar_one_or_none()
     if user is not None and settings.servico_email_configurado:
         token = secrets.token_urlsafe(32)
         user.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
         user.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
         db.commit()
         try:
-            enviar_link(destinatario=user.email, nome=user.name, token=token, assunto="Redefina sua senha do SIGEO", caminho="/redefinir-senha")
+            enviar_link(
+                destinatario=user.email,
+                nome=user.name,
+                token=token,
+                assunto="Redefina sua senha do SIGEO",
+                caminho="/redefinir-senha",
+            )
         except Exception:
             db.rollback()
     return {"status": "ok"}
@@ -99,7 +116,9 @@ def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session 
 @router.post("/redefinir-senha")
 @limiter.limit("5/minute")
 def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Response, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.activation_token_hash == hashlib.sha256(corpo.token.encode()).hexdigest())).scalar_one_or_none()
+    user = db.execute(
+        select(User).where(User.activation_token_hash == hashlib.sha256(corpo.token.encode()).hexdigest())
+    ).scalar_one_or_none()
     if user is None or user.activation_expires_at is None or user.activation_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
     user.password_hash = hash_password(corpo.password)
@@ -108,7 +127,8 @@ def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Res
     user.activated_at = user.activated_at or datetime.now(timezone.utc)
     revoke_all_refresh_tokens_for_user(db, user.id)
     db.commit()
-    set_session_cookies(response, create_access_token(user), create_refresh_token(db, user))
+    refresh_token, refresh_token_id = create_refresh_token(db, user)
+    set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
     db.commit()
     return {"status": "ok"}
 
@@ -122,8 +142,8 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     token = request.cookies.get(REFRESH_COOKIE_NAME)
     if token is None:
         raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
-    user, novo_refresh = rotate_refresh_token(db, token)
-    novo_access = create_access_token(user)
+    user, novo_refresh, nova_sessao_id = rotate_refresh_token(db, token)
+    novo_access = create_access_token(user, nova_sessao_id)
     set_session_cookies(response, novo_access, novo_refresh)
     return {"status": "ok"}
 

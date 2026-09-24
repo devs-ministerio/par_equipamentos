@@ -14,9 +14,7 @@ def normalizar_status_externo(valor: str | None) -> str | None:
     if not valor:
         return None
     sem_acentos = "".join(
-        caractere
-        for caractere in unicodedata.normalize("NFKD", valor)
-        if not unicodedata.combining(caractere)
+        caractere for caractere in unicodedata.normalize("NFKD", valor) if not unicodedata.combining(caractere)
     )
     return " ".join(sem_acentos.casefold().split())
 

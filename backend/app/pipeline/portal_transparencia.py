@@ -20,6 +20,7 @@ Confirmado ao vivo (2026-09-03): sem a chave o endpoint devolve 401
 Unauthorized (nao e 403/paywall -- so falta credencial, que qualquer
 usuario gov.br gera na hora).
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -66,7 +67,8 @@ class ConvenioNaoEncontradoError(RuntimeError):
 def _sessao_com_retry() -> requests.Session:
     session = requests.Session()
     retry = Retry(
-        total=3, backoff_factor=2,
+        total=3,
+        backoff_factor=2,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
     )
@@ -139,13 +141,23 @@ def validar_convenios(numeros: Sequence[str | int]) -> list[ResultadoConsulta]:
     for numero in numeros:
         try:
             dado = buscar_convenio_por_numero(numero, session=session)
-            resultados.append(ResultadoConsulta(
-                numero=str(numero), encontrado=dado is not None, dado=dado, erro=None,
-            ))
+            resultados.append(
+                ResultadoConsulta(
+                    numero=str(numero),
+                    encontrado=dado is not None,
+                    dado=dado,
+                    erro=None,
+                )
+            )
         except ChaveApiAusenteError:
             raise  # configuracao ausente afeta tudo -- nao faz sentido seguir tentando
         except requests.RequestException as e:
-            resultados.append(ResultadoConsulta(
-                numero=str(numero), encontrado=False, dado=None, erro=str(e),
-            ))
+            resultados.append(
+                ResultadoConsulta(
+                    numero=str(numero),
+                    encontrado=False,
+                    dado=None,
+                    erro=str(e),
+                )
+            )
     return resultados

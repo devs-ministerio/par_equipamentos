@@ -1,4 +1,5 @@
 """Casos de uso de instrumentos monitorados."""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass

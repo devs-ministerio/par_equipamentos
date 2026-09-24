@@ -1,14 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
-import { useMonitoramentoResumo } from './useMonitoramentoResumo';
-import { ApiError } from '@/lib/api-error';
-import type { ResumoMonitoramento } from '@/services/monitoramento-resumo';
+import { describe, expect, it, vi } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { useMonitoramentoResumo } from "./useMonitoramentoResumo";
+import { ApiError } from "@/lib/api-error";
+import type { ResumoMonitoramento } from "@/services/monitoramento-resumo";
 
 // Fronteira externa (fetch) mockada -- o que está sob teste é o hook
 // (queryKey, propagação de sucesso/erro do TanStack Query), não o service.
-vi.mock('@/services/monitoramento-resumo', () => ({
+vi.mock("@/services/monitoramento-resumo", () => ({
   fetchResumoMonitoramento: vi.fn(),
 }));
 
@@ -28,13 +28,18 @@ const RESUMO_EXEMPLO: ResumoMonitoramento = {
 };
 
 function wrapper({ children }: { children: ReactNode }) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
 }
 
-describe('useMonitoramentoResumo', () => {
-  it('devolve o resumo em caso de sucesso', async () => {
-    const { fetchResumoMonitoramento } = await import('@/services/monitoramento-resumo');
+describe("useMonitoramentoResumo", () => {
+  it("devolve o resumo em caso de sucesso", async () => {
+    const { fetchResumoMonitoramento } =
+      await import("@/services/monitoramento-resumo");
     vi.mocked(fetchResumoMonitoramento).mockResolvedValue(RESUMO_EXEMPLO);
 
     const { result } = renderHook(() => useMonitoramentoResumo(), { wrapper });
@@ -43,9 +48,16 @@ describe('useMonitoramentoResumo', () => {
     expect(result.current.data).toEqual(RESUMO_EXEMPLO);
   });
 
-  it('propaga o erro (ApiError) em caso de falha', async () => {
-    const { fetchResumoMonitoramento } = await import('@/services/monitoramento-resumo');
-    vi.mocked(fetchResumoMonitoramento).mockRejectedValue(new ApiError('Falha de rede', undefined, 'Não foi possível completar a operação.'));
+  it("propaga o erro (ApiError) em caso de falha", async () => {
+    const { fetchResumoMonitoramento } =
+      await import("@/services/monitoramento-resumo");
+    vi.mocked(fetchResumoMonitoramento).mockRejectedValue(
+      new ApiError(
+        "Falha de rede",
+        undefined,
+        "Não foi possível completar a operação.",
+      ),
+    );
 
     const { result } = renderHook(() => useMonitoramentoResumo(), { wrapper });
 

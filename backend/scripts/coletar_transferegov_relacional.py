@@ -25,6 +25,7 @@ Escopo (decisao deliberada, documentada aqui pra nao ficar implicita):
 Uso: python -m scripts.coletar_transferegov_relacional (de dentro de
 backend/, venv ativo). Grava em scripts/output/transferegov_relacional.json.
 """
+
 from __future__ import annotations
 
 import json
@@ -97,14 +98,21 @@ def run() -> None:
 
             for parceria in tg.buscar_parcerias_por_proposta(session, id_proposta):
                 id_parceria = parceria["id_parceria"]
-                bloco_proposta["parcerias"].append({
-                    "parceria": parceria,
-                    "empenhos": tg.buscar_empenhos_por_parceria(session, id_parceria),
-                    "documentos_habeis": [
-                        {**doc, "ordens_pagamento": tg.buscar_ordens_pagamento_por_documento(session, doc["id_documento_habil"])}
-                        for doc in tg.buscar_documentos_habeis_por_parceria(session, id_parceria)
-                    ],
-                })
+                bloco_proposta["parcerias"].append(
+                    {
+                        "parceria": parceria,
+                        "empenhos": tg.buscar_empenhos_por_parceria(session, id_parceria),
+                        "documentos_habeis": [
+                            {
+                                **doc,
+                                "ordens_pagamento": tg.buscar_ordens_pagamento_por_documento(
+                                    session, doc["id_documento_habil"]
+                                ),
+                            }
+                            for doc in tg.buscar_documentos_habeis_por_parceria(session, id_parceria)
+                        ],
+                    }
+                )
 
             entrada_ente["propostas_expandidas"].append(bloco_proposta)
 
@@ -115,8 +123,10 @@ def run() -> None:
 
     total_propostas_expandidas = sum(len(e["propostas_expandidas"]) for e in resultado)
     total_parcerias = sum(len(p["parcerias"]) for e in resultado for p in e["propostas_expandidas"])
-    print(f"\nConcluido: {len(resultado)} entes, {total_propostas_expandidas} proposta(s) com "
-          f"'EQUIPAMENTO' expandida(s), {total_parcerias} parceria(s) encontrada(s).")
+    print(
+        f"\nConcluido: {len(resultado)} entes, {total_propostas_expandidas} proposta(s) com "
+        f"'EQUIPAMENTO' expandida(s), {total_parcerias} parceria(s) encontrada(s)."
+    )
     print(f"Gravado em {SAIDA}")
 
 

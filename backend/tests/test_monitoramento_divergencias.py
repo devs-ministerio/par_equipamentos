@@ -1,6 +1,8 @@
 from datetime import datetime
 from types import SimpleNamespace
+from typing import cast
 
+from app.db.models import PropostaCandidata
 from app.services.monitoramento_divergencias import divergencia_conclusao, normalizar_status_externo
 
 
@@ -39,7 +41,7 @@ def test_proposta_paga_nao_gera_divergencia():
     resultado = divergencia_conclusao(
         instrumento(tipo_contratacao="Parceria TransfereGov", situacao_prestacao_contas=None),
         fase_concluida=True,
-        proposta=proposta,
+        proposta=cast(PropostaCandidata, proposta),
     )
     assert resultado is None
 
@@ -49,7 +51,7 @@ def test_proposta_aberta_gera_divergencia():
     resultado = divergencia_conclusao(
         instrumento(tipo_contratacao="Parceria TransfereGov", situacao_prestacao_contas=None),
         fase_concluida=True,
-        proposta=proposta,
+        proposta=cast(PropostaCandidata, proposta),
     )
     assert resultado is not None
     assert resultado.fonte_externa == "Proposta TransfereGov"

@@ -1,14 +1,20 @@
-import type { Regiao } from '../types/domain';
+import type { Regiao } from "../types/domain";
 
-export const REGIOES: Regiao[] = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'];
+export const REGIOES: Regiao[] = [
+  "Norte",
+  "Nordeste",
+  "Centro-Oeste",
+  "Sudeste",
+  "Sul",
+];
 
 export const TIPOLOGIA_PERSUS: Record<string, string> = {
-  A: 'Ampliação (Infraestrutura + equipamento)',
-  CV: 'Casamata Vazia (Equipamento)',
-  C: 'Construção (Infraestrutura + equipamento)',
-  EO: 'Equipamento Obsoleto (Equipamento)',
-  'C.B': 'Construção com Braquiterapia (Infraestrutura + equipamento)',
-  NA: 'Não se aplica',
+  A: "Ampliação (Infraestrutura + equipamento)",
+  CV: "Casamata Vazia (Equipamento)",
+  C: "Construção (Infraestrutura + equipamento)",
+  EO: "Equipamento Obsoleto (Equipamento)",
+  "C.B": "Construção com Braquiterapia (Infraestrutura + equipamento)",
+  NA: "Não se aplica",
 };
 
 // Geometria das 121 macrorregioes de saude, vendorizada localmente em
@@ -32,7 +38,7 @@ export const TIPOLOGIA_PERSUS: Record<string, string> = {
 // Fica em public/ (nao importada como modulo) pra so ser baixada quando uma
 // pagina com mapa (`/` ou `/mapa`) realmente monta, em vez de inflar o
 // bundle JS principal carregado em toda pagina.
-export const GEOJSON_MACRORREGIOES_URL = '/geo/macrorregioes.geojson';
+export const GEOJSON_MACRORREGIOES_URL = "/geo/macrorregioes.geojson";
 
 export interface EquipamentoOption {
   familia: string;
@@ -63,18 +69,48 @@ export interface EquipamentoOption {
 }
 
 export const EQUIPAMENTOS: EquipamentoOption[] = [
-  { familia: 'TOMOGRAFO', rotulo: 'Tomógrafo', produtividade: 100_000, disponivel: true },
-  { familia: 'RESSONANCIA', rotulo: 'Ressonância Magnética', produtividade: 5_000 / (30 / 1_000), disponivel: true },
+  {
+    familia: "TOMOGRAFO",
+    rotulo: "Tomógrafo",
+    produtividade: 100_000,
+    disponivel: true,
+  },
+  {
+    familia: "RESSONANCIA",
+    rotulo: "Ressonância Magnética",
+    produtividade: 5_000 / (30 / 1_000),
+    disponivel: true,
+  },
   // 1 PET-CT por 1,5 milhao de habitantes SUS-dependentes (Portaria de
   // Consolidacao GM/MS n. 1/2017, art. 102-106). Pipeline real 2026-08-28
   // (backend/scripts/run_pipeline_pet_ct.py) -- a mesma portaria tambem fixa
   // criterio de acesso ao radiofarmaco (FDG, meia-vida 110min) em ate 2h,
   // ver MunicipioDetalheModal/distance_km_nearest_radiopharma (informativo,
   // nao entra nesse coeficiente).
-  { familia: 'PET_CT', rotulo: 'PET-CT', produtividade: 1_500_000, disponivel: true },
-  { familia: 'ACELERADOR_LINEAR', rotulo: 'Acelerador Linear', produtividade: 100_000, disponivel: false },
-  { familia: 'ULTRASSOM', rotulo: 'Ultrassom', produtividade: 100_000, disponivel: false },
-  { familia: 'MAMOGRAFO', rotulo: 'Mamógrafo', produtividade: 100_000, disponivel: false },
+  {
+    familia: "PET_CT",
+    rotulo: "PET-CT",
+    produtividade: 1_500_000,
+    disponivel: true,
+  },
+  {
+    familia: "ACELERADOR_LINEAR",
+    rotulo: "Acelerador Linear",
+    produtividade: 100_000,
+    disponivel: false,
+  },
+  {
+    familia: "ULTRASSOM",
+    rotulo: "Ultrassom",
+    produtividade: 100_000,
+    disponivel: false,
+  },
+  {
+    familia: "MAMOGRAFO",
+    rotulo: "Mamógrafo",
+    produtividade: 100_000,
+    disponivel: false,
+  },
 ];
 
 /** Metadado da familia pedida, com fallback pra TOMOGRAFO se a familia nao
@@ -87,5 +123,5 @@ export function getEquipamento(familia: string): EquipamentoOption {
 /** "3 equipamentos SUS" / "1 equipamento SUS" -- termo generico (ver
  * EquipamentoOption.rotulo), so a concordancia singular/plural regular muda. */
 export function formatarQuantidadeEquipamento(qtd: number): string {
-  return `${qtd} equipamento${qtd === 1 ? '' : 's'}`;
+  return `${qtd} equipamento${qtd === 1 ? "" : "s"}`;
 }

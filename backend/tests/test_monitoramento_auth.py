@@ -7,13 +7,14 @@ comportamento HTTP (401 sem token), que só aparece passando pela pilha real
 do framework -- mesmo padrão já usado em `test_municipality_coverage.py`/
 `test_equipment_totals.py`.
 """
+
 from __future__ import annotations
 
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.auth import ACCESS_COOKIE_NAME, create_access_token, hash_password
+from app.auth import ACCESS_COOKIE_NAME, create_access_token, create_refresh_token, hash_password
 from app.db.base import SessionLocal
 from app.db.models import User, UserRole
 from app.main import app
@@ -42,7 +43,9 @@ def _token_usuario_teste(db, role: UserRole = UserRole.colaborador) -> str:
     db.add(user)
     db.commit()
     db.refresh(user)
-    return create_access_token(user)
+    _, refresh_token_id = create_refresh_token(db, user)
+    db.commit()
+    return create_access_token(user, refresh_token_id)
 
 
 def test_leituras_de_monitoramento_exigem_token():
@@ -59,6 +62,24 @@ def test_leituras_de_monitoramento_aceitam_token_valido():
         for rota in ROTAS_PROTEGIDAS_GET:
             resp = client.get(rota, headers=headers)
             assert resp.status_code == 200, f"{rota} deveria aceitar token válido, veio {resp.status_code}: {resp.text}"
+    finally:
+        db.close()
+
+
+def test_busca_cnes_expoe_apenas_campos_do_autocomplete_e_valida_termo():
+    db = SessionLocal()
+    try:
+        token = _token_usuario_teste(db)
+        headers = {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
+
+        resposta = client.get("/monitoramento/cnes-referencia", params={"q": "ab"}, headers=headers)
+        assert resposta.status_code == 200
+        assert len(resposta.json()) <= 20
+        for item in resposta.json():
+            assert set(item) == {"cnes", "nome_estabelecimento", "municipio", "uf"}
+
+        invalida = client.get("/monitoramento/cnes-referencia", params={"q": "x"}, headers=headers)
+        assert invalida.status_code == 422
     finally:
         db.close()
 

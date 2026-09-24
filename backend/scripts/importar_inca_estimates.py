@@ -14,6 +14,7 @@ proveniencia de arquivo no schema atual); controla versao so pelo `active`
 Uso: python -m scripts.importar_inca_estimates [caminho_do_csv] [trienio]
      (de dentro de backend/, com venv ativo)
 """
+
 from __future__ import annotations
 
 import csv
@@ -59,9 +60,11 @@ def importar(caminho: Path = CAMINHO_PADRAO, trienio: str = TRIENIO_PADRAO) -> N
 
     db = SessionLocal()
     try:
-        anteriores = db.query(IncaEstimate).filter(
-            IncaEstimate.level == IncaEstimateLevel.uf, IncaEstimate.active.is_(True)
-        ).all()
+        anteriores = (
+            db.query(IncaEstimate)
+            .filter(IncaEstimate.level == IncaEstimateLevel.uf, IncaEstimate.active.is_(True))
+            .all()
+        )
         for estimativa in anteriores:
             estimativa.active = False
 

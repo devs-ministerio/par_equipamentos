@@ -67,6 +67,7 @@ siconv_pagamento ~344MB sao os maiores) -- pode demorar alguns minutos,
 depois fica em cache local (scripts/output/cache/). Grava em
 scripts/output/siconv_legado.json.
 """
+
 from __future__ import annotations
 
 import csv
@@ -132,7 +133,9 @@ def _baixar_zip(nome: str) -> bytes:
         return caminho.read_bytes()
     DIR_CACHE.mkdir(parents=True, exist_ok=True)
     sessao = _sessao_com_retry()
-    with sessao.get(f"{BASE_URL}/{nome}.csv.zip", stream=True, timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"}) as resp:
+    with sessao.get(
+        f"{BASE_URL}/{nome}.csv.zip", stream=True, timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"}
+    ) as resp:
         resp.raise_for_status()
         with caminho.open("wb") as f:
             for chunk in resp.iter_content(chunk_size=1024 * 1024):
@@ -255,16 +258,20 @@ def run() -> None:
     for convenio in por_arquivo["siconv_convenio"]:
         nr = convenio["NR_CONVENIO"]
         id_programa = programa_de_proposta.get(convenio.get("ID_PROPOSTA", ""))
-        resultado.append({
-            "convenio": convenio,
-            "programa": programas_por_id.get(id_programa) if id_programa else None,
-            "empenhos": [e for e in por_arquivo["siconv_empenho"] if e["NR_CONVENIO"] == nr],
-            "desembolsos": [d for d in por_arquivo["siconv_desembolso"] if d["NR_CONVENIO"] == nr],
-            "licitacoes": [licitacao for licitacao in por_arquivo["siconv_licitacao"] if licitacao["NR_CONVENIO"] == nr],
-            "termos_aditivos": [t for t in por_arquivo["siconv_termo_aditivo"] if t["NR_CONVENIO"] == nr],
-            "pagamentos": [p for p in por_arquivo["siconv_pagamento"] if p["NR_CONVENIO"] == nr],
-            "itens_plano_aplicacao": itens_por_convenio.get(nr, []),
-        })
+        resultado.append(
+            {
+                "convenio": convenio,
+                "programa": programas_por_id.get(id_programa) if id_programa else None,
+                "empenhos": [e for e in por_arquivo["siconv_empenho"] if e["NR_CONVENIO"] == nr],
+                "desembolsos": [d for d in por_arquivo["siconv_desembolso"] if d["NR_CONVENIO"] == nr],
+                "licitacoes": [
+                    licitacao for licitacao in por_arquivo["siconv_licitacao"] if licitacao["NR_CONVENIO"] == nr
+                ],
+                "termos_aditivos": [t for t in por_arquivo["siconv_termo_aditivo"] if t["NR_CONVENIO"] == nr],
+                "pagamentos": [p for p in por_arquivo["siconv_pagamento"] if p["NR_CONVENIO"] == nr],
+                "itens_plano_aplicacao": itens_por_convenio.get(nr, []),
+            }
+        )
 
     SAIDA_JSON.parent.mkdir(parents=True, exist_ok=True)
     SAIDA_JSON.write_text(json.dumps(resultado, ensure_ascii=False, indent=2), encoding="utf-8")

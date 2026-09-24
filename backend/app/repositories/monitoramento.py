@@ -6,6 +6,7 @@ com `db: Session` posicional, nunca comitam -- mesmo contrato provado em
 `repositories/notificacoes.py` (padroes/backend/constituicao_backend.md
 Seção 3).
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -79,9 +80,7 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
             eventos_por_instrumento[evento.instrumento_id].append(evento)
 
     acoes_pendentes = db.execute(
-        select(func.count())
-        .select_from(AcaoMonitoramento)
-        .where(AcaoMonitoramento.data_conclusao.is_(None))
+        select(func.count()).select_from(AcaoMonitoramento).where(AcaoMonitoramento.data_conclusao.is_(None))
     ).scalar_one()
     acoes_atrasadas = db.execute(
         select(func.count())
@@ -106,9 +105,9 @@ def listar_instrumentos(db: Session, *, limit: int = 500) -> list[InstrumentoEqu
     # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
     # consolidacao 2026-09-17) -- universo monitorado e pequeno hoje (86).
     return list(
-        db.execute(
-            select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
-        ).scalars().all()
+        db.execute(select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio).limit(limit))
+        .scalars()
+        .all()
     )
 
 
@@ -128,9 +127,7 @@ def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:
 
 def listar_marcos_catalogo(db: Session, *, limit: int) -> list[MarcoCatalogo]:
     return list(
-        db.execute(
-            select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem).limit(limit)
-        ).scalars()
+        db.execute(select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem).limit(limit)).scalars()
     )
 
 
@@ -143,8 +140,9 @@ def mapa_eventos_por_instrumento(db: Session, marco_ids: list[int]) -> dict[int,
     eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
     if marco_ids:
         for instrumento_id, marco_id in db.execute(
-            select(EventoMarco.instrumento_id, EventoMarco.marco_id)
-            .where(EventoMarco.marco_id.in_(marco_ids), _EVENTO_ATIVO)
+            select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(
+                EventoMarco.marco_id.in_(marco_ids), _EVENTO_ATIVO
+            )
         ):
             eventos_por_instrumento[instrumento_id].add(marco_id)
     return eventos_por_instrumento
@@ -181,9 +179,7 @@ def buscar_cnes(db: Session, *, termo: str, limit: int) -> list[CnesEstabelecime
     return list(db.execute(stmt.limit(limit)).scalars())
 
 
-def listar_eventos_do_instrumento(
-    db: Session, instrumento_id: int, *, apenas_ativos: bool = True
-) -> list[EventoMarco]:
+def listar_eventos_do_instrumento(db: Session, instrumento_id: int, *, apenas_ativos: bool = True) -> list[EventoMarco]:
     """`apenas_ativos=False` devolve também os corrigidos/excluídos -- uso
     restrito à trilha de auditoria, nunca à timeline padrão.
 
@@ -198,9 +194,7 @@ def listar_eventos_do_instrumento(
     stmt = select(EventoMarco).where(EventoMarco.instrumento_id == instrumento_id)
     if apenas_ativos:
         stmt = stmt.where(_EVENTO_ATIVO)
-    return list(
-        db.execute(stmt.order_by(EventoMarco.created_at.desc(), EventoMarco.id.desc())).scalars().all()
-    )
+    return list(db.execute(stmt.order_by(EventoMarco.created_at.desc(), EventoMarco.id.desc())).scalars().all())
 
 
 def obter_evento_mais_recente_do_marco(
@@ -227,9 +221,7 @@ def obter_acao_por_id(db: Session, acao_id: int) -> AcaoMonitoramento | None:
     return db.get(AcaoMonitoramento, acao_id)
 
 
-def listar_acoes_monitoradas(
-    db: Session, *, pendentes: bool, limit: int
-) -> list[tuple[AcaoMonitoramento, str]]:
+def listar_acoes_monitoradas(db: Session, *, pendentes: bool, limit: int) -> list[tuple[AcaoMonitoramento, str]]:
     stmt = (
         select(AcaoMonitoramento, InstrumentoEquipamento.nr_convenio)
         .join(InstrumentoEquipamento, AcaoMonitoramento.instrumento_id == InstrumentoEquipamento.id)

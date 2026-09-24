@@ -4,6 +4,7 @@ o que se quer provar aqui é o comportamento HTTP observável (cookie
 setado, rotação, revogação), que só aparece passando pela pilha real do
 framework.
 """
+
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
@@ -84,13 +85,39 @@ def test_me_nao_aceita_mais_bearer_header():
     db = SessionLocal()
     try:
         user, _ = _criar_usuario(db)
-        token = create_access_token(user)
+        token = create_access_token(user, refresh_token_id=1)
         # Client novo, sem cookie de sessao na jar (o `client` module-level
         # ja tem cookie valido de outros testes deste arquivo).
         resp = TestClient(app).get("/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert resp.status_code == 401
     finally:
         db.close()
+
+
+def test_ativacao_e_redefinicao_rejeitam_token_invalido_sem_expor_o_valor():
+    """Os dois fluxos públicos precisam falhar igual para token inventado.
+
+    Além do status de domínio, o contrato impede que o token recebido volte
+    em ``detail`` — ele pode ter vindo de convite ou recuperação de senha.
+    """
+    from app.rate_limit import limiter
+
+    for rota in ("/auth/ativar", "/auth/redefinir-senha"):
+        limiter.reset()
+        token = f"token-invalido-{uuid4()}"
+        senha = f"senha-{uuid4()}"
+        cliente = TestClient(app)
+        cliente.cookies.set(CSRF_COOKIE_NAME, "csrf-contrato")
+        resposta = cliente.post(
+            rota,
+            json={"token": token, "password": senha},
+            headers={CSRF_HEADER_NAME: "csrf-contrato"},
+        )
+
+        assert resposta.status_code == 400
+        assert token not in resposta.text
+        assert "inválido ou expirado" in resposta.json()["error"].lower()
+        assert resposta.json()["detail"] is None
 
 
 def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
@@ -102,6 +129,7 @@ def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
         refresh_antigo = c.cookies.get(REFRESH_COOKIE_NAME)
         assert refresh_antigo is not None
         csrf = c.cookies.get(CSRF_COOKIE_NAME)
+        assert csrf is not None
 
         primeiro = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
         assert primeiro.status_code == 200
@@ -112,6 +140,7 @@ def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
         # de rotacao real, nao reemissao do mesmo token.
         c.cookies.set(REFRESH_COOKIE_NAME, refresh_antigo)
         csrf_novo = c.cookies.get(CSRF_COOKIE_NAME)
+        assert csrf_novo is not None
         reuso = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf_novo})
         assert reuso.status_code == 401
     finally:
@@ -139,7 +168,7 @@ def test_rotacao_concorrente_do_mesmo_token_so_uma_vence():
         db_setup.refresh(user)
 
         db_token = SessionLocal()
-        token = create_refresh_token(db_token, user)
+        token, _ = create_refresh_token(db_token, user)
         db_token.commit()
         db_token.close()
     finally:
@@ -169,6 +198,8 @@ def test_logout_revoga_refresh_no_servidor():
         c.post("/auth/login", json={"email": user.email, "password": senha})
         csrf = c.cookies.get(CSRF_COOKIE_NAME)
         refresh_antigo = c.cookies.get(REFRESH_COOKIE_NAME)
+        assert csrf is not None
+        assert refresh_antigo is not None
 
         logout = c.post("/auth/logout", headers={CSRF_HEADER_NAME: csrf})
         assert logout.status_code == 200
@@ -180,6 +211,33 @@ def test_logout_revoga_refresh_no_servidor():
         c.cookies.set(CSRF_COOKIE_NAME, csrf)
         pos_logout = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
         assert pos_logout.status_code == 401
+    finally:
+        db.close()
+
+
+def test_logout_invalida_imediatamente_access_cookie_reaproveitado():
+    """O logout precisa invalidar a sessão inteira, não só o refresh.
+
+    O navegador apaga o access cookie normalmente; aqui ele é recolocado de
+    propósito para provar que uma cópia anterior não continua autorizando
+    chamadas até o vencimento natural do JWT.
+    """
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        c = TestClient(app)
+        c.post("/auth/login", json={"email": user.email, "password": senha})
+        csrf = c.cookies.get(CSRF_COOKIE_NAME)
+        access_antigo = c.cookies.get(ACCESS_COOKIE_NAME)
+        assert csrf is not None
+        assert access_antigo is not None
+
+        resposta_logout = c.post("/auth/logout", headers={CSRF_HEADER_NAME: csrf})
+        assert resposta_logout.status_code == 200
+
+        c.cookies.set(ACCESS_COOKIE_NAME, access_antigo)
+        acesso_reaproveitado = c.get("/auth/me")
+        assert acesso_reaproveitado.status_code == 401
     finally:
         db.close()
 

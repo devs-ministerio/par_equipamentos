@@ -1,14 +1,21 @@
-import { useState, useMemo } from 'react';
-import type { ReactNode } from 'react';
-import { EQUIPAMENTOS } from '../data/constants';
-import { CHAVE_STORAGE_FAMILIA, FamiliaEquipamentoContext } from '@/hooks/use-familia-equipamento';
+import { useState, useMemo } from "react";
+import type { ReactNode } from "react";
+import { EQUIPAMENTOS } from "../data/constants";
+import {
+  CHAVE_STORAGE_FAMILIA,
+  FamiliaEquipamentoContext,
+} from "@/hooks/use-familia-equipamento";
 
 const CHAVE_STORAGE = CHAVE_STORAGE_FAMILIA;
 
 function familiaInicial(): string {
   try {
     const salva = localStorage.getItem(CHAVE_STORAGE);
-    if (salva && EQUIPAMENTOS.some((eq) => eq.familia === salva && eq.disponivel)) return salva;
+    if (
+      salva &&
+      EQUIPAMENTOS.some((eq) => eq.familia === salva && eq.disponivel)
+    )
+      return salva;
   } catch {
     // localStorage indisponível (janela privada etc.) -- segue com o default
   }
@@ -23,7 +30,11 @@ function familiaInicial(): string {
  * localStorage só como conveniência (lembrar a última escolha do navegador),
  * não é fonte de verdade compartilhada entre abas/usuários.
  */
-export function FamiliaEquipamentoProvider({ children }: { children: ReactNode }) {
+export function FamiliaEquipamentoProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [familia, setFamiliaState] = useState<string>(familiaInicial);
 
   const setFamilia = (nova: string) => {
@@ -37,5 +48,9 @@ export function FamiliaEquipamentoProvider({ children }: { children: ReactNode }
 
   const value = useMemo(() => ({ familia, setFamilia }), [familia]);
 
-  return <FamiliaEquipamentoContext.Provider value={value}>{children}</FamiliaEquipamentoContext.Provider>;
+  return (
+    <FamiliaEquipamentoContext.Provider value={value}>
+      {children}
+    </FamiliaEquipamentoContext.Provider>
+  );
 }

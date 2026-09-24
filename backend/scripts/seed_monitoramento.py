@@ -15,6 +15,7 @@ So roda esse instrumento de proposito (decisao do usuario 2026-09-03:
 
 Uso: python -m scripts.seed_monitoramento (de dentro de backend/, venv ativo).
 Idempotente: pode rodar de novo, so ignora o que ja existe (nao duplica)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -28,15 +29,56 @@ from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamen
 CATALOGO = [
     # --- fase_geral: a mesma tabela de correlacao Situacao/Fase/% da planilha ---
     ("fase_nao_iniciado", MarcoGrupo.fase_geral, 0, 0.0, "Não iniciado", "Em ação preparatória"),
-    ("fase_em_licitacao", MarcoGrupo.fase_geral, 1, 0.10, "Em licitação", "Instrumento formalizado, cotação prévia em andamento"),
-    ("fase_aguardando_repasse", MarcoGrupo.fase_geral, 2, 0.20, "Aguardando repasse", "Licitação homologada, sem repasse do FNS"),
-    ("fase_equipamento_em_aquisicao", MarcoGrupo.fase_geral, 3, 0.30, "Equipamento em aquisição", "Repasse feito para a entidade"),
+    (
+        "fase_em_licitacao",
+        MarcoGrupo.fase_geral,
+        1,
+        0.10,
+        "Em licitação",
+        "Instrumento formalizado, cotação prévia em andamento",
+    ),
+    (
+        "fase_aguardando_repasse",
+        MarcoGrupo.fase_geral,
+        2,
+        0.20,
+        "Aguardando repasse",
+        "Licitação homologada, sem repasse do FNS",
+    ),
+    (
+        "fase_equipamento_em_aquisicao",
+        MarcoGrupo.fase_geral,
+        3,
+        0.30,
+        "Equipamento em aquisição",
+        "Repasse feito para a entidade",
+    ),
     ("fase_contratado", MarcoGrupo.fase_geral, 4, 0.50, "Contratado", "Invoice emitido, reforma não iniciada"),
     ("fase_em_andamento", MarcoGrupo.fase_geral, 5, 0.80, "Em andamento", "Invoice emitido, reforma iniciada"),
-    ("fase_comissionamento", MarcoGrupo.fase_geral, 6, 0.95, "Comissionamento", "Equipamento no local, aguardando licença de operação"),
-    ("fase_equipamento_entregue", MarcoGrupo.fase_geral, 7, 0.99, "Equipamento entregue", "Com licença, aguardando inauguração"),
-    ("fase_concluido", MarcoGrupo.fase_geral, 8, 1.0, "Concluído", "Inaugurado e com licença de operação emitida pela CNEN"),
-
+    (
+        "fase_comissionamento",
+        MarcoGrupo.fase_geral,
+        6,
+        0.95,
+        "Comissionamento",
+        "Equipamento no local, aguardando licença de operação",
+    ),
+    (
+        "fase_equipamento_entregue",
+        MarcoGrupo.fase_geral,
+        7,
+        0.99,
+        "Equipamento entregue",
+        "Com licença, aguardando inauguração",
+    ),
+    (
+        "fase_concluido",
+        MarcoGrupo.fase_geral,
+        8,
+        1.0,
+        "Concluído",
+        "Inaugurado e com licença de operação emitida pela CNEN",
+    ),
     # --- cronograma_fisico: datas pontuais, sem status de sistema nenhum ---
     ("cronograma_inicio_fabricacao", MarcoGrupo.cronograma_fisico, None, None, "Início da fabricação", None),
     ("cronograma_chegada_porto", MarcoGrupo.cronograma_fisico, None, None, "Chegada no Brasil (porto)", None),
@@ -52,12 +94,18 @@ CATALOGO = [
     ("cronograma_trp", MarcoGrupo.cronograma_fisico, None, None, "TRP — recebimento provisório", None),
     ("cronograma_trd", MarcoGrupo.cronograma_fisico, None, None, "TRD — recebimento definitivo", None),
     ("cronograma_chegada_obra", MarcoGrupo.cronograma_fisico, None, None, "Chegada na obra", None),
-
     # --- regulatorio: so relevante pra equipamento que emite radiacao (linac,
     # braquiterapia, PET-CT, gama camara) -- status vem do vocabulario da
     # propria CNEN/planilha (NI/NA/Em análise/Em diligência/Deferido).
     ("regulatorio_matricula_cnen", MarcoGrupo.regulatorio, None, None, "Matrícula CNEN", None),
-    ("regulatorio_descomissionamento", MarcoGrupo.regulatorio, None, None, "SCRA descomissionamento (equipamento antigo)", None),
+    (
+        "regulatorio_descomissionamento",
+        MarcoGrupo.regulatorio,
+        None,
+        None,
+        "SCRA descomissionamento (equipamento antigo)",
+        None,
+    ),
     ("regulatorio_modificacao_casamata", MarcoGrupo.regulatorio, None, None, "SCRA modificação/casamata", None),
     ("regulatorio_licenca_operacao", MarcoGrupo.regulatorio, None, None, "Licença de operação/alteração", None),
 ]
@@ -104,14 +152,27 @@ CNES_948686 = dict(
 # status_regulatorio por engano -- ver migration a9cd77597629, que tambem
 # corrige quem ja rodou este seed antes dessa mudanca).
 EVENTOS_948686 = [
-    ("fase_equipamento_em_aquisicao", date(2025, 7, 25), None, None, None, None,
-     "Repasse FNS realizado (R$ 9.003.200,00) — fonte: Portal da Transparência/SICONV."),
-    ("regulatorio_matricula_cnen", None, None, None, "16981", None,
-     "Matrícula CNEN registrada pra este instrumento."),
-    ("regulatorio_modificacao_casamata", date(2025, 10, 13), None, "Deferido", None, None,
-     "SCRA 2025SCRA2197 de modificação/casamata enviado à CNEN em 13/10/25 e deferido. "
-     "Contexto: em 08/10/25 foi solicitado esclarecimento via TransfereGov/SEI sobre "
-     "revisão do RPAS; instituição respondeu em 13/10 com o SCRA."),
+    (
+        "fase_equipamento_em_aquisicao",
+        date(2025, 7, 25),
+        None,
+        None,
+        None,
+        None,
+        "Repasse FNS realizado (R$ 9.003.200,00) — fonte: Portal da Transparência/SICONV.",
+    ),
+    ("regulatorio_matricula_cnen", None, None, None, "16981", None, "Matrícula CNEN registrada pra este instrumento."),
+    (
+        "regulatorio_modificacao_casamata",
+        date(2025, 10, 13),
+        None,
+        "Deferido",
+        None,
+        None,
+        "SCRA 2025SCRA2197 de modificação/casamata enviado à CNEN em 13/10/25 e deferido. "
+        "Contexto: em 08/10/25 foi solicitado esclarecimento via TransfereGov/SEI sobre "
+        "revisão do RPAS; instituição respondeu em 13/10 com o SCRA.",
+    ),
 ]
 
 
@@ -123,8 +184,12 @@ def run() -> None:
             if codigo in marcos_por_codigo:
                 continue
             marco = MarcoCatalogo(
-                codigo=codigo, grupo=grupo, ordem=ordem,
-                execucao_fisica_pct_referencia=pct, rotulo=rotulo, descricao_referencia=desc,
+                codigo=codigo,
+                grupo=grupo,
+                ordem=ordem,
+                execucao_fisica_pct_referencia=pct,
+                rotulo=rotulo,
+                descricao_referencia=desc,
             )
             db.add(marco)
         db.flush()
@@ -148,21 +213,34 @@ def run() -> None:
             print(f"Instrumento 948686 já existe (id={instrumento.id}) — não duplicado.")
 
         eventos_existentes = {
-            (e.marco_id, e.observacao) for e in
-            db.query(EventoMarco).filter_by(instrumento_id=instrumento.id).all()
+            (e.marco_id, e.observacao) for e in db.query(EventoMarco).filter_by(instrumento_id=instrumento.id).all()
         }
         criados = 0
-        for codigo, data_ocorrencia, data_prevista, status_reg, numero_documento, data_validade, observacao in EVENTOS_948686:
+        for (
+            codigo,
+            data_ocorrencia,
+            data_prevista,
+            status_reg,
+            numero_documento,
+            data_validade,
+            observacao,
+        ) in EVENTOS_948686:
             marco = marcos_por_codigo[codigo]
             if (marco.id, observacao) in eventos_existentes:
                 continue
-            db.add(EventoMarco(
-                instrumento_id=instrumento.id, marco_id=marco.id,
-                data_ocorrencia=data_ocorrencia, data_prevista=data_prevista,
-                status_regulatorio=status_reg, numero_documento=numero_documento,
-                data_validade=data_validade, observacao=observacao,
-                autor_id=None,  # autoria em texto livre por enquanto (login fica pra depois)
-            ))
+            db.add(
+                EventoMarco(
+                    instrumento_id=instrumento.id,
+                    marco_id=marco.id,
+                    data_ocorrencia=data_ocorrencia,
+                    data_prevista=data_prevista,
+                    status_regulatorio=status_reg,
+                    numero_documento=numero_documento,
+                    data_validade=data_validade,
+                    observacao=observacao,
+                    autor_id=None,  # autoria em texto livre por enquanto (login fica pra depois)
+                )
+            )
             criados += 1
         print(f"Eventos: {criados} novo(s) (de {len(EVENTOS_948686)} candidatos).")
 

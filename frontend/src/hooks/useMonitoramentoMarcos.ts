@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchMarcos } from '@/services/monitoramento-marcos';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+import { useQuery } from "@tanstack/react-query";
+import { fetchMarcos } from "@/services/monitoramento-marcos";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Catálogo fixo de marcos (fase geral / cronograma físico / regulatório)
  * -- praticamente estático, `staleTime` bem maior que o default global

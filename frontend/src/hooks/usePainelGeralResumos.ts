@@ -1,14 +1,14 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries } from "@tanstack/react-query";
 import {
   fetchEquipmentTotals,
   fetchHealthRegionCoverage,
   fetchLegalNatureBreakdown,
   fetchMacroCoverage,
   fetchMunicipalityCoverage,
-} from '@/services/api';
-import type { NaturezaJuridicaBreakdown } from '@/services/api';
-import { REGIOES } from '@/data/constants';
-import type { CoberturaRow, Macrorregiao, Regiao } from '@/types/domain';
+} from "@/services/api";
+import type { NaturezaJuridicaBreakdown } from "@/services/api";
+import { REGIOES } from "@/data/constants";
+import type { CoberturaRow, Macrorregiao, Regiao } from "@/types/domain";
 
 // Corte de 100 mil habitantes usado pro card "Municípios Hipossuficientes" --
 // mesmo criterio (e mesma ressalva: especifico do parametro do TOMOGRAFO, ver
@@ -58,13 +58,16 @@ export interface ResumoFamilia {
   naturezaJuridica: NaturezaJuridicaBreakdown[];
 }
 
-export type EstadoResumo = ResumoFamilia | 'carregando' | 'erro';
+export type EstadoResumo = ResumoFamilia | "carregando" | "erro";
 
 async function buscarResumoFamilia(familia: string): Promise<ResumoFamilia> {
   const [coverage, totais, municipios, regioes, natureza] = await Promise.all([
     fetchMacroCoverage(familia),
     fetchEquipmentTotals({ equipmentFamily: familia }),
-    fetchMunicipalityCoverage({ equipmentFamily: familia, minPopulation: POPULACAO_MINIMA_HIPO }),
+    fetchMunicipalityCoverage({
+      equipmentFamily: familia,
+      minPopulation: POPULACAO_MINIMA_HIPO,
+    }),
     fetchHealthRegionCoverage({ equipmentFamily: familia }),
     fetchLegalNatureBreakdown(familia),
   ]);
@@ -73,15 +76,23 @@ async function buscarResumoFamilia(familia: string): Promise<ResumoFamilia> {
 
   const comMacro = coverage.coberturaRows
     .map((r) => ({ row: r, macro: macroById.get(r.macroId) }))
-    .filter((x): x is { row: CoberturaRow; macro: Macrorregiao } => Boolean(x.macro));
-  const paraItem = ({ row, macro }: { row: CoberturaRow; macro: Macrorregiao }): MacroRankItem => ({
+    .filter((x): x is { row: CoberturaRow; macro: Macrorregiao } =>
+      Boolean(x.macro),
+    );
+  const paraItem = ({
+    row,
+    macro,
+  }: {
+    row: CoberturaRow;
+    macro: Macrorregiao;
+  }): MacroRankItem => ({
     macroId: row.macroId,
     nome: macro.nome,
     uf: macro.uf,
     cobertura: row.cobertura,
   });
   const top5Hipo = comMacro
-    .filter((x) => x.row.status === 'Hipossuficiente')
+    .filter((x) => x.row.status === "Hipossuficiente")
     .sort((a, b) => a.row.cobertura - b.row.cobertura)
     .slice(0, 5)
     .map(paraItem);
@@ -97,7 +108,7 @@ async function buscarResumoFamilia(familia: string): Promise<ResumoFamilia> {
     if (!macro) return;
     const atual = porRegiaoMap.get(macro.regiao) ?? { hipo: 0, total: 0 };
     atual.total += 1;
-    if (r.status === 'Hipossuficiente') atual.hipo += 1;
+    if (r.status === "Hipossuficiente") atual.hipo += 1;
     porRegiaoMap.set(macro.regiao, atual);
   });
   const porRegiao: RegiaoBreakdown[] = REGIOES.map((regiao) => ({
@@ -111,11 +122,14 @@ async function buscarResumoFamilia(familia: string): Promise<ResumoFamilia> {
     totalGeral: totais.existingQty,
     macros: coverage.macros,
     coberturaRows: coverage.coberturaRows,
-    macrosHipo: coverage.coberturaRows.filter((r) => r.status === 'Hipossuficiente').length,
+    macrosHipo: coverage.coberturaRows.filter(
+      (r) => r.status === "Hipossuficiente",
+    ).length,
     macrosTotal: coverage.coberturaRows.length,
-    municipiosHipo: municipios.filter((r) => r.status === 'Hipossuficiente').length,
+    municipiosHipo: municipios.filter((r) => r.status === "Hipossuficiente")
+      .length,
     municipiosTotal: municipios.length,
-    regioesHipo: regioes.filter((r) => r.status === 'Hipossuficiente').length,
+    regioesHipo: regioes.filter((r) => r.status === "Hipossuficiente").length,
     regioesTotal: regioes.length,
     top5Hipo,
     top5Hiper,
@@ -132,10 +146,12 @@ async function buscarResumoFamilia(familia: string): Promise<ResumoFamilia> {
  * depende de dado (o array passado), entao `useQueries` (nao varias
  * chamadas de `useQuery` em loop) e quem lida com isso corretamente.
  */
-export function usePainelGeralResumos(familias: string[]): Record<string, EstadoResumo> {
+export function usePainelGeralResumos(
+  familias: string[],
+): Record<string, EstadoResumo> {
   const queries = useQueries({
     queries: familias.map((familia) => ({
-      queryKey: ['painel-geral-resumo', familia],
+      queryKey: ["painel-geral-resumo", familia],
       queryFn: () => buscarResumoFamilia(familia),
     })),
   });
@@ -143,8 +159,8 @@ export function usePainelGeralResumos(familias: string[]): Record<string, Estado
   const resumos: Record<string, EstadoResumo> = {};
   familias.forEach((familia, i) => {
     const q = queries[i];
-    if (q.isPending) resumos[familia] = 'carregando';
-    else if (q.isError) resumos[familia] = 'erro';
+    if (q.isPending) resumos[familia] = "carregando";
+    else if (q.isError) resumos[familia] = "erro";
     else resumos[familia] = q.data as ResumoFamilia;
   });
   return resumos;

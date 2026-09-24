@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { buscarContornoMunicipio } from '@/services/geojson';
+import { useQuery } from "@tanstack/react-query";
+import { buscarContornoMunicipio } from "@/services/geojson";
 
 /**
  * Contorno REAL (poligono oficial) do municipio selecionado -- buscado sob
@@ -17,7 +17,7 @@ import { buscarContornoMunicipio } from '@/services/geojson';
  */
 export function useContornoMunicipio(ibgeCode7: string | null | undefined) {
   const query = useQuery({
-    queryKey: ['municipio-contorno', ibgeCode7],
+    queryKey: ["municipio-contorno", ibgeCode7],
     queryFn: () => buscarContornoMunicipio(ibgeCode7!),
     enabled: Boolean(ibgeCode7),
     staleTime: Infinity,
@@ -27,5 +27,8 @@ export function useContornoMunicipio(ibgeCode7: string | null | undefined) {
     retry: 1,
   });
 
-  return { contorno: query.isSuccess ? query.data : null, erro: query.isError ? query.error : null };
+  return {
+    contorno: query.isSuccess ? query.data : null,
+    erro: query.isError ? query.error : null,
+  };
 }

@@ -8,6 +8,7 @@ o DELETE quebrava com ForeignKeyViolation. Reproduz o mesmo padrao
 da antiga) direto contra o banco configurado, sem rodar o pipeline
 inteiro (que depende das 3 APIs externas).
 """
+
 from __future__ import annotations
 
 from sqlalchemy import delete
@@ -24,9 +25,13 @@ def test_troca_published_execution_id_antes_de_deletar_a_antiga():
         db.flush()
 
         antiga = Execution(
-            competency_id=competency.id, version=1, mode=ExecutionMode.manual,
-            status=ExecutionStatus.published, config_chave_macrorregiao="ibge_municipio",
-            config_denominador_oferta="qt_existente_sus", active_sources={},
+            competency_id=competency.id,
+            version=1,
+            mode=ExecutionMode.manual,
+            status=ExecutionStatus.published,
+            config_chave_macrorregiao="ibge_municipio",
+            config_denominador_oferta="qt_existente_sus",
+            active_sources={},
         )
         db.add(antiga)
         db.flush()
@@ -34,9 +39,13 @@ def test_troca_published_execution_id_antes_de_deletar_a_antiga():
         db.flush()
 
         nova = Execution(
-            competency_id=competency.id, version=2, mode=ExecutionMode.manual,
-            status=ExecutionStatus.published, config_chave_macrorregiao="ibge_municipio",
-            config_denominador_oferta="qt_existente_sus", active_sources={},
+            competency_id=competency.id,
+            version=2,
+            mode=ExecutionMode.manual,
+            status=ExecutionStatus.published,
+            config_chave_macrorregiao="ibge_municipio",
+            config_denominador_oferta="qt_existente_sus",
+            active_sources={},
         )
         db.add(nova)
         db.flush()

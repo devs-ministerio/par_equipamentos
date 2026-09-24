@@ -1,0 +1,108 @@
+name: E2E autenticado
+
+on:
+  push:
+    branches: [master]
+    paths: ["backend/**", "frontend/**", ".github/workflows/e2e_ci.yml"]
+  pull_request:
+    paths: ["backend/**", "frontend/**", ".github/workflows/e2e_ci.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16.9-alpine
+        env:
+          POSTGRES_DB: sigeo_e2e_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sigeo_e2e_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+        ports: ["5432:5432"]
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/sigeo_e2e_test
+      JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: lax
+      CORS_ORIGINS: http://127.0.0.1:5173
+      E2E_ISOLATED_DATABASE: "true"
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_SENHA: ${{ secrets.E2E_SENHA }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.17"
+          enable-cache: true
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências backend
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Instalar dependências frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Preparar banco isolado e conta E2E
+        working-directory: backend
+        run: |
+          if [ -z "$E2E_EMAIL" ] || [ -z "$E2E_SENHA" ]; then
+            echo "Secrets E2E_EMAIL e E2E_SENHA são obrigatórios para este gate." >&2
+            exit 1
+          fi
+          uv run alembic upgrade head
+          uv run python -m scripts.seed_monitoramento
+          uv run python -m scripts.provisionar_usuario_e2e
+
+      - name: Instalar Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Subir API e frontend isolados
+        run: |
+          (cd backend && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 > "$RUNNER_TEMP/sigeo-api.log" 2>&1) &
+          (cd frontend && VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev -- --host 127.0.0.1 --port 5173 > "$RUNNER_TEMP/sigeo-frontend.log" 2>&1) &
+          for ((tentativa = 1; tentativa <= 30; tentativa++)); do
+            if curl --fail --silent http://127.0.0.1:8000/health >/dev/null \
+              && curl --fail --silent http://127.0.0.1:5173/login >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Stack E2E não ficou disponível." >&2
+          exit 1
+
+      - name: Executar E2E serial autenticado
+        working-directory: frontend
+        env:
+          E2E_BASE_URL: http://127.0.0.1:5173
+        run: npm run test:e2e
+
+      - name: Publicar evidência de falha sem trace de credenciais
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: e2e-failure-evidence
+          path: |
+            frontend/test-results
+            ${{ runner.temp }}/sigeo-api.log
+            ${{ runner.temp }}/sigeo-frontend.log
+          if-no-files-found: warn
+          retention-days: 7

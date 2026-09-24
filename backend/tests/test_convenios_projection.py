@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 
 from app.db.models import Convenio
 from app.routers.convenios import CONVENIO_LIST_LOAD_ONLY, ConvenioRead, _projecao_disponibilidade_dados
@@ -35,7 +36,7 @@ def test_detalhe_convenio_continua_tendo_payload_cru_no_model():
 def test_carga_manual_projeta_desembolso_integral_sem_dados_oficiais():
     convenio = SimpleNamespace(tipo_contratacao="FAF", valor_global=125_000.0, valor_desembolsado=None)
 
-    resultado = _projecao_disponibilidade_dados(convenio)
+    resultado = _projecao_disponibilidade_dados(cast(Convenio, convenio))
 
     assert resultado == {
         "dados_oficiais_disponiveis": False,
@@ -47,7 +48,7 @@ def test_carga_manual_projeta_desembolso_integral_sem_dados_oficiais():
 def test_convenio_oficial_preserva_desembolso_extraido_da_fonte():
     convenio = SimpleNamespace(tipo_contratacao="Convênio", valor_global=125_000.0, valor_desembolsado=60_000.0)
 
-    resultado = _projecao_disponibilidade_dados(convenio)
+    resultado = _projecao_disponibilidade_dados(cast(Convenio, convenio))
 
     assert resultado == {
         "dados_oficiais_disponiveis": True,

@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import type { NivelCoberturaRow } from '@/types/domain';
-import { getEquipamento } from '@/data/constants';
-import { SubNivelRow } from './sub-nivel-row';
-import { MunicipioDetalheModal } from './municipio-detalhe-modal';
+import { useState } from "react";
+import type { NivelCoberturaRow } from "@/types/domain";
+import { getEquipamento } from "@/data/constants";
+import { SubNivelRow } from "./sub-nivel-row";
+import { MunicipioDetalheModal } from "./municipio-detalhe-modal";
 
 interface Props {
   rows: NivelCoberturaRow[];
   /** Que nivel essas linhas representam -- so 'regiaoSaude' pode expandir
    * (pra Municipio, que ja e o nivel mais fino que a base tem). */
-  nivelAtual: 'regiaoSaude' | 'municipio';
+  nivelAtual: "regiaoSaude" | "municipio";
   equipmentFamily: string;
   /** chaves ja selecionadas no filtro (so destaque visual). */
   selecionados?: string[];
@@ -52,7 +52,13 @@ interface Props {
 // "de bonus"), entao continua aparecendo do tamanho que for.
 const POPULACAO_MINIMA_PARA_HIPO = 100_000;
 
-export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, completo = false }: Props) {
+export function SubNivelRows({
+  rows,
+  nivelAtual,
+  equipmentFamily,
+  selecionados,
+  completo = false,
+}: Props) {
   const produtividade = getEquipamento(equipmentFamily).produtividade;
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
   // Self-contido (nao recebe callback do pai) -- SubNivelRows e chamado tanto
@@ -60,12 +66,15 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
   // mesmo (Regiao -> Municipio); threading um callback por 2+ niveis de
   // recursao so pra abrir o mesmo modal que MunicipioDetalheModal ja busca
   // tudo sozinho seria complexidade sem ganho.
-  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(null);
+  const [detalheAberto, setDetalheAberto] = useState<NivelCoberturaRow | null>(
+    null,
+  );
 
   function toggleExpandida(chave: string) {
     setExpandidas((prev) => {
       const next = new Set(prev);
-      if (next.has(chave)) next.delete(chave); else next.add(chave);
+      if (next.has(chave)) next.delete(chave);
+      else next.add(chave);
       return next;
     });
   }
@@ -74,10 +83,16 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
   // E nenhum tem tomografo nenhum, o corte normal deixaria a sub-camada
   // inteira vazia (parece "sem dado" em vez de "aqui so tem cidade pequena e
   // carente") -- nesse caso mostra todos, do jeito que sao.
-  const semGrandeNemEquipamento = rows.every((r) => r.pop < POPULACAO_MINIMA_PARA_HIPO && r.oferta === 0);
+  const semGrandeNemEquipamento = rows.every(
+    (r) => r.pop < POPULACAO_MINIMA_PARA_HIPO && r.oferta === 0,
+  );
   const rowsExibidas =
-    nivelAtual === 'municipio' && !semGrandeNemEquipamento
-      ? rows.filter((r) => r.status === 'Hiperssuficiente' || r.pop >= POPULACAO_MINIMA_PARA_HIPO)
+    nivelAtual === "municipio" && !semGrandeNemEquipamento
+      ? rows.filter(
+          (r) =>
+            r.status === "Hiperssuficiente" ||
+            r.pop >= POPULACAO_MINIMA_PARA_HIPO,
+        )
       : rows;
   const ocultos = rows.length - rowsExibidas.length;
 
@@ -87,12 +102,18 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
     if (ocultos > 0) {
       return (
         <div className="p-1 text-xs text-muted-foreground">
-          +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
+          +{ocultos} município{ocultos === 1 ? "" : "s"} oculto
+          {ocultos === 1 ? "" : "s"} abaixo de 100 mil habitantes.
         </div>
       );
     }
-    const rotulo = nivelAtual === 'regiaoSaude' ? 'região de saúde' : 'município';
-    return <div className="p-1 text-xs text-muted-foreground">Nenhuma {rotulo} encontrada.</div>;
+    const rotulo =
+      nivelAtual === "regiaoSaude" ? "região de saúde" : "município";
+    return (
+      <div className="p-1 text-xs text-muted-foreground">
+        Nenhuma {rotulo} encontrada.
+      </div>
+    );
   }
 
   return (
@@ -107,7 +128,10 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
           Com fixed, a coluna do indicador tem largura garantida e a de
           Nome fica com o espaco que sobrar (bastante, ja que agora so tem
           essas 2 colunas). */}
-      <table className="w-full border-collapse text-xs" style={{ tableLayout: 'fixed' }}>
+      <table
+        className="w-full border-collapse text-xs"
+        style={{ tableLayout: "fixed" }}
+      >
         <tbody>
           {rowsExibidas.map((linha) => (
             <SubNivelRow
@@ -127,11 +151,16 @@ export function SubNivelRows({ rows, nivelAtual, equipmentFamily, selecionados, 
       </table>
       {ocultos > 0 && (
         <div className="px-1 pt-1.5 text-[11px] text-muted-foreground">
-          +{ocultos} município{ocultos === 1 ? '' : 's'} oculto{ocultos === 1 ? '' : 's'} abaixo de 100 mil habitantes.
+          +{ocultos} município{ocultos === 1 ? "" : "s"} oculto
+          {ocultos === 1 ? "" : "s"} abaixo de 100 mil habitantes.
         </div>
       )}
       {detalheAberto && (
-        <MunicipioDetalheModal linha={detalheAberto} equipmentFamily={equipmentFamily} onClose={() => setDetalheAberto(null)} />
+        <MunicipioDetalheModal
+          linha={detalheAberto}
+          equipmentFamily={equipmentFamily}
+          onClose={() => setDetalheAberto(null)}
+        />
       )}
     </>
   );

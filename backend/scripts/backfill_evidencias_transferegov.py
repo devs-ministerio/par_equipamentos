@@ -18,9 +18,7 @@ def run() -> None:
     total_propostas = 0
     total_nos = 0
     with SessionLocal() as db:
-        propostas = db.execute(
-            select(PropostaCandidata).where(PropostaCandidata.metas_resumo.is_not(None))
-        ).scalars()
+        propostas = db.execute(select(PropostaCandidata).where(PropostaCandidata.metas_resumo.is_not(None))).scalars()
         for proposta in propostas:
             detalhe = proposta.metas_resumo
             if detalhe is None:

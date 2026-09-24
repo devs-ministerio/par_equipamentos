@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchPropostasCandidatas } from '@/services/propostas-candidatas';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+import { useQuery } from "@tanstack/react-query";
+import { fetchPropostasCandidatas } from "@/services/propostas-candidatas";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Candidatos descobertos no TransfereGov; a entrada no monitoramento é
  * explícita e usa o mesmo POST dos demais instrumentos. */

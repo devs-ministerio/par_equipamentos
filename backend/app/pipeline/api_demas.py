@@ -6,6 +6,7 @@ simples aqui, mais direto pra montar as linhas do banco).
 Endpoint verificado ao vivo em 2026-07-24:
   GET https://apidadosabertos.saude.gov.br/macrorregiao-e-regiao-de-saude/municipio
 """
+
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -69,7 +70,8 @@ class RegiaoSaude(TypedDict):
 def _sessao_com_retry() -> requests.Session:
     session = requests.Session()
     retry = Retry(
-        total=5, backoff_factor=2,
+        total=5,
+        backoff_factor=2,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
     )
@@ -130,7 +132,10 @@ def montar_dimensoes(
         co_regiao = str(r.codigo_regiao_saude)
         if co_regiao not in regioes:
             regioes[co_regiao] = RegiaoSaude(
-                co_regiao=co_regiao, no_regiao=r.regiao_saude, co_macro=co_macro, sg_uf=sg_uf,
+                co_regiao=co_regiao,
+                no_regiao=r.regiao_saude,
+                co_macro=co_macro,
+                sg_uf=sg_uf,
             )
         co_ibge = str(r.codigo_municipio)
         municipios[co_ibge] = Municipio(
@@ -153,13 +158,32 @@ def _limpar_nome_municipio(nome: str) -> str:
 _UF_POR_NOME_NORMALIZADO = {
     normalizar_texto(nome): sigla
     for nome, sigla in {
-        "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM", "Bahia": "BA",
-        "Ceará": "CE", "Distrito Federal": "DF", "Espírito Santo": "ES", "Goiás": "GO",
-        "Maranhão": "MA", "Mato Grosso": "MT", "Mato Grosso do Sul": "MS",
-        "Minas Gerais": "MG", "Pará": "PA", "Paraíba": "PB", "Paraná": "PR",
-        "Pernambuco": "PE", "Piauí": "PI", "Rio de Janeiro": "RJ",
-        "Rio Grande do Norte": "RN", "Rio Grande do Sul": "RS", "Rondônia": "RO",
-        "Roraima": "RR", "Santa Catarina": "SC", "São Paulo": "SP", "Sergipe": "SE",
+        "Acre": "AC",
+        "Alagoas": "AL",
+        "Amapá": "AP",
+        "Amazonas": "AM",
+        "Bahia": "BA",
+        "Ceará": "CE",
+        "Distrito Federal": "DF",
+        "Espírito Santo": "ES",
+        "Goiás": "GO",
+        "Maranhão": "MA",
+        "Mato Grosso": "MT",
+        "Mato Grosso do Sul": "MS",
+        "Minas Gerais": "MG",
+        "Pará": "PA",
+        "Paraíba": "PB",
+        "Paraná": "PR",
+        "Pernambuco": "PE",
+        "Piauí": "PI",
+        "Rio de Janeiro": "RJ",
+        "Rio Grande do Norte": "RN",
+        "Rio Grande do Sul": "RS",
+        "Rondônia": "RO",
+        "Roraima": "RR",
+        "Santa Catarina": "SC",
+        "São Paulo": "SP",
+        "Sergipe": "SE",
         "Tocantins": "TO",
     }.items()
 }

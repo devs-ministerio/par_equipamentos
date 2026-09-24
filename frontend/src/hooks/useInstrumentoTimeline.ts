@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type CadastroInstrumentoInput,
   type EditarEventoInput,
@@ -8,8 +8,8 @@ import {
   fetchInstrumentoTimeline,
   patchCadastroInstrumento,
   registrarEvento,
-} from '@/services/monitoramento-instrumentos';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+} from "@/services/monitoramento-instrumentos";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Timeline completa de 1 instrumento (dados + eventos + valor ao vivo) --
  * `data === null` (sem erro) é o caso normal de "convênio sem instrumento
@@ -28,10 +28,15 @@ export function useInstrumentoTimeline(nrConvenio: string) {
 export function useSalvarCadastroInstrumento(nrConvenio: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (corpo: CadastroInstrumentoInput) => patchCadastroInstrumento(nrConvenio, corpo),
+    mutationFn: (corpo: CadastroInstrumentoInput) =>
+      patchCadastroInstrumento(nrConvenio, corpo),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumento(nrConvenio) });
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumentos });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumento(nrConvenio),
+      });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumentos,
+      });
     },
   });
 }
@@ -43,10 +48,15 @@ export function useSalvarCadastroInstrumento(nrConvenio: string) {
 export function useRegistrarEvento(nrConvenio: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (corpo: RegistrarEventoInput) => registrarEvento(nrConvenio, corpo),
+    mutationFn: (corpo: RegistrarEventoInput) =>
+      registrarEvento(nrConvenio, corpo),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumento(nrConvenio) });
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumentos });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumento(nrConvenio),
+      });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumentos,
+      });
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
     },
   });
@@ -58,10 +68,20 @@ export function useRegistrarEvento(nrConvenio: string) {
 export function useEditarEvento(nrConvenio: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ eventoId, corpo }: { eventoId: number; corpo: EditarEventoInput }) => editarEvento(eventoId, corpo),
+    mutationFn: ({
+      eventoId,
+      corpo,
+    }: {
+      eventoId: number;
+      corpo: EditarEventoInput;
+    }) => editarEvento(eventoId, corpo),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumento(nrConvenio) });
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumentos });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumento(nrConvenio),
+      });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumentos,
+      });
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
     },
   });
@@ -70,10 +90,15 @@ export function useEditarEvento(nrConvenio: string) {
 export function useExcluirEvento(nrConvenio: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ eventoId, motivo }: { eventoId: number; motivo: string }) => excluirEvento(eventoId, motivo),
+    mutationFn: ({ eventoId, motivo }: { eventoId: number; motivo: string }) =>
+      excluirEvento(eventoId, motivo),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumento(nrConvenio) });
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumentos });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumento(nrConvenio),
+      });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.instrumentos,
+      });
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
     },
   });

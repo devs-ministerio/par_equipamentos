@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchHealthRegionCoverage, fetchMacroCoverage, fetchMunicipalityCoverage } from '../services/api';
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  fetchHealthRegionCoverage,
+  fetchMacroCoverage,
+  fetchMunicipalityCoverage,
+} from "../services/api";
 
 /**
  * Estado + fetch da navegação Macro -> Região de Saúde -> Município do Mapa
@@ -13,10 +17,12 @@ import { fetchHealthRegionCoverage, fetchMacroCoverage, fetchMunicipalityCoverag
  */
 export function useMapaFiltros(familia: string) {
   const [selectedMacroId, setSelectedMacroId] = useState<string | null>(null);
-  const [selectedMunicipioId, setSelectedMunicipioId] = useState<string | null>(null);
+  const [selectedMunicipioId, setSelectedMunicipioId] = useState<string | null>(
+    null,
+  );
 
   const coberturaQuery = useQuery({
-    queryKey: ['macro-coverage', familia],
+    queryKey: ["macro-coverage", familia],
     queryFn: () => fetchMacroCoverage(familia),
   });
   const macros = coberturaQuery.data?.macros ?? [];
@@ -28,14 +34,20 @@ export function useMapaFiltros(familia: string) {
   // esperando um clique no mapa nacional (decisao 2026-08-23).
   useEffect(() => {
     if (selectedMacroId || macros.length === 0) return;
-    const ordenadas = [...macros].sort((a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome));
+    const ordenadas = [...macros].sort(
+      (a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome),
+    );
     setSelectedMacroId(ordenadas[0].id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [macros]);
 
   const regioesSaudeQuery = useQuery({
-    queryKey: ['health-region-coverage', familia, selectedMacroId],
-    queryFn: () => fetchHealthRegionCoverage({ equipmentFamily: familia, macroCodes: [selectedMacroId as string] }),
+    queryKey: ["health-region-coverage", familia, selectedMacroId],
+    queryFn: () =>
+      fetchHealthRegionCoverage({
+        equipmentFamily: familia,
+        macroCodes: [selectedMacroId as string],
+      }),
     enabled: Boolean(selectedMacroId),
   });
 
@@ -43,8 +55,12 @@ export function useMapaFiltros(familia: string) {
   // tabela do Dashboard) -- aqui interessa poder escolher um municipio
   // pequeno, o caso que o criterio de raio de 75km existe pra cobrir.
   const municipiosMacroQuery = useQuery({
-    queryKey: ['municipality-coverage', familia, selectedMacroId],
-    queryFn: () => fetchMunicipalityCoverage({ equipmentFamily: familia, macroCodes: [selectedMacroId as string] }),
+    queryKey: ["municipality-coverage", familia, selectedMacroId],
+    queryFn: () =>
+      fetchMunicipalityCoverage({
+        equipmentFamily: familia,
+        macroCodes: [selectedMacroId as string],
+      }),
     enabled: Boolean(selectedMacroId),
   });
   const municipiosMacro = municipiosMacroQuery.data ?? [];
@@ -59,8 +75,12 @@ export function useMapaFiltros(familia: string) {
     ? municipiosMacro.find((m) => m.chave === selectedMunicipioId)
     : undefined;
 
-  const macroSelecionada = selectedMacroId ? macros.find((m) => m.id === selectedMacroId) : undefined;
-  const coberturaSelecionada = selectedMacroId ? coberturaRows.find((r) => r.macroId === selectedMacroId) : undefined;
+  const macroSelecionada = selectedMacroId
+    ? macros.find((m) => m.id === selectedMacroId)
+    : undefined;
+  const coberturaSelecionada = selectedMacroId
+    ? coberturaRows.find((r) => r.macroId === selectedMacroId)
+    : undefined;
 
   return {
     macros,

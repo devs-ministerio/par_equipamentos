@@ -22,11 +22,7 @@ def test_log_http_nao_registra_querystring_ou_segredo(caplog):
     assert response.status_code == 200
     assert response.headers["X-Trace-Id"]
 
-    eventos = [
-        json.loads(record.getMessage())
-        for record in caplog.records
-        if record.name == "sigeo.http"
-    ]
+    eventos = [json.loads(record.getMessage()) for record in caplog.records if record.name == "sigeo.http"]
     evento = next(item for item in eventos if item["event"] == "http_request")
     texto_evento = json.dumps(evento)
 

@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchMunicipalityCoverage } from '@/services/api';
-import type { NivelCoberturaRow } from '@/types/domain';
+import { useQuery } from "@tanstack/react-query";
+import { fetchMunicipalityCoverage } from "@/services/api";
+import type { NivelCoberturaRow } from "@/types/domain";
 
-type Dados = NivelCoberturaRow[] | 'carregando' | 'erro';
+type Dados = NivelCoberturaRow[] | "carregando" | "erro";
 
 /**
  * Municípios de UMA região de saúde -- busca sob demanda, só quando a região
@@ -10,13 +10,29 @@ type Dados = NivelCoberturaRow[] | 'carregando' | 'erro';
  * `healthRegionCode`: expandir uma região diferente é uma query nova e
  * independente.
  */
-export function useMunicipalityByHealthRegion(equipmentFamily: string, healthRegionCode: string, enabled: boolean) {
+export function useMunicipalityByHealthRegion(
+  equipmentFamily: string,
+  healthRegionCode: string,
+  enabled: boolean,
+) {
   const query = useQuery({
-    queryKey: ['municipality-coverage-by-health-region', equipmentFamily, healthRegionCode],
-    queryFn: () => fetchMunicipalityCoverage({ equipmentFamily, healthRegionCodes: [healthRegionCode] }),
+    queryKey: [
+      "municipality-coverage-by-health-region",
+      equipmentFamily,
+      healthRegionCode,
+    ],
+    queryFn: () =>
+      fetchMunicipalityCoverage({
+        equipmentFamily,
+        healthRegionCodes: [healthRegionCode],
+      }),
     enabled,
   });
 
-  const dados: Dados = query.isLoading ? 'carregando' : query.isError ? 'erro' : (query.data ?? []);
+  const dados: Dados = query.isLoading
+    ? "carregando"
+    : query.isError
+      ? "erro"
+      : (query.data ?? []);
   return { dados };
 }

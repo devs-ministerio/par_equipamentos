@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchEquipmentTotals } from '@/services/api';
-import type { EquipmentTotals } from '@/services/api';
+import { useQuery } from "@tanstack/react-query";
+import { fetchEquipmentTotals } from "@/services/api";
+import type { EquipmentTotals } from "@/services/api";
 
 interface UseDashboardTotaisParams {
   equipmentFamily: string;
@@ -22,15 +22,15 @@ interface UseDashboardTotaisParams {
  * via variavel `cancelado`, agora nativa).
  */
 export function useDashboardTotais(params: UseDashboardTotaisParams) {
-  const statesKey = params.states?.join(',') ?? '';
-  const macrosKey = params.macroCodes?.join(',') ?? '';
-  const regioesSaudeKey = params.healthRegionCodes?.join(',') ?? '';
-  const municipiosKey = params.municipalities?.join(',') ?? '';
-  const cnesKey = params.cnesCodes?.join(',') ?? '';
+  const statesKey = params.states?.join(",") ?? "";
+  const macrosKey = params.macroCodes?.join(",") ?? "";
+  const regioesSaudeKey = params.healthRegionCodes?.join(",") ?? "";
+  const municipiosKey = params.municipalities?.join(",") ?? "";
+  const cnesKey = params.cnesCodes?.join(",") ?? "";
 
   const query = useQuery({
     queryKey: [
-      'equipment-totals',
+      "equipment-totals",
       params.equipmentFamily,
       statesKey,
       macrosKey,

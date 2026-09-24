@@ -1,7 +1,6 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
-
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 :root {
   color-scheme: light;
@@ -64,7 +63,8 @@
   /* Sombra reservada a overlay (dialog/popover/dropdown) -- Secao 5:
      "sombra pesada em elemento estatico" e proibido -- card comum usa so
      borda, ver ui/card.tsx). */
-  --shadow-card: 0 1px 3px 0 rgb(28 26 22 / 0.06), 0 1px 2px -1px rgb(28 26 22 / 0.06);
+  --shadow-card:
+    0 1px 3px 0 rgb(28 26 22 / 0.06), 0 1px 2px -1px rgb(28 26 22 / 0.06);
   --shadow-overlay: 0 12px 32px -8px rgb(28 26 22 / 0.28);
   --shadow-control-focus: 0 0 0 3px rgb(45 106 92 / 0.35);
 }
@@ -108,19 +108,19 @@
   /* Public Sans e a fonte do app (carregada via Google Fonts em
      index.html) -- nao trocar pro default do preset (Geist) sem decisao
      explicita de redesign. */
-  --font-sans: 'Public Sans', -apple-system, sans-serif;
+  --font-sans: "Public Sans", -apple-system, sans-serif;
   /* Par tipografico (Fundacao de identidade visual, 2026-09-11): display
      separado do corpo (Secao 5 da constituicao -- "nunca Inter/Roboto
      sozinha em tudo"). Carregada junto com Public Sans em index.html.
      Uso: titulo do app (Header), titulo de secao/pagina, valor de KPI --
      nunca em corpo de texto/label. Classe gerada automaticamente pelo
      Tailwind v4 a partir do token: `font-display`. */
-  --font-display: 'Space Grotesk', 'Public Sans', -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Public Sans", -apple-system, sans-serif;
   /* Fragment Mono -- numeros (valor em R$, quantidade, id) do mockup
      completo anexado pelo usuario. Uso: `.font-data`/`font-data` em
      valor de KPI e coluna numerica de tabela, nunca em texto corrido.
      Carregada junto com Public Sans/Space Grotesk em index.html. */
-  --font-data: 'Fragment Mono', ui-monospace, 'Space Grotesk', monospace;
+  --font-data: "Fragment Mono", ui-monospace, "Space Grotesk", monospace;
 }
 
 * {

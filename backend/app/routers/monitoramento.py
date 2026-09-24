@@ -9,6 +9,7 @@ na conferência de 2026-09-21); o seed de testes continua usando o convênio
 Mode segurança 2026-09-16, Bloco 1) -- exceção deliberada: /marcos fica
 público (catálogo fixo, sem dado interno).
 """
+
 from __future__ import annotations
 
 from collections import Counter
@@ -133,6 +134,7 @@ class EventoMarcoUpdate(BaseModel):
     mesmo shape de EventoMarcoCreate menos `marco_id`/equipamento (marco não
     muda numa correção; equipamento físico é editado por
     InstrumentoEquipamentoUpdate, não aqui)."""
+
     data_ocorrencia: date | None = None
     data_prevista: date | None = None
     status_regulatorio: str | None = None
@@ -225,6 +227,7 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     disponivel pra corrigir depois). Todos opcionais -- PATCH aplica so o
     que vier preenchido, deixando o resto como esta (nunca zera campo por
     omissao)."""
+
     equipamento_marca: str | None = None
     equipamento_modelo: str | None = None
     equipamento_numero_serie: str | None = None
@@ -257,6 +260,7 @@ class InstrumentoEquipamentoCreate(BaseModel):
     porque e o unico momento em que esses campos existem -- depois de
     criado, ficam imutaveis (mesma decisao do PATCH, corrigir por fora da
     aplicacao se a fonte original estava errada, nao por aqui)."""
+
     nr_convenio: str
     cnpj_convenente: str | None = None
     nome_convenente: str
@@ -296,6 +300,7 @@ class ValorSituacaoAoVivoRead(BaseModel):
     mesmo bug na lista principal cruzando com o SICONV). Esse endpoint e por
     instrumento, sem SICONV pra cruzar ao vivo, entao so da pra SINALIZAR o
     valor suspeito -- nao reconstruir o numero certo."""
+
     disponivel: bool
     valor: float | None = None
     valor_liberado: float | None = None
@@ -344,6 +349,7 @@ class AcaoMonitoramentoCreate(BaseModel):
 class AcaoMonitoramentoUpdate(BaseModel):
     """Corrigir uma ação (Plan Mode monitoramento-evolucao 2026-09-19) --
     mesma disciplina append-only de EventoMarcoUpdate."""
+
     descricao: str
     data_prevista: date | None = None
     responsavel: str | None = None
@@ -358,6 +364,7 @@ class InauguracaoResumo(BaseModel):
     2026-09-15 pro card "Próxima inauguração" (substituiu Ações atrasadas/
     Inaugurações críticas -- pedido do usuário: "não temos meios pra
     monitorar ações atrasadas e inaugurações críticas")."""
+
     nr_convenio: str
     nome_convenente: str
     municipio: str | None
@@ -371,6 +378,7 @@ class InauguracaoResumo(BaseModel):
 class ContagemRotulo(BaseModel):
     """{rotulo, quantidade} generico -- usado tanto pra distribuicao por
     fase quanto pra contagem por tecnico titular."""
+
     rotulo: str
     quantidade: int
 
@@ -379,6 +387,7 @@ class LicencaVencendoResumo(BaseModel):
     """1 por instrumento com licenca de operacao/alteracao emitida E
     data_validade preenchida -- achado 2026-09-09, alimenta o painel de
     gestao (semaforo de licenca por vencer). `dias` negativo = ja vencida."""
+
     nr_convenio: str
     nome_convenente: str
     data_validade: date
@@ -408,6 +417,7 @@ class ResumoMonitoramentoRead(BaseModel):
     seguranca 2026-09-16), nao deste endpoint; o front busca via
     `GET /convenios/{numero}` e cruza sozinho com a lista de nr_convenio
     abaixo pra nao acoplar este router ao dominio de convenio."""
+
     total_instrumentos: int
     pct_execucao_fisica_medio: float | None
     distribuicao_fase: list[ContagemRotulo]
@@ -616,7 +626,6 @@ def criar_instrumento(
     return instrumento
 
 
-
 @router.patch("/instrumentos/{nr_convenio}", response_model=InstrumentoEquipamentoRead)
 def atualizar_cadastro(
     nr_convenio: str,
@@ -716,6 +725,45 @@ def excluir_evento(
     return _evento_read(evento, {usuario.id: usuario.name})
 
 
+def _acumular_divergencia_conclusao(
+    *,
+    instrumento,
+    fase_atual,
+    eventos_instrumento,
+    propostas_por_chave,
+    divergencias: list[DivergenciaConclusaoRead],
+    por_fonte: Counter[str],
+) -> None:
+    fase_concluida = bool(
+        fase_atual
+        and fase_atual.codigo == "fase_concluido"
+        and any(evento.marco_id == fase_atual.id and evento.data_ocorrencia for evento in eventos_instrumento)
+    )
+    if not fase_concluida:
+        return
+    divergencia = divergencia_conclusao(
+        instrumento,
+        fase_concluida=True,
+        proposta=propostas_por_chave.get(instrumento.nr_convenio),
+    )
+    if divergencia is None:
+        return
+    divergencias.append(
+        DivergenciaConclusaoRead(
+            nr_convenio=instrumento.nr_convenio,
+            nome_convenente=instrumento.nome_convenente,
+            tipo_contratacao=instrumento.tipo_contratacao,
+            fase_interna=fase_atual.rotulo,
+            fonte_externa=divergencia.fonte_externa,
+            status_externo_original=divergencia.status_externo_original,
+            status_externo_normalizado=divergencia.status_externo_normalizado,
+            atualizado_em=divergencia.atualizado_em,
+            risco="Conclusão externa pendente",
+        )
+    )
+    por_fonte[divergencia.fonte_externa] += 1
+
+
 @router.get("/resumo", response_model=ResumoMonitoramentoRead)
 def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
     """Pagina de overview independente (achado 2026-09-09, pedido do
@@ -732,7 +780,9 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
     propostas_por_chave = dados.propostas_por_chave
     marcos = dados.marcos
     fases_gerais_desc = sorted(
-        (m for m in marcos if m.grupo == MarcoGrupo.fase_geral), key=lambda m: m.ordem or 0, reverse=True,
+        (m for m in marcos if m.grupo == MarcoGrupo.fase_geral),
+        key=lambda m: m.ordem or 0,
+        reverse=True,
     )
     marco_licenca = next((m for m in marcos if m.codigo == "regulatorio_licenca_operacao"), None)
     marco_inauguracao = next((m for m in marcos if m.codigo == "cronograma_previsao_inauguracao"), None)
@@ -757,28 +807,14 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
             pcts.append(fase_atual.execucao_fisica_pct_referencia)
         contagem_fase[fase_atual.rotulo if fase_atual else "Não iniciado"] += 1
 
-        fase_concluida = bool(
-            fase_atual
-            and fase_atual.codigo == "fase_concluido"
-            and any(e.marco_id == fase_atual.id and e.data_ocorrencia for e in eventos_inst)
+        _acumular_divergencia_conclusao(
+            instrumento=inst,
+            fase_atual=fase_atual,
+            eventos_instrumento=eventos_inst,
+            propostas_por_chave=propostas_por_chave,
+            divergencias=divergencias_conclusao,
+            por_fonte=divergencias_por_fonte,
         )
-        if fase_concluida:
-            assert fase_atual is not None
-            proposta = propostas_por_chave.get(inst.nr_convenio)
-            divergencia = divergencia_conclusao(inst, fase_concluida=fase_concluida, proposta=proposta)
-            if divergencia:
-                divergencias_conclusao.append(DivergenciaConclusaoRead(
-                    nr_convenio=inst.nr_convenio,
-                    nome_convenente=inst.nome_convenente,
-                    tipo_contratacao=inst.tipo_contratacao,
-                    fase_interna=fase_atual.rotulo,
-                    fonte_externa=divergencia.fonte_externa,
-                    status_externo_original=divergencia.status_externo_original,
-                    status_externo_normalizado=divergencia.status_externo_normalizado,
-                    atualizado_em=divergencia.atualizado_em,
-                    risco="Conclusão externa pendente",
-                ))
-                divergencias_por_fonte[divergencia.fonte_externa] += 1
 
         # Achado 2026-09-09 (pedido do usuario): NA/NI ja viram NULL na
         # importacao/migration -- sempre conta, nunca pula, com rotulo
@@ -797,14 +833,20 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
             # convênio 947527) -- carga em lote grava vários eventos do
             # mesmo marco com o MESMO created_at (timestamp do processo).
             ev_validade = max(
-                (e for e in evs_licenca if e.data_validade), key=lambda e: (e.created_at, e.id), default=None,
+                (e for e in evs_licenca if e.data_validade),
+                key=lambda e: (e.created_at, e.id),
+                default=None,
             )
             if ev_validade:
                 assert ev_validade.data_validade is not None
-                licencas_vencendo.append(LicencaVencendoResumo(
-                    nr_convenio=inst.nr_convenio, nome_convenente=inst.nome_convenente,
-                    data_validade=ev_validade.data_validade, dias=(ev_validade.data_validade - hoje).days,
-                ))
+                licencas_vencendo.append(
+                    LicencaVencendoResumo(
+                        nr_convenio=inst.nr_convenio,
+                        nome_convenente=inst.nome_convenente,
+                        data_validade=ev_validade.data_validade,
+                        dias=(ev_validade.data_validade - hoje).days,
+                    )
+                )
 
         if marco_inauguracao:
             evs_inaug = [e for e in eventos_inst if e.marco_id == marco_inauguracao.id]
@@ -820,14 +862,21 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
                     # docstring da secao 8 em app/db/models.py).
                     equipamento = inst.equipamento_descricao or (
                         f"{inst.equipamento_marca} {inst.equipamento_modelo}".strip()
-                        if inst.equipamento_marca or inst.equipamento_modelo else None
+                        if inst.equipamento_marca or inst.equipamento_modelo
+                        else None
                     )
-                    inauguracoes.append(InauguracaoResumo(
-                        nr_convenio=inst.nr_convenio, nome_convenente=inst.nome_convenente,
-                        municipio=inst.municipio, uf=inst.uf, equipamento=equipamento,
-                        data=data, realizada=ev.data_ocorrencia is not None,
-                        dias=(data - hoje).days,
-                    ))
+                    inauguracoes.append(
+                        InauguracaoResumo(
+                            nr_convenio=inst.nr_convenio,
+                            nome_convenente=inst.nome_convenente,
+                            municipio=inst.municipio,
+                            uf=inst.uf,
+                            equipamento=equipamento,
+                            data=data,
+                            realizada=ev.data_ocorrencia is not None,
+                            dias=(data - hoje).days,
+                        )
+                    )
 
     inauguracoes.sort(key=lambda i: i.data)
     licencas_vencendo.sort(key=lambda i: i.data_validade)
@@ -948,7 +997,5 @@ def concluir_acao(
     Bloco 3)."""
     acao = concluir_acao_monitorada(acao_id=acao_id, db=db, usuario=usuario)
     nr_convenio = obter_nr_convenio_da_acao_monitorada(acao=acao, db=db)
-    nomes = monitoramento_repo.resolver_nomes_usuarios(
-        db, {acao.responsavel_id, acao.criado_por_id}
-    )
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, {acao.responsavel_id, acao.criado_por_id})
     return _acao_read(acao, nr_convenio, nomes)

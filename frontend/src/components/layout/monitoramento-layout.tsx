@@ -4,11 +4,15 @@
  * completo anexado pelo usuario) -- antes cada pagina de monitoramento
  * vivia fora de qualquer layout, com breadcrumb manual proprio e nenhum
  * link de volta pro resto do app. */
-import { Outlet, useLocation } from 'react-router-dom';
-import { NotificationBell } from '@/components/features/notification-bell';
-import { CONTAINER_CLASS } from '@/lib/layout';
-import { AppHeader } from './app-header';
-import { EH_MONITORAMENTO_INTERNO, ITEM_ANALISE_MERITO, NAV_ITEMS_MONITORAMENTO } from './monitoramento-nav-items';
+import { Outlet, useLocation } from "react-router-dom";
+import { NotificationBell } from "@/components/features/notification-bell";
+import { CONTAINER_CLASS } from "@/lib/layout";
+import { AppHeader } from "./app-header";
+import {
+  EH_MONITORAMENTO_INTERNO,
+  ITEM_ANALISE_MERITO,
+  NAV_ITEMS_MONITORAMENTO,
+} from "./monitoramento-nav-items";
 
 export function MonitoramentoLayout() {
   const location = useLocation();

@@ -13,6 +13,7 @@ Sempre relanca a excecao depois de registrar -- quem dispara o script
 (cron, GitHub Actions, humano) precisa do exit code != 0 pra saber que
 falhou, o registro no banco e adicional, nao substitui isso.
 """
+
 from __future__ import annotations
 
 from typing import Callable

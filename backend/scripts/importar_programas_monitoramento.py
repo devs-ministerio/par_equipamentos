@@ -417,7 +417,9 @@ def executar(
                 # lineares, conforme regra de negócio confirmada pela equipe.
                 # O item é persistido na mesma coleção de itens do plano do
                 # Convênio e então gera o marcador central.
-                equipamento_descricao=("Acelerador Linear" if registro.tipo_contratacao in {"PERSUS I", "PERSUS II"} else None),
+                equipamento_descricao=(
+                    "Acelerador Linear" if registro.tipo_contratacao in {"PERSUS I", "PERSUS II"} else None
+                ),
                 componente=None,
             )
             resultado["convenio_atualizados" if existe_convenio else "convenio_criados"] += 1

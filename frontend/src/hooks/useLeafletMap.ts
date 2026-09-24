@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
+import { useEffect, useRef } from "react";
+import L from "leaflet";
 
 /**
  * Ciclo de vida do `L.Map` em si (container + tile layer + regua de escala)
@@ -12,7 +12,9 @@ import L from 'leaflet';
  * Devolve os refs (`mapRef`/`conteudoRef`) pro efeito de conteúdo do
  * componente popular -- essa separação é o que elimina a corrida.
  */
-export function useLeafletMap(containerRef: React.RefObject<HTMLDivElement | null>) {
+export function useLeafletMap(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+) {
   const mapRef = useRef<L.Map | null>(null);
   const conteudoRef = useRef<L.LayerGroup | null>(null);
 
@@ -35,15 +37,21 @@ export function useLeafletMap(containerRef: React.RefObject<HTMLDivElement | nul
     // mapa fica sem tamanho/posicao internos ate o fitBounds (no efeito de
     // conteudo) rodar, e qualquer chamada do Leaflet nesse meio tempo pode
     // estourar "Cannot read properties of undefined (reading 'min')".
-    const map = L.map(el, { attributionControl: true, scrollWheelZoom: false }).setView([-14.235, -51.9253], 4);
+    const map = L.map(el, {
+      attributionControl: true,
+      scrollWheelZoom: false,
+    }).setView([-14.235, -51.9253], 4);
     mapRef.current = map;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 18,
     }).addTo(map);
 
-    L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map);
+    L.control
+      .scale({ metric: true, imperial: false, position: "bottomleft" })
+      .addTo(map);
 
     conteudoRef.current = L.layerGroup().addTo(map);
 

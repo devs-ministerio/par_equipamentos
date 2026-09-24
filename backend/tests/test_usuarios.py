@@ -1,18 +1,23 @@
 """Modulo de gestao de usuarios (Admin), 2026-09-17 -- Router -> Service ->
 Repository, mesmo estilo de `test_auth_session.py`/`test_csrf.py` (via
 `TestClient` real, comportamento HTTP observavel)."""
+
 from __future__ import annotations
 
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.auth import CSRF_COOKIE_NAME, CSRF_HEADER_NAME, REFRESH_COOKIE_NAME, hash_password
 from app.db.base import SessionLocal
 from app.db.models import User, UserRole
+from app.domain_errors import NotFoundError, ValidationError
 from app.email import montar_url_acesso
 from app.main import app
 from app.rate_limit import limiter
+from app.schemas import UserCreateRequest
+from app.services.usuarios import criar_usuario, reenviar_convite
 
 
 def _criar_usuario(db, *, role: UserRole, senha: str = "senha-teste-123") -> tuple[User, str]:
@@ -158,6 +163,8 @@ def test_inativar_usuario_revoga_sessao_e_bloqueia_login():
         sessao_alvo = _cliente_logado(alvo, senha_alvo)
         refresh_alvo = sessao_alvo.cookies.get(REFRESH_COOKIE_NAME)
         csrf_alvo = sessao_alvo.cookies.get(CSRF_COOKIE_NAME)
+        assert refresh_alvo is not None
+        assert csrf_alvo is not None
 
         c_admin = _cliente_logado(admin, senha_admin)
         resp = c_admin.post(f"/usuarios/{alvo.id}/inativar", headers=_csrf_headers(c_admin))
@@ -195,6 +202,54 @@ def test_admin_nao_pode_se_autorrebaixar_nem_se_autoinativar():
         inativar = c.post(f"/usuarios/{admin.id}/inativar", headers=_csrf_headers(c))
         assert inativar.status_code == 422
     finally:
+        db.close()
+
+
+def test_criacao_sem_senha_exige_servico_de_email_configurado(monkeypatch):
+    db = SessionLocal()
+    try:
+        admin, _ = _criar_usuario(db, role=UserRole.admin)
+        monkeypatch.setattr("app.services.usuarios.settings.mail_api_url", None)
+        monkeypatch.setattr("app.services.usuarios.settings.mail_api_secret", None)
+
+        with pytest.raises(ValidationError, match="e-mail não configurado"):
+            criar_usuario(
+                db=db,
+                admin_atual=admin,
+                dados=UserCreateRequest(
+                    name="Convite", email=f"pytest-convite-{uuid4()}@example.com", role=UserRole.leitor
+                ),
+            )
+    finally:
+        db.rollback()
+        db.close()
+
+
+def test_convite_cria_token_auditavel_e_reenvio_trata_destinatario_inexistente(monkeypatch):
+    db = SessionLocal()
+    try:
+        admin, _ = _criar_usuario(db, role=UserRole.admin)
+        monkeypatch.setattr("app.services.usuarios.settings.mail_api_url", "https://mail.test/send")
+        monkeypatch.setattr("app.services.usuarios.settings.mail_api_secret", "secret-test")
+        enviados = []
+        monkeypatch.setattr("app.services.usuarios.enviar_link", lambda **kwargs: enviados.append(kwargs))
+
+        usuario = criar_usuario(
+            db=db,
+            admin_atual=admin,
+            dados=UserCreateRequest(
+                name="Convite", email=f"PYTEST-CONVITE-{uuid4()}@EXAMPLE.COM", role=UserRole.leitor
+            ),
+        )
+
+        assert usuario.email == usuario.email.lower()
+        assert usuario.activation_token_hash is not None
+        assert enviados[0]["caminho"] == "/ativar"
+        assert reenviar_convite(db=db, admin_atual=admin, user_id=usuario.id).id == usuario.id
+        with pytest.raises(NotFoundError):
+            reenviar_convite(db=db, admin_atual=admin, user_id=-1)
+    finally:
+        db.rollback()
         db.close()
 
 

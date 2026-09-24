@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   atualizarUsuario,
   criarUsuario,
@@ -9,8 +9,8 @@ import {
   type AtualizarUsuarioInput,
   type CriarUsuarioInput,
   type FiltroUsuarios,
-} from '@/services/usuarios';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+} from "@/services/usuarios";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Módulo de gestão de usuários (Admin, 2026-09-17) -- todo mutation
  * invalida a chave `usuarios` inteira (sem filtro) em vez de tentar
@@ -25,7 +25,7 @@ export function useUsuarios(filtro: FiltroUsuarios) {
   });
 
   function invalidarLista() {
-    queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+    queryClient.invalidateQueries({ queryKey: ["usuarios"] });
   }
 
   const criarMutation = useMutation({
@@ -34,7 +34,8 @@ export function useUsuarios(filtro: FiltroUsuarios) {
   });
 
   const atualizarMutation = useMutation({
-    mutationFn: ({ id, corpo }: { id: number; corpo: AtualizarUsuarioInput }) => atualizarUsuario(id, corpo),
+    mutationFn: ({ id, corpo }: { id: number; corpo: AtualizarUsuarioInput }) =>
+      atualizarUsuario(id, corpo),
     onSuccess: invalidarLista,
   });
 

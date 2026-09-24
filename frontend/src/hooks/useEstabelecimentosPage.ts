@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchEstabelecimentosPage } from '@/services/api';
-import type { EstabelecimentosResult } from '@/services/api';
+import { useQuery } from "@tanstack/react-query";
+import { fetchEstabelecimentosPage } from "@/services/api";
+import type { EstabelecimentosResult } from "@/services/api";
 
 interface UseEstabelecimentosPageParams {
   equipmentFamily: string;
@@ -11,7 +11,7 @@ interface UseEstabelecimentosPageParams {
   cnesCodes?: string[];
   search?: string;
   sortBy: string;
-  sortDir: 'asc' | 'desc';
+  sortDir: "asc" | "desc";
   page: number;
   pageSize: number;
 }
@@ -29,22 +29,22 @@ interface UseEstabelecimentosPageParams {
  * nacional errada. Com queryKey distinta por filtro, isso não acontece mais.
  */
 export function useEstabelecimentosPage(params: UseEstabelecimentosPageParams) {
-  const statesKey = params.states?.join(',') ?? '';
-  const macrosKey = params.macroCodes?.join(',') ?? '';
-  const regioesSaudeKey = params.healthRegionCodes?.join(',') ?? '';
-  const municipiosKey = params.municipalities?.join(',') ?? '';
-  const cnesKey = params.cnesCodes?.join(',') ?? '';
+  const statesKey = params.states?.join(",") ?? "";
+  const macrosKey = params.macroCodes?.join(",") ?? "";
+  const regioesSaudeKey = params.healthRegionCodes?.join(",") ?? "";
+  const municipiosKey = params.municipalities?.join(",") ?? "";
+  const cnesKey = params.cnesCodes?.join(",") ?? "";
 
   const query = useQuery({
     queryKey: [
-      'estabelecimentos-page',
+      "estabelecimentos-page",
       params.equipmentFamily,
       statesKey,
       macrosKey,
       regioesSaudeKey,
       municipiosKey,
       cnesKey,
-      params.search ?? '',
+      params.search ?? "",
       params.sortBy,
       params.sortDir,
       params.page,

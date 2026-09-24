@@ -9,8 +9,8 @@
  * `monitoramento.ts` -- antes os 3 services importavam isso cada um por
  * conta própria). */
 export function csrfHeaders(): Record<string, string> {
-  if (typeof document === 'undefined') return {};
+  if (typeof document === "undefined") return {};
   const match = document.cookie.match(/(?:^|; )sigeo_csrf=([^;]*)/);
   const token = match ? decodeURIComponent(match[1]) : null;
-  return token ? { 'X-CSRF-Token': token } : {};
+  return token ? { "X-CSRF-Token": token } : {};
 }

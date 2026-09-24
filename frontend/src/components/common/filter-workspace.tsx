@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
-import { X } from 'lucide-react';
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import { X } from "lucide-react";
 
 /** Barra de filtros (Seção "Filter workspace" do plan-mode) -- mesma
  * composição usada em Dashboard, Dados Oficiais, Mapa, Relatórios e Mesa de
@@ -22,8 +22,15 @@ export function FilterWorkspace({
   className?: string;
 }) {
   return (
-    <div className={cn('mb-4 flex flex-wrap items-start gap-2.5 border-y border-border py-3.5', className)}>
-      <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">Filtrar por</span>
+    <div
+      className={cn(
+        "mb-4 flex flex-wrap items-start gap-2.5 border-y border-border py-3.5",
+        className,
+      )}
+    >
+      <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">
+        Filtrar por
+      </span>
       {children}
       {hasAnyFilter && onClear && (
         <button
@@ -35,7 +42,11 @@ export function FilterWorkspace({
           <X size={13} className="mr-1 inline" /> Limpar
         </button>
       )}
-      {contagem && <span className="ml-auto pt-2 text-xs text-muted-foreground whitespace-nowrap">{contagem}</span>}
+      {contagem && (
+        <span className="ml-auto pt-2 text-xs text-muted-foreground whitespace-nowrap">
+          {contagem}
+        </span>
+      )}
     </div>
   );
 }

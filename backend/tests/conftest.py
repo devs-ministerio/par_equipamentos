@@ -5,6 +5,7 @@ para validar comportamento de transacao/auditoria. Por isso eles so rodam
 quando TEST_DATABASE_URL aponta para um banco PostgreSQL dedicado de teste.
 Sem essa variavel, a suite ainda coleta os arquivos, mas pula esses modulos.
 """
+
 from __future__ import annotations
 
 import os
@@ -16,9 +17,12 @@ from sqlalchemy.engine import make_url
 _DB_TEST_MODULES = {
     "test_auth_session.py",
     "test_competency_por_familia.py",
+    "test_convenios_contracts.py",
     "test_config_decisions.py",
     "test_csrf.py",
     "test_equipment_totals.py",
+    "test_equipamento_marcadores.py",
+    "test_evidencias_transferegov.py",
     "test_integridade_constraints.py",
     "test_integridade_fk_cnes.py",
     "test_monitoramento.py",
@@ -29,6 +33,7 @@ _DB_TEST_MODULES = {
     "test_pipeline_dedup.py",
     "test_pipeline_runner.py",
     "test_propostas_candidatas.py",
+    "test_repositories_qualidade.py",
     "test_schema_migrations.py",
     "test_service_notificacoes.py",
 }
@@ -46,8 +51,7 @@ def _test_database_url() -> str | None:
     database = (parsed.database or "").lower()
     if "test" not in database and "pytest" not in database:
         pytest.exit(
-            "TEST_DATABASE_URL precisa apontar para um banco dedicado de teste "
-            "(nome contendo 'test' ou 'pytest')."
+            "TEST_DATABASE_URL precisa apontar para um banco dedicado de teste (nome contendo 'test' ou 'pytest')."
         )
 
     return url
@@ -63,8 +67,10 @@ def pytest_sessionstart(session: pytest.Session) -> None:
         return
 
     from scripts.seed_monitoramento import run as seed_monitoramento
+    from tests.fixtures_cobertura import seed_cobertura
 
     seed_monitoramento()
+    seed_cobertura()
 
 
 @pytest.fixture(scope="session")
@@ -86,7 +92,7 @@ def headers_autenticados():
     fixture."""
     from uuid import uuid4
 
-    from app.auth import ACCESS_COOKIE_NAME, create_access_token, hash_password
+    from app.auth import ACCESS_COOKIE_NAME, create_access_token, create_refresh_token, hash_password
     from app.db.base import SessionLocal
     from app.db.models import User, UserRole
 
@@ -100,7 +106,9 @@ def headers_autenticados():
     db.add(user)
     db.commit()
     db.refresh(user)
-    token = create_access_token(user)
+    _, refresh_token_id = create_refresh_token(db, user)
+    db.commit()
+    token = create_access_token(user, refresh_token_id)
     user_id = user.id
     db.close()
 

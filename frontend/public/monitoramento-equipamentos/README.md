@@ -49,12 +49,12 @@ uv run python -m scripts.coletar_transferegov_relacional    # atualiza transfere
 uv run python -m scripts.importar_convenios_banco
 ```
 
-| Arquivo/tabela | Fonte | Chave de cruzamento |
-|---|---|---|
-| `convenios.json` | Portal da Transparência (`/convenios/numero`) | número do convênio (exato) |
-| `siconv.json` | Dump bulk SICONV (`repositorio.dados.gov.br/seges/detru/`) | `NR_CONVENIO` (exato) |
-| `transferegov.json` | API nova TransfereGov (`/parcerias`) | CNPJ do convenente (aproximação — não é o mesmo número de convênio, só o mesmo ente) |
-| `componentes_oncologia.json` | API nova TransfereGov (`/parcerias/programa` + `/proposta`) | não é por convênio — FAF SAÚDE é instrumento novo, sem número legado |
+| Arquivo/tabela                                       | Fonte                                                                                          | Chave de cruzamento                                                                                                                                                                      |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convenios.json`                                     | Portal da Transparência (`/convenios/numero`)                                                  | número do convênio (exato)                                                                                                                                                               |
+| `siconv.json`                                        | Dump bulk SICONV (`repositorio.dados.gov.br/seges/detru/`)                                     | `NR_CONVENIO` (exato)                                                                                                                                                                    |
+| `transferegov.json`                                  | API nova TransfereGov (`/parcerias`)                                                           | CNPJ do convenente (aproximação — não é o mesmo número de convênio, só o mesmo ente)                                                                                                     |
+| `componentes_oncologia.json`                         | API nova TransfereGov (`/parcerias/programa` + `/proposta`)                                    | não é por convênio — FAF SAÚDE é instrumento novo, sem número legado                                                                                                                     |
 | `Convenio.cnes`/`cnes_nome_estabelecimento` (tabela) | tabela `CnesEstabelecimento` (banco, ver `scripts/importar_convenios_banco.py::resolver_cnes`) | resolvido por CNPJ/planilha/nome contra o parquet `s3://dept-oncologia-dados/silver/cnes_estabelecimentos.parquet` -- 357/403 hoje, `null` nos outros 46 (sem 1 CNES único por natureza) |
 
 Snapshot original gerado em 2026-09-03 pros 71 números de convênio de

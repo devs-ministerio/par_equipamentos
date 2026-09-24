@@ -20,6 +20,7 @@ Cada teste cria seu proprio dado minimo (nao depende de seed/dado real) e
 faz so `flush()` (nunca `commit()`) -- constraint imediata do Postgres ja e
 verificada no flush, e nada de teste fica gravado no banco.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -51,7 +52,8 @@ def test_unique_parcial_marcador_rejeita_mesma_evidencia_no_mesmo_convenio():
     db = SessionLocal()
     try:
         catalogo = EquipamentoCatalogo(
-            codigo="__teste_marcador_catalogo__", nome="__teste_marcador_catalogo__",
+            codigo="__teste_marcador_catalogo__",
+            nome="__teste_marcador_catalogo__",
         )
         convenio = Convenio(numero="__teste_marcador_convenio__", convenente_nome="__teste__")
         db.add_all([catalogo, convenio])
@@ -82,10 +84,14 @@ def test_check_nao_negatividade_simples_rejeitado():
     """Mecanismo `CHECK (col >= 0)` -- representante: ck_inca_estimate_estimated_cases."""
     db = SessionLocal()
     try:
-        db.add(IncaEstimate(
-            level=IncaEstimateLevel.uf, uf="ZZ",
-            estimated_cases=-1, triennium="__teste_check_simples__",
-        ))
+        db.add(
+            IncaEstimate(
+                level=IncaEstimateLevel.uf,
+                uf="ZZ",
+                estimated_cases=-1,
+                triennium="__teste_check_simples__",
+            )
+        )
         with pytest.raises(IntegrityError):
             db.flush()
         db.rollback()
@@ -105,16 +111,26 @@ def test_check_nao_negatividade_nullable_rejeitado():
         db.flush()
 
         execution = Execution(
-            competency_id=competency.id, version=1, mode=ExecutionMode.manual,
-            config_chave_macrorregiao="__teste__", config_denominador_oferta="__teste__",
+            competency_id=competency.id,
+            version=1,
+            mode=ExecutionMode.manual,
+            config_chave_macrorregiao="__teste__",
+            config_denominador_oferta="__teste__",
         )
         db.add(execution)
         db.flush()
 
-        db.add(MacroCoverage(
-            execution_id=execution.id, macro_code="ZZ", macro_name="__teste__", state="ZZ",
-            equipment_family="__TESTE__", population=-1, deficit_status=DeficitStatus.not_available,
-        ))
+        db.add(
+            MacroCoverage(
+                execution_id=execution.id,
+                macro_code="ZZ",
+                macro_name="__teste__",
+                state="ZZ",
+                equipment_family="__TESTE__",
+                population=-1,
+                deficit_status=DeficitStatus.not_available,
+            )
+        )
         with pytest.raises(IntegrityError):
             db.flush()
 
@@ -146,10 +162,14 @@ def test_check_intervalo_fechado_rejeitado():
     forma."""
     db = SessionLocal()
     try:
-        db.add(MarcoCatalogo(
-            codigo="__teste_intervalo_pct__", grupo=MarcoGrupo.fase_geral,
-            execucao_fisica_pct_referencia=1.5, rotulo="__teste__",
-        ))
+        db.add(
+            MarcoCatalogo(
+                codigo="__teste_intervalo_pct__",
+                grupo=MarcoGrupo.fase_geral,
+                execucao_fisica_pct_referencia=1.5,
+                rotulo="__teste__",
+            )
+        )
         with pytest.raises(IntegrityError):
             db.flush()
         db.rollback()
@@ -202,8 +222,11 @@ def test_unique_composta_execution_rejeitado():
         db.flush()
 
         comuns = dict(
-            competency_id=competency.id, version=1, mode=ExecutionMode.manual,
-            config_chave_macrorregiao="__teste__", config_denominador_oferta="__teste__",
+            competency_id=competency.id,
+            version=1,
+            mode=ExecutionMode.manual,
+            config_chave_macrorregiao="__teste__",
+            config_denominador_oferta="__teste__",
         )
         db.add(Execution(**comuns))
         db.flush()
@@ -255,10 +278,13 @@ def test_unique_parcial_config_decision_permite_vigente_e_historica():
         if vigente is None:
             pytest.skip("sem ConfigDecision vigente no banco de teste")
 
-        db.add(ConfigDecision(
-            key=vigente.key, value="__teste_historica__",
-            valid_to=datetime.now(timezone.utc),
-        ))
+        db.add(
+            ConfigDecision(
+                key=vigente.key,
+                value="__teste_historica__",
+                valid_to=datetime.now(timezone.utc),
+            )
+        )
         db.flush()  # nao pode levantar -- so nao-vigente, coexiste com a vigente real
 
         db.rollback()
@@ -276,11 +302,14 @@ def test_fk_cnes_orfao_instrumento_equipamento_rejeitado():
     tabela."""
     db = SessionLocal()
     try:
-        db.add(InstrumentoEquipamento(
-            nr_convenio="__teste_fk_cnes_instrumento__",
-            cnpj_convenente="00000000000000", nome_convenente="__teste__",
-            cnes="0000000",  # 7 digitos, formato valido, mas fora de cnes_estabelecimento
-        ))
+        db.add(
+            InstrumentoEquipamento(
+                nr_convenio="__teste_fk_cnes_instrumento__",
+                cnpj_convenente="00000000000000",
+                nome_convenente="__teste__",
+                cnes="0000000",  # 7 digitos, formato valido, mas fora de cnes_estabelecimento
+            )
+        )
         with pytest.raises(IntegrityError):
             db.flush()
         db.rollback()

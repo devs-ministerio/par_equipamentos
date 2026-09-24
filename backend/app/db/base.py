@@ -1,6 +1,7 @@
 """Engine e sessao do SQLAlchemy -- instancia unica, reaproveitada em toda
 a aplicacao (equivalente ao src/lib/railway.ts dos projetos anteriores da
 equipe, so que do lado do backend, nao do frontend)."""
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 

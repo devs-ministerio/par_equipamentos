@@ -17,6 +17,7 @@ devolve o retorno. Regra de negocio e commit vivem em
 `app/services/notificacoes.py`; query direta vive em
 `app/repositories/notificacoes.py`.
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

@@ -14,13 +14,16 @@
  * (raw `<input>`) por `Input`/`Button` do shadcn -- mesmo padrão visual já
  * usado no resto do app (focus ring, estado de erro), em vez do estilo
  * bespoke que só esse form ainda usava. */
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { loginSchema, type LoginFormValues } from '@/lib/validations/monitoramento';
-import { ErroCampo } from './monitoramento-ui';
-import { idsDescricaoCampo } from '@/lib/monitoramento-status';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  loginSchema,
+  type LoginFormValues,
+} from "@/lib/validations/monitoramento";
+import { ErroCampo } from "./monitoramento-ui";
+import { idsDescricaoCampo } from "@/lib/monitoramento-status";
 
 export function MonitoramentoInternoFormLogin({
   onEntrar,
@@ -49,7 +52,10 @@ export function MonitoramentoInternoFormLogin({
   return (
     <form onSubmit={handleSubmit(aoSubmeter)} className="flex flex-col gap-4">
       <div>
-        <label htmlFor="login-email" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+        <label
+          htmlFor="login-email"
+          className="mb-1.5 block text-xs font-medium text-muted-foreground"
+        >
           Email
         </label>
         <Input
@@ -57,13 +63,20 @@ export function MonitoramentoInternoFormLogin({
           type="email"
           autoComplete="email"
           aria-invalid={Boolean(errors.email)}
-          aria-describedby={idsDescricaoCampo('login-email', Boolean(errors.email), false)}
-          {...register('email')}
+          aria-describedby={idsDescricaoCampo(
+            "login-email",
+            Boolean(errors.email),
+            false,
+          )}
+          {...register("email")}
         />
         <ErroCampo id="login-email-error" mensagem={errors.email?.message} />
       </div>
       <div>
-        <label htmlFor="login-senha" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+        <label
+          htmlFor="login-senha"
+          className="mb-1.5 block text-xs font-medium text-muted-foreground"
+        >
           Senha
         </label>
         <Input
@@ -71,14 +84,18 @@ export function MonitoramentoInternoFormLogin({
           type="password"
           autoComplete="current-password"
           aria-invalid={Boolean(errors.senha)}
-          aria-describedby={idsDescricaoCampo('login-senha', Boolean(errors.senha), false)}
-          {...register('senha')}
+          aria-describedby={idsDescricaoCampo(
+            "login-senha",
+            Boolean(errors.senha),
+            false,
+          )}
+          {...register("senha")}
         />
         <ErroCampo id="login-senha-error" mensagem={errors.senha?.message} />
       </div>
       <div className="mt-1">
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? 'Entrando...' : 'Entrar'}
+          {isSubmitting ? "Entrando..." : "Entrar"}
         </Button>
         <ErroCampo id="login-form-erro" mensagem={erroServidor ?? undefined} />
       </div>

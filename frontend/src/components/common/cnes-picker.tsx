@@ -5,10 +5,10 @@
  * escolher um resultado real -- a validação de verdade ainda é no backend
  * (PATCH rejeita CNES que não exista), isso aqui só evita erro de
  * digitação chegar até lá. */
-import { useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { buscarCnesReferencia } from '@/services/cnes-referencia';
-import { cn } from '@/lib/utils';
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { buscarCnesReferencia } from "@/services/cnes-referencia";
+import { cn } from "@/lib/utils";
 
 export function CnesPicker({
   valorAtual,
@@ -26,7 +26,7 @@ export function CnesPicker({
   onCancelar?: () => void;
   inline?: boolean;
 }) {
-  const [busca, setBusca] = useState('');
+  const [busca, setBusca] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export function CnesPicker({
   }, []);
 
   const { data: resultados = [], isFetching } = useQuery({
-    queryKey: ['cnes-referencia', busca],
+    queryKey: ["cnes-referencia", busca],
     queryFn: () => buscarCnesReferencia(busca),
     enabled: busca.trim().length >= 2,
   });
@@ -43,8 +43,8 @@ export function CnesPicker({
     <div
       className={
         inline
-          ? 'w-full rounded-lg border border-border bg-card p-2'
-          : 'absolute z-50 mt-1 w-80 rounded-lg border border-border bg-card p-2 shadow-lg'
+          ? "w-full rounded-lg border border-border bg-card p-2"
+          : "absolute z-50 mt-1 w-80 rounded-lg border border-border bg-card p-2 shadow-lg"
       }
     >
       <div className="flex items-center gap-1.5">
@@ -57,7 +57,11 @@ export function CnesPicker({
           className="box-border w-full rounded-md border border-border px-2 py-1.5 text-xs outline-none"
         />
         {onCancelar && (
-          <button type="button" onClick={onCancelar} className="shrink-0 text-xs text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            onClick={onCancelar}
+            className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
+          >
             Cancelar
           </button>
         )}
@@ -72,22 +76,32 @@ export function CnesPicker({
         </button>
       )}
       <div className="mt-1.5 max-h-56 overflow-y-auto">
-        {isFetching && <div className="px-1 py-2 text-xs text-muted-foreground">Buscando...</div>}
+        {isFetching && (
+          <div className="px-1 py-2 text-xs text-muted-foreground">
+            Buscando...
+          </div>
+        )}
         {!isFetching && busca.trim().length >= 2 && resultados.length === 0 && (
-          <div className="px-1 py-2 text-xs italic text-muted-foreground">Nenhum estabelecimento encontrado.</div>
+          <div className="px-1 py-2 text-xs italic text-muted-foreground">
+            Nenhum estabelecimento encontrado.
+          </div>
         )}
         {resultados.map((r) => (
           <div
             key={r.cnes}
             onClick={() => onEscolher(r.cnes)}
             className={cn(
-              'cursor-pointer rounded-md px-2 py-1.5 text-[12px] hover:bg-secondary',
-              r.cnes === valorAtual && 'bg-secondary font-semibold',
+              "cursor-pointer rounded-md px-2 py-1.5 text-[12px] hover:bg-secondary",
+              r.cnes === valorAtual && "bg-secondary font-semibold",
             )}
           >
-            <div className="font-mono text-[10.5px] text-muted-foreground">{r.cnes}</div>
+            <div className="font-mono text-[10.5px] text-muted-foreground">
+              {r.cnes}
+            </div>
             <div className="text-foreground">{r.nome_estabelecimento}</div>
-            <div className="text-[10.5px] text-muted-foreground">{r.municipio}/{r.uf}</div>
+            <div className="text-[10.5px] text-muted-foreground">
+              {r.municipio}/{r.uf}
+            </div>
           </div>
         ))}
       </div>

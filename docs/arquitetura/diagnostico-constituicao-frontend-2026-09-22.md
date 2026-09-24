@@ -95,3 +95,19 @@ nenhuma rota comum carrega essas bibliotecas de exportação de forma eager.
 - [x] Gates, limpeza segura e documentação atualizados.
 
 **Conclusão:** o plan-mode de fechamento frontend está executado integralmente.
+
+## Atualização de regressão — 2026-09-24 (logout)
+
+O botão `Sair` passou a transicionar explicitamente para `/login` no mesmo
+clique, sem aguardar o timeout da API nem depender de uma re-renderização
+indireta de `ProtectedRoute`. Antes da chamada remota terminar,
+`useAuthSession` remove as queries autenticadas e fixa `currentUser` como
+visitante; isso impede que dados de instrumentos, notificações ou usuários de
+uma conta sejam reutilizados por outra e evita que a página de login consulte
+prematuramente o cookie ainda em processo de remoção.
+
+Falha de rede continua preservando a saída local, mas agora produz toast
+seguro explicando que a revogação não foi confirmada no servidor. A regressão
+unitária cobre cache protegido, estado visitante e falha remota. O spec E2E
+passou a cobrir login → Sair → `/login`; sua execução requer as credenciais e
+a stack efêmera providas pelo workflow, indisponíveis nesta sessão local.

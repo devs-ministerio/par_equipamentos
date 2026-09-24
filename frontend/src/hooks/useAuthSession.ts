@@ -1,6 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type AuthUser, fetchCurrentUser, login, logout } from '@/services/auth';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  type AuthUser,
+  fetchCurrentUser,
+  login,
+  logout,
+} from "@/services/auth";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Sessão do usuário operacional do monitoramento interno (login/logout +
  * usuário atual) -- extraído de MonitoramentoInterno.tsx pra hook próprio
@@ -27,20 +33,30 @@ export function useAuthSession() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: (corpo: { email: string; senha: string }) => login(corpo.email, corpo.senha),
+    mutationFn: (corpo: { email: string; senha: string }) =>
+      login(corpo.email, corpo.senha),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.currentUser });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.currentUser,
+      });
     },
   });
 
   async function sair() {
-    await logout().catch(() => {
-      // Revogação no servidor já é best-effort aqui -- mesmo se a chamada
-      // falhar (ex. rede fora), a sessão local (query cache) é limpa do
-      // mesmo jeito; o cookie expira sozinho na duração do access token.
+    // A transição local não depende da latência da API. Mantemos somente a
+    // chave de sessão como visitante para que /login não refaça /auth/me
+    // com o cookie que ainda está sendo apagado no servidor.
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[0] !== "auth",
     });
     queryClient.setQueryData(monitoramentoKeys.currentUser, null);
-    queryClient.removeQueries({ queryKey: monitoramentoKeys.currentUser });
+    try {
+      await logout();
+    } catch {
+      // Sem rede não é possível revogar remotamente. O usuário já saiu da
+      // interface e recebe um aviso sem expor o detalhe técnico da falha.
+      toast.error("Não foi possível confirmar a saída no servidor.");
+    }
   }
 
   /** Chamado pelas mutações de escrita do módulo quando o backend recusa
@@ -56,7 +72,8 @@ export function useAuthSession() {
   return {
     usuarioAtual,
     autenticado: Boolean(usuarioAtual),
-    podeEditar: usuarioAtual?.role === 'admin' || usuarioAtual?.role === 'colaborador',
+    podeEditar:
+      usuarioAtual?.role === "admin" || usuarioAtual?.role === "colaborador",
     checandoSessao: usuarioQuery.isLoading,
     login: loginMutation.mutateAsync,
     loginPendente: loginMutation.isPending,

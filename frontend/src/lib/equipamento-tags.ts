@@ -10,29 +10,41 @@
  * Reaproveitado somente nas propostas que ainda exibem texto bruto da API.
  * Convênios consomem marcadores canônicos do backend e não são
  * reclassificados no cliente. */
-import { normalizarTexto } from '@/utils/texto';
+import { normalizarTexto } from "@/utils/texto";
 
 export const EQUIPAMENTOS_ALVO = [
-  'Acelerador Linear', 'Mamógrafo', 'PET/CT', 'Gama-câmara/SPECT', 'Braquiterapia',
-  'Ultrassom', 'Endoscopia', 'Tomógrafo', 'Ressonância', 'Radioterapia', 'Raios X', 'Hemodiálise', 'Angiografia', 'Cobalto',
+  "Acelerador Linear",
+  "Mamógrafo",
+  "PET/CT",
+  "Gama-câmara/SPECT",
+  "Braquiterapia",
+  "Ultrassom",
+  "Endoscopia",
+  "Tomógrafo",
+  "Ressonância",
+  "Radioterapia",
+  "Raios X",
+  "Hemodiálise",
+  "Angiografia",
+  "Cobalto",
 ] as const;
 export type EquipamentoAlvo = (typeof EQUIPAMENTOS_ALVO)[number];
 
 const PADROES: [EquipamentoAlvo, RegExp][] = [
-  ['Acelerador Linear', /ACELERADOR\s*LINEAR/],
-  ['Mamógrafo', /MAMOGRAFO/],
-  ['PET/CT', /\bPET[\s/-]*CT\b/],
-  ['Gama-câmara/SPECT', /GAMA\s*CAMARA|CAMARA\s*CINTILOGRAFICA|\bSPECT\b/],
-  ['Braquiterapia', /BRAQUITERAPIA/],
-  ['Ultrassom', /ULTRASSOM/],
-  ['Endoscopia', /ENDOSCOP/],
-  ['Tomógrafo', /TOMOGRAF/],
-  ['Ressonância', /RESSONANC/],
-  ['Radioterapia', /RADIOTERAPIA/],
-  ['Raios X', /RAIOS\s*X/],
-  ['Hemodiálise', /HEMODIALISE/],
-  ['Angiografia', /ANGIOGRAF/],
-  ['Cobalto', /COBALTO/],
+  ["Acelerador Linear", /ACELERADOR\s*LINEAR/],
+  ["Mamógrafo", /MAMOGRAFO/],
+  ["PET/CT", /\bPET[\s/-]*CT\b/],
+  ["Gama-câmara/SPECT", /GAMA\s*CAMARA|CAMARA\s*CINTILOGRAFICA|\bSPECT\b/],
+  ["Braquiterapia", /BRAQUITERAPIA/],
+  ["Ultrassom", /ULTRASSOM/],
+  ["Endoscopia", /ENDOSCOP/],
+  ["Tomógrafo", /TOMOGRAF/],
+  ["Ressonância", /RESSONANC/],
+  ["Radioterapia", /RADIOTERAPIA/],
+  ["Raios X", /RAIOS\s*X/],
+  ["Hemodiálise", /HEMODIALISE/],
+  ["Angiografia", /ANGIOGRAF/],
+  ["Cobalto", /COBALTO/],
 ];
 
 /** Classifica uma lista de descrições de item cruas contra os mesmos
@@ -44,7 +56,7 @@ const PADROES: [EquipamentoAlvo, RegExp][] = [
  * os itens de `metas_resumo`, mesmos 14 padrões usados em Instrumentos
  * firmados, resolve sem esperar mudança no backend). */
 export function equipamentosDeDescricoes(descs: string[]): EquipamentoAlvo[] {
-  const descsNorm = descs.map(normalizarTexto).join(' | ').toUpperCase();
+  const descsNorm = descs.map(normalizarTexto).join(" | ").toUpperCase();
   const achados: EquipamentoAlvo[] = [];
   for (const [equip, padrao] of PADROES) {
     if (padrao.test(descsNorm)) achados.push(equip);

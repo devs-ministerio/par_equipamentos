@@ -25,6 +25,7 @@ Uso: python -m scripts.job_verificacao_siconv (de dentro de backend/, venv
 ativo). `--forcar` pula o HEAD-check e reprocessa direto (util pra testar
 ou depois de um `git rm` do cache local).
 """
+
 from __future__ import annotations
 
 import json
@@ -88,9 +89,7 @@ def run(forcar: bool = False) -> None:
     atualizados = 0
     try:
         instrumentos = (
-            db.query(InstrumentoEquipamento)
-            .filter(InstrumentoEquipamento.tipo_contratacao == "Convênio")
-            .all()
+            db.query(InstrumentoEquipamento).filter(InstrumentoEquipamento.tipo_contratacao == "Convênio").all()
         )
         numeros = {i.nr_convenio for i in instrumentos}
         if not numeros:
@@ -107,12 +106,14 @@ def run(forcar: bool = False) -> None:
                 if nova_situacao == antiga_situacao:
                     continue
                 instrumento.situacao_prestacao_contas = nova_situacao
-                db.add(Notificacao(
-                    tipo=NotificacaoTipo.atualizacao_api,
-                    titulo=f"Convênio {instrumento.nr_convenio} mudou de situação no SICONV",
-                    corpo=f"{antiga_situacao or '(vazio)'} → {nova_situacao}",
-                    entidade_id=instrumento.id,
-                ))
+                db.add(
+                    Notificacao(
+                        tipo=NotificacaoTipo.atualizacao_api,
+                        titulo=f"Convênio {instrumento.nr_convenio} mudou de situação no SICONV",
+                        corpo=f"{antiga_situacao or '(vazio)'} → {nova_situacao}",
+                        entidade_id=instrumento.id,
+                    )
+                )
                 atualizados += 1
         db.commit()
     finally:

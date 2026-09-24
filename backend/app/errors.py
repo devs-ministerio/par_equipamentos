@@ -3,6 +3,7 @@ mesmo formato ({"error": "...", "detail": "..."}), seja um HTTPException
 lancado manualmente, um erro de validacao do Pydantic, ou algo inesperado.
 Registrado em app/main.py via register_exception_handlers(app).
 """
+
 from __future__ import annotations
 
 import logging
@@ -45,12 +46,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         # Nunca repassa `input`/`ctx` de exc.errors() -- ecoa o payload
         # bruto enviado pelo cliente (ex. senha de /auth/login mal validada)
         # de volta na resposta (Plan Mode seguranca 2026-09-16, Bloco 1).
-        detalhe = [
-            {"loc": erro.get("loc"), "msg": erro.get("msg"), "type": erro.get("type")}
-            for erro in exc.errors()
-        ]
+        detalhe = [{"loc": erro.get("loc"), "msg": erro.get("msg"), "type": erro.get("type")} for erro in exc.errors()]
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content={"error": "Dados invalidos", "detail": detalhe},
         )
 

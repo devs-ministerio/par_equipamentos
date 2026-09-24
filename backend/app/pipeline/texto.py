@@ -2,6 +2,7 @@
 src/normalize/texto.py (pipeline legado) -- sem a dependencia de pandas do
 original (so precisavamos do `pd.isna`, trocado por checagem direta).
 """
+
 from __future__ import annotations
 
 import re

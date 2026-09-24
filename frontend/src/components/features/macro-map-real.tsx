@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import type { GeoJsonProperties, Geometry } from 'geojson';
-import { resolveThemeColor } from '@/lib/theme-colors';
-import { useLeafletMap } from '@/hooks/useLeafletMap';
-import type { PontoEstabelecimento } from './macro-map';
+import { useEffect, useRef } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import type { GeoJsonProperties, Geometry } from "geojson";
+import { resolveThemeColor } from "@/lib/theme-colors";
+import { useLeafletMap } from "@/hooks/useLeafletMap";
+import type { PontoEstabelecimento } from "./macro-map";
 
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
 type FeatureCollection = GeoJSON.FeatureCollection<Geometry, GeoJsonProperties>;
@@ -59,7 +59,13 @@ interface Props {
  * imperativamente (`L.geoJSON`/`L.circleMarker`), nao aceita `className`,
  * mesmo tratamento ja usado em MacroMap.tsx.
  */
-export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }: Props) {
+export function MacroMapReal({
+  geo,
+  macroId,
+  pontos,
+  contornoMunicipio,
+  centro,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   // Ciclo de vida do L.Map em si (container + tile layer + regua de
   // escala), criado uma unica vez -- ver docstring de useLeafletMap.ts
@@ -81,11 +87,11 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
     // mesmo raciocinio de MacroMap.tsx: o valor da variavel de tema e o
     // mesmo pra tudo desenhado nesta passada, chamar getComputedStyle por
     // elemento seria layout thrashing sem necessidade.
-    const primary = resolveThemeColor('--primary');
-    const destructive = resolveThemeColor('--destructive');
-    const card = resolveThemeColor('--card');
-    const foreground = resolveThemeColor('--foreground');
-    const mutedForeground = resolveThemeColor('--muted-foreground');
+    const primary = resolveThemeColor("--primary");
+    const destructive = resolveThemeColor("--destructive");
+    const card = resolveThemeColor("--card");
+    const foreground = resolveThemeColor("--foreground");
+    const mutedForeground = resolveThemeColor("--muted-foreground");
 
     // limites usados no fitBounds final. Com `contornoMunicipio` presente,
     // o contorno da macro inteira NAO entra nessa conta de proposito --
@@ -97,10 +103,17 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
     const limites = L.latLngBounds([]);
 
     if (macroId) {
-      const feature = geo.features.find((f) => (f as Feature).properties?.cod_macro === macroId);
+      const feature = geo.features.find(
+        (f) => (f as Feature).properties?.cod_macro === macroId,
+      );
       if (feature) {
         const contorno = L.geoJSON(feature as GeoJSON.Feature, {
-          style: { color: primary, weight: 2, fillOpacity: 0.04, fillColor: primary },
+          style: {
+            color: primary,
+            weight: 2,
+            fillOpacity: 0.04,
+            fillColor: primary,
+          },
         }).addTo(conteudo);
         if (!contornoMunicipio) {
           limites.extend(contorno.getBounds());
@@ -114,7 +127,13 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
       // tracejado, preenchimento bem leve so pra destacar a area sem
       // esconder o mapa de ruas por baixo.
       const contornoMun = L.geoJSON(contornoMunicipio, {
-        style: { color: destructive, weight: 2.5, fillOpacity: 0.08, fillColor: destructive, dashArray: '6 5' },
+        style: {
+          color: destructive,
+          weight: 2.5,
+          fillOpacity: 0.08,
+          fillColor: destructive,
+          dashArray: "6 5",
+        },
       }).addTo(conteudo);
       limites.extend(contornoMun.getBounds());
     }
@@ -127,7 +146,9 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
         fillColor: destructive,
         fillOpacity: 1,
       })
-        .bindTooltip(centro.nome ? `Município: ${centro.nome}` : 'Município selecionado')
+        .bindTooltip(
+          centro.nome ? `Município: ${centro.nome}` : "Município selecionado",
+        )
         .addTo(conteudo);
       limites.extend(marcadorCentro.getLatLng());
     }
@@ -148,10 +169,10 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
         // explicito 2026-08-24: alem da qtd/CNES que ja tinha, mostrar
         // nome do estabelecimento, municipio e UF.
         .bindTooltip(
-          `<strong>${p.nome ?? '(sem nome cadastrado)'}</strong><br>` +
+          `<strong>${p.nome ?? "(sem nome cadastrado)"}</strong><br>` +
             `CNES ${p.cnes}<br>` +
-            `${p.municipio ?? '—'}${p.uf ? ` (${p.uf})` : ''}<br>` +
-            `${p.qtd} equipamento${p.qtd === 1 ? '' : 's'}`,
+            `${p.municipio ?? "—"}${p.uf ? ` (${p.uf})` : ""}<br>` +
+            `${p.qtd} equipamento${p.qtd === 1 ? "" : "s"}`,
         )
         .addTo(conteudo);
       limites.extend(marcador.getLatLng());
@@ -186,11 +207,25 @@ export function MacroMapReal({ geo, macroId, pontos, contornoMunicipio, centro }
         // a milhares de km da anterior, entao animar o voo nao ajudava em
         // nada mesmo (so mostrava oceano/terra passando rapido).
         map.stop();
-        map.fitBounds(limites, { padding: [24, 24], maxZoom: 12, animate: false });
+        map.fitBounds(limites, {
+          padding: [24, 24],
+          maxZoom: 12,
+          animate: false,
+        });
       }
     });
     return () => cancelAnimationFrame(rafId);
   }, [geo, macroId, pontos, contornoMunicipio, centro, mapRef, conteudoRef]);
 
-  return <div ref={containerRef} style={{ width: '100%', height: 560, borderRadius: 8, overflow: 'hidden' }} />;
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        height: 560,
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
+    />
+  );
 }
