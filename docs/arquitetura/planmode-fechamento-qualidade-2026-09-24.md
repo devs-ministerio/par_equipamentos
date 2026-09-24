@@ -107,8 +107,8 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 - `@vitest/coverage-v8` foi versionado e a execução com relatório JSON/LCOV
   está configurada.
-- A suíte passou a **105 testes em 28 arquivos**, com **76,54% linhas** e
-  **64,43% branches** globais. A melhoria não é usada como substituta de
+- A suíte passou a **108 testes em 29 arquivos**, com **82,08% linhas** e
+  **67,15% branches** globais. A melhoria não é usada como substituta de
   régua por camada.
 - `services/auth.ts` está coberto em **100% de statements e branches**:
   login, logout, ativação, recuperação, redefinição, sessão válida, 401
@@ -124,11 +124,11 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   serialização JSON; catálogo de marcos e seu hook cobrem carregamento do
   dado de referência. Services passaram a **86,95% de linhas** e hooks a
   **75%**, ultrapassando a régua constitucional de 70% para essas camadas.
-- O workflow frontend passou a executar com cobertura e publicar JSON/LCOV
-  por 14 dias. O bloqueio automático de componentes lógicos permanece a
-  última pendência do bloco: a pasta de componentes mistura UI puramente
-  apresentacional e componentes de domínio em 65,92%, exigindo separação de
-  escopo e testes adicionais antes de ativar o piso de 70% sem exceção ampla.
+- O workflow frontend executa `test:coverage`, bloqueia hooks e componentes
+  de domínio abaixo de **70% de linhas** e publica JSON/LCOV por 14 dias.
+  A medição do validador por linhas é hooks **83,3%** e
+  `components/features` **92,1%**, sem misturar o diretório `components/ui`
+  (biblioteca apresentacional) no piso.
 
 ### Implementação
 

@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage && node scripts/validar-cobertura.mjs coverage/coverage-final.json",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
   },
