@@ -93,6 +93,31 @@ def test_me_nao_aceita_mais_bearer_header():
         db.close()
 
 
+def test_ativacao_e_redefinicao_rejeitam_token_invalido_sem_expor_o_valor():
+    """Os dois fluxos públicos precisam falhar igual para token inventado.
+
+    Além do status de domínio, o contrato impede que o token recebido volte
+    em ``detail`` — ele pode ter vindo de convite ou recuperação de senha.
+    """
+    from app.rate_limit import limiter
+
+    for rota in ("/auth/ativar", "/auth/redefinir-senha"):
+        limiter.reset()
+        token = f"token-invalido-{uuid4()}"
+        cliente = TestClient(app)
+        cliente.cookies.set(CSRF_COOKIE_NAME, "csrf-contrato")
+        resposta = cliente.post(
+            rota,
+            json={"token": token, "password": "senha-valida-123"},
+            headers={CSRF_HEADER_NAME: "csrf-contrato"},
+        )
+
+        assert resposta.status_code == 400
+        assert token not in resposta.text
+        assert "inválido ou expirado" in resposta.json()["error"].lower()
+        assert resposta.json()["detail"] is None
+
+
 def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
     db = SessionLocal()
     try:

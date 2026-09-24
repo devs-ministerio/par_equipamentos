@@ -75,7 +75,7 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - `uv run ruff check .`, `uv run mypy .` e `uv run pytest` verdes, sem os oito skips dos domínios centrais.
 - `pytest --cov --cov-branch` bloqueia abaixo dos pisos e o workflow backend publica o relatório.
 
-### Andamento parcial — 2026-09-24
+### Andamento — 2026-09-24
 
 - `pytest-cov` e branch coverage foram adicionados e travados.
 - Fixture sintética determinística de TOMOGRAFO elimina os oito skips de
@@ -146,8 +146,10 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   `docs/arquitetura/contratos-http-sigeo.md`, com consumidor, resposta de
   sucesso, autenticação, erros aplicáveis e teste de referência.
 - A evidência existente está vinculada à rota em vez de inferida por nome de
-  arquivo. Restam três contratos específicos marcados como pendentes:
-  busca CNES e tokens inválidos de ativação/redefinição de senha.
+  arquivo. Busca CNES agora valida limite, shape público e termo curto;
+  ativação e redefinição validam token inválido com CSRF válido, resposta
+  400 normalizada e ausência de eco do token. Não há contrato pendente na
+  matriz nesta revisão.
 
 ### Implementação
 

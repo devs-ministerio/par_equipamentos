@@ -58,8 +58,8 @@ testes nem nesta matriz.
   evidência: `backend/tests/test_convenios_contracts.py`.
 - `GET /monitoramento/cnes-referencia` — `services/cnes-referencia.ts`;
   200 opções CNES; Sessão; 401/422; evidência:
-  `backend/tests/test_monitoramento_auth.py`; cobertura de busca detalhada:
-  Pendente.
+  `backend/tests/test_monitoramento_auth.py` (limite de autocomplete,
+  shape público e termo inválido).
 - `GET /monitoramento/marcos` — `services/monitoramento-marcos.ts`;
   200 catálogo fixo; Público; 200 vazio aceitável; evidência:
   `backend/tests/test_monitoramento.py`.
@@ -117,13 +117,13 @@ testes nem nesta matriz.
 - `POST /auth/login` — `services/auth.ts::login`; 200 e cookies HttpOnly;
   Público; 401/422/429; evidência: `backend/tests/test_auth_session.py`.
 - `POST /auth/ativar` — `ativarConta`; 200; Público; 400/422; evidência:
-  `backend/tests/test_usuarios.py`; contrato de token inválido: Pendente.
+  `backend/tests/test_usuarios.py` e `backend/tests/test_auth_session.py`.
 - `POST /auth/esqueci-senha` — `solicitarRecuperacao`; 200 genérico;
   Público; 422/429; evidência: `backend/tests/test_usuarios.py`; não revelar
   existência de e-mail é requisito de revisão.
 - `POST /auth/redefinir-senha` — `redefinirSenha`; 200; Público;
-  400/422; evidência: `backend/tests/test_usuarios.py`; contrato de token
-  inválido: Pendente.
+  400/422; evidência: `backend/tests/test_usuarios.py` e
+  `backend/tests/test_auth_session.py`.
 - `POST /auth/refresh` — cliente HTTP comum; 200 e rotação de cookies;
   Sessão + CSRF; 401/403; evidência: `backend/tests/test_auth_session.py` e
   `backend/tests/test_csrf.py`.
@@ -156,5 +156,5 @@ testes nem nesta matriz.
 Ao adicionar ou remover um endpoint, alterar esta matriz na mesma mudança e
 incluir/ajustar o teste indicado. A revisão de PR deve rejeitar endpoint sem
 evidência executável, salvo uma marca `Pendente` justificada e com plano de
-remoção. O próximo fechamento do bloco 3 substitui as quatro marcações
-pendentes acima por testes de contrato específicos.
+remoção. Não há marcação pendente nesta revisão; qualquer uma futura deve
+ser removida antes de concluir a mudança que a introduziu.
