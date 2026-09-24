@@ -1,0 +1,31 @@
+rules:
+  - id: python-subprocess-shell-true
+    languages: [python]
+    severity: ERROR
+    message: "Não execute subprocessos com shell=True; use argumentos separados."
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+    pattern: subprocess.$FUNC(..., shell=True, ...)
+
+  - id: python-http-tls-disabled
+    languages: [python]
+    severity: ERROR
+    message: "Não desabilite a verificação TLS em chamadas HTTP."
+    metadata:
+      category: security
+      cwe: "CWE-295: Improper Certificate Validation"
+    pattern-either:
+      - pattern: requests.$METHOD(..., verify=False, ...)
+      - pattern: httpx.$METHOD(..., verify=False, ...)
+
+  - id: typescript-dynamic-code-execution
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: "Não execute código dinâmico com eval ou Function."
+    metadata:
+      category: security
+      cwe: "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)

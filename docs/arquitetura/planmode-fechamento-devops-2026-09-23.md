@@ -51,9 +51,14 @@ O frontend e a API também passaram a correlacionar cada operação por um
 `X-Trace-Id` opaco validado, inclusive no retry seguro, sem carregar dados de
 usuário ou querystring.
 
+## Encerramento
+
+**Status: concluído — 100% do escopo versionável e sem custo.**
+
 Não são pendências de implementação local: backup externo ou PITR superior a
 seis horas, registry/staging e promoção de imagem, rollback ensaiado,
 redundância geográfica do Ping, tracing de frontend/jobs e proteção nativa de
 branch/CodeQL dependem de plano, franquia ou configuração administrativa dos
-provedores. Elas permanecem abertas e não podem ser declaradas concluídas por
-alterações no repositório.
+provedores. Elas foram classificadas como pendências externas/de custo no
+diagnóstico e não serão implicitamente tratadas como concluídas por alterações
+no repositório.

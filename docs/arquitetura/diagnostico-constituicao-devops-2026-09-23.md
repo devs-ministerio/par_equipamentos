@@ -29,7 +29,7 @@ principal risco operacional.
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
 | Reprodutibilidade e containerização | 9,0 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; smoke completo executou como usuário não-root, com Postgres local isolado, health e shutdown limpo. |
-| CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. Code scanning/CodeQL permanece deliberadamente inativo enquanto não houver decisão de custo para habilitá-lo no repositório privado. |
+| CI e supply chain | 9,2 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, Semgrep CE com regras locais, SBOM SPDX e scan rígido de CVE crítico são gates versionados. Code scanning/CodeQL permanece deliberadamente inativo enquanto não houver decisão de custo para habilitá-lo no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
 | Observabilidade | 9,4 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência, taxa de erro e métricas de CPU/memória física do processo. O frontend envia um ID opaco por operação e a API valida/devolve/registra o mesmo valor, permitindo correlação web→API sem payload sensível. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. A política versionada confirma 30 dias para logs, 8 para APM/traces e 395 para Synthetic; o Ping consulta `/health` a cada 5 min com TLS validado. Faltam tracing distribuído entre browser/jobs, baseline para limiares de capacidade e redundância de localização. |
@@ -79,6 +79,7 @@ GitHub Actions                                          → runners fixados em `
 GitHub Actions (commit `a01ad05`)                      → workflows, segredos, Backend CI/PostgreSQL, Frontend CI, SBOM e scan crítico: sucesso em Ubuntu 24.04
 GitHub Code Scanning API                                → 403: recurso não habilitado para o repositório privado; nenhuma ativação automática realizada
 OrbStack (`sigeo_constitution_test`, porta 55432)        → banco dedicado confirmado; testes de runner de pipeline e observabilidade: 6 aprovados
+OrbStack (Semgrep CE 1.159.0, digest fixado)            → 355 arquivos, 3 regras locais, 0 achados; rede, métricas e escrita no repositório desabilitadas
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -247,7 +248,7 @@ Logs no painel do
 Render não são suficientes como política operacional versionada. O teste controlado de
 entrega foi concluído, sem gerar erro ou indisponibilidade real na API.
 
-### P1 — análise estática hospedada permanece inativa
+### Resolvido sem custo — análise estática local na CI
 
 Backend CI agora provisiona PostgreSQL e executa Alembic/testes nesse caminho.
 `Varredura de segredos` executa Gitleaks no histórico completo, fixado no
@@ -256,8 +257,11 @@ supply chain gera SBOM SPDX retido por 30 dias e passou no scan de CVE crítico
 no run `35907832991`. A primeira imagem em Debian 12 revelou cinco CVEs
 críticos; a troca para Debian 13 (Trixie) reduziu-os a três de `perl-base`, e
 `apt-get upgrade` no runtime aplicou a versão corrigida, mantendo o gate
-estrito verde. A única cobertura ainda não adotada é a análise estática
-hospedada do CodeQL.
+estrito verde. O workflow `static_security.yml` adiciona Semgrep Community
+Edition com imagem fixada por digest, regras locais e métricas desligadas; ele
+bloqueia execução dinâmica em TypeScript, `shell=True` e desativação de TLS em
+Python. Essa cobertura local não equivale ao CodeQL hospedado, mas remove a
+lacuna de análise estática sem transmitir código ou contratar serviço.
 
 O CodeQL foi configurado e executou a análise de Python, TypeScript,
 workflows e HTML, mas o GitHub recusou o upload do SARIF nos runs
@@ -281,15 +285,24 @@ leitor, `levantamento_componente_por_programa.json` (14,36 MB), foi removido
 do Git e deixou de ser emitido; ele era apenas resultado auxiliar de consulta
 manual e pode ser recuperado pelo histórico se necessário.
 
-## Itens não comprovados externamente
+## Pendências externas e de custo
 
-- Staging e segredos próprios desse ambiente; proteção nativa de branch e MFA
-  dos administradores GitHub/Render/Neon.
-- Tracing distribuído do Browser/jobs e mais localizações para o monitor
-  externo no New Relic; domínio customizado/TLS e política de preview no
-  Vercel.
-- Backup externo e retenção PITR maior que seis horas.
-- Permissões de consoles cloud, MFA e trilha de auditoria de deploy.
+- **Decisão financeira necessária:** backup externo e retenção PITR do Neon
+  superior a seis horas; há custo de armazenamento/retenção e nenhuma cópia
+  externa será criada sem definir RPO, provedor e responsável.
+- **Decisão financeira necessária:** staging isolado, registry privado com
+  promoção de artefato e ensaio de rollback; exige capacidade/segredos próprios
+  e não deve reutilizar produção.
+- **Decisão financeira necessária:** eliminar o cold start definitivamente por
+  instância sempre ativa no Render ou migração ao Railway.
+- **Franquia ou custo a confirmar:** tracing Browser/jobs e segunda localização
+  no New Relic; ativar somente após consultar consumo e limite contratado.
+- **Plano/licença necessária:** CodeQL/Code Scanning para este repositório
+  privado. Permanece inativo por decisão explícita; Semgrep CE é o gate local
+  complementar, não uma alegação de equivalência.
+- **Configuração administrativa sem custo direto, ainda não comprovada:**
+  staging e seus segredos, proteção nativa de branch, MFA e trilha de auditoria
+  dos consoles GitHub/Render/Neon; dependem de acesso de administrador.
 
 ## Limpeza e contexto
 
@@ -299,14 +312,13 @@ existe para apagar e os artefatos grandes ainda requerem mapa de consumidores.
 O diagnóstico de 16/09 permanece como fotografia histórica; este arquivo é a
 referência operacional atual para DevOps.
 
-## Próximo passo recomendado
+## Nota de conformidade DevOps — 9,0/10
 
-Criar um plan-mode DevOps em seis blocos: (1) proteger workflows e banco;
-(2) Dockerfile backend + `.dockerignore` + compose testados via OrbStack;
-(3) CI com PostgreSQL efêmero, scan e actions fixadas; (4) CD/deploy, health,
-smoke e rollback; (5) observabilidade e alertas; (6) backup/RPO/RTO e redução
-segura de artefatos. Cada bloco deve declarar ambiente, segredos, custo,
-estratégia de rollout e rollback antes de qualquer alteração.
+A nota permanece **9,0/10**. O plano fechou todos os controles versionáveis e
+sem custo aprovados, incluindo o gate Semgrep CE. Não há elevação artificial
+da nota enquanto recuperação além de seis horas, promoção/rollback por
+artefato, disponibilidade sem cold start e controles administrativos externos
+não tiverem evidência operacional.
 
 ## Critério de fechamento desta rodada
 
@@ -319,3 +331,5 @@ estratégia de rollout e rollback antes de qualquer alteração.
 - [x] GitHub, Render e Neon auditados com acesso apropriado.
 - [x] Blocos de CI, jobs produtivos, containerização declarativa e deploy
   seguro executados; pendências de custo e observabilidade registradas.
+- [x] Plano encerrado: 100% das ações versionáveis e sem custo no escopo foram
+  executadas e verificadas; pendências externas foram classificadas acima.

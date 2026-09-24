@@ -1,0 +1,29 @@
+name: Análise estática de segurança
+
+on:
+  push:
+    branches: [master]
+    paths: ["backend/**", "frontend/**", ".semgrep/**", ".github/workflows/static_security.yml"]
+  pull_request:
+    paths: ["backend/**", "frontend/**", ".semgrep/**", ".github/workflows/static_security.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: Semgrep CE local rules
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: semgrep/semgrep@sha256:d7d67e1e0c0ed26278ab35f0be082f0afdfd7a880f4927aee86f8127fdbce617 # 1.159.0
+    env:
+      SEMGREP_METRICS: "off"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Bloquear padrões inseguros locais
+        run: semgrep scan --config .semgrep/sigeo-security.yml --metrics=off --error backend frontend
