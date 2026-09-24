@@ -124,6 +124,11 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   serialização JSON; catálogo de marcos e seu hook cobrem carregamento do
   dado de referência. Services passaram a **86,95% de linhas** e hooks a
   **75%**, ultrapassando a régua constitucional de 70% para essas camadas.
+- O workflow frontend passou a executar com cobertura e publicar JSON/LCOV
+  por 14 dias. O bloqueio automático de componentes lógicos permanece a
+  última pendência do bloco: a pasta de componentes mistura UI puramente
+  apresentacional e componentes de domínio em 65,92%, exigindo separação de
+  escopo e testes adicionais antes de ativar o piso de 70% sem exceção ampla.
 
 ### Implementação
 
@@ -210,6 +215,13 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   como mock de model e coleções sem tipo. A ativação fica pendente da
   correção incremental desses testes; o gate atual segue sem erros e sem
   `type: ignore` amplo.
+- A política versionada de flakiness em
+  `docs/arquitetura/politica-flakiness-testes.md` define bloqueio, dono,
+  issue, prazo máximo de sete dias e remoção obrigatória de quarentena.
+- A verificação exploratória de formatação encontrou 118 arquivos backend e
+  229 frontend fora do formatter candidato. Não foi feita regravação em massa
+  — sobretudo não em migrations históricas — e a adoção precisa ser por
+  diretório/arquivo novo com uma etapa própria de normalização.
 
 ### Implementação
 
