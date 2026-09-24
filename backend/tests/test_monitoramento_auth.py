@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
-from app.auth import ACCESS_COOKIE_NAME, create_access_token, hash_password
+from app.auth import ACCESS_COOKIE_NAME, create_access_token, create_refresh_token, hash_password
 from app.db.base import SessionLocal
 from app.db.models import User, UserRole
 from app.main import app
@@ -43,7 +43,9 @@ def _token_usuario_teste(db, role: UserRole = UserRole.colaborador) -> str:
     db.add(user)
     db.commit()
     db.refresh(user)
-    return create_access_token(user)
+    _, refresh_token_id = create_refresh_token(db, user)
+    db.commit()
+    return create_access_token(user, refresh_token_id)
 
 
 def test_leituras_de_monitoramento_exigem_token():

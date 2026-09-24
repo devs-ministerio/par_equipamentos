@@ -127,8 +127,9 @@ testes nem nesta matriz.
 - `POST /auth/refresh` — cliente HTTP comum; 200 e rotação de cookies;
   Sessão + CSRF; 401/403; evidência: `backend/tests/test_auth_session.py` e
   `backend/tests/test_csrf.py`.
-- `POST /auth/logout` — `services/auth.ts::logout`; 200 e revogação;
-  Sessão + CSRF; 401/403; evidência: `backend/tests/test_auth_session.py`.
+- `POST /auth/logout` — `services/auth.ts::logout`; 200, limpeza dos cookies
+  e revogação imediata da sessão que também invalida seu access JWT; Sessão +
+  CSRF; 401/403; evidência: `backend/tests/test_auth_session.py`.
 - `GET /auth/me` — `fetchCurrentUser`; 200 usuário; Sessão; 401; evidência:
   `backend/tests/test_auth_session.py`.
 

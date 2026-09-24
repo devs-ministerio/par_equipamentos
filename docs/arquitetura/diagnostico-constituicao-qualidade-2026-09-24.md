@@ -22,10 +22,10 @@ reproduzíveis e bloqueantes: cobertura por camada no backend e frontend,
 fixture determinística para as regras SUS/em uso, matriz de 42 contratos HTTP
 e E2E autenticado em stack efêmera.
 
-A nota não é 10 porque três melhorias de higiene foram separadas para evitar
-uma baseline que escondesse problemas: extração das 6 funções acima do limite
-C901. Elas permanecem visíveis no CI/documentação e não reduzem os gates
-atuais.
+A nota não é 10 porque a higiene de complexidade continua registrada sem
+baseline: há seis funções acima do limite C901 em scripts de carga,
+validação e pipeline histórico/inicial. Elas permanecem visíveis no
+CI/documentação e não reduzem os gates atuais.
 
 ## Evidências atuais
 
@@ -84,11 +84,13 @@ nenhum resultado de coverage, Playwright ou credencial é versionado.
 
 ## Pendências deliberadas para 9–10
 
-1. **Complexidade.** Há 6 funções C901 acima de 10 ramos. O Backend CI alerta
-   sem bloquear e aponta este diagnóstico; prioridades são
-   `registrar_evento_monitorado` (19), `obter_resumo` (11) e importadores/
-   pipelines. A extração precisa preservar regra de domínio e não deve ser
-   feita como refatoração cosmética.
+1. **Complexidade.** Há 6 funções C901 acima de 10 ramos, todas em
+   `importar_planilha_monitoramento.py`, `importar_programas_monitoramento.py`,
+   `validar_dados_tres_fontes.py` ou nos pipelines de Tomógrafo, Ressonância e
+   PET-CT. O Backend CI alerta sem bloquear e aponta este diagnóstico. São
+   cargas/validações iniciais ou históricas; não serão reescritas apenas para
+   satisfazer métrica. Uma alteração operacional futura deve trazer a extração
+   por responsabilidade e testes de regressão da ingestão.
 2. **Evoluções futuras, fora do aceite atual.** Teste de carga, acessibilidade
    automatizada abrangente e mutation testing agregam confiança, mas não são
    substitutos dos gates implementados.
@@ -109,3 +111,38 @@ cobertura, integração, contrato, E2E, segurança e CI previstos no plan-mode.
 O fechamento administrativo do plano permanece **parcial**, e não “100%”,
 até que a pendência de higiene acima seja resolvida sem maquiar a
 base. Esse é o caminho para alcançar 9–10 com qualidade mensurável.
+
+## Atualização de regressão — 2026-09-24 (logout)
+
+Foi adicionada cobertura de três fronteiras do defeito reportado: o hook limpa
+queries autenticadas e conserva `currentUser=null` mesmo diante de falha de
+rede; a rota HTTP rejeita um access cookie reaplicado após logout; e o E2E
+descreve login → Sair → tela de login. A suíte frontend completa passou nesta
+sessão com 29 arquivos e 108 testes, além de lint, typecheck e build.
+
+Ruff e mypy do backend também passaram. Os 14 testes backend selecionados
+foram coletados, mas ficaram skip porque esta sessão não recebeu
+`TEST_DATABASE_URL`; o novo cenário HTTP precisa rodar no PostgreSQL isolado
+do workflow antes de contar como evidência de integração executada. O E2E novo
+igualmente depende das credenciais e da stack efêmera do CI, que não foram
+usadas localmente.
+
+## Atualização de higiene — 2026-09-24 (PERSUS)
+
+A rotina nova de complementação PERSUS foi separada em conciliação, criação de
+monitoramentos, complemento de campos, eventos e ações antes de ser aceita
+como parte do repositório. `ruff check`, `mypy` e `ruff format --check` estão
+verdes para o backend; a função deixou de disparar C901. O teste de sessão foi
+normalizado pelo Prettier sem alteração semântica e a verificação global de
+formatação passou.
+
+## Validação local final — 2026-09-24
+
+Foi criado um PostgreSQL efêmero exclusivo no OrbStack para esta verificação,
+com migrations aplicadas do zero e apenas o catálogo sintético de
+monitoramento. A suíte backend terminou com **224/224 testes aprovados**, sem
+skip, e **87%** de cobertura total. O container foi removido após a execução;
+Neon e produção não foram acessados. Após formatar o teste de sessão sem
+alterar sua semântica, `npm run format:check` também ficou verde. Os gates
+locais completos de formatter, lint, tipos, cobertura, testes e build estão
+verdes nesta rodada.

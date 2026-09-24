@@ -24,6 +24,13 @@ test.describe("Fluxo autenticado", () => {
     ).toBeVisible();
   });
 
+  test("sair retorna imediatamente ao login", async ({ page }) => {
+    await autenticar(page);
+    await page.getByRole("button", { name: "Sair" }).click();
+    await expect(page).toHaveURL("/login");
+    await expect(page.getByRole("heading", { name: /entrar/i })).toBeVisible();
+  });
+
   test("consulta os instrumentos monitorados após autenticar", async ({
     page,
   }) => {

@@ -85,7 +85,7 @@ def test_me_nao_aceita_mais_bearer_header():
     db = SessionLocal()
     try:
         user, _ = _criar_usuario(db)
-        token = create_access_token(user)
+        token = create_access_token(user, refresh_token_id=1)
         # Client novo, sem cookie de sessao na jar (o `client` module-level
         # ja tem cookie valido de outros testes deste arquivo).
         resp = TestClient(app).get("/auth/me", headers={"Authorization": f"Bearer {token}"})
@@ -168,7 +168,7 @@ def test_rotacao_concorrente_do_mesmo_token_so_uma_vence():
         db_setup.refresh(user)
 
         db_token = SessionLocal()
-        token = create_refresh_token(db_token, user)
+        token, _ = create_refresh_token(db_token, user)
         db_token.commit()
         db_token.close()
     finally:
@@ -211,6 +211,33 @@ def test_logout_revoga_refresh_no_servidor():
         c.cookies.set(CSRF_COOKIE_NAME, csrf)
         pos_logout = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
         assert pos_logout.status_code == 401
+    finally:
+        db.close()
+
+
+def test_logout_invalida_imediatamente_access_cookie_reaproveitado():
+    """O logout precisa invalidar a sessão inteira, não só o refresh.
+
+    O navegador apaga o access cookie normalmente; aqui ele é recolocado de
+    propósito para provar que uma cópia anterior não continua autorizando
+    chamadas até o vencimento natural do JWT.
+    """
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        c = TestClient(app)
+        c.post("/auth/login", json={"email": user.email, "password": senha})
+        csrf = c.cookies.get(CSRF_COOKIE_NAME)
+        access_antigo = c.cookies.get(ACCESS_COOKIE_NAME)
+        assert csrf is not None
+        assert access_antigo is not None
+
+        resposta_logout = c.post("/auth/logout", headers={CSRF_HEADER_NAME: csrf})
+        assert resposta_logout.status_code == 200
+
+        c.cookies.set(ACCESS_COOKIE_NAME, access_antigo)
+        acesso_reaproveitado = c.get("/auth/me")
+        assert acesso_reaproveitado.status_code == 401
     finally:
         db.close()
 

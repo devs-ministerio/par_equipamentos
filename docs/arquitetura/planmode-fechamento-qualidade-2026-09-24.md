@@ -7,10 +7,12 @@ Executar 100% das pendências do [diagnóstico de qualidade de 2026-09-24](diagn
 O plano só estará concluído quando a cobertura for medida e bloqueada por camada, os cenários centrais SUS/em uso não dependerem de `skip`, os contratos HTTP tiverem matriz auditável, E2E crítico rodar no CI e todos os gates terminarem sem warnings. Não reduzir thresholds para acomodar a base atual.
 
 **Status em 2026-09-24:** os blocos críticos 0–4 e os warnings do bloco 5
-foram executados e a rodada remota final do PR 13 está verde. O plano não pode
-ser declarado 100% enquanto a extração das funções C901 permanecer
-deliberadamente pendente; ver o
-diagnóstico atualizado para o inventário e a decisão de não mascará-los.
+foram executados e a rodada remota final do PR 13 está verde. A rotina nova de
+complementação PERSUS foi decomposta antes de entrar no inventário. Persistem
+seis C901 em scripts de carga, validação e pipeline histórico/inicial; ficam
+visíveis como alerta, sem exclusão, até haver uma necessidade operacional de
+alterar cada fluxo. Ver o diagnóstico atualizado para o inventário e a decisão
+de não mascará-los.
 
 ## Regras transversais
 
@@ -232,13 +234,22 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   workflows passaram a bloquear divergência com `ruff format --check` e
   `npm run format:check`.
 - A checagem C901 foi adicionada como alerta não bloqueante no Backend CI.
-  `listar_por_origens`, `registrar_evento_monitorado`, `obter_resumo` e o
-  backfill de marcadores, o job TransfereGov, o reconciliador, o importador B8131710 e os dois levantamentos SICONV foram decompostas. O inventário tem 6 funções acima
-  de 10 ramos, todas em scripts
-  de manutenção/importação/pipeline; as prioridades de
-  extração são `registrar_evento_monitorado` (19), `obter_resumo` (11) e os
-  importadores/pipelines, que exigem plano por responsabilidade para não
-  misturar regra de ingestão com mudança cosmética.
+  A nova rotina de complementação PERSUS foi extraída em unidades de
+  conciliação, criação de monitoramento, complemento de campos, eventos e
+  ações; ela não integra mais o inventário. As seis ocorrências restantes
+  estão em `importar_planilha_monitoramento.py`,
+  `importar_programas_monitoramento.py`,
+  `validar_dados_tres_fontes.py` e nos pipelines de Tomógrafo, Ressonância e
+  PET-CT. São fluxos de carga/validação inicial ou histórica e permanecem
+  explicitamente alertados, sem `noqa`, baseline ou redução de limiar. Uma
+  extração futura só será feita junto de necessidade operacional e testes de
+  regressão de ingestão, para não alterar regras de fonte por refatoração
+  cosmética.
+- Validação local final: PostgreSQL efêmero no OrbStack recebeu migrations do
+  zero e executou **224/224** testes backend, sem skip e com **87%** de
+  cobertura total; o container foi removido ao final. Formatter backend e
+  frontend, lint, tipos, cobertura por camada e build estão verdes. Neon não
+  participou dessa rodada.
 
 ### Implementação
 

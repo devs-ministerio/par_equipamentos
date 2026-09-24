@@ -92,7 +92,7 @@ def headers_autenticados():
     fixture."""
     from uuid import uuid4
 
-    from app.auth import ACCESS_COOKIE_NAME, create_access_token, hash_password
+    from app.auth import ACCESS_COOKIE_NAME, create_access_token, create_refresh_token, hash_password
     from app.db.base import SessionLocal
     from app.db.models import User, UserRole
 
@@ -106,7 +106,9 @@ def headers_autenticados():
     db.add(user)
     db.commit()
     db.refresh(user)
-    token = create_access_token(user)
+    _, refresh_token_id = create_refresh_token(db, user)
+    db.commit()
+    token = create_access_token(user, refresh_token_id)
     user_id = user.id
     db.close()
 

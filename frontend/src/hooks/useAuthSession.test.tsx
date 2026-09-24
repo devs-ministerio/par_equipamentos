@@ -84,11 +84,14 @@ describe("useAuthSession", () => {
     expect(login).toHaveBeenCalledWith(USUARIO_ADMIN.email, "senha-segura");
   });
 
-  it("limpa o cache local mesmo quando a revogação remota falha", async () => {
+  it("remove dados autenticados e marca visitante antes de concluir a revogação", async () => {
     const { fetchCurrentUser, logout } = await import("@/services/auth");
     vi.mocked(fetchCurrentUser).mockResolvedValueOnce(USUARIO_ADMIN);
     vi.mocked(logout).mockRejectedValueOnce(new Error("Sem rede"));
     const { queryClient, wrapper } = criarAmbiente();
+    queryClient.setQueryData(monitoramentoKeys.instrumentos, [
+      { nr_convenio: "123" },
+    ]);
     const { result } = renderHook(() => useAuthSession(), { wrapper });
 
     await waitFor(() => expect(result.current.autenticado).toBe(true));
@@ -97,9 +100,11 @@ describe("useAuthSession", () => {
     });
 
     expect(logout).toHaveBeenCalledOnce();
+    expect(queryClient.getQueryData(monitoramentoKeys.currentUser)).toBeNull();
     expect(
-      queryClient.getQueryData(monitoramentoKeys.currentUser),
+      queryClient.getQueryData(monitoramentoKeys.instrumentos),
     ).toBeUndefined();
+    await waitFor(() => expect(result.current.autenticado).toBe(false));
   });
 
   it("expõe a falha de sessão e permite pedir nova validação", async () => {

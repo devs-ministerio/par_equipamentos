@@ -15,6 +15,11 @@ export function UserMenu() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  function sairDaSessao() {
+    void sessao.sair();
+    navigate("/login", { replace: true });
+  }
+
   if (sessao.checandoSessao) return null;
 
   if (!sessao.autenticado) {
@@ -46,7 +51,7 @@ export function UserMenu() {
           Usuários
         </Button>
       )}
-      <Button size="sm" variant="ghost" onClick={sessao.sair}>
+      <Button size="sm" variant="ghost" onClick={sairDaSessao}>
         Sair
       </Button>
     </div>

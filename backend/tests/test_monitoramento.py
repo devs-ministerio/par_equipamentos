@@ -521,14 +521,14 @@ def test_create_access_token_exige_jwt_secret(monkeypatch):
     usuario_teste = User(id=123456, name="Usuário Pytest", email="pytest@example.com", role=UserRole.colaborador)
     monkeypatch.setattr(settings, "jwt_secret", "")
     with pytest.raises(HTTPException) as exc:
-        create_access_token(usuario_teste)
+        create_access_token(usuario_teste, refresh_token_id=1)
     assert exc.value.status_code == 503
 
 
 def test_create_access_token_com_jwt_secret(monkeypatch):
     usuario_teste = User(id=123456, name="Usuário Pytest", email="pytest@example.com", role=UserRole.colaborador)
     monkeypatch.setattr(settings, "jwt_secret", "segredo-com-pelo-menos-32-bytes-ok")
-    token = create_access_token(usuario_teste)
+    token = create_access_token(usuario_teste, refresh_token_id=1)
     assert isinstance(token, str)
     assert token
 

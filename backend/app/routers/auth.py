@@ -62,8 +62,8 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
 
     registrar_sucesso_login(user)
-    access_token = create_access_token(user)
-    refresh_token = create_refresh_token(db, user)
+    refresh_token, refresh_token_id = create_refresh_token(db, user)
+    access_token = create_access_token(user, refresh_token_id)
     db.commit()
     set_session_cookies(response, access_token, refresh_token)
     return {"status": "ok"}
@@ -83,7 +83,8 @@ def ativar(request: Request, corpo: UserActivationRequest, response: Response, d
     user.activated_at = datetime.now(timezone.utc)
     registrar_sucesso_login(user)
     db.commit()
-    set_session_cookies(response, create_access_token(user), create_refresh_token(db, user))
+    refresh_token, refresh_token_id = create_refresh_token(db, user)
+    set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
     db.commit()
     return {"status": "ok"}
 
@@ -126,7 +127,8 @@ def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Res
     user.activated_at = user.activated_at or datetime.now(timezone.utc)
     revoke_all_refresh_tokens_for_user(db, user.id)
     db.commit()
-    set_session_cookies(response, create_access_token(user), create_refresh_token(db, user))
+    refresh_token, refresh_token_id = create_refresh_token(db, user)
+    set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
     db.commit()
     return {"status": "ok"}
 
@@ -140,8 +142,8 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     token = request.cookies.get(REFRESH_COOKIE_NAME)
     if token is None:
         raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
-    user, novo_refresh = rotate_refresh_token(db, token)
-    novo_access = create_access_token(user)
+    user, novo_refresh, nova_sessao_id = rotate_refresh_token(db, token)
+    novo_access = create_access_token(user, nova_sessao_id)
     set_session_cookies(response, novo_access, novo_refresh)
     return {"status": "ok"}
 

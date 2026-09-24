@@ -1,4 +1,4 @@
-# Diagnóstico sênior — Constituição de Database (rodada 2, 2026-09-21)
+# Diagnóstico sênior — Constituição de Database (rodada 2, 2026-09-21 — atualizado em 2026-09-24)
 
 ## Objetivo e fluxo da rodada
 
@@ -138,6 +138,79 @@ backfills deixaram de escrever o campo.
 reexecução das cargas; depois criar migration expand-contract em entrega
 separada para removê-la junto do auditor de compatibilidade.
 
+### Auditoria de tabelas vazias — 2026-09-24
+
+Rodada adicional, motivada por achado manual do usuário ao inspecionar o
+banco operacional. Contagem de linhas de todas as 27 tabelas do schema
+público (`sigeo_runtime`, somente leitura) cruzada com `models.py`,
+migrations, `fluxo_requisicao.mermaid` e `modelo_er.mermaid`. Cinco tabelas
+estão com 0 linhas; nenhuma é código morto sem dono, mas caem em três
+situações distintas que não devem ser tratadas da mesma forma:
+
+**Candidata real a legado — `equipamento_alias`.** Criada na migration
+`f4c7e1d9a820` (Plan Mode centralização de marcadores, 2026-09-20), junto de
+`equipamento_catalogo` (146 linhas) e `equipamento_marcador` (1.372 linhas,
+com serviço ativo em `app/services/equipamento_marcadores.py`).
+`equipamento_alias` não tem nenhum escritor nem leitor em todo o repositório
+— nem router, nem service, nem script — fora da própria declaração do model
+e da migration que a criou. O único uso de "alias" encontrado no código é
+`sqlalchemy.orm.aliased` em `app/routers/convenios.py`, sem relação alguma
+com esta tabela. O plano original previa "catálogo com nome canônico e
+aliases", mas a normalização de nome acabou implementada por outro caminho
+(`classificar_descricoes`), sem nunca chegar a usar esta tabela. Diferente de
+`equipamentos_tags`, não está registrada em nenhum diagnóstico anterior como
+"em observação" — é candidata legítima a `DROP TABLE` (mudança destrutiva,
+exige plano aprovado e backup conforme Seção 4 da Constituição), não
+expand-contract.
+
+**Dead-by-design, documentado — `execution_alert`.** O docstring de
+`app/pipeline/runner.py` explica por que a tabela nunca é escrita:
+`ExecutionAlert.execution_id` é `NOT NULL`, mas as etapas mais propensas a
+falhar (`api_demas`/`api_sidra`/`api_elasticnes`) rodam antes da `Execution`
+existir — o alerta vai para `AuditLog` (que aceita `entity_id` opcional) em
+vez disso. É uma tabela definida no schema e contornada de propósito, com
+justificativa explícita no código, mas sem consumidor real. Antes de propor
+`DROP TABLE`, confirmar com a equipe se `AuditLog` cobre o caso
+permanentemente ou se a tabela ainda tem uso futuro planejado.
+
+**Não é legado — dado de referência "congelado", só nunca carregado —
+`inca_estimate` e `accelerator_row`.** `AGENTS.md`/`CLAUDE.md` já classifica
+as duas como categoria "Congelado" na estratégia de ingestão do Neon:
+estatística oficial ANS/INCA e levantamento de Acelerador Linear, sem API
+viva, carregada de `data/raw/` só por decisão explícita da equipe ao chegar
+arquivo oficial mais novo. Os importadores (`importar_inca_estimates.py`,
+`importar_aceleradores.py`) existem desde 2026-08-21 e nunca foram
+executados contra o operacional — `backend/data/raw/` nem existe hoje no
+repositório, ou seja, a fonte em si nunca chegou a ser versionada. Consistente
+com a limitação já registrada de que a produtividade de Acelerador Linear
+continua placeholder. Não é código morto — é feature esperando decisão de
+produto/fonte de dado, parada há mais de um mês, sem relação com o legado de
+tags/marcadores.
+
+**Não é legado — feature nova, ainda sem primeira execução —
+`evidencia_transferegov`.** Tem escritor ativo
+(`registrar_evidencias_relacionais`, em `app/services/evidencias_transferegov.py`,
+chamado por `scripts/job_descoberta_transferegov.py` nos ramos de INSERT e de
+UPDATE de proposta). A migration `b7e3d9f4a621` é o head atual do Alembic,
+aplicada no commit de 2026-09-23 (véspera desta auditoria). Por
+`fluxo_requisicao.mermaid`, o job só roda via `workflow_dispatch` manual — o
+cron está comentado/inativo e o workflow pode nem existir na branch padrão do
+GitHub. A tabela está vazia porque o job não rodou desde que a feature
+nasceu, não porque está morta.
+
+**Achado correlato, não é tabela vazia:** `convenio.equipamentos_tags`
+(coluna `jsonb`) segue com 560/560 convênios preenchidos — confirma que a
+compatibilidade temporária descrita no achado anterior desta rodada
+continua em janela de observação, sem redução de uso ainda.
+
+**Encaminhamento:** levar `equipamento_alias` e `execution_alert` ao mesmo
+tratamento hoje dado a `equipamentos_tags` — itens mortos pendentes de plano
+de remoção aprovado, não removidos nesta auditoria. Não fazer `DROP TABLE`
+sem plano formal e backup pontual (Seção 4/7 da Constituição). Verificar com
+a equipe se `radar_convenios.yml`/`job_descoberta_transferegov.py` deveria
+rodar em cadência automática (destravaria `evidencia_transferegov`) e se há
+decisão de carregar `data/raw/` de Acelerador Linear/INCA.
+
 ## Ingestão: estado e próxima auditoria obrigatória
 
 O diagnóstico de 18/09 comprovou que as cargas FAF/TED e PERSUS/PRONON têm
@@ -215,7 +288,8 @@ ou DevOps.
       pendências e sem novos escritores no JSON legado.
 - [x] Testes de migration, constraint e FK executados em PostgreSQL dedicado.
 - [ ] Planos de limpeza aprovados antes de remover coluna, script, índice ou
-      contexto histórico.
+      contexto histórico — inclui, desde 2026-09-24, `equipamento_alias` e
+      `execution_alert` (tabelas vazias sem consumidor, ver achado acima).
 
 ## Evidências executadas nesta revisão
 
@@ -247,3 +321,27 @@ deploy; a alteração compartilhada teve backup pontual confirmado. A nota não
 é 10 porque PITR/RPO/RTO e restauração testada seguem pendentes no diagnóstico
 de DevOps, a sequência ainda não é gate automático de CI, e a remoção física
 de `equipamentos_tags` deve aguardar a janela de observação expand-contract.
+
+**Atualização 2026-09-24:** a nota não muda — a auditoria de tabelas vazias
+não encontrou drift, integridade violada nem migration malformada, só dois
+itens mortos adicionais (`equipamento_alias`, `execution_alert`) que entram
+na mesma fila de limpeza pendente já registrada para `equipamentos_tags`, e
+dois casos de feature legítima ainda sem primeira execução
+(`inca_estimate`/`accelerator_row` aguardando fonte em `data/raw/`;
+`evidencia_transferegov` aguardando o job rodar).
+
+### Atualização de ingestão controlada — PERSUS, 2026-09-24
+
+A planilha `data/Controle PERSUS.xlsx` foi tratada como **complementação** dos
+92 PERSUS I existentes, nunca como uma nova carga nem como fonte de CNES. A
+conciliação usou o PERSUS existente como fonte definitiva de CNES e associou
+as 34 linhas por identificadores de origem/localidade; quatro divergências da
+planilha foram vinculadas somente após validação explícita da equipe.
+
+No banco operacional foram preservados os 92 PERSUS I em `convenio` e ficaram
+34 no escopo de monitoramento interno: 5 já existentes e 29 criados. A fonte
+complementou 21 anos de instrumento e 22 NUPs quando ausentes, registrou 185
+eventos e 102 ações concluídas. Não houve migration, alteração de schema nem
+sobrescrita de CNES; os 58 PERSUS sem dados de controle permanecem somente em
+Instrumentos Firmados. A rotina é idempotente por chave de origem e deduplica
+evento/ação pelo conteúdo antes de inserir.

@@ -185,3 +185,19 @@ Executar a validação publicada após o próximo deploy e provisionar o storage
 compartilhado do rate limit antes de declarar o P1 operacionalmente fechado.
 Os controles de SAST, secret scan, CodeQL/SBOM, retenção/LGPD e política de
 abuso ficam como escopo da rodada de DevOps e governança, com evidência própria.
+
+## Atualização de regressão — 2026-09-24 (revogação imediata no logout)
+
+O access JWT agora carrega somente o identificador da sessão de refresh já
+persistida (`RefreshToken.id`), nunca o token bruto. Em toda autenticação, o
+backend confirma que essa mesma linha pertence ao usuário, ainda não foi
+revogada e não expirou. Portanto, `POST /auth/logout` e a rotação de refresh
+invalidam imediatamente também um access cookie que tenha sido copiado antes
+da limpeza do navegador; não há mais a janela de até 20 minutos registrada no
+diagnóstico de Backend de 2026-09-16.
+
+Não houve mudança de cookie, CORS, CSRF ou esquema de banco. Foi incluído um
+teste HTTP de regressão que recoloca deliberadamente o access cookie após
+logout e recebe `401`. A execução local sem `TEST_DATABASE_URL` coletou o
+teste, mas o marcou como skip; a comprovação em PostgreSQL isolado continua
+obrigatória no CI/ambiente de testes.
