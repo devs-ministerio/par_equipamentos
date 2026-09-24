@@ -89,6 +89,11 @@ no GitHub Actions.
   `sigeo.http`; isso permite correlacionar uma chamada do navegador com a API
   sem transmitir URL completa, querystring, corpo, cookie ou identidade. Não
   reutilize esse identificador como token, nem o exponha como dado de negócio.
+- Após publicar mudança no cliente de transporte, faça um smoke sem dados
+  sensíveis: `GET /health` com um valor hexadecimal de 32 caracteres em
+  `X-Trace-Id`, confirmando resposta `200`, banco conectado e eco do mesmo
+  cabeçalho. Em 23/09/2026, esse teste passou no deploy
+  `dep-daq6nbrbc2fs73fg4re0` (`d016c6e`).
 - Os logs JSON sanitizados do backend continuam no stdout e são encaminhados
   pelo agente New Relic quando `NEW_RELIC_APPLICATION_LOGGING_ENABLED=true` e
   `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true` estão ativos no

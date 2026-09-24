@@ -72,6 +72,8 @@ New Relic Alerts                                       → condição crítica a
 Render (deploy `dep-daq62tegekts73bnulqg`)             → deploy live com encaminhamento de logs habilitado
 New Relic Metrics                                      → `CPU/*` e `Memory/Physical` recebidos para `SIGEO API`; bloco de recursos salvo no dashboard operacional
 Frontend/API                                           → `X-Trace-Id` opaco por operação, preservado em retry de leitura; validação anti-injeção e testes de regressão aprovados
+GitHub Actions (commit `d016c6e`)                      → Varredura de segredos, Backend CI, Frontend CI, SBOM e bloqueio de CVE crítico: sucesso
+Render (deploy `dep-daq6nbrbc2fs73fg4re0`)             → auto-deploy de `d016c6e` live; `/health` 200 com banco conectado e `X-Trace-Id` confirmado ponta a ponta
 ```
 
 Os YAMLs são parseáveis e passaram no `actionlint` 1.7.10. O Render CLI
@@ -131,6 +133,12 @@ serviço e o health check HTTP.
   `appName = 'SIGEO API'` e exibe latência p95 em série temporal e taxa de
   erro em painel numérico. As duas consultas executaram com dados da aplicação
   antes de serem salvas no dashboard.
+- Entrega de `d016c6e`: os quatro gates publicados concluíram com sucesso
+  (varredura de segredos `35937380778`, Backend CI `35937380780`, Frontend CI
+  `35937380809` e SBOM/scan crítico `35937380798`). O Render aplicou o
+  auto-deploy `dep-daq6nbrbc2fs73fg4re0`; o smoke público em `/health`
+  devolveu 200, banco conectado e o mesmo `X-Trace-Id` opaco enviado pelo
+  cliente de teste. Não foram enviados dados de usuário, corpo ou querystring.
 - Neon: branch `production` é a padrão e oferece PITR, com histórico de seis
   horas. O exercício autorizado de 23/09 criou a branch isolada
   `sigeo-restore-drill-2026-09-23` a partir de 13:37 BRT, com expiração de um
