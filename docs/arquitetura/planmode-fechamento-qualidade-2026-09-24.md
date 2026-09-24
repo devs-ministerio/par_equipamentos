@@ -96,6 +96,10 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - Rota de convênios atingiu **90%**, com contratos de autenticação, filtro,
   paginação, 404 e regra das cargas manuais (desembolso integral, sem payload
   oficial simulado no detalhe).
+- O verificador versionado de cobertura por camada foi validado contra a
+  suíte completa: services **93,4%/82,5%**, repositories **94,7%/77,6%** e
+  routes **90,1%/63,0%** (linhas/branches), todos acima dos pisos. O workflow
+  backend agora bloqueia regressão e publica JSON/XML por 14 dias.
 
 ## 2. Cobertura frontend e testes comportamentais
 
