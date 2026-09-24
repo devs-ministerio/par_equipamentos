@@ -6,6 +6,7 @@ a Tomografo).
 Fonte: agregado 6579 ("Populacao residente estimada"), variavel 9324,
 nivel territorial N6 (municipio).
 """
+
 from __future__ import annotations
 
 import requests
@@ -49,7 +50,8 @@ class _RespostaSidra(BaseModel):
 def _sessao_com_retry() -> requests.Session:
     session = requests.Session()
     retry = Retry(
-        total=5, backoff_factor=2,
+        total=5,
+        backoff_factor=2,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
     )

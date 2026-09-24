@@ -22,6 +22,7 @@ Aplicar o "OR raio de 75km -> nao deficiente" na classificacao oficial e
 uma decisao normativa que precisa confirmacao explicita antes de mudar o
 que conta como Hipo/Hiperssuficiente num municipio (ver comentario em
 scripts/run_pipeline_tomografo.py)."""
+
 from __future__ import annotations
 
 import csv

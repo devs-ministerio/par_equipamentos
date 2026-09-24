@@ -28,9 +28,7 @@ def executar(*, limite: int | None = None, aplicar: bool = False) -> dict[str, i
         if limite is not None:
             consulta = consulta.limit(limite)
         convenios = db.execute(consulta).scalars().all()
-        catalogo = {
-            item.codigo: item for item in db.execute(select(EquipamentoCatalogo)).scalars()
-        }
+        catalogo = {item.codigo: item for item in db.execute(select(EquipamentoCatalogo)).scalars()}
         for convenio in convenios:
             descricoes = extrair_descricoes(convenio.siconv_raw, {"DESCRICAO_ITEM", "descricao_item"})
             evidencias = classificar_descricoes(descricoes)

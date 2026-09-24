@@ -4,6 +4,7 @@ o que se quer provar aqui é o comportamento HTTP observável (cookie
 setado, rotação, revogação), que só aparece passando pela pilha real do
 framework.
 """
+
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor

@@ -12,9 +12,7 @@ class Resposta:
 
 def test_registra_chamada_externa_sem_dados_da_requisicao(caplog: pytest.LogCaptureFixture):
     caplog.set_level(logging.INFO, logger="sigeo.http")
-    resultado = executar_chamada_externa(
-        fonte="SIDRA", operacao="populacao", chamada=lambda: Resposta()
-    )
+    resultado = executar_chamada_externa(fonte="SIDRA", operacao="populacao", chamada=lambda: Resposta())
 
     assert isinstance(resultado, Resposta)
     evento = json.loads(caplog.records[-1].message)

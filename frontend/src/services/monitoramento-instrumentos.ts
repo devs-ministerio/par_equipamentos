@@ -1,7 +1,7 @@
-import { z } from 'zod';
-import { ApiError } from '@/lib/api-error';
-import { requisitar } from '@/lib/http-client';
-import { apiAuthed, apiGetAuthed } from './monitoramento-client';
+import { z } from "zod";
+import { ApiError } from "@/lib/api-error";
+import { requisitar } from "@/lib/http-client";
+import { apiAuthed, apiGetAuthed } from "./monitoramento-client";
 
 // ---------------------------------------------------------------------
 // Monitoramento -- instrumentos
@@ -51,7 +51,7 @@ const instrumentoEquipamentoSchema = z.object({
   ano_instrumento: z.number().nullable(),
   tipo_contratacao: z.string().nullable(),
   origem_dado: z.string().nullable(),
-  tipologia: z.enum(['A', 'CV', 'C', 'EO', 'C.B', 'NA']).nullable(),
+  tipologia: z.enum(["A", "CV", "C", "EO", "C.B", "NA"]).nullable(),
   investimento_aquisicao: z.number().nullable(),
   situacao_programa: z.string().nullable(),
   natureza_servico: z.string().nullable(),
@@ -77,10 +77,15 @@ const instrumentoEquipamentoSchema = z.object({
   // docstring do backend. Ausente/null nos outros endpoints.
   fase_atual: z.string().nullable().optional(),
 });
-export type InstrumentoEquipamento = z.infer<typeof instrumentoEquipamentoSchema>;
+export type InstrumentoEquipamento = z.infer<
+  typeof instrumentoEquipamentoSchema
+>;
 
 export function fetchInstrumentos(): Promise<InstrumentoEquipamento[]> {
-  return apiGetAuthed('/monitoramento/instrumentos', z.array(instrumentoEquipamentoSchema));
+  return apiGetAuthed(
+    "/monitoramento/instrumentos",
+    z.array(instrumentoEquipamentoSchema),
+  );
 }
 
 /** POST /monitoramento/instrumentos: entrada explícita no monitoramento
@@ -100,8 +105,15 @@ export interface CriarInstrumentoInput {
   tecnico_suplente?: string | null;
 }
 
-export function criarInstrumento(corpo: CriarInstrumentoInput): Promise<InstrumentoEquipamento> {
-  return apiAuthed('/monitoramento/instrumentos', instrumentoEquipamentoSchema, 'POST', corpo);
+export function criarInstrumento(
+  corpo: CriarInstrumentoInput,
+): Promise<InstrumentoEquipamento> {
+  return apiAuthed(
+    "/monitoramento/instrumentos",
+    instrumentoEquipamentoSchema,
+    "POST",
+    corpo,
+  );
 }
 
 const valorSituacaoAoVivoSchema = z.object({
@@ -123,9 +135,15 @@ export type InstrumentoTimeline = z.infer<typeof instrumentoTimelineSchema>;
 /** `null` = convênio sem instrumento seedado (404 -- caso normal pros
  * convênios ainda não monitorados). Qualquer outra falha continua
  * lançando `ApiError`, igual ao resto da camada de services. */
-export async function fetchInstrumentoTimeline(nrConvenio: string): Promise<InstrumentoTimeline | null> {
+export async function fetchInstrumentoTimeline(
+  nrConvenio: string,
+): Promise<InstrumentoTimeline | null> {
   try {
-    return await requisitar(`/monitoramento/instrumentos/${nrConvenio}`, instrumentoTimelineSchema, undefined);
+    return await requisitar(
+      `/monitoramento/instrumentos/${nrConvenio}`,
+      instrumentoTimelineSchema,
+      undefined,
+    );
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
@@ -143,8 +161,16 @@ export interface CadastroInstrumentoInput {
   cnes?: string | null;
 }
 
-export function patchCadastroInstrumento(nrConvenio: string, corpo: CadastroInstrumentoInput): Promise<InstrumentoEquipamento> {
-  return apiAuthed(`/monitoramento/instrumentos/${nrConvenio}`, instrumentoEquipamentoSchema, 'PATCH', corpo);
+export function patchCadastroInstrumento(
+  nrConvenio: string,
+  corpo: CadastroInstrumentoInput,
+): Promise<InstrumentoEquipamento> {
+  return apiAuthed(
+    `/monitoramento/instrumentos/${nrConvenio}`,
+    instrumentoEquipamentoSchema,
+    "PATCH",
+    corpo,
+  );
 }
 
 export interface RegistrarEventoInput {
@@ -165,8 +191,16 @@ export interface RegistrarEventoInput {
   equipamento_vida_util_anos?: number | null;
 }
 
-export function registrarEvento(nrConvenio: string, corpo: RegistrarEventoInput): Promise<EventoMarco> {
-  return apiAuthed(`/monitoramento/instrumentos/${nrConvenio}/eventos`, eventoMarcoSchema, 'POST', corpo);
+export function registrarEvento(
+  nrConvenio: string,
+  corpo: RegistrarEventoInput,
+): Promise<EventoMarco> {
+  return apiAuthed(
+    `/monitoramento/instrumentos/${nrConvenio}/eventos`,
+    eventoMarcoSchema,
+    "POST",
+    corpo,
+  );
 }
 
 /** Corrigir (append-only, ver docstring do model no backend) -- lança um
@@ -181,10 +215,26 @@ export interface EditarEventoInput {
   observacao?: string | null;
 }
 
-export function editarEvento(eventoId: number, corpo: EditarEventoInput): Promise<EventoMarco> {
-  return apiAuthed(`/monitoramento/eventos/${eventoId}`, eventoMarcoSchema, 'PATCH', corpo);
+export function editarEvento(
+  eventoId: number,
+  corpo: EditarEventoInput,
+): Promise<EventoMarco> {
+  return apiAuthed(
+    `/monitoramento/eventos/${eventoId}`,
+    eventoMarcoSchema,
+    "PATCH",
+    corpo,
+  );
 }
 
-export function excluirEvento(eventoId: number, motivo: string): Promise<EventoMarco> {
-  return apiAuthed(`/monitoramento/eventos/${eventoId}`, eventoMarcoSchema, 'DELETE', { motivo });
+export function excluirEvento(
+  eventoId: number,
+  motivo: string,
+): Promise<EventoMarco> {
+  return apiAuthed(
+    `/monitoramento/eventos/${eventoId}`,
+    eventoMarcoSchema,
+    "DELETE",
+    { motivo },
+  );
 }

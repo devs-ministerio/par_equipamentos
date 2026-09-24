@@ -6,20 +6,28 @@
  * Estado de abertura controlado pelo pai. CNES mora dentro do form de
  * edição (Plan Mode monitoramento-evolucao 2026-09-19) -- "Editar
  * cadastro" edita tudo de uma vez, sem modo especial só pra CNES. */
-import { cn } from '@/lib/utils';
-import type { InstrumentoEquipamento } from '@/services/monitoramento-instrumentos';
-import type { CadastroInternoFormValues } from '@/lib/validations/monitoramento';
-import { TIPOLOGIA_PERSUS } from '@/data/constants';
-import { MonitoramentoInternoFormCadastro } from './monitoramento-interno-form-cadastro';
-import { SecaoOperacional, estiloInput } from './monitoramento-ui';
+import { cn } from "@/lib/utils";
+import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
+import type { CadastroInternoFormValues } from "@/lib/validations/monitoramento";
+import { TIPOLOGIA_PERSUS } from "@/data/constants";
+import { MonitoramentoInternoFormCadastro } from "./monitoramento-interno-form-cadastro";
+import { SecaoOperacional, estiloInput } from "./monitoramento-ui";
 
-const CAMPOS_VISAO: { rotulo: string; campo: keyof InstrumentoEquipamento; formatar?: (v: string) => string }[] = [
-  { rotulo: 'Técnico titular', campo: 'tecnico_titular' },
-  { rotulo: 'Técnico suplente', campo: 'tecnico_suplente' },
-  { rotulo: 'Nível', campo: 'nivel_monitoramento' },
-  { rotulo: 'Tipologia', campo: 'tipologia', formatar: (v) => TIPOLOGIA_PERSUS[v] ?? v },
-  { rotulo: 'Modalidade', campo: 'modalidade_onco' },
-  { rotulo: 'Responsável na instituição', campo: 'responsavel_execucao_nome' },
+const CAMPOS_VISAO: {
+  rotulo: string;
+  campo: keyof InstrumentoEquipamento;
+  formatar?: (v: string) => string;
+}[] = [
+  { rotulo: "Técnico titular", campo: "tecnico_titular" },
+  { rotulo: "Técnico suplente", campo: "tecnico_suplente" },
+  { rotulo: "Nível", campo: "nivel_monitoramento" },
+  {
+    rotulo: "Tipologia",
+    campo: "tipologia",
+    formatar: (v) => TIPOLOGIA_PERSUS[v] ?? v,
+  },
+  { rotulo: "Modalidade", campo: "modalidade_onco" },
+  { rotulo: "Responsável na instituição", campo: "responsavel_execucao_nome" },
 ];
 
 export function MonitoramentoInternoCadastro({
@@ -45,9 +53,12 @@ export function MonitoramentoInternoCadastro({
           onClick={() => (aberto ? onFechar() : onAbrir())}
           disabled={!podeEditar}
           aria-expanded={aberto}
-          className={cn(estiloInput, 'cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5')}
+          className={cn(
+            estiloInput,
+            "cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5",
+          )}
         >
-          {aberto ? 'Cancelar' : 'Editar cadastro'}
+          {aberto ? "Cancelar" : "Editar cadastro"}
         </button>
       }
     >
@@ -71,8 +82,12 @@ export function MonitoramentoInternoCadastro({
             const valor = instrumento[campo] as string | null;
             return (
               <div key={rotulo} className="border-t border-border pt-2">
-                <div className="text-[10.5px] text-muted-foreground font-extrabold uppercase">{rotulo}</div>
-                <div className="text-[12.5px] text-foreground mt-[3px]">{valor ? (formatar ? formatar(valor) : valor) : '—'}</div>
+                <div className="text-[10.5px] text-muted-foreground font-extrabold uppercase">
+                  {rotulo}
+                </div>
+                <div className="text-[12.5px] text-foreground mt-[3px]">
+                  {valor ? (formatar ? formatar(valor) : valor) : "—"}
+                </div>
               </div>
             );
           })}

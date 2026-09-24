@@ -1,4 +1,5 @@
 """Acesso a dados de PropostaCandidata."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -46,10 +47,14 @@ def listar_propostas_paginadas(
     total = db.execute(
         aplicar_filtros_proposta(select(func.count()).select_from(PropostaCandidata), filtros)
     ).scalar_one()
-    itens = db.execute(
-        aplicar_filtros_proposta(select(PropostaCandidata), filtros)
-        .order_by(PropostaCandidata.created_at.desc())
-        .offset((pagina - 1) * tamanho_pagina)
-        .limit(tamanho_pagina)
-    ).scalars().all()
+    itens = (
+        db.execute(
+            aplicar_filtros_proposta(select(PropostaCandidata), filtros)
+            .order_by(PropostaCandidata.created_at.desc())
+            .offset((pagina - 1) * tamanho_pagina)
+            .limit(tamanho_pagina)
+        )
+        .scalars()
+        .all()
+    )
     return total, list(itens)

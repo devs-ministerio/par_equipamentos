@@ -54,6 +54,7 @@ Antes de qualquer nova execução, revisar o inventário de fontes do Plan Mode
 database/ingestão de 2026-09-21: a planilha é defasada para parte das cargas
 e este script não substitui os importadores FAF/TED ativos.
 """
+
 from __future__ import annotations
 
 import re

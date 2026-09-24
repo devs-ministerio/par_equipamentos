@@ -37,6 +37,7 @@ padrao de texto usado nos convenios legados do Portal da Transparencia).
 com o CNPJ vindo do Portal da Transparencia -- ver
 scripts/coletar_transferegov_relacional.py).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -116,7 +117,8 @@ def _validar_registros_do_endpoint(endpoint: str, registros: list[dict[str, Any]
 def _sessao_com_retry() -> requests.Session:
     session = requests.Session()
     retry = Retry(
-        total=3, backoff_factor=2,
+        total=3,
+        backoff_factor=2,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
     )
@@ -125,7 +127,10 @@ def _sessao_com_retry() -> requests.Session:
 
 
 def _buscar_paginado(
-    session: requests.Session, endpoint: str, filtros: dict[str, str | int], limite: int | None = None,
+    session: requests.Session,
+    endpoint: str,
+    filtros: dict[str, str | int],
+    limite: int | None = None,
 ) -> list[dict[str, Any]]:
     """Pagina um endpoint ate esgotar ou atingir `limite` registros (None =
     sem limite, cuidado: alguns entes tem centenas/milhares de propostas)."""
@@ -169,7 +174,9 @@ def total_propostas_por_cnpj(session: requests.Session, cnpj: str) -> int:
 
 
 def buscar_propostas_por_cnpj(
-    session: requests.Session, cnpj: str, limite: int | None = None,
+    session: requests.Session,
+    cnpj: str,
+    limite: int | None = None,
 ) -> list[dict[str, Any]]:
     return _buscar_paginado(session, "proposta", {"cnpj_ente_recebedor": cnpj}, limite=limite)
 
@@ -184,9 +191,7 @@ def buscar_metas_por_proposta(session: requests.Session, id_proposta: int) -> li
     return _buscar_paginado(session, "meta-proposta", {"id_proposta": id_proposta})
 
 
-def buscar_metas_por_proposta_dto(
-    session: requests.Session, id_proposta: int
-) -> list[MetaPropostaTransfereGov]:
+def buscar_metas_por_proposta_dto(session: requests.Session, id_proposta: int) -> list[MetaPropostaTransfereGov]:
     """Porta tipada para consumidores novos.
 
     A função legada continua para jobs que montam artefatos JSON cru. Quem
@@ -230,7 +235,9 @@ def buscar_contas_por_parceria(session: requests.Session, id_parceria: int) -> l
     return _buscar_paginado(session, "parceria-conta", {"id_parceria": id_parceria})
 
 
-def buscar_extrato_por_conta(session: requests.Session, id_parceria_conta: int, limite: int = 50) -> list[dict[str, Any]]:
+def buscar_extrato_por_conta(
+    session: requests.Session, id_parceria_conta: int, limite: int = 50
+) -> list[dict[str, Any]]:
     """Extrato pode ter muitos lancamentos -- limitado por padrao (nao e o
     foco do monitoramento de equipamento, so contexto de saldo/movimentacao)."""
     return _buscar_paginado(session, "extrato-bancario", {"id_parceria_conta": id_parceria_conta}, limite=limite)

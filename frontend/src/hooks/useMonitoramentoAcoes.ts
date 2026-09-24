@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type CriarAcaoInput,
   type EditarAcaoInput,
@@ -7,8 +7,8 @@ import {
   editarAcao,
   excluirAcao,
   fetchAcoes,
-} from '@/services/monitoramento-acoes';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+} from "@/services/monitoramento-acoes";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Todas as ações (ou só pendentes, `pendentes=true`) de todos os
  * instrumentos -- ver docstring de GET /monitoramento/acoes no backend. */
@@ -32,7 +32,7 @@ export function useAcoesDoInstrumento(nrConvenio: string) {
 }
 
 function invalidarAcoes(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: ['monitoramento', 'acoes'] });
+  queryClient.invalidateQueries({ queryKey: ["monitoramento", "acoes"] });
   queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
 }
 
@@ -57,7 +57,13 @@ export function useConcluirAcao() {
 export function useEditarAcao() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ acaoId, corpo }: { acaoId: number; corpo: EditarAcaoInput }) => editarAcao(acaoId, corpo),
+    mutationFn: ({
+      acaoId,
+      corpo,
+    }: {
+      acaoId: number;
+      corpo: EditarAcaoInput;
+    }) => editarAcao(acaoId, corpo),
     onSuccess: () => invalidarAcoes(queryClient),
   });
 }
@@ -65,7 +71,8 @@ export function useEditarAcao() {
 export function useExcluirAcao() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ acaoId, motivo }: { acaoId: number; motivo: string }) => excluirAcao(acaoId, motivo),
+    mutationFn: ({ acaoId, motivo }: { acaoId: number; motivo: string }) =>
+      excluirAcao(acaoId, motivo),
     onSuccess: () => invalidarAcoes(queryClient),
   });
 }

@@ -1,4 +1,5 @@
 """Branches de queries não triviais dos repositories de apoio."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -18,7 +19,9 @@ def test_repository_notificacoes_filtra_nao_lidas_e_retorna_vazios_sem_ids():
     try:
         db.add_all(
             [
-                Notificacao(tipo=NotificacaoTipo.proposta_candidata, titulo="não lida pytest", entidade_id=1, lida=False),
+                Notificacao(
+                    tipo=NotificacaoTipo.proposta_candidata, titulo="não lida pytest", entidade_id=1, lida=False
+                ),
                 Notificacao(tipo=NotificacaoTipo.proposta_candidata, titulo="lida pytest", entidade_id=2, lida=True),
             ]
         )

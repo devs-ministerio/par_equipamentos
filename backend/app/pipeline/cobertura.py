@@ -4,6 +4,7 @@ nem das 3 APIs externas (DEMAS/SIDRA/ElastiCNES). O script de pipeline
 so faz I/O (busca nas fontes, agrega, grava); a conta de negocio mora
 aqui.
 """
+
 from __future__ import annotations
 
 import math
@@ -56,7 +57,9 @@ def populacao_sus_dependente(*, residente: int, ans: int) -> int:
     return max(0, residente - ans)
 
 
-def calcular_cobertura(*, population: int, in_use_sus: int, produtividade: float = PRODUTIVIDADE_PADRAO) -> CoberturaMacro:
+def calcular_cobertura(
+    *, population: int, in_use_sus: int, produtividade: float = PRODUTIVIDADE_PADRAO
+) -> CoberturaMacro:
     """RN da Metodologia: 1 equipamento por `produtividade` habitantes
     (100 mil, pra TOMOGRAFO). `in_use_sus` e o denominador de oferta --
     qt_uso-onde-sus_flag (equipamento em uso E SUS), decisao 2026-08-24

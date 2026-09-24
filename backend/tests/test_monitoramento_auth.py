@@ -7,6 +7,7 @@ comportamento HTTP (401 sem token), que só aparece passando pela pilha real
 do framework -- mesmo padrão já usado em `test_municipality_coverage.py`/
 `test_equipment_totals.py`.
 """
+
 from __future__ import annotations
 
 from uuid import uuid4

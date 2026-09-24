@@ -1,16 +1,16 @@
-import { Fragment } from 'react';
-import type { NivelCoberturaRow } from '@/types/domain';
-import { calcularCoeficiente } from '@/utils/coeficiente';
-import { formatMultiplicador } from '@/utils/format';
-import { formatarQuantidadeEquipamento } from '@/data/constants';
-import { StatusBadge } from '@/components/common/status-badge';
-import { useMunicipalityByHealthRegion } from '@/hooks/useMunicipalityByHealthRegion';
-import { BotaoDetalhe } from './botao-detalhe';
-import { SubNivelRows } from './sub-nivel-rows';
+import { Fragment } from "react";
+import type { NivelCoberturaRow } from "@/types/domain";
+import { calcularCoeficiente } from "@/utils/coeficiente";
+import { formatMultiplicador } from "@/utils/format";
+import { formatarQuantidadeEquipamento } from "@/data/constants";
+import { StatusBadge } from "@/components/common/status-badge";
+import { useMunicipalityByHealthRegion } from "@/hooks/useMunicipalityByHealthRegion";
+import { BotaoDetalhe } from "./botao-detalhe";
+import { SubNivelRows } from "./sub-nivel-rows";
 
 interface Props {
   linha: NivelCoberturaRow;
-  nivelAtual: 'regiaoSaude' | 'municipio';
+  nivelAtual: "regiaoSaude" | "municipio";
   equipmentFamily: string;
   produtividade: number;
   selecionados?: string[];
@@ -41,8 +41,12 @@ export function SubNivelRow({
   onAbrirDetalhe,
 }: Props) {
   const coef = calcularCoeficiente(linha.oferta, linha.pop, produtividade);
-  const expansivel = nivelAtual === 'regiaoSaude';
-  const { dados: filhos } = useMunicipalityByHealthRegion(equipmentFamily, linha.chave, expansivel && expandida);
+  const expansivel = nivelAtual === "regiaoSaude";
+  const { dados: filhos } = useMunicipalityByHealthRegion(
+    equipmentFamily,
+    linha.chave,
+    expansivel && expandida,
+  );
   const selecionada = selecionados?.includes(linha.chave);
 
   return (
@@ -56,7 +60,7 @@ export function SubNivelRow({
               }
             : undefined
         }
-        className={`border-t border-border ${expansivel ? 'cursor-pointer' : ''} ${selecionada ? 'bg-accent' : ''}`}
+        className={`border-t border-border ${expansivel ? "cursor-pointer" : ""} ${selecionada ? "bg-accent" : ""}`}
       >
         <td
           className="overflow-hidden py-1.5 pr-2 pl-1 font-medium text-foreground text-ellipsis whitespace-nowrap"
@@ -65,17 +69,20 @@ export function SubNivelRow({
           {expansivel && (
             <span
               className="mr-1.5 inline-block text-[9px] text-muted-foreground transition-transform duration-150"
-              style={{ transform: expandida ? 'rotate(90deg)' : 'none' }}
+              style={{ transform: expandida ? "rotate(90deg)" : "none" }}
             >
               ▶
             </span>
           )}
-          {linha.nome} <span className="font-normal text-muted-foreground">({linha.uf})</span>
+          {linha.nome}{" "}
+          <span className="font-normal text-muted-foreground">
+            ({linha.uf})
+          </span>
         </td>
         {completo ? (
           <>
             <td className="w-[110px] py-1.5 px-2 text-right whitespace-nowrap text-muted-foreground">
-              {linha.pop.toLocaleString('pt-BR')}
+              {linha.pop.toLocaleString("pt-BR")}
             </td>
             <td className="w-[210px] py-1.5 pr-6 pl-2">
               {/* bar com largura fixa (nao flex:1) -- em table-layout:fixed
@@ -88,17 +95,24 @@ export function SubNivelRow({
                 <div className="relative h-[7px] w-[90px] shrink-0 overflow-clip rounded bg-muted">
                   <div
                     className="absolute top-0 left-0 h-full"
-                    style={{ width: `${coef.fillPercent}%`, background: coef.corBarra }}
+                    style={{
+                      width: `${coef.fillPercent}%`,
+                      background: coef.corBarra,
+                    }}
                   />
                   <div className="absolute top-0 bottom-0 left-1/2 w-0.5 -translate-x-1/2 rounded-sm bg-muted-foreground" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-semibold" style={{ color: coef.corTexto }}>
-                    {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
+                  <div
+                    className="text-[11px] font-semibold"
+                    style={{ color: coef.corTexto }}
+                  >
+                    {coef.valor != null ? formatMultiplicador(coef.valor) : "—"}
                   </div>
                   <div className="text-[9.5px] text-muted-foreground">
                     {formatarQuantidadeEquipamento(linha.oferta)} em uso SUS
-                    {linha.ofertaTotal !== linha.oferta && ` de ${linha.ofertaTotal} existentes`}
+                    {linha.ofertaTotal !== linha.oferta &&
+                      ` de ${linha.ofertaTotal} existentes`}
                   </div>
                 </div>
               </div>
@@ -111,23 +125,39 @@ export function SubNivelRow({
             <td className="w-[168px] py-1.5 pr-2 pl-4.5 whitespace-nowrap">
               <div className="flex items-center gap-2">
                 <StatusBadge status={linha.status} />
-                {nivelAtual === 'municipio' && <BotaoDetalhe onClick={() => onAbrirDetalhe(linha)} />}
+                {nivelAtual === "municipio" && (
+                  <BotaoDetalhe onClick={() => onAbrirDetalhe(linha)} />
+                )}
               </div>
             </td>
           </>
         ) : (
           <td className="w-[76px] py-1.5 px-2 text-right whitespace-nowrap">
-            <span className="text-[11px] font-semibold" style={{ color: coef.corTexto }}>
-              {coef.valor != null ? formatMultiplicador(coef.valor) : '—'}
+            <span
+              className="text-[11px] font-semibold"
+              style={{ color: coef.corTexto }}
+            >
+              {coef.valor != null ? formatMultiplicador(coef.valor) : "—"}
             </span>
           </td>
         )}
       </tr>
       {expandida && expansivel && (
         <tr>
-          <td colSpan={completo ? 4 : 2} className="bg-background py-2 pr-2 pl-6.5">
-            {filhos === 'carregando' && <div className="p-1 text-xs text-muted-foreground">Carregando municípios...</div>}
-            {filhos === 'erro' && <div className="p-1 text-xs text-destructive">Não foi possível carregar os municípios.</div>}
+          <td
+            colSpan={completo ? 4 : 2}
+            className="bg-background py-2 pr-2 pl-6.5"
+          >
+            {filhos === "carregando" && (
+              <div className="p-1 text-xs text-muted-foreground">
+                Carregando municípios...
+              </div>
+            )}
+            {filhos === "erro" && (
+              <div className="p-1 text-xs text-destructive">
+                Não foi possível carregar os municípios.
+              </div>
+            )}
             {Array.isArray(filhos) && (
               <SubNivelRows
                 rows={filhos}

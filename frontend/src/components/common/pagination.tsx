@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 
 interface Props {
   page: number; // 1-indexado
@@ -7,7 +7,12 @@ interface Props {
   onPageChange: (page: number) => void;
 }
 
-export function Pagination({ page, totalItems, pageSize, onPageChange }: Props) {
+export function Pagination({
+  page,
+  totalItems,
+  pageSize,
+  onPageChange,
+}: Props) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const inicio = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const fim = Math.min(page * pageSize, totalItems);
@@ -18,13 +23,23 @@ export function Pagination({ page, totalItems, pageSize, onPageChange }: Props) 
         Mostrando {inicio}–{fim} de {totalItems}
       </span>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+        >
           ‹ Anterior
         </Button>
         <span>
           Página {page} de {totalPages}
         </span>
-        <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        >
           Próxima ›
         </Button>
       </div>

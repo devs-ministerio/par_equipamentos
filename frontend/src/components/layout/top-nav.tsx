@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { useFamiliaEquipamento } from '../../hooks/use-familia-equipamento';
-import { EQUIPAMENTOS } from '../../data/constants';
+import { useEffect, useRef, useState } from "react";
+import { useFamiliaEquipamento } from "../../hooks/use-familia-equipamento";
+import { EQUIPAMENTOS } from "../../data/constants";
 
 /** Seletor de familia de equipamento -- troca a familia lida por
  * Dashboard/Mapa/Relatorios inteiras (via FamiliaEquipamentoContext).
@@ -16,14 +16,16 @@ export function SeletorEquipamento() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { familia, setFamilia } = useFamiliaEquipamento();
-  const atual = EQUIPAMENTOS.find((eq) => eq.familia === familia) ?? EQUIPAMENTOS[0];
+  const atual =
+    EQUIPAMENTOS.find((eq) => eq.familia === familia) ?? EQUIPAMENTOS[0];
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
   return (
@@ -39,15 +41,15 @@ export function SeletorEquipamento() {
           {EQUIPAMENTOS.map((eq) => (
             <div
               key={eq.familia}
-              title={eq.disponivel ? undefined : 'Em breve'}
+              title={eq.disponivel ? undefined : "Em breve"}
               className={`flex w-full items-center border-none px-3.5 py-2 text-left text-[13px] ${
-                eq.familia === atual.familia ? 'bg-secondary' : 'bg-transparent'
+                eq.familia === atual.familia ? "bg-secondary" : "bg-transparent"
               } ${
                 eq.disponivel
                   ? eq.familia === atual.familia
-                    ? 'cursor-pointer font-semibold text-primary'
-                    : 'cursor-pointer font-normal text-[#475066]'
-                  : 'cursor-not-allowed font-normal text-muted-foreground/70'
+                    ? "cursor-pointer font-semibold text-primary"
+                    : "cursor-pointer font-normal text-[#475066]"
+                  : "cursor-not-allowed font-normal text-muted-foreground/70"
               }`}
               onClick={() => {
                 if (!eq.disponivel) return;

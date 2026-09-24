@@ -1,9 +1,16 @@
 /** Confirmação de inativação/reativação de usuário -- soft delete, mesmo
  * diálogo cobre os 2 sentidos (texto muda conforme `usuario.status`). */
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import type { Usuario } from '@/services/usuarios';
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import type { Usuario } from "@/services/usuarios";
 
 export function UsuarioDialogInativar({
   usuario,
@@ -20,7 +27,7 @@ export function UsuarioDialogInativar({
 }) {
   if (!usuario) return <Dialog open={false} onOpenChange={onOpenChange} />;
 
-  const inativando = usuario.status === 'active';
+  const inativando = usuario.status === "active";
 
   async function confirmar() {
     if (!usuario) return;
@@ -34,7 +41,9 @@ export function UsuarioDialogInativar({
       }
       onOpenChange(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Não foi possível concluir a ação.');
+      toast.error(
+        e instanceof Error ? e.message : "Não foi possível concluir a ação.",
+      );
     }
   }
 
@@ -42,7 +51,9 @@ export function UsuarioDialogInativar({
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[420px]">
         <DialogHeader>
-          <DialogTitle>{inativando ? 'Inativar usuário' : 'Reativar usuário'}</DialogTitle>
+          <DialogTitle>
+            {inativando ? "Inativar usuário" : "Reativar usuário"}
+          </DialogTitle>
           <DialogDescription>
             {inativando
               ? `${usuario.name} perde acesso imediatamente -- a sessão atual (se houver) é encerrada.`
@@ -50,11 +61,24 @@ export function UsuarioDialogInativar({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Cancelar
           </Button>
-          <Button type="button" variant={inativando ? 'destructive' : 'default'} onClick={confirmar} disabled={processando}>
-            {processando ? 'Processando...' : inativando ? 'Inativar' : 'Reativar'}
+          <Button
+            type="button"
+            variant={inativando ? "destructive" : "default"}
+            onClick={confirmar}
+            disabled={processando}
+          >
+            {processando
+              ? "Processando..."
+              : inativando
+                ? "Inativar"
+                : "Reativar"}
           </Button>
         </DialogFooter>
       </DialogContent>

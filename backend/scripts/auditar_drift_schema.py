@@ -17,6 +17,7 @@ Uso:
 O bloco do `.mermaid` e sempre informativo, mesmo em --strict -- o proprio
 arquivo declara que a fonte da verdade e app/db/models.py, nao ele.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -32,7 +33,8 @@ MERMAID_PATH = BACKEND_DIR.parent / "docs" / "database" / "modelo_er.mermaid"
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--strict", action="store_true",
+        "--strict",
+        action="store_true",
         help="sai com codigo 1 se houver diff real de metadata/head (nunca por causa do .mermaid)",
     )
     args = parser.parse_args()

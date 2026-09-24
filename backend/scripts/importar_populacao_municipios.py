@@ -19,6 +19,7 @@ descartado pela checagem de IBGE_MUNICIPIO numerico abaixo.
 Uso: python -m scripts.importar_populacao_municipios [caminho_do_csv]
      (de dentro de backend/, com venv ativo)
 """
+
 from __future__ import annotations
 
 import csv
@@ -65,9 +66,11 @@ def importar(caminho: Path = CAMINHO_PADRAO) -> None:
         # so um arquivo de populacao ativo por vez -- desativa os anteriores
         # em vez de apagar (mantem historico de qual CSV valia em cada
         # execucao do pipeline que rodou com ele).
-        anteriores = db.query(ReferenceFile).filter(
-            ReferenceFile.type == ReferenceFileType.population, ReferenceFile.active.is_(True)
-        ).all()
+        anteriores = (
+            db.query(ReferenceFile)
+            .filter(ReferenceFile.type == ReferenceFileType.population, ReferenceFile.active.is_(True))
+            .all()
+        )
         for rf in anteriores:
             rf.active = False
 
@@ -79,9 +82,7 @@ def importar(caminho: Path = CAMINHO_PADRAO) -> None:
         db.add(reference_file)
         db.flush()
 
-        db.add_all(
-            MunicipalityPopulationRow(reference_file_id=reference_file.id, **linha) for linha in linhas
-        )
+        db.add_all(MunicipalityPopulationRow(reference_file_id=reference_file.id, **linha) for linha in linhas)
         db.commit()
         print(f"Concluido -- reference_file={reference_file.id}, {len(linhas)} municipios importados.")
         if anteriores:

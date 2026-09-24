@@ -12,6 +12,7 @@ Uso: python -m scripts.importar_aceleradores [caminho_do_xlsx]
      (de dentro de backend/, com venv ativo -- precisa de `uv add fastexcel`
      pro polars conseguir ler .xlsx)
 """
+
 from __future__ import annotations
 
 import sys
@@ -60,9 +61,11 @@ def importar(caminho: Path = CAMINHO_PADRAO) -> None:
         # so um arquivo de acelerador ativo por vez -- mesmo padrao do
         # importador de populacao (desativa em vez de apagar, mantem
         # historico de qual arquivo valia em cada execucao).
-        anteriores = db.query(ReferenceFile).filter(
-            ReferenceFile.type == ReferenceFileType.accelerator, ReferenceFile.active.is_(True)
-        ).all()
+        anteriores = (
+            db.query(ReferenceFile)
+            .filter(ReferenceFile.type == ReferenceFileType.accelerator, ReferenceFile.active.is_(True))
+            .all()
+        )
         for rf in anteriores:
             rf.active = False
 

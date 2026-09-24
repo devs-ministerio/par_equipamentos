@@ -3,9 +3,9 @@
  * demanda por `fetchConvenioDetalhe` quando o card expande (ver
  * `useConvenioDetalhe`), evita puxar ~11MB de payload pra renderizar uma
  * lista que só mostra resumo. */
-import { z } from 'zod';
-import { requisitar } from '@/lib/http-client';
-import type { ConvenioUnificado } from '@/types/monitoramento';
+import { z } from "zod";
+import { requisitar } from "@/lib/http-client";
+import type { ConvenioUnificado } from "@/types/monitoramento";
 function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   return requisitar(path, schema, undefined);
 }
@@ -87,23 +87,27 @@ function toConvenioUnificado(c: ConvenioApi): ConvenioUnificado {
   return {
     numero: c.numero,
     numeroInstrumento: c.numero_instrumento,
-    objeto: c.objeto ?? '',
-    situacao: c.situacao ?? '',
-    situacaoPortal: c.situacao_portal ?? '',
+    objeto: c.objeto ?? "",
+    situacao: c.situacao ?? "",
+    situacaoPortal: c.situacao_portal ?? "",
     situacaoContratacao: c.situacao_contratacao,
     tipoContratacao: c.tipo_contratacao,
     tipologia: c.tipologia,
-    convenente: { nome: c.convenente_nome, cnpj: c.convenente_cnpj, tipo: c.convenente_tipo ?? '' },
-    municipio: c.municipio ?? '',
-    uf: c.uf ?? '',
-    codigoIbge: c.codigo_ibge ?? '',
-    regiao: c.regiao ?? '',
-    orgao: c.orgao ?? '',
-    unidadeGestora: c.unidade_gestora ?? '',
-    subfuncao: c.subfuncao ?? '',
-    funcao: c.funcao ?? '',
-    tipoInstrumento: c.tipo_instrumento ?? '',
-    numeroProcesso: c.numero_processo ?? '',
+    convenente: {
+      nome: c.convenente_nome,
+      cnpj: c.convenente_cnpj,
+      tipo: c.convenente_tipo ?? "",
+    },
+    municipio: c.municipio ?? "",
+    uf: c.uf ?? "",
+    codigoIbge: c.codigo_ibge ?? "",
+    regiao: c.regiao ?? "",
+    orgao: c.orgao ?? "",
+    unidadeGestora: c.unidade_gestora ?? "",
+    subfuncao: c.subfuncao ?? "",
+    funcao: c.funcao ?? "",
+    tipoInstrumento: c.tipo_instrumento ?? "",
+    numeroProcesso: c.numero_processo ?? "",
     cnes: c.cnes,
     cnesNomeEstabelecimento: c.cnes_nome_estabelecimento,
     programa: c.programa,
@@ -158,19 +162,27 @@ export interface ConvenioListaResultado {
   itens: ConvenioUnificado[];
 }
 
-export async function fetchConvenios(filtro: FiltroConvenios): Promise<ConvenioListaResultado> {
+export async function fetchConvenios(
+  filtro: FiltroConvenios,
+): Promise<ConvenioListaResultado> {
   const params = new URLSearchParams();
-  if (filtro.busca) params.set('busca', filtro.busca);
-  if (filtro.uf) params.set('uf', filtro.uf);
-  if (filtro.equipamento) params.set('equipamento', filtro.equipamento);
-  if (filtro.situacao) params.set('situacao', filtro.situacao);
-  if (filtro.ano) params.set('ano', String(filtro.ano));
-  if (filtro.programa) params.set('programa', filtro.programa);
-  params.set('pagina', String(filtro.pagina ?? 1));
-  params.set('tamanho_pagina', String(filtro.tamanhoPagina ?? 20));
+  if (filtro.busca) params.set("busca", filtro.busca);
+  if (filtro.uf) params.set("uf", filtro.uf);
+  if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
+  if (filtro.situacao) params.set("situacao", filtro.situacao);
+  if (filtro.ano) params.set("ano", String(filtro.ano));
+  if (filtro.programa) params.set("programa", filtro.programa);
+  params.set("pagina", String(filtro.pagina ?? 1));
+  params.set("tamanho_pagina", String(filtro.tamanhoPagina ?? 20));
 
-  const resultado = await apiGet(`/convenios?${params}`, convenioListaApiSchema);
-  return { total: resultado.total, itens: resultado.itens.map(toConvenioUnificado) };
+  const resultado = await apiGet(
+    `/convenios?${params}`,
+    convenioListaApiSchema,
+  );
+  return {
+    total: resultado.total,
+    itens: resultado.itens.map(toConvenioUnificado),
+  };
 }
 
 /** `siconv`/`transferegov` cru pro card expandido (camada 2) -- chamado só
@@ -179,11 +191,20 @@ export async function fetchConvenios(filtro: FiltroConvenios): Promise<ConvenioL
  * é o objeto `SiconvEntrada`/`TransfereGovEnte` inteiro, sem reformatação
  * (mesmo runtime shape que o JSON estático tinha) -- só troca de onde o
  * dado vem. */
-export async function fetchConvenioDetalhe(numero: string): Promise<ConvenioUnificado> {
-  const c = await apiGet(`/convenios/${encodeURIComponent(numero)}`, convenioDetalheApiSchema);
+export async function fetchConvenioDetalhe(
+  numero: string,
+): Promise<ConvenioUnificado> {
+  const c = await apiGet(
+    `/convenios/${encodeURIComponent(numero)}`,
+    convenioDetalheApiSchema,
+  );
   return {
     ...toConvenioUnificado(c),
-    siconv: c.dados_oficiais_disponiveis ? (c.siconv_raw as ConvenioUnificado['siconv']) ?? null : null,
-    transferegov: c.dados_oficiais_disponiveis ? (c.transferegov_raw as ConvenioUnificado['transferegov']) ?? null : null,
+    siconv: c.dados_oficiais_disponiveis
+      ? ((c.siconv_raw as ConvenioUnificado["siconv"]) ?? null)
+      : null,
+    transferegov: c.dados_oficiais_disponiveis
+      ? ((c.transferegov_raw as ConvenioUnificado["transferegov"]) ?? null)
+      : null,
   };
 }

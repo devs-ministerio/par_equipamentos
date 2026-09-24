@@ -1,5 +1,5 @@
-import { geoMercator, geoPath } from 'd3-geo';
-import type { GeoJsonProperties, Geometry } from 'geojson';
+import { geoMercator, geoPath } from "d3-geo";
+import type { GeoJsonProperties, Geometry } from "geojson";
 
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
 type FeatureCollection = GeoJSON.FeatureCollection<Geometry, GeoJsonProperties>;
@@ -12,9 +12,16 @@ type FeatureCollection = GeoJSON.FeatureCollection<Geometry, GeoJsonProperties>;
  * justificar `useMemo`/`useState` -- só isolamos a conta de geometria do
  * resto do desenho D3, sem mudar quando ela roda).
  */
-export function construirProjecaoMacro(geo: FeatureCollection, zoomMacroId: string | null | undefined, width: number, height: number) {
+export function construirProjecaoMacro(
+  geo: FeatureCollection,
+  zoomMacroId: string | null | undefined,
+  width: number,
+  height: number,
+) {
   const featureAlvo = zoomMacroId
-    ? geo.features.find((f) => (f as Feature).properties?.cod_macro === zoomMacroId)
+    ? geo.features.find(
+        (f) => (f as Feature).properties?.cod_macro === zoomMacroId,
+      )
     : undefined;
 
   const proj = geoMercator();
@@ -22,7 +29,13 @@ export function construirProjecaoMacro(geo: FeatureCollection, zoomMacroId: stri
     // margem de ~8% em volta -- senao a macro encosta na borda do SVG
     // (fitSize/fitExtent ajusta exatamente, sem folga nenhuma por padrao).
     const m = { x: width * 0.08, y: height * 0.08 };
-    proj.fitExtent([[m.x, m.y], [width - m.x, height - m.y]], featureAlvo);
+    proj.fitExtent(
+      [
+        [m.x, m.y],
+        [width - m.x, height - m.y],
+      ],
+      featureAlvo,
+    );
   } else {
     proj.fitSize([width, height], geo);
   }

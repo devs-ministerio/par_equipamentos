@@ -5,6 +5,7 @@ computado em tempo de leitura). Roda contra o banco configurado, como os
 outros testes de endpoint (sem camada de repositorio pra mockar) -- pula
 sozinho se nao houver dado carregado.
 """
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient

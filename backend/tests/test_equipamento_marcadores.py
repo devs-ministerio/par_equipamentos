@@ -1,4 +1,5 @@
 """Integração do caso de uso e repository de marcadores relacionais."""
+
 from __future__ import annotations
 
 from app.db.base import SessionLocal
@@ -35,13 +36,19 @@ def test_registrar_marcador_generico_e_idempotente_com_cache():
         )
         chaves: set[tuple[OrigemMarcador, int, int, str]] = set()
 
-        assert registrar_marcadores(
-            db=db, origem="convenio", origem_id=convenio.id, marcadores=[marcador], chaves_existentes=chaves
-        ) == 1
+        assert (
+            registrar_marcadores(
+                db=db, origem="convenio", origem_id=convenio.id, marcadores=[marcador], chaves_existentes=chaves
+            )
+            == 1
+        )
         db.flush()
-        assert registrar_marcadores(
-            db=db, origem="convenio", origem_id=convenio.id, marcadores=[marcador], chaves_existentes=chaves
-        ) == 0
+        assert (
+            registrar_marcadores(
+                db=db, origem="convenio", origem_id=convenio.id, marcadores=[marcador], chaves_existentes=chaves
+            )
+            == 0
+        )
         catalogo = db.query(EquipamentoCatalogo).filter_by(codigo="item_plano_pytest").one()
         assert catalogo.prioritario is False
         assert db.query(EquipamentoMarcador).filter_by(convenio_id=convenio.id).count() == 1

@@ -2,6 +2,7 @@
 docs/arquitetura/fluxo_requisicao.md). Mesmo padrao de test_monitoramento.py:
 chama as funcoes do router direto contra o banco real configurado, limpa o
 que criou no `finally`."""
+
 from uuid import uuid4
 
 import pytest
@@ -37,8 +38,10 @@ def test_listar_notificacoes_conta_nao_lidas_ignorando_filtro():
         usuario_teste = criar_usuario_teste(db)
         for lida in (False, False, True):
             n = Notificacao(
-                tipo=NotificacaoTipo.proposta_candidata, titulo="Teste — apagar",
-                entidade_id=1, lida=lida,
+                tipo=NotificacaoTipo.proposta_candidata,
+                titulo="Teste — apagar",
+                entidade_id=1,
+                lida=lida,
             )
             db.add(n)
             db.commit()

@@ -3,6 +3,7 @@ habitantes, denominador de oferta = in_use_qty-onde-sus_flag, equipamento
 em uso e SUS) isolada de banco e das APIs externas -- extraida em
 app/pipeline/cobertura.py justamente pra poder ser testada assim.
 """
+
 from app.db.models import DeficitStatus
 from app.pipeline.cobertura import calcular_cobertura, populacao_sus_dependente, produtividade_por_familia
 
@@ -63,4 +64,3 @@ def test_produtividade_por_familia_mantem_parametros_reais():
     assert produtividade_por_familia("TOMOGRAFO") == 100_000
     assert produtividade_por_familia("RESSONANCIA") == 5_000 / (30 / 1_000)
     assert produtividade_por_familia("PET_CT") == 1_500_000
-

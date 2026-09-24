@@ -1,4 +1,5 @@
 """Entrega convites e redefinições pelo gateway HTTP de e-mail."""
+
 from html import escape
 
 import requests

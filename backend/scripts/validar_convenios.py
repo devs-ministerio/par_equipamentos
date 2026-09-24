@@ -11,6 +11,7 @@ scripts/output/convenios_completo.json (resposta crua da API, todos os
 campos -- usado pela pagina de visualizacao em
 docs/monitoramento-equipamentos/) pra conferencia manual.
 """
+
 from __future__ import annotations
 
 import csv
@@ -20,14 +21,77 @@ from pathlib import Path
 from app.pipeline.portal_transparencia import ChaveApiAusenteError, validar_convenios
 
 NUMEROS = [
-    904824, 925320, 942625, 942842, 943884, 943920, 943969, 946461, 947256,
-    947524, 947527, 948684, 948685, 948686, 948687, 948691, 948692, 948694,
-    948695, 948696, 948698, 949404, 949415, 949775, 950114, 950511, 953401,
-    953716, 953718, 953726, 953739, 953741, 953743, 953746, 953749, 953750,
-    954006, 954390, 954391, 954392, 954398, 954404, 954413, 954420, 959453,
-    961247, 961305, 962425, 962431, 968527, 970343, 970357, 970364, 970388,
-    970392, 970621, 971131, 971195, 971355, 971380, 971398, 971399, 971549,
-    973049, 985640, 985653, 985655, 988835, 991708, 991766, 950115,
+    904824,
+    925320,
+    942625,
+    942842,
+    943884,
+    943920,
+    943969,
+    946461,
+    947256,
+    947524,
+    947527,
+    948684,
+    948685,
+    948686,
+    948687,
+    948691,
+    948692,
+    948694,
+    948695,
+    948696,
+    948698,
+    949404,
+    949415,
+    949775,
+    950114,
+    950511,
+    953401,
+    953716,
+    953718,
+    953726,
+    953739,
+    953741,
+    953743,
+    953746,
+    953749,
+    953750,
+    954006,
+    954390,
+    954391,
+    954392,
+    954398,
+    954404,
+    954413,
+    954420,
+    959453,
+    961247,
+    961305,
+    962425,
+    962431,
+    968527,
+    970343,
+    970357,
+    970364,
+    970388,
+    970392,
+    970621,
+    971131,
+    971195,
+    971355,
+    971380,
+    971398,
+    971399,
+    971549,
+    973049,
+    985640,
+    985653,
+    985655,
+    988835,
+    991708,
+    991766,
+    950115,
 ]
 
 SAIDA = Path(__file__).parent / "output" / "convenios_validados.csv"
@@ -48,7 +112,20 @@ def run() -> None:
     SAIDA.parent.mkdir(parents=True, exist_ok=True)
     with SAIDA.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["numero", "encontrado", "objeto", "situacao", "valor", "valor_liberado", "convenente", "municipio", "uf", "erro"])
+        writer.writerow(
+            [
+                "numero",
+                "encontrado",
+                "objeto",
+                "situacao",
+                "valor",
+                "valor_liberado",
+                "convenente",
+                "municipio",
+                "uf",
+                "erro",
+            ]
+        )
         for r in resultados:
             dado = r["dado"] or {}
             convenente = dado.get("convenente") or {}
@@ -56,15 +133,20 @@ def run() -> None:
             # Campo `uf` da API vem com sigla/nome trocados (sigla="SÃO PAULO",
             # nome="SP") -- confirmado inspecionando resposta crua de 904824.
             uf = (municipio.get("uf") or {}).get("nome")
-            writer.writerow([
-                r["numero"], r["encontrado"],
-                (dado.get("dimConvenio") or {}).get("objeto"), dado.get("situacao"),
-                dado.get("valor"), dado.get("valorLiberado"),
-                convenente.get("nome"),
-                municipio.get("nomeIBGE"),
-                uf,
-                r["erro"],
-            ])
+            writer.writerow(
+                [
+                    r["numero"],
+                    r["encontrado"],
+                    (dado.get("dimConvenio") or {}).get("objeto"),
+                    dado.get("situacao"),
+                    dado.get("valor"),
+                    dado.get("valorLiberado"),
+                    convenente.get("nome"),
+                    municipio.get("nomeIBGE"),
+                    uf,
+                    r["erro"],
+                ]
+            )
 
     print(f"\nEncontrados: {len(encontrados)}/{len(NUMEROS)}")
     if nao_encontrados:

@@ -64,6 +64,7 @@ relatório em scripts/output/atualizacao_equipamento_b8131710_relatorio.json
 (convênios sem item no SICONV, sem match no Portal da Transparência, etc.)
 pra revisão manual.
 """
+
 from __future__ import annotations
 
 import csv
@@ -127,7 +128,10 @@ _PADROES_ROL: list[tuple[str, re.Pattern]] = [
     ("Endoscópio Rígido", re.compile(r"ENDOSCOP\w*\s*RIGID")),
     ("Colposcópio", re.compile(r"COLPOSCOPIO")),
     ("Mamógrafo (Convencional e Digital)", re.compile(r"MAMOGRAFO")),
-    ("Simulador/Tomógrafo para Radioterapia", re.compile(r"SIMULADOR.*RADIOTERAPIA|TOMOGRAFO.*RADIOTERAPIA|SIMULADOR\s*(DE\s*)?TOMOGRAF")),
+    (
+        "Simulador/Tomógrafo para Radioterapia",
+        re.compile(r"SIMULADOR.*RADIOTERAPIA|TOMOGRAFO.*RADIOTERAPIA|SIMULADOR\s*(DE\s*)?TOMOGRAF"),
+    ),
     ("Ressonância Nuclear Magnética 3,0 T", re.compile(r"RESSONANC.*\b3(?:[.,]0)?\s*T(?:ESLA)?\b")),
     ("Ressonância Nuclear Magnética 1,5 T", re.compile(r"RESSONANC.*\b1[.,]5\s*T(?:ESLA)?\b")),
     ("Ressonância Nuclear Magnética até 0,5 T", re.compile(r"RESSONANC.*\b0[.,]5\s*T(?:ESLA)?\b")),
@@ -237,7 +241,9 @@ def levantar_itens_por_convenio(alvo: set[str]) -> dict[str, list[dict]]:
         if nr in alvo:
             proposta_para_convenio[linha[idx_prop]] = nr
             encontrados_no_dump.add(nr)
-    print(f"   {len(encontrados_no_dump)}/{len(alvo)} convênio-alvo achados no siconv_convenio.csv (o resto pode ser convênio recente demais pro dump, ou nao-SICONV).")
+    print(
+        f"   {len(encontrados_no_dump)}/{len(alvo)} convênio-alvo achados no siconv_convenio.csv (o resto pode ser convênio recente demais pro dump, ou nao-SICONV)."
+    )
 
     print("Lendo siconv_plano_aplicacao.csv.zip (item + valor)...")
     cab_itens, leitor_itens = _linhas_csv_do_zip(DIR_CACHE / "siconv_plano_aplicacao.csv.zip")
@@ -260,12 +266,14 @@ def levantar_itens_por_convenio(alvo: set[str]) -> dict[str, list[dict]]:
             continue
         valor_unit = _valor(linha[idx_valor_unit])
         valor_total = _valor(linha[idx_valor_total])
-        itens_por_convenio[nr].append({
-            "descricao": linha[idx_desc],
-            "valor_unitario": valor_unit,
-            "valor_total": valor_total,
-            "qtd": linha[idx_qtd],
-        })
+        itens_por_convenio[nr].append(
+            {
+                "descricao": linha[idx_desc],
+                "valor_unitario": valor_unit,
+                "valor_total": valor_total,
+                "qtd": linha[idx_qtd],
+            }
+        )
     print(f"   {total} linha(s) de item no total; {len(itens_por_convenio)} convênio-alvo com item encontrado.")
     return dict(itens_por_convenio)
 
@@ -372,8 +380,12 @@ def run() -> None:
 
     wb.save(PLANILHA)
     print(f"\n{atualizados} linha(s) 'Convênio' atualizada(s) em {PLANILHA.name}.")
-    print(f"{len(sem_item_sispro)} convênio-alvo SEM item no SICONV (célula deixada como estava, não apagada) -- ver relatório.")
-    print(f"{len(nao_confirmados_api)} convênio-alvo NÃO confirmado(s) no Portal da Transparência (dado gravado mesmo assim, do SICONV) -- ver relatório.")
+    print(
+        f"{len(sem_item_sispro)} convênio-alvo SEM item no SICONV (célula deixada como estava, não apagada) -- ver relatório."
+    )
+    print(
+        f"{len(nao_confirmados_api)} convênio-alvo NÃO confirmado(s) no Portal da Transparência (dado gravado mesmo assim, do SICONV) -- ver relatório."
+    )
 
     DIR_SAIDA.mkdir(parents=True, exist_ok=True)
     relatorio = {

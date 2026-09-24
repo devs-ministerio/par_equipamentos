@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 /** Schemas de VALIDAÇÃO de form (React Hook Form + zodResolver) -- diferente
  * dos schemas de RESPOSTA de API em services/monitoramento.ts. Um por form
@@ -8,8 +8,8 @@ import { z } from 'zod';
  * nova, só a mesma regra expressa em zod. */
 
 export const loginSchema = z.object({
-  email: z.string().min(1, 'Informe o email.').email('Email inválido.'),
-  senha: z.string().min(1, 'Informe a senha.'),
+  email: z.string().min(1, "Informe o email.").email("Email inválido."),
+  senha: z.string().min(1, "Informe a senha."),
 });
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
@@ -30,14 +30,14 @@ export const cadastroInternoSchema = z.object({
 export type CadastroInternoFormValues = z.infer<typeof cadastroInternoSchema>;
 
 export const criarAcaoSchema = z.object({
-  descricao: z.string().trim().min(1, 'Descreva o que precisa ser feito.'),
+  descricao: z.string().trim().min(1, "Descreva o que precisa ser feito."),
   dataPrevista: z.string().optional(),
   responsavel: z.string().optional(),
 });
 export type CriarAcaoFormValues = z.infer<typeof criarAcaoSchema>;
 
 export const enviarEventoSchema = z.object({
-  marcoId: z.string().min(1, 'Selecione o marco.'),
+  marcoId: z.string().min(1, "Selecione o marco."),
   // Obrigatório quando o marco escolhido não é de fase geral (validação
   // final fica a cargo do backend; aqui só evita round-trip óbvio).
   faseGeralId: z.string().optional(),
@@ -56,6 +56,10 @@ export const enviarEventoSchema = z.object({
 export type EnviarEventoFormValues = z.infer<typeof enviarEventoSchema>;
 
 export const motivoExclusaoSchema = z.object({
-  motivo: z.string().trim().min(3, 'Explique o motivo da exclusão (mínimo 3 caracteres).').max(500),
+  motivo: z
+    .string()
+    .trim()
+    .min(3, "Explique o motivo da exclusão (mínimo 3 caracteres).")
+    .max(500),
 });
 export type MotivoExclusaoFormValues = z.infer<typeof motivoExclusaoSchema>;

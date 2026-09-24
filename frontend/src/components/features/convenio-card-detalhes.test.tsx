@@ -1,38 +1,44 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import type { ConvenioUnificado } from '@/types/monitoramento';
-import { ConvenioCardDetalhes } from './convenio-card-detalhes';
+import { describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import type { ConvenioUnificado } from "@/types/monitoramento";
+import { ConvenioCardDetalhes } from "./convenio-card-detalhes";
 
 const convenioManual: ConvenioUnificado = {
-  numero: '25000000145202506',
+  numero: "25000000145202506",
   numeroInstrumento: null,
-  objeto: '',
-  situacao: 'Em execução',
-  situacaoPortal: '',
+  objeto: "",
+  situacao: "Em execução",
+  situacaoPortal: "",
   situacaoContratacao: null,
-  tipoContratacao: 'TED',
+  tipoContratacao: "TED",
   tipologia: null,
-  convenente: { nome: 'Hospital de teste', cnpj: null, tipo: '' },
-  municipio: 'Brasília',
-  uf: 'DF',
-  codigoIbge: '',
-  regiao: '',
-  orgao: '',
-  unidadeGestora: '',
-  subfuncao: '',
-  funcao: '',
-  tipoInstrumento: '',
-  numeroProcesso: '',
+  convenente: { nome: "Hospital de teste", cnpj: null, tipo: "" },
+  municipio: "Brasília",
+  uf: "DF",
+  codigoIbge: "",
+  regiao: "",
+  orgao: "",
+  unidadeGestora: "",
+  subfuncao: "",
+  funcao: "",
+  tipoInstrumento: "",
+  numeroProcesso: "",
   cnes: null,
   cnesNomeEstabelecimento: null,
-  programa: 'Programa de teste',
+  programa: "Programa de teste",
   equipamentos: [],
   dadosOficiaisDisponiveis: false,
   desembolsoIntegralDaCarga: true,
   valorPagoFornecedor: null,
   pagamentosCount: 0,
-  datas: { publicacao: null, inicioVigencia: null, fimVigencia: null, conclusao: null, ultimaLiberacao: null },
+  datas: {
+    publicacao: null,
+    inicioVigencia: null,
+    fimVigencia: null,
+    conclusao: null,
+    ultimaLiberacao: null,
+  },
   financeiro: {
     global: 100_000,
     repasse: null,
@@ -47,38 +53,48 @@ const convenioManual: ConvenioUnificado = {
   transferegov: null,
 };
 
-describe('ConvenioCardDetalhes', () => {
-  it('exibe somente monitoramento interno para instrumento de carga manual', () => {
+describe("ConvenioCardDetalhes", () => {
+  it("exibe somente monitoramento interno para instrumento de carga manual", () => {
     render(
       <MemoryRouter>
         <ConvenioCardDetalhes c={convenioManual} monitorado />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Monitoramento interno')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ver detalhes →' })).toHaveAttribute(
-      'href',
-      '/monitoramento-equipamentos/instrumentos/25000000145202506',
+    expect(screen.getByText("Monitoramento interno")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Ver detalhes →" }),
+    ).toHaveAttribute(
+      "href",
+      "/monitoramento-equipamentos/instrumentos/25000000145202506",
     );
-    expect(screen.queryByText('Dados aninhados (SICONV)')).not.toBeInTheDocument();
-    expect(screen.queryByText('Financeiro detalhado')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Dados aninhados (SICONV)"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Financeiro detalhado")).not.toBeInTheDocument();
   });
 
-  it('monta a linha do tempo apenas com eventos financeiros oficiais datados', () => {
+  it("monta a linha do tempo apenas com eventos financeiros oficiais datados", () => {
     const convenioOficial: ConvenioUnificado = {
       ...convenioManual,
-      tipoContratacao: 'Convênio',
+      tipoContratacao: "Convênio",
       dadosOficiaisDisponiveis: true,
       desembolsoIntegralDaCarga: false,
-      datas: { ...convenioManual.datas, publicacao: '2026-01-15' },
+      datas: { ...convenioManual.datas, publicacao: "2026-01-15" },
       siconv: {
         convenio: {},
         programa: null,
         empenhos: [],
-        desembolsos: [{ ID_DESEMBOLSO: '1', DATA_DESEMBOLSO: '20/02/2026', VL_DESEMBOLSADO: '30000' }],
+        desembolsos: [
+          {
+            ID_DESEMBOLSO: "1",
+            DATA_DESEMBOLSO: "20/02/2026",
+            VL_DESEMBOLSADO: "30000",
+          },
+        ],
         licitacoes: [],
         termos_aditivos: [],
-        pagamentos: [{ DATA_PAG: '22/02/2026', VL_PAGO: '15000' }],
+        pagamentos: [{ DATA_PAG: "22/02/2026", VL_PAGO: "15000" }],
         itens_plano_aplicacao: [],
       },
     };
@@ -90,8 +106,8 @@ describe('ConvenioCardDetalhes', () => {
     );
 
     expect(screen.getByText(/Linha do tempo financeira/)).toBeInTheDocument();
-    expect(screen.getByText('Instrumento publicado')).toBeInTheDocument();
-    expect(screen.getByText('Desembolso registrado')).toBeInTheDocument();
-    expect(screen.getByText('Pagamento ao fornecedor')).toBeInTheDocument();
+    expect(screen.getByText("Instrumento publicado")).toBeInTheDocument();
+    expect(screen.getByText("Desembolso registrado")).toBeInTheDocument();
+    expect(screen.getByText("Pagamento ao fornecedor")).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ por scripts/run_pipeline_tomografo.py (Modulo 5, DEMAS+SIDRA+ElastiCNES),
 nao por um endpoint ainda (execucao sob demanda via API fica pra quando o
 fluxo gerar automatico/manual for retomado).
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
@@ -26,9 +27,12 @@ def _latest_execution_id(db: Session, equipment_family: str | None) -> int | Non
     # global, e o filtro `WHERE execution_id = <da RESSONANCIA> AND
     # equipment_family = 'TOMOGRAFO'` sempre dava 0 linhas (bug real,
     # corrigido 2026-08-21: pagina do Tomografo aparecia vazia).
-    stmt = select(Execution.id).join(Competency, Execution.competency_id == Competency.id).order_by(
-        Execution.started_at.desc()
-    ).limit(1)
+    stmt = (
+        select(Execution.id)
+        .join(Competency, Execution.competency_id == Competency.id)
+        .order_by(Execution.started_at.desc())
+        .limit(1)
+    )
     if equipment_family:
         stmt = stmt.where(Competency.equipment_family == equipment_family)
     return db.execute(stmt).scalar_one_or_none()

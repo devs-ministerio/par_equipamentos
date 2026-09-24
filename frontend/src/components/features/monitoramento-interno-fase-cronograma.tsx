@@ -1,11 +1,11 @@
 /** Seções "Fase geral" (stepper) + "Cronograma físico"/"Regulatório (CNEN)"
  * -- extraído de MonitoramentoInterno.tsx. */
-import { cn } from '@/lib/utils';
-import type { EventoMarco } from '@/services/monitoramento-instrumentos';
-import type { MarcoCatalogo } from '@/services/monitoramento-marcos';
-import { SecaoOperacional, StatusPill } from './monitoramento-ui';
-import { classeValidade } from '@/lib/monitoramento-status';
-import { diasAte, fmtData } from '@/lib/monitoramento-format';
+import { cn } from "@/lib/utils";
+import type { EventoMarco } from "@/services/monitoramento-instrumentos";
+import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
+import { SecaoOperacional, StatusPill } from "./monitoramento-ui";
+import { classeValidade } from "@/lib/monitoramento-status";
+import { diasAte, fmtData } from "@/lib/monitoramento-format";
 
 export function MonitoramentoInternoFaseGeral({
   fasesGerais,
@@ -19,7 +19,9 @@ export function MonitoramentoInternoFaseGeral({
   return (
     <SecaoOperacional titulo="Fase geral">
       <div className="flex justify-between mb-2 text-sm">
-        <span>{faseAtual?.rotulo ?? 'Não iniciado'} — {Math.round(pctAtual * 100)}%</span>
+        <span>
+          {faseAtual?.rotulo ?? "Não iniciado"} — {Math.round(pctAtual * 100)}%
+        </span>
       </div>
       <div className="flex gap-[3px]">
         {fasesGerais.map((f) => {
@@ -30,9 +32,13 @@ export function MonitoramentoInternoFaseGeral({
               key={f.id}
               title={f.rotulo}
               className={cn(
-                'flex-1 h-2.5 rounded-full',
-                ehAtual ? 'bg-primary' : alcancada ? 'bg-success' : 'bg-background',
-                alcancada ? 'border-none' : 'border border-border',
+                "flex-1 h-2.5 rounded-full",
+                ehAtual
+                  ? "bg-primary"
+                  : alcancada
+                    ? "bg-success"
+                    : "bg-background",
+                alcancada ? "border-none" : "border border-border",
               )}
             />
           );
@@ -62,22 +68,40 @@ export function MonitoramentoInternoCronograma({
 }) {
   return (
     <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-4 mb-4">
-      <SecaoOperacional titulo="Cronograma físico" subtitulo="Entrega, instalação, licenciamento CNEN e inauguração.">
+      <SecaoOperacional
+        titulo="Cronograma físico"
+        subtitulo="Entrega, instalação, licenciamento CNEN e inauguração."
+      >
         <div className="mt-2.5 grid gap-2">
           {cronogramaFisico.map((m) => {
             const todos = eventosPorMarco.get(m.id) ?? [];
             const evs = multiploEquipamento ? todos : todos.slice(0, 1);
             return (
-              <div key={m.id} className="flex justify-between items-start gap-2 text-xs">
-                <span className={evs.length ? 'text-primary' : 'text-muted-foreground'}>{m.rotulo}</span>
+              <div
+                key={m.id}
+                className="flex justify-between items-start gap-2 text-xs"
+              >
+                <span
+                  className={
+                    evs.length ? "text-primary" : "text-muted-foreground"
+                  }
+                >
+                  {m.rotulo}
+                </span>
                 {evs.length === 0 ? (
-                  <span className="text-muted-foreground text-[11px] text-right">—</span>
+                  <span className="text-muted-foreground text-[11px] text-right">
+                    —
+                  </span>
                 ) : (
                   <span className="text-muted-foreground text-[11px] text-right">
                     {evs.map((ev) => (
                       <span key={ev.id} className="block">
-                        {fmtData(ev.data_ocorrencia) !== '—' ? fmtData(ev.data_ocorrencia) : `prev. ${fmtData(ev.data_prevista)}`}
-                        {multiploEquipamento && ev.observacao && <span className="italic"> · {ev.observacao}</span>}
+                        {fmtData(ev.data_ocorrencia) !== "—"
+                          ? fmtData(ev.data_ocorrencia)
+                          : `prev. ${fmtData(ev.data_prevista)}`}
+                        {multiploEquipamento && ev.observacao && (
+                          <span className="italic"> · {ev.observacao}</span>
+                        )}
                       </span>
                     ))}
                   </span>
@@ -88,15 +112,21 @@ export function MonitoramentoInternoCronograma({
         </div>
       </SecaoOperacional>
 
-      <SecaoOperacional titulo="Regulatório (CNEN)" subtitulo="Matrícula, processo, licença e validade informados no monitoramento interno.">
+      <SecaoOperacional
+        titulo="Regulatório (CNEN)"
+        subtitulo="Matrícula, processo, licença e validade informados no monitoramento interno."
+      >
         <div className="mt-2.5 grid gap-2">
           {regulatorio.map((m) => {
             const todos = eventosPorMarco.get(m.id) ?? [];
             const evs = multiploEquipamento ? todos : todos.slice(0, 1);
-            const ehLicenca = m.codigo === 'regulatorio_licenca_operacao';
+            const ehLicenca = m.codigo === "regulatorio_licenca_operacao";
             if (evs.length === 0) {
               return (
-                <div key={m.id} className="flex justify-between items-center gap-2 text-xs">
+                <div
+                  key={m.id}
+                  className="flex justify-between items-center gap-2 text-xs"
+                >
                   <span className="text-muted-foreground">{m.rotulo}</span>
                   <span className="text-muted-foreground text-[11px]">—</span>
                 </div>
@@ -105,14 +135,25 @@ export function MonitoramentoInternoCronograma({
             return (
               <div key={m.id} className="flex flex-col gap-1.5">
                 {evs.map((ev) => {
-                  const diasValidadeEv = ehLicenca ? diasAte(ev.data_validade) : null;
+                  const diasValidadeEv = ehLicenca
+                    ? diasAte(ev.data_validade)
+                    : null;
                   return (
                     <div key={ev.id} className="flex flex-col gap-0.5">
                       <div className="flex justify-between items-center gap-2 text-xs">
                         <span className="text-primary">
-                          {m.rotulo}{ev.numero_documento ? ` (nº ${ev.numero_documento})` : ''}
+                          {m.rotulo}
+                          {ev.numero_documento
+                            ? ` (nº ${ev.numero_documento})`
+                            : ""}
                         </span>
-                        {ev.status_regulatorio ? <StatusPill texto={ev.status_regulatorio} /> : <span className="text-muted-foreground text-[11px]">—</span>}
+                        {ev.status_regulatorio ? (
+                          <StatusPill texto={ev.status_regulatorio} />
+                        ) : (
+                          <span className="text-muted-foreground text-[11px]">
+                            —
+                          </span>
+                        )}
                       </div>
                       {ehLicenca && ev.data_ocorrencia && (
                         <div className="text-[10.5px] text-muted-foreground text-right">
@@ -120,7 +161,12 @@ export function MonitoramentoInternoCronograma({
                         </div>
                       )}
                       {ehLicenca && diasValidadeEv !== null && (
-                        <div className={cn('text-[10.5px] font-semibold text-right', classeValidade(diasValidadeEv))}>
+                        <div
+                          className={cn(
+                            "text-[10.5px] font-semibold text-right",
+                            classeValidade(diasValidadeEv),
+                          )}
+                        >
                           {diasValidadeEv < 0
                             ? `Vencida há ${Math.abs(diasValidadeEv)} dia(s) (${fmtData(ev.data_validade)})`
                             : `Vence em ${diasValidadeEv} dia(s) (${fmtData(ev.data_validade)})`}

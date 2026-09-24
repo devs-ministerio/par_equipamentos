@@ -9,17 +9,19 @@
  * resto do módulo) em vez de duplicar o form. Depois de logar, volta pra
  * onde o usuário veio (`location.state.from`, setado pelo botão "Login" do
  * header em UserMenu.tsx) ou pro Painel Geral por padrão. */
-import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
-import { useAuthSession } from '@/hooks/useAuthSession';
-import { mensagemSeguraDoErro } from '@/lib/api-error';
-import { MonitoramentoInternoFormLogin } from '@/components/features/monitoramento-interno-form-login';
-import { Card, CardContent } from '@/components/ui/card';
+import { useNavigate, useLocation, Link, Navigate } from "react-router-dom";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { MonitoramentoInternoFormLogin } from "@/components/features/monitoramento-interno-form-login";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function LoginPage() {
   const sessao = useAuthSession();
   const navigate = useNavigate();
   const location = useLocation();
-  const destino = (location.state as { from?: string } | null)?.from || '/monitoramento-equipamentos';
+  const destino =
+    (location.state as { from?: string } | null)?.from ||
+    "/monitoramento-equipamentos";
 
   if (sessao.autenticado) {
     return <Navigate to={destino} replace />;
@@ -29,24 +31,40 @@ export function LoginPage() {
     <main className="grid min-h-screen place-items-center bg-background px-6">
       <Card className="w-full max-w-[420px]">
         <CardContent className="p-8">
-          <Link to="/monitoramento-equipamentos" className="mb-1 flex items-center gap-2.5 text-foreground">
+          <Link
+            to="/monitoramento-equipamentos"
+            className="mb-1 flex items-center gap-2.5 text-foreground"
+          >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
               S
             </span>
-            <span className="font-display text-[15px] font-bold tracking-tight">SIGEO</span>
+            <span className="font-display text-[15px] font-bold tracking-tight">
+              SIGEO
+            </span>
           </Link>
-          <h1 className="mt-5 text-xl font-bold text-foreground">Entrar no SIGEO</h1>
+          <h1 className="mt-5 text-xl font-bold text-foreground">
+            Entrar no SIGEO
+          </h1>
           <p className="mt-1.5 mb-5 text-sm text-muted-foreground">
-            Acesso operacional -- edição de monitoramento interno, inclusão de propostas e notificações.
+            Acesso operacional -- edição de monitoramento interno, inclusão de
+            propostas e notificações.
           </p>
           <MonitoramentoInternoFormLogin
             onEntrar={async (valores) => {
-              await sessao.login({ email: valores.email, senha: valores.senha });
+              await sessao.login({
+                email: valores.email,
+                senha: valores.senha,
+              });
               navigate(destino, { replace: true });
             }}
-            erroServidor={sessao.erroLogin ? mensagemSeguraDoErro(sessao.erroLogin) : null}
+            erroServidor={
+              sessao.erroLogin ? mensagemSeguraDoErro(sessao.erroLogin) : null
+            }
           />
-          <Link to="/esqueci-senha" className="mt-4 block text-center text-sm text-primary underline-offset-4 hover:underline">
+          <Link
+            to="/esqueci-senha"
+            className="mt-4 block text-center text-sm text-primary underline-offset-4 hover:underline"
+          >
             Esqueci minha senha
           </Link>
         </CardContent>

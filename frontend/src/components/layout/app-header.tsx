@@ -1,11 +1,18 @@
-import { type ReactNode, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { CONTAINER_CLASS } from '@/lib/layout';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { UserMenu } from './user-menu';
+import { type ReactNode, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { CONTAINER_CLASS } from "@/lib/layout";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { UserMenu } from "./user-menu";
 
 export interface HeaderNavItem {
   path: string;
@@ -31,10 +38,12 @@ function NavButton({
     <button
       type="button"
       onClick={onNavigate}
-      aria-current={active ? 'page' : undefined}
+      aria-current={active ? "page" : undefined}
       className={cn(
-        'rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors',
-        active ? 'bg-secondary font-semibold text-primary' : 'text-muted-foreground hover:text-foreground',
+        "rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
+        active
+          ? "bg-secondary font-semibold text-primary"
+          : "text-muted-foreground hover:text-foreground",
         className,
       )}
     >
@@ -76,17 +85,29 @@ export function AppHeader({
 
   return (
     <header className="border-b border-border bg-card">
-      <div className={cn(CONTAINER_CLASS, 'flex h-14 items-center justify-between gap-4')}>
+      <div
+        className={cn(
+          CONTAINER_CLASS,
+          "flex h-14 items-center justify-between gap-4",
+        )}
+      >
         <div className="flex min-w-0 items-center gap-4">
           {/* A marca leva à entrada operacional definida para o sistema. */}
-          <Link to="/monitoramento-equipamentos" className="flex shrink-0 items-center gap-2.5 text-foreground">
+          <Link
+            to="/monitoramento-equipamentos"
+            className="flex shrink-0 items-center gap-2.5 text-foreground"
+          >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
               S
             </span>
             <span className="flex items-baseline gap-2 whitespace-nowrap">
-              <span className="font-display text-[15px] font-bold tracking-tight">SIGEO</span>
+              <span className="font-display text-[15px] font-bold tracking-tight">
+                SIGEO
+              </span>
               <span className="h-3.5 w-px bg-border" aria-hidden="true" />
-              <span className="hidden text-xs text-muted-foreground sm:inline">Gestão de Equipamentos em Oncologia</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">
+                Gestão de Equipamentos em Oncologia
+              </span>
             </span>
           </Link>
           <div className="hidden lg:block">{leftExtra}</div>
@@ -99,8 +120,17 @@ export function AppHeader({
         <div className="hidden items-center gap-2 lg:flex">
           <nav className="flex flex-wrap items-center justify-end gap-1">
             {navItems.map((item) => {
-              const active = item.isActive ? item.isActive(location.pathname) : location.pathname.startsWith(item.path);
-              return <NavButton key={item.path} item={item} active={active} onNavigate={() => navigate(item.path)} />;
+              const active = item.isActive
+                ? item.isActive(location.pathname)
+                : location.pathname.startsWith(item.path);
+              return (
+                <NavButton
+                  key={item.path}
+                  item={item}
+                  active={active}
+                  onNavigate={() => navigate(item.path)}
+                />
+              );
             })}
           </nav>
           {rightExtra}
@@ -113,7 +143,12 @@ export function AppHeader({
         {/* Mobile (<768px): tudo colapsa atrás do hambúrguer. */}
         <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Abrir menu">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              aria-label="Abrir menu"
+            >
               <Menu />
             </Button>
           </SheetTrigger>
@@ -125,7 +160,9 @@ export function AppHeader({
               {leftExtra && <div>{leftExtra}</div>}
               <nav className="flex flex-col items-stretch gap-1">
                 {navItems.map((item) => {
-                  const active = item.isActive ? item.isActive(location.pathname) : location.pathname.startsWith(item.path);
+                  const active = item.isActive
+                    ? item.isActive(location.pathname)
+                    : location.pathname.startsWith(item.path);
                   return (
                     <NavButton
                       key={item.path}

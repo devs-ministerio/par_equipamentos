@@ -11,15 +11,17 @@
  * os menus de navegação") -- Header/nav ja cobertos la, aqui so o
  * conteudo especifico da pagina.
  */
-import { Link, useParams } from 'react-router-dom';
-import { PageHeader } from '@/components/common/page-header';
-import { MonitoramentoInterno } from '@/components/features/monitoramento-interno';
+import { Link, useParams } from "react-router-dom";
+import { PageHeader } from "@/components/common/page-header";
+import { MonitoramentoInterno } from "@/components/features/monitoramento-interno";
 
 export function MonitoramentoInstrumentoPage() {
   const { nrConvenio } = useParams<{ nrConvenio: string }>();
 
   if (!nrConvenio) {
-    return <p className="text-destructive">Número de convênio não informado.</p>;
+    return (
+      <p className="text-destructive">Número de convênio não informado.</p>
+    );
   }
 
   return (
@@ -27,7 +29,12 @@ export function MonitoramentoInstrumentoPage() {
       <PageHeader
         breadcrumb={
           <>
-            <Link to="/monitoramento-equipamentos/instrumentos" className="text-muted-foreground no-underline hover:text-primary">Monitoramento interno</Link>
+            <Link
+              to="/monitoramento-equipamentos/instrumentos"
+              className="text-muted-foreground no-underline hover:text-primary"
+            >
+              Monitoramento interno
+            </Link>
             <span className="mx-1.5">›</span>
             <span className="text-primary">{nrConvenio}</span>
           </>

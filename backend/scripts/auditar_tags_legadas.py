@@ -8,6 +8,7 @@ O relatório é insumo para decisão humana no rollout expand-contract de
 ``convenio.equipamentos_tags``. Nunca cria marcador, não altera o JSON legado
 e não remove a coluna.
 """
+
 from __future__ import annotations
 
 import json

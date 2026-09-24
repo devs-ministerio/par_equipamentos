@@ -4,6 +4,7 @@ Nunca rode sem ``E2E_ISOLATED_DATABASE=true``: a trava impede que uma
 credencial de teste altere banco local ou de produção por engano. E-mail e
 senha vêm apenas de secrets do ambiente; este script não os imprime.
 """
+
 from __future__ import annotations
 
 import os

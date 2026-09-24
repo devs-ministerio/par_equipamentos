@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchMunicipalityCoverage } from '@/services/api';
-import type { NivelCoberturaRow } from '@/types/domain';
+import { useQuery } from "@tanstack/react-query";
+import { fetchMunicipalityCoverage } from "@/services/api";
+import type { NivelCoberturaRow } from "@/types/domain";
 
 interface Alvo {
   cnes: string;
@@ -8,7 +8,7 @@ interface Alvo {
   uf: string;
 }
 
-type Status = 'idle' | 'carregando' | 'sem-dado' | 'erro' | 'sucesso';
+type Status = "idle" | "carregando" | "sem-dado" | "erro" | "sucesso";
 
 /**
  * Detalhe de cobertura do município de UM estabelecimento (botão de detalhe
@@ -25,9 +25,16 @@ type Status = 'idle' | 'carregando' | 'sem-dado' | 'erro' | 'sucesso';
  * lista vazia) de "falha ao buscar" -- a UI mostra uma mensagem diferente
  * pra cada caso, igual o comportamento original.
  */
-export function useEstabelecimentoDetalhe(equipmentFamily: string, alvo: Alvo | null) {
+export function useEstabelecimentoDetalhe(
+  equipmentFamily: string,
+  alvo: Alvo | null,
+) {
   const query = useQuery({
-    queryKey: ['estabelecimento-detalhe-municipio', equipmentFamily, alvo?.cnes],
+    queryKey: [
+      "estabelecimento-detalhe-municipio",
+      equipmentFamily,
+      alvo?.cnes,
+    ],
     queryFn: async (): Promise<NivelCoberturaRow | null> => {
       const rows = await fetchMunicipalityCoverage({
         equipmentFamily,
@@ -39,14 +46,14 @@ export function useEstabelecimentoDetalhe(equipmentFamily: string, alvo: Alvo | 
   });
 
   const status: Status = !alvo
-    ? 'idle'
+    ? "idle"
     : query.isLoading
-      ? 'carregando'
+      ? "carregando"
       : query.isError
-        ? 'erro'
+        ? "erro"
         : query.data == null
-          ? 'sem-dado'
-          : 'sucesso';
+          ? "sem-dado"
+          : "sucesso";
 
   return { detalhe: query.data ?? null, status };
 }

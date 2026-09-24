@@ -1,9 +1,9 @@
-import { Outlet } from 'react-router-dom';
-import { FamiliaEquipamentoProvider } from '../../context/familia-equipamento-context';
-import { CONTAINER_CLASS } from '@/lib/layout';
-import { AppHeader } from './app-header';
-import { SeletorEquipamento } from './top-nav';
-import { NAV_ITEMS_MONITORAMENTO } from './monitoramento-nav-items';
+import { Outlet } from "react-router-dom";
+import { FamiliaEquipamentoProvider } from "../../context/familia-equipamento-context";
+import { CONTAINER_CLASS } from "@/lib/layout";
+import { AppHeader } from "./app-header";
+import { SeletorEquipamento } from "./top-nav";
+import { NAV_ITEMS_MONITORAMENTO } from "./monitoramento-nav-items";
 
 /** Nav do topo igual à do Monitoramento (achado 2026-09-15, pedido do
  * usuário: "quero no topo os nav do monitoramento") -- mesmo array
@@ -17,7 +17,10 @@ export function AppLayout() {
   return (
     <FamiliaEquipamentoProvider>
       <div className="min-h-screen bg-background text-sm text-foreground">
-        <AppHeader navItems={NAV_ITEMS_MONITORAMENTO} leftExtra={<SeletorEquipamento />} />
+        <AppHeader
+          navItems={NAV_ITEMS_MONITORAMENTO}
+          leftExtra={<SeletorEquipamento />}
+        />
         <div className={`${CONTAINER_CLASS} py-6`}>
           <Outlet />
         </div>

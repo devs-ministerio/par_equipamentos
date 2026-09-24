@@ -1,4 +1,4 @@
-import { colors } from '../styles/tokens';
+import { colors } from "../styles/tokens";
 
 export interface CoeficienteInfo {
   /** (equipamentos SUS × produtividade da família) ÷ população SUS-dependente -- null se pop=0 (sem denominador). */
@@ -30,14 +30,28 @@ export interface CoeficienteInfo {
  * sites tinham esse número fixo, então RESSONANCIA mostrava
  * coeficiente/barra/cor errados mesmo com o StatusBadge já certo).
  */
-export function calcularCoeficiente(oferta: number, pop: number, produtividade = 100_000): CoeficienteInfo {
+export function calcularCoeficiente(
+  oferta: number,
+  pop: number,
+  produtividade = 100_000,
+): CoeficienteInfo {
   const valor = pop > 0 ? (oferta * produtividade) / pop : null;
   const hiper = valor != null && valor >= 1;
   return {
     valor,
     hiper,
-    corTexto: valor == null ? colors.subtleText : hiper ? colors.hiperGreen : colors.hipoRed,
-    corBarra: valor == null ? colors.subtleText : hiper ? colors.hiperGreenBarra : colors.hipoRedBarra,
+    corTexto:
+      valor == null
+        ? colors.subtleText
+        : hiper
+          ? colors.hiperGreen
+          : colors.hipoRed,
+    corBarra:
+      valor == null
+        ? colors.subtleText
+        : hiper
+          ? colors.hiperGreenBarra
+          : colors.hipoRedBarra,
     fillPercent: valor != null ? Math.min(100, valor * 50) : 0,
   };
 }

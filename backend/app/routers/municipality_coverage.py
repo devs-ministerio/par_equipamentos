@@ -14,6 +14,7 @@ Dois niveis:
                                     que tambem agrega municipios antes de
                                     calcular required_qty/balance).
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
@@ -34,9 +35,12 @@ def _latest_execution_id(db: Session, equipment_family: str | None) -> int | Non
     # Ver mesmo comentario em app/routers/macro_coverage.py -- sem escopar por
     # familia, "a execucao mais recente" pode ser de outra familia e o filtro
     # execution_id + equipment_family sempre da 0 linhas.
-    stmt = select(Execution.id).join(Competency, Execution.competency_id == Competency.id).order_by(
-        Execution.started_at.desc()
-    ).limit(1)
+    stmt = (
+        select(Execution.id)
+        .join(Competency, Execution.competency_id == Competency.id)
+        .order_by(Execution.started_at.desc())
+        .limit(1)
+    )
     if equipment_family:
         stmt = stmt.where(Competency.equipment_family == equipment_family)
     return db.execute(stmt).scalar_one_or_none()

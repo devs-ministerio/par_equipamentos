@@ -1,11 +1,15 @@
-import { z } from 'zod';
-import { apiGet } from './monitoramento-client';
+import { z } from "zod";
+import { apiGet } from "./monitoramento-client";
 
 // ---------------------------------------------------------------------
 // Monitoramento -- catálogo de marcos (backend/app/routers/monitoramento.py)
 // ---------------------------------------------------------------------
 
-const marcoGrupoSchema = z.enum(['fase_geral', 'cronograma_fisico', 'regulatorio']);
+const marcoGrupoSchema = z.enum([
+  "fase_geral",
+  "cronograma_fisico",
+  "regulatorio",
+]);
 
 const marcoCatalogoSchema = z.object({
   id: z.number(),
@@ -19,5 +23,5 @@ const marcoCatalogoSchema = z.object({
 export type MarcoCatalogo = z.infer<typeof marcoCatalogoSchema>;
 
 export function fetchMarcos(): Promise<MarcoCatalogo[]> {
-  return apiGet('/monitoramento/marcos', z.array(marcoCatalogoSchema));
+  return apiGet("/monitoramento/marcos", z.array(marcoCatalogoSchema));
 }

@@ -12,6 +12,7 @@ internamente (append-only / PATCH de verdade, nao dado de teste que se
 descarta com rollback) -- por isso cada teste que escreve limpa o que
 criou/reverte o que mudou no `finally`, pra nao deixar sujeira no banco de
 dev compartilhado."""
+
 from datetime import date, timedelta
 from typing import cast
 from uuid import uuid4
@@ -63,6 +64,7 @@ from app.services.monitoramento_eventos import (
 from app.services.monitoramento_instrumentos import listar_instrumentos_monitorados
 
 NR_CONVENIO_SEED = "948686"  # unico instrumento seedado (scripts/seed_monitoramento.py)
+
 
 def criar_usuario_teste(db):
     user = User(
@@ -124,7 +126,10 @@ def test_patch_cadastro_atualiza_so_o_campo_enviado():
         original_tecnico = instrumento.tecnico_titular
 
         resultado = atualizar_cadastro(
-            NR_CONVENIO_SEED, InstrumentoEquipamentoUpdate(equipamento_marca="TESTE — apagar"), db, usuario_teste,
+            NR_CONVENIO_SEED,
+            InstrumentoEquipamentoUpdate(equipamento_marca="TESTE — apagar"),
+            db,
+            usuario_teste,
         )
         assert resultado.equipamento_marca == "TESTE — apagar"
         # PATCH parcial nao pode zerar campo que nao veio no corpo.
@@ -145,9 +150,15 @@ def test_patch_cadastro_atualiza_so_o_campo_enviado():
 
         # Radar de Convenios (2026-09-15) -- PATCH com mudanca real cria
         # notificacao camada 2 (edicao_manual).
-        notificacao = db.query(Notificacao).filter_by(
-            tipo=NotificacaoTipo.edicao_manual, entidade_id=instrumento.id,
-        ).order_by(Notificacao.id.desc()).first()
+        notificacao = (
+            db.query(Notificacao)
+            .filter_by(
+                tipo=NotificacaoTipo.edicao_manual,
+                entidade_id=instrumento.id,
+            )
+            .order_by(Notificacao.id.desc())
+            .first()
+        )
         assert notificacao is not None
         assert notificacao.corpo is not None
         notificacao_id = notificacao.id
@@ -207,9 +218,15 @@ def test_criar_instrumento_via_post_cadastro_manual():
         assert resultado.nr_convenio == nr_convenio_teste
         assert resultado.tipo_contratacao == "FAF"
 
-        log = db.query(AuditLog).filter_by(
-            entity_name="instrumento_equipamento", entity_id=resultado.id,
-        ).order_by(AuditLog.id.desc()).first()
+        log = (
+            db.query(AuditLog)
+            .filter_by(
+                entity_name="instrumento_equipamento",
+                entity_id=resultado.id,
+            )
+            .order_by(AuditLog.id.desc())
+            .first()
+        )
         assert log is not None
         assert log.details is not None
         audit_log_id = log.id
@@ -222,10 +239,13 @@ def test_criar_instrumento_via_post_cadastro_manual():
         with pytest.raises(ConflictError) as exc:
             criar_instrumento(
                 InstrumentoEquipamentoCreate(
-                    nr_convenio=nr_convenio_teste, cnpj_convenente="x",
-                    nome_convenente="x", tipo_contratacao="FAF",
+                    nr_convenio=nr_convenio_teste,
+                    cnpj_convenente="x",
+                    nome_convenente="x",
+                    tipo_contratacao="FAF",
                 ),
-                db, usuario_teste,
+                db,
+                usuario_teste,
             )
         assert exc.value.status_code == 409
     finally:
@@ -302,8 +322,10 @@ def test_registrar_evento_de_entrega_atualiza_equipamento_e_observacao():
     usuario_teste = None
     instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
     original = dict(
-        marca=instrumento.equipamento_marca, modelo=instrumento.equipamento_modelo,
-        serie=instrumento.equipamento_numero_serie, vida_util=instrumento.equipamento_vida_util_anos,
+        marca=instrumento.equipamento_marca,
+        modelo=instrumento.equipamento_modelo,
+        serie=instrumento.equipamento_numero_serie,
+        vida_util=instrumento.equipamento_vida_util_anos,
     )
     try:
         marco_entrega = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
@@ -362,8 +384,10 @@ def test_registrar_evento_fora_da_entrega_ignora_campos_de_equipamento():
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
         usuario_teste = criar_usuario_teste(db)
         corpo = EventoMarcoCreate(
-            marco_id=marco_licenca.id, autor_nome="pytest",
-            observacao="Evento de teste -- apagar", equipamento_marca="NAO DEVERIA SALVAR",
+            marco_id=marco_licenca.id,
+            autor_nome="pytest",
+            observacao="Evento de teste -- apagar",
+            equipamento_marca="NAO DEVERIA SALVAR",
             fase_geral_id=marco_fase.id,
         )
         resultado = registrar_evento(NR_CONVENIO_SEED, corpo, db, usuario_teste)
@@ -430,9 +454,7 @@ def test_registrar_e_concluir_acao():
         )
         acao_id = criada.id
         log_criacao = (
-            db.query(AuditLog)
-            .filter_by(entity_name="acao_monitoramento", entity_id=acao_id, action="created")
-            .one()
+            db.query(AuditLog).filter_by(entity_name="acao_monitoramento", entity_id=acao_id, action="created").one()
         )
         audit_log_ids.append(log_criacao.id)
         assert log_criacao.user_id == usuario_teste.id
@@ -445,9 +467,7 @@ def test_registrar_e_concluir_acao():
         concluida = concluir_acao(acao_id, db, usuario_teste)
         assert concluida.data_conclusao == date.today()
         log_conclusao = (
-            db.query(AuditLog)
-            .filter_by(entity_name="acao_monitoramento", entity_id=acao_id, action="completed")
-            .one()
+            db.query(AuditLog).filter_by(entity_name="acao_monitoramento", entity_id=acao_id, action="completed").one()
         )
         audit_log_ids.append(log_conclusao.id)
         assert log_conclusao.details is not None
@@ -535,7 +555,10 @@ def test_atualizar_cadastro_instrumento_bloqueia_leitor_no_service():
         leitor = User(id=999001, name="Leitor", email="leitor-bloco3@example.com", role=UserRole.leitor)
         with pytest.raises(AuthorizationError) as exc:
             atualizar_cadastro_instrumento(
-                nr_convenio=NR_CONVENIO_SEED, alteracoes_brutas={"tecnico_suplente": "X"}, db=db, usuario=leitor,
+                nr_convenio=NR_CONVENIO_SEED,
+                alteracoes_brutas={"tecnico_suplente": "X"},
+                db=db,
+                usuario=leitor,
             )
         assert exc.value.status_code == 403
     finally:
@@ -548,7 +571,10 @@ def test_registrar_evento_monitorado_bloqueia_leitor_no_service():
         leitor = User(id=999002, name="Leitor", email="leitor-bloco3-evento@example.com", role=UserRole.leitor)
         with pytest.raises(AuthorizationError) as exc:
             registrar_evento_monitorado(
-                nr_convenio=NR_CONVENIO_SEED, dados=NovoEventoMonitorado(marco_id=1), db=db, usuario=leitor,
+                nr_convenio=NR_CONVENIO_SEED,
+                dados=NovoEventoMonitorado(marco_id=1),
+                db=db,
+                usuario=leitor,
             )
         assert exc.value.status_code == 403
     finally:
@@ -586,12 +612,14 @@ def test_reprogramacao_de_data_prevista_exige_justificativa():
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
         marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        db.add(EventoMarco(
-            instrumento_id=instrumento.id,
-            marco_id=marco.id,
-            data_prevista=date.today() + timedelta(days=10),
-            autor_id=usuario.id,
-        ))
+        db.add(
+            EventoMarco(
+                instrumento_id=instrumento.id,
+                marco_id=marco.id,
+                data_prevista=date.today() + timedelta(days=10),
+                autor_id=usuario.id,
+            )
+        )
         db.flush()
         with pytest.raises(ValidationError, match="justificativa"):
             registrar_evento_monitorado(
@@ -652,6 +680,7 @@ def test_concluir_acao_monitorada_bloqueia_leitor_no_service():
 # precisa de delete explícito.
 # ---------------------------------------------------------------------
 
+
 def test_evento_fisico_sem_fase_geral_id_rejeitado():
     db = SessionLocal()
     usuario = criar_usuario_teste(db)
@@ -707,7 +736,9 @@ def test_editar_evento_monitorado_corrige_e_fecha_original():
         antigo = registrar_evento_monitorado(
             nr_convenio=NR_CONVENIO_SEED,
             dados=NovoEventoMonitorado(
-                marco_id=marco_fisico.id, data_ocorrencia=date(2026, 1, 1), fase_geral_id=marco_fase.id,
+                marco_id=marco_fisico.id,
+                data_ocorrencia=date(2026, 1, 1),
+                fase_geral_id=marco_fase.id,
             ),
             db=db,
             usuario=usuario,
@@ -777,7 +808,9 @@ def test_conclusao_confirma_inauguracao_e_fecha_previsao_anterior():
     db = SessionLocal()
     usuario = criar_usuario_teste(db)
     instrumento = InstrumentoEquipamento(
-        nr_convenio=f"PYTEST-CONCLUSAO-{uuid4()}", nome_convenente="Convenente Pytest", tipo_contratacao="Convênio",
+        nr_convenio=f"PYTEST-CONCLUSAO-{uuid4()}",
+        nome_convenente="Convenente Pytest",
+        tipo_contratacao="Convênio",
     )
     try:
         db.add(instrumento)
@@ -785,8 +818,10 @@ def test_conclusao_confirma_inauguracao_e_fecha_previsao_anterior():
         marco_concluido = db.query(MarcoCatalogo).filter_by(codigo="fase_concluido").one()
         marco_inauguracao = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
         previsao = EventoMarco(
-            instrumento_id=instrumento.id, marco_id=marco_inauguracao.id,
-            data_prevista=date(2025, 9, 1), autor_id=usuario.id,
+            instrumento_id=instrumento.id,
+            marco_id=marco_inauguracao.id,
+            data_prevista=date(2025, 9, 1),
+            autor_id=usuario.id,
         )
         db.add(previsao)
         db.flush()
@@ -803,7 +838,9 @@ def test_conclusao_confirma_inauguracao_e_fecha_previsao_anterior():
         )
 
         inauguracao = monitoramento_repo.obter_evento_mais_recente_do_marco(
-            db, instrumento_id=instrumento.id, marco_id=marco_inauguracao.id,
+            db,
+            instrumento_id=instrumento.id,
+            marco_id=marco_inauguracao.id,
         )
         assert concluido.data_ocorrencia == date(2025, 9, 2)
         assert inauguracao is not None and inauguracao.data_ocorrencia == date(2025, 9, 2)
@@ -895,7 +932,8 @@ def test_excluir_evento_ja_excluido_rejeitado():
 def _eventos_ativos_do_instrumento(db, nr_convenio: str) -> list[EventoMarco]:
     instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=nr_convenio).one()
     return [
-        e for e in db.query(EventoMarco).filter_by(instrumento_id=instrumento.id).all()
+        e
+        for e in db.query(EventoMarco).filter_by(instrumento_id=instrumento.id).all()
         if e.deletado_em is None and e.substituido_por_id is None
     ]
 
@@ -942,8 +980,12 @@ def test_registrar_acao_monitorada_seta_criado_por_id():
     usuario = criar_usuario_teste(db)
     try:
         acao = registrar_acao_monitorada(
-            nr_convenio=NR_CONVENIO_SEED, descricao="ação pytest", data_prevista=None, responsavel=None,
-            db=db, usuario=usuario,
+            nr_convenio=NR_CONVENIO_SEED,
+            descricao="ação pytest",
+            data_prevista=None,
+            responsavel=None,
+            db=db,
+            usuario=usuario,
         )
         assert acao.criado_por_id == usuario.id
     finally:
@@ -958,14 +1000,23 @@ def test_editar_acao_monitorada_corrige_e_fecha_original():
     usuario = criar_usuario_teste(db)
     try:
         antiga = registrar_acao_monitorada(
-            nr_convenio=NR_CONVENIO_SEED, descricao="ação original", data_prevista=None, responsavel=None,
-            db=db, usuario=usuario,
+            nr_convenio=NR_CONVENIO_SEED,
+            descricao="ação original",
+            data_prevista=None,
+            responsavel=None,
+            db=db,
+            usuario=usuario,
         )
         antiga_id = antiga.id
 
         nova = editar_acao_monitorada(
-            acao_id=antiga_id, descricao="ação corrigida", data_prevista=None,
-            responsavel=None, responsavel_id=None, db=db, usuario=usuario,
+            acao_id=antiga_id,
+            descricao="ação corrigida",
+            data_prevista=None,
+            responsavel=None,
+            responsavel_id=None,
+            db=db,
+            usuario=usuario,
         )
 
         assert nova.id != antiga_id
@@ -985,8 +1036,12 @@ def test_excluir_acao_monitorada_soft_delete():
     usuario = criar_usuario_teste(db)
     try:
         acao = registrar_acao_monitorada(
-            nr_convenio=NR_CONVENIO_SEED, descricao="ação pra excluir", data_prevista=None, responsavel=None,
-            db=db, usuario=usuario,
+            nr_convenio=NR_CONVENIO_SEED,
+            descricao="ação pra excluir",
+            data_prevista=None,
+            responsavel=None,
+            db=db,
+            usuario=usuario,
         )
         acao_id = acao.id
 
@@ -1007,8 +1062,12 @@ def test_concluir_acao_ja_excluida_rejeitada():
     usuario = criar_usuario_teste(db)
     try:
         acao = registrar_acao_monitorada(
-            nr_convenio=NR_CONVENIO_SEED, descricao="ação pra excluir e concluir", data_prevista=None,
-            responsavel=None, db=db, usuario=usuario,
+            nr_convenio=NR_CONVENIO_SEED,
+            descricao="ação pra excluir e concluir",
+            data_prevista=None,
+            responsavel=None,
+            db=db,
+            usuario=usuario,
         )
         excluir_acao_monitorada(acao_id=acao.id, motivo="teste pytest", db=db, usuario=usuario)
         with pytest.raises(ValidationError, match="já foi excluída ou corrigida"):
@@ -1023,12 +1082,18 @@ def test_concluir_acao_ja_excluida_rejeitada():
 def test_atualizar_cadastro_tipologia_invalida_rejeitada():
     db = SessionLocal()
     colaborador = User(
-        id=999005, name="Colaborador", email="colab-tipologia@example.com", role=UserRole.colaborador,
+        id=999005,
+        name="Colaborador",
+        email="colab-tipologia@example.com",
+        role=UserRole.colaborador,
     )
     try:
         with pytest.raises(ValidationError, match="Tipologia"):
             atualizar_cadastro_instrumento(
-                nr_convenio=NR_CONVENIO_SEED, alteracoes_brutas={"tipologia": "ZZ"}, db=db, usuario=colaborador,
+                nr_convenio=NR_CONVENIO_SEED,
+                alteracoes_brutas={"tipologia": "ZZ"},
+                db=db,
+                usuario=colaborador,
             )
     finally:
         db.rollback()
@@ -1038,12 +1103,17 @@ def test_atualizar_cadastro_tipologia_invalida_rejeitada():
 def test_atualizar_cadastro_modalidade_invalida_rejeitada():
     db = SessionLocal()
     colaborador = User(
-        id=999006, name="Colaborador", email="colab-modalidade@example.com", role=UserRole.colaborador,
+        id=999006,
+        name="Colaborador",
+        email="colab-modalidade@example.com",
+        role=UserRole.colaborador,
     )
     try:
         with pytest.raises(ValidationError, match="Modalidade"):
             atualizar_cadastro_instrumento(
-                nr_convenio=NR_CONVENIO_SEED, alteracoes_brutas={"modalidade_onco": "Inválida"}, db=db,
+                nr_convenio=NR_CONVENIO_SEED,
+                alteracoes_brutas={"modalidade_onco": "Inválida"},
+                db=db,
                 usuario=colaborador,
             )
     finally:

@@ -9,6 +9,7 @@ inteiros) da OUTRA familia por engano. Dado real perdido uma vez nesta
 sessao antes do fix (TOMOGRAFO inteiro sumiu do banco rodando o pipeline de
 RESSONANCIA). Corrigido: unique agora e (label, equipment_family).
 """
+
 from __future__ import annotations
 
 import pytest

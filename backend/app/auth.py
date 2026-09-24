@@ -1,4 +1,5 @@
 """Autenticacao e autorizacao do backend."""
+
 from __future__ import annotations
 
 import hashlib
@@ -54,6 +55,7 @@ REFRESH_COOKIE_PATH = "/auth"
 # cross-site do restante da sessao (ver `cookie_samesite`/`cookie_secure`).
 CSRF_COOKIE_NAME = "sigeo_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"
+
 
 def hash_password(password: str) -> str:
     salt = os.urandom(16)
@@ -178,20 +180,35 @@ def set_session_cookies(response: Response, access_token: str, refresh_token: st
     expor o valor no corpo da resposta de login, se precisar."""
     same_site = cast(Literal["lax", "strict", "none"] | None, settings.cookie_samesite)
     response.set_cookie(
-        ACCESS_COOKIE_NAME, access_token, max_age=settings.access_token_expire_minutes * 60,
-        httponly=True, secure=settings.cookie_secure, samesite=same_site,
-        domain=settings.cookie_domain, path="/",
+        ACCESS_COOKIE_NAME,
+        access_token,
+        max_age=settings.access_token_expire_minutes * 60,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=same_site,
+        domain=settings.cookie_domain,
+        path="/",
     )
     response.set_cookie(
-        REFRESH_COOKIE_NAME, refresh_token, max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
-        httponly=True, secure=settings.cookie_secure, samesite=same_site,
-        domain=settings.cookie_domain, path=REFRESH_COOKIE_PATH,
+        REFRESH_COOKIE_NAME,
+        refresh_token,
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=same_site,
+        domain=settings.cookie_domain,
+        path=REFRESH_COOKIE_PATH,
     )
     csrf_token = secrets.token_urlsafe(32)
     response.set_cookie(
-        CSRF_COOKIE_NAME, csrf_token, max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
-        httponly=False, secure=settings.cookie_secure, samesite=same_site,
-        domain=settings.cookie_domain, path="/",
+        CSRF_COOKIE_NAME,
+        csrf_token,
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+        httponly=False,
+        secure=settings.cookie_secure,
+        samesite=same_site,
+        domain=settings.cookie_domain,
+        path="/",
     )
     return csrf_token
 

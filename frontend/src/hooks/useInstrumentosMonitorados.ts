@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchInstrumentos } from '@/services/monitoramento-instrumentos';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+import { useQuery } from "@tanstack/react-query";
+import { fetchInstrumentos } from "@/services/monitoramento-instrumentos";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** GET /monitoramento/instrumentos completo -- usado pelas páginas de
  * overview/painel (tabela, filtros, rankings). Compartilha cache

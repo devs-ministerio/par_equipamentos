@@ -5,6 +5,7 @@ projeto, zero uso ate aqui) -- `registrar_auditoria` fica neste modulo, nao
 em arquivo proprio, porque so este Service escreve nele por enquanto;
 generalizar pra `app/audit.py` fica pra quando um segundo modulo precisar.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -69,7 +70,11 @@ def criar_usuario(*, db: Session, admin_atual: User, dados: UserCreateRequest) -
     db.add(usuario)
     db.flush()  # obtem usuario.id pra registrar na auditoria antes do commit
     registrar_auditoria(
-        db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="criar_usuario",
+        db,
+        user_id=admin_atual.id,
+        entity_name="user",
+        entity_id=usuario.id,
+        action="criar_usuario",
         details={"email": usuario.email, "role": usuario.role.value},
     )
     if dados.password is None:
@@ -100,7 +105,11 @@ def atualizar_usuario(*, db: Session, admin_atual: User, user_id: int, dados: Us
     usuario.name = dados.name
     usuario.role = dados.role
     registrar_auditoria(
-        db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="atualizar_usuario",
+        db,
+        user_id=admin_atual.id,
+        entity_name="user",
+        entity_id=usuario.id,
+        action="atualizar_usuario",
         details={"name": usuario.name, "role": usuario.role.value},
     )
     db.commit()
@@ -159,7 +168,11 @@ def enviar_redefinicao_senha(*, db: Session, admin_atual: User, user_id: int) ->
         db.rollback()
         raise ValidationError("Não foi possível enviar a redefinição por e-mail.") from exc
     registrar_auditoria(
-        db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="enviar_redefinicao_senha",
+        db,
+        user_id=admin_atual.id,
+        entity_name="user",
+        entity_id=usuario.id,
+        action="enviar_redefinicao_senha",
     )
     db.commit()
     db.refresh(usuario)

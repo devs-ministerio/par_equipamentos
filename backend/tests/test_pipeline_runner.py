@@ -1,6 +1,7 @@
 """app/pipeline/runner.py -- garante que uma falha do pipeline fica
 registrada em AuditLog (nao so no stdout) e que a excecao original ainda
 sobe (exit code != 0 pro cron/GitHub Actions saber que falhou)."""
+
 from __future__ import annotations
 
 import pytest

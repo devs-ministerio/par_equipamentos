@@ -9,6 +9,7 @@ precisa de uma chave ESTÁVEL pra upsert entre execuções -- ver
 Uso: gerar 1x na criação (checando colisão contra os identificadores já
 usados nas duas tabelas), nunca mais regenerar pro mesmo `chave_origem`.
 """
+
 from __future__ import annotations
 
 import random

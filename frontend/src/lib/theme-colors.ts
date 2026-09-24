@@ -11,7 +11,9 @@
  * thrashing sem necessidade, o valor da variavel e o mesmo pra todos.
  */
 export function resolveThemeColor(cssVarName: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(cssVarName)
+    .trim();
 }
 
 /** Conveniencia: resolve de uma vez as cores mais usadas por
@@ -19,14 +21,14 @@ export function resolveThemeColor(cssVarName: string): string {
  * cruas pelos componentes de mapa. */
 export function getMapThemeColors() {
   return {
-    primary: resolveThemeColor('--primary'),
-    foreground: resolveThemeColor('--foreground'),
-    background: resolveThemeColor('--background'),
-    muted: resolveThemeColor('--muted'),
-    mutedForeground: resolveThemeColor('--muted-foreground'),
-    destructive: resolveThemeColor('--destructive'),
-    destructiveBg: resolveThemeColor('--destructive-bg'),
-    success: resolveThemeColor('--success'),
-    successBg: resolveThemeColor('--success-bg'),
+    primary: resolveThemeColor("--primary"),
+    foreground: resolveThemeColor("--foreground"),
+    background: resolveThemeColor("--background"),
+    muted: resolveThemeColor("--muted"),
+    mutedForeground: resolveThemeColor("--muted-foreground"),
+    destructive: resolveThemeColor("--destructive"),
+    destructiveBg: resolveThemeColor("--destructive-bg"),
+    success: resolveThemeColor("--success"),
+    successBg: resolveThemeColor("--success-bg"),
   };
 }

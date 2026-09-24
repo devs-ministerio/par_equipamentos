@@ -1,4 +1,5 @@
 """Valida os pisos constitucionais por camada a partir do JSON do coverage."""
+
 from __future__ import annotations
 
 import json

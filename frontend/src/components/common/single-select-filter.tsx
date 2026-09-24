@@ -1,6 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { normalizarTexto } from '@/utils/texto';
-import { cn } from '@/lib/utils';
+import { useEffect, useId, useRef, useState } from "react";
+import { normalizarTexto } from "@/utils/texto";
+import { cn } from "@/lib/utils";
 
 export interface SingleSelectOption {
   value: string;
@@ -30,29 +30,39 @@ interface SingleSelectFilterProps {
  * MultiSelectFilter (ver CLAUDE.md, seção "Estrutura de pastas do
  * frontend").
  */
-export function SingleSelectFilter({ placeholder, options, value, onChange, clearLabel, minWidth = 260 }: SingleSelectFilterProps) {
+export function SingleSelectFilter({
+  placeholder,
+  options,
+  value,
+  onChange,
+  clearLabel,
+  minWidth = 260,
+}: SingleSelectFilterProps) {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listboxId = useId();
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
   useEffect(() => {
     if (open) {
-      setSearch('');
+      setSearch("");
       inputRef.current?.focus();
     }
   }, [open]);
 
-  const filtered = options.filter((o) => normalizarTexto(o.label).includes(normalizarTexto(search)));
+  const filtered = options.filter((o) =>
+    normalizarTexto(o.label).includes(normalizarTexto(search)),
+  );
   const selecionado = options.find((o) => o.value === value);
 
   function escolher(v: string | null) {
@@ -65,21 +75,27 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
   }
 
   return (
-    <div ref={ref} className="relative w-full sm:w-auto" style={{ maxWidth: `min(100%, ${Math.max(minWidth, 320)}px)` }}>
+    <div
+      ref={ref}
+      className="relative w-full sm:w-auto"
+      style={{ maxWidth: `min(100%, ${Math.max(minWidth, 320)}px)` }}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(event) => {
-          if (event.key === 'Escape') fechar();
-          if (event.key === 'ArrowDown' && !open) setOpen(true);
+          if (event.key === "Escape") fechar();
+          if (event.key === "ArrowDown" && !open) setOpen(true);
         }}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-md border-[1.5px] px-3.5 py-1.5 text-left text-[12.5px] font-medium',
-          value || open ? 'border-primary text-primary' : 'border-border text-foreground',
-          value ? 'bg-secondary' : open ? 'bg-accent/60' : 'bg-card',
+          "flex w-full items-center justify-between gap-2 rounded-md border-[1.5px] px-3.5 py-1.5 text-left text-[12.5px] font-medium",
+          value || open
+            ? "border-primary text-primary"
+            : "border-border text-foreground",
+          value ? "bg-secondary" : open ? "bg-accent/60" : "bg-card",
         )}
       >
         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
@@ -96,7 +112,7 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
           // usa uma margem folgada.
           className="absolute top-full left-0 z-[2000] mt-1 w-full min-w-0 rounded-lg border border-border bg-card py-2 shadow-lg sm:min-w-[260px]"
           onKeyDown={(event) => {
-            if (event.key === 'Escape') {
+            if (event.key === "Escape") {
               event.preventDefault();
               fechar();
             }
@@ -113,7 +129,11 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
               className="box-border w-full rounded-md border border-border px-2 py-1.5 text-xs outline-none"
             />
           </div>
-          <div id={listboxId} role="listbox" className="max-h-65 overflow-y-auto">
+          <div
+            id={listboxId}
+            role="listbox"
+            className="max-h-65 overflow-y-auto"
+          >
             {clearLabel && (
               <button
                 type="button"
@@ -121,8 +141,10 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
                 aria-selected={!value}
                 onClick={() => escolher(null)}
                 className={cn(
-                  'block w-full cursor-pointer border-b border-border px-3 py-1.5 text-left text-[13px]',
-                  value ? 'font-normal text-muted-foreground' : 'font-semibold text-primary',
+                  "block w-full cursor-pointer border-b border-border px-3 py-1.5 text-left text-[13px]",
+                  value
+                    ? "font-normal text-muted-foreground"
+                    : "font-semibold text-primary",
                 )}
               >
                 {clearLabel}
@@ -136,15 +158,19 @@ export function SingleSelectFilter({ placeholder, options, value, onChange, clea
                 key={opt.value}
                 onClick={() => escolher(opt.value)}
                 className={cn(
-                  'block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]',
-                  opt.value === value ? 'bg-secondary font-semibold text-primary' : 'font-normal text-foreground',
+                  "block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]",
+                  opt.value === value
+                    ? "bg-secondary font-semibold text-primary"
+                    : "font-normal text-foreground",
                 )}
               >
                 {opt.label}
               </button>
             ))}
             {filtered.length === 0 && (
-              <div className="px-3 py-2.5 text-xs text-muted-foreground">Nenhum resultado</div>
+              <div className="px-3 py-2.5 text-xs text-muted-foreground">
+                Nenhum resultado
+              </div>
             )}
           </div>
         </div>

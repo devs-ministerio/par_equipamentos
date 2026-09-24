@@ -1,4 +1,5 @@
 """Contratos HTTP de instrumentos firmados, usando carga manual sintética."""
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient

@@ -1,19 +1,19 @@
-import { PageHeader } from '@/components/common/page-header';
-import { ErrorAlert } from '@/components/common/error-alert';
-import { mensagemSeguraDoErro } from '@/lib/api-error';
-import { Skeleton } from '@/components/ui/skeleton';
-import { NavBoxesAnaliseMerito } from '@/components/features/nav-boxes-analise-merito';
-import { MacroMap } from '@/components/features/macro-map';
-import { MapaDetalheMacro } from '@/components/features/mapa-detalhe-macro';
-import { MapaRodoviarioSecao } from '@/components/features/mapa-rodoviario-secao';
-import { calcularCoeficiente } from '../utils/coeficiente';
-import { useFamiliaEquipamento } from '../hooks/use-familia-equipamento';
-import { getEquipamento } from '../data/constants';
-import { useMacroGeojson } from '../hooks/useMacroGeojson';
-import { useMapaFiltros } from '../hooks/useMapaFiltros';
-import { useEstabelecimentosMapa } from '../hooks/useEstabelecimentosMapa';
-import { useEquipamentoMaisProximo } from '../hooks/useEquipamentoMaisProximo';
-import { useContornoMunicipio } from '../hooks/useContornoMunicipio';
+import { PageHeader } from "@/components/common/page-header";
+import { ErrorAlert } from "@/components/common/error-alert";
+import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { Skeleton } from "@/components/ui/skeleton";
+import { NavBoxesAnaliseMerito } from "@/components/features/nav-boxes-analise-merito";
+import { MacroMap } from "@/components/features/macro-map";
+import { MapaDetalheMacro } from "@/components/features/mapa-detalhe-macro";
+import { MapaRodoviarioSecao } from "@/components/features/mapa-rodoviario-secao";
+import { calcularCoeficiente } from "../utils/coeficiente";
+import { useFamiliaEquipamento } from "../hooks/use-familia-equipamento";
+import { getEquipamento } from "../data/constants";
+import { useMacroGeojson } from "../hooks/useMacroGeojson";
+import { useMapaFiltros } from "../hooks/useMapaFiltros";
+import { useEstabelecimentosMapa } from "../hooks/useEstabelecimentosMapa";
+import { useEquipamentoMaisProximo } from "../hooks/useEquipamentoMaisProximo";
+import { useContornoMunicipio } from "../hooks/useContornoMunicipio";
 
 export function MapaPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
@@ -47,23 +47,33 @@ export function MapaPage() {
     municipioSelecionado,
   );
 
-  const { nome: nomeEquipamentoMaisProximo, distanciaKm: distanciaMaisProximaKm } = useEquipamentoMaisProximo(
-    FAMILIA,
-    municipioSelecionado,
-    pontosMacro,
-  );
+  const {
+    nome: nomeEquipamentoMaisProximo,
+    distanciaKm: distanciaMaisProximaKm,
+  } = useEquipamentoMaisProximo(FAMILIA, municipioSelecionado, pontosMacro);
 
-  const { contorno: contornoMunicipio, erro: erroContornoMunicipio } = useContornoMunicipio(municipioSelecionado?.ibgeCode7);
+  const { contorno: contornoMunicipio, erro: erroContornoMunicipio } =
+    useContornoMunicipio(municipioSelecionado?.ibgeCode7);
 
   const infoSelecionado = municipioSelecionado
-    ? { pop: municipioSelecionado.pop, ofertaTotal: municipioSelecionado.ofertaTotal }
+    ? {
+        pop: municipioSelecionado.pop,
+        ofertaTotal: municipioSelecionado.ofertaTotal,
+      }
     : macroSelecionada && coberturaSelecionada
-      ? { pop: macroSelecionada.pop, ofertaTotal: coberturaSelecionada.ofertaTotal }
+      ? {
+          pop: macroSelecionada.pop,
+          ofertaTotal: coberturaSelecionada.ofertaTotal,
+        }
       : undefined;
 
   const coefSelecionada =
     macroSelecionada && coberturaSelecionada
-      ? calcularCoeficiente(coberturaSelecionada.oferta, macroSelecionada.pop, equipamento.produtividade)
+      ? calcularCoeficiente(
+          coberturaSelecionada.oferta,
+          macroSelecionada.pop,
+          equipamento.produtividade,
+        )
       : null;
   const pessoasPorEquipSelecionada =
     macroSelecionada && coberturaSelecionada && coberturaSelecionada.oferta > 0
@@ -104,7 +114,8 @@ export function MapaPage() {
       <div>
         {header}
         <div className="rounded-lg bg-card p-6 text-center text-muted-foreground">
-          Nenhuma macrorregião com dado de cobertura pra essa família de equipamento.
+          Nenhuma macrorregião com dado de cobertura pra essa família de
+          equipamento.
         </div>
       </div>
     );
@@ -115,7 +126,9 @@ export function MapaPage() {
       {header}
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="rounded-lg bg-card px-4.5 py-4">
-          <div className="mb-2.5 text-sm font-semibold">Equipamentos — Cobertura por macrorregião de saúde</div>
+          <div className="mb-2.5 text-sm font-semibold">
+            Equipamentos — Cobertura por macrorregião de saúde
+          </div>
           {geo && (
             <MacroMap
               geo={geo}
@@ -131,11 +144,13 @@ export function MapaPage() {
               className="h-2 w-[140px] rounded"
               style={{
                 background:
-                  'linear-gradient(to right, var(--destructive) 0%, var(--destructive-bg) 50%, var(--success-bg) 50%, var(--success) 100%)',
+                  "linear-gradient(to right, var(--destructive) 0%, var(--destructive-bg) 50%, var(--success-bg) 50%, var(--success) 100%)",
               }}
               aria-hidden="true"
             />
-            <span className="text-[11px] text-muted-foreground">0x ── 1x ── 2x+</span>
+            <span className="text-[11px] text-muted-foreground">
+              0x ── 1x ── 2x+
+            </span>
           </div>
         </div>
 

@@ -42,6 +42,7 @@ Uso:
   python -m scripts.reconciliar_banco_api_xlsx              # só mostra o diff
   python -m scripts.reconciliar_banco_api_xlsx --aplicar    # aplica no banco
 """
+
 from __future__ import annotations
 
 import sys
@@ -56,7 +57,9 @@ from app.pipeline.portal_transparencia import ChaveApiAusenteError, _sessao_com_
 
 
 def run(aplicar: bool) -> None:
-    print(f"=== Reconciliação nome_convenente/cnpj_convenente <- API ({'APLICANDO' if aplicar else 'DRY-RUN, nada é gravado'}) ===\n")
+    print(
+        f"=== Reconciliação nome_convenente/cnpj_convenente <- API ({'APLICANDO' if aplicar else 'DRY-RUN, nada é gravado'}) ===\n"
+    )
 
     db = SessionLocal()
     instrumentos = db.query(InstrumentoEquipamento).filter(InstrumentoEquipamento.tipo_contratacao == "Convênio").all()

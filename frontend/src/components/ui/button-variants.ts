@@ -1,4 +1,4 @@
-import { cva } from "class-variance-authority"
+import { cva } from "class-variance-authority";
 
 export const buttonVariants = cva(
   // rounded-md (nao rounded-lg) de proposito -- Secao 4 da constituicao
@@ -36,5 +36,5 @@ export const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
-)
+  },
+);

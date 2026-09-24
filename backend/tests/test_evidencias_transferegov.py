@@ -40,9 +40,7 @@ def test_achata_arvore_com_caminhos_e_ancestralidade_consultaveis():
 
 
 def test_chave_por_posicao_mantem_evidencia_sem_identificador_publico():
-    evidencias = extrair_evidencias_relacionais(
-        {"proposta": {"id_proposta": 42}, "metas": [{"nm_meta": "Sem id"}]}
-    )
+    evidencias = extrair_evidencias_relacionais({"proposta": {"id_proposta": 42}, "metas": [{"nm_meta": "Sem id"}]})
 
     assert evidencias[1].caminho == "proposta:42/meta-proposta:1"
 

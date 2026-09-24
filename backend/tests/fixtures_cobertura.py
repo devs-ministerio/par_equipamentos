@@ -3,6 +3,7 @@
 Não executa pipeline nem usa dado real: sua finalidade é tornar os testes de
 integração determinísticos no PostgreSQL efêmero do CI.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

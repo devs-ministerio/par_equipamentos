@@ -9,6 +9,7 @@ routers, que nao tem camada de repositorio pra mockar) -- pula sozinho se
 o banco nao tiver nenhuma execucao carregada (ex.: banco novo, sem rodar
 scripts/run_pipeline_tomografo.py ainda).
 """
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient

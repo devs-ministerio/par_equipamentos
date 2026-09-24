@@ -1,6 +1,7 @@
 """Modulo de gestao de usuarios (Admin), 2026-09-17 -- Router -> Service ->
 Repository, mesmo estilo de `test_auth_session.py`/`test_csrf.py` (via
 `TestClient` real, comportamento HTTP observavel)."""
+
 from __future__ import annotations
 
 from uuid import uuid4
@@ -215,7 +216,9 @@ def test_criacao_sem_senha_exige_servico_de_email_configurado(monkeypatch):
             criar_usuario(
                 db=db,
                 admin_atual=admin,
-                dados=UserCreateRequest(name="Convite", email=f"pytest-convite-{uuid4()}@example.com", role=UserRole.leitor),
+                dados=UserCreateRequest(
+                    name="Convite", email=f"pytest-convite-{uuid4()}@example.com", role=UserRole.leitor
+                ),
             )
     finally:
         db.rollback()
@@ -234,7 +237,9 @@ def test_convite_cria_token_auditavel_e_reenvio_trata_destinatario_inexistente(m
         usuario = criar_usuario(
             db=db,
             admin_atual=admin,
-            dados=UserCreateRequest(name="Convite", email=f"PYTEST-CONVITE-{uuid4()}@EXAMPLE.COM", role=UserRole.leitor),
+            dados=UserCreateRequest(
+                name="Convite", email=f"PYTEST-CONVITE-{uuid4()}@EXAMPLE.COM", role=UserRole.leitor
+            ),
         )
 
         assert usuario.email == usuario.email.lower()

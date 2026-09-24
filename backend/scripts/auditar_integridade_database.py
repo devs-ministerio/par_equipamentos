@@ -8,6 +8,7 @@ O script e somente leitura. Ele existe para o bloco database da constituicao:
 antes de criar FKs/checks em migrations, medimos orfaos e invariantes basicas
 num PostgreSQL dedicado de teste.
 """
+
 from __future__ import annotations
 
 import os

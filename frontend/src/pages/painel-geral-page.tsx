@@ -1,21 +1,21 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AppHeader } from '../components/layout/app-header';
-import { CONTAINER_CLASS } from '@/lib/layout';
-import { MacroMap } from '@/components/features/macro-map';
-import { PainelGeralSecao } from '@/components/features/painel-geral-secao';
-import { PainelGeralCardFamilia } from '@/components/features/painel-geral-card-familia';
-import { usePainelGeralResumos } from '@/hooks/usePainelGeralResumos';
-import { useMacroGeojson } from '@/hooks/useMacroGeojson';
-import { CHAVE_STORAGE_FAMILIA } from '../hooks/use-familia-equipamento';
-import { EQUIPAMENTOS, getEquipamento } from '../data/constants';
-import { cn } from '@/lib/utils';
-import { PageHeader } from '@/components/common/page-header';
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppHeader } from "../components/layout/app-header";
+import { CONTAINER_CLASS } from "@/lib/layout";
+import { MacroMap } from "@/components/features/macro-map";
+import { PainelGeralSecao } from "@/components/features/painel-geral-secao";
+import { PainelGeralCardFamilia } from "@/components/features/painel-geral-card-familia";
+import { usePainelGeralResumos } from "@/hooks/usePainelGeralResumos";
+import { useMacroGeojson } from "@/hooks/useMacroGeojson";
+import { CHAVE_STORAGE_FAMILIA } from "../hooks/use-familia-equipamento";
+import { EQUIPAMENTOS, getEquipamento } from "../data/constants";
+import { cn } from "@/lib/utils";
+import { PageHeader } from "@/components/common/page-header";
 
 function irParaEquipamentos(
   navigate: ReturnType<typeof useNavigate>,
   familia: string,
-  destino: 'dashboard' | 'mapa' | 'relatorios',
+  destino: "dashboard" | "mapa" | "relatorios",
 ) {
   try {
     localStorage.setItem(CHAVE_STORAGE_FAMILIA, familia);
@@ -47,15 +47,23 @@ function irParaEquipamentos(
  */
 export function PainelGeralPage() {
   const navigate = useNavigate();
-  const familiasDisponiveis = useMemo(() => EQUIPAMENTOS.filter((eq) => eq.disponivel), []);
+  const familiasDisponiveis = useMemo(
+    () => EQUIPAMENTOS.filter((eq) => eq.disponivel),
+    [],
+  );
 
-  const resumos = usePainelGeralResumos(familiasDisponiveis.map((eq) => eq.familia));
+  const resumos = usePainelGeralResumos(
+    familiasDisponiveis.map((eq) => eq.familia),
+  );
   const geoQuery = useMacroGeojson();
-  const [familiaMapa, setFamiliaMapa] = useState(familiasDisponiveis[0]?.familia ?? 'TOMOGRAFO');
+  const [familiaMapa, setFamiliaMapa] = useState(
+    familiasDisponiveis[0]?.familia ?? "TOMOGRAFO",
+  );
 
   const resumoMapa = resumos[familiaMapa];
-  const macrosMapa = typeof resumoMapa === 'object' ? resumoMapa.macros : [];
-  const coberturaRowsMapa = typeof resumoMapa === 'object' ? resumoMapa.coberturaRows : [];
+  const macrosMapa = typeof resumoMapa === "object" ? resumoMapa.macros : [];
+  const coberturaRowsMapa =
+    typeof resumoMapa === "object" ? resumoMapa.coberturaRows : [];
 
   return (
     <div className="min-h-screen bg-background text-sm text-foreground">
@@ -80,15 +88,20 @@ export function PainelGeralPage() {
               <PainelGeralCardFamilia
                 key={eq.familia}
                 rotulo={eq.rotulo}
-                resumo={resumos[eq.familia] ?? 'carregando'}
-                onEntrar={() => irParaEquipamentos(navigate, eq.familia, 'dashboard')}
+                resumo={resumos[eq.familia] ?? "carregando"}
+                onEntrar={() =>
+                  irParaEquipamentos(navigate, eq.familia, "dashboard")
+                }
               />
             ))}
           </div>
         </PainelGeralSecao>
 
         {/* Mapa nacional */}
-        <PainelGeralSecao titulo="Mapa nacional" subtitulo="Cobertura por macrorregião de saúde.">
+        <PainelGeralSecao
+          titulo="Mapa nacional"
+          subtitulo="Cobertura por macrorregião de saúde."
+        >
           <div className="rounded-[10px] bg-card px-5 py-[18px]">
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex gap-1.5">
@@ -97,10 +110,10 @@ export function PainelGeralPage() {
                     key={eq.familia}
                     onClick={() => setFamiliaMapa(eq.familia)}
                     className={cn(
-                      'cursor-pointer rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-semibold',
+                      "cursor-pointer rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-semibold",
                       familiaMapa === eq.familia
-                        ? 'border-primary bg-secondary text-primary'
-                        : 'border-border bg-card text-muted-foreground',
+                        ? "border-primary bg-secondary text-primary"
+                        : "border-border bg-card text-muted-foreground",
                     )}
                   >
                     {eq.rotulo}
@@ -108,7 +121,9 @@ export function PainelGeralPage() {
                 ))}
               </div>
               <button
-                onClick={() => irParaEquipamentos(navigate, familiaMapa, 'mapa')}
+                onClick={() =>
+                  irParaEquipamentos(navigate, familiaMapa, "mapa")
+                }
                 className="cursor-pointer rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-bold text-primary"
               >
                 Ver mapa completo →
@@ -125,7 +140,9 @@ export function PainelGeralPage() {
                   onSelectMacro={() => {}}
                 />
               ) : (
-                <div className="p-[60px] text-center text-muted-foreground/70">Carregando mapa...</div>
+                <div className="p-[60px] text-center text-muted-foreground/70">
+                  Carregando mapa...
+                </div>
               )}
             </div>
             <div className="mt-3.5 flex flex-wrap items-center gap-5">
@@ -137,21 +154,25 @@ export function PainelGeralPage() {
                   className="h-2 w-[140px] rounded"
                   style={{
                     background:
-                      'linear-gradient(to right, var(--destructive) 0%, var(--destructive-bg) 50%, var(--success-bg) 50%, var(--success) 100%)',
+                      "linear-gradient(to right, var(--destructive) 0%, var(--destructive-bg) 50%, var(--success-bg) 50%, var(--success) 100%)",
                   }}
                 />
-                <span className="text-[11px] text-muted-foreground/70">0x ── 1x ── 2x+</span>
+                <span className="text-[11px] text-muted-foreground/70">
+                  0x ── 1x ── 2x+
+                </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="inline-block h-[9px] w-[9px] rounded-full bg-destructive" />
                 <span className="text-[11.5px] text-muted-foreground">
-                  <strong className="text-destructive">Hipossuficiente</strong> -- abaixo de 1x
+                  <strong className="text-destructive">Hipossuficiente</strong>{" "}
+                  -- abaixo de 1x
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="inline-block h-[9px] w-[9px] rounded-full bg-success" />
                 <span className="text-[11.5px] text-muted-foreground">
-                  <strong className="text-success">Hiperssuficiente</strong> -- 1x ou mais
+                  <strong className="text-success">Hiperssuficiente</strong> --
+                  1x ou mais
                 </span>
               </div>
             </div>
@@ -162,11 +183,18 @@ export function PainelGeralPage() {
         <PainelGeralSecao titulo="Critério de suficiência">
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-[10px] bg-card px-6 py-5">
             <div className="max-w-[640px] text-sm leading-relaxed text-muted-foreground">
-              O coeficiente compara equipamentos em uso SUS com a demanda estimada da população SUS-dependente.
-              Valores abaixo de 1 indicam insuficiência; os parâmetros completos estão na metodologia.
+              O coeficiente compara equipamentos em uso SUS com a demanda
+              estimada da população SUS-dependente. Valores abaixo de 1 indicam
+              insuficiência; os parâmetros completos estão na metodologia.
             </div>
             <button
-              onClick={() => irParaEquipamentos(navigate, familiasDisponiveis[0]?.familia ?? 'TOMOGRAFO', 'relatorios')}
+              onClick={() =>
+                irParaEquipamentos(
+                  navigate,
+                  familiasDisponiveis[0]?.familia ?? "TOMOGRAFO",
+                  "relatorios",
+                )
+              }
               className="cursor-pointer whitespace-nowrap rounded-lg border border-border bg-card px-[18px] py-[9px] text-[12.5px] font-bold text-primary"
             >
               Ver metodologia completa →

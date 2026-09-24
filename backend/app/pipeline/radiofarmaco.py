@@ -28,6 +28,7 @@ formula, nao rota calculada. A base geografica e sempre a distancia em
 linha reta (Haversine, geo.distancia_km) a partir do produtor mais
 proximo -- mesma fonte de coordenada de municipio que o TOMOGRAFO usa
 (geo.carregar_coordenadas_municipios)."""
+
 from __future__ import annotations
 
 import csv
@@ -60,8 +61,9 @@ TEMPO_SOLO_AEREO_H = 1.5
 class ProdutorRadiofarmaco:
     __slots__ = ("id", "empresa", "municipio", "uf", "status_producao", "latitude", "longitude")
 
-    def __init__(self, id: str, empresa: str, municipio: str, uf: str, status_producao: str,
-                 latitude: float, longitude: float) -> None:
+    def __init__(
+        self, id: str, empresa: str, municipio: str, uf: str, status_producao: str, latitude: float, longitude: float
+    ) -> None:
         self.id = id
         self.empresa = empresa
         self.municipio = municipio
@@ -80,15 +82,17 @@ def carregar_produtores_radiofarmaco_pet() -> list[ProdutorRadiofarmaco]:
     produtores: list[ProdutorRadiofarmaco] = []
     with open(CAMINHO_PRODUTORES_RADIOFARMACO, encoding="utf-8") as f:
         for linha in csv.DictReader(f):
-            produtores.append(ProdutorRadiofarmaco(
-                id=linha["id"],
-                empresa=linha["empresa"],
-                municipio=linha["municipio"],
-                uf=linha["uf"],
-                status_producao=linha["status_producao"],
-                latitude=float(linha["latitude"]),
-                longitude=float(linha["longitude"]),
-            ))
+            produtores.append(
+                ProdutorRadiofarmaco(
+                    id=linha["id"],
+                    empresa=linha["empresa"],
+                    municipio=linha["municipio"],
+                    uf=linha["uf"],
+                    status_producao=linha["status_producao"],
+                    latitude=float(linha["latitude"]),
+                    longitude=float(linha["longitude"]),
+                )
+            )
     return produtores
 
 

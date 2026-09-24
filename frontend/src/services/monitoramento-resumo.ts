@@ -1,11 +1,14 @@
-import { z } from 'zod';
-import { apiGetAuthed } from './monitoramento-client';
+import { z } from "zod";
+import { apiGetAuthed } from "./monitoramento-client";
 
 // ---------------------------------------------------------------------
 // Monitoramento -- resumo agregado (overview/painel)
 // ---------------------------------------------------------------------
 
-const contagemRotuloSchema = z.object({ rotulo: z.string(), quantidade: z.number() });
+const contagemRotuloSchema = z.object({
+  rotulo: z.string(),
+  quantidade: z.number(),
+});
 export type ContagemRotulo = z.infer<typeof contagemRotuloSchema>;
 
 const inauguracaoResumoSchema = z.object({
@@ -58,5 +61,5 @@ const resumoMonitoramentoSchema = z.object({
 export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;
 
 export function fetchResumoMonitoramento(): Promise<ResumoMonitoramento> {
-  return apiGetAuthed('/monitoramento/resumo', resumoMonitoramentoSchema);
+  return apiGetAuthed("/monitoramento/resumo", resumoMonitoramentoSchema);
 }

@@ -56,6 +56,7 @@ aqui pra log de progresso, a busca em si nao depende dela).
 Le do cache local em scripts/output/cache/ se ja existir (baixado antes),
 senao baixa (siconv_plano_aplicacao.csv.zip tem ~280MB -- so baixa 1x).
 """
+
 from __future__ import annotations
 
 import csv
@@ -148,6 +149,7 @@ def _componente_alvo_de(nm_programa: str) -> str | None:
     for candidato in COMPONENTES_ALVO:
         # Razao de caracteres em comum (SequenceMatcher, sem dependencia externa).
         import difflib
+
         score = difflib.SequenceMatcher(None, alvo_norm, candidato).ratio()
         if score > melhor_score:
             melhor, melhor_score = candidato, score
@@ -227,18 +229,20 @@ def levantar_equipamento() -> dict[str, list[dict]]:
             if conv is None or conv["NR_CONVENIO"] in vistos:
                 continue
             vistos.add(conv["NR_CONVENIO"])
-            resultado[equip].append({
-                "nr_convenio": conv["NR_CONVENIO"],
-                "ano": conv.get("ANO"),
-                "sit_convenio": conv.get("SIT_CONVENIO"),
-                "vl_global_conv": conv.get("VL_GLOBAL_CONV"),
-                "ug_emitente": conv.get("UG_EMITENTE"),
-                "id_proposta": idp,
-                "item_descricao": item["DESCRICAO_ITEM"],
-                "item_qtd": item.get("QTD_ITEM"),
-                "item_valor_unitario": item.get("VALOR_UNITARIO_ITEM"),
-                "confianca": "texto",  # nunca "codigo" -- nao temos tabela CATMAT/SIGEM completa
-            })
+            resultado[equip].append(
+                {
+                    "nr_convenio": conv["NR_CONVENIO"],
+                    "ano": conv.get("ANO"),
+                    "sit_convenio": conv.get("SIT_CONVENIO"),
+                    "vl_global_conv": conv.get("VL_GLOBAL_CONV"),
+                    "ug_emitente": conv.get("UG_EMITENTE"),
+                    "id_proposta": idp,
+                    "item_descricao": item["DESCRICAO_ITEM"],
+                    "item_qtd": item.get("QTD_ITEM"),
+                    "item_valor_unitario": item.get("VALOR_UNITARIO_ITEM"),
+                    "confianca": "texto",  # nunca "codigo" -- nao temos tabela CATMAT/SIGEM completa
+                }
+            )
         print(f"   {equip}: {len(resultado[equip])} convenio(s) unico(s)")
     return dict(resultado)
 
@@ -250,7 +254,9 @@ def _paginar_transferegov(endpoint: str, params: dict, sessao: requests.Session)
     registros = []
     pagina = 1
     while True:
-        resp = sessao.get(f"{TRANSFEREGOV_BASE_URL}/{endpoint}", params={**params, "pagina": pagina, "limit": 50}, timeout=30)
+        resp = sessao.get(
+            f"{TRANSFEREGOV_BASE_URL}/{endpoint}", params={**params, "pagina": pagina, "limit": 50}, timeout=30
+        )
         resp.raise_for_status()
         dados = resp.json()["data"]
         registros.extend(dados)
@@ -337,16 +343,18 @@ def levantar_componente_siconv() -> dict[str, list[dict]]:
             if conv is None or conv["NR_CONVENIO"] in vistos:
                 continue
             vistos.add(conv["NR_CONVENIO"])
-            resultado[info["componente_alvo"]].append({
-                "nr_convenio": conv["NR_CONVENIO"],
-                "ano": conv.get("ANO"),
-                "sit_convenio": conv.get("SIT_CONVENIO"),
-                "vl_global_conv": conv.get("VL_GLOBAL_CONV"),
-                "ug_emitente": conv.get("UG_EMITENTE"),
-                "id_proposta": id_proposta,
-                "id_programa": id_programa,
-                "nome_programa": info["nome_programa"],
-            })
+            resultado[info["componente_alvo"]].append(
+                {
+                    "nr_convenio": conv["NR_CONVENIO"],
+                    "ano": conv.get("ANO"),
+                    "sit_convenio": conv.get("SIT_CONVENIO"),
+                    "vl_global_conv": conv.get("VL_GLOBAL_CONV"),
+                    "ug_emitente": conv.get("UG_EMITENTE"),
+                    "id_proposta": id_proposta,
+                    "id_programa": id_programa,
+                    "nome_programa": info["nome_programa"],
+                }
+            )
     for componente, convs in sorted(resultado.items()):
         print(f"   {componente[:70]:70s} -> {len(convs)} convenio(s)")
     faltando = [c for c in COMPONENTES_ALVO if c not in resultado]
@@ -367,8 +375,12 @@ def levantar_componente() -> dict:
     print(f"   {len(programas)} programa(s) no total (todos os anos, todos os temas).")
 
     alvo = [
-        p for p in programas
-        if any(k in _normalizar((p.get("nm_programa") or "") + " " + (p.get("ds_objetivo") or "")) for k in PALAVRAS_PROGRAMA_ONCOLOGIA)
+        p
+        for p in programas
+        if any(
+            k in _normalizar((p.get("nm_programa") or "") + " " + (p.get("ds_objetivo") or ""))
+            for k in PALAVRAS_PROGRAMA_ONCOLOGIA
+        )
     ]
     print(f"   {len(alvo)} programa(s) relacionados a cancer/oncologia (pre-filtro amplo).")
 
@@ -379,7 +391,9 @@ def levantar_componente() -> dict:
         propostas = _paginar_transferegov("proposta", {"id_programa": idp}, sessao)
         resultado[idp] = {"programa": p, "componente_alvo": componente, "propostas": propostas}
         marca = "★" if componente else " "
-        print(f" {marca} {idp} ({p.get('ano_programa')}) {p.get('nm_programa', '')[:65]:65s} -> {len(propostas)} proposta(s)")
+        print(
+            f" {marca} {idp} ({p.get('ano_programa')}) {p.get('nm_programa', '')[:65]:65s} -> {len(propostas)} proposta(s)"
+        )
         time.sleep(0.2)
     n_alvo = sum(1 for v in resultado.values() if v["componente_alvo"])
     print(f"   {n_alvo} programa(s) batem com um dos 8 componentes-alvo (★ acima).")

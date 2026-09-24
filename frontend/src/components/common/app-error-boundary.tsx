@@ -1,7 +1,10 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
-export class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+export class AppErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
   state = { hasError: false };
 
   static getDerivedStateFromError() {
@@ -18,9 +21,19 @@ export class AppErrorBoundary extends Component<{ children: ReactNode }, { hasEr
     return (
       <main className="grid min-h-screen place-items-center bg-background px-6 text-center">
         <section role="alert" className="max-w-md">
-          <h1 className="text-xl font-bold text-foreground">Não foi possível exibir esta página.</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Tente carregar novamente. Se o problema persistir, informe a equipe responsável.</p>
-          <Button className="mt-5" onClick={() => this.setState({ hasError: false })}>Tentar novamente</Button>
+          <h1 className="text-xl font-bold text-foreground">
+            Não foi possível exibir esta página.
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Tente carregar novamente. Se o problema persistir, informe a equipe
+            responsável.
+          </p>
+          <Button
+            className="mt-5"
+            onClick={() => this.setState({ hasError: false })}
+          >
+            Tentar novamente
+          </Button>
         </section>
       </main>
     );

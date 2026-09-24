@@ -265,14 +265,24 @@ def listar_convenios(
     usuario: User = Depends(require_current_user),
 ):
     count_query = _aplicar_filtros_convenio(
-        select(func.count()).select_from(Convenio), busca=busca, uf=uf,
-        equipamento=equipamento, situacao=situacao, ano=ano, programa=programa,
+        select(func.count()).select_from(Convenio),
+        busca=busca,
+        uf=uf,
+        equipamento=equipamento,
+        situacao=situacao,
+        ano=ano,
+        programa=programa,
         tipo_contratacao=tipo_contratacao,
     )
     query = _aplicar_filtros_convenio(
         select(Convenio).options(load_only(*CONVENIO_LIST_LOAD_ONLY)),
-        busca=busca, uf=uf, equipamento=equipamento, situacao=situacao,
-        ano=ano, programa=programa, tipo_contratacao=tipo_contratacao,
+        busca=busca,
+        uf=uf,
+        equipamento=equipamento,
+        situacao=situacao,
+        ano=ano,
+        programa=programa,
+        tipo_contratacao=tipo_contratacao,
     )
 
     total = db.execute(count_query).scalar_one()

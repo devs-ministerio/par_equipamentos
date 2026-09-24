@@ -14,6 +14,7 @@ usuário ao revisar o resultado:
 Idempotente -- reexecutar não muda nada se já aplicado. `--dry-run` faz
 rollback no final e imprime o que seria feito.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import select
@@ -31,7 +32,7 @@ PREFIXOS_ANTIGOS_PARA_NOVOS = {
 def _renomear_prefixo(valor: str) -> str:
     for antigo, novo in PREFIXOS_ANTIGOS_PARA_NOVOS.items():
         if valor.startswith(antigo):
-            return novo + valor[len(antigo):]
+            return novo + valor[len(antigo) :]
     return valor
 
 

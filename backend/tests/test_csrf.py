@@ -13,6 +13,7 @@ py::test_rate_limit_no_login` reseta o limiter no fim do proprio arquivo,
 mas nada garante outro reset depois -- manter poucos logins por arquivo
 evita depender de ordem de execucao entre modulos de teste.
 """
+
 from __future__ import annotations
 
 from uuid import uuid4

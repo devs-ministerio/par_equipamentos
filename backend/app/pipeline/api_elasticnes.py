@@ -22,6 +22,7 @@ mapear):
   PET_CT: 18 ("18 PET/CT", codigo unico, sem subtipo por canal/tesla como
           Tomografo/Ressonancia).
 """
+
 from __future__ import annotations
 
 import time
@@ -56,6 +57,7 @@ class RegistroElastiCNES(BaseModel):
     location: str | None = None
     nome_fantasia: str | None = Field(default=None, validation_alias="NOME FANTASIA")
     natureza_juridica: str | None = Field(default=None, validation_alias="NATUREZA JURÍDICA CATEGORIA")
+
 
 # (EQUIPAMENTO - TIPO, EQUIPAMENTO - CÓDIGO) -> subtipo (canais). Codigos da
 # Portaria SAES/MS 3.695/2026; "11" e o codigo antigo, ainda aparece durante
@@ -135,7 +137,8 @@ def _parse_location(location: str | None) -> tuple[float | None, float | None]:
 def _sessao_com_retry() -> requests.Session:
     session = requests.Session()
     retry = Retry(
-        total=5, backoff_factor=2,
+        total=5,
+        backoff_factor=2,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET", "POST"],
     )
@@ -161,7 +164,9 @@ def _bsearch(session: requests.Session, body: dict) -> dict:
         resp = executar_chamada_externa(
             fonte="ElastiCNES",
             operacao="bsearch_consultar",
-            chamada=lambda: session.post(f"{BASE_URL}/internal/bsearch", json=payload, headers=headers, timeout=TIMEOUT),
+            chamada=lambda: session.post(
+                f"{BASE_URL}/internal/bsearch", json=payload, headers=headers, timeout=TIMEOUT
+            ),
         )
         resp.raise_for_status()
         resultado = resp.json()["result"]
@@ -173,10 +178,18 @@ def _bsearch(session: requests.Session, body: dict) -> dict:
 
 
 def _competencia_mais_recente(session: requests.Session) -> str:
-    corpo = _bsearch(session, {"params": {"index": INDICE, "body": {
-        "size": 0,
-        "aggs": {"comp": {"terms": {"field": "index_comp.keyword", "order": {"_key": "desc"}, "size": 1}}},
-    }}})
+    corpo = _bsearch(
+        session,
+        {
+            "params": {
+                "index": INDICE,
+                "body": {
+                    "size": 0,
+                    "aggs": {"comp": {"terms": {"field": "index_comp.keyword", "order": {"_key": "desc"}, "size": 1}}},
+                },
+            }
+        },
+    )
     return corpo["aggregations"]["comp"]["buckets"][0]["key"]
 
 
@@ -204,10 +217,14 @@ def _buscar_equipamentos(
     competencia = competencia or _competencia_mais_recente(session)
 
     filtro_tipo_codigo = [
-        {"bool": {"must": [
-            {"term": {"EQUIPAMENTO - TIPO.keyword": tipo}},
-            {"term": {"EQUIPAMENTO - CÓDIGO.keyword": codigo}},
-        ]}}
+        {
+            "bool": {
+                "must": [
+                    {"term": {"EQUIPAMENTO - TIPO.keyword": tipo}},
+                    {"term": {"EQUIPAMENTO - CÓDIGO.keyword": codigo}},
+                ]
+            }
+        }
         for (tipo, codigo) in de_para
     ]
 
@@ -217,15 +234,26 @@ def _buscar_equipamentos(
         corpo_busca = {
             "size": TAMANHO_PAGINA,
             "_source": [
-                "CNES", "NOME FANTASIA", "CÓDIGO DO MUNICÍPIO", "UF", "EQUIPAMENTO - TIPO",
-                "EQUIPAMENTO - CÓDIGO", "EQUIPAMENTO - QTD EXISTENTE",
-                "EQUIPAMENTO - QTD EM USO", "EQUIPAMENTO - SUS?",
-                "location", "NATUREZA JURÍDICA CATEGORIA",
+                "CNES",
+                "NOME FANTASIA",
+                "CÓDIGO DO MUNICÍPIO",
+                "UF",
+                "EQUIPAMENTO - TIPO",
+                "EQUIPAMENTO - CÓDIGO",
+                "EQUIPAMENTO - QTD EXISTENTE",
+                "EQUIPAMENTO - QTD EM USO",
+                "EQUIPAMENTO - SUS?",
+                "location",
+                "NATUREZA JURÍDICA CATEGORIA",
             ],
-            "query": {"bool": {"filter": [
-                {"term": {"index_comp.keyword": competencia}},
-                {"bool": {"should": filtro_tipo_codigo, "minimum_should_match": 1}},
-            ]}},
+            "query": {
+                "bool": {
+                    "filter": [
+                        {"term": {"index_comp.keyword": competencia}},
+                        {"bool": {"should": filtro_tipo_codigo, "minimum_should_match": 1}},
+                    ]
+                }
+            },
             "sort": [{"CNES.keyword": "asc"}, {"ID.keyword": "asc"}],
         }
         if search_after:
@@ -247,18 +275,20 @@ def _buscar_equipamentos(
         if chave not in de_para:
             continue  # nao deveria acontecer (filtro ja restringe), mas nunca inventa dado
         latitude, longitude = _parse_location(f.location)
-        registros.append(EquipamentoRow(
-            co_cnes=str(f.cnes),
-            no_fantasia=f.nome_fantasia,
-            co_ibge=str(f.municipio),
-            sg_uf=f.uf,
-            ds_subtipo=de_para[chave],
-            qt_existente=int(f.quantidade_existente or 0),
-            qt_uso=int(f.quantidade_uso or 0),
-            fl_sus=str(f.sus).strip().upper() == "SIM",
-            latitude=latitude,
-            longitude=longitude,
-            natureza_juridica=f.natureza_juridica,
-        ))
+        registros.append(
+            EquipamentoRow(
+                co_cnes=str(f.cnes),
+                no_fantasia=f.nome_fantasia,
+                co_ibge=str(f.municipio),
+                sg_uf=f.uf,
+                ds_subtipo=de_para[chave],
+                qt_existente=int(f.quantidade_existente or 0),
+                qt_uso=int(f.quantidade_uso or 0),
+                fl_sus=str(f.sus).strip().upper() == "SIM",
+                latitude=latitude,
+                longitude=longitude,
+                natureza_juridica=f.natureza_juridica,
+            )
+        )
 
     return registros, competencia

@@ -5,6 +5,7 @@ para validar comportamento de transacao/auditoria. Por isso eles so rodam
 quando TEST_DATABASE_URL aponta para um banco PostgreSQL dedicado de teste.
 Sem essa variavel, a suite ainda coleta os arquivos, mas pula esses modulos.
 """
+
 from __future__ import annotations
 
 import os
@@ -50,8 +51,7 @@ def _test_database_url() -> str | None:
     database = (parsed.database or "").lower()
     if "test" not in database and "pytest" not in database:
         pytest.exit(
-            "TEST_DATABASE_URL precisa apontar para um banco dedicado de teste "
-            "(nome contendo 'test' ou 'pytest')."
+            "TEST_DATABASE_URL precisa apontar para um banco dedicado de teste (nome contendo 'test' ou 'pytest')."
         )
 
     return url

@@ -1,23 +1,42 @@
 /** Orquestra dados e ações do monitoramento pós-repasse de um instrumento. */
-import { useState } from 'react';
-import { useAuthSession } from '@/hooks/useAuthSession';
-import { useConvenioPrograma } from '@/hooks/useConvenioPrograma';
-import { useMonitoramentoMarcos } from '@/hooks/useMonitoramentoMarcos';
-import { useEditarEvento, useExcluirEvento, useInstrumentoTimeline, useRegistrarEvento, useSalvarCadastroInstrumento } from '@/hooks/useInstrumentoTimeline';
-import { useAcoesDoInstrumento, useConcluirAcao, useCriarAcao, useEditarAcao, useExcluirAcao } from '@/hooks/useMonitoramentoAcoes';
-import { componenteDoProgramaSiconv } from '@/lib/componente-siconv';
-import { derivarMonitoramentoInterno } from '@/lib/monitoramento-derivado';
-import { mensagemSeguraDoErro } from '@/lib/api-error';
-import { ErrorAlert } from '@/components/common/error-alert';
-import { Skeleton } from '@/components/ui/skeleton';
-import { OperationalDetailSection } from '@/components/common/operational-detail-section';
-import { MonitoramentoInternoCabecalho } from './monitoramento-interno-cabecalho';
-import { MonitoramentoInternoCadastro } from './monitoramento-interno-cadastro';
-import { MonitoramentoInternoFaseGeral, MonitoramentoInternoCronograma } from './monitoramento-interno-fase-cronograma';
-import { MonitoramentoInternoAcoes } from './monitoramento-interno-acoes';
-import { MonitoramentoInternoEventos } from './monitoramento-interno-eventos';
+import { useState } from "react";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useConvenioPrograma } from "@/hooks/useConvenioPrograma";
+import { useMonitoramentoMarcos } from "@/hooks/useMonitoramentoMarcos";
+import {
+  useEditarEvento,
+  useExcluirEvento,
+  useInstrumentoTimeline,
+  useRegistrarEvento,
+  useSalvarCadastroInstrumento,
+} from "@/hooks/useInstrumentoTimeline";
+import {
+  useAcoesDoInstrumento,
+  useConcluirAcao,
+  useCriarAcao,
+  useEditarAcao,
+  useExcluirAcao,
+} from "@/hooks/useMonitoramentoAcoes";
+import { componenteDoProgramaSiconv } from "@/lib/componente-siconv";
+import { derivarMonitoramentoInterno } from "@/lib/monitoramento-derivado";
+import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { ErrorAlert } from "@/components/common/error-alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { OperationalDetailSection } from "@/components/common/operational-detail-section";
+import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho";
+import { MonitoramentoInternoCadastro } from "./monitoramento-interno-cadastro";
+import {
+  MonitoramentoInternoFaseGeral,
+  MonitoramentoInternoCronograma,
+} from "./monitoramento-interno-fase-cronograma";
+import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
+import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
 
-export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: string }) {
+export function MonitoramentoInterno({
+  numeroConvenio,
+}: {
+  numeroConvenio: string;
+}) {
   const [erroEscrita, setErroEscrita] = useState<string | null>(null);
   const [cadastroAberto, setCadastroAberto] = useState(false);
 
@@ -53,7 +72,8 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
     }
   }
 
-  const erroCarregamento = marcosQuery.error || timelineQuery.error || acoesQuery.error;
+  const erroCarregamento =
+    marcosQuery.error || timelineQuery.error || acoesQuery.error;
   if (erroCarregamento) {
     return (
       <ErrorAlert
@@ -69,8 +89,10 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   if (timelineQuery.isSuccess && timelineQuery.data === null) {
     return (
       <p className="text-[12.5px] text-muted-foreground italic">
-        Ainda não monitorado internamente — escopo é bem menor que os 403 convênios (só os instrumentos que a
-        equipe decide acompanhar manualmente, ver <code>backend/scripts/importar_planilha_monitoramento.py</code>).
+        Ainda não monitorado internamente — escopo é bem menor que os 403
+        convênios (só os instrumentos que a equipe decide acompanhar
+        manualmente, ver{" "}
+        <code>backend/scripts/importar_planilha_monitoramento.py</code>).
       </p>
     );
   }
@@ -89,15 +111,30 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
   const inst = timeline.instrumento;
 
   const {
-    fasesGerais, eventosPorMarco, faseAtual, pctAtual, cronogramaFisico, regulatorio,
-    eventoLicenca, dataInauguracao, inaugurado, diasInauguracao,
-    acoesAbertas, acoesAtrasadas, equipamentoFisico, validadeLicenca,
+    fasesGerais,
+    eventosPorMarco,
+    faseAtual,
+    pctAtual,
+    cronogramaFisico,
+    regulatorio,
+    eventoLicenca,
+    dataInauguracao,
+    inaugurado,
+    diasInauguracao,
+    acoesAbertas,
+    acoesAtrasadas,
+    equipamentoFisico,
+    validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
-  const componenteViaSiconv = !inst.componente ? componenteDoProgramaSiconv(programaQuery.data) : null;
+  const componenteViaSiconv = !inst.componente
+    ? componenteDoProgramaSiconv(programaQuery.data)
+    : null;
 
   // A fonte não expõe quantidade estruturada; " + " indica múltiplos itens.
-  const multiploEquipamento = (inst.equipamento_descricao ?? '').includes(' + ');
+  const multiploEquipamento = (inst.equipamento_descricao ?? "").includes(
+    " + ",
+  );
 
   return (
     <div>
@@ -107,7 +144,18 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         </div>
       )}
 
-      <MonitoramentoInternoCabecalho timeline={timeline} componenteViaSiconv={componenteViaSiconv} dataInauguracao={dataInauguracao} inaugurado={inaugurado} diasInauguracao={diasInauguracao} equipamentoFisico={equipamentoFisico} statusLicenca={eventoLicenca?.status_regulatorio ?? 'Sem registro'} alertaLicenca={validadeLicenca !== null && validadeLicenca < 90} acoesAbertasCount={acoesAbertas.length} acoesAtrasadasCount={acoesAtrasadas.length} />
+      <MonitoramentoInternoCabecalho
+        timeline={timeline}
+        componenteViaSiconv={componenteViaSiconv}
+        dataInauguracao={dataInauguracao}
+        inaugurado={inaugurado}
+        diasInauguracao={diasInauguracao}
+        equipamentoFisico={equipamentoFisico}
+        statusLicenca={eventoLicenca?.status_regulatorio ?? "Sem registro"}
+        alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
+        acoesAbertasCount={acoesAbertas.length}
+        acoesAtrasadasCount={acoesAtrasadas.length}
+      />
 
       <MonitoramentoInternoCadastro
         instrumento={inst}
@@ -115,21 +163,31 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
         aberto={cadastroAberto}
         onAbrir={() => setCadastroAberto(true)}
         onFechar={() => setCadastroAberto(false)}
-        onSalvar={(valores) => executarEscrita(() => salvarCadastro.mutateAsync({
+        onSalvar={(valores) =>
+          executarEscrita(() =>
+            salvarCadastro.mutateAsync({
               tecnico_titular: valores.tecnicoTitular || null,
               tecnico_suplente: valores.tecnicoSuplente || null,
               nivel_monitoramento: valores.nivelMonitoramento || null,
               tipologia: valores.tipologia || null,
               modalidade_onco: valores.modalidadeOnco || null,
-              responsavel_execucao_nome: valores.responsavelExecucaoNome || null,
-              responsavel_execucao_contato: valores.responsavelExecucaoContato || null,
+              responsavel_execucao_nome:
+                valores.responsavelExecucaoNome || null,
+              responsavel_execucao_contato:
+                valores.responsavelExecucaoContato || null,
               cnes: valores.cnes || null,
-            }))}
+            }),
+          )
+        }
       />
 
       <div className="grid gap-4">
         <OperationalDetailSection titulo="Fase e cronograma">
-          <MonitoramentoInternoFaseGeral fasesGerais={fasesGerais} faseAtual={faseAtual} pctAtual={pctAtual} />
+          <MonitoramentoInternoFaseGeral
+            fasesGerais={fasesGerais}
+            faseAtual={faseAtual}
+            pctAtual={pctAtual}
+          />
           <MonitoramentoInternoCronograma
             cronogramaFisico={cronogramaFisico}
             regulatorio={regulatorio}
@@ -138,16 +196,23 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
           />
         </OperationalDetailSection>
 
-        <OperationalDetailSection titulo={`Ações (${acoes?.length ?? 0})`} abertoPorPadrao={acoesAbertas.length > 0}>
+        <OperationalDetailSection
+          titulo={`Ações (${acoes?.length ?? 0})`}
+          abertoPorPadrao={acoesAbertas.length > 0}
+        >
           <MonitoramentoInternoAcoes
             acoes={acoes}
             podeEditar={sessao.podeEditar}
             concluindoAcaoId={concluindoAcaoId}
-            onCriar={(valores) => executarEscrita(() => criarAcaoMutation.mutateAsync({
+            onCriar={(valores) =>
+              executarEscrita(() =>
+                criarAcaoMutation.mutateAsync({
                   descricao: valores.descricao,
                   data_prevista: valores.dataPrevista || null,
                   responsavel: valores.responsavel || null,
-                }))}
+                }),
+              )
+            }
             onConcluir={(acaoId) => {
               setErroEscrita(null);
               setConcluindoAcaoId(acaoId);
@@ -156,26 +221,41 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                 onSettled: () => setConcluindoAcaoId(null),
               });
             }}
-            onEditar={(acaoId, valores) => executarEscrita(() => editarAcaoMutation.mutateAsync({
+            onEditar={(acaoId, valores) =>
+              executarEscrita(() =>
+                editarAcaoMutation.mutateAsync({
                   acaoId,
                   corpo: {
                     descricao: valores.descricao,
                     data_prevista: valores.dataPrevista || null,
                     responsavel: valores.responsavel || null,
                   },
-                }))}
-            onExcluir={(acaoId, motivo) => executarEscrita(() => excluirAcaoMutation.mutateAsync({ acaoId, motivo }))}
+                }),
+              )
+            }
+            onExcluir={(acaoId, motivo) =>
+              executarEscrita(() =>
+                excluirAcaoMutation.mutateAsync({ acaoId, motivo }),
+              )
+            }
           />
         </OperationalDetailSection>
 
-        <OperationalDetailSection titulo="Linha do tempo de eventos" abertoPorPadrao={false}>
+        <OperationalDetailSection
+          titulo="Linha do tempo de eventos"
+          abertoPorPadrao={false}
+        >
           <MonitoramentoInternoEventos
             marcos={marcos}
             eventos={timeline.eventos}
             podeEditar={sessao.podeEditar}
-            onRegistrar={(valores) => executarEscrita(() => registrarEventoMutation.mutateAsync({
+            onRegistrar={(valores) =>
+              executarEscrita(() =>
+                registrarEventoMutation.mutateAsync({
                   marco_id: Number(valores.marcoId),
-                  fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
+                  fase_geral_id: valores.faseGeralId
+                    ? Number(valores.faseGeralId)
+                    : null,
                   confirmar_inauguracao: valores.confirmarInauguracao ?? false,
                   data_ocorrencia: valores.dataOcorrencia || null,
                   data_prevista: valores.dataPrevista || null,
@@ -185,13 +265,22 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                   observacao: valores.observacao || null,
                   equipamento_marca: valores.equipamentoMarca || null,
                   equipamento_modelo: valores.equipamentoModelo || null,
-                  equipamento_numero_serie: valores.equipamentoNumeroSerie || null,
-                  equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos ? Number(valores.equipamentoVidaUtilAnos) : null,
-                }))}
-            onEditar={(eventoId, valores) => executarEscrita(() => editarEventoMutation.mutateAsync({
+                  equipamento_numero_serie:
+                    valores.equipamentoNumeroSerie || null,
+                  equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos
+                    ? Number(valores.equipamentoVidaUtilAnos)
+                    : null,
+                }),
+              )
+            }
+            onEditar={(eventoId, valores) =>
+              executarEscrita(() =>
+                editarEventoMutation.mutateAsync({
                   eventoId,
                   corpo: {
-                    fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
+                    fase_geral_id: valores.faseGeralId
+                      ? Number(valores.faseGeralId)
+                      : null,
                     data_ocorrencia: valores.dataOcorrencia || null,
                     data_prevista: valores.dataPrevista || null,
                     status_regulatorio: valores.statusRegulatorio || null,
@@ -199,8 +288,14 @@ export function MonitoramentoInterno({ numeroConvenio }: { numeroConvenio: strin
                     data_validade: valores.dataValidade || null,
                     observacao: valores.observacao || null,
                   },
-                }))}
-            onExcluir={(eventoId, motivo) => executarEscrita(() => excluirEventoMutation.mutateAsync({ eventoId, motivo }))}
+                }),
+              )
+            }
+            onExcluir={(eventoId, motivo) =>
+              executarEscrita(() =>
+                excluirEventoMutation.mutateAsync({ eventoId, motivo }),
+              )
+            }
           />
         </OperationalDetailSection>
       </div>

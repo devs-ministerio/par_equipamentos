@@ -1,4 +1,5 @@
 """Contrato de leitura do Radar de Convênios."""
+
 from uuid import uuid4
 
 from app.auth import hash_password

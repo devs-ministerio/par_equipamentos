@@ -1,4 +1,5 @@
 """Constraint de banco rejeita CNES orfao -- regressao do bloco 7."""
+
 from __future__ import annotations
 
 import pytest

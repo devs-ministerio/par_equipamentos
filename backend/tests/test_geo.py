@@ -1,5 +1,6 @@
 """app/pipeline/geo.py -- Haversine e o carregamento de coordenadas de
 municipio (raio de 75 km do Tomografo, ver comentario no proprio modulo)."""
+
 from __future__ import annotations
 
 from app.pipeline.geo import carregar_coordenadas_municipios, distancia_km, distancia_minima_km

@@ -1,6 +1,7 @@
 """Testa app/services/notificacoes.py -- Service unitario do piloto Router ->
 Service -> Repository (Plan Mode backend 2026-09-17, Bloco C). Complementa
 test_notificacoes.py (contrato de router)."""
+
 from uuid import uuid4
 
 import pytest

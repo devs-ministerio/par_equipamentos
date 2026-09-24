@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 
 /** Botão de "mais informações" (3 barrinhas) -- abre o modal de detalhe do
  * município (ver MunicipioDetalheModal). Usado tanto nas linhas de

@@ -23,7 +23,7 @@ export function ExportSecaoTabela({
   return (
     <div className="mt-3.5 overflow-hidden rounded-[8px] border border-border">
       <label
-        className={`flex items-center gap-2 cursor-pointer bg-[#fafbfd] px-3.5 py-2.5 text-[13px] font-bold text-[#16213e] ${ativa ? 'border-b border-border' : ''}`}
+        className={`flex items-center gap-2 cursor-pointer bg-[#fafbfd] px-3.5 py-2.5 text-[13px] font-bold text-[#16213e] ${ativa ? "border-b border-border" : ""}`}
       >
         <input
           type="checkbox"

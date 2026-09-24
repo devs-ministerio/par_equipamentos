@@ -1,4 +1,5 @@
 """Garantias estruturais da constituição database."""
+
 from __future__ import annotations
 
 from app.db.models import Base

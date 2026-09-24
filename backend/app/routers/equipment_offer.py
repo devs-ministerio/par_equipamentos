@@ -7,6 +7,7 @@ no banco (limit/offset, filtro, busca e ordenacao tambem aqui) -- e o que o
 Dashboard consome; paginar so no front nao adianta nada se ele ainda precisa
 buscar tudo pra filtrar/ordenar localmente.
 """
+
 from __future__ import annotations
 
 import math
@@ -42,20 +43,24 @@ _COLUNAS_ORDENAVEIS = {
 }
 
 
-
 def _latest_execution_id(db: Session, equipment_family: str | None) -> int | None:
     # Ver mesmo comentario em app/routers/macro_coverage.py -- sem escopar por
     # familia, "a execucao mais recente" pode ser de outra familia e o filtro
     # execution_id + equipment_family sempre da 0 linhas.
-    stmt = select(Execution.id).join(Competency, Execution.competency_id == Competency.id).order_by(
-        Execution.started_at.desc()
-    ).limit(1)
+    stmt = (
+        select(Execution.id)
+        .join(Competency, Execution.competency_id == Competency.id)
+        .order_by(Execution.started_at.desc())
+        .limit(1)
+    )
     if equipment_family:
         stmt = stmt.where(Competency.equipment_family == equipment_family)
     return db.execute(stmt).scalar_one_or_none()
 
 
-def _aplicar_filtros(stmt, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code=None):
+def _aplicar_filtros(
+    stmt, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code=None
+):
     if equipment_family:
         stmt = stmt.where(EquipmentOfferRow.equipment_family == equipment_family)
     if state:
@@ -159,7 +164,9 @@ def totais_equipamentos(
         func.coalesce(func.sum(EquipmentOfferRow.existing_qty), 0),
         func.coalesce(func.sum(EquipmentOfferRow.in_use_qty).filter(EquipmentOfferRow.sus_flag.is_(True)), 0),
     ).where(EquipmentOfferRow.execution_id == exec_id)
-    stmt = _aplicar_filtros(stmt, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code)
+    stmt = _aplicar_filtros(
+        stmt, equipment_family, state, macro_code, health_region_code, municipality, search, cnes_code
+    )
 
     existing_total, available_total = db.execute(stmt).one()
     return EquipmentTotalsRead(existing_qty=existing_total, available_qty=available_total)
@@ -193,7 +200,9 @@ def totais_por_natureza_juridica(
 
     rows = db.execute(stmt).all()
     return [
-        LegalNatureBreakdownRead(legal_nature=natureza or "NAO_INFORMADO", existing_qty=existing, available_qty=available)
+        LegalNatureBreakdownRead(
+            legal_nature=natureza or "NAO_INFORMADO", existing_qty=existing, available_qty=available
+        )
         for natureza, existing, available in rows
     ]
 
@@ -327,30 +336,29 @@ def listar_estabelecimentos(
     # (confirmado ao vivo); troca pro rotulo de verdade em Python, depois de
     # ler o resultado.
     tipo_json = func.json_build_object(
-        "tipo", func.coalesce(base_sub.c.equipment_subtype, "NAO_INFORMADO"),
-        "qtd", base_sub.c.existing_qty,
+        "tipo",
+        func.coalesce(base_sub.c.equipment_subtype, "NAO_INFORMADO"),
+        "qtd",
+        base_sub.c.existing_qty,
     )
 
-    agregado = (
-        select(
-            base_sub.c.cnes_code,
-            func.max(base_sub.c.facility_name).label("facility_name"),
-            func.max(base_sub.c.municipality_name).label("municipality_name"),
-            func.max(base_sub.c.macro_code).label("macro_code"),
-            func.max(base_sub.c.macro_name).label("macro_name"),
-            func.max(base_sub.c.health_region_code).label("health_region_code"),
-            func.max(base_sub.c.health_region_name).label("health_region_name"),
-            func.max(base_sub.c.state).label("state"),
-            func.sum(base_sub.c.existing_qty).label("existing_qty"),
-            func.sum(base_sub.c.in_use_qty).label("in_use_qty"),
-            func.bool_or(base_sub.c.sus_flag).label("sus_flag"),
-            func.max(base_sub.c.latitude).label("latitude"),
-            func.max(base_sub.c.longitude).label("longitude"),
-            func.max(base_sub.c.legal_nature).label("legal_nature"),
-            func.json_agg(tipo_json).label("types"),
-        )
-        .group_by(base_sub.c.cnes_code)
-    )
+    agregado = select(
+        base_sub.c.cnes_code,
+        func.max(base_sub.c.facility_name).label("facility_name"),
+        func.max(base_sub.c.municipality_name).label("municipality_name"),
+        func.max(base_sub.c.macro_code).label("macro_code"),
+        func.max(base_sub.c.macro_name).label("macro_name"),
+        func.max(base_sub.c.health_region_code).label("health_region_code"),
+        func.max(base_sub.c.health_region_name).label("health_region_name"),
+        func.max(base_sub.c.state).label("state"),
+        func.sum(base_sub.c.existing_qty).label("existing_qty"),
+        func.sum(base_sub.c.in_use_qty).label("in_use_qty"),
+        func.bool_or(base_sub.c.sus_flag).label("sus_flag"),
+        func.max(base_sub.c.latitude).label("latitude"),
+        func.max(base_sub.c.longitude).label("longitude"),
+        func.max(base_sub.c.legal_nature).label("legal_nature"),
+        func.json_agg(tipo_json).label("types"),
+    ).group_by(base_sub.c.cnes_code)
 
     total = db.execute(select(func.count()).select_from(agregado.subquery())).scalar_one()
 

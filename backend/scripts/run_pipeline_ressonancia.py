@@ -21,6 +21,7 @@ conhecida pra beneficiarios de plano de saude). Denominador de oferta =
 qt_uso-onde-sus_flag (decisao 2026-08-24, vale igual pra toda familia --
 antes era qt_existente_sus/D-02, 2026-08-21); populacao SUS-dependente
 (residente - ANS) idem."""
+
 from __future__ import annotations
 
 from sqlalchemy import delete, func, select
@@ -93,9 +94,11 @@ def run() -> None:
     if ans_por_municipio:
         print(f"   Populacao ANS de {len(ans_por_municipio)} municipios (arquivo de referencia ativo).")
     else:
-        print("   [AVISO] sem arquivo de populacao ANS importado -- rode "
-              "'python -m scripts.importar_populacao_municipios' antes pra ter SUS-dependente "
-              "de verdade. Por enquanto, sus_dependente = residente inteiro (sem desconto de ANS).")
+        print(
+            "   [AVISO] sem arquivo de populacao ANS importado -- rode "
+            "'python -m scripts.importar_populacao_municipios' antes pra ter SUS-dependente "
+            "de verdade. Por enquanto, sus_dependente = residente inteiro (sem desconto de ANS)."
+        )
 
     print("3/4 - Baixando inventario de RESSONANCIA do ElastiCNES...")
     equipamentos, competencia_elasticnes = api_elasticnes.buscar_equipamentos_ressonancia()
@@ -119,13 +122,9 @@ def run() -> None:
         if municipio is None:
             municipios_sem_match += 1  # RN-06: nao inventa macro, so nao agrega
         else:
-            agg_macro = oferta_por_macro.setdefault(
-                municipio["co_macro"], nova_oferta_agregada()
-            )
+            agg_macro = oferta_por_macro.setdefault(municipio["co_macro"], nova_oferta_agregada())
             agg_macro["existente"] += eq["qt_existente"]
-            agg_muni = oferta_por_municipio.setdefault(
-                eq["co_ibge"], nova_oferta_agregada()
-            )
+            agg_muni = oferta_por_municipio.setdefault(eq["co_ibge"], nova_oferta_agregada())
             agg_muni["existente"] += eq["qt_existente"]
             if eq["fl_sus"]:
                 agg_macro["uso_sus"] += eq["qt_uso"]
@@ -177,7 +176,9 @@ def run() -> None:
         co_macro = municipio["co_macro"]
         residente_por_macro[co_macro] = residente_por_macro.get(co_macro, 0) + residente
         ans_por_macro[co_macro] = ans_por_macro.get(co_macro, 0) + ans
-        sus_por_macro[co_macro] = sus_por_macro.get(co_macro, 0) + populacao_sus_dependente(residente=residente, ans=ans)
+        sus_por_macro[co_macro] = sus_por_macro.get(co_macro, 0) + populacao_sus_dependente(
+            residente=residente, ans=ans
+        )
 
     db = SessionLocal()
     try:
@@ -207,7 +208,9 @@ def run() -> None:
             config_chave_macrorregiao="ibge_municipio",
             config_denominador_oferta="qt_uso_sus",
             active_sources={
-                "elasticnes": True, "sidra": True, "demas": True,
+                "elasticnes": True,
+                "sidra": True,
+                "demas": True,
                 "populacao_ans_arquivo": bool(ans_por_municipio),
             },
         )
@@ -249,11 +252,10 @@ def run() -> None:
             residente = populacao.get(co_ibge, 0)
             ans = ans_por_municipio.get(co_ibge, 0)
             population_sus_muni = populacao_sus_dependente(residente=residente, ans=ans)
-            oferta_muni = oferta_por_municipio.get(
-                co_ibge, nova_oferta_agregada()
-            )
+            oferta_muni = oferta_por_municipio.get(co_ibge, nova_oferta_agregada())
             cobertura_muni = calcular_cobertura(
-                population=population_sus_muni, in_use_sus=int(oferta_muni["uso_sus"]),
+                population=population_sus_muni,
+                in_use_sus=int(oferta_muni["uso_sus"]),
                 produtividade=PRODUTIVIDADE,
             )
             db.add(
@@ -289,12 +291,16 @@ def run() -> None:
         # Sem isso cada re-execucao no mesmo mes empilhava ~8 mil linhas
         # identicas (o banco chegou a ter 75% de dado redundante). O historico
         # entre meses diferentes continua preservado -- so a duplicata some.
-        anteriores = db.execute(
-            select(Execution.id).where(
-                Execution.competency_id == competency.id,
-                Execution.id != execution.id,
+        anteriores = (
+            db.execute(
+                select(Execution.id).where(
+                    Execution.competency_id == competency.id,
+                    Execution.id != execution.id,
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         competency.published_execution_id = execution.id
         # flush explicito: sem isso, o DELETE de Execution logo abaixo (um
@@ -313,9 +319,11 @@ def run() -> None:
             db.execute(delete(Execution).where(Execution.id.in_(anteriores)))
 
         db.commit()
-        print(f"Concluido -- competency={competency.id} execution={execution.id}, "
-              f"{len(macros)} macrorregioes, {len(municipios)} municipios, "
-              f"{len(linhas_equipamento)} linhas de equipamento.")
+        print(
+            f"Concluido -- competency={competency.id} execution={execution.id}, "
+            f"{len(macros)} macrorregioes, {len(municipios)} municipios, "
+            f"{len(linhas_equipamento)} linhas de equipamento."
+        )
         if anteriores:
             print(f"   Versoes anteriores de {label} removidas: {sorted(anteriores)}")
     finally:

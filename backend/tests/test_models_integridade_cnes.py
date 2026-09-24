@@ -1,4 +1,5 @@
 """Models declaram FK/CHECK do bloco 7 mesmo sem banco."""
+
 from __future__ import annotations
 
 from app.db.models import CnesEstabelecimento, Convenio, EquipmentOfferRow, InstrumentoEquipamento, PropostaCandidata

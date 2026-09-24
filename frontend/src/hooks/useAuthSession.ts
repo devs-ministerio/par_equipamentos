@@ -1,6 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type AuthUser, fetchCurrentUser, login, logout } from '@/services/auth';
-import { monitoramentoKeys } from './monitoramento-query-keys';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  type AuthUser,
+  fetchCurrentUser,
+  login,
+  logout,
+} from "@/services/auth";
+import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Sessão do usuário operacional do monitoramento interno (login/logout +
  * usuário atual) -- extraído de MonitoramentoInterno.tsx pra hook próprio
@@ -27,9 +32,12 @@ export function useAuthSession() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: (corpo: { email: string; senha: string }) => login(corpo.email, corpo.senha),
+    mutationFn: (corpo: { email: string; senha: string }) =>
+      login(corpo.email, corpo.senha),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.currentUser });
+      queryClient.invalidateQueries({
+        queryKey: monitoramentoKeys.currentUser,
+      });
     },
   });
 
@@ -56,7 +64,8 @@ export function useAuthSession() {
   return {
     usuarioAtual,
     autenticado: Boolean(usuarioAtual),
-    podeEditar: usuarioAtual?.role === 'admin' || usuarioAtual?.role === 'colaborador',
+    podeEditar:
+      usuarioAtual?.role === "admin" || usuarioAtual?.role === "colaborador",
     checandoSessao: usuarioQuery.isLoading,
     login: loginMutation.mutateAsync,
     loginPendente: loginMutation.isPending,

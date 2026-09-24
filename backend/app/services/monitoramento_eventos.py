@@ -6,6 +6,7 @@ router -- protege contra qualquer chamada que não passe pelo HTTP (script,
 outro service, job futuro). Comportamento idêntico ao que estava inline no
 router antes desta extração; nada muda do ponto de vista da API.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -155,9 +156,7 @@ def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int
     if marco.grupo == MarcoGrupo.fase_geral:
         return None
     if fase_geral_id is None:
-        raise ValidationError(
-            "Indique a fase geral correspondente a este marco de cronograma físico/regulatório."
-        )
+        raise ValidationError("Indique a fase geral correspondente a este marco de cronograma físico/regulatório.")
     fase = monitoramento_repo.obter_marco_por_id(db, fase_geral_id)
     if fase is None or fase.grupo != MarcoGrupo.fase_geral:
         raise ValidationError(f"fase_geral_id {fase_geral_id} não corresponde a um marco de fase geral válido.")
@@ -187,9 +186,7 @@ def registrar_evento_monitorado(
         raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
 
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
-        raise ValidationError(
-            "A data realizada não pode estar no futuro. Atualize-a para a data real da ocorrência."
-        )
+        raise ValidationError("A data realizada não pode estar no futuro. Atualize-a para a data real da ocorrência.")
 
     if marco.codigo == "fase_concluido":
         if dados.data_ocorrencia is None:
@@ -292,7 +289,8 @@ def registrar_evento_monitorado(
             "nr_convenio": nr_convenio,
             "marco_id": dados.marco_id,
             "data_prevista_anterior": evento_anterior.data_prevista.isoformat()
-            if reprogramou and evento_anterior and evento_anterior.data_prevista else None,
+            if reprogramou and evento_anterior and evento_anterior.data_prevista
+            else None,
             "data_prevista_nova": dados.data_prevista.isoformat() if dados.data_prevista else None,
             "data_ocorrencia": dados.data_ocorrencia.isoformat() if dados.data_ocorrencia else None,
             "reprogramacao": reprogramou,
@@ -323,7 +321,7 @@ def editar_evento_monitorado(
     db: Session,
     usuario: User,
 ) -> EventoMarco:
-    """"Editar" continua append-only (decisão do usuário, Plan Mode
+    """ "Editar" continua append-only (decisão do usuário, Plan Mode
     monitoramento-evolucao 2026-09-19): lança um evento novo corrigido e
     aponta o antigo pra ele via `substituido_por_id` -- nunca UPDATE nos
     campos do lançamento original. Marco/instrumento do evento não mudam
@@ -427,8 +425,11 @@ def registrar_acao_monitorada(
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
 
     acao = AcaoMonitoramento(
-        instrumento_id=instrumento.id, descricao=descricao,
-        data_prevista=data_prevista, responsavel=responsavel, responsavel_id=responsavel_id,
+        instrumento_id=instrumento.id,
+        descricao=descricao,
+        data_prevista=data_prevista,
+        responsavel=responsavel,
+        responsavel_id=responsavel_id,
         criado_por_id=usuario.id,
     )
     monitoramento_repo.adicionar_acao(db, acao)

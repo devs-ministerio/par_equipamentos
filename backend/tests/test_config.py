@@ -4,6 +4,7 @@ reescrevia pra "postgresql+psycopg2://", driver que nem esta instalado
 ja vinha no formato certo. Cobre exatamente os 3 formatos que um provedor
 de nuvem (Railway/Render/Heroku) pode entregar em DATABASE_URL.
 """
+
 import pytest
 from pydantic import ValidationError
 

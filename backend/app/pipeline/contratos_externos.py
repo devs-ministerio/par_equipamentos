@@ -5,6 +5,7 @@ que HTML, escalares ou envelopes malformados atravessem a fronteira como dado
 de domínio. DTOs específicos por recurso serão introduzidos consumidor a
 consumidor, sem quebrar as cargas existentes.
 """
+
 from __future__ import annotations
 
 from typing import Any

@@ -1,4 +1,5 @@
 """Contratos HTTP das leituras de oferta, contra a fixture sintética do CI."""
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient

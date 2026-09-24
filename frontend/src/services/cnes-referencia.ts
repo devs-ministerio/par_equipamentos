@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { apiGetAuthed } from './monitoramento-client';
+import { z } from "zod";
+import { apiGetAuthed } from "./monitoramento-client";
 
 // ---------------------------------------------------------------------
 // CNES -- `buscarCnesReferencia` alimenta um seletor (não texto livre) de
@@ -16,5 +16,8 @@ export type CnesReferencia = z.infer<typeof cnesReferenciaSchema>;
 
 export function buscarCnesReferencia(q: string): Promise<CnesReferencia[]> {
   if (q.trim().length < 2) return Promise.resolve([]);
-  return apiGetAuthed(`/monitoramento/cnes-referencia?q=${encodeURIComponent(q)}`, z.array(cnesReferenciaSchema));
+  return apiGetAuthed(
+    `/monitoramento/cnes-referencia?q=${encodeURIComponent(q)}`,
+    z.array(cnesReferenciaSchema),
+  );
 }

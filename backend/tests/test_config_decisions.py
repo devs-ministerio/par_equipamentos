@@ -4,6 +4,7 @@ trocar o valor de uma chave nunca e UPDATE, e sempre fechar a vigente
 configurado (mesmo padrao de test_pipeline_dedup.py), sempre com
 db.rollback() no final -- nunca commita dado de teste.
 """
+
 from __future__ import annotations
 
 from app.config_decisions import decisao_vigente, registrar_decisao
@@ -15,8 +16,11 @@ def test_primeira_decisao_da_chave_fica_vigente():
     db = SessionLocal()
     try:
         decisao = registrar_decisao(
-            db, key=ConfigDecisionKey.metrica_cobertura, value="coverage_percentage",
-            confirmed=True, confirmed_by=None,
+            db,
+            key=ConfigDecisionKey.metrica_cobertura,
+            value="coverage_percentage",
+            confirmed=True,
+            confirmed_by=None,
         )
         assert decisao.valid_to is None
         vigente = decisao_vigente(db, ConfigDecisionKey.metrica_cobertura)
@@ -31,12 +35,18 @@ def test_trocar_decisao_fecha_a_vigente_anterior_e_abre_a_nova():
     db = SessionLocal()
     try:
         antiga = registrar_decisao(
-            db, key=ConfigDecisionKey.denominador_oferta, value="qt_existente",
-            confirmed=True, confirmed_by=None,
+            db,
+            key=ConfigDecisionKey.denominador_oferta,
+            value="qt_existente",
+            confirmed=True,
+            confirmed_by=None,
         )
         nova = registrar_decisao(
-            db, key=ConfigDecisionKey.denominador_oferta, value="qt_existente_sus",
-            confirmed=True, confirmed_by=None,
+            db,
+            key=ConfigDecisionKey.denominador_oferta,
+            value="qt_existente_sus",
+            confirmed=True,
+            confirmed_by=None,
         )
 
         db.refresh(antiga)
@@ -65,12 +75,19 @@ def test_indice_unico_parcial_impede_duas_vigentes_pra_mesma_chave():
     db = SessionLocal()
     try:
         registrar_decisao(
-            db, key=ConfigDecisionKey.chave_macrorregiao, value="ibge_municipio",
-            confirmed=False, confirmed_by=None,
+            db,
+            key=ConfigDecisionKey.chave_macrorregiao,
+            value="ibge_municipio",
+            confirmed=False,
+            confirmed_by=None,
         )
-        db.add(ConfigDecision(
-            key=ConfigDecisionKey.chave_macrorregiao, value="cnes_regiao_saude", confirmed=False,
-        ))
+        db.add(
+            ConfigDecision(
+                key=ConfigDecisionKey.chave_macrorregiao,
+                value="cnes_regiao_saude",
+                confirmed=False,
+            )
+        )
         with pytest.raises(IntegrityError):
             db.flush()
     finally:

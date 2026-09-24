@@ -5,6 +5,7 @@ Uso:
 
 A senha e lida de forma interativa, sem aparecer no terminal.
 """
+
 from __future__ import annotations
 
 import argparse

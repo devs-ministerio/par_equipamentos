@@ -65,9 +65,7 @@ def extrair_evidencias_relacionais(detalhe: Mapping[str, object]) -> list[Eviden
     raiz = f"proposta:{id_proposta}"
     resultado = [EvidenciaRelacional("proposta", str(id_proposta), raiz, None, proposta)]
 
-    def adicionar_filhos(
-        tipo: str, registros: object, caminho_pai: str, *, incluir_etapas: bool = False
-    ) -> None:
+    def adicionar_filhos(tipo: str, registros: object, caminho_pai: str, *, incluir_etapas: bool = False) -> None:
         for posicao, registro in enumerate(_lista(registros), 1):
             chave = _chave(registro, tipo=tipo, posicao=posicao)
             caminho = f"{caminho_pai}/{tipo}:{chave}"
@@ -106,9 +104,7 @@ def _hash_payload(payload: Mapping[str, object]) -> str:
     return hashlib.sha256(serializado.encode("utf-8")).hexdigest()
 
 
-def registrar_evidencias_relacionais(
-    db: Session, *, proposta_candidata_id: int, detalhe: Mapping[str, object]
-) -> int:
+def registrar_evidencias_relacionais(db: Session, *, proposta_candidata_id: int, detalhe: Mapping[str, object]) -> int:
     """Insere ou atualiza apenas nós alterados da captura oficial."""
     existentes = {
         item.caminho: item
@@ -130,7 +126,9 @@ def registrar_evidencias_relacionais(
             "hash_conteudo": conteudo_hash,
         }
         if existente is None:
-            db.add(EvidenciaTransfereGov(proposta_candidata_id=proposta_candidata_id, caminho=evidencia.caminho, **valores))
+            db.add(
+                EvidenciaTransfereGov(proposta_candidata_id=proposta_candidata_id, caminho=evidencia.caminho, **valores)
+            )
         else:
             for campo, valor in valores.items():
                 setattr(existente, campo, valor)

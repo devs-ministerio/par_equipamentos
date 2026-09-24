@@ -1,4 +1,5 @@
 """Acesso a dados de Notificacao."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,9 +28,7 @@ def listar_notificacoes_paginadas(
     if apenas_nao_lidas:
         base = base.where(Notificacao.lida.is_(False))
 
-    itens = db.execute(
-        base.order_by(Notificacao.created_at.desc()).limit(limit).offset(offset)
-    ).scalars().all()
+    itens = db.execute(base.order_by(Notificacao.created_at.desc()).limit(limit).offset(offset)).scalars().all()
     total = db.execute(select(func.count()).select_from(Notificacao)).scalar_one()
     nao_lidas = db.execute(
         select(func.count()).select_from(Notificacao).where(Notificacao.lida.is_(False))
@@ -45,10 +44,14 @@ def obter_notificacao(db: Session, notificacao_id: int) -> Notificacao | None:
 def mapear_identificadores_instrumentos(db: Session, ids: set[int]) -> dict[int, str]:
     if not ids:
         return {}
-    return {instrumento_id: nr_convenio for instrumento_id, nr_convenio in db.execute(
-        select(InstrumentoEquipamento.id, InstrumentoEquipamento.nr_convenio)
-        .where(InstrumentoEquipamento.id.in_(ids))
-    )}
+    return {
+        instrumento_id: nr_convenio
+        for instrumento_id, nr_convenio in db.execute(
+            select(InstrumentoEquipamento.id, InstrumentoEquipamento.nr_convenio).where(
+                InstrumentoEquipamento.id.in_(ids)
+            )
+        )
+    }
 
 
 def mapear_ids_propostas(db: Session, ids: set[int]) -> set[int]:

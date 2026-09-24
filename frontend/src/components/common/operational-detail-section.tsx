@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
 /** Bloco de detalhe operacional com agrupamento progressivo (Seção
  * "Operational detail" do plan-mode -- achado: página de detalhe do
@@ -18,9 +18,14 @@ export function OperationalDetailSection({
   children: ReactNode;
 }) {
   return (
-    <details open={abertoPorPadrao} className="group border-t border-border py-4">
+    <details
+      open={abertoPorPadrao}
+      className="group border-t border-border py-4"
+    >
       <summary className="cursor-pointer list-none font-display text-base font-semibold text-foreground marker:content-none">
-        <span className="mr-1.5 inline-block transition-transform group-open:rotate-90">▸</span>
+        <span className="mr-1.5 inline-block transition-transform group-open:rotate-90">
+          ▸
+        </span>
         {titulo}
       </summary>
       <div className="mt-3">{children}</div>

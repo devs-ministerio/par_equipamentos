@@ -34,10 +34,12 @@ def test_coletar_pendencias_retorna_apenas_tag_sem_marcador():
         equipamentos_tags=["Mamógrafo", "Ultrassom"],
         siconv_raw={"itens_plano_aplicacao": [{"DESCRICAO_ITEM": "Ultrassom diagnóstico"}]},
     )
-    db = _Db([
-        _Result(rows=[(7, "Mamógrafo")]),
-        _Result(scalars=[convenio]),
-    ])
+    db = _Db(
+        [
+            _Result(rows=[(7, "Mamógrafo")]),
+            _Result(scalars=[convenio]),
+        ]
+    )
 
     assert coletar_pendencias(db) == [
         {

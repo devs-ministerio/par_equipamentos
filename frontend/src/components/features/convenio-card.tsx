@@ -7,18 +7,20 @@
  * Camada 2 (collapse proprio, so essa parte): dados aninhados
  * (`ConvenioCardDetalhes`) -- ambas extraidas pra arquivo proprio (Secao 6
  * da migracao: componente >200 linhas). */
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
-import { corrigirTextoSiconv } from '@/lib/monitoramento-format';
-import { fetchConvenioDetalhe } from '@/services/convenios';
-import type { ConvenioUnificado } from '@/types/monitoramento';
-import { estiloCard } from './monitoramento-ui';
-import { ConvenioCardHeader } from './convenio-card-header';
-import { ConvenioCardDetalhes } from './convenio-card-detalhes';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
+import { corrigirTextoSiconv } from "@/lib/monitoramento-format";
+import { fetchConvenioDetalhe } from "@/services/convenios";
+import type { ConvenioUnificado } from "@/types/monitoramento";
+import { estiloCard } from "./monitoramento-ui";
+import { ConvenioCardHeader } from "./convenio-card-header";
+import { ConvenioCardDetalhes } from "./convenio-card-detalhes";
 
 export function ConvenioCard({
-  c, monitorado = false, faseMonitoramento = null,
+  c,
+  monitorado = false,
+  faseMonitoramento = null,
 }: {
   c: ConvenioUnificado;
   monitorado?: boolean;
@@ -31,7 +33,7 @@ export function ConvenioCard({
   // A carga oficial ganha payload técnico sob demanda; a manual nunca o
   // consulta como se fosse SICONV, pois seu detalhe é só monitoramento.
   const detalheQuery = useQuery({
-    queryKey: ['convenio-detalhe', c.numero],
+    queryKey: ["convenio-detalhe", c.numero],
     queryFn: () => fetchConvenioDetalhe(c.numero),
     enabled: detalheAberto,
     staleTime: 5 * 60 * 1000,
@@ -47,18 +49,20 @@ export function ConvenioCard({
     <div
       className={cn(
         estiloCard,
-        'mb-3',
+        "mb-3",
         // Convenio com monitoramento interno ativo ganha destaque visual --
         // e o unico dado editavel da pagina, precisa ser achavel sem abrir
         // card por card (ver useInstrumentosMonitorados.ts).
-        monitorado && 'border-l-[3px] border-l-success',
+        monitorado && "border-l-[3px] border-l-success",
       )}
     >
       <ConvenioCardHeader
         c={c}
         monitorado={monitorado}
         faseMonitoramento={faseMonitoramento}
-        equipamentos={[...new Set(c.equipamentos.map((equipamento) => equipamento.nome))]}
+        equipamentos={[
+          ...new Set(c.equipamentos.map((equipamento) => equipamento.nome)),
+        ]}
         programaSiconv={programaSiconv}
         valorPagoFornecedor={c.valorPagoFornecedor}
         pagamentosCount={c.pagamentosCount}
@@ -68,13 +72,17 @@ export function ConvenioCard({
       <details
         className="mt-3 border-t border-border pt-2.5"
         open={detalheAberto}
-        onToggle={(e) => setDetalheAberto((e.target as HTMLDetailsElement).open)}
+        onToggle={(e) =>
+          setDetalheAberto((e.target as HTMLDetailsElement).open)
+        }
       >
         <summary className="cursor-pointer text-xs font-bold text-primary">
-          {detalheAberto ? 'Menos detalhes' : 'Mais detalhes'}
+          {detalheAberto ? "Menos detalhes" : "Mais detalhes"}
         </summary>
         {detalheAberto && detalheQuery.isLoading ? (
-          <p className="mt-3 text-xs text-muted-foreground">Carregando detalhes...</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Carregando detalhes...
+          </p>
         ) : (
           <ConvenioCardDetalhes c={cDetalhado} monitorado={monitorado} />
         )}

@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchConvenioDetalhe } from '@/services/convenios';
-import { ApiError } from '@/lib/api-error';
+import { useQuery } from "@tanstack/react-query";
+import { fetchConvenioDetalhe } from "@/services/convenios";
+import { ApiError } from "@/lib/api-error";
 
 /** Nome do programa (SICONV `NOME_PROGRAMA`, ver `Convenio.programa` no
  * backend) de UM convênio, por número -- fallback de "Componente" no
@@ -18,7 +18,7 @@ import { ApiError } from '@/lib/api-error';
  * de convênio do Portal/SICONV) ou sem `programa` preenchido. */
 export function useConvenioPrograma(nrConvenio: string) {
   return useQuery({
-    queryKey: ['convenio-programa', nrConvenio],
+    queryKey: ["convenio-programa", nrConvenio],
     queryFn: async (): Promise<string | null> => {
       try {
         const convenio = await fetchConvenioDetalhe(nrConvenio);

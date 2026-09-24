@@ -4,6 +4,7 @@ chave X" nunca virar duas escritas soltas (fechar a vigente + abrir a
 nova) que algum chamador possa fazer fora de ordem ou esquecer uma
 metade.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

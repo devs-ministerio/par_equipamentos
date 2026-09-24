@@ -48,6 +48,8 @@ jobs:
         run: uv sync --frozen
       - name: Lint
         run: uv run ruff check .
+      - name: Formatação
+        run: uv run ruff format --check app tests scripts
       - name: Alertar complexidade ciclomática
         # Alerta deliberadamente não bloqueante: os arquivos listados no
         # diagnóstico exigem extração por responsabilidade, não refatoração

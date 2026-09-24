@@ -1,4 +1,4 @@
-import { Input } from '@/components/ui/input';
+import { Input } from "@/components/ui/input";
 
 interface Props {
   value: string;
@@ -10,7 +10,12 @@ interface Props {
   width?: number;
 }
 
-export function SearchInput({ value, onChange, placeholder, width = 240 }: Props) {
+export function SearchInput({
+  value,
+  onChange,
+  placeholder,
+  width = 240,
+}: Props) {
   return (
     <Input
       type="text"

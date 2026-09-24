@@ -1,4 +1,5 @@
 """Casos de uso de notificações do Radar de Convênios."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -48,7 +49,8 @@ def listar_notificacoes(
         if notificacao.tipo == NotificacaoTipo.proposta_candidata:
             destino = (
                 "/monitoramento-equipamentos?aba=componentes&subaba=novas"
-                if notificacao.entidade_id in propostas else None
+                if notificacao.entidade_id in propostas
+                else None
             )
         else:
             identificador = instrumentos.get(notificacao.entidade_id)

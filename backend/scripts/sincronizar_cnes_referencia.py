@@ -21,6 +21,7 @@ Uso: uv run python -m scripts.sincronizar_cnes_referencia (de dentro de
 backend/, venv ativo, `uv add boto3 pyarrow pandas` se ainda não tiver).
 Idempotente -- upsert por `cnes`, roda de novo sem duplicar.
 """
+
 from __future__ import annotations
 
 from typing import cast
@@ -63,18 +64,20 @@ def run() -> None:
         cnes = str(row.CNES).strip().zfill(7)
         if not cnes or cnes == "0000000":
             continue
-        registros.append(dict(
-            cnes=cnes,
-            nome_estabelecimento=_valor(row.NOME_ESTABELECIMENTO) or "",
-            cnpj=_valor(row.CNPJ),
-            municipio=_valor(row.MUNICIPIO_ACENTUADO),
-            uf=_valor(row.SG_UF),
-            cep=_valor(row.CEP),
-            logradouro=_valor(row.LOGRADOURO),
-            latitude=_numero(row.LATITUDE_CNES),
-            longitude=_numero(row.LONGITUDE_CNES),
-            fonte_sincronizacao="s3",
-        ))
+        registros.append(
+            dict(
+                cnes=cnes,
+                nome_estabelecimento=_valor(row.NOME_ESTABELECIMENTO) or "",
+                cnpj=_valor(row.CNPJ),
+                municipio=_valor(row.MUNICIPIO_ACENTUADO),
+                uf=_valor(row.SG_UF),
+                cep=_valor(row.CEP),
+                logradouro=_valor(row.LOGRADOURO),
+                latitude=_numero(row.LATITUDE_CNES),
+                longitude=_numero(row.LONGITUDE_CNES),
+                fonte_sincronizacao="s3",
+            )
+        )
 
     # Upsert em lote (INSERT ... ON CONFLICT DO UPDATE) -- 635 mil linhas
     # via ORM 1 a 1 (db.get + setattr) era da ordem de horas; em lote de

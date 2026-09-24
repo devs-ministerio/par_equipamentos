@@ -69,8 +69,7 @@ def executar(*, aplicar: bool) -> dict[str, int]:
             resultado["marcadores_removidos"] = exclusao.rowcount or 0
 
         instrumentos_por_numero = {
-            instrumento.nr_convenio: instrumento
-            for instrumento in db.execute(select(InstrumentoEquipamento)).scalars()
+            instrumento.nr_convenio: instrumento for instrumento in db.execute(select(InstrumentoEquipamento)).scalars()
         }
         for convenio in db.execute(select(Convenio)).scalars():
             instrumento = instrumentos_por_numero.get(convenio.numero)
@@ -94,7 +93,7 @@ def executar(*, aplicar: bool) -> dict[str, int]:
 
         catalogo = catalogo_por_codigo(db)
         chaves_existentes: set[tuple[OrigemMarcador, int, int, str]] = set()
-        for marcador in ([] if aplicar else db.execute(select(EquipamentoMarcador)).scalars()):
+        for marcador in [] if aplicar else db.execute(select(EquipamentoMarcador)).scalars():
             origem_id: int | None
             if marcador.convenio_id is not None:
                 origem: OrigemMarcador = "convenio"

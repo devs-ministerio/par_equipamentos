@@ -3,6 +3,7 @@ organicamente conforme os modulos seguintes adicionam endpoints; aqui vai
 so o que o Modulo 1 (infraestrutura) e o Modulo 2 (autenticacao) ja
 precisam.
 """
+
 from __future__ import annotations
 
 import re
@@ -64,6 +65,7 @@ class LoginRequest(BaseModel):
 # app/services/usuarios.py)
 # ----------------------------------------------------------------------------
 
+
 def _validar_senha(v: str) -> str:
     if len(v) < 10:
         raise ValueError("A senha precisa ter pelo menos 10 caracteres.")
@@ -108,6 +110,7 @@ class UserListResponse(BaseModel):
 # Notificacoes (ver app/routers/notificacoes.py, app/services/notificacoes.py)
 # ----------------------------------------------------------------------------
 
+
 class NotificacaoRead(BaseModel):
     id: int
     tipo: NotificacaoTipo
@@ -131,6 +134,7 @@ class NotificacoesListRead(BaseModel):
 # ----------------------------------------------------------------------------
 # Leitura de resultado (macro_coverage / equipment_offer_row)
 # ----------------------------------------------------------------------------
+
 
 class MacroCoverageRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

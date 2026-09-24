@@ -4,6 +4,7 @@ Local: valores vem do arquivo .env. Em nuvem (Railway/Render/etc) vem das
 variaveis de ambiente do proprio servico -- por isso nada aqui pode ter
 valor fixo de localhost.
 """
+
 import os
 
 from pydantic import field_validator

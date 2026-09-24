@@ -7,6 +7,7 @@ de relatorio) e `tests/test_schema_migrations.py` (gate de teste, que
 importa as mesmas funcoes daqui). Nenhuma funcao aqui levanta `assert` nem
 imprime nada -- so devolve dado pro chamador decidir o que fazer.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

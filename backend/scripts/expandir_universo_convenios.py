@@ -16,6 +16,7 @@ duplicar nem re-buscar o que ja tem.
 Uso: python -m scripts.expandir_universo_convenios (de dentro de backend/,
 venv ativo, com PORTAL_TRANSPARENCIA_API_KEY no .env).
 """
+
 from __future__ import annotations
 
 import json
@@ -34,7 +35,7 @@ def _achatar(dado: dict) -> dict:
     porque do sigla/nome trocado em `uf`."""
     convenente = dado.get("convenente") or {}
     municipio = dado.get("municipioConvenente") or {}
-    uf = (municipio.get("uf") or {})
+    uf = municipio.get("uf") or {}
     orgao = dado.get("orgao") or {}
     unidade_gestora = dado.get("unidadeGestora") or {}
     subfuncao = dado.get("subfuncao") or {}
