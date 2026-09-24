@@ -88,6 +88,8 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - Serviço e repository de marcadores relacionais atingiram, respectivamente,
   **88%** e **79%**, cobrindo item não prioritário, idempotência, deduplicação
   visual e preservação da evidência auditável.
+- Serviço de usuários atingiu **86%**, incluindo convite, token, auditoria,
+  reenvio, normalização de e-mail e erros de domínio.
 
 ## 2. Cobertura frontend e testes comportamentais
 
