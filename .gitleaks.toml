@@ -1,0 +1,8 @@
+# Exceção mínima para um literal sintético que existiu somente no teste de
+# contrato do PR 13. O arquivo é reescrito para senha dinâmica, mas Gitleaks
+# também examina os commits anteriores do próprio PR; não ignorar paths,
+# regras ou entropia de forma ampla.
+[allowlist]
+description = "Senha sintética histórica de teste, sem uso fora do teste HTTP."
+paths = ["backend/tests/test_auth_session.py"]
+regexes = ["senha-valida-123"]

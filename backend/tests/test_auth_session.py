@@ -104,11 +104,12 @@ def test_ativacao_e_redefinicao_rejeitam_token_invalido_sem_expor_o_valor():
     for rota in ("/auth/ativar", "/auth/redefinir-senha"):
         limiter.reset()
         token = f"token-invalido-{uuid4()}"
+        senha = f"senha-{uuid4()}"
         cliente = TestClient(app)
         cliente.cookies.set(CSRF_COOKIE_NAME, "csrf-contrato")
         resposta = cliente.post(
             rota,
-            json={"token": token, "password": "senha-valida-123"},
+            json={"token": token, "password": senha},
             headers={CSRF_HEADER_NAME: "csrf-contrato"},
         )
 
