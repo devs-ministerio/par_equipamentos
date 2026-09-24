@@ -85,6 +85,9 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 - Contratos de `equipment_offer` foram ampliados para autenticação, validação,
   filtros, agregação SUS/em uso e raio; a cobertura isolada da rota chegou a
   **80%** (piso constitucional: 60%).
+- Serviço e repository de marcadores relacionais atingiram, respectivamente,
+  **88%** e **79%**, cobrindo item não prioritário, idempotência, deduplicação
+  visual e preservação da evidência auditável.
 
 ## 2. Cobertura frontend e testes comportamentais
 
