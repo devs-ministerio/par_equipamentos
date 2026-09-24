@@ -47,6 +47,9 @@ inventário de consumidores e atualização do diagnóstico/runbooks. O dashboar
 `SIGEO — Operação de Produção` também recebeu CPU e memória física emitidas
 pelo agente Python; limiares de capacidade só serão aprovados após sete dias
 de linha de base representativa.
+O frontend e a API também passaram a correlacionar cada operação por um
+`X-Trace-Id` opaco validado, inclusive no retry seguro, sem carregar dados de
+usuário ou querystring.
 
 Não são pendências de implementação local: backup externo ou PITR superior a
 seis horas, registry/staging e promoção de imagem, rollback ensaiado,

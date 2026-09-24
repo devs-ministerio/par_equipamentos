@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Callable
 from time import perf_counter
 from typing import TypeVar
@@ -12,6 +13,19 @@ from fastapi import Request
 
 logger = logging.getLogger("sigeo.http")
 T = TypeVar("T")
+_TRACE_ID_REGEX = re.compile(r"^[0-9a-f]{32}$")
+
+
+def _trace_id_aceitavel(trace_id: str | None) -> str:
+    """Aceita somente o identificador opaco gerado pelo cliente.
+
+    O valor é enviado de volta ao log para correlacionar uma chamada de tela
+    com a API. Validá-lo impede que um cabeçalho arbitrário vire conteúdo de
+    telemetria ou de log.
+    """
+    if trace_id is not None and _TRACE_ID_REGEX.fullmatch(trace_id):
+        return trace_id
+    return uuid4().hex
 
 
 def executar_chamada_externa(*, fonte: str, operacao: str, chamada: Callable[[], T]) -> T:
@@ -61,7 +75,7 @@ def executar_chamada_externa(*, fonte: str, operacao: str, chamada: Callable[[],
 
 async def registrar_requisicao(request: Request, call_next):
     """Emite um único evento JSON por requisição, sem querystring ou corpo."""
-    trace_id = request.headers.get("X-Trace-Id") or uuid4().hex
+    trace_id = _trace_id_aceitavel(request.headers.get("X-Trace-Id"))
     request.state.trace_id = trace_id
     inicio = perf_counter()
     status_code = 500

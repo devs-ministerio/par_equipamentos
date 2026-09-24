@@ -117,6 +117,20 @@ describe('lib/http-client', () => {
     expect((initPost.headers as Record<string, string>)['X-CSRF-Token']).toBe('token-abc');
   });
 
+  it('anexa um trace opaco e o preserva na repetição segura da mesma leitura', async () => {
+    fetchMock
+      .mockRejectedValueOnce(new Error('A solicitação excedeu 15 segundos.'))
+      .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
+
+    await requisitar('/auth/me', z.object({ ok: z.boolean() }), undefined);
+
+    const primeira = fetchMock.mock.calls[0][1] as RequestInit;
+    const segunda = fetchMock.mock.calls[1][1] as RequestInit;
+    const primeiroTrace = (primeira.headers as Record<string, string>)['X-Trace-Id'];
+    expect(primeiroTrace).toMatch(/^[0-9a-f]{32}$/);
+    expect((segunda.headers as Record<string, string>)['X-Trace-Id']).toBe(primeiroTrace);
+  });
+
   it('não anexa X-CSRF-Token em POST /auth/login (ainda não há sessão/cookie CSRF)', async () => {
     stubBrowserGlobals();
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(200, { status: 'ok' })));

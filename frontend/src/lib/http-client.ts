@@ -16,6 +16,13 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localho
 const HTTP_TIMEOUT_MS = 15_000;
 const MENSAGEM_TIMEOUT_HTTP = `A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`;
 
+/** Identificador opaco por operação HTTP: permite encontrar a chamada de uma
+ * tela no evento `sigeo.http` da API. Não contém usuário, URL, sessão, corpo
+ * ou qualquer dado de negócio; a mesma tentativa/retry preserva o valor. */
+function novoTraceId(): string {
+  return globalThis.crypto.randomUUID().replaceAll('-', '');
+}
+
 /** Sessão via cookie HttpOnly (Plan Mode segurança 2026-09-16, Bloco 2) --
  * não há mais token em `localStorage` pra ler/guardar: o browser manda o
  * cookie sozinho em toda chamada com `credentials: 'include'`, e o backend
@@ -61,7 +68,7 @@ function tentarRenovarSessao(): Promise<boolean> {
     renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
-      headers: csrfHeaders(),
+      headers: { ...csrfHeaders(), 'X-Trace-Id': novoTraceId() },
     })
       .then((r) => r.ok)
       .catch(() => false)
@@ -99,6 +106,7 @@ export async function httpFetch(path: string, init?: RequestInit, opts: Requisit
   const { redirecionarEm401 = true } = opts;
   const metodo = (init?.method ?? 'GET').toUpperCase();
   const precisaCsrf = metodo !== 'GET' && path !== '/auth/login';
+  const traceId = novoTraceId();
   const executar = async () => {
     const controller = new AbortController();
     const timeout = globalThis.setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
@@ -107,7 +115,7 @@ export async function httpFetch(path: string, init?: RequestInit, opts: Requisit
         ...init,
         signal: init?.signal ?? controller.signal,
         credentials: 'include',
-        headers: { ...init?.headers, ...(precisaCsrf ? csrfHeaders() : {}) },
+        headers: { ...init?.headers, ...(precisaCsrf ? csrfHeaders() : {}), 'X-Trace-Id': traceId },
       });
     } catch (erro) {
       if (controller.signal.aborted) {

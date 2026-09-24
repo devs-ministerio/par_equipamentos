@@ -78,7 +78,7 @@ app.add_middleware(
     # (PATCH/DELETE de eventos/ações) -- achado ao vivo: preflight OPTIONS
     # falhava com a lista antiga (GET/POST/PATCH), sem DELETE.
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", CSRF_HEADER_NAME],
+    allow_headers=["Content-Type", CSRF_HEADER_NAME, "X-Trace-Id"],
 )
 
 # Rotas isentas de CSRF -- login ainda nao tem cookie de sessao/CSRF pra

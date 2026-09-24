@@ -83,6 +83,12 @@ no GitHub Actions.
   menos sete dias incluindo um período de carga representativa, registre no
   dashboard a linha de base, o limite do plano do provedor e o limiar proposto;
   só então aprove a condição e documente sua justificativa neste runbook.
+- O cliente web cria um `X-Trace-Id` opaco de 32 caracteres hexadecimais por
+  operação HTTP e conserva o mesmo valor em uma repetição segura. A API só
+  aceita esse formato, devolve-o na resposta e o registra no evento
+  `sigeo.http`; isso permite correlacionar uma chamada do navegador com a API
+  sem transmitir URL completa, querystring, corpo, cookie ou identidade. Não
+  reutilize esse identificador como token, nem o exponha como dado de negócio.
 - Os logs JSON sanitizados do backend continuam no stdout e são encaminhados
   pelo agente New Relic quando `NEW_RELIC_APPLICATION_LOGGING_ENABLED=true` e
   `NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED=true` estão ativos no
