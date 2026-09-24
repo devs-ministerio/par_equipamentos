@@ -1,4 +1,10 @@
-from app.services.evidencias_transferegov import extrair_evidencias_relacionais
+from __future__ import annotations
+
+import pytest
+
+from app.db.base import SessionLocal
+from app.db.models import EvidenciaTransfereGov, PropostaCandidata
+from app.services.evidencias_transferegov import extrair_evidencias_relacionais, registrar_evidencias_relacionais
 
 
 def test_achata_arvore_com_caminhos_e_ancestralidade_consultaveis():
@@ -39,3 +45,45 @@ def test_chave_por_posicao_mantem_evidencia_sem_identificador_publico():
     )
 
     assert evidencias[1].caminho == "proposta:42/meta-proposta:1"
+
+
+@pytest.mark.parametrize(
+    "detalhe,erro",
+    [
+        ({"proposta": []}, "precisa ser um objeto"),
+        ({"proposta": {}}, "exige id_proposta"),
+        ({"proposta": {"id_proposta": 42}, "metas": "não é lista"}, "precisa ser uma lista"),
+    ],
+)
+def test_rejeita_estrutura_externa_invalida(detalhe, erro):
+    with pytest.raises(ValueError, match=erro):
+        extrair_evidencias_relacionais(detalhe)
+
+
+def test_persistencia_e_idempotencia_atualizam_somente_no_alterado():
+    db = SessionLocal()
+    try:
+        proposta = PropostaCandidata(
+            id_proposta=987654321,
+            cnpj_ente_recebedor="00000000000100",
+            nm_proponente="Proponente Pytest",
+            ds_objeto="Objeto Pytest",
+            nm_programa="Programa Pytest",
+            id_programa=99,
+            componente_batido="ONCOLOGIA",
+        )
+        db.add(proposta)
+        db.flush()
+        detalhe = {"proposta": {"id_proposta": proposta.id_proposta, "ds_objeto": "Original"}, "metas": []}
+
+        assert registrar_evidencias_relacionais(db, proposta_candidata_id=proposta.id, detalhe=detalhe) == 1
+        db.flush()
+        assert registrar_evidencias_relacionais(db, proposta_candidata_id=proposta.id, detalhe=detalhe) == 0
+
+        alterado = {"proposta": {"id_proposta": proposta.id_proposta, "ds_objeto": "Atualizado"}, "metas": []}
+        assert registrar_evidencias_relacionais(db, proposta_candidata_id=proposta.id, detalhe=alterado) == 1
+        evidencia = db.query(EvidenciaTransfereGov).filter_by(proposta_candidata_id=proposta.id).one()
+        assert evidencia.payload["ds_objeto"] == "Atualizado"
+    finally:
+        db.rollback()
+        db.close()

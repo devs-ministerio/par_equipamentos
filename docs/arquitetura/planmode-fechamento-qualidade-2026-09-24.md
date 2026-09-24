@@ -90,6 +90,9 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   visual e preservação da evidência auditável.
 - Serviço de usuários atingiu **86%**, incluindo convite, token, auditoria,
   reenvio, normalização de e-mail e erros de domínio.
+- Serviço de evidências relacionais do TransfereGov atingiu **100%**, cobrindo
+  payload inválido, persistência, idempotência e atualização incremental sem
+  remover o adaptador JSON compatível.
 
 ## 2. Cobertura frontend e testes comportamentais
 

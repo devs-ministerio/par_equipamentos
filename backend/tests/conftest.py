@@ -20,6 +20,7 @@ _DB_TEST_MODULES = {
     "test_csrf.py",
     "test_equipment_totals.py",
     "test_equipamento_marcadores.py",
+    "test_evidencias_transferegov.py",
     "test_integridade_constraints.py",
     "test_integridade_fk_cnes.py",
     "test_monitoramento.py",
