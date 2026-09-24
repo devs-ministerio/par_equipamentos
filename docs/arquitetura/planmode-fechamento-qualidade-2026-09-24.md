@@ -103,6 +103,14 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 ## 2. Cobertura frontend e testes comportamentais
 
+### Andamento parcial — 2026-09-24
+
+- `@vitest/coverage-v8` foi versionado e a execução com relatório JSON/LCOV
+  está configurada.
+- Baseline atual: **69,18% linhas** e **61,5% branches** globais. Hooks
+  (11,11%) e services (35,41%) são as lacunas prioritárias; o threshold de
+  70% só será ativado após testes de comportamento suficientes.
+
 ### Implementação
 
 1. Adicionar/travar `@vitest/coverage-v8`, configurar cobertura e excluir somente bootstrap, tipos, mocks e componentes comprovadamente apresentacionais com justificativa explícita.

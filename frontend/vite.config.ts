@@ -33,6 +33,11 @@ export default defineConfig({
     // um teste pro outro) quando encontra `afterEach` global.
     globals: true,
     setupFiles: ['./src/test-setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'lcov'],
+      reportsDirectory: 'coverage',
+    },
     // `e2e/*.spec.ts` é do Playwright (outro test runner, outro processo) --
     // sem isso o glob default do vitest tentaria rodar esses specs também.
     exclude: ['node_modules/**', 'e2e/**'],
