@@ -56,6 +56,36 @@ from app.db.models import InstrumentoEquipamento
 from app.pipeline.portal_transparencia import ChaveApiAusenteError, _sessao_com_retry, buscar_convenio_por_numero
 
 
+def _mudancas_de_identidade(
+    instrumento: InstrumentoEquipamento, dado_api: dict[str, Any]
+) -> dict[str, tuple[str | None, str]]:
+    """Compara somente identidade jurídica, nunca município ou equipamento."""
+    convenente: dict[str, Any] = dado_api.get("convenente") or {}
+    candidatos = {
+        "nome_convenente": convenente.get("nome"),
+        "cnpj_convenente": convenente.get("cnpjFormatado"),
+    }
+    return {
+        campo: (getattr(instrumento, campo), valor)
+        for campo, valor in candidatos.items()
+        if isinstance(valor, str) and valor != getattr(instrumento, campo)
+    }
+
+
+def _buscar_identidade_na_api(sessao: requests.Session, nr_convenio: str) -> dict[str, Any] | None:
+    try:
+        dado_api = buscar_convenio_por_numero(nr_convenio, session=sessao)
+    except ChaveApiAusenteError:
+        raise
+    except requests.RequestException as erro:
+        print(f"   [ERRO REDE] {nr_convenio}: {erro} -- pulado, nada alterado.")
+        return None
+    time.sleep(0.05)
+    if dado_api is None:
+        print(f"   [AVISO] {nr_convenio} não encontrado na API agora -- pulado, nada alterado.")
+    return dado_api
+
+
 def run(aplicar: bool) -> None:
     print(
         f"=== Reconciliação nome_convenente/cnpj_convenente <- API ({'APLICANDO' if aplicar else 'DRY-RUN, nada é gravado'}) ===\n"
@@ -70,28 +100,11 @@ def run(aplicar: bool) -> None:
     for i, inst in enumerate(instrumentos, 1):
         if i % 20 == 0:
             print(f"   ... {i}/{len(instrumentos)}")
-        try:
-            dado_api = buscar_convenio_por_numero(inst.nr_convenio, session=sessao)
-        except ChaveApiAusenteError:
-            raise
-        except requests.RequestException as e:
-            print(f"   [ERRO REDE] {inst.nr_convenio}: {e} -- pulado, nada alterado.")
-            continue
-        time.sleep(0.05)
-
+        dado_api = _buscar_identidade_na_api(sessao, inst.nr_convenio)
         if dado_api is None:
-            print(f"   [AVISO] {inst.nr_convenio} não encontrado na API agora -- pulado, nada alterado.")
             continue
 
-        convenente: dict[str, Any] = dado_api.get("convenente") or {}
-        nome_api = convenente.get("nome")
-        cnpj_api = convenente.get("cnpjFormatado")
-
-        mudancas: dict[str, tuple[str | None, str]] = {}
-        if isinstance(nome_api, str) and nome_api != inst.nome_convenente:
-            mudancas["nome_convenente"] = (inst.nome_convenente, nome_api)
-        if isinstance(cnpj_api, str) and cnpj_api != inst.cnpj_convenente:
-            mudancas["cnpj_convenente"] = (inst.cnpj_convenente, cnpj_api)
+        mudancas = _mudancas_de_identidade(inst, dado_api)
 
         if mudancas:
             diffs.append((inst, mudancas))

@@ -233,7 +233,7 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   `npm run format:check`.
 - A checagem C901 foi adicionada como alerta não bloqueante no Backend CI.
   `listar_por_origens`, `registrar_evento_monitorado`, `obter_resumo` e o
-  backfill de marcadores e o job TransfereGov foram decompostas. O inventário tem 10 funções acima
+  backfill de marcadores, o job TransfereGov e o reconciliador foram decompostas. O inventário tem 9 funções acima
   de 10 ramos, todas em scripts
   de manutenção/importação/pipeline; as prioridades de
   extração são `registrar_evento_monitorado` (19), `obter_resumo` (11) e os
