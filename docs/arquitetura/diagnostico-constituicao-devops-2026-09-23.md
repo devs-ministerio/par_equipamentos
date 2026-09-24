@@ -29,7 +29,7 @@ principal risco operacional.
 | Eixo | Nota | Evidência versionada |
 |---|---:|---|
 | Reprodutibilidade e containerização | 9,0 | Dockerfile multi-stage, `.dockerignore`, compose e exemplo OrbStack existem; smoke completo executou como usuário não-root, com Postgres local isolado, health e shutdown limpo. |
-| CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. CodeQL analisou o código, mas o GitHub bloqueou a publicação por code scanning desativado no repositório privado. |
+| CI e supply chain | 9,0 | CI frontend e backend concluídas com sucesso no commit publicado; backend usa Postgres efêmero, Alembic, testes e audit; `actionlint`, Gitleaks, SBOM SPDX e scan rígido de CVE crítico são gates versionados. Code scanning/CodeQL permanece deliberadamente inativo enquanto não houver decisão de custo para habilitá-lo no repositório privado. |
 | Migration e jobs de dados | 8,0 | Workflows usam `Production`, timeout, concurrency compartilhada, checkout de `master` e falham sem segredo. Migration está fora do boot do Render. |
 | Deploy e rollback | 8,3 | Render faz deploy após CI, tem build fixado, health check `/health`, boot sem DDL e runbook. A CI publica imagem e SBOM por SHA; Vercel recebeu smoke E2E autenticado com sucesso. Faltam registry/staging, promoção do artefato e rollback ensaiado. |
 | Observabilidade | 9,4 | Health faz `SELECT 1`; middleware gera log JSON HTTP com duração e `trace_id`; o New Relic confirmou a entidade APM `SIGEO API`, transação HTTP, latência, taxa de erro e métricas de CPU/memória física do processo. O frontend envia um ID opaco por operação e a API valida/devolve/registra o mesmo valor, permitindo correlação web→API sem payload sensível. A política `SIGEO — Produção` tem condições de erro, latência p95, perda de sinal e duas falhas do Ping em 10 min; o workflow de e-mail teve envio e recebimento de teste confirmados. Logs são encaminhados pelo agente, com limite e sem contexto adicional; o access log cru do Uvicorn foi desativado para não transmitir IP ou querystring, com teste de regressão. A política versionada confirma 30 dias para logs, 8 para APM/traces e 395 para Synthetic; o Ping consulta `/health` a cada 5 min com TLS validado. Faltam tracing distribuído entre browser/jobs, baseline para limiares de capacidade e redundância de localização. |
@@ -247,7 +247,7 @@ Logs no painel do
 Render não são suficientes como política operacional versionada. O teste controlado de
 entrega foi concluído, sem gerar erro ou indisponibilidade real na API.
 
-### P1 — CI não testa o caminho de banco nem toda a supply chain
+### P1 — análise estática hospedada permanece inativa
 
 Backend CI agora provisiona PostgreSQL e executa Alembic/testes nesse caminho.
 `Varredura de segredos` executa Gitleaks no histórico completo, fixado no
@@ -256,8 +256,8 @@ supply chain gera SBOM SPDX retido por 30 dias e passou no scan de CVE crítico
 no run `35907832991`. A primeira imagem em Debian 12 revelou cinco CVEs
 críticos; a troca para Debian 13 (Trixie) reduziu-os a três de `perl-base`, e
 `apt-get upgrade` no runtime aplicou a versão corrigida, mantendo o gate
-estrito verde. Falta CodeQL; os pins por SHA devem ser completados nos fluxos
-restantes.
+estrito verde. A única cobertura ainda não adotada é a análise estática
+hospedada do CodeQL.
 
 O CodeQL foi configurado e executou a análise de Python, TypeScript,
 workflows e HTML, mas o GitHub recusou o upload do SARIF nos runs
