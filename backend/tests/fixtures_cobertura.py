@@ -104,6 +104,8 @@ def seed_cobertura() -> None:
                     existing_qty=existente,
                     in_use_qty=disponivel if disponivel else 1,
                     sus_flag=disponivel > 0,
+                    latitude={"Cidade Alfa": 0.0, "Cidade Beta": 0.1, "Cidade Gama": 10.0}[nome],
+                    longitude=0.0,
                     legal_nature="PUBLICO",
                 )
             )

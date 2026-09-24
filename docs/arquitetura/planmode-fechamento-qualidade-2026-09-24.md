@@ -82,6 +82,9 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
   cenário central; a suíte passou com **197/197**.
 - Nova baseline exploratória: **80%** total. Ainda faltam testes dos módulos
   abaixo do piso, o verificador por camada e a publicação do relatório no CI.
+- Contratos de `equipment_offer` foram ampliados para autenticação, validação,
+  filtros, agregação SUS/em uso e raio; a cobertura isolada da rota chegou a
+  **80%** (piso constitucional: 60%).
 
 ## 2. Cobertura frontend e testes comportamentais
 
