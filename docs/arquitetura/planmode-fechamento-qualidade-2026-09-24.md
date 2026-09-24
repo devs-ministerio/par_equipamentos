@@ -140,6 +140,15 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 ## 3. Matriz e testes de contrato HTTP
 
+### Andamento parcial — 2026-09-24
+
+- A matriz versionada das **42 operações** foi criada em
+  `docs/arquitetura/contratos-http-sigeo.md`, com consumidor, resposta de
+  sucesso, autenticação, erros aplicáveis e teste de referência.
+- A evidência existente está vinculada à rota em vez de inferida por nome de
+  arquivo. Restam três contratos específicos marcados como pendentes:
+  busca CNES e tokens inválidos de ativação/redefinição de senha.
+
 ### Implementação
 
 1. Criar `docs/arquitetura/contratos-http-sigeo.md` com as 42 operações: rota, consumidor, sucesso, erros, autenticação e arquivo de teste.
