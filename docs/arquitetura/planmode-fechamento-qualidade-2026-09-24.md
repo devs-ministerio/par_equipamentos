@@ -194,6 +194,15 @@ mapeamento por camada e contrato mínimo; template de PR versionado em
 
 ## 5. Higiene estática, governança e fechamento
 
+### Andamento parcial — 2026-09-24
+
+- `httpx2` foi incluído no grupo de desenvolvimento, conforme a migração
+  indicada pela Starlette 1.6; os testes que usam `TestClient` deixaram de
+  emitir o warning de depreciação sem reescrever sua semântica HTTP.
+- O handler de validação usa `HTTP_422_UNPROCESSABLE_CONTENT`, eliminando o
+  segundo warning. Os contratos autenticados executaram **13/13 sem
+  warnings**, com Ruff e mypy verdes.
+
 ### Implementação
 
 1. Eliminar os dois warnings Starlette/HTTPX preservando o comportamento testado.
