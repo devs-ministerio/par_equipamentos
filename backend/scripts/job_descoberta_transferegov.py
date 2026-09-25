@@ -44,6 +44,7 @@ from app.pipeline.transferegov_parcerias import (
     buscar_ordens_pagamento_por_documento,
     buscar_parcerias_por_proposta,
 )
+from app.repositories.notificacoes import criar_notificacao
 from app.services.equipamento_marcadores import DadosMarcador, TipoEvidencia, registrar_marcadores
 from app.services.evidencias_transferegov import registrar_evidencias_relacionais
 from scripts.levantamento_convenios_oncologia import (
@@ -265,13 +266,14 @@ def run() -> None:
                             for evidencia in evidencias
                         ],
                     )
-                    db.add(
+                    criar_notificacao(
+                        db,
                         Notificacao(
                             tipo=NotificacaoTipo.proposta_candidata,
                             titulo=f"Proposta nova: {valores_api['nm_proponente'] or id_proposta}",
                             corpo=f"{info['componente_alvo']} — {ds_objeto[:140]}",
                             entidade_id=candidato.id,
-                        )
+                        ),
                     )
                     novos += 1
                 else:
@@ -316,13 +318,14 @@ def run() -> None:
                         # services/notificacoes.py::listar_notificacoes). Usar
                         # atualizacao_api aqui fazia o destino resolver contra a tabela
                         # errada (instrumento coincidente por id numérico, ou None).
-                        db.add(
+                        criar_notificacao(
+                            db,
                             Notificacao(
                                 tipo=NotificacaoTipo.proposta_candidata,
                                 titulo=f"Proposta {id_proposta} atualizada",
                                 corpo=f"Campo(s) alterado(s): {', '.join(mudou.keys())}",
                                 entidade_id=existente.id,
-                            )
+                            ),
                         )
                         atualizados += 1
         db.commit()

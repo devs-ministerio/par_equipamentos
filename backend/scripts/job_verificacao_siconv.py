@@ -34,6 +34,7 @@ from pathlib import Path
 
 from app.db.base import SessionLocal
 from app.db.models import InstrumentoEquipamento, Notificacao, NotificacaoTipo
+from app.repositories.notificacoes import criar_notificacao
 
 # Reaproveita os helpers ja existentes de scripts/coletar_siconv_legado.py
 # (download com retry/cache, parse do zip, filtro por NR_CONVENIO) em vez
@@ -106,13 +107,14 @@ def run(forcar: bool = False) -> None:
                 if nova_situacao == antiga_situacao:
                     continue
                 instrumento.situacao_prestacao_contas = nova_situacao
-                db.add(
+                criar_notificacao(
+                    db,
                     Notificacao(
                         tipo=NotificacaoTipo.atualizacao_api,
                         titulo=f"Convênio {instrumento.nr_convenio} mudou de situação no SICONV",
                         corpo=f"{antiga_situacao or '(vazio)'} → {nova_situacao}",
                         entidade_id=instrumento.id,
-                    )
+                    ),
                 )
                 atualizados += 1
         db.commit()

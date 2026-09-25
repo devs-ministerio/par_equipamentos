@@ -44,6 +44,7 @@ from app.pipeline.transferegov_parcerias import (
     buscar_ordens_pagamento_por_documento,
     buscar_parcerias_por_proposta,
 )
+from app.repositories.notificacoes import criar_notificacao
 from scripts.levantamento_convenios_oncologia import _sessao_com_retry
 
 
@@ -129,13 +130,14 @@ def run() -> None:
                 inst.situacao_ordem_pagamento_transferegov = situacao_op
 
             if mudou:
-                db.add(
+                criar_notificacao(
+                    db,
                     Notificacao(
                         tipo=NotificacaoTipo.atualizacao_api,
                         titulo=f"Convênio {inst.nr_convenio} mudou de situação no TransfereGov",
                         corpo=", ".join(f"{c}: {v['old'] or '(vazio)'} → {v['new']}" for c, v in mudou.items()),
                         entidade_id=inst.id,
-                    )
+                    ),
                 )
                 atualizados += 1
         db.commit()

@@ -882,6 +882,40 @@ precisa de sincronização contínua:
   dataset sintético de desenvolvimento (ainda não existe) — ver
   `docs/arquitetura/planmode-database-2026-09-16.md`, Bloco 5.
 
+## Notificações: escopo por destinatário + alerta de vigência (Plan Mode notificacoes-escopo 2026-09-25)
+
+`docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md` fechou o que `authz.py` já registrava
+como pendência desde o Plan Mode segurança ("recorte de visibilidade por colaborador... quando a
+política de acesso por instrumento" existir): `Notificacao.lida` deixou de ser um boolean único
+compartilhado por toda a equipe e virou uma tabela nova, `NotificacaoDestinatario` (`notificacao_id`
++ `usuario_id` + `lida` individual), materializada no momento da CRIAÇÃO da notificação (não em
+tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — todo ponto que cria
+`Notificacao` (os 3 jobs de verificação/descoberta + `monitoramento_eventos.py`, camada
+`edicao_manual`) passa por essa função agora, nunca `db.add(Notificacao(...))` direto.
+
+- **Regra de escopo** (`resolver_destinatarios`): `atualizacao_api`/`edicao_manual` (`entidade_id` =
+  `InstrumentoEquipamento.id`) vão pra titular + suplente (`InstrumentoResponsavel`, já existente
+  desde antes deste plan-mode) **união** todo `gestor`/`admin` ativo — `gestor`/`admin` recebem
+  TUDO, independente de estarem designados. Sem titular/suplente cadastrado, cai no broadcast (todo
+  `colaborador`/`gestor`/`admin` ativo) — mas na prática esse fallback quase nunca dispara, porque
+  gestor/admin já tornam o conjunto não-vazio (só dispara se não houver NENHUM gestor/admin ativo no
+  sistema). `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
+  `leitor` nunca entra em nenhum branch, mesmo sendo titular/suplente hipoteticamente.
+- **Tipo novo `alerta_vigencia`**: fim de vigência do convênio a 3 meses (`Convenio.
+  data_final_vigencia`, `entidade_id` = `Convenio.id`) — job novo `backend/scripts/
+  job_alerta_vigencia.py` (janela de 90 dias, dedup de 30 dias pro mesmo convênio, dentro de
+  `radar_convenios.yml` junto dos outros 3 jobs). Sem instrumento monitorado pro convênio, dispara
+  broadcast (decisão do usuário: proximidade do fim de vigência é relevante mesmo sem técnico
+  designado) — com instrumento monitorado, mesma regra de titular/suplente+gestor/admin acima.
+- **`Notificacao.lida` (coluna antiga) fica DEPRECATED**, não removida nesta rodada — nenhum código
+  novo lê/escreve nela, mantida só pra não quebrar migration em voo. Notificações criadas antes
+  desta migration não ganham destinatário retroativo (não dá pra reconstruir quem era titular no
+  momento em que cada uma foi gerada) — ficam invisíveis no `GET /notificacoes` escopado, mesmo
+  critério já usado noutras migrations deste projeto pra dado legado que não pode ser reconstruído
+  com certeza.
+- **Migration**: `488a535a0b5e` (tabela `notificacao_destinatario` + `ALTER TYPE notificacao_tipo
+  ADD VALUE 'alerta_vigencia'`).
+
 ## Comandos úteis
 
 ```bash

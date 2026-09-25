@@ -80,6 +80,11 @@ class NotificacaoTipo(str, enum.Enum):
     proposta_candidata = "proposta_candidata"
     atualizacao_api = "atualizacao_api"
     edicao_manual = "edicao_manual"
+    # Plan Mode notificacoes-escopo 2026-09-25 -- fim de vigencia do
+    # convenio a 3 meses (Convenio.data_final_vigencia). entidade_id aponta
+    # pra Convenio.id (4o valor no esquema polimorfico, ver
+    # scripts/job_alerta_vigencia.py).
+    alerta_vigencia = "alerta_vigencia"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -1399,20 +1404,33 @@ class EquipamentoMarcador(Base):
 
 
 class Notificacao(Base):
-    """2 camadas (pedido do usuario 2026-09-15): camada 1
-    (tipo=atualizacao_api) nasce do job de verificacao/descoberta achando
+    """4 origens (Plan Mode notificacoes-escopo 2026-09-25 ampliou de 3 pra
+    4): tipo=atualizacao_api nasce do job de verificacao/descoberta achando
     mudanca real (diff campo a campo, nunca so presenca/ausencia) num
-    instrumento ja monitorado; camada 2 (tipo=edicao_manual) nasce do PATCH
-    de instrumento (app/services/monitoramento_eventos.py) -- SEMPRE junto
-    de um app/audit.py::log_action pro mesmo evento, mas sao 2 inserts
-    fisicos independentes (nao ha leitura/materializacao de audit_log aqui,
-    a linha em `notificacao` e gravada direto). `entidade_id` e polimorfico
-    por `tipo` (mesmo padrao de AuditLog.entity_name/entity_id), sem FK
-    fisica de proposito -- tipo=proposta_candidata aponta pra
-    proposta_candidata.id (proposta nova OU atualizada, ver
-    scripts/job_descoberta_transferegov.py), os outros 2 tipos
-    (atualizacao_api de instrumento, edicao_manual) apontam pra
-    instrumento_equipamento.id."""
+    instrumento ja monitorado; tipo=edicao_manual nasce do PATCH de
+    instrumento (app/services/monitoramento_eventos.py) -- SEMPRE junto de
+    um app/audit.py::log_action pro mesmo evento, mas sao 2 inserts fisicos
+    independentes (nao ha leitura/materializacao de audit_log aqui, a linha
+    em `notificacao` e gravada direto); tipo=alerta_vigencia nasce de
+    scripts/job_alerta_vigencia.py (fim de vigencia do convenio a 3 meses).
+    `entidade_id` e polimorfico por `tipo` (mesmo padrao de
+    AuditLog.entity_name/entity_id), sem FK fisica de proposito --
+    tipo=proposta_candidata aponta pra proposta_candidata.id (proposta nova
+    OU atualizada, ver scripts/job_descoberta_transferegov.py),
+    atualizacao_api/edicao_manual apontam pra instrumento_equipamento.id,
+    alerta_vigencia aponta pra convenio.id.
+
+    Quem VE cada notificacao e resolvido em
+    app/repositories/notificacoes.py::resolver_destinatarios (materializado
+    em NotificacaoDestinatario no momento do insert, nao em tempo de
+    leitura) -- ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md.
+
+    `lida` (coluna abaixo) esta DEPRECATED desde o mesmo Plan Mode -- estado
+    de leitura agora vive por usuario em NotificacaoDestinatario.lida, nao
+    mais compartilhado por toda a equipe. Nenhum codigo novo le/escreve
+    nesta coluna; mantida so pra nao quebrar migration em voo, remocao fica
+    pra uma migration futura separada depois de confirmar ausencia de
+    consumidor."""
 
     __tablename__ = "notificacao"
     __table_args__ = (Index("idx_notificacao_lida_created", "lida", "created_at"),)
@@ -1431,5 +1449,36 @@ class Notificacao(Base):
     # nao e 1:1 ainda por isso fica string livre, nao FK/enum, pra nao
     # travar em cima de uma decisao pendente.
     nivel_minimo: Mapped[str | None] = mapped_column(String)
+    # DEPRECATED -- ver docstring da classe. Nao ler/escrever em codigo novo.
     lida: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class NotificacaoDestinatario(Base):
+    """Quem VE e quem MARCOU como lida cada Notificacao -- 1 linha por
+    (notificacao, usuario). Substitui Notificacao.lida (deprecated, ver
+    docstring acima) como fonte de "lida", agora por usuario em vez de
+    compartilhado pela equipe toda. Materializado no INSERT da notificacao
+    (app/repositories/notificacoes.py::resolver_destinatarios), nao
+    calculado em tempo de leitura -- ver
+    docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md pra regra
+    completa de quem entra em cada tipo (titular/suplente via
+    InstrumentoResponsavel + gestor/admin sempre; broadcast pra colaborador
+    quando nao ha instrumento monitorado; leitor nunca entra)."""
+
+    __tablename__ = "notificacao_destinatario"
+    __table_args__ = (
+        UniqueConstraint("notificacao_id", "usuario_id", name="uq_notificacao_destinatario_usuario"),
+        Index("idx_notificacao_destinatario_usuario_lida", "usuario_id", "lida", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    notificacao_id: Mapped[int] = mapped_column(
+        ForeignKey("notificacao.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    lida: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    lida_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

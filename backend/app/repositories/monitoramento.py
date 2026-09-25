@@ -28,6 +28,7 @@ from app.db.models import (
     PropostaCandidata,
     User,
 )
+from app.repositories.notificacoes import criar_notificacao
 
 # Evento/ação ATIVO = ainda vigente (não corrigido nem excluído) -- ver
 # docstring de EventoMarco/AcaoMonitoramento em models.py (Plan Mode
@@ -264,8 +265,10 @@ def adicionar_acao(db: Session, acao: AcaoMonitoramento) -> None:
 
 
 def adicionar_notificacao(db: Session, notificacao: Notificacao) -> None:
-    """Persiste a notificação auxiliar decidida pelo caso de uso."""
-    db.add(notificacao)
+    """Persiste a notificação auxiliar decidida pelo caso de uso, já
+    materializando o destinatário (titular/suplente do instrumento +
+    gestor/admin, ver app.repositories.notificacoes::criar_notificacao)."""
+    criar_notificacao(db, notificacao)
 
 
 def sincronizar(db: Session) -> None:

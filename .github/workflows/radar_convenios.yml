@@ -1,4 +1,4 @@
-name: Radar de Convênios (descoberta TransfereGov / verificação SICONV / verificação TransfereGov)
+name: Radar de Convênios (descoberta TransfereGov / verificação SICONV / verificação TransfereGov / alerta de vigência)
 
 # So manual por enquanto, mesmo motivo/mesmo guard do pipelines.yml (sem
 # DATABASE_URL publico configurado como secret ainda) -- reativar o
@@ -6,7 +6,10 @@ name: Radar de Convênios (descoberta TransfereGov / verificação SICONV / veri
 # pra rodar DIARIO (API paginada, sem custo real); job de verificacao roda
 # junto mas so reprocessa de fato quando o HEAD-check acusa mudanca real
 # no dump SICONV (ver docstring de scripts/job_verificacao_siconv.py) --
-# rodar os dois com a mesma cadencia diaria e seguro.
+# rodar os dois com a mesma cadencia diaria e seguro. Job de alerta de
+# vigencia (Plan Mode notificacoes-escopo 2026-09-25) tem dedup proprio
+# (DEDUP_DIAS em scripts/job_alerta_vigencia.py) -- tambem seguro rodar
+# diario junto dos demais.
 #
 # Plan Mode database 2026-09-16/17, Bloco 1+4: DATABASE_URL aqui e o role
 # `sigeo_runtime` (so DML) -- NAO roda mais 'alembic upgrade head' neste
@@ -68,3 +71,7 @@ jobs:
       - name: Job de verificacao -- TransfereGov Novo (situação de parceria/ordem de pagamento)
         if: always()
         run: uv run python -m scripts.job_verificacao_transferegov
+
+      - name: Job de alerta -- fim de vigência a 3 meses
+        if: always()
+        run: uv run python -m scripts.job_alerta_vigencia
