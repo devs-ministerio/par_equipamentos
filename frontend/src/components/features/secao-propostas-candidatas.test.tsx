@@ -49,7 +49,9 @@ describe("SecaoPropostasCandidatas", () => {
     render(<SecaoPropostasCandidatas modo="tramitacao" />);
 
     await userEvent.type(
-      screen.getByPlaceholderText("Buscar por proponente, município, CNPJ ou CNES..."),
+      screen.getByPlaceholderText(
+        "Buscar por proponente, município, CNPJ ou CNES...",
+      ),
       "7654321",
     );
 

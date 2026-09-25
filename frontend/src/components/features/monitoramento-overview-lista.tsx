@@ -61,9 +61,7 @@ export function MonitoramentoOverviewLista({
       !busca ||
       normalizarTexto(
         `${item.nr_convenio} ${item.nome_convenente} ${item.cnes ?? ""}`,
-      ).includes(
-        normalizarTexto(busca),
-      )
+      ).includes(normalizarTexto(busca))
     );
   });
   const paginaAtual = filtrados.slice(
