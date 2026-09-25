@@ -390,6 +390,23 @@ backend).
   decisão manual da equipe (registrado, não escondido).
 - `AuditLog` registra cada correção em lote.
 
+### Andamento — já executado antes deste plan-mode, mesmo dia (2026-09-25)
+
+Achado ao vivo: `scripts/reconstruir_fases_monitoramento.py` e
+`scripts/complementar_persus_monitoramento.py` já existem, com
+`--dry-run`, idempotentes (documentado em
+`diagnostico-constituicao-backend-2026-09-22.md`, seção "Correção geral
+de fases e precedência de Entregas — 2026-09-25" — executados na mesma
+data, antes da auditoria que originou este plan-mode). O mapeamento
+recusa deliberadamente promover início de fabricação/ordem de
+serviço/TRP/TRD/modificação de casamata a fase automática — as 33
+ocorrências e 6 datas futuras remanescentes são exatamente esse tipo de
+recusa deliberada (evita apresentar marco técnico como execução
+confirmada sem regra de negócio), não bug nem trabalho pendente. Nenhum
+script novo necessário — o padrão já segue exatamente o que este bloco
+pedia (append-only, `--dry-run`, revisão manual pro que não bate em
+heurística simples).
+
 ## 9. Limpeza de código morto e comentários desnecessários
 
 Bloco transversal — roda por último entre os blocos de engenharia, depois
