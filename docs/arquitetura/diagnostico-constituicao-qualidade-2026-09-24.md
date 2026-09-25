@@ -127,6 +127,17 @@ do workflow antes de contar como evidência de integração executada. O E2E nov
 igualmente depende das credenciais e da stack efêmera do CI, que não foram
 usadas localmente.
 
+## Atualização de regressão — 2026-09-25 (PERSUS e logout cross-origin)
+
+O reparo PERSUS ganhou um modo específico em lote (`--fases-gerais`) para não
+reprocessar a carga histórica remota: sua simulação e reexecução comprovam
+idempotência para os 110 eventos de fase geral materializados. Para o logout,
+foi adicionado teste de cliente que reproduz o cookie CSRF em host distinto e
+confirma a recuperação por `/auth/csrf` antes do `POST /auth/logout`. Os 29
+testes frontend focados, lint e build passaram; os testes HTTP backend continuam
+dependentes de PostgreSQL de teste no CI, pois nesta máquina foram coletados e
+marcados como skip sem `TEST_DATABASE_URL`.
+
 ## Atualização de higiene — 2026-09-24 (PERSUS)
 
 A rotina nova de complementação PERSUS foi separada em conciliação, criação de

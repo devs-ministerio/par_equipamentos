@@ -95,3 +95,11 @@ Esse fluxo não muda a regra de reconstrução: um novo servidor deve receber
 clone lógico integral do Neon. A planilha e a rotina complementar não são
 substituto de `pg_dump`/`pg_restore` nem devem ser reexecutadas para reconstruir
 dados manuais de uma base clonada.
+
+### Evidência complementar — 2026-09-25
+
+O reparo `--fases-gerais` foi executado primeiro em simulação e informou 110
+inserções para as 34 linhas conciliadas, sem pendência de vínculo. Após a
+aplicação, a simulação retornou zero novas inserções. Essa evidência cobre a
+idempotência do reparo de fases; não substitui os testes de integração
+dedicados que ainda faltam para os importadores históricos.
