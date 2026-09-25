@@ -1,0 +1,374 @@
+# Plan Mode — Fechamento Final do SIGEO (2026-09-25)
+
+## Contexto
+
+A auditoria sênior de 2026-09-25 cruzou os diagnósticos mais recentes de cada
+domínio (`diagnostico-constituicao-{backend,frontend,database,seguranca,
+qualidade,devops}-*.md`) contra o código/infra atuais. Nenhum domínio tem
+nota abaixo de 8,8/10 e não há item **Crítico** aberto. O que resta é uma
+lista finita de dívidas conhecidas, várias delas já adiadas em rodadas
+anteriores (o próprio backend cita duas vezes "envelope HTTP adiado por ser
+breaking change, sem Plan Mode coordenado"). Este plano fecha essa lista de
+uma vez, no mesmo formato dos `planmode-fechamento-*` anteriores (qualidade
+2026-09-24, devops 2026-09-23): blocos com Implementação/Aceite, ordem
+obrigatória, e uma seção final separando o que é executável pela engenharia
+do que é decisão de custo/produto externa (documentado, não implementado).
+
+**Decisão do usuário (2026-09-25):** escopo é cobertura completa (inclui os
+itens de custo/produto, documentados como pendência formal) e o envelope
+HTTP `{success, data, meta}` entra como bloco prioritário — é a dívida mais
+citada cruzando backend e frontend, e desbloqueia paginação/virtualização
+real.
+
+**Achado ao vivo durante o planejamento:** os commits `eb66273`/`bcf3a1b`
+(deploy de 25/09, papel `gestor` no RBAC — `backend/app/db/models.py:40`,
+`authz.py`, `useAuthSession.ts`, `services/usuarios.ts`) chegaram depois do
+snapshot da auditoria. Isso avança parcialmente o item de diferenciação de
+papéis (Bloco 10) — reduz o escopo desse bloco para "avaliar se `gestor`
+cobre a necessidade de escopo por técnico/UF/órgão", não mais "papel
+inexistente".
+
+## Regras transversais
+
+- Mesmas regras já vigentes no repo: testes só com fixture sintética/
+  Postgres de teste, nunca Neon/produção; correção de bug ganha teste de
+  regressão no mesmo bloco; sem `skip`/baseline genérica para maquiar gate;
+  Repository função solta com `db` posicional (nunca commita), Service
+  `*, db: Session` keyword-only (único que commita, levanta `DomainError`).
+- Migration de schema é sempre passo manual/isolado (`DATABASE_URL_MIGRATION`,
+  `.github/workflows/migrar_banco.yml`), nunca acoplada a boot/deploy/CI.
+- Nenhuma mudança de contrato HTTP quebra consumidor sem migrar o
+  consumidor no mesmo bloco (backend e frontend andam juntos no Bloco 1).
+- Ao final de cada bloco: rodar os gates afetados (`ruff`/`mypy`/`pytest`
+  backend, `lint`/`typecheck`/`test`/`build` frontend) e atualizar o
+  diagnóstico do domínio correspondente com a evidência.
+- Decisão de custo/infra externa (Render/Neon/GitHub plano pago) nunca é
+  tomada implicitamente por este plano — fica registrada como pendência
+  formal na seção final, aguardando aprovação explícita do usuário.
+
+## Ordem obrigatória
+
+```text
+0. Higiene imediata (trabalho não commitado)
+1. Contrato HTTP unificado (envelope + migração evidencia_transferegov)
+2. Decomposição de monitoramento.py (Router→Service→Repository completo)
+3. Paginação/virtualização real no frontend (depende do bloco 1)
+4. E2E autenticado como gate de CI do frontend
+5. Rate limit distribuído (backend + infra)
+6. Hardening de segurança (CSP, TrustedHostMiddleware, KDF, SAST/SBOM)
+7. Database: tabelas mortas, ensaio de migração de servidor, dataset sintético
+8. Saneamento de dados do monitoramento (PERSUS/fase/marcos)
+9. Limpeza de código morto e comentários desnecessários (todo o repo)
+10. Governança de acesso (reavaliar papel gestor vs. escopo técnico/UF/órgão)
+11. Fechamento (diagnósticos, CLAUDE.md e demais arquivos de contexto)
+```
+
+Blocos 0–9 são executáveis pela engenharia. Bloco 10 é parcialmente produto
+(reavaliação, não implementação cega). A seção **"Pendências externas / de
+custo"** ao final lista o que fica fora de qualquer bloco por depender de
+aprovação financeira ou decisão de negócio não tomada ainda.
+
+## 0. Higiene imediata
+
+### Implementação
+1. Revisar e commitar o trabalho em andamento de filtros por CNES
+   (`planmode-filtros-cnes-2026-09-25.md`): `convenio-card-header.tsx`,
+   `monitoramento-overview-lista.tsx`, `secao-propostas-candidatas.tsx`,
+   `filtrar-dados-oficiais.ts`, `monitoramento-equipamentos-page.tsx` + os
+   3 arquivos de teste novos.
+2. Confirmar `npm run lint && npm run typecheck && npm run test && npm run
+   build` verdes antes do commit (já reportado verde pela auditoria, apenas
+   revalidar).
+
+### Aceite
+- `git status` limpo nesses arquivos; commit único e coerente com o
+  plan-mode de filtros CNES já existente.
+
+## 1. Contrato HTTP unificado — envelope `{success, data, meta}`
+
+### Implementação
+1. Definir o envelope de resposta em `backend/app/schemas.py` (ou módulo
+   novo `response_envelope.py`) e um helper central que toda rota usa —
+   não reescrever serialização rota a rota.
+2. Migrar primeiro as rotas com paginação de fato relevante para o
+   frontend (`equipment-offer`, `establishments`, `monitoramento/
+   instrumentos`, `monitoramento/marcos`, `monitoramento/acoes`,
+   `macro-coverage`, cobertura municipal/regional) — usar o teto de
+   segurança (`limit`/`le`) já existente como base, adicionar `meta.total`.
+3. Migrar `GET /propostas-candidatas` do caminho `metas_resumo` para
+   `evidencia_transferegov` (já existe desde 22/09, mais auditável —
+   `backend/app/services/propostas_candidatas.py`), no mesmo bloco, já que
+   ambos tocam o mesmo router.
+4. No frontend, atualizar os schemas Zod dos services correspondentes
+   (`services/monitoramento-{instrumentos,marcos,acoes}.ts`, `api.ts`,
+   `propostas-candidatas.ts`) para o novo envelope — mudança mecânica
+   (unwrap de `data`), não reescrever lógica de UI.
+5. Rotas sem paginação real (ex. `/auth/me`, mutações simples) podem manter
+   o shape atual ou adotar o envelope sem `meta` — decidir por rota, não
+   forçar `meta` vazio em toda resposta.
+
+### Aceite
+- Toda rota migrada documentada em `contratos-http-sigeo.md` com o novo
+  shape.
+- Backend e frontend fazem deploy coordenado (mesmo PR ou PRs sequenciais
+  na mesma janela) — nunca back cortado sem front atualizado.
+- Testes de contrato HTTP (já existentes, ver matriz) atualizados para o
+  novo shape; nenhum consumidor quebrado (`npm run build` + smoke E2E).
+
+## 2. Decomposição de `monitoramento.py`
+
+### Implementação
+1. Completar a migração Router→Service→Repository que já cobre a fatia de
+   leitura (`listar_instrumentos`, `obter_timeline_instrumento`) para a
+   fatia de escrita: eventos, ações, `atualizar_cadastro`, `obter_resumo`.
+2. Seguir o padrão de referência já estabelecido em
+   `repositories/propostas_candidatas.py` +
+   `services/propostas_candidatas.py` (Repository função solta,
+   `db: Session` posicional, nunca commita; Service `*, db: Session`
+   keyword-only, único que commita, levanta `DomainError`).
+3. Mover os 5 `commit()` hoje no router (achado explícito do diagnóstico de
+   backend) para dentro dos Services correspondentes.
+4. Não reescrever regra de negócio — só mover código de lugar, com testes
+   de regressão cobrindo o comportamento atual antes de mover.
+
+### Aceite
+- `routers/monitoramento.py` fica fino (só `Depends`, chama Service,
+  `response_model`) — mesmo critério usado para `notificacoes.py`.
+- `pytest` cobre os Services novos com os mesmos casos já testados no
+  router antigo, sem perda de cobertura.
+
+## 3. Paginação/virtualização real no frontend
+
+### Implementação
+1. Depende do Bloco 1 (precisa de `meta.total`/`meta.cursor` real).
+2. Introduzir paginação real (offset ou cursor, a decidir pela forma que o
+   backend expôs no Bloco 1) nas listas que hoje só têm teto de segurança
+   sem UI de paginação: instrumentos monitorados, oferta de equipamentos,
+   cobertura municipal.
+3. Virtualização client-side (`@tanstack/virtual` ou equivalente) só onde
+   o volume real já se aproxima do teto — não adicionar biblioteca nova
+   para listas pequenas (seguir a preferência de "opção mais leve" já
+   registrada nas convenções do projeto).
+
+### Aceite
+- Lista renderiza mais páginas sem carregar teto inteiro de uma vez.
+- Nenhuma regressão visual (validar nas 3 telas migradas via dev server).
+
+## 4. E2E autenticado como gate de CI (frontend)
+
+### Implementação
+1. O E2E já existe e passa localmente (`e2e/login.spec.ts`, cenários de
+   redirecionamento, login, responsividade). Falta só cabear no CI.
+2. Seguir o mesmo padrão que o backend já implementou em `e2e_ci.yml`
+   (citado no diagnóstico de qualidade como já existente e verde) — este
+   bloco é sobre garantir que o `frontend_ci.yml` também dispara/depende
+   dele, não recriar infraestrutura.
+3. Confirmar `E2E_EMAIL`/`E2E_SENHA` como secrets de repositório, nunca
+   hardcoded; `E2E_ISOLATED_DATABASE=true` obrigatório.
+
+### Aceite
+- PR com regressão em login/sessão/responsividade falha o gate.
+- Nenhum secret aparece em log/trace/artifact.
+
+## 5. Rate limit distribuído
+
+### Implementação
+1. Trocar `Settings.rate_limit_storage_uri` default de `memory://` para
+   um backend compartilhado (Redis gerenciado, ou storage já disponível na
+   infra atual) em produção — manter `memory://` como default só para
+   dev/teste local (`app/config.py:71`).
+2. Validar que múltiplos workers/instâncias do Render respeitam o mesmo
+   limite de `/auth/login` (5/min) e `/auth/refresh` (30/min).
+3. Isso tem componente de infra (provisionar Redis) — coordenar com o
+   Bloco de DevOps antes de mudar o default em produção.
+
+### Aceite
+- Teste de integração simulando 2 processos concorrentes contra o mesmo
+  storage confirma limite compartilhado.
+- `runbook-devops.md` documenta a nova dependência.
+
+## 6. Hardening de segurança
+
+### Implementação
+1. Promover `Content-Security-Policy-Report-Only` da API para enforcement
+   — só depois de confirmar (via logs/relatório de violação já coletado)
+   que não há falso positivo real bloqueando fluxo legítimo.
+2. Adicionar `TrustedHostMiddleware` (`backend/app/main.py`) com a lista
+   de hosts esperados (Render + domínio próprio).
+3. Migrar KDF de PBKDF2-HMAC-SHA256 para `argon2id` — path de migração
+   gradual (verificar hash antigo no login, re-hash com argon2id na
+   primeira autenticação bem-sucedida, sem forçar reset em massa).
+4. Consolidar SAST/secret scan/SBOM num único relatório de gate (os
+   workflows já existem — `secret_scan.yml`, `static_security.yml`,
+   `supply_chain.yml` — este bloco é sobre garantir cobertura completa e
+   fixar por SHA os que ainda não estão).
+
+### Aceite
+- CSP enforcement ativo sem quebrar nenhum fluxo real (validado em staging
+  ou janela de observação antes do enforcement).
+- Login com hash antigo continua funcionando durante a transição
+  argon2id; novo hash é argon2id após primeiro login pós-deploy.
+
+## 7. Database — tabelas mortas e migração de servidor
+
+### Implementação
+1. Decisão formal (usuário) sobre `equipamento_alias` e `execution_alert`
+   — se confirmado sem uso, `DROP TABLE` via migration Alembic dedicada,
+   com backup prévio.
+2. Ensaiar `pg_dump`/`pg_restore` ponta a ponta num ambiente descartável:
+   dump do Neon atual → restore em instância nova → `alembic current` →
+   smoke test da API contra o restore. Documentar o runbook resultante.
+3. Definir e criar o dataset sintético/anonimizado de desenvolvimento
+   (pendente desde 16/09) — escopo mínimo: volume pequeno, sem PII real,
+   cobrindo os cenários de teste que hoje dependem de fixture ad hoc.
+
+### Aceite
+- Runbook de migração de servidor testado e documentado, não só
+  especificado.
+- `equipamento_alias`/`execution_alert` removidas ou justificadas com
+  data de reavaliação.
+
+## 8. Saneamento de dados do monitoramento (PERSUS)
+
+### Implementação
+1. Tratar os furos já mapeados pela auditoria de qualidade como
+   saneamento de dado, não bug de schema: 85 instrumentos sem fase direta,
+   141 marcos sem vínculo de fase, 6 ocorrências com data futura, 16
+   inaugurações sem conclusão direta, 33 ocorrências PERSUS não
+   mapeáveis.
+2. Script de reconciliação one-shot (seguindo o mesmo padrão já usado na
+   limpeza de 33 grupos duplicados de 2026-09-19 — `substituido_por_id`,
+   nunca `UPDATE`/`DELETE` físico), revisado caso a caso com a equipe
+   antes de aplicar em produção.
+3. Casos que não batem em heurística simples ficam de fora, documentados,
+   igual aos 16 grupos deixados de fora na limpeza anterior.
+
+### Aceite
+- Contagem de furos cai para o que for efetivamente irreconciliável sem
+  decisão manual da equipe (registrado, não escondido).
+- `AuditLog` registra cada correção em lote.
+
+## 9. Limpeza de código morto e comentários desnecessários
+
+Bloco transversal — roda por último entre os blocos de engenharia, depois
+que 1–8 já moveram/removeram código, para não limpar algo que um bloco
+anterior ainda ia tocar (evita retrabalho e diffs cruzados confusos).
+
+### Implementação
+1. **Arquivo sem consumidor real** — varredura por grep/import graph em
+   `backend/app/` e `frontend/src/`, mesma heurística já usada no Bloco 12
+   do Plan Mode frontend de 17/09 (achou `data-surface.tsx`/
+   `metric-strip.tsx`). Candidatos já registrados e nunca fechados:
+   `frontend/src/hooks/useJson.ts` (candidato desde 17/09, nunca
+   confirmado); revalidar `equipamento_alias`/`execution_alert` do Bloco 7
+   entram aqui se a decisão for manter o schema e só remover consumo morto
+   em vez de `DROP TABLE`.
+2. **Comentários datados/históricos remanescentes** — mesma poda já feita
+   em `services/{api,convenios,monitoramento}.ts` e páginas de
+   monitoramento (Plan Mode frontend 17/09): achados do tipo "achado
+   2026-09-XX, pedido do usuário: '...'" ainda existentes em arquivos que
+   NÃO foram cobertos naquela rodada — checar especificamente
+   `secao-propostas-candidatas.tsx` (explicitamente deixado de fora na
+   época porque seria dividido depois — já foi dividido no Bloco 5 do
+   mesmo Plan Mode, então a poda de comentário agora não tem mais motivo
+   pra ficar pendente) e os componentes tocados pelos Blocos 1–3 deste
+   plano (novos arquivos de service/schema do envelope HTTP não devem
+   nascer com comentário histórico).
+3. **Backend**: reconfirmar por grep que os 3 schemas mortos já removidos
+   (`ErrorResponse`, `UserCreate`, `TokenPayload`) não voltaram; aplicar o
+   mesmo crivo (zero consumidor real, confirmado por grep antes de
+   remover) a qualquer função/endpoint que os Blocos 1–2 tenham deixado
+   sem chamador depois da migração de contrato (ex. serialização antiga
+   do `metas_resumo` se `evidencia_transferegov` assumir 100% do
+   consumo).
+4. **CSS/estilo morto**: reaplicar a mesma varredura que já removeu
+   `.card-group`/`.table-editorial`/`.kpi-row`/`.table-scroll`/`.kpi`
+   de `index.css` — checar se sobrou algo introduzido depois de 17/09
+   sem consumidor (ex. classes ad hoc dos filtros CNES do Bloco 0).
+5. **Regra do que NÃO remover** (herdada das rodadas anteriores, não
+   reabrir por engano): migrations históricas do Alembic, adaptadores
+   TransfereGov/SICONV documentados como compatibilidade proposital,
+   comentários que carregam o *why* de uma decisão não óbvia (constraint
+   escondida, workaround de bug específico) — só remover o comentário
+   *narrativo* datado ("fulano pediu X em tal dia"), nunca o *raciocínio*
+   técnico que ajuda a entender uma decisão não óbvia.
+
+### Aceite
+- `ruff check .`/`oxlint` sem novo achado de import não usado após a
+  limpeza (a remoção não pode introduzir regressão de lint).
+- Nenhum arquivo removido sem confirmação por grep de zero
+  importador/consumidor real — mesmo padrão de cautela já usado nas
+  rodadas anteriores (`DataSurface` removido só depois de não achar
+  ponto de encaixe; `useJson.ts` registrado como candidato, não removido
+  sem busca adicional — esse bloco é a busca adicional pendente).
+- Diff de limpeza fica isolado do diff funcional de cada bloco (commit
+  próprio de limpeza por área, não misturado com o commit que implementa
+  o bloco 1–8 correspondente).
+
+## 10. Governança de acesso
+
+### Implementação
+1. Com o papel `gestor` já em produção (commits `eb66273`/`bcf3a1b`),
+   avaliar com o usuário se ele cobre a necessidade de "escopo por
+   técnico/UF/órgão" apontada nos diagnósticos de segurança, ou se ainda
+   falta um nível de granularidade (ex. gestor vinculado a uma UF
+   específica vs. gestor global).
+2. Só desenhar/implementar granularidade adicional após essa decisão —
+   não implícito neste plano.
+
+### Aceite
+- Decisão registrada (mantém 4 papéis globais, ou avança para escopo por
+  UF/técnico) — vira novo plan-mode dedicado se a resposta for "avançar".
+
+## 11. Fechamento
+
+### Implementação
+1. Atualizar os 6 diagnósticos (`diagnostico-constituicao-*`) com o
+   resultado final de cada bloco, incluindo o que a limpeza do Bloco 9
+   efetivamente removeu (arquivo/CSS/comentário — não só "foi feito").
+2. Atualizar `CLAUDE.md` (par_equipamentos) com as decisões de arquitetura
+   tomadas neste fechamento (envelope HTTP, papel gestor, dataset
+   sintético) e remover deste próprio arquivo qualquer menção a pendência
+   que este plano tiver fechado, para não deixar o contexto desatualizado
+   logo depois de escrito.
+3. Revisar `AGENTS.md`/READMEs de `backend/`/`frontend/` quanto a comandos,
+   estrutura ou convenção que os blocos 1–9 tenham mudado (ex. novo helper
+   de envelope HTTP, novo Service de monitoramento).
+4. Registrar nota final por domínio e lista do que ficou formalmente fora
+   de escopo (seção abaixo).
+
+## Validação final
+
+```bash
+cd backend
+uv run ruff check .
+uv run mypy .
+uv run pytest --cov --cov-branch
+
+cd ../frontend
+npm run lint
+npm run typecheck
+npm run test -- --coverage
+npm run build
+npm run test:e2e
+```
+
+## Pendências externas / de custo (fora de execução de engenharia)
+
+Documentadas, não implementadas por este plano — exigem aprovação
+financeira ou decisão de produto explícita antes de qualquer trabalho:
+
+- Staging/registry de imagem promovível no Render (decisão de custo).
+- Backup externo / PITR acima de 6h no Neon (decisão de custo).
+- Instância sempre ativa no Render ou migração para outro provedor, para
+  eliminar cold start (decisão de custo).
+- CodeQL nativo e proteção de branch nativa do GitHub (exigem plano pago).
+- Matriz formal de classificação/retenção/expurgo LGPD (decisão de
+  produto/jurídico, não só engenharia).
+- Granularidade de autorização por técnico/UF/órgão além do papel
+  `gestor` atual (depende da decisão do Bloco 10).
+
+## Estado de execução
+
+Nenhum bloco executado ainda — este documento registra o plano aprovado em
+2026-09-25, pronto para início pelo Bloco 0.
