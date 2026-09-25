@@ -7,11 +7,12 @@ service por fora do router (script, outro service, job futuro) não
 esbarrava em checagem nenhuma. As funções abaixo são chamadas de DENTRO dos
 services (não só do router), pra fechar essa lacuna.
 
-Baseline documentado aqui, não mudado por este bloco: `UserRole` é
-`admin`/`colaborador`/`leitor`; o único gate real até 2026-09-17 era binário
-(`leitor` bloqueado de mutação; `admin` e `colaborador` têm exatamente os
-mesmos poderes). Escopo de autorização por técnico/UF/órgão continua
-decisão de produto pendente -- não implementado aqui. `assert_e_admin`
+Baseline documentado aqui: `UserRole` é
+`admin`/`gestor`/`colaborador`/`leitor`; o gate de mutação do monitoramento
+continua binário (`leitor` bloqueado; os demais podem editar). A associação
+relacional de responsáveis fica em `instrumento_responsavel`; o recorte de
+visibilidade por colaborador será aplicado junto da política de acesso por
+instrumento, sem depender dos campos textuais legados. `assert_e_admin`
 (Módulo de gestão de usuários, 2026-09-17) é a primeira checagem real de
 `UserRole.admin` no código, só pra esse módulo específico -- não altera o
 gate binário do resto do app.

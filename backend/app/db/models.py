@@ -37,6 +37,7 @@ from app.db.base import Base
 
 class UserRole(str, enum.Enum):
     admin = "admin"
+    gestor = "gestor"
     colaborador = "colaborador"
     leitor = "leitor"
 
@@ -989,6 +990,34 @@ class InstrumentoEquipamento(Base):
     # comentario acima). None quando ainda nao ha nenhuma ordem de
     # pagamento emitida.
     situacao_ordem_pagamento_transferegov: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class InstrumentoResponsavel(Base):
+    """Vínculo de acesso entre colaborador e instrumento monitorado.
+
+    `tecnico_titular`/`tecnico_suplente` permanecem como retrato textual das
+    cargas históricas. Esta tabela é a fonte relacional para autorização e
+    visualização por pessoa; nunca deduz identidade a partir do texto em
+    tempo de requisição.
+    """
+
+    __tablename__ = "instrumento_responsavel"
+    __table_args__ = (
+        CheckConstraint("papel IN ('titular', 'suplente')", name="ck_instrumento_responsavel_papel"),
+        UniqueConstraint("instrumento_id", "usuario_id", name="uq_instrumento_responsavel_usuario"),
+        UniqueConstraint("instrumento_id", "papel", name="uq_instrumento_responsavel_papel"),
+        Index("idx_instrumento_responsavel_usuario", "usuario_id", "instrumento_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    papel: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

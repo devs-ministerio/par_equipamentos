@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
@@ -20,6 +21,7 @@ from app.db.models import (
     AcaoMonitoramento,
     EventoMarco,
     InstrumentoEquipamento,
+    InstrumentoResponsavel,
     MarcoCatalogo,
     MarcoGrupo,
     Notificacao,
@@ -34,6 +36,18 @@ from app.repositories import monitoramento as monitoramento_repo
 # Postgres (Plan Mode monitoramento-evolucao 2026-09-19).
 _TIPOLOGIAS_VALIDAS = {"A", "CV", "C", "EO", "C.B", "NA"}
 _MODALIDADES_ONCO_VALIDAS = {"Apoio", "Diagnóstico", "Rastreamento", "Tratamento", "Múltiplas"}
+
+# Opções de responsável que possuem identidade autorizada. O texto histórico
+# de Layane/Louise não é resolvido aqui; ele foi limpo pela migration e não
+# pode recriar um vínculo sem usuário correspondente.
+_EMAIL_RESPONSAVEL_POR_TEXTO = {
+    "BRUNA": "bruna.machado@saude.gov.br",
+    "BRUNA MACHADO": "bruna.machado@saude.gov.br",
+    "LEONARDO BARSANTE": "leonardo.augusto@saude.gov.br",
+    "PRISCILA": "priscila.muniz@saude.gov.br",
+    "SAMUEL": "samuel.oliveira@saude.gov.br",
+    "THIAGO RODRIGUES": "thiago.rodrigues@saude.gov.br",
+}
 
 
 def _agora_utc() -> datetime:
@@ -69,6 +83,40 @@ def _resumo_equipamento_entregue(dados: DadosEquipamentoEntregue) -> str | None:
     if not partes:
         return None
     return "Equipamento entregue: " + " · ".join(partes)
+
+
+def _sincronizar_responsaveis_relacionais(
+    *, db: Session, instrumento: InstrumentoEquipamento, alteracoes: dict[str, object | None]
+) -> None:
+    """Mantém o vínculo relacional alinhado aos selects técnicos vigentes."""
+    for campo, papel in (("tecnico_titular", "titular"), ("tecnico_suplente", "suplente")):
+        if campo not in alteracoes:
+            continue
+        db.execute(
+            delete(InstrumentoResponsavel).where(
+                InstrumentoResponsavel.instrumento_id == instrumento.id,
+                InstrumentoResponsavel.papel == papel,
+            )
+        )
+        texto = alteracoes[campo]
+        if not isinstance(texto, str):
+            continue
+        email = _EMAIL_RESPONSAVEL_POR_TEXTO.get(texto.strip().upper())
+        if email is None:
+            continue
+        usuario = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        ja_vinculado = (
+            db.execute(
+                select(InstrumentoResponsavel.id).where(
+                    InstrumentoResponsavel.instrumento_id == instrumento.id,
+                    InstrumentoResponsavel.usuario_id == usuario.id,
+                )
+            ).scalar_one_or_none()
+            if usuario is not None
+            else None
+        )
+        if usuario is not None and ja_vinculado is None:
+            db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=usuario.id, papel=papel))
 
 
 def atualizar_cadastro_instrumento(
@@ -108,6 +156,7 @@ def atualizar_cadastro_instrumento(
         if antigo != valor:
             alteracoes[campo] = {"old": antigo, "new": valor}
         setattr(instrumento, campo, valor)
+    _sincronizar_responsaveis_relacionais(db=db, instrumento=instrumento, alteracoes=alteracoes_brutas)
     log_action(
         db,
         user_id=usuario.id,

@@ -7,7 +7,7 @@ import { apiAuthed, apiGetAuthed } from "./monitoramento-client";
 // docstring de monitoramento-client.ts).
 // ---------------------------------------------------------------------
 
-export const userRoleSchema = z.enum(["admin", "colaborador", "leitor"]);
+export const userRoleSchema = z.enum(["admin", "gestor", "colaborador", "leitor"]);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const userStatusSchema = z.enum(["active", "inactive", "suspended"]);

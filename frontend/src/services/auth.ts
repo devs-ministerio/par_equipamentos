@@ -7,7 +7,7 @@ const authUserSchema = z.object({
   id: z.number(),
   name: z.string(),
   email: z.string(),
-  role: z.enum(["admin", "colaborador", "leitor"]),
+  role: z.enum(["admin", "gestor", "colaborador", "leitor"]),
   status: z.enum(["active", "inactive", "suspended"]),
   created_at: z.string(),
 });

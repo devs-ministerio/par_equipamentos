@@ -15,11 +15,10 @@
 export const TECNICOS_EQUIPE = [
   "BRUNA",
   "BRUNA MACHADO",
-  "LAYANE",
   "LEONARDO BARSANTE",
-  "LOUISE",
   "PRISCILA",
   "SAMUEL",
+  "THIAGO RODRIGUES",
 ];
 
 /** Os 3 níveis literais do nome da coluna na planilha fonte -- "SIMPLIFICADO"
