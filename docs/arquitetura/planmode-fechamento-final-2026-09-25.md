@@ -281,6 +281,46 @@ implementado agora. Implementar quando houver um storage real pra apontar.
 - Login com hash antigo continua funcionando durante a transição
   argon2id; novo hash é argon2id após primeiro login pós-deploy.
 
+### Andamento — 3 de 4 concluídos em 2026-09-25; CSP fica pendente
+
+- **argon2id**: `hash_password`/`verify_password` (`app/auth.py`) migrados
+  — `hash_password` só produz argon2id (`argon2-cffi`, dependência nova);
+  `verify_password` detecta formato pelo prefixo (`pbkdf2_sha256$` vs
+  argon2) e valida com o algoritmo certo. `precisa_rehash` (novo) decide
+  se um hash existente precisa migrar (todo PBKDF2 legado, ou argon2id
+  cujos parâmetros do hasher mudaram). `routers/auth.py::login` re-hasheia
+  silenciosamente no primeiro login bem-sucedido pós-deploy — sem reset em
+  massa, sem exigir troca de senha do usuário.
+- **TrustedHostMiddleware**: adicionado em `app/main.py`, depois do CORS
+  no código (Starlette empilha em ordem reversa, então roda ANTES do
+  CORS). `Settings.allowed_hosts`/`allowed_hosts_lista` (`app/config.py`)
+  — default `localhost,127.0.0.1,*.onrender.com` (nome do serviço Render,
+  `render.yaml::name = sieo-backend`, sem domínio customizado hoje).
+  `tests/conftest.py` adiciona `testserver` só no ambiente de teste
+  (`os.environ.setdefault`, nunca no default de produção) — `TestClient`
+  sem `base_url` explícito manda `Host: testserver` por convenção do
+  Starlette.
+- **SAST/secret scan/SBOM**: já cobertos e já fixados por SHA em todos os
+  10 workflows (`secret_scan.yml`, `static_security.yml`,
+  `supply_chain.yml` + os demais) — confirmado por grep, zero `uses:` sem
+  pin de SHA. Nenhuma mudança necessária (achado do diagnóstico de devops
+  já estava resolvido).
+- **CSP enforcement — não promovido**: fica em
+  `Content-Security-Policy-Report-Only`. Promover exige confirmar contra
+  relatório real de violação em produção (dado que esta sessão não tem
+  acesso a logs/observabilidade ao vivo) — registrado na seção
+  "Pendências externas" ao final, não uma decisão de custo mas de
+  observação operacional que só quem tem acesso ao New Relic/logs de
+  produção pode fechar com segurança.
+
+Validado: `ruff check .`/`mypy .` limpos; suíte completa contra Postgres
+de teste real 229/232 (mesmas 3 falhas pré-existentes do container
+atrasado em migration); `test_auth_session.py`/`test_usuarios.py`/
+`test_csrf.py` rodados isoladamente (fresh process) — 100% verdes,
+incluindo os fluxos de login/senha que o argon2id toca diretamente.
+Frontend inalterado (`lint`/`typecheck` confirmados limpos, bloco é só
+backend).
+
 ## 7. Database — tabelas mortas e migração de servidor
 
 ### Implementação
@@ -433,6 +473,10 @@ financeira ou decisão de produto explícita antes de qualquer trabalho:
 - Rate limit distribuído do Bloco 5 (`Settings.rate_limit_storage_uri`
   `memory://` → storage compartilhado) — sem Redis/serviço gerenciado
   provisionado ainda (decisão do usuário, 2026-09-25).
+- Promoção de `Content-Security-Policy-Report-Only` para enforcement
+  (Bloco 6) — precisa de relatório real de violação em produção antes de
+  promover; esta sessão não tem acesso a logs/New Relic ao vivo pra
+  confirmar ausência de falso positivo.
 - Staging/registry de imagem promovível no Render (decisão de custo).
 - Backup externo / PITR acima de 6h no Neon (decisão de custo).
 - Instância sempre ativa no Render ou migração para outro provedor, para

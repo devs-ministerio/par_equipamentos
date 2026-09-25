@@ -14,6 +14,13 @@ from pathlib import Path
 import pytest
 from sqlalchemy.engine import make_url
 
+# TrustedHostMiddleware (Plan Mode fechamento final 2026-09-25, Bloco 6) --
+# TestClient(app) sem base_url explícito manda Host: testserver por
+# convenção do Starlette; isso nunca deve entrar no default de produção
+# (app/config.py::allowed_hosts), só no ambiente de teste. `setdefault`
+# não sobrescreve se algo já setou a variável antes.
+os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
+
 _DB_TEST_MODULES = {
     "test_auth_session.py",
     "test_competency_por_familia.py",

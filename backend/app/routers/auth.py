@@ -17,6 +17,7 @@ from app.auth import (
     create_access_token,
     create_refresh_token,
     hash_password,
+    precisa_rehash,
     registrar_falha_login,
     registrar_sucesso_login,
     require_current_user,
@@ -61,6 +62,12 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
         registrar_falha_login(db, user)
         db.commit()
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
+
+    # Migração de KDF (Plan Mode fechamento final 2026-09-25, Bloco 6) --
+    # sem reset em massa: hash legado (PBKDF2) vira argon2id no primeiro
+    # login bem-sucedido depois do deploy, silenciosamente.
+    if precisa_rehash(user.password_hash):
+        user.password_hash = hash_password(corpo.password)
 
     registrar_sucesso_login(user)
     refresh_token, refresh_token_id = create_refresh_token(db, user)
