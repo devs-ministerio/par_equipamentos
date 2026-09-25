@@ -309,9 +309,16 @@ def run() -> None:
                                 detalhe=existente.metas_resumo,
                             )
                     if mudou:
+                        # tipo=proposta_candidata (não atualizacao_api) -- entidade_id aqui é
+                        # PropostaCandidata.id, e o contrato documentado em
+                        # db/models.py::Notificacao resolve atualizacao_api/edicao_manual
+                        # sempre contra InstrumentoEquipamento.id (ver
+                        # services/notificacoes.py::listar_notificacoes). Usar
+                        # atualizacao_api aqui fazia o destino resolver contra a tabela
+                        # errada (instrumento coincidente por id numérico, ou None).
                         db.add(
                             Notificacao(
-                                tipo=NotificacaoTipo.atualizacao_api,
+                                tipo=NotificacaoTipo.proposta_candidata,
                                 titulo=f"Proposta {id_proposta} atualizada",
                                 corpo=f"Campo(s) alterado(s): {', '.join(mudou.keys())}",
                                 entidade_id=existente.id,

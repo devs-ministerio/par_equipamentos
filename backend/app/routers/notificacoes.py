@@ -20,7 +20,7 @@ devolve o retorno. Regra de negocio e commit vivem em
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
@@ -35,7 +35,7 @@ router = APIRouter(prefix="/notificacoes", tags=["notificacoes"])
 
 @router.get("", response_model=NotificacoesListRead)
 def listar_notificacoes(
-    limit: int = 20,
+    limit: int = Query(default=20, le=200, gt=0),
     offset: int = 0,
     apenas_nao_lidas: bool = False,
     db: Session = Depends(get_db),

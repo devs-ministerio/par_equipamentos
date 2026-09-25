@@ -1402,13 +1402,17 @@ class Notificacao(Base):
     """2 camadas (pedido do usuario 2026-09-15): camada 1
     (tipo=atualizacao_api) nasce do job de verificacao/descoberta achando
     mudanca real (diff campo a campo, nunca so presenca/ausencia) num
-    instrumento ja monitorado; camada 2 (tipo=edicao_manual) nasce de
-    AuditLog (app/audit.py::log_action, ja escrito por toda rota de mutacao
-    via PATCH) -- nao duplica rastreamento, so le audit_log filtrado por
-    entity_name='instrumento_equipamento'. `entidade_id` e polimorfico por
-    `tipo` (mesmo padrao de AuditLog.entity_name/entity_id), sem FK fisica
-    de proposito -- tipo_candidata aponta pra proposta_candidata.id, os
-    outros 2 tipos apontam pra instrumento_equipamento.id."""
+    instrumento ja monitorado; camada 2 (tipo=edicao_manual) nasce do PATCH
+    de instrumento (app/services/monitoramento_eventos.py) -- SEMPRE junto
+    de um app/audit.py::log_action pro mesmo evento, mas sao 2 inserts
+    fisicos independentes (nao ha leitura/materializacao de audit_log aqui,
+    a linha em `notificacao` e gravada direto). `entidade_id` e polimorfico
+    por `tipo` (mesmo padrao de AuditLog.entity_name/entity_id), sem FK
+    fisica de proposito -- tipo=proposta_candidata aponta pra
+    proposta_candidata.id (proposta nova OU atualizada, ver
+    scripts/job_descoberta_transferegov.py), os outros 2 tipos
+    (atualizacao_api de instrumento, edicao_manual) apontam pra
+    instrumento_equipamento.id."""
 
     __tablename__ = "notificacao"
     __table_args__ = (Index("idx_notificacao_lida_created", "lida", "created_at"),)
