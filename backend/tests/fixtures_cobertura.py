@@ -42,6 +42,13 @@ def seed_cobertura() -> None:
             select(Competency).where(Competency.label == _LABEL, Competency.equipment_family == "TOMOGRAFO")
         )
         if competencia_anterior is not None:
+            # Precisa zerar o ponteiro ANTES de deletar a execução que ele
+            # aponta -- mesmo bug já corrigido em run_pipeline_*.py (ver
+            # tests/test_pipeline_dedup.py): sem isso, a FK RESTRICT de
+            # competency.published_execution_id barra o DELETE numa 2a
+            # rodada do seed contra o mesmo banco.
+            competencia_anterior.published_execution_id = None
+            db.flush()
             db.execute(delete(Execution).where(Execution.competency_id == competencia_anterior.id))
             db.execute(delete(Competency).where(Competency.id == competencia_anterior.id))
             db.flush()
