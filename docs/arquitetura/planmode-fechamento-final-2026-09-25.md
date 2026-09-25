@@ -464,6 +464,34 @@ anterior ainda ia tocar (evita retrabalho e diffs cruzados confusos).
   próprio de limpeza por área, não misturado com o commit que implementa
   o bloco 1–8 correspondente).
 
+### Andamento — escopo reduzido, coordenado com sessão paralela (2026-09-25)
+
+Bloco executado só no frontend + reconfirmação pontual no backend —
+`backend/app/routers/monitoramento.py`, `repositories/monitoramento.py`,
+`notificacoes.py`, jobs e `db/models.py` ficaram fora por estarem em
+edição concorrente por outra sessão no mesmo repo (coordenado por
+mensagem cross-session, evita diff cruzado/conflito de autoria).
+
+- **`useJson.ts`**: já não existe mais no repo (achado ao vivo — candidato
+  registrado em 17/09, já removido em rodada não documentada aqui).
+  Confirmado por `find`, nenhuma ação necessária.
+- **Comentários narrativos datados**: variedade grande (22 arquivos)
+  segue o padrão consistente do projeto de documentar WHY com data/pedido
+  — não é cruft, é convenção estabelecida (mesmo estilo usado em todo o
+  histórico deste CLAUDE.md). Podados só os 2 arquivos que o escopo
+  original deste bloco previa: `secao-propostas-candidatas.tsx`,
+  `lib/proposta-metas-resumo.ts` + `monitoramento-equipamentos-page.tsx`
+  (tocado no Bloco 0, mesmo critério de "arquivo tocado nesta rodada").
+  Raciocínio técnico preservado em todos, só a atribuição narrativa
+  datada removida.
+- **Backend — 3 schemas mortos**: reconfirmado por grep,
+  `ErrorResponse`/`UserCreate`/`TokenPayload` não voltaram.
+- **CSS morto**: nenhuma classe ad hoc nova em `index.css` desde 17/09 —
+  arquivo já é só `@theme`/tokens Tailwind, sem seletor solto.
+
+Validado: `npm run lint`/`tsc --noEmit`/`npm run test` (113/113) verdes.
+Nenhuma mudança de comportamento, só comentário.
+
 ## 10. Governança de acesso
 
 ### Implementação

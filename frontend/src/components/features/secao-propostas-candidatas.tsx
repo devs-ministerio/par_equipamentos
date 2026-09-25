@@ -32,10 +32,9 @@ import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { CardProposta } from "./proposta-card";
 
 /** `modo`: as 2 abas de "Linhas de financiamento" -- "Confirmada
- * (parceria)" e "Em tramitação (proposta)" (pedido do usuário 2026-09-18,
- * substituindo as antigas "Novas propostas"/"Propostas" que separavam por
- * critério de pagamento em vez de estágio no funil Proposta -> Parceria,
- * ver estagioDeFato() em lib/proposta-status.ts). Busca sempre TUDO da API
+ * (parceria)" e "Em tramitação (proposta)", separadas por estágio no funil
+ * Proposta -> Parceria (não por critério de pagamento, ver estagioDeFato()
+ * em lib/proposta-status.ts). Busca sempre TUDO da API
  * de uma vez (sem `status` na query) -- as duas abas só recortam
  * client-side, então trocar de aba não refaz o fetch (mesma queryKey no
  * cache do TanStack Query).
