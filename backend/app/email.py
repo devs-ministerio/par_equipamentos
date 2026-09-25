@@ -51,7 +51,7 @@ def enviar_link(*, destinatario: str, nome: str, token: str, assunto: str, camin
     resposta = requests.post(
         settings.mail_api_url,
         headers={"x-api-key": settings.mail_api_secret},
-        json={"to": destinatario, "subject": assunto, "fromName": "SIGEO", "html": html},
+        json={"to": destinatario, "subject": assunto, "fromName": "Sistema de Gestão de Equipamentos em Oncologia - SIGEO", "html": html},
         timeout=15,
     )
     resposta.raise_for_status()
