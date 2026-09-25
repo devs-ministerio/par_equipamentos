@@ -31,6 +31,7 @@ from app.db.models import AcaoMonitoramento, Convenio, EventoMarco, InstrumentoE
 
 ROOT = Path(__file__).resolve().parents[2]
 ARQUIVO_PADRAO = ROOT / "data/Controle PERSUS.xlsx"
+ARQUIVO_ENTREGAS_PADRAO = ROOT / "data/Entregas_aceleradores_lineares_PERSUS_PRONON_CONV.xlsx"
 
 # Conciliação manual feita pela equipe em 2026-09-24. O valor da planilha é
 # preservado em ``cnes_informado`` para auditoria; esta tabela só define a
@@ -94,6 +95,19 @@ class LinhaControle:
     acoes_concluidas: dict[str, date]
 
 
+@dataclass(frozen=True)
+class LinhaEntrega:
+    """Registro de Entregas usado somente para data efetiva de inauguração."""
+
+    linha: int
+    tipo_contratacao: str
+    uf: str
+    municipio: str
+    unidade: str
+    nr_convenio: str | None
+    data_inauguracao: date | None
+
+
 def _indice_por_local(
     ws, *, inicio: int, colunas: tuple[int, int, int, int]
 ) -> dict[tuple[str, str, str], list[tuple]]:
@@ -105,12 +119,25 @@ def _indice_por_local(
     return indice
 
 
+def _indice_por_cnes(ws, *, inicio: int, coluna_cnes: int) -> dict[str, list[tuple]]:
+    """Índice auxiliar: só é consumido quando o CNES tiver uma única ocorrência."""
+    indice: dict[str, list[tuple]] = defaultdict(list)
+    for numero, linha in enumerate(ws.iter_rows(values_only=True), 1):
+        if numero <= inicio:
+            continue
+        if cnes := _cnes(linha[coluna_cnes]):
+            indice[cnes].append(linha)
+    return indice
+
+
 def ler_controle(path: Path) -> list[LinhaControle]:
     livro = openpyxl.load_workbook(path, read_only=True, data_only=True)
     if {"Obras", "Equipamentos", "Inauguração"} - set(livro.sheetnames):
         raise ValueError("Controle PERSUS precisa conter Obras, Equipamentos e Inauguração.")
     obras = _indice_por_local(livro["Obras"], inicio=2, colunas=(2, 3, 4, 5))
     equipamentos = _indice_por_local(livro["Equipamentos"], inicio=1, colunas=(1, 2, 3, 4))
+    obras_por_cnes = _indice_por_cnes(livro["Obras"], inicio=2, coluna_cnes=2)
+    equipamentos_por_cnes = _indice_por_cnes(livro["Equipamentos"], inicio=1, coluna_cnes=1)
     registros: list[LinhaControle] = []
     for numero, linha in enumerate(livro["Inauguração"].iter_rows(values_only=True), 1):
         if numero == 1 or not (cnes := _cnes(linha[2])):
@@ -118,6 +145,13 @@ def ler_controle(path: Path) -> list[LinhaControle]:
         chave = _chave_local(linha[0], linha[3], linha[4])
         obra = obras[chave][0] if len(obras[chave]) == 1 else None
         equipamento = equipamentos[chave][0] if len(equipamentos[chave]) == 1 else None
+        # A fonte usa aliases de hospital em algumas abas. O CNES do PERSUS
+        # já é canônico; só o usamos para localizar dados complementares se
+        # for único dentro da aba correspondente, sem escolher duplicatas.
+        if obra is None and len(obras_por_cnes[cnes]) == 1:
+            obra = obras_por_cnes[cnes][0]
+        if equipamento is None and len(equipamentos_por_cnes[cnes]) == 1:
+            equipamento = equipamentos_por_cnes[cnes][0]
         datas = {}
         acoes = {}
         if equipamento:
@@ -161,6 +195,59 @@ def ler_controle(path: Path) -> list[LinhaControle]:
     return registros
 
 
+def ler_entregas(path: Path = ARQUIVO_ENTREGAS_PADRAO) -> list[LinhaEntrega]:
+    """Lê PERSUS-I e CONVÊNIO; PRONON é intencionalmente excluído do fluxo."""
+    livro = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    if {"PERSUS-I", "CONVÊNIO"} - set(livro.sheetnames):
+        raise ValueError("Planilha de entregas precisa conter as abas PERSUS-I e CONVÊNIO.")
+    registros: list[LinhaEntrega] = []
+    for numero, linha in enumerate(livro["PERSUS-I"].iter_rows(values_only=True), 1):
+        if numero > 1 and _texto(linha[1]) and _texto(linha[2]) and _texto(linha[3]):
+            registros.append(
+                LinhaEntrega(
+                    linha=numero,
+                    tipo_contratacao="PERSUS I",
+                    uf=_texto(linha[1]),
+                    municipio=_texto(linha[2]),
+                    unidade=_texto(linha[3]),
+                    nr_convenio=None,
+                    data_inauguracao=_data(linha[7]),
+                )
+            )
+    for numero, linha in enumerate(livro["CONVÊNIO"].iter_rows(values_only=True), 1):
+        if numero > 1 and _texto(linha[1]) and _texto(linha[3]) and _texto(linha[4]) and _texto(linha[5]):
+            registros.append(
+                LinhaEntrega(
+                    linha=numero,
+                    tipo_contratacao="Convênio",
+                    uf=_texto(linha[1]),
+                    municipio=_texto(linha[3]),
+                    unidade=_texto(linha[4]),
+                    nr_convenio=_texto(linha[5]),
+                    data_inauguracao=_data(linha[10]),
+                )
+            )
+    return registros
+
+
+def _datas_entregas_por_local(entregas: Sequence[LinhaEntrega]) -> dict[tuple[str, str, str], date]:
+    """Retorna somente datas cuja identidade local é única e não conflitante."""
+    por_local: dict[tuple[str, str, str], set[date]] = defaultdict(set)
+    for entrega in entregas:
+        if entrega.tipo_contratacao == "PERSUS I" and entrega.data_inauguracao:
+            por_local[_chave_local(entrega.uf, entrega.municipio, entrega.unidade)].add(entrega.data_inauguracao)
+    return {chave: next(iter(datas)) for chave, datas in por_local.items() if len(datas) == 1}
+
+
+def _data_inauguracao_prioritaria(
+    registro: LinhaControle, datas_entregas: dict[tuple[str, str, str], date]
+) -> date | None:
+    """Entregas é a fonte padrão; Controle só preenche ausência na fonte padrão."""
+    return datas_entregas.get(
+        _chave_local(registro.uf, registro.municipio, registro.unidade), registro.data_inauguracao
+    )
+
+
 def _resolver_convenio(registro: LinhaControle, convenios: Sequence[Convenio]) -> Convenio | None:
     if cnes_validado := CNES_VALIDADO_POR_LINHA.get(registro.linha):
         candidatos_validados = [convenio for convenio in convenios if convenio.cnes == cnes_validado]
@@ -181,6 +268,20 @@ def _resolver_convenio(registro: LinhaControle, convenios: Sequence[Convenio]) -
     ]
     candidatos = {convenio.id: convenio for convenio in [*por_cnes_tipo, *por_local]}
     return next(iter(candidatos.values())) if len(candidatos) == 1 else None
+
+
+def _resolver_convenio_entrega(entrega: LinhaEntrega, convenios: Sequence[Convenio]) -> Convenio | None:
+    """Aceita Entregas somente quando UF, município e unidade são exatos e únicos."""
+    if entrega.tipo_contratacao == "Convênio":
+        candidatos_numero = [convenio for convenio in convenios if convenio.numero == entrega.nr_convenio]
+        return candidatos_numero[0] if len(candidatos_numero) == 1 else None
+    candidatos = [
+        convenio
+        for convenio in convenios
+        if _chave_local(convenio.uf, convenio.municipio, convenio.convenente_nome)
+        == _chave_local(entrega.uf, entrega.municipio, entrega.unidade)
+    ]
+    return candidatos[0] if len(candidatos) == 1 else None
 
 
 def _campos_instrumento(convenio: Convenio, origem: str) -> dict[str, object]:
@@ -215,15 +316,19 @@ def _adicionar_evento(
     data_prevista: date | None,
     observacao: str,
 ) -> bool:
-    existe = db.execute(
-        select(EventoMarco.id).where(
-            EventoMarco.instrumento_id == instrumento.id,
-            EventoMarco.marco_id == marco.id,
-            EventoMarco.data_ocorrencia == data_ocorrencia,
-            EventoMarco.data_prevista == data_prevista,
-            EventoMarco.observacao == observacao,
+    existe = (
+        db.execute(
+            select(EventoMarco.id).where(
+                EventoMarco.instrumento_id == instrumento.id,
+                EventoMarco.marco_id == marco.id,
+                EventoMarco.data_ocorrencia == data_ocorrencia,
+                EventoMarco.data_prevista == data_prevista,
+                EventoMarco.observacao == observacao,
+            )
         )
-    ).scalar_one_or_none()
+        .scalars()
+        .first()
+    )
     if existe is not None:
         return False
     db.add(
@@ -240,13 +345,17 @@ def _adicionar_evento(
 
 
 def _adicionar_acao_concluida(db, instrumento: InstrumentoEquipamento, descricao: str, data_conclusao: date) -> bool:
-    existe = db.execute(
-        select(AcaoMonitoramento.id).where(
-            AcaoMonitoramento.instrumento_id == instrumento.id,
-            AcaoMonitoramento.descricao == descricao,
-            AcaoMonitoramento.data_conclusao == data_conclusao,
+    existe = (
+        db.execute(
+            select(AcaoMonitoramento.id).where(
+                AcaoMonitoramento.instrumento_id == instrumento.id,
+                AcaoMonitoramento.descricao == descricao,
+                AcaoMonitoramento.data_conclusao == data_conclusao,
+            )
         )
-    ).scalar_one_or_none()
+        .scalars()
+        .first()
+    )
     if existe is not None:
         return False
     db.add(AcaoMonitoramento(instrumento_id=instrumento.id, descricao=descricao, data_conclusao=data_conclusao))
@@ -274,7 +383,7 @@ def _situacao_convenio(situacao_inauguracao: str | None) -> str | None:
     return None
 
 
-def _fases_ocorridas(registro: LinhaControle) -> dict[str, date]:
+def _fases_ocorridas(registro: LinhaControle, *, data_inauguracao: date | None = None) -> dict[str, date]:
     """Consolida a última evidência realizada de cada fase geral.
 
     ``fase_geral_id`` dá contexto a um marco físico/regulatório, mas não é
@@ -289,18 +398,19 @@ def _fases_ocorridas(registro: LinhaControle) -> dict[str, date]:
         anterior = fases.get(fase)
         if anterior is None or data_evento > anterior:
             fases[fase] = data_evento
-    if registro.data_inauguracao:
-        fases["fase_concluido"] = registro.data_inauguracao
+    if data_inauguracao:
+        fases["fase_concluido"] = data_inauguracao
     return fases
 
 
-def validar(*, arquivo: Path = ARQUIVO_PADRAO) -> dict[str, int]:
+def validar(*, arquivo: Path = ARQUIVO_PADRAO, arquivo_entregas: Path = ARQUIVO_ENTREGAS_PADRAO) -> dict[str, int]:
     """Confere a conciliação sem abrir nenhuma escrita na base.
 
     Diferentemente de ``--dry-run``, esta etapa não faz ``flush`` e por isso
     também não consome valores de sequence em uma base produtiva.
     """
     registros = ler_controle(arquivo)
+    datas_entregas = _datas_entregas_por_local(ler_entregas(arquivo_entregas))
     resultado: dict[str, int] = defaultdict(int)
     with SessionLocal() as db:
         convenios = db.execute(select(Convenio).where(Convenio.chave_origem.like("PERSUS1-%"))).scalars().all()
@@ -311,6 +421,7 @@ def validar(*, arquivo: Path = ARQUIVO_PADRAO) -> dict[str, int]:
         )
         resolvidos: dict[str, Convenio] = {}
         for registro in registros:
+            data_inauguracao = _data_inauguracao_prioritaria(registro, datas_entregas)
             convenio = _resolver_convenio(registro, convenios)
             if convenio is None:
                 resultado["pendentes_vinculo"] += 1
@@ -323,11 +434,11 @@ def validar(*, arquivo: Path = ARQUIVO_PADRAO) -> dict[str, int]:
                 resultado["conflitos_ano"] += 1
             if registro.nup and convenio.numero_processo not in (None, registro.nup):
                 resultado["conflitos_nup"] += 1
-            if registro.data_inauguracao and convenio.data_conclusao not in (None, registro.data_inauguracao):
+            if data_inauguracao and convenio.data_conclusao not in (None, data_inauguracao):
                 resultado["conflitos_inauguracao"] += 1
             resultado["eventos_planejados"] += len(registro.datas_equipamento)
             resultado["eventos_planejados"] += int(registro.previsao_cnen is not None)
-            resultado["eventos_planejados"] += int(registro.data_inauguracao is not None)
+            resultado["eventos_planejados"] += int(data_inauguracao is not None)
             resultado["acoes_planejadas"] += len(registro.acoes_concluidas)
         chaves_escopo = set(resolvidos) | chaves_monitoradas
         resultado["persus_no_banco"] = len(convenios)
@@ -382,7 +493,11 @@ def _garantir_instrumentos(
 
 
 def _complementar_campos(
-    convenio: Convenio, instrumento: InstrumentoEquipamento, registro: LinhaControle, resultado: dict[str, int]
+    convenio: Convenio,
+    instrumento: InstrumentoEquipamento,
+    registro: LinhaControle,
+    data_inauguracao: date | None,
+    resultado: dict[str, int],
 ) -> None:
     if registro.ano is not None:
         if convenio.ano_instrumento in (None, registro.ano):
@@ -395,9 +510,9 @@ def _complementar_campos(
             convenio.numero_processo = registro.nup
         else:
             resultado["conflitos_nup"] += 1
-    if registro.data_inauguracao:
-        if convenio.data_conclusao in (None, registro.data_inauguracao):
-            convenio.data_conclusao = registro.data_inauguracao
+    if data_inauguracao:
+        if convenio.data_conclusao in (None, data_inauguracao):
+            convenio.data_conclusao = data_inauguracao
         else:
             resultado["conflitos_inauguracao"] += 1
     if situacao := _situacao_convenio(registro.situacao_inauguracao):
@@ -408,6 +523,7 @@ def _registrar_eventos(
     db,
     instrumento: InstrumentoEquipamento,
     registro: LinhaControle,
+    data_inauguracao: date | None,
     marcos: dict[str, MarcoCatalogo],
     observacao: str,
     resultado: dict[str, int],
@@ -435,19 +551,19 @@ def _registrar_eventos(
         )
     marco_inauguracao = marcos.get("cronograma_previsao_inauguracao")
     fase_concluido = marcos.get("fase_concluido")
-    if registro.data_inauguracao and marco_inauguracao:
+    if data_inauguracao and marco_inauguracao:
         resultado["eventos"] += int(
             _adicionar_evento(
                 db,
                 instrumento,
                 marco_inauguracao,
                 fase_concluido.id if fase_concluido else None,
-                registro.data_inauguracao,
+                data_inauguracao,
                 None,
                 observacao,
             )
         )
-    for codigo_fase, data_evento in _fases_ocorridas(registro).items():
+    for codigo_fase, data_evento in _fases_ocorridas(registro, data_inauguracao=data_inauguracao).items():
         fase = marcos.get(codigo_fase)
         if fase is None:
             continue
@@ -473,7 +589,12 @@ def _registrar_acoes(
         )
 
 
-def complementar_fases_gerais(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool = False) -> dict[str, int]:
+def complementar_fases_gerais(
+    *,
+    arquivo: Path = ARQUIVO_PADRAO,
+    arquivo_entregas: Path = ARQUIVO_ENTREGAS_PADRAO,
+    dry_run: bool = False,
+) -> dict[str, int]:
     """Materializa em lote as fases gerais faltantes da carga já aplicada.
 
     A primeira versão da complementação criou os marcos detalhados com
@@ -484,6 +605,7 @@ def complementar_fases_gerais(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool =
     """
     origem = f"Controle PERSUS.xlsx · sha256:{hashlib.sha256(arquivo.read_bytes()).hexdigest()[:12]}"
     registros = ler_controle(arquivo)
+    datas_entregas = _datas_entregas_por_local(ler_entregas(arquivo_entregas))
     resultado: dict[str, int] = defaultdict(int)
     with SessionLocal() as db:
         convenios = db.execute(select(Convenio).where(Convenio.chave_origem.like("PERSUS1-%"))).scalars().all()
@@ -517,7 +639,8 @@ def complementar_fases_gerais(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool =
             observacao = (
                 f"Fase geral consolidada pela complementação PERSUS. Importado de {origem}, linha {registro.linha}."
             )
-            for codigo_fase, data_evento in _fases_ocorridas(registro).items():
+            data_inauguracao = _data_inauguracao_prioritaria(registro, datas_entregas)
+            for codigo_fase, data_evento in _fases_ocorridas(registro, data_inauguracao=data_inauguracao).items():
                 fase = marcos.get(codigo_fase)
                 if fase is None:
                     continue
@@ -544,9 +667,135 @@ def complementar_fases_gerais(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool =
     return resultado
 
 
-def executar(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool = False) -> dict[str, int]:
+def _corrigir_evento_importado(
+    db,
+    *,
+    instrumento: InstrumentoEquipamento,
+    marco: MarcoCatalogo,
+    fase_geral_id: int | None,
+    data_inauguracao: date,
+    observacao: str,
+) -> bool:
+    """Corrige somente evento PERSUS importado, preservando evento manual intacto."""
+    novo = db.execute(
+        select(EventoMarco).where(
+            EventoMarco.instrumento_id == instrumento.id,
+            EventoMarco.marco_id == marco.id,
+            EventoMarco.data_ocorrencia == data_inauguracao,
+            EventoMarco.observacao == observacao,
+        )
+    ).scalar_one_or_none()
+    if novo is None:
+        novo = EventoMarco(
+            instrumento_id=instrumento.id,
+            marco_id=marco.id,
+            fase_geral_id=fase_geral_id,
+            data_ocorrencia=data_inauguracao,
+            observacao=observacao,
+        )
+        db.add(novo)
+        db.flush()
+    antigos = db.execute(
+        select(EventoMarco).where(
+            EventoMarco.instrumento_id == instrumento.id,
+            EventoMarco.marco_id == marco.id,
+            EventoMarco.data_ocorrencia.is_not(None),
+            EventoMarco.data_ocorrencia != data_inauguracao,
+            EventoMarco.deletado_em.is_(None),
+            EventoMarco.substituido_por_id.is_(None),
+            EventoMarco.observacao.like("%Controle PERSUS.xlsx%"),
+        )
+    ).scalars()
+    substituidos = 0
+    for antigo in antigos:
+        antigo.substituido_por_id = novo.id
+        substituidos += 1
+    return substituidos == 0
+
+
+def complementar_inauguracoes_entregas(
+    *, arquivo_entregas: Path = ARQUIVO_ENTREGAS_PADRAO, dry_run: bool = False
+) -> dict[str, int]:
+    """Aplica a fonte prioritária de inauguração a PERSUS I e Convênios.
+
+    A aba Entregas é a fonte padrão indicada pela equipe. Controle é exclusivo
+    de PERSUS I, como fonte de ações/eventos, e só supre data quando Entregas
+    a deixa vazia. PRONON não é lido nem alterado.
+    A correção troca apenas eventos anteriores importados do Controle; eventos
+    manuais não são substituídos por script.
+    """
+    entregas = ler_entregas(arquivo_entregas)
+    resultado: dict[str, int] = defaultdict(int)
+    with SessionLocal() as db:
+        convenios = db.execute(select(Convenio)).scalars().all()
+        instrumentos = {
+            item.chave_origem: item
+            for item in db.execute(
+                select(InstrumentoEquipamento).where(InstrumentoEquipamento.chave_origem.like("PERSUS1-%"))
+            ).scalars()
+            if item.chave_origem is not None
+        }
+        marcos = {marco.codigo: marco for marco in db.execute(select(MarcoCatalogo)).scalars()}
+        marco_inauguracao = marcos.get("cronograma_previsao_inauguracao")
+        fase_concluido = marcos.get("fase_concluido")
+        for entrega in entregas:
+            if entrega.data_inauguracao is None:
+                resultado["entregas_sem_data"] += 1
+                continue
+            convenio = _resolver_convenio_entrega(entrega, convenios)
+            if convenio is None:
+                resultado["entregas_pendentes_vinculo"] += 1
+                continue
+            if convenio.data_conclusao == entrega.data_inauguracao:
+                resultado["inauguracoes_ja_coerentes"] += 1
+                continue
+            convenio.data_conclusao = entrega.data_inauguracao
+            convenio.situacao = "Em operação"
+            resultado["inauguracoes_atualizadas"] += 1
+            if convenio.chave_origem is None:
+                continue
+            instrumento = instrumentos.get(convenio.chave_origem)
+            if instrumento is None or marco_inauguracao is None or fase_concluido is None:
+                continue
+            origem = (
+                "Data de inauguração corrigida pela fonte prioritária "
+                f"Entregas ({entrega.tipo_contratacao}), linha {entrega.linha}."
+            )
+            _corrigir_evento_importado(
+                db,
+                instrumento=instrumento,
+                marco=marco_inauguracao,
+                fase_geral_id=fase_concluido.id,
+                data_inauguracao=entrega.data_inauguracao,
+                observacao=origem,
+            )
+            _corrigir_evento_importado(
+                db,
+                instrumento=instrumento,
+                marco=fase_concluido,
+                fase_geral_id=None,
+                data_inauguracao=entrega.data_inauguracao,
+                observacao=origem,
+            )
+            resultado["monitoramentos_atualizados"] += 1
+        if dry_run:
+            db.rollback()
+        else:
+            db.commit()
+    resultado["entregas"] = len(entregas)
+    print(("SIMULACAO" if dry_run else "APLICADO") + ": " + ", ".join(f"{k}={v}" for k, v in sorted(resultado.items())))
+    return resultado
+
+
+def executar(
+    *,
+    arquivo: Path = ARQUIVO_PADRAO,
+    arquivo_entregas: Path = ARQUIVO_ENTREGAS_PADRAO,
+    dry_run: bool = False,
+) -> dict[str, int]:
     origem = f"Controle PERSUS.xlsx · sha256:{hashlib.sha256(arquivo.read_bytes()).hexdigest()[:12]}"
     registros = ler_controle(arquivo)
+    datas_entregas = _datas_entregas_por_local(ler_entregas(arquivo_entregas))
     resultado: dict[str, int] = defaultdict(int)
     with SessionLocal() as db:
         convenios = db.execute(select(Convenio).where(Convenio.chave_origem.like("PERSUS1-%"))).scalars().all()
@@ -573,8 +822,9 @@ def executar(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool = False) -> dict[s
                 raise ValueError(f"PERSUS sem chave de origem: {convenio.numero}")
             instrumento = instrumentos[convenio.chave_origem]
             observacao = f"Importado de {origem}, linha {registro.linha}."
-            _complementar_campos(convenio, instrumento, registro, resultado)
-            _registrar_eventos(db, instrumento, registro, marcos, observacao, resultado)
+            data_inauguracao = _data_inauguracao_prioritaria(registro, datas_entregas)
+            _complementar_campos(convenio, instrumento, registro, data_inauguracao, resultado)
+            _registrar_eventos(db, instrumento, registro, data_inauguracao, marcos, observacao, resultado)
             _registrar_acoes(db, instrumento, registro, observacao, resultado)
             resultado["linhas_vinculadas"] += 1
         if dry_run:
@@ -589,13 +839,19 @@ def executar(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool = False) -> dict[s
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--arquivo", type=Path, default=ARQUIVO_PADRAO)
+    parser.add_argument("--arquivo-entregas", type=Path, default=ARQUIVO_ENTREGAS_PADRAO)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--validar", action="store_true")
     parser.add_argument("--fases-gerais", action="store_true")
+    parser.add_argument("--inauguracoes-entregas", action="store_true")
     argumentos = parser.parse_args()
     if argumentos.validar:
-        validar(arquivo=argumentos.arquivo)
+        validar(arquivo=argumentos.arquivo, arquivo_entregas=argumentos.arquivo_entregas)
     elif argumentos.fases_gerais:
-        complementar_fases_gerais(arquivo=argumentos.arquivo, dry_run=argumentos.dry_run)
+        complementar_fases_gerais(
+            arquivo=argumentos.arquivo, arquivo_entregas=argumentos.arquivo_entregas, dry_run=argumentos.dry_run
+        )
+    elif argumentos.inauguracoes_entregas:
+        complementar_inauguracoes_entregas(arquivo_entregas=argumentos.arquivo_entregas, dry_run=argumentos.dry_run)
     else:
-        executar(arquivo=argumentos.arquivo, dry_run=argumentos.dry_run)
+        executar(arquivo=argumentos.arquivo, arquivo_entregas=argumentos.arquivo_entregas, dry_run=argumentos.dry_run)

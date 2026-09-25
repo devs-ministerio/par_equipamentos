@@ -174,3 +174,18 @@ rejeição de CNES ambíguo, propagação para evento direto de fase e recusa de
 `data_ocorrencia` futura. A varredura não alterou dados nem invalida os gates
 de código já executados; ela reduz a confiança da evidência funcional da carga
 até esse teste e o saneamento controlado serem concluídos.
+
+## Atualização de evidência de correção — 2026-09-25
+
+O reparo geral de fases foi aplicado após simulação e reexecutado sem criar
+novos registros. A suíte unitária adicionada cobre a preferência por fase já
+vinculada e a recusa de marcos ambíguos; `ruff`, `mypy` e os testes focados
+passaram. A cobertura ainda deve ganhar integração em PostgreSQL para a
+prioridade Entregas → Controle e para a substituição append-only de evento
+PERSUS importado. Até essa prova, as 33 ocorrências não mapeáveis e as seis
+datas futuras permanecem pendências explícitas, não falsos positivos de
+qualidade.
+
+Foi incluído teste de regressão para o alias do CNES 2576341: ele exige que o
+fallback por CNES único encontre comissionamento e NUP sem permitir o mesmo
+comportamento em CNES duplicado.

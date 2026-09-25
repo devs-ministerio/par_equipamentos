@@ -282,3 +282,24 @@ se ainda ambíguo. A rotina não deve atualizar `data_conclusao` com Entregas
 sem política de precedência e confirmação de conflito. O saneamento dos
 eventos existentes deve continuar append-only, idempotente e separado da
 correção de ocorrências futuras, que não podem ser aceitas como fato realizado.
+
+## Correção geral de fases e precedência de Entregas — 2026-09-25
+
+O backend passou a expor duas rotinas controladas: a complementação PERSUS lê
+somente PERSUS-I e CONVÊNIO da planilha de Entregas, exclui PRONON, e resolve a
+data efetiva na ordem Entregas → Controle PERSUS (este último só para PERSUS
+I). A outra rotina reconstrói fases gerais para todo o monitoramento a partir
+de eventos ativos, ocorridos e com mapeamento inequívoco. Ambas têm
+`--dry-run`, são append-only para eventos e foram comprovadas por reexecução
+sem novas inserções após a aplicação.
+
+O mapeamento recusa deliberadamente início de fabricação, ordem de serviço,
+TRP, TRD e modificação de casamata como fase automática. A recusa impede que
+um marco técnico seja apresentado como execução confirmada sem regra de
+negócio; as 33 ocorrências restantes e seis datas futuras ficam expostas para
+tratamento manual.
+
+Para alias entre abas do Controle PERSUS, o reconciliador agora busca Obras e
+Equipamentos por CNES somente quando esse valor é único na aba. A regra é
+testada com o CNES 2576341; duplicidades continuam recusadas até haver chave
+adicional, preservando a decisão de não escolher fonte ambígua por heurística.

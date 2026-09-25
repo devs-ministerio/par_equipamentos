@@ -373,3 +373,24 @@ A planilha de entregas confirmou 29 inaugurações do Controle já coerentes no
 banco, seis datas candidatas ainda ausentes e três divergentes. Datas ausentes
 ou divergentes permanecem pendentes de precedência de fonte; não foram
 sobrescritas nesta auditoria.
+
+### Correção de precedência e fase — 2026-09-25
+
+A precedência foi decidida pela equipe e aplicada: Entregas é a fonte padrão
+de inauguração nas abas PERSUS-I e CONVÊNIO; Controle é exclusivo de PERSUS I,
+para ações/marcos e como fallback quando Entregas não possui data. PRONON não
+participa. A aplicação atualizou 14 datas com vínculo seguro, preservou 49
+linhas sem data e 16 sem identidade inequívoca, e foi idempotente na
+reexecução. Não houve alteração de CNES, NUP, schema ou migration.
+
+O reparo append-only de fases passou a abranger todo o monitoramento: 69 fases
+diretas foram reconstruídas de marcos ativos, ocorridos e semanticamente
+inequívocos, além de uma fase PERSUS decorrente da nova precedência. Restam 33
+marcos sem regra de promoção e seis ocorrências futuras, documentados no
+diagnóstico de ingestão; ambos exigem decisão de negócio ou correção manual,
+não mutação automática.
+
+O fallback por CNES único foi aplicado somente para complementar PERSUS com
+alias entre abas. Ele materializou 47 fases adicionais sem schema novo nem
+alteração de CNES; o CNES 2576341 passou a refletir Comissionamento em
+2025-10-10, com licença ainda prevista/pendente e sem inauguração inventada.

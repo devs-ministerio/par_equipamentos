@@ -178,3 +178,82 @@ preservando a evidência e registrando a previsão no campo próprio, nunca
 alterando silenciosamente o evento histórico; e (5) exigir confirmação de
 inauguração e fonte para cada uma das 16 conclusões candidatas. Nenhuma dessas
 ações autoriza sobrescrever CNES, NUP ou data efetiva.
+
+## Correção aplicada — hierarquia de inauguração e fases — 2026-09-25
+
+A equipe definiu a precedência operacional de fontes: na planilha
+`Entregas_aceleradores_lineares_PERSUS_PRONON_CONV.xlsx`, as abas **PERSUS-I**
+e **CONVÊNIO** são a fonte padrão de data efetiva de inauguração. A aba
+PRONON é explicitamente ignorada. `Controle PERSUS.xlsx` é exclusivo de
+PERSUS I e continua sendo a fonte de ações e marcos; para inauguração, ele só
+é usado quando Entregas não traz data.
+
+A rotina foi executada após simulação: 86 registros elegíveis de Entregas
+foram lidos, 49 sem data efetiva e 16 sem vínculo inequívoco foram preservados
+sem alteração, e 14 datas de inauguração foram atualizadas. Três afetaram
+instrumentos já monitorados; os eventos anteriormente importados do Controle
+são corrigidos append-only, mantendo eventos manuais fora do alcance do script.
+A reexecução em simulação encontrou 21 datas já coerentes e zero atualização.
+
+Também foi aplicado o reparo geral de fases para todos os instrumentos
+monitorados, baseado exclusivamente em marcos ativos, realizados e com
+semântica inequívoca: 69 fases diretas foram materializadas, seguidas de uma
+simulação sem novas inserções. A nova hierarquia de Entregas exigiu mais uma
+fase PERSUS, que foi aplicada e reexecutada sem duplicidade. Datas futuras
+continuam excluídas dessa derivação.
+
+### Pendência residual — 33 marcos sem promoção automática
+
+Os 33 registros abaixo não possuem vínculo de fase e não têm semântica
+suficientemente inequívoca para promoção automática. `cronograma_inicio_fabricacao`
+não prova uma fase geral do instrumento; ordem de serviço, TRP e TRD exigem
+critério pactuado; e a modificação de casamata é regulatória, não uma transição
+de execução. Eles permanecem no histórico e precisam de classificação de
+negócio, não de uma inferência técnica:
+
+```text
+25000185040202348: inicio_fabricacao (2025-07-21)
+25000198305202459: inicio_fabricacao (2025-09-06)
+947524: inicio_fabricacao (2025-11-14)
+948685: inicio_fabricacao (2025-11-11)
+948686: regulatorio_modificacao_casamata (2025-10-13)
+948687: inicio_fabricacao (2026-01-21)
+948691: inicio_fabricacao (2025-04-10)
+948692: inicio_fabricacao (2 registros, 2025-10-24)
+948694: inicio_fabricacao (2025-07-14)
+948695: inicio_fabricacao (2025-01-27)
+948696: inicio_fabricacao (2025-02-02)
+949415: inicio_fabricacao (2025-12-08)
+949775: inicio_fabricacao (2025-11-22)
+953401: inicio_fabricacao (2026-02-01)
+953716: inicio_fabricacao (2026-02-19)
+953739: inicio_fabricacao (2026-06-01)
+953746: inicio_fabricacao (2025-09-01)
+954390: inicio_fabricacao (2025-09-14)
+954392: inicio_fabricacao (2026-02-17)
+954404: inicio_fabricacao (2025-12-01)
+970621: inicio_fabricacao (2025-09-30)
+971195: inicio_fabricacao (2025-10-01)
+971355: inicio_fabricacao (2025-08-12)
+PS1-135842: ordem_servico (2022-12-19), TRP (2025-06-25)
+PS1-248225: ordem_servico (2022-08-15), TRP (2025-04-05), TRD (2026-08-13)
+PS1-311785: ordem_servico (2024-06-17), TRP (2026-04-07)
+PS1-501204: ordem_servico (2022-12-07)
+PS1-987594: ordem_servico (2023-08-21)
+```
+
+As seis ocorrências futuras também permanecem em fila de correção manual: um
+evento realizado não pode conter data futura; a informação deve ser
+reprogramada como previsão em marco físico ou regulatório, com justificativa.
+
+### Complementação por CNES único — 2026-09-25
+
+Após a aplicação inicial, foi identificado que aliases de unidade entre as
+abas do Controle ainda impediam a leitura dos marcos de alguns PERSUS. A
+rotina agora usa CNES somente quando ele aparece uma única vez na aba de Obras
+ou Equipamentos; CNES repetido continua pendente de chave adicional. Com essa
+correção, foram materializadas mais 47 fases PERSUS por fonte complementar e
+a reexecução não encontrou nova fase. O CNES 2576341 foi conferido no banco:
+tem chegada ao porto, início de obra, início/fim de instalação e
+comissionamento, cinco ações concluídas e a fase atual de Comissionamento em
+2025-10-10. Não há inauguração efetiva registrada.
