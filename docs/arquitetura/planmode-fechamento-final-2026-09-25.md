@@ -507,6 +507,14 @@ Nenhuma mudança de comportamento, só comentário.
 - Decisão registrada (mantém 4 papéis globais, ou avança para escopo por
   UF/técnico) — vira novo plan-mode dedicado se a resposta for "avançar".
 
+### Andamento — decisão registrada em 2026-09-25
+
+**Decisão do usuário**: `gestor` global já basta por agora — os 4 papéis
+(`admin`/`gestor`/`colaborador`/`leitor`, todos sem escopo por UF/técnico)
+atendem a necessidade atual. Granularidade de autorização por UF/técnico/
+órgão fica fora deste fechamento, sem plan-mode dedicado aberto — revisitar
+só quando houver demanda real de produto, não implementar por antecipação.
+
 ## 11. Fechamento
 
 ### Implementação
@@ -559,8 +567,8 @@ financeira ou decisão de produto explícita antes de qualquer trabalho:
 - CodeQL nativo e proteção de branch nativa do GitHub (exigem plano pago).
 - Matriz formal de classificação/retenção/expurgo LGPD (decisão de
   produto/jurídico, não só engenharia).
-- Granularidade de autorização por técnico/UF/órgão além do papel
-  `gestor` atual (depende da decisão do Bloco 10).
+- ~~Granularidade de autorização por técnico/UF/órgão~~ — decidido no
+  Bloco 10: `gestor` global basta por agora, sem pendência aberta.
 
 ## Estado de execução
 
