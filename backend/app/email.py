@@ -6,6 +6,8 @@ import requests
 
 from app.config import settings
 
+_NOME_REMETENTE = "Sistema de Gestão de Equipamentos em Oncologia - SIGEO"
+
 
 def montar_url_acesso(*, token: str, caminho: str) -> str:
     """Monta URL cujo token fica no fragmento, nunca na querystring."""
@@ -51,7 +53,7 @@ def enviar_link(*, destinatario: str, nome: str, token: str, assunto: str, camin
     resposta = requests.post(
         settings.mail_api_url,
         headers={"x-api-key": settings.mail_api_secret},
-        json={"to": destinatario, "subject": assunto, "fromName": "Sistema de Gestão de Equipamentos em Oncologia - SIGEO", "html": html},
+        json={"to": destinatario, "subject": assunto, "fromName": _NOME_REMETENTE, "html": html},
         timeout=15,
     )
     resposta.raise_for_status()

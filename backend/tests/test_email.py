@@ -1,6 +1,6 @@
 from typing import Any
 
-from app.email import enviar_link, montar_conteudo_acesso, montar_url_acesso
+from app.email import _NOME_REMETENTE, enviar_link, montar_conteudo_acesso, montar_url_acesso
 
 
 def test_mensagem_de_acesso_preserva_token_no_fragmento_e_escapa_nome(monkeypatch):
@@ -43,7 +43,7 @@ def test_enviar_link_entrega_payload_completo_ao_gateway(monkeypatch):
     assert capturado["timeout"] == 15
     assert capturado["json"]["to"] == "e2e@example.com"
     assert capturado["json"]["subject"] == "Ative seu acesso ao SIGEO"
-    assert capturado["json"]["fromName"] == "SIGEO"
+    assert capturado["json"]["fromName"] == _NOME_REMETENTE
     assert "#token=token-unico" in capturado["json"]["html"]
     assert "Continuar no SIGEO" in capturado["json"]["html"]
     assert "subtitle" not in capturado["json"]
