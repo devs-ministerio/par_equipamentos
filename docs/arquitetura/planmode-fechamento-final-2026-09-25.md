@@ -572,5 +572,25 @@ financeira ou decisão de produto explícita antes de qualquer trabalho:
 
 ## Estado de execução
 
-Nenhum bloco executado ainda — este documento registra o plano aprovado em
-2026-09-25, pronto para início pelo Bloco 0.
+**Concluído em 2026-09-25 — Blocos 0 a 11 todos fechados**, no mesmo dia da
+aprovação. Resumo:
+
+- Executados como planejado: Bloco 0 (higiene), Bloco 2 (extração de
+  `monitoramento_resumo`), Bloco 6 (argon2id + TrustedHostMiddleware),
+  Bloco 7 (DROP das tabelas mortas + runbook + dataset sintético), Bloco 9
+  (limpeza, escopo reduzido por coordenação com sessão paralela).
+- Escopo reduzido por achado ao vivo: Bloco 1 (envelope só em
+  equipment-offer/establishments; migração de `evidencia_transferegov`
+  virou pendência registrada, não implementação).
+- Já satisfeitos antes deste plan-mode (nenhuma mudança de código): Blocos
+  3, 4 e 8.
+- Movido para pendência externa por decisão do usuário: Bloco 5 (rate
+  limit distribuído, sem Redis provisionado).
+- Decisão de produto registrada, sem implementação adicional: Bloco 10
+  (papel `gestor` global basta).
+- Fechamento de documentação (Bloco 11): os 6 diagnósticos e o `CLAUDE.md`
+  atualizados com o resultado real de cada bloco.
+
+Executado em coordenação com uma sessão paralela no mesmo repo (trabalho
+simultâneo em notificações/escopo por destinatário) — via mensagens
+cross-session, sem colisão de arquivo em nenhum commit.
