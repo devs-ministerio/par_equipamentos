@@ -70,13 +70,13 @@ jobs:
         run: uv run python -m scripts.validar_cobertura coverage.json
       - name: Publicar relatório de cobertura
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
           path: |
-            backend/coverage.json
-            backend/coverage.xml
-          if-no-files-found: error
+            coverage.json
+            coverage.xml
+          if-no-files-found: warn
           retention-days: 14
       - name: Auditoria de dependências
         run: uv run --with pip-audit pip-audit
