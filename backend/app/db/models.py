@@ -109,12 +109,6 @@ class DeficitStatus(str, enum.Enum):
     not_available = "not_available"
 
 
-class AlertType(str, enum.Enum):
-    municipality_exception = "municipality_exception"
-    macro_exception = "macro_exception"
-    macro_code_divergence = "macro_code_divergence"
-
-
 class MarcoGrupo(str, enum.Enum):
     """3 blocos que a propria equipe de monitoramento ja usa (planilha
     "Monitoramento Base de Dados - Convenio FAF TED", aba Instrucional,
@@ -770,26 +764,6 @@ class EquipmentOfferRow(Base):
 
 
 # ----------------------------------------------------------------------------
-# 7. Qualidade de dado
-# ----------------------------------------------------------------------------
-
-
-class ExecutionAlert(Base):
-    __tablename__ = "execution_alert"
-
-    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    execution_id: Mapped[int] = mapped_column(
-        ForeignKey("execution.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
-    )
-    alert_type: Mapped[AlertType] = mapped_column(
-        PgEnum(AlertType, name="alert_type", native_enum=True),
-        nullable=False,
-    )
-    details: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-
-# ----------------------------------------------------------------------------
 # 8. Monitoramento de equipamento (pos-repasse) -- esforco separado da
 # analise de merito de hipo/hipersuficiencia (decisao 2026-09-03). Cobre o
 # que nenhum sistema federal (TransfereGov, Portal da Transparencia, SICONV)
@@ -1311,20 +1285,6 @@ class EquipamentoCatalogo(Base):
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
-
-
-class EquipamentoAlias(Base):
-    """Alias normalizado, auditável e vinculado ao catálogo canônico."""
-
-    __tablename__ = "equipamento_alias"
-    __table_args__ = (UniqueConstraint("alias_normalizado", name="uq_equipamento_alias_normalizado"),)
-
-    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
-    equipamento_catalogo_id: Mapped[int] = mapped_column(
-        ForeignKey("equipamento_catalogo.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
-    )
-    alias_normalizado: Mapped[str] = mapped_column(String, nullable=False)
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class EquipamentoMarcador(Base):
