@@ -20,7 +20,13 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from app.auth import create_access_token, hash_password, require_monitoramento_editor, verify_password
+from app.auth import (
+    create_access_token,
+    hash_password,
+    require_admin_user,
+    require_monitoramento_editor,
+    verify_password,
+)
 from app.config import settings
 from app.db.base import SessionLocal
 from app.db.models import (
@@ -28,6 +34,7 @@ from app.db.models import (
     AuditLog,
     EventoMarco,
     InstrumentoEquipamento,
+    InstrumentoResponsavel,
     MarcoCatalogo,
     Notificacao,
     NotificacaoTipo,
@@ -543,6 +550,46 @@ def test_perfil_leitor_nao_pode_editar_monitoramento():
 def test_perfil_colaborador_pode_editar_monitoramento():
     usuario_teste = User(id=123456, name="Usuário Pytest", email="pytest@example.com", role=UserRole.colaborador)
     assert require_monitoramento_editor(usuario_teste) is usuario_teste
+
+
+def test_perfil_gestor_edita_monitoramento_mas_nao_usuarios():
+    gestor = User(id=123457, name="Gestor", email="gestor@example.com", role=UserRole.gestor)
+    assert require_monitoramento_editor(gestor) is gestor
+    with pytest.raises(HTTPException) as exc:
+        require_admin_user(gestor)
+    assert exc.value.status_code == 403
+
+
+def test_atualizar_cadastro_sincroniza_responsavel_relacional():
+    db = SessionLocal()
+    usuario_teste = criar_usuario_teste(db)
+    nr_convenio = f"PYTEST-RESP-{uuid4()}"
+    instrumento = InstrumentoEquipamento(
+        nr_convenio=nr_convenio,
+        nome_convenente="Convenente Pytest",
+        tipo_contratacao="Convênio",
+    )
+    try:
+        bruna = db.query(User).filter_by(email="bruna.machado@saude.gov.br").one()
+        db.add(instrumento)
+        db.commit()
+
+        atualizar_cadastro_instrumento(
+            nr_convenio=nr_convenio,
+            alteracoes_brutas={"tecnico_titular": "BRUNA"},
+            db=db,
+            usuario=usuario_teste,
+        )
+
+        responsavel = db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).one()
+        assert responsavel.usuario_id == bruna.id
+        assert responsavel.papel == "titular"
+    finally:
+        db.query(AuditLog).filter_by(entity_name="instrumento_equipamento", entity_id=instrumento.id).delete()
+        db.delete(instrumento)
+        db.query(User).filter_by(id=usuario_teste.id).delete()
+        db.commit()
+        db.close()
 
 
 # Plan Mode segurança 2026-09-16, Bloco 3: a checagem de role precisa viver
