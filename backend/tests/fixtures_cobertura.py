@@ -23,6 +23,7 @@ from app.db.models import (
     MacroCoverage,
     MunicipalityCoverage,
 )
+from app.db.seed_guard import recusar_se_producao
 
 _LABEL = "__pytest_cobertura_tomografo__"
 
@@ -34,6 +35,7 @@ def seed_cobertura() -> None:
     linhas de oferta somam exatamente os agregados: `existing_qty=6` e
     `available_qty=3`, sendo disponibilidade somente SUS e em uso.
     """
+    recusar_se_producao()
     db = SessionLocal()
     try:
         competencia_anterior = db.scalar(
@@ -58,6 +60,14 @@ def seed_cobertura() -> None:
             active_sources={},
         )
         db.add(execucao)
+        db.flush()
+        # Mesmo ponteiro que run_pipeline_*.py mantém a cada rodada real --
+        # sem isso, obter_execucao_publicada_mais_recente (app/repositories/
+        # execucoes.py) nunca escolhe esta execução (achado do incidente
+        # 2026-09-25: o seed nunca setava isso, e por acidente rodou contra
+        # produção com started_at recente o bastante pra "vencer" mesmo sem
+        # ser a execução publicada de verdade).
+        competencia.published_execution_id = execucao.id
         db.flush()
 
         municipios = [

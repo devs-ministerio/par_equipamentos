@@ -12,30 +12,11 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import Competency, Execution, MacroCoverage, User
+from app.db.models import MacroCoverage, User
+from app.repositories import execucoes as execucoes_repo
 from app.schemas import MacroCoverageRead
 
 router = APIRouter(prefix="/macro-coverage", tags=["macro-coverage"])
-
-
-def _latest_execution_id(db: Session, equipment_family: str | None) -> int | None:
-    # Precisa filtrar por familia: cada Execution pertence a uma Competency
-    # de UMA familia so (ver comentario em app/db/models.py:Competency), entao
-    # com mais de uma familia com dado (TOMOGRAFO + RESSONANCIA) pegar so a
-    # "mais recente" sem escopar por familia buscava a execucao errada --
-    # ex.: RESSONANCIA seedada depois de TOMOGRAFO virava "a mais recente"
-    # global, e o filtro `WHERE execution_id = <da RESSONANCIA> AND
-    # equipment_family = 'TOMOGRAFO'` sempre dava 0 linhas (bug real,
-    # corrigido 2026-08-21: pagina do Tomografo aparecia vazia).
-    stmt = (
-        select(Execution.id)
-        .join(Competency, Execution.competency_id == Competency.id)
-        .order_by(Execution.started_at.desc())
-        .limit(1)
-    )
-    if equipment_family:
-        stmt = stmt.where(Competency.equipment_family == equipment_family)
-    return db.execute(stmt).scalar_one_or_none()
 
 
 def _to_read(row: MacroCoverage) -> MacroCoverageRead:
@@ -65,7 +46,7 @@ def listar_macro_coverage(
     buscar so a macro dele em vez da lista inteira (~121 linhas). Exige
     sessão (decisão do usuário 2026-09-17: todo o app fica atrás de login
     por enquanto, não só o monitoramento interno)."""
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return []
 

@@ -18,8 +18,9 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import Competency, EquipmentOfferRow, Execution, User
+from app.db.models import EquipmentOfferRow, User
 from app.pipeline.geo import distancia_km
+from app.repositories import execucoes as execucoes_repo
 from app.schemas import (
     EquipmentOfferRowPage,
     EquipmentOfferRowRead,
@@ -42,21 +43,6 @@ _COLUNAS_ORDENAVEIS = {
     "in_use_qty": EquipmentOfferRow.in_use_qty,
     "sus_flag": EquipmentOfferRow.sus_flag,
 }
-
-
-def _latest_execution_id(db: Session, equipment_family: str | None) -> int | None:
-    # Ver mesmo comentario em app/routers/macro_coverage.py -- sem escopar por
-    # familia, "a execucao mais recente" pode ser de outra familia e o filtro
-    # execution_id + equipment_family sempre da 0 linhas.
-    stmt = (
-        select(Execution.id)
-        .join(Competency, Execution.competency_id == Competency.id)
-        .order_by(Execution.started_at.desc())
-        .limit(1)
-    )
-    if equipment_family:
-        stmt = stmt.where(Competency.equipment_family == equipment_family)
-    return db.execute(stmt).scalar_one_or_none()
 
 
 def _aplicar_filtros(
@@ -112,7 +98,7 @@ def listar_equipment_offer_rows(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> EquipmentOfferRowPage:
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return EquipmentOfferRowPage(data=[], meta=PageMeta(total=0))
 
@@ -157,7 +143,7 @@ def totais_equipamentos(
     app/pipeline/cobertura.py, pra bater com o numero gravado em
     macro_coverage/municipality_coverage (esse endpoint so recalcula em
     tempo de leitura pra granularidade mais fina que macro)."""
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return EquipmentTotalsRead(existing_qty=0, available_qty=0)
 
@@ -187,7 +173,7 @@ def totais_por_natureza_juridica(
     """Soma de existing_qty/available_qty (mesma regra do /totals, ver
     comentario la) agrupada por natureza juridica do estabelecimento --
     Painel Geral, card "Natureza juridica da oferta SUS" (2026-08-22)."""
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return []
 
@@ -222,7 +208,7 @@ def listar_estabelecimentos_opcoes(
     restringido pelos demais ja selecionados, de forma totalmente
     bidirecional (nao ha essa forma de fazer isso paginado no backend sem
     round-trip por combinacao de filtro)."""
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return []
 
@@ -303,7 +289,7 @@ def listar_estabelecimentos(
     """Mesma fonte do endpoint acima, mas agregada por CNES -- um
     estabelecimento pode ter mais de uma linha crua (tomografos de subtipos
     diferentes), aqui ja vem somado com `types` guardando a quebra."""
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return EstablishmentPage(data=[], meta=PageMeta(total=0))
 
