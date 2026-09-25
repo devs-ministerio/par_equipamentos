@@ -242,6 +242,10 @@ HTTP reinsere um access cookie capturado antes do logout e exige `401` em
 foram coletados, mas ficaram skip nesta máquina porque `TEST_DATABASE_URL` não
 estava configurada.
 
+Os prazos efetivos confirmados em 2026-09-25 são: access JWT de **20 minutos**
+e refresh opaco rotativo de **14 dias**. A revogação de refresh invalida também
+o access vinculado antes do prazo natural.
+
 ## Atualização de ingestão PERSUS — 2026-09-24
 
 Foi criada uma rotina de complementação controlada para `Controle PERSUS.xlsx`.

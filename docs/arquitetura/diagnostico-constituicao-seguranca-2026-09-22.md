@@ -52,8 +52,9 @@ compartilhado e não é considerado comprovado sem essa infraestrutura.
 
 ## Evidências positivas confirmadas
 
-- `JWT_SECRET` é validado no boot; access token expira em 20 minutos e refresh
-  token é opaco, armazenado somente como hash e rotacionado atomicamente.
+- `JWT_SECRET` é validado no boot; o access JWT expira em **20 minutos** e o
+  refresh token expira em **14 dias**. O refresh é opaco, armazenado somente
+  como hash e rotacionado atomicamente a cada renovação.
 - Cookies de acesso e refresh são `HttpOnly`; autenticação bearer e token em
   `localStorage` foram removidos. O `localStorage` restante guarda somente
   preferência de família de equipamento.
