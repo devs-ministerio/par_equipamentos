@@ -43,11 +43,15 @@ def enviar_link(*, destinatario: str, nome: str, token: str, assunto: str, camin
     # Fragmentos não são transmitidos em requests HTTP: evita que o token de
     # uso único apareça em logs de borda, histórico de URL ou querystrings.
     url = montar_url_acesso(token=token, caminho=caminho)
-    subtitle, body, html = montar_conteudo_acesso(nome=nome, url=url)
+    _subtitle, _texto, html = montar_conteudo_acesso(nome=nome, url=url)
+    # Contrato do gateway atualizado pelo time responsável pela API de
+    # e-mail: `to`/`subject`/`fromName`/`html` -- `subtitle`/`body` (texto
+    # puro) não fazem mais parte do payload aceito (subtitle continua
+    # embutido no próprio HTML, ver montar_conteudo_acesso).
     resposta = requests.post(
         settings.mail_api_url,
         headers={"x-api-key": settings.mail_api_secret},
-        json={"to": destinatario, "subject": assunto, "subtitle": subtitle, "body": body, "html": html},
+        json={"to": destinatario, "subject": assunto, "fromName": "SIGEO", "html": html},
         timeout=15,
     )
     resposta.raise_for_status()

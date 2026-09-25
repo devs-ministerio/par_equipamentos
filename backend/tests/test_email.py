@@ -43,9 +43,11 @@ def test_enviar_link_entrega_payload_completo_ao_gateway(monkeypatch):
     assert capturado["timeout"] == 15
     assert capturado["json"]["to"] == "e2e@example.com"
     assert capturado["json"]["subject"] == "Ative seu acesso ao SIGEO"
-    assert capturado["json"]["subtitle"] == "Ação necessária no SIGEO"
-    assert "#token=token-unico" in capturado["json"]["body"]
+    assert capturado["json"]["fromName"] == "SIGEO"
+    assert "#token=token-unico" in capturado["json"]["html"]
     assert "Continuar no SIGEO" in capturado["json"]["html"]
+    assert "subtitle" not in capturado["json"]
+    assert "body" not in capturado["json"]
 
 
 def test_enviar_link_recusa_gateway_sem_configuracao(monkeypatch):
