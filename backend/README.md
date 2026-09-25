@@ -8,8 +8,11 @@ qualquer usuario existir via UI):
 uv run python scripts/criar_usuario.py --name "Nome" --email nome@org.gov.br --role admin
 ```
 
-Perfis `admin` e `colaborador` podem alterar o monitoramento; `leitor` so
-consulta. **Gestão de usuários (Módulo Admin, 2026-09-17)**: com pelo menos
+Gate de mutação do monitoramento é binário: `admin`, `gestor` e
+`colaborador` podem alterar; só `leitor` fica restrito a consulta (papel
+`gestor` adicionado em 2026-09-25, mesmos poderes de `colaborador` hoje --
+ver `app/authz.py`). **Gestão de usuários (Módulo Admin, 2026-09-17)**: com
+pelo menos
 um `admin` criado, criação/edição/reset de senha/inativação de usuário passam
 a ser feitos pela tela `/admin/usuarios` (API em `app/routers/usuarios.py`,
 só acessível por `role=admin`) -- o script acima continua existindo só para
