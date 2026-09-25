@@ -340,6 +340,36 @@ backend).
 - `equipamento_alias`/`execution_alert` removidas ou justificadas com
   data de reavaliação.
 
+### Andamento — concluído em 2026-09-25 (3 de 3, escopos diferentes do previsto)
+
+- **DROP das tabelas mortas**: confirmado por decisão do usuário. Migration
+  `9c2e4f7a1d38` (`backend/alembic/versions/`, encadeada em
+  `488a535a0b5e`, a migration nova da sessão paralela que estava
+  trabalhando em notificações — coordenado por mensagem cross-session
+  antes de editar `db/models.py` compartilhado) remove `equipamento_alias`,
+  `execution_alert` e o enum `alert_type`. Classes correspondentes
+  removidas de `app/db/models.py`; comentário em
+  `app/pipeline/runner.py` que citava `ExecutionAlert` atualizado (a
+  explicação de por que não é usada ali deixou de fazer sentido depois do
+  DROP). Aplicada e validada contra o Postgres de teste local — suíte
+  completa 232/232 relevantes passam (as 4 falhas desta rodada são do
+  trabalho em andamento da sessão paralela em `notificacoes.py`,
+  confirmado por grep que nenhuma toca `equipamento_alias`/
+  `execution_alert`).
+- **Runbook de migração de servidor**: documentado em passo a passo
+  completo em `runbook-devops.md` (nova seção "Ensaio de migração de
+  servidor"), mas **não executado** — exige `DATABASE_URL_MIGRATION` real
+  do Neon, credencial que esta sessão não tem. Fica como runbook pronto
+  pra quem tiver acesso rodar e anexar o resultado.
+- **Dataset sintético de desenvolvimento**: achado ao vivo — já existia de
+  fato (`scripts/seed_monitoramento.py` + `tests/fixtures_cobertura.py`,
+  ambos já usados por `tests/conftest.py` e `e2e_ci.yml`), só não tinha
+  entrypoint standalone nem documentação pra uso fora de teste
+  automatizado. Adicionado bloco `if __name__ == "__main__"` em
+  `fixtures_cobertura.py` (testado: `uv run python -m
+  tests.fixtures_cobertura` roda e semeia) + seção nova no
+  `backend/README.md` documentando os dois comandos.
+
 ## 8. Saneamento de dados do monitoramento (PERSUS)
 
 ### Implementação

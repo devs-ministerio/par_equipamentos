@@ -145,6 +145,54 @@ antes de promovê-la.
 - Não remova snapshots versionados antes de mapear consumidores e aprovar a
   retenção alternativa.
 
+## Ensaio de migração de servidor (pg_dump/pg_restore)
+
+Diferente do exercício de restauração PITR acima (que valida recuperação
+*dentro* do Neon, restaurando uma branch a partir de um ponto no tempo),
+este runbook cobre a migração de servidor decidida em
+`diagnostico-constituicao-database-2026-09-16.md` ("Estratégia de
+ingestão e clonagem"): mover o banco inteiro para outro
+servidor/ambiente via `pg_dump`/`pg_restore`, nunca reingestão. Nunca foi
+ensaiado ponta a ponta — só a criação de schema vazio foi testada antes
+disso (achado da auditoria de 2026-09-25). Exige `DATABASE_URL_MIGRATION`
+real (role `sigeo_migration`), que este ambiente de execução não tem —
+rodar manualmente, nunca a partir de uma sessão sem esse acesso.
+
+1. **Preparar o destino descartável**: suba um Postgres novo e vazio (ex.
+   `docker run --rm -e POSTGRES_PASSWORD=... -p 5433:5432 postgres:16-alpine`,
+   ou uma branch Neon nova só para este ensaio — nunca `production`).
+2. **Dump do Neon atual**:
+   ```bash
+   pg_dump "$DATABASE_URL_MIGRATION" --format=custom --no-owner --no-privileges \
+     --file=sigeo-dump-$(date +%Y%m%d).dump
+   ```
+   `--no-owner`/`--no-privileges` evita que o restore falhe tentando recriar
+   os roles `sigeo_runtime`/`sigeo_migration` no destino (que ainda não
+   existem lá) — os roles do destino são recriados à parte, não pelo dump.
+3. **Restore no destino**:
+   ```bash
+   pg_restore --dbname="postgresql://postgres:...@localhost:5433/postgres" \
+     --no-owner --no-privileges --create sigeo-dump-YYYYMMDD.dump
+   ```
+4. **Validar schema**: `uv run alembic current` apontando pro destino deve
+   devolver o mesmo head que a produção (`alembic heads` sem
+   `DATABASE_URL_MIGRATION` setado pro destino ainda não existe — depois do
+   restore, os dois devem bater). Rode também
+   `uv run pytest tests/test_schema_migrations.py` contra o destino.
+5. **Smoke test da API**: suba a API local apontando `DATABASE_URL` pro
+   destino (role de leitura/escrita equivalente ao `sigeo_runtime`,
+   recriado manualmente no destino) e confirme `GET /health` com banco
+   conectado, e pelo menos 1 leitura autenticada real (`GET /auth/me` após
+   login com um usuário existente no dump).
+6. **Descartar o destino** ao final — é um ensaio, não uma migração real;
+   documentar aqui a duração de cada etapa (dump/restore/validação) para
+   estimar RTO de uma migração de servidor real, separado do RTO de 4h já
+   aprovado para restauração PITR dentro do Neon.
+
+Sem exercício registrado ainda — próxima pessoa com acesso a
+`DATABASE_URL_MIGRATION` deve rodar isso e anexar o resultado aqui (data,
+duração de cada etapa, revisão Alembic conferida, qualquer divergência).
+
 ## Monitor externo transitório do Render Free
 
 Enquanto a API estiver no plano Free, o monitor Ping do New Relic `SIGEO API —

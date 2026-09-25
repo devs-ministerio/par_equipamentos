@@ -145,3 +145,16 @@ def seed_cobertura() -> None:
         db.commit()
     finally:
         db.close()
+
+
+if __name__ == "__main__":
+    # Dataset sintético de desenvolvimento (Plan Mode fechamento final
+    # 2026-09-25, Bloco 7) -- roda o MESMO seed que os testes de integração
+    # e o E2E isolado já usam (pytest_sessionstart em tests/conftest.py,
+    # e2e_ci.yml), só que como comando standalone pra apontar um Postgres
+    # local/dev vazio: `uv run python -m tests.fixtures_cobertura`. Junto
+    # com `python -m scripts.seed_monitoramento` (catálogo de marcos,
+    # instrumento/CNES de exemplo), cobre cobertura assistencial + oferta
+    # de equipamento + monitoramento sem precisar de dado real do Neon.
+    seed_cobertura()
+    print("Dataset sintético de cobertura/oferta semeado.")
