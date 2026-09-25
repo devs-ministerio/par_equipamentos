@@ -54,6 +54,24 @@ def _agora_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _notificar_edicao_manual(db: Session, *, instrumento_id: int, titulo: str, corpo: str) -> None:
+    """Notificação de edição manual do monitoramento interno -- mesmo `tipo`
+    já usado por `atualizar_cadastro_instrumento` (frontend já rotula
+    `edicao_manual` como "Edição manual"), agora também disparada por
+    evento/ação de instrumento (achado 2026-09-25: só o cadastro notificava,
+    criar/editar/excluir `EventoMarco`/`AcaoMonitoramento` só gravava
+    AuditLog, sem notificar titular/suplente/gestor/admin)."""
+    monitoramento_repo.adicionar_notificacao(
+        db,
+        Notificacao(
+            tipo=NotificacaoTipo.edicao_manual,
+            titulo=titulo,
+            corpo=corpo,
+            entidade_id=instrumento_id,
+        ),
+    )
+
+
 def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
     """Autoria autenticada fica visivel junto do texto para leitura rapida."""
     prefixo = f"[{autor_nome}]"
@@ -169,14 +187,11 @@ def atualizar_cadastro_instrumento(
     # do tecnico, so quando algo realmente mudou (alteracoes vazio = PATCH
     # com corpo igual ao que ja estava, nao e novidade pra ninguem).
     if alteracoes:
-        monitoramento_repo.adicionar_notificacao(
+        _notificar_edicao_manual(
             db,
-            Notificacao(
-                tipo=NotificacaoTipo.edicao_manual,
-                titulo=f"{usuario.name} editou o convênio {nr_convenio}",
-                corpo=f"Campo(s) alterado(s): {', '.join(alteracoes.keys())}",
-                entidade_id=instrumento.id,
-            ),
+            instrumento_id=instrumento.id,
+            titulo=f"{usuario.name} editou o convênio {nr_convenio}",
+            corpo=f"Campo(s) alterado(s): {', '.join(alteracoes.keys())}",
         )
     db.commit()
     db.refresh(instrumento)
@@ -363,6 +378,12 @@ def registrar_evento_monitorado(
             "evento_inauguracao_id": inauguracao_id,
         },
     )
+    _notificar_edicao_manual(
+        db,
+        instrumento_id=instrumento.id,
+        titulo=f"{usuario.name} registrou evento em {nr_convenio}",
+        corpo=f"Marco: {marco.rotulo}",
+    )
     db.commit()
     db.refresh(evento)
     return evento
@@ -401,6 +422,9 @@ def editar_evento_monitorado(
     marco = monitoramento_repo.obter_marco_por_id(db, antigo.marco_id)
     if marco is None:
         raise NotFoundError(f"Marco {antigo.marco_id} não existe mais no catálogo.")
+    instrumento = monitoramento_repo.obter_instrumento_por_id(db, antigo.instrumento_id)
+    if instrumento is None:
+        raise NotFoundError(f"Instrumento {antigo.instrumento_id} não encontrado.")
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
     if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
         raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
@@ -430,6 +454,12 @@ def editar_evento_monitorado(
         action="updated",
         details={"evento_original_id": evento_id, "old": _resumo_evento(antigo), "new": _resumo_evento(novo)},
     )
+    _notificar_edicao_manual(
+        db,
+        instrumento_id=instrumento.id,
+        titulo=f"{usuario.name} corrigiu um evento em {instrumento.nr_convenio}",
+        corpo=f"Marco: {marco.rotulo}",
+    )
     db.commit()
     db.refresh(novo)
     return novo
@@ -448,6 +478,8 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
     if not motivo.strip():
         raise ValidationError("Informe o motivo da exclusão.")
 
+    marco = monitoramento_repo.obter_marco_por_id(db, evento.marco_id)
+    instrumento = monitoramento_repo.obter_instrumento_por_id(db, evento.instrumento_id)
     evento.deletado_em = _agora_utc()
     evento.deletado_por_id = usuario.id
     evento.motivo_exclusao = motivo
@@ -459,6 +491,13 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
         action="deleted",
         details={"motivo": motivo},
     )
+    if instrumento is not None:
+        _notificar_edicao_manual(
+            db,
+            instrumento_id=instrumento.id,
+            titulo=f"{usuario.name} excluiu um evento em {instrumento.nr_convenio}",
+            corpo=f"Marco: {marco.rotulo}. Motivo: {motivo}" if marco else f"Motivo: {motivo}",
+        )
     # O chamador pode recalcular a fase ainda nesta mesma transação. Garante
     # que a exclusão lógica já participe das queries seguintes, sem depender
     # de um autoflush implícito do SQLAlchemy.
@@ -506,6 +545,12 @@ def registrar_acao_monitorada(
         action="created",
         details={"nr_convenio": nr_convenio, "responsavel": responsavel, "responsavel_id": responsavel_id},
     )
+    _notificar_edicao_manual(
+        db,
+        instrumento_id=instrumento.id,
+        titulo=f"{usuario.name} abriu uma ação em {nr_convenio}",
+        corpo=descricao,
+    )
     db.commit()
     db.refresh(acao)
     return acao
@@ -541,6 +586,9 @@ def editar_acao_monitorada(
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     if antiga.deletado_em is not None or antiga.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode editar de novo.")
+    instrumento = monitoramento_repo.obter_instrumento_por_id(db, antiga.instrumento_id)
+    if instrumento is None:
+        raise NotFoundError(f"Instrumento {antiga.instrumento_id} não encontrado.")
 
     nova = AcaoMonitoramento(
         instrumento_id=antiga.instrumento_id,
@@ -561,6 +609,12 @@ def editar_acao_monitorada(
         action="updated",
         details={"acao_original_id": acao_id, "old": _resumo_acao(antiga), "new": _resumo_acao(nova)},
     )
+    _notificar_edicao_manual(
+        db,
+        instrumento_id=instrumento.id,
+        titulo=f"{usuario.name} corrigiu uma ação em {instrumento.nr_convenio}",
+        corpo=descricao,
+    )
     db.commit()
     db.refresh(nova)
     return nova
@@ -577,6 +631,7 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
         raise ValidationError(f"Ação {acao_id} já está excluída.")
     if not motivo.strip():
         raise ValidationError("Informe o motivo da exclusão.")
+    instrumento = monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id)
 
     acao.deletado_em = _agora_utc()
     acao.deletado_por_id = usuario.id
@@ -589,6 +644,13 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
         action="deleted",
         details={"motivo": motivo},
     )
+    if instrumento is not None:
+        _notificar_edicao_manual(
+            db,
+            instrumento_id=instrumento.id,
+            titulo=f"{usuario.name} excluiu uma ação em {instrumento.nr_convenio}",
+            corpo=f"{acao.descricao}. Motivo: {motivo}",
+        )
     db.commit()
     db.refresh(acao)
     return acao
@@ -614,6 +676,14 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
             action="completed",
             details={"old": None, "new": acao.data_conclusao.isoformat()},
         )
+        instrumento = monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id)
+        if instrumento is not None:
+            _notificar_edicao_manual(
+                db,
+                instrumento_id=instrumento.id,
+                titulo=f"{usuario.name} concluiu uma ação em {instrumento.nr_convenio}",
+                corpo=acao.descricao,
+            )
     db.commit()
     db.refresh(acao)
     return acao
