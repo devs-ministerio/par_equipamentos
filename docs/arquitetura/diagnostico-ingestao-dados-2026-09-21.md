@@ -257,3 +257,13 @@ a reexecução não encontrou nova fase. O CNES 2576341 foi conferido no banco:
 tem chegada ao porto, início de obra, início/fim de instalação e
 comissionamento, cinco ações concluídas e a fase atual de Comissionamento em
 2025-10-10. Não há inauguração efetiva registrada.
+
+### Resiliência da aplicação — 2026-09-25
+
+Durante a complementação completa foi encontrada duplicidade histórica em
+eventos com a mesma chave de deduplicação. A consulta usava uma asserção de
+unicidade e interrompeu a transação antes do commit; nenhuma escrita parcial
+foi preservada. A rotina passou a tratar a existência de qualquer registro
+equivalente como evidência suficiente para não inserir outro, mantendo a
+duplicidade legada observável e impedindo nova duplicação. A aplicação
+posterior foi confirmada no CNES 2576341.

@@ -394,3 +394,9 @@ O fallback por CNES único foi aplicado somente para complementar PERSUS com
 alias entre abas. Ele materializou 47 fases adicionais sem schema novo nem
 alteração de CNES; o CNES 2576341 passou a refletir Comissionamento em
 2025-10-10, com licença ainda prevista/pendente e sem inauguração inventada.
+
+Na mesma execução, uma duplicidade histórica de evento revelou que o
+deduplicador pressupunha unicidade que o banco não impõe. A primeira transação
+foi revertida integralmente; o código foi corrigido para testar existência em
+vez de exigir uma única linha. Não foi criada constraint retroativa nem houve
+remoção física, pois a limpeza de histórico exige reconciliação específica.

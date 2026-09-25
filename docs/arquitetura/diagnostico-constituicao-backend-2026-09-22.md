@@ -303,3 +303,10 @@ Para alias entre abas do Controle PERSUS, o reconciliador agora busca Obras e
 Equipamentos por CNES somente quando esse valor é único na aba. A regra é
 testada com o CNES 2576341; duplicidades continuam recusadas até haver chave
 adicional, preservando a decisão de não escolher fonte ambígua por heurística.
+
+Uma duplicidade histórica em `evento_marco` revelou uma premissa incorreta no
+deduplicador da carga: equivalência não implica que exista uma única linha. A
+transação falhou antes de commit e foi refeita após substituir a asserção de
+unicidade por teste de existência. Isso mantém a rotina idempotente diante do
+legado sem apagar ou atualizar eventos, em conformidade com o histórico
+append-only.

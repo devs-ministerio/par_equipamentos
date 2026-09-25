@@ -346,4 +346,14 @@ não tiverem evidência operacional.
 - [x] Blocos de CI, jobs produtivos, containerização declarativa e deploy
   seguro executados; pendências de custo e observabilidade registradas.
 - [x] Plano encerrado: 100% das ações versionáveis e sem custo no escopo foram
-  executadas e verificadas; pendências externas foram classificadas acima.
+executadas e verificadas; pendências externas foram classificadas acima.
+
+## Observação operacional — 2026-09-25
+
+Durante a publicação do reparo PERSUS, a consulta de status do GitHub falhou
+transitoriamente e uma conexão Neon foi encerrada durante uma simulação. Não
+houve commit parcial: a transação de ingestão foi revertida e o preflight
+posterior de banco respondeu `select 1`. Em seguida, a API GitHub e o health
+check do Render responderam HTTP 200. O evento não configura indisponibilidade
+confirmada nem altera a nota; se voltar a ocorrer, deve ser correlacionado no
+New Relic e no monitor externo antes de classificar como incidente.

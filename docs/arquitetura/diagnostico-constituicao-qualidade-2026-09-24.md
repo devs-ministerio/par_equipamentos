@@ -189,3 +189,19 @@ qualidade.
 Foi incluído teste de regressão para o alias do CNES 2576341: ele exige que o
 fallback por CNES único encontre comissionamento e NUP sem permitir o mesmo
 comportamento em CNES duplicado.
+
+O diagnóstico passa a exigir também cenário de duplicidade histórica para os
+escritores de eventos: a carga deve ignorar qualquer equivalente existente, e
+não pressupor cardinalidade única quando o schema não a impõe. A transação
+interrompida nessa descoberta foi revertida antes do commit e a aplicação
+posterior foi conferida no CNES 2576341.
+
+## Atualização de regressão — 2026-09-25 (busca por CNES)
+
+Quatro testes de frontend foram adicionados ao defeito relatado: busca de
+Instrumentos e repasses por CNES, Linhas de financiamento por CNES,
+Monitoramento interno por CNES e Programa vazio sem mensagem substituta. A
+validação local passou com Oxlint, TypeScript, build e **113 testes em 32
+arquivos**. Não houve endpoint, integração externa ou E2E adicional a cobrir,
+pois os três filtros permanecem puramente client-side sobre respostas já
+validadas pelos services.
