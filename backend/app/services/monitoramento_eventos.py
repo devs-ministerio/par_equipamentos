@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
+from typing import cast
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -422,9 +423,10 @@ def editar_evento_monitorado(
     marco = monitoramento_repo.obter_marco_por_id(db, antigo.marco_id)
     if marco is None:
         raise NotFoundError(f"Marco {antigo.marco_id} não existe mais no catálogo.")
-    instrumento = monitoramento_repo.obter_instrumento_por_id(db, antigo.instrumento_id)
-    if instrumento is None:
-        raise NotFoundError(f"Instrumento {antigo.instrumento_id} não encontrado.")
+    # instrumento_id de um evento já persistido é FK obrigatória -- sempre existe.
+    instrumento = cast(
+        InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, antigo.instrumento_id)
+    )
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
     if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
         raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
@@ -478,8 +480,11 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
     if not motivo.strip():
         raise ValidationError("Informe o motivo da exclusão.")
 
-    marco = monitoramento_repo.obter_marco_por_id(db, evento.marco_id)
-    instrumento = monitoramento_repo.obter_instrumento_por_id(db, evento.instrumento_id)
+    # marco_id/instrumento_id de um evento já persistido são FK obrigatórias -- sempre existem.
+    marco = cast(MarcoCatalogo, monitoramento_repo.obter_marco_por_id(db, evento.marco_id))
+    instrumento = cast(
+        InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, evento.instrumento_id)
+    )
     evento.deletado_em = _agora_utc()
     evento.deletado_por_id = usuario.id
     evento.motivo_exclusao = motivo
@@ -491,13 +496,12 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
         action="deleted",
         details={"motivo": motivo},
     )
-    if instrumento is not None:
-        _notificar_edicao_manual(
-            db,
-            instrumento_id=instrumento.id,
-            titulo=f"{usuario.name} excluiu um evento em {instrumento.nr_convenio}",
-            corpo=f"Marco: {marco.rotulo}. Motivo: {motivo}" if marco else f"Motivo: {motivo}",
-        )
+    _notificar_edicao_manual(
+        db,
+        instrumento_id=instrumento.id,
+        titulo=f"{usuario.name} excluiu um evento em {instrumento.nr_convenio}",
+        corpo=f"Marco: {marco.rotulo}. Motivo: {motivo}",
+    )
     # O chamador pode recalcular a fase ainda nesta mesma transação. Garante
     # que a exclusão lógica já participe das queries seguintes, sem depender
     # de um autoflush implícito do SQLAlchemy.
@@ -586,9 +590,10 @@ def editar_acao_monitorada(
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     if antiga.deletado_em is not None or antiga.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode editar de novo.")
-    instrumento = monitoramento_repo.obter_instrumento_por_id(db, antiga.instrumento_id)
-    if instrumento is None:
-        raise NotFoundError(f"Instrumento {antiga.instrumento_id} não encontrado.")
+    # instrumento_id de uma ação já persistida é FK obrigatória -- sempre existe.
+    instrumento = cast(
+        InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, antiga.instrumento_id)
+    )
 
     nova = AcaoMonitoramento(
         instrumento_id=antiga.instrumento_id,
@@ -631,7 +636,8 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
         raise ValidationError(f"Ação {acao_id} já está excluída.")
     if not motivo.strip():
         raise ValidationError("Informe o motivo da exclusão.")
-    instrumento = monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id)
+    # instrumento_id de uma ação já persistida é FK obrigatória -- sempre existe.
+    instrumento = cast(InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id))
 
     acao.deletado_em = _agora_utc()
     acao.deletado_por_id = usuario.id
@@ -644,13 +650,12 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
         action="deleted",
         details={"motivo": motivo},
     )
-    if instrumento is not None:
-        _notificar_edicao_manual(
-            db,
-            instrumento_id=instrumento.id,
-            titulo=f"{usuario.name} excluiu uma ação em {instrumento.nr_convenio}",
-            corpo=f"{acao.descricao}. Motivo: {motivo}",
-        )
+    _notificar_edicao_manual(
+        db,
+        instrumento_id=instrumento.id,
+        titulo=f"{usuario.name} excluiu uma ação em {instrumento.nr_convenio}",
+        corpo=f"{acao.descricao}. Motivo: {motivo}",
+    )
     db.commit()
     db.refresh(acao)
     return acao
@@ -676,14 +681,16 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
             action="completed",
             details={"old": None, "new": acao.data_conclusao.isoformat()},
         )
-        instrumento = monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id)
-        if instrumento is not None:
-            _notificar_edicao_manual(
-                db,
-                instrumento_id=instrumento.id,
-                titulo=f"{usuario.name} concluiu uma ação em {instrumento.nr_convenio}",
-                corpo=acao.descricao,
-            )
+        # instrumento_id de uma ação já persistida é FK obrigatória -- sempre existe.
+        instrumento = cast(
+            InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id)
+        )
+        _notificar_edicao_manual(
+            db,
+            instrumento_id=instrumento.id,
+            titulo=f"{usuario.name} concluiu uma ação em {instrumento.nr_convenio}",
+            corpo=acao.descricao,
+        )
     db.commit()
     db.refresh(acao)
     return acao
