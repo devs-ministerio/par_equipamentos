@@ -84,28 +84,54 @@ aprovação financeira ou decisão de negócio não tomada ainda.
 - `git status` limpo nesses arquivos; commit único e coerente com o
   plan-mode de filtros CNES já existente.
 
-## 1. Contrato HTTP unificado — envelope `{success, data, meta}`
+### Andamento — concluído em 2026-09-25
 
-### Implementação
-1. Definir o envelope de resposta em `backend/app/schemas.py` (ou módulo
-   novo `response_envelope.py`) e um helper central que toda rota usa —
-   não reescrever serialização rota a rota.
-2. Migrar primeiro as rotas com paginação de fato relevante para o
-   frontend (`equipment-offer`, `establishments`, `monitoramento/
-   instrumentos`, `monitoramento/marcos`, `monitoramento/acoes`,
-   `macro-coverage`, cobertura municipal/regional) — usar o teto de
-   segurança (`limit`/`le`) já existente como base, adicionar `meta.total`.
-3. Migrar `GET /propostas-candidatas` do caminho `metas_resumo` para
-   `evidencia_transferegov` (já existe desde 22/09, mais auditável —
-   `backend/app/services/propostas_candidatas.py`), no mesmo bloco, já que
-   ambos tocam o mesmo router.
-4. No frontend, atualizar os schemas Zod dos services correspondentes
-   (`services/monitoramento-{instrumentos,marcos,acoes}.ts`, `api.ts`,
-   `propostas-candidatas.ts`) para o novo envelope — mudança mecânica
-   (unwrap de `data`), não reescrever lógica de UI.
-5. Rotas sem paginação real (ex. `/auth/me`, mutações simples) podem manter
-   o shape atual ou adotar o envelope sem `meta` — decidir por rota, não
-   forçar `meta` vazio em toda resposta.
+Commitado (`d624afa`, `c9f9f7d`). Sem alteração de escopo.
+
+## 1. Contrato HTTP unificado — envelope `{data, meta}`
+
+### Andamento — concluído em 2026-09-25, escopo reduzido
+
+Duas correções de curso feitas ao vivo durante a execução (registradas com
+detalhe em `diagnostico-constituicao-backend-2026-09-22.md`, seção "Envelope
+HTTP — escopo reduzido e pendência de ingestão"):
+
+- **`monitoramento/{marcos,instrumentos,acoes}`, `macro-coverage`,
+  `municipality-coverage`, `health-region-coverage` ficaram FORA do
+  escopo** — são teto de segurança deliberado (Bloco 4 do Plan Mode
+  consolidação 2026-09-17), com volume muito abaixo do teto (23 marcos,
+  86-91 instrumentos, ~121 macrorregiões). Envelopá-las agora seria
+  paginação fictícia. Continuam `list[X]` puro.
+- **Migração `metas_resumo` → `evidencia_transferegov` removida do
+  bloco** — a tabela não tem nenhum escritor (só o schema da migration
+  `b7e3d9f4a621`); migrar o router leria dado vazio. Vira pendência
+  registrada no diagnóstico de backend, não implementação: falta um
+  plan-mode dedicado pro job de ingestão antes de qualquer migração de
+  leitura.
+
+O que foi feito: `EquipmentOfferRowPage`/`EstablishmentPage`
+(`backend/app/schemas.py`) migraram para `{data: list[T], meta: PageMeta}`
+— as únicas duas rotas com paginação real (offset/limit de verdade).
+`backend/app/routers/equipment_offer.py` (4 pontos de construção),
+`backend/tests/test_equipment_offer_contracts.py` (asserts) e
+`frontend/src/services/api.ts` (`establishmentPageApiSchema`,
+`fetchEstabelecimentosPage`) atualizados. `EstabelecimentosResult` (tipo de
+domínio do frontend, `{items, total}`) não mudou — só o schema de fio
+(`establishmentPageApiSchema`) foi migrado, isolando o resto da UI da
+mudança de contrato.
+
+Achado extra: `GET /equipment-offer-rows` (rota base, sem `/establishments`)
+não tem nenhum consumidor no frontend hoje — `fetchEquipmentOfferRows`
+citado na matriz de contratos nunca existiu em `services/api.ts`. Marcado
+como candidato de revisão no Bloco 9 (limpeza), não removido agora.
+
+Gates: `ruff check .` e `mypy .` limpos; `pytest tests/test_equipment_offer_
+contracts.py` tem 5 falhas pré-existentes (confirmado via `git stash` que
+já falhavam antes desta mudança — dependem de fixture de Postgres isolado
+não disponível neste ambiente local, mesmo padrão dos 116 skips da suíte
+completa); os 2 asserts que a mudança de fato afeta (`total`→`meta.total`,
+`items`→`data`) passam. Frontend: lint, typecheck, 113/113 testes e build
+verdes.
 
 ### Aceite
 - Toda rota migrada documentada em `contratos-http-sigeo.md` com o novo

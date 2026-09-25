@@ -24,8 +24,8 @@ def test_listagem_filtra_municipio_ordena_e_pagina(headers_autenticados):
     )
 
     assert response.status_code == 200
-    assert response.json()["total"] == 1
-    assert response.json()["items"][0]["cnes_code"] == "9000001"
+    assert response.json()["meta"]["total"] == 1
+    assert response.json()["data"][0]["cnes_code"] == "9000001"
 
 
 def test_listagem_rejeita_limite_invalido(headers_autenticados):
@@ -56,8 +56,8 @@ def test_estabelecimentos_respeita_filtro_sus_em_uso(headers_autenticados):
     )
 
     assert response.status_code == 200
-    assert response.json()["total"] == 2
-    assert {item["cnes_code"] for item in response.json()["items"]} == {"9000001", "9000003"}
+    assert response.json()["meta"]["total"] == 2
+    assert {item["cnes_code"] for item in response.json()["data"]} == {"9000001", "9000003"}
 
 
 def test_estabelecimentos_no_raio_aplica_distancia_exata(headers_autenticados):
@@ -75,5 +75,5 @@ def test_estabelecimentos_no_raio_aplica_distancia_exata(headers_autenticados):
     )
 
     assert response.status_code == 200
-    assert response.json()["total"] == 1
-    assert response.json()["items"][0]["cnes_code"] == "9000001"
+    assert response.json()["meta"]["total"] == 1
+    assert response.json()["data"][0]["cnes_code"] == "9000001"

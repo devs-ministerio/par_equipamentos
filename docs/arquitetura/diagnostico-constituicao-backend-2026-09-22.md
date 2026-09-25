@@ -310,3 +310,26 @@ transação falhou antes de commit e foi refeita após substituir a asserção d
 unicidade por teste de existência. Isso mantém a rotina idempotente diante do
 legado sem apagar ou atualizar eventos, em conformidade com o histórico
 append-only.
+
+## Envelope HTTP — escopo reduzido e pendência de ingestão (2026-09-25)
+
+O Plan Mode de fechamento final (`planmode-fechamento-final-2026-09-25.md`,
+Bloco 1) migrou `EquipmentOfferRowPage`/`EstablishmentPage` para
+`{data, meta.total}` — as únicas duas rotas com paginação real (offset/limit
+de verdade). As demais rotas antes cogitadas para o envelope
+(`monitoramento/{marcos,instrumentos,acoes}`, `macro-coverage`,
+`municipality-coverage`, `health-region-coverage`) foram **excluídas do
+escopo**: são teto de segurança deliberado (Bloco 4 do Plan Mode consolidação
+2026-09-17), com volume muito abaixo do teto — envelopá-las agora seria
+paginação fictícia sem necessidade real.
+
+**Pendência nova, registrada e não executada nesta rodada**: a migração de
+`GET /propostas-candidatas` de `metas_resumo` (JSON bruto) para
+`evidencia_transferegov` foi cogitada no mesmo bloco, mas **`EvidenciaTransfereGov`
+não tem nenhum escritor** — existe só o schema da migration
+(`b7e3d9f4a621_cria_evidencia_relacional_transferegov.py`), sem job/service
+que a popule. Migrar o router agora leria uma tabela vazia. Antes de
+qualquer migração de leitura, é preciso um plan-mode dedicado para o job de
+ingestão (parser do payload já capturado em `metas_resumo` como backfill +
+captura contínua para propostas novas) — decisão do usuário 2026-09-25 de
+não expandir o Bloco 1 para cobrir isso agora.

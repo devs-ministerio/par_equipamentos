@@ -28,6 +28,7 @@ from app.schemas import (
     EstablishmentRead,
     FacilityOptionRead,
     LegalNatureBreakdownRead,
+    PageMeta,
 )
 
 router = APIRouter(prefix="/equipment-offer-rows", tags=["equipment-offer-rows"])
@@ -113,7 +114,7 @@ def listar_equipment_offer_rows(
 ) -> EquipmentOfferRowPage:
     exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
-        return EquipmentOfferRowPage(items=[], total=0)
+        return EquipmentOfferRowPage(data=[], meta=PageMeta(total=0))
 
     stmt = select(EquipmentOfferRow).where(EquipmentOfferRow.execution_id == exec_id)
     stmt = _aplicar_filtros(stmt, equipment_family, state, macro_code, health_region_code, municipality, search)
@@ -126,8 +127,8 @@ def listar_equipment_offer_rows(
 
     rows = db.execute(stmt).scalars().all()
     return EquipmentOfferRowPage(
-        items=[EquipmentOfferRowRead.model_validate(r) for r in rows],
-        total=total,
+        data=[EquipmentOfferRowRead.model_validate(r) for r in rows],
+        meta=PageMeta(total=total),
     )
 
 
@@ -304,7 +305,7 @@ def listar_estabelecimentos(
     diferentes), aqui ja vem somado com `types` guardando a quebra."""
     exec_id = execution_id or _latest_execution_id(db, equipment_family)
     if exec_id is None:
-        return EstablishmentPage(items=[], total=0)
+        return EstablishmentPage(data=[], meta=PageMeta(total=0))
 
     modo_raio = near_lat is not None and near_lon is not None and radius_km is not None
 
@@ -418,4 +419,4 @@ def listar_estabelecimentos(
         items = [item for item, _ in pares[:MAX_ESTABELECIMENTOS_RAIO]]
         total = len(pares)
 
-    return EstablishmentPage(items=items, total=total)
+    return EstablishmentPage(data=items, meta=PageMeta(total=total))
