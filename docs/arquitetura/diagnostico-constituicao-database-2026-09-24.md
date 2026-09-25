@@ -400,3 +400,21 @@ deduplicador pressupunha unicidade que o banco não impõe. A primeira transaç�
 foi revertida integralmente; o código foi corrigido para testar existência em
 vez de exigir uma única linha. Não foi criada constraint retroativa nem houve
 remoção física, pois a limpeza de histórico exige reconciliação específica.
+
+## Fechamento — Plan Mode fechamento final (2026-09-25)
+
+Duas das três pendências desta categoria foram fechadas
+(`planmode-fechamento-final-2026-09-25.md`, Bloco 7):
+
+- **`equipamento_alias`/`execution_alert`** — confirmadas sem consumidor real,
+  removidas via migration `9c2e4f7a1d38` (DROP TABLE + enum `alert_type`).
+- **Dataset sintético de desenvolvimento** — já existia de fato
+  (`scripts/seed_monitoramento.py` + `tests/fixtures_cobertura.py`, usados
+  por `conftest.py`/`e2e_ci.yml`); ganhou entrypoint standalone e
+  documentação em `backend/README.md`.
+
+**Segue pendente, agora com runbook pronto**: o ensaio `pg_dump`/`pg_restore`
+ponta a ponta da migração de servidor está documentado passo a passo em
+`runbook-devops.md`, mas não executado — exige `DATABASE_URL_MIGRATION` real
+do Neon, credencial que a sessão que fechou este plano não tinha. Backup/
+PITR/RPO-RTO continua sob responsabilidade de DevOps, sem evidência nova.

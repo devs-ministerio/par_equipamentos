@@ -138,3 +138,23 @@ em vez de apresentar a mensagem “não encontrado em nenhuma fonte”. Testes d
 regressão cobrem as três buscas por CNES e o estado vazio de Programa. Nesta
 execução, `npm run lint`, `npm run typecheck`, `npm run test` (32 arquivos,
 113 testes) e `npm run build` passaram.
+
+## Fechamento — Plan Mode fechamento final (2026-09-25)
+
+Dois achados corrigem a leitura anterior deste diagnóstico:
+
+- **Paginação real (Bloco 3)**: `estabelecimento-table.tsx` já usa
+  `useEstabelecimentosPage` com `page`/`pageSize=50` reais e `<Pagination>`
+  — paginação de ponta a ponta já existia antes deste plan-mode, não é
+  mais um gap. As demais listas (instrumentos, macro-coverage) são teto de
+  segurança deliberado, sem necessidade de paginação real (volume muito
+  abaixo do teto).
+- **E2E no CI (Bloco 4)**: `.github/workflows/e2e_ci.yml` já dispara em
+  push/PR tocando `frontend/**` (não só `backend/**`) desde antes deste
+  plan-mode — o achado "E2E não roda em CI" desta categoria era impreciso,
+  checava só `frontend_ci.yml` sem ver o workflow separado.
+
+Bloco 9 podou comentário narrativo datado (`secao-propostas-candidatas.tsx`,
+`lib/proposta-metas-resumo.ts`, `monitoramento-equipamentos-page.tsx`),
+preservando todo raciocínio técnico. `useJson.ts` (candidato de limpeza
+desde 17/09) já não existe mais no repo.
