@@ -76,6 +76,12 @@ const instrumentoEquipamentoSchema = z.object({
   // Só vem preenchido em GET /monitoramento/instrumentos (lista) -- ver
   // docstring do backend. Ausente/null nos outros endpoints.
   fase_atual: z.string().nullable().optional(),
+  // Autorização por titularidade (2026-09-25): calculado por request pro
+  // usuário autenticado -- admin/gestor sempre true; colaborador só true se
+  // for titular/suplente designado (ou se ninguém foi designado ainda).
+  // Default true cobre POST/PATCH, que já provaram a permissão pra chegar
+  // ali -- só a listagem/timeline recalculam de verdade.
+  pode_editar: z.boolean().optional().default(true),
 });
 export type InstrumentoEquipamento = z.infer<
   typeof instrumentoEquipamentoSchema

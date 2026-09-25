@@ -159,7 +159,7 @@ export function MonitoramentoInterno({
 
       <MonitoramentoInternoCadastro
         instrumento={inst}
-        podeEditar={sessao.podeEditar}
+        podeEditar={inst.pode_editar}
         aberto={cadastroAberto}
         onAbrir={() => setCadastroAberto(true)}
         onFechar={() => setCadastroAberto(false)}
@@ -202,7 +202,7 @@ export function MonitoramentoInterno({
         >
           <MonitoramentoInternoAcoes
             acoes={acoes}
-            podeEditar={sessao.podeEditar}
+            podeEditar={inst.pode_editar}
             concluindoAcaoId={concluindoAcaoId}
             onCriar={(valores) =>
               executarEscrita(() =>
@@ -248,7 +248,7 @@ export function MonitoramentoInterno({
           <MonitoramentoInternoEventos
             marcos={marcos}
             eventos={timeline.eventos}
-            podeEditar={sessao.podeEditar}
+            podeEditar={inst.pode_editar}
             onRegistrar={(valores) =>
               executarEscrita(() =>
                 registrarEventoMutation.mutateAsync({
