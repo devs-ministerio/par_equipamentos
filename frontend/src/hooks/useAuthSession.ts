@@ -78,7 +78,9 @@ export function useAuthSession() {
     usuarioAtual,
     autenticado: Boolean(usuarioAtual),
     podeEditar:
-      usuarioAtual?.role === "admin" || usuarioAtual?.role === "gestor" || usuarioAtual?.role === "colaborador",
+      usuarioAtual?.role === "admin" ||
+      usuarioAtual?.role === "gestor" ||
+      usuarioAtual?.role === "colaborador",
     checandoSessao: usuarioQuery.isLoading,
     login: loginMutation.mutateAsync,
     loginPendente: loginMutation.isPending,

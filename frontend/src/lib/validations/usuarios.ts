@@ -5,7 +5,7 @@ import { z } from "zod";
  * espelha a mesma regra do backend (`schemas.py::_validar_senha`,
  * `scripts/criar_usuario.py`). */
 
-const roleSchema = z.enum(["admin", "colaborador", "leitor"], {
+const roleSchema = z.enum(["admin", "gestor", "colaborador", "leitor"], {
   message: "Selecione um perfil.",
 });
 

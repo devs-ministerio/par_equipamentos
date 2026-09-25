@@ -98,6 +98,7 @@ export function UsuarioFormEditar({
               {...register("role")}
             >
               <option value="admin">Admin</option>
+              <option value="gestor">Gestor</option>
               <option value="colaborador">Colaborador</option>
               <option value="leitor">Leitor</option>
             </select>

@@ -27,6 +27,10 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL_MIGRATION }}
+      # Alembic importa Settings, que valida JWT_SECRET mesmo sem iniciar a
+      # aplicação. Este valor é deliberadamente inerte: o job só executa DDL
+      # e nunca assina nem valida tokens.
+      JWT_SECRET: migration-only-config-validation-placeholder-at-least-32
     steps:
       - name: Exige o secret DATABASE_URL_MIGRATION
         working-directory: .
