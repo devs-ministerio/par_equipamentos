@@ -163,6 +163,23 @@ verdes.
 - `pytest` cobre os Services novos com os mesmos casos já testados no
   router antigo, sem perda de cobertura.
 
+### Andamento — concluído em 2026-09-25, escopo menor que o previsto
+
+Achado ao vivo (detalhado em `diagnostico-constituicao-backend-2026-09-22.md`,
+seção "Bloco 2 do fechamento"): a fatia de escrita (eventos, ações,
+`atualizar_cadastro`) **já estava decomposta** — os 8 endpoints de mutação
+já delegavam pra `services/monitoramento_eventos.py`/
+`monitoramento_instrumentos.py`, zero `db.commit()` no router. O achado
+"5 commits no router" do diagnóstico original estava desatualizado.
+
+O que restava de verdade: `obter_resumo` (~135 linhas de cálculo inline).
+Extraído para `services/monitoramento_resumo.py::montar_resumo_monitoramento`;
+os 5 schemas de resposta migraram para `schemas_monitoramento.py` (evita
+import circular). Router ficou fino. Validado contra Postgres de teste
+real (container `sigeo-db-constitution-test`): 229/232 (3 falhas
+pré-existentes, container atrasado em migration, confirmado via
+`git stash`). `ruff`/`mypy` limpos.
+
 ## 3. Paginação/virtualização real no frontend
 
 ### Implementação

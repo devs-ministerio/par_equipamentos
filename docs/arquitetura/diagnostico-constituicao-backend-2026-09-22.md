@@ -333,3 +333,38 @@ qualquer migração de leitura, é preciso um plan-mode dedicado para o job de
 ingestão (parser do payload já capturado em `metas_resumo` como backfill +
 captura contínua para propostas novas) — decisão do usuário 2026-09-25 de
 não expandir o Bloco 1 para cobrir isso agora.
+
+## Bloco 2 do fechamento — achado: escrita já estava decomposta (2026-09-25)
+
+O Bloco 2 do plan-mode assumia que `routers/monitoramento.py` ainda tinha
+lógica de negócio e `db.commit()` na fatia de escrita (eventos/ações/
+`atualizar_cadastro`). Não é mais verdade: todos os 8 endpoints de mutação
+já delegavam para `services/monitoramento_eventos.py` (que já existia com
+`registrar_evento_monitorado`, `editar_evento_monitorado`,
+`excluir_evento_monitorado`, `registrar_acao_monitorada`,
+`editar_acao_monitorada`, `excluir_acao_monitorada`,
+`concluir_acao_monitorada`, `atualizar_cadastro_instrumento`) e
+`services/monitoramento_instrumentos.py` — zero `db.commit()` no router,
+todos nos Services. Achado provavelmente desatualizado desde a mesma
+rodada de 25/09 que já tinha corrigido outros itens deste router (ver
+"Correção geral de fases..." acima).
+
+O que sobrava de verdade: `GET /monitoramento/resumo` (`obter_resumo`)
+tinha ~135 linhas de cálculo (fase atual por instrumento, distribuição,
+divergência de conclusão) inline no endpoint, chamando só
+`repositories/monitoramento.py::carregar_dados_resumo_monitoramento` pra
+carga de dado. Extraído para `services/monitoramento_resumo.py::
+montar_resumo_monitoramento` — os 5 schemas de resposta
+(`ResumoMonitoramentoRead` e dependentes) migraram para
+`schemas_monitoramento.py` (mesmo padrão já usado por
+`schemas_equipamentos.py`) pra evitar import circular entre router e
+service. Router ficou fino: só `Depends`/`response_model`, chama o
+Service.
+
+Validado contra o container Postgres de teste local
+(`sigeo-db-constitution-test`, porta 55432): 229/232 testes passam; as 3
+falhas restantes (`test_atualizar_cadastro_sincroniza_responsavel_relacional`,
+`test_schema_migrations.py::*`) são o container estar atrasado em
+migrations (falta a tabela `instrumento_responsavel` e o usuário seed
+`bruna.machado@saude.gov.br`) — confirmado pré-existente via `git stash`,
+não uma regressão deste bloco. `ruff check .`/`mypy .` limpos.
