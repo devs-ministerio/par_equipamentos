@@ -53,6 +53,7 @@ from app.routers.monitoramento import (
     concluir_acao,
     criar_instrumento,
     listar_acoes,
+    listar_instrumentos,
     obter_resumo,
     registrar_acao,
     registrar_evento,
@@ -705,13 +706,179 @@ def test_registrar_acao_monitorada_bloqueia_leitor_no_service():
 
 
 def test_concluir_acao_monitorada_bloqueia_leitor_no_service():
+    # Precisa de uma ação real -- desde a autorização por titularidade
+    # (2026-09-25), `concluir_acao_monitorada` carrega a ação (404 se não
+    # existe) ANTES de autorizar, então um `acao_id` inventado levantaria
+    # NotFoundError em vez de AuthorizationError.
     db = SessionLocal()
+    instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
+    acao = AcaoMonitoramento(instrumento_id=instrumento.id, descricao="Ação pytest bloco3", criado_por_id=None)
     try:
+        db.add(acao)
+        db.commit()
         leitor = User(id=999004, name="Leitor", email="leitor-bloco3-concluir@example.com", role=UserRole.leitor)
         with pytest.raises(AuthorizationError) as exc:
-            concluir_acao_monitorada(acao_id=1, db=db, usuario=leitor)
+            concluir_acao_monitorada(acao_id=acao.id, db=db, usuario=leitor)
         assert exc.value.status_code == 403
     finally:
+        db.rollback()
+        db.delete(db.query(AcaoMonitoramento).filter_by(id=acao.id).one())
+        db.commit()
+        db.close()
+
+
+# ---------------------------------------------------------------------
+# Autorização por titularidade (pedido do usuário, 2026-09-25): colaborador
+# só edita instrumento onde é titular/suplente designado
+# (InstrumentoResponsavel); admin/gestor editam qualquer um; instrumento sem
+# ninguém designado fica liberado pra qualquer colaborador. Usa instrumento
+# PRÓPRIO (scratch, nunca NR_CONVENIO_SEED) pra não vincular titular ao
+# instrumento compartilhado -- isso quebraria os outros testes deste arquivo,
+# que editam NR_CONVENIO_SEED com um colaborador qualquer contando com o
+# fail-open de "sem responsável designado".
+# ---------------------------------------------------------------------
+
+
+def _criar_instrumento_scratch(db, *, sufixo: str) -> InstrumentoEquipamento:
+    instrumento = InstrumentoEquipamento(
+        nr_convenio=f"PYTEST-TITULAR-{sufixo}-{uuid4()}",
+        nome_convenente="Convenente Pytest Titularidade",
+        tipo_contratacao="Convênio",
+    )
+    db.add(instrumento)
+    db.commit()
+    return instrumento
+
+
+def test_colaborador_nao_titular_nao_pode_registrar_evento_de_outro_tecnico():
+    db = SessionLocal()
+    titular = criar_usuario_teste(db)
+    outro = criar_usuario_teste(db)
+    instrumento = _criar_instrumento_scratch(db, sufixo="EVT-NEGADO")
+    try:
+        db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=titular.id, papel="titular"))
+        db.commit()
+
+        marco = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
+        with pytest.raises(AuthorizationError) as exc:
+            registrar_evento_monitorado(
+                nr_convenio=instrumento.nr_convenio,
+                dados=NovoEventoMonitorado(marco_id=marco.id),
+                db=db,
+                usuario=outro,
+            )
+        assert exc.value.status_code == 403
+    finally:
+        db.rollback()
+        db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).delete()
+        db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
+        db.query(User).filter(User.id.in_([titular.id, outro.id])).delete(synchronize_session=False)
+        db.commit()
+        db.close()
+
+
+def test_colaborador_titular_pode_registrar_evento_no_proprio_instrumento():
+    db = SessionLocal()
+    titular = criar_usuario_teste(db)
+    instrumento = _criar_instrumento_scratch(db, sufixo="EVT-PERMITIDO")
+    evento = None
+    try:
+        db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=titular.id, papel="titular"))
+        db.commit()
+
+        marco = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
+        evento = registrar_evento_monitorado(
+            nr_convenio=instrumento.nr_convenio,
+            dados=NovoEventoMonitorado(marco_id=marco.id),
+            db=db,
+            usuario=titular,
+        )
+        assert evento.instrumento_id == instrumento.id
+    finally:
+        db.rollback()
+        if evento is not None:
+            db.query(AuditLog).filter_by(entity_name="evento_marco", entity_id=evento.id).delete()
+            db.query(Notificacao).filter_by(entidade_id=instrumento.id).delete()
+            db.query(EventoMarco).filter_by(id=evento.id).delete()
+        db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).delete()
+        db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
+        db.query(User).filter_by(id=titular.id).delete()
+        db.commit()
+        db.close()
+
+
+def test_colaborador_nao_titular_nao_pode_excluir_acao_de_outro_tecnico():
+    """`excluir_acao_monitorada` só recebe `acao_id` -- cobre o grupo de
+    funções que precisa carregar a entidade ANTES de autorizar (diferente de
+    `registrar_evento_monitorado`, que já recebe `nr_convenio`)."""
+    db = SessionLocal()
+    titular = criar_usuario_teste(db)
+    outro = criar_usuario_teste(db)
+    instrumento = _criar_instrumento_scratch(db, sufixo="ACAO-NEGADO")
+    acao = AcaoMonitoramento(instrumento_id=instrumento.id, descricao="Ação pytest titularidade")
+    try:
+        db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=titular.id, papel="titular"))
+        db.add(acao)
+        db.commit()
+
+        with pytest.raises(AuthorizationError) as exc:
+            excluir_acao_monitorada(acao_id=acao.id, motivo="teste pytest", db=db, usuario=outro)
+        assert exc.value.status_code == 403
+    finally:
+        db.rollback()
+        db.query(AcaoMonitoramento).filter_by(id=acao.id).delete()
+        db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).delete()
+        db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
+        db.query(User).filter(User.id.in_([titular.id, outro.id])).delete(synchronize_session=False)
+        db.commit()
+        db.close()
+
+
+def test_instrumento_sem_titular_designado_libera_qualquer_colaborador():
+    db = SessionLocal()
+    qualquer = criar_usuario_teste(db)
+    instrumento = _criar_instrumento_scratch(db, sufixo="SEM-TITULAR")
+    evento = None
+    try:
+        marco = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
+        evento = registrar_evento_monitorado(
+            nr_convenio=instrumento.nr_convenio,
+            dados=NovoEventoMonitorado(marco_id=marco.id),
+            db=db,
+            usuario=qualquer,
+        )
+        assert evento.instrumento_id == instrumento.id
+    finally:
+        db.rollback()
+        if evento is not None:
+            db.query(AuditLog).filter_by(entity_name="evento_marco", entity_id=evento.id).delete()
+            db.query(Notificacao).filter_by(entidade_id=instrumento.id).delete()
+            db.query(EventoMarco).filter_by(id=evento.id).delete()
+        db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
+        db.query(User).filter_by(id=qualquer.id).delete()
+        db.commit()
+        db.close()
+
+
+def test_listar_instrumentos_calcula_pode_editar_por_titularidade():
+    db = SessionLocal()
+    titular = criar_usuario_teste(db)
+    outro = criar_usuario_teste(db)
+    instrumento = _criar_instrumento_scratch(db, sufixo="LISTAGEM")
+    try:
+        db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=titular.id, papel="titular"))
+        db.commit()
+
+        por_titular = {i.nr_convenio: i.pode_editar for i in listar_instrumentos(limit=500, db=db, usuario=titular)}
+        por_outro = {i.nr_convenio: i.pode_editar for i in listar_instrumentos(limit=500, db=db, usuario=outro)}
+        assert por_titular[instrumento.nr_convenio] is True
+        assert por_outro[instrumento.nr_convenio] is False
+    finally:
+        db.rollback()
+        db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).delete()
+        db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
+        db.query(User).filter(User.id.in_([titular.id, outro.id])).delete(synchronize_session=False)
+        db.commit()
         db.close()
 
 

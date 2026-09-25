@@ -1,10 +1,19 @@
 """Casos de uso de cadastro/eventos/ações de instrumentos monitorados --
 extraído de `app/routers/monitoramento.py` (Plan Mode segurança
 2026-09-16, Bloco 3): a lógica de negócio (e a checagem de autorização,
-`assert_pode_editar_monitoramento`) mora aqui, não só no `Depends` do
+`assert_pode_editar_instrumento`) mora aqui, não só no `Depends` do
 router -- protege contra qualquer chamada que não passe pelo HTTP (script,
 outro service, job futuro). Comportamento idêntico ao que estava inline no
 router antes desta extração; nada muda do ponto de vista da API.
+
+Autorização por titularidade (2026-09-25): toda mutação de um instrumento
+JÁ existente carrega a entidade primeiro (404 se não existe) e só então
+chama `assert_pode_editar_instrumento` com os `usuario_id`s de
+titular/suplente daquele instrumento -- `admin`/`gestor` continuam podendo
+editar qualquer um; `colaborador` só o seu. `criar_instrumento_monitorado`
+(`monitoramento_instrumentos.py`) continua usando o gate grosso
+`assert_pode_editar_monitoramento` (só bloqueia `leitor`), porque na
+criação ainda não existe instrumento pra checar titularidade.
 """
 
 from __future__ import annotations
@@ -17,7 +26,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.authz import assert_pode_editar_monitoramento
+from app.authz import assert_pode_editar_instrumento
 from app.db.models import (
     AcaoMonitoramento,
     EventoMarco,
@@ -31,6 +40,7 @@ from app.db.models import (
 )
 from app.domain_errors import NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
+from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 
 # Mesmo dicionário fechado do CHECK constraint em models.py -- validado
 # aqui também pra devolver 422 limpo em vez do IntegrityError cru do
@@ -149,10 +159,10 @@ def atualizar_cadastro_instrumento(
     aplica campo que veio preenchido (`alteracoes_brutas` já vem filtrado
     por `exclude_unset` no router), nunca zera um campo existente por causa
     de um PATCH parcial."""
-    assert_pode_editar_monitoramento(usuario)
     instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
 
     cnes_novo = alteracoes_brutas.get("cnes")
     if cnes_novo is not None and (
@@ -319,10 +329,10 @@ def registrar_evento_monitorado(
     """Append-only -- sempre INSERT, nunca UPDATE (ver comentario em
     EventoMarco no models.py). Corrigir um lançamento errado é lançar um
     evento novo (ver `editar_evento_monitorado`)."""
-    assert_pode_editar_monitoramento(usuario)
     instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     marco = monitoramento_repo.obter_marco_por_id(db, dados.marco_id)
     if marco is None:
         raise ValidationError(f"Marco {dados.marco_id} não existe no catálogo.")
@@ -413,10 +423,10 @@ def editar_evento_monitorado(
     aponta o antigo pra ele via `substituido_por_id` -- nunca UPDATE nos
     campos do lançamento original. Marco/instrumento do evento não mudam
     numa correção (isso seria excluir + criar de novo, não "editar")."""
-    assert_pode_editar_monitoramento(usuario)
     antigo = monitoramento_repo.obter_evento_por_id(db, evento_id)
     if antigo is None:
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antigo.instrumento_id))
     if antigo.deletado_em is not None or antigo.substituido_por_id is not None:
         raise ValidationError(f"Evento {evento_id} já foi excluído ou corrigido -- não pode editar de novo.")
 
@@ -424,9 +434,7 @@ def editar_evento_monitorado(
     if marco is None:
         raise NotFoundError(f"Marco {antigo.marco_id} não existe mais no catálogo.")
     # instrumento_id de um evento já persistido é FK obrigatória -- sempre existe.
-    instrumento = cast(
-        InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, antigo.instrumento_id)
-    )
+    instrumento = cast(InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, antigo.instrumento_id))
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
     if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
         raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
@@ -471,10 +479,10 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
     """Exclusão lógica -- `deletado_em`/`deletado_por_id`/`motivo_exclusao`,
     nunca DELETE físico (ver docstring de EventoMarco). Evento excluído sai
     do cálculo de fase/timeline mas continua recuperável/auditável."""
-    assert_pode_editar_monitoramento(usuario)
     evento = monitoramento_repo.obter_evento_por_id(db, evento_id)
     if evento is None:
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, evento.instrumento_id))
     if evento.deletado_em is not None:
         raise ValidationError(f"Evento {evento_id} já está excluído.")
     if not motivo.strip():
@@ -482,9 +490,7 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
 
     # marco_id/instrumento_id de um evento já persistido são FK obrigatórias -- sempre existem.
     marco = cast(MarcoCatalogo, monitoramento_repo.obter_marco_por_id(db, evento.marco_id))
-    instrumento = cast(
-        InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, evento.instrumento_id)
-    )
+    instrumento = cast(InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, evento.instrumento_id))
     evento.deletado_em = _agora_utc()
     evento.deletado_por_id = usuario.id
     evento.motivo_exclusao = motivo
@@ -527,10 +533,10 @@ def registrar_acao_monitorada(
     `criado_por_id` (marcador de responsável pedido no Plan Mode
     monitoramento-evolucao 2026-09-19) vem sempre do usuário autenticado,
     nunca do cliente."""
-    assert_pode_editar_monitoramento(usuario)
     instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
 
     acao = AcaoMonitoramento(
         instrumento_id=instrumento.id,
@@ -584,16 +590,14 @@ def editar_acao_monitorada(
     `substituido_por_id`. `data_conclusao` de uma ação pendente não migra
     pra correção (a correção nasce pendente de novo; concluir é ato
     separado, ver `concluir_acao_monitorada`)."""
-    assert_pode_editar_monitoramento(usuario)
     antiga = monitoramento_repo.obter_acao_por_id(db, acao_id)
     if antiga is None:
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antiga.instrumento_id))
     if antiga.deletado_em is not None or antiga.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode editar de novo.")
     # instrumento_id de uma ação já persistida é FK obrigatória -- sempre existe.
-    instrumento = cast(
-        InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, antiga.instrumento_id)
-    )
+    instrumento = cast(InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, antiga.instrumento_id))
 
     nova = AcaoMonitoramento(
         instrumento_id=antiga.instrumento_id,
@@ -628,10 +632,10 @@ def editar_acao_monitorada(
 def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: User) -> AcaoMonitoramento:
     """Exclusão lógica -- ver docstring de `excluir_evento_monitorado`,
     mesma disciplina."""
-    assert_pode_editar_monitoramento(usuario)
     acao = monitoramento_repo.obter_acao_por_id(db, acao_id)
     if acao is None:
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, acao.instrumento_id))
     if acao.deletado_em is not None:
         raise ValidationError(f"Ação {acao_id} já está excluída.")
     if not motivo.strip():
@@ -665,10 +669,10 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
     """Unico UPDATE que AcaoMonitoramento permite de proposito -- marcar
     como concluida (seta data_conclusao = hoje). Descricao/data_prevista/
     responsavel continuam imutaveis (ver docstring do model)."""
-    assert_pode_editar_monitoramento(usuario)
     acao = monitoramento_repo.obter_acao_por_id(db, acao_id)
     if acao is None:
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, acao.instrumento_id))
     if acao.deletado_em is not None or acao.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode concluir.")
     if acao.data_conclusao is None:
@@ -682,9 +686,7 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
             details={"old": None, "new": acao.data_conclusao.isoformat()},
         )
         # instrumento_id de uma ação já persistida é FK obrigatória -- sempre existe.
-        instrumento = cast(
-            InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id)
-        )
+        instrumento = cast(InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, acao.instrumento_id))
         _notificar_edicao_manual(
             db,
             instrumento_id=instrumento.id,

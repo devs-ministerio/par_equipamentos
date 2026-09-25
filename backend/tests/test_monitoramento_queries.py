@@ -14,7 +14,13 @@ import pytest
 from sqlalchemy import event
 
 from app.db.base import SessionLocal
+from app.db.models import User, UserRole
 from app.routers.monitoramento import listar_instrumentos, obter_resumo
+
+# admin evita qualquer query extra de autorização por titularidade (pode_editar
+# é sempre True pra admin/gestor, ver app.authz::usuario_pode_editar_instrumento)
+# -- estes testes validam forma de SQL de evento/ação, não autorização.
+_USUARIO_TESTE = User(id=1, name="Admin Pytest", email="admin-queries@example.com", role=UserRole.admin)
 
 
 @contextmanager
@@ -37,7 +43,7 @@ def test_listar_instrumentos_busca_somente_eventos_de_fase_geral():
     db = SessionLocal()
     try:
         with capturar_sql(db) as statements:
-            resultado = listar_instrumentos(limit=500, db=db)
+            resultado = listar_instrumentos(limit=500, db=db, usuario=_USUARIO_TESTE)
 
         assert resultado
         consultas_evento = [s for s in statements if " from evento_marco" in s]
