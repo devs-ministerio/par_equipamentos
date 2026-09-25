@@ -235,6 +235,8 @@ conta E2E, instala Chromium, sobe API+frontend isolados e roda
 a auditoria original, que só verificou `frontend_ci.yml`, concluiu
 erroneamente que o E2E não rodava em CI). Nenhuma mudança necessária.
 
+## 5. Rate limit distribuído
+
 ### Implementação
 1. Trocar `Settings.rate_limit_storage_uri` default de `memory://` para
    um backend compartilhado (Redis gerenciado, ou storage já disponível na
@@ -249,6 +251,13 @@ erroneamente que o E2E não rodava em CI). Nenhuma mudança necessária.
 - Teste de integração simulando 2 processos concorrentes contra o mesmo
   storage confirma limite compartilhado.
 - `runbook-devops.md` documenta a nova dependência.
+
+### Andamento — movido para pendência externa (2026-09-25)
+
+Decisão do usuário: não há Redis/storage compartilhado provisionado pra
+esta conta ainda. Mesmo critério dos itens de custo — fica documentado na
+seção "Pendências externas / de custo" ao final deste plano, não
+implementado agora. Implementar quando houver um storage real pra apontar.
 
 ## 6. Hardening de segurança
 
@@ -421,6 +430,9 @@ npm run test:e2e
 Documentadas, não implementadas por este plano — exigem aprovação
 financeira ou decisão de produto explícita antes de qualquer trabalho:
 
+- Rate limit distribuído do Bloco 5 (`Settings.rate_limit_storage_uri`
+  `memory://` → storage compartilhado) — sem Redis/serviço gerenciado
+  provisionado ainda (decisão do usuário, 2026-09-25).
 - Staging/registry de imagem promovível no Render (decisão de custo).
 - Backup externo / PITR acima de 6h no Neon (decisão de custo).
 - Instância sempre ativa no Render ou migração para outro provedor, para
