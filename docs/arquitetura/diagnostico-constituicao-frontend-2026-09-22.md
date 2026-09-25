@@ -122,3 +122,19 @@ origem CORS, e a mantém somente em memória. Login e refresh também atualizam
 essa cópia. O double-submit segue obrigatório e a cópia é descartada ao sair;
 não foi introduzido `localStorage`, bearer ou exceção de CSRF. Os 29 testes
 focados, lint e build passaram.
+
+## Atualização de execução — 2026-09-25 (CNES nos filtros)
+
+As três buscas textuais de dados de equipamentos agora incluem o CNES já
+presente em seus contratos validados: Instrumentos e repasses
+(`ConvenioUnificado.cnes`), Linhas de financiamento (`PropostaCandidata.cnes`)
+e Monitoramento interno (`InstrumentoEquipamento.cnes`). Não foi criado um
+novo filtro nem alterada a API; a mudança reaproveita os controles acessíveis,
+normalização de texto, paginação e estados vazios existentes. Os placeholders
+agora comunicam CNES como critério de busca.
+
+O card deixa o valor de Programa sem conteúdo quando a fonte não o informar,
+em vez de apresentar a mensagem “não encontrado em nenhuma fonte”. Testes de
+regressão cobrem as três buscas por CNES e o estado vazio de Programa. Nesta
+execução, `npm run lint`, `npm run typecheck`, `npm run test` (32 arquivos,
+113 testes) e `npm run build` passaram.

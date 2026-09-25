@@ -60,7 +60,7 @@ export function filtrarDadosOficiais(
     return (
       !estado.busca ||
       normalizarTexto(
-        `${item.numero} ${item.convenente.nome} ${item.convenente.cnpj ?? ""} ${item.municipio} ${item.objeto}`,
+        `${item.numero} ${item.convenente.nome} ${item.convenente.cnpj ?? ""} ${item.cnes ?? ""} ${item.municipio} ${item.objeto}`,
       ).includes(normalizarTexto(estado.busca))
     );
   });

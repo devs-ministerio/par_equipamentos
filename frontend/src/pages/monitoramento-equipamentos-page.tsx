@@ -270,7 +270,7 @@ export function MonitoramentoEquipamentosPage() {
                 <SearchInput
                   value={busca}
                   onChange={setBusca}
-                  placeholder="Buscar por convenente, município, número, CNPJ..."
+                  placeholder="Buscar por convenente, município, número, CNPJ ou CNES..."
                   width={190}
                 />
                 <SingleSelectFilter

@@ -164,7 +164,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
       if (programa && String(p.id_programa) !== programa) return false;
       if (busca) {
         const alvo = normalizarTexto(
-          `${p.id_proposta} ${p.nm_proponente} ${p.cnpj_ente_recebedor} ${p.municipio ?? ""} ${p.nm_programa}`,
+          `${p.id_proposta} ${p.nm_proponente} ${p.cnpj_ente_recebedor} ${p.cnes ?? ""} ${p.municipio ?? ""} ${p.nm_programa}`,
         );
         if (!alvo.includes(normalizarTexto(busca))) return false;
       }
@@ -227,7 +227,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         <SearchInput
           value={busca}
           onChange={setBusca}
-          placeholder="Buscar por proponente, município, CNPJ..."
+          placeholder="Buscar por proponente, município, CNPJ ou CNES..."
           width={190}
         />
         <SingleSelectFilter

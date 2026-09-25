@@ -107,7 +107,7 @@ export function ConvenioCardHeader({
         <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">
           Programa:
         </strong>
-        {programaSiconv || "— (não encontrado em nenhuma fonte)"}
+        {programaSiconv}
         {/* Tipologia deixou de ser exclusiva do PERSUS (Plan Mode
             monitoramento-evolucao 2026-09-19, decisão do usuário: "é a
             mesma tipologia, use para todos") -- mostra pra qualquer tipo

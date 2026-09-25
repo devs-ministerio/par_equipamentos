@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import { ConvenioCardDetalhes } from "./convenio-card-detalhes";
+import { ConvenioCardHeader } from "./convenio-card-header";
 
 const convenioManual: ConvenioUnificado = {
   numero: "25000000145202506",
@@ -54,6 +55,25 @@ const convenioManual: ConvenioUnificado = {
 };
 
 describe("ConvenioCardDetalhes", () => {
+  it("não exibe texto de ausência quando o programa está vazio", () => {
+    render(
+      <ConvenioCardHeader
+        c={{ ...convenioManual, programa: null }}
+        monitorado={false}
+        faseMonitoramento={null}
+        equipamentos={[]}
+        programaSiconv={null}
+        valorPagoFornecedor={null}
+        pagamentosCount={0}
+      />,
+    );
+
+    expect(screen.getByText("Programa:")).toBeInTheDocument();
+    expect(
+      screen.queryByText("não encontrado em nenhuma fonte"),
+    ).not.toBeInTheDocument();
+  });
+
   it("exibe somente monitoramento interno para instrumento de carga manual", () => {
     render(
       <MemoryRouter>

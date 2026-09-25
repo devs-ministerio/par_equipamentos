@@ -11,6 +11,7 @@ import { normalizarTexto } from "@/utils/texto";
 export type InstrumentoResumo = Pick<
   InstrumentoEquipamento,
   | "nr_convenio"
+  | "cnes"
   | "nome_convenente"
   | "municipio"
   | "uf"
@@ -58,7 +59,9 @@ export function MonitoramentoOverviewLista({
       return false;
     return (
       !busca ||
-      normalizarTexto(`${item.nr_convenio} ${item.nome_convenente}`).includes(
+      normalizarTexto(
+        `${item.nr_convenio} ${item.nome_convenente} ${item.cnes ?? ""}`,
+      ).includes(
         normalizarTexto(busca),
       )
     );
@@ -109,7 +112,7 @@ export function MonitoramentoOverviewLista({
             setBusca(valor);
             setPagina(1);
           }}
-          placeholder="Buscar convênio/convenente..."
+          placeholder="Buscar convênio, convenente ou CNES..."
           width={220}
         />
         <SingleSelectFilter
