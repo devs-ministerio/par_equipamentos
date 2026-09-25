@@ -916,6 +916,71 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
 - **Migration**: `488a535a0b5e` (tabela `notificacao_destinatario` + `ALTER TYPE notificacao_tipo
   ADD VALUE 'alerta_vigencia'`).
 
+## Plan Mode fechamento final (2026-09-25)
+
+Auditoria sênior cruzando os 6 diagnósticos mais recentes (`diagnostico-constituicao-*`) contra o
+código atual não achou nenhum item Crítico aberto — as pendências reais eram dívida conhecida e
+adiada. `docs/arquitetura/planmode-fechamento-final-2026-09-25.md` fechou 11 blocos (0-10) na mesma
+sessão; vários se revelaram já satisfeitos ou de escopo menor do que os diagnósticos diziam
+(diagnósticos tendem a ficar levemente desatualizados entre uma auditoria e a próxima).
+
+- **Envelope HTTP `{data, meta.total}`** (Bloco 1) — escopo reduzido do que o plano original previa:
+  só `EquipmentOfferRowPage`/`EstablishmentPage` (`backend/app/schemas.py`) migraram, únicas duas
+  rotas com paginação real (offset/limit de verdade). As rotas cogitadas inicialmente
+  (`monitoramento/{marcos,instrumentos,acoes}`, `macro-coverage`, cobertura municipal/regional)
+  ficaram de fora — são teto de segurança deliberado (Bloco 4 do Plan Mode consolidação 2026-09-17),
+  não paginação de UI, com volume muito abaixo do teto. Migrar `GET /propostas-candidatas` de
+  `metas_resumo` pra `evidencia_transferegov` também saiu do escopo: essa tabela relacional
+  **não tem nenhum escritor** (só o schema da migration `b7e3d9f4a621`) — migrar o router leria dado
+  vazio. Fica registrado como pendência real (precisa de um Plan Mode de ingestão dedicado primeiro),
+  não como "adiado por decisão", em `diagnostico-constituicao-backend-2026-09-22.md`.
+- **`app/schemas_monitoramento.py`** (novo, Bloco 2) — os 5 Read schemas do resumo de monitoramento
+  (`ResumoMonitoramentoRead` e dependentes) saíram de dentro de `routers/monitoramento.py` pra um
+  módulo próprio, mesmo padrão já usado por `schemas_equipamentos.py` — evita import circular entre
+  o router e o novo `app/services/monitoramento_resumo.py::montar_resumo_monitoramento`, que herdou
+  o cálculo de fase atual/distribuição/divergência de conclusão que antes vivia inline no endpoint
+  `GET /monitoramento/resumo` (~135 linhas). Achado ao vivo: a fatia de ESCRITA
+  (eventos/ações/`atualizar_cadastro`) que o plano original achava que ainda tinha `db.commit()` no
+  router **já estava toda decomposta** desde antes deste bloco — o achado do diagnóstico de backend
+  estava desatualizado.
+- **KDF `argon2id`** (Bloco 6) — `hash_password`/`verify_password` (`app/auth.py`) migraram de
+  PBKDF2-HMAC-SHA256 pra argon2id (`argon2-cffi`). Sem reset em massa: hash legado continua sendo
+  lido (`verify_password` detecta pelo prefixo `pbkdf2_sha256$`), e é re-hasheado silenciosamente no
+  primeiro login bem-sucedido depois do deploy (`precisa_rehash`, chamado em
+  `routers/auth.py::login`).
+- **`TrustedHostMiddleware`** (Bloco 6) — `app/main.py`, protege contra Host header injection atrás
+  de proxy mal configurado. `Settings.allowed_hosts`/`allowed_hosts_lista` (`app/config.py`, default
+  `localhost,127.0.0.1,*.onrender.com` — nome do serviço Render, sem domínio customizado hoje).
+  `tests/conftest.py` injeta `testserver` só no ambiente de teste (`TestClient` sem `base_url` manda
+  esse host por convenção do Starlette) — nunca no default de produção. CSP da API **continua em
+  Report-Only**: promover pra enforcement exige relatório real de violação em produção, que a sessão
+  que executou este bloco não tinha como observar — fica pendência externa (observabilidade, não
+  custo).
+- **`equipamento_alias`/`execution_alert` removidas** (Bloco 7) — confirmadas sem consumidor real,
+  migration `9c2e4f7a1d38` (`DROP TABLE` + enum `alert_type`). Dataset sintético de desenvolvimento
+  (pendente desde 16/09) já existia de fato via `scripts/seed_monitoramento.py` +
+  `tests/fixtures_cobertura.py` (ambos já usados por `tests/conftest.py`/`e2e_ci.yml`) — só faltava
+  entrypoint standalone (`uv run python -m tests.fixtures_cobertura`, novo) e documentação
+  (`backend/README.md`, seção "Dataset sintético de desenvolvimento"). Ensaio `pg_dump`/`pg_restore`
+  de migração de servidor ganhou runbook completo em `runbook-devops.md`, mas não foi executado —
+  exige `DATABASE_URL_MIGRATION` real do Neon.
+- **Saneamento PERSUS** (Bloco 8) — achado ao vivo: `scripts/reconstruir_fases_monitoramento.py` e
+  `scripts/complementar_persus_monitoramento.py` já existiam e já tinham rodado no mesmo dia
+  (25/09), antes da auditoria que originou este plan-mode (ver "Correção geral de fases..." acima).
+  Nenhum script novo necessário.
+- **Decisão sobre o papel `gestor`** (Bloco 10) — decisão do usuário: 4 papéis globais
+  (`admin`/`gestor`/`colaborador`/`leitor`) bastam por agora. Granularidade de autorização por
+  UF/técnico/órgão fica fora, sem plan-mode dedicado aberto — só revisitar sob demanda real de
+  produto, não implementar por antecipação.
+- **Paginação real no frontend / E2E no CI** (Blocos 3 e 4) — achados ao vivo: ambos já estavam
+  satisfeitos antes deste plan-mode. `estabelecimento-table.tsx` já usa `useEstabelecimentosPage`
+  com paginação real ponta a ponta; `.github/workflows/e2e_ci.yml` já dispara em push/PR tocando
+  `frontend/**` (workflow separado de `frontend_ci.yml`, por isso a auditoria original, que só
+  checou este último, concluiu erroneamente que o E2E não rodava em CI).
+- **Itens de custo/infra permanecem fora** (rate limit distribuído sem Redis provisionado,
+  staging/registry, PITR>6h, cold start do Render, CodeQL nativo, matriz LGPD) — documentados no
+  plan-mode, nenhum implementado sem decisão explícita de orçamento/produto.
+
 ## Comandos úteis
 
 ```bash
