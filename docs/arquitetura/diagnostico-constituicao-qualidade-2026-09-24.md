@@ -157,3 +157,20 @@ Neon e produção não foram acessados. Após formatar o teste de sessão sem
 alterar sua semântica, `npm run format:check` também ficou verde. Os gates
 locais completos de formatter, lint, tipos, cobertura, testes e build estão
 verdes nesta rodada.
+
+## Revalidação de dados de monitoramento — 2026-09-25
+
+A rodada de qualidade por evidência de fonte identificou uma lacuna que os
+testes de idempotência do reparo PERSUS não cobriam: eles provam que os 110
+eventos já elegíveis não duplicam, mas não que toda linha complementar tenha
+chegado a uma fase geral. Dois PERSUS com marcos reais ficaram fora por alias
+de unidade; no total do monitoramento, a consulta de integridade registrou 85
+instrumentos sem fase direta, 141 marcos sem vínculo de fase, seis ocorrências
+futuras e 16 inaugurações sem conclusão direta.
+
+Antes de declarar a ingestão complementar fechada, a qualidade passa a exigir
+um teste de integração que cubra nomes alternativos, fallback CNES único,
+rejeição de CNES ambíguo, propagação para evento direto de fase e recusa de
+`data_ocorrencia` futura. A varredura não alterou dados nem invalida os gates
+de código já executados; ela reduz a confiança da evidência funcional da carga
+até esse teste e o saneamento controlado serem concluídos.

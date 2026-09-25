@@ -264,3 +264,21 @@ também elimina o C901 que teria sido introduzido por uma nova carga manual.
 Na validação final da Constituição de Qualidade, migrations do zero e a suíte
 backend foram executadas em PostgreSQL efêmero do OrbStack: **224/224** testes
 aprovados, sem usar Neon como banco de teste.
+
+## Revalidação de conciliação PERSUS — 2026-09-25
+
+A auditoria cruzada com `Controle PERSUS.xlsx` e a aba PERSUS-I de
+`Entregas_aceleradores_lineares_PERSUS_PRONON_CONV.xlsx` revelou que o
+reconciliador complementar precisa explicitar seu fallback de identidade. A
+conciliação por nome/localidade deixou sem `fase_geral_id` marcos de dois
+PERSUS já existentes quando a fonte emprega nomes alternativos para a mesma
+unidade. Isso impede a rotina de materializar a fase direta que o resumo
+consome e produz falso “Não iniciado”.
+
+O próximo ajuste deve preservar o CNES canônico do banco e implementar a
+ordem: chave de origem/localidade; CNES apenas se único no conjunto de origem;
+NUP/código de obra/ano ou confirmação humana se repetido; pendência explícita
+se ainda ambíguo. A rotina não deve atualizar `data_conclusao` com Entregas
+sem política de precedência e confirmação de conflito. O saneamento dos
+eventos existentes deve continuar append-only, idempotente e separado da
+correção de ocorrências futuras, que não podem ser aceitas como fato realizado.

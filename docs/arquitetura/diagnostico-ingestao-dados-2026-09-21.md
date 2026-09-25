@@ -103,3 +103,78 @@ inserções para as 34 linhas conciliadas, sem pendência de vínculo. Após a
 aplicação, a simulação retornou zero novas inserções. Essa evidência cobre a
 idempotência do reparo de fases; não substitui os testes de integração
 dedicados que ainda faltam para os importadores históricos.
+
+## Revalidação PERSUS I e monitoramento interno — 2026-09-25
+
+Esta rodada foi estritamente de leitura: não criou, atualizou nem apagou
+registros no Neon. Foram reconciliadas a fonte inicial
+`docs/monitoramento-equipamentos/Apresentação PER-SUS.xlsx` (92 PERSUS I),
+`data/Controle PERSUS.xlsx` (34 complementos) e
+`data/Entregas_aceleradores_lineares_PERSUS_PRONON_CONV.xlsx` (aba PERSUS-I,
+40 entregas). A fonte inicial continua completa no banco: 92/92 identidades
+(CNES, tipologia, UF, município e situação) foram encontradas, sem novo
+instrumento a criar. As 34 linhas do Controle também pertencem a PERSUS já
+existente; o Controle é complemento, não fonte de CNES.
+
+### P1 — dois PERSUS com marcos existentes continuam sem fase geral direta
+
+Os PERSUS `PS1-135842` (CNES 2576341) e `PS1-987594` (CNES 0009725) têm
+marcos operacionais, mas nenhum evento direto de `fase_geral`. O resumo deriva
+a etapa exclusivamente desses eventos diretos; portanto ambos aparecem como
+“Não iniciado” apesar de haver histórico. Isso corrige a afirmação anterior
+de que a materialização havia coberto todo o escopo de 34: os 110 eventos
+foram idempotentes para os vínculos que a rotina reconheceu, mas não resolvem
+os dois casos cujo marco detalhado ficou sem `fase_geral_id`.
+
+O CNES **2576341** é `PERSUS1-2576341-C`, Hospital Norte Paranaense HONPAR,
+Arapongas/PR. O Controle registra situação **“3. EM ANÁLISE CNEN”**, previsão
+CNEN em 2026-09-26, e os marcos de equipamento/recebimento evidenciam término
+de instalação em 2025-09-24, comissionamento em 2025-10-10 e termo de aceite
+em 2025-09-23. A aba PERSUS-I de Entregas o classifica como apto à inauguração,
+com licença pendente e sem inauguração efetiva. A correção segura é registrar
+o estágio de comissionamento e a pendência regulatória; não concluir ou
+inventar data de inauguração.
+
+O motivo técnico é a conciliação antiga por UF/município/nome da unidade: a
+fonte também contém a denominação Hospital Regional João de Freitas para esse
+CNES. Ela não pode escolher silenciosamente entre nomes alternativos. O CNES
+já persistido no PERSUS é a referência definitiva; como fallback, a rotina
+deve usar CNES somente quando houver uma única linha de equipamento na fonte.
+CNES repetido exige chave adicional (NUP, código de obra, ano ou vínculo
+confirmado), nunca a primeira ocorrência encontrada.
+
+### P1 — datas de inauguração da planilha de entregas exigem conciliação
+
+Dos 40 registros PERSUS-I da planilha de entregas, o cruzamento estrito por
+CNES + unidade/localidade encontrou 22 correspondências sem ambiguidade. Oito
+já coincidem com a data armazenada; seis possuem data de entrega sem data
+equivalente no banco (`2273462`, `4028155`, `2165058`, `2560771`, `2611686`,
+`2384299`); e três divergem e não podem ser sobrescritos automaticamente:
+`2244306` (2024-02-08 no Controle/banco versus 2024-08-02 em Entregas),
+`2111640` e `2338424` (2025-12-11 no Controle/banco versus 2025-11-12 em
+Entregas). Dezoito linhas têm variação de nome/alias que impede associação
+estrita. A data de Entregas somente poderá alimentar `data_conclusao` após
+definir sua precedência sobre a fonte Controle e validar cada divergência.
+
+As 29 inaugurações efetivas existentes no Controle, por outro lado, já
+coincidem integralmente com `Convenio.data_conclusao` e com o marco de
+inauguração no banco. Não há correção a fazer para elas.
+
+### P1 — integridade operacional do universo monitorado
+
+O banco tem 120 instrumentos no monitoramento interno: 71 Convênios, 12 FAF,
+3 TED e 34 PERSUS I. A varredura encontrou 85 sem fase geral direta, 141
+eventos físico/regulatórios sem vínculo `fase_geral_id`, seis eventos com
+`data_ocorrencia` futura e 16 instrumentos com marco de inauguração sem uma
+conclusão direta correspondente. Há ainda quatro previsões de inauguração
+vencidas sem data real (três Convênios e um FAF). Esses são problemas de
+qualidade do histórico e do resumo, não de schema ou de cálculo de cobertura.
+
+**Encaminhamento obrigatório antes de mutar dados:** (1) criar uma tabela ou
+relatório versionado de conciliação de fontes; (2) completar os dois PERSUS
+apenas por fallback CNES inequívoco; (3) reaplicar fases por evento direto,
+append-only e idempotente; (4) tratar ocorrência futura como erro de cadastro,
+preservando a evidência e registrando a previsão no campo próprio, nunca
+alterando silenciosamente o evento histórico; e (5) exigir confirmação de
+inauguração e fonte para cada uma das 16 conclusões candidatas. Nenhuma dessas
+ações autoriza sobrescrever CNES, NUP ou data efetiva.

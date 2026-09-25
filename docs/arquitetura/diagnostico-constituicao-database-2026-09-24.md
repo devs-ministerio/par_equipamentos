@@ -348,3 +348,28 @@ evento direto que o resumo usa para derivar a etapa atual. Não houve migration,
 sobrescrita de CNES; os 58 PERSUS sem dados de controle permanecem somente em
 Instrumentos Firmados. A rotina é idempotente por chave de origem e deduplica
 evento/ação pelo conteúdo antes de inserir.
+
+### Revalidação de evidência PERSUS — 2026-09-25
+
+Uma revisão de leitura das três fontes PERSUS confirmou que a integridade
+estrutural do banco permanece preservada (92 PERSUS I, 34 no escopo de
+monitoramento), mas identificou uma lacuna de integridade semântica na
+conciliação complementar. Dois instrumentos têm marcos detalhados sem fase
+geral direta: `PS1-135842`/CNES 2576341 e `PS1-987594`/CNES 0009725. Por isso
+o agregado mostra “Não iniciado” embora exista histórico operacional. O
+reparo anterior de 110 fases continua válido e idempotente para os vínculos
+elegíveis, mas não é evidência de cobertura integral dos 34 instrumentos.
+
+Também foram encontradas seis datas de ocorrência futuras, 16 marcos de
+inauguração sem conclusão direta e 141 marcos físico/regulatórios sem vínculo
+de fase geral no conjunto de 120 instrumentos. Não há indício de drift,
+violação de FK ou necessidade de migration; há uma pendência de saneamento
+append-only e de regra de conciliação. O CNES do PERSUS persistido permanece a
+chave definitiva: a fonte complementar só poderá usá-lo como fallback quando
+o CNES for único na planilha, com NUP/código de obra/ano obrigatório nos casos
+repetidos.
+
+A planilha de entregas confirmou 29 inaugurações do Controle já coerentes no
+banco, seis datas candidatas ainda ausentes e três divergentes. Datas ausentes
+ou divergentes permanecem pendentes de precedência de fonte; não foram
+sobrescritas nesta auditoria.
