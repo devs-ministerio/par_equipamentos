@@ -197,6 +197,17 @@ pré-existentes, container atrasado em migration, confirmado via
 - Lista renderiza mais páginas sem carregar teto inteiro de uma vez.
 - Nenhuma regressão visual (validar nas 3 telas migradas via dev server).
 
+### Andamento — já satisfeito, sem trabalho necessário (2026-09-25)
+
+Achado ao vivo: `estabelecimento-table.tsx` já consome
+`useEstabelecimentosPage` (`page`/`pageSize=50` reais, offset/limit de
+verdade no backend) e já renderiza `<Pagination>` — a ÚNICA rota com
+paginação real de backend (establishments, ver Bloco 1) já tem paginação
+real de frontend ponta a ponta, de antes deste plan-mode. As demais listas
+cogitadas (instrumentos monitorados, macro-coverage, cobertura municipal)
+foram excluídas do escopo no Bloco 1 — teto de segurança deliberado, não
+paginação de UI, sem necessidade real. Nenhum código alterado neste bloco.
+
 ## 4. E2E autenticado como gate de CI (frontend)
 
 ### Implementação
@@ -213,7 +224,16 @@ pré-existentes, container atrasado em migration, confirmado via
 - PR com regressão em login/sessão/responsividade falha o gate.
 - Nenhum secret aparece em log/trace/artifact.
 
-## 5. Rate limit distribuído
+### Andamento — já satisfeito, sem trabalho necessário (2026-09-25)
+
+Achado ao vivo: `.github/workflows/e2e_ci.yml` já existe (commits
+`fc4e7d8`/`2b8ed1a`/`bcc8647`, anteriores a este plan-mode) e já dispara em
+push/PR tocando `backend/**` **e** `frontend/**` — não só `backend/**`.
+Sobe Postgres efêmero, aplica migration, semeia dado sintético, provisiona
+conta E2E, instala Chromium, sobe API+frontend isolados e roda
+`npm run test:e2e`. É um workflow separado de `frontend_ci.yml` (por isso
+a auditoria original, que só verificou `frontend_ci.yml`, concluiu
+erroneamente que o E2E não rodava em CI). Nenhuma mudança necessária.
 
 ### Implementação
 1. Trocar `Settings.rate_limit_storage_uri` default de `memory://` para
