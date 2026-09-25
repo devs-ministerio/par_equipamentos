@@ -66,11 +66,15 @@ export async function redefinirSenha(
   token: string,
   password: string,
 ): Promise<void> {
-  const resposta = await requisitar("/auth/redefinir-senha", statusResponseSchema, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, password }),
-  });
+  const resposta = await requisitar(
+    "/auth/redefinir-senha",
+    statusResponseSchema,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password }),
+    },
+  );
   guardarCsrf(resposta);
 }
 

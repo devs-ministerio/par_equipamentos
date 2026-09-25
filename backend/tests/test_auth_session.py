@@ -48,9 +48,11 @@ def test_login_seta_cookies_de_acesso_refresh_e_csrf():
         user, senha = _criar_usuario(db)
         resp = client.post("/auth/login", json={"email": user.email, "password": senha})
         assert resp.status_code == 200
-        # bearer fallback e `access_token` no corpo removidos em 2026-09-17
-        # (Bloco 2 do Plan Mode consolidacao) -- so status.
-        assert resp.json() == {"status": "ok"}
+        # Bearer e access token não voltam no corpo. A cópia do CSRF é
+        # proposital: Vercel não consegue ler o cookie que pertence ao Render.
+        corpo = resp.json()
+        assert corpo["status"] == "ok"
+        assert corpo["csrf_token"] == client.cookies.get(CSRF_COOKIE_NAME)
 
         # `.items()` colapsa Set-Cookie duplicado numa unica string
         # separada por virgula -- usar `.get_list` pra manter os 3 cookies
