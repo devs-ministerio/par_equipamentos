@@ -84,6 +84,9 @@ describe("lib/http-client", () => {
   });
 
   it("nunca repete mutação após timeout para não duplicar escrita", async () => {
+    // A mutação já parte de uma sessão com CSRF disponível; o teste cobre
+    // somente a regra de não repetir escrita após timeout.
+    stubBrowserGlobals();
     fetchMock.mockRejectedValueOnce(
       new Error("A solicitação excedeu 15 segundos."),
     );
@@ -155,6 +158,22 @@ describe("lib/http-client", () => {
     const initPost = fetchMock.mock.calls[1][1] as RequestInit;
     expect((initPost.headers as Record<string, string>)["X-CSRF-Token"]).toBe(
       "token-abc",
+    );
+  });
+
+  it("recupera o CSRF da API quando o cookie está em outro domínio", async () => {
+    vi.stubGlobal("document", { cookie: "" });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(200, { csrf_token: "token-api" }))
+      .mockResolvedValueOnce(jsonResponse(200, {}));
+
+    await requisitar("/auth/logout", z.object({}), { method: "POST" });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0][0])).toContain("/auth/csrf");
+    const initLogout = fetchMock.mock.calls[1][1] as RequestInit;
+    expect((initLogout.headers as Record<string, string>)["X-CSRF-Token"]).toBe(
+      "token-api",
     );
   });
 

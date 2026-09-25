@@ -95,3 +95,19 @@ def test_login_nao_exige_header_csrf():
     # nesse ponto pra comparar (e' o proprio ato que os emite).
     c, _csrf = _logar_usuario_novo()
     assert c is not None  # login (dentro do helper) ja e a prova: sucedeu sem header CSRF
+
+
+def test_csrf_pode_ser_recuperado_pela_origem_cors_apos_reload():
+    """No deploy Vercel → Render, o JS não enxerga o cookie da API.
+
+    A rota de leitura devolve o mesmo valor apenas após o navegador enviar o
+    cookie; a proteção continua exigindo que esse valor seja ecoado no header
+    de toda mutação.
+    """
+    c, csrf = _logar_usuario_novo()
+
+    resposta = c.get("/auth/csrf")
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {"csrf_token": csrf}
+    assert resposta.headers["cache-control"] == "no-store"

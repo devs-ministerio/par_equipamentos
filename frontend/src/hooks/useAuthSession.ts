@@ -6,6 +6,7 @@ import {
   login,
   logout,
 } from "@/services/auth";
+import { limparCsrfToken } from "@/lib/csrf";
 import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 /** Sessão do usuário operacional do monitoramento interno (login/logout +
@@ -56,6 +57,10 @@ export function useAuthSession() {
       // Sem rede não é possível revogar remotamente. O usuário já saiu da
       // interface e recebe um aviso sem expor o detalhe técnico da falha.
       toast.error("Não foi possível confirmar a saída no servidor.");
+    } finally {
+      // A API também invalida o cookie. Este é só o espelho em memória
+      // usado pela topologia Vercel → Render, que não deve sobreviver à saída.
+      limparCsrfToken();
     }
   }
 

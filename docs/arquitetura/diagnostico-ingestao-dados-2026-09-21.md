@@ -83,8 +83,12 @@ A aplicação aprovada conciliou as 34 linhas após quatro validações explíci
 da equipe. O escopo foi deliberadamente seletivo: 29 monitoramentos foram
 criados e 5 existentes foram complementados, totalizando 34; os outros 58
 PERSUS I permanecem em Instrumentos Firmados sem monitoramento interno. Foram
-adicionados 185 eventos e 102 ações concluídas, além de 21 anos e 22 NUPs
-ausentes. A rotina preserva conflito de ano, NUP ou inauguração como relatório
+adicionados 185 eventos detalhados e 102 ações concluídas, além de 21 anos e
+22 NUPs ausentes. Em 2026-09-25, uma verificação do resumo identificou que
+`fase_geral_id` é somente o vínculo contextual do marco, não uma transição de
+fase. Foram materializados em lote 110 eventos diretos de fase geral
+(append-only, idempotente), fazendo o painel reconhecer as etapas já
+comprovadas sem alterar os marcos ou dados de origem. A rotina preserva conflito de ano, NUP ou inauguração como relatório
 e nunca faz sobrescrita silenciosa.
 
 Esse fluxo não muda a regra de reconstrução: um novo servidor deve receber

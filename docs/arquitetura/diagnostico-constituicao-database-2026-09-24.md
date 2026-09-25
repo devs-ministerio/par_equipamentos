@@ -341,7 +341,10 @@ planilha foram vinculadas somente após validação explícita da equipe.
 No banco operacional foram preservados os 92 PERSUS I em `convenio` e ficaram
 34 no escopo de monitoramento interno: 5 já existentes e 29 criados. A fonte
 complementou 21 anos de instrumento e 22 NUPs quando ausentes, registrou 185
-eventos e 102 ações concluídas. Não houve migration, alteração de schema nem
+eventos detalhados, 110 eventos diretos de fase geral e 102 ações concluídas.
+Os eventos de fase foram materializados em reparo idempotente de 2026-09-25:
+`fase_geral_id` contextualiza um marco físico/regulatório, mas não substitui o
+evento direto que o resumo usa para derivar a etapa atual. Não houve migration, alteração de schema nem
 sobrescrita de CNES; os 58 PERSUS sem dados de controle permanecem somente em
 Instrumentos Firmados. A rotina é idempotente por chave de origem e deduplica
 evento/ação pelo conteúdo antes de inserir.

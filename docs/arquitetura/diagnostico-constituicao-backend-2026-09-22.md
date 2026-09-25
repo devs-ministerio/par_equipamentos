@@ -231,12 +231,16 @@ usuário, revogação e expiração antes de devolver o usuário. Login, ativaç
 redefinição e refresh sempre emitem o par da mesma nova sessão; refresh
 rotacionado torna o access anterior inválido pelo mesmo mecanismo.
 
-O contrato HTTP não mudou: login, refresh e logout continuam retornando apenas
-`{"status": "ok"}` e os cookies continuam `HttpOnly`. A nova prova HTTP
-reinsere um access cookie capturado antes do logout e exige `401` em
-`GET /auth/me`. Ruff e mypy passaram nesta alteração; os testes dependentes de
-banco foram coletados, mas ficaram skip nesta máquina porque
-`TEST_DATABASE_URL` não estava configurada.
+Os cookies continuam `HttpOnly`. Login, ativação, redefinição e refresh agora
+retornam também uma cópia efêmera `csrf_token`; ela é necessária porque o
+cookie da API Render não é legível em `document.cookie` do Vercel. Após reload,
+`GET /auth/csrf` devolve a mesma cópia exclusivamente à origem CORS permitida,
+com `Cache-Control: no-store`. O double-submit continua obrigatório em toda
+mutação: não houve isenção de logout nem token persistido no frontend. A prova
+HTTP reinsere um access cookie capturado antes do logout e exige `401` em
+`GET /auth/me`. Ruff passou nesta alteração; os testes dependentes de banco
+foram coletados, mas ficaram skip nesta máquina porque `TEST_DATABASE_URL` não
+estava configurada.
 
 ## Atualização de ingestão PERSUS — 2026-09-24
 
@@ -245,7 +249,11 @@ Ela separa conciliação, garantia de instrumento monitorado, complemento de
 campos, eventos e ações; não cria `Convenio`, não altera CNES e recusa vínculo
 ambíguo até validação explícita. Após a conciliação aprovada, a execução no
 Neon registrou somente o escopo autorizado: 29 instrumentos criados, 5
-existentes preservados, 185 eventos e 102 ações concluídas.
+existentes preservados, 185 eventos detalhados e 102 ações concluídas. Em
+2026-09-25 foi corrigida uma lacuna de materialização: os 185 vínculos a
+`fase_geral_id` não eram eventos de fase e, portanto, não atualizavam o resumo.
+O reparo em lote, append-only e idempotente gravou 110 eventos diretos de fase
+geral, sem alterar CNES, valores, marcos detalhados ou ações existentes.
 
 A rotina passou `ruff check`, `mypy` e `ruff format --check`; a decomposição
 também elimina o C901 que teria sido introduzido por uma nova carga manual.

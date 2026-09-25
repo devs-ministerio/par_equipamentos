@@ -274,6 +274,26 @@ def _situacao_convenio(situacao_inauguracao: str | None) -> str | None:
     return None
 
 
+def _fases_ocorridas(registro: LinhaControle) -> dict[str, date]:
+    """Consolida a última evidência realizada de cada fase geral.
+
+    ``fase_geral_id`` dá contexto a um marco físico/regulatório, mas não é
+    em si um evento de fase. O resumo do monitoramento deriva a etapa atual
+    exclusivamente dos eventos cujo próprio marco é do grupo ``fase_geral``.
+    A complementação precisa materializar ambos: o marco detalhado e a
+    transição de fase que ele confirma.
+    """
+    fases: dict[str, date] = {}
+    for codigo, data_evento in registro.datas_equipamento.items():
+        fase = _fase_para_evento(codigo)
+        anterior = fases.get(fase)
+        if anterior is None or data_evento > anterior:
+            fases[fase] = data_evento
+    if registro.data_inauguracao:
+        fases["fase_concluido"] = registro.data_inauguracao
+    return fases
+
+
 def validar(*, arquivo: Path = ARQUIVO_PADRAO) -> dict[str, int]:
     """Confere a conciliação sem abrir nenhuma escrita na base.
 
@@ -427,6 +447,21 @@ def _registrar_eventos(
                 observacao,
             )
         )
+    for codigo_fase, data_evento in _fases_ocorridas(registro).items():
+        fase = marcos.get(codigo_fase)
+        if fase is None:
+            continue
+        resultado["fases_gerais"] += int(
+            _adicionar_evento(
+                db,
+                instrumento,
+                fase,
+                None,
+                data_evento,
+                None,
+                f"Fase geral consolidada pela complementação PERSUS. {observacao}",
+            )
+        )
 
 
 def _registrar_acoes(
@@ -436,6 +471,77 @@ def _registrar_acoes(
         resultado["acoes"] += int(
             _adicionar_acao_concluida(db, instrumento, f"{descricao}. {observacao}", data_conclusao)
         )
+
+
+def complementar_fases_gerais(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool = False) -> dict[str, int]:
+    """Materializa em lote as fases gerais faltantes da carga já aplicada.
+
+    A primeira versão da complementação criou os marcos detalhados com
+    ``fase_geral_id``, mas o resumo só considera eventos cujo marco é a fase
+    geral. Este reparo evita reprocessar os demais 287 registros idempotentes
+    contra um banco remoto: lê os eventos de fase existentes uma única vez e
+    insere exclusivamente as transições ainda ausentes.
+    """
+    origem = f"Controle PERSUS.xlsx · sha256:{hashlib.sha256(arquivo.read_bytes()).hexdigest()[:12]}"
+    registros = ler_controle(arquivo)
+    resultado: dict[str, int] = defaultdict(int)
+    with SessionLocal() as db:
+        convenios = db.execute(select(Convenio).where(Convenio.chave_origem.like("PERSUS1-%"))).scalars().all()
+        instrumentos = {
+            item.chave_origem: item
+            for item in db.execute(
+                select(InstrumentoEquipamento).where(InstrumentoEquipamento.chave_origem.like("PERSUS1-%"))
+            ).scalars()
+            if item.chave_origem is not None
+        }
+        marcos = {marco.codigo: marco for marco in db.execute(select(MarcoCatalogo)).scalars()}
+        resolvidos_por_linha, _resolvidos, pendentes = _resolver_linhas(registros, convenios)
+        fases_ids = {marco.id for marco in marcos.values() if marco.codigo.startswith("fase_")}
+        existentes = {
+            (instrumento_id, marco_id, data_ocorrencia)
+            for instrumento_id, marco_id, data_ocorrencia in db.execute(
+                select(EventoMarco.instrumento_id, EventoMarco.marco_id, EventoMarco.data_ocorrencia).where(
+                    EventoMarco.instrumento_id.in_([item.id for item in instrumentos.values()]),
+                    EventoMarco.marco_id.in_(fases_ids),
+                )
+            ).all()
+        }
+        for registro in registros:
+            convenio = resolvidos_por_linha.get(registro.linha)
+            if convenio is None or convenio.chave_origem is None:
+                continue
+            instrumento = instrumentos.get(convenio.chave_origem)
+            if instrumento is None:
+                resultado["pendentes_instrumento"] += 1
+                continue
+            observacao = (
+                f"Fase geral consolidada pela complementação PERSUS. Importado de {origem}, linha {registro.linha}."
+            )
+            for codigo_fase, data_evento in _fases_ocorridas(registro).items():
+                fase = marcos.get(codigo_fase)
+                if fase is None:
+                    continue
+                chave_evento = (instrumento.id, fase.id, data_evento)
+                if chave_evento in existentes:
+                    continue
+                db.add(
+                    EventoMarco(
+                        instrumento_id=instrumento.id,
+                        marco_id=fase.id,
+                        data_ocorrencia=data_evento,
+                        observacao=observacao,
+                    )
+                )
+                existentes.add(chave_evento)
+                resultado["fases_gerais"] += 1
+        resultado["pendentes_vinculo"] = len(pendentes)
+        if dry_run:
+            db.rollback()
+        else:
+            db.commit()
+    resultado["linhas"] = len(registros)
+    print(("SIMULACAO" if dry_run else "APLICADO") + ": " + ", ".join(f"{k}={v}" for k, v in sorted(resultado.items())))
+    return resultado
 
 
 def executar(*, arquivo: Path = ARQUIVO_PADRAO, dry_run: bool = False) -> dict[str, int]:
@@ -485,8 +591,11 @@ if __name__ == "__main__":
     parser.add_argument("--arquivo", type=Path, default=ARQUIVO_PADRAO)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--validar", action="store_true")
+    parser.add_argument("--fases-gerais", action="store_true")
     argumentos = parser.parse_args()
     if argumentos.validar:
         validar(arquivo=argumentos.arquivo)
+    elif argumentos.fases_gerais:
+        complementar_fases_gerais(arquivo=argumentos.arquivo, dry_run=argumentos.dry_run)
     else:
         executar(arquivo=argumentos.arquivo, dry_run=argumentos.dry_run)

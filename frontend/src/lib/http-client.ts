@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
-import { csrfHeaders } from "@/lib/csrf";
+import { atualizarCsrfToken, csrfHeaders } from "@/lib/csrf";
 
 /** Bloco 1 do Plan Mode frontend 2026-09-17 -- cliente HTTP único
  * compartilhado por `services/api.ts`/`services/convenios.ts`/
@@ -67,15 +67,53 @@ async function mensagemErroHttp(resp: Response): Promise<string> {
  * (singleton) -- é o que faz o mutex valer entre `api.ts`/`convenios.ts`/
  * `monitoramento.ts` ao mesmo tempo, não só dentro de cada um. */
 let renovacaoEmAndamento: Promise<boolean> | null = null;
+let consultaCsrfEmAndamento: Promise<boolean> | null = null;
+
+const csrfResponseSchema = z.object({ csrf_token: z.string() });
+
+/** Em desenvolvimento o cookie CSRF está no mesmo host e `document.cookie`
+ * basta. Em produção Vercel e Render são hosts distintos: busca a cópia que
+ * a API recebeu no cookie e mantém só em memória para o header double-submit.
+ */
+async function garantirCsrfToken(): Promise<boolean> {
+  if (Object.keys(csrfHeaders()).length > 0) return true;
+  if (!consultaCsrfEmAndamento) {
+    consultaCsrfEmAndamento = fetch(`${API_BASE_URL}/auth/csrf`, {
+      credentials: "include",
+      headers: { "X-Trace-Id": novoTraceId() },
+    })
+      .then(async (resposta) => {
+        if (!resposta.ok) return false;
+        const parsed = csrfResponseSchema.safeParse(await resposta.json());
+        if (!parsed.success) return false;
+        atualizarCsrfToken(parsed.data.csrf_token);
+        return true;
+      })
+      .catch(() => false)
+      .finally(() => {
+        consultaCsrfEmAndamento = null;
+      });
+  }
+  return consultaCsrfEmAndamento;
+}
 
 function tentarRenovarSessao(): Promise<boolean> {
   if (!renovacaoEmAndamento) {
-    renovacaoEmAndamento = fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: { ...csrfHeaders(), "X-Trace-Id": novoTraceId() },
-    })
-      .then((r) => r.ok)
+    renovacaoEmAndamento = garantirCsrfToken()
+      .then((temCsrf) => {
+        if (!temCsrf) return null;
+        return fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+          headers: { ...csrfHeaders(), "X-Trace-Id": novoTraceId() },
+        });
+      })
+      .then(async (resposta) => {
+        if (!resposta?.ok) return false;
+        const corpo = csrfResponseSchema.safeParse(await resposta.json());
+        if (corpo.success) atualizarCsrfToken(corpo.data.csrf_token);
+        return true;
+      })
       .catch(() => false)
       .finally(() => {
         renovacaoEmAndamento = null;
@@ -120,6 +158,7 @@ export async function httpFetch(
   const metodo = (init?.method ?? "GET").toUpperCase();
   const precisaCsrf = metodo !== "GET" && path !== "/auth/login";
   const traceId = novoTraceId();
+  if (precisaCsrf) await garantirCsrfToken();
   const executar = async () => {
     const controller = new AbortController();
     const timeout = globalThis.setTimeout(

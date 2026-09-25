@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth import (
+    CSRF_COOKIE_NAME,
     REFRESH_COOKIE_NAME,
     clear_session_cookies,
     create_access_token,
@@ -65,8 +66,12 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     refresh_token, refresh_token_id = create_refresh_token(db, user)
     access_token = create_access_token(user, refresh_token_id)
     db.commit()
-    set_session_cookies(response, access_token, refresh_token)
-    return {"status": "ok"}
+    csrf_token = set_session_cookies(response, access_token, refresh_token)
+    # O frontend e a API vivem em domínios distintos (Vercel/Render). O
+    # cookie CSRF continua sendo a cópia que o servidor compara, mas não é
+    # legível por JavaScript no domínio do frontend. Devolver o mesmo valor
+    # à origem CORS autorizada permite o double-submit sem relaxar CSRF.
+    return {"status": "ok", "csrf_token": csrf_token}
 
 
 @router.post("/ativar")
@@ -84,9 +89,9 @@ def ativar(request: Request, corpo: UserActivationRequest, response: Response, d
     registrar_sucesso_login(user)
     db.commit()
     refresh_token, refresh_token_id = create_refresh_token(db, user)
-    set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
+    csrf_token = set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
     db.commit()
-    return {"status": "ok"}
+    return {"status": "ok", "csrf_token": csrf_token}
 
 
 @router.post("/esqueci-senha")
@@ -128,9 +133,9 @@ def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Res
     revoke_all_refresh_tokens_for_user(db, user.id)
     db.commit()
     refresh_token, refresh_token_id = create_refresh_token(db, user)
-    set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
+    csrf_token = set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
     db.commit()
-    return {"status": "ok"}
+    return {"status": "ok", "csrf_token": csrf_token}
 
 
 @router.post("/refresh")
@@ -144,8 +149,25 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
         raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
     user, novo_refresh, nova_sessao_id = rotate_refresh_token(db, token)
     novo_access = create_access_token(user, nova_sessao_id)
-    set_session_cookies(response, novo_access, novo_refresh)
-    return {"status": "ok"}
+    csrf_token = set_session_cookies(response, novo_access, novo_refresh)
+    return {"status": "ok", "csrf_token": csrf_token}
+
+
+@router.get("/csrf")
+def fornecer_csrf(request: Request, response: Response):
+    """Entrega a cópia CSRF à origem autorizada após um reload do frontend.
+
+    Em produção, o cookie pertence ao host da API e não aparece em
+    ``document.cookie`` do Vercel. O navegador ainda o envia à API com
+    ``credentials: include``; esta rota de leitura devolve o mesmo valor
+    somente a quem a política CORS permite ler. Sem cookie não há token nem
+    sessão para reutilizar.
+    """
+    csrf_token = request.cookies.get(CSRF_COOKIE_NAME)
+    if csrf_token is None:
+        raise HTTPException(status_code=401, detail="Sessão inválida ou expirada.")
+    response.headers["Cache-Control"] = "no-store"
+    return {"csrf_token": csrf_token}
 
 
 @router.post("/logout")

@@ -111,3 +111,14 @@ seguro explicando que a revogação não foi confirmada no servidor. A regressã
 unitária cobre cache protegido, estado visitante e falha remota. O spec E2E
 passou a cobrir login → Sair → `/login`; sua execução requer as credenciais e
 a stack efêmera providas pelo workflow, indisponíveis nesta sessão local.
+
+## Atualização de produção — 2026-09-25 (CSRF cross-origin)
+
+Foi corrigido o erro do botão `Sair` no deploy Vercel → Render. O cookie CSRF
+é emitido pelo host da API e não pode ser lido por `document.cookie` no host do
+frontend; por isso o logout chegava sem `X-CSRF-Token` e recebia 403. O cliente
+agora recupera a cópia do token por `GET /auth/csrf`, protegido pela mesma
+origem CORS, e a mantém somente em memória. Login e refresh também atualizam
+essa cópia. O double-submit segue obrigatório e a cópia é descartada ao sair;
+não foi introduzido `localStorage`, bearer ou exceção de CSRF. Os 29 testes
+focados, lint e build passaram.

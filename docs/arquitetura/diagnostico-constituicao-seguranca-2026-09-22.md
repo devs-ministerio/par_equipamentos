@@ -196,8 +196,12 @@ invalidam imediatamente também um access cookie que tenha sido copiado antes
 da limpeza do navegador; não há mais a janela de até 20 minutos registrada no
 diagnóstico de Backend de 2026-09-16.
 
-Não houve mudança de cookie, CORS, CSRF ou esquema de banco. Foi incluído um
-teste HTTP de regressão que recoloca deliberadamente o access cookie após
-logout e recebe `401`. A execução local sem `TEST_DATABASE_URL` coletou o
-teste, mas o marcou como skip; a comprovação em PostgreSQL isolado continua
-obrigatória no CI/ambiente de testes.
+Em 2026-09-25, foi corrigida a compatibilidade operacional do CSRF para Vercel
+→ Render. O double-submit não mudou: cookie e header ainda precisam coincidir,
+e logout não ganhou isenção. Como o frontend não consegue ler um cookie do host
+da API, login/ativação/redefinição/refresh devolvem sua cópia efêmera e
+`GET /auth/csrf` a recupera após reload apenas para a origem CORS permitida,
+sem cache. O frontend a mantém somente em memória e a descarta na saída. Foi
+incluído teste HTTP da rota; a execução local sem `TEST_DATABASE_URL` coletou
+os testes, mas os marcou como skip; a comprovação em PostgreSQL isolado
+continua obrigatória no CI/ambiente de testes.

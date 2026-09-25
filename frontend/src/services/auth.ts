@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
+import { atualizarCsrfToken } from "@/lib/csrf";
 import { requisitar } from "@/lib/http-client";
 
 const authUserSchema = z.object({
@@ -12,18 +13,26 @@ const authUserSchema = z.object({
 });
 export type AuthUser = z.infer<typeof authUserSchema>;
 
-const statusResponseSchema = z.object({ status: z.string() });
+const statusResponseSchema = z.object({
+  status: z.string(),
+  csrf_token: z.string().optional(),
+});
+
+function guardarCsrf(resposta: z.infer<typeof statusResponseSchema>): void {
+  if (resposta.csrf_token) atualizarCsrfToken(resposta.csrf_token);
+}
 
 /** POST /auth/login -- o backend seta os cookies de sessão (access +
  * refresh + csrf) na própria resposta (Bloco 2); nada pra guardar em
  * `localStorage` aqui. O bearer fallback e o `access_token` no corpo
  * foram removidos em 2026-09-17 (Bloco 2 do Plan Mode consolidação). */
 export async function login(email: string, password: string): Promise<void> {
-  await requisitar("/auth/login", statusResponseSchema, {
+  const resposta = await requisitar("/auth/login", statusResponseSchema, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
+  guardarCsrf(resposta);
 }
 
 /** POST /auth/logout -- revoga a sessão no servidor (Bloco 2), diferente
@@ -37,11 +46,12 @@ export async function ativarConta(
   token: string,
   password: string,
 ): Promise<void> {
-  await requisitar("/auth/ativar", statusResponseSchema, {
+  const resposta = await requisitar("/auth/ativar", statusResponseSchema, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, password }),
   });
+  guardarCsrf(resposta);
 }
 
 export async function solicitarRecuperacao(email: string): Promise<void> {
@@ -56,11 +66,12 @@ export async function redefinirSenha(
   token: string,
   password: string,
 ): Promise<void> {
-  await requisitar("/auth/redefinir-senha", statusResponseSchema, {
+  const resposta = await requisitar("/auth/redefinir-senha", statusResponseSchema, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, password }),
   });
+  guardarCsrf(resposta);
 }
 
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
