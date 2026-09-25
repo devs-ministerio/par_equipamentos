@@ -23,27 +23,13 @@ from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import Competency, Execution, MunicipalityCoverage, User
+from app.db.models import MunicipalityCoverage, User
 from app.pipeline.cobertura import calcular_cobertura, produtividade_por_familia
 from app.pipeline.geo import carregar_codigo_ibge_7_digitos, carregar_coordenadas_municipios
+from app.repositories import execucoes as execucoes_repo
 from app.schemas import HealthRegionCoverageRead, MunicipalityCoverageRead
 
 router = APIRouter(tags=["cobertura-assistencial"])
-
-
-def _latest_execution_id(db: Session, equipment_family: str | None) -> int | None:
-    # Ver mesmo comentario em app/routers/macro_coverage.py -- sem escopar por
-    # familia, "a execucao mais recente" pode ser de outra familia e o filtro
-    # execution_id + equipment_family sempre da 0 linhas.
-    stmt = (
-        select(Execution.id)
-        .join(Competency, Execution.competency_id == Competency.id)
-        .order_by(Execution.started_at.desc())
-        .limit(1)
-    )
-    if equipment_family:
-        stmt = stmt.where(Competency.equipment_family == equipment_family)
-    return db.execute(stmt).scalar_one_or_none()
 
 
 def _filtrar_municipio(stmt, municipality: list[str] | None):
@@ -85,7 +71,7 @@ def listar_municipality_coverage(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> list[MunicipalityCoverageRead]:
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return []
 
@@ -138,7 +124,7 @@ def listar_health_region_coverage(
     100_000), nao soma dos ceils individuais -- senao superestimaria
     demanda ao contar cada municipio pequeno como exigindo 1 aparelho
     proprio)."""
-    exec_id = execution_id or _latest_execution_id(db, equipment_family)
+    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
     if exec_id is None:
         return []
 

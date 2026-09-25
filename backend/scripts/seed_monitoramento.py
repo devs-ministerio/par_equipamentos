@@ -22,6 +22,7 @@ from datetime import date
 
 from app.db.base import SessionLocal
 from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
+from app.db.seed_guard import recusar_se_producao
 
 # Catalogo -- (codigo, grupo, ordem, pct_referencia, rotulo, descricao_referencia).
 # ordem/pct so fazem sentido em fase_geral (definem a barra de progresso);
@@ -177,6 +178,7 @@ EVENTOS_948686 = [
 
 
 def run() -> None:
+    recusar_se_producao()
     db = SessionLocal()
     try:
         marcos_por_codigo = {m.codigo: m for m in db.query(MarcoCatalogo).all()}

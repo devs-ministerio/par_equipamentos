@@ -49,12 +49,20 @@ def _ids_broadcast(db: Session) -> set[int]:
     return _ids_ativos_por_role(db, (UserRole.colaborador, UserRole.gestor, UserRole.admin))
 
 
-def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[int]:
-    ids_designados = set(
+def obter_ids_responsaveis_do_instrumento(db: Session, instrumento_id: int) -> set[int]:
+    """IDs de usuário vinculados como titular/suplente do instrumento --
+    compartilhado entre escopo de notificação (aqui) e autorização por
+    titularidade (app.authz, via app.repositories.monitoramento -- não pode
+    viver lá porque monitoramento.py já importa deste módulo)."""
+    return set(
         db.execute(
             select(InstrumentoResponsavel.usuario_id).where(InstrumentoResponsavel.instrumento_id == instrumento_id)
         ).scalars()
     )
+
+
+def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[int]:
+    ids_designados = obter_ids_responsaveis_do_instrumento(db, instrumento_id)
     # Filtra por ativo E role != leitor -- titular/suplente designado que foi
     # inativado (módulo de gestão de usuários) ou é leitor (decisão do
     # usuário 2026-09-25: leitor nunca recebe notificação, mesmo sendo

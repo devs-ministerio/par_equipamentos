@@ -23,6 +23,7 @@ from app.db.models import (
     MacroCoverage,
     MunicipalityCoverage,
 )
+from app.db.seed_guard import recusar_se_producao
 
 _LABEL = "__pytest_cobertura_tomografo__"
 
@@ -34,12 +35,20 @@ def seed_cobertura() -> None:
     linhas de oferta somam exatamente os agregados: `existing_qty=6` e
     `available_qty=3`, sendo disponibilidade somente SUS e em uso.
     """
+    recusar_se_producao()
     db = SessionLocal()
     try:
         competencia_anterior = db.scalar(
             select(Competency).where(Competency.label == _LABEL, Competency.equipment_family == "TOMOGRAFO")
         )
         if competencia_anterior is not None:
+            # Precisa zerar o ponteiro ANTES de deletar a execução que ele
+            # aponta -- mesmo bug já corrigido em run_pipeline_*.py (ver
+            # tests/test_pipeline_dedup.py): sem isso, a FK RESTRICT de
+            # competency.published_execution_id barra o DELETE numa 2a
+            # rodada do seed contra o mesmo banco.
+            competencia_anterior.published_execution_id = None
+            db.flush()
             db.execute(delete(Execution).where(Execution.competency_id == competencia_anterior.id))
             db.execute(delete(Competency).where(Competency.id == competencia_anterior.id))
             db.flush()
@@ -58,6 +67,14 @@ def seed_cobertura() -> None:
             active_sources={},
         )
         db.add(execucao)
+        db.flush()
+        # Mesmo ponteiro que run_pipeline_*.py mantém a cada rodada real --
+        # sem isso, obter_execucao_publicada_mais_recente (app/repositories/
+        # execucoes.py) nunca escolhe esta execução (achado do incidente
+        # 2026-09-25: o seed nunca setava isso, e por acidente rodou contra
+        # produção com started_at recente o bastante pra "vencer" mesmo sem
+        # ser a execução publicada de verdade).
+        competencia.published_execution_id = execucao.id
         db.flush()
 
         municipios = [

@@ -74,11 +74,20 @@ workflow `migrar_banco.yml` no GitHub Actions.
 
 ## Dataset sintético de desenvolvimento
 
-Depois de `alembic upgrade head` num banco local vazio, popule dado
-sintético (sem PII, sem depender do Neon) pra desenvolver sem esperar
-dump/clone de produção:
+**Sempre aponte `DATABASE_URL` pra um Postgres local antes** (mesmo cuidado
+da seção de migration acima) -- incidente real 2026-09-25: rodar o seed sem
+essa variável gravou dado sintético direto no Neon de produção e quebrou a
+Análise de Mérito de TOMOGRAFO. Os dois scripts abaixo se recusam a rodar
+se `DATABASE_URL` apontar pro Neon (`app/db/seed_guard.py`), mas exportar a
+variável certa continua sendo o passo esperado, não uma rede de segurança
+pra depender:
 
 ```bash
+export DATABASE_URL="$DATABASE_URL_LOCAL"  # ver export acima, nunca o Neon
+
+# Depois de `alembic upgrade head` num banco local vazio, popule dado
+# sintético (sem PII, sem depender do Neon) pra desenvolver sem esperar
+# dump/clone de produção:
 uv run python -m scripts.seed_monitoramento   # catálogo de marcos + 1 instrumento/CNES de exemplo
 uv run python -m tests.fixtures_cobertura     # cobertura/oferta de equipamento (3 municípios, TOMOGRAFO)
 ```

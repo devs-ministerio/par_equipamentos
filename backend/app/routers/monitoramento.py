@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user, require_monitoramento_editor
+from app.authz import usuario_pode_editar_instrumento
 from app.db.base import get_db
 from app.db.models import (
     AcaoMonitoramento,
@@ -28,6 +29,7 @@ from app.db.models import (
 )
 from app.pipeline import portal_transparencia
 from app.repositories import monitoramento as monitoramento_repo
+from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_monitoramento import ResumoMonitoramentoRead
 from app.services.monitoramento_eventos import (
     DadosEquipamentoEntregue,
@@ -208,6 +210,14 @@ class InstrumentoEquipamentoRead(BaseModel):
     # endpoints que devolvem InstrumentoEquipamentoRead (PATCH/timeline), que
     # nao precisam disso.
     fase_atual: str | None = None
+    # Calculado por request pro usuario autenticado (nao e coluna, mesmo
+    # padrao de fase_atual acima) -- autorizacao por titularidade
+    # (app.authz::usuario_pode_editar_instrumento, pedido do usuario
+    # 2026-09-25): admin/gestor sempre True; colaborador so True se for
+    # titular/suplente designado (ou se ninguem foi designado ainda).
+    # Default True cobre POST/PATCH, que ja provaram a permissao pra chegar
+    # ali -- so listar_instrumentos/obter_timeline recalculam de verdade.
+    pode_editar: bool = True
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -480,10 +490,20 @@ def listar_instrumentos(
     """Router fino (Bloco 3 do Plan Mode consolidação 2026-09-17) -- lógica
     de fase atual e query vivem em `services/monitoramento_instrumentos.py`
     + `repositories/monitoramento.py`; aqui só o mapeamento pro schema
-    HTTP (`fase_atual` não é coluna, por isso o `model_copy`)."""
+    HTTP (`fase_atual`/`pode_editar` não são coluna, por isso o `model_copy`)."""
     itens = listar_instrumentos_monitorados(db=db, limit=limit)
+    responsaveis_por_instrumento = monitoramento_repo.mapear_responsaveis_por_instrumentos(
+        db, {item.instrumento.id for item in itens}
+    )
     return [
-        InstrumentoEquipamentoRead.model_validate(item.instrumento).model_copy(update={"fase_atual": item.fase_atual})
+        InstrumentoEquipamentoRead.model_validate(item.instrumento).model_copy(
+            update={
+                "fase_atual": item.fase_atual,
+                "pode_editar": usuario_pode_editar_instrumento(
+                    usuario, responsaveis_por_instrumento.get(item.instrumento.id, set())
+                ),
+            }
+        )
         for item in itens
     ]
 
@@ -512,9 +532,12 @@ def obter_timeline(
         e.deletado_por_id for e in timeline.eventos if e.deletado_por_id
     }
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
+    ids_responsaveis = obter_ids_responsaveis_do_instrumento(db, timeline.instrumento.id)
 
     return InstrumentoTimelineRead(
-        instrumento=InstrumentoEquipamentoRead.model_validate(timeline.instrumento),
+        instrumento=InstrumentoEquipamentoRead.model_validate(timeline.instrumento).model_copy(
+            update={"pode_editar": usuario_pode_editar_instrumento(usuario, ids_responsaveis)}
+        ),
         ao_vivo=ao_vivo,
         eventos=[_evento_read(e, nomes) for e in timeline.eventos],
     )

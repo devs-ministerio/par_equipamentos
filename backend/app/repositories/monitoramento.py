@@ -22,6 +22,7 @@ from app.db.models import (
     CnesEstabelecimento,
     EventoMarco,
     InstrumentoEquipamento,
+    InstrumentoResponsavel,
     MarcoCatalogo,
     MarcoGrupo,
     Notificacao,
@@ -274,3 +275,19 @@ def adicionar_notificacao(db: Session, notificacao: Notificacao) -> None:
 def sincronizar(db: Session) -> None:
     """Força a emissão das alterações pendentes antes de uma consulta interna."""
     db.flush()
+
+
+def mapear_responsaveis_por_instrumentos(db: Session, ids: set[int]) -> dict[int, set[int]]:
+    """Versão em lote de `obter_ids_responsaveis_do_instrumento` -- usada pela
+    listagem de instrumentos, pra não fazer 1 query por linha."""
+    resultado: dict[int, set[int]] = defaultdict(set)
+    if not ids:
+        return resultado
+    linhas = db.execute(
+        select(InstrumentoResponsavel.instrumento_id, InstrumentoResponsavel.usuario_id).where(
+            InstrumentoResponsavel.instrumento_id.in_(ids)
+        )
+    )
+    for instrumento_id, usuario_id in linhas:
+        resultado[instrumento_id].add(usuario_id)
+    return resultado
