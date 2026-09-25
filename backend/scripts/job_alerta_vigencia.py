@@ -38,13 +38,17 @@ def run() -> None:
     try:
         hoje = date.today()
         limite = hoje + timedelta(days=JANELA_DIAS)
-        convenios = db.execute(
-            select(Convenio).where(
-                Convenio.data_final_vigencia.is_not(None),
-                Convenio.data_final_vigencia >= hoje,
-                Convenio.data_final_vigencia <= limite,
+        convenios = (
+            db.execute(
+                select(Convenio).where(
+                    Convenio.data_final_vigencia.is_not(None),
+                    Convenio.data_final_vigencia >= hoje,
+                    Convenio.data_final_vigencia <= limite,
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         if not convenios:
             print(f"Nenhum convênio com vigência terminando nos próximos {JANELA_DIAS} dias.")
             return
@@ -72,8 +76,7 @@ def run() -> None:
                     tipo=NotificacaoTipo.alerta_vigencia,
                     titulo=f"Convênio {convenio.numero} — vigência termina em {dias_restantes} dia(s)",
                     corpo=(
-                        f"Vigência termina em {data_final_vigencia:%d/%m/%Y}. "
-                        "Avaliar prorrogação junto ao convenente."
+                        f"Vigência termina em {data_final_vigencia:%d/%m/%Y}. Avaliar prorrogação junto ao convenente."
                     ),
                     entidade_id=convenio.id,
                 ),

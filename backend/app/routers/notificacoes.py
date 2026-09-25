@@ -46,9 +46,7 @@ def listar_notificacoes(
         db=db, usuario_id=usuario.id, limit=limit, offset=offset, apenas_nao_lidas=apenas_nao_lidas
     )
     itens = [
-        NotificacaoRead.model_validate(item.notificacao).model_copy(
-            update={"destino": item.destino, "lida": item.lida}
-        )
+        NotificacaoRead.model_validate(item.notificacao).model_copy(update={"destino": item.destino, "lida": item.lida})
         for item in pagina.itens
     ]
     return NotificacoesListRead(itens=itens, total=pagina.total, nao_lidas=pagina.nao_lidas)

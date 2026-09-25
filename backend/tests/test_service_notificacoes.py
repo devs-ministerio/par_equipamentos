@@ -290,14 +290,10 @@ def test_listar_notificacoes_colaborador_so_ve_instrumento_que_e_titular_ou_supl
         db.commit()
         notificacao_id = n.id
 
-        pagina_titular = listar_notificacoes(
-            db=db, usuario_id=titular.id, limit=20, offset=0, apenas_nao_lidas=False
-        )
+        pagina_titular = listar_notificacoes(db=db, usuario_id=titular.id, limit=20, offset=0, apenas_nao_lidas=False)
         assert any(i.notificacao.id == notificacao_id for i in pagina_titular.itens)
 
-        pagina_estranho = listar_notificacoes(
-            db=db, usuario_id=estranho.id, limit=20, offset=0, apenas_nao_lidas=False
-        )
+        pagina_estranho = listar_notificacoes(db=db, usuario_id=estranho.id, limit=20, offset=0, apenas_nao_lidas=False)
         assert all(i.notificacao.id != notificacao_id for i in pagina_estranho.itens)
     finally:
         if notificacao_id is not None:

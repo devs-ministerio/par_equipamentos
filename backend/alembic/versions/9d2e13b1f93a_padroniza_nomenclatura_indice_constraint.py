@@ -14,6 +14,7 @@ Nomes autogerados abaixo confirmados via pg_constraint contra banco real
 antes de escrever esta migration (nao assumidos pela convencao
 <tabela>_<coluna>_key sem checar).
 """
+
 from typing import Sequence, Union
 
 from alembic import op

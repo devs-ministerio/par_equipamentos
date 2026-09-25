@@ -20,6 +20,7 @@ fossem nome de tecnico de verdade (12 instrumentos) -- normaliza pra
 UPPER() e vira NULL quando for 'NA'/'NI' (nunca um tecnico "fantasma" na
 distribuicao do overview).
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -27,17 +28,17 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c7e2a4f81b6d'
-down_revision: Union[str, Sequence[str], None] = 'b5ce2ad8f332'
+revision: str = "c7e2a4f81b6d"
+down_revision: Union[str, Sequence[str], None] = "b5ce2ad8f332"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('instrumento_equipamento', sa.Column('tipo_contratacao', sa.String(), nullable=True))
-    op.add_column('instrumento_equipamento', sa.Column('responsavel_execucao_nome', sa.String(), nullable=True))
-    op.add_column('instrumento_equipamento', sa.Column('responsavel_execucao_contato', sa.String(), nullable=True))
+    op.add_column("instrumento_equipamento", sa.Column("tipo_contratacao", sa.String(), nullable=True))
+    op.add_column("instrumento_equipamento", sa.Column("responsavel_execucao_nome", sa.String(), nullable=True))
+    op.add_column("instrumento_equipamento", sa.Column("responsavel_execucao_contato", sa.String(), nullable=True))
 
     # Backfill: todo instrumento ja existente veio do universo Portal/
     # TransfereGov (403 convenios, so "Convênio" na planilha) -- os
@@ -62,6 +63,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_column('instrumento_equipamento', 'responsavel_execucao_contato')
-    op.drop_column('instrumento_equipamento', 'responsavel_execucao_nome')
-    op.drop_column('instrumento_equipamento', 'tipo_contratacao')
+    op.drop_column("instrumento_equipamento", "responsavel_execucao_contato")
+    op.drop_column("instrumento_equipamento", "responsavel_execucao_nome")
+    op.drop_column("instrumento_equipamento", "tipo_contratacao")

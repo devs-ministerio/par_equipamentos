@@ -6,6 +6,7 @@ marco de cronograma físico/regulatório à fase geral que ele pertence;
 migra `finalidade` para o dicionário fechado de `tipologia` e remove a
 coluna antiga; restringe `modalidade_onco` ao dicionário reduzido.
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa

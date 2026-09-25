@@ -41,9 +41,7 @@ class PaginaNotificacoes:
 
 
 def _ids_ativos_por_role(db: Session, roles: tuple[UserRole, ...]) -> set[int]:
-    return set(
-        db.execute(select(User.id).where(User.role.in_(roles), User.status == UserStatus.active)).scalars()
-    )
+    return set(db.execute(select(User.id).where(User.role.in_(roles), User.status == UserStatus.active)).scalars())
 
 
 def _ids_broadcast(db: Session) -> set[int]:
@@ -54,9 +52,7 @@ def _ids_broadcast(db: Session) -> set[int]:
 def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[int]:
     ids_designados = set(
         db.execute(
-            select(InstrumentoResponsavel.usuario_id).where(
-                InstrumentoResponsavel.instrumento_id == instrumento_id
-            )
+            select(InstrumentoResponsavel.usuario_id).where(InstrumentoResponsavel.instrumento_id == instrumento_id)
         ).scalars()
     )
     # Filtra por ativo E role != leitor -- titular/suplente designado que foi
@@ -141,8 +137,10 @@ def listar_notificacoes_paginadas(
         for notificacao, destinatario_id, lida in linhas
     ]
 
-    contagem_base = select(func.count()).select_from(NotificacaoDestinatario).where(
-        NotificacaoDestinatario.usuario_id == usuario_id
+    contagem_base = (
+        select(func.count())
+        .select_from(NotificacaoDestinatario)
+        .where(NotificacaoDestinatario.usuario_id == usuario_id)
     )
     total = db.execute(contagem_base).scalar_one()
     nao_lidas = db.execute(contagem_base.where(NotificacaoDestinatario.lida.is_(False))).scalar_one()

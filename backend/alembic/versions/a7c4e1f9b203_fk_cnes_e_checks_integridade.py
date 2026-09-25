@@ -8,6 +8,7 @@ Bloco 7 da constituicao database: apos auditoria limpa no clone carregado
 (`par_equipamentos_pytest_loaded`), promove a relacao CNES para FK fisica e
 adiciona CHECKs basicos ja medidos pelo script de auditoria.
 """
+
 from typing import Sequence, Union
 
 from alembic import op

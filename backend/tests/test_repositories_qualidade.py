@@ -46,9 +46,7 @@ def test_repository_notificacoes_filtra_nao_lidas_e_retorna_vazios_sem_ids():
         marcar_destinatario_lido(db, destinatario_lida)
         db.flush()
 
-        pagina = listar_notificacoes_paginadas(
-            db, usuario_id=usuario.id, limit=100, offset=0, apenas_nao_lidas=True
-        )
+        pagina = listar_notificacoes_paginadas(db, usuario_id=usuario.id, limit=100, offset=0, apenas_nao_lidas=True)
 
         assert all(not item.lida for item in pagina.itens)
         assert any(item.notificacao.id == nao_lida.id for item in pagina.itens)

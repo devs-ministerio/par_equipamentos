@@ -17,14 +17,15 @@ contínua (ver `sincronizar_cnes_referencia*.py`).
 `CREATE INDEX CONCURRENTLY` evita lock de tabela inteira nas 635 mil linhas --
 por isso roda fora da transação padrão do Alembic (autocommit_block).
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'efd3e49db7f8'
-down_revision: Union[str, Sequence[str], None] = '5557cabd4a4c'
+revision: str = "efd3e49db7f8"
+down_revision: Union[str, Sequence[str], None] = "5557cabd4a4c"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
