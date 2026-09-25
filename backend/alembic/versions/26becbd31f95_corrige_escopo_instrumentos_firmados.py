@@ -13,6 +13,7 @@ Revises: 8d2e4f6a1b90
 Create Date: 2026-09-18 11:31:09.631685
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -20,8 +21,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '26becbd31f95'
-down_revision: Union[str, Sequence[str], None] = '8d2e4f6a1b90'
+revision: str = "26becbd31f95"
+down_revision: Union[str, Sequence[str], None] = "8d2e4f6a1b90"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -36,16 +37,12 @@ def upgrade() -> None:
     op.execute("UPDATE convenio SET tipo_contratacao = 'Convênio' WHERE tipo_contratacao IS NULL")
 
     op.add_column("instrumento_equipamento", sa.Column("chave_origem", sa.String(), nullable=True))
-    op.create_unique_constraint(
-        "uq_instrumento_equipamento_chave_origem", "instrumento_equipamento", ["chave_origem"]
-    )
+    op.create_unique_constraint("uq_instrumento_equipamento_chave_origem", "instrumento_equipamento", ["chave_origem"])
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_constraint(
-        "uq_instrumento_equipamento_chave_origem", "instrumento_equipamento", type_="unique"
-    )
+    op.drop_constraint("uq_instrumento_equipamento_chave_origem", "instrumento_equipamento", type_="unique")
     op.drop_column("instrumento_equipamento", "chave_origem")
 
     op.drop_constraint("uq_convenio_chave_origem", "convenio", type_="unique")

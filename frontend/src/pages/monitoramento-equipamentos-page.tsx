@@ -65,9 +65,8 @@ import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados
 // Card com 2 camadas (ConvenioCard.tsx) e mais pesado que linha de tabela --
 // pagina de 20 em vez dos 50 que EstabelecimentoTable usa pra linha simples.
 
-// "Concluídos" -- ampliado 2026-09-18 (pedido do usuário) pra somar as
-// situações que representam "chegou ao fim" em cada universo de fonte:
-// "Prestação de Contas Concluída" (SICONV legado, achado 2026-09-15) e
+// "Concluídos" soma as situações que representam "chegou ao fim" em cada
+// universo de fonte: "Prestação de Contas Concluída" (SICONV legado) e
 // "Em operação" (PERSUS I inaugurado/PERSUS II/PRONON -- "Inaugurada"
 // unificada em "Em operação" pra usar o mesmo vocabulário entre fontes).
 
@@ -242,10 +241,9 @@ export function MonitoramentoEquipamentosPage() {
           {convenios && (
             <>
               {/* "Instrumentos/Programas" e "Monitorados internamente"
-                  saíram daqui -- duplicavam os cards do cabeçalho acima
-                  (achado 2026-09-15, pedido do usuário: "revise e pode
-                  remover"). Legenda de cor (Em execução/Prestação de
-                  contas/Anulado/Demais) também saiu, mesmo pedido. */}
+                  saíram daqui -- duplicavam os cards do cabeçalho acima.
+                  Legenda de cor (Em execução/Prestação de contas/Anulado/
+                  Demais) também saiu, mesmo motivo. */}
               <DadosOficiaisMetricas
                 instrumentos={filtrados.length}
                 monitorados={totalMonitorados}
@@ -270,7 +268,7 @@ export function MonitoramentoEquipamentosPage() {
                 <SearchInput
                   value={busca}
                   onChange={setBusca}
-                  placeholder="Buscar por convenente, município, número, CNPJ..."
+                  placeholder="Buscar por convenente, município, número, CNPJ ou CNES..."
                   width={190}
                 />
                 <SingleSelectFilter
@@ -354,11 +352,10 @@ export function MonitoramentoEquipamentosPage() {
       {aba === "componentes" && (
         <>
           {/* Radar de Convênios -- organizado pelo estágio real no funil
-                TransfereGov (pedido do usuário 2026-09-18, substituindo as
-                antigas "Novas propostas"/"Propostas" que separavam por
-                critério de pagamento): "Confirmada (parceria)" primeiro
-                (fato consumado), "Em tramitação (proposta)" depois (pode
-                virar parceria ou mudar de situação na fonte). */}
+                TransfereGov, não por critério de pagamento: "Confirmada
+                (parceria)" primeiro (fato consumado), "Em tramitação
+                (proposta)" depois (pode virar parceria ou mudar de
+                situação na fonte). */}
           <SubAbasFinanciamento
             atual={subAbaFinanciamento}
             confirmadas={totalConfirmadas}

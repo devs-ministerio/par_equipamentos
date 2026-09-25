@@ -8,8 +8,11 @@ qualquer usuario existir via UI):
 uv run python scripts/criar_usuario.py --name "Nome" --email nome@org.gov.br --role admin
 ```
 
-Perfis `admin` e `colaborador` podem alterar o monitoramento; `leitor` so
-consulta. **Gestão de usuários (Módulo Admin, 2026-09-17)**: com pelo menos
+Gate de mutação do monitoramento é binário: `admin`, `gestor` e
+`colaborador` podem alterar; só `leitor` fica restrito a consulta (papel
+`gestor` adicionado em 2026-09-25, mesmos poderes de `colaborador` hoje --
+ver `app/authz.py`). **Gestão de usuários (Módulo Admin, 2026-09-17)**: com
+pelo menos
 um `admin` criado, criação/edição/reset de senha/inativação de usuário passam
 a ser feitos pela tela `/admin/usuarios` (API em `app/routers/usuarios.py`,
 só acessível por `role=admin`) -- o script acima continua existindo só para
@@ -68,3 +71,18 @@ Só depois de validado localmente (e só quando o usuário pedir) roda contra
 produção: `uv run alembic upgrade head` lendo `DATABASE_URL_MIGRATION` do
 `.env` (credencial `sigeo_migration`) -- ou, preferencialmente, dispara o
 workflow `migrar_banco.yml` no GitHub Actions.
+
+## Dataset sintético de desenvolvimento
+
+Depois de `alembic upgrade head` num banco local vazio, popule dado
+sintético (sem PII, sem depender do Neon) pra desenvolver sem esperar
+dump/clone de produção:
+
+```bash
+uv run python -m scripts.seed_monitoramento   # catálogo de marcos + 1 instrumento/CNES de exemplo
+uv run python -m tests.fixtures_cobertura     # cobertura/oferta de equipamento (3 municípios, TOMOGRAFO)
+```
+
+É o mesmo seed que os testes de integração (`tests/conftest.py`) e o E2E
+isolado (`e2e_ci.yml`) já usam -- não reimplementa nada, só expõe como
+comando standalone.

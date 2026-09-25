@@ -29,9 +29,12 @@ testes nem nesta matriz.
 - `GET /health-region-coverage` — `services/api.ts::fetchHealthRegionCoverage`;
   200 lista regional; Público; 422 para parâmetros inválidos; evidência:
   `backend/tests/test_municipality_coverage.py`.
-- `GET /equipment-offer-rows` — `services/api.ts::fetchEquipmentOfferRows`;
-  200 página de oferta; Público; 422 para paginação/filtros inválidos;
-  evidência: `backend/tests/test_equipment_offer_contracts.py`.
+- `GET /equipment-offer-rows` — sem consumidor no frontend hoje (achado
+  durante o Plan Mode fechamento final 2026-09-25, Bloco 1 — `fetchEquipmentOfferRows`
+  citado aqui nunca existiu em `services/api.ts`; candidato a revisão no
+  Bloco 9 de limpeza); 200 página de oferta no envelope `{data, meta.total}`;
+  Autenticado; 422 para paginação/filtros inválidos; evidência:
+  `backend/tests/test_equipment_offer_contracts.py`.
 - `GET /equipment-offer-rows/totals` — `services/api.ts::fetchEquipmentTotals`;
   200 totais SUS/em uso; Público; 422 para filtro inválido; evidência:
   `backend/tests/test_equipment_offer_contracts.py`.
@@ -44,9 +47,10 @@ testes nem nesta matriz.
   Público; 422 para filtro inválido; evidência:
   `backend/tests/test_equipment_offer_contracts.py`.
 - `GET /equipment-offer-rows/establishments` —
-  `services/api.ts::fetchEstablishments`; 200 página de estabelecimentos;
-  Público; 422 para paginação/filtros inválidos; evidência:
-  `backend/tests/test_equipment_offer_contracts.py`.
+  `services/api.ts::fetchEstabelecimentosPage`; 200 página de
+  estabelecimentos no envelope `{data, meta.total}` (Plan Mode fechamento
+  final 2026-09-25, Bloco 1); Autenticado; 422 para paginação/filtros
+  inválidos; evidência: `backend/tests/test_equipment_offer_contracts.py`.
 - `GET /convenios` — `services/convenios.ts::fetchConvenios`; 200 lista
   paginada; Público; 422 para limite/filtro inválido; evidência:
   `backend/tests/test_convenios_contracts.py`.

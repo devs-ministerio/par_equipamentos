@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     # navegador bloqueia toda requisicao vinda de la.
     cors_origins: str = "http://localhost:5173"
 
+    # Hosts aceitos no header Host da requisicao (TrustedHostMiddleware,
+    # Plan Mode fechamento final 2026-09-25, Bloco 6) -- protege contra Host
+    # header injection/cache poisoning atras de proxy mal configurado.
+    # Diferente de CORS_ORIGINS (que valida a origem do browser): isso
+    # valida o proprio Host que a requisicao diz estar chamando. Lista
+    # separada por virgula; "*.onrender.com" cobre o dominio padrao do
+    # servico sem dominio customizado (render.yaml::name = "sieo-backend").
+    allowed_hosts: str = "localhost,127.0.0.1,*.onrender.com"
+
     # Usado para assinar JWTs de login. Validado no boot (ver
     # `_validar_jwt_secret` abaixo, Plan Mode seguranca 2026-09-16, Bloco 2)
     # -- antes so falhava em runtime, na primeira chamada de login/rota
@@ -168,6 +177,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_lista(self) -> list[str]:
         return [origem.strip() for origem in self.cors_origins.split(",") if origem.strip()]
+
+    @property
+    def allowed_hosts_lista(self) -> list[str]:
+        return [host.strip() for host in self.allowed_hosts.split(",") if host.strip()]
 
     @property
     def servico_email_configurado(self) -> bool:

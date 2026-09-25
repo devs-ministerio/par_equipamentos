@@ -11,6 +11,7 @@ from app.auth import hash_password
 from app.db.base import SessionLocal
 from app.db.models import Notificacao, NotificacaoTipo, User, UserRole
 from app.domain_errors import NotFoundError
+from app.repositories.notificacoes import criar_notificacao
 from app.routers.notificacoes import listar_notificacoes, marcar_lida
 
 
@@ -36,17 +37,17 @@ def test_listar_notificacoes_conta_nao_lidas_ignorando_filtro():
     ids_criados = []
     try:
         usuario_teste = criar_usuario_teste(db)
-        for lida in (False, False, True):
+        for _ in range(3):
             n = Notificacao(
                 tipo=NotificacaoTipo.proposta_candidata,
                 titulo="Teste — apagar",
                 entidade_id=1,
-                lida=lida,
             )
-            db.add(n)
+            criar_notificacao(db, n)
             db.commit()
-            db.refresh(n)
             ids_criados.append(n.id)
+        # A 3a fica lida pra esse usuário -- as outras 2 continuam não lidas.
+        marcar_lida(ids_criados[2], db, usuario_teste)
 
         resultado = listar_notificacoes(limit=1, offset=0, apenas_nao_lidas=True, db=db, usuario=usuario_teste)
         assert len(resultado.itens) == 1  # respeitou o limit
@@ -66,10 +67,14 @@ def test_marcar_lida_idempotente_e_404_pra_id_inexistente():
     notificacao_id = None
     try:
         usuario_teste = criar_usuario_teste(db)
-        n = Notificacao(tipo=NotificacaoTipo.edicao_manual, titulo="Teste — apagar", entidade_id=1, lida=False)
-        db.add(n)
+        # tipo=proposta_candidata (broadcast) em vez de edicao_manual --
+        # edicao_manual/atualizacao_api são escopados por titular/suplente do
+        # instrumento em entidade_id, e este teste não quer depender de dado
+        # de instrumento pré-existente no banco compartilhado de teste (ver
+        # test_service_notificacoes.py pro contrato de escopo por instrumento).
+        n = Notificacao(tipo=NotificacaoTipo.proposta_candidata, titulo="Teste — apagar", entidade_id=1)
+        criar_notificacao(db, n)
         db.commit()
-        db.refresh(n)
         notificacao_id = n.id
 
         resultado = marcar_lida(notificacao_id, db, usuario_teste)

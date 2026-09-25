@@ -12,16 +12,20 @@ import { fmtData } from "@/lib/monitoramento-format";
 import { useNotificacoes } from "@/hooks/use-notificacoes";
 import type { Notificacao } from "@/services/notificacoes";
 
-/** Sino de notificação do Radar de Convênios (docs/arquitetura/
- * fluxo_requisicao.md) -- 3 tipos misturados na mesma lista
- * (proposta_candidata/atualizacao_api/edicao_manual), sem filtro por role
- * ainda (RBAC/`nivel_minimo` pendente, decisão do usuário 2026-09-15:
- * "ainda vamos definir"). Fica escondido pra visitante anônimo (useNotificacoes
- * só busca com token) em vez de mostrar um sino que sempre 401. */
+/** Sino de notificação (docs/arquitetura/
+ * planmode-notificacoes-escopo-2026-09-25.md) -- 4 tipos misturados na mesma
+ * lista (proposta_candidata/atualizacao_api/edicao_manual/alerta_vigencia).
+ * Escopo por destinatário resolvido no backend (titular/suplente do
+ * instrumento + gestor/admin sempre; broadcast quando não há monitoramento
+ * interno; leitor nunca recebe) -- este componente só lista o que
+ * `GET /notificacoes` já devolveu escopado, sem filtro adicional aqui. Fica
+ * escondido pra visitante anônimo (useNotificacoes só busca com token) em
+ * vez de mostrar um sino que sempre 401. */
 const RÓTULO_TIPO: Record<Notificacao["tipo"], string> = {
   proposta_candidata: "Proposta nova",
   atualizacao_api: "Atualização",
   edicao_manual: "Edição manual",
+  alerta_vigencia: "Fim de vigência",
 };
 
 export function NotificationBell() {

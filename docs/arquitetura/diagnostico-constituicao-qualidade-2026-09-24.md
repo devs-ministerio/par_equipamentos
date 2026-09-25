@@ -205,3 +205,24 @@ validação local passou com Oxlint, TypeScript, build e **113 testes em 32
 arquivos**. Não houve endpoint, integração externa ou E2E adicional a cobrir,
 pois os três filtros permanecem puramente client-side sobre respostas já
 validadas pelos services.
+
+## Fechamento — Plan Mode fechamento final (2026-09-25)
+
+As duas pendências de Médio identificadas nesta categoria continuam sem
+mudança deliberada:
+
+- **6 funções C901**: `planmode-fechamento-final-2026-09-25.md` não tocou
+  nelas — seguem alertadas, não bloqueantes, aguardando necessidade
+  operacional real antes de extrair (mesma decisão já registrada).
+- **Furos de integridade PERSUS**: reavaliados no Bloco 8 do mesmo
+  plan-mode — confirmado que `reconstruir_fases_monitoramento.py`/
+  `complementar_persus_monitoramento.py` já rodaram no mesmo dia (25/09,
+  antes da auditoria), com `--dry-run` e idempotentes. As 33 ocorrências e
+  6 datas futuras remanescentes são recusa deliberada de promoção
+  automática (evita apresentar marco técnico como execução confirmada sem
+  regra de negócio) — não é dívida escondida, é o comportamento correto
+  do sistema até haver decisão manual da equipe caso a caso.
+
+Sem achado novo de qualidade neste fechamento — os blocos 0-9 do plan-mode
+mantiveram `ruff`/`mypy`/`pytest` (contra Postgres de teste real, não só
+`--collect-only`) e `oxlint`/`tsc`/`vitest`/`build` verdes a cada commit.

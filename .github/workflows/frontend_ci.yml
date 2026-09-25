@@ -58,9 +58,9 @@ jobs:
         with:
           name: frontend-coverage
           path: |
-            frontend/coverage/coverage-final.json
-            frontend/coverage/lcov.info
-          if-no-files-found: error
+            coverage/coverage-final.json
+            coverage/lcov.info
+          if-no-files-found: warn
           retention-days: 14
 
       - name: Build

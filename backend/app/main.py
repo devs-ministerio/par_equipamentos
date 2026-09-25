@@ -2,6 +2,7 @@
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
@@ -83,6 +84,13 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", CSRF_HEADER_NAME, "X-Trace-Id"],
 )
+
+# TrustedHostMiddleware (Plan Mode fechamento final 2026-09-25, Bloco 6) --
+# adicionado DEPOIS do CORS de proposito: Starlette empilha middleware em
+# ordem reversa (o ultimo `add_middleware` vira a camada mais externa),
+# entao isso roda ANTES do CORS -- Host header invalido nunca chega a
+# processar CORS/rota. `ALLOWED_HOSTS` (app/config.py) nunca aceita "*".
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts_lista)
 
 # Rotas isentas de CSRF -- login ainda nao tem cookie de sessao/CSRF pra
 # comparar (e' o proprio ato que os emite); saude e publica e nao muta nada.

@@ -357,3 +357,14 @@ posterior de banco respondeu `select 1`. Em seguida, a API GitHub e o health
 check do Render responderam HTTP 200. O evento não configura indisponibilidade
 confirmada nem altera a nota; se voltar a ocorrer, deve ser correlacionado no
 New Relic e no monitor externo antes de classificar como incidente.
+
+## Fechamento — Plan Mode fechamento final (2026-09-25)
+
+`planmode-fechamento-final-2026-09-25.md` não alterou nenhum item desta
+categoria — os três pontos "Alto" (staging/registry, PITR curto, cold
+start do Render) já eram classificados como decisão de custo antes deste
+plano e assim continuam, sem nova ação. Rate limit distribuído (item
+cruzado com Backend, Bloco 5) também ficou fora por falta de Redis/storage
+compartilhado provisionado — mesma classificação: pendência de custo, não
+implementação pendente de engenharia. Nota e escopo versionável seguem os
+mesmos do fechamento de 23/09.

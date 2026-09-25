@@ -74,9 +74,9 @@ jobs:
         with:
           name: backend-coverage
           path: |
-            backend/coverage.json
-            backend/coverage.xml
-          if-no-files-found: error
+            coverage.json
+            coverage.xml
+          if-no-files-found: warn
           retention-days: 14
       - name: Auditoria de dependências
         run: uv run --with pip-audit pip-audit

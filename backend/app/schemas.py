@@ -267,9 +267,19 @@ class EquipmentOfferRowRead(BaseModel):
     legal_nature: str | None
 
 
-class EquipmentOfferRowPage(BaseModel):
-    items: list[EquipmentOfferRowRead]
+class PageMeta(BaseModel):
+    """Envelope de paginação real (Plan Mode fechamento final 2026-09-25,
+    Bloco 1) -- só usado pelas rotas com offset/limit de verdade
+    (equipment-offer-rows e establishments). As demais listagens do app são
+    teto de segurança, não paginação de UI (ver comentário em cada router),
+    e continuam devolvendo `list[X]` puro."""
+
     total: int
+
+
+class EquipmentOfferRowPage(BaseModel):
+    data: list[EquipmentOfferRowRead]
+    meta: PageMeta
 
 
 class EquipmentType(BaseModel):
@@ -300,8 +310,8 @@ class EstablishmentRead(BaseModel):
 
 
 class EstablishmentPage(BaseModel):
-    items: list[EstablishmentRead]
-    total: int
+    data: list[EstablishmentRead]
+    meta: PageMeta
 
 
 class EquipmentTotalsRead(BaseModel):

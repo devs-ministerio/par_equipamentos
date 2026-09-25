@@ -3,6 +3,7 @@
 Substitui progressivamente os marcadores derivados em JSONB por relações
 consultáveis, preservando as colunas antigas durante o rollout.
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -35,7 +36,9 @@ def upgrade() -> None:
         sa.Column("equipamento_catalogo_id", sa.BigInteger(), nullable=False),
         sa.Column("alias_normalizado", sa.String(), nullable=False),
         sa.Column("criado_em", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.ForeignKeyConstraint(["equipamento_catalogo_id"], ["equipamento_catalogo.id"], ondelete="CASCADE", onupdate="RESTRICT"),
+        sa.ForeignKeyConstraint(
+            ["equipamento_catalogo_id"], ["equipamento_catalogo.id"], ondelete="CASCADE", onupdate="RESTRICT"
+        ),
         sa.UniqueConstraint("alias_normalizado", name="uq_equipamento_alias_normalizado"),
     )
     op.create_table(
@@ -53,14 +56,28 @@ def upgrade() -> None:
         sa.Column("origem_dado", sa.String(), nullable=True),
         sa.Column("criado_em", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
         sa.Column("atualizado_em", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.CheckConstraint("((convenio_id IS NOT NULL)::int + (proposta_candidata_id IS NOT NULL)::int + (instrumento_equipamento_id IS NOT NULL)::int) = 1", name="ck_equipamento_marcador_uma_origem"),
-        sa.CheckConstraint("tipo_evidencia IN ('item_orcamentario', 'meta', 'objeto', 'planilha', 'programa', 'legado')", name="ck_equipamento_marcador_tipo_evidencia"),
-        sa.CheckConstraint("relacao IN ('aquisicao', 'modernizacao', 'existente', 'mencao')", name="ck_equipamento_marcador_relacao"),
+        sa.CheckConstraint(
+            "((convenio_id IS NOT NULL)::int + (proposta_candidata_id IS NOT NULL)::int + (instrumento_equipamento_id IS NOT NULL)::int) = 1",
+            name="ck_equipamento_marcador_uma_origem",
+        ),
+        sa.CheckConstraint(
+            "tipo_evidencia IN ('item_orcamentario', 'meta', 'objeto', 'planilha', 'programa', 'legado')",
+            name="ck_equipamento_marcador_tipo_evidencia",
+        ),
+        sa.CheckConstraint(
+            "relacao IN ('aquisicao', 'modernizacao', 'existente', 'mencao')", name="ck_equipamento_marcador_relacao"
+        ),
         sa.CheckConstraint("confianca >= 0 AND confianca <= 100", name="ck_equipamento_marcador_confianca"),
-        sa.ForeignKeyConstraint(["equipamento_catalogo_id"], ["equipamento_catalogo.id"], ondelete="RESTRICT", onupdate="RESTRICT"),
+        sa.ForeignKeyConstraint(
+            ["equipamento_catalogo_id"], ["equipamento_catalogo.id"], ondelete="RESTRICT", onupdate="RESTRICT"
+        ),
         sa.ForeignKeyConstraint(["convenio_id"], ["convenio.id"], ondelete="CASCADE", onupdate="RESTRICT"),
-        sa.ForeignKeyConstraint(["proposta_candidata_id"], ["proposta_candidata.id"], ondelete="CASCADE", onupdate="RESTRICT"),
-        sa.ForeignKeyConstraint(["instrumento_equipamento_id"], ["instrumento_equipamento.id"], ondelete="CASCADE", onupdate="RESTRICT"),
+        sa.ForeignKeyConstraint(
+            ["proposta_candidata_id"], ["proposta_candidata.id"], ondelete="CASCADE", onupdate="RESTRICT"
+        ),
+        sa.ForeignKeyConstraint(
+            ["instrumento_equipamento_id"], ["instrumento_equipamento.id"], ondelete="CASCADE", onupdate="RESTRICT"
+        ),
     )
     for index, column in (
         ("idx_equipamento_marcador_catalogo", "equipamento_catalogo_id"),
@@ -69,12 +86,35 @@ def upgrade() -> None:
         ("idx_equipamento_marcador_instrumento", "instrumento_equipamento_id"),
     ):
         op.create_index(index, "equipamento_marcador", [column])
-    op.create_index("uq_equipamento_marcador_convenio", "equipamento_marcador", ["convenio_id", "equipamento_catalogo_id", "chave_evidencia"], unique=True, postgresql_where=sa.text("convenio_id IS NOT NULL"))
-    op.create_index("uq_equipamento_marcador_proposta", "equipamento_marcador", ["proposta_candidata_id", "equipamento_catalogo_id", "chave_evidencia"], unique=True, postgresql_where=sa.text("proposta_candidata_id IS NOT NULL"))
-    op.create_index("uq_equipamento_marcador_instrumento", "equipamento_marcador", ["instrumento_equipamento_id", "equipamento_catalogo_id", "chave_evidencia"], unique=True, postgresql_where=sa.text("instrumento_equipamento_id IS NOT NULL"))
+    op.create_index(
+        "uq_equipamento_marcador_convenio",
+        "equipamento_marcador",
+        ["convenio_id", "equipamento_catalogo_id", "chave_evidencia"],
+        unique=True,
+        postgresql_where=sa.text("convenio_id IS NOT NULL"),
+    )
+    op.create_index(
+        "uq_equipamento_marcador_proposta",
+        "equipamento_marcador",
+        ["proposta_candidata_id", "equipamento_catalogo_id", "chave_evidencia"],
+        unique=True,
+        postgresql_where=sa.text("proposta_candidata_id IS NOT NULL"),
+    )
+    op.create_index(
+        "uq_equipamento_marcador_instrumento",
+        "equipamento_marcador",
+        ["instrumento_equipamento_id", "equipamento_catalogo_id", "chave_evidencia"],
+        unique=True,
+        postgresql_where=sa.text("instrumento_equipamento_id IS NOT NULL"),
+    )
 
     op.bulk_insert(
-        sa.table("equipamento_catalogo", sa.column("codigo", sa.String()), sa.column("nome", sa.String()), sa.column("prioritario", sa.Boolean())),
+        sa.table(
+            "equipamento_catalogo",
+            sa.column("codigo", sa.String()),
+            sa.column("nome", sa.String()),
+            sa.column("prioritario", sa.Boolean()),
+        ),
         [
             {"codigo": "acelerador_linear", "nome": "Acelerador Linear", "prioritario": True},
             {"codigo": "mamografo", "nome": "Mamógrafo", "prioritario": True},

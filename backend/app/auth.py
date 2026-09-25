@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Literal, cast
 
 import jwt
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
@@ -20,6 +21,14 @@ from app.db.models import RefreshToken, User, UserRole, UserStatus
 
 ALGORITHM = "HS256"
 PBKDF2_ITERATIONS = 260_000
+
+# Migração de KDF (Plan Mode fechamento final 2026-09-25, Bloco 6) --
+# argon2id é o hash de senha recomendado hoje; PBKDF2-HMAC-SHA256 (acima)
+# fica só como formato legado pra verificar hash já gravado, nunca mais
+# produzido em hash_password novo. Sem reset em massa: cada usuário migra
+# sozinho no próximo login bem-sucedido (ver `precisa_rehash`/uso em
+# app/routers/auth.py::login).
+_argon2_hasher = PasswordHasher()
 
 # Bloqueio de conta (Modulo de gestao de usuarios, 2026-09-17) -- alem do
 # rate limit por IP (5/min em /auth/login, ver app/rate_limit.py), protege
@@ -58,12 +67,12 @@ CSRF_HEADER_NAME = "X-CSRF-Token"
 
 
 def hash_password(password: str) -> str:
-    salt = os.urandom(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, PBKDF2_ITERATIONS)
-    return f"pbkdf2_sha256${PBKDF2_ITERATIONS}${salt.hex()}${digest.hex()}"
+    """Sempre produz argon2id -- PBKDF2 (abaixo) só é lido, nunca gravado
+    de novo a partir daqui."""
+    return _argon2_hasher.hash(password)
 
 
-def verify_password(password: str, password_hash: str) -> bool:
+def _verify_pbkdf2(password: str, password_hash: str) -> bool:
     try:
         algoritmo, iteracoes_raw, salt_hex, digest_hex = password_hash.split("$", 3)
         if algoritmo != "pbkdf2_sha256":
@@ -77,6 +86,27 @@ def verify_password(password: str, password_hash: str) -> bool:
         return hmac.compare_digest(digest.hex(), digest_hex)
     except (ValueError, TypeError):
         return False
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    if password_hash.startswith("pbkdf2_sha256$"):
+        return _verify_pbkdf2(password, password_hash)
+    try:
+        return _argon2_hasher.verify(password_hash, password)
+    except (VerifyMismatchError, InvalidHashError):
+        return False
+
+
+def precisa_rehash(password_hash: str) -> bool:
+    """PBKDF2 legado sempre precisa migrar; hash argon2id já gravado só
+    precisa se os parâmetros (memória/tempo/paralelismo) do hasher atual
+    mudaram desde que foi criado."""
+    if password_hash.startswith("pbkdf2_sha256$"):
+        return True
+    try:
+        return _argon2_hasher.check_needs_rehash(password_hash)
+    except InvalidHashError:
+        return True
 
 
 def registrar_falha_login(db: Session, user: User) -> None:

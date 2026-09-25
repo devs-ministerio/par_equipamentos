@@ -1,15 +1,16 @@
-"""Notificacoes do Radar de Convenios -- 2 camadas + candidato pendente (ver
-app/db/models.py::Notificacao e docs/arquitetura/fluxo_requisicao.md).
-Quem CRIA notificacao sao os jobs de descoberta/verificacao (ainda a
-implementar) e o PATCH de instrumento (via log_action, camada
-"edicao_manual") -- este router so LE e marca como lida.
+"""Notificacoes -- 4 origens, escopadas por destinatario (ver
+app/db/models.py::Notificacao/NotificacaoDestinatario e
+docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md). Quem CRIA
+notificacao sao os jobs de descoberta/verificacao/alerta de vigencia e o
+PATCH de instrumento/evento (via app.repositories.notificacoes::
+criar_notificacao, camada "edicao_manual") -- este router so LE e marca
+como lida, sempre escopado ao usuario autenticado (`NotificacaoDestinatario`
+materializado no momento da criacao, nao em tempo de leitura).
 
-`nivel_minimo` existe no modelo mas a hierarquia de usuario ainda nao foi
-definida (pedido do usuario 2026-09-15: "isso sera mostrado apenas para os
-niveis de usuario acima de tecnico... ainda vamos definir") -- por isso
-`listar_notificacoes` NAO filtra por role ainda, so devolve tudo. Filtrar
-fica pra quando a hierarquia fechar, sem travar o resto do fluxo nessa
-decisao pendente.
+`nivel_minimo` existe no modelo mas nunca foi usado (era um candidato a
+RBAC antes da resolucao por `InstrumentoResponsavel` -- ver docstring de
+`Notificacao`); mantido so por compatibilidade de schema, sem leitura em
+codigo novo.
 
 Router fino (Plan Mode backend 2026-09-17, Bloco C -- feature-piloto de
 Router -> Service -> Repository): so monta `Depends`, chama o Service e
@@ -20,7 +21,7 @@ devolve o retorno. Regra de negocio e commit vivem em
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
@@ -35,15 +36,17 @@ router = APIRouter(prefix="/notificacoes", tags=["notificacoes"])
 
 @router.get("", response_model=NotificacoesListRead)
 def listar_notificacoes(
-    limit: int = 20,
+    limit: int = Query(default=20, le=200, gt=0),
     offset: int = 0,
     apenas_nao_lidas: bool = False,
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    pagina = listar_notificacoes_service(db=db, limit=limit, offset=offset, apenas_nao_lidas=apenas_nao_lidas)
+    pagina = listar_notificacoes_service(
+        db=db, usuario_id=usuario.id, limit=limit, offset=offset, apenas_nao_lidas=apenas_nao_lidas
+    )
     itens = [
-        NotificacaoRead.model_validate(item.notificacao).model_copy(update={"destino": item.destino})
+        NotificacaoRead.model_validate(item.notificacao).model_copy(update={"destino": item.destino, "lida": item.lida})
         for item in pagina.itens
     ]
     return NotificacoesListRead(itens=itens, total=pagina.total, nao_lidas=pagina.nao_lidas)
@@ -55,4 +58,7 @@ def marcar_lida(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    return marcar_notificacao_lida(db=db, notificacao_id=notificacao_id)
+    resultado = marcar_notificacao_lida(db=db, notificacao_id=notificacao_id, usuario_id=usuario.id)
+    return NotificacaoRead.model_validate(resultado.notificacao).model_copy(
+        update={"destino": resultado.destino, "lida": resultado.lida}
+    )

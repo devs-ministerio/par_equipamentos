@@ -19,9 +19,9 @@ import {
  * equipamento de imagem grande, ex. colposcópio/bisturi).
  *
  * `nome` é sempre o nome CURTO e padronizado do equipamento (ex.
- * "Acelerador Linear"), nunca o `nm_item` cru -- achado 2026-09-18,
- * pedido do usuário: o texto original da API vem verboso e inconsistente
- * item a item (ex. "UPGRADE DO ACELERADOR LINEAR DA RADIOTERAPIA"). Cai
+ * "Acelerador Linear"), nunca o `nm_item` cru -- o texto original da API
+ * vem verboso e inconsistente item a item (ex. "UPGRADE DO ACELERADOR
+ * LINEAR DA RADIOTERAPIA"). Cai
  * pro texto cru só quando nenhum padrão conhecido bate (nunca inventa um
  * nome de equipamento que a fonte não confirma). */
 export function equipamentoPrincipal(

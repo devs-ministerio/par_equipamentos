@@ -34,6 +34,8 @@ erDiagram
     PROPOSTA_CANDIDATA |o--o{ EQUIPAMENTO_MARCADOR : proposta_candidata_id
     PROPOSTA_CANDIDATA ||--o{ EVIDENCIA_TRANSFEREGOV : proposta_candidata_id
     INSTRUMENTO_EQUIPAMENTO |o--o{ EQUIPAMENTO_MARCADOR : instrumento_equipamento_id
+    NOTIFICACAO ||--o{ NOTIFICACAO_DESTINATARIO : notificacao_id
+    USER ||--o{ NOTIFICACAO_DESTINATARIO : usuario_id
 
     USER {
         bigint id PK
@@ -241,10 +243,18 @@ erDiagram
     }
     NOTIFICACAO {
         bigint id PK
-        enum tipo
+        enum tipo "+ alerta_vigencia, 2026-09-25"
         bigint entidade_id "polimorfico, sem FK"
-        string nivel_minimo
-        bool lida
+        string nivel_minimo "nao usado, ver NOTIFICACAO_DESTINATARIO"
+        bool lida "DEPRECATED, ver NOTIFICACAO_DESTINATARIO.lida"
+        datetime created_at
+    }
+    NOTIFICACAO_DESTINATARIO {
+        bigint id PK
+        bigint notificacao_id FK
+        bigint usuario_id FK
+        bool lida "por usuario, 2026-09-25"
+        datetime lida_em
         datetime created_at
     }
     EQUIPAMENTO_CATALOGO {

@@ -206,3 +206,30 @@ sem cache. O frontend a mantém somente em memória e a descarta na saída. Foi
 incluído teste HTTP da rota; a execução local sem `TEST_DATABASE_URL` coletou
 os testes, mas os marcou como skip; a comprovação em PostgreSQL isolado
 continua obrigatória no CI/ambiente de testes.
+
+## Fechamento — Plan Mode fechamento final (2026-09-25)
+
+Bloco 6 (`planmode-fechamento-final-2026-09-25.md`) fechou 3 dos 4 itens
+levantados na auditoria de 25/09:
+
+- **KDF**: `hash_password`/`verify_password` (`app/auth.py`) migraram de
+  PBKDF2-HMAC-SHA256 para `argon2id` (`argon2-cffi`). Sem reset em massa —
+  hash legado é lido normalmente e re-hasheado silenciosamente no primeiro
+  login bem-sucedido pós-deploy (`precisa_rehash`).
+- **`TrustedHostMiddleware`**: adicionado em `app/main.py`, protegendo
+  contra Host header injection. `Settings.allowed_hosts` (default
+  `localhost,127.0.0.1,*.onrender.com`) — sem domínio customizado hoje.
+- **SAST/secret scan/SBOM/SHA pinning**: reconfirmado sem gap — todos os
+  10 workflows já fixados por SHA, achado do diagnóstico já estava
+  resolvido antes desta rodada.
+
+**Segue em Report-Only**: promoção de `Content-Security-Policy-Report-Only`
+para enforcement não foi feita — exige relatório real de violação em
+produção (New Relic/logs) que a sessão que executou este bloco não tinha
+como observar. Fica pendência externa, não decisão de custo — só quem tem
+acesso à observabilidade de produção pode fechar com segurança.
+
+Autorização por técnico/UF/órgão (item historicamente citado nesta
+categoria): decisão do usuário em 25/09 (Bloco 10 do mesmo plan-mode) de
+manter o papel `gestor` global — sem pendência aberta, revisitar só sob
+demanda real de produto.

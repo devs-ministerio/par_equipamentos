@@ -133,8 +133,8 @@ const establishmentApiSchema = z.object({
 });
 
 const establishmentPageApiSchema = z.object({
-  items: z.array(establishmentApiSchema),
-  total: z.number(),
+  data: z.array(establishmentApiSchema),
+  meta: z.object({ total: z.number() }),
 });
 
 function toEstabelecimentoRow(
@@ -222,7 +222,7 @@ export async function fetchEstabelecimentosPage(
     establishmentPageApiSchema,
     query,
   );
-  return { items: page.items.map(toEstabelecimentoRow), total: page.total };
+  return { items: page.data.map(toEstabelecimentoRow), total: page.meta.total };
 }
 
 // ---- GET /equipment-offer-rows/totals ----

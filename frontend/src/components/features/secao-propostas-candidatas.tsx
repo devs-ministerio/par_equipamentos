@@ -32,10 +32,9 @@ import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { CardProposta } from "./proposta-card";
 
 /** `modo`: as 2 abas de "Linhas de financiamento" -- "Confirmada
- * (parceria)" e "Em tramitação (proposta)" (pedido do usuário 2026-09-18,
- * substituindo as antigas "Novas propostas"/"Propostas" que separavam por
- * critério de pagamento em vez de estágio no funil Proposta -> Parceria,
- * ver estagioDeFato() em lib/proposta-status.ts). Busca sempre TUDO da API
+ * (parceria)" e "Em tramitação (proposta)", separadas por estágio no funil
+ * Proposta -> Parceria (não por critério de pagamento, ver estagioDeFato()
+ * em lib/proposta-status.ts). Busca sempre TUDO da API
  * de uma vez (sem `status` na query) -- as duas abas só recortam
  * client-side, então trocar de aba não refaz o fetch (mesma queryKey no
  * cache do TanStack Query).
@@ -164,7 +163,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
       if (programa && String(p.id_programa) !== programa) return false;
       if (busca) {
         const alvo = normalizarTexto(
-          `${p.id_proposta} ${p.nm_proponente} ${p.cnpj_ente_recebedor} ${p.municipio ?? ""} ${p.nm_programa}`,
+          `${p.id_proposta} ${p.nm_proponente} ${p.cnpj_ente_recebedor} ${p.cnes ?? ""} ${p.municipio ?? ""} ${p.nm_programa}`,
         );
         if (!alvo.includes(normalizarTexto(busca))) return false;
       }
@@ -227,7 +226,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         <SearchInput
           value={busca}
           onChange={setBusca}
-          placeholder="Buscar por proponente, município, CNPJ..."
+          placeholder="Buscar por proponente, município, CNPJ ou CNES..."
           width={190}
         />
         <SingleSelectFilter
