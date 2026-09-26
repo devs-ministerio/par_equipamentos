@@ -69,6 +69,14 @@ const MonitoramentoPainelPage = lazy(() =>
     default: m.MonitoramentoPainelPage,
   })),
 );
+// Relatório de Instrumentos e Repasse (Plan Mode relatorios 2026-09-25,
+// Bloco 6) -- separado do relatório de Análise de Mérito (RelatoriosPage,
+// abaixo, fora do MonitoramentoLayout).
+const MonitoramentoRelatoriosPage = lazy(() =>
+  import("./pages/monitoramento-relatorios-page").then((m) => ({
+    default: m.MonitoramentoRelatoriosPage,
+  })),
+);
 // Gestao de usuarios (Modulo Admin, 2026-09-17) -- so role=admin acessa
 // (AdminRoute), fora de AppLayout/MonitoramentoLayout de proposito (nao
 // pertence a uma familia de equipamento).
@@ -168,6 +176,10 @@ function App() {
                   <Route
                     path="/monitoramento-equipamentos/painel"
                     element={<MonitoramentoPainelPage />}
+                  />
+                  <Route
+                    path="/monitoramento-equipamentos/relatorios"
+                    element={<MonitoramentoRelatoriosPage />}
                   />
                   <Route
                     path="/monitoramento-equipamentos/instrumentos/:nrConvenio"

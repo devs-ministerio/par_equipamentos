@@ -21,6 +21,10 @@ export const NAV_ITEMS_MONITORAMENTO: HeaderNavItem[] = [
     isActive: EH_MONITORAMENTO_INTERNO,
   },
   { path: "/monitoramento-equipamentos/painel", label: "Painel de gestão" },
+  // Relatório de Instrumentos e Repasse (Plan Mode relatorios 2026-09-25,
+  // Bloco 6) -- separado do relatório de Análise de Mérito (que fica em
+  // /relatorios, fora do Monitoramento Interno).
+  { path: "/monitoramento-equipamentos/relatorios", label: "Relatórios" },
 ];
 
 // "Análise de mérito" só entra na lista dentro do Monitoramento Interno

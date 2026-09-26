@@ -15,6 +15,7 @@ import {
   type EscopoRelatorio,
   type FormatoRelatorio,
   type NivelRelatorio,
+  type TipoRelatorio,
 } from "@/services/relatorios";
 
 const UFS_ORDENADAS = Object.entries(UF_INFO)
@@ -30,19 +31,38 @@ const ESCOPOS: { valor: EscopoRelatorio; rotulo: string }[] = [
 ];
 
 /** Gerador de relatórios Excel/Word (Plan Mode docs/arquitetura/
- * planmode-relatorios-2026-09-25.md, Bloco 3) -- substitui os cards de
+ * planmode-relatorios-2026-09-25.md, Blocos 3 e 6) -- substitui os cards de
  * exportação client-side (jspdf/exceljs) desativados desde 2026-08-24: a
- * geração agora roda no backend, cobrindo cobertura + convênios +
- * monitoramento interno numa chamada só (`GET /relatorios`). */
-export function RelatorioGeradorForm() {
+ * geração agora roda no backend. `tipoRelatorio` é fixo por página (pedido
+ * do usuário 2026-09-26: "separar o relatório de instrumentos e repasse do
+ * relatório de análise de mérito") -- cada página do app decide qual dos
+ * dois oferece, o formulário não escolhe isso. */
+export function RelatorioGeradorForm({
+  tipoRelatorio,
+}: {
+  tipoRelatorio: TipoRelatorio;
+}) {
   const [escopo, setEscopo] = useState<EscopoRelatorio>("brasil");
   const [regiao, setRegiao] = useState("");
   const [uf, setUf] = useState("");
   const [municipio, setMunicipio] = useState("");
   const [cnes, setCnes] = useState("");
+  const [ano, setAno] = useState("");
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
   const [gerando, setGerando] = useState<FormatoRelatorio | null>(null);
   const [erro, setErro] = useState<unknown>(null);
+
+  // Análise de mérito não tem granularidade por CNES (MacroCoverage/
+  // MunicipalityCoverage não têm essa coluna) -- mesma limitação já
+  // documentada no CLAUDE.md, rejeitada pelo backend com 422; aqui só
+  // esconde a opção pra não deixar o usuário escolher um caminho sem saída.
+  const escopos =
+    tipoRelatorio === "analise_merito"
+      ? ESCOPOS.filter((e) => e.valor !== "cnes")
+      : ESCOPOS;
+  // Ano só existe pra convênios/monitoramento (Convenio.ano_instrumento) --
+  // cobertura é execução/competência, sem dimensão de ano civil.
+  const mostraAno = tipoRelatorio === "instrumentos_repasse";
 
   const podeGerar =
     escopo === "brasil" ||
@@ -55,12 +75,13 @@ export function RelatorioGeradorForm() {
     setErro(null);
     setGerando(formato);
     try {
-      const arquivo = await gerarRelatorio(formato, nivel, {
+      const arquivo = await gerarRelatorio(formato, tipoRelatorio, nivel, {
         escopo,
         regiao: escopo === "regiao" ? regiao : undefined,
         uf: escopo === "uf" || escopo === "municipio" ? uf : undefined,
         municipio: escopo === "municipio" ? municipio.trim() : undefined,
         cnes: escopo === "cnes" ? cnes.trim() : undefined,
+        ano: mostraAno && ano.trim() !== "" ? Number(ano) : undefined,
       });
       baixarArquivo(arquivo);
     } catch (e) {
@@ -80,7 +101,7 @@ export function RelatorioGeradorForm() {
             value={escopo}
             onChange={(e) => setEscopo(e.target.value as EscopoRelatorio)}
           >
-            {ESCOPOS.map((e) => (
+            {escopos.map((e) => (
               <option key={e.valor} value={e.valor}>
                 {e.rotulo}
               </option>
@@ -131,7 +152,7 @@ export function RelatorioGeradorForm() {
               className={cn(estiloInput, "bg-background")}
               value={municipio}
               onChange={(e) => setMunicipio(e.target.value)}
-              placeholder="Nome exato do município"
+              placeholder="Nome do município"
             />
           </label>
         )}
@@ -144,6 +165,19 @@ export function RelatorioGeradorForm() {
               value={cnes}
               onChange={(e) => setCnes(e.target.value)}
               placeholder="Código CNES"
+            />
+          </label>
+        )}
+
+        {mostraAno && (
+          <label className="flex flex-col gap-1">
+            <span className={rotuloCampo}>Ano (opcional)</span>
+            <input
+              type="number"
+              className={cn(estiloInput, "bg-background")}
+              value={ano}
+              onChange={(e) => setAno(e.target.value)}
+              placeholder="Ex.: 2023"
             />
           </label>
         )}

@@ -3,12 +3,15 @@ import { httpFetch, mensagemErroHttp } from "@/lib/http-client";
 
 // ---------------------------------------------------------------------
 // Relatórios Excel/Word (backend/app/routers/relatorios.py) -- Plan Mode
-// docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 3.
+// docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 3 e 6.
 // ---------------------------------------------------------------------
 
 export type EscopoRelatorio = "brasil" | "regiao" | "uf" | "municipio" | "cnes";
 export type NivelRelatorio = "simplificado" | "completo";
 export type FormatoRelatorio = "xlsx" | "docx";
+// Dois relatórios INDEPENDENTES (pedido do usuário 2026-09-26: "separar o
+// relatório de instrumentos e repasse do relatório de análise de mérito").
+export type TipoRelatorio = "instrumentos_repasse" | "analise_merito";
 
 export interface FiltroRelatorio {
   escopo: EscopoRelatorio;
@@ -16,6 +19,9 @@ export interface FiltroRelatorio {
   uf?: string;
   municipio?: string;
   cnes?: string;
+  /** Só usado por `instrumentos_repasse` -- cobertura não tem dimensão de
+   * ano civil (é execução/competência). */
+  ano?: number;
 }
 
 export interface ArquivoRelatorio {
@@ -33,14 +39,21 @@ function nomeArquivoDoHeader(header: string | null, fallback: string): string {
  * trata status/erro aqui mesmo em vez de `requisitar` (que espera JSON). */
 export async function gerarRelatorio(
   formato: FormatoRelatorio,
+  tipoRelatorio: TipoRelatorio,
   nivel: NivelRelatorio,
   filtro: FiltroRelatorio,
 ): Promise<ArquivoRelatorio> {
-  const params = new URLSearchParams({ formato, nivel, escopo: filtro.escopo });
+  const params = new URLSearchParams({
+    formato,
+    tipo_relatorio: tipoRelatorio,
+    nivel,
+    escopo: filtro.escopo,
+  });
   if (filtro.regiao) params.set("regiao", filtro.regiao);
   if (filtro.uf) params.set("uf", filtro.uf);
   if (filtro.municipio) params.set("municipio", filtro.municipio);
   if (filtro.cnes) params.set("cnes", filtro.cnes);
+  if (filtro.ano) params.set("ano", String(filtro.ano));
 
   const resposta = await httpFetch(`/relatorios?${params.toString()}`);
   if (!resposta.ok) {
