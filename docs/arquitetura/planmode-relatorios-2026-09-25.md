@@ -156,4 +156,68 @@ Decisões tomadas com o usuário (2026-09-25, antes de codar):
   confirmado sem nenhum outro consumidor antes de remover. `tsc --noEmit`/`oxlint`/`vitest run`
   (113/113)/`vite build` limpos.
 
-**Status**: Blocos 1, 2 e 3 concluídos. Plan Mode fechado.
+- **Bloco 4 — CONCLUÍDO (2026-09-26)**: pedido do usuário de gerar relatório real (São Paulo/SP,
+  2023) achou 2 problemas reais que os Blocos 1-3 não cobriam:
+  - **Bug de município**: filtro exato (`==`) nunca batia porque a mesma cidade tem grafia
+    diferente por origem no banco real -- confirmado ao vivo: `convenio`/`instrumento_equipamento`
+    gravam "SAO PAULO" (maioria) e "São Paulo" (só PERSUS I); `municipality_coverage` grava "SAO
+    PAULO"; `proposta_candidata` grava "SÃO PAULO". Cogitada extensão `unaccent` do Postgres, mas o
+    Neon de homologação está com a migration **atrasada e travada por permissão**
+    (`alembic_version` em `7fd36a4d65a5`, `ALTER TYPE notificacao_tipo ADD VALUE` falha com
+    `InsufficientPrivilege` pro role de migration) -- achado registrado, fora de escopo corrigir
+    aqui (banco compartilhado, risco). Resolvido em Python: `app/pipeline/texto.py::normalizar_texto`
+    (já existente, usado noutro contexto) comparando depois de trazer por UF, em vez de comparação
+    exata em SQL -- `app/repositories/{convenios,monitoramento,cobertura_relatorio,
+    propostas_candidatas_relatorio}.py`.
+  - **Filtro `ano` que faltava**: `FiltroRelatorio.ano` (novo, opcional) filtra
+    `Convenio.ano_instrumento`/`InstrumentoEquipamento.ano_instrumento`/
+    `extract('year', PropostaCandidata.data_proposta)` -- só em `instrumentos_repasse` (cobertura
+    não tem essa dimensão). Novo `app/repositories/propostas_candidatas_relatorio.py` (propostas
+    candidatas -- "linhas de financiamento" -- não tinham nenhuma extração pro relatório ainda).
+- **Bloco 5 — CONCLUÍDO (2026-09-26)**: enriquecimento pedido pelo usuário ("riqueza de detalhes...
+  fácil de entender"), usando como referência de estilo os 2 documentos reais anexados
+  (`data/relatorios/`, um Briefing e uma Nota Informativa do departamento):
+  - `app/reports/formatacao.py` (novo) -- `formatar_moeda`/`formatar_data` pt-BR pro Word (texto
+    puro); no Excel o valor cru é mantido (`xlsx_builder.escrever_aba_tabela` ganhou
+    `colunas_moeda`/`colunas_data` **por nome**, aplicando `number_format` do Excel sem perder
+    ordenação/soma).
+  - `docx_builder.py` ganhou timbre institucional (`adicionar_cabecalho_institucional` -- Ministério
+    da Saúde/SAES/DECAN/CGPCAN, com aviso explícito "gerado automaticamente... não substitui
+    conferência humana", pra nunca se passar por Nota Informativa/Briefing já revisado por um
+    analista), `adicionar_paragrafo_rotulo_valor` (padrão "**Rótulo:** valor" dos briefings reais),
+    `adicionar_legenda_tabela`/`adicionar_fonte` ("Tabela N. ..."/"Fonte: ...") e
+    `linhas_como_texto` (formata linha por nome de coluna antes de virar tabela de texto).
+  - `services/relatorios.py` ganhou seção "Resumo executivo" (convênios/valor total/propostas
+    aprovadas/instrumentos por fase) em ambos os formatos, e no Word nível "completo" narra **1
+    bloco por convênio/instrumento** (objeto, convenente+CNPJ, localização, tipo de
+    contratação+tipologia, programa, situação, vigência, financeiro completo -- e pro monitoramento,
+    situação atual + timeline completa) em vez de só uma tabela achatada -- Excel continua tabela
+    (pedido explícito: "o excel serão tabelas").
+  - **Bug real achado e corrigido nesta rodada**: `analise_merito` com `escopo=cnes` ou com um
+    filtro sem nenhuma família publicada gerava uma pasta Excel **sem nenhuma aba**, e o
+    `openpyxl` quebra ao salvar ("At least one sheet must be visible"). `escopo=cnes` agora é
+    rejeitado explicitamente (`ValidationError`, 422 -- cobertura não tem granularidade por
+    estabelecimento, mesma limitação do CLAUDE.md); ausência de família publicada gera aba
+    "Cobertura" com aviso em vez de quebrar.
+  - **Gaps conhecidos, declarados e NUNCA fabricados** (confirmado contra o schema, não assumido):
+    "Habilitação" CNES (não existe em `CnesEstabelecimento`) e "Produção assistencial" (SIH/SIA/SUS
+    por procedimento, como nos briefings reais) -- essa última é dado do projeto irmão
+    `nota-informativa-decan` (DuckDB/parquet), fora do banco do SIGEO. Nenhuma das duas seções
+    existe até uma fonte real ser integrada (decisão explícita, não silenciosa).
+- **Bloco 6 — CONCLUÍDO (2026-09-26)**: separação de UI pedida pelo usuário ("vamos separar o
+  relatório de instrumentos e repasse do relatório de análise de mérito... no monitoramento de
+  instrumentos devemos criar uma aba pra uma página de relatório"). `RelatorioGeradorForm` ganhou
+  prop `tipoRelatorio` fixa (não é mais escolha do usuário no formulário) + campo `Ano` (só quando
+  `instrumentos_repasse`) + esconde a opção CNES quando `analise_merito`. `relatorios-page.tsx`
+  (fora do `MonitoramentoLayout`, onde os botões já existiam) fica só com `analise_merito`. Nova
+  `monitoramento-relatorios-page.tsx` (dentro do `MonitoramentoLayout`, rota
+  `/monitoramento-equipamentos/relatorios`, item de nav "Relatórios" em
+  `monitoramento-nav-items.ts`) oferece só `instrumentos_repasse`. `tsc --noEmit`/`oxlint`/
+  `vitest run` (113/113)/`vite build` limpos.
+
+**Validado ao vivo contra o Neon real** (2026-09-26, leitura, sem tocar schema): relatório
+`instrumentos_repasse`/completo pro filtro São Paulo/SP/2023 -- 5 convênios encontrados (a busca por
+"São Paulo" achou "SÃO PAULO"/"SAO PAULO" independente de acento/caixa, confirmando a correção do
+Bloco 4), 74 linhas de timeline de monitoramento, blocos narrativos completos no Word.
+
+**Status**: Blocos 1-6 concluídos. Plan Mode fechado.

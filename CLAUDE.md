@@ -1092,6 +1092,46 @@ bloqueado de tudo, sem exceção, em qualquer um dos dois gates abaixo.
   `test_monitoramento.py` (colaborador titular/não-titular, instrumento sem titular, `pode_editar` na
   listagem via router).
 
+## Relatórios Excel/Word (Plan Mode relatorios 2026-09-25/26)
+
+`docs/arquitetura/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
+independentes**, decisão do usuário 2026-09-26: `GET /relatorios` (`app/routers/relatorios.py`,
+`app/services/relatorios.py`) com `tipo_relatorio=instrumentos_repasse|analise_merito`.
+
+- **`instrumentos_repasse`** (convênios + propostas candidatas/"linhas de financiamento" ainda sem
+  virar convênio + monitoramento interno completo) — página própria dentro do Monitoramento
+  Interno (`frontend/src/pages/monitoramento-relatorios-page.tsx`, rota
+  `/monitoramento-equipamentos/relatorios`, nav "Relatórios").
+- **`analise_merito`** (só cobertura/déficit oncológico) — continua em `relatorios-page.tsx`, fora
+  do `MonitoramentoLayout` (mesmo lugar onde os botões de export já existiam antes). Não existe pra
+  `escopo=cnes` (`ValidationError`/422 — cobertura não tem granularidade por estabelecimento, mesma
+  limitação da seção "Limitações conhecidas" abaixo).
+
+Filtro geográfico hierárquico (Brasil→Região→UF→Município→CNES) + `ano` opcional (só
+`instrumentos_repasse` — cobertura não tem dimensão de ano civil). Nível Simplificado = estado
+atual; Completo = tudo, inclusive timeline inteira de eventos do monitoramento — no Word narra 1
+bloco por convênio/instrumento (estilo dos briefings reais do departamento, timbre institucional
+Ministério da Saúde/SAES/DECAN/CGPCAN + aviso "gerado automaticamente"); no Excel continua tabela
+(pedido explícito do usuário).
+
+- **Filtro de município é feito em Python, nunca `==` em SQL** (`app/pipeline/texto.py::
+  normalizar_texto`, upper+sem-acento, aplicado depois de trazer por UF) — achado ao vivo: a mesma
+  cidade tem grafia diferente por origem no banco real ("SAO PAULO" em `convenio`/
+  `instrumento_equipamento`/`municipality_coverage`, "SÃO PAULO" em `proposta_candidata`, "São
+  Paulo" só no registro PERSUS I de `convenio`). Nunca reintroduzir comparação exata de município em
+  nenhuma query nova desses 4 domínios.
+- **Migration do Neon de homologação está atrasada e travada por permissão** (achado ao vivo
+  2026-09-26, não corrigido — fora de escopo, banco compartilhado): `alembic_version` parado em
+  `7fd36a4d65a5`, e `ALTER TYPE notificacao_tipo ADD VALUE` (migration mais recente na cadeia) falha
+  com `InsufficientPrivilege` pro role de migration. Cogitar antes de assumir que qualquer migration
+  recente já está aplicada nesse ambiente — checar `SELECT version_num FROM alembic_version` antes.
+- **Gaps conhecidos, nunca fabricados**: "Habilitação" CNES (não existe em `CnesEstabelecimento`) e
+  "Produção assistencial" (SIH/SIA/SUS por procedimento, como nos briefings reais do departamento)
+  — essa última é dado do projeto irmão `nota-informativa-decan` (DuckDB/parquet), fora do banco do
+  SIGEO. Nenhuma das duas seções existe no relatório até uma fonte real ser integrada.
+- `jspdf`/`jspdf-autotable`/`exceljs` **removidos** (export client-side antigo, `export-{pdf,xlsx}-
+  modal.tsx`/`utils/export-{pdf,xlsx}.ts`/`hooks/useRelatoriosDados.ts`, sem outro consumidor).
+
 ## Comandos úteis
 
 ```bash
