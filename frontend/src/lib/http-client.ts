@@ -36,7 +36,7 @@ function novoTraceId(): string {
  * o array virar literalmente "[object Object]" na UI (coerção implícita
  * pra string). Junta as mensagens de cada campo quando é array; usa a
  * string direto nos demais casos. */
-async function mensagemErroHttp(resp: Response): Promise<string> {
+export async function mensagemErroHttp(resp: Response): Promise<string> {
   try {
     const body = (await resp.json()) as { detail?: unknown; error?: string };
     if (Array.isArray(body.detail)) {

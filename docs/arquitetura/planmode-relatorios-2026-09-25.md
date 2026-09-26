@@ -144,6 +144,16 @@ Decisões tomadas com o usuário (2026-09-25, antes de codar):
   `require_current_user`. 39 testes novos (repository/service/contrato HTTP), suíte completa (296
   testes), `ruff`/`mypy` limpos, pisos de cobertura com folga maior que antes (`services` subiu de
   81,1% pra 82,5%).
-- **Bloco 3**: frontend — reabilita `relatorios-page.tsx` com filtro completo. Ainda não iniciado.
+- **Bloco 3 — CONCLUÍDO (2026-09-26)**: `relatorios-page.tsx` reabilitada — os 2 cards de exportação
+  client-side (`desabilitado` desde 2026-08-24) foram substituídos por `RelatorioGeradorForm`
+  (`components/features/relatorio-gerador-form.tsx`, novo): seletor de filtro (Brasil/Região/UF/
+  Município/CNES, campos condicionais por escopo), nível (Simplificado/Completo) e 2 botões (Excel/
+  Word) que baixam o arquivo via `services/relatorios.ts` (novo — primeiro service do projeto a usar
+  `httpFetch` cru em vez de `requisitar`, já que a resposta é binária; `mensagemErroHttp` promovido a
+  export de `lib/http-client.ts` pra reaproveitar a extração de erro). `export-{pdf,xlsx}-modal.tsx`,
+  `utils/export-{pdf,xlsx}.ts` e `hooks/useRelatoriosDados.ts` **removidos** (único consumidor era
+  esta página) — junto com as dependências `jspdf`/`jspdf-autotable`/`exceljs` (`npm uninstall`),
+  confirmado sem nenhum outro consumidor antes de remover. `tsc --noEmit`/`oxlint`/`vitest run`
+  (113/113)/`vite build` limpos.
 
-**Status**: Blocos 1 e 2 concluídos. Bloco 3 ainda não iniciado.
+**Status**: Blocos 1, 2 e 3 concluídos. Plan Mode fechado.
