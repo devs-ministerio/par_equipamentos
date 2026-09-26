@@ -27,7 +27,7 @@ export function RelatoriosPage() {
         actions={<NavBoxesAnaliseMerito />}
       />
       <section aria-label="Geração de relatório de análise de mérito">
-        <RelatorioGeradorForm tipoRelatorio="analise_merito" />
+        <RelatorioGeradorForm />
       </section>
 
       <MetodologiaPage equipmentFamily={FAMILIA} />

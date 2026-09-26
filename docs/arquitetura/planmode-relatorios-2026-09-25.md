@@ -220,4 +220,33 @@ Decisões tomadas com o usuário (2026-09-25, antes de codar):
 "São Paulo" achou "SÃO PAULO"/"SAO PAULO" independente de acento/caixa, confirmando a correção do
 Bloco 4), 74 linhas de timeline de monitoramento, blocos narrativos completos no Word.
 
-**Status**: Blocos 1-6 concluídos. Plan Mode fechado.
+- **Bloco 7 — CONCLUÍDO (2026-09-26)**: pedido do usuário ("adicione uma tabela que aparece os itens
+  conforme os filtros. Coloque os mesmos filtros que temos no instrumentos/repasses... separar em
+  instrumentos/programas e linhas de financiamento (parceria e propostas)") -- `monitoramento-
+  relatorios-page.tsx` reescrita seguindo a constituição de frontend (Plan Mode aprovado antes de
+  codar):
+  - **Backend**: `FiltroRelatorio` ganhou `situacao`/`programa`/`tipo_contratacao`/`busca`
+    (`app/routers/relatorios.py` + `app/services/relatorios.py`), mesmos filtros de "Instrumentos e
+    repasses" (Dados Oficiais). Achado ao vivo ANTES de aplicar largamente: `programa`/`situacao`
+    usam vocabulário DIFERENTE em `Convenio` (SICONV) vs. `PropostaCandidata` (TransfereGov novo) --
+    confirmado contra dado real (nomes de programa não batem string a string). Aplicados só onde o
+    vocabulário é o mesmo de fato: `situacao`/`programa`/`tipo_contratacao`/`busca` completos em
+    Convênios; só `tipo_contratacao` (vocabulário fechado idêntico) em Monitoramento; só `uf`/`ano`
+    em Propostas (sem `programa`/`situacao` -- ficaria filtrando pra vazio quase sempre).
+  - **Frontend**: página reaproveita 100% o dado já carregado (`useConveniosLista`/
+    `usePropostasCandidatas`, zero chamada nova) pra uma prévia client-side que mostra exatamente o
+    recorte que os botões geram. Abas "Instrumentos/Programas" vs. "Linhas de financiamento"
+    (`AbasDadosOficiais`, reaproveitado) + sub-abas "Confirmada (parceria)"/"Em tramitação
+    (proposta)" dentro de Linhas de financiamento (`SubAbasFinanciamento`, reaproveitado,
+    `estagioDeFato`). 2 tabelas novas (`relatorio-instrumentos-tabela.tsx`/
+    `relatorio-propostas-tabela.tsx`, Seção 5 da constituição: numérico à direita, sem card por
+    linha, empty state com CTA "Limpar filtros"). `RelatorioGeradorForm` não serve mais o relatório
+    de Instrumentos e Repasse (filtros divergiram demais) -- ficou só pra Análise de Mérito, mais
+    simples; lógica assíncrona de geração extraída pra `useGerarRelatorio` (Seção 7 da
+    constituição), reaproveitada pelas 2 páginas; botões Nível/Excel/Word viraram
+    `RelatorioBotoesGerar` (reaproveitado). Novo `useRelatorioInstrumentosFiltros` (só busca/uf/
+    situacao/ano/programa/tipoContratacao -- sem `equipamento`/`classeEquipamento`/`soMonitorados`/
+    `pagina`, que não fazem sentido pra recorte de relatório). `tsc --noEmit`/`oxlint`/`vitest run`
+    (113/113)/`vite build` limpos; suíte backend 322 testes.
+
+**Status**: Blocos 1-7 concluídos. Plan Mode fechado.

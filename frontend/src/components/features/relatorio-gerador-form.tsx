@@ -1,95 +1,52 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ErrorAlert } from "@/components/common/error-alert";
 import {
   estiloInput,
   rotuloCampo,
 } from "@/components/features/monitoramento-ui";
+import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { REGIOES } from "@/data/constants";
 import { UF_INFO } from "@/data/geo-reference";
-import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
 import { cn } from "@/lib/utils";
 import {
-  baixarArquivo,
-  gerarRelatorio,
   type EscopoRelatorio,
-  type FormatoRelatorio,
   type NivelRelatorio,
-  type TipoRelatorio,
 } from "@/services/relatorios";
 
 const UFS_ORDENADAS = Object.entries(UF_INFO)
   .map(([uf, info]) => ({ uf, nome: info.nome }))
   .sort((a, b) => a.nome.localeCompare(b.nome));
 
+// Sem CNES: Análise de mérito (cobertura/déficit) não tem granularidade
+// por estabelecimento (MacroCoverage/MunicipalityCoverage não têm essa
+// coluna, mesma limitação do CLAUDE.md) -- o backend rejeita com 422,
+// aqui só evita oferecer um caminho sem saída.
 const ESCOPOS: { valor: EscopoRelatorio; rotulo: string }[] = [
   { valor: "brasil", rotulo: "Brasil" },
   { valor: "regiao", rotulo: "Região" },
   { valor: "uf", rotulo: "UF" },
   { valor: "municipio", rotulo: "Município" },
-  { valor: "cnes", rotulo: "CNES" },
 ];
 
-/** Gerador de relatórios Excel/Word (Plan Mode docs/arquitetura/
- * planmode-relatorios-2026-09-25.md, Blocos 3 e 6) -- substitui os cards de
- * exportação client-side (jspdf/exceljs) desativados desde 2026-08-24: a
- * geração agora roda no backend. `tipoRelatorio` é fixo por página (pedido
- * do usuário 2026-09-26: "separar o relatório de instrumentos e repasse do
- * relatório de análise de mérito") -- cada página do app decide qual dos
- * dois oferece, o formulário não escolhe isso. */
-export function RelatorioGeradorForm({
-  tipoRelatorio,
-}: {
-  tipoRelatorio: TipoRelatorio;
-}) {
+/** Gerador do relatório de Análise de Mérito (cobertura/déficit) -- Plan
+ * Mode docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 3 e 6.
+ * O relatório de Instrumentos e Repasse (convênios/propostas/monitoramento)
+ * ganhou filtros/prévia próprios em `monitoramento-relatorios-page.tsx`
+ * (Bloco 7) -- filtros dos dois relatórios divergiram demais pra caber
+ * neste mesmo formulário. */
+export function RelatorioGeradorForm() {
   const [escopo, setEscopo] = useState<EscopoRelatorio>("brasil");
   const [regiao, setRegiao] = useState("");
   const [uf, setUf] = useState("");
   const [municipio, setMunicipio] = useState("");
-  const [cnes, setCnes] = useState("");
-  const [ano, setAno] = useState("");
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
-  const [gerando, setGerando] = useState<FormatoRelatorio | null>(null);
-  const [erro, setErro] = useState<unknown>(null);
-
-  // Análise de mérito não tem granularidade por CNES (MacroCoverage/
-  // MunicipalityCoverage não têm essa coluna) -- mesma limitação já
-  // documentada no CLAUDE.md, rejeitada pelo backend com 422; aqui só
-  // esconde a opção pra não deixar o usuário escolher um caminho sem saída.
-  const escopos =
-    tipoRelatorio === "analise_merito"
-      ? ESCOPOS.filter((e) => e.valor !== "cnes")
-      : ESCOPOS;
-  // Ano só existe pra convênios/monitoramento (Convenio.ano_instrumento) --
-  // cobertura é execução/competência, sem dimensão de ano civil.
-  const mostraAno = tipoRelatorio === "instrumentos_repasse";
+  const { gerando, erro, gerar } = useGerarRelatorio("analise_merito");
 
   const podeGerar =
     escopo === "brasil" ||
     (escopo === "regiao" && regiao !== "") ||
     (escopo === "uf" && uf !== "") ||
-    (escopo === "municipio" && uf !== "" && municipio.trim() !== "") ||
-    (escopo === "cnes" && cnes.trim() !== "");
-
-  async function gerar(formato: FormatoRelatorio) {
-    setErro(null);
-    setGerando(formato);
-    try {
-      const arquivo = await gerarRelatorio(formato, tipoRelatorio, nivel, {
-        escopo,
-        regiao: escopo === "regiao" ? regiao : undefined,
-        uf: escopo === "uf" || escopo === "municipio" ? uf : undefined,
-        municipio: escopo === "municipio" ? municipio.trim() : undefined,
-        cnes: escopo === "cnes" ? cnes.trim() : undefined,
-        ano: mostraAno && ano.trim() !== "" ? Number(ano) : undefined,
-      });
-      baixarArquivo(arquivo);
-    } catch (e) {
-      setErro(e);
-    } finally {
-      setGerando(null);
-    }
-  }
+    (escopo === "municipio" && uf !== "" && municipio.trim() !== "");
 
   return (
     <div className="flex flex-col gap-4 border-t border-border py-4">
@@ -101,7 +58,7 @@ export function RelatorioGeradorForm({
             value={escopo}
             onChange={(e) => setEscopo(e.target.value as EscopoRelatorio)}
           >
-            {escopos.map((e) => (
+            {ESCOPOS.map((e) => (
               <option key={e.valor} value={e.valor}>
                 {e.rotulo}
               </option>
@@ -156,64 +113,23 @@ export function RelatorioGeradorForm({
             />
           </label>
         )}
-
-        {escopo === "cnes" && (
-          <label className="flex flex-col gap-1">
-            <span className={rotuloCampo}>CNES</span>
-            <input
-              className={cn(estiloInput, "bg-background")}
-              value={cnes}
-              onChange={(e) => setCnes(e.target.value)}
-              placeholder="Código CNES"
-            />
-          </label>
-        )}
-
-        {mostraAno && (
-          <label className="flex flex-col gap-1">
-            <span className={rotuloCampo}>Ano (opcional)</span>
-            <input
-              type="number"
-              className={cn(estiloInput, "bg-background")}
-              value={ano}
-              onChange={(e) => setAno(e.target.value)}
-              placeholder="Ex.: 2023"
-            />
-          </label>
-        )}
-
-        <label className="flex flex-col gap-1">
-          <span className={rotuloCampo}>Nível</span>
-          <select
-            className={cn(estiloInput, "bg-background")}
-            value={nivel}
-            onChange={(e) => setNivel(e.target.value as NivelRelatorio)}
-          >
-            <option value="simplificado">Simplificado</option>
-            <option value="completo">Completo</option>
-          </select>
-        </label>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          disabled={!podeGerar || gerando !== null}
-          onClick={() => void gerar("xlsx")}
-        >
-          {gerando === "xlsx" ? "Gerando Excel…" : "Gerar Excel"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={!podeGerar || gerando !== null}
-          onClick={() => void gerar("docx")}
-        >
-          {gerando === "docx" ? "Gerando Word…" : "Gerar Word"}
-        </Button>
-      </div>
-
-      {erro !== null && <ErrorAlert mensagem={mensagemSeguraDoErro(erro)} />}
+      <RelatorioBotoesGerar
+        nivel={nivel}
+        onNivelChange={setNivel}
+        podeGerar={podeGerar}
+        gerando={gerando}
+        erro={erro}
+        onGerar={(formato) =>
+          void gerar(formato, nivel, {
+            escopo,
+            regiao: escopo === "regiao" ? regiao : undefined,
+            uf: escopo === "uf" || escopo === "municipio" ? uf : undefined,
+            municipio: escopo === "municipio" ? municipio.trim() : undefined,
+          })
+        }
+      />
     </div>
   );
 }

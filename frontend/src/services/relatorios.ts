@@ -3,7 +3,7 @@ import { httpFetch, mensagemErroHttp } from "@/lib/http-client";
 
 // ---------------------------------------------------------------------
 // Relatórios Excel/Word (backend/app/routers/relatorios.py) -- Plan Mode
-// docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 3 e 6.
+// docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 3, 6 e 7.
 // ---------------------------------------------------------------------
 
 export type EscopoRelatorio = "brasil" | "regiao" | "uf" | "municipio" | "cnes";
@@ -22,6 +22,14 @@ export interface FiltroRelatorio {
   /** Só usado por `instrumentos_repasse` -- cobertura não tem dimensão de
    * ano civil (é execução/competência). */
   ano?: number;
+  // Mesmos filtros de "Instrumentos e repasses"/Dados Oficiais (Bloco 7) --
+  // só se aplicam a `instrumentos_repasse`; `situacao`/`programa` filtram
+  // só a seção de Convênios (vocabulário SICONV, não bate com Propostas/
+  // Monitoramento, ver app/services/relatorios.py no backend).
+  situacao?: string;
+  programa?: string;
+  tipoContratacao?: string;
+  busca?: string;
 }
 
 export interface ArquivoRelatorio {
@@ -54,6 +62,11 @@ export async function gerarRelatorio(
   if (filtro.municipio) params.set("municipio", filtro.municipio);
   if (filtro.cnes) params.set("cnes", filtro.cnes);
   if (filtro.ano) params.set("ano", String(filtro.ano));
+  if (filtro.situacao) params.set("situacao", filtro.situacao);
+  if (filtro.programa) params.set("programa", filtro.programa);
+  if (filtro.tipoContratacao)
+    params.set("tipo_contratacao", filtro.tipoContratacao);
+  if (filtro.busca) params.set("busca", filtro.busca);
 
   const resposta = await httpFetch(`/relatorios?${params.toString()}`);
   if (!resposta.ok) {
