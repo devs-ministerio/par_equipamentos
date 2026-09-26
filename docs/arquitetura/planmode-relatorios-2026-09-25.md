@@ -235,14 +235,19 @@ Bloco 4), 74 linhas de timeline de monitoramento, blocos narrativos completos no
     em Propostas (sem `programa`/`situacao` -- ficaria filtrando pra vazio quase sempre).
   - **Frontend**: página reaproveita 100% o dado já carregado (`useConveniosLista`/
     `usePropostasCandidatas`, zero chamada nova) pra uma prévia client-side que mostra exatamente o
-    recorte que os botões geram. Abas "Instrumentos/Programas" vs. "Linhas de financiamento"
-    (`AbasDadosOficiais`, reaproveitado) + sub-abas "Confirmada (parceria)"/"Em tramitação
-    (proposta)" dentro de Linhas de financiamento (`SubAbasFinanciamento`, reaproveitado,
-    `estagioDeFato`). 2 tabelas novas (`relatorio-instrumentos-tabela.tsx`/
-    `relatorio-propostas-tabela.tsx`, Seção 5 da constituição: numérico à direita, sem card por
-    linha, empty state com CTA "Limpar filtros"). `RelatorioGeradorForm` não serve mais o relatório
-    de Instrumentos e Repasse (filtros divergiram demais) -- ficou só pra Análise de Mérito, mais
-    simples; lógica assíncrona de geração extraída pra `useGerarRelatorio` (Seção 7 da
+    recorte que os botões geram. **Sem abas** (decisão revista ainda no mesmo bloco, pedido do
+    usuário: "não quero separado em abas, quero um abaixo do outro") -- as 3 seções (Instrumentos/
+    Programas, Linhas de financiamento Confirmada/parceria, Linhas de financiamento Em tramitação/
+    proposta) ficam empilhadas, cada uma com sua própria tabela. 2 componentes de tabela novos
+    (`relatorio-instrumentos-tabela.tsx`/`relatorio-propostas-tabela.tsx`, este último reaproveitado
+    2x -- só troca `titulo`/`itens`) seguindo **o mesmo padrão de layout/formatação da tabela de
+    Instrumentos Monitorados** (`monitoramento-overview-lista.tsx`, pedido explícito do usuário):
+    card (`estiloCard`) + `<table>` nativa (não o `<Table>` do shadcn) + badge de tipo de contratação
+    + paginação própria (`Pagination`, 20/página) + linha de "nenhum resultado" em vez de
+    `EmptyState`; colunas continuam as definidas neste bloco (não as de Instrumentos Monitorados),
+    numérico sempre à direita (Seção 5 da constituição). `RelatorioGeradorForm` não serve mais o
+    relatório de Instrumentos e Repasse (filtros divergiram demais) -- ficou só pra Análise de
+    Mérito, mais simples; lógica assíncrona de geração extraída pra `useGerarRelatorio` (Seção 7 da
     constituição), reaproveitada pelas 2 páginas; botões Nível/Excel/Word viraram
     `RelatorioBotoesGerar` (reaproveitado). Novo `useRelatorioInstrumentosFiltros` (só busca/uf/
     situacao/ano/programa/tipoContratacao -- sem `equipamento`/`classeEquipamento`/`soMonitorados`/

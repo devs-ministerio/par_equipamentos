@@ -5,10 +5,6 @@ import { SearchInput } from "@/components/common/search-input";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  AbasDadosOficiais,
-  SubAbasFinanciamento,
-} from "@/components/features/dados-oficiais-abas";
 import { RelatorioInstrumentosTabela } from "@/components/features/relatorio-instrumentos-tabela";
 import { RelatorioPropostasTabela } from "@/components/features/relatorio-propostas-tabela";
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
@@ -19,7 +15,7 @@ import { useRelatorioInstrumentosFiltros } from "@/hooks/use-relatorio-instrumen
 import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
-import { estagioDeFato, type EstagioProposta } from "@/lib/proposta-status";
+import { estagioDeFato } from "@/lib/proposta-status";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
 import type { NivelRelatorio } from "@/services/relatorios";
@@ -33,22 +29,22 @@ const SEM_MONITORADOS = new Set<string>();
  * chamada só (`GET /relatorios`), em Excel ou Word (Plan Mode
  * docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 6 e 7).
  *
- * Mesmos filtros e a mesma separação em abas de "Instrumentos e repasses"
- * (Dados Oficiais, `monitoramento-equipamentos-page.tsx`) -- pedido do
- * usuário: "coloque os mesmos filtros que temos no instrumentos/repasses"
- * + "separar em instrumentos/programas e linhas de financiamento (parceria
- * e propostas)". A tabela de prévia é 100% client-side (mesmo dado já
- * carregado por `useConveniosLista`/`usePropostasCandidatas`, zero chamada
- * nova) -- mostra exatamente o recorte que os botões abaixo baixam.
- * `situacao`/`programa` só filtram a seção de Convênios (aba "Instrumentos/
- * Programas"): o vocabulário desses campos diverge entre Convenio (SICONV)
- * e PropostaCandidata (TransfereGov novo), ver `app/services/relatorios.py`
- * no backend -- aplicar o mesmo valor nas Propostas quase sempre filtraria
- * pra um conjunto vazio.
+ * Mesmos filtros de "Instrumentos e repasses" (Dados Oficiais,
+ * `monitoramento-equipamentos-page.tsx`) -- pedido do usuário: "coloque os
+ * mesmos filtros que temos no instrumentos/repasses" + "separar em
+ * instrumentos/programas e linhas de financiamento (parceria e
+ * propostas)". As 3 seções (Instrumentos/Programas, Parceria, Propostas)
+ * ficam empilhadas uma abaixo da outra, sem abas (pedido do usuário
+ * 2026-09-26: "não quero separado em abas, quero um abaixo do outro").
+ * A tabela de prévia é 100% client-side (mesmo dado já carregado por
+ * `useConveniosLista`/`usePropostasCandidatas`, zero chamada nova) --
+ * mostra exatamente o recorte que os botões abaixo baixam. `situacao`/
+ * `programa` só filtram a seção de Convênios: o vocabulário desses campos
+ * diverge entre Convenio (SICONV) e PropostaCandidata (TransfereGov novo),
+ * ver `app/services/relatorios.py` no backend -- aplicar o mesmo valor nas
+ * Propostas quase sempre filtraria pra um conjunto vazio.
  */
 export function MonitoramentoRelatoriosPage() {
-  const [aba, setAba] = useState<"convenios" | "componentes">("convenios");
-  const [estagio, setEstagio] = useState<EstagioProposta>("confirmada");
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
 
   const {
@@ -192,58 +188,39 @@ export function MonitoramentoRelatoriosPage() {
         />
       </FilterWorkspace>
 
-      <AbasDadosOficiais
-        aba={aba}
-        totalInstrumentos={conveniosFiltrados.length}
-        totalPropostas={propostasFiltradas.length}
-        onChange={setAba}
-      />
+      {conveniosQuery.isLoading ? (
+        <Skeleton
+          className="h-64 w-full"
+          role="status"
+          aria-label="Carregando"
+        />
+      ) : conveniosQuery.isError ? (
+        <ErrorAlert
+          mensagem={mensagemSeguraDoErro(conveniosQuery.error)}
+          onRetry={() => conveniosQuery.refetch()}
+        />
+      ) : (
+        <RelatorioInstrumentosTabela itens={conveniosFiltrados} />
+      )}
 
-      {aba === "convenios" &&
-        (conveniosQuery.isLoading ? (
-          <Skeleton
-            className="h-64 w-full"
-            role="status"
-            aria-label="Carregando"
-          />
-        ) : conveniosQuery.isError ? (
-          <ErrorAlert
-            mensagem={mensagemSeguraDoErro(conveniosQuery.error)}
-            onRetry={() => conveniosQuery.refetch()}
-          />
-        ) : (
-          <RelatorioInstrumentosTabela
-            itens={conveniosFiltrados}
-            onLimparFiltros={limparFiltros}
-          />
-        ))}
-
-      {aba === "componentes" && (
+      {carregandoPropostas ? (
+        <Skeleton
+          className="h-64 w-full"
+          role="status"
+          aria-label="Carregando"
+        />
+      ) : erroPropostas ? (
+        <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
+      ) : (
         <>
-          <SubAbasFinanciamento
-            atual={estagio}
-            confirmadas={propostasConfirmadas.length}
-            emTramitacao={propostasEmTramitacao.length}
-            onChange={setEstagio}
+          <RelatorioPropostasTabela
+            titulo="Linhas de financiamento — Confirmada (parceria)"
+            itens={propostasConfirmadas}
           />
-          {carregandoPropostas ? (
-            <Skeleton
-              className="h-64 w-full"
-              role="status"
-              aria-label="Carregando"
-            />
-          ) : erroPropostas ? (
-            <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
-          ) : (
-            <RelatorioPropostasTabela
-              itens={
-                estagio === "confirmada"
-                  ? propostasConfirmadas
-                  : propostasEmTramitacao
-              }
-              onLimparFiltros={limparFiltros}
-            />
-          )}
+          <RelatorioPropostasTabela
+            titulo="Linhas de financiamento — Em tramitação (proposta)"
+            itens={propostasEmTramitacao}
+          />
         </>
       )}
 

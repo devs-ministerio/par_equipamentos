@@ -1,95 +1,92 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { EmptyState } from "@/components/common/empty-state";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Pagination } from "@/components/common/pagination";
+import { estiloCard } from "@/components/features/monitoramento-ui";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import { situacaoDeFato } from "@/lib/proposta-status";
 import type { PropostaCandidata } from "@/services/propostas-candidatas";
 
+const PAGE_SIZE = 20;
+
 /** Tabela de prévia de "Linhas de financiamento" (propostas candidatas) do
- * relatório de Instrumentos e Repasse -- 1 tabela reaproveitada nas 2
- * sub-abas (Confirmada/Parceria e Em tramitação/Proposta, ver
- * `estagioDeFato`), só troca a lista de itens recebida. Mesmas regras de
- * tabela da Seção 5 da constituição (numérico à direita, sem card por
- * linha). */
+ * relatório de Instrumentos e Repasse -- 1 componente reaproveitado nas 2
+ * seções (Confirmada/Parceria e Em tramitação/Proposta, empilhadas uma
+ * abaixo da outra, ver `estagioDeFato`), só troca `titulo`/`itens`. Mesmo
+ * padrão de layout/formatação da tabela de Instrumentos Monitorados
+ * (`monitoramento-overview-lista.tsx`, pedido do usuário 2026-09-26): card
+ * + `<table>` nativa + paginação (Seção 5 da constituição: numérico à
+ * direita). */
 export function RelatorioPropostasTabela({
+  titulo,
   itens,
-  onLimparFiltros,
 }: {
+  titulo: string;
   itens: PropostaCandidata[];
-  onLimparFiltros: () => void;
 }) {
-  if (itens.length === 0) {
-    return (
-      <EmptyState
-        titulo="Nenhuma linha de financiamento com esse filtro"
-        descricao="Ajuste os filtros acima ou limpe para ver o universo completo."
-        acao={
-          <Button variant="outline" size="sm" onClick={onLimparFiltros}>
-            Limpar filtros
-          </Button>
-        }
-      />
-    );
-  }
+  const [pagina, setPagina] = useState(1);
+  const paginaAtual = itens.slice((pagina - 1) * PAGE_SIZE, pagina * PAGE_SIZE);
 
   return (
-    <div className="rounded-lg border border-border">
-      <div className="max-h-[420px] overflow-auto">
-        <Table className="text-[12.5px]">
-          <TableHeader className="sticky top-0 z-[1] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
-            <TableRow>
-              <TableHead className="px-4.5 py-[9px]">
-                Proposta/Parceria
-              </TableHead>
-              <TableHead className="px-2.5 py-[9px]">Proponente</TableHead>
-              <TableHead className="px-2.5 py-[9px]">Município/UF</TableHead>
-              <TableHead className="px-2.5 py-[9px]">Programa</TableHead>
-              <TableHead className="px-2.5 py-[9px]">Situação</TableHead>
-              <TableHead className="px-2.5 py-[9px] text-right">
-                Valor global
-              </TableHead>
-              <TableHead className="px-4.5 py-[9px] text-right">Data</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {itens.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="px-4.5 py-2 font-mono text-[11.5px] text-muted-foreground">
-                  {item.cd_parceria ?? item.id_proposta}
-                </TableCell>
-                <TableCell className="px-2.5 py-2 font-medium whitespace-normal">
-                  {item.nm_proponente}
-                </TableCell>
-                <TableCell className="px-2.5 py-2 whitespace-normal text-muted-foreground">
-                  {item.municipio ?? "—"}/{item.uf ?? "—"}
-                </TableCell>
-                <TableCell className="px-2.5 py-2 whitespace-normal text-muted-foreground">
-                  {item.nm_programa}
-                </TableCell>
-                <TableCell className="px-2.5 py-2 whitespace-normal text-muted-foreground">
-                  {situacaoDeFato(item) ?? "—"}
-                </TableCell>
-                <TableCell className="px-2.5 py-2 text-right font-semibold">
-                  {fmtMoeda(item.vl_global_proposta)}
-                </TableCell>
-                <TableCell className="px-4.5 py-2 text-right text-muted-foreground">
-                  {fmtData(item.data_proposta)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+    <div className={estiloCard}>
+      <div className="mb-3 flex flex-wrap justify-between gap-2.5">
+        <strong className="text-sm">
+          {titulo} ({itens.length})
+        </strong>
       </div>
-      <div className="border-t border-border px-4.5 py-2 text-[11.5px] text-muted-foreground">
-        {itens.length} proposta{itens.length === 1 ? "" : "s"}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[12.5px]">
+          <thead>
+            <tr className="text-left text-[11px] text-muted-foreground uppercase">
+              <th className="px-2 py-1">Proposta/Parceria</th>
+              <th className="px-2 py-1">Proponente</th>
+              <th className="px-2 py-1">Município/UF</th>
+              <th className="px-2 py-1">Programa</th>
+              <th className="px-2 py-1">Situação</th>
+              <th className="px-2 py-1 text-right">Valor global</th>
+              <th className="px-2 py-1 text-right">Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itens.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-2 py-3.5 text-center text-muted-foreground italic"
+                >
+                  Nenhuma linha de financiamento bate com esse filtro.
+                </td>
+              </tr>
+            ) : (
+              paginaAtual.map((item) => (
+                <tr key={item.id} className="border-t border-border">
+                  <td className="px-2 py-1.5 font-semibold">
+                    {item.cd_parceria ?? item.id_proposta}
+                  </td>
+                  <td className="px-2 py-1.5">{item.nm_proponente}</td>
+                  <td className="px-2 py-1.5">
+                    {item.municipio ?? "—"}/{item.uf ?? "—"}
+                  </td>
+                  <td className="px-2 py-1.5">{item.nm_programa}</td>
+                  <td className="px-2 py-1.5">{situacaoDeFato(item) ?? "—"}</td>
+                  <td className="px-2 py-1.5 text-right font-semibold">
+                    {fmtMoeda(item.vl_global_proposta)}
+                  </td>
+                  <td className="px-2 py-1.5 text-right">
+                    {fmtData(item.data_proposta)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
+      {itens.length > 0 && (
+        <Pagination
+          page={pagina}
+          totalItems={itens.length}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPagina}
+        />
+      )}
     </div>
   );
 }
