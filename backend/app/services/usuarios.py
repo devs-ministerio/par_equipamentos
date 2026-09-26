@@ -66,7 +66,7 @@ def criar_usuario(*, db: Session, admin_atual: User, dados: UserCreateRequest) -
     )
     if dados.password is None:
         usuario.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
-        usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
     db.add(usuario)
     db.flush()  # obtem usuario.id pra registrar na auditoria antes do commit
     registrar_auditoria(
@@ -124,7 +124,7 @@ def reenviar_convite(*, db: Session, admin_atual: User, user_id: int) -> User:
         raise NotFoundError(f"Usuario {user_id} nao encontrado.")
     token = secrets.token_urlsafe(32)
     usuario.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
-    usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
     try:
         enviar_link(
             destinatario=usuario.email,
@@ -155,7 +155,7 @@ def enviar_redefinicao_senha(*, db: Session, admin_atual: User, user_id: int) ->
 
     token = secrets.token_urlsafe(32)
     usuario.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
-    usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
     try:
         enviar_link(
             destinatario=usuario.email,

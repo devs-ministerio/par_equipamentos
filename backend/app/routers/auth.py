@@ -110,7 +110,7 @@ def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session 
     if user is not None and settings.servico_email_configurado:
         token = secrets.token_urlsafe(32)
         user.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
-        user.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        user.activation_expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
         db.commit()
         try:
             enviar_link(
