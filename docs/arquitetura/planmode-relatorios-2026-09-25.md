@@ -125,8 +125,25 @@ Decisões tomadas com o usuário (2026-09-25, antes de codar):
   `ruff check`/`ruff format --check`/`mypy .` limpos, pisos de cobertura por camada (`services`
   80%/`repositories` 70%/`routes` 60%) mantidos acima do piso — os builders não entram em nenhuma
   dessas 3 camadas, então não alteram o denominador do gate.
-- **Bloco 2**: extração de query nos 4 routers + `services/relatorios.py` + endpoint
-  `GET /relatorios`. Ainda não iniciado.
+- **Bloco 2 — CONCLUÍDO (2026-09-26)**: extração mínima de query, não migração completa dos 4
+  routers (fora de escopo, ver acima). `app/repositories/execucoes.py` ganhou
+  `listar_familias_publicadas`; `app/repositories/convenios.py` (novo) e
+  `app/repositories/cobertura_relatorio.py` (novo) — filtro por UF/município/CNES sem paginação,
+  reaproveitando `Convenio`/`MacroCoverage`/`MunicipalityCoverage`; `app/repositories/
+  monitoramento.py::listar_instrumentos` ganhou `ufs`/`municipio`/`cnes` opcionais (retrocompatível,
+  default `None`), propagado por `services/monitoramento_instrumentos.py::
+  listar_instrumentos_monitorados`. `app/services/relatorios.py` (novo) — `FiltroRelatorio`
+  (dataclass frozen, valida por `escopo` no `__post_init__`, levanta `ValidationError`) + 3 seções
+  (cobertura, convênios, monitoramento) + `montar_relatorio()` monta `.xlsx` (uma aba por família de
+  equipamento + Convênios + Monitoramento) ou `.docx` (cobertura sempre agregada por UF, mesmo no
+  nível "completo" — granularidade de município fica só no Excel). Seção de cobertura **não existe**
+  para `escopo=cnes` (MacroCoverage/MunicipalityCoverage não têm granularidade por estabelecimento,
+  mesma limitação já documentada no CLAUDE.md). `GET /relatorios` (`app/routers/relatorios.py`,
+  novo, registrado em `main.py`) — `formato`/`nivel`/`escopo`/`regiao`/`uf`/`municipio`/`cnes` como
+  query params, `StreamingResponse` com `Content-Disposition: attachment`, atrás de
+  `require_current_user`. 39 testes novos (repository/service/contrato HTTP), suíte completa (296
+  testes), `ruff`/`mypy` limpos, pisos de cobertura com folga maior que antes (`services` subiu de
+  81,1% pra 82,5%).
 - **Bloco 3**: frontend — reabilita `relatorios-page.tsx` com filtro completo. Ainda não iniciado.
 
-**Status**: Bloco 1 concluído. Blocos 2 e 3 ainda não iniciados.
+**Status**: Blocos 1 e 2 concluídos. Bloco 3 ainda não iniciado.

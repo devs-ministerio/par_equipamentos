@@ -23,6 +23,7 @@ from app.routers import (
     municipality_coverage,
     notificacoes,
     propostas_candidatas,
+    relatorios,
     usuarios,
 )
 
@@ -63,6 +64,8 @@ app.include_router(monitoramento.router)
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
 app.include_router(notificacoes.router)
 app.include_router(propostas_candidatas.router)
+# Relatorios Excel/Word -- ver docs/arquitetura/planmode-relatorios-2026-09-25.md.
+app.include_router(relatorios.router)
 # Gestao de usuarios (Modulo Admin) -- so role=admin acessa
 # (require_admin_user, app/auth.py), diferente do gate binario
 # leitor/resto do resto do app.

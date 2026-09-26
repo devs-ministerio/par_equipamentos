@@ -103,14 +103,27 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
     )
 
 
-def listar_instrumentos(db: Session, *, limit: int = 500) -> list[InstrumentoEquipamento]:
+def listar_instrumentos(
+    db: Session,
+    *,
+    limit: int = 500,
+    ufs: list[str] | None = None,
+    municipio: str | None = None,
+    cnes: str | None = None,
+) -> list[InstrumentoEquipamento]:
     # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
     # consolidacao 2026-09-17) -- universo monitorado e pequeno hoje (86).
-    return list(
-        db.execute(select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio).limit(limit))
-        .scalars()
-        .all()
-    )
+    # ufs/municipio/cnes sao filtros novos (Plan Mode relatorios
+    # 2026-09-25, Bloco 2) -- opcionais, nao existiam antes.
+    stmt = select(InstrumentoEquipamento)
+    if ufs:
+        stmt = stmt.where(InstrumentoEquipamento.uf.in_(ufs))
+    if municipio:
+        stmt = stmt.where(InstrumentoEquipamento.municipio == municipio)
+    if cnes:
+        stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
+    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
+    return list(db.execute(stmt).scalars().all())
 
 
 def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:

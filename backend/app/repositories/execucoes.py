@@ -31,3 +31,17 @@ def obter_execucao_publicada_mais_recente(db: Session, equipment_family: str | N
     if equipment_family:
         stmt = stmt.where(Competency.equipment_family == equipment_family)
     return db.execute(stmt).scalar_one_or_none()
+
+
+def listar_familias_publicadas(db: Session) -> list[str]:
+    """Famílias de equipamento com pelo menos uma execução publicada -- usado
+    pelo relatório de cobertura (Plan Mode docs/arquitetura/
+    planmode-relatorios-2026-09-25.md) pra saber quais seções gerar sem
+    depender de uma lista fixa hardcoded."""
+    stmt = (
+        select(Competency.equipment_family)
+        .where(Competency.published_execution_id.is_not(None))
+        .distinct()
+        .order_by(Competency.equipment_family)
+    )
+    return list(db.execute(stmt).scalars().all())
