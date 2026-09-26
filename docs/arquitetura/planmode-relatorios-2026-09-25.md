@@ -251,7 +251,15 @@ Bloco 4), 74 linhas de timeline de monitoramento, blocos narrativos completos no
     constituição), reaproveitada pelas 2 páginas; botões Nível/Excel/Word viraram
     `RelatorioBotoesGerar` (reaproveitado). Novo `useRelatorioInstrumentosFiltros` (só busca/uf/
     situacao/ano/programa/tipoContratacao -- sem `equipamento`/`classeEquipamento`/`soMonitorados`/
-    `pagina`, que não fazem sentido pra recorte de relatório). `tsc --noEmit`/`oxlint`/`vitest run`
-    (113/113)/`vite build` limpos; suíte backend 322 testes.
+    `pagina`, que não fazem sentido pra recorte de relatório) ganhou depois `municipio`/`cnes`/
+    `nomeEstabelecimento` (texto livre, normalizado sem acento/caixa) no mesmo bloco -- refinam as
+    2 tabelas de prévia; só `municipio`/`cnes` viram parâmetro pro backend na geração (prioridade
+    CNES > Município+UF > UF > Brasil, mesma hierarquia mutuamente exclusiva do backend);
+    `nomeEstabelecimento` não tem campo próprio ali, é só um jeito de achar o CNES certo na prévia.
+    Ajuste de UI no mesmo bloco (pedido do usuário): as 3 seções ficam **empilhadas, sem abas**
+    (revisão do desenho original) e as 2 tabelas de prévia seguem o mesmo padrão de layout da tabela
+    de Instrumentos Monitorados (`monitoramento-overview-lista.tsx`) -- card + `<table>` nativa +
+    badge + paginação própria, em vez do `<Table>` do shadcn com scroll. `tsc --noEmit`/`oxlint`/
+    `vitest run` (113/113)/`vite build` limpos; suíte backend 322 testes.
 
 **Status**: Blocos 1-7 concluídos. Plan Mode fechado.
