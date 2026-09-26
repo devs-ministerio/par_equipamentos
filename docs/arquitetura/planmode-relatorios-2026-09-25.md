@@ -272,5 +272,19 @@ Bloco 4), 74 linhas de timeline de monitoramento, blocos narrativos completos no
     ainda não tem estabelecimento identificado na fonte) -- filtro de CNES/Estabelecimento nas
     Propostas vai naturalmente excluir boa parte delas, não é bug. `tsc --noEmit`/`oxlint`/
     `vitest run` (113/113)/`vite build` limpos; suíte backend 322 testes (inalterada).
+  - **Reestruturação final da tabela de Convênios + filtro de Equipamento** (mesmo bloco, pedido do
+    usuário 2026-09-26): colunas viraram Número/CNES/Convenente/Município-UF/Equipamento/Situação
+    (Site)/Situação (monitoramento interno, via `useMonitoramentoInstrumentos`, mesma fonte que
+    "Mesa de trabalho")/Ano/Valor global -- 9 colunas em **largura por porcentagem**
+    (`table-fixed` + `<colgroup>`, não pixel fixo) pra nunca precisar de rolagem horizontal
+    (pedido explícito: "não pode estourar a tabela"), célula trunca com `title` no hover em vez de
+    quebrar layout. Novo filtro "Equipamento" (reaproveita `equipamentoOptions`, já calculado por
+    `useDadosOficiaisOpcoes` mas até então não usado nesta página). **Normalização de município**
+    (achado do usuário: "não da pra ter dois São Paulo um minúsculo, um maiúsculo e um sem
+    acento"): novo `utils/texto.ts::capitalizarNome` (Title Case, não reconstrói acento que a fonte
+    nunca tinha) + `opcoesAgrupadas` (novo helper local) deduplica município/estabelecimento por
+    grafia normalizada antes de listar no filtro, preferindo a variante acentuada como rótulo
+    quando existe; filtro compara `normalizarTexto(campo) === chave` em vez de igualdade exata.
+    `tsc --noEmit`/`oxlint`/`vitest run` (113/113)/`vite build` limpos.
 
 **Status**: Blocos 1-7 concluídos. Plan Mode fechado.
