@@ -27,6 +27,12 @@ def listar_propostas_filtradas(
     municipio: str | None = None,
     ano: int | None = None,
 ) -> list[PropostaCandidata]:
+    # Sem `programa`/`situacao` de propósito (achado ao vivo, Bloco 7):
+    # `nm_programa`/`situacao_proposta` usam vocabulário do TransfereGov
+    # novo, diferente do `Convenio.programa`/`situacao` (SICONV) -- não dá
+    # pra reaproveitar o mesmo valor de filtro entre as duas fontes sem
+    # risco de filtrar pra um conjunto vazio. Só `uf`/`ano` são
+    # comparáveis 1:1.
     stmt = select(PropostaCandidata)
     if ufs:
         stmt = stmt.where(PropostaCandidata.uf.in_(ufs))

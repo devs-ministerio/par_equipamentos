@@ -79,6 +79,16 @@ class FiltroRelatorio:
     municipio: str | None = None
     cnes: str | None = None
     ano: int | None = None
+    # Filtros novos (Plan Mode relatorios 2026-09-25, Bloco 7 -- "mesmos
+    # filtros que temos no instrumentos/repasses") -- só aplicados na
+    # seção de Convênios (situacao/programa/tipo_contratacao/busca) e, onde
+    # o campo existe, em Monitoramento (tipo_contratacao/programa) e
+    # Propostas (programa/situacao). Não fazem parte da validação de
+    # escopo -- opcionais em qualquer combinação.
+    situacao: str | None = None
+    programa: str | None = None
+    tipo_contratacao: str | None = None
+    busca: str | None = None
 
     def __post_init__(self) -> None:
         if self.escopo == "regiao":
@@ -194,22 +204,41 @@ def _convenios(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
         municipio=filtro.municipio_do_escopo(),
         cnes=filtro.cnes_do_escopo(),
         ano=filtro.ano,
+        situacao=filtro.situacao,
+        programa=filtro.programa,
+        tipo_contratacao=filtro.tipo_contratacao,
+        busca=filtro.busca,
     )
 
 
 def _propostas(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
+    # `programa`/`situacao` NÃO são repassados aqui de propósito (achado
+    # ao vivo, Bloco 7): `PropostaCandidata.nm_programa`/`situacao_proposta`
+    # usam vocabulário do TransfereGov novo, diferente do `Convenio.programa`/
+    # `situacao` (SICONV) -- aplicar o mesmo valor filtraria pra um conjunto
+    # vazio quase sempre, silenciosamente. Só `uf`/`ano` são comparáveis
+    # 1:1 entre as duas fontes.
     return propostas_repo.listar_propostas_filtradas(
-        db, ufs=filtro.ufs(), municipio=filtro.municipio_do_escopo(), ano=filtro.ano
+        db,
+        ufs=filtro.ufs(),
+        municipio=filtro.municipio_do_escopo(),
+        ano=filtro.ano,
     )
 
 
 def _instrumentos(db: Session, filtro: FiltroRelatorio) -> list[InstrumentoComFase]:
+    # `programa` também fica de fora aqui pelo mesmo motivo do comentário
+    # acima -- é preenchido manualmente pela equipe, sem garantia de bater
+    # com `Convenio.programa` string a string. `tipo_contratacao` é o
+    # único desses 2 campos com vocabulário fechado e idêntico nas duas
+    # tabelas (Convênio/FAF/TED/PERSUS I/PERSUS II), seguro de repassar.
     return listar_instrumentos_monitorados(
         db=db,
         ufs=filtro.ufs(),
         municipio=filtro.municipio_do_escopo(),
         cnes=filtro.cnes_do_escopo(),
         ano=filtro.ano,
+        tipo_contratacao=filtro.tipo_contratacao,
     )
 
 

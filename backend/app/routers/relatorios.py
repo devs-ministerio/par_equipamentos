@@ -39,10 +39,25 @@ def gerar_relatorio(
     municipio: str | None = Query(default=None),
     cnes: str | None = Query(default=None),
     ano: int | None = Query(default=None),
+    situacao: str | None = Query(default=None),
+    programa: str | None = Query(default=None),
+    tipo_contratacao: str | None = Query(default=None),
+    busca: str | None = Query(default=None),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> StreamingResponse:
-    filtro = FiltroRelatorio(escopo=escopo, regiao=regiao, uf=uf, municipio=municipio, cnes=cnes, ano=ano)
+    filtro = FiltroRelatorio(
+        escopo=escopo,
+        regiao=regiao,
+        uf=uf,
+        municipio=municipio,
+        cnes=cnes,
+        ano=ano,
+        situacao=situacao,
+        programa=programa,
+        tipo_contratacao=tipo_contratacao,
+        busca=busca,
+    )
     conteudo = montar_relatorio(db=db, formato=formato, nivel=nivel, tipo_relatorio=tipo_relatorio, filtro=filtro)
     nome_arquivo = f"relatorio-{tipo_relatorio}-{escopo}-{nivel}.{formato}"
     return StreamingResponse(

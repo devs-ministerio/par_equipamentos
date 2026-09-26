@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 
 from app.db.base import SessionLocal
-from app.db.models import Convenio
+from app.db.models import Convenio, InstrumentoEquipamento
 from app.repositories import cobertura_relatorio as cobertura_repo
 from app.repositories import convenios as convenios_repo
 from app.repositories import execucoes as execucoes_repo
@@ -135,6 +135,67 @@ def test_listar_convenios_filtrados_municipio_ignora_acento_e_caixa():
         resultado = convenios_repo.listar_convenios_filtrados(db, ufs=["SP"], municipio="São Paulo")
 
         assert any(c.numero == "__pytest_municipio_normalizado__" for c in resultado)
+        db.rollback()  # nunca commita dado de teste
+    finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_listar_convenios_filtrados_por_situacao_programa_tipo_e_busca():
+    """Mesmos filtros de "Instrumentos e repasses" (Dados Oficiais), Plan
+    Mode relatorios 2026-09-25 Bloco 7."""
+    db = SessionLocal()
+    try:
+        convenio = Convenio(
+            numero="__pytest_filtros_convenio__",
+            convenente_nome="Hospital Pytest de Testes",
+            situacao="Em execução",
+            programa="Programa Pytest de Oncologia",
+            tipo_contratacao="TED",
+            uf="RS",
+        )
+        db.add(convenio)
+        db.flush()
+
+        assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, situacao="Em execução")] == [
+            "__pytest_filtros_convenio__"
+        ]
+        assert convenios_repo.listar_convenios_filtrados(db, situacao="Concluído") == []
+        assert [
+            c.numero for c in convenios_repo.listar_convenios_filtrados(db, programa="Programa Pytest de Oncologia")
+        ] == ["__pytest_filtros_convenio__"]
+        assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, tipo_contratacao="TED")] == [
+            "__pytest_filtros_convenio__"
+        ]
+        assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, busca="Hospital Pytest")] == [
+            "__pytest_filtros_convenio__"
+        ]
+        assert convenios_repo.listar_convenios_filtrados(db, busca="não existe nenhum assim") == []
+
+        db.rollback()  # nunca commita dado de teste
+    finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_listar_instrumentos_filtra_por_tipo_contratacao():
+    db = SessionLocal()
+    try:
+        instrumento = InstrumentoEquipamento(
+            nr_convenio="__pytest_instrumento_tipo__",
+            nome_convenente="Convenente Pytest",
+            tipo_contratacao="PERSUS I",
+            uf="RS",
+        )
+        db.add(instrumento)
+        db.flush()
+
+        resultado = monitoramento_repo.listar_instrumentos(db, tipo_contratacao="PERSUS I")
+        assert any(i.nr_convenio == "__pytest_instrumento_tipo__" for i in resultado)
+
+        vazio = monitoramento_repo.listar_instrumentos(db, tipo_contratacao="FAF", ufs=["RS"])
+        assert all(i.nr_convenio != "__pytest_instrumento_tipo__" for i in vazio)
+
         db.rollback()  # nunca commita dado de teste
     finally:
         db.close()

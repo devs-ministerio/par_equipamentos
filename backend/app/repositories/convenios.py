@@ -1,16 +1,15 @@
 """Acesso a dados de Convenio para os relatorios (Plan Mode docs/arquitetura/
-planmode-relatorios-2026-09-25.md, Bloco 2).
+planmode-relatorios-2026-09-25.md, Blocos 2 e 7).
 
 Separado da query de `app/routers/convenios.py::_aplicar_filtros_convenio`
-de proposito -- essa e paginada e filtra por busca/equipamento/situacao/ano/
-programa (uso de UI), o relatorio precisa do universo inteiro que bate o
-filtro geografico (uf/municipio/cnes/regiao), sem paginacao. Função solta
-com `db: Session` posicional, mesmo contrato de app/repositories/monitoramento.py.
+de proposito -- essa e paginada (uso de UI), o relatorio precisa do
+universo inteiro que bate o filtro, sem paginacao. Função solta com
+`db: Session` posicional, mesmo contrato de app/repositories/monitoramento.py.
 """
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Convenio
@@ -29,6 +28,10 @@ def listar_convenios_filtrados(
     municipio: str | None = None,
     cnes: str | None = None,
     ano: int | None = None,
+    situacao: str | None = None,
+    programa: str | None = None,
+    tipo_contratacao: str | None = None,
+    busca: str | None = None,
 ) -> list[Convenio]:
     # Município comparado em Python, não em SQL (achado ao vivo, Plan Mode
     # relatorios 2026-09-25 Bloco 4: "SAO PAULO"/"São Paulo" convivem na
@@ -42,9 +45,26 @@ def listar_convenios_filtrados(
         stmt = stmt.where(Convenio.cnes == cnes)
     if ano is not None:
         stmt = stmt.where(Convenio.ano_instrumento == ano)
+    if situacao:
+        stmt = stmt.where(Convenio.situacao == situacao)
+    if programa:
+        stmt = stmt.where(Convenio.programa == programa)
+    if tipo_contratacao:
+        stmt = stmt.where(Convenio.tipo_contratacao == tipo_contratacao)
+    if busca:
+        alvo = f"%{busca}%"
+        stmt = stmt.where(
+            or_(
+                Convenio.numero.ilike(alvo),
+                Convenio.convenente_nome.ilike(alvo),
+                Convenio.convenente_cnpj.ilike(alvo),
+                Convenio.municipio.ilike(alvo),
+                Convenio.objeto.ilike(alvo),
+            )
+        )
     stmt = stmt.order_by(Convenio.numero).limit(LIMITE_RELATORIO)
     resultado = list(db.execute(stmt).scalars().all())
     if municipio:
-        alvo = normalizar_texto(municipio)
-        resultado = [c for c in resultado if normalizar_texto(c.municipio) == alvo]
+        alvo_municipio = normalizar_texto(municipio)
+        resultado = [c for c in resultado if normalizar_texto(c.municipio) == alvo_municipio]
     return resultado

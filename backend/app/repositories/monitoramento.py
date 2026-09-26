@@ -112,14 +112,20 @@ def listar_instrumentos(
     municipio: str | None = None,
     cnes: str | None = None,
     ano: int | None = None,
+    tipo_contratacao: str | None = None,
 ) -> list[InstrumentoEquipamento]:
     # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
     # consolidacao 2026-09-17) -- universo monitorado e pequeno hoje (86).
-    # ufs/municipio/cnes/ano sao filtros novos (Plan Mode relatorios
-    # 2026-09-25, Blocos 2/4) -- opcionais, nao existiam antes. Municipio
-    # comparado em Python (normalizar_texto), nao em SQL -- achado ao vivo
-    # (Bloco 4): "SAO PAULO"/"São Paulo" convivem na mesma coluna a
-    # depender da origem, comparação exata sempre perdia uma das grafias.
+    # ufs/municipio/cnes/ano/tipo_contratacao sao filtros novos (Plan Mode
+    # relatorios 2026-09-25, Blocos 2/4/7) -- opcionais, nao existiam antes.
+    # Sem `programa` de proposito (achado ao vivo, Bloco 7): e preenchido
+    # manualmente pela equipe, sem garantia de bater com `Convenio.programa`
+    # string a string -- `tipo_contratacao` e o unico vocabulario fechado e
+    # identico nas duas tabelas (Convenio/FAF/TED/PERSUS I/PERSUS II),
+    # seguro de filtrar. Municipio comparado em Python (normalizar_texto),
+    # nao em SQL -- achado ao vivo (Bloco 4): "SAO PAULO"/"São Paulo"
+    # convivem na mesma coluna a depender da origem, comparação exata
+    # sempre perdia uma das grafias.
     stmt = select(InstrumentoEquipamento)
     if ufs:
         stmt = stmt.where(InstrumentoEquipamento.uf.in_(ufs))
@@ -127,6 +133,8 @@ def listar_instrumentos(
         stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
     if ano is not None:
         stmt = stmt.where(InstrumentoEquipamento.ano_instrumento == ano)
+    if tipo_contratacao:
+        stmt = stmt.where(InstrumentoEquipamento.tipo_contratacao == tipo_contratacao)
     stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
     resultado = list(db.execute(stmt).scalars().all())
     if municipio:
