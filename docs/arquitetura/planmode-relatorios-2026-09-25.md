@@ -1,0 +1,132 @@
+# Plan Mode — geração de relatórios Excel/Word (2026-09-25)
+
+## Objetivo e decisão de escopo
+
+Pedido do usuário: gerar relatórios em **Excel (.xlsx)** e **Word (.docx)**, em dois níveis —
+**Simplificado** e **Completo** — filtráveis por **Brasil, Região, UF, Município e CNES**.
+
+Decisões tomadas com o usuário (2026-09-25, antes de codar):
+
+1. **Escopo de dado é tudo**: cobertura/déficit oncológico, convênios firmados (SICONV/
+   TransfereGov) e monitoramento interno pós-repasse — os 3 domínios, não só um. Um relatório é
+   composto por seções (uma por domínio), todas filtradas pelo mesmo filtro geográfico.
+2. **Geração roda no backend do SIGEO** (`backend/app/`) — decisão explícita de **não** reutilizar
+   o backend do projeto irmão `nota-informativa-decan` (avaliado e descartado, ver "Achados"
+   abaixo).
+3. **Região do Brasil (Norte/Nordeste/Sul/Sudeste/Centro-Oeste) vira dado oficial do backend** —
+   hoje só existe hardcoded no frontend (`geo-reference.ts`), usado apenas como label de UI.
+
+## Achados da verificação sênior (antes de desenhar)
+
+- **Não existe nenhuma infraestrutura de export no backend hoje**: `openpyxl` já é dependência
+  (`backend/pyproject.toml`), mas só usado nos scripts de importação para **ler** planilha —
+  nenhum uso pra gerar arquivo. `python-docx`/`xlsxwriter`/`reportlab` não estão no projeto.
+  Nenhuma ocorrência de `StreamingResponse`/`FileResponse` em `app/`.
+- **O único export que existe hoje é 100% client-side e está desabilitado**:
+  `frontend/src/components/modals/export-{xlsx,pdf}-modal.tsx` (usam `jspdf`+`exceljs`, lazy-
+  loaded), acionados por `relatorios-page.tsx` — os dois cards estão com `desabilitado` desde
+  2026-08-24. Escopo é só cobertura + estabelecimentos (mesma família de equipamento do
+  dashboard); nada de `Convenio`/`InstrumentoEquipamento`/monitoramento.
+- **`nota-informativa-decan` já resolve o mesmo tipo de problema em produção** (`.docx` via
+  `python-docx`, `.xlsx` via `openpyxl`, filtros combináveis por UF/município/CNES/tipo de
+  gestão) — mas é outro repositório, outra infra (AWS Lambda + Mangum + S3, `api.py`), outra
+  fonte de dado (DuckDB sobre parquets de produção SUS, nada a ver com o Postgres do SIGEO), e a
+  API dele **não tem nenhum gate de autenticação visível**. O SIGEO colocou toda rota atrás de
+  sessão/CSRF desde o Plan Mode segurança 2026-09-16/17 — compartilhar backend/deploy exigiria
+  expor o Postgres do SIGEO fora do Render em direção a essa Lambda, ou duplicar login/CSRF lá,
+  sem ganho real (domínios de dado totalmente diferentes). **Decisão: reaproveitar a técnica
+  (padrões de estilo do `python-docx`/`openpyxl`), não o serviço.**
+- **Nenhum mapeamento UF→Região existe no backend**: grep por "regiao"/"Norte"/"Nordeste" em
+  `app/` só retorna `Convenio.regiao` (persistida da fonte SICONV/TransfereGov, sem garantia de
+  consistência entre Convênio/FAF/TED/PERSUS/PRONON) e o conceito distinto de "macrorregião de
+  saúde" (DEMAS/RRAS). O único mapeamento Grande-Região-por-UF é
+  `frontend/src/data/geo-reference.ts:10-38`, com comentário explícito no próprio arquivo dizendo
+  que não é dado de negócio e não vem do banco.
+- **4 routers relevantes ainda não seguem Router→Service→Repository**: `convenios.py`,
+  `macro_coverage.py`, `municipality_coverage.py`, `equipment_offer.py` continuam
+  Router→SQLAlchemy direto. Nenhum deles filtra hoje por `municipio`/`cnes`/`regiao` de forma
+  completa (`convenios.py` só tem `uf` string única; `monitoramento/instrumentos` não tem filtro
+  geográfico nenhum).
+- **Tetos de segurança existentes não servem pra relatório exaustivo**: `macro-coverage`/
+  `health-region-coverage` (`le=1000`), `municipality-coverage` (`le=10_000`),
+  `monitoramento/instrumentos`/`acoes` (`le=500`) foram desenhados como rede de segurança pra
+  listagem de UI (Plan Mode consolidação 2026-09-17, Bloco 4) — um relatório "Completo Brasil"
+  não pode ser truncado silenciosamente por esse teto.
+
+## Desenho técnico
+
+### Bloco 1 — Fundação (região oficial + builders genéricos)
+
+- `backend/app/geo_reference.py` (novo): `REGIAO_POR_UF: dict[str, str]` (27 UFs), espelhando os
+  mesmos valores de `geo-reference.ts` — vira a fonte de verdade; o dicionário do frontend passa a
+  ser só label de UI, não mais fonte de regra. Sem migration/coluna nova: cada domínio deriva
+  região a partir da UF que já possui (`equipment_offer_row.state`, `InstrumentoEquipamento.uf`,
+  `Convenio.uf`) via um helper SQLAlchemy `case()` exportado do mesmo módulo, usado direto na
+  query — `Convenio.regiao` (coluna existente, da fonte) **não** é usada para filtro, só continua
+  exposta como está hoje (informativa).
+- `backend/app/reports/xlsx_builder.py` e `docx_builder.py` (novo): builders puros (recebem dado
+  já formatado, devolvem `bytes`), sem FastAPI/DB — testáveis isolado. Portam o padrão de estilo
+  já provado em produção pelo `nota-informativa-decan` (cor verde/vermelha de variação via
+  `RGBColor`, bordas via `oxml`, cabeçalho + largura de coluna + congelar painel no Excel), sem
+  importar código do outro repositório.
+
+### Bloco 2 — Repository/Service por domínio + endpoint
+
+- Extração mínima (não migração completa) de função de query nos 4 routers ainda não migrados,
+  só o necessário pro relatório: `repositories/convenios.py` (filtro por `municipio`/`cnes`/
+  `regiao`, hoje ausente), `repositories/macro_coverage.py`, `repositories/municipality_coverage.py`,
+  `repositories/equipment_offer.py` — reaproveitando a query existente de cada router, sem
+  reescrever a lógica de negócio.
+- `app/services/relatorios.py` compõe as 3 seções (cobertura, convênios, monitoramento) filtradas
+  pelo mesmo filtro geográfico hierárquico (Brasil → Região → UF → Município → CNES), no nível
+  Simplificado (KPIs agregados + 1 tabela resumo por seção) ou Completo (linhas no grão pedido).
+  Nível Completo em `.docx` fica limitado a agregação até UF (evita documento de milhares de
+  parágrafos em nível de município/CNES) — granularidade linha a linha fica reservada ao Excel.
+- `GET /relatorios?formato=xlsx|docx&nivel=simplificado|completo&escopo=brasil|regiao|uf|municipio|cnes&valor=...`,
+  atrás de `require_current_user` (mesmo gate do resto do app). `StreamingResponse` com
+  `Content-Disposition: attachment`. GET (não POST) porque é leitura sem mudança de estado — evita
+  precisar de header CSRF pra um download e mantém o padrão já usado pelo resto da API.
+- Query do relatório usa função própria sem o teto de segurança de UI (documentado como
+  intencional: endpoint autenticado, não listagem pública).
+
+### Bloco 3 — Frontend
+
+- Reabilitar `relatorios-page.tsx` (cards desabilitados desde 2026-08-24): formulário de filtro
+  real (Região/UF/Município/CNES) + seletor Simplificado/Completo + Excel/Word, chamando o novo
+  endpoint via `http-client.ts` (fetch autenticado → blob → download).
+- `export-xlsx-modal.tsx`/`export-pdf-modal.tsx` (client-side, `jspdf`+`exceljs`) ficam candidatos
+  a remoção quando o novo fluxo cobrir o que eles faziam — decisão de retirada fica pro momento da
+  migração real da página, não antecipada aqui.
+
+## Fora de escopo (declarado explicitamente, não esquecer depois)
+
+- **Aba "Mapa" em PDF** (captura do SVG do mapa, existente no export atual) — não tem equivalente
+  em Word. Pedido do usuário foi Excel e Word; se quiserem manter uma saída visual do mapa, é
+  decisão separada, não assumida aqui.
+- **Migração completa Router→Service→Repository** de `convenios.py`/`macro_coverage.py`/
+  `municipality_coverage.py`/`equipment_offer.py` — só a fatia mínima de query necessária pro
+  relatório é extraída; o resto de cada router continua como está.
+- **Persistir `regiao` como coluna** em `equipment_offer_row`/`InstrumentoEquipamento` — resolvido
+  via mapeamento em código + `case()` na query, sem migration. Reabrir só se houver necessidade
+  real de filtrar por região em SQL fora do contexto de relatório.
+- **Compartilhar backend/deploy com `nota-informativa-decan`** — avaliado e descartado (ver
+  Achados). Só a técnica de geração foi reaproveitada.
+
+## Ordem de execução
+
+- **Bloco 1 — CONCLUÍDO (2026-09-26)**: `app/geo_reference.py` (mapa `REGIAO_POR_UF` + helper SQL
+  `expressao_regiao_por_uf` via `case()`, sem migration/coluna nova) + `app/reports/xlsx_builder.py`
+  (`nova_pasta`/`escrever_aba_tabela`/`colorir_variacao`/`gerar_bytes`) + `app/reports/docx_builder.py`
+  (`novo_documento`/`adicionar_titulo`/`adicionar_paragrafo`/`adicionar_tabela`/`escrever_variacao`/
+  `gerar_bytes`, bordas de tabela via `oxml`, cor de variação via `RGBColor` — mesmo padrão do
+  `nota-informativa-decan`, sem importar código de lá). Dependência nova: `python-docx` (`uv add`).
+  22 testes novos (`test_geo_reference.py`, `test_reports_xlsx_builder.py`,
+  `test_reports_docx_builder.py`), todos puros (sem DB/FastAPI). Suíte completa (274 testes),
+  `ruff check`/`ruff format --check`/`mypy .` limpos, pisos de cobertura por camada (`services`
+  80%/`repositories` 70%/`routes` 60%) mantidos acima do piso — os builders não entram em nenhuma
+  dessas 3 camadas, então não alteram o denominador do gate.
+- **Bloco 2**: extração de query nos 4 routers + `services/relatorios.py` + endpoint
+  `GET /relatorios`. Ainda não iniciado.
+- **Bloco 3**: frontend — reabilita `relatorios-page.tsx` com filtro completo. Ainda não iniciado.
+
+**Status**: Bloco 1 concluído. Blocos 2 e 3 ainda não iniciados.
