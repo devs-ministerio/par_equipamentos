@@ -10,6 +10,7 @@ from __future__ import annotations
 import pytest
 
 from app.db.base import SessionLocal
+from app.db.models import Convenio
 from app.repositories import cobertura_relatorio as cobertura_repo
 from app.repositories import convenios as convenios_repo
 from app.repositories import execucoes as execucoes_repo
@@ -95,5 +96,45 @@ def test_listar_instrumentos_filtra_por_uf_municipio_cnes():
 
         nenhum = monitoramento_repo.listar_instrumentos(db, ufs=["ZZ"])
         assert nenhum == []
+    finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_listar_instrumentos_filtro_municipio_ignora_acento_e_caixa():
+    """Achado ao vivo (Plan Mode relatorios 2026-09-25, Bloco 4): pedido do
+    usuário de relatório pro município de São Paulo/SP voltava vazio porque
+    o dado real grava "SAO PAULO" (maioria) e "São Paulo" (só PERSUS I) na
+    mesma coluna -- comparação exata sempre perdia uma das grafias. Seed
+    sintético usa "BRASILIA" (maiúsculo, sem acento); consulta com grafia
+    diferente ("Brasília", minúsculo/acentuado) precisa achar o mesmo jeito."""
+    db = SessionLocal()
+    try:
+        resultado = monitoramento_repo.listar_instrumentos(db, municipio="Brasília")
+        assert any(i.nr_convenio == "948686" for i in resultado)
+
+        resultado_minusculo = monitoramento_repo.listar_instrumentos(db, municipio="brasilia")
+        assert any(i.nr_convenio == "948686" for i in resultado_minusculo)
+    finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_listar_convenios_filtrados_municipio_ignora_acento_e_caixa():
+    db = SessionLocal()
+    try:
+        convenio = Convenio(
+            numero="__pytest_municipio_normalizado__",
+            convenente_nome="Convênio Pytest São Paulo",
+            municipio="SAO PAULO",
+            uf="SP",
+        )
+        db.add(convenio)
+        db.flush()
+
+        resultado = convenios_repo.listar_convenios_filtrados(db, ufs=["SP"], municipio="São Paulo")
+
+        assert any(c.numero == "__pytest_municipio_normalizado__" for c in resultado)
+        db.rollback()  # nunca commita dado de teste
     finally:
         db.close()

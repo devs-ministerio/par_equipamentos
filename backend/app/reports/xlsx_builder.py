@@ -23,6 +23,9 @@ _FONTE_VARIACAO_POSITIVA = Font(color="15803D")
 _FONTE_VARIACAO_NEGATIVA = Font(color="B91C1C")
 _LARGURA_MAXIMA_COLUNA = 60
 
+FORMATO_MOEDA = '"R$" #,##0.00'
+FORMATO_DATA = "DD/MM/YYYY"
+
 
 def nova_pasta() -> Workbook:
     pasta = Workbook()
@@ -37,7 +40,15 @@ def escrever_aba_tabela(
     titulo: str,
     colunas: Sequence[str],
     linhas: Sequence[Sequence[Any]],
+    *,
+    colunas_moeda: Sequence[str] = (),
+    colunas_data: Sequence[str] = (),
 ) -> Worksheet:
+    """`colunas_moeda`/`colunas_data` (por NOME, não índice -- robusto a
+    reordenar coluna no chamador) aplicam `number_format` do Excel, mantendo
+    o valor cru (sortável/somável) em vez de string formatada -- a
+    formatação pt-BR (`app/reports/formatacao.py`) é só pro Word, que não
+    tem número/data nativos numa tabela de texto."""
     aba = pasta.create_sheet(title=titulo[:31])
     aba.append(list(colunas))
     for celula in aba[1]:
@@ -50,6 +61,8 @@ def escrever_aba_tabela(
     if linhas:
         aba.auto_filter.ref = f"A1:{get_column_letter(len(colunas))}{len(linhas) + 1}"
     _ajustar_largura_colunas(aba, colunas, linhas)
+    _aplicar_formato_por_coluna(aba, colunas, len(linhas), colunas_moeda, FORMATO_MOEDA)
+    _aplicar_formato_por_coluna(aba, colunas, len(linhas), colunas_data, FORMATO_DATA)
     return aba
 
 
@@ -66,6 +79,23 @@ def gerar_bytes(pasta: Workbook) -> bytes:
     buffer = BytesIO()
     pasta.save(buffer)
     return buffer.getvalue()
+
+
+def _aplicar_formato_por_coluna(
+    aba: Worksheet,
+    colunas: Sequence[str],
+    total_linhas: int,
+    nomes_alvo: Sequence[str],
+    formato: str,
+) -> None:
+    if not nomes_alvo or not total_linhas:
+        return
+    alvo = set(nomes_alvo)
+    for indice, cabecalho in enumerate(colunas, start=1):
+        if cabecalho not in alvo:
+            continue
+        for linha_num in range(2, total_linhas + 2):
+            aba.cell(row=linha_num, column=indice).number_format = formato
 
 
 def _ajustar_largura_colunas(aba: Worksheet, colunas: Sequence[str], linhas: Sequence[Sequence[Any]]) -> None:

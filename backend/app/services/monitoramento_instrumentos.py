@@ -93,13 +93,16 @@ def listar_instrumentos_monitorados(
     ufs: list[str] | None = None,
     municipio: str | None = None,
     cnes: str | None = None,
+    ano: int | None = None,
 ) -> list[InstrumentoComFase]:
     """`fase_atual` calculado (achado 2026-09-10, pedido do usuario: filtro
     de fase na Visao Geral) -- mesmo padrao de calculo de `obter_resumo`
     (marco de fase_geral de maior ordem com evento), so que aqui devolvido
-    POR instrumento em vez de agregado. ufs/municipio/cnes sao filtros novos
-    (Plan Mode relatorios 2026-09-25, Bloco 2)."""
-    instrumentos = monitoramento_repo.listar_instrumentos(db, limit=limit, ufs=ufs, municipio=municipio, cnes=cnes)
+    POR instrumento em vez de agregado. ufs/municipio/cnes/ano sao filtros
+    novos (Plan Mode relatorios 2026-09-25, Blocos 2/4)."""
+    instrumentos = monitoramento_repo.listar_instrumentos(
+        db, limit=limit, ufs=ufs, municipio=municipio, cnes=cnes, ano=ano
+    )
     fases_gerais_desc = monitoramento_repo.listar_marcos_fase_geral_desc(db)
     fase_ids = [m.id for m in fases_gerais_desc]
     eventos_por_instrumento = monitoramento_repo.mapa_eventos_por_instrumento(db, fase_ids)

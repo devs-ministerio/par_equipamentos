@@ -3,6 +3,7 @@ docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 1)."""
 
 from __future__ import annotations
 
+from datetime import date
 from io import BytesIO
 
 from openpyxl import load_workbook
@@ -59,3 +60,29 @@ def test_colorir_variacao_none_nao_pinta():
     aba = escrever_aba_tabela(pasta, "Serie", ["Ano", "Var%"], [[2020, None]])
     colorir_variacao(aba, coluna=2, linha=2, valor=None)
     assert aba.cell(row=2, column=2).font.color.type == "theme"
+
+
+def test_colunas_moeda_aplicam_number_format_mantendo_valor_cru():
+    pasta = nova_pasta()
+    aba = escrever_aba_tabela(
+        pasta, "Convênios", ["Número", "Valor global"], [["123", 1234.5]], colunas_moeda=["Valor global"]
+    )
+    celula = aba.cell(row=2, column=2)
+    assert celula.value == 1234.5
+    assert celula.number_format == '"R$" #,##0.00'
+    assert aba.cell(row=2, column=1).number_format == "General"
+
+
+def test_colunas_data_aplicam_number_format_mantendo_valor_cru():
+    pasta = nova_pasta()
+    aba = escrever_aba_tabela(
+        pasta, "Convênios", ["Número", "Publicação"], [["123", date(2026, 9, 26)]], colunas_data=["Publicação"]
+    )
+    celula = aba.cell(row=2, column=2)
+    assert celula.value == date(2026, 9, 26)
+    assert celula.number_format == "DD/MM/YYYY"
+
+
+def test_coluna_moeda_inexistente_no_cabecalho_nao_quebra():
+    pasta = nova_pasta()
+    escrever_aba_tabela(pasta, "Vazia", ["A"], [["x"]], colunas_moeda=["Não existe"])

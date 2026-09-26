@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import MacroCoverage, MunicipalityCoverage
+from app.pipeline.texto import normalizar_texto
 
 # Tetos de seguranca do relatorio -- mesmo espirito do Bloco 4 do Plan Mode
 # consolidacao 2026-09-17 (nao e paginacao de UI). ~121 macrorregioes e
@@ -36,10 +37,14 @@ def listar_municipality_coverage(
     ufs: list[str] | None = None,
     municipio: str | None = None,
 ) -> list[MunicipalityCoverage]:
+    # Município comparado em Python, não em SQL (mesmo achado de
+    # app/repositories/convenios.py -- grafia diverge por origem).
     stmt = select(MunicipalityCoverage).where(MunicipalityCoverage.execution_id == execution_id)
     if ufs:
         stmt = stmt.where(MunicipalityCoverage.state.in_(ufs))
-    if municipio:
-        stmt = stmt.where(MunicipalityCoverage.municipality_name == municipio)
     stmt = stmt.order_by(MunicipalityCoverage.state, MunicipalityCoverage.municipality_name).limit(LIMITE_MUNICIPIO)
-    return list(db.execute(stmt).scalars().all())
+    resultado = list(db.execute(stmt).scalars().all())
+    if municipio:
+        alvo = normalizar_texto(municipio)
+        resultado = [m for m in resultado if normalizar_texto(m.municipality_name) == alvo]
+    return resultado

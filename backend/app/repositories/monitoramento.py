@@ -29,6 +29,7 @@ from app.db.models import (
     PropostaCandidata,
     User,
 )
+from app.pipeline.texto import normalizar_texto
 from app.repositories.notificacoes import criar_notificacao
 
 # Evento/ação ATIVO = ainda vigente (não corrigido nem excluído) -- ver
@@ -110,20 +111,28 @@ def listar_instrumentos(
     ufs: list[str] | None = None,
     municipio: str | None = None,
     cnes: str | None = None,
+    ano: int | None = None,
 ) -> list[InstrumentoEquipamento]:
     # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
     # consolidacao 2026-09-17) -- universo monitorado e pequeno hoje (86).
-    # ufs/municipio/cnes sao filtros novos (Plan Mode relatorios
-    # 2026-09-25, Bloco 2) -- opcionais, nao existiam antes.
+    # ufs/municipio/cnes/ano sao filtros novos (Plan Mode relatorios
+    # 2026-09-25, Blocos 2/4) -- opcionais, nao existiam antes. Municipio
+    # comparado em Python (normalizar_texto), nao em SQL -- achado ao vivo
+    # (Bloco 4): "SAO PAULO"/"São Paulo" convivem na mesma coluna a
+    # depender da origem, comparação exata sempre perdia uma das grafias.
     stmt = select(InstrumentoEquipamento)
     if ufs:
         stmt = stmt.where(InstrumentoEquipamento.uf.in_(ufs))
-    if municipio:
-        stmt = stmt.where(InstrumentoEquipamento.municipio == municipio)
     if cnes:
         stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
+    if ano is not None:
+        stmt = stmt.where(InstrumentoEquipamento.ano_instrumento == ano)
     stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
-    return list(db.execute(stmt).scalars().all())
+    resultado = list(db.execute(stmt).scalars().all())
+    if municipio:
+        alvo = normalizar_texto(municipio)
+        resultado = [i for i in resultado if normalizar_texto(i.municipio) == alvo]
+    return resultado
 
 
 def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:

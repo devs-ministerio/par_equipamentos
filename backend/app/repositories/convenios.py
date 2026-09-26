@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import Convenio
+from app.pipeline.texto import normalizar_texto
 
 # Teto de seguranca do relatorio -- nao paginacao de UI (mesmo espirito do
 # Bloco 4 do Plan Mode consolidacao 2026-09-17). 581 convenios hoje, bem
@@ -27,13 +28,23 @@ def listar_convenios_filtrados(
     ufs: list[str] | None = None,
     municipio: str | None = None,
     cnes: str | None = None,
+    ano: int | None = None,
 ) -> list[Convenio]:
+    # Município comparado em Python, não em SQL (achado ao vivo, Plan Mode
+    # relatorios 2026-09-25 Bloco 4: "SAO PAULO"/"São Paulo" convivem na
+    # mesma coluna a depender da origem -- comparação exata sempre perdia
+    # uma das grafias). Volume por UF é pequeno o bastante (algumas
+    # centenas no pior caso) pra filtrar depois de trazer.
     stmt = select(Convenio)
     if ufs:
         stmt = stmt.where(Convenio.uf.in_(ufs))
-    if municipio:
-        stmt = stmt.where(Convenio.municipio == municipio)
     if cnes:
         stmt = stmt.where(Convenio.cnes == cnes)
+    if ano is not None:
+        stmt = stmt.where(Convenio.ano_instrumento == ano)
     stmt = stmt.order_by(Convenio.numero).limit(LIMITE_RELATORIO)
-    return list(db.execute(stmt).scalars().all())
+    resultado = list(db.execute(stmt).scalars().all())
+    if municipio:
+        alvo = normalizar_texto(municipio)
+        resultado = [c for c in resultado if normalizar_texto(c.municipio) == alvo]
+    return resultado
