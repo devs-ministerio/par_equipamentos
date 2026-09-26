@@ -259,7 +259,18 @@ Bloco 4), 74 linhas de timeline de monitoramento, blocos narrativos completos no
     Ajuste de UI no mesmo bloco (pedido do usuário): as 3 seções ficam **empilhadas, sem abas**
     (revisão do desenho original) e as 2 tabelas de prévia seguem o mesmo padrão de layout da tabela
     de Instrumentos Monitorados (`monitoramento-overview-lista.tsx`) -- card + `<table>` nativa +
-    badge + paginação própria, em vez do `<Table>` do shadcn com scroll. `tsc --noEmit`/`oxlint`/
-    `vitest run` (113/113)/`vite build` limpos; suíte backend 322 testes.
+    badge + paginação própria, em vez do `<Table>` do shadcn com scroll. Revisão final ainda no
+    mesmo bloco (pedido do usuário): `município`/`cnes`/`nomeEstabelecimento` viraram **lista
+    suspensa** (`SingleSelectFilter`, mesmo modelo de UF/situação/programa/tipo, não mais texto
+    livre) -- opções derivadas do próprio `conveniosBase` já filtrado pelos demais campos
+    (`opcoesUnicas`, novo helper local, não entra na cascata de `useDadosOficiaisOpcoes`); campo
+    `busca` (texto livre) **removido** da página a pedido do usuário (semântica redundante com os
+    seletores fechados); label "Filtrar por" também removido só nesta página -- `FilterWorkspace`
+    ganhou prop opcional `semRotulo` (default `false`, não afeta os demais consumidores). Achado
+    ao vivo (conferido contra o banco real antes de fechar): CNES presente em 100% dos instrumentos
+    monitorados e 92% dos convênios, mas só 36% das propostas candidatas (a maioria em tramitação
+    ainda não tem estabelecimento identificado na fonte) -- filtro de CNES/Estabelecimento nas
+    Propostas vai naturalmente excluir boa parte delas, não é bug. `tsc --noEmit`/`oxlint`/
+    `vitest run` (113/113)/`vite build` limpos; suíte backend 322 testes (inalterada).
 
 **Status**: Blocos 1-7 concluídos. Plan Mode fechado.

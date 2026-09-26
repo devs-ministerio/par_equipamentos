@@ -1,15 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
-import { SearchInput } from "@/components/common/search-input";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  estiloInput,
-  rotuloCampo,
-} from "@/components/features/monitoramento-ui";
-import { cn } from "@/lib/utils";
 import { RelatorioInstrumentosTabela } from "@/components/features/relatorio-instrumentos-tabela";
 import { RelatorioPropostasTabela } from "@/components/features/relatorio-propostas-tabela";
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
@@ -21,13 +15,21 @@ import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { estagioDeFato } from "@/lib/proposta-status";
-import { normalizarTexto } from "@/utils/texto";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
 import type { NivelRelatorio } from "@/services/relatorios";
 
 const situacaoExibida = (item: ConvenioUnificado) => item.situacao;
 const SEM_MONITORADOS = new Set<string>();
+
+function opcoesUnicas(
+  itens: ConvenioUnificado[],
+  valor: (item: ConvenioUnificado) => string | null | undefined,
+) {
+  return [...new Set(itens.map(valor).filter((v): v is string => Boolean(v)))]
+    .sort((a, b) => a.localeCompare(b, "pt-BR"))
+    .map((v) => ({ value: v, label: v }));
+}
 
 /**
  * Relatório de Instrumentos e Repasse -- convênios firmados, propostas
@@ -50,21 +52,19 @@ const SEM_MONITORADOS = new Set<string>();
  * ver `app/services/relatorios.py` no backend -- aplicar o mesmo valor nas
  * Propostas quase sempre filtraria pra um conjunto vazio.
  *
- * `município`/`CNES`/`nome do estabelecimento` (pedido do usuário
- * 2026-09-26) são texto livre, aplicados nas duas seções. Só
+ * `Município`/`CNES`/`Estabelecimento` (pedido do usuário 2026-09-26) são
+ * lista suspensa, mesmo modelo dos demais filtros -- opções derivadas do
+ * próprio dado carregado (`opcoesUnicas`), não de um catálogo à parte. Só
  * `município`/`CNES` viram parâmetro pro backend na geração -- o backend
  * trata os 3 como hierarquia de escopo mutuamente exclusiva (Brasil -> UF
  * -> Município -> CNES), então CNES tem prioridade (mais específico),
- * depois Município (exige UF junto), depois UF; `nome do estabelecimento`
- * não tem campo próprio ali, é só um jeito de achar o CNES certo na
- * prévia.
+ * depois Município (exige UF junto), depois UF; `Estabelecimento` não tem
+ * campo próprio ali, é só um jeito de achar o CNES certo na prévia.
  */
 export function MonitoramentoRelatoriosPage() {
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
 
   const {
-    busca,
-    setBusca,
     uf,
     setUf,
     situacao,
@@ -96,7 +96,7 @@ export function MonitoramentoRelatoriosPage() {
       filtrarDadosOficiais(
         convenios,
         {
-          busca,
+          busca: "",
           uf,
           equipamento: null,
           situacao,
@@ -109,7 +109,7 @@ export function MonitoramentoRelatoriosPage() {
         situacaoExibida,
         ignorar,
       ),
-    [convenios, busca, uf, situacao, ano, programa, tipoContratacao],
+    [convenios, uf, situacao, ano, programa, tipoContratacao],
   );
 
   const {
@@ -124,27 +124,36 @@ export function MonitoramentoRelatoriosPage() {
     situacaoExibida,
   });
 
-  // Município/CNES/Nome do estabelecimento (pedido do usuário 2026-09-26)
-  // são texto livre, comparados normalizado (sem acento/caixa) -- refinam
-  // a prévia por cima do que `filtrarConvenios`/`useDadosOficiaisOpcoes`
-  // já resolveram (não entram na cascata de opções, são um recorte à
-  // parte, igual "busca").
-  const conveniosFiltrados = useMemo(() => {
-    const base = filtrarConvenios();
-    const municipioAlvo = normalizarTexto(municipio);
-    const cnesAlvo = normalizarTexto(cnes);
-    const nomeAlvo = normalizarTexto(nomeEstabelecimento);
-    return base.filter(
-      (item) =>
-        (!municipioAlvo ||
-          normalizarTexto(item.municipio).includes(municipioAlvo)) &&
-        (!cnesAlvo || normalizarTexto(item.cnes ?? "").includes(cnesAlvo)) &&
-        (!nomeAlvo ||
-          normalizarTexto(item.cnesNomeEstabelecimento ?? "").includes(
-            nomeAlvo,
-          )),
-    );
-  }, [filtrarConvenios, municipio, cnes, nomeEstabelecimento]);
+  // Município/CNES/Estabelecimento (pedido do usuário 2026-09-26) refinam
+  // por cima do que os demais filtros já resolveram -- opções e prévia
+  // baseadas no mesmo recorte (`conveniosBase`), sem entrar na cascata de
+  // `useDadosOficiaisOpcoes` (não fazem parte do vocabulário de Dados
+  // Oficiais, ficam só nesta página).
+  const conveniosBase = filtrarConvenios();
+  const municipioOptions = useMemo(
+    () => opcoesUnicas(conveniosBase, (item) => item.municipio),
+    [conveniosBase],
+  );
+  const cnesOptions = useMemo(
+    () => opcoesUnicas(conveniosBase, (item) => item.cnes),
+    [conveniosBase],
+  );
+  const estabelecimentoOptions = useMemo(
+    () => opcoesUnicas(conveniosBase, (item) => item.cnesNomeEstabelecimento),
+    [conveniosBase],
+  );
+
+  const conveniosFiltrados = useMemo(
+    () =>
+      conveniosBase.filter(
+        (item) =>
+          (!municipio || item.municipio === municipio) &&
+          (!cnes || item.cnes === cnes) &&
+          (!nomeEstabelecimento ||
+            item.cnesNomeEstabelecimento === nomeEstabelecimento),
+      ),
+    [conveniosBase, municipio, cnes, nomeEstabelecimento],
+  );
 
   const {
     propostas,
@@ -152,28 +161,22 @@ export function MonitoramentoRelatoriosPage() {
     erro: erroPropostas,
   } = usePropostasCandidatas();
 
-  const propostasFiltradas = useMemo(() => {
-    const municipioAlvo = normalizarTexto(municipio);
-    const cnesAlvo = normalizarTexto(cnes);
-    const nomeAlvo = normalizarTexto(nomeEstabelecimento);
-    return propostas.filter((p) => {
-      if (uf && p.uf !== uf) return false;
-      if (ano && p.data_proposta?.slice(0, 4) !== ano) return false;
-      if (
-        municipioAlvo &&
-        !normalizarTexto(p.municipio ?? "").includes(municipioAlvo)
-      )
-        return false;
-      if (cnesAlvo && !normalizarTexto(p.cnes ?? "").includes(cnesAlvo))
-        return false;
-      if (
-        nomeAlvo &&
-        !normalizarTexto(p.cnes_nome_estabelecimento ?? "").includes(nomeAlvo)
-      )
-        return false;
-      return true;
-    });
-  }, [propostas, uf, ano, municipio, cnes, nomeEstabelecimento]);
+  const propostasFiltradas = useMemo(
+    () =>
+      propostas.filter((p) => {
+        if (uf && p.uf !== uf) return false;
+        if (ano && p.data_proposta?.slice(0, 4) !== ano) return false;
+        if (municipio && p.municipio !== municipio) return false;
+        if (cnes && p.cnes !== cnes) return false;
+        if (
+          nomeEstabelecimento &&
+          p.cnes_nome_estabelecimento !== nomeEstabelecimento
+        )
+          return false;
+        return true;
+      }),
+    [propostas, uf, ano, municipio, cnes, nomeEstabelecimento],
+  );
   const propostasConfirmadas = useMemo(
     () => propostasFiltradas.filter((p) => estagioDeFato(p) === "confirmada"),
     [propostasFiltradas],
@@ -192,9 +195,9 @@ export function MonitoramentoRelatoriosPage() {
   // validado no backend), depois UF, senão Brasil. `nomeEstabelecimento`
   // não tem campo próprio no backend (é só um jeito de achar o CNES certo
   // na prévia), fica de fora da geração.
-  const escopoGeracao = cnes.trim()
+  const escopoGeracao = cnes
     ? "cnes"
-    : municipio.trim() && uf
+    : municipio && uf
       ? "municipio"
       : uf
         ? "uf"
@@ -208,13 +211,11 @@ export function MonitoramentoRelatoriosPage() {
         description="Convênios, propostas candidatas e monitoramento interno em Excel ou Word."
       />
 
-      <FilterWorkspace hasAnyFilter={hasFiltros} onClear={limparFiltros}>
-        <SearchInput
-          value={busca}
-          onChange={setBusca}
-          placeholder="Buscar por convenente, município, número, CNPJ ou CNES..."
-          width={190}
-        />
+      <FilterWorkspace
+        semRotulo
+        hasAnyFilter={hasFiltros}
+        onClear={limparFiltros}
+      >
         <SingleSelectFilter
           placeholder="Tipo de contratação"
           options={tipoContratacaoOptions}
@@ -231,36 +232,30 @@ export function MonitoramentoRelatoriosPage() {
           clearLabel="Todas as UFs"
           minWidth={100}
         />
-        <label className="flex flex-col gap-1">
-          <span className={rotuloCampo}>Município</span>
-          <input
-            className={cn(estiloInput, "bg-background")}
-            style={{ minWidth: 140 }}
-            value={municipio}
-            onChange={(e) => setMunicipio(e.target.value)}
-            placeholder="Nome do município"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={rotuloCampo}>CNES</span>
-          <input
-            className={cn(estiloInput, "bg-background")}
-            style={{ minWidth: 110 }}
-            value={cnes}
-            onChange={(e) => setCnes(e.target.value)}
-            placeholder="Código CNES"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className={rotuloCampo}>Estabelecimento</span>
-          <input
-            className={cn(estiloInput, "bg-background")}
-            style={{ minWidth: 160 }}
-            value={nomeEstabelecimento}
-            onChange={(e) => setNomeEstabelecimento(e.target.value)}
-            placeholder="Nome do estabelecimento"
-          />
-        </label>
+        <SingleSelectFilter
+          placeholder="Município"
+          options={municipioOptions}
+          value={municipio}
+          onChange={setMunicipio}
+          clearLabel="Todos os municípios"
+          minWidth={140}
+        />
+        <SingleSelectFilter
+          placeholder="CNES"
+          options={cnesOptions}
+          value={cnes}
+          onChange={setCnes}
+          clearLabel="Todos os CNES"
+          minWidth={110}
+        />
+        <SingleSelectFilter
+          placeholder="Estabelecimento"
+          options={estabelecimentoOptions}
+          value={nomeEstabelecimento}
+          onChange={setNomeEstabelecimento}
+          clearLabel="Todos os estabelecimentos"
+          minWidth={170}
+        />
         <SingleSelectFilter
           placeholder="Todas as situações"
           options={situacaoOptions}
@@ -334,13 +329,14 @@ export function MonitoramentoRelatoriosPage() {
             escopo: escopoGeracao,
             uf: uf ?? undefined,
             municipio:
-              escopoGeracao === "municipio" ? municipio.trim() : undefined,
-            cnes: escopoGeracao === "cnes" ? cnes.trim() : undefined,
+              escopoGeracao === "municipio"
+                ? (municipio ?? undefined)
+                : undefined,
+            cnes: escopoGeracao === "cnes" ? (cnes ?? undefined) : undefined,
             ano: ano ? Number(ano) : undefined,
             situacao: situacao ?? undefined,
             programa: programa ?? undefined,
             tipoContratacao: tipoContratacao ?? undefined,
-            busca: busca || undefined,
           })
         }
       />

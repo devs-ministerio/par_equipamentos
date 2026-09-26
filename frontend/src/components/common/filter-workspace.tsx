@@ -13,6 +13,7 @@ export function FilterWorkspace({
   onClear,
   contagem,
   className,
+  semRotulo,
 }: {
   children: ReactNode;
   hasAnyFilter?: boolean;
@@ -20,6 +21,10 @@ export function FilterWorkspace({
   /** Ex.: "12 de 121 resultados". */
   contagem?: string;
   className?: string;
+  /** Omite o label "Filtrar por" -- pedido do usuário 2026-09-26 na página
+   * de Relatórios; default `false` mantém o label nos demais consumidores
+   * (Dashboard, Dados Oficiais, Mapa, Mesa de trabalho). */
+  semRotulo?: boolean;
 }) {
   return (
     <div
@@ -28,9 +33,11 @@ export function FilterWorkspace({
         className,
       )}
     >
-      <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">
-        Filtrar por
-      </span>
+      {!semRotulo && (
+        <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">
+          Filtrar por
+        </span>
+      )}
       {children}
       {hasAnyFilter && onClear && (
         <button
