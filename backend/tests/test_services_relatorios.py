@@ -163,9 +163,7 @@ def test_data_inauguracao_previsao_variacoes():
 def test_filtro_periodo_referencia_variacoes():
     assert FiltroRelatorio(escopo="brasil").periodo_referencia() is None
     assert FiltroRelatorio(escopo="brasil", ano_inicio=2023).periodo_referencia() == "2023"
-    assert (
-        FiltroRelatorio(escopo="brasil", ano_inicio=2020, ano_fim=2023).periodo_referencia() == "2020 a 2023"
-    )
+    assert FiltroRelatorio(escopo="brasil", ano_inicio=2020, ano_fim=2023).periodo_referencia() == "2020 a 2023"
 
 
 def test_assunto_brasil_e_valor_global_inconsistente():
@@ -206,9 +204,7 @@ def test_linhas_e_resumos_do_relatorio_preservam_detalhes_e_ausencias():
     assert _observacao_publica(None) is None
     assert _observacao_publica("Nota. Importado de Controle.xlsx sha256:abcdef, linha 24.") == "Nota."
 
-    colunas, linhas = _resumo_equipamentos(
-        {1: [("Tomógrafo", 100.0), ("Tomógrafo", None), ("Ressonância", None)]}
-    )
+    colunas, linhas = _resumo_equipamentos({1: [("Tomógrafo", 100.0), ("Tomógrafo", None), ("Ressonância", None)]})
     assert colunas == ["Equipamentos", "Quantidade", "Valor"]
     assert linhas == [["Tomógrafo", 2, 100.0], ["Ressonância", 1, None]]
 
