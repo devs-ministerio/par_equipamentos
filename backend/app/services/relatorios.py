@@ -203,7 +203,8 @@ def _convenios(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
         ufs=filtro.ufs(),
         municipio=filtro.municipio_do_escopo(),
         cnes=filtro.cnes_do_escopo(),
-        ano=filtro.ano,
+        ano_inicio=filtro.ano,
+        ano_fim=filtro.ano,
         situacao=filtro.situacao,
         programa=filtro.programa,
         tipo_contratacao=filtro.tipo_contratacao,
@@ -237,7 +238,8 @@ def _instrumentos(db: Session, filtro: FiltroRelatorio) -> list[InstrumentoComFa
         ufs=filtro.ufs(),
         municipio=filtro.municipio_do_escopo(),
         cnes=filtro.cnes_do_escopo(),
-        ano=filtro.ano,
+        ano_inicio=filtro.ano,
+        ano_fim=filtro.ano,
         tipo_contratacao=filtro.tipo_contratacao,
     )
 
