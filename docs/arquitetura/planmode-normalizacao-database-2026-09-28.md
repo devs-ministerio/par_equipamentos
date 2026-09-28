@@ -55,3 +55,18 @@ ambíguos; reparar somente vínculo de responsável cuja identidade seja provada
   o ORM local (`valor_obra`/`valor_equipamento`) e o PostgreSQL dedicado de
   teste, ainda na revisão `9c2e4f7a1d38`. Não aplicar DDL manual: estabilizar
   e aplicar a cadeia Alembic local antes de liberar o teste e as CHECKs.
+
+## Aplicação controlada — 2026-09-28 09:48 BRT
+
+- Backup criado no Neon antes da escrita: branch
+  `backup-pre-normalizacao-cnpj-20260928`
+  (`br-gentle-shadow-axe99qxu`), fork da branch `production` às
+  `2026-09-28T09:48:53-03:00`, com expiração automática em 2026-09-29 09:48
+  BRT. O Neon também confirmou retenção PITR de seis horas.
+- Aplicação concluída em uma transação: **616** registros — 416 CNPJs de
+  Convênio, 86 de Instrumento e 110 de Pagamento PERSUS sem pontuação; quatro
+  strings vazias foram convertidas em `NULL`. A referência do backup foi
+  registrada nos 616 `AuditLog`, sem gravar CNPJ em claro.
+- Pós-condição: o dry-run retornou zero pendências. A auditoria de integridade
+  pós-produção retornou zero em todas as oito verificações (órfãos CNES,
+  proposta/instrumento, CNES inválido, coordenadas e contagens negativas).
