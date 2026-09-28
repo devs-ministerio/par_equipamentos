@@ -2,6 +2,7 @@
  * (busca por trás de `AdminRoute` em App.tsx), sem lógica de negócio
  * própria, mesmo princípio das demais páginas. */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,13 @@ function badgeStatus(status: Usuario["status"]) {
   return <Badge variant="secondary">Inativo</Badge>;
 }
 
+function formatarData(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
+
 export function UsuariosPage() {
+  const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [role, setRole] = useState<UserRole | "">("");
   const [page, setPage] = useState(1);
@@ -109,6 +116,7 @@ export function UsuariosPage() {
               <TableHead>E-mail</TableHead>
               <TableHead>Perfil</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Ativado em</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -116,7 +124,7 @@ export function UsuariosPage() {
             {carregando && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="p-4 text-center text-sm text-muted-foreground"
                 >
                   Carregando...
@@ -126,7 +134,7 @@ export function UsuariosPage() {
             {!carregando && usuarios.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="p-4 text-center text-sm text-muted-foreground"
                 >
                   Nenhum usuário encontrado.
@@ -139,8 +147,20 @@ export function UsuariosPage() {
                 <TableCell>{usuario.email}</TableCell>
                 <TableCell className="capitalize">{usuario.role}</TableCell>
                 <TableCell>{badgeStatus(usuario.status)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {formatarData(usuario.activated_at)}
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() =>
+                        navigate(`/admin/auditoria?usuario_id=${usuario.id}`)
+                      }
+                    >
+                      Ver histórico
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"

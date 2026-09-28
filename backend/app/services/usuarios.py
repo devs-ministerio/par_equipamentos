@@ -1,9 +1,10 @@
 """Casos de uso do Modulo de gestao de usuarios (Admin), 2026-09-17.
 
 Primeiro consumidor real de `AuditLog` (existia no schema desde a base do
-projeto, zero uso ate aqui) -- `registrar_auditoria` fica neste modulo, nao
-em arquivo proprio, porque so este Service escreve nele por enquanto;
-generalizar pra `app/audit.py` fica pra quando um segundo modulo precisar.
+projeto, zero uso ate aqui). Escrevia via um `registrar_auditoria` proprio
+deste arquivo -- consolidado em `app/audit.py::log_action` no Modulo de
+Auditoria (2026-09-28), que e o segundo consumidor real que a duplicacao
+dizia esperar.
 """
 
 from __future__ import annotations
@@ -14,10 +15,11 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
+from app.audit import log_action
 from app.auth import hash_password, revoke_all_refresh_tokens_for_user
 from app.authz import assert_e_admin
 from app.config import settings
-from app.db.models import AuditLog, User, UserRole, UserStatus
+from app.db.models import User, UserRole, UserStatus
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.email import enviar_link
 from app.repositories.usuarios import (
@@ -27,12 +29,6 @@ from app.repositories.usuarios import (
     obter_usuario_por_id,
 )
 from app.schemas import UserCreateRequest, UserUpdateRequest
-
-
-def registrar_auditoria(
-    db: Session, *, user_id: int, entity_name: str, entity_id: int | None, action: str, details: dict | None = None
-) -> None:
-    db.add(AuditLog(user_id=user_id, entity_name=entity_name, entity_id=entity_id, action=action, details=details))
 
 
 def listar_usuarios(
@@ -69,7 +65,7 @@ def criar_usuario(*, db: Session, admin_atual: User, dados: UserCreateRequest) -
         usuario.activation_expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
     db.add(usuario)
     db.flush()  # obtem usuario.id pra registrar na auditoria antes do commit
-    registrar_auditoria(
+    log_action(
         db,
         user_id=admin_atual.id,
         entity_name="user",
@@ -104,7 +100,7 @@ def atualizar_usuario(*, db: Session, admin_atual: User, user_id: int, dados: Us
 
     usuario.name = dados.name
     usuario.role = dados.role
-    registrar_auditoria(
+    log_action(
         db,
         user_id=admin_atual.id,
         entity_name="user",
@@ -136,7 +132,7 @@ def reenviar_convite(*, db: Session, admin_atual: User, user_id: int) -> User:
     except Exception as exc:
         db.rollback()
         raise ValidationError("Não foi possível enviar o convite por e-mail.") from exc
-    registrar_auditoria(db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="reenviar_convite")
+    log_action(db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="reenviar_convite")
     db.commit()
     db.refresh(usuario)
     return usuario
@@ -167,7 +163,7 @@ def enviar_redefinicao_senha(*, db: Session, admin_atual: User, user_id: int) ->
     except Exception as exc:
         db.rollback()
         raise ValidationError("Não foi possível enviar a redefinição por e-mail.") from exc
-    registrar_auditoria(
+    log_action(
         db,
         user_id=admin_atual.id,
         entity_name="user",
@@ -189,7 +185,7 @@ def inativar_usuario(*, db: Session, admin_atual: User, user_id: int) -> User:
 
     usuario.status = UserStatus.inactive
     revoke_all_refresh_tokens_for_user(db, usuario.id)
-    registrar_auditoria(db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="inativar_usuario")
+    log_action(db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="inativar_usuario")
     db.commit()
     db.refresh(usuario)
     return usuario
@@ -202,7 +198,7 @@ def reativar_usuario(*, db: Session, admin_atual: User, user_id: int) -> User:
         raise NotFoundError(f"Usuario {user_id} nao encontrado.")
 
     usuario.status = UserStatus.active
-    registrar_auditoria(db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="reativar_usuario")
+    log_action(db, user_id=admin_atual.id, entity_name="user", entity_id=usuario.id, action="reativar_usuario")
     db.commit()
     db.refresh(usuario)
     return usuario

@@ -43,13 +43,22 @@ export function UserMenu() {
         {!sessao.podeEditar && " · leitor"}
       </span>
       {sessao.usuarioAtual?.role === "admin" && (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => navigate("/admin/usuarios")}
-        >
-          Usuários
-        </Button>
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => navigate("/admin/usuarios")}
+          >
+            Usuários
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => navigate("/admin/auditoria")}
+          >
+            Auditoria
+          </Button>
+        </>
       )}
       <Button size="sm" variant="ghost" onClick={sairDaSessao}>
         Sair

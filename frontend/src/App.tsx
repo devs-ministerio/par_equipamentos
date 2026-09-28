@@ -83,6 +83,13 @@ const MonitoramentoRelatoriosPage = lazy(() =>
 const UsuariosPage = lazy(() =>
   import("./pages/usuarios-page").then((m) => ({ default: m.UsuariosPage })),
 );
+// Trilha de auditoria (Modulo de Auditoria, 2026-09-28) -- mesmo gate admin
+// de UsuariosPage, ver docstring de auditoria-page.tsx.
+const AuditoriaPage = lazy(() =>
+  import("./pages/auditoria-page").then((m) => ({
+    default: m.AuditoriaPage,
+  })),
+);
 const AccountActionPage = lazy(() =>
   import("./pages/account-action-page").then((m) => ({
     default: m.AccountActionPage,
@@ -187,6 +194,10 @@ function App() {
                   />
                   <Route element={<AdminRoute />}>
                     <Route path="/admin/usuarios" element={<UsuariosPage />} />
+                    <Route
+                      path="/admin/auditoria"
+                      element={<AuditoriaPage />}
+                    />
                   </Route>
                 </Route>
                 <Route element={<AppLayout />}>

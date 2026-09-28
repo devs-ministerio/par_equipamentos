@@ -15,6 +15,7 @@ from app.errors import register_exception_handlers
 from app.observability import registrar_requisicao
 from app.rate_limit import limiter
 from app.routers import (
+    auditoria,
     auth,
     convenios,
     equipment_offer,
@@ -70,6 +71,9 @@ app.include_router(relatorios.router)
 # (require_admin_user, app/auth.py), diferente do gate binario
 # leitor/resto do resto do app.
 app.include_router(usuarios.router)
+# Trilha de auditoria (Modulo de Auditoria, 2026-09-28) -- mesmo gate admin
+# do modulo de usuarios, ver app/routers/auditoria.py.
+app.include_router(auditoria.router)
 
 # Frontend roda em origem separada (Vite local, Vercel em producao). As
 # origens autorizadas vem da variavel CORS_ORIGINS -- nunca fixo aqui, senao

@@ -15,6 +15,7 @@ from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.audit import log_action
 from app.config import settings
 from app.db.base import get_db
 from app.db.models import RefreshToken, User, UserRole, UserStatus
@@ -193,7 +194,24 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str, int]:
         .values(revoked_at=agora)
         .returning(RefreshToken.user_id, RefreshToken.expires_at)
     ).one_or_none()
-    if resultado is None or resultado.expires_at < agora:
+    if resultado is None:
+        # 0 linhas afetadas: token inexistente (garbage) OU ja revogado. Um
+        # token que EXISTE mas ja esta revogado e o sinal de reuso (Modulo de
+        # Auditoria, 2026-09-28) -- possivel sessao roubada, vale registrar
+        # mesmo sem poder identificar o usuario com certeza (o token pode ja
+        # ter sido rotacionado varias vezes).
+        sessao_revogada = db.execute(
+            select(RefreshToken.user_id).where(RefreshToken.token_hash == token_hash)
+        ).scalar_one_or_none()
+        if sessao_revogada is not None:
+            log_action(
+                db, user_id=sessao_revogada, entity_name="auth", entity_id=sessao_revogada, action="refresh_reuso_detectado"
+            )
+            db.commit()
+        else:
+            db.rollback()
+        raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
+    if resultado.expires_at < agora:
         db.rollback()
         raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
 
@@ -260,7 +278,7 @@ def clear_session_cookies(response: Response) -> None:
     response.delete_cookie(CSRF_COOKIE_NAME, domain=settings.cookie_domain, path="/")
 
 
-def revoke_refresh_token(db: Session, token: str) -> None:
+def revoke_refresh_token(db: Session, token: str) -> int | None:
     """Logout real (Bloco 2) -- revoga no servidor, nao so limpa o cookie
     no cliente. Token ja invalido/inexistente e no-op silencioso (logout
     de uma sessao que ja caiu nao e erro).
@@ -268,14 +286,21 @@ def revoke_refresh_token(db: Session, token: str) -> None:
     `UPDATE` atomico (Plan Mode database 2026-09-17, Bloco 1) pelo mesmo
     motivo de `rotate_refresh_token` -- evita a janela SELECT + atribuicao
     + commit onde duas chamadas concorrentes (ex.: logout duplo) poderiam
-    disputar a mesma linha."""
+    disputar a mesma linha.
+
+    Devolve o `user_id` da sessao revogada (`None` se o token ja estava
+    invalido) -- usado pelo router pra gravar `log_action` do logout sem
+    precisar decodificar o access token de novo (Modulo de Auditoria,
+    2026-09-28)."""
     token_hash = _hash_refresh_token(token)
-    db.execute(
+    resultado = db.execute(
         update(RefreshToken)
         .where(RefreshToken.token_hash == token_hash, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=datetime.now(timezone.utc))
-    )
+        .returning(RefreshToken.user_id)
+    ).scalar_one_or_none()
     db.commit()
+    return resultado
 
 
 def revoke_all_refresh_tokens_for_user(db: Session, user_id: int) -> None:
