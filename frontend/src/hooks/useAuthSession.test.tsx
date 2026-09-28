@@ -84,6 +84,24 @@ describe("useAuthSession", () => {
     expect(login).toHaveBeenCalledWith(USUARIO_ADMIN.email, "senha-segura");
   });
 
+  it("falha de forma explícita quando o navegador não mantém a sessão após o login", async () => {
+    const { fetchCurrentUser, login } = await import("@/services/auth");
+    vi.mocked(fetchCurrentUser).mockResolvedValue(null);
+    vi.mocked(login).mockResolvedValueOnce(undefined);
+    const { wrapper } = criarAmbiente();
+    const { result } = renderHook(() => useAuthSession(), { wrapper });
+
+    await waitFor(() => expect(result.current.checandoSessao).toBe(false));
+    await act(async () => {
+      await expect(
+        result.current.login({ email: USUARIO_ADMIN.email, senha: "senha-segura" }),
+      ).rejects.toMatchObject({
+        publicMessage:
+          "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SIGEO e tente novamente.",
+      });
+    });
+  });
+
   it("remove dados autenticados e marca visitante antes de concluir a revogação", async () => {
     const { fetchCurrentUser, logout } = await import("@/services/auth");
     vi.mocked(fetchCurrentUser).mockResolvedValueOnce(USUARIO_ADMIN);
