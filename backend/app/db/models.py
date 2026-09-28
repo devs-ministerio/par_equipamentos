@@ -256,6 +256,21 @@ class ReferenceFile(Base):
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
 
 
+class FonteDado(Base):
+    """Catálogo estruturado de proveniência, sem apagar o texto legado."""
+
+    __tablename__ = "fonte_dado"
+    __table_args__ = (UniqueConstraint("codigo", name="uq_fonte_dado_codigo"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo: Mapped[str] = mapped_column(String, nullable=False)
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+    tipo: Mapped[str] = mapped_column(String, nullable=False)
+    url_referencia: Mapped[str | None] = mapped_column(String)
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class AcceleratorRow(Base):
     __tablename__ = "accelerator_row"
     __table_args__ = (CheckConstraint("operational_qty >= 0", name="ck_accelerator_row_operational_qty"),)
@@ -327,6 +342,7 @@ class CnesEstabelecimento(Base):
     nome_estabelecimento: Mapped[str] = mapped_column(String, nullable=False)
     cnpj: Mapped[str | None] = mapped_column(String)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     cep: Mapped[str | None] = mapped_column(String)
     logradouro: Mapped[str | None] = mapped_column(String)
@@ -392,8 +408,10 @@ class Convenio(Base):
     convenente_cnpj: Mapped[str | None] = mapped_column(String)
     convenente_tipo: Mapped[str | None] = mapped_column(String)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     codigo_ibge: Mapped[str | None] = mapped_column(String)
+    codigo_ibge_municipio: Mapped[str | None] = mapped_column(String(6))
     regiao: Mapped[str | None] = mapped_column(String)
     orgao: Mapped[str | None] = mapped_column(String)
     unidade_gestora: Mapped[str | None] = mapped_column(String)
@@ -449,6 +467,9 @@ class Convenio(Base):
     # (ex. "PERSUS I · Apresentação PER-SUS.xlsx · sha256:..."). Nulo pros
     # 403 convênios reais (proveniência já é o próprio merge de 3 fontes).
     origem_dado: Mapped[str | None] = mapped_column(String)
+    fonte_dado_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fonte_dado.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
     # Chave estável de upsert pra origem sem número oficial (NUP SEI dígitos
     # p/ FAF/TED; "PERSUS1-{cnes}-{tipologia}" etc.) -- nunca exposta na API/
     # UI, só usada pelos scripts de carga pra reencontrar o registro em
@@ -860,6 +881,7 @@ class InstrumentoEquipamento(Base):
     cnpj_convenente: Mapped[str | None] = mapped_column(String)
     nome_convenente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     cnes: Mapped[str | None] = mapped_column(
         String(7),
@@ -913,6 +935,9 @@ class InstrumentoEquipamento(Base):
     # identifica a proveniência da carga; os demais campos preservam o
     # vocabulário oficial da fonte sem tentar convertê-lo em fase interna.
     origem_dado: Mapped[str | None] = mapped_column(String)
+    fonte_dado_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fonte_dado.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
     tipologia: Mapped[str | None] = mapped_column(String(3))
     investimento_aquisicao: Mapped[float | None] = mapped_column(Numeric(16, 2))
     situacao_programa: Mapped[str | None] = mapped_column(String)
@@ -1032,6 +1057,9 @@ class PagamentoObraPersus(Base):
     data_pagamento: Mapped[date | None] = mapped_column(Date)
     valor: Mapped[float | None] = mapped_column(Numeric(16, 2))
     origem_dado: Mapped[str | None] = mapped_column(String)
+    fonte_dado_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fonte_dado.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
     # Hash determinístico da linha de origem -- evita duplicar o mesmo
     # pagamento se o script rodar de novo sobre a mesma planilha.
     chave_origem: Mapped[str] = mapped_column(String, nullable=False)
@@ -1241,6 +1269,7 @@ class PropostaCandidata(Base):
     cnpj_ente_recebedor: Mapped[str] = mapped_column(String, nullable=False)
     nm_proponente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     ds_objeto: Mapped[str] = mapped_column(String, nullable=False)
     nm_programa: Mapped[str] = mapped_column(String, nullable=False)
