@@ -121,16 +121,21 @@ export function AuditoriaDialogDetalhes({
                 </dl>
               )}
             </div>
-            <DialogFooter className="border-t border-border bg-muted/20 px-6 py-4">
+            <DialogFooter className="!mx-0 !mb-0 gap-3 border-t border-border bg-muted/20 px-6 pt-5 pb-6 sm:px-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => void copiarDetalhes()}
                 disabled={Object.keys(detalhes).length === 0}
+                className="w-full sm:w-auto"
               >
                 <Copy aria-hidden="true" /> Copiar detalhes
               </Button>
-              <Button type="button" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
+              >
                 Fechar
               </Button>
             </DialogFooter>
