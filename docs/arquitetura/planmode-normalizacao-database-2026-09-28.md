@@ -70,3 +70,19 @@ ambíguos; reparar somente vínculo de responsável cuja identidade seja provada
 - Pós-condição: o dry-run retornou zero pendências. A auditoria de integridade
   pós-produção retornou zero em todas as oito verificações (órfãos CNES,
   proposta/instrumento, CNES inválido, coordenadas e contagens negativas).
+
+## Constraint de domínio — 2026-09-28
+
+- A cadeia Alembic do Neon foi reconciliada de `9c2e4f7a1d38` até
+  `e5fdb376edeb` e depois promovida a `c3d4e5f6a7b8`.
+- Cinco CHECKs validadas agora impõem CNPJ canônico: CNES, Convênio,
+  Instrumento, Pagamento PERSUS e Proposta. Os campos opcionais aceitam
+  somente `NULL` ou 14 dígitos; a Proposta, obrigatória, aceita somente 14
+  dígitos.
+- A migration adiciona cada regra como `NOT VALID` e a valida em seguida;
+  foram testados upgrade, downgrade e novo upgrade no PostgreSQL dedicado.
+  A fixture isolada tinha um único CNPJ pontuado residual, saneado pelo mesmo
+  normalizador antes da validação.
+- Verificação final no Neon: as cinco constraints têm `convalidated=true`, o
+  dry-run de CNPJ está zerado e as oito verificações de integridade continuam
+  sem violação.

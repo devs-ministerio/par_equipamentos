@@ -43,6 +43,7 @@ from app.db.models import (
     MacroCoverage,
     MarcoCatalogo,
     MarcoGrupo,
+    PagamentoObraPersus,
 )
 
 
@@ -148,6 +149,41 @@ def test_check_formato_cnes_rejeitado():
     db = SessionLocal()
     try:
         db.add(CnesEstabelecimento(cnes="ABCDEFG", nome_estabelecimento="__teste_formato_cnes__"))
+        with pytest.raises(IntegrityError):
+            db.flush()
+        db.rollback()
+    finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_check_formato_cnpj_rejeita_valor_nao_canonico():
+    """CNPJ aceita somente 14 dígitos, e os campos opcionais aceitam NULL."""
+    db = SessionLocal()
+    try:
+        db.add(
+            Convenio(
+                numero="__teste_cnpj_convenio__", convenente_nome="__teste__", convenente_cnpj="12.345.678/0001-90"
+            )
+        )
+        with pytest.raises(IntegrityError):
+            db.flush()
+        db.rollback()
+
+        instrumento = InstrumentoEquipamento(
+            nr_convenio="__teste_cnpj_pagamento__",
+            nome_convenente="__teste__",
+            cnpj_convenente=None,
+        )
+        db.add(instrumento)
+        db.flush()
+        db.add(
+            PagamentoObraPersus(
+                instrumento_id=instrumento.id,
+                chave_origem="__teste_cnpj_pagamento__",
+                fornecedor_cnpj="12.345.678/0001-90",
+            )
+        )
         with pytest.raises(IntegrityError):
             db.flush()
         db.rollback()

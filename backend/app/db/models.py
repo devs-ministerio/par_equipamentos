@@ -299,6 +299,10 @@ class CnesEstabelecimento(Base):
     __table_args__ = (
         CheckConstraint("cnes ~ '^[0-9]{7}$'", name="ck_cnes_estabelecimento_cnes_formato"),
         CheckConstraint(
+            "cnpj IS NULL OR cnpj ~ '^[0-9]{14}$'",
+            name="ck_cnes_estabelecimento_cnpj_formato",
+        ),
+        CheckConstraint(
             "latitude IS NULL OR (latitude >= -90 AND latitude <= 90)",
             name="ck_cnes_estabelecimento_latitude",
         ),
@@ -366,6 +370,10 @@ class Convenio(Base):
     __table_args__ = (
         Index("idx_convenio_cnes", "cnes"),
         UniqueConstraint("numero", name="uq_convenio_numero"),
+        CheckConstraint(
+            "convenente_cnpj IS NULL OR convenente_cnpj ~ '^[0-9]{14}$'",
+            name="ck_convenio_convenente_cnpj_formato",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -832,6 +840,10 @@ class InstrumentoEquipamento(Base):
             "modalidade_onco IS NULL OR modalidade_onco IN ('Apoio', 'Diagnóstico', 'Rastreamento', 'Tratamento', 'Múltiplas')",
             name="ck_instrumento_equipamento_modalidade_onco",
         ),
+        CheckConstraint(
+            "cnpj_convenente IS NULL OR cnpj_convenente ~ '^[0-9]{14}$'",
+            name="ck_instrumento_equipamento_cnpj_convenente_formato",
+        ),
         UniqueConstraint("nr_convenio", name="uq_instrumento_equipamento_nr_convenio"),
     )
 
@@ -1001,6 +1013,10 @@ class PagamentoObraPersus(Base):
         UniqueConstraint("chave_origem", name="uq_pagamento_obra_persus_chave_origem"),
         Index("idx_pagamento_obra_persus_instrumento", "instrumento_id"),
         CheckConstraint("tipo IN ('obra', 'fiscalizacao')", name="ck_pagamento_obra_persus_tipo"),
+        CheckConstraint(
+            "fornecedor_cnpj IS NULL OR fornecedor_cnpj ~ '^[0-9]{14}$'",
+            name="ck_pagamento_obra_persus_fornecedor_cnpj_formato",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -1209,6 +1225,10 @@ class PropostaCandidata(Base):
     __table_args__ = (
         Index("idx_proposta_candidata_cnes", "cnes"),
         UniqueConstraint("id_proposta", name="uq_proposta_candidata_id_proposta"),
+        CheckConstraint(
+            "cnpj_ente_recebedor ~ '^[0-9]{14}$'",
+            name="ck_proposta_candidata_cnpj_ente_recebedor_formato",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)

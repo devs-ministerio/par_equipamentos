@@ -3,11 +3,39 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
 
 from app.db.base import SessionLocal
 from app.db.models import AuditLog, Convenio, InstrumentoEquipamento, PagamentoObraPersus
 from scripts.normalizar_cnpj_database import cnpj_canonico, executar
+
+CONSTRAINTS_CNPJ_DO_CENARIO = (
+    ("convenio", "ck_convenio_convenente_cnpj_formato", "convenente_cnpj IS NULL OR convenente_cnpj ~ '^[0-9]{14}$'"),
+    (
+        "instrumento_equipamento",
+        "ck_instrumento_equipamento_cnpj_convenente_formato",
+        "cnpj_convenente IS NULL OR cnpj_convenente ~ '^[0-9]{14}$'",
+    ),
+    (
+        "pagamento_obra_persus",
+        "ck_pagamento_obra_persus_fornecedor_cnpj_formato",
+        "fornecedor_cnpj IS NULL OR fornecedor_cnpj ~ '^[0-9]{14}$'",
+    ),
+)
+
+
+def _remover_constraints_do_cenario(db) -> None:
+    """Simula a janela pré-backfill e restaura o schema ao fim do teste."""
+    for tabela, nome, _ in CONSTRAINTS_CNPJ_DO_CENARIO:
+        db.execute(text(f"ALTER TABLE {tabela} DROP CONSTRAINT {nome}"))
+    db.commit()
+
+
+def _restaurar_constraints_do_cenario(db) -> None:
+    for tabela, nome, expressao in CONSTRAINTS_CNPJ_DO_CENARIO:
+        db.execute(text(f"ALTER TABLE {tabela} ADD CONSTRAINT {nome} CHECK ({expressao}) NOT VALID"))
+        db.execute(text(f"ALTER TABLE {tabela} VALIDATE CONSTRAINT {nome}"))
+    db.commit()
 
 
 def test_cnpj_canonico_so_remove_pontuacao_inequivoca():
@@ -27,7 +55,10 @@ def test_normalizador_dry_run_aplica_com_auditoria_sem_cnpj_em_claro():
         nr_convenio=f"PYTEST-INSTR-{sufixo}", nome_convenente="Instrumento Pytest", cnpj_convenente=""
     )
     pagamento: PagamentoObraPersus | None = None
+    constraints_removidas = False
     try:
+        _remover_constraints_do_cenario(db)
+        constraints_removidas = True
         db.add_all([convenio, instrumento])
         db.commit()
         db.refresh(instrumento)
@@ -88,19 +119,26 @@ def test_normalizador_dry_run_aplica_com_auditoria_sem_cnpj_em_claro():
             == 0
         )
     finally:
-        if pagamento is not None:
-            db.query(AuditLog).filter_by(entity_name="pagamento_obra_persus", entity_id=pagamento.id).delete()
-            db.delete(pagamento)
-            # A FK do banco também faz cascade a partir do instrumento. Sem
-            # flush, as duas remoções podem ser emitidas na ordem inversa e o
-            # ORM avisa que a linha do pagamento já foi removida pelo cascade.
-            db.flush()
-        db.query(AuditLog).filter_by(entity_name="convenio", entity_id=convenio.id).delete()
-        db.query(AuditLog).filter_by(entity_name="instrumento_equipamento", entity_id=instrumento.id).delete()
-        db.delete(convenio)
-        db.delete(instrumento)
-        db.commit()
-        db.close()
+        try:
+            db.rollback()
+            if pagamento is not None and pagamento.id is not None:
+                db.query(AuditLog).filter_by(entity_name="pagamento_obra_persus", entity_id=pagamento.id).delete()
+                db.delete(pagamento)
+                # A FK do banco também faz cascade a partir do instrumento. Sem
+                # flush, as duas remoções podem ser emitidas na ordem inversa e
+                # o ORM avisa que a linha do pagamento já foi removida pelo cascade.
+                db.flush()
+            if convenio.id is not None:
+                db.query(AuditLog).filter_by(entity_name="convenio", entity_id=convenio.id).delete()
+                db.delete(convenio)
+            if instrumento.id is not None:
+                db.query(AuditLog).filter_by(entity_name="instrumento_equipamento", entity_id=instrumento.id).delete()
+                db.delete(instrumento)
+            db.commit()
+            if constraints_removidas:
+                _restaurar_constraints_do_cenario(db)
+        finally:
+            db.close()
 
 
 def test_normalizador_exige_referencia_de_backup_no_apply():
