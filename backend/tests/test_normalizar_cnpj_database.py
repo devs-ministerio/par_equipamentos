@@ -91,6 +91,10 @@ def test_normalizador_dry_run_aplica_com_auditoria_sem_cnpj_em_claro():
         if pagamento is not None:
             db.query(AuditLog).filter_by(entity_name="pagamento_obra_persus", entity_id=pagamento.id).delete()
             db.delete(pagamento)
+            # A FK do banco também faz cascade a partir do instrumento. Sem
+            # flush, as duas remoções podem ser emitidas na ordem inversa e o
+            # ORM avisa que a linha do pagamento já foi removida pelo cascade.
+            db.flush()
         db.query(AuditLog).filter_by(entity_name="convenio", entity_id=convenio.id).delete()
         db.query(AuditLog).filter_by(entity_name="instrumento_equipamento", entity_id=instrumento.id).delete()
         db.delete(convenio)
