@@ -187,12 +187,13 @@ def _valor_global_confiavel(convenio: Convenio) -> float | None:
     return convenio.valor_global
 
 
-def _assunto(db: Session, filtro: FiltroRelatorio) -> str:
+def _assunto(db: Session | None, filtro: FiltroRelatorio) -> str:
     """Texto de "Assunto" do cabeçalho (Bloco 8, mockup do usuário --
     `data/relatorios/relatorio_imip.pages`, "Assunto: IMIP (CNES:
     0000434)") -- nome do que foi pesquisado, não só o código."""
     if filtro.escopo == "cnes":
         assert filtro.cnes is not None
+        assert db is not None
         estabelecimento = monitoramento_repo.obter_cnes_por_codigo(db, filtro.cnes)
         nome = estabelecimento.nome_estabelecimento if estabelecimento else f"CNES {filtro.cnes}"
         return f"{nome} (CNES: {filtro.cnes})"

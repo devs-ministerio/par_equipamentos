@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from typing import cast
 
 from sqlalchemy import select
 
@@ -54,11 +55,12 @@ def executar(*, aplicar: bool, backup_reference: str | None) -> dict[str, int | 
         vinculados = 0
         for modelo in (Convenio, InstrumentoEquipamento, PagamentoObraPersus):
             for item in db.execute(select(modelo)).scalars():
-                codigo = _codigo(item.origem_dado)
-                if codigo and item.fonte_dado_id != fontes[codigo].id:
+                item = cast(Convenio | InstrumentoEquipamento | PagamentoObraPersus, item)
+                codigo_fonte = _codigo(item.origem_dado)
+                if codigo_fonte and item.fonte_dado_id != fontes[codigo_fonte].id:
                     vinculados += 1
                     if aplicar:
-                        item.fonte_dado_id = fontes[codigo].id
+                        item.fonte_dado_id = fontes[codigo_fonte].id
         resultado: dict[str, int | bool] = {
             "fontes_criadas": criadas,
             "vinculos_atualizados": vinculados,

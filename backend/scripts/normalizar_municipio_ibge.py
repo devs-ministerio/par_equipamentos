@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from typing import cast
 
 from sqlalchemy import select
 
@@ -33,6 +34,7 @@ def executar(*, aplicar: bool, backup_reference: str | None) -> dict[str, int | 
             (PropostaCandidata, "proposta_candidata"),
         ):
             for item in db.execute(select(modelo)).scalars():
+                item = cast(Convenio | InstrumentoEquipamento | PropostaCandidata, item)
                 normalizado = normalizar_texto(item.municipio) or None
                 if item.municipio_normalizado != normalizado:
                     totais[chave] += 1
