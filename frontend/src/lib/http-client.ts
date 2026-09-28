@@ -80,9 +80,9 @@ let consultaCsrfEmAndamento: Promise<boolean> | null = null;
 
 const csrfResponseSchema = z.object({ csrf_token: z.string() });
 
-/** Em desenvolvimento o cookie CSRF está no mesmo host e `document.cookie`
- * basta. Em produção Vercel e Render são hosts distintos: busca a cópia que
- * a API recebeu no cookie e mantém só em memória para o header double-submit.
+/** O cookie CSRF fica no mesmo host da UI via proxy `/api`, então
+ * `document.cookie` basta. O fallback mantém compatibilidade com ambientes
+ * legados que ainda não conseguem expor a cópia ao JavaScript.
  */
 async function garantirCsrfToken(): Promise<boolean> {
   if (Object.keys(csrfHeaders()).length > 0) return true;
