@@ -724,6 +724,29 @@ duas partes, ambas já publicadas:
   mudança; `REFRESH_COOKIE_PATH` não é exercitado pelos testes de integração (que chamam o backend
   direto em `/auth/...`, sem passar pelo proxy) — a checagem real foi ao vivo, via Chrome, contra
   produção.
+- **Segundo bug real, causa raiz de fato do erro reportado pela usuária (não o path do refresh
+  acima, que era um problema real mas separado)**: `useAuthSession.ts` monta `usuarioQuery`
+  (`GET /auth/me`) em TODA página, inclusive `/login` — ao carregar a tela de login, já dispara um
+  `/auth/me` de visitante. Se esse fetch ainda está em voo quando o login termina (autofill rápido,
+  ou rede lenta — Render free tier), o então `queryClient.fetchQuery` da lógica "confirma sessão
+  antes de navegar" (mesma chave de query) era **deduplicado** pelo TanStack Query pra essa MESMA
+  promise já em andamento, em vez de emitir uma requisição nova — resolvia com o cookie de ANTES
+  do login (null), reportando "não foi possível concluir a sessão" mesmo com login e `Set-Cookie`
+  perfeitos. Reproduzido ao vivo (Playwright local, execução isolada — 320px `responsive.spec.ts`)
+  e em produção (Chrome, login com senha salva no autofill). Corrigido chamando `fetchCurrentUser()`
+  direto (ignora o cache/dedup) **e** `queryClient.cancelQueries` antes disso — sem o cancel, o
+  fetch de montagem (ainda em voo, resolvendo null) sobrescrevia de volta o `setQueryData` do
+  resultado correto pouco depois (achado ao vivo na mesma investigação: o cache "piscava" o usuário
+  certo e voltava a null). Validado com `npm run test:e2e` local repetido (backend + frontend locais,
+  mesma topologia da CI) — os 3 testes de login ficaram 100% estáveis; falhas remanescentes em
+  execuções muito próximas eram só o rate limit de `/auth/login` (5/min, in-memory) da própria
+  bateria de testes, comportamento já documentado acima, não o bug.
+- **Achado à parte, não corrigido nesta rodada (fora de escopo)**: `e2e/responsive.spec.ts` (320px,
+  `/monitoramento-equipamentos`) falha de forma intermitente com ~355px de `scrollWidth` mesmo com
+  o fix acima — reproduzido tanto antes quanto depois do fix, sem relação com autenticação (nenhuma
+  mudança desta investigação tocou CSS/JSX). Suspeita: timing de carregamento das fontes do Google
+  Fonts mudando a largura renderizada antes de assentar. Não investigado a fundo — próxima rodada
+  de responsividade deveria olhar isso.
 
 ## Gestão de usuários (Módulo Admin, 2026-09-17)
 
