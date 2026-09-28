@@ -65,7 +65,9 @@ export function useAuthSession() {
       // usuário certo por um instante e voltava a null, derrubando de
       // volta pra /login. `cancelQueries` marca esse fetch pendente como
       // obsoleto pro TanStack Query, que descarta a resolução dele.
-      await queryClient.cancelQueries({ queryKey: monitoramentoKeys.currentUser });
+      await queryClient.cancelQueries({
+        queryKey: monitoramentoKeys.currentUser,
+      });
       const usuario = await fetchCurrentUser();
       if (usuario === null) {
         throw new ApiError(

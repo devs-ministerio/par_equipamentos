@@ -94,7 +94,10 @@ describe("useAuthSession", () => {
     await waitFor(() => expect(result.current.checandoSessao).toBe(false));
     await act(async () => {
       await expect(
-        result.current.login({ email: USUARIO_ADMIN.email, senha: "senha-segura" }),
+        result.current.login({
+          email: USUARIO_ADMIN.email,
+          senha: "senha-segura",
+        }),
       ).rejects.toMatchObject({
         publicMessage:
           "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SIGEO e tente novamente.",
