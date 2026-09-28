@@ -99,9 +99,17 @@ app.add_middleware(
 # processar CORS/rota. `ALLOWED_HOSTS` (app/config.py) nunca aceita "*".
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts_lista)
 
-# Rotas isentas de CSRF -- login ainda nao tem cookie de sessao/CSRF pra
-# comparar (e' o proprio ato que os emite); saude e publica e nao muta nada.
-_CSRF_ROTAS_ISENTAS = {"/auth/login", "/health"}
+# Rotas públicas sem sessão não têm cookie CSRF para comparar. Ativação e
+# redefinição se autenticam pelo token opaco, de uso único e expirável no
+# corpo; recuperação não altera uma sessão existente. CSRF continua cobrindo
+# todas as mutações que podem usar credenciais do navegador.
+_CSRF_ROTAS_ISENTAS = {
+    "/auth/login",
+    "/auth/ativar",
+    "/auth/redefinir-senha",
+    "/auth/esqueci-senha",
+    "/health",
+}
 _METODOS_MUTAVEIS = {"POST", "PUT", "PATCH", "DELETE"}
 
 
