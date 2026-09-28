@@ -4,14 +4,18 @@
  * (?usuario_id=) quando chega do link "Ver histórico" da tela de
  * usuários. */
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Pagination } from "@/components/common/pagination";
+import { AuditoriaDialogDetalhes } from "@/components/features/auditoria-dialog-detalhes";
 import { AuditoriaTabela } from "@/components/features/auditoria-tabela";
 import { useAuditoria } from "@/hooks/useAuditoria";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
+import type { AuditoriaItem } from "@/services/auditoria";
 
 const PAGE_SIZE = 50;
 
@@ -25,10 +29,14 @@ const CATEGORIAS = [
 ];
 
 export function AuditoriaPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const usuarioIdInicial = searchParams.get("usuario_id");
   const [entityName, setEntityName] = useState("");
   const [page, setPage] = useState(1);
+  const [detalheAberto, setDetalheAberto] = useState<AuditoriaItem | null>(
+    null,
+  );
 
   const { itens, total, carregando, erro } = useAuditoria({
     limit: PAGE_SIZE,
@@ -43,6 +51,16 @@ export function AuditoriaPage() {
         eyebrow="Administração"
         title="Auditoria"
         description="Histórico de login, sessão e ações administrativas no SIGEO."
+        actions={
+          usuarioIdInicial ? (
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/usuarios")}
+            >
+              <ArrowLeft aria-hidden="true" /> Voltar para usuários
+            </Button>
+          ) : undefined
+        }
       />
 
       <div className="mb-4 flex flex-wrap gap-2.5">
@@ -73,7 +91,11 @@ export function AuditoriaPage() {
         <ErrorAlert mensagem={mensagemSeguraDoErro(erro)} />
       ) : (
         <div className="rounded-xl border border-border bg-card">
-          <AuditoriaTabela itens={itens} carregando={carregando} />
+          <AuditoriaTabela
+            itens={itens}
+            carregando={carregando}
+            onVerDetalhes={setDetalheAberto}
+          />
           <Pagination
             page={page}
             totalItems={total}
@@ -82,6 +104,10 @@ export function AuditoriaPage() {
           />
         </div>
       )}
+      <AuditoriaDialogDetalhes
+        item={detalheAberto}
+        onOpenChange={(open) => !open && setDetalheAberto(null)}
+      />
     </main>
   );
 }

@@ -3,7 +3,6 @@
  * ex. pipeline). Ações de segurança (login_falha/login_bloqueado/
  * refresh_reuso_detectado) recebem destaque visual pra saltar aos olhos
  * sem alerta proativo (decisão do usuário: só visibilidade nesta rodada). */
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,36 +43,31 @@ function formatarQuando(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR");
 }
 
-function DetalhesCelula({ details }: { details: AuditoriaItem["details"] }) {
-  const [aberto, setAberto] = useState(false);
-  if (!details || Object.keys(details).length === 0) {
+function DetalhesCelula({
+  item,
+  onVerDetalhes,
+}: {
+  item: AuditoriaItem;
+  onVerDetalhes: (item: AuditoriaItem) => void;
+}) {
+  if (!item.details || Object.keys(item.details).length === 0) {
     return <span className="text-muted-foreground">—</span>;
   }
   return (
-    <div>
-      <Button variant="ghost" size="sm" onClick={() => setAberto(!aberto)}>
-        {aberto ? "Ocultar" : "Ver detalhes"}
-      </Button>
-      {aberto && (
-        <dl className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
-          {Object.entries(details).map(([chave, valor]) => (
-            <div key={chave} className="flex gap-1.5">
-              <dt className="font-medium">{chave}:</dt>
-              <dd className="break-all">{String(valor)}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </div>
+    <Button variant="ghost" size="sm" onClick={() => onVerDetalhes(item)}>
+      Ver detalhes
+    </Button>
   );
 }
 
 export function AuditoriaTabela({
   itens,
   carregando,
+  onVerDetalhes,
 }: {
   itens: AuditoriaItem[];
   carregando: boolean;
+  onVerDetalhes: (item: AuditoriaItem) => void;
 }) {
   return (
     <Table>
@@ -126,7 +120,7 @@ export function AuditoriaTabela({
               {item.entity_id !== null && ` #${item.entity_id}`}
             </TableCell>
             <TableCell>
-              <DetalhesCelula details={item.details} />
+              <DetalhesCelula item={item} onVerDetalhes={onVerDetalhes} />
             </TableCell>
           </TableRow>
         ))}
