@@ -76,9 +76,10 @@ uv run uvicorn app.main:app --reload
 `JWT_SECRET` é obrigatório e precisa ter pelo menos 32 caracteres — o boot
 falha (não só a primeira chamada de login) se estiver vazio/curto. Sessão usa
 cookie `HttpOnly`; como dev local roda em `http://` (não `https://`),
-descomente `COOKIE_SECURE=false` e `COOKIE_SAMESITE=lax` no `.env` — sem isso
-o cookie não vai/volta em http puro e o login "falha silenciosamente" (200 no
-`/auth/login`, mas `/auth/me` sempre 401). Ver comentário em `.env.example`.
+descomente `COOKIE_SECURE=false` no `.env` (o default `SameSite=Lax` já serve
+local) — sem isso o cookie não vai/volta em http puro e o login "falha
+silenciosamente" (200 no `/auth/login`, mas `/auth/me` sempre 401). Ver
+comentário em `.env.example`.
 Primeiro usuário: `uv run python scripts/criar_usuario.py --name "Nome"
 --email nome@org.gov.br --role admin` (ver `backend/README.md`).
 

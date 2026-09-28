@@ -15,6 +15,13 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
+      # A UI fala com a API por "/api" (proxy same-origin do Vercel, ver
+      # frontend/vercel.json) -- o cookie de refresh so' e reenviado se o
+      # Path bater com o que o BROWSER contata, nao com a rota que o
+      # backend recebe (rewrite reescreve so' no destino). Achado ao vivo
+      # 2026-09-28: sem isso a renovacao de sessao falhava com 401 sempre.
+      - key: REFRESH_COOKIE_PATH
+        value: /api/auth
       - key: NEW_RELIC_LICENSE_KEY
         sync: false
       - key: NEW_RELIC_APP_NAME
