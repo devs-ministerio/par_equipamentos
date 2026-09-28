@@ -51,13 +51,6 @@ export function UserMenu() {
           >
             Usuários
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => navigate("/admin/auditoria")}
-          >
-            Auditoria
-          </Button>
         </>
       )}
       <Button size="sm" variant="ghost" onClick={sairDaSessao}>

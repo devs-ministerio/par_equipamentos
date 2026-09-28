@@ -85,10 +85,11 @@ describe("service de instrumentos monitorados", () => {
       cnpj_convenente: "00000000000100",
       nome_convenente: "Hospital de teste",
       tipo_contratacao: "Convênio",
+      tecnico_titular_id: 7,
     };
 
     await criarInstrumento(criar);
-    await patchCadastroInstrumento("953749", { tecnico_titular: "Técnica" });
+    await patchCadastroInstrumento("953749", { tecnico_titular_id: 7 });
     await registrarEvento("953749", {
       marco_id: 2,
       data_ocorrencia: "2026-09-24",
@@ -108,7 +109,7 @@ describe("service de instrumentos monitorados", () => {
       "/monitoramento/instrumentos/953749",
       expect.anything(),
       "PATCH",
-      { tecnico_titular: "Técnica" },
+      { tecnico_titular_id: 7 },
     );
     expect(apiAuthed).toHaveBeenNthCalledWith(
       3,

@@ -183,6 +183,8 @@ class InstrumentoEquipamentoRead(BaseModel):
     natureza_servico: str | None
     tecnico_titular: str | None
     tecnico_suplente: str | None
+    tecnico_titular_id: int | None = None
+    tecnico_suplente_id: int | None = None
     nivel_monitoramento: str | None
     modalidade_onco: str | None
     # Responsavel tecnico da execucao NA INSTITUICAO/convenente -- achado
@@ -222,6 +224,15 @@ class InstrumentoEquipamentoRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ColaboradorMonitoramentoRead(BaseModel):
+    """Opção segura para atribuição: somente identidade e nome exibível."""
+
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class InstrumentoEquipamentoUpdate(BaseModel):
     """So os campos de cadastro que NENHUMA API publica tem (mesmo criterio
     do comentario em InstrumentoEquipamento no models.py) -- nunca
@@ -241,8 +252,8 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     equipamento_modelo: str | None = None
     equipamento_numero_serie: str | None = None
     equipamento_vida_util_anos: int | None = None
-    tecnico_titular: str | None = None
-    tecnico_suplente: str | None = None
+    tecnico_titular_id: int | None = None
+    tecnico_suplente_id: int | None = None
     nivel_monitoramento: str | None = None
     # Tipologia (dicionário fechado A/CV/C/EO/C.B/NA) -- editável aqui desde
     # Plan Mode monitoramento-evolucao 2026-09-19, que absorveu o antigo
@@ -258,6 +269,8 @@ class InstrumentoEquipamentoUpdate(BaseModel):
     # base de dados". Validado em `atualizar_cadastro` contra
     # CnesEstabelecimento (nunca texto livre) antes de aplicar.
     cnes: str | None = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class InstrumentoEquipamentoCreate(BaseModel):
@@ -281,8 +294,8 @@ class InstrumentoEquipamentoCreate(BaseModel):
     tp_instrumento_programa: str | None = None
     componente: str | None = None
     ano_instrumento: int | None = None
-    tecnico_titular: str | None = None
-    tecnico_suplente: str | None = None
+    tecnico_titular_id: int
+    tecnico_suplente_id: int | None = None
     nivel_monitoramento: str | None = None
     modalidade_onco: str | None = None
     responsavel_execucao_nome: str | None = None
@@ -293,6 +306,11 @@ class InstrumentoEquipamentoCreate(BaseModel):
     investimento_aquisicao: float | None = None
     situacao_programa: str | None = None
     natureza_servico: str | None = None
+    # Obrigatório apenas para a porta TransfereGov: o Service busca a fonte e
+    # decide se existe parceria confirmada; o browser nunca prova esse fato.
+    proposta_candidata_id: int | None = None
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class ValorSituacaoAoVivoRead(BaseModel):
@@ -492,9 +510,9 @@ def listar_instrumentos(
     + `repositories/monitoramento.py`; aqui só o mapeamento pro schema
     HTTP (`fase_atual`/`pode_editar` não são coluna, por isso o `model_copy`)."""
     itens = listar_instrumentos_monitorados(db=db, limit=limit)
-    responsaveis_por_instrumento = monitoramento_repo.mapear_responsaveis_por_instrumentos(
-        db, {item.instrumento.id for item in itens}
-    )
+    ids_instrumentos = {item.instrumento.id for item in itens}
+    responsaveis_por_instrumento = monitoramento_repo.mapear_responsaveis_por_instrumentos(db, ids_instrumentos)
+    responsaveis_com_papel = monitoramento_repo.mapear_responsaveis_com_papel_por_instrumentos(db, ids_instrumentos)
     return [
         InstrumentoEquipamentoRead.model_validate(item.instrumento).model_copy(
             update={
@@ -502,10 +520,21 @@ def listar_instrumentos(
                 "pode_editar": usuario_pode_editar_instrumento(
                     usuario, responsaveis_por_instrumento.get(item.instrumento.id, set())
                 ),
+                "tecnico_titular_id": responsaveis_com_papel.get(item.instrumento.id, {}).get("titular"),
+                "tecnico_suplente_id": responsaveis_com_papel.get(item.instrumento.id, {}).get("suplente"),
             }
         )
         for item in itens
     ]
+
+
+@router.get("/colaboradores", response_model=list[ColaboradorMonitoramentoRead])
+def listar_colaboradores(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_current_user),
+):
+    """Lista fechada para os selects de responsável do monitoramento."""
+    return monitoramento_repo.listar_colaboradores_ativos(db)
 
 
 @router.get("/instrumentos/{nr_convenio}", response_model=InstrumentoTimelineRead)
@@ -533,10 +562,17 @@ def obter_timeline(
     }
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
     ids_responsaveis = obter_ids_responsaveis_do_instrumento(db, timeline.instrumento.id)
+    responsaveis_com_papel = monitoramento_repo.mapear_responsaveis_com_papel_por_instrumentos(
+        db, {timeline.instrumento.id}
+    )
 
     return InstrumentoTimelineRead(
         instrumento=InstrumentoEquipamentoRead.model_validate(timeline.instrumento).model_copy(
-            update={"pode_editar": usuario_pode_editar_instrumento(usuario, ids_responsaveis)}
+            update={
+                "pode_editar": usuario_pode_editar_instrumento(usuario, ids_responsaveis),
+                "tecnico_titular_id": responsaveis_com_papel.get(timeline.instrumento.id, {}).get("titular"),
+                "tecnico_suplente_id": responsaveis_com_papel.get(timeline.instrumento.id, {}).get("suplente"),
+            }
         ),
         ao_vivo=ao_vivo,
         eventos=[_evento_read(e, nomes) for e in timeline.eventos],

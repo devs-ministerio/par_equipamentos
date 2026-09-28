@@ -1,14 +1,15 @@
 import type { ConvenioUnificado } from "@/types/monitoramento";
-import { normalizarTexto } from "@/utils/texto";
 import { nomePrioritarioCanonico } from "./equipamento-catalogo";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
 
 type EstadoFiltros = {
-  busca: string;
   uf: string | null;
+  municipio: string | null;
+  cnes: string | null;
   equipamento: string | null;
   situacao: string | null;
-  ano: string | null;
+  anoInicio: string | null;
+  anoFim: string | null;
   programa: string | null;
   tipoContratacao: string | null;
   soMonitorados: boolean;
@@ -29,6 +30,14 @@ export function filtrarDadosOficiais(
       return false;
     if (ignorar !== "uf" && estado.uf && item.uf !== estado.uf) return false;
     if (
+      ignorar !== "municipio" &&
+      estado.municipio &&
+      item.municipio !== estado.municipio
+    )
+      return false;
+    if (ignorar !== "cnes" && estado.cnes && item.cnes !== estado.cnes)
+      return false;
+    if (
       ignorar !== "equipamento" &&
       estado.equipamento &&
       !item.equipamentos.some(
@@ -45,9 +54,17 @@ export function filtrarDadosOficiais(
     )
       return false;
     if (
-      ignorar !== "ano" &&
-      estado.ano &&
-      item.numeroInstrumento?.split("/")[1] !== estado.ano
+      ignorar !== "anoInicio" &&
+      estado.anoInicio &&
+      (item.anoInstrumento === null ||
+        item.anoInstrumento < Number(estado.anoInicio))
+    )
+      return false;
+    if (
+      ignorar !== "anoFim" &&
+      estado.anoFim &&
+      (item.anoInstrumento === null ||
+        item.anoInstrumento > Number(estado.anoFim))
     )
       return false;
     if (
@@ -57,11 +74,6 @@ export function filtrarDadosOficiais(
     )
       return false;
     if (estado.soMonitorados && !monitorados.has(item.numero)) return false;
-    return (
-      !estado.busca ||
-      normalizarTexto(
-        `${item.numero} ${item.convenente.nome} ${item.convenente.cnpj ?? ""} ${item.cnes ?? ""} ${item.municipio} ${item.objeto}`,
-      ).includes(normalizarTexto(estado.busca))
-    );
+    return true;
   });
 }

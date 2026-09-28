@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from datetime import date
+from typing import cast
 
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_monitoramento
 from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
-from app.domain_errors import ConflictError, NotFoundError
+from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
+from app.repositories import propostas_candidatas as propostas_repo
+from app.services.monitoramento_eventos import substituir_responsaveis_instrumento
 
 
 @dataclass(frozen=True)
@@ -19,6 +23,7 @@ class NovoInstrumentoMonitorado:
     cnpj_convenente: str | None
     nome_convenente: str
     tipo_contratacao: str
+    tecnico_titular_id: int
     municipio: str | None = None
     uf: str | None = None
     cnes: str | None = None
@@ -26,8 +31,7 @@ class NovoInstrumentoMonitorado:
     tp_instrumento_programa: str | None = None
     componente: str | None = None
     ano_instrumento: int | None = None
-    tecnico_titular: str | None = None
-    tecnico_suplente: str | None = None
+    tecnico_suplente_id: int | None = None
     nivel_monitoramento: str | None = None
     modalidade_onco: str | None = None
     responsavel_execucao_nome: str | None = None
@@ -38,6 +42,47 @@ class NovoInstrumentoMonitorado:
     investimento_aquisicao: float | None = None
     situacao_programa: str | None = None
     natureza_servico: str | None = None
+    proposta_candidata_id: int | None = None
+
+
+def _valores_confiaveis_da_parceria(
+    dados: NovoInstrumentoMonitorado,
+    *,
+    db: Session,
+) -> dict[str, object]:
+    """Resolve no banco a única porta TransfereGov para monitoramento.
+
+    O browser fornece apenas a referência interna da proposta. Situação,
+    código da parceria e dados de identificação não são evidência confiável
+    quando enviados pelo cliente e por isso são sempre substituídos aqui.
+    """
+    valores = asdict(dados)
+    proposta_id = valores.pop("proposta_candidata_id")
+    if dados.tipo_contratacao != "Parceria TransfereGov":
+        if proposta_id is not None:
+            raise ValidationError("A referência de proposta só é aceita para Parceria TransfereGov.")
+        return valores
+
+    if proposta_id is None:
+        raise ValidationError("Informe a proposta confirmada para adicionar a parceria ao monitoramento.")
+    proposta = propostas_repo.obter_proposta_por_id(db, proposta_id)
+    if proposta is None:
+        raise NotFoundError("Proposta de financiamento não encontrada.")
+    if not proposta.tem_parceria or not proposta.cd_parceria:
+        raise ValidationError("Somente propostas com parceria confirmada podem entrar no monitoramento interno.")
+
+    valores.update(
+        nr_convenio=proposta.cd_parceria,
+        cnpj_convenente=proposta.cnpj_ente_recebedor,
+        nome_convenente=proposta.nm_proponente,
+        municipio=proposta.municipio,
+        uf=proposta.uf,
+        cnes=proposta.cnes,
+        programa=proposta.nm_programa,
+        componente=proposta.componente_batido,
+        ano_instrumento=proposta.data_proposta.year if proposta.data_proposta else None,
+    )
+    return valores
 
 
 def criar_instrumento_monitorado(
@@ -47,12 +92,34 @@ def criar_instrumento_monitorado(
     usuario: User,
 ) -> InstrumentoEquipamento:
     assert_pode_editar_monitoramento(usuario)
-    ja_existe = monitoramento_repo.obter_instrumento_por_nr_convenio(db, dados.nr_convenio)
+    valores = _valores_confiaveis_da_parceria(dados, db=db)
+    # PERSUS II só passa a integrar o recorte anual quando a equipe decide
+    # incluí-lo no monitoramento. A própria inclusão é a fonte desse ano.
+    if dados.tipo_contratacao == "PERSUS II" and valores["ano_instrumento"] is None:
+        valores["ano_instrumento"] = date.today().year
+        monitoramento_repo.preencher_ano_convenio_se_ausente(
+            db,
+            numero=str(valores["nr_convenio"]),
+            tipo_contratacao="PERSUS II",
+            ano=date.today().year,
+        )
+    nr_convenio = str(valores["nr_convenio"])
+    ja_existe = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if ja_existe is not None:
-        raise ConflictError(f"Já existe instrumento monitorado com nr_convenio={dados.nr_convenio}.")
+        raise ConflictError(f"Já existe instrumento monitorado com nr_convenio={nr_convenio}.")
 
-    instrumento = InstrumentoEquipamento(**asdict(dados))
+    titular_id = valores.pop("tecnico_titular_id")
+    suplente_id = valores.pop("tecnico_suplente_id")
+    instrumento = InstrumentoEquipamento(**valores)
     monitoramento_repo.adicionar_instrumento(db, instrumento)
+    # A relação é a fonte de verdade; os nomes são apenas o espelho legado
+    # preenchido pela função, nunca aceitos como entrada livre.
+    titular, suplente = substituir_responsaveis_instrumento(
+        db=db,
+        instrumento=instrumento,
+        titular_id=cast(int, titular_id),
+        suplente_id=cast(int | None, suplente_id),
+    )
     log_action(
         db,
         user_id=usuario.id,
@@ -60,9 +127,10 @@ def criar_instrumento_monitorado(
         entity_id=instrumento.id,
         action="created",
         details={
-            "nr_convenio": dados.nr_convenio,
+            "nr_convenio": instrumento.nr_convenio,
             "tipo_contratacao": dados.tipo_contratacao,
-            "tecnico_titular": dados.tecnico_titular,
+            "tecnico_titular_id": titular.id,
+            "tecnico_suplente_id": suplente.id if suplente is not None else None,
         },
     )
     db.commit()
@@ -93,22 +161,32 @@ def listar_instrumentos_monitorados(
     ufs: list[str] | None = None,
     municipio: str | None = None,
     cnes: str | None = None,
-    ano: int | None = None,
+    ano_inicio: int | None = None,
+    ano_fim: int | None = None,
     tipo_contratacao: str | None = None,
 ) -> list[InstrumentoComFase]:
     """`fase_atual` calculado (achado 2026-09-10, pedido do usuario: filtro
     de fase na Visao Geral) -- mesmo padrao de calculo de `obter_resumo`
     (marco de fase_geral de maior ordem com evento), so que aqui devolvido
-    POR instrumento em vez de agregado. ufs/municipio/cnes/ano/
-    tipo_contratacao sao filtros novos (Plan Mode relatorios 2026-09-25,
-    Blocos 2/4/7)."""
+    POR instrumento em vez de agregado. ufs/municipio/cnes/ano_inicio/
+    ano_fim/tipo_contratacao sao filtros novos (Plan Mode relatorios
+    2026-09-25, Blocos 2/4/7/8).
+
+    `ano_inicio`/`ano_fim` NAO vao pro repository (achado ao vivo, Bloco 8,
+    pedido do usuario: "instrumentos/programas em andamento devem sempre
+    aparecer quando solicitar o relatorio do ano de 2026") -- a regra so e
+    decidivel DEPOIS de calcular `fase_atual`: instrumento com
+    `ano_instrumento` fora do periodo pedido ainda entra se (a) o periodo
+    inclui o ano CORRENTE (generico, recalcula sozinho a cada ano -- nunca
+    hardcode de um ano especifico) e (b) a fase atual ainda nao e
+    "Concluido" (esta em andamento). Fora desse caso, filtra por periodo
+    normalmente."""
     instrumentos = monitoramento_repo.listar_instrumentos(
         db,
         limit=limit,
         ufs=ufs,
         municipio=municipio,
         cnes=cnes,
-        ano=ano,
         tipo_contratacao=tipo_contratacao,
     )
     fases_gerais_desc = monitoramento_repo.listar_marcos_fase_geral_desc(db)
@@ -120,6 +198,23 @@ def listar_instrumentos_monitorados(
         fase_atual_id = _fase_atual_id(fases_gerais_desc, eventos_por_instrumento.get(inst.id, set()))
         fase_atual = next((f.rotulo for f in fases_gerais_desc if f.id == fase_atual_id), "Não iniciado")
         resultado.append(InstrumentoComFase(instrumento=inst, fase_atual=fase_atual))
+
+    if ano_inicio is not None or ano_fim is not None:
+        hoje = date.today().year
+        periodo_inclui_hoje = (ano_inicio is None or ano_inicio <= hoje) and (ano_fim is None or hoje <= ano_fim)
+
+        def _no_periodo(ano: int | None) -> bool:
+            if ano is None:
+                return False
+            if ano_inicio is not None and ano < ano_inicio:
+                return False
+            return not (ano_fim is not None and ano > ano_fim)
+
+        resultado = [
+            r
+            for r in resultado
+            if _no_periodo(r.instrumento.ano_instrumento) or (periodo_inclui_hoje and r.fase_atual != "Concluído")
+        ]
     return resultado
 
 

@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { MonitoramentoOverviewLista } from "./monitoramento-overview-lista";
 
 describe("MonitoramentoOverviewLista", () => {
-  it("encontra instrumento monitorado pelo CNES", async () => {
+  it("exibe os instrumentos já recortados pela barra de filtros da página", () => {
     render(
       <MemoryRouter>
         <MonitoramentoOverviewLista
@@ -24,11 +23,6 @@ describe("MonitoramentoOverviewLista", () => {
           ]}
         />
       </MemoryRouter>,
-    );
-
-    await userEvent.type(
-      screen.getByPlaceholderText("Buscar convênio, convenente ou CNES..."),
-      "1234567",
     );
 
     expect(screen.getByRole("link", { name: "953749" })).toBeVisible();

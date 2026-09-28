@@ -86,15 +86,24 @@ export function useDadosOficiaisOpcoes({
 
   const anoOptions = useMemo(() => {
     const anos = new Set<string>();
-    for (const convenio of filtrar("ano")) {
-      const ano = convenio.numeroInstrumento?.split("/")[1];
-      if (ano) anos.add(ano);
+    for (const convenio of filtrar("anoInicio")) {
+      if (convenio.anoInstrumento !== null)
+        anos.add(String(convenio.anoInstrumento));
     }
     return [...anos]
       .sort()
       .reverse()
       .map((value) => ({ value, label: value }));
   }, [filtrar]);
+
+  const municipioOptions = useMemo(
+    () => opcoesComContagem(filtrar("municipio"), (item) => item.municipio),
+    [filtrar],
+  );
+  const cnesOptions = useMemo(
+    () => opcoesComContagem(filtrar("cnes"), (item) => item.cnes),
+    [filtrar],
+  );
 
   const situacaoOptions = useMemo(
     () => opcoesComContagem(filtrar("situacao"), situacaoExibida),
@@ -117,6 +126,8 @@ export function useDadosOficiaisOpcoes({
 
   return {
     ufs,
+    municipioOptions,
+    cnesOptions,
     equipamentoOptions,
     anoOptions,
     situacaoOptions,

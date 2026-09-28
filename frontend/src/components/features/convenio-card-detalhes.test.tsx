@@ -8,6 +8,7 @@ import { ConvenioCardHeader } from "./convenio-card-header";
 const convenioManual: ConvenioUnificado = {
   numero: "25000000145202506",
   numeroInstrumento: null,
+  anoInstrumento: null,
   objeto: "",
   situacao: "Em execução",
   situacaoPortal: "",

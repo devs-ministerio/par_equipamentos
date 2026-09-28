@@ -10,9 +10,9 @@ universo inteiro que bate o filtro, sem paginacao. Função solta com
 from __future__ import annotations
 
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
-from app.db.models import Convenio
+from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
 from app.pipeline.texto import normalizar_texto
 
 # Teto de seguranca do relatorio -- nao paginacao de UI (mesmo espirito do
@@ -27,10 +27,12 @@ def listar_convenios_filtrados(
     ufs: list[str] | None = None,
     municipio: str | None = None,
     cnes: str | None = None,
-    ano: int | None = None,
+    ano_inicio: int | None = None,
+    ano_fim: int | None = None,
     situacao: str | None = None,
     programa: str | None = None,
     tipo_contratacao: str | None = None,
+    equipamento: str | None = None,
     busca: str | None = None,
 ) -> list[Convenio]:
     # Município comparado em Python, não em SQL (achado ao vivo, Plan Mode
@@ -43,14 +45,27 @@ def listar_convenios_filtrados(
         stmt = stmt.where(Convenio.uf.in_(ufs))
     if cnes:
         stmt = stmt.where(Convenio.cnes == cnes)
-    if ano is not None:
-        stmt = stmt.where(Convenio.ano_instrumento == ano)
+    if ano_inicio is not None:
+        stmt = stmt.where(Convenio.ano_instrumento >= ano_inicio)
+    if ano_fim is not None:
+        stmt = stmt.where(Convenio.ano_instrumento <= ano_fim)
     if situacao:
         stmt = stmt.where(Convenio.situacao == situacao)
     if programa:
         stmt = stmt.where(Convenio.programa == programa)
     if tipo_contratacao:
         stmt = stmt.where(Convenio.tipo_contratacao == tipo_contratacao)
+    if equipamento:
+        catalogo_alvo = aliased(EquipamentoCatalogo)
+        stmt = stmt.where(
+            select(EquipamentoMarcador.id)
+            .join(catalogo_alvo, catalogo_alvo.id == EquipamentoMarcador.equipamento_catalogo_id)
+            .where(
+                EquipamentoMarcador.convenio_id == Convenio.id,
+                catalogo_alvo.nome == equipamento,
+            )
+            .exists()
+        )
     if busca:
         alvo = f"%{busca}%"
         stmt = stmt.where(

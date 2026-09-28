@@ -18,8 +18,12 @@
  * incluindo o CNES. */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
-import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
+import {
+  fetchColaboradoresMonitoramento,
+  type InstrumentoEquipamento,
+} from "@/services/monitoramento-instrumentos";
 import {
   cadastroInternoSchema,
   type CadastroInternoFormValues,
@@ -28,7 +32,6 @@ import {
   comValorAtual,
   MODALIDADES_ONCO,
   NIVEIS_MONITORAMENTO,
-  TECNICOS_EQUIPE,
 } from "@/lib/monitoramento-opcoes";
 import { TIPOLOGIA_PERSUS } from "@/data/constants";
 import { CnesPicker } from "@/components/common/cnes-picker";
@@ -39,16 +42,6 @@ const CAMPOS_SELECT: {
   rotulo: string;
   opcoes: string[];
 }[] = [
-  {
-    nome: "tecnicoTitular",
-    rotulo: "Técnico titular",
-    opcoes: TECNICOS_EQUIPE,
-  },
-  {
-    nome: "tecnicoSuplente",
-    rotulo: "Técnico suplente",
-    opcoes: TECNICOS_EQUIPE,
-  },
   {
     nome: "nivelMonitoramento",
     rotulo: "Nível de monitoramento",
@@ -63,8 +56,8 @@ function valoresIniciais(
   inst: InstrumentoEquipamento,
 ): CadastroInternoFormValues {
   return {
-    tecnicoTitular: inst.tecnico_titular ?? "",
-    tecnicoSuplente: inst.tecnico_suplente ?? "",
+    tecnicoTitular: inst.tecnico_titular_id?.toString() ?? "",
+    tecnicoSuplente: inst.tecnico_suplente_id?.toString() ?? "",
     nivelMonitoramento: inst.nivel_monitoramento ?? "",
     tipologia: inst.tipologia ?? "",
     modalidadeOnco: inst.modalidade_onco ?? "",
@@ -81,6 +74,10 @@ export function MonitoramentoInternoFormCadastro({
   instrumento: InstrumentoEquipamento;
   onSalvar: (valores: CadastroInternoFormValues) => Promise<void>;
 }) {
+  const colaboradoresQuery = useQuery({
+    queryKey: ["monitoramento", "colaboradores"],
+    queryFn: fetchColaboradoresMonitoramento,
+  });
   const {
     register,
     handleSubmit,
@@ -106,6 +103,35 @@ export function MonitoramentoInternoFormCadastro({
             onEscolher={(cnes) => setValue("cnes", cnes ?? "")}
           />
         </div>
+        {(["tecnicoTitular", "tecnicoSuplente"] as const).map((nome) => (
+          <div key={nome}>
+            <label
+              htmlFor={`cadastro-${nome}`}
+              className="text-[11px] text-muted-foreground block mb-1"
+            >
+              {nome === "tecnicoTitular"
+                ? "Técnico titular"
+                : "Técnico suplente"}
+            </label>
+            <select
+              id={`cadastro-${nome}`}
+              className={cn(estiloInput, "w-full bg-background")}
+              disabled={colaboradoresQuery.isLoading}
+              {...register(nome)}
+            >
+              <option value="">
+                {nome === "tecnicoTitular"
+                  ? "— Selecione o colaborador —"
+                  : "— Sem suplente —"}
+              </option>
+              {(colaboradoresQuery.data ?? []).map((colaborador) => (
+                <option key={colaborador.id} value={colaborador.id}>
+                  {colaborador.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
         {CAMPOS_SELECT.map(({ nome, rotulo, opcoes }) => (
           <div key={nome}>
             <label

@@ -15,6 +15,8 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMonitoramentoResumo } from "@/hooks/useMonitoramentoResumo";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
+import { useMonitoramentoInternoFiltros } from "@/hooks/use-monitoramento-interno-filtros";
+import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
 import {
   MonitoramentoOverviewLista,
   type InstrumentoResumo,
@@ -24,6 +26,8 @@ import { fmtData } from "@/lib/monitoramento-format";
 export function MonitoramentoOverviewPage() {
   const resumoQuery = useMonitoramentoResumo();
   const instrumentosQuery = useMonitoramentoInstrumentos();
+  const instrumentos = (instrumentosQuery.data ?? []) as InstrumentoResumo[];
+  const filtros = useMonitoramentoInternoFiltros(instrumentos);
 
   const header = (
     <PageHeader
@@ -66,7 +70,7 @@ export function MonitoramentoOverviewPage() {
   }
 
   const resumo = resumoQuery.data;
-  const instrumentos = instrumentosQuery.data as InstrumentoResumo[];
+  const instrumentosFiltrados = filtros.filtrados;
 
   // "Próxima inauguração" -- a mais próxima AINDA NÃO realizada E ainda no
   // futuro, ordenada por data (resumo.inauguracoes já vem ordenado por data
@@ -82,7 +86,7 @@ export function MonitoramentoOverviewPage() {
   // catálogo pro instrumento inteiro), não mais por
   // `situacao_prestacao_contas` (SICONV legado, só existia pra tipo_
   // contratacao="Convênio" -- FAF/TED/PERSUS nunca tinham esse dado).
-  const concluidos = instrumentos.filter(
+  const concluidos = instrumentosFiltrados.filter(
     (i) => i.fase_atual === "Concluído",
   ).length;
 
@@ -92,7 +96,7 @@ export function MonitoramentoOverviewPage() {
   // pode depender de preencher nível e demais dados de acompanhamento.
   // `tecnico_titular` null é o sinal mais direto de "ainda não
   // configurado" (primeiro campo que qualquer cadastro preenche).
-  const configuracaoPendente = instrumentos.filter(
+  const configuracaoPendente = instrumentosFiltrados.filter(
     (i) => !i.tecnico_titular,
   ).length;
 
@@ -104,6 +108,8 @@ export function MonitoramentoOverviewPage() {
         description="Entrega, instalação, licenciamento CNEN e inauguração."
       />
 
+      <MonitoramentoInternoFiltros filtros={filtros} />
+
       {/* Próxima inauguração mostra o detalhe disponível hoje (data/
           município/UF/equipamento). Instrumentos/Execução média saíram
           pra não duplicar os cards do cabeçalho acima. */}
@@ -113,7 +119,7 @@ export function MonitoramentoOverviewPage() {
             {
               key: "instrumentos",
               label: "Instrumentos",
-              value: resumo.total_instrumentos,
+              value: instrumentosFiltrados.length,
             },
             {
               key: "execucao",
@@ -153,7 +159,7 @@ export function MonitoramentoOverviewPage() {
         />
       </div>
 
-      <MonitoramentoOverviewLista instrumentos={instrumentos} />
+      <MonitoramentoOverviewLista instrumentos={instrumentosFiltrados} />
     </div>
   );
 }

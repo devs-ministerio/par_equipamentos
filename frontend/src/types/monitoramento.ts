@@ -127,6 +127,8 @@ export type EquipamentoMarcador = {
 export type ConvenioUnificado = {
   numero: string;
   numeroInstrumento: string | null;
+  /** Ano estruturado da fonte; nunca inferir do formato do identificador. */
+  anoInstrumento: number | null;
   objeto: string;
   /** Situação em destaque (StatusPill na camada 1) -- SICONV legado
    * (SIT_CONVENIO) quando disponível, senão cai pro Portal (achado

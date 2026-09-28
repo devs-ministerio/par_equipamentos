@@ -62,6 +62,7 @@ class ConvenioRead(BaseModel):
     municipio: str | None
     uf: str | None
     codigo_ibge: str | None
+    codigo_ibge_municipio: str | None
     regiao: str | None
     orgao: str | None
     unidade_gestora: str | None
@@ -133,6 +134,7 @@ CONVENIO_LIST_LOAD_ONLY = (
     Convenio.municipio,
     Convenio.uf,
     Convenio.codigo_ibge,
+    Convenio.codigo_ibge_municipio,
     Convenio.regiao,
     Convenio.orgao,
     Convenio.unidade_gestora,

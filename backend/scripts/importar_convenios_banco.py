@@ -215,11 +215,19 @@ def run() -> None:
             desembolsado = _num_ou_none(sc.get("VL_DESEMBOLSADO_CONV")) if sc else None
             contrapartida = _num_ou_none(sc.get("VL_CONTRAPARTIDA_CONV")) if sc else None
 
-            ano = None
             ni = p.get("numero_instrumento") or ""
             m = re.search(r"/(\d{4})", ni)
+            ano: int | None
             if m:
                 ano = int(m.group(1))
+            else:
+                # Alguns registros do Portal não trazem número de instrumento.
+                # Nesses casos, a publicação é a melhor data oficial disponível
+                # para manter o filtro anual completo, sem inventar vigência.
+                data_publicacao = _data_iso(p.get("data_publicacao")) or _data_siconv(
+                    sc.get("DIA_PUBL_CONV") if sc else None
+                )
+                ano = data_publicacao.year if data_publicacao else None
 
             cnes, metodo = resolver_cnes(db, p, planilha)
             if metodo:

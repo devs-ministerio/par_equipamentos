@@ -22,7 +22,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
-import { SearchInput } from "@/components/common/search-input";
+import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { SecaoPropostasCandidatas } from "@/components/features/secao-propostas-candidatas";
@@ -80,24 +80,26 @@ export function MonitoramentoEquipamentosPage() {
       searchParams.get("subaba") === "confirmada" ? "confirmada" : "tramitacao",
     );
   const {
-    busca,
-    setBusca,
     uf,
     setUf,
+    municipio,
+    setMunicipio,
+    cnes,
+    setCnes,
     equipamento,
     setEquipamento,
     classeEquipamento,
     setClasseEquipamento,
     situacao,
     setSituacao,
-    ano,
-    setAno,
+    anoInicio,
+    setAnoInicio,
+    anoFim,
+    setAnoFim,
     programa,
     setPrograma,
     tipoContratacao,
     setTipoContratacao,
-    soMonitorados,
-    setSoMonitorados,
     pagina,
     setPagina,
     hasFiltros,
@@ -136,20 +138,20 @@ export function MonitoramentoEquipamentosPage() {
   // as opções de um seletor, ele é o único critério temporariamente omitido;
   // todos os demais permanecem ativos.
   const filtrarConvenios = useCallback(
-    (
-      ignorar?: "uf" | "equipamento" | "situacao" | "ano" | "programa" | "tipo",
-    ) => {
+    (ignorar?: import("@/types/dados-oficiais").FiltroDadosOficiais) => {
       return filtrarDadosOficiais(
         convenios ?? [],
         {
-          busca,
           uf,
+          municipio,
+          cnes,
           equipamento,
           situacao,
-          ano,
+          anoInicio,
+          anoFim,
           programa,
           tipoContratacao,
-          soMonitorados,
+          soMonitorados: false,
         },
         monitorados,
         situacaoExibida,
@@ -157,15 +159,16 @@ export function MonitoramentoEquipamentosPage() {
       );
     },
     [
-      ano,
-      busca,
+      anoInicio,
+      anoFim,
+      cnes,
       convenios,
       equipamento,
+      municipio,
       monitorados,
       programa,
       situacao,
       situacaoExibida,
-      soMonitorados,
       tipoContratacao,
       uf,
     ],
@@ -173,6 +176,8 @@ export function MonitoramentoEquipamentosPage() {
 
   const {
     ufs,
+    municipioOptions,
+    cnesOptions,
     equipamentoOptions,
     anoOptions,
     situacaoOptions,
@@ -251,44 +256,47 @@ export function MonitoramentoEquipamentosPage() {
                 valorGlobal={totalGlobal}
                 desembolsado={totalDesembolsado}
                 equipamentos={totalEquipamentos}
-                soMonitorados={soMonitorados}
-                onToggleMonitorados={() => setSoMonitorados((valor) => !valor)}
               />
 
-              {/* Busca + 6 filtro precisam caber numa linha so (pedido do
-                  usuario 2026-09-09) -- larguras reduzidas na proporcao
-                  certa pra somar <1200px (cabe dentro do maxWidth de 1400
-                  menos padding). wrap continua ligado so como rede de
-                  seguranca pra janela bem estreita, nao pro uso normal. */}
               <DadosOficiaisFiltros
                 ativos={hasFiltros}
                 onLimpar={limparFiltros}
                 contagem={`${filtrados.length} de ${convenios.length} instrumentos`}
               >
-                <SearchInput
-                  value={busca}
-                  onChange={setBusca}
-                  placeholder="Buscar por convenente, município, número, CNPJ ou CNES..."
-                  width={190}
-                />
                 <SingleSelectFilter
                   placeholder="Tipo de contratação"
                   options={tipoContratacaoOptions}
                   value={tipoContratacao}
                   onChange={setTipoContratacao}
-                  clearLabel="Todos os tipos"
+                  clearLabel="Tipo de contratação"
                   minWidth={120}
                 />
                 <SingleSelectFilter
-                  placeholder="Todas as UFs"
+                  placeholder="UF"
                   options={ufs}
                   value={uf}
                   onChange={setUf}
-                  clearLabel="Todas as UFs"
+                  clearLabel="UF"
                   minWidth={100}
                 />
                 <SingleSelectFilter
-                  placeholder="Categoria do equipamento"
+                  placeholder="CNES"
+                  options={cnesOptions}
+                  value={cnes}
+                  onChange={setCnes}
+                  clearLabel="CNES"
+                  minWidth={120}
+                />
+                <SingleSelectFilter
+                  placeholder="Município"
+                  options={municipioOptions}
+                  value={municipio}
+                  onChange={setMunicipio}
+                  clearLabel="Município"
+                  minWidth={150}
+                />
+                <SingleSelectFilter
+                  placeholder="Prioritário"
                   options={[
                     { value: "prioritario", label: "Prioritários" },
                     { value: "outro", label: "Outros identificados" },
@@ -303,36 +311,35 @@ export function MonitoramentoEquipamentosPage() {
                   minWidth={160}
                 />
                 <SingleSelectFilter
-                  placeholder="Todos os equipamentos"
+                  placeholder="Equipamento"
                   options={equipamentoOptions}
                   value={equipamento}
                   onChange={setEquipamento}
-                  clearLabel="Todos os equipamentos"
+                  clearLabel="Equipamento"
                   minWidth={150}
                 />
                 <SingleSelectFilter
-                  placeholder="Todas as situações"
+                  placeholder="Situação"
                   options={situacaoOptions}
                   value={situacao}
                   onChange={setSituacao}
-                  clearLabel="Todas as situações"
+                  clearLabel="Situação"
                   minWidth={150}
                 />
                 <SingleSelectFilter
-                  placeholder="Ano da proposta"
-                  options={anoOptions}
-                  value={ano}
-                  onChange={setAno}
-                  clearLabel="Todos os anos"
-                  minWidth={110}
-                />
-                <SingleSelectFilter
-                  placeholder="Todos os programas"
+                  placeholder="Programas"
                   options={programaOptions}
                   value={programa}
                   onChange={setPrograma}
-                  clearLabel="Todos os programas"
+                  clearLabel="Programas"
                   minWidth={160}
+                />
+                <AnoIntervaloFilter
+                  options={anoOptions}
+                  inicio={anoInicio}
+                  fim={anoFim}
+                  onInicioChange={setAnoInicio}
+                  onFimChange={setAnoFim}
                 />
               </DadosOficiaisFiltros>
 

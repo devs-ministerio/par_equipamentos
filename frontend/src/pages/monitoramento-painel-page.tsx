@@ -7,7 +7,9 @@ import { useMonitoramentoResumo } from "@/hooks/useMonitoramentoResumo";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
 import { useMonitoramentoMarcos } from "@/hooks/useMonitoramentoMarcos";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
+import { useMonitoramentoInternoFiltros } from "@/hooks/use-monitoramento-interno-filtros";
 import { normalizarTexto } from "@/utils/texto";
+import { nomePrioritarioCanonico } from "@/lib/equipamento-catalogo";
 import { fmtMoeda } from "@/lib/monitoramento-format";
 import type { ContagemRotulo } from "@/services/monitoramento-resumo";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
@@ -18,41 +20,28 @@ import {
   MetricasExecutivas,
   PainelSecao,
 } from "@/components/features/monitoramento-painel-visuals";
+import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
 
-type InstrumentoPainel = Pick<
-  InstrumentoEquipamento,
-  | "nr_convenio"
-  | "uf"
-  | "componente"
-  | "tipo_contratacao"
-  | "equipamento_descricao"
-  | "tecnico_titular"
->;
+type InstrumentoPainel = InstrumentoEquipamento;
 
 function extrairFamiliaEquipamento(descricao: string | null): string {
   if (!descricao) return "Não informado";
+  const prioritario = nomePrioritarioCanonico(descricao);
+  if (prioritario) return prioritario;
   const texto = normalizarTexto(descricao);
-  if (texto.includes("acelerador linear")) return "Acelerador Linear";
-  if (texto.includes("mamograf")) return "Mamógrafo";
-  if (texto.includes("pet") && texto.includes("ct")) return "PET-CT";
   if (texto.includes("tomograf")) return "Tomógrafo";
   if (texto.includes("ressonancia")) return "Ressonância Magnética";
   if (texto.includes("ultrasson") || texto.includes("ultrasom"))
     return "Ultrassom";
-  if (texto.includes("braquiterapia")) return "Braquiterapia";
   if (texto.includes("endoscopia")) return "Endoscopia";
-  if (
-    texto.includes("cintilograf") ||
-    texto.includes("gama camara") ||
-    texto.includes("gama probe")
-  )
+  if (texto.includes("cintilograf") || texto.includes("gama probe"))
     return "Medicina Nuclear";
   return "Outro";
 }
 
 function contarPor(
   instrumentos: InstrumentoPainel[],
-  campo: "uf" | "componente" | "tipo_contratacao",
+  campo: "uf" | "componente" | "tipo_contratacao" | "tecnico_titular",
 ): ContagemRotulo[] {
   const contagem = new Map<string, number>();
   for (const instrumento of instrumentos) {
@@ -69,14 +58,6 @@ const header = (
     eyebrow="Monitoramento interno"
     title="Painel de gestão"
     description="Execução, riscos e próximos marcos do acompanhamento pós-repasse."
-    actions={
-      <Link
-        to="/monitoramento-equipamentos/instrumentos"
-        className="text-sm font-semibold text-primary"
-      >
-        Abrir mesa de trabalho →
-      </Link>
-    }
   />
 );
 
@@ -89,6 +70,7 @@ export function MonitoramentoPainelPage() {
   const instrumentos = instrumentosQuery.data as
     | InstrumentoPainel[]
     | undefined;
+  const filtros = useMonitoramentoInternoFiltros(instrumentos ?? []);
   const marcos = marcosQuery.data;
   const convenios = conveniosQuery.data?.itens;
 
@@ -125,21 +107,28 @@ export function MonitoramentoPainelPage() {
     );
   }
 
+  const instrumentosFiltrados = filtros.filtrados;
+  const numerosFiltrados = new Set(
+    instrumentosFiltrados.map((item) => item.nr_convenio),
+  );
+
   const conveniosPorNumero = new Map(
     convenios.map((item) => [item.numero, item]),
   );
   let valorGlobal = 0;
   let valorPago = 0;
-  for (const numero of resumo.nr_convenios) {
+  for (const numero of numerosFiltrados) {
     const convenio = conveniosPorNumero.get(numero);
     if (!convenio) continue;
     valorGlobal += convenio.financeiro.global ?? 0;
     valorPago += convenio.valorPagoFornecedor ?? 0;
   }
   const percentualPago = valorGlobal > 0 ? valorPago / valorGlobal : null;
-  const fasesPorRotulo = new Map(
-    resumo.distribuicao_fase.map((item) => [item.rotulo, item.quantidade]),
-  );
+  const fasesPorRotulo = new Map<string, number>();
+  for (const instrumento of instrumentosFiltrados) {
+    const fase = instrumento.fase_atual ?? "Não iniciado";
+    fasesPorRotulo.set(fase, (fasesPorRotulo.get(fase) ?? 0) + 1);
+  }
   const fases = [
     {
       rotulo: "Não iniciado",
@@ -156,19 +145,30 @@ export function MonitoramentoPainelPage() {
         quantidade: fasesPorRotulo.get(marco.rotulo) ?? 0,
       })),
   ];
-  const semTecnico = instrumentos.filter(
+  const semTecnico = instrumentosFiltrados.filter(
     (item) => !item.tecnico_titular,
   ).length;
-  const inauguracoesAtrasadas = resumo.inauguracoes.filter(
+  const inauguracoesFiltradas = resumo.inauguracoes.filter((item) =>
+    numerosFiltrados.has(item.nr_convenio),
+  );
+  const licencasFiltradas = resumo.licencas_vencendo.filter((item) =>
+    numerosFiltrados.has(item.nr_convenio),
+  );
+  const divergenciasFiltradas = resumo.divergencias_conclusao.filter((item) =>
+    numerosFiltrados.has(item.nr_convenio),
+  );
+  const inauguracoesAtrasadas = inauguracoesFiltradas.filter(
     (item) => !item.realizada && item.dias < 0,
   ).length;
-  const licencasCriticas = resumo.licencas_vencendo.filter(
+  const licencasCriticas = licencasFiltradas.filter(
     (item) => item.dias < 90,
   ).length;
   const alertas =
-    resumo.acoes_atrasadas + inauguracoesAtrasadas + licencasCriticas;
+    (filtros.hasFiltros ? 0 : resumo.acoes_atrasadas) +
+    inauguracoesAtrasadas +
+    licencasCriticas;
   const equipamentos = new Map<string, number>();
-  for (const instrumento of instrumentos) {
+  for (const instrumento of instrumentosFiltrados) {
     const familia = extrairFamiliaEquipamento(
       instrumento.equipamento_descricao,
     );
@@ -177,8 +177,16 @@ export function MonitoramentoPainelPage() {
   const porEquipamento = [...equipamentos.entries()]
     .map(([rotulo, quantidade]) => ({ rotulo, quantidade }))
     .sort((a, b) => b.quantidade - a.quantidade);
-  const divergenciasPorFonte = resumo.divergencias_conclusao_por_fonte
-    .map((item) => `${item.rotulo}: ${item.quantidade}`)
+  const divergenciasPorFonte = [
+    ...divergenciasFiltradas
+      .reduce((contagem, item) => {
+        const fonte = item.fonte_externa;
+        contagem.set(fonte, (contagem.get(fonte) ?? 0) + 1);
+        return contagem;
+      }, new Map<string, number>())
+      .entries(),
+  ]
+    .map(([fonte, quantidade]) => `${fonte}: ${quantidade}`)
     .join(" · ");
 
   return (
@@ -187,20 +195,13 @@ export function MonitoramentoPainelPage() {
         eyebrow="Monitoramento interno"
         title="Painel de gestão"
         description="Execução, riscos e próximos marcos do acompanhamento pós-repasse."
-        actions={
-          <Link
-            to="/monitoramento-equipamentos/instrumentos"
-            className="text-sm font-semibold text-primary"
-          >
-            Abrir mesa de trabalho →
-          </Link>
-        }
       />
+      <MonitoramentoInternoFiltros filtros={filtros} />
       <MetricasExecutivas
         itens={[
           {
             rotulo: "Instrumentos",
-            valor: resumo.total_instrumentos,
+            valor: instrumentosFiltrados.length,
             detalhe: `${fasesPorRotulo.get("Concluído") ?? 0} em fase concluída`,
           },
           {
@@ -208,7 +209,9 @@ export function MonitoramentoPainelPage() {
             valor:
               resumo.pct_execucao_fisica_medio == null
                 ? "—"
-                : `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%`,
+                : filtros.hasFiltros
+                  ? "—"
+                  : `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%`,
             detalhe: "Avanço médio dos marcos",
           },
           {
@@ -219,12 +222,9 @@ export function MonitoramentoPainelPage() {
           },
           {
             rotulo: "Pontos de atenção",
-            valor: alertas + resumo.divergencias_conclusao.length,
-            detalhe: `${resumo.acoes_atrasadas} ações · ${licencasCriticas} licenças · ${inauguracoesAtrasadas} inaugurações · ${resumo.divergencias_conclusao.length} conclusões externas`,
-            tom:
-              alertas + resumo.divergencias_conclusao.length > 0
-                ? "alerta"
-                : "ok",
+            valor: alertas + divergenciasFiltradas.length,
+            detalhe: `${filtros.hasFiltros ? "—" : resumo.acoes_atrasadas} ações · ${licencasCriticas} licenças · ${inauguracoesAtrasadas} inaugurações · ${divergenciasFiltradas.length} conclusões externas`,
+            tom: alertas + divergenciasFiltradas.length > 0 ? "alerta" : "ok",
           },
         ]}
       />
@@ -237,7 +237,7 @@ export function MonitoramentoPainelPage() {
           >
             <DistribuicaoHorizontal
               itens={fases}
-              total={resumo.total_instrumentos}
+              total={instrumentosFiltrados.length}
             />
           </PainelSecao>
           <PainelSecao
@@ -247,11 +247,11 @@ export function MonitoramentoPainelPage() {
               "Concluído internamente, pendente na fonte externa"
             }
           >
-            <DivergenciasConclusao itens={resumo.divergencias_conclusao} />
+            <DivergenciasConclusao itens={divergenciasFiltradas} />
           </PainelSecao>
           <PainelSecao
             titulo="Composição da carteira"
-            apoio={`${resumo.total_instrumentos} instrumentos monitorados`}
+            apoio={`${instrumentosFiltrados.length} instrumentos monitorados`}
           >
             <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
               <div>
@@ -265,7 +265,7 @@ export function MonitoramentoPainelPage() {
                   Por UF
                 </h3>
                 <DistribuicaoHorizontal
-                  itens={contarPor(instrumentos, "uf")}
+                  itens={contarPor(instrumentosFiltrados, "uf")}
                   limite={7}
                 />
               </div>
@@ -274,7 +274,7 @@ export function MonitoramentoPainelPage() {
                   Por contratação
                 </h3>
                 <DistribuicaoHorizontal
-                  itens={contarPor(instrumentos, "tipo_contratacao")}
+                  itens={contarPor(instrumentosFiltrados, "tipo_contratacao")}
                   limite={5}
                 />
               </div>
@@ -283,7 +283,7 @@ export function MonitoramentoPainelPage() {
                   Por técnico titular
                 </h3>
                 <DistribuicaoHorizontal
-                  itens={resumo.por_tecnico_titular}
+                  itens={contarPor(instrumentosFiltrados, "tecnico_titular")}
                   limite={6}
                 />
               </div>
@@ -294,8 +294,8 @@ export function MonitoramentoPainelPage() {
         <aside className="grid content-start gap-8">
           <PainelSecao titulo="Agenda crítica" apoio="Prazos mais próximos">
             <AgendaExecutiva
-              inauguracoes={resumo.inauguracoes}
-              licencas={resumo.licencas_vencendo}
+              inauguracoes={inauguracoesFiltradas}
+              licencas={licencasFiltradas}
             />
           </PainelSecao>
           <PainelSecao titulo="Qualidade do acompanhamento">
@@ -310,12 +310,16 @@ export function MonitoramentoPainelPage() {
               </div>
               <div className="flex items-center justify-between py-3 text-sm">
                 <span>Ações pendentes</span>
-                <strong>{resumo.acoes_pendentes}</strong>
+                <strong>
+                  {filtros.hasFiltros ? "—" : resumo.acoes_pendentes}
+                </strong>
               </div>
               <div className="flex items-center justify-between py-3 text-sm">
                 <span>Licenças CNEN deferidas</span>
                 <strong>
-                  {resumo.licencas_cnen_deferidas}/{resumo.total_instrumentos}
+                  {filtros.hasFiltros
+                    ? "—"
+                    : `${resumo.licencas_cnen_deferidas}/${resumo.total_instrumentos}`}
                 </strong>
               </div>
             </div>

@@ -14,7 +14,7 @@ export const loginSchema = z.object({
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const cadastroInternoSchema = z.object({
-  tecnicoTitular: z.string().optional(),
+  tecnicoTitular: z.string().min(1, "Selecione o técnico titular responsável."),
   tecnicoSuplente: z.string().optional(),
   nivelMonitoramento: z.string().optional(),
   tipologia: z.string().optional(),

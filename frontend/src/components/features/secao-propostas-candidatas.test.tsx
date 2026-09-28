@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { SecaoPropostasCandidatas } from "./secao-propostas-candidatas";
 
 vi.mock("@/hooks/use-propostas-candidatas", () => ({
@@ -45,16 +44,12 @@ vi.mock("./proposta-card", () => ({
 }));
 
 describe("SecaoPropostasCandidatas", () => {
-  it("encontra repasse pelo CNES", async () => {
+  it("não expõe CNES em tramitação", () => {
     render(<SecaoPropostasCandidatas modo="tramitacao" />);
 
-    await userEvent.type(
-      screen.getByPlaceholderText(
-        "Buscar por proponente, município, CNPJ ou CNES...",
-      ),
-      "7654321",
-    );
-
+    expect(
+      screen.queryByRole("button", { name: /cnes/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Proposta 123")).toBeVisible();
   });
 });
