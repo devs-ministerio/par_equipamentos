@@ -29,6 +29,15 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from app.db.base import SessionLocal
 from app.db.models import CnesEstabelecimento, Convenio
 from app.equipamentos import classificar_descricoes, extrair_descricoes
+
+# Achado ao vivo 2026-09-27 (usuário, convênio 922037 -- "valor global
+# quebrado do portal"): esta função era uma cópia local que fazia
+# `float(v)` direto, sem tratar vírgula decimal do SICONV bulk (ex.
+# "VL_GLOBAL_CONV": "5928266,99" estourava `ValueError`, o campo virava
+# `None` silenciosamente e o import caía pro Portal da Transparência, que
+# pra 3 convênios tinha um valor ~10.000x menor). Consolidado no parser
+# único (havia 3 cópias quase idênticas entre scripts/services).
+from app.pipeline.texto import parsear_valor_brasileiro as _num_ou_none
 from app.repositories.equipamento_marcadores import OrigemMarcador, catalogo_por_codigo
 from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
 
@@ -61,15 +70,6 @@ def _norm(s) -> str:
 
 def _norm_cnpj(s) -> str:
     return re.sub(r"\D", "", s or "")
-
-
-def _num_ou_none(v) -> float | None:
-    if v in (None, ""):
-        return None
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return None
 
 
 def _data_siconv(v: str | None) -> date | None:

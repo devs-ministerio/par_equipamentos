@@ -969,6 +969,56 @@ class InstrumentoEquipamento(Base):
     # comentario acima). None quando ainda nao ha nenhuma ordem de
     # pagamento emitida.
     situacao_ordem_pagamento_transferegov: Mapped[str | None] = mapped_column(String)
+    # Split obra/equipamento (achado 2026-09-27, usuário: "acredito que
+    # temos valores para obra, reforma e equipamento" na ingestão manual do
+    # PERSUS) -- a aba "Obras" de `data/Controle PERSUS.xlsx` publica "R$
+    # Projeto + reajuste" (obra/reforma) e "R$ Equipamento" separados, mas
+    # só o TOTAL (`investimento_aquisicao`, de `Convenio.valor_global`) era
+    # gravado -- o split nunca tinha sido lido por
+    # `scripts/complementar_persus_monitoramento.py`. Nulo pra instrumento
+    # sem essa aba (Convênio/FAF/TED, ou PERSUS sem obra casada na
+    # planilha) -- nunca preenchido por soma/estimativa.
+    valor_obra: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    valor_equipamento: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PagamentoObraPersus(Base):
+    """Pagamento individual da OBRA (empreiteira/construtora) OU da
+    FISCALIZAÇÃO do PERSUS -- achado ao vivo 2026-09-27 (usuário: "no itens
+    dl e no pagamentos ao fornecedor tem info do equipamento individual" +
+    pedido de ligar TODOS os dados disponíveis). Fonte: abas "Pagamentos"
+    (`tipo="obra"`, casada pelo código da obra "Cod.") e "Fiscalização"
+    (`tipo="fiscalizacao"`, casada por nome do convenente + UF, fuzzy
+    restrito a candidato único) de `data/Controle PERSUS.xlsx`.
+
+    Lista append-only (1 pagamento pode se repetir por obra ao longo do
+    tempo) -- nunca UPDATE, só INSERT; reimport (carga controlada, não
+    sincronização) deduplica por `chave_origem` antes de inserir de novo."""
+
+    __tablename__ = "pagamento_obra_persus"
+    __table_args__ = (
+        UniqueConstraint("chave_origem", name="uq_pagamento_obra_persus_chave_origem"),
+        Index("idx_pagamento_obra_persus_instrumento", "instrumento_id"),
+        CheckConstraint("tipo IN ('obra', 'fiscalizacao')", name="ck_pagamento_obra_persus_tipo"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String, nullable=False, server_default="obra")
+    codigo_obra: Mapped[str | None] = mapped_column(String)
+    nup_pagamento: Mapped[str | None] = mapped_column(String)
+    fornecedor_nome: Mapped[str | None] = mapped_column(String)
+    fornecedor_cnpj: Mapped[str | None] = mapped_column(String)
+    data_nota_fiscal: Mapped[date | None] = mapped_column(Date)
+    data_pagamento: Mapped[date | None] = mapped_column(Date)
+    valor: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    origem_dado: Mapped[str | None] = mapped_column(String)
+    # Hash determinístico da linha de origem -- evita duplicar o mesmo
+    # pagamento se o script rodar de novo sobre a mesma planilha.
+    chave_origem: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

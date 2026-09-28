@@ -1132,6 +1132,60 @@ Ministério da Saúde/SAES/DECAN/CGPCAN + aviso "gerado automaticamente"); no Ex
 - `jspdf`/`jspdf-autotable`/`exceljs` **removidos** (export client-side antigo, `export-{pdf,xlsx}-
   modal.tsx`/`utils/export-{pdf,xlsx}.ts`/`hooks/useRelatoriosDados.ts`, sem outro consumidor).
 
+## Complementação PERSUS I com fontes extras (2026-09-27)
+
+Auditoria pedida pelo usuário ("nós usamos tudo que tem na planilha?") achou 4 fontes de dado do
+PERSUS I nunca lidas por nenhum script existente: aba "Pagamentos" e "Fiscalização" de `data/
+Controle PERSUS.xlsx`, aba "Entregas CONVÊNIO" de `data/Entregas_aceleradores_lineares_PERSUS_
+PRONON_CONV.xlsx`, e `docs/monitoramento-equipamentos/Apresentação PER-SUS.xlsx` (datas de
+licença que resolveram os últimos instrumentos sem data de conclusão). Resultado depois de
+ingerir as 4: **92/92 convênios PERSUS I monitorados** (87 Concluído, 3 Comissionamento, 1
+Equipamento entregue, 1 Em andamento) — antes desta rodada vários ainda dependiam de dado nunca
+lido. Trabalho formalizado em `backend/scripts/complementar_persus_fontes_extras.py` (idempotente,
+`--dry-run`, mesmo padrão de `complementar_persus_monitoramento.py`) — nada ficou em script
+descartável de `/tmp`.
+
+- **Regra de fase confirmada com o usuário**: "Concluído" vem da data de **inauguração real**
+  (`cronograma_previsao_inauguracao` com `data_ocorrencia` preenchida, não só `data_prevista`) ou,
+  quando a fonte confirma inauguração mas só tem data de licença, a **Licença de Operação** mais
+  recente serve de proxy. **TRD (Termo de Recebimento Definitivo) nunca deriva "Concluído"** — só
+  avança até `fase_equipamento_entregue` (`_MAPA_MARCO_FASE` em
+  `complementar_persus_fontes_extras.py`). Erro já cometido e corrigido nesta mesma rodada.
+- **PERSUS II segue com 0/50 no monitoramento interno, por desenho** — confirmado que os 50
+  convênios têm `situacao="Em contratação"` sem exceção (ainda não repassados). `app/services/
+  relatorios.py::_secao_monitoramento_interno` mostra nota explicativa ("ainda em fase de
+  contratação") em vez de omitir a seção ou fabricar dado — mesma lógica no Resumo Executivo
+  quando todo o recorte é PERSUS II.
+- **`PagamentoObraPersus`** (`app/db/models.py`, tabela `pagamento_obra_persus`, migration
+  `b2c3d4e5f6a7`) — nova, registra pagamento por NF a empreiteira (`tipo='obra'`, aba
+  "Pagamentos") ou fiscalização de obra (`tipo='fiscalizacao'`, aba "Fiscalização"), FK pra
+  `instrumento_equipamento`, `chave_origem` único (idempotência de reimportação). Estado real:
+  110 `obra` + 94 `fiscalizacao`. `InstrumentoEquipamento.valor_obra`/`valor_equipamento`
+  (migration `a1b2c3d4e5f6`) vêm da aba "Obras" do mesmo arquivo, preenchidos só quando o campo
+  ainda estava `None` (nunca sobrescreve correção manual anterior).
+- **Matching de nome de hospital** (`_melhor_candidato_por_nome`, testado em
+  `tests/test_complementar_persus_fontes_extras.py`): nome+UF exato → substring em qualquer
+  direção → `difflib.SequenceMatcher` (score ≥0.75 e folga ≥0.05 sobre o 2º colocado) →
+  desempate de ambiguidade por `tipologia` e depois por `valor_global` quando o nome exato bate em
+  mais de 1 convênio (caso real: "Casa de Saúde Santa Marcelina", 2 convênios mesmo CNES,
+  tipologia A/EO). `uf=None` busca o universo inteiro — necessário pra aba "Fiscalização", que não
+  tem coluna de UF. **Nunca usar o "Cod."/id da planilha como chave de match sem validação
+  independente** (UF + nome) — decisão do usuário depois de um match por id de planilha ter
+  passado sem essa checagem numa rodada anterior.
+- **DDL aplicado fora do `alembic upgrade head`** (mesmo motivo já documentado em "Neon de
+  homologação" — cadeia trava em `488a535a0b5e`, sem relação com esta mudança): `a1b2c3d4e5f6`/
+  `b2c3d4e5f6a7` escritas como `ADD COLUMN IF NOT EXISTS`/`CREATE TABLE IF NOT EXISTS`, aplicadas
+  manualmente via `DATABASE_URL_MIGRATION`, seguras para rodar de novo quando a cadeia for
+  destravada.
+- **Parser de valor em Real consolidado**: 3 cópias quase idênticas (`importar_convenios_banco.py`
+  `scripts/complementar_persus_monitoramento.py`, `app/services/relatorios.py`) viraram uma só,
+  `app/pipeline/texto.py::parsear_valor_brasileiro` (testado em `tests/test_pipeline_texto.py`) —
+  achado ao vivo: `float("5928266,99")` (formato do convênio 922037, sem separador de milhar)
+  estourava `ValueError` numa das cópias, caindo num fallback silencioso errado.
+- **Plan Mode não foi reaberto pra esta mudança de schema** (tabela nova + 2 colunas) — gap de
+  processo reconhecido depois do fato, em auditoria de conformidade pedida pelo próprio usuário;
+  registrado aqui em vez de silenciado, sem retroagir.
+
 ## Comandos úteis
 
 ```bash
