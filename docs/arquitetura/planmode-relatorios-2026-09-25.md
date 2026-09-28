@@ -287,4 +287,115 @@ Bloco 4), 74 linhas de timeline de monitoramento, blocos narrativos completos no
     quando existe; filtro compara `normalizarTexto(campo) === chave` em vez de igualdade exata.
     `tsc --noEmit`/`oxlint`/`vitest run` (113/113)/`vite build` limpos.
 
-**Status**: Blocos 1-7 concluídos. Plan Mode fechado.
+- **Bloco 8 — CONCLUÍDO (2026-09-26)**: auditoria sênior ao vivo no navegador (pedido do usuário:
+  "valide 100% de tudo que aplicou na página relatórios") achou 5 bugs/refinos reais que os Blocos
+  1-7 não cobriam, todos corrigidos na mesma rodada:
+  - **Filtros não cascateavam entre si**: `município`/`CNES`/`Estabelecimento` viviam fora da
+    cascata de `useDadosOficiaisOpcoes` -- não estreitavam nem eram estreitados pelos demais
+    seletores (ex.: selecionar Equipamento não estreitava Município, e selecionar Município não
+    estreitava CNES/Estabelecimento). `monitoramento-relatorios-page.tsx` ganhou `filtrarTudo`
+    (função única, `ignorarDO`/`ignorarExtra` cobrindo os 2 grupos de filtro), substituindo
+    `filtrarConvenios`/`conveniosBase` separados -- mesmo princípio de "cada seletor ignora só o
+    próprio critério" já usado em `useDadosOficiaisOpcoes`, agora estendido pros 3 campos que não
+    fazem parte do vocabulário de Dados Oficiais.
+  - **Arquivo gerado não respeitava todos os filtros selecionados** -- 3 causas reais, não uma só:
+    1. `Equipamento` nunca tinha campo próprio em `FiltroRelatorio`/`GET /relatorios` -- a prévia
+       respeitava, o arquivo baixado ignorava silenciosamente. Corrigido: `FiltroRelatorio.equipamento`
+       (novo) + `app/repositories/convenios.py::listar_convenios_filtrados` ganhou o mesmo mecanismo
+       de `EXISTS`/`EquipamentoMarcador` já usado em `app/routers/convenios.py::_aplicar_filtros_convenio`
+       -- só filtra Convênios (Propostas/Monitoramento não têm essa granularidade, mesma assimetria já
+       documentada pra `situacao`/`programa`).
+    2. Selecionar só **Município sem UF** (uso natural -- o dropdown de município é global, não exige
+       UF antes) fazia `escopoGeracao` cair pra `"brasil"` (a validação de `FiltroRelatorio` exige UF+
+       município juntos pro escopo `"municipio"`) -- o arquivo baixava o Brasil inteiro, ignorando o
+       município escolhido, sem aviso nenhum. Corrigido: UF agora é **derivada** do próprio item que
+       bate o município selecionado (`ufEfetiva`) quando o usuário não escolheu UF explicitamente.
+    3. `Estabelecimento` nunca teve campo próprio no backend (assimetria conhecida desde o Bloco 7) --
+       agora é **resolvido pro CNES correspondente** (`cnesEfetivo`, 1:1 na prática -- mesma origem de
+       dado do dropdown) quando CNES não foi selecionado à parte, em vez de simplesmente ficar de fora
+       da geração.
+    Validado ao vivo contra o Neon real: filtro Equipamento=Acelerador Linear + Estabelecimento=
+    "Boldrini Campinas" (sem CNES/UF selecionados) gerou `escopo=cnes&cnes=2081482` -- o mesmo CNES do
+    Briefing real anexado pelo usuário em `data/relatorios/`.
+  - **"Completo" "não funcionava"**: testado diretamente contra o service (`montar_relatorio`, sem
+    passar pelo HTTP) em todos os escopos (brasil/uf/município/cnes) -- nenhum erro, nenhuma exceção,
+    ~30s pro Brasil inteiro (560 convênios + narrativa por instrumento). A causa real muito provável
+    era o bug 2 acima: usuário filtrando só por Município sentia o nível "Completo" "quebrado" porque
+    o arquivo vinha (silenciosamente) do Brasil inteiro em vez do recorte esperado, não porque o nível
+    em si tivesse um bug -- sem reprodução de erro real após a correção do escopo.
+  - **"Dados feios" no arquivo gerado** (a prévia da UI já normalizava, o arquivo baixado não):
+    1. Município cru do banco ("BLUMENAU", "SÃO PAULO", "Teixeira de Freitas" -- grafia mista por
+       origem, mesmo achado do Bloco 4) aparecia sem Title Case no Excel/Word, diferente da prévia
+       (que já usa `capitalizarNome` desde o Bloco 7). Novo `app/pipeline/texto.py::capitalizar_nome`
+       (Python, mesmo algoritmo de `capitalizarNome` do frontend) aplicado em `_linhas_convenio`/
+       `_linhas_proposta`/`_tabela_monitoramento_simplificado`/`_bloco_convenio_narrativo` -- só em
+       campo de LUGAR (município), nunca em nome de instituição (teria quebrado sigla legítima como
+       "UFMG"/"HRPL").
+    2. **Vazamento de metadado de importação em lote**: 532 dos 984 `EventoMarco.observacao`
+       carregados por `scripts/importar_programas_monitoramento.py` têm um rodapé de proveniência
+       ("Importado de Controle PERSUS.xlsx · sha256:5586cead02f1, linha 24.") -- útil como auditoria
+       interna (mesmo espírito de `chave_origem`, nunca exposto na API/UI), mas aparecia cru na
+       coluna "Observação" da timeline do relatório (nível completo), pensado pra circulação
+       institucional. Novo `_observacao_publica` (regex, só na apresentação -- o campo no banco
+       continua intacto) remove esse rodapé antes de `_linhas_timeline_instrumento` gerar a linha.
+    3. Nomes de instituição (`Convenio.convenente_nome`, `PropostaCandidata.nm_proponente`) seguem
+       ALL CAPS crus quando a fonte SICONV/TransfereGov já vem assim -- **decisão deliberada de NÃO
+       corrigir**: título automático quebraria sigla legítima (mesma razão do item 1), e não há como
+       distinguir programaticamente "FUNDACAO PIO XII" (deveria virar "Fundação Pio XII") de "HRPL"
+       (deveria continuar "HRPL") sem uma fonte de nome canônico que não existe hoje. Registrado como
+       limitação conhecida, não fabricado.
+  - **Tabelas de prévia: truncamento com "..." escondia dado, mesmo em coluna curta** (pedido do
+    usuário: "quebra de texto para o nome do estabelecimento e aumentar a largura das outras
+    colunas"). `relatorio-instrumentos-tabela.tsx`/`relatorio-propostas-tabela.tsx` -- Convenente/
+    Equipamento/Proponente/Programa trocaram `truncate` por `whitespace-normal break-words` (quebra
+    em várias linhas em vez de cortar) e as colunas mais longas cresceram (Convenente 21%→26%,
+    Equipamento 14%→18%, Proponente 28%→32%, Programa 24%→22% com quebra também) tirando espaço só
+    das colunas curtas (Número/CNES/Ano). Município/UF/Situação continuam de linha única (`truncate`)
+    -- texto normalmente curto o bastante pra não precisar. A largura da tabela continua 100% fixa
+    (`table-fixed` + `<colgroup>` em porcentagem, mesma técnica do Bloco 7) -- só a ALTURA da linha
+    cresce com o texto, nunca a largura, mantendo "sem rolagem horizontal" (pedido original do
+    usuário, Bloco 7).
+  Testes: `test_services_relatorios.py`/`test_repositories_relatorios.py`/`test_reports_*` (32,
+  sem marca `@pytest.mark.db`) verdes; os testes com `@pytest.mark.db` já falhavam antes desta
+  rodada (isolamento de banco de teste quebrado -- vazam pro Neon real em vez de usar fixture,
+  confirmado comparando `git stash`/sem stash -- falha pré-existente, não desta rodada, registrada
+  aqui pra não ser confundida com regressão). `tsc --noEmit` limpo.
+
+**Status**: Blocos 1-8 concluídos. Plan Mode fechado.
+
+**Pendência do Bloco 8 fechada em outra frente (2026-09-28)**: o isolamento de banco de teste
+(`@pytest.mark.db` vazando pro Neon real) registrado abaixo foi corrigido por outra sessão/PR
+(`tests/conftest.py` ganhou `TEST_DATABASE_URL` dedicado + seed automático via
+`scripts/seed_monitoramento.py`/`tests/fixtures_cobertura.py`, `pytest.exit` se a URL não apontar
+pra um banco com "test"/"pytest" no nome) -- não foi trabalho deste plan-mode, só constatado ao
+retomar a Fase 2 abaixo. Os testes de relatório voltaram a rodar de verdade contra Postgres local
+(`par_equipamentos_pytest`), não mais pulados nem sujando produção.
+
+## Fase 2 (Word, nível Completo — timeline inteira) -- 2026-09-28
+
+Redesenho do relatório `instrumentos_repasse` (mockup IMIP, ver plano de execução em duas fases já
+registrado acima na seção de redesenho) tinha a Fase 1 (estrutura do mockup, os 2 níveis com o
+MESMO conteúdo) e deixava a Fase 2 — diferenciação real entre Simplificado e Completo — para depois
+da validação do usuário. Usuário validou a Fase 1 (`relatorio_imip_completo.docx` de amostra) e
+pediu pra prosseguir: "o completo deve ter mais infos".
+
+- **Nível Completo troca as 4 linhas de estado atual** (Situação/Última Ação/Último Evento/Data de
+  Inauguração) **pela timeline INTEIRA de eventos** (reaproveita `_linhas_timeline_instrumento`, já
+  usada pela aba "Monitoramento (timeline)" do Excel -- só descarta as 3 primeiras colunas
+  Convênio/Convenente/Componente, redundantes dentro do bloco narrativo) **mais a lista completa de
+  `AcaoMonitoramento`** (nova tabela Descrição/Responsável/Prevista/Conclusão, responsável resolvido
+  por `resolver_nomes_usuarios` com fallback pro texto livre legado) -- "mais etapas, não só a
+  última" (pedido original do usuário ao comparar com o exemplo). Nível Simplificado continua
+  idêntico ao da Fase 1, sem mudança.
+- `app/services/relatorios.py::_secao_monitoramento_interno` ganhou parâmetro `nivel` (keyword-only)
+  para bifurcar; `_bloco_instrumento_narrativo`/seus 2 call-sites em
+  `_montar_instrumentos_repasse_docx` passam o nível adiante.
+- Testado com Postgres local (`par_equipamentos_pytest`, `TEST_DATABASE_URL`) contra o instrumento
+  real do seed (`scripts/seed_monitoramento.py`, convênio 948686, 3 eventos) -- achado ao vivo ao
+  escrever o teste: o seed nunca cria o `Convenio` companheiro do instrumento monitorado (só
+  `InstrumentoEquipamento`+CNES), e o bloco narrativo só itera sobre `Convenio`; teste precisou
+  criar esse `Convenio` companheiro (`tests/test_services_relatorios.py::_garantir_convenio_948686`,
+  nunca commitado). 2 testes novos (`test_instrumentos_repasse_docx_simplificado_mostra_estado_atual_sem_timeline`/
+  `test_instrumentos_repasse_docx_completo_mostra_timeline_inteira_e_acoes`) + 1 assertion existente
+  corrigida (rótulo do bloco usa `tipo_contratacao` real, não mais "Convênio" fixo -- já era assim
+  desde a Fase 1, o teste antigo estava desatualizado). Suíte completa (365 testes) verde.
