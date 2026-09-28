@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import {
   type AuthUser,
   fetchCurrentUser,
@@ -36,10 +37,23 @@ export function useAuthSession() {
   const loginMutation = useMutation({
     mutationFn: (corpo: { email: string; senha: string }) =>
       login(corpo.email, corpo.senha),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    onSuccess: async () => {
+      // `invalidateQueries` apenas agenda a nova leitura. Se a rota muda
+      // antes de `/auth/me` devolver o cookie recém-emitido, o guard ainda
+      // vê o visitante em cache e manda o usuário de volta para /login.
+      // Esperar a confirmação também transforma um cookie bloqueado pelo
+      // navegador num erro acionável, em vez de aparentar um reload.
+      const usuario = await queryClient.fetchQuery({
         queryKey: monitoramentoKeys.currentUser,
+        queryFn: fetchCurrentUser,
       });
+      if (usuario === null) {
+        throw new ApiError(
+          "Login respondeu sem uma sessão que pudesse ser confirmada.",
+          401,
+          "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SIGEO e tente novamente.",
+        );
+      }
     },
   });
 
