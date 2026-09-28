@@ -131,11 +131,13 @@ export function MonitoramentoRelatoriosPage() {
       filtrarDadosOficiais(
         convenios,
         {
-          busca: "",
           uf,
+          municipio: null,
+          cnes: null,
           equipamento,
           situacao,
-          ano,
+          anoInicio: ano,
+          anoFim: ano,
           programa,
           tipoContratacao,
           soMonitorados: false,
@@ -263,11 +265,7 @@ export function MonitoramentoRelatoriosPage() {
         description="Convênios, propostas candidatas e monitoramento interno em Excel ou Word."
       />
 
-      <FilterWorkspace
-        semRotulo
-        hasAnyFilter={hasFiltros}
-        onClear={limparFiltros}
-      >
+      <FilterWorkspace hasAnyFilter={hasFiltros} onClear={limparFiltros}>
         <SingleSelectFilter
           placeholder="Tipo de contratação"
           options={tipoContratacaoOptions}

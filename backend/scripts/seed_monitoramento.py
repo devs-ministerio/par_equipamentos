@@ -113,7 +113,7 @@ CATALOGO = [
 
 INSTRUMENTO_948686 = dict(
     nr_convenio="948686",
-    cnpj_convenente="28.481.233/0001-72",
+    cnpj_convenente="28481233000172",
     nome_convenente="INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
     municipio="BRASILIA",
     uf="DF",
