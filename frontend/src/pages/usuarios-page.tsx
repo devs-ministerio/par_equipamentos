@@ -1,46 +1,32 @@
-/** Gestão de usuários (Módulo Admin, 2026-09-17) -- só composição de rota
- * (busca por trás de `AdminRoute` em App.tsx), sem lógica de negócio
- * própria, mesmo princípio das demais páginas. */
+/** Gestão de usuários: página de composição. Busca e mutações ficam no hook;
+ * lista, filtros e diálogos preservam responsabilidades visuais separadas. */
 import { useState } from "react";
+import { UserPlus, UsersRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Pagination } from "@/components/common/pagination";
 import { PageHeader } from "@/components/common/page-header";
-import { UsuarioFormCriar } from "@/components/features/usuario-form-criar";
-import { UsuarioFormEditar } from "@/components/features/usuario-form-editar";
+import { UsuarioDialogGerenciar } from "@/components/features/usuario-dialog-gerenciar";
 import { UsuarioDialogEnviarRedefinicao } from "@/components/features/usuario-dialog-enviar-redefinicao";
 import { UsuarioDialogInativar } from "@/components/features/usuario-dialog-inativar";
+import { UsuarioFormCriar } from "@/components/features/usuario-form-criar";
+import { UsuarioFormEditar } from "@/components/features/usuario-form-editar";
+import { UsuariosFiltros } from "@/components/features/usuarios-filtros";
+import { UsuariosLista } from "@/components/features/usuarios-lista";
+import { Button } from "@/components/ui/button";
 import { useUsuarios } from "@/hooks/useUsuarios";
-import type { Usuario, UserRole } from "@/services/usuarios";
+import type { Usuario, UserRole, UserStatus } from "@/services/usuarios";
 
 const PAGE_SIZE = 20;
-
-function badgeStatus(status: Usuario["status"]) {
-  if (status === "active") return <Badge variant="success">Ativo</Badge>;
-  return <Badge variant="secondary">Inativo</Badge>;
-}
-
-function formatarData(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("pt-BR");
-}
 
 export function UsuariosPage() {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [role, setRole] = useState<UserRole | "">("");
+  const [status, setStatus] = useState<UserStatus | "">("");
   const [page, setPage] = useState(1);
   const [criarAberto, setCriarAberto] = useState(false);
+  const [usuarioGerenciando, setUsuarioGerenciando] = useState<Usuario | null>(
+    null,
+  );
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [usuarioRedefinindoSenha, setUsuarioRedefinindoSenha] =
     useState<Usuario | null>(null);
@@ -52,6 +38,7 @@ export function UsuariosPage() {
     usuarios,
     total,
     carregando,
+    erro,
     criar,
     atualizar,
     enviarRedefinicao,
@@ -59,143 +46,105 @@ export function UsuariosPage() {
     inativando,
     reativar,
     reativando,
+    refetch,
   } = useUsuarios({
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
     busca: busca || undefined,
     role: role || undefined,
+    status: status || undefined,
   });
+
+  function redefinirPagina() {
+    setPage(1);
+  }
+
+  function limparFiltros() {
+    setBusca("");
+    setRole("");
+    setStatus("");
+    redefinirPagina();
+  }
+
+  function abrirAcao(usuario: Usuario, destino: "editar" | "senha" | "status") {
+    setUsuarioGerenciando(null);
+    if (destino === "editar") setUsuarioEditando(usuario);
+    if (destino === "senha") setUsuarioRedefinindoSenha(usuario);
+    if (destino === "status") setUsuarioInativando(usuario);
+  }
 
   return (
     <main className="mx-auto max-w-[1100px] py-2">
       <PageHeader
         eyebrow="Administração"
         title="Gestão de usuários"
-        description="Perfis e acessos ao SIGEO."
+        description="Organize acessos, perfis e a segurança operacional da equipe."
         actions={
           <Button
             className="w-full sm:w-auto"
             onClick={() => setCriarAberto(true)}
           >
-            Novo usuário
+            <UserPlus aria-hidden="true" /> Novo usuário
           </Button>
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2.5">
-        <Input
-          placeholder="Buscar por nome ou e-mail"
-          value={busca}
-          onChange={(e) => {
-            setBusca(e.target.value);
-            setPage(1);
-          }}
-          className="w-full sm:max-w-[280px]"
-        />
-        <select
-          value={role}
-          onChange={(e) => {
-            setRole(e.target.value as UserRole | "");
-            setPage(1);
-          }}
-          className="h-8 w-full rounded-md border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:ring-primary sm:w-auto"
-        >
-          <option value="">Todos os perfis</option>
-          <option value="admin">Admin</option>
-          <option value="gestor">Gestor</option>
-          <option value="colaborador">Colaborador</option>
-          <option value="leitor">Leitor</option>
-        </select>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <UsersRound aria-hidden="true" className="size-4 text-primary" />
+          <span>
+            <strong className="font-semibold text-foreground">{total}</strong>{" "}
+            {total === 1 ? "acesso encontrado" : "acessos encontrados"}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Gerencie uma pessoa por vez para reduzir riscos.
+        </p>
       </div>
 
-      <div className="rounded-xl border border-border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>E-mail</TableHead>
-              <TableHead>Perfil</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Ativado em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {carregando && (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="p-4 text-center text-sm text-muted-foreground"
-                >
-                  Carregando...
-                </TableCell>
-              </TableRow>
-            )}
-            {!carregando && usuarios.length === 0 && (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="p-4 text-center text-sm text-muted-foreground"
-                >
-                  Nenhum usuário encontrado.
-                </TableCell>
-              </TableRow>
-            )}
-            {usuarios.map((usuario) => (
-              <TableRow key={usuario.id}>
-                <TableCell>{usuario.name}</TableCell>
-                <TableCell>{usuario.email}</TableCell>
-                <TableCell className="capitalize">{usuario.role}</TableCell>
-                <TableCell>{badgeStatus(usuario.status)}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {formatarData(usuario.activated_at)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() =>
-                        navigate(`/admin/auditoria?usuario_id=${usuario.id}`)
-                      }
-                    >
-                      Ver histórico
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setUsuarioEditando(usuario)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setUsuarioRedefinindoSenha(usuario)}
-                    >
-                      Enviar redefinição
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setUsuarioInativando(usuario)}
-                    >
-                      {usuario.status === "active" ? "Inativar" : "Reativar"}
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <Pagination
-          page={page}
-          totalItems={total}
-          pageSize={PAGE_SIZE}
-          onPageChange={setPage}
-        />
-      </div>
+      <UsuariosFiltros
+        busca={busca}
+        perfil={role}
+        status={status}
+        onBuscaChange={(value) => {
+          setBusca(value);
+          redefinirPagina();
+        }}
+        onPerfilChange={(value) => {
+          setRole(value);
+          redefinirPagina();
+        }}
+        onStatusChange={(value) => {
+          setStatus(value);
+          redefinirPagina();
+        }}
+        onLimpar={limparFiltros}
+      />
 
+      <UsuariosLista
+        usuarios={usuarios}
+        total={total}
+        page={page}
+        pageSize={PAGE_SIZE}
+        carregando={carregando}
+        erro={erro}
+        onPageChange={setPage}
+        onGerenciar={setUsuarioGerenciando}
+        onNovoUsuario={() => setCriarAberto(true)}
+        onRetry={() => void refetch()}
+      />
+
+      <UsuarioDialogGerenciar
+        usuario={usuarioGerenciando}
+        onOpenChange={(open) => !open && setUsuarioGerenciando(null)}
+        onEditar={(usuario) => abrirAcao(usuario, "editar")}
+        onRedefinirSenha={(usuario) => abrirAcao(usuario, "senha")}
+        onAlterarStatus={(usuario) => abrirAcao(usuario, "status")}
+        onVerHistorico={(usuario) => {
+          setUsuarioGerenciando(null);
+          navigate(`/admin/auditoria?usuario_id=${usuario.id}`);
+        }}
+      />
       <UsuarioFormCriar
         open={criarAberto}
         onOpenChange={setCriarAberto}
@@ -204,7 +153,7 @@ export function UsuariosPage() {
       <UsuarioFormEditar
         usuario={usuarioEditando}
         onOpenChange={(open) => !open && setUsuarioEditando(null)}
-        onEditar={(id, v) => atualizar({ id, corpo: v })}
+        onEditar={(id, valores) => atualizar({ id, corpo: valores })}
       />
       <UsuarioDialogEnviarRedefinicao
         usuario={usuarioRedefinindoSenha}
