@@ -6,13 +6,33 @@ from app.email import _NOME_REMETENTE, enviar_link, montar_conteudo_acesso, mont
 def test_mensagem_de_acesso_preserva_token_no_fragmento_e_escapa_nome(monkeypatch):
     monkeypatch.setattr("app.email.settings.app_public_url", "https://sigeo.example")
     url = montar_url_acesso(token="token-unico", caminho="/ativar")
-    subtitle, body, html = montar_conteudo_acesso(nome="Ana <teste>", url=url)
+    eyebrow, body, html = montar_conteudo_acesso(nome="Ana <teste>", url=url, caminho="/ativar")
 
     assert url == "https://sigeo.example/ativar#token=token-unico"
-    assert subtitle == "Ação necessária no SIGEO"
+    assert eyebrow == "Ativação de conta"
     assert "Ana <teste>" in body
+    assert "7 dias" in body
     assert "Ana &lt;teste&gt;" in html
     assert "?token=" not in html
+
+
+def test_montar_conteudo_acesso_diferencia_ativacao_de_redefinicao(monkeypatch):
+    monkeypatch.setattr("app.email.settings.app_public_url", "https://sigeo.example")
+    url = montar_url_acesso(token="token-unico", caminho="/redefinir-senha")
+    eyebrow, _body, html = montar_conteudo_acesso(nome="Ana", url=url, caminho="/redefinir-senha")
+
+    assert eyebrow == "Redefinição de senha"
+    assert "Redefinir senha" in html
+    assert "Ativar minha conta" not in html
+
+
+def test_montar_conteudo_acesso_caminho_desconhecido_usa_contexto_padrao(monkeypatch):
+    monkeypatch.setattr("app.email.settings.app_public_url", "https://sigeo.example")
+    url = montar_url_acesso(token="token-unico", caminho="/outra-rota")
+    eyebrow, _body, html = montar_conteudo_acesso(nome="Ana", url=url, caminho="/outra-rota")
+
+    assert eyebrow == "Ação necessária no SIGEO"
+    assert "Continuar" in html
 
 
 def test_enviar_link_entrega_payload_completo_ao_gateway(monkeypatch):
@@ -45,7 +65,7 @@ def test_enviar_link_entrega_payload_completo_ao_gateway(monkeypatch):
     assert capturado["json"]["subject"] == "Ative seu acesso ao SIGEO"
     assert capturado["json"]["fromName"] == _NOME_REMETENTE
     assert "#token=token-unico" in capturado["json"]["html"]
-    assert "Continuar no SIGEO" in capturado["json"]["html"]
+    assert "Ativar minha conta" in capturado["json"]["html"]
     assert "subtitle" not in capturado["json"]
     assert "body" not in capturado["json"]
 

@@ -99,6 +99,11 @@ def espelhar_convenio(
         pagamentos_count=0,
         financeiro_fonte_confiavel=False,
     )
+    # Ausência de ano na carga não é autorização para apagar uma referência
+    # definida pela gestão (caso do PERSUS II ao entrar no monitoramento).
+    # No insert, o modelo já persiste nulo naturalmente.
+    if ano_instrumento is None:
+        campos.pop("ano_instrumento")
     if convenio is None:
         convenio = Convenio(**campos)
         db.add(convenio)

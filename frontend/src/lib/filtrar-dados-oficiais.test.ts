@@ -5,6 +5,7 @@ import { filtrarDadosOficiais } from "./filtrar-dados-oficiais";
 const CONVENIO_COM_CNES: ConvenioUnificado = {
   numero: "953749",
   numeroInstrumento: null,
+  anoInstrumento: 2025,
   objeto: "Aquisição de tomógrafo",
   situacao: "Em execução",
   situacaoPortal: "",
@@ -52,15 +53,17 @@ const CONVENIO_COM_CNES: ConvenioUnificado = {
 };
 
 describe("filtrarDadosOficiais", () => {
-  it("encontra instrumento pelo CNES", () => {
+  it("filtra instrumento pelo CNES", () => {
     const resultado = filtrarDadosOficiais(
       [CONVENIO_COM_CNES],
       {
-        busca: "1234567",
         uf: null,
+        municipio: null,
+        cnes: "1234567",
         equipamento: null,
         situacao: null,
-        ano: null,
+        anoInicio: null,
+        anoFim: null,
         programa: null,
         tipoContratacao: null,
         soMonitorados: false,

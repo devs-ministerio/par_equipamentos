@@ -8,8 +8,6 @@ export function DadosOficiaisMetricas({
   valorGlobal,
   desembolsado,
   equipamentos,
-  soMonitorados,
-  onToggleMonitorados,
 }: {
   instrumentos: number;
   monitorados: number;
@@ -17,8 +15,6 @@ export function DadosOficiaisMetricas({
   valorGlobal: number;
   desembolsado: number;
   equipamentos: number;
-  soMonitorados: boolean;
-  onToggleMonitorados: () => void;
 }) {
   return (
     <div className="mb-5">
@@ -30,8 +26,6 @@ export function DadosOficiaisMetricas({
             label: "Monitorados",
             value: monitorados,
             variant: "success",
-            onClick: onToggleMonitorados,
-            ativo: soMonitorados,
           },
           {
             key: "concluidos",

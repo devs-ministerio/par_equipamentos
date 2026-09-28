@@ -307,6 +307,14 @@ def executar(
             nome_convenente = registro.nome or referencia.nome_estabelecimento
             municipio = registro.municipio or referencia.municipio
             uf = registro.uf or referencia.uf
+            # PERSUS I não tem número anual de instrumento. A data de licença
+            # de operação é a referência aprovada para o recorte anual; PERSUS
+            # II continua sem ano até a equipe efetivamente o monitorar.
+            ano_instrumento = (
+                registro.licenca_operacao.year
+                if registro.tipo_contratacao == "PERSUS I" and registro.licenca_operacao is not None
+                else None
+            )
 
             if fica_no_monitoramento:
                 campos = {
@@ -316,6 +324,7 @@ def executar(
                     "uf": uf,
                     "cnes": registro.cnes,
                     "programa": registro.programa,
+                    "ano_instrumento": ano_instrumento,
                     "tipo_contratacao": registro.tipo_contratacao,
                     "origem_dado": registro.origem_dado,
                     "tipologia": registro.tipologia,
@@ -409,7 +418,7 @@ def executar(
                 uf=uf,
                 cnes=registro.cnes,
                 programa=registro.programa,
-                ano_instrumento=None,
+                ano_instrumento=ano_instrumento,
                 objeto=registro.natureza_servico,
                 situacao=_situacao_normalizada(registro.situacao),
                 investimento=registro.investimento,

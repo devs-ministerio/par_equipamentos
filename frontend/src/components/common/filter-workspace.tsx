@@ -28,9 +28,6 @@ export function FilterWorkspace({
         className,
       )}
     >
-      <span className="pt-2 text-xs font-semibold whitespace-nowrap text-muted-foreground">
-        Filtrar por
-      </span>
       {children}
       {hasAnyFilter && onClear && (
         <button

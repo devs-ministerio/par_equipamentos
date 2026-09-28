@@ -58,6 +58,7 @@ export function useUsuarios(filtro: FiltroUsuarios) {
     total: query.data?.total ?? 0,
     carregando: query.isLoading,
     erro: query.error,
+    refetch: query.refetch,
     criar: criarMutation.mutateAsync,
     criando: criarMutation.isPending,
     erroCriar: criarMutation.error,

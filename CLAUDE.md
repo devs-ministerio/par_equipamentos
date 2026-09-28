@@ -259,6 +259,23 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
   depois que o CNES de cada convenente estiver identificado (join bem
   mais confiável que nome de município). Não propor cruzamento por nome
   de município enquanto isso não for resolvido.
+- **Login e aceite de convite não são auditados** (achado 2026-09-26, ver
+  detalhe em "Gestão de usuários" acima): nenhum sucesso/falha de login,
+  logout ou ativação de conta gera `AuditLog` ou qualquer histórico
+  consultável — só existe estado transitório (`failed_login_attempts`/
+  `locked_until`) que se autozera. Correção proposta (não implementada,
+  decisão de produto): `log_action` em `/auth/login`/`/auth/ativar` +
+  expor `User.activated_at` em `UserRead`/tela de usuários.
+- **Dados de teste (`pytest-*@example.com`) encontrados em produção**
+  (achado 2026-09-25, ao investigar o incidente de dados sintéticos acima):
+  `/admin/usuarios` em produção tem vários usuários `pytest-convite-*`/
+  `pytest-criado-*@example.com` e a própria conta pessoal do usuário
+  aparece com nome `teste_E2E` — sinal de que `scripts/
+  provisionar_usuario_e2e.py`/testes de integração já rodaram contra o
+  Neon de produção em algum momento, mesma classe de problema do incidente
+  de `fixtures_cobertura.py`. **Não investigado nem limpo ainda** — fica
+  registrado pra não esquecer, próxima sessão que mexer em usuários/E2E
+  deveria investigar o alcance antes de assumir que só afetou cobertura.
 
 ## Estrutura de pastas do frontend (flat, kebab-case)
 
@@ -639,12 +656,15 @@ do mesmo gate, sem exceção.
   `app/services/propostas_candidatas.py` — não é mais só
   `Depends(require_monitoramento_editor)` no router; uma chamada de script/
   job que use o Service direto também é bloqueada pra `leitor`. Baseline
-  documentado (não mudado por este bloco): `UserRole` é
-  `admin`/`colaborador`/`leitor`, mas o gate real é binário — `admin` e
-  `colaborador` têm exatamente os mesmos poderes, nenhuma checagem de
-  `UserRole.admin` existe em lugar nenhum. Escopo de autorização por
-  técnico/UF/órgão e diferenciação real `admin` vs `colaborador` são
-  **decisão de produto pendente**, não implementadas.
+  documentado na época (2026-09-16): `UserRole` era `admin`/`colaborador`/
+  `leitor`, gate binário (`admin`==`colaborador`). **Atualizado**: `gestor`
+  foi adicionado em 2026-09-25 (Bloco 10 do Plan Mode fechamento final,
+  mesmos poderes de `colaborador`) e a autorização por titularidade de
+  instrumento (2026-09-26, ver seção própria abaixo) fechou parte desta
+  pendência — `admin`/`gestor` continuam idênticos entre si e editando
+  qualquer instrumento, mas `colaborador` agora só edita o instrumento onde
+  é titular/suplente designado. Escopo por UF/órgão continua **decisão de
+  produto pendente**, não implementado.
 - **Bloco 5 — LGPD/inventário**: `convenios.py`/`macro_coverage.py`/
   `municipality_coverage.py`/`equipment_offer.py` também passaram a exigir
   `require_current_user` (decisão do usuário 2026-09-17 de ampliar o Bloco
@@ -690,7 +710,20 @@ gestão de usuários, seguindo o mesmo padrão Router → Service → Repository
   `ProtectedRoute` — checa `role`, não só sessão) + `components/features/usuario-*.tsx`.
 - **Redefinição por e-mail** (Segurança, 2026-09-22): administrador dispara link de uso único;
   senha nunca é devolvida pela API, exibida na tela ou incluída em URL. O token fica no fragmento
-  do link e só segue no corpo do POST de ativação/redefinição.
+  do link e só segue no corpo do POST de ativação/redefinição. **Prazo do link ampliado de 30min pra
+  7 dias em 2026-09-26** (`activation_expires_at`, 4 pontos: `auth.py` self-service +
+  `usuarios.py` convite/reenvio/redefinição) — 30min era curto demais na prática (convite chegando
+  fora do expediente). Contrato do gateway (`app/email.py::enviar_link`) mudou pra
+  `to`/`subject`/`fromName`/`html` (não mais `subtitle`/`body`) e o HTML foi redesenhado (paleta/
+  tipografia do SIGEO, CTA específico por contexto — "Ativar minha conta" vs "Redefinir senha",
+  tabelas + estilo inline pra compatibilidade Gmail/Outlook/Apple Mail). **Achado real
+  2026-09-25**: `MAIL_API_URL`/`MAIL_API_SECRET`/`APP_PUBLIC_URL` nunca tinham sido configuradas no
+  Render de produção (só existiam no `.env` local) — sem `APP_PUBLIC_URL`, o link do e-mail cairia
+  em `localhost:5173` mesmo com o gateway funcionando. As 3 adicionadas manualmente no dashboard do
+  Render; testado ao vivo (envio real de redefinição) depois do redeploy.
+- **Perfil `gestor` faltava no formulário de criar usuário** (achado 2026-09-26):
+  `usuario-form-criar.tsx` só listava admin/colaborador/leitor desde que `gestor` foi criado
+  (2026-09-25) — corrigido lá e no filtro de `usuarios-page.tsx`.
 - **Auto-proteção**: um admin não pode remover o próprio papel de admin nem se auto-inativar via
   este módulo (`atualizar_usuario`/`inativar_usuario` em `services/usuarios.py`) — evita lockout
   acidental do sistema por engano do próprio admin.
@@ -702,9 +735,20 @@ gestão de usuários, seguindo o mesmo padrão Router → Service → Repository
   vindo de IPs diferentes/rotativos. Mensagem de erro em conta bloqueada é a mesma genérica de
   credencial inválida (não sinaliza pro atacante que acertou o e-mail).
 - **`AuditLog` ativado** — `registrar_auditoria` em `services/usuarios.py` grava toda ação de
-  escrita (criar/editar/resetar senha/inativar/reativar) com `user_id` do admin que executou. Só
-  este módulo escreve nele por enquanto — generalizar para um módulo `app/audit.py` próprio fica
-  para quando um segundo consumidor precisar.
+  escrita (criar/editar/resetar senha/inativar/reativar) com `user_id` do admin que executou.
+  **Achado 2026-09-26**: a promessa deste bullet ("generalizar pra `app/audit.py` quando um segundo
+  consumidor precisar") já devia ter acontecido — `app/audit.py::log_action` existe desde o Plan Mode
+  backend 2026-09-17 e já é usado por `monitoramento_eventos.py`; `registrar_auditoria` continua
+  sendo um segundo helper quase idêntico, nunca consolidado. **Gap maior, ainda não corrigido**: nem
+  `AuditLog` nem nenhuma outra tabela registram login (sucesso ou falha) ou aceite de convite —
+  `POST /auth/login`/`/auth/ativar` (`app/routers/auth.py`) não chamam nenhuma auditoria;
+  `registrar_sucesso_login` (`app/auth.py`) só zera `failed_login_attempts`/`locked_until`, sem
+  deixar rastro histórico. `User.activated_at` é setado na ativação, mas não é exposto em
+  `UserRead` nem na tela `/admin/usuarios` — hoje não dá pra saber, sem consultar o banco direto, se
+  um convite foi aceito. Relacionado ao P1 "logs e auditoria" já aberto em
+  `diagnostico-constituicao-seguranca-2026-09-16.md` (item 4, sobre falta de alerta de 401/403
+  anormal) — esse diagnóstico não deixava explícito que não existe histórico nenhum de login pra
+  alertar sobre coisa nenhuma.
 - `scripts/criar_usuario.py` continua existindo (bootstrap do primeiro admin antes de qualquer
   usuário existir via UI) — não foi removido, mas deixou de ser o único caminho.
 
@@ -915,6 +959,13 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
   com certeza.
 - **Migration**: `488a535a0b5e` (tabela `notificacao_destinatario` + `ALTER TYPE notificacao_tipo
   ADD VALUE 'alerta_vigencia'`).
+- **Cobertura ampliada pra evento/ação (2026-09-25)**: até aqui só `atualizar_cadastro_instrumento`
+  disparava `Notificacao` (`tipo=edicao_manual`) — criar/editar/excluir `EventoMarco`/
+  `AcaoMonitoramento` só gravava `AuditLog`, sem notificar ninguém. As 7 funções de escrita restantes
+  em `app/services/monitoramento_eventos.py` (`registrar_evento_monitorado`,
+  `editar_evento_monitorado`, `excluir_evento_monitorado`, `registrar_acao_monitorada`,
+  `editar_acao_monitorada`, `excluir_acao_monitorada`, `concluir_acao_monitorada`) passaram a chamar
+  o mesmo helper (`_notificar_edicao_manual`), mesmo tipo/escopo de destinatário de antes.
 
 ## Plan Mode fechamento final (2026-09-25)
 
@@ -964,6 +1015,22 @@ sessão; vários se revelaram já satisfeitos ou de escopo menor do que os diagn
   (`backend/README.md`, seção "Dataset sintético de desenvolvimento"). Ensaio `pg_dump`/`pg_restore`
   de migração de servidor ganhou runbook completo em `runbook-devops.md`, mas não foi executado —
   exige `DATABASE_URL_MIGRATION` real do Neon.
+  - **Incidente real causado por este bloco, corrigido em 2026-09-25/26**: o entrypoint novo foi
+    "testado" (`uv run python -m tests.fixtures_cobertura`) sem sobrescrever `DATABASE_URL`, e como
+    o `.env` do repo aponta pro Neon de produção, o seed sintético (`__pytest_cobertura_tomografo__`)
+    gravou direto em produção — `Competency`/`Execution` com `started_at` de hoje, `status=published`,
+    mas **sem** setar `Competency.published_execution_id`. `_latest_execution_id` (triplicada em
+    `macro_coverage.py`/`equipment_offer.py`/`municipality_coverage.py`) escolhia "a execução mais
+    recente" só por `Execution.started_at`, então a execução sintética virou "a atual" de TOMOGRAFO em
+    toda a Análise de Mérito (Dashboard/Mapa/Relatórios), substituindo 8.284 linhas reais por 3
+    fictícias. Corrigido: `app/repositories/execucoes.py::obter_execucao_publicada_mais_recente`
+    (nova, substitui a triplicação) só aceita a execução que É o ponteiro `published_execution_id` da
+    sua competência — isola qualquer dado avulso, mesmo com `status=published`/`started_at` recente.
+    `app/db/seed_guard.py::recusar_se_producao()` bloqueia `fixtures_cobertura.py`/
+    `seed_monitoramento.py` de rodar se `DATABASE_URL` apontar pro Neon; `README.md` corrigido pra
+    instruir `DATABASE_URL` local antes do seed. Dados sintéticos poluídos (competency/execution/
+    equipment_offer_row/macro_coverage/municipality_coverage/1 convênio/1 CNES fictícios) removidos
+    manualmente do Neon. Regressão coberta em `tests/test_execucoes.py`.
 - **Saneamento PERSUS** (Bloco 8) — achado ao vivo: `scripts/reconstruir_fases_monitoramento.py` e
   `scripts/complementar_persus_monitoramento.py` já existiam e já tinham rodado no mesmo dia
   (25/09), antes da auditoria que originou este plan-mode (ver "Correção geral de fases..." acima).
@@ -980,6 +1047,144 @@ sessão; vários se revelaram já satisfeitos ou de escopo menor do que os diagn
 - **Itens de custo/infra permanecem fora** (rate limit distribuído sem Redis provisionado,
   staging/registry, PITR>6h, cold start do Render, CodeQL nativo, matriz LGPD) — documentados no
   plan-mode, nenhum implementado sem decisão explícita de orçamento/produto.
+
+## Autorização por titularidade no monitoramento interno (2026-09-26)
+
+Pedido do usuário, fechando parte da pendência já registrada em "Segurança e sessão" (Bloco 3) e no
+Bloco 10 do Plan Mode fechamento final: **colaboradores continuam visualizando** qualquer instrumento
+(rotas `GET` nunca tiveram escopo por instrumento, não mudou), mas **só editam** (cadastro/evento/
+ação) os instrumentos onde são o técnico titular ou suplente designado
+(`InstrumentoResponsavel`). `admin`/`gestor` continuam editando qualquer um; `leitor` continua
+bloqueado de tudo, sem exceção, em qualquer um dos dois gates abaixo.
+
+- **`app/authz.py`**: `assert_pode_editar_monitoramento` (gate grosso, só bloqueia `leitor`)
+  **não muda** — continua a única checagem em `criar_instrumento_monitorado`
+  (`monitoramento_instrumentos.py`), porque na criação ainda não existe instrumento pra checar
+  titularidade. Novo par de funções puras (sem DB, testáveis direto):
+  `usuario_pode_editar_instrumento(usuario, ids_responsaveis) -> bool` e
+  `assert_pode_editar_instrumento(usuario, ids_responsaveis)` — `admin`/`gestor` sempre `True`;
+  `colaborador` só `True` se `usuario.id` está em `ids_responsaveis`, **ou** se o conjunto está vazio
+  (instrumento "sem técnico" ainda, ~38% do universo hoje — decisão do usuário: fica liberado pra
+  qualquer colaborador em vez de travar a configuração inicial).
+- **`app/services/monitoramento_eventos.py`**: as 8 funções de escrita (cadastro + as 7 de evento/
+  ação já listadas na seção de Notificações acima) foram reordenadas pra carregar a entidade (com o
+  404 que já existia) **antes** de autorizar — as 5 que só recebem `evento_id`/`acao_id` (não
+  `nr_convenio` direto) precisaram inverter a ordem que tinham desde sempre.
+- **`app/repositories/notificacoes.py::obter_ids_responsaveis_do_instrumento`** (extraída de
+  `_ids_titular_suplente_e_gestores`, que já fazia essa query inline) é a fonte compartilhada dos
+  `usuario_id`s de titular/suplente — usada tanto pela autorização quanto pelo escopo de notificação.
+  **Não pôde viver em `app/repositories/monitoramento.py`** (mais natural à primeira vista) porque
+  esse módulo já importa de `notificacoes.py` (`criar_notificacao`) — importar de volta criaria ciclo.
+  `monitoramento.py::mapear_responsaveis_por_instrumentos` é a versão em lote, só pra listagem.
+- **`InstrumentoEquipamentoRead.pode_editar: bool`** (`app/routers/monitoramento.py`, default `True`,
+  mesmo padrão de `fase_atual` — calculado por request via `model_copy`, não é coluna) em
+  `GET /monitoramento/instrumentos` e `GET /monitoramento/instrumentos/{nr_convenio}`. Frontend
+  (`monitoramento-interno.tsx`) trocou as 3 ocorrências de `podeEditar={sessao.podeEditar}` (role
+  global) por `podeEditar={inst.pode_editar}` (por instrumento, já embute a regra de `leitor`
+  também) — `sessao.podeEditar` continua usado só onde não há instrumento ainda (botão de criar).
+- **Validado contra dado real de produção antes de fechar**: dos 121 instrumentos monitorados, 75 já
+  tinham `InstrumentoResponsavel` populado (quase idêntico aos 76 com `tecnico_titular` em texto) —
+  só 1 (`202500044035`, técnico "GUSTAVO") tem texto sem vínculo relacional, porque o nome não está
+  no dicionário fechado `_EMAIL_RESPONSAVEL_POR_TEXTO` (`monitoramento_eventos.py`) que sincroniza
+  texto→relacional; fica em fail-open até alguém corrigir a mão ou ampliar o dicionário — lacuna de
+  dado pré-existente, não introduzida por esta mudança.
+- **Testes**: `tests/test_authz.py` (novo, 7 casos puros da regra) + integração em
+  `test_monitoramento.py` (colaborador titular/não-titular, instrumento sem titular, `pode_editar` na
+  listagem via router).
+
+## Relatórios Excel/Word (Plan Mode relatorios 2026-09-25/26)
+
+`docs/arquitetura/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
+independentes**, decisão do usuário 2026-09-26: `GET /relatorios` (`app/routers/relatorios.py`,
+`app/services/relatorios.py`) com `tipo_relatorio=instrumentos_repasse|analise_merito`.
+
+- **`instrumentos_repasse`** (convênios + propostas candidatas/"linhas de financiamento" ainda sem
+  virar convênio + monitoramento interno completo) — página própria dentro do Monitoramento
+  Interno (`frontend/src/pages/monitoramento-relatorios-page.tsx`, rota
+  `/monitoramento-equipamentos/relatorios`, nav "Relatórios").
+- **`analise_merito`** (só cobertura/déficit oncológico) — continua em `relatorios-page.tsx`, fora
+  do `MonitoramentoLayout` (mesmo lugar onde os botões de export já existiam antes). Não existe pra
+  `escopo=cnes` (`ValidationError`/422 — cobertura não tem granularidade por estabelecimento, mesma
+  limitação da seção "Limitações conhecidas" abaixo).
+
+Filtro geográfico hierárquico (Brasil→Região→UF→Município→CNES) + `ano` opcional (só
+`instrumentos_repasse` — cobertura não tem dimensão de ano civil). Nível Simplificado = estado
+atual; Completo = tudo, inclusive timeline inteira de eventos do monitoramento — no Word narra 1
+bloco por convênio/instrumento (estilo dos briefings reais do departamento, timbre institucional
+Ministério da Saúde/SAES/DECAN/CGPCAN + aviso "gerado automaticamente"); no Excel continua tabela
+(pedido explícito do usuário).
+
+- **Filtro de município é feito em Python, nunca `==` em SQL** (`app/pipeline/texto.py::
+  normalizar_texto`, upper+sem-acento, aplicado depois de trazer por UF) — achado ao vivo: a mesma
+  cidade tem grafia diferente por origem no banco real ("SAO PAULO" em `convenio`/
+  `instrumento_equipamento`/`municipality_coverage`, "SÃO PAULO" em `proposta_candidata`, "São
+  Paulo" só no registro PERSUS I de `convenio`). Nunca reintroduzir comparação exata de município em
+  nenhuma query nova desses 4 domínios.
+- **Migration do Neon de homologação está atrasada e travada por permissão** (achado ao vivo
+  2026-09-26, não corrigido — fora de escopo, banco compartilhado): `alembic_version` parado em
+  `7fd36a4d65a5`, e `ALTER TYPE notificacao_tipo ADD VALUE` (migration mais recente na cadeia) falha
+  com `InsufficientPrivilege` pro role de migration. Cogitar antes de assumir que qualquer migration
+  recente já está aplicada nesse ambiente — checar `SELECT version_num FROM alembic_version` antes.
+- **Gaps conhecidos, nunca fabricados**: "Habilitação" CNES (não existe em `CnesEstabelecimento`) e
+  "Produção assistencial" (SIH/SIA/SUS por procedimento, como nos briefings reais do departamento)
+  — essa última é dado do projeto irmão `nota-informativa-decan` (DuckDB/parquet), fora do banco do
+  SIGEO. Nenhuma das duas seções existe no relatório até uma fonte real ser integrada.
+- `jspdf`/`jspdf-autotable`/`exceljs` **removidos** (export client-side antigo, `export-{pdf,xlsx}-
+  modal.tsx`/`utils/export-{pdf,xlsx}.ts`/`hooks/useRelatoriosDados.ts`, sem outro consumidor).
+
+## Complementação PERSUS I com fontes extras (2026-09-27)
+
+Auditoria pedida pelo usuário ("nós usamos tudo que tem na planilha?") achou 4 fontes de dado do
+PERSUS I nunca lidas por nenhum script existente: aba "Pagamentos" e "Fiscalização" de `data/
+Controle PERSUS.xlsx`, aba "Entregas CONVÊNIO" de `data/Entregas_aceleradores_lineares_PERSUS_
+PRONON_CONV.xlsx`, e `docs/monitoramento-equipamentos/Apresentação PER-SUS.xlsx` (datas de
+licença que resolveram os últimos instrumentos sem data de conclusão). Resultado depois de
+ingerir as 4: **92/92 convênios PERSUS I monitorados** (87 Concluído, 3 Comissionamento, 1
+Equipamento entregue, 1 Em andamento) — antes desta rodada vários ainda dependiam de dado nunca
+lido. Trabalho formalizado em `backend/scripts/complementar_persus_fontes_extras.py` (idempotente,
+`--dry-run`, mesmo padrão de `complementar_persus_monitoramento.py`) — nada ficou em script
+descartável de `/tmp`.
+
+- **Regra de fase confirmada com o usuário**: "Concluído" vem da data de **inauguração real**
+  (`cronograma_previsao_inauguracao` com `data_ocorrencia` preenchida, não só `data_prevista`) ou,
+  quando a fonte confirma inauguração mas só tem data de licença, a **Licença de Operação** mais
+  recente serve de proxy. **TRD (Termo de Recebimento Definitivo) nunca deriva "Concluído"** — só
+  avança até `fase_equipamento_entregue` (`_MAPA_MARCO_FASE` em
+  `complementar_persus_fontes_extras.py`). Erro já cometido e corrigido nesta mesma rodada.
+- **PERSUS II segue com 0/50 no monitoramento interno, por desenho** — confirmado que os 50
+  convênios têm `situacao="Em contratação"` sem exceção (ainda não repassados). `app/services/
+  relatorios.py::_secao_monitoramento_interno` mostra nota explicativa ("ainda em fase de
+  contratação") em vez de omitir a seção ou fabricar dado — mesma lógica no Resumo Executivo
+  quando todo o recorte é PERSUS II.
+- **`PagamentoObraPersus`** (`app/db/models.py`, tabela `pagamento_obra_persus`, migration
+  `b2c3d4e5f6a7`) — nova, registra pagamento por NF a empreiteira (`tipo='obra'`, aba
+  "Pagamentos") ou fiscalização de obra (`tipo='fiscalizacao'`, aba "Fiscalização"), FK pra
+  `instrumento_equipamento`, `chave_origem` único (idempotência de reimportação). Estado real:
+  110 `obra` + 94 `fiscalizacao`. `InstrumentoEquipamento.valor_obra`/`valor_equipamento`
+  (migration `a1b2c3d4e5f6`) vêm da aba "Obras" do mesmo arquivo, preenchidos só quando o campo
+  ainda estava `None` (nunca sobrescreve correção manual anterior).
+- **Matching de nome de hospital** (`_melhor_candidato_por_nome`, testado em
+  `tests/test_complementar_persus_fontes_extras.py`): nome+UF exato → substring em qualquer
+  direção → `difflib.SequenceMatcher` (score ≥0.75 e folga ≥0.05 sobre o 2º colocado) →
+  desempate de ambiguidade por `tipologia` e depois por `valor_global` quando o nome exato bate em
+  mais de 1 convênio (caso real: "Casa de Saúde Santa Marcelina", 2 convênios mesmo CNES,
+  tipologia A/EO). `uf=None` busca o universo inteiro — necessário pra aba "Fiscalização", que não
+  tem coluna de UF. **Nunca usar o "Cod."/id da planilha como chave de match sem validação
+  independente** (UF + nome) — decisão do usuário depois de um match por id de planilha ter
+  passado sem essa checagem numa rodada anterior.
+- **DDL aplicado fora do `alembic upgrade head`** (mesmo motivo já documentado em "Neon de
+  homologação" — cadeia trava em `488a535a0b5e`, sem relação com esta mudança): `a1b2c3d4e5f6`/
+  `b2c3d4e5f6a7` escritas como `ADD COLUMN IF NOT EXISTS`/`CREATE TABLE IF NOT EXISTS`, aplicadas
+  manualmente via `DATABASE_URL_MIGRATION`, seguras para rodar de novo quando a cadeia for
+  destravada.
+- **Parser de valor em Real consolidado**: 3 cópias quase idênticas (`importar_convenios_banco.py`
+  `scripts/complementar_persus_monitoramento.py`, `app/services/relatorios.py`) viraram uma só,
+  `app/pipeline/texto.py::parsear_valor_brasileiro` (testado em `tests/test_pipeline_texto.py`) —
+  achado ao vivo: `float("5928266,99")` (formato do convênio 922037, sem separador de milhar)
+  estourava `ValueError` numa das cópias, caindo num fallback silencioso errado.
+- **Plan Mode não foi reaberto pra esta mudança de schema** (tabela nova + 2 colunas) — gap de
+  processo reconhecido depois do fato, em auditoria de conformidade pedida pelo próprio usuário;
+  registrado aqui em vez de silenciado, sem retroagir.
 
 ## Comandos úteis
 

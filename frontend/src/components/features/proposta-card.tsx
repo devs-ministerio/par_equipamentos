@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { fmtMoeda } from "@/lib/monitoramento-format";
 import { cn } from "@/lib/utils";
-import { situacaoDeFato } from "@/lib/proposta-status";
+import { estagioDeFato, situacaoDeFato } from "@/lib/proposta-status";
 import { Campo, estiloCard, StatusPill } from "./monitoramento-ui";
 import { DetalheBrutoProposta } from "./proposta-detalhe-bruto";
 import { LinhaDoTempoProposta } from "./proposta-linha-do-tempo";
 import type { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
+import { formatarCnpj } from "@/utils/texto";
 import { AdicionarMonitoramentoButton } from "./adicionar-monitoramento-button";
 
 /** O CNES descoberto é somente leitura na proposta; correções são feitas no
@@ -74,7 +75,8 @@ export function CardProposta({
             nomeEstabelecimento={p.cnes_nome_estabelecimento}
           />
           <div className="mt-0.5 text-xs text-muted-foreground">
-            {p.cnpj_ente_recebedor || "—"} · {p.municipio || "—"}/{p.uf || "—"}
+            {formatarCnpj(p.cnpj_ente_recebedor) || "—"} · {p.municipio || "—"}/
+            {p.uf || "—"}
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -141,10 +143,10 @@ export function CardProposta({
               Este instrumento já está no monitoramento interno (
               {instrumentoMonitorado.nr_convenio}).
             </p>
-          ) : (
+          ) : estagioDeFato(p) === "confirmada" ? (
             <AdicionarMonitoramentoButton
               dados={{
-                nr_convenio: p.cd_parceria || String(p.id_proposta),
+                nr_convenio: p.cd_parceria ?? "",
                 cnpj_convenente: p.cnpj_ente_recebedor,
                 nome_convenente: p.nm_proponente,
                 tipo_contratacao: "Parceria TransfereGov",
@@ -153,10 +155,15 @@ export function CardProposta({
                 cnes: p.cnes,
                 programa: p.nm_programa,
                 componente: p.componente_batido,
-                referencia: `proposta #${p.id_proposta}`,
+                proposta_candidata_id: p.id,
+                referencia: `parceria ${p.cd_parceria ?? p.id_proposta}`,
                 descricao: `${p.nm_proponente} — ${p.municipio || "—"}/${p.uf || "—"}`,
               }}
             />
+          ) : (
+            <p className="m-0 text-xs text-muted-foreground">
+              Disponível após a confirmação da parceria no TransfereGov.
+            </p>
           )}
         </div>
       </details>

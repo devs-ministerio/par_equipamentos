@@ -77,7 +77,10 @@ def test_logout_exige_header_csrf_correto():
 
 
 def test_patch_monitoramento_exige_header_csrf_correto():
-    c, csrf = _logar_usuario_novo()
+    # gestor (não colaborador): PATCH sem titularidade designada exige
+    # admin/gestor desde a titularidade obrigatória (achado 2026-09-28) --
+    # este teste valida CSRF, não titularidade, por isso bypassa o gate.
+    c, csrf = _logar_usuario_novo(role=UserRole.gestor)
 
     sem_header = c.patch(f"/monitoramento/instrumentos/{NR_CONVENIO_SEED}", json={})
     assert sem_header.status_code == 403

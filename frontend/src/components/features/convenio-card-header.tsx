@@ -4,6 +4,7 @@
 import { fmtData, fmtMoeda, pct } from "@/lib/monitoramento-format";
 import { TIPOLOGIA_PERSUS } from "@/data/constants";
 import type { ConvenioUnificado } from "@/types/monitoramento";
+import { formatarCnpj } from "@/utils/texto";
 import { Campo, StatusPill } from "./monitoramento-ui";
 
 export function ConvenioCardHeader({
@@ -75,7 +76,8 @@ export function ConvenioCardHeader({
             </div>
           )}
           <div className="text-xs text-muted-foreground mt-0.5">
-            {c.convenente.cnpj ?? "CNPJ não informado"} · {c.municipio}/{c.uf}
+            {formatarCnpj(c.convenente.cnpj) ?? "CNPJ não informado"} ·{" "}
+            {c.municipio}/{c.uf}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">

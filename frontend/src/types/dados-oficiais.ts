@@ -2,8 +2,11 @@ export type AbaDadosOficiais = "convenios" | "componentes";
 export type ClasseEquipamento = "prioritario" | "outro";
 export type FiltroDadosOficiais =
   | "uf"
+  | "municipio"
+  | "cnes"
   | "equipamento"
   | "situacao"
-  | "ano"
+  | "anoInicio"
+  | "anoFim"
   | "programa"
   | "tipo";

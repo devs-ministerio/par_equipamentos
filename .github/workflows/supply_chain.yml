@@ -30,7 +30,13 @@ jobs:
           name: sigeo-backend-image-${{ github.sha }}
           path: sigeo-backend-${{ github.sha }}.tar.gz
           if-no-files-found: error
-          retention-days: 30
+          # 3 dias (não 30): tarball de ~260MB por push, só usado dentro deste
+          # mesmo job pra scan de CVE -- nunca consumido depois. Retenção
+          # longa aqui foi o que esgotou a cota de armazenamento de Actions
+          # do repo privado (500MB no plano Free), achado 2026-09-28. SBOM
+          # (linha abaixo, ~350KB) continua 30 dias -- é o que vale manter
+          # pra auditoria.
+          retention-days: 3
       - name: Gerar SBOM SPDX da imagem
         uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         with:

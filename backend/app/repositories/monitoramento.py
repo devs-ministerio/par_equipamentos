@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from app.db.models import (
     AcaoMonitoramento,
     CnesEstabelecimento,
+    Convenio,
     EventoMarco,
     InstrumentoEquipamento,
     InstrumentoResponsavel,
@@ -28,7 +29,10 @@ from app.db.models import (
     Notificacao,
     PropostaCandidata,
     User,
+    UserRole,
+    UserStatus,
 )
+from app.pipeline.texto import normalizar_texto
 from app.repositories.notificacoes import criar_notificacao
 
 # Evento/ação ATIVO = ainda vigente (não corrigido nem excluído) -- ver
@@ -103,14 +107,45 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
     )
 
 
-def listar_instrumentos(db: Session, *, limit: int = 500) -> list[InstrumentoEquipamento]:
+def listar_instrumentos(
+    db: Session,
+    *,
+    limit: int = 500,
+    ufs: list[str] | None = None,
+    municipio: str | None = None,
+    cnes: str | None = None,
+    tipo_contratacao: str | None = None,
+) -> list[InstrumentoEquipamento]:
     # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
     # consolidacao 2026-09-17) -- universo monitorado e pequeno hoje (86).
-    return list(
-        db.execute(select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio).limit(limit))
-        .scalars()
-        .all()
-    )
+    # ufs/municipio/cnes/tipo_contratacao sao filtros novos (Plan Mode
+    # relatorios 2026-09-25, Blocos 2/4/7) -- opcionais, nao existiam antes.
+    # Sem `programa` de proposito (achado ao vivo, Bloco 7): e preenchido
+    # manualmente pela equipe, sem garantia de bater com `Convenio.programa`
+    # string a string -- `tipo_contratacao` e o unico vocabulario fechado e
+    # identico nas duas tabelas (Convenio/FAF/TED/PERSUS I/PERSUS II),
+    # seguro de filtrar. Municipio comparado em Python (normalizar_texto),
+    # nao em SQL -- achado ao vivo (Bloco 4): "SAO PAULO"/"São Paulo"
+    # convivem na mesma coluna a depender da origem, comparação exata
+    # sempre perdia uma das grafias. Sem `ano` de proposito (Bloco 8,
+    # Plan Mode relatorios 2026-09-27): a regra "em andamento sempre
+    # aparece no ano corrente" só é decidível DEPOIS de calcular
+    # `fase_atual` -- esse filtro migrou pra
+    # `app/services/monitoramento_instrumentos.py::listar_instrumentos_monitorados`,
+    # em Python, pós-cálculo de fase.
+    stmt = select(InstrumentoEquipamento)
+    if ufs:
+        stmt = stmt.where(InstrumentoEquipamento.uf.in_(ufs))
+    if cnes:
+        stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
+    if tipo_contratacao:
+        stmt = stmt.where(InstrumentoEquipamento.tipo_contratacao == tipo_contratacao)
+    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
+    resultado = list(db.execute(stmt).scalars().all())
+    if municipio:
+        alvo = normalizar_texto(municipio)
+        resultado = [i for i in resultado if normalizar_texto(i.municipio) == alvo]
+    return resultado
 
 
 def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:
@@ -223,6 +258,30 @@ def obter_acao_por_id(db: Session, acao_id: int) -> AcaoMonitoramento | None:
     return db.get(AcaoMonitoramento, acao_id)
 
 
+def listar_acoes_do_instrumento(
+    db: Session, instrumento_id: int, *, apenas_ativas: bool = True
+) -> list[AcaoMonitoramento]:
+    """Mesmo padrão de `listar_eventos_do_instrumento` acima, só que pra
+    `AcaoMonitoramento` -- usado pelo relatório (Bloco 8, Plan Mode
+    relatorios 2026-09-25) pra achar "Última Ação". Ordenado por
+    `data_conclusao` (ação concluída mais recente primeiro; pendente sem
+    conclusão fica por último) com `created_at`/`id` de desempate."""
+    stmt = select(AcaoMonitoramento).where(AcaoMonitoramento.instrumento_id == instrumento_id)
+    if apenas_ativas:
+        stmt = stmt.where(_ACAO_ATIVA)
+    return list(
+        db.execute(
+            stmt.order_by(
+                AcaoMonitoramento.data_conclusao.desc().nulls_last(),
+                AcaoMonitoramento.created_at.desc(),
+                AcaoMonitoramento.id.desc(),
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
 def listar_acoes_monitoradas(db: Session, *, pendentes: bool, limit: int) -> list[tuple[AcaoMonitoramento, str]]:
     stmt = (
         select(AcaoMonitoramento, InstrumentoEquipamento.nr_convenio)
@@ -251,6 +310,25 @@ def adicionar_instrumento(db: Session, instrumento: InstrumentoEquipamento) -> N
     """Persiste e materializa o id para o caso de uso registrar sua auditoria."""
     db.add(instrumento)
     db.flush()
+
+
+def preencher_ano_convenio_se_ausente(
+    db: Session,
+    *,
+    numero: str,
+    tipo_contratacao: str,
+    ano: int,
+) -> None:
+    """Espelha no universo de instrumentos firmados o ano definido pela gestão."""
+    convenio = db.execute(
+        select(Convenio).where(
+            Convenio.numero == numero,
+            Convenio.tipo_contratacao == tipo_contratacao,
+            Convenio.ano_instrumento.is_(None),
+        )
+    ).scalar_one_or_none()
+    if convenio is not None:
+        convenio.ano_instrumento = ano
 
 
 def adicionar_evento(db: Session, evento: EventoMarco) -> None:
@@ -291,3 +369,33 @@ def mapear_responsaveis_por_instrumentos(db: Session, ids: set[int]) -> dict[int
     for instrumento_id, usuario_id in linhas:
         resultado[instrumento_id].add(usuario_id)
     return resultado
+
+
+def mapear_responsaveis_com_papel_por_instrumentos(db: Session, ids: set[int]) -> dict[int, dict[str, int]]:
+    """Responsáveis por papel, para expor IDs de seleção sem inferir nomes."""
+    resultado: dict[int, dict[str, int]] = defaultdict(dict)
+    if not ids:
+        return resultado
+    for instrumento_id, papel, usuario_id in db.execute(
+        select(
+            InstrumentoResponsavel.instrumento_id,
+            InstrumentoResponsavel.papel,
+            InstrumentoResponsavel.usuario_id,
+        ).where(InstrumentoResponsavel.instrumento_id.in_(ids))
+    ):
+        resultado[instrumento_id][papel] = usuario_id
+    return resultado
+
+
+def listar_colaboradores_ativos(db: Session) -> list[User]:
+    return list(
+        db.execute(
+            select(User)
+            .where(
+                User.role == UserRole.colaborador,
+                User.status == UserStatus.active,
+                User.deleted_at.is_(None),
+            )
+            .order_by(User.name, User.id)
+        ).scalars()
+    )

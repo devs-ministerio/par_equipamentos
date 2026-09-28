@@ -15,4 +15,5 @@ export const monitoramentoKeys = {
     ["notificacoes", apenasNaoLidas ?? "todas"] as const,
   propostasCandidatas: () => ["propostas-candidatas"] as const,
   usuarios: (filtro?: unknown) => ["usuarios", filtro ?? "todos"] as const,
+  auditoria: (filtro?: unknown) => ["auditoria", filtro ?? "todos"] as const,
 };

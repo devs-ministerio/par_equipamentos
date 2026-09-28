@@ -37,6 +37,8 @@ from app.db.models import (
     Notificacao,
     NotificacaoTipo,
     User,
+    UserRole,
+    UserStatus,
 )
 from app.domain_errors import NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
@@ -47,18 +49,6 @@ from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 # Postgres (Plan Mode monitoramento-evolucao 2026-09-19).
 _TIPOLOGIAS_VALIDAS = {"A", "CV", "C", "EO", "C.B", "NA"}
 _MODALIDADES_ONCO_VALIDAS = {"Apoio", "Diagnóstico", "Rastreamento", "Tratamento", "Múltiplas"}
-
-# Opções de responsável que possuem identidade autorizada. O texto histórico
-# de Layane/Louise não é resolvido aqui; ele foi limpo pela migration e não
-# pode recriar um vínculo sem usuário correspondente.
-_EMAIL_RESPONSAVEL_POR_TEXTO = {
-    "BRUNA": "bruna.machado@saude.gov.br",
-    "BRUNA MACHADO": "bruna.machado@saude.gov.br",
-    "LEONARDO BARSANTE": "leonardo.augusto@saude.gov.br",
-    "PRISCILA": "priscila.muniz@saude.gov.br",
-    "SAMUEL": "samuel.oliveira@saude.gov.br",
-    "THIAGO RODRIGUES": "thiago.rodrigues@saude.gov.br",
-}
 
 
 def _agora_utc() -> datetime:
@@ -114,38 +104,48 @@ def _resumo_equipamento_entregue(dados: DadosEquipamentoEntregue) -> str | None:
     return "Equipamento entregue: " + " · ".join(partes)
 
 
-def _sincronizar_responsaveis_relacionais(
-    *, db: Session, instrumento: InstrumentoEquipamento, alteracoes: dict[str, object | None]
-) -> None:
-    """Mantém o vínculo relacional alinhado aos selects técnicos vigentes."""
-    for campo, papel in (("tecnico_titular", "titular"), ("tecnico_suplente", "suplente")):
-        if campo not in alteracoes:
-            continue
-        db.execute(
-            delete(InstrumentoResponsavel).where(
-                InstrumentoResponsavel.instrumento_id == instrumento.id,
-                InstrumentoResponsavel.papel == papel,
-            )
-        )
-        texto = alteracoes[campo]
-        if not isinstance(texto, str):
-            continue
-        email = _EMAIL_RESPONSAVEL_POR_TEXTO.get(texto.strip().upper())
-        if email is None:
-            continue
-        usuario = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
-        ja_vinculado = (
-            db.execute(
-                select(InstrumentoResponsavel.id).where(
-                    InstrumentoResponsavel.instrumento_id == instrumento.id,
-                    InstrumentoResponsavel.usuario_id == usuario.id,
-                )
-            ).scalar_one_or_none()
-            if usuario is not None
-            else None
-        )
-        if usuario is not None and ja_vinculado is None:
-            db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=usuario.id, papel=papel))
+def _obter_colaborador_ativo(db: Session, usuario_id: int, *, papel: str) -> User:
+    """Resolve um responsável por identidade, nunca por nome livre.
+
+    A relação é deliberadamente limitada a colaboradores ativos: admin/gestor
+    podem administrar a atribuição, mas não podem aparecer como técnicos de
+    campo. Isso mantém o controle de acesso e a lista exibida na UI coerentes.
+    """
+    usuario = db.get(User, usuario_id)
+    if (
+        usuario is None
+        or usuario.role != UserRole.colaborador
+        or usuario.status != UserStatus.active
+        or usuario.deleted_at is not None
+    ):
+        raise ValidationError(f"{papel.capitalize()} deve ser um colaborador ativo cadastrado.")
+    return usuario
+
+
+def substituir_responsaveis_instrumento(
+    *,
+    db: Session,
+    instrumento: InstrumentoEquipamento,
+    titular_id: int,
+    suplente_id: int | None,
+) -> tuple[User, User | None]:
+    """Substitui a dupla responsável e atualiza apenas o espelho textual.
+
+    `instrumento_responsavel` é a fonte de verdade. Os nomes nas colunas
+    legadas permanecem para compatibilidade de leitura das cargas históricas,
+    mas nenhuma escrita aceita texto como identidade.
+    """
+    if suplente_id == titular_id:
+        raise ValidationError("Técnico titular e suplente devem ser colaboradores distintos.")
+    titular = _obter_colaborador_ativo(db, titular_id, papel="técnico titular")
+    suplente = _obter_colaborador_ativo(db, suplente_id, papel="técnico suplente") if suplente_id is not None else None
+    db.execute(delete(InstrumentoResponsavel).where(InstrumentoResponsavel.instrumento_id == instrumento.id))
+    db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=titular.id, papel="titular"))
+    if suplente is not None:
+        db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=suplente.id, papel="suplente"))
+    instrumento.tecnico_titular = titular.name
+    instrumento.tecnico_suplente = suplente.name if suplente is not None else None
+    return titular, suplente
 
 
 def atualizar_cadastro_instrumento(
@@ -179,13 +179,43 @@ def atualizar_cadastro_instrumento(
             f"Modalidade {modalidade_nova!r} inválida. Use uma de {sorted(_MODALIDADES_ONCO_VALIDAS)}."
         )
 
+    titular_informado = "tecnico_titular_id" in alteracoes_brutas
+    suplente_informado = "tecnico_suplente_id" in alteracoes_brutas
+    alterou_responsaveis = titular_informado or suplente_informado
+    titular_id = alteracoes_brutas.pop("tecnico_titular_id", None)
+    suplente_id = alteracoes_brutas.pop("tecnico_suplente_id", None)
+    # `pop` acima impede que os campos virtuais sejam tratados como colunas;
+    # conserva a semântica PATCH de distinguir omissão de `null`.
     alteracoes: dict[str, dict[str, object | None]] = {}
+    if alterou_responsaveis:
+        atuais = {
+            vinculo.papel: vinculo.usuario_id
+            for vinculo in db.execute(
+                select(InstrumentoResponsavel).where(InstrumentoResponsavel.instrumento_id == instrumento.id)
+            ).scalars()
+        }
+        titular_efetivo = titular_id if titular_id is not None else atuais.get("titular")
+        if not isinstance(titular_efetivo, int):
+            raise ValidationError("Técnico titular é obrigatório para este instrumento.")
+        suplente_efetivo = suplente_id if suplente_informado else atuais.get("suplente")
+        if suplente_efetivo is not None and not isinstance(suplente_efetivo, int):
+            raise ValidationError("Técnico suplente inválido.")
+        titular, suplente = substituir_responsaveis_instrumento(
+            db=db,
+            instrumento=instrumento,
+            titular_id=titular_efetivo,
+            suplente_id=suplente_efetivo,
+        )
+        alteracoes["responsaveis"] = {
+            "old": atuais,
+            "new": {"titular_id": titular.id, "suplente_id": suplente.id if suplente else None},
+        }
+
     for campo, valor in alteracoes_brutas.items():
         antigo = getattr(instrumento, campo)
         if antigo != valor:
             alteracoes[campo] = {"old": antigo, "new": valor}
         setattr(instrumento, campo, valor)
-    _sincronizar_responsaveis_relacionais(db=db, instrumento=instrumento, alteracoes=alteracoes_brutas)
     log_action(
         db,
         user_id=usuario.id,

@@ -18,6 +18,12 @@ class FiltrosPropostaCandidata:
     id_programa: int | None = None
 
 
+def obter_proposta_por_id(db: Session, proposta_candidata_id: int) -> PropostaCandidata | None:
+    """Busca a proposta pela identidade interna, usada pela criação segura
+    do instrumento monitorado. A regra de elegibilidade permanece no service."""
+    return db.get(PropostaCandidata, proposta_candidata_id)
+
+
 def aplicar_filtros_proposta(query, filtros: FiltrosPropostaCandidata):
     if filtros.uf:
         query = query.where(PropostaCandidata.uf == filtros.uf)

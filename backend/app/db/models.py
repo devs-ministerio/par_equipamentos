@@ -159,6 +159,11 @@ class User(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_log_created_at", "created_at"),
+        Index("ix_audit_log_entity_name_created_at", "entity_name", "created_at"),
+        Index("ix_audit_log_user_id_created_at", "user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
@@ -256,6 +261,25 @@ class ReferenceFile(Base):
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
 
 
+class FonteDado(Base):
+    """Catálogo estruturado de proveniência, sem apagar o texto legado."""
+
+    __tablename__ = "fonte_dado"
+    __table_args__ = (UniqueConstraint("codigo", name="uq_fonte_dado_codigo"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo: Mapped[str] = mapped_column(String, nullable=False)
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+    tipo: Mapped[str] = mapped_column(String, nullable=False)
+    url_referencia: Mapped[str | None] = mapped_column(String)
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    # `Mapped[datetime | None]` (não `datetime`) -- a migration que criou a
+    # tabela (e6f7a8b9c0d1) não marcou NOT NULL explícito; o modelo precisa
+    # bater com o schema real aplicado (test_schema_migrations.py), não
+    # editar a migration já aplicada.
+    criado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class AcceleratorRow(Base):
     __tablename__ = "accelerator_row"
     __table_args__ = (CheckConstraint("operational_qty >= 0", name="ck_accelerator_row_operational_qty"),)
@@ -299,6 +323,10 @@ class CnesEstabelecimento(Base):
     __table_args__ = (
         CheckConstraint("cnes ~ '^[0-9]{7}$'", name="ck_cnes_estabelecimento_cnes_formato"),
         CheckConstraint(
+            "cnpj IS NULL OR cnpj ~ '^[0-9]{14}$'",
+            name="ck_cnes_estabelecimento_cnpj_formato",
+        ),
+        CheckConstraint(
             "latitude IS NULL OR (latitude >= -90 AND latitude <= 90)",
             name="ck_cnes_estabelecimento_latitude",
         ),
@@ -323,6 +351,7 @@ class CnesEstabelecimento(Base):
     nome_estabelecimento: Mapped[str] = mapped_column(String, nullable=False)
     cnpj: Mapped[str | None] = mapped_column(String)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     cep: Mapped[str | None] = mapped_column(String)
     logradouro: Mapped[str | None] = mapped_column(String)
@@ -365,7 +394,14 @@ class Convenio(Base):
     __tablename__ = "convenio"
     __table_args__ = (
         Index("idx_convenio_cnes", "cnes"),
+        Index("idx_convenio_municipio_normalizado", "municipio_normalizado"),
+        Index("idx_convenio_codigo_ibge_municipio", "codigo_ibge_municipio"),
+        Index("idx_convenio_fonte_dado", "fonte_dado_id"),
         UniqueConstraint("numero", name="uq_convenio_numero"),
+        CheckConstraint(
+            "convenente_cnpj IS NULL OR convenente_cnpj ~ '^[0-9]{14}$'",
+            name="ck_convenio_convenente_cnpj_formato",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -384,8 +420,10 @@ class Convenio(Base):
     convenente_cnpj: Mapped[str | None] = mapped_column(String)
     convenente_tipo: Mapped[str | None] = mapped_column(String)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     codigo_ibge: Mapped[str | None] = mapped_column(String)
+    codigo_ibge_municipio: Mapped[str | None] = mapped_column(String(6))
     regiao: Mapped[str | None] = mapped_column(String)
     orgao: Mapped[str | None] = mapped_column(String)
     unidade_gestora: Mapped[str | None] = mapped_column(String)
@@ -441,6 +479,9 @@ class Convenio(Base):
     # (ex. "PERSUS I · Apresentação PER-SUS.xlsx · sha256:..."). Nulo pros
     # 403 convênios reais (proveniência já é o próprio merge de 3 fontes).
     origem_dado: Mapped[str | None] = mapped_column(String)
+    fonte_dado_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fonte_dado.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
     # Chave estável de upsert pra origem sem número oficial (NUP SEI dígitos
     # p/ FAF/TED; "PERSUS1-{cnes}-{tipologia}" etc.) -- nunca exposta na API/
     # UI, só usada pelos scripts de carga pra reencontrar o registro em
@@ -816,6 +857,8 @@ class InstrumentoEquipamento(Base):
     __table_args__ = (
         Index("idx_instrumento_equipamento_cnes", "cnes"),
         Index("idx_instrumento_equipamento_programa_situacao", "programa", "situacao_programa"),
+        Index("idx_instrumento_municipio_normalizado", "municipio_normalizado"),
+        Index("idx_instrumento_equipamento_fonte_dado", "fonte_dado_id"),
         CheckConstraint(
             "equipamento_vida_util_anos IS NULL OR equipamento_vida_util_anos >= 0",
             name="ck_instrumento_equipamento_vida_util",
@@ -831,6 +874,10 @@ class InstrumentoEquipamento(Base):
         CheckConstraint(
             "modalidade_onco IS NULL OR modalidade_onco IN ('Apoio', 'Diagnóstico', 'Rastreamento', 'Tratamento', 'Múltiplas')",
             name="ck_instrumento_equipamento_modalidade_onco",
+        ),
+        CheckConstraint(
+            "cnpj_convenente IS NULL OR cnpj_convenente ~ '^[0-9]{14}$'",
+            name="ck_instrumento_equipamento_cnpj_convenente_formato",
         ),
         UniqueConstraint("nr_convenio", name="uq_instrumento_equipamento_nr_convenio"),
     )
@@ -848,6 +895,7 @@ class InstrumentoEquipamento(Base):
     cnpj_convenente: Mapped[str | None] = mapped_column(String)
     nome_convenente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     cnes: Mapped[str | None] = mapped_column(
         String(7),
@@ -901,6 +949,9 @@ class InstrumentoEquipamento(Base):
     # identifica a proveniência da carga; os demais campos preservam o
     # vocabulário oficial da fonte sem tentar convertê-lo em fase interna.
     origem_dado: Mapped[str | None] = mapped_column(String)
+    fonte_dado_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fonte_dado.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
     tipologia: Mapped[str | None] = mapped_column(String(3))
     investimento_aquisicao: Mapped[float | None] = mapped_column(Numeric(16, 2))
     situacao_programa: Mapped[str | None] = mapped_column(String)
@@ -969,7 +1020,68 @@ class InstrumentoEquipamento(Base):
     # comentario acima). None quando ainda nao ha nenhuma ordem de
     # pagamento emitida.
     situacao_ordem_pagamento_transferegov: Mapped[str | None] = mapped_column(String)
+    # Split obra/equipamento (achado 2026-09-27, usuário: "acredito que
+    # temos valores para obra, reforma e equipamento" na ingestão manual do
+    # PERSUS) -- a aba "Obras" de `data/Controle PERSUS.xlsx` publica "R$
+    # Projeto + reajuste" (obra/reforma) e "R$ Equipamento" separados, mas
+    # só o TOTAL (`investimento_aquisicao`, de `Convenio.valor_global`) era
+    # gravado -- o split nunca tinha sido lido por
+    # `scripts/complementar_persus_monitoramento.py`. Nulo pra instrumento
+    # sem essa aba (Convênio/FAF/TED, ou PERSUS sem obra casada na
+    # planilha) -- nunca preenchido por soma/estimativa.
+    valor_obra: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    valor_equipamento: Mapped[float | None] = mapped_column(Numeric(16, 2))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PagamentoObraPersus(Base):
+    """Pagamento individual da OBRA (empreiteira/construtora) OU da
+    FISCALIZAÇÃO do PERSUS -- achado ao vivo 2026-09-27 (usuário: "no itens
+    dl e no pagamentos ao fornecedor tem info do equipamento individual" +
+    pedido de ligar TODOS os dados disponíveis). Fonte: abas "Pagamentos"
+    (`tipo="obra"`, casada pelo código da obra "Cod.") e "Fiscalização"
+    (`tipo="fiscalizacao"`, casada por nome do convenente + UF, fuzzy
+    restrito a candidato único) de `data/Controle PERSUS.xlsx`.
+
+    Lista append-only (1 pagamento pode se repetir por obra ao longo do
+    tempo) -- nunca UPDATE, só INSERT; reimport (carga controlada, não
+    sincronização) deduplica por `chave_origem` antes de inserir de novo."""
+
+    __tablename__ = "pagamento_obra_persus"
+    __table_args__ = (
+        UniqueConstraint("chave_origem", name="uq_pagamento_obra_persus_chave_origem"),
+        Index("idx_pagamento_obra_persus_instrumento", "instrumento_id"),
+        Index("idx_pagamento_obra_persus_fonte_dado", "fonte_dado_id"),
+        CheckConstraint("tipo IN ('obra', 'fiscalizacao')", name="ck_pagamento_obra_persus_tipo"),
+        CheckConstraint(
+            "fornecedor_cnpj IS NULL OR fornecedor_cnpj ~ '^[0-9]{14}$'",
+            name="ck_pagamento_obra_persus_fornecedor_cnpj_formato",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String, nullable=False, server_default="obra")
+    codigo_obra: Mapped[str | None] = mapped_column(String)
+    nup_pagamento: Mapped[str | None] = mapped_column(String)
+    fornecedor_nome: Mapped[str | None] = mapped_column(String)
+    fornecedor_cnpj: Mapped[str | None] = mapped_column(String)
+    data_nota_fiscal: Mapped[date | None] = mapped_column(Date)
+    data_pagamento: Mapped[date | None] = mapped_column(Date)
+    valor: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    origem_dado: Mapped[str | None] = mapped_column(String)
+    fonte_dado_id: Mapped[int | None] = mapped_column(
+        ForeignKey("fonte_dado.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
+    # Hash determinístico da linha de origem -- evita duplicar o mesmo
+    # pagamento se o script rodar de novo sobre a mesma planilha.
+    chave_origem: Mapped[str] = mapped_column(String, nullable=False)
+    # `Mapped[datetime | None]` (não `datetime`) -- mesmo motivo de
+    # `FonteDado.criado_em`: a migration (b2c3d4e5f6a7) não marcou NOT
+    # NULL explícito, modelo precisa bater com o schema real aplicado.
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class InstrumentoResponsavel(Base):
@@ -1158,7 +1270,12 @@ class PropostaCandidata(Base):
     __tablename__ = "proposta_candidata"
     __table_args__ = (
         Index("idx_proposta_candidata_cnes", "cnes"),
+        Index("idx_proposta_municipio_normalizado", "municipio_normalizado"),
         UniqueConstraint("id_proposta", name="uq_proposta_candidata_id_proposta"),
+        CheckConstraint(
+            "cnpj_ente_recebedor ~ '^[0-9]{14}$'",
+            name="ck_proposta_candidata_cnpj_ente_recebedor_formato",
+        ),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -1171,6 +1288,7 @@ class PropostaCandidata(Base):
     cnpj_ente_recebedor: Mapped[str] = mapped_column(String, nullable=False)
     nm_proponente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
+    municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
     ds_objeto: Mapped[str] = mapped_column(String, nullable=False)
     nm_programa: Mapped[str] = mapped_column(String, nullable=False)

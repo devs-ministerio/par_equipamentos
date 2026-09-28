@@ -23,7 +23,7 @@ from app.auth import (
     rotate_refresh_token,
 )
 from app.db.base import SessionLocal
-from app.db.models import User, UserRole
+from app.db.models import AuditLog, User, UserRole
 from app.main import app
 
 client = TestClient(app)
@@ -240,6 +240,84 @@ def test_logout_invalida_imediatamente_access_cookie_reaproveitado():
         c.cookies.set(ACCESS_COOKIE_NAME, access_antigo)
         acesso_reaproveitado = c.get("/auth/me")
         assert acesso_reaproveitado.status_code == 401
+    finally:
+        db.close()
+
+
+def _acoes_auditoria(db, *, entity_id: int) -> list[str]:
+    linhas = (
+        db.query(AuditLog)
+        .filter(AuditLog.entity_name == "auth", AuditLog.entity_id == entity_id)
+        .order_by(AuditLog.id)
+        .all()
+    )
+    return [linha.action for linha in linhas]
+
+
+def test_login_sucesso_e_falha_geram_auditoria():
+    from app.rate_limit import limiter
+
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        c = TestClient(app)
+
+        limiter.reset()
+        falha = c.post("/auth/login", json={"email": user.email, "password": "senha-errada"})
+        assert falha.status_code == 401
+        sucesso = c.post("/auth/login", json={"email": user.email, "password": senha})
+        assert sucesso.status_code == 200
+
+        assert _acoes_auditoria(db, entity_id=user.id) == ["login_falha", "login_sucesso"]
+    finally:
+        db.close()
+
+
+def test_ativacao_e_logout_geram_auditoria():
+    from app.rate_limit import limiter
+
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        c = TestClient(app)
+        limiter.reset()
+        c.post("/auth/login", json={"email": user.email, "password": senha})
+        csrf = c.cookies.get(CSRF_COOKIE_NAME)
+        assert csrf is not None
+
+        logout = c.post("/auth/logout", headers={CSRF_HEADER_NAME: csrf})
+        assert logout.status_code == 200
+
+        assert _acoes_auditoria(db, entity_id=user.id) == ["login_sucesso", "logout"]
+    finally:
+        db.close()
+
+
+def test_reuso_de_refresh_ja_revogado_gera_auditoria():
+    from app.rate_limit import limiter
+
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        c = TestClient(app)
+        limiter.reset()
+        c.post("/auth/login", json={"email": user.email, "password": senha})
+        refresh_antigo = c.cookies.get(REFRESH_COOKIE_NAME)
+        csrf = c.cookies.get(CSRF_COOKIE_NAME)
+        assert refresh_antigo is not None
+        assert csrf is not None
+
+        c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
+        # O CSRF cookie roda a cada /auth/refresh (mesmo set_session_cookies
+        # do /auth/login) -- reusar o valor antigo aqui daria 403 de CSRF
+        # em vez do 401 de reuso que este teste quer provar.
+        csrf_atual = c.cookies.get(CSRF_COOKIE_NAME)
+        assert csrf_atual is not None
+        c.cookies.set(REFRESH_COOKIE_NAME, refresh_antigo)
+        reuso = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf_atual})
+        assert reuso.status_code == 401
+
+        assert "refresh_reuso_detectado" in _acoes_auditoria(db, entity_id=user.id)
     finally:
         db.close()
 

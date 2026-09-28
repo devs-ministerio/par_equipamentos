@@ -25,6 +25,7 @@ const userSchema = z.object({
   role: userRoleSchema,
   status: userStatusSchema,
   created_at: z.string(),
+  activated_at: z.string().nullable(),
 });
 export type Usuario = z.infer<typeof userSchema>;
 

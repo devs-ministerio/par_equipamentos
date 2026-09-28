@@ -29,6 +29,15 @@ from sqlalchemy import select
 from app.db.base import SessionLocal
 from app.db.models import AcaoMonitoramento, Convenio, EventoMarco, InstrumentoEquipamento, MarcoCatalogo
 
+# Achado ao vivo 2026-09-27 (usuário: "acredito que temos valores para obra,
+# reforma e equipamento" na ingestão manual do PERSUS) -- a aba "Obras" de
+# `Controle PERSUS.xlsx` tem "R$ Projeto + reajuste" (obra) e "R$
+# Equipamento" separados, mas o script só lia essa aba pra achar
+# `codigo_obra`/`nup`, nunca as colunas de valor. Reusa o parser único
+# (`app.pipeline.texto`) em vez de uma cópia local -- havia 3 quase
+# idênticas entre scripts/services.
+from app.pipeline.texto import parsear_valor_brasileiro as _valor_reais
+
 ROOT = Path(__file__).resolve().parents[2]
 ARQUIVO_PADRAO = ROOT / "data/Controle PERSUS.xlsx"
 ARQUIVO_ENTREGAS_PADRAO = ROOT / "data/Entregas_aceleradores_lineares_PERSUS_PRONON_CONV.xlsx"
@@ -91,6 +100,8 @@ class LinhaControle:
     ano: int | None
     codigo_obra: str | None
     nup: str | None
+    valor_obra: float | None
+    valor_equipamento: float | None
     datas_equipamento: dict[str, date]
     acoes_concluidas: dict[str, date]
 
@@ -188,6 +199,8 @@ def ler_controle(path: Path) -> list[LinhaControle]:
                 ano=int(equipamento[6]) if equipamento and isinstance(equipamento[6], (int, float)) else None,
                 codigo_obra=_texto(obra[0]) or None if obra else None,
                 nup=_texto(obra[1]) or None if obra else None,
+                valor_obra=_valor_reais(obra[10]) if obra else None,
+                valor_equipamento=_valor_reais(obra[12]) if obra else None,
                 datas_equipamento=datas,
                 acoes_concluidas=acoes,
             )
@@ -517,6 +530,13 @@ def _complementar_campos(
             resultado["conflitos_inauguracao"] += 1
     if situacao := _situacao_convenio(registro.situacao_inauguracao):
         convenio.situacao = situacao
+    # Split obra/equipamento (achado 2026-09-27) -- só preenche quando ainda
+    # vazio, mesmo espírito conservador dos campos acima (nunca sobrescreve
+    # dado já conciliado numa rodada anterior).
+    if registro.valor_obra is not None and instrumento.valor_obra is None:
+        instrumento.valor_obra = registro.valor_obra
+    if registro.valor_equipamento is not None and instrumento.valor_equipamento is None:
+        instrumento.valor_equipamento = registro.valor_equipamento
 
 
 def _registrar_eventos(

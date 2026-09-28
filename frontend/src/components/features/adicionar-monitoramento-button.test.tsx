@@ -9,6 +9,7 @@ import { AdicionarMonitoramentoButton } from "./adicionar-monitoramento-button";
 vi.mock("@/hooks/useAuthSession", () => ({ useAuthSession: vi.fn() }));
 vi.mock("@/services/monitoramento-instrumentos", () => ({
   criarInstrumento: vi.fn(),
+  fetchColaboradoresMonitoramento: vi.fn(),
 }));
 
 const DADOS = {
@@ -39,6 +40,11 @@ describe("AdicionarMonitoramentoButton", () => {
     vi.mocked(useAuthSession).mockReturnValue({
       podeEditar: true,
     } as ReturnType<typeof useAuthSession>);
+    const { fetchColaboradoresMonitoramento } =
+      await import("@/services/monitoramento-instrumentos");
+    vi.mocked(fetchColaboradoresMonitoramento).mockResolvedValue([
+      { id: 7, name: "Técnica SIGEO" },
+    ]);
   });
 
   it("explica que é preciso login quando a pessoa não pode editar", async () => {
@@ -90,16 +96,16 @@ describe("AdicionarMonitoramentoButton", () => {
     await user.click(
       screen.getByRole("button", { name: /Adicionar ao monitoramento/i }),
     );
-    await user.type(
+    await user.selectOptions(
       screen.getByLabelText("Técnico titular responsável"),
-      "  Técnica SIGEO  ",
+      "7",
     );
     await user.click(screen.getByRole("button", { name: "Confirmar" }));
     await user.click(screen.getByRole("button", { name: "Sim, adicionar" }));
 
     await waitFor(() =>
       expect(criarInstrumento).toHaveBeenCalledWith(
-        expect.objectContaining({ tecnico_titular: "Técnica SIGEO" }),
+        expect.objectContaining({ tecnico_titular_id: 7 }),
       ),
     );
     await waitFor(() =>

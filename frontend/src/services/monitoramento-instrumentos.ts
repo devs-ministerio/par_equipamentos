@@ -57,6 +57,8 @@ const instrumentoEquipamentoSchema = z.object({
   natureza_servico: z.string().nullable(),
   tecnico_titular: z.string().nullable(),
   tecnico_suplente: z.string().nullable(),
+  tecnico_titular_id: z.number().nullable().optional(),
+  tecnico_suplente_id: z.number().nullable().optional(),
   nivel_monitoramento: z.string().nullable(),
   modalidade_onco: z.string().nullable(),
   responsavel_execucao_nome: z.string().nullable(),
@@ -94,6 +96,23 @@ export function fetchInstrumentos(): Promise<InstrumentoEquipamento[]> {
   );
 }
 
+const colaboradorMonitoramentoSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+export type ColaboradorMonitoramento = z.infer<
+  typeof colaboradorMonitoramentoSchema
+>;
+
+export function fetchColaboradoresMonitoramento(): Promise<
+  ColaboradorMonitoramento[]
+> {
+  return apiGetAuthed(
+    "/monitoramento/colaboradores",
+    z.array(colaboradorMonitoramentoSchema),
+  );
+}
+
 /** POST /monitoramento/instrumentos: entrada explícita no monitoramento
  * para convênios, propostas ou instrumentos/programas conhecidos. */
 export interface CriarInstrumentoInput {
@@ -107,8 +126,9 @@ export interface CriarInstrumentoInput {
   programa?: string | null;
   componente?: string | null;
   ano_instrumento?: number | null;
-  tecnico_titular?: string | null;
-  tecnico_suplente?: string | null;
+  tecnico_titular_id: number;
+  tecnico_suplente_id?: number | null;
+  proposta_candidata_id?: number | null;
 }
 
 export function criarInstrumento(
@@ -157,8 +177,8 @@ export async function fetchInstrumentoTimeline(
 }
 
 export interface CadastroInstrumentoInput {
-  tecnico_titular?: string | null;
-  tecnico_suplente?: string | null;
+  tecnico_titular_id?: number | null;
+  tecnico_suplente_id?: number | null;
   nivel_monitoramento?: string | null;
   tipologia?: string | null;
   modalidade_onco?: string | null;

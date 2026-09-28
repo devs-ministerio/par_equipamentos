@@ -52,7 +52,7 @@ def usuario_pode_editar_instrumento(usuario: User, ids_responsaveis: set[int]) -
         return False
     if usuario.role in (UserRole.admin, UserRole.gestor):
         return True
-    return not ids_responsaveis or usuario.id in ids_responsaveis
+    return usuario.id in ids_responsaveis
 
 
 def assert_pode_editar_instrumento(usuario: User, ids_responsaveis: set[int]) -> None:

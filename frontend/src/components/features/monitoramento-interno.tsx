@@ -166,8 +166,12 @@ export function MonitoramentoInterno({
         onSalvar={(valores) =>
           executarEscrita(() =>
             salvarCadastro.mutateAsync({
-              tecnico_titular: valores.tecnicoTitular || null,
-              tecnico_suplente: valores.tecnicoSuplente || null,
+              tecnico_titular_id: valores.tecnicoTitular
+                ? Number(valores.tecnicoTitular)
+                : null,
+              tecnico_suplente_id: valores.tecnicoSuplente
+                ? Number(valores.tecnicoSuplente)
+                : null,
               nivel_monitoramento: valores.nivelMonitoramento || null,
               tipologia: valores.tipologia || null,
               modalidade_onco: valores.modalidadeOnco || null,

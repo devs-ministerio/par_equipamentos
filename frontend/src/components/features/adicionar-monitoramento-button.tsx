@@ -2,9 +2,12 @@
  * O técnico é informado antes da confirmação final e a criação fica em
  * AuditLog no backend. */
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { criarInstrumento } from "@/services/monitoramento-instrumentos";
+import {
+  criarInstrumento,
+  fetchColaboradoresMonitoramento,
+} from "@/services/monitoramento-instrumentos";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { monitoramentoKeys } from "@/hooks/monitoramento-query-keys";
 import { Button } from "@/components/ui/button";
@@ -23,7 +26,7 @@ type Etapa = "form" | "confirmar";
 
 export interface DadosAdicionarMonitoramento extends Omit<
   CriarInstrumentoInput,
-  "tecnico_titular" | "tecnico_suplente"
+  "tecnico_titular_id" | "tecnico_suplente_id"
 > {
   referencia: string;
   descricao: string;
@@ -40,6 +43,11 @@ export function AdicionarMonitoramentoButton({
   const [etapa, setEtapa] = useState<Etapa>("form");
   const [tecnicoTitular, setTecnicoTitular] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  const colaboradoresQuery = useQuery({
+    queryKey: ["monitoramento", "colaboradores"],
+    queryFn: fetchColaboradoresMonitoramento,
+    enabled: aberto,
+  });
 
   function fechar() {
     setAberto(false);
@@ -57,7 +65,7 @@ export function AdicionarMonitoramentoButton({
       } = dados;
       return criarInstrumento({
         ...corpo,
-        tecnico_titular: tecnicoTitular.trim() || null,
+        tecnico_titular_id: Number(tecnicoTitular),
       });
     },
     onSuccess: () => {
@@ -104,14 +112,21 @@ export function AdicionarMonitoramentoButton({
               >
                 Técnico titular responsável
               </label>
-              <input
+              <select
                 id="tecnico-titular-novo"
-                className={`${estiloInput} w-full`}
+                className={`${estiloInput} w-full bg-background`}
                 value={tecnicoTitular}
                 onChange={(e) => setTecnicoTitular(e.target.value)}
-                placeholder="Nome do técnico"
                 autoFocus
-              />
+                disabled={colaboradoresQuery.isLoading}
+              >
+                <option value="">— Selecione o colaborador —</option>
+                {(colaboradoresQuery.data ?? []).map((colaborador) => (
+                  <option key={colaborador.id} value={colaborador.id}>
+                    {colaborador.name}
+                  </option>
+                ))}
+              </select>
               {erro && (
                 <p className="text-xs text-destructive mt-1.5">{erro}</p>
               )}

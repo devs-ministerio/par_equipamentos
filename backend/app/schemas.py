@@ -53,6 +53,7 @@ class UserRead(BaseModel):
     role: UserRole
     status: UserStatus
     created_at: datetime
+    activated_at: datetime | None = None
 
 
 class LoginRequest(BaseModel):

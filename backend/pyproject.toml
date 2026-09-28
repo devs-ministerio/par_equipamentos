@@ -24,6 +24,7 @@ dependencies = [
     "slowapi>=0.1.10",
     "newrelic>=13.6.1",
     "argon2-cffi>=25.1.0",
+    "python-docx>=1.2.0",
 ]
 
 [tool.uv]

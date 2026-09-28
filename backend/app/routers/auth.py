@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.audit import log_action
 from app.auth import (
     CSRF_COOKIE_NAME,
     REFRESH_COOKIE_NAME,
@@ -34,6 +35,15 @@ from app.email import enviar_link
 from app.rate_limit import limiter
 from app.schemas import LoginRequest, PasswordRecoveryRequest, PasswordResetRequest, UserActivationRequest, UserRead
 
+
+def _detalhes_requisicao(request: Request) -> dict:
+    """IP/user-agent do request -- só entra em `AuditLog.details` de eventos
+    de auth (login/logout/ativação), nunca em log geral: é dado necessário
+    pra investigar força bruta/sessão roubada (Módulo de Auditoria,
+    2026-09-28), visível só a admin na tela de auditoria."""
+    return {"ip": request.client.host if request.client else None, "user_agent": request.headers.get("user-agent")}
+
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -45,6 +55,7 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     no corpo foram removidos em 2026-09-17 (Bloco 2) -- confirmado que os 3
     clientes HTTP do frontend ja operam so por cookie e nao ha consumidor
     externo de API."""
+    detalhes = _detalhes_requisicao(request)
     user = db.execute(select(User).where(User.email == corpo.email.lower().strip())).scalar_one_or_none()
     if (
         user is None
@@ -52,14 +63,28 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
         or user.deleted_at is not None
         or user.activation_token_hash is not None
     ):
+        log_action(
+            db,
+            user_id=None,
+            entity_name="auth",
+            entity_id=None,
+            action="login_falha",
+            details={"email": corpo.email.lower().strip(), **detalhes},
+        )
+        db.commit()
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
     if user.locked_until is not None and user.locked_until > datetime.now(timezone.utc):
         # Mesma mensagem generica de credencial invalida -- nao sinalizar
         # pra quem tenta logar que a conta esta bloqueada (diferenciar
         # ajudaria um atacante a saber que acertou o e-mail).
+        log_action(
+            db, user_id=user.id, entity_name="auth", entity_id=user.id, action="login_bloqueado", details=detalhes
+        )
+        db.commit()
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
     if not verify_password(corpo.password, user.password_hash):
         registrar_falha_login(db, user)
+        log_action(db, user_id=user.id, entity_name="auth", entity_id=user.id, action="login_falha", details=detalhes)
         db.commit()
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
 
@@ -70,6 +95,7 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
         user.password_hash = hash_password(corpo.password)
 
     registrar_sucesso_login(user)
+    log_action(db, user_id=user.id, entity_name="auth", entity_id=user.id, action="login_sucesso", details=detalhes)
     refresh_token, refresh_token_id = create_refresh_token(db, user)
     access_token = create_access_token(user, refresh_token_id)
     db.commit()
@@ -94,6 +120,14 @@ def ativar(request: Request, corpo: UserActivationRequest, response: Response, d
     user.activation_expires_at = None
     user.activated_at = datetime.now(timezone.utc)
     registrar_sucesso_login(user)
+    log_action(
+        db,
+        user_id=user.id,
+        entity_name="auth",
+        entity_id=user.id,
+        action="conta_ativada",
+        details=_detalhes_requisicao(request),
+    )
     db.commit()
     refresh_token, refresh_token_id = create_refresh_token(db, user)
     csrf_token = set_session_cookies(response, create_access_token(user, refresh_token_id), refresh_token)
@@ -110,7 +144,7 @@ def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session 
     if user is not None and settings.servico_email_configurado:
         token = secrets.token_urlsafe(32)
         user.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
-        user.activation_expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+        user.activation_expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
         db.commit()
         try:
             enviar_link(
@@ -184,7 +218,10 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     expirar)."""
     token = request.cookies.get(REFRESH_COOKIE_NAME)
     if token is not None:
-        revoke_refresh_token(db, token)
+        user_id = revoke_refresh_token(db, token)
+        if user_id is not None:
+            log_action(db, user_id=user_id, entity_name="auth", entity_id=user_id, action="logout")
+            db.commit()
     clear_session_cookies(response)
     return {"status": "ok"}
 

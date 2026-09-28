@@ -69,11 +69,26 @@ const MonitoramentoPainelPage = lazy(() =>
     default: m.MonitoramentoPainelPage,
   })),
 );
+// Relatório de Instrumentos e Repasse (Plan Mode relatorios 2026-09-25,
+// Bloco 6) -- separado do relatório de Análise de Mérito (RelatoriosPage,
+// abaixo, fora do MonitoramentoLayout).
+const MonitoramentoRelatoriosPage = lazy(() =>
+  import("./pages/monitoramento-relatorios-page").then((m) => ({
+    default: m.MonitoramentoRelatoriosPage,
+  })),
+);
 // Gestao de usuarios (Modulo Admin, 2026-09-17) -- so role=admin acessa
 // (AdminRoute), fora de AppLayout/MonitoramentoLayout de proposito (nao
 // pertence a uma familia de equipamento).
 const UsuariosPage = lazy(() =>
   import("./pages/usuarios-page").then((m) => ({ default: m.UsuariosPage })),
+);
+// Trilha de auditoria (Modulo de Auditoria, 2026-09-28) -- mesmo gate admin
+// de UsuariosPage, ver docstring de auditoria-page.tsx.
+const AuditoriaPage = lazy(() =>
+  import("./pages/auditoria-page").then((m) => ({
+    default: m.AuditoriaPage,
+  })),
 );
 const AccountActionPage = lazy(() =>
   import("./pages/account-action-page").then((m) => ({
@@ -170,11 +185,19 @@ function App() {
                     element={<MonitoramentoPainelPage />}
                   />
                   <Route
+                    path="/monitoramento-equipamentos/relatorios"
+                    element={<MonitoramentoRelatoriosPage />}
+                  />
+                  <Route
                     path="/monitoramento-equipamentos/instrumentos/:nrConvenio"
                     element={<MonitoramentoInstrumentoPage />}
                   />
                   <Route element={<AdminRoute />}>
                     <Route path="/admin/usuarios" element={<UsuariosPage />} />
+                    <Route
+                      path="/admin/auditoria"
+                      element={<AuditoriaPage />}
+                    />
                   </Route>
                 </Route>
                 <Route element={<AppLayout />}>
