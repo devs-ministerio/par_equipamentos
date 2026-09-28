@@ -43,6 +43,7 @@ def _detalhes_requisicao(request: Request) -> dict:
     2026-09-28), visível só a admin na tela de auditoria."""
     return {"ip": request.client.host if request.client else None, "user_agent": request.headers.get("user-agent")}
 
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -76,7 +77,9 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
         # Mesma mensagem generica de credencial invalida -- nao sinalizar
         # pra quem tenta logar que a conta esta bloqueada (diferenciar
         # ajudaria um atacante a saber que acertou o e-mail).
-        log_action(db, user_id=user.id, entity_name="auth", entity_id=user.id, action="login_bloqueado", details=detalhes)
+        log_action(
+            db, user_id=user.id, entity_name="auth", entity_id=user.id, action="login_bloqueado", details=detalhes
+        )
         db.commit()
         raise HTTPException(status_code=401, detail="Email ou senha invalidos.")
     if not verify_password(corpo.password, user.password_hash):

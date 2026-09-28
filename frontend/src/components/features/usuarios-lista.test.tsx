@@ -29,10 +29,20 @@ describe("UsuariosLista", () => {
   it("reduz as ações da lista a um único ponto de gerenciamento", async () => {
     const user = userEvent.setup();
     const onGerenciar = vi.fn();
-    render(<UsuariosLista {...PROPS} usuarios={[USUARIO]} onGerenciar={onGerenciar} />);
+    render(
+      <UsuariosLista
+        {...PROPS}
+        usuarios={[USUARIO]}
+        onGerenciar={onGerenciar}
+      />,
+    );
 
-    expect(screen.getAllByRole("button", { name: "Gerenciar" })).toHaveLength(2);
-    expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Gerenciar" })).toHaveLength(
+      2,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Editar" }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole("button", { name: "Gerenciar" })[0]);
     expect(onGerenciar).toHaveBeenCalledWith(USUARIO);
@@ -45,4 +55,3 @@ describe("UsuariosLista", () => {
     expect(screen.getByRole("button", { name: /novo usuário/i })).toBeVisible();
   });
 });
-

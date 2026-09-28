@@ -205,7 +205,11 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str, int]:
         ).scalar_one_or_none()
         if sessao_revogada is not None:
             log_action(
-                db, user_id=sessao_revogada, entity_name="auth", entity_id=sessao_revogada, action="refresh_reuso_detectado"
+                db,
+                user_id=sessao_revogada,
+                entity_name="auth",
+                entity_id=sessao_revogada,
+                action="refresh_reuso_detectado",
             )
             db.commit()
         else:
