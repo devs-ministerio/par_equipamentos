@@ -43,10 +43,30 @@ export function useAuthSession() {
       // vê o visitante em cache e manda o usuário de volta para /login.
       // Esperar a confirmação também transforma um cookie bloqueado pelo
       // navegador num erro acionável, em vez de aparentar um reload.
-      const usuario = await queryClient.fetchQuery({
-        queryKey: monitoramentoKeys.currentUser,
-        queryFn: fetchCurrentUser,
-      });
+      //
+      // Chama `fetchCurrentUser` direto (não `queryClient.fetchQuery`) --
+      // achado ao vivo 2026-09-28: a própria `/login` já monta
+      // `usuarioQuery` (linha acima) e dispara um `GET /auth/me` de
+      // visitante ao carregar a página. Se esse fetch ainda está em voo
+      // quando o login termina (autofill rápido, ou rede lenta -- Render
+      // free tier), `queryClient.fetchQuery` para a MESMA `queryKey`
+      // reaproveita essa promise já em andamento (dedup do TanStack
+      // Query) em vez de emitir uma requisição nova -- ela resolve com o
+      // cookie de ANTES do login (null), reportando "não foi possível
+      // concluir a sessão" mesmo com login e cookies corretos. Chamar o
+      // service direto ignora esse cache/dedup; `setQueryData` alimenta a
+      // query só depois, já com o resultado confirmado.
+      //
+      // `cancelQueries` primeiro é necessário mesmo chamando o service
+      // direto: sem isso, aquele fetch de montagem (ainda em voo, também
+      // com resultado null) resolve DEPOIS do nosso `setQueryData` e
+      // sobrescreve o cache de volta pra visitante -- reproduzido ao vivo
+      // (Playwright local, execução isolada): o cache brilhava com o
+      // usuário certo por um instante e voltava a null, derrubando de
+      // volta pra /login. `cancelQueries` marca esse fetch pendente como
+      // obsoleto pro TanStack Query, que descarta a resolução dele.
+      await queryClient.cancelQueries({ queryKey: monitoramentoKeys.currentUser });
+      const usuario = await fetchCurrentUser();
       if (usuario === null) {
         throw new ApiError(
           "Login respondeu sem uma sessão que pudesse ser confirmada.",
@@ -54,6 +74,7 @@ export function useAuthSession() {
           "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SIGEO e tente novamente.",
         );
       }
+      queryClient.setQueryData(monitoramentoKeys.currentUser, usuario);
     },
   });
 
