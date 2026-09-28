@@ -16,5 +16,11 @@
       ]
     }
   ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://sieo-backend.onrender.com/$1"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
