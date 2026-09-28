@@ -22,14 +22,17 @@ from sqlalchemy.engine import make_url
 os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 
 _DB_TEST_MODULES = {
+    "test_auditoria.py",
     "test_auth_session.py",
     "test_competency_por_familia.py",
     "test_convenios_contracts.py",
     "test_config_decisions.py",
     "test_csrf.py",
+    "test_equipment_offer_contracts.py",
     "test_equipment_totals.py",
     "test_equipamento_marcadores.py",
     "test_evidencias_transferegov.py",
+    "test_execucoes.py",
     "test_integridade_constraints.py",
     "test_integridade_fk_cnes.py",
     "test_monitoramento.py",
@@ -42,9 +45,20 @@ _DB_TEST_MODULES = {
     "test_pipeline_dedup.py",
     "test_pipeline_runner.py",
     "test_propostas_candidatas.py",
+    "test_relatorios_contracts.py",
     "test_repositories_qualidade.py",
+    "test_repositories_relatorios.py",
     "test_schema_migrations.py",
     "test_service_notificacoes.py",
+    "test_services_relatorios.py",
+    "test_usuarios.py",
+    # Achado ao vivo 2026-09-28: estes 7 arquivos gravam usuário/dado real via
+    # `SessionLocal()` direto (ou consomem a fixture `headers_autenticados`,
+    # que também grava) mas nunca tinham entrado nesta lista -- sem
+    # TEST_DATABASE_URL setado, rodavam sem guarda nenhuma contra o
+    # DATABASE_URL comum (Neon real neste projeto), criando usuários
+    # `pytest-*@example.com` de verdade. Mesma classe do incidente
+    # 2026-09-25 já registrado no CLAUDE.md, agravado por esta lacuna.
 }
 
 
