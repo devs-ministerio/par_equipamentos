@@ -12,8 +12,17 @@ import { atualizarCsrfToken, csrfHeaders } from "@/lib/csrf";
  * 1 mutex, 1 lugar que decide redirect e 1 lugar que normaliza erro --
  * cada service continua dono só do seu schema Zod por domínio. */
 
+/**
+ * Em produção, `/api` é reescrito pelo Vercel para o Render. Isso faz a
+ * sessão pertencer ao mesmo site que a interface e evita depender de
+ * cookies de terceiros, cada vez mais bloqueados pelos navegadores.
+ *
+ * O valor explícito continua obrigatório no desenvolvimento/CI, onde API e
+ * Vite rodam em portas distintas.
+ */
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+  import.meta.env.VITE_API_BASE_URL ??
+  (import.meta.env.PROD ? "/api" : "http://localhost:8000");
 const HTTP_TIMEOUT_MS = 15_000;
 const MENSAGEM_TIMEOUT_HTTP = `A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`;
 
