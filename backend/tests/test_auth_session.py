@@ -96,11 +96,13 @@ def test_me_nao_aceita_mais_bearer_header():
         db.close()
 
 
-def test_ativacao_e_redefinicao_rejeitam_token_invalido_sem_expor_o_valor():
-    """Os dois fluxos públicos precisam falhar igual para token inventado.
+def test_fluxos_publicos_de_acesso_nao_exigem_csrf_e_nao_expoem_token_invalido():
+    """Fluxos sem sessão não podem depender de um cookie CSRF inexistente.
 
-    Além do status de domínio, o contrato impede que o token recebido volte
-    em ``detail`` — ele pode ter vindo de convite ou recuperação de senha.
+    Ativação/redefinição se protegem pelo token opaco, de uso único e
+    expirável; além de alcançar o erro de domínio, o contrato impede que o
+    token recebido volte em ``detail``. Recuperação continua genérica para
+    não revelar se o e-mail está cadastrado.
     """
     from app.rate_limit import limiter
 
@@ -109,17 +111,17 @@ def test_ativacao_e_redefinicao_rejeitam_token_invalido_sem_expor_o_valor():
         token = f"token-invalido-{uuid4()}"
         senha = f"senha-{uuid4()}"
         cliente = TestClient(app)
-        cliente.cookies.set(CSRF_COOKIE_NAME, "csrf-contrato")
-        resposta = cliente.post(
-            rota,
-            json={"token": token, "password": senha},
-            headers={CSRF_HEADER_NAME: "csrf-contrato"},
-        )
+        resposta = cliente.post(rota, json={"token": token, "password": senha})
 
         assert resposta.status_code == 400
         assert token not in resposta.text
         assert "inválido ou expirado" in resposta.json()["error"].lower()
         assert resposta.json()["detail"] is None
+
+    limiter.reset()
+    recuperacao = TestClient(app).post("/auth/esqueci-senha", json={"email": "ausente@example.com"})
+    assert recuperacao.status_code == 200
+    assert recuperacao.json() == {"status": "ok"}
 
 
 def test_refresh_rotaciona_e_reuso_do_token_antigo_falha():
