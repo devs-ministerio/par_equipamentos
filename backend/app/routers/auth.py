@@ -100,10 +100,9 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     access_token = create_access_token(user, refresh_token_id)
     db.commit()
     csrf_token = set_session_cookies(response, access_token, refresh_token)
-    # O frontend e a API vivem em domínios distintos (Vercel/Render). O
-    # cookie CSRF continua sendo a cópia que o servidor compara, mas não é
-    # legível por JavaScript no domínio do frontend. Devolver o mesmo valor
-    # à origem CORS autorizada permite o double-submit sem relaxar CSRF.
+    # O cookie CSRF continua sendo a cópia que o servidor compara. O corpo
+    # também o devolve para manter compatibilidade com origens separadas,
+    # sem relaxar CSRF.
     return {"status": "ok", "csrf_token": csrf_token}
 
 

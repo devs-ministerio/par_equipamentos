@@ -61,8 +61,8 @@ REFRESH_COOKIE_PATH = "/auth"
 
 # Cookie CSRF (Bloco 1 do Plan Mode consolidacao 2026-09-17) -- double-submit:
 # NAO e HttpOnly de proposito (o frontend precisa ler o valor em JS pra
-# ecoar no header abaixo). `SameSite=None`/`Secure` segue a mesma topologia
-# cross-site do restante da sessao (ver `cookie_samesite`/`cookie_secure`).
+# ecoar no header abaixo). `Secure` e `SameSite=Lax` acompanham a sessão
+# same-origin exposta pelo proxy `/api` (ver `cookie_samesite`).
 CSRF_COOKIE_NAME = "sigeo_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"
 
@@ -232,8 +232,8 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str, int]:
 def set_session_cookies(response: Response, access_token: str, refresh_token: str) -> str:
     """Seta os 3 cookies de sessao numa resposta -- usado por `/auth/login`
     e `/auth/refresh` (Bloco 2 + Bloco 1 CSRF da consolidacao 2026-09-17).
-    `secure`/`samesite`/`domain` vem de settings (cross-site por padrao, ver
-    config.py). Refresh fica restrito a `REFRESH_COOKIE_PATH` -- o browser
+    `secure`/`samesite`/`domain` vem de settings (same-origin via proxy,
+    ver config.py). Refresh fica restrito a `REFRESH_COOKIE_PATH` -- o browser
     so o envia de volta pra `/auth/refresh`, reduzindo a superficie de
     exposicao do cookie de vida mais longa. O cookie CSRF e rotacionado
     junto (mesmo evento de emissao) e devolvido pra quem chamar poder

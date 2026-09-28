@@ -48,14 +48,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 20
     refresh_token_expire_days: int = 14
 
-    # Atributos do cookie HttpOnly de sessao (Bloco 2). `cookie_samesite`
-    # default "none" porque frontend (Vercel) e backend (Render) sao
-    # dominios diferentes -- cookie cross-site so e enviado pelo browser
-    # com SameSite=None + Secure (ver Plan Mode, secao 2.1). `cookie_domain`
-    # fica vazio (None) quando front/back nao compartilham um dominio raiz,
-    # que e o caso hoje.
+    # A API pública passa pelo proxy `/api` do Vercel, portanto o navegador
+    # a enxerga no mesmo site da UI. `lax` reduz o envio de cookie em
+    # contexto cross-site; o domínio vazio associa o cookie ao host da UI.
     cookie_secure: bool = True
-    cookie_samesite: str = "none"
+    cookie_samesite: str = "lax"
     cookie_domain: str | None = None
 
     # Chave gratuita de autoatendimento (login gov.br, sem aprovacao manual)
