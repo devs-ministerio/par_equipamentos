@@ -308,8 +308,13 @@ def test_reuso_de_refresh_ja_revogado_gera_auditoria():
         assert csrf is not None
 
         c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
+        # O CSRF cookie roda a cada /auth/refresh (mesmo set_session_cookies
+        # do /auth/login) -- reusar o valor antigo aqui daria 403 de CSRF
+        # em vez do 401 de reuso que este teste quer provar.
+        csrf_atual = c.cookies.get(CSRF_COOKIE_NAME)
+        assert csrf_atual is not None
         c.cookies.set(REFRESH_COOKIE_NAME, refresh_antigo)
-        reuso = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
+        reuso = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf_atual})
         assert reuso.status_code == 401
 
         assert "refresh_reuso_detectado" in _acoes_auditoria(db, entity_id=user.id)

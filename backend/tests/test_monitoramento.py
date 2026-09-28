@@ -74,12 +74,18 @@ from app.services.monitoramento_instrumentos import listar_instrumentos_monitora
 NR_CONVENIO_SEED = "948686"  # unico instrumento seedado (scripts/seed_monitoramento.py)
 
 
-def criar_usuario_teste(db):
+def criar_usuario_teste(db, *, role: UserRole = UserRole.colaborador):
+    """`role=colaborador` por padrão (mesmo comportamento de sempre, usado
+    pelos testes que exercitam titularidade de propósito). Testes que só
+    querem validar regra de negócio -- não autorização -- devem passar
+    `role=UserRole.gestor` (bypassa o gate de titular/suplente, achado ao
+    vivo 2026-09-28: a remoção do fail-open "sem titular libera qualquer
+    colaborador" quebrou toda essa segunda categoria de teste)."""
     user = User(
         name="Usuário Pytest",
         email=f"pytest-monitoramento-{uuid4()}@example.com",
         password_hash=hash_password("senha"),
-        role=UserRole.colaborador,
+        role=role,
     )
     db.add(user)
     db.commit()
@@ -129,7 +135,7 @@ def test_patch_cadastro_atualiza_so_o_campo_enviado():
     usuario_teste = None
     try:
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
-        usuario_teste = criar_usuario_teste(db)
+        usuario_teste = criar_usuario_teste(db, role=UserRole.gestor)
         original_marca = instrumento.equipamento_marca
         original_tecnico = instrumento.tecnico_titular
 
@@ -288,7 +294,7 @@ def test_registrar_evento_persiste_numero_documento_e_data_validade():
     try:
         marco_licenca = db.query(MarcoCatalogo).filter_by(codigo="regulatorio_licenca_operacao").one()
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        usuario_teste = criar_usuario_teste(db)
+        usuario_teste = criar_usuario_teste(db, role=UserRole.gestor)
 
         corpo = EventoMarcoCreate(
             marco_id=marco_licenca.id,
@@ -340,7 +346,7 @@ def test_registrar_evento_de_entrega_atualiza_equipamento_e_observacao():
     try:
         marco_entrega = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        usuario_teste = criar_usuario_teste(db)
+        usuario_teste = criar_usuario_teste(db, role=UserRole.gestor)
         corpo = EventoMarcoCreate(
             marco_id=marco_entrega.id,
             data_ocorrencia=date(2026, 2, 1),
@@ -392,7 +398,7 @@ def test_registrar_evento_fora_da_entrega_ignora_campos_de_equipamento():
     try:
         marco_licenca = db.query(MarcoCatalogo).filter_by(codigo="regulatorio_licenca_operacao").one()
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        usuario_teste = criar_usuario_teste(db)
+        usuario_teste = criar_usuario_teste(db, role=UserRole.gestor)
         corpo = EventoMarcoCreate(
             marco_id=marco_licenca.id,
             autor_nome="pytest",
@@ -455,7 +461,7 @@ def test_registrar_e_concluir_acao():
     audit_log_ids: list[int] = []
     usuario_teste = None
     try:
-        usuario_teste = criar_usuario_teste(db)
+        usuario_teste = criar_usuario_teste(db, role=UserRole.gestor)
         criada = registrar_acao(
             NR_CONVENIO_SEED,
             AcaoMonitoramentoCreate(descricao="Ação de teste -- apagar", data_prevista=date(2026, 12, 1)),
@@ -563,9 +569,17 @@ def test_perfil_gestor_edita_monitoramento_mas_nao_usuarios():
     assert exc.value.status_code == 403
 
 
-def test_atualizar_cadastro_sincroniza_responsavel_relacional():
+def test_atualizar_cadastro_nao_sincroniza_mais_responsavel_por_texto():
+    """Inverte `test_atualizar_cadastro_sincroniza_responsavel_relacional`
+    (achado ao vivo 2026-09-28, limpeza da titularidade): o espelho
+    texto->relacional (`_EMAIL_RESPONSAVEL_POR_TEXTO`/
+    `_sincronizar_responsaveis_relacionais`) foi removido de propósito --
+    "não é aceitável inferir qual colaborador corresponde a cada nome"
+    (docs/arquitetura/planmode-governanca-dados-2026-09-28.md). PATCH em
+    `tecnico_titular` só atualiza o texto legado agora; vínculo relacional
+    exige atribuição explícita de um gestor."""
     db = SessionLocal()
-    usuario_teste = criar_usuario_teste(db)
+    usuario_teste = criar_usuario_teste(db, role=UserRole.gestor)
     nr_convenio = f"PYTEST-RESP-{uuid4()}"
     instrumento = InstrumentoEquipamento(
         nr_convenio=nr_convenio,
@@ -573,20 +587,18 @@ def test_atualizar_cadastro_sincroniza_responsavel_relacional():
         tipo_contratacao="Convênio",
     )
     try:
-        bruna = db.query(User).filter_by(email="bruna.machado@saude.gov.br").one()
         db.add(instrumento)
         db.commit()
 
-        atualizar_cadastro_instrumento(
+        resultado = atualizar_cadastro_instrumento(
             nr_convenio=nr_convenio,
             alteracoes_brutas={"tecnico_titular": "BRUNA"},
             db=db,
             usuario=usuario_teste,
         )
 
-        responsavel = db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).one()
-        assert responsavel.usuario_id == bruna.id
-        assert responsavel.papel == "titular"
+        assert resultado.tecnico_titular == "BRUNA"
+        assert db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).first() is None
     finally:
         db.query(AuditLog).filter_by(entity_name="instrumento_equipamento", entity_id=instrumento.id).delete()
         db.delete(instrumento)
@@ -633,7 +645,7 @@ def test_registrar_evento_monitorado_bloqueia_leitor_no_service():
 
 def test_evento_realizado_rejeita_data_futura_e_orienta_atualizacao():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
@@ -657,7 +669,7 @@ def test_evento_realizado_rejeita_data_futura_e_orienta_atualizacao():
 
 def test_reprogramacao_de_data_prevista_exige_justificativa():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
         marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
@@ -836,26 +848,27 @@ def test_colaborador_nao_titular_nao_pode_excluir_acao_de_outro_tecnico():
         db.close()
 
 
-def test_instrumento_sem_titular_designado_libera_qualquer_colaborador():
+def test_instrumento_sem_titular_designado_rejeita_colaborador():
+    """Inverte `test_instrumento_sem_titular_designado_libera_qualquer_
+    colaborador` (achado ao vivo 2026-09-28, titularidade obrigatória):
+    o fail-open "sem titular = qualquer colaborador edita" foi removido
+    de propósito -- instrumento sem titular/suplente designado agora só
+    pode ser editado por admin/gestor, até um gestor atribuir titular."""
     db = SessionLocal()
     qualquer = criar_usuario_teste(db)
     instrumento = _criar_instrumento_scratch(db, sufixo="SEM-TITULAR")
-    evento = None
     try:
         marco = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        evento = registrar_evento_monitorado(
-            nr_convenio=instrumento.nr_convenio,
-            dados=NovoEventoMonitorado(marco_id=marco.id),
-            db=db,
-            usuario=qualquer,
-        )
-        assert evento.instrumento_id == instrumento.id
+        with pytest.raises(AuthorizationError) as exc:
+            registrar_evento_monitorado(
+                nr_convenio=instrumento.nr_convenio,
+                dados=NovoEventoMonitorado(marco_id=marco.id),
+                db=db,
+                usuario=qualquer,
+            )
+        assert exc.value.status_code == 403
     finally:
         db.rollback()
-        if evento is not None:
-            db.query(AuditLog).filter_by(entity_name="evento_marco", entity_id=evento.id).delete()
-            db.query(Notificacao).filter_by(entidade_id=instrumento.id).delete()
-            db.query(EventoMarco).filter_by(id=evento.id).delete()
         db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
         db.query(User).filter_by(id=qualquer.id).delete()
         db.commit()
@@ -899,7 +912,7 @@ def test_listar_instrumentos_calcula_pode_editar_por_titularidade():
 
 def test_evento_fisico_sem_fase_geral_id_rejeitado():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fisico = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
         with pytest.raises(ValidationError, match="fase geral"):
@@ -921,7 +934,7 @@ def test_evento_fisico_com_fase_geral_invalida_rejeitado():
     apontar pra outro marco físico/regulatório (ou qualquer id que não seja
     fase_geral) é rejeitado."""
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fisico = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
         outro_marco_fisico = db.query(MarcoCatalogo).filter_by(codigo="cronograma_instalacao_inicio").one()
@@ -945,7 +958,7 @@ def test_evento_fisico_com_fase_geral_invalida_rejeitado():
 
 def test_editar_evento_monitorado_corrige_e_fecha_original():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fisico = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
@@ -991,7 +1004,7 @@ def test_editar_evento_monitorado_corrige_e_fecha_original():
 
 def test_editar_evento_ja_substituido_rejeitado():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_em_licitacao").one()
         antigo = registrar_evento_monitorado(
@@ -1022,7 +1035,7 @@ def test_editar_evento_ja_substituido_rejeitado():
 
 def test_conclusao_confirma_inauguracao_e_fecha_previsao_anterior():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     instrumento = InstrumentoEquipamento(
         nr_convenio=f"PYTEST-CONCLUSAO-{uuid4()}",
         nome_convenente="Convenente Pytest",
@@ -1071,7 +1084,7 @@ def test_conclusao_confirma_inauguracao_e_fecha_previsao_anterior():
 
 def test_fase_geral_rejeita_data_prevista_e_conclusao_sem_confirmacao():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco = db.query(MarcoCatalogo).filter_by(codigo="fase_concluido").one()
         with pytest.raises(ValidationError, match="não aceita data prevista"):
@@ -1097,7 +1110,7 @@ def test_fase_geral_rejeita_data_prevista_e_conclusao_sem_confirmacao():
 
 def test_excluir_evento_monitorado_soft_delete():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_em_licitacao").one()
         evento = registrar_evento_monitorado(
@@ -1126,7 +1139,7 @@ def test_excluir_evento_monitorado_soft_delete():
 
 def test_excluir_evento_ja_excluido_rejeitado():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_em_licitacao").one()
         evento = registrar_evento_monitorado(
@@ -1158,7 +1171,7 @@ def test_evento_excluido_nao_conta_para_fase_atual():
     """Reproduz o bug real corrigido no Bloco 0/1: evento de fase excluído
     não pode continuar empurrando `fase_atual` pra frente."""
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     instrumento_teste = InstrumentoEquipamento(
         nr_convenio=f"PYTEST-FASE-{uuid4()}",
         nome_convenente="Convenente Pytest",
@@ -1193,7 +1206,7 @@ def test_evento_excluido_nao_conta_para_fase_atual():
 
 def test_registrar_acao_monitorada_seta_criado_por_id():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         acao = registrar_acao_monitorada(
             nr_convenio=NR_CONVENIO_SEED,
@@ -1213,7 +1226,7 @@ def test_registrar_acao_monitorada_seta_criado_por_id():
 
 def test_editar_acao_monitorada_corrige_e_fecha_original():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         antiga = registrar_acao_monitorada(
             nr_convenio=NR_CONVENIO_SEED,
@@ -1249,7 +1262,7 @@ def test_editar_acao_monitorada_corrige_e_fecha_original():
 
 def test_excluir_acao_monitorada_soft_delete():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         acao = registrar_acao_monitorada(
             nr_convenio=NR_CONVENIO_SEED,
@@ -1275,7 +1288,7 @@ def test_excluir_acao_monitorada_soft_delete():
 
 def test_concluir_acao_ja_excluida_rejeitada():
     db = SessionLocal()
-    usuario = criar_usuario_teste(db)
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         acao = registrar_acao_monitorada(
             nr_convenio=NR_CONVENIO_SEED,
@@ -1301,7 +1314,7 @@ def test_atualizar_cadastro_tipologia_invalida_rejeitada():
         id=999005,
         name="Colaborador",
         email="colab-tipologia@example.com",
-        role=UserRole.colaborador,
+        role=UserRole.gestor,
     )
     try:
         with pytest.raises(ValidationError, match="Tipologia"):
@@ -1322,7 +1335,7 @@ def test_atualizar_cadastro_modalidade_invalida_rejeitada():
         id=999006,
         name="Colaborador",
         email="colab-modalidade@example.com",
-        role=UserRole.colaborador,
+        role=UserRole.gestor,
     )
     try:
         with pytest.raises(ValidationError, match="Modalidade"):

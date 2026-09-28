@@ -159,6 +159,11 @@ class User(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_log_created_at", "created_at"),
+        Index("ix_audit_log_entity_name_created_at", "entity_name", "created_at"),
+        Index("ix_audit_log_user_id_created_at", "user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     user_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
@@ -268,7 +273,11 @@ class FonteDado(Base):
     tipo: Mapped[str] = mapped_column(String, nullable=False)
     url_referencia: Mapped[str | None] = mapped_column(String)
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # `Mapped[datetime | None]` (não `datetime`) -- a migration que criou a
+    # tabela (e6f7a8b9c0d1) não marcou NOT NULL explícito; o modelo precisa
+    # bater com o schema real aplicado (test_schema_migrations.py), não
+    # editar a migration já aplicada.
+    criado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class AcceleratorRow(Base):
@@ -385,6 +394,9 @@ class Convenio(Base):
     __tablename__ = "convenio"
     __table_args__ = (
         Index("idx_convenio_cnes", "cnes"),
+        Index("idx_convenio_municipio_normalizado", "municipio_normalizado"),
+        Index("idx_convenio_codigo_ibge_municipio", "codigo_ibge_municipio"),
+        Index("idx_convenio_fonte_dado", "fonte_dado_id"),
         UniqueConstraint("numero", name="uq_convenio_numero"),
         CheckConstraint(
             "convenente_cnpj IS NULL OR convenente_cnpj ~ '^[0-9]{14}$'",
@@ -845,6 +857,8 @@ class InstrumentoEquipamento(Base):
     __table_args__ = (
         Index("idx_instrumento_equipamento_cnes", "cnes"),
         Index("idx_instrumento_equipamento_programa_situacao", "programa", "situacao_programa"),
+        Index("idx_instrumento_municipio_normalizado", "municipio_normalizado"),
+        Index("idx_instrumento_equipamento_fonte_dado", "fonte_dado_id"),
         CheckConstraint(
             "equipamento_vida_util_anos IS NULL OR equipamento_vida_util_anos >= 0",
             name="ck_instrumento_equipamento_vida_util",
@@ -1037,6 +1051,7 @@ class PagamentoObraPersus(Base):
     __table_args__ = (
         UniqueConstraint("chave_origem", name="uq_pagamento_obra_persus_chave_origem"),
         Index("idx_pagamento_obra_persus_instrumento", "instrumento_id"),
+        Index("idx_pagamento_obra_persus_fonte_dado", "fonte_dado_id"),
         CheckConstraint("tipo IN ('obra', 'fiscalizacao')", name="ck_pagamento_obra_persus_tipo"),
         CheckConstraint(
             "fornecedor_cnpj IS NULL OR fornecedor_cnpj ~ '^[0-9]{14}$'",
@@ -1063,7 +1078,10 @@ class PagamentoObraPersus(Base):
     # Hash determinístico da linha de origem -- evita duplicar o mesmo
     # pagamento se o script rodar de novo sobre a mesma planilha.
     chave_origem: Mapped[str] = mapped_column(String, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # `Mapped[datetime | None]` (não `datetime`) -- mesmo motivo de
+    # `FonteDado.criado_em`: a migration (b2c3d4e5f6a7) não marcou NOT
+    # NULL explícito, modelo precisa bater com o schema real aplicado.
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class InstrumentoResponsavel(Base):
@@ -1252,6 +1270,7 @@ class PropostaCandidata(Base):
     __tablename__ = "proposta_candidata"
     __table_args__ = (
         Index("idx_proposta_candidata_cnes", "cnes"),
+        Index("idx_proposta_municipio_normalizado", "municipio_normalizado"),
         UniqueConstraint("id_proposta", name="uq_proposta_candidata_id_proposta"),
         CheckConstraint(
             "cnpj_ente_recebedor ~ '^[0-9]{14}$'",
