@@ -55,6 +55,17 @@ class Settings(BaseSettings):
     cookie_samesite: str = "lax"
     cookie_domain: str | None = None
 
+    # Path do cookie de refresh -- Path de cookie e' relativo a URL que o
+    # BROWSER contatou, nao a rota que o backend recebe. Em local/teste o
+    # browser fala direto com o backend em "/auth/...", mas em producao ele
+    # fala com "/api/auth/..." (proxy `/api` do Vercel reescreve pra
+    # "/auth/..." so' no destino, invisivel ao browser) -- por isso o valor
+    # de producao precisa do prefixo "/api" (setado via env var no Render),
+    # sem o qual o cookie de refresh nunca e reenviado e toda renovacao de
+    # sessao falha com 401 silencioso (achado ao vivo 2026-09-28, ver
+    # CLAUDE.md "Segurança e sessão").
+    refresh_cookie_path: str = "/auth"
+
     # Chave gratuita de autoatendimento (login gov.br, sem aprovacao manual)
     # gerada em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email
     # -- necessaria pro header `chave-api-dados` da API do Portal da

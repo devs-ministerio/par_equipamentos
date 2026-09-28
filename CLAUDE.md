@@ -618,11 +618,14 @@ do mesmo gate, sem exceção.
   pra `/auth/logout` (paths irmãos), e o logout nunca revogava nada de
   verdade no servidor apesar do Bloco 2 dizer que sim. Corrigido pra
   `/auth` (prefixo cobre `/auth/refresh` e `/auth/logout`).
-  - **Cookie cross-site (Vercel↔Render) precisa `SameSite=None; Secure`**
-    — em dev local (`http://localhost`) isso quebra silenciosamente (login
-    200, mas `/auth/me` sempre 401) porque o browser não manda cookie
-    `Secure` fora de https. Local exige `COOKIE_SECURE=false` +
-    `COOKIE_SAMESITE=lax` no `.env` (ver README/`.env.example`).
+  - **[SUBSTITUÍDO em 2026-09-28, ver "Proxy same-origin `/api`" logo
+    abaixo]** ~~Cookie cross-site (Vercel↔Render) precisa `SameSite=None;
+    Secure` — em dev local (`http://localhost`) isso quebra
+    silenciosamente (login 200, mas `/auth/me` sempre 401) porque o
+    browser não manda cookie `Secure` fora de https. Local exige
+    `COOKIE_SECURE=false` + `COOKIE_SAMESITE=lax` no `.env`~~ — produção
+    não é mais cross-site, `cookie_samesite` default virou `lax`; local
+    só precisa de `COOKIE_SECURE=false` (`SameSite=Lax` já serve).
   - **Frontend não guarda mais token em lugar nenhum** (nem
     `localStorage`, nem estado React) — `useAuthSession`
     (`frontend/src/hooks/useAuthSession.ts`) resolve "está logado?" sempre
@@ -687,6 +690,40 @@ do mesmo gate, sem exceção.
   antes que só continha o sentinela `"nao-informado"`, nunca dado real),
   campo `UserCreate.cpf` removido (`schemas.py`), linha hardcoded removida
   de `scripts/criar_usuario.py`.
+
+## Proxy same-origin `/api` para a sessão (2026-09-28)
+
+Usuária reportou "Não foi possível concluir a sessão. Verifique se o navegador permite cookies
+para o SIGEO" no login em produção — causa raiz era o cookie de sessão sendo classificado como
+de terceiro pelo browser (Vercel↔Render são domínios diferentes, `SameSite=None`). Corrigido em
+duas partes, ambas já publicadas:
+
+- **`frontend/vercel.json`** reescreve `/api/(.*)` pro Render (`destination`); `frontend/src/lib/
+  http-client.ts::API_BASE_URL` usa `/api` em produção (`import.meta.env.PROD`) em vez do domínio
+  `.onrender.com` direto. O browser passou a falar só com o próprio domínio do SIGEO — o proxy pro
+  Render acontece no edge da Vercel, invisível ao cliente, então o `Set-Cookie` da API chega como
+  resposta de uma URL do próprio site (first-party). Confirmado ao vivo (Chrome, `document.cookie`
+  em produção só mostra `sigeo_csrf`, sem `Domain=.onrender.com`).
+- **`cookie_samesite` default virou `"lax"`** (`backend/app/config.py`) — não precisa mais de
+  `None`/cross-site agora que a sessão é same-origin via proxy.
+- **Bug real introduzido pela mudança acima, achado ao vivo na mesma investigação**: `REFRESH_COOKIE_PATH`
+  (`/auth`, ver Bloco CSRF acima) nunca foi atualizado pro prefixo que o BROWSER de fato contata em
+  produção (`/api/auth/...`) — Path de cookie é relativo à URL que o cliente chamou, não à rota que
+  o backend recebe (o rewrite reescreve só no destino, o browser nunca vê `/auth/...` diretamente).
+  Resultado: o cookie de refresh nunca era reenviado a `/api/auth/refresh` em produção, toda
+  renovação de sessão silenciosamente falhava com 401, e a lógica de "confirma sessão antes de
+  navegar" (`useAuthSession.ts`, ver Bloco 2 acima) tentava um refresh que também falhava — daí a
+  mensagem de cookie aparecer mesmo com login e `Set-Cookie` corretos. Reproduzido ao vivo chamando
+  `fetch('/api/auth/refresh', {credentials:'include'})` já logado: 401 mesmo com sessão válida.
+  Corrigido tornando o path configurável — `Settings.refresh_cookie_path` (`backend/app/config.py`,
+  default `/auth` pra local/teste, onde front e back falam direto) + env var `REFRESH_COOKIE_PATH=
+  /api/auth` no Render (`render.yaml`). **Só mexer nesse valor se o prefixo do proxy em
+  `frontend/vercel.json` mudar** — os dois precisam ficar em sincronia (o backend não tem como
+  descobrir sozinho por qual prefixo o browser está passando).
+- Suite de testes (`backend/tests/`, roda contra Postgres local) e `ruff`/`mypy` passaram depois da
+  mudança; `REFRESH_COOKIE_PATH` não é exercitado pelos testes de integração (que chamam o backend
+  direto em `/auth/...`, sem passar pelo proxy) — a checagem real foi ao vivo, via Chrome, contra
+  produção.
 
 ## Gestão de usuários (Módulo Admin, 2026-09-17)
 

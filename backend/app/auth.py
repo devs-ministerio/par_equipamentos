@@ -38,9 +38,11 @@ MAX_TENTATIVAS_LOGIN = 10
 DURACAO_BLOQUEIO_CONTA = timedelta(minutes=15)
 
 # Nomes dos cookies HttpOnly de sessao -- Bloco 2 do Plan Mode seguranca
-# 2026-09-16. `path` do refresh fica restrito a /auth (prefixo -- cobre
-# /auth/refresh e /auth/logout) pra reduzir a superficie de exposicao do
-# cookie de vida mais longa sem deixar de chegar em /auth/logout.
+# 2026-09-16. `path` do refresh fica restrito a um prefixo (cobre
+# /auth/refresh e /auth/logout, ou /api/auth/refresh e /api/auth/logout em
+# producao -- ver `Settings.refresh_cookie_path`) pra reduzir a superficie
+# de exposicao do cookie de vida mais longa sem deixar de chegar em
+# /auth/logout.
 #
 # Bug real encontrado na consolidacao 2026-09-17 (Bloco 1, ao escrever o
 # teste de CSRF pra /auth/logout): o path era literalmente "/auth/refresh"
@@ -55,9 +57,16 @@ DURACAO_BLOQUEIO_CONTA = timedelta(minutes=15)
 # fazia), entao o 401 esperado vinha da ausencia do cookie (limpo pelo
 # proprio logout), nao de revogacao real -- corrigido junto (ver
 # tests/test_auth_session.py).
+#
+# Segundo bug real, mesma classe de erro, achado ao vivo 2026-09-28 apos o
+# proxy same-origin `/api` entrar em producao: o browser passou a contatar
+# "/api/auth/refresh", mas o Path continuava "/auth" -- prefixo que NUNCA
+# bate com "/api/auth/refresh". O cookie de refresh parava de ser enviado
+# em producao, toda renovacao de sessao falhava com 401 silencioso, e o
+# frontend (que confirma a sessao com /auth/me logo apos login) reportava
+# "Não foi possível concluir a sessão" mesmo com login e cookies corretos.
 ACCESS_COOKIE_NAME = "sigeo_access"
 REFRESH_COOKIE_NAME = "sigeo_refresh"
-REFRESH_COOKIE_PATH = "/auth"
 
 # Cookie CSRF (Bloco 1 do Plan Mode consolidacao 2026-09-17) -- double-submit:
 # NAO e HttpOnly de proposito (o frontend precisa ler o valor em JS pra
@@ -233,7 +242,7 @@ def set_session_cookies(response: Response, access_token: str, refresh_token: st
     """Seta os 3 cookies de sessao numa resposta -- usado por `/auth/login`
     e `/auth/refresh` (Bloco 2 + Bloco 1 CSRF da consolidacao 2026-09-17).
     `secure`/`samesite`/`domain` vem de settings (same-origin via proxy,
-    ver config.py). Refresh fica restrito a `REFRESH_COOKIE_PATH` -- o browser
+    ver config.py). Refresh fica restrito a `settings.refresh_cookie_path` -- o browser
     so o envia de volta pra `/auth/refresh`, reduzindo a superficie de
     exposicao do cookie de vida mais longa. O cookie CSRF e rotacionado
     junto (mesmo evento de emissao) e devolvido pra quem chamar poder
@@ -257,7 +266,7 @@ def set_session_cookies(response: Response, access_token: str, refresh_token: st
         secure=settings.cookie_secure,
         samesite=same_site,
         domain=settings.cookie_domain,
-        path=REFRESH_COOKIE_PATH,
+        path=settings.refresh_cookie_path,
     )
     csrf_token = secrets.token_urlsafe(32)
     response.set_cookie(
@@ -278,7 +287,7 @@ def clear_session_cookies(response: Response) -> None:
     bater exatamente com o usado em `set_session_cookies` (o browser trata
     path como parte da identidade do cookie)."""
     response.delete_cookie(ACCESS_COOKIE_NAME, domain=settings.cookie_domain, path="/")
-    response.delete_cookie(REFRESH_COOKIE_NAME, domain=settings.cookie_domain, path=REFRESH_COOKIE_PATH)
+    response.delete_cookie(REFRESH_COOKIE_NAME, domain=settings.cookie_domain, path=settings.refresh_cookie_path)
     response.delete_cookie(CSRF_COOKIE_NAME, domain=settings.cookie_domain, path="/")
 
 
