@@ -18,6 +18,7 @@ describe("AuditoriaPage", () => {
       total: 0,
       carregando: false,
       erro: null,
+      refetch: vi.fn(),
     });
     const user = userEvent.setup();
 

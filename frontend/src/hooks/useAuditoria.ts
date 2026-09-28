@@ -13,5 +13,6 @@ export function useAuditoria(filtro: FiltroAuditoria) {
     total: query.data?.total ?? 0,
     carregando: query.isLoading,
     erro: query.error,
+    refetch: query.refetch,
   };
 }

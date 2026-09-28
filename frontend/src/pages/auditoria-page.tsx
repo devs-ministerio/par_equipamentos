@@ -38,7 +38,7 @@ export function AuditoriaPage() {
     null,
   );
 
-  const { itens, total, carregando, erro } = useAuditoria({
+  const { itens, total, carregando, erro, refetch } = useAuditoria({
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
     entity_name: entityName || undefined,
@@ -88,7 +88,10 @@ export function AuditoriaPage() {
       </div>
 
       {erro ? (
-        <ErrorAlert mensagem={mensagemSeguraDoErro(erro)} />
+        <ErrorAlert
+          mensagem={mensagemSeguraDoErro(erro)}
+          onRetry={() => void refetch()}
+        />
       ) : (
         <div className="rounded-xl border border-border bg-card">
           <AuditoriaTabela
