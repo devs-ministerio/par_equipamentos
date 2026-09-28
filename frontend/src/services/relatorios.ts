@@ -19,9 +19,11 @@ export interface FiltroRelatorio {
   uf?: string;
   municipio?: string;
   cnes?: string;
-  /** Só usado por `instrumentos_repasse` -- cobertura não tem dimensão de
-   * ano civil (é execução/competência). */
-  ano?: number;
+  /** Período de 2 datas (Bloco 8, 2026-09-27) -- só usado por
+   * `instrumentos_repasse` (cobertura não tem dimensão de ano civil, é
+   * execução/competência). Substitui o antigo `ano` único. */
+  anoInicio?: number;
+  anoFim?: number;
   // Mesmos filtros de "Instrumentos e repasses"/Dados Oficiais (Bloco 7) --
   // só se aplicam a `instrumentos_repasse`; `situacao`/`programa` filtram
   // só a seção de Convênios (vocabulário SICONV, não bate com Propostas/
@@ -29,6 +31,10 @@ export interface FiltroRelatorio {
   situacao?: string;
   programa?: string;
   tipoContratacao?: string;
+  /** Achado ao vivo 2026-09-26: faltava no filtro do backend -- Equipamento
+   * era o único filtro da UI que a prévia respeitava mas o arquivo gerado
+   * ignorava. Só filtra Convênios (mesmo mecanismo de `/convenios`). */
+  equipamento?: string;
   busca?: string;
 }
 
@@ -61,11 +67,13 @@ export async function gerarRelatorio(
   if (filtro.uf) params.set("uf", filtro.uf);
   if (filtro.municipio) params.set("municipio", filtro.municipio);
   if (filtro.cnes) params.set("cnes", filtro.cnes);
-  if (filtro.ano) params.set("ano", String(filtro.ano));
+  if (filtro.anoInicio) params.set("ano_inicio", String(filtro.anoInicio));
+  if (filtro.anoFim) params.set("ano_fim", String(filtro.anoFim));
   if (filtro.situacao) params.set("situacao", filtro.situacao);
   if (filtro.programa) params.set("programa", filtro.programa);
   if (filtro.tipoContratacao)
     params.set("tipo_contratacao", filtro.tipoContratacao);
+  if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
   if (filtro.busca) params.set("busca", filtro.busca);
 
   const resposta = await httpFetch(`/relatorios?${params.toString()}`);

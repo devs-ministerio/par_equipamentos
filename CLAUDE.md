@@ -1132,6 +1132,22 @@ Ministério da Saúde/SAES/DECAN/CGPCAN + aviso "gerado automaticamente"); no Ex
 - `jspdf`/`jspdf-autotable`/`exceljs` **removidos** (export client-side antigo, `export-{pdf,xlsx}-
   modal.tsx`/`utils/export-{pdf,xlsx}.ts`/`hooks/useRelatoriosDados.ts`, sem outro consumidor).
 
+**Bloco 8 (2026-09-26)** — auditoria sênior ao vivo achou (e corrigiu) 5 bugs/refinos reais:
+`município`/`CNES`/`Estabelecimento` agora cascateiam entre si e com os demais filtros
+(`filtrarTudo` em `monitoramento-relatorios-page.tsx`); `Equipamento` ganhou campo próprio em
+`FiltroRelatorio` (faltava, arquivo baixado ignorava esse filtro); selecionar só Município sem UF
+não derruba mais o escopo pra "brasil" inteiro (UF é derivada do próprio item quando o usuário não
+escolhe); `Estabelecimento` sem CNES próprio agora resolve pro CNES correspondente antes de gerar.
+"Nível Completo 'não funcionava'" era, com alta probabilidade, o bug de escopo acima (arquivo vindo
+do Brasil inteiro em silêncio) — testado direto contra `montar_relatorio` em todos os escopos, sem
+erro real. `app/pipeline/texto.py::capitalizar_nome` (novo, Title Case só pra MUNICÍPIO — nunca em
+nome de instituição, quebraria sigla como "UFMG") aplicado no Excel/Word, que antes mostrava o
+município cru enquanto a prévia da UI já normalizava desde o Bloco 7. Rodapé de proveniência de
+importação em lote ("Importado de Controle PERSUS.xlsx · sha256:...") que vazava pra coluna
+"Observação" da timeline agora é removido só na apresentação (`_observacao_publica`, banco
+intacto). Nome de instituição ALL CAPS cru (`convenente_nome`/`nm_proponente`) **continua sem
+correção automática** — decisão deliberada, mesmo risco de quebrar sigla legítima.
+
 ## Complementação PERSUS I com fontes extras (2026-09-27)
 
 Auditoria pedida pelo usuário ("nós usamos tudo que tem na planilha?") achou 4 fontes de dado do

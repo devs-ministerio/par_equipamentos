@@ -25,19 +25,29 @@ def listar_propostas_filtradas(
     *,
     ufs: list[str] | None = None,
     municipio: str | None = None,
-    ano: int | None = None,
+    cnes: str | None = None,
+    ano_inicio: int | None = None,
+    ano_fim: int | None = None,
 ) -> list[PropostaCandidata]:
     # Sem `programa`/`situacao` de propósito (achado ao vivo, Bloco 7):
     # `nm_programa`/`situacao_proposta` usam vocabulário do TransfereGov
     # novo, diferente do `Convenio.programa`/`situacao` (SICONV) -- não dá
     # pra reaproveitar o mesmo valor de filtro entre as duas fontes sem
-    # risco de filtrar pra um conjunto vazio. Só `uf`/`ano` são
-    # comparáveis 1:1.
+    # risco de filtrar pra um conjunto vazio. `uf`/`ano`/`cnes` são
+    # comparáveis 1:1. `cnes` (Bloco 8 -- achado ao vivo, lembrete do
+    # usuário: "as propostas devem responder ao filtro também") faltava
+    # aqui -- `escopo=cnes` rodava sem filtro nenhum, devolvendo até
+    # `LIMITE_RELATORIO` propostas do Brasil inteiro em vez de só as do
+    # estabelecimento pesquisado.
     stmt = select(PropostaCandidata)
     if ufs:
         stmt = stmt.where(PropostaCandidata.uf.in_(ufs))
-    if ano is not None:
-        stmt = stmt.where(extract("year", PropostaCandidata.data_proposta) == ano)
+    if cnes:
+        stmt = stmt.where(PropostaCandidata.cnes == cnes)
+    if ano_inicio is not None:
+        stmt = stmt.where(extract("year", PropostaCandidata.data_proposta) >= ano_inicio)
+    if ano_fim is not None:
+        stmt = stmt.where(extract("year", PropostaCandidata.data_proposta) <= ano_fim)
     stmt = stmt.order_by(PropostaCandidata.data_proposta.desc().nulls_last()).limit(LIMITE_RELATORIO)
     resultado = list(db.execute(stmt).scalars().all())
     if municipio:

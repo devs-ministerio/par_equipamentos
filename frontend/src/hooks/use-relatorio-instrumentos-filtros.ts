@@ -14,11 +14,16 @@ import { useState } from "react";
  * programa/tipo) -- opções derivadas do dado real em
  * `monitoramento-relatorios-page.tsx`. Só `municipio`/`cnes` também vão
  * pro backend na geração (`nomeEstabelecimento`/`equipamento` não têm
- * campo próprio em `FiltroRelatorio`, ficam só na prévia). */
+ * campo próprio em `FiltroRelatorio`, ficam só na prévia).
+ *
+ * `anoInicio`/`anoFim` (Bloco 8, 2026-09-27 -- pedido do usuário: "a data
+ * deve ser dois campos pra gente escolher o período") substituem o antigo
+ * `ano` único -- 2 seletores em vez de 1, mesmas opções (`anoOptions`). */
 export function useRelatorioInstrumentosFiltros() {
   const [uf, setUf] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<string | null>(null);
-  const [ano, setAno] = useState<string | null>(null);
+  const [anoInicio, setAnoInicio] = useState<string | null>(null);
+  const [anoFim, setAnoFim] = useState<string | null>(null);
   const [programa, setPrograma] = useState<string | null>(null);
   const [tipoContratacao, setTipoContratacao] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
@@ -31,7 +36,8 @@ export function useRelatorioInstrumentosFiltros() {
   const limparFiltros = () => {
     setUf(null);
     setSituacao(null);
-    setAno(null);
+    setAnoInicio(null);
+    setAnoFim(null);
     setPrograma(null);
     setTipoContratacao(null);
     setEquipamento(null);
@@ -43,7 +49,8 @@ export function useRelatorioInstrumentosFiltros() {
   const hasFiltros = Boolean(
     uf ||
     situacao ||
-    ano ||
+    anoInicio ||
+    anoFim ||
     programa ||
     tipoContratacao ||
     equipamento ||
@@ -57,8 +64,10 @@ export function useRelatorioInstrumentosFiltros() {
     setUf,
     situacao,
     setSituacao,
-    ano,
-    setAno,
+    anoInicio,
+    setAnoInicio,
+    anoFim,
+    setAnoFim,
     programa,
     setPrograma,
     tipoContratacao,

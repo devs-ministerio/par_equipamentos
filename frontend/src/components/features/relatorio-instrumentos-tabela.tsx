@@ -16,11 +16,17 @@ const PAGE_SIZE = 20;
  *
  * Colunas com largura em **porcentagem** (`table-fixed` + `<colgroup>`),
  * não pixel fixo -- a tabela sempre cabe exatamente na largura do card,
- * encolhendo célula por célula (`truncate` + `title` no hover) em vez de
- * estourar e pedir rolagem horizontal (pedido explícito do usuário
- * 2026-09-26: "não quero barra de rolagem horizontal"). Client-side: os
- * itens já chegam filtrados pela página (mesmo dado de `useConveniosLista`,
- * sem chamada nova). */
+ * nunca pedindo rolagem horizontal (pedido explícito do usuário
+ * 2026-09-26: "não quero barra de rolagem horizontal"). Correção do mesmo
+ * dia ("tabelas com quebra de texto pro nome do estabelecimento, aumentar
+ * a largura das outras colunas pra não esconder dado com ..."): Convenente
+ * (nome do estabelecimento) usa `whitespace-normal break-words` -- quebra
+ * em várias linhas em vez de cortar com reticências -- e as colunas
+ * cresceram (Convenente 21%->26%, Equipamento 14%->18%) tirando espaço só
+ * das colunas curtas (Número/CNES/Ano), que continuam de linha única. A
+ * altura da linha cresce com o texto, a largura da tabela não. Client-side:
+ * os itens já chegam filtrados pela página (mesmo dado de
+ * `useConveniosLista`, sem chamada nova). */
 export function RelatorioInstrumentosTabela({
   itens,
   faseMonitoramento,
@@ -43,15 +49,15 @@ export function RelatorioInstrumentosTabela({
       </div>
       <table className="w-full table-fixed border-collapse text-[12.5px]">
         <colgroup>
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "7%" }} />
-          <col style={{ width: "21%" }} />
-          <col style={{ width: "12%" }} />
-          <col style={{ width: "14%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "6%" }} />
+          <col style={{ width: "26%" }} />
           <col style={{ width: "11%" }} />
-          <col style={{ width: "11%" }} />
-          <col style={{ width: "5%" }} />
+          <col style={{ width: "18%" }} />
           <col style={{ width: "10%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "4%" }} />
+          <col style={{ width: "7%" }} />
         </colgroup>
         <thead>
           <tr className="text-left text-[11px] text-muted-foreground uppercase">
@@ -96,10 +102,7 @@ export function RelatorioInstrumentosTabela({
                   >
                     {item.cnes ?? "—"}
                   </td>
-                  <td
-                    className="truncate px-2 py-1.5"
-                    title={item.convenente.nome}
-                  >
+                  <td className="px-2 py-1.5 break-words whitespace-normal">
                     {item.convenente.nome}
                   </td>
                   <td
@@ -108,10 +111,7 @@ export function RelatorioInstrumentosTabela({
                   >
                     {capitalizarNome(item.municipio)}/{item.uf}
                   </td>
-                  <td
-                    className="truncate px-2 py-1.5 text-muted-foreground"
-                    title={equipamentos || undefined}
-                  >
+                  <td className="px-2 py-1.5 break-words whitespace-normal text-muted-foreground">
                     {equipamentos || "—"}
                   </td>
                   <td

@@ -38,7 +38,8 @@ integrada (ver plan-mode, "Fora de escopo").
 from __future__ import annotations
 
 import itertools
-from collections import Counter
+import re
+from collections import Counter, defaultdict
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -47,13 +48,15 @@ from typing import Literal
 from docx.document import Document as DocumentType
 from sqlalchemy.orm import Session
 
-from app.db.models import Convenio, MarcoCatalogo, MarcoGrupo, PropostaCandidata
+from app.db.models import AcaoMonitoramento, Convenio, EventoMarco, MarcoCatalogo, MarcoGrupo, PropostaCandidata
 from app.domain_errors import ValidationError
 from app.geo_reference import REGIOES, ufs_da_regiao
+from app.pipeline.texto import capitalizar_nome, parsear_valor_brasileiro
 from app.reports import docx_builder, xlsx_builder
 from app.reports.formatacao import formatar_data, formatar_moeda
 from app.repositories import cobertura_relatorio as cobertura_repo
 from app.repositories import convenios as convenios_repo
+from app.repositories import equipamento_marcadores as equipamento_marcadores_repo
 from app.repositories import execucoes as execucoes_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas_relatorio as propostas_repo
@@ -78,7 +81,13 @@ class FiltroRelatorio:
     uf: str | None = None
     municipio: str | None = None
     cnes: str | None = None
-    ano: int | None = None
+    # Período de 2 datas (Bloco 8, Plan Mode relatorios 2026-09-27 -- pedido
+    # do usuário: "a data deve ser dois campos pra gente escolher o
+    # período"), substitui o antigo `ano` único. Só se aplica a
+    # `instrumentos_repasse` -- `analise_merito` não tem dimensão de ano
+    # civil (decisão do usuário, ver plan-mode).
+    ano_inicio: int | None = None
+    ano_fim: int | None = None
     # Filtros novos (Plan Mode relatorios 2026-09-25, Bloco 7 -- "mesmos
     # filtros que temos no instrumentos/repasses") -- só aplicados na
     # seção de Convênios (situacao/programa/tipo_contratacao/busca) e, onde
@@ -88,6 +97,11 @@ class FiltroRelatorio:
     situacao: str | None = None
     programa: str | None = None
     tipo_contratacao: str | None = None
+    # `equipamento` (Bloco 8 -- achado ao vivo: filtro de Equipamento da UI
+    # nunca chegava no arquivo gerado) só filtra Convênios -- mesmo
+    # mecanismo de `EquipamentoMarcador` do router `/convenios`. Propostas/
+    # Monitoramento não têm essa granularidade hoje.
+    equipamento: str | None = None
     busca: str | None = None
 
     def __post_init__(self) -> None:
@@ -104,6 +118,14 @@ class FiltroRelatorio:
                 raise ValidationError("Escopo 'municipio' exige os parâmetros 'uf' e 'municipio'.")
         elif self.escopo == "cnes" and not self.cnes:
             raise ValidationError("Escopo 'cnes' exige o parâmetro 'cnes'.")
+        # Se só 1 dos 2 campos do período vier, o outro assume o mesmo valor
+        # (período de 1 ano só, mesmo comportamento do antigo `ano` único).
+        if self.ano_inicio is not None and self.ano_fim is None:
+            object.__setattr__(self, "ano_fim", self.ano_inicio)
+        elif self.ano_fim is not None and self.ano_inicio is None:
+            object.__setattr__(self, "ano_inicio", self.ano_fim)
+        if self.ano_inicio is not None and self.ano_fim is not None and self.ano_inicio > self.ano_fim:
+            raise ValidationError("'ano_inicio' não pode ser depois de 'ano_fim'.")
 
     def ufs(self) -> list[str] | None:
         if self.escopo == "brasil" or self.escopo == "cnes":
@@ -128,7 +150,60 @@ class FiltroRelatorio:
             "municipio": f"{self.municipio}/{self.uf}",
             "cnes": f"CNES {self.cnes}",
         }[self.escopo]
-        return f"{base} -- {self.ano}" if self.ano else base
+        if self.ano_inicio is None and self.ano_fim is None:
+            return base
+        if self.ano_inicio == self.ano_fim:
+            return f"{base} -- {self.ano_inicio}"
+        return f"{base} -- {self.ano_inicio} a {self.ano_fim}"
+
+    def periodo_referencia(self) -> str | None:
+        """Texto de "Período de referência" pro cabeçalho do Word (Bloco 8) --
+        `None` quando nenhum dos 2 campos foi informado (omite a linha)."""
+        if self.ano_inicio is None and self.ano_fim is None:
+            return None
+        if self.ano_inicio == self.ano_fim:
+            return str(self.ano_inicio)
+        return f"{self.ano_inicio} a {self.ano_fim}"
+
+
+def _valor_global_confiavel(convenio: Convenio) -> float | None:
+    """Mitigação de um bug real de ingestão achado ao vivo 2026-09-27
+    (usuário, convênio 922037 -- "valor global quebrado do portal"):
+    `scripts/importar_convenios_banco.py::_num_ou_none` faz `float(v)`
+    direto, sem tratar vírgula decimal do SICONV bulk ("VL_GLOBAL_CONV":
+    "5928266,99") -- `float("5928266,99")` estoura `ValueError`, o valor
+    vira `None` e o import cai pro Portal da Transparência, que pra 3
+    convênios confirmados (812878/922037/924078) devolve um valor ~10.000x
+    menor que o repasse real. Corrigir a ingestão em si (reprocessar o
+    banco) é uma decisão à parte, fora do escopo deste relatório -- aqui só
+    EVITA propagar um valor obviamente quebrado: `Valor Global` nunca
+    deveria ser menor que `Valor Repasse` (repasse é parte do global)."""
+    if (
+        convenio.valor_global is not None
+        and convenio.valor_repasse is not None
+        and convenio.valor_global < convenio.valor_repasse
+    ):
+        return None
+    return convenio.valor_global
+
+
+def _assunto(db: Session, filtro: FiltroRelatorio) -> str:
+    """Texto de "Assunto" do cabeçalho (Bloco 8, mockup do usuário --
+    `data/relatorios/relatorio_imip.pages`, "Assunto: IMIP (CNES:
+    0000434)") -- nome do que foi pesquisado, não só o código."""
+    if filtro.escopo == "cnes":
+        assert filtro.cnes is not None
+        estabelecimento = monitoramento_repo.obter_cnes_por_codigo(db, filtro.cnes)
+        nome = estabelecimento.nome_estabelecimento if estabelecimento else f"CNES {filtro.cnes}"
+        return f"{nome} (CNES: {filtro.cnes})"
+    if filtro.escopo == "municipio":
+        assert filtro.municipio is not None
+        return f"{capitalizar_nome(filtro.municipio)}/{filtro.uf}"
+    if filtro.escopo == "uf":
+        return f"UF {filtro.uf}"
+    if filtro.escopo == "regiao":
+        return f"Região {filtro.regiao}"
+    return "Brasil"
 
 
 # ---------------------------------------------------------------------
@@ -203,11 +278,12 @@ def _convenios(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
         ufs=filtro.ufs(),
         municipio=filtro.municipio_do_escopo(),
         cnes=filtro.cnes_do_escopo(),
-        ano_inicio=filtro.ano,
-        ano_fim=filtro.ano,
+        ano_inicio=filtro.ano_inicio,
+        ano_fim=filtro.ano_fim,
         situacao=filtro.situacao,
         programa=filtro.programa,
         tipo_contratacao=filtro.tipo_contratacao,
+        equipamento=filtro.equipamento,
         busca=filtro.busca,
     )
 
@@ -217,13 +293,18 @@ def _propostas(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
     # ao vivo, Bloco 7): `PropostaCandidata.nm_programa`/`situacao_proposta`
     # usam vocabulário do TransfereGov novo, diferente do `Convenio.programa`/
     # `situacao` (SICONV) -- aplicar o mesmo valor filtraria pra um conjunto
-    # vazio quase sempre, silenciosamente. Só `uf`/`ano` são comparáveis
-    # 1:1 entre as duas fontes.
+    # vazio quase sempre, silenciosamente. `uf`/`ano`/`cnes` são comparáveis
+    # 1:1 entre as duas fontes. `cnes` (Bloco 8 -- lembrete do usuário
+    # "as propostas devem responder ao filtro também") faltava: sem ele,
+    # `escopo=cnes` rodava sem filtro nenhum (`ufs()`/`municipio_do_escopo()`
+    # devolvem `None` pra esse escopo por design).
     return propostas_repo.listar_propostas_filtradas(
         db,
         ufs=filtro.ufs(),
         municipio=filtro.municipio_do_escopo(),
-        ano=filtro.ano,
+        cnes=filtro.cnes_do_escopo(),
+        ano_inicio=filtro.ano_inicio,
+        ano_fim=filtro.ano_fim,
     )
 
 
@@ -238,8 +319,8 @@ def _instrumentos(db: Session, filtro: FiltroRelatorio) -> list[InstrumentoComFa
         ufs=filtro.ufs(),
         municipio=filtro.municipio_do_escopo(),
         cnes=filtro.cnes_do_escopo(),
-        ano_inicio=filtro.ano,
-        ano_fim=filtro.ano,
+        ano_inicio=filtro.ano_inicio,
+        ano_fim=filtro.ano_fim,
         tipo_contratacao=filtro.tipo_contratacao,
     )
 
@@ -298,18 +379,18 @@ def _linhas_convenio(convenio: Convenio, *, completo: bool) -> list[object]:
         return [
             convenio.numero,
             convenio.convenente_nome,
-            convenio.municipio,
+            capitalizar_nome(convenio.municipio),
             convenio.uf,
             convenio.tipo_contratacao,
             convenio.situacao,
             convenio.ano_instrumento,
-            convenio.valor_global,
+            _valor_global_confiavel(convenio),
         ]
     return [
         convenio.numero,
         convenio.convenente_nome,
         convenio.convenente_cnpj,
-        convenio.municipio,
+        capitalizar_nome(convenio.municipio),
         convenio.uf,
         convenio.tipo_contratacao,
         convenio.tipologia,
@@ -322,7 +403,7 @@ def _linhas_convenio(convenio: Convenio, *, completo: bool) -> list[object]:
         convenio.data_inicio_vigencia,
         convenio.data_final_vigencia,
         convenio.data_conclusao,
-        convenio.valor_global,
+        _valor_global_confiavel(convenio),
         convenio.valor_repasse,
         convenio.valor_empenhado,
         convenio.valor_desembolsado,
@@ -376,7 +457,7 @@ def _linhas_proposta(proposta: PropostaCandidata, *, completo: bool) -> list[obj
         proposta.cd_parceria,
         proposta.nm_proponente,
         proposta.cnpj_ente_recebedor,
-        proposta.municipio,
+        capitalizar_nome(proposta.municipio),
         proposta.uf,
         proposta.nm_programa,
         proposta.componente_batido,
@@ -420,7 +501,7 @@ def _tabela_monitoramento_simplificado(
         [
             i.instrumento.nr_convenio,
             i.instrumento.nome_convenente,
-            i.instrumento.municipio,
+            capitalizar_nome(i.instrumento.municipio),
             i.instrumento.uf,
             i.instrumento.tipo_contratacao,
             i.fase_atual,
@@ -428,6 +509,26 @@ def _tabela_monitoramento_simplificado(
         for i in instrumentos
     ]
     return _COLUNAS_MONITORAMENTO_SIMPLIFICADO, linhas
+
+
+_PADRAO_PROVENIENCIA_IMPORTACAO = re.compile(
+    r"\s*Importado de .*?sha256:[0-9a-f]+(?:, linha \d+)?\.\s*$", re.IGNORECASE
+)
+
+
+def _observacao_publica(observacao: str | None) -> str | None:
+    """Remove o rodapé de proveniência de importação em lote ("Importado de
+    Controle PERSUS.xlsx · sha256:..., linha N.") do texto exibido no
+    relatório -- achado ao vivo (Bloco 8, "dados feios"): 532 dos 984
+    eventos carregados por `scripts/importar_programas_monitoramento.py`
+    têm essa marca dentro do próprio campo `observacao`, útil como
+    auditoria interna (mesmo espírito de `chave_origem`, nunca exposto na
+    API/UI) mas sem sentido pra quem lê um relatório institucional. Só
+    afeta a APRESENTAÇÃO -- o campo no banco continua intacto."""
+    if not observacao:
+        return observacao
+    texto = _PADRAO_PROVENIENCIA_IMPORTACAO.sub("", observacao).strip()
+    return texto or None
 
 
 def _linhas_timeline_instrumento(
@@ -459,7 +560,7 @@ def _linhas_timeline_instrumento(
                 evento.status_regulatorio,
                 evento.numero_documento,
                 evento.data_validade,
-                evento.observacao,
+                _observacao_publica(evento.observacao),
             ]
         )
     return linhas
@@ -475,22 +576,126 @@ def _tabela_monitoramento_timeline(
     return _COLUNAS_MONITORAMENTO_TIMELINE, linhas
 
 
-def _resumo_executivo(
-    convenios: Sequence[Convenio], propostas: Sequence[PropostaCandidata], instrumentos: Sequence[InstrumentoComFase]
+_ORDEM_TIPO_CONTRATACAO = ["Convênio", "FAF", "TED", "PERSUS I", "PERSUS II", "PRONON"]
+_ROTULO_TIPO_CONTRATACAO = {"Convênio": "Convênios"}
+_MARCO_INAUGURACAO_CODIGO = "cronograma_previsao_inauguracao"
+# 3 grupos de origem pro "Informações Detalhadas" (Bloco 8, mockup do
+# usuário -- `data/relatorios/relatorio_imip.pages`): Convênio/FAF/TED
+# formam 1 grupo (mesmo vocabulário fechado, tratamento igual), PERSUS I/II
+# outro. "Outros" (PRONON/tipo não mapeado) cobre o que sobrar -- nunca
+# esconder convênio silenciosamente por não bater num dos 2 grupos
+# conhecidos do mockup.
+_GRUPOS_ORIGEM_CONVENIO: list[tuple[str, set[str]]] = [
+    ("Convênios, TED e FAF:", {"Convênio", "FAF", "TED"}),
+    ("PERSUS I e II:", {"PERSUS I", "PERSUS II"}),
+]
+_ROTULO_OUTROS_ORIGEM = "Outros instrumentos:"
+
+
+def _valores_por_item_plano(convenio: Convenio) -> dict[str, float]:
+    """`siconv_raw.itens_plano_aplicacao` (achado ao vivo 2026-09-27,
+    lembrete do usuário: "no itens DL e no pagamentos ao fornecedor tem
+    info do equipamento individual") tem `VALOR_TOTAL_ITEM` por item --
+    `EquipamentoMarcador.descricao_original` é literalmente
+    `item['DESCRICAO_ITEM']` sem alteração (mesma origem, ver
+    `scripts/preencher_marcadores_itens_plano.sql`), então dá pra casar
+    marcador -> valor por igualdade exata de string. Quando 2 itens têm a
+    mesma descrição (não deveria acontecer -- cada instância já vem com
+    sufixo numérico, ex. "Ultrassom Diagnóstico 1"/"...2") soma os 2."""
+    itens = (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []
+    valores: dict[str, float] = defaultdict(float)
+    for item in itens:
+        descricao = item.get("DESCRICAO_ITEM")
+        valor = parsear_valor_brasileiro(item.get("VALOR_TOTAL_ITEM"))
+        if descricao and valor is not None:
+            valores[descricao] += valor
+    return dict(valores)
+
+
+def _carregar_equipamentos_por_convenio(
+    db: Session, convenios: Sequence[Convenio]
+) -> dict[int, list[tuple[str, float | None]]]:
+    """`(nome do equipamento, valor individual ou None quando não achado no
+    plano de aplicação)` por convênio."""
+    marcadores = equipamento_marcadores_repo.listar_por_origens(db, convenio_ids={c.id for c in convenios})
+    convenios_por_id = {c.id: c for c in convenios}
+    resultado: dict[int, list[tuple[str, float | None]]] = {}
+    for (origem, convenio_id), itens in marcadores.items():
+        if origem != "convenio":
+            continue
+        convenio = convenios_por_id.get(convenio_id)
+        valores_item = _valores_por_item_plano(convenio) if convenio else {}
+        resultado[convenio_id] = [(m.nome, valores_item.get(m.descricao_original)) for m in itens]
+    return resultado
+
+
+def _resumo_instrumentos_programas(
+    convenios: Sequence[Convenio], instrumentos: Sequence[InstrumentoComFase]
 ) -> tuple[list[str], list[list[object]]]:
-    valor_total_convenios = sum(float(c.valor_global or 0) for c in convenios)
-    propostas_aprovadas = sum(1 for p in propostas if p.situacao_proposta == "Aprovada")
-    distribuicao_fase = Counter(i.fase_atual for i in instrumentos)
-    colunas = ["Indicador", "Valor"]
+    """1ª tabela do "Resumo executivo" (Bloco 8, mockup do usuário) --
+    contagem + valor global por `tipo_contratacao`, mais a contagem (sem
+    valor -- é acompanhamento, não financeiro) de instrumentos monitorados
+    internamente."""
+    colunas = ["Instrumentos/Programas", "Quantidade", "Valor"]
+    contagem: Counter[str] = Counter()
+    valor_por_tipo: dict[str, float] = defaultdict(float)
+    for c in convenios:
+        tipo = c.tipo_contratacao or "Convênio"
+        contagem[tipo] += 1
+        valor_por_tipo[tipo] += float(_valor_global_confiavel(c) or 0)
+    linhas: list[list[object]] = []
+    tipos_em_ordem = [t for t in _ORDEM_TIPO_CONTRATACAO if t in contagem]
+    tipos_em_ordem += sorted(t for t in contagem if t not in _ORDEM_TIPO_CONTRATACAO)
+    for tipo in tipos_em_ordem:
+        linhas.append([_ROTULO_TIPO_CONTRATACAO.get(tipo, tipo), contagem[tipo], valor_por_tipo[tipo]])
+    linhas.append(["Instrumentos monitorados", len(instrumentos), None])
+    return colunas, linhas
+
+
+_SITUACOES_PROPOSTA = [
+    ("Aprovada", "Propostas Aprovadas"),
+    ("Rejeitada", "Propostas Rejeitadas"),
+    ("Em Análise", "Propostas em Análise"),
+    ("Em Elaboração", "Propostas em Elaboração"),
+]
+
+
+def _resumo_propostas(propostas: Sequence[PropostaCandidata]) -> tuple[list[str], list[list[object]]]:
+    """2ª tabela -- por `situacao_proposta` (as 4 únicas confirmadas contra
+    o banco real -- Bloco 8) + "Parcerias Firmadas" (`tem_parceria`)."""
+    colunas = ["Instrumentos/Programas", "Quantidade", "Valor"]
+    linhas: list[list[object]] = []
+    for chave, rotulo in _SITUACOES_PROPOSTA:
+        itens = [p for p in propostas if p.situacao_proposta == chave]
+        linhas.append([rotulo, len(itens), sum(float(p.vl_global_proposta or 0) for p in itens)])
+    parcerias = [p for p in propostas if p.tem_parceria]
+    linhas.append(["Parcerias Firmadas", len(parcerias), sum(float(p.vl_global_proposta or 0) for p in parcerias)])
+    return colunas, linhas
+
+
+def _resumo_equipamentos(
+    equipamentos_por_convenio: dict[int, list[tuple[str, float | None]]],
+) -> tuple[list[str], list[list[object]]]:
+    """3ª tabela -- agregado de `EquipamentoMarcador` por tipo entre todos
+    os convênios do recorte. "Valor" soma o `VALOR_TOTAL_ITEM` do plano de
+    aplicação (achado ao vivo 2026-09-27, lembrete do usuário) quando
+    achado pra TODAS as ocorrências daquele nome; fica `None` só quando
+    nenhuma ocorrência tem valor identificado (equipamento de origem sem
+    plano de aplicação estruturado, ex. PERSUS)."""
+    colunas = ["Equipamentos", "Quantidade", "Valor"]
+    contagem: Counter[str] = Counter()
+    valor_por_nome: dict[str, float] = defaultdict(float)
+    tem_valor: dict[str, bool] = defaultdict(bool)
+    for itens in equipamentos_por_convenio.values():
+        for nome, valor in itens:
+            contagem[nome] += 1
+            if valor is not None:
+                valor_por_nome[nome] += valor
+                tem_valor[nome] = True
     linhas: list[list[object]] = [
-        ["Convênios encontrados", len(convenios)],
-        ["Valor global total dos convênios", valor_total_convenios],
-        ["Propostas candidatas encontradas", len(propostas)],
-        ["Propostas aprovadas", propostas_aprovadas],
-        ["Instrumentos monitorados", len(instrumentos)],
+        [nome, quantidade, valor_por_nome[nome] if tem_valor.get(nome) else None]
+        for nome, quantidade in sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
     ]
-    for fase, quantidade in distribuicao_fase.most_common():
-        linhas.append([f"Instrumentos na fase '{fase}'", quantidade])
     return colunas, linhas
 
 
@@ -498,10 +703,17 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
     convenios = _convenios(db, filtro)
     propostas = _propostas(db, filtro)
     instrumentos = _instrumentos(db, filtro)
+    equipamentos_por_convenio = _carregar_equipamentos_por_convenio(db, convenios)
 
     pasta = xlsx_builder.nova_pasta()
     xlsx_builder.escrever_aba_tabela(
-        pasta, "Resumo", *_resumo_executivo(convenios, propostas, instrumentos), colunas_moeda=["Valor"]
+        pasta, "Resumo", *_resumo_instrumentos_programas(convenios, instrumentos), colunas_moeda=["Valor"]
+    )
+    xlsx_builder.escrever_aba_tabela(
+        pasta, "Resumo (Propostas)", *_resumo_propostas(propostas), colunas_moeda=["Valor"]
+    )
+    xlsx_builder.escrever_aba_tabela(
+        pasta, "Resumo (Equipamentos)", *_resumo_equipamentos(equipamentos_por_convenio), colunas_moeda=["Valor"]
     )
     colunas_conv, linhas_conv = _tabela_convenios(convenios, nivel)
     xlsx_builder.escrever_aba_tabela(
@@ -532,118 +744,312 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
     return xlsx_builder.gerar_bytes(pasta)
 
 
-def _bloco_convenio_narrativo(documento: DocumentType, convenio: Convenio) -> None:
-    docx_builder.adicionar_titulo(documento, f"{convenio.convenente_nome} -- Convênio {convenio.numero}", nivel=3)
+def _formatar_ultima_acao(acao: AcaoMonitoramento) -> str:
+    if acao.data_conclusao:
+        return f"{acao.descricao} (concluída em {formatar_data(acao.data_conclusao)})"
+    if acao.data_prevista:
+        return f"{acao.descricao} (prevista para {formatar_data(acao.data_prevista)})"
+    return acao.descricao
+
+
+def _formatar_ultimo_evento(evento: EventoMarco, marcos: dict[int, MarcoCatalogo]) -> str:
+    marco = marcos.get(evento.marco_id)
+    rotulo = marco.rotulo if marco else "Marco"
+    data = evento.data_ocorrencia or evento.data_prevista
+    return f"{rotulo} ({formatar_data(data)})" if data else rotulo
+
+
+def _data_inauguracao_previsao(fase_atual: str, eventos_inauguracao: Sequence[EventoMarco]) -> str:
+    """Regra exata do usuário (Bloco 8): PERSUS/instrumento CONCLUÍDO usa a
+    data de inauguração REAL (`data_ocorrencia`); em andamento mostra a
+    PREVISÃO (`data_prevista`) -- mesmo evento (marco
+    `cronograma_previsao_inauguracao`) carrega os 2 campos."""
+    if not eventos_inauguracao:
+        return "—"
+    evento = eventos_inauguracao[0]
+    if fase_atual == "Concluído" and evento.data_ocorrencia:
+        return formatar_data(evento.data_ocorrencia)
+    if evento.data_prevista:
+        return f"{formatar_data(evento.data_prevista)} (previsão)"
+    if evento.data_ocorrencia:
+        return formatar_data(evento.data_ocorrencia)
+    return "—"
+
+
+_SITUACAO_SEM_MONITORAMENTO_ESPERADO = "Em contratação"
+
+
+_COLUNAS_ACOES_BLOCO = ["Descrição", "Responsável", "Prevista", "Conclusão"]
+_DATA_ACOES_BLOCO = ["Prevista", "Conclusão"]
+# Timeline por instrumento (Fase 2) reaproveita `_linhas_timeline_instrumento`
+# (mesma função já usada pela aba "Monitoramento (timeline)" do xlsx) --
+# descarta as 3 primeiras colunas (Convênio/Convenente/Componente), já
+# implícitas no bloco narrativo em volta, e a última ("Observação" --
+# pedido do usuário depois de ver a amostra: "pode tirar o observação").
+_COLUNAS_TIMELINE_BLOCO = _COLUNAS_MONITORAMENTO_TIMELINE[3:-1]
+_DATA_TIMELINE_BLOCO = _DATA_MONITORAMENTO_TIMELINE
+
+
+def _tabela_acoes_bloco(documento: DocumentType, db: Session, instrumento_id: int) -> None:
+    """Lista completa de `AcaoMonitoramento` do instrumento (Fase 2, nível
+    Completo) -- "mais etapas, não só a última" (pedido do usuário ao
+    comparar com o exemplo do mockup)."""
+    docx_builder.adicionar_titulo(documento, "Ações", nivel=4)
+    acoes = monitoramento_repo.listar_acoes_do_instrumento(db, instrumento_id)
+    if not acoes:
+        docx_builder.adicionar_paragrafo(documento, "— nenhuma ação registrada —")
+        return
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, (a.responsavel_id for a in acoes))
+    linhas: list[list[object]] = [
+        [
+            acao.descricao,
+            (nomes.get(acao.responsavel_id) if acao.responsavel_id else None) or acao.responsavel or "—",
+            acao.data_prevista,
+            acao.data_conclusao,
+        ]
+        for acao in acoes
+    ]
+    docx_builder.adicionar_tabela(
+        documento,
+        _COLUNAS_ACOES_BLOCO,
+        docx_builder.linhas_como_texto(_COLUNAS_ACOES_BLOCO, linhas, colunas_data=_DATA_ACOES_BLOCO),
+    )
+
+
+def _secao_monitoramento_interno(
+    documento: DocumentType,
+    db: Session,
+    inst: InstrumentoComFase | None,
+    marco_inauguracao_id: int | None,
+    situacao_convenio: str | None = None,
+    *,
+    nivel: Nivel = "simplificado",
+) -> None:
+    """Seção nova (Bloco 8, mockup do usuário) -- nível Simplificado mostra
+    o estado ATUAL do monitoramento interno (4 rótulos, mesmo sem
+    instrumento monitorado, reproduzindo exatamente o mockup); nível
+    Completo (Fase 2) troca isso pela timeline inteira de eventos mais a
+    lista completa de ações, em vez de só o mais recente de cada.
+
+    Achado ao vivo 2026-09-27 (usuário, PERSUS II): "—" sem contexto parece
+    lacuna, mas os 50 convênios PERSUS II têm `situacao="Em contratação"`
+    sem exceção -- ainda não existe obra/equipamento/licença pra registrar
+    nessa fase (só assinatura). Explicita isso em vez de deixar como se
+    fosse dado faltando."""
+    docx_builder.adicionar_titulo(documento, "Monitoramento Interno", nivel=4)
+    if inst is None and situacao_convenio == _SITUACAO_SEM_MONITORAMENTO_ESPERADO:
+        docx_builder.adicionar_paragrafo(
+            documento,
+            "Instrumento ainda em fase de contratação -- sem obra, equipamento ou licença pra registrar "
+            "no monitoramento interno até a assinatura/repasse ser concluído.",
+        )
+        return
+    if nivel == "completo":
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Situação", inst.fase_atual if inst else "—")
+        if inst is None:
+            docx_builder.adicionar_paragrafo(documento, "— nenhum evento ou ação registrado —")
+            return
+        marcos = {m.id: m for m in monitoramento_repo.listar_marcos_catalogo(db, limit=200)}
+        linhas_timeline = [linha[3:-1] for linha in _linhas_timeline_instrumento(db, inst, marcos)]
+        docx_builder.adicionar_tabela(
+            documento,
+            _COLUNAS_TIMELINE_BLOCO,
+            docx_builder.linhas_como_texto(_COLUNAS_TIMELINE_BLOCO, linhas_timeline, colunas_data=_DATA_TIMELINE_BLOCO),
+        )
+        _tabela_acoes_bloco(documento, db, inst.instrumento.id)
+        return
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Situação", inst.fase_atual if inst else "—")
+    if inst is None:
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Última Ação", "—")
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Último Evento", "—")
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Data de Inauguração/Previsão", "—")
+        return
+    acoes = monitoramento_repo.listar_acoes_do_instrumento(db, inst.instrumento.id)
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Última Ação", _formatar_ultima_acao(acoes[0]) if acoes else "—"
+    )
+    eventos = monitoramento_repo.listar_eventos_do_instrumento(db, inst.instrumento.id)
+    marcos = {m.id: m for m in monitoramento_repo.listar_marcos_catalogo(db, limit=200)}
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Último Evento", _formatar_ultimo_evento(eventos[0], marcos) if eventos else "—"
+    )
+    eventos_inauguracao = [e for e in eventos if marco_inauguracao_id and e.marco_id == marco_inauguracao_id]
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Data de Inauguração/Previsão", _data_inauguracao_previsao(inst.fase_atual, eventos_inauguracao)
+    )
+
+
+def _tabela_equipamentos_bloco(documento: DocumentType, itens: Sequence[tuple[str, float | None]]) -> None:
+    docx_builder.adicionar_titulo(documento, "Equipamentos", nivel=4)
+    if not itens:
+        docx_builder.adicionar_paragrafo(documento, "— nenhum equipamento identificado —")
+        return
+    valores_por_nome: dict[str, list[float | None]] = defaultdict(list)
+    for nome, valor in itens:
+        valores_por_nome[nome].append(valor)
+    colunas = ["Equipamentos", "Quantidade", "Valor"]
+    linhas: list[list[object]] = []
+    for nome, valores in sorted(valores_por_nome.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        preenchidos = [v for v in valores if v is not None]
+        linhas.append([nome, len(valores), sum(preenchidos) if preenchidos else None])
+    docx_builder.adicionar_tabela(
+        documento, colunas, docx_builder.linhas_como_texto(colunas, linhas, colunas_moeda=["Valor"])
+    )
+
+
+def _tabela_financeiro_bloco(documento: DocumentType, convenio: Convenio) -> None:
+    docx_builder.adicionar_titulo(documento, "Financeiro", nivel=4)
+    colunas = ["Financeiro", "Valor"]
+    linhas: list[list[object]] = [
+        ["Valor Global", _valor_global_confiavel(convenio)],
+        ["Valor Repasse", convenio.valor_repasse],
+        ["Contrapartida", convenio.valor_contrapartida],
+    ]
+    docx_builder.adicionar_tabela(
+        documento, colunas, docx_builder.linhas_como_texto(colunas, linhas, colunas_moeda=["Valor"])
+    )
+
+
+def _bloco_instrumento_narrativo(
+    documento: DocumentType,
+    db: Session,
+    convenio: Convenio,
+    inst: InstrumentoComFase | None,
+    equipamentos_por_convenio: dict[int, list[tuple[str, float | None]]],
+    marco_inauguracao_id: int | None,
+    nivel: Nivel,
+) -> None:
+    # Rótulo dinâmico (achado ao vivo 2026-09-27, usuário: "PERSUS, TED e FAF
+    # não são tratados como convênio e sim como instrumentos/programas") --
+    # antes o cabeçalho/rótulo dizia "Convênio" pra QUALQUER tipo, inclusive
+    # PERSUS I/II (que não são convênio nenhum). Usa o `tipo_contratacao`
+    # real do registro.
+    tipo_rotulo = convenio.tipo_contratacao or "Convênio"
+    docx_builder.adicionar_titulo(documento, f"{convenio.convenente_nome} -- {tipo_rotulo} {convenio.numero}", nivel=3)
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Número", convenio.numero)
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Convenente", convenio.convenente_nome)
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNPJ", convenio.convenente_cnpj or "—")
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNES", convenio.cnes or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Objeto", convenio.objeto or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(
-        documento, "Convenente", f"{convenio.convenente_nome} (CNPJ {convenio.convenente_cnpj or '—'})"
+        documento, "Município/UF", f"{capitalizar_nome(convenio.municipio) or '—'}/{convenio.uf or '—'}"
     )
-    docx_builder.adicionar_paragrafo_rotulo_valor(
-        documento, "Localização", f"{convenio.municipio or '—'}/{convenio.uf or '—'}"
-    )
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Tipo de contratação", convenio.tipo_contratacao or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(
         documento,
-        "Tipo de contratação",
-        f"{convenio.tipo_contratacao or '—'} ({convenio.tipologia or 'sem tipologia'})",
-    )
-    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Programa", convenio.programa or "—")
-    docx_builder.adicionar_paragrafo_rotulo_valor(
-        documento, "Situação", f"{convenio.situacao or '—'} ({convenio.situacao_contratacao or 'normal'})"
+        "Situação (Site)",
+        f"{convenio.situacao or '—'} ({convenio.situacao_contratacao or 'normal'})",
     )
     docx_builder.adicionar_paragrafo_rotulo_valor(
         documento,
         "Vigência",
         f"{formatar_data(convenio.data_inicio_vigencia)} a {formatar_data(convenio.data_final_vigencia)}",
     )
+    _secao_monitoramento_interno(documento, db, inst, marco_inauguracao_id, convenio.situacao, nivel=nivel)
+    _tabela_equipamentos_bloco(documento, equipamentos_por_convenio.get(convenio.id, []))
+    _tabela_financeiro_bloco(documento, convenio)
+
+
+def _bloco_proposta_narrativo(documento: DocumentType, proposta: PropostaCandidata) -> None:
+    docx_builder.adicionar_titulo(documento, f"{proposta.nm_proponente} -- Proposta {proposta.id_proposta}", nivel=3)
     docx_builder.adicionar_paragrafo_rotulo_valor(
-        documento,
-        "Financeiro",
-        f"Global {formatar_moeda(convenio.valor_global)} -- "
-        f"Repasse {formatar_moeda(convenio.valor_repasse)} -- "
-        f"Contrapartida {formatar_moeda(convenio.valor_contrapartida)} -- "
-        f"Desembolsado {formatar_moeda(convenio.valor_desembolsado)}",
+        documento, "Proponente", f"{proposta.nm_proponente} (CNPJ {proposta.cnpj_ente_recebedor or '—'})"
     )
-    if convenio.cnes:
-        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNES", convenio.cnes)
-
-
-def _bloco_monitoramento_narrativo(
-    documento: DocumentType,
-    db: Session,
-    item: InstrumentoComFase,
-    marcos: dict[int, MarcoCatalogo],
-    contador: Iterator[int],
-) -> None:
-    inst = item.instrumento
-    docx_builder.adicionar_titulo(documento, f"{inst.nome_convenente} -- Convênio {inst.nr_convenio}", nivel=3)
-    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Componente", inst.componente or "—")
-    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Situação atual", item.fase_atual)
-    colunas = _COLUNAS_MONITORAMENTO_TIMELINE[3:]
-    linhas = [linha[3:] for linha in _linhas_timeline_instrumento(db, item, marcos)]
-    linhas_texto = docx_builder.linhas_como_texto(colunas, linhas, colunas_data=_DATA_MONITORAMENTO_TIMELINE)
-    docx_builder.adicionar_tabela(documento, colunas, linhas_texto)
-    docx_builder.adicionar_legenda_tabela(documento, next(contador), f"Linha do tempo -- Convênio {inst.nr_convenio}.")
-    docx_builder.adicionar_fonte(documento, "Monitoramento interno, SIGEO.")
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Município/UF", f"{capitalizar_nome(proposta.municipio) or '—'}/{proposta.uf or '—'}"
+    )
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Programa", proposta.nm_programa or "—")
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Situação", proposta.situacao_proposta or "—")
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Parceria formalizada", "Sim" if proposta.tem_parceria else "Não"
+    )
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Valor global", formatar_moeda(proposta.vl_global_proposta)
+    )
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Data da proposta", formatar_data(proposta.data_proposta))
 
 
 def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroRelatorio) -> bytes:
     convenios = _convenios(db, filtro)
     propostas = _propostas(db, filtro)
     instrumentos = _instrumentos(db, filtro)
+    equipamentos_por_convenio = _carregar_equipamentos_por_convenio(db, convenios)
 
     documento = docx_builder.novo_documento(f"Instrumentos e repasse -- {filtro.titulo()}")
     docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=datetime.now(timezone.utc))
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Assunto", _assunto(db, filtro))
+    periodo = filtro.periodo_referencia()
+    if periodo:
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Período de referência", periodo)
+    docx_builder.adicionar_paragrafo(
+        documento, "No que compete ao Departamento de Atenção ao Câncer – DECAN, informa-se:"
+    )
     contador: Iterator[int] = itertools.count(1)
 
     docx_builder.adicionar_titulo(documento, "Resumo executivo")
-    colunas_resumo, linhas_resumo = _resumo_executivo(convenios, propostas, instrumentos)
-    docx_builder.adicionar_tabela(
-        documento,
-        colunas_resumo,
-        docx_builder.linhas_como_texto(colunas_resumo, linhas_resumo, colunas_moeda=["Valor"]),
-    )
-    docx_builder.adicionar_legenda_tabela(documento, next(contador), "Resumo executivo do recorte selecionado.")
+    for colunas_resumo, linhas_resumo, legenda in (
+        (*_resumo_instrumentos_programas(convenios, instrumentos), "Instrumentos e programas do recorte selecionado."),
+        (*_resumo_propostas(propostas), "Propostas candidatas por situação."),
+        (*_resumo_equipamentos(equipamentos_por_convenio), "Equipamentos identificados no recorte selecionado."),
+    ):
+        docx_builder.adicionar_tabela(
+            documento,
+            colunas_resumo,
+            docx_builder.linhas_como_texto(colunas_resumo, linhas_resumo, colunas_moeda=["Valor"]),
+        )
+        docx_builder.adicionar_legenda_tabela(documento, next(contador), legenda)
     docx_builder.adicionar_fonte(
         documento,
         "Convênios (SICONV/TransfereGov), propostas candidatas (TransfereGov) e monitoramento interno, SIGEO.",
     )
-
-    docx_builder.adicionar_titulo(documento, "Convênios firmados")
-    if nivel == "simplificado" or not convenios:
-        colunas, linhas = _tabela_convenios(convenios, nivel)
-        docx_builder.adicionar_tabela(
+    persus_ii_do_recorte = [c for c in convenios if c.tipo_contratacao == "PERSUS II"]
+    if persus_ii_do_recorte and all(c.situacao == _SITUACAO_SEM_MONITORAMENTO_ESPERADO for c in persus_ii_do_recorte):
+        docx_builder.adicionar_paragrafo(
             documento,
-            colunas,
-            docx_builder.linhas_como_texto(colunas, linhas, colunas_moeda=_MOEDA_CONVENIO_SIMPLIFICADO),
+            f"Nota: os {len(persus_ii_do_recorte)} instrumento(s) PERSUS II deste recorte estão em fase de "
+            "contratação -- ainda sem obra, equipamento ou licença pra registrar no monitoramento interno.",
         )
-        docx_builder.adicionar_legenda_tabela(documento, next(contador), "Convênios firmados no recorte selecionado.")
-        docx_builder.adicionar_fonte(documento, "Convenio (SICONV/TransfereGov), SIGEO.")
-    else:
-        for convenio in convenios:
-            _bloco_convenio_narrativo(documento, convenio)
 
-    docx_builder.adicionar_titulo(documento, "Propostas candidatas (linhas de financiamento)")
-    colunas_prop, linhas_prop = _tabela_propostas(propostas, "simplificado")
-    docx_builder.adicionar_tabela(
-        documento,
-        colunas_prop,
-        docx_builder.linhas_como_texto(colunas_prop, linhas_prop, colunas_moeda=_MOEDA_PROPOSTA),
-    )
-    docx_builder.adicionar_legenda_tabela(
-        documento, next(contador), "Propostas candidatas (linhas de financiamento) ainda não convertidas em convênio."
-    )
-    docx_builder.adicionar_fonte(documento, "Propostas candidatas (TransfereGov), SIGEO.")
+    docx_builder.adicionar_titulo(documento, "Informações Detalhadas")
+    instrumentos_por_nr = {i.instrumento.nr_convenio: i for i in instrumentos}
+    marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, _MARCO_INAUGURACAO_CODIGO)
+    marco_inauguracao_id = marco_inauguracao.id if marco_inauguracao else None
 
-    docx_builder.adicionar_titulo(documento, "Monitoramento interno")
-    if nivel == "simplificado" or not instrumentos:
-        colunas, linhas = _tabela_monitoramento_simplificado(instrumentos)
-        docx_builder.adicionar_tabela(documento, colunas, docx_builder.linhas_como_texto(colunas, linhas))
-        docx_builder.adicionar_legenda_tabela(documento, next(contador), "Fase atual dos instrumentos monitorados.")
-        docx_builder.adicionar_fonte(documento, "Monitoramento interno, SIGEO.")
-    else:
-        marcos = {m.id: m for m in monitoramento_repo.listar_marcos_catalogo(db, limit=200)}
-        for item in instrumentos:
-            _bloco_monitoramento_narrativo(documento, db, item, marcos, contador)
+    tipos_ja_agrupados: set[str] = set()
+    for rotulo_grupo, tipos in _GRUPOS_ORIGEM_CONVENIO:
+        tipos_ja_agrupados |= tipos
+        itens_grupo = [c for c in convenios if (c.tipo_contratacao or "Convênio") in tipos]
+        if not itens_grupo:
+            continue
+        docx_builder.adicionar_titulo(documento, rotulo_grupo, nivel=2)
+        for convenio in itens_grupo:
+            _bloco_instrumento_narrativo(
+                documento,
+                db,
+                convenio,
+                instrumentos_por_nr.get(convenio.numero),
+                equipamentos_por_convenio,
+                marco_inauguracao_id,
+                nivel,
+            )
+    itens_outros = [c for c in convenios if (c.tipo_contratacao or "Convênio") not in tipos_ja_agrupados]
+    if itens_outros:
+        docx_builder.adicionar_titulo(documento, _ROTULO_OUTROS_ORIGEM, nivel=2)
+        for convenio in itens_outros:
+            _bloco_instrumento_narrativo(
+                documento,
+                db,
+                convenio,
+                instrumentos_por_nr.get(convenio.numero),
+                equipamentos_por_convenio,
+                marco_inauguracao_id,
+                nivel,
+            )
+
+    if propostas:
+        docx_builder.adicionar_titulo(documento, "Propostas e Parcerias (Novo TransfereGOV):", nivel=2)
+        for proposta in propostas:
+            _bloco_proposta_narrativo(documento, proposta)
 
     return docx_builder.gerar_bytes(documento)
 
