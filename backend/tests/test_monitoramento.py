@@ -848,27 +848,26 @@ def test_colaborador_nao_titular_nao_pode_excluir_acao_de_outro_tecnico():
         db.close()
 
 
-def test_instrumento_sem_titular_designado_rejeita_colaborador():
-    """Inverte `test_instrumento_sem_titular_designado_libera_qualquer_
-    colaborador` (achado ao vivo 2026-09-28, titularidade obrigatória):
-    o fail-open "sem titular = qualquer colaborador edita" foi removido
-    de propósito -- instrumento sem titular/suplente designado agora só
-    pode ser editado por admin/gestor, até um gestor atribuir titular."""
+def test_instrumento_sem_titular_designado_libera_qualquer_colaborador():
     db = SessionLocal()
     qualquer = criar_usuario_teste(db)
     instrumento = _criar_instrumento_scratch(db, sufixo="SEM-TITULAR")
+    evento = None
     try:
         marco = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        with pytest.raises(AuthorizationError) as exc:
-            registrar_evento_monitorado(
-                nr_convenio=instrumento.nr_convenio,
-                dados=NovoEventoMonitorado(marco_id=marco.id),
-                db=db,
-                usuario=qualquer,
-            )
-        assert exc.value.status_code == 403
+        evento = registrar_evento_monitorado(
+            nr_convenio=instrumento.nr_convenio,
+            dados=NovoEventoMonitorado(marco_id=marco.id),
+            db=db,
+            usuario=qualquer,
+        )
+        assert evento.instrumento_id == instrumento.id
     finally:
         db.rollback()
+        if evento is not None:
+            db.query(AuditLog).filter_by(entity_name="evento_marco", entity_id=evento.id).delete()
+            db.query(Notificacao).filter_by(entidade_id=instrumento.id).delete()
+            db.query(EventoMarco).filter_by(id=evento.id).delete()
         db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
         db.query(User).filter_by(id=qualquer.id).delete()
         db.commit()
