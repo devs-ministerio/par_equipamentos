@@ -24,7 +24,7 @@ export function FilterWorkspace({
   return (
     <div
       className={cn(
-        "mb-4 flex flex-wrap items-start gap-2.5 border-y border-border py-3.5",
+        "mb-5 flex flex-wrap items-start gap-2.5 rounded-xl border border-border/80 bg-card/70 p-3 shadow-[var(--shadow-soft)]",
         className,
       )}
     >

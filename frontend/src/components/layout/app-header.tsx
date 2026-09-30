@@ -1,6 +1,12 @@
-import { type ReactNode, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { type LucideIcon, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTAINER_CLASS } from "@/lib/layout";
 import { Button } from "@/components/ui/button";
@@ -13,6 +19,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { UserMenu } from "./user-menu";
+import { NotificationBell } from "@/components/features/notification-bell";
 
 export interface HeaderNavItem {
   path: string;
@@ -21,34 +28,156 @@ export interface HeaderNavItem {
    * rota ativa precisa de regra diferente (ex.: rota-mãe cobrindo uma
    * sub-rota de detalhe que não é prefixo simples). */
   isActive?: (pathname: string) => boolean;
+  /** Ícone decorativo à esquerda do rótulo (lucide). */
+  icon?: LucideIcon;
 }
 
+/** Item de navegação com ícone + animação no hover/foco:
+ * - desktop: o ícone sobe e cresce levemente e uma linha fina se abre do
+ *   centro sob o rótulo (só nos itens inativos -- o ativo já é a pill);
+ * - mobile (painel lateral): o ícone desliza um pouco para a direita.
+ * Tudo em `motion-safe:`, então quem pede movimento reduzido no sistema
+ * operacional vê só a troca de cor, sem deslocamento. */
 function NavButton({
   item,
   active,
   onNavigate,
   className,
+  mobile = false,
 }: {
   item: HeaderNavItem;
   active: boolean;
   onNavigate: () => void;
   className?: string;
+  mobile?: boolean;
 }) {
+  const Icone = item.icon;
   return (
     <button
       type="button"
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        "group relative z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
-          ? "bg-secondary font-semibold text-primary"
-          : "text-muted-foreground hover:text-foreground",
+          ? cn("font-semibold text-primary", mobile && "bg-secondary")
+          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        // Linha que se abre do centro sob o rótulo (desktop, item inativo).
+        !mobile &&
+          !active &&
+          "after:absolute after:inset-x-3.5 after:bottom-0.5 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-primary after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100 focus-visible:after:scale-x-100",
         className,
       )}
     >
+      {Icone && (
+        <Icone
+          aria-hidden="true"
+          className={cn(
+            "size-4 shrink-0 transition-transform duration-200 ease-out",
+            mobile
+              ? "motion-safe:group-hover:translate-x-0.5 motion-safe:group-focus-visible:translate-x-0.5"
+              : "motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:scale-110 motion-safe:group-focus-visible:-translate-y-0.5 motion-safe:group-focus-visible:scale-110",
+            active
+              ? "text-primary"
+              : "text-muted-foreground group-hover:text-primary",
+          )}
+        />
+      )}
       {item.label}
     </button>
+  );
+}
+
+type Retangulo = { left: number; top: number; width: number; height: number };
+
+/** Última posição da pill ativa, fora do React de propósito: trocar de
+ * página pode desmontar o header (troca de layout, ou o Suspense da rota
+ * carregando o chunk da página). Guardando aqui, o header novo nasce com a
+ * pill onde ela estava e desliza até o item novo, em vez de só aparecer. */
+let ultimaPosicaoIndicador: Retangulo | null = null;
+
+/** Pill de fundo do item ativo que desliza entre os itens da navegação
+ * desktop. Mede o botão com `aria-current="page"` dentro do `<nav>` e
+ * anima `transform`/`width` (barato para o navegador). Sem item ativo na
+ * lista (ex.: /dashboard no AppLayout), a pill some com fade. */
+function useIndicadorAtivo(dependencia: string) {
+  const navRef = useRef<HTMLElement>(null);
+  const [posicao, setPosicao] = useState<Retangulo | null>(
+    ultimaPosicaoIndicador,
+  );
+  const [visivel, setVisivel] = useState(ultimaPosicaoIndicador !== null);
+  const primeiraMedida = useRef(true);
+
+  const medir = useCallback((animarDoAnterior: boolean) => {
+    const ativo = navRef.current?.querySelector<HTMLElement>(
+      '[aria-current="page"]',
+    );
+    if (!ativo || ativo.offsetWidth === 0) {
+      setVisivel(false);
+      return;
+    }
+    const nova: Retangulo = {
+      left: ativo.offsetLeft,
+      top: ativo.offsetTop,
+      width: ativo.offsetWidth,
+      height: ativo.offsetHeight,
+    };
+    ultimaPosicaoIndicador = nova;
+    setVisivel(true);
+    if (animarDoAnterior) {
+      // Duplo rAF: garante que a posição antiga chegue a ser pintada antes
+      // de trocar, senão o navegador pula direto pro fim sem transição.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => setPosicao(nova)),
+      );
+    } else {
+      setPosicao(nova);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    const deOndeVeio = primeiraMedida.current && posicao !== null;
+    primeiraMedida.current = false;
+    medir(deOndeVeio);
+    // `posicao` fica fora das dependências de propósito: só a troca de rota
+    // (ou a lista de itens) deve remedir aqui.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dependencia, medir]);
+
+  useLayoutEffect(() => {
+    const aoRedimensionar = () => medir(false);
+    window.addEventListener("resize", aoRedimensionar);
+    // Fontes web mudam a largura do texto depois do 1º paint.
+    void document.fonts?.ready.then(aoRedimensionar);
+    return () => window.removeEventListener("resize", aoRedimensionar);
+  }, [medir]);
+
+  return { navRef, posicao, visivel };
+}
+
+function IndicadorAtivo({
+  posicao,
+  visivel,
+}: {
+  posicao: Retangulo | null;
+  visivel: boolean;
+}) {
+  if (!posicao) return null;
+  return (
+    <span
+      aria-hidden="true"
+      data-testid="indicador-ativo"
+      className={cn(
+        "pointer-events-none absolute top-0 left-0 z-0 rounded-full bg-secondary shadow-sm",
+        "transition-[transform,width,height,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+        visivel ? "opacity-100" : "opacity-0",
+      )}
+      style={{
+        width: posicao.width,
+        height: posicao.height,
+        transform: `translate(${posicao.left}px, ${posicao.top}px)`,
+      }}
+    />
   );
 }
 
@@ -57,9 +186,10 @@ function NavButton({
  * decisão deliberada, mantida mesmo a Seção 5 da constituicao_frontend.md
  * preferir borda.
  *
- * `leftExtra` é o slot pro SeletorEquipamento (AppLayout); `rightExtra`,
- * pro NotificationBell (MonitoramentoLayout). No mobile ambos permanecem no
- * cabeçalho, acessíveis sem abrir o painel lateral.
+ * `leftExtra` é o slot pro SeletorEquipamento (AppLayout); `rightExtra` é
+ * livre para extras de um layout. O sino de notificações é fixo do header
+ * (aparece em toda página logada; some sozinho para visitante). No mobile
+ * extras e sino permanecem no cabeçalho, sem abrir o painel lateral.
  *
  * Abaixo de `lg` (1024px) nav/leftExtra/rightExtra/UserMenu colapsam num
  * menu mobile (Sheet) atrás de um botão hambúrguer -- Radix Dialog já
@@ -76,6 +206,9 @@ export function AppHeader({
   const location = useLocation();
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
+  const { navRef, posicao, visivel } = useIndicadorAtivo(
+    `${location.pathname}|${navItems.map((i) => i.path).join(",")}`,
+  );
 
   function irPara(path: string) {
     navigate(path);
@@ -83,11 +216,13 @@ export function AppHeader({
   }
 
   return (
-    <header className="border-b border-border bg-card">
+    // Fixo no topo com vidro fosco: o conteúdo rola por baixo sem perder a
+    // navegação, e o fundo translúcido deixa o header "leve".
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-card/85 backdrop-blur-md supports-[backdrop-filter]:bg-card/70">
       <div
         className={cn(
           CONTAINER_CLASS,
-          "flex h-14 items-center justify-between gap-4",
+          "flex h-16 items-center justify-between gap-4",
         )}
       >
         <div className="flex min-w-0 items-center gap-4">
@@ -96,7 +231,7 @@ export function AppHeader({
             to="/monitoramento-equipamentos"
             className="flex shrink-0 items-center gap-2.5 text-foreground"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#1f4c42] font-display text-[15px] font-bold text-primary-foreground shadow-sm ring-1 ring-black/5 ring-inset">
               S
             </span>
             <span className="flex items-baseline gap-2 whitespace-nowrap">
@@ -117,7 +252,11 @@ export function AppHeader({
             sem quebrar pra fora dos 56px do header, então tablet também
             usa o menu mobile abaixo. */}
         <div className="hidden items-center gap-2 lg:flex">
-          <nav className="flex flex-wrap items-center justify-end gap-1">
+          <nav
+            ref={navRef}
+            className="relative isolate flex flex-wrap items-center justify-end gap-1"
+          >
+            <IndicadorAtivo posicao={posicao} visivel={visivel} />
             {navItems.map((item) => {
               const active = item.isActive
                 ? item.isActive(location.pathname)
@@ -133,9 +272,10 @@ export function AppHeader({
             })}
           </nav>
           {rightExtra}
-          {/* UserMenu fica direto no AppHeader (não num slot) -- é usado por
-              TODA página (PainelGeralPage, AppLayout, MonitoramentoLayout),
-              então 1 lugar só cobre "todas as páginas no nav". */}
+          {/* Sino e UserMenu ficam direto no AppHeader (não num slot) -- é
+              usado por TODA página (PainelGeralPage, AppLayout,
+              MonitoramentoLayout), então 1 lugar só cobre o sistema todo. */}
+          <NotificationBell />
           <UserMenu />
         </div>
 
@@ -143,6 +283,7 @@ export function AppHeader({
         <div className="flex shrink-0 items-center gap-1 lg:hidden">
           {leftExtra}
           {rightExtra}
+          <NotificationBell />
           <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
             <SheetTrigger asChild>
               <Button
@@ -195,8 +336,9 @@ export function AppHeader({
                           item={item}
                           active={active}
                           onNavigate={() => irPara(item.path)}
+                          mobile
                           className={cn(
-                            "min-h-11 w-full rounded-md border-l-[3px] px-3.5 py-2.5 text-left text-sm",
+                            "min-h-11 w-full gap-2.5 rounded-md border-l-[3px] px-3.5 py-2.5 text-left text-sm",
                             active ? "border-primary" : "border-transparent",
                           )}
                         />

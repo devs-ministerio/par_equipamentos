@@ -28,7 +28,7 @@ export function MetricStrip({
   return (
     <div
       className={cn(
-        "grid overflow-hidden rounded-xl border border-border",
+        "grid overflow-hidden rounded-2xl border border-border/80 shadow-[var(--shadow-soft)]",
         compactMobile
           ? cn(
               "grid-cols-1 gap-px bg-border min-[375px]:grid-cols-2 sm:grid-cols-3",
@@ -46,11 +46,12 @@ export function MetricStrip({
             onClick={item.onClick}
             aria-pressed={item.onClick ? item.ativo : undefined}
             className={cn(
-              "relative min-h-20 min-w-0 px-4 py-3 text-left transition-colors",
+              "relative min-h-24 min-w-0 px-5 py-4 text-left transition-colors",
               compactMobile
                 ? cn(
                     "bg-card",
-                    item.mobileFullWidth && "min-[375px]:col-span-2 sm:col-span-1",
+                    item.mobileFullWidth &&
+                      "min-[375px]:col-span-2 sm:col-span-1",
                     index === items.length - 1 &&
                       items.length % 2 === 1 &&
                       "min-[375px]:col-span-2 lg:col-span-1",
@@ -71,12 +72,22 @@ export function MetricStrip({
               />
             )}
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full bg-primary/40",
+                  item.variant === "destructive" && "bg-destructive",
+                  item.variant === "success" && "bg-success",
+                  item.variant === "warning" && "bg-warning",
+                  item.variant === "primary" && "bg-primary",
+                )}
+              />
               {item.label}
               {item.info}
             </div>
             <div
               className={cn(
-                "mt-2 break-words font-display text-xl font-semibold tabular-nums text-foreground",
+                "mt-2.5 break-words font-display text-2xl font-semibold tracking-tight tabular-nums text-foreground",
                 compactMobile && "max-sm:text-lg",
                 item.variant === "destructive" && "text-destructive",
                 item.variant === "success" && "text-success",

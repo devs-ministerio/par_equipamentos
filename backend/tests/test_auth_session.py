@@ -324,6 +324,98 @@ def test_reuso_de_refresh_ja_revogado_gera_auditoria():
         db.close()
 
 
+def test_reuso_de_refresh_derruba_todas_as_sessoes_do_usuario():
+    """Correção 2026-09-30: quem renovou primeiro com o token copiado (às
+    vezes o invasor) seguia logado depois do reuso ser detectado. Agora o
+    reuso revoga TODAS as sessões do usuário -- inclusive a do outro lado."""
+    from app.rate_limit import limiter
+
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        limiter.reset()
+        vitima = TestClient(app)
+        vitima.post("/auth/login", json={"email": user.email, "password": senha})
+        copiado = vitima.cookies.get(REFRESH_COOKIE_NAME)
+        csrf = vitima.cookies.get(CSRF_COOKIE_NAME)
+        assert copiado is not None and csrf is not None
+
+        invasor = TestClient(app)
+        invasor.cookies.set(REFRESH_COOKIE_NAME, copiado)
+        invasor.cookies.set(CSRF_COOKIE_NAME, csrf)
+        renovou = invasor.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
+        assert renovou.status_code == 200
+        assert invasor.get("/auth/me").status_code == 200
+
+        reuso = vitima.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
+        assert reuso.status_code == 401
+
+        # A sessão que o invasor obteve cai imediatamente (access e refresh).
+        assert invasor.get("/auth/me").status_code == 401
+        csrf_invasor = renovou.json()["csrf_token"]
+        assert invasor.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf_invasor}).status_code == 401
+    finally:
+        db.close()
+
+
+def _configurar_email(monkeypatch, *, falhar: bool = False) -> list[str]:
+    from app.config import settings
+    from app.routers import auth as auth_router
+
+    monkeypatch.setattr(settings, "mail_api_url", "https://gateway.example.test/enviar")
+    monkeypatch.setattr(settings, "mail_api_secret", "segredo-teste")
+    enviados: list[str] = []
+
+    def _falso_enviar(*, destinatario, **_kwargs):
+        if falhar:
+            raise RuntimeError("gateway fora do ar")
+        enviados.append(destinatario)
+
+    monkeypatch.setattr(auth_router, "enviar_link", _falso_enviar)
+    return enviados
+
+
+def test_esqueci_senha_nao_bloqueia_login_com_a_senha_atual(monkeypatch):
+    """Correção 2026-09-30: pedir recuperação (qualquer pessoa, só com o
+    e-mail) trancava o login do usuário por 7 dias."""
+    from app.rate_limit import limiter
+
+    enviados = _configurar_email(monkeypatch)
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        limiter.reset()
+        pedido = TestClient(app).post("/auth/esqueci-senha", json={"email": user.email})
+        assert pedido.status_code == 200
+        assert enviados == [user.email]
+        db.refresh(user)
+        assert user.activation_token_hash is not None  # link continua válido
+
+        login = TestClient(app).post("/auth/login", json={"email": user.email, "password": senha})
+        assert login.status_code == 200
+    finally:
+        db.close()
+
+
+def test_esqueci_senha_com_falha_no_email_nao_grava_token(monkeypatch):
+    """Correção 2026-09-30: o rollback vinha depois do commit, e o token
+    ficava gravado sem o e-mail ter saído."""
+    from app.rate_limit import limiter
+
+    _configurar_email(monkeypatch, falhar=True)
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        limiter.reset()
+        pedido = TestClient(app).post("/auth/esqueci-senha", json={"email": user.email})
+        assert pedido.status_code == 200  # resposta genérica, sem revelar falha
+        db.refresh(user)
+        assert user.activation_token_hash is None
+        assert user.activation_expires_at is None
+    finally:
+        db.close()
+
+
 def test_rate_limit_no_login():
     from app.rate_limit import limiter
 

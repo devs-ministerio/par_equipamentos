@@ -1,8 +1,16 @@
 import { z } from "zod";
 
+/** Espelho de `_validar_senha` (backend/app/schemas.py): só tamanho mínimo. */
+export const TAMANHO_MINIMO_SENHA = 10;
+
 export const senhaContaSchema = z
   .object({
-    senha: z.string().min(10, "A senha deve ter pelo menos 10 caracteres."),
+    senha: z
+      .string()
+      .min(
+        TAMANHO_MINIMO_SENHA,
+        `A senha deve ter pelo menos ${TAMANHO_MINIMO_SENHA} caracteres.`,
+      ),
     confirmarSenha: z.string().min(1, "Confirme a senha."),
   })
   .refine(({ senha, confirmarSenha }) => senha === confirmarSenha, {

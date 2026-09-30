@@ -9,7 +9,10 @@
  * (backend, NOSSO schema -- instrumento/evento/acao), via
  * `services/monitoramento.ts` (cookie de sessão).
  */
+import { Link } from "react-router-dom";
+import { ArrowRight, Scale } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
+import { Button } from "@/components/ui/button";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,11 +33,26 @@ export function MonitoramentoOverviewPage() {
   const instrumentos = (instrumentosQuery.data ?? []) as InstrumentoResumo[];
   const filtros = useMonitoramentoInternoFiltros(instrumentos);
 
+  // Atalho para a Análise de mérito: recurso interno do Monitoramento
+  // interno, não item do header (decisão do usuário, 2026-09-30 -- antes
+  // entrava na navegação do topo só nesta rota).
   const header = (
     <PageHeader
       eyebrow="Monitoramento interno"
       title="Mesa de trabalho"
       description="Entrega, instalação, licenciamento CNEN e inauguração."
+      actions={
+        <Button asChild variant="outline" size="sm" className="group">
+          <Link to="/dashboard">
+            <Scale className="size-4" aria-hidden="true" />
+            Análise de mérito
+            <ArrowRight
+              className="size-3.5 transition-transform duration-200 motion-safe:group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </Link>
+        </Button>
+      }
     />
   );
 
@@ -115,11 +133,7 @@ export function MonitoramentoOverviewPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Monitoramento interno"
-        title="Mesa de trabalho"
-        description="Entrega, instalação, licenciamento CNEN e inauguração."
-      />
+      {header}
 
       <MonitoramentoInternoFiltros filtros={filtros} />
 
