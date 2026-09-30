@@ -144,19 +144,27 @@ export function SubNivelRow({
         )}
       </tr>
       {completo && (
-        <tr className={`border-t border-border sm:hidden ${selecionada ? "bg-accent" : ""}`}>
+        <tr
+          className={`border-t border-border sm:hidden ${selecionada ? "bg-accent" : ""}`}
+        >
           <td colSpan={4} className="p-0 whitespace-normal">
             <CoberturaMobileCard
               nome={linha.nome}
               contexto={linha.uf}
               populacao={linha.pop}
-              coeficiente={coef.valor != null ? formatMultiplicador(coef.valor) : "—"}
+              coeficiente={
+                coef.valor != null ? formatMultiplicador(coef.valor) : "—"
+              }
               oferta={`${formatarQuantidadeEquipamento(linha.oferta)} em uso SUS${linha.ofertaTotal !== linha.oferta ? ` de ${linha.ofertaTotal} existentes` : ""}`}
               status={linha.status}
               corTexto={coef.corTexto}
               expandida={expandida}
               onToggle={expansivel ? onToggle : undefined}
-              acao={nivelAtual === "municipio" ? <BotaoDetalhe onClick={() => onAbrirDetalhe(linha)} /> : undefined}
+              acao={
+                nivelAtual === "municipio" ? (
+                  <BotaoDetalhe onClick={() => onAbrirDetalhe(linha)} />
+                ) : undefined
+              }
             />
           </td>
         </tr>

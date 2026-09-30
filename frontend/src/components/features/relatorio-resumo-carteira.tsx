@@ -37,11 +37,18 @@ export function RelatorioResumoCarteira({
   ];
 
   return (
-    <section aria-label="Resumo do recorte" className="border border-border bg-muted/35">
+    <section
+      aria-label="Resumo do recorte"
+      className="border border-border bg-muted/35"
+    >
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
         <div>
-          <p className="text-[10px] font-bold tracking-[0.12em] text-primary uppercase">Visão consolidada</p>
-          <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">Resumo da carteira</h2>
+          <p className="text-[10px] font-bold tracking-[0.12em] text-primary uppercase">
+            Visão consolidada
+          </p>
+          <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-foreground">
+            Resumo da carteira
+          </h2>
         </div>
       </div>
       <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
@@ -50,10 +57,14 @@ export function RelatorioResumoCarteira({
             key={label}
             className={cn(
               "relative flex min-w-0 gap-3 px-4 py-5 sm:px-6 sm:py-6",
-              indice === 0 && "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary",
+              indice === 0 &&
+                "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary",
             )}
           >
-            <Icon aria-hidden="true" className="mt-1 size-[18px] shrink-0 text-primary" />
+            <Icon
+              aria-hidden="true"
+              className="mt-1 size-[18px] shrink-0 text-primary"
+            />
             <div className="min-w-0">
               <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
                 {label}

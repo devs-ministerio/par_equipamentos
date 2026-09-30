@@ -32,7 +32,9 @@ const instrumentos: InstrumentoMonitoramentoFiltravel[] = [
 
 describe("useMonitoramentoInternoFiltros", () => {
   it("combina busca livre com os seletores e limpa ambos", () => {
-    const { result } = renderHook(() => useMonitoramentoInternoFiltros(instrumentos));
+    const { result } = renderHook(() =>
+      useMonitoramentoInternoFiltros(instrumentos),
+    );
 
     act(() => result.current.setBusca("sao lucas"));
     expect(result.current.filtrados.map((item) => item.nr_convenio)).toEqual([

@@ -53,7 +53,9 @@ export function EstabelecimentoTable({
   const [sortKey, setSortKey] = useState<SortKey>("facility_name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [mobile, setMobile] = useState(
-    () => typeof window !== "undefined" && !!window.matchMedia?.("(max-width: 639px)").matches,
+    () =>
+      typeof window !== "undefined" &&
+      !!window.matchMedia?.("(max-width: 639px)").matches,
   );
   const pageSize = mobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE;
   // Estabelecimento cujo botao de detalhe foi clicado -- dispara o fetch sob
@@ -167,9 +169,22 @@ export function EstabelecimentoTable({
       <MobileTableSort
         value={sortKey}
         direction={sortDir}
-        options={[{ value: "facility_name", label: "Nome" }, { value: "cnes_code", label: "CNES" }, { value: "municipality_name", label: "Município" }, { value: "state", label: "UF" }, { value: "existing_qty", label: "Qtd. equipamentos" }, { value: "in_use_qty", label: "Em uso" }, { value: "sus_flag", label: "SUS" }]}
-        onChange={(key) => { setSortKey(key); setSortDir("asc"); }}
-        onToggleDirection={() => setSortDir((direction) => direction === "asc" ? "desc" : "asc")}
+        options={[
+          { value: "facility_name", label: "Nome" },
+          { value: "cnes_code", label: "CNES" },
+          { value: "municipality_name", label: "Município" },
+          { value: "state", label: "UF" },
+          { value: "existing_qty", label: "Qtd. equipamentos" },
+          { value: "in_use_qty", label: "Em uso" },
+          { value: "sus_flag", label: "SUS" },
+        ]}
+        onChange={(key) => {
+          setSortKey(key);
+          setSortDir("asc");
+        }}
+        onToggleDirection={() =>
+          setSortDir((direction) => (direction === "asc" ? "desc" : "asc"))
+        }
       />
       <div
         className="min-w-0 sm:max-h-[340px] sm:overflow-y-auto"
@@ -240,7 +255,10 @@ export function EstabelecimentoTable({
           </TableHeader>
           <TableBody>
             {items.map((r) => (
-              <TableRow key={r.cnes} className="hidden border-t border-border sm:table-row">
+              <TableRow
+                key={r.cnes}
+                className="hidden border-t border-border sm:table-row"
+              >
                 <TableCell className="py-2 px-4.5 font-mono text-[11.5px] text-muted-foreground">
                   {r.cnes}
                 </TableCell>
@@ -284,26 +302,62 @@ export function EstabelecimentoTable({
               </TableRow>
             ))}
             {items.map((r) => (
-              <TableRow key={`mobile-${r.cnes}`} className="border-t border-border sm:hidden">
+              <TableRow
+                key={`mobile-${r.cnes}`}
+                className="border-t border-border sm:hidden"
+              >
                 <TableCell colSpan={7} className="p-0 whitespace-normal">
                   <div className="min-w-0 space-y-2 px-4 py-3">
                     <div className="flex min-w-0 items-start gap-2">
-                      <div className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-foreground">{r.nome}</div>
-                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{r.uf}</span>
+                      <div className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-foreground">
+                        {r.nome}
+                      </div>
+                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        {r.uf}
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                      <span className="font-mono tabular-nums">CNES {r.cnes}</span>
+                      <span className="font-mono tabular-nums">
+                        CNES {r.cnes}
+                      </span>
                       <span aria-hidden="true">·</span>
                       <span className="min-w-0 break-words">{r.municipio}</span>
                     </div>
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-border pt-2 text-xs">
-                      <span className="whitespace-nowrap text-foreground"><strong className="tabular-nums">{r.qtd}</strong> equip.</span>
-                      <span aria-hidden="true" className="text-muted-foreground">·</span>
-                      <span className="whitespace-nowrap text-foreground"><strong className="tabular-nums">{r.qtdUso}</strong> em uso</span>
-                      <span className={`rounded-full px-2 py-0.5 font-semibold ${r.susFlag ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>SUS {r.susFlag ? "Sim" : "Não"}</span>
-                      {r.susFlag && (alvoDetalhe?.cnes === r.cnes && statusDetalhe === "carregando"
-                        ? <span className="text-muted-foreground">Carregando...</span>
-                        : <Button variant="outline" size="sm" className="ml-auto min-h-11" onClick={() => abrirDetalhe(r)}>Detalhes</Button>)}
+                      <span className="whitespace-nowrap text-foreground">
+                        <strong className="tabular-nums">{r.qtd}</strong> equip.
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="text-muted-foreground"
+                      >
+                        ·
+                      </span>
+                      <span className="whitespace-nowrap text-foreground">
+                        <strong className="tabular-nums">{r.qtdUso}</strong> em
+                        uso
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-semibold ${r.susFlag ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
+                      >
+                        SUS {r.susFlag ? "Sim" : "Não"}
+                      </span>
+                      {r.susFlag &&
+                        (alvoDetalhe?.cnes === r.cnes &&
+                        statusDetalhe === "carregando" ? (
+                          <span className="text-muted-foreground">
+                            Carregando...
+                          </span>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="ml-auto min-h-11"
+                            onClick={() => abrirDetalhe(r)}
+                          >
+                            Detalhes
+                          </Button>
+                        ))}
                     </div>
                   </div>
                 </TableCell>

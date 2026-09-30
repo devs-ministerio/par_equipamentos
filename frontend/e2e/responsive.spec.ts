@@ -49,7 +49,9 @@ test.describe("Responsividade autenticada", () => {
     }
   });
 
-  test("mesa de trabalho e detalhe do instrumento cabem no celular", async ({ page }) => {
+  test("mesa de trabalho e detalhe do instrumento cabem no celular", async ({
+    page,
+  }) => {
     test.setTimeout(90_000);
 
     await page.goto("/login");
@@ -64,10 +66,12 @@ test.describe("Responsividade autenticada", () => {
       await page.setViewportSize({ width: largura, height: 900 });
       await page.goto("/monitoramento-equipamentos/instrumentos");
 
-      const primeiroInstrumento = page.locator(
-        '[aria-label="Instrumentos monitorados"] article a',
-      ).first();
-      await expect(primeiroInstrumento).toBeVisible({ timeout: TEMPO_SESSAO_MS });
+      const primeiroInstrumento = page
+        .locator('[aria-label="Instrumentos monitorados"] article a')
+        .first();
+      await expect(primeiroInstrumento).toBeVisible({
+        timeout: TEMPO_SESSAO_MS,
+      });
       const href = await primeiroInstrumento.getAttribute("href");
       expect(href).toBeTruthy();
 
@@ -78,14 +82,18 @@ test.describe("Responsividade autenticada", () => {
       expect(larguraMesa.conteudo).toBeLessThanOrEqual(larguraMesa.visivel);
 
       await page.goto(href!);
-      await expect(page.locator("summary", { hasText: "Fase e cronograma" })).toBeVisible({
+      await expect(
+        page.locator("summary", { hasText: "Fase e cronograma" }),
+      ).toBeVisible({
         timeout: TEMPO_SESSAO_MS,
       });
       const larguraDetalhe = await page.locator("html").evaluate((element) => ({
         visivel: element.clientWidth,
         conteudo: element.scrollWidth,
       }));
-      expect(larguraDetalhe.conteudo).toBeLessThanOrEqual(larguraDetalhe.visivel);
+      expect(larguraDetalhe.conteudo).toBeLessThanOrEqual(
+        larguraDetalhe.visivel,
+      );
     }
   });
 });

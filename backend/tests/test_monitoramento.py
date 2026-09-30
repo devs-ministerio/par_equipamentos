@@ -436,10 +436,10 @@ def test_resumo_traz_totais_e_lista_de_convenios():
         assert len(resumo.nr_convenios) == resumo.total_instrumentos
         if resumo.pct_execucao_fisica_medio is not None:
             assert 0.0 <= resumo.pct_execucao_fisica_medio <= 1.0
-            esperado = sum(
-                item.pct_referencia_fase or 0
-                for item in resumo.indicadores_por_instrumento
-            ) / resumo.total_instrumentos
+            esperado = (
+                sum(item.pct_referencia_fase or 0 for item in resumo.indicadores_por_instrumento)
+                / resumo.total_instrumentos
+            )
             assert resumo.pct_execucao_fisica_medio == pytest.approx(esperado)
         assert resumo.acoes_pendentes >= 0
         assert resumo.acoes_atrasadas <= resumo.acoes_pendentes
@@ -471,20 +471,24 @@ def test_resumo_considera_somente_acoes_ativas_por_instrumento():
         db.add(instrumento)
         db.flush()
         antiga = AcaoMonitoramento(
-            instrumento_id=instrumento.id, descricao="Versão substituída",
+            instrumento_id=instrumento.id,
+            descricao="Versão substituída",
             data_prevista=date.today() - timedelta(days=10),
         )
         vigente = AcaoMonitoramento(
-            instrumento_id=instrumento.id, descricao="Versão vigente",
+            instrumento_id=instrumento.id,
+            descricao="Versão vigente",
             data_prevista=date.today() + timedelta(days=5),
         )
         excluida = AcaoMonitoramento(
-            instrumento_id=instrumento.id, descricao="Ação excluída",
+            instrumento_id=instrumento.id,
+            descricao="Ação excluída",
             data_prevista=date.today() - timedelta(days=5),
             deletado_em=datetime.now(timezone.utc),
         )
         concluida = AcaoMonitoramento(
-            instrumento_id=instrumento.id, descricao="Ação concluída",
+            instrumento_id=instrumento.id,
+            descricao="Ação concluída",
             data_prevista=date.today() - timedelta(days=3),
             data_conclusao=date.today(),
         )
@@ -497,7 +501,9 @@ def test_resumo_considera_somente_acoes_ativas_por_instrumento():
         assert dados.acoes_por_instrumento[instrumento.id] == (1, 0)
         assert [acao.id for acao, _ in dados.acoes_em_aberto if acao.instrumento_id == instrumento.id] == [vigente.id]
         resumo = obter_resumo(db)
-        indicador = next(item for item in resumo.indicadores_por_instrumento if item.nr_convenio == instrumento.nr_convenio)
+        indicador = next(
+            item for item in resumo.indicadores_por_instrumento if item.nr_convenio == instrumento.nr_convenio
+        )
         assert (indicador.acoes_pendentes, indicador.acoes_atrasadas) == (1, 0)
     finally:
         db.rollback()

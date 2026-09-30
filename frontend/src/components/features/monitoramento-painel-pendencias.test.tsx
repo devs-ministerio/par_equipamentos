@@ -79,7 +79,9 @@ describe("MonitoramentoPainelPendencias", () => {
         name: /Hospital Alfa/,
       }),
     ).toBeVisible();
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }),
+    );
     expect(screen.getByText("Vencida há 9 dias")).toBeVisible();
     expect(screen.getByText("Atrasada há 4 dias")).toBeVisible();
     expect(screen.getByText("2/8")).toBeVisible();
@@ -111,12 +113,12 @@ describe("MonitoramentoPainelPendencias", () => {
             nr_convenio: `D${i}`,
             nome_convenente: `Divergência ${i}`,
             tipo_contratacao: "Convênio",
-              fase_interna: "Concluído",
-              fonte_externa: "TransfereGov",
-              risco: "Divergência",
-              status_externo_original: "Aberto",
-              status_externo_normalizado: "aberto",
-              atualizado_em: "2026-09-29",
+            fase_interna: "Concluído",
+            fonte_externa: "TransfereGov",
+            risco: "Divergência",
+            status_externo_original: "Aberto",
+            status_externo_normalizado: "aberto",
+            atualizado_em: "2026-09-29",
           }))}
           divergenciasPorFonte=""
           semTecnico={0}
@@ -127,8 +129,8 @@ describe("MonitoramentoPainelPendencias", () => {
             id: i + 1,
             nr_convenio: `A${i}`,
             nome_convenente: `Hospital ${i}`,
-              descricao: `Ação ${i}`,
-              data_prevista: null,
+            descricao: `Ação ${i}`,
+            data_prevista: null,
             responsavel: null,
             dias: i,
           }))}

@@ -17,15 +17,13 @@ async function autenticar(page: import("@playwright/test").Page) {
 test.describe("Fluxo autenticado", () => {
   test("login entra em rota protegida e oferece saída", async ({ page }) => {
     await autenticar(page);
-    await expect(
-      page
-        .getByRole("link", { name: "Sair" })
-        .or(page.getByRole("button", { name: "Sair" })),
-    ).toBeVisible();
+    await page.getByRole("button", { name: /^Menu de / }).click();
+    await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
   });
 
   test("sair retorna imediatamente ao login", async ({ page }) => {
     await autenticar(page);
+    await page.getByRole("button", { name: /^Menu de / }).click();
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL("/login");
     await expect(page.getByRole("heading", { name: /entrar/i })).toBeVisible();
@@ -71,8 +69,8 @@ test.describe("Fluxo autenticado", () => {
       page.getByRole("heading", { name: "Prazos e pendências" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", {
-        name: "Instrumentos com vigência a encerrar",
+      page.getByRole("button", {
+        name: /Instrumentos com vigência a encerrar/,
       }),
     ).toBeVisible();
     await page

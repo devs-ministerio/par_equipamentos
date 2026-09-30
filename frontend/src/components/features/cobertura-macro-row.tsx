@@ -115,7 +115,9 @@ export function CoberturaMacroRow({
             nome={macro.nome}
             contexto={`Macro ${macro.id} · ${macro.uf}`}
             populacao={macro.pop}
-            coeficiente={coeficiente != null ? formatMultiplicador(coeficiente) : "—"}
+            coeficiente={
+              coeficiente != null ? formatMultiplicador(coeficiente) : "—"
+            }
             oferta={`${formatarQuantidadeEquipamento(row.oferta)} em uso SUS${row.ofertaTotal !== row.oferta ? ` de ${row.ofertaTotal} existentes` : ""}`}
             status={row.status}
             corTexto={corTexto}

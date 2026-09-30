@@ -119,24 +119,50 @@ function LinhaFinanceira({
 }: LinhaFinanceiraProps) {
   return (
     <Fragment>
-    <tr className="hidden border-t border-border sm:table-row">
-      <td className="py-1 pr-2 text-muted-foreground">{etapa}</td>
-      <td className="py-1 pr-2 font-mono">{numero}</td>
-      <td className="py-1 pr-2">{situacao}</td>
-      <td className="py-1 pr-2">{data}</td>
-      <td className="py-1 text-right tabular-nums">{valor}</td>
-    </tr>
-    <tr className="border-t border-border sm:hidden">
-      <td colSpan={5} className="min-w-0 py-2.5">
-        <div className="break-words text-xs font-semibold text-foreground">{etapa}</div>
-        <dl className="mt-2 grid grid-cols-2 gap-2">
-          <div className="min-w-0"><dt className="text-[10px] uppercase text-muted-foreground">Nº</dt><dd className="m-0 break-words font-mono text-xs">{numero || "—"}</dd></div>
-          <div className="min-w-0"><dt className="text-[10px] uppercase text-muted-foreground">Data</dt><dd className="m-0 text-xs">{data || "—"}</dd></div>
-          <div className="min-w-0"><dt className="text-[10px] uppercase text-muted-foreground">Situação</dt><dd className="m-0 break-words text-xs">{situacao || "—"}</dd></div>
-          <div className="min-w-0"><dt className="text-[10px] uppercase text-muted-foreground">Valor</dt><dd className="m-0 break-words text-xs tabular-nums">{valor || "—"}</dd></div>
-        </dl>
-      </td>
-    </tr>
+      <tr className="hidden border-t border-border sm:table-row">
+        <td className="py-1 pr-2 text-muted-foreground">{etapa}</td>
+        <td className="py-1 pr-2 font-mono">{numero}</td>
+        <td className="py-1 pr-2">{situacao}</td>
+        <td className="py-1 pr-2">{data}</td>
+        <td className="py-1 text-right tabular-nums">{valor}</td>
+      </tr>
+      <tr className="border-t border-border sm:hidden">
+        <td colSpan={5} className="min-w-0 py-2.5">
+          <div className="break-words text-xs font-semibold text-foreground">
+            {etapa}
+          </div>
+          <dl className="mt-2 grid grid-cols-2 gap-2">
+            <div className="min-w-0">
+              <dt className="text-[10px] uppercase text-muted-foreground">
+                Nº
+              </dt>
+              <dd className="m-0 break-words font-mono text-xs">
+                {numero || "—"}
+              </dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[10px] uppercase text-muted-foreground">
+                Data
+              </dt>
+              <dd className="m-0 text-xs">{data || "—"}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[10px] uppercase text-muted-foreground">
+                Situação
+              </dt>
+              <dd className="m-0 break-words text-xs">{situacao || "—"}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[10px] uppercase text-muted-foreground">
+                Valor
+              </dt>
+              <dd className="m-0 break-words text-xs tabular-nums">
+                {valor || "—"}
+              </dd>
+            </div>
+          </dl>
+        </td>
+      </tr>
     </Fragment>
   );
 }

@@ -127,7 +127,9 @@ export function MonitoramentoInternoCabecalho({
             <div className="flex min-w-0 flex-wrap items-center gap-2 break-words text-[15px] font-bold">
               <span className="break-all">{inst.nr_convenio}</span>
               <span aria-hidden="true">—</span>
-              <span className="min-w-0 break-words">{inst.nome_convenente}</span>
+              <span className="min-w-0 break-words">
+                {inst.nome_convenente}
+              </span>
               {/* Chip de tipo_contratacao -- os 28 registros FAF/TED (sem
                   numero TransfereGov, usam o NUP SEI como identificador
                   aqui) agora convivem com os Convênio de verdade. */}

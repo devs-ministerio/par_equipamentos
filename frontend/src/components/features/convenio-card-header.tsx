@@ -105,25 +105,29 @@ export function ConvenioCardHeader({
 
       {/* Programa em destaque na camada 1 -- e o dado que classifica o
           convenio dentro da politica de financiamento. */}
-      {(programaSiconv || c.tipologia) && <p className="mt-3 mb-0 rounded-md border border-border bg-background px-2.5 py-2 text-[12.5px] leading-normal break-words max-sm:border-l-[3px] max-sm:border-l-primary">
-        <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">
-          Programa:
-        </strong>
-        {programaSiconv}
-        {/* Tipologia deixou de ser exclusiva do PERSUS (Plan Mode
+      {(programaSiconv || c.tipologia) && (
+        <p className="mt-3 mb-0 rounded-md border border-border bg-background px-2.5 py-2 text-[12.5px] leading-normal break-words max-sm:border-l-[3px] max-sm:border-l-primary">
+          <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">
+            Programa:
+          </strong>
+          {programaSiconv}
+          {/* Tipologia deixou de ser exclusiva do PERSUS (Plan Mode
             monitoramento-evolucao 2026-09-19, decisão do usuário: "é a
             mesma tipologia, use para todos") -- mostra pra qualquer tipo
             de contratação que tiver o campo preenchido. */}
-        {c.tipologia && (
-          <span className="ml-2 text-muted-foreground">
-            · Tipologia: {TIPOLOGIA_PERSUS[c.tipologia] ?? c.tipologia}
-          </span>
-        )}
-      </p>}
+          {c.tipologia && (
+            <span className="ml-2 text-muted-foreground">
+              · Tipologia: {TIPOLOGIA_PERSUS[c.tipologia] ?? c.tipologia}
+            </span>
+          )}
+        </p>
+      )}
 
       {c.dadosOficiaisDisponiveis && (
         <div className="mt-3 grid min-w-0 grid-cols-2 gap-x-3 gap-y-3 rounded-lg bg-background px-3 py-3 sm:[grid-template-columns:repeat(auto-fit,minmax(110px,1fr))]">
-          <div className="hidden sm:block"><Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo></div>
+          <div className="hidden sm:block">
+            <Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo>
+          </div>
           <Campo
             label="Valor repasse"
             legenda={pct(

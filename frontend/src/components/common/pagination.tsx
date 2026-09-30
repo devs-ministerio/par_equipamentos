@@ -20,11 +20,15 @@ export function Pagination({
   const fim = Math.min(page * pageSize, totalItems);
 
   return (
-    <div className={`flex flex-wrap items-center justify-between gap-2 border-t border-border px-4.5 py-2.5 text-xs text-muted-foreground ${mobileStacked ? "max-sm:flex-col max-sm:items-stretch" : ""}`}>
+    <div
+      className={`flex flex-wrap items-center justify-between gap-2 border-t border-border px-4.5 py-2.5 text-xs text-muted-foreground ${mobileStacked ? "max-sm:flex-col max-sm:items-stretch" : ""}`}
+    >
       <span>
         Mostrando {inicio}–{fim} de {totalItems}
       </span>
-      <div className={`flex flex-wrap items-center gap-2 ${mobileStacked ? "max-sm:grid max-sm:grid-cols-[1fr_auto_1fr]" : ""}`}>
+      <div
+        className={`flex flex-wrap items-center gap-2 ${mobileStacked ? "max-sm:grid max-sm:grid-cols-[1fr_auto_1fr]" : ""}`}
+      >
         <Button
           variant="outline"
           size="sm"
@@ -33,7 +37,14 @@ export function Pagination({
           aria-label="Página anterior"
           className={mobileStacked ? "max-sm:min-h-11 max-sm:px-2" : undefined}
         >
-          {mobileStacked ? <><span className="sm:hidden">‹</span><span className="hidden sm:inline">‹ Anterior</span></> : "‹ Anterior"}
+          {mobileStacked ? (
+            <>
+              <span className="sm:hidden">‹</span>
+              <span className="hidden sm:inline">‹ Anterior</span>
+            </>
+          ) : (
+            "‹ Anterior"
+          )}
         </Button>
         <span>
           Página {page} de {totalPages}
@@ -46,7 +57,14 @@ export function Pagination({
           aria-label="Próxima página"
           className={mobileStacked ? "max-sm:min-h-11 max-sm:px-2" : undefined}
         >
-          {mobileStacked ? <><span className="sm:hidden">›</span><span className="hidden sm:inline">Próxima ›</span></> : "Próxima ›"}
+          {mobileStacked ? (
+            <>
+              <span className="sm:hidden">›</span>
+              <span className="hidden sm:inline">Próxima ›</span>
+            </>
+          ) : (
+            "Próxima ›"
+          )}
         </Button>
       </div>
     </div>

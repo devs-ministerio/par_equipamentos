@@ -9,8 +9,12 @@ describe("correspondeBuscaLivre", () => {
   });
 
   it("encontra identificadores sem misturar campos diferentes", () => {
-    expect(correspondeBuscaLivre("1234567", ["Hospital", "1234567"])).toBe(true);
-    expect(correspondeBuscaLivre("hospital 123", ["Hospital", "1234567"])).toBe(false);
+    expect(correspondeBuscaLivre("1234567", ["Hospital", "1234567"])).toBe(
+      true,
+    );
+    expect(correspondeBuscaLivre("hospital 123", ["Hospital", "1234567"])).toBe(
+      false,
+    );
   });
 
   it("não restringe o conjunto quando o texto está vazio", () => {

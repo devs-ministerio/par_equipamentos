@@ -158,11 +158,25 @@ export function NivelCoberturaTable({
       <MobileTableSort
         value={sortKey}
         direction={sortDir}
-        options={[{ value: "nome", label: "Nome" }, { value: "uf", label: "UF" }, { value: "populacao", label: "População" }, { value: "cobertura", label: "Cobertura" }, { value: "status", label: "Status" }]}
-        onChange={(key) => { setSortKey(key); setSortDir("asc"); }}
-        onToggleDirection={() => setSortDir((direction) => direction === "asc" ? "desc" : "asc")}
+        options={[
+          { value: "nome", label: "Nome" },
+          { value: "uf", label: "UF" },
+          { value: "populacao", label: "População" },
+          { value: "cobertura", label: "Cobertura" },
+          { value: "status", label: "Status" },
+        ]}
+        onChange={(key) => {
+          setSortKey(key);
+          setSortDir("asc");
+        }}
+        onToggleDirection={() =>
+          setSortDir((direction) => (direction === "asc" ? "desc" : "asc"))
+        }
       />
-      <div className="min-w-0 sm:max-h-[340px] sm:overflow-y-auto" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
+      <div
+        className="min-w-0 sm:max-h-[340px] sm:overflow-y-auto"
+        style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}
+      >
         <Table className="text-[12.5px]">
           <TableHeader className="sticky top-0 z-[2] hidden bg-card text-[11px] tracking-wide text-muted-foreground uppercase sm:table-header-group">
             <TableRow className="[&>*]:whitespace-normal">

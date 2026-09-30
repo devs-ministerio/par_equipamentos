@@ -13,7 +13,9 @@ describe("RelatorioResumoCarteira", () => {
       />,
     );
 
-    expect(screen.getByRole("region", { name: "Resumo do recorte" })).toBeVisible();
+    expect(
+      screen.getByRole("region", { name: "Resumo do recorte" }),
+    ).toBeVisible();
     expect(screen.getByText("Instrumentos e programas")).toBeVisible();
     expect(screen.getByText("Parcerias confirmadas")).toBeVisible();
     expect(screen.getByText("Propostas em tramitação")).toBeVisible();

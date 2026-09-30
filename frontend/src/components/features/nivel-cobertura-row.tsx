@@ -123,18 +123,33 @@ export function NivelCoberturaRow({
         </TableCell>
       </TableRow>
       <TableRow className="border-t border-border sm:hidden">
-        <TableCell colSpan={nivel === "municipio" ? 7 : 6} className="p-0 whitespace-normal">
+        <TableCell
+          colSpan={nivel === "municipio" ? 7 : 6}
+          className="p-0 whitespace-normal"
+        >
           <CoberturaMobileCard
             nome={row.nome}
-            contexto={[row.uf, row.macroNome, nivel === "municipio" ? row.regiaoSaudeNome : null].filter(Boolean).join(" · ")}
+            contexto={[
+              row.uf,
+              row.macroNome,
+              nivel === "municipio" ? row.regiaoSaudeNome : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
             populacao={row.pop}
-            coeficiente={coeficiente != null ? formatMultiplicador(coeficiente) : "—"}
+            coeficiente={
+              coeficiente != null ? formatMultiplicador(coeficiente) : "—"
+            }
             oferta={`${formatarQuantidadeEquipamento(row.oferta)} em uso SUS${row.ofertaTotal !== row.oferta ? ` de ${row.ofertaTotal} existentes` : ""}`}
             status={row.status}
             corTexto={corTexto}
             expandida={expandida}
             onToggle={expansivel ? onToggle : undefined}
-            acao={nivel === "municipio" ? <BotaoDetalhe onClick={() => onAbrirDetalhe(row)} /> : undefined}
+            acao={
+              nivel === "municipio" ? (
+                <BotaoDetalhe onClick={() => onAbrirDetalhe(row)} />
+              ) : undefined
+            }
           />
         </TableCell>
       </TableRow>

@@ -76,7 +76,9 @@ export function Campo({
   return (
     <div>
       <div className={rotuloCampo}>{label}</div>
-      <div className="min-w-0 break-words text-[13px] tabular-nums">{children}</div>
+      <div className="min-w-0 break-words text-[13px] tabular-nums">
+        {children}
+      </div>
       {legenda && (
         <div className="text-[10px] text-muted-foreground mt-px">{legenda}</div>
       )}

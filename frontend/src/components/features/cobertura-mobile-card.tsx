@@ -59,14 +59,19 @@ export function CoberturaMobileCard({
       </div>
       <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
         <div className="min-w-0">
-          <div className="text-[11px] text-muted-foreground">População SUS-dep.</div>
+          <div className="text-[11px] text-muted-foreground">
+            População SUS-dep.
+          </div>
           <div className="text-sm font-medium tabular-nums">
             {populacao.toLocaleString("pt-BR")}
           </div>
         </div>
         <div className="min-w-0">
           <div className="text-[11px] text-muted-foreground">Cobertura</div>
-          <div className="text-sm font-semibold tabular-nums" style={{ color: corTexto }}>
+          <div
+            className="text-sm font-semibold tabular-nums"
+            style={{ color: corTexto }}
+          >
             {coeficiente}
           </div>
         </div>

@@ -353,12 +353,20 @@ export function MonitoramentoRelatoriosPage() {
         actions={
           <div className="grid min-w-0 grid-cols-2 gap-x-5 gap-y-2 border-t border-border pt-3 sm:min-w-52 sm:grid-cols-1 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
             <div>
-              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">Escopo atual</p>
-              <p className="mt-1 break-words text-sm font-semibold text-foreground">{resumoEscopo}</p>
+              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+                Escopo atual
+              </p>
+              <p className="mt-1 break-words text-sm font-semibold text-foreground">
+                {resumoEscopo}
+              </p>
             </div>
             <div>
-              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">Registros</p>
-              <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">{totalRegistros.toLocaleString("pt-BR")}</p>
+              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+                Registros
+              </p>
+              <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+                {totalRegistros.toLocaleString("pt-BR")}
+              </p>
             </div>
           </div>
         }
@@ -373,10 +381,15 @@ export function MonitoramentoRelatoriosPage() {
         <div className="flex w-full flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <SlidersHorizontal aria-hidden="true" className="size-4 text-primary" />
+              <SlidersHorizontal
+                aria-hidden="true"
+                className="size-4 text-primary"
+              />
               Refinar prévia
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Os filtros atualizam as tabelas antes da exportação.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Os filtros atualizam as tabelas antes da exportação.
+            </p>
           </div>
         </div>
         <SingleSelectFilter
@@ -452,10 +465,16 @@ export function MonitoramentoRelatoriosPage() {
       />
 
       <div className="flex items-center gap-3 border-b border-border pb-3 pt-1">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">01</div>
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          01
+        </div>
         <div>
-          <h2 className="font-display text-xl font-bold tracking-tight text-foreground">Prévia dos dados</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">Confira as linhas incluídas no recorte selecionado.</p>
+          <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
+            Prévia dos dados
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Confira as linhas incluídas no recorte selecionado.
+          </p>
         </div>
       </div>
 

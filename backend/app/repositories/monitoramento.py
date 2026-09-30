@@ -100,8 +100,7 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
         .group_by(AcaoMonitoramento.instrumento_id)
     ).all()
     acoes_por_instrumento = {
-        instrumento_id: (pendentes, atrasadas)
-        for instrumento_id, pendentes, atrasadas in contagens_acoes
+        instrumento_id: (pendentes, atrasadas) for instrumento_id, pendentes, atrasadas in contagens_acoes
     }
     acoes_em_aberto = [
         (acao, responsavel_nome)
@@ -116,9 +115,7 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
     ultima_atividade_por_instrumento: dict[int, datetime] = {}
     for modelo, ativo in ((EventoMarco, _EVENTO_ATIVO), (AcaoMonitoramento, _ACAO_ATIVA)):
         for instrumento_id, instante in db.execute(
-            select(modelo.instrumento_id, func.max(modelo.created_at))
-            .where(ativo)
-            .group_by(modelo.instrumento_id)
+            select(modelo.instrumento_id, func.max(modelo.created_at)).where(ativo).group_by(modelo.instrumento_id)
         ):
             anterior = ultima_atividade_por_instrumento.get(instrumento_id)
             if instante and (anterior is None or instante > anterior):
@@ -177,9 +174,7 @@ def listar_instrumentos(
     return resultado
 
 
-def mapear_coordenadas_cnes(
-    db: Session, cnes_codes: set[str]
-) -> dict[str, tuple[float | None, float | None]]:
+def mapear_coordenadas_cnes(db: Session, cnes_codes: set[str]) -> dict[str, tuple[float | None, float | None]]:
     """Busca as coordenadas em lote para a listagem, sem consulta por instrumento."""
     if not cnes_codes:
         return {}
