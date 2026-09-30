@@ -213,12 +213,20 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str, int]:
             select(RefreshToken.user_id).where(RefreshToken.token_hash == token_hash)
         ).scalar_one_or_none()
         if sessao_revogada is not None:
+            # Reuso = alguém tem uma cópia do token (sessão possivelmente
+            # roubada). Não dá pra saber qual lado é o legítimo, então todas
+            # as sessões do usuário caem (correção 2026-09-30: antes só
+            # registrava, e quem renovou primeiro -- às vezes o invasor --
+            # seguia logado por até 14 dias). O usuário legítimo só precisa
+            # entrar de novo.
+            revoke_all_refresh_tokens_for_user(db, sessao_revogada)
             log_action(
                 db,
                 user_id=sessao_revogada,
                 entity_name="auth",
                 entity_id=sessao_revogada,
                 action="refresh_reuso_detectado",
+                details={"sessoes_revogadas": "todas"},
             )
             db.commit()
         else:

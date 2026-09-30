@@ -13,7 +13,7 @@ descarta com rollback) -- por isso cada teste que escreve limpa o que
 criou/reverte o que mudou no `finally`, pra nao deixar sujeira no banco de
 dev compartilhado."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import cast
 from uuid import uuid4
 
@@ -32,6 +32,7 @@ from app.db.base import SessionLocal
 from app.db.models import (
     AcaoMonitoramento,
     AuditLog,
+    CnesEstabelecimento,
     EventoMarco,
     InstrumentoEquipamento,
     InstrumentoResponsavel,
@@ -435,6 +436,11 @@ def test_resumo_traz_totais_e_lista_de_convenios():
         assert len(resumo.nr_convenios) == resumo.total_instrumentos
         if resumo.pct_execucao_fisica_medio is not None:
             assert 0.0 <= resumo.pct_execucao_fisica_medio <= 1.0
+            esperado = (
+                sum(item.pct_referencia_fase or 0 for item in resumo.indicadores_por_instrumento)
+                / resumo.total_instrumentos
+            )
+            assert resumo.pct_execucao_fisica_medio == pytest.approx(esperado)
         assert resumo.acoes_pendentes >= 0
         assert resumo.acoes_atrasadas <= resumo.acoes_pendentes
         # Toda inauguracao listada tem convenio real do resumo.
@@ -452,6 +458,55 @@ def test_resumo_traz_totais_e_lista_de_convenios():
         total_tecnico = sum(c.quantidade for c in resumo.por_tecnico_titular)
         assert total_tecnico == resumo.total_instrumentos
     finally:
+        db.close()
+
+
+def test_resumo_considera_somente_acoes_ativas_por_instrumento():
+    db = SessionLocal()
+    instrumento = InstrumentoEquipamento(
+        nr_convenio=f"PYTEST-RESUMO-{uuid4()}",
+        nome_convenente="Convenente do teste de resumo",
+    )
+    try:
+        db.add(instrumento)
+        db.flush()
+        antiga = AcaoMonitoramento(
+            instrumento_id=instrumento.id,
+            descricao="Versão substituída",
+            data_prevista=date.today() - timedelta(days=10),
+        )
+        vigente = AcaoMonitoramento(
+            instrumento_id=instrumento.id,
+            descricao="Versão vigente",
+            data_prevista=date.today() + timedelta(days=5),
+        )
+        excluida = AcaoMonitoramento(
+            instrumento_id=instrumento.id,
+            descricao="Ação excluída",
+            data_prevista=date.today() - timedelta(days=5),
+            deletado_em=datetime.now(timezone.utc),
+        )
+        concluida = AcaoMonitoramento(
+            instrumento_id=instrumento.id,
+            descricao="Ação concluída",
+            data_prevista=date.today() - timedelta(days=3),
+            data_conclusao=date.today(),
+        )
+        db.add_all([antiga, vigente, excluida, concluida])
+        db.flush()
+        antiga.substituido_por_id = vigente.id
+        db.flush()
+
+        dados = monitoramento_repo.carregar_dados_resumo_monitoramento(db, hoje=date.today())
+        assert dados.acoes_por_instrumento[instrumento.id] == (1, 0)
+        assert [acao.id for acao, _ in dados.acoes_em_aberto if acao.instrumento_id == instrumento.id] == [vigente.id]
+        resumo = obter_resumo(db)
+        indicador = next(
+            item for item in resumo.indicadores_por_instrumento if item.nr_convenio == instrumento.nr_convenio
+        )
+        assert (indicador.acoes_pendentes, indicador.acoes_atrasadas) == (1, 0)
+    finally:
+        db.rollback()
         db.close()
 
 
@@ -892,6 +947,41 @@ def test_listar_instrumentos_calcula_pode_editar_por_titularidade():
         db.query(InstrumentoResponsavel).filter_by(instrumento_id=instrumento.id).delete()
         db.query(InstrumentoEquipamento).filter_by(id=instrumento.id).delete()
         db.query(User).filter(User.id.in_([titular.id, outro.id])).delete(synchronize_session=False)
+        db.commit()
+        db.close()
+
+
+def test_listar_instrumentos_expoe_coordenadas_do_cnes():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    codigo = str(uuid4().int % 10_000_000).zfill(7)
+    while db.get(CnesEstabelecimento, codigo) is not None:
+        codigo = str(uuid4().int % 10_000_000).zfill(7)
+    referencia = CnesEstabelecimento(
+        cnes=codigo,
+        nome_estabelecimento="Hospital sintético do teste",
+        latitude=-15.78,
+        longitude=-47.93,
+    )
+    db.add(referencia)
+    db.commit()
+    instrumento = _criar_instrumento_scratch(db, sufixo="MAPA-CNES")
+    sem_cnes = _criar_instrumento_scratch(db, sufixo="MAPA-SEM-CNES")
+    try:
+        instrumento.cnes = codigo
+        db.commit()
+
+        itens = {item.nr_convenio: item for item in listar_instrumentos(limit=500, db=db, usuario=usuario)}
+
+        assert itens[instrumento.nr_convenio].latitude == pytest.approx(-15.78)
+        assert itens[instrumento.nr_convenio].longitude == pytest.approx(-47.93)
+        assert itens[sem_cnes.nr_convenio].latitude is None
+        assert itens[sem_cnes.nr_convenio].longitude is None
+    finally:
+        db.rollback()
+        db.query(InstrumentoEquipamento).filter(InstrumentoEquipamento.id.in_([instrumento.id, sem_cnes.id])).delete()
+        db.query(CnesEstabelecimento).filter_by(cnes=codigo).delete()
+        db.query(User).filter_by(id=usuario.id).delete()
         db.commit()
         db.close()
 

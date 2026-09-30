@@ -53,6 +53,38 @@ const CONVENIO_COM_CNES: ConvenioUnificado = {
 };
 
 describe("filtrarDadosOficiais", () => {
+  it("encontra por texto livre sem acento e combina com o tipo", () => {
+    const filtros = {
+      busca: "  brasilia ",
+      uf: null,
+      municipio: null,
+      cnes: null,
+      equipamento: null,
+      situacao: null,
+      anoInicio: null,
+      anoFim: null,
+      programa: null,
+      tipoContratacao: "Convênio",
+      soMonitorados: false,
+    };
+    expect(
+      filtrarDadosOficiais(
+        [CONVENIO_COM_CNES],
+        filtros,
+        new Set(),
+        (item) => item.situacao,
+      ),
+    ).toEqual([CONVENIO_COM_CNES]);
+    expect(
+      filtrarDadosOficiais(
+        [CONVENIO_COM_CNES],
+        { ...filtros, busca: "não encontrado" },
+        new Set(),
+        (item) => item.situacao,
+      ),
+    ).toEqual([]);
+  });
+
   it("filtra instrumento pelo CNES", () => {
     const resultado = filtrarDadosOficiais(
       [CONVENIO_COM_CNES],

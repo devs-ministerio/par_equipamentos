@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
 import { atualizarCsrfToken, csrfHeaders } from "@/lib/csrf";
+import { registrarEmissaoSessao } from "@/lib/sessao-expiracao";
 
 /** Bloco 1 do Plan Mode frontend 2026-09-17 -- cliente HTTP único
  * compartilhado por `services/api.ts`/`services/convenios.ts`/
@@ -121,6 +122,7 @@ function tentarRenovarSessao(): Promise<boolean> {
         if (!resposta?.ok) return false;
         const corpo = csrfResponseSchema.safeParse(await resposta.json());
         if (corpo.success) atualizarCsrfToken(corpo.data.csrf_token);
+        registrarEmissaoSessao();
         return true;
       })
       .catch(() => false)
@@ -129,6 +131,13 @@ function tentarRenovarSessao(): Promise<boolean> {
       });
   }
   return renovacaoEmAndamento;
+}
+
+/** Renovação explícita (botão "Renovar sessão" do menu do usuário) -- usa o
+ * mesmo mutex da renovação automática em 401, então nunca dispara duas
+ * rotações concorrentes do refresh token. */
+export function renovarSessao(): Promise<boolean> {
+  return tentarRenovarSessao();
 }
 
 /** Rotas de autenticação nunca disparam a tentativa de renovação --

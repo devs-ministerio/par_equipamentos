@@ -17,15 +17,13 @@ async function autenticar(page: import("@playwright/test").Page) {
 test.describe("Fluxo autenticado", () => {
   test("login entra em rota protegida e oferece saída", async ({ page }) => {
     await autenticar(page);
-    await expect(
-      page
-        .getByRole("link", { name: "Sair" })
-        .or(page.getByRole("button", { name: "Sair" })),
-    ).toBeVisible();
+    await page.getByRole("button", { name: /^Menu de / }).click();
+    await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
   });
 
   test("sair retorna imediatamente ao login", async ({ page }) => {
     await autenticar(page);
+    await page.getByRole("button", { name: /^Menu de / }).click();
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL("/login");
     await expect(page.getByRole("heading", { name: /entrar/i })).toBeVisible();
@@ -44,5 +42,47 @@ test.describe("Fluxo autenticado", () => {
     await page.goto("/monitoramento-equipamentos/instrumentos");
     expect((await respostaInstrumentos).ok()).toBe(true);
     await expect(page).not.toHaveURL(/\/login/);
+  });
+
+  test("painel mostra recorte, dashboards e alternância do mapa", async ({
+    page,
+  }) => {
+    await autenticar(page);
+    await page.route("**/monitoramento/instrumentos", async (route) => {
+      const resposta = await route.fetch();
+      const instrumentos = await resposta.json();
+      if (Array.isArray(instrumentos) && instrumentos.length) {
+        instrumentos[0].latitude = -15.78;
+        instrumentos[0].longitude = -47.93;
+      }
+      await route.fulfill({ response: resposta, json: instrumentos });
+    });
+
+    await page.goto("/monitoramento-equipamentos/painel");
+    await expect(
+      page.getByRole("heading", { name: "Painel de gestão" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Ano de inauguração" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Prazos e pendências" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: /Instrumentos com vigência a encerrar/,
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: /, \d+ instrumentos?/ })
+      .first()
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Voltar ao mapa nacional" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Voltar ao mapa nacional" }).click();
+    await expect(
+      page.getByRole("group", { name: /Mapa de .* macrorregiões/ }),
+    ).toBeVisible();
   });
 });

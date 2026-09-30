@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
@@ -8,12 +9,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RelatorioInstrumentosTabela } from "@/components/features/relatorio-instrumentos-tabela";
 import { RelatorioPropostasTabela } from "@/components/features/relatorio-propostas-tabela";
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
+import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-carteira";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
 import { useDadosOficiaisOpcoes } from "@/hooks/use-dados-oficiais-opcoes";
 import { useRelatorioInstrumentosFiltros } from "@/hooks/use-relatorio-instrumentos-filtros";
 import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
+import { UF_INFO } from "@/data/geo-reference";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { estagioDeFato } from "@/lib/proposta-status";
@@ -279,6 +282,14 @@ export function MonitoramentoRelatoriosPage() {
     () => propostasFiltradas.filter((p) => estagioDeFato(p) === "tramitacao"),
     [propostasFiltradas],
   );
+  const valorGlobalInstrumentos = useMemo(
+    () =>
+      conveniosFiltrados.reduce(
+        (total, item) => total + (item.financeiro.global ?? 0),
+        0,
+      ),
+    [conveniosFiltrados],
+  );
 
   const { gerando, erro, gerar } = useGerarRelatorio("instrumentos_repasse");
 
@@ -319,16 +330,68 @@ export function MonitoramentoRelatoriosPage() {
       : ufEfetiva
         ? "uf"
         : "brasil";
+  const resumoEscopo =
+    escopoGeracao === "cnes"
+      ? `CNES ${cnesEfetivo}`
+      : escopoGeracao === "municipio"
+        ? `${capitalizarNome(municipio ?? "")} / ${ufEfetiva}`
+        : escopoGeracao === "uf"
+          ? (UF_INFO[ufEfetiva ?? ""]?.nome ?? ufEfetiva ?? "")
+          : "Brasil";
+  const totalRegistros =
+    conveniosFiltrados.length +
+    propostasConfirmadas.length +
+    propostasEmTramitacao.length;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-7 pb-8">
       <PageHeader
+        className="mb-0"
         eyebrow="Monitoramento interno"
         title="Relatórios"
-        description="Convênios, propostas candidatas e monitoramento interno em Excel ou Word."
+        description="Explore instrumentos, parcerias e propostas. Ajuste o recorte e confira os dados antes de exportar."
+        actions={
+          <div className="grid min-w-0 grid-cols-2 gap-x-5 gap-y-2 border-t border-border pt-3 sm:min-w-52 sm:grid-cols-1 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+                Escopo atual
+              </p>
+              <p className="mt-1 break-words text-sm font-semibold text-foreground">
+                {resumoEscopo}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
+                Registros
+              </p>
+              <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
+                {totalRegistros.toLocaleString("pt-BR")}
+              </p>
+            </div>
+          </div>
+        }
       />
 
-      <FilterWorkspace hasAnyFilter={hasFiltros} onClear={limparFiltros}>
+      <FilterWorkspace
+        hasAnyFilter={hasFiltros}
+        onClear={limparFiltros}
+        contagem={`${totalRegistros} ${totalRegistros === 1 ? "registro" : "registros"} no recorte`}
+        className="mb-0 rounded-sm border border-border bg-card p-4 sm:p-5"
+      >
+        <div className="flex w-full flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <SlidersHorizontal
+                aria-hidden="true"
+                className="size-4 text-primary"
+              />
+              Refinar prévia
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Os filtros atualizam as tabelas antes da exportação.
+            </p>
+          </div>
+        </div>
         <SingleSelectFilter
           placeholder="Tipo de contratação"
           options={tipoContratacaoOptions}
@@ -394,6 +457,27 @@ export function MonitoramentoRelatoriosPage() {
         />
       </FilterWorkspace>
 
+      <RelatorioResumoCarteira
+        instrumentos={conveniosFiltrados.length}
+        valorInstrumentos={valorGlobalInstrumentos}
+        parcerias={propostasConfirmadas.length}
+        propostas={propostasEmTramitacao.length}
+      />
+
+      <div className="flex items-center gap-3 border-b border-border pb-3 pt-1">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+          01
+        </div>
+        <div>
+          <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
+            Prévia dos dados
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Confira as linhas incluídas no recorte selecionado.
+          </p>
+        </div>
+      </div>
+
       {conveniosQuery.isLoading ? (
         <Skeleton
           className="h-64 w-full"
@@ -409,6 +493,7 @@ export function MonitoramentoRelatoriosPage() {
         <RelatorioInstrumentosTabela
           itens={conveniosFiltrados}
           faseMonitoramento={faseMonitoramento}
+          onLimparFiltros={hasFiltros ? limparFiltros : undefined}
         />
       )}
 
@@ -423,12 +508,16 @@ export function MonitoramentoRelatoriosPage() {
       ) : (
         <>
           <RelatorioPropostasTabela
-            titulo="Linhas de financiamento — Confirmada (parceria)"
+            titulo="Parcerias confirmadas"
+            descricao="Instrumentos com parceria formalizada"
             itens={propostasConfirmadas}
+            onLimparFiltros={hasFiltros ? limparFiltros : undefined}
           />
           <RelatorioPropostasTabela
-            titulo="Linhas de financiamento — Em tramitação (proposta)"
+            titulo="Propostas em tramitação"
+            descricao="Linhas de financiamento ainda em análise"
             itens={propostasEmTramitacao}
+            onLimparFiltros={hasFiltros ? limparFiltros : undefined}
           />
         </>
       )}
@@ -439,6 +528,7 @@ export function MonitoramentoRelatoriosPage() {
         podeGerar
         gerando={gerando}
         erro={erro}
+        contexto={`O arquivo reunirá o recorte de ${resumoEscopo}, com os filtros aplicados na prévia acima.`}
         onGerar={(formato) =>
           void gerar(formato, nivel, {
             escopo: escopoGeracao,

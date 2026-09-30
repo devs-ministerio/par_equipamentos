@@ -3,6 +3,7 @@ import type { InstrumentoEquipamento } from "@/services/monitoramento-instrument
 import { nomePrioritarioCanonico } from "@/lib/equipamento-catalogo";
 import type { ClasseEquipamento } from "@/types/dados-oficiais";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
+import { correspondeBuscaLivre } from "@/lib/busca-livre";
 
 type OpcaoFiltro = { value: string; label: string };
 export type ClasseEquipamentoFiltro = ClasseEquipamento | "todos";
@@ -85,6 +86,7 @@ function opcoesEquipamento(
 export function useMonitoramentoInternoFiltros<
   T extends InstrumentoMonitoramentoFiltravel,
 >(instrumentos: T[]) {
+  const [busca, setBusca] = useState("");
   const [tipoContratacao, setTipoContratacao] = useState<string | null>(null);
   const [cnes, setCnes] = useState<string | null>(null);
   const [uf, setUf] = useState<string | null>(null);
@@ -101,6 +103,22 @@ export function useMonitoramentoInternoFiltros<
   const filtrados = useMemo(
     () =>
       instrumentos.filter((instrumento) => {
+        if (
+          !correspondeBuscaLivre(busca, [
+            instrumento.nr_convenio,
+            instrumento.nome_convenente,
+            instrumento.cnes,
+            instrumento.municipio,
+            instrumento.uf,
+            instrumento.tipo_contratacao,
+            instrumento.equipamento_descricao,
+            instrumento.programa,
+            instrumento.tecnico_titular,
+            instrumento.fase_atual,
+            instrumento.situacao_prestacao_contas,
+          ])
+        )
+          return false;
         if (
           tipoContratacao &&
           (instrumento.tipo_contratacao ?? "Convênio") !== tipoContratacao
@@ -138,6 +156,7 @@ export function useMonitoramentoInternoFiltros<
       }),
     [
       instrumentos,
+      busca,
       tipoContratacao,
       cnes,
       uf,
@@ -151,6 +170,7 @@ export function useMonitoramentoInternoFiltros<
   );
 
   const limparFiltros = () => {
+    setBusca("");
     setTipoContratacao(null);
     setCnes(null);
     setUf(null);
@@ -166,6 +186,8 @@ export function useMonitoramentoInternoFiltros<
   return {
     filtrados,
     total: instrumentos.length,
+    busca,
+    setBusca,
     tipoContratacao,
     setTipoContratacao,
     cnes,
@@ -187,6 +209,7 @@ export function useMonitoramentoInternoFiltros<
     anoFim,
     setAnoFim,
     hasFiltros: Boolean(
+      busca.trim() ||
       tipoContratacao ||
       cnes ||
       uf ||

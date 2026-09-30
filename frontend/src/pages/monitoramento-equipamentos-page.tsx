@@ -24,6 +24,7 @@ import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { SearchInput } from "@/components/common/search-input";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { SecaoPropostasCandidatas } from "@/components/features/secao-propostas-candidatas";
 import {
@@ -80,6 +81,8 @@ export function MonitoramentoEquipamentosPage() {
       searchParams.get("subaba") === "confirmada" ? "confirmada" : "tramitacao",
     );
   const {
+    busca,
+    setBusca,
     uf,
     setUf,
     municipio,
@@ -142,6 +145,7 @@ export function MonitoramentoEquipamentosPage() {
       return filtrarDadosOficiais(
         convenios ?? [],
         {
+          busca,
           uf,
           municipio,
           cnes,
@@ -159,6 +163,7 @@ export function MonitoramentoEquipamentosPage() {
       );
     },
     [
+      busca,
       anoInicio,
       anoFim,
       cnes,
@@ -263,6 +268,12 @@ export function MonitoramentoEquipamentosPage() {
                 onLimpar={limparFiltros}
                 contagem={`${filtrados.length} de ${convenios.length} instrumentos`}
               >
+                <SearchInput
+                  value={busca}
+                  onChange={setBusca}
+                  placeholder="Buscar número, convenente, CNES ou município"
+                  width={162}
+                />
                 <SingleSelectFilter
                   placeholder="Tipo de contratação"
                   options={tipoContratacaoOptions}

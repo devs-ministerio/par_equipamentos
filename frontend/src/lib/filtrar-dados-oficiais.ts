@@ -1,8 +1,10 @@
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import { nomePrioritarioCanonico } from "./equipamento-catalogo";
+import { correspondeBuscaLivre } from "./busca-livre";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
 
 type EstadoFiltros = {
+  busca?: string;
   uf: string | null;
   municipio: string | null;
   cnes: string | null;
@@ -74,6 +76,21 @@ export function filtrarDadosOficiais(
     )
       return false;
     if (estado.soMonitorados && !monitorados.has(item.numero)) return false;
+    if (
+      estado.busca &&
+      !correspondeBuscaLivre(estado.busca, [
+        item.numero,
+        item.numeroInstrumento,
+        item.convenente.nome,
+        item.convenente.cnpj,
+        item.cnes,
+        item.cnesNomeEstabelecimento,
+        item.municipio,
+        item.uf,
+        item.objeto,
+      ])
+    )
+      return false;
     return true;
   });
 }

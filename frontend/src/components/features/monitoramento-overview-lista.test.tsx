@@ -25,6 +25,11 @@ describe("MonitoramentoOverviewLista", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: "953749" })).toBeVisible();
+    expect(screen.getAllByRole("link", { name: "953749" })).toHaveLength(2);
+    const listaMobile = screen.getByLabelText("Instrumentos monitorados");
+    expect(listaMobile).toHaveTextContent("Hospital de teste");
+    expect(listaMobile).toHaveTextContent("Brasília/DF");
+    expect(listaMobile).toHaveTextContent("Não iniciado");
+    expect(listaMobile).toHaveTextContent("Pendente");
   });
 });

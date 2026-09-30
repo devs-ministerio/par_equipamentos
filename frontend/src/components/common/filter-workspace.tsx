@@ -24,7 +24,7 @@ export function FilterWorkspace({
   return (
     <div
       className={cn(
-        "mb-4 flex flex-wrap items-start gap-2.5 border-y border-border py-3.5",
+        "mb-5 flex flex-wrap items-start gap-2.5 rounded-xl border border-border/80 bg-card/70 p-3 shadow-[var(--shadow-soft)]",
         className,
       )}
     >
@@ -40,7 +40,7 @@ export function FilterWorkspace({
         </button>
       )}
       {contagem && (
-        <span className="ml-auto pt-2 text-xs text-muted-foreground whitespace-nowrap">
+        <span className="w-full pt-1 text-right text-xs text-muted-foreground sm:ml-auto sm:w-auto sm:pt-2">
           {contagem}
         </span>
       )}

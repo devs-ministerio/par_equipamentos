@@ -1,17 +1,18 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   AccountActionForm,
   ForgotPasswordForm,
 } from "@/components/features/account-action-forms";
+import { limparTokenConta, resolverTokenConta } from "@/lib/token-conta";
 
 export function AccountActionPage({ mode }: { mode: "activate" | "reset" }) {
   const location = useLocation();
-  // O fragmento nunca é enviado ao servidor. Lê-lo uma vez e limpá-lo evita
-  // que token de uso único fique no histórico ou seja copiado por engano.
-  const token =
-    new URLSearchParams(location.hash.replace(/^#/, "")).get("token") ?? "";
   const navigate = useNavigate();
+  // O fragmento nunca é enviado ao servidor. Lido uma vez (e guardado nesta
+  // aba, ver lib/token-conta.ts, para sobreviver a um F5) e removido da
+  // barra de endereço para não ficar no histórico.
+  const [token] = useState(() => resolverTokenConta(mode, location.hash));
   useEffect(() => {
     if (location.hash) window.history.replaceState(null, "", location.pathname);
   }, [location.hash, location.pathname]);
@@ -19,7 +20,10 @@ export function AccountActionPage({ mode }: { mode: "activate" | "reset" }) {
     <AccountActionForm
       mode={mode}
       token={token}
-      onConcluido={() => navigate("/monitoramento-equipamentos")}
+      onConcluido={() => {
+        limparTokenConta(mode);
+        navigate("/monitoramento-equipamentos");
+      }}
     />
   );
 }

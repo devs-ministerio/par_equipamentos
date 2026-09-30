@@ -40,6 +40,8 @@ const instrumentoEquipamentoSchema = z.object({
   municipio: z.string().nullable(),
   uf: z.string().nullable(),
   cnes: z.string().nullable(),
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
   equipamento_descricao: z.string().nullable(),
   equipamento_marca: z.string().nullable(),
   equipamento_modelo: z.string().nullable(),

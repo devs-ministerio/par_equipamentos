@@ -9,7 +9,10 @@
  * (backend, NOSSO schema -- instrumento/evento/acao), via
  * `services/monitoramento.ts` (cookie de sessão).
  */
+import { Link } from "react-router-dom";
+import { ArrowRight, Scale } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
+import { Button } from "@/components/ui/button";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +25,7 @@ import {
   type InstrumentoResumo,
 } from "@/components/features/monitoramento-overview-lista";
 import { fmtData } from "@/lib/monitoramento-format";
+import { mediaReferenciaFase } from "@/lib/monitoramento-painel-metricas";
 
 export function MonitoramentoOverviewPage() {
   const resumoQuery = useMonitoramentoResumo();
@@ -29,11 +33,26 @@ export function MonitoramentoOverviewPage() {
   const instrumentos = (instrumentosQuery.data ?? []) as InstrumentoResumo[];
   const filtros = useMonitoramentoInternoFiltros(instrumentos);
 
+  // Atalho para a Análise de mérito: recurso interno do Monitoramento
+  // interno, não item do header (decisão do usuário, 2026-09-30 -- antes
+  // entrava na navegação do topo só nesta rota).
   const header = (
     <PageHeader
       eyebrow="Monitoramento interno"
       title="Mesa de trabalho"
       description="Entrega, instalação, licenciamento CNEN e inauguração."
+      actions={
+        <Button asChild variant="outline" size="sm" className="group">
+          <Link to="/dashboard">
+            <Scale className="size-4" aria-hidden="true" />
+            Análise de mérito
+            <ArrowRight
+              className="size-3.5 transition-transform duration-200 motion-safe:group-hover:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </Link>
+        </Button>
+      }
     />
   );
 
@@ -71,6 +90,16 @@ export function MonitoramentoOverviewPage() {
 
   const resumo = resumoQuery.data;
   const instrumentosFiltrados = filtros.filtrados;
+  const numerosFiltrados = new Set(
+    instrumentosFiltrados.map((item) => item.nr_convenio),
+  );
+  const licencasFiltradas = resumo.licencas_vencendo.filter((item) =>
+    numerosFiltrados.has(item.nr_convenio),
+  );
+  const progressoReferencia = mediaReferenciaFase(
+    instrumentosFiltrados,
+    resumo.indicadores_por_instrumento,
+  );
 
   // "Próxima inauguração" -- a mais próxima AINDA NÃO realizada E ainda no
   // futuro, ordenada por data (resumo.inauguracoes já vem ordenado por data
@@ -79,7 +108,9 @@ export function MonitoramentoOverviewPage() {
   // filtro antigo (só `!realizada`) apontava pra previsão mais antiga já no
   // passado em vez da mais próxima no futuro.
   const proximaInauguracao =
-    resumo.inauguracoes.find((i) => !i.realizada && i.dias >= 0) ?? null;
+    resumo.inauguracoes.find(
+      (i) => numerosFiltrados.has(i.nr_convenio) && !i.realizada && i.dias >= 0,
+    ) ?? null;
 
   // "Concluídos" -- Plan Mode monitoramento-evolucao 2026-09-19: passou a
   // contar por `fase_atual === 'Concluído'` (marco de fase geral, mesmo
@@ -102,11 +133,7 @@ export function MonitoramentoOverviewPage() {
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Monitoramento interno"
-        title="Mesa de trabalho"
-        description="Entrega, instalação, licenciamento CNEN e inauguração."
-      />
+      {header}
 
       <MonitoramentoInternoFiltros filtros={filtros} />
 
@@ -115,6 +142,8 @@ export function MonitoramentoOverviewPage() {
           pra não duplicar os cards do cabeçalho acima. */}
       <div className="mb-6">
         <MetricStrip
+          compactMobile
+          desktopColumns={6}
           items={[
             {
               key: "instrumentos",
@@ -123,17 +152,17 @@ export function MonitoramentoOverviewPage() {
             },
             {
               key: "execucao",
-              label: "Execução média",
+              label: "Fase média · referência",
               value:
-                resumo.pct_execucao_fisica_medio != null
-                  ? `${Math.round(resumo.pct_execucao_fisica_medio * 100)}%`
+                progressoReferencia != null
+                  ? `${Math.round(progressoReferencia * 100)}%`
                   : "—",
             },
             {
               key: "licencas",
               label: "Licenças a vencer",
-              value: resumo.licencas_vencendo.length,
-              variant: resumo.licencas_vencendo.length ? "warning" : "success",
+              value: licencasFiltradas.length,
+              variant: licencasFiltradas.length ? "warning" : "success",
             },
             {
               key: "inauguracao",

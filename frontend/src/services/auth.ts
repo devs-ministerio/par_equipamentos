@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
 import { atualizarCsrfToken } from "@/lib/csrf";
+import {
+  limparEmissaoSessao,
+  registrarEmissaoSessao,
+} from "@/lib/sessao-expiracao";
 import { requisitar } from "@/lib/http-client";
 
 const authUserSchema = z.object({
@@ -18,8 +22,12 @@ const statusResponseSchema = z.object({
   csrf_token: z.string().optional(),
 });
 
+/** Toda resposta que usa este helper (login, ativação, redefinição) acabou
+ * de emitir cookies de sessão novos -- marca o início do relógio exibido no
+ * menu do usuário (`lib/sessao-expiracao.ts`). */
 function guardarCsrf(resposta: z.infer<typeof statusResponseSchema>): void {
   if (resposta.csrf_token) atualizarCsrfToken(resposta.csrf_token);
+  registrarEmissaoSessao();
 }
 
 /** POST /auth/login -- o backend seta os cookies de sessão (access +
@@ -39,6 +47,7 @@ export async function login(email: string, password: string): Promise<void> {
  * do comportamento antigo (só limpava o token no cliente, JWT continuava
  * válido até expirar). */
 export async function logout(): Promise<void> {
+  limparEmissaoSessao();
   await requisitar("/auth/logout", statusResponseSchema, { method: "POST" });
 }
 

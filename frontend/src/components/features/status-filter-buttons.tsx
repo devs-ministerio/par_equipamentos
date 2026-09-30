@@ -26,12 +26,12 @@ export function StatusFilterButtons({ selecionados, onChange }: Props) {
   const hiperAtivo = selecionados.has("Hiperssuficiente");
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="grid w-full grid-cols-2 gap-1.5 sm:flex sm:w-auto sm:flex-wrap">
       <Button
         variant="outline"
         onClick={() => toggle("Hipossuficiente")}
         className={cn(
-          "h-auto rounded-full px-3 py-1.5 text-xs font-semibold",
+          "min-h-11 min-w-0 rounded-full px-1.5 py-1.5 text-[11px] font-semibold sm:h-auto sm:min-h-0 sm:px-3 sm:text-xs",
           hipoAtivo &&
             "border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20",
         )}
@@ -42,7 +42,7 @@ export function StatusFilterButtons({ selecionados, onChange }: Props) {
         variant="outline"
         onClick={() => toggle("Hiperssuficiente")}
         className={cn(
-          "h-auto rounded-full px-3 py-1.5 text-xs font-semibold",
+          "min-h-11 min-w-0 rounded-full px-1.5 py-1.5 text-[11px] font-semibold sm:h-auto sm:min-h-0 sm:px-3 sm:text-xs",
           hiperAtivo &&
             "border-success bg-success/10 text-success hover:bg-success/20",
         )}

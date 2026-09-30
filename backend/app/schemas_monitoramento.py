@@ -61,6 +61,25 @@ class DivergenciaConclusaoRead(BaseModel):
     risco: str
 
 
+class IndicadoresInstrumentoRead(BaseModel):
+    nr_convenio: str
+    acoes_pendentes: int
+    acoes_atrasadas: int
+    licenca_cnen_deferida: bool
+    pct_referencia_fase: float | None
+    ultima_atividade_em: datetime | None
+
+
+class AcaoAbertaResumoRead(BaseModel):
+    id: int
+    nr_convenio: str
+    nome_convenente: str
+    descricao: str
+    data_prevista: date | None
+    dias: int | None
+    responsavel: str | None
+
+
 class ResumoMonitoramentoRead(BaseModel):
     """1 chamada so pra pagina de overview (achado 2026-09-09, pedido do
     usuario: pagina INDEPENDENTE, nao so o detalhe de 1 convenio) -- tudo
@@ -74,6 +93,8 @@ class ResumoMonitoramentoRead(BaseModel):
     abaixo pra nao acoplar este router ao dominio de convenio."""
 
     total_instrumentos: int
+    # Nome de wire legado: média do percentual REFERENCIAL da fase sobre toda
+    # a carteira (sem marco = 0%), não medição de execução física.
     pct_execucao_fisica_medio: float | None
     distribuicao_fase: list[ContagemRotulo]
     licencas_cnen_deferidas: int
@@ -85,3 +106,7 @@ class ResumoMonitoramentoRead(BaseModel):
     nr_convenios: list[str]
     divergencias_conclusao: list[DivergenciaConclusaoRead]
     divergencias_conclusao_por_fonte: list[ContagemRotulo]
+    indicadores_por_instrumento: list[IndicadoresInstrumentoRead]
+    acoes_em_aberto: list[AcaoAbertaResumoRead]
+    fila_acoes_truncada: bool
+    gerado_em: datetime

@@ -36,12 +36,13 @@ export function MonitoramentoInstrumentoPage() {
               Monitoramento interno
             </Link>
             <span className="mx-1.5">›</span>
-            <span className="text-primary">{nrConvenio}</span>
+            <span className="break-all text-primary">{nrConvenio}</span>
           </>
         }
         eyebrow="Monitoramento interno"
         title={nrConvenio}
         description="Eventos, prazos e pendências do instrumento."
+        className="[&_h1]:break-all"
       />
 
       <MonitoramentoInterno numeroConvenio={nrConvenio} />

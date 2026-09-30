@@ -19,7 +19,7 @@ export const estiloCard =
   "bg-card border border-border rounded-[10px] px-5 py-4";
 
 export const estiloInput =
-  "border border-border rounded-lg px-3 py-2.5 text-[12.5px] font-inherit outline-none";
+  "min-h-11 border border-border rounded-lg px-3 py-2.5 text-[12.5px] font-inherit outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 export const rotuloCampo =
   "text-[10.5px] text-muted-foreground uppercase tracking-[.03em]";
@@ -49,7 +49,7 @@ export function StatusPill({ texto }: { texto: string | null | undefined }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-[5px] py-[3px] pr-2.5 pl-2 rounded-full text-[10.5px] font-bold whitespace-nowrap border",
+        "inline-flex min-w-0 items-center gap-[5px] break-words rounded-full border py-[3px] pr-2.5 pl-2 text-[10.5px] font-bold",
         VARIANT_CLASSES[variant],
       )}
     >
@@ -76,7 +76,9 @@ export function Campo({
   return (
     <div>
       <div className={rotuloCampo}>{label}</div>
-      <div className="text-[13px]">{children}</div>
+      <div className="min-w-0 break-words text-[13px] tabular-nums">
+        {children}
+      </div>
       {legenda && (
         <div className="text-[10px] text-muted-foreground mt-px">{legenda}</div>
       )}
@@ -112,7 +114,7 @@ export function SecaoOperacional({
     >
       <header
         className={cn(
-          "grid grid-cols-[1fr_auto] gap-3",
+          "grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:gap-3",
           children != null && "mb-3",
         )}
       >

@@ -86,8 +86,8 @@ export function MonitoramentoInternoAcoes({
                 >
                   <div
                     className={cn(
-                      "flex justify-between items-center gap-2.5",
-                      podeEditar && !emEdicao && !emExclusao && "pr-36",
+                      "flex flex-col items-start gap-2.5 sm:flex-row sm:items-center sm:justify-between",
+                      podeEditar && !emEdicao && !emExclusao && "sm:pr-36",
                     )}
                   >
                     <div className="min-w-0">
@@ -134,7 +134,7 @@ export function MonitoramentoInternoAcoes({
                         aria-label={`Concluir ação: ${acao.descricao}`}
                         className={cn(
                           estiloInput,
-                          "cursor-pointer bg-transparent text-success border border-success font-semibold py-1 px-2.5 whitespace-nowrap shrink-0",
+                          "min-h-11 cursor-pointer shrink-0 whitespace-nowrap border border-success bg-transparent px-2.5 py-1 font-semibold text-success sm:min-h-0",
                         )}
                       >
                         {concluindoAcaoId === acao.id ? "..." : "✓ Concluir"}
@@ -142,7 +142,7 @@ export function MonitoramentoInternoAcoes({
                     )}
                   </div>
                   {podeEditar && !emEdicao && !emExclusao && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-row gap-1.5">
+                    <div className="flex flex-row justify-end gap-1.5 border-t border-border pt-2 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 sm:border-0 sm:pt-0">
                       <button
                         type="button"
                         onClick={() => {
@@ -151,7 +151,7 @@ export function MonitoramentoInternoAcoes({
                         }}
                         className={cn(
                           estiloInput,
-                          "cursor-pointer bg-transparent text-primary border border-primary text-[11px] font-semibold py-1 px-2",
+                          "min-h-11 cursor-pointer border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary sm:min-h-0 sm:px-2 sm:text-[11px]",
                         )}
                       >
                         Editar
@@ -164,7 +164,7 @@ export function MonitoramentoInternoAcoes({
                         }}
                         className={cn(
                           estiloInput,
-                          "cursor-pointer bg-transparent text-destructive border border-destructive text-[11px] font-semibold py-1 px-2",
+                          "min-h-11 cursor-pointer border border-destructive bg-transparent px-3 py-1 text-xs font-semibold text-destructive sm:min-h-0 sm:px-2 sm:text-[11px]",
                         )}
                       >
                         Excluir

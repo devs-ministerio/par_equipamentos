@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/layout/app-header";
+import { AppFooter } from "../components/layout/app-footer";
 import { CONTAINER_CLASS } from "@/lib/layout";
 import { MacroMap } from "@/components/features/macro-map";
 import { PainelGeralSecao } from "@/components/features/painel-geral-secao";
@@ -66,11 +67,11 @@ export function PainelGeralPage() {
     typeof resumoMapa === "object" ? resumoMapa.coberturaRows : [];
 
   return (
-    <div className="min-h-screen bg-background text-sm text-foreground">
+    <div className="flex min-h-screen flex-col text-sm text-foreground">
       {/* Painel Geral e a pagina inicial (fora de AppLayout/MonitoramentoLayout
           de proposito) -- sem itens de nav, so a logo do header unificado. */}
       <AppHeader navItems={[]} />
-      <div className={`${CONTAINER_CLASS} py-6`}>
+      <main className={`${CONTAINER_CLASS} animar-entrada w-full flex-1 py-8`}>
         <PageHeader
           eyebrow="Visão nacional"
           title="Cobertura de equipamentos em oncologia"
@@ -201,9 +202,8 @@ export function PainelGeralPage() {
             </button>
           </div>
         </PainelGeralSecao>
-
-        <div className="h-10" />
-      </div>
+      </main>
+      <AppFooter />
     </div>
   );
 }

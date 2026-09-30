@@ -92,7 +92,7 @@ export function MonitoramentoInternoFormCadastro({
 
   return (
     <form onSubmit={handleSubmit(onSalvar)} className="grid gap-4">
-      <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
+      <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:[grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
         <div>
           <label className="text-[11px] text-muted-foreground block mb-1">
             CNES
@@ -191,7 +191,7 @@ export function MonitoramentoInternoFormCadastro({
             (na instituição/convenente, opcional)
           </span>
         </div>
-        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))] gap-2.5">
+        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:[grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
           <div>
             <label
               htmlFor="cadastro-responsavelExecucaoNome"

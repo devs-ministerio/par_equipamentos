@@ -53,6 +53,13 @@
   --warning: #a35a12;
   --warning-foreground: #a35a12;
   --warning-bg: #f6e6d2;
+  /* Paleta categórica do Painel de Gestão: séries e categorias, nunca status. */
+  --painel-chart-teal: #2d6a5c;
+  --painel-chart-blue: #426b92;
+  --painel-chart-ochre: #a36b2c;
+  --painel-chart-plum: #795c78;
+  --painel-chart-olive: #637b43;
+  --painel-chart-slate: #667385;
   --ring: #2d6a5c;
   /* --radius fica maior que o default (era 0.5rem) -- cards/dialog usam
      essa escala (--radius-xl abaixo); botao/input pedem radius MENOR
@@ -66,6 +73,12 @@
   --shadow-card:
     0 1px 3px 0 rgb(28 26 22 / 0.06), 0 1px 2px -1px rgb(28 26 22 / 0.06);
   --shadow-overlay: 0 12px 32px -8px rgb(28 26 22 / 0.28);
+  /* Elevação suave para superfícies estáticas (card, faixa de métricas,
+     painel de filtros): 1px de contato + halo difuso bem leve. Não é a
+     "sombra pesada" vetada pela constituição -- serve só para descolar a
+     superfície do fundo aquecido. */
+  --shadow-soft:
+    0 1px 2px 0 rgb(28 26 22 / 0.04), 0 6px 20px -10px rgb(28 26 22 / 0.12);
   --shadow-control-focus: 0 0 0 3px rgb(45 106 92 / 0.35);
 }
 
@@ -129,6 +142,41 @@
 
 body {
   margin: 0;
+  /* Halo verde-petróleo muito sutil no topo: dá profundidade ao fundo
+     aquecido sem virar "hero" decorativo. */
+  background:
+    radial-gradient(
+      1100px 380px at 50% -140px,
+      rgb(45 106 92 / 0.08),
+      transparent 70%
+    ),
+    var(--background);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgb(45 106 92 / 0.18);
+}
+
+/* Entrada de página: leve fade + subida de 6px ao trocar de rota. */
+@keyframes sigeo-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animar-entrada {
+    animation: sigeo-entrar 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 
 #root {
@@ -142,7 +190,13 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #d6cfc0;
-  border-radius: 4px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #c4bba8;
 }
 
 button {
@@ -164,5 +218,17 @@ button {
      adiciona a classe underline explicitamente. */
   a {
     text-decoration: none;
+  }
+  /* Tailwind v4 deixou de pôr cursor de mãozinha em <button>; tudo que é
+     clicável volta a sinalizar isso (desabilitado continua com a seta). */
+  /* Olho nativo do Edge/IE some ao sair do campo; os campos de senha usam
+     um botão próprio de mostrar/ocultar (account-action-forms.tsx). */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 }
