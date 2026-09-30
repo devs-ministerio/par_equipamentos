@@ -52,7 +52,7 @@ export function MonitoramentoInternoFormAcao({
       onSubmit={handleSubmit(aoSubmeter)}
       className="flex gap-2.5 flex-wrap items-start mb-3.5"
     >
-      <div className="flex-[2] min-w-[220px]">
+      <div className="min-w-0 flex-[2] max-sm:w-full sm:min-w-[220px]">
         <label
           htmlFor="acao-descricao"
           className="text-[11px] text-muted-foreground block mb-1"
@@ -76,7 +76,7 @@ export function MonitoramentoInternoFormAcao({
           mensagem={errors.descricao?.message}
         />
       </div>
-      <div>
+      <div className="w-full sm:w-auto">
         <label
           htmlFor="acao-data-prevista"
           className="text-[11px] text-muted-foreground block mb-1"
@@ -86,11 +86,11 @@ export function MonitoramentoInternoFormAcao({
         <input
           id="acao-data-prevista"
           type="date"
-          className={estiloInput}
+          className={cn(estiloInput, "w-full")}
           {...register("dataPrevista")}
         />
       </div>
-      <div className="min-w-40">
+      <div className="w-full min-w-0 sm:min-w-40 sm:w-auto">
         <label
           htmlFor="acao-responsavel"
           className="text-[11px] text-muted-foreground block mb-1"
@@ -115,7 +115,7 @@ export function MonitoramentoInternoFormAcao({
           desalinhado". Sem isso o botão (sem label acima) ficava alinhado
           no topo da linha (items-start), acima da altura real dos inputs
           vizinhos (que têm label + margem antes do input). */}
-      <div>
+      <div className="w-full sm:w-auto">
         <span
           aria-hidden="true"
           className="mb-1 block text-[11px] text-transparent select-none"
@@ -127,7 +127,7 @@ export function MonitoramentoInternoFormAcao({
           disabled={!podeEditar || isSubmitting}
           className={cn(
             estiloInput,
-            "cursor-pointer bg-primary text-primary-foreground border-none font-semibold",
+            "w-full cursor-pointer border-none bg-primary font-semibold text-primary-foreground sm:w-auto",
           )}
         >
           {isSubmitting ? rotuloEnviando : rotuloSubmit}

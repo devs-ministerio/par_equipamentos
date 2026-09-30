@@ -15,7 +15,7 @@ export function BotaoDetalhe({ onClick }: { onClick: () => void }) {
       }}
       title="Mais informações"
       aria-label="Mais informações"
-      className="h-[22px] w-[26px] flex-col gap-[3px] p-0"
+      className="h-11 w-11 flex-col gap-[3px] p-0 sm:h-[22px] sm:w-[26px]"
     >
       <span className="block h-0.5 w-3.5 rounded-[1px] bg-muted-foreground" />
       <span className="block h-0.5 w-3.5 rounded-[1px] bg-muted-foreground" />

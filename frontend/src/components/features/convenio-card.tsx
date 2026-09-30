@@ -49,7 +49,7 @@ export function ConvenioCard({
     <div
       className={cn(
         estiloCard,
-        "mb-3",
+        "mb-3 min-w-0 max-sm:px-4 max-sm:py-3.5",
         // Convenio com monitoramento interno ativo ganha destaque visual --
         // e o unico dado editavel da pagina, precisa ser achavel sem abrir
         // card por card (ver useInstrumentosMonitorados.ts).
@@ -76,7 +76,7 @@ export function ConvenioCard({
           setDetalheAberto((e.target as HTMLDetailsElement).open)
         }
       >
-        <summary className="cursor-pointer text-xs font-bold text-primary">
+        <summary className="flex min-h-11 cursor-pointer items-center text-xs font-bold text-primary">
           {detalheAberto ? "Menos detalhes" : "Mais detalhes"}
         </summary>
         {detalheAberto && detalheQuery.isLoading ? (

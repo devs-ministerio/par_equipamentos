@@ -12,6 +12,7 @@ interface MultiSelectFilterProps {
   options: FilterOption[];
   selected: string[];
   onChange: (values: string[]) => void;
+  appearance?: "default" | "standard";
 }
 
 /** Não é exclusivo do dashboard -- também usado pelos modais de exportação
@@ -23,6 +24,7 @@ export function MultiSelectFilter({
   options,
   selected,
   onChange,
+  appearance = "default",
 }: MultiSelectFilterProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -62,7 +64,13 @@ export function MultiSelectFilter({
   }
 
   return (
-    <div ref={ref} className="relative w-full sm:w-auto">
+    <div
+      ref={ref}
+      className={cn(
+        "relative min-w-0 w-full sm:w-auto",
+        appearance === "standard" && "sm:max-w-80",
+      )}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -74,27 +82,52 @@ export function MultiSelectFilter({
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         className={cn(
-          "w-full rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-medium sm:w-auto",
+          appearance === "standard"
+            ? "flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-[1.5px] px-3.5 py-1.5 text-left text-[12.5px] font-medium sm:min-h-0"
+            : "w-full rounded-full border-[1.5px] px-3.5 py-1.5 text-xs font-medium sm:w-auto",
           active
             ? "border-primary text-primary"
-            : "border-border text-muted-foreground",
+            : appearance === "standard"
+              ? "border-border text-foreground"
+              : "border-border text-muted-foreground",
           selected.length > 0
             ? "bg-secondary"
             : open
               ? "bg-accent/60"
-              : "bg-muted",
+              : appearance === "standard"
+                ? "bg-card"
+                : "bg-muted",
         )}
       >
-        {label} ▾
+        {appearance === "standard" ? (
+          <>
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              {label}
+            </span>
+            <span className="shrink-0">▾</span>
+          </>
+        ) : (
+          <>{label} ▾</>
+        )}
       </button>
       {open && (
         <div
-          className="absolute top-full left-0 z-[100] mt-1 w-full min-w-0 rounded-lg border border-border bg-card py-2 shadow-lg sm:min-w-[220px]"
+          className={cn(
+            "absolute top-full left-0 mt-1 w-full min-w-0 rounded-lg border border-border bg-card py-2 shadow-lg",
+            appearance === "standard"
+              ? "z-[2000] sm:min-w-[260px]"
+              : "z-[100] sm:min-w-[220px]",
+          )}
           onKeyDown={(event) => {
             if (event.key === "Escape") setOpen(false);
           }}
         >
-          <div className="border-b border-muted px-2.5 py-1.5">
+          <div
+            className={cn(
+              "border-b px-2.5 py-1.5",
+              appearance === "standard" ? "border-border" : "border-muted",
+            )}
+          >
             <input
               ref={inputRef}
               type="text"

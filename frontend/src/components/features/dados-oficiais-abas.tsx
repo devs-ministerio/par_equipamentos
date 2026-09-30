@@ -13,7 +13,7 @@ export function AbasDadosOficiais({
   onChange: (aba: "convenios" | "componentes") => void;
 }) {
   return (
-    <div className="mb-5 flex gap-1 border-b border-border">
+    <div className="mb-5 grid grid-cols-2 gap-1 border-b border-border sm:flex">
       {(
         [
           {
@@ -33,7 +33,7 @@ export function AbasDadosOficiais({
           type="button"
           onClick={() => onChange(item.value)}
           className={cn(
-            "border-none border-b-2 bg-transparent px-4 py-2.5 text-sm font-bold -mb-px cursor-pointer",
+            "-mb-px min-h-11 min-w-0 cursor-pointer border-none border-b-2 bg-transparent px-2 py-2.5 text-center text-sm font-bold sm:px-4",
             aba === item.value
               ? "border-b-primary text-primary"
               : "border-b-transparent text-muted-foreground",
@@ -61,7 +61,7 @@ export function SubAbasFinanciamento({
   onChange: (estagio: EstagioProposta) => void;
 }) {
   return (
-    <div className="mb-4 flex gap-1 border-b border-border">
+    <div className="mb-4 grid grid-cols-2 gap-1 border-b border-border sm:flex">
       {(
         [
           { value: "confirmada", total: confirmadas },
@@ -73,7 +73,7 @@ export function SubAbasFinanciamento({
           type="button"
           onClick={() => onChange(item.value)}
           className={cn(
-            "border-none border-b-2 bg-transparent px-3.5 py-2 text-[12.5px] font-semibold -mb-px cursor-pointer",
+            "-mb-px min-h-11 min-w-0 cursor-pointer border-none border-b-2 bg-transparent px-2 py-2 text-center text-[12.5px] font-semibold sm:px-3.5",
             atual === item.value
               ? "border-b-primary text-primary"
               : "border-b-transparent text-muted-foreground",

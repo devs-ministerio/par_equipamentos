@@ -122,10 +122,12 @@ export function MonitoramentoInternoCabecalho({
   return (
     <>
       <div className={cn(estiloCard, "mb-4")}>
-        <div className="flex justify-between flex-wrap gap-3">
-          <div>
-            <div className="font-bold text-[15px] flex items-center gap-2">
-              {inst.nr_convenio} — {inst.nome_convenente}
+        <div className="flex flex-wrap justify-between gap-3">
+          <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+            <div className="flex min-w-0 flex-wrap items-center gap-2 break-words text-[15px] font-bold">
+              <span className="break-all">{inst.nr_convenio}</span>
+              <span aria-hidden="true">—</span>
+              <span className="min-w-0 break-words">{inst.nome_convenente}</span>
               {/* Chip de tipo_contratacao -- os 28 registros FAF/TED (sem
                   numero TransfereGov, usam o NUP SEI como identificador
                   aqui) agora convivem com os Convênio de verdade. */}
@@ -136,7 +138,7 @@ export function MonitoramentoInternoCabecalho({
                   </span>
                 )}
             </div>
-            <div className="relative text-xs text-muted-foreground">
+            <div className="relative break-words text-xs text-muted-foreground">
               {inst.municipio}/{inst.uf} · CNES {inst.cnes ?? "—"}
               {" · "}
               <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">
@@ -179,13 +181,13 @@ export function MonitoramentoInternoCabecalho({
               </div>
             )}
           </div>
-          <div className="text-right">
+          <div className="min-w-0 text-left sm:text-right">
             <div className="text-[10.5px] text-muted-foreground uppercase">
               Valor global {aoVivo.disponivel && "(ao vivo)"}
             </div>
             {aoVivo.disponivel ? (
               <>
-                <div className="text-base font-semibold">
+                <div className="break-words text-base font-semibold tabular-nums">
                   {fmtMoeda(aoVivo.valor)}
                 </div>
                 <div className="text-[11px] text-muted-foreground">
@@ -209,7 +211,7 @@ export function MonitoramentoInternoCabecalho({
               // banco, seja qual for a origem (FAF/TED/PERSUS/PRONON),
               // em vez de só dizer "indisponível" quando o dado existe
               // localmente (Plan Mode monitoramento-evolucao 2026-09-19).
-              <div className="text-base font-semibold">
+              <div className="break-words text-base font-semibold tabular-nums">
                 {fmtMoeda(inst.investimento_aquisicao)}
               </div>
             ) : (

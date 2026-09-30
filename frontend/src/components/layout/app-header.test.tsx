@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { axe } from "jest-axe";
@@ -7,10 +7,14 @@ import { AppHeader, type HeaderNavItem } from "./app-header";
 
 // Fronteira externa (sessão via API) mockada -- o que está sob teste é o
 // AppHeader (menu mobile, nav), não `useAuthSession`.
+const sessaoMock = vi.hoisted(() => ({ autenticado: false }));
+
 vi.mock("@/hooks/useAuthSession", () => ({
   useAuthSession: () => ({
-    usuarioAtual: null,
-    autenticado: false,
+    usuarioAtual: sessaoMock.autenticado
+      ? { name: "Pessoa Administradora", role: "admin" }
+      : null,
+    autenticado: sessaoMock.autenticado,
     podeEditar: false,
     checandoSessao: false,
     sair: vi.fn(),
@@ -31,6 +35,10 @@ function renderHeader() {
 }
 
 describe("AppHeader", () => {
+  beforeEach(() => {
+    sessaoMock.autenticado = false;
+  });
+
   it("mostra a nav completa (desktop) e o botão de menu mobile", () => {
     renderHeader();
     expect(
@@ -45,6 +53,11 @@ describe("AppHeader", () => {
     renderHeader();
     await userEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
     expect(screen.getByRole("heading", { name: "Menu" })).toBeInTheDocument();
+    const menu = screen.getByRole("dialog");
+    expect(
+      within(menu).getByRole("navigation", { name: "Navegação principal" }),
+    ).toBeInTheDocument();
+    expect(within(menu).getByRole("button", { name: "Entrar" })).toBeVisible();
 
     // 2 botões com o mesmo rótulo agora (nav desktop escondida por CSS +
     // nav do menu mobile) -- clica no de dentro do dialog.
@@ -55,6 +68,23 @@ describe("AppHeader", () => {
     expect(
       screen.queryByRole("heading", { name: "Menu" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("separa conta e navegação no menu mobile do administrador", async () => {
+    sessaoMock.autenticado = true;
+    renderHeader();
+    await userEvent.click(screen.getByRole("button", { name: "Abrir menu" }));
+    const menu = screen.getByRole("dialog");
+    expect(within(menu).getByText("Pessoa Administradora")).toBeVisible();
+    expect(within(menu).getByText("Administrador")).toBeVisible();
+    expect(
+      within(menu).getByRole("button", { name: "Usuários" }),
+    ).toBeVisible();
+    expect(within(menu).getByRole("button", { name: "Sair" })).toBeVisible();
+    await userEvent.click(
+      within(menu).getByRole("button", { name: "Usuários" }),
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("não tem violação de acessibilidade", async () => {

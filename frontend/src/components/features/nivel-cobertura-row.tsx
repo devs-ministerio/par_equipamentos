@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { useMunicipalityByHealthRegion } from "@/hooks/useMunicipalityByHealthRegion";
 import { BotaoDetalhe } from "./botao-detalhe";
 import { SubNivelRows } from "./sub-nivel-rows";
+import { CoberturaMobileCard } from "./cobertura-mobile-card";
 
 interface Props {
   row: NivelCoberturaRowData;
@@ -61,7 +62,7 @@ export function NivelCoberturaRow({
     <Fragment>
       <TableRow
         onClick={expansivel ? onToggle : undefined}
-        className={`border-t border-border [&>*]:whitespace-normal ${expansivel ? "cursor-pointer" : ""}`}
+        className={`hidden border-t border-border sm:table-row [&>*]:whitespace-normal ${expansivel ? "cursor-pointer" : ""}`}
       >
         <TableCell className="py-[9px] pr-1.5 pl-4.5 font-medium">
           {expansivel && (
@@ -121,11 +122,27 @@ export function NivelCoberturaRow({
           </div>
         </TableCell>
       </TableRow>
+      <TableRow className="border-t border-border sm:hidden">
+        <TableCell colSpan={nivel === "municipio" ? 7 : 6} className="p-0 whitespace-normal">
+          <CoberturaMobileCard
+            nome={row.nome}
+            contexto={[row.uf, row.macroNome, nivel === "municipio" ? row.regiaoSaudeNome : null].filter(Boolean).join(" · ")}
+            populacao={row.pop}
+            coeficiente={coeficiente != null ? formatMultiplicador(coeficiente) : "—"}
+            oferta={`${formatarQuantidadeEquipamento(row.oferta)} em uso SUS${row.ofertaTotal !== row.oferta ? ` de ${row.ofertaTotal} existentes` : ""}`}
+            status={row.status}
+            corTexto={corTexto}
+            expandida={expandida}
+            onToggle={expansivel ? onToggle : undefined}
+            acao={nivel === "municipio" ? <BotaoDetalhe onClick={() => onAbrirDetalhe(row)} /> : undefined}
+          />
+        </TableCell>
+      </TableRow>
       {expandida && (
         <TableRow className="bg-muted">
           <TableCell
             colSpan={nivel === "municipio" ? 7 : 6}
-            className="py-2.5 pr-4.5 pl-10.5 whitespace-normal"
+            className="min-w-0 px-3 py-2.5 whitespace-normal sm:pr-4.5 sm:pl-10.5"
           >
             {dados === "carregando" && (
               <div className="text-xs text-muted-foreground">

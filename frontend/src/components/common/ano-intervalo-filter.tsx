@@ -38,7 +38,7 @@ export function AnoIntervaloFilter({
         <Button
           type="button"
           variant="outline"
-          className="min-w-[150px] justify-between"
+          className="w-full justify-between sm:w-auto sm:min-w-[150px]"
         >
           <span className="inline-flex items-center gap-2">
             <CalendarRange aria-hidden="true" size={15} />

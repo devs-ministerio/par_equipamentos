@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTAINER_CLASS } from "@/lib/layout";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ function NavButton({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
+        "rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
         active
           ? "bg-secondary font-semibold text-primary"
           : "text-muted-foreground hover:text-foreground",
@@ -57,12 +57,11 @@ function NavButton({
  * decisão deliberada, mantida mesmo a Seção 5 da constituicao_frontend.md
  * preferir borda.
  *
- * `leftExtra` é o slot pro que fica entre o nome do app e a navegação --
- * hoje só o SeletorEquipamento (AppLayout). `rightExtra` fica depois da
- * navegação (hoje só o NotificationBell do MonitoramentoLayout) -- 2 slots
- * simétricos em vez de crescer a assinatura com 1 prop por widget novo.
+ * `leftExtra` é o slot pro SeletorEquipamento (AppLayout); `rightExtra`,
+ * pro NotificationBell (MonitoramentoLayout). No mobile ambos permanecem no
+ * cabeçalho, acessíveis sem abrir o painel lateral.
  *
- * Abaixo de `md` (768px) nav/leftExtra/rightExtra/UserMenu colapsam num
+ * Abaixo de `lg` (1024px) nav/leftExtra/rightExtra/UserMenu colapsam num
  * menu mobile (Sheet) atrás de um botão hambúrguer -- Radix Dialog já
  * fecha com Escape e devolve foco ao trigger, sem código extra aqui. */
 export function AppHeader({
@@ -140,49 +139,78 @@ export function AppHeader({
           <UserMenu />
         </div>
 
-        {/* Mobile (<768px): tudo colapsa atrás do hambúrguer. */}
-        <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              aria-label="Abrir menu"
+        {/* Mobile/tablet (<1024px): extras no header; navegação e conta no painel. */}
+        <div className="flex shrink-0 items-center gap-1 lg:hidden">
+          {leftExtra}
+          {rightExtra}
+          <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="min-h-11 min-w-11"
+                aria-label="Abrir menu"
+              >
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              showCloseButton={false}
+              className="gap-0 overflow-hidden border-l border-border"
+              style={{ width: "min(100vw, 24rem)", maxWidth: "none" }}
             >
-              <Menu />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[85vw] max-w-[320px]">
-            <SheetHeader>
-              <SheetTitle>Menu</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
-              {leftExtra && <div>{leftExtra}</div>}
-              <nav className="flex flex-col items-stretch gap-1">
-                {navItems.map((item) => {
-                  const active = item.isActive
-                    ? item.isActive(location.pathname)
-                    : location.pathname.startsWith(item.path);
-                  return (
-                    <NavButton
-                      key={item.path}
-                      item={item}
-                      active={active}
-                      onNavigate={() => irPara(item.path)}
-                      className="w-full rounded-lg py-2.5 text-left"
-                    />
-                  );
-                })}
-              </nav>
-              {rightExtra}
-              <SheetClose asChild>
-                <div>
-                  <UserMenu />
+              <SheetHeader className="flex shrink-0 flex-row items-center justify-between border-b border-border px-5 py-4">
+                <SheetTitle className="font-display text-xl font-semibold tracking-tight">
+                  Menu
+                </SheetTitle>
+                <SheetClose asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="min-h-11 min-w-11"
+                    aria-label="Fechar menu"
+                  >
+                    <X className="size-5" />
+                  </Button>
+                </SheetClose>
+              </SheetHeader>
+              <div className="min-h-0 overflow-y-auto overscroll-contain">
+                <div className="px-4 py-5">
+                  <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Navegação
+                  </p>
+                  <nav
+                    aria-label="Navegação principal"
+                    className="mt-3 flex flex-col gap-1"
+                  >
+                    {navItems.map((item) => {
+                      const active = item.isActive
+                        ? item.isActive(location.pathname)
+                        : location.pathname.startsWith(item.path);
+                      return (
+                        <NavButton
+                          key={item.path}
+                          item={item}
+                          active={active}
+                          onNavigate={() => irPara(item.path)}
+                          className={cn(
+                            "min-h-11 w-full rounded-md border-l-[3px] px-3.5 py-2.5 text-left text-sm",
+                            active ? "border-primary" : "border-transparent",
+                          )}
+                        />
+                      );
+                    })}
+                  </nav>
                 </div>
-              </SheetClose>
-            </div>
-          </SheetContent>
-        </Sheet>
+              </div>
+              <div className="shrink-0 border-t border-border pb-[env(safe-area-inset-bottom)]">
+                <UserMenu mobile onNavigate={() => setMenuAberto(false)} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   );

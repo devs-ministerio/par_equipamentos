@@ -124,10 +124,13 @@ export function MonitoramentoInternoFormEvento({
     <>
       <form
         onSubmit={handleSubmit(aoSubmeter)}
-        className={cn(estiloCard, "mb-4 grid gap-2.5")}
+        className={cn(
+          marcoFixo ? "border-t border-border pt-3" : estiloCard,
+          "mb-4 grid min-w-0 gap-2.5",
+        )}
       >
         <div className="flex gap-2.5 flex-wrap items-start">
-          <div className="flex-1 min-w-60">
+          <div className="min-w-0 flex-1 basis-full sm:min-w-60 sm:basis-auto">
             <label
               htmlFor="evento-marco"
               className="text-[11px] text-muted-foreground block mb-1"
@@ -180,7 +183,7 @@ export function MonitoramentoInternoFormEvento({
             />
           </div>
           {precisaFaseGeral && (
-            <div className="flex-1 min-w-52">
+            <div className="min-w-0 flex-1 basis-full sm:min-w-52 sm:basis-auto">
               <label
                 htmlFor="evento-fase-geral"
                 className="text-[11px] text-muted-foreground block mb-1"
@@ -214,7 +217,7 @@ export function MonitoramentoInternoFormEvento({
               />
             </div>
           )}
-          <div>
+          <div className="w-full sm:w-auto">
             {/* Rotulo dinamico -- pedido do usuario 2026-09-09: "a licenca
               cnen vamos precisar da data da licença e da data de validade
               da licença", nao so um icone de calendario com tooltip. */}
@@ -231,12 +234,12 @@ export function MonitoramentoInternoFormEvento({
             <input
               id="evento-data-ocorrencia"
               type="date"
-              className={estiloInput}
+              className={cn(estiloInput, "w-full")}
               {...register("dataOcorrencia")}
             />
           </div>
           {marcoDoForm?.grupo !== "fase_geral" && (
-            <div>
+            <div className="w-full sm:w-auto">
               <label
                 htmlFor="evento-data-prevista"
                 className="text-[11px] text-muted-foreground block mb-1"
@@ -246,7 +249,7 @@ export function MonitoramentoInternoFormEvento({
               <input
                 id="evento-data-prevista"
                 type="date"
-                className={estiloInput}
+                className={cn(estiloInput, "w-full")}
                 {...register("dataPrevista")}
               />
             </div>
@@ -255,7 +258,7 @@ export function MonitoramentoInternoFormEvento({
 
         {ehRegulatorio && (
           <div className="flex gap-2.5 flex-wrap items-start">
-            <div className="flex-1 min-w-40">
+            <div className="min-w-0 flex-1 basis-full sm:min-w-40 sm:basis-auto">
               <label
                 htmlFor="evento-status-regulatorio"
                 className="text-[11px] text-muted-foreground block mb-1"
@@ -276,7 +279,7 @@ export function MonitoramentoInternoFormEvento({
                 ))}
               </select>
             </div>
-            <div className="flex-1 min-w-40">
+            <div className="min-w-0 flex-1 basis-full sm:min-w-40 sm:basis-auto">
               <label
                 htmlFor="evento-numero-documento"
                 className="text-[11px] text-muted-foreground block mb-1"
@@ -289,7 +292,7 @@ export function MonitoramentoInternoFormEvento({
                 {...register("numeroDocumento")}
               />
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <label
                 htmlFor="evento-data-validade"
                 className="text-[11px] text-muted-foreground block mb-1"
@@ -299,7 +302,7 @@ export function MonitoramentoInternoFormEvento({
               <input
                 id="evento-data-validade"
                 type="date"
-                className={estiloInput}
+                className={cn(estiloInput, "w-full")}
                 {...register("dataValidade")}
               />
             </div>

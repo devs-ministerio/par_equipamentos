@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Pagination } from "@/components/common/pagination";
 import { SortableTableHead } from "@/components/common/sortable-table-head";
+import { MobileTableSort } from "@/components/common/mobile-table-sort";
 import { InfoIcon } from "./info-icon";
 import { CoberturaMacroRow } from "./cobertura-macro-row";
 
@@ -119,19 +120,21 @@ export function CoberturaTable({
 
   return (
     <>
+      <MobileTableSort
+        value={sortKey}
+        direction={sortDir}
+        options={[{ value: "macro", label: "Macro" }, { value: "codigo", label: "Código" }, { value: "uf", label: "UF" }, { value: "populacao", label: "População" }, { value: "cobertura", label: "Cobertura" }, { value: "status", label: "Status" }]}
+        onChange={(key) => { setSortKey(key); setSortDir("asc"); }}
+        onToggleDirection={() => setSortDir((direction) => direction === "asc" ? "desc" : "asc")}
+      />
       {/* com alguma macro expandida, o card cresce junto com a pagina (a
           rolagem passa a ser da pagina inteira) em vez de espremer os chips
           de cidade numa caixinha interna -- so trava a altura no modo
           compacto (nada expandido), que e quando faz sentido ter rolagem
           interna pra pagina de ate 20 macros. */}
-      <div
-        style={{
-          maxHeight: expandidas.size > 0 ? "none" : 340,
-          overflowY: "auto",
-        }}
-      >
+      <div className={expandidas.size > 0 ? "min-w-0" : "min-w-0 sm:max-h-[340px] sm:overflow-y-auto"}>
         <Table className="text-[12.5px]">
-          <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
+          <TableHeader className="sticky top-0 z-[2] hidden bg-card text-[11px] tracking-wide text-muted-foreground uppercase sm:table-header-group">
             <TableRow className="[&>*]:whitespace-normal">
               <SortableTableHead
                 className="w-[150px] py-2.5 pr-2 pl-4.5"

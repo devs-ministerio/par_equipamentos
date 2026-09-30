@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { useMunicipalityByHealthRegion } from "@/hooks/useMunicipalityByHealthRegion";
 import { BotaoDetalhe } from "./botao-detalhe";
 import { SubNivelRows } from "./sub-nivel-rows";
+import { CoberturaMobileCard } from "./cobertura-mobile-card";
 
 interface Props {
   linha: NivelCoberturaRow;
@@ -60,7 +61,7 @@ export function SubNivelRow({
               }
             : undefined
         }
-        className={`border-t border-border ${expansivel ? "cursor-pointer" : ""} ${selecionada ? "bg-accent" : ""}`}
+        className={`border-t border-border ${completo ? "hidden sm:table-row" : ""} ${expansivel ? "cursor-pointer" : ""} ${selecionada ? "bg-accent" : ""}`}
       >
         <td
           className="overflow-hidden py-1.5 pr-2 pl-1 font-medium text-foreground text-ellipsis whitespace-nowrap"
@@ -142,11 +143,29 @@ export function SubNivelRow({
           </td>
         )}
       </tr>
+      {completo && (
+        <tr className={`border-t border-border sm:hidden ${selecionada ? "bg-accent" : ""}`}>
+          <td colSpan={4} className="p-0 whitespace-normal">
+            <CoberturaMobileCard
+              nome={linha.nome}
+              contexto={linha.uf}
+              populacao={linha.pop}
+              coeficiente={coef.valor != null ? formatMultiplicador(coef.valor) : "—"}
+              oferta={`${formatarQuantidadeEquipamento(linha.oferta)} em uso SUS${linha.ofertaTotal !== linha.oferta ? ` de ${linha.ofertaTotal} existentes` : ""}`}
+              status={linha.status}
+              corTexto={coef.corTexto}
+              expandida={expandida}
+              onToggle={expansivel ? onToggle : undefined}
+              acao={nivelAtual === "municipio" ? <BotaoDetalhe onClick={() => onAbrirDetalhe(linha)} /> : undefined}
+            />
+          </td>
+        </tr>
+      )}
       {expandida && expansivel && (
         <tr>
           <td
             colSpan={completo ? 4 : 2}
-            className="bg-background py-2 pr-2 pl-6.5"
+            className="bg-background px-2 py-2 sm:pr-2 sm:pl-6.5"
           >
             {filhos === "carregando" && (
               <div className="p-1 text-xs text-muted-foreground">

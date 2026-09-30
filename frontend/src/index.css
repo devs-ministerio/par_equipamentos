@@ -53,6 +53,13 @@
   --warning: #a35a12;
   --warning-foreground: #a35a12;
   --warning-bg: #f6e6d2;
+  /* Paleta categórica do Painel de Gestão: séries e categorias, nunca status. */
+  --painel-chart-teal: #2d6a5c;
+  --painel-chart-blue: #426b92;
+  --painel-chart-ochre: #a36b2c;
+  --painel-chart-plum: #795c78;
+  --painel-chart-olive: #637b43;
+  --painel-chart-slate: #667385;
   --ring: #2d6a5c;
   /* --radius fica maior que o default (era 0.5rem) -- cards/dialog usam
      essa escala (--radius-xl abaixo); botao/input pedem radius MENOR

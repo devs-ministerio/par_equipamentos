@@ -15,6 +15,7 @@ import { Pagination } from "@/components/common/pagination";
 import { useNivelCobertura } from "@/hooks/useNivelCobertura";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { SortableTableHead } from "@/components/common/sortable-table-head";
+import { MobileTableSort } from "@/components/common/mobile-table-sort";
 import { InfoIcon } from "./info-icon";
 import { NivelCoberturaRow } from "./nivel-cobertura-row";
 import { MunicipioDetalheModal } from "./municipio-detalhe-modal";
@@ -154,16 +155,16 @@ export function NivelCoberturaTable({
           Não foi possível carregar ({mensagemSeguraDoErro(error)}).
         </div>
       )}
-      <div
-        style={{
-          maxHeight: 340,
-          overflowY: "auto",
-          opacity: loading ? 0.6 : 1,
-          transition: "opacity .15s",
-        }}
-      >
+      <MobileTableSort
+        value={sortKey}
+        direction={sortDir}
+        options={[{ value: "nome", label: "Nome" }, { value: "uf", label: "UF" }, { value: "populacao", label: "População" }, { value: "cobertura", label: "Cobertura" }, { value: "status", label: "Status" }]}
+        onChange={(key) => { setSortKey(key); setSortDir("asc"); }}
+        onToggleDirection={() => setSortDir((direction) => direction === "asc" ? "desc" : "asc")}
+      />
+      <div className="min-w-0 sm:max-h-[340px] sm:overflow-y-auto" style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}>
         <Table className="text-[12.5px]">
-          <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
+          <TableHeader className="sticky top-0 z-[2] hidden bg-card text-[11px] tracking-wide text-muted-foreground uppercase sm:table-header-group">
             <TableRow className="[&>*]:whitespace-normal">
               <SortableTableHead
                 className="py-2.5 pr-1.5 pl-4.5"

@@ -130,7 +130,20 @@ export function DetalheBrutoProposta({
                         </div>
                         {/* Item por item do que será comprado. */}
                         {itens.length > 0 && (
-                          <div className="mt-1.5 overflow-x-auto">
+                          <div className="mt-1.5 min-w-0">
+                            <div className="space-y-2 sm:hidden">
+                              {itens.map((it, k) => (
+                                <div key={k} className="min-w-0 rounded-md border border-border bg-background p-2.5">
+                                  <div className="break-words text-xs font-semibold text-foreground">{campo(it, "nm_item") || "—"}</div>
+                                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                                    <Campo label="Quantidade">{campoNum(it, "qt_quantidade") ?? "—"}</Campo>
+                                    <Campo label="Valor unitário">{fmtMoeda(campoNum(it, "vl_unitario_item"))}</Campo>
+                                    <Campo label="Valor total">{fmtMoeda(campoNum(it, "vl_total_item"))}</Campo>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="hidden overflow-x-auto sm:block">
                             <table className="w-full min-w-[420px] border-collapse text-[11.5px]">
                               <thead>
                                 <tr className="text-left text-[10px] uppercase text-muted-foreground">
@@ -173,6 +186,7 @@ export function DetalheBrutoProposta({
                                 ))}
                               </tbody>
                             </table>
+                            </div>
                           </div>
                         )}
                       </div>

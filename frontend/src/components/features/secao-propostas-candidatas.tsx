@@ -26,9 +26,11 @@ import {
   type EstagioProposta,
 } from "@/lib/proposta-status";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { SearchInput } from "@/components/common/search-input";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { CardProposta } from "./proposta-card";
+import { correspondeBuscaLivre } from "@/lib/busca-livre";
 
 /** `modo`: as 2 abas de "Linhas de financiamento" -- "Confirmada
  * (parceria)" e "Em tramitação (proposta)", separadas por estágio no funil
@@ -61,6 +63,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
     [instrumentos],
   );
   const [uf, setUf] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
   const [cnes, setCnes] = useState<string | null>(null);
   const [municipio, setMunicipio] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
   const [programa, setPrograma] = useState<string | null>(null);
 
   const limparFiltros = () => {
+    setBusca("");
     setUf(null);
     setCnes(null);
     setMunicipio(null);
@@ -81,6 +85,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
   };
 
   const hasFiltros = Boolean(
+    busca.trim() ||
     uf ||
     cnes ||
     municipio ||
@@ -186,6 +191,23 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
 
   const filtradas = useMemo(() => {
     return propostas.filter((p) => {
+      if (
+        !correspondeBuscaLivre(busca, [
+          p.cd_parceria,
+          p.id_proposta,
+          p.nm_proponente,
+          p.cnpj_ente_recebedor,
+          p.cnes,
+          p.cnes_nome_estabelecimento,
+          p.municipio,
+          p.uf,
+          p.ds_objeto,
+          p.nm_programa,
+          situacaoDeFato(p),
+          p.equipamentos.map((item) => item.nome).join(" "),
+        ])
+      )
+        return false;
       if (uf && p.uf !== uf) return false;
       if (cnes && p.cnes !== cnes) return false;
       if (municipio && p.municipio !== municipio) return false;
@@ -205,6 +227,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
     });
   }, [
     propostas,
+    busca,
     uf,
     cnes,
     municipio,
@@ -259,6 +282,12 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         onClear={limparFiltros}
         contagem={`${filtradas.length} de ${propostas.length} propostas`}
       >
+        <SearchInput
+          value={busca}
+          onChange={setBusca}
+          placeholder="Buscar proposta, proponente, CNES ou município"
+          width={162}
+        />
         {modo !== "tramitacao" && (
           <SingleSelectFilter
             placeholder="CNES"

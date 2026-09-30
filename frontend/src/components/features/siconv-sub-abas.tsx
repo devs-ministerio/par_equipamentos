@@ -11,6 +11,7 @@ import {
   fmtMoeda,
 } from "@/lib/monitoramento-format";
 import type { SiconvEntrada } from "@/types/monitoramento";
+import { SiconvMobileList, type SiconvAba } from "./siconv-mobile-list";
 import {
   estiloTabela,
   estiloTabelaWrapper,
@@ -18,13 +19,7 @@ import {
   estiloTh,
 } from "./monitoramento-ui";
 
-type AbaKey =
-  | "itens"
-  | "empenhos"
-  | "desembolsos"
-  | "licitacoes"
-  | "termos"
-  | "fornecedores";
+type AbaKey = SiconvAba;
 
 const numTh = cn(estiloTh, "text-right");
 const numTd = cn(estiloTd, "text-right");
@@ -62,14 +57,14 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
 
   return (
     <div>
-      <div className="flex gap-1 border-b border-border mb-2.5 flex-wrap">
+      <div className="mb-2.5 grid grid-cols-2 gap-1 border-b border-border sm:flex sm:flex-wrap">
         {ordem.map((k) => (
           <button
             key={k}
             onClick={() => setAba(k)}
             disabled={contagens[k] === 0}
             className={cn(
-              "py-1.5 px-2.5 text-[11.5px] font-semibold border-none bg-transparent border-b-2",
+              "min-h-11 border-none border-b-2 bg-transparent px-2.5 py-1.5 text-left text-[11.5px] font-semibold sm:min-h-0",
               aba === k ? "border-b-primary" : "border-b-transparent",
               contagens[k] === 0
                 ? "text-muted-foreground/70 cursor-default"
@@ -82,6 +77,12 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
           </button>
         ))}
       </div>
+
+      <div className="min-w-0 sm:hidden">
+        {contagens[aba] === 0 ? <VazioMsg /> : <SiconvMobileList aba={aba} siconv={siconv} />}
+      </div>
+
+      <div className="hidden sm:block">
 
       {aba === "itens" &&
         (contagens.itens === 0 ? (
@@ -262,6 +263,7 @@ export function SiconvSubAbas({ siconv }: { siconv: SiconvEntrada }) {
             </table>
           </div>
         ))}
+      </div>
     </div>
   );
 }

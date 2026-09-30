@@ -69,7 +69,7 @@ describe("ConvenioCardDetalhes", () => {
       />,
     );
 
-    expect(screen.getByText("Programa:")).toBeInTheDocument();
+    expect(screen.queryByText("Programa:")).not.toBeInTheDocument();
     expect(
       screen.queryByText("não encontrado em nenhuma fonte"),
     ).not.toBeInTheDocument();
@@ -127,8 +127,9 @@ describe("ConvenioCardDetalhes", () => {
     );
 
     expect(screen.getByText(/Linha do tempo financeira/)).toBeInTheDocument();
-    expect(screen.getByText("Instrumento publicado")).toBeInTheDocument();
-    expect(screen.getByText("Desembolso registrado")).toBeInTheDocument();
-    expect(screen.getByText("Pagamento ao fornecedor")).toBeInTheDocument();
+    // A linha do tempo tem apresentações distintas para celular e desktop.
+    expect(screen.getAllByText("Instrumento publicado")).toHaveLength(2);
+    expect(screen.getAllByText("Desembolso registrado")).toHaveLength(2);
+    expect(screen.getAllByText("Pagamento ao fornecedor")).toHaveLength(2);
   });
 });

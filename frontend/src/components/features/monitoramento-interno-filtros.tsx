@@ -1,6 +1,7 @@
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { SearchInput } from "@/components/common/search-input";
 import type { FiltrosMonitoramentoInterno } from "@/hooks/use-monitoramento-interno-filtros";
 
 export function MonitoramentoInternoFiltros({
@@ -14,6 +15,12 @@ export function MonitoramentoInternoFiltros({
       onClear={filtros.limparFiltros}
       contagem={`${filtros.filtrados.length} de ${filtros.total} instrumentos`}
     >
+      <SearchInput
+        value={filtros.busca}
+        onChange={filtros.setBusca}
+        placeholder="Buscar número, convenente, CNES ou município"
+        width={162}
+      />
       <SingleSelectFilter
         placeholder="Tipo de contratação"
         options={filtros.tipoContratacaoOptions}
@@ -49,7 +56,7 @@ export function MonitoramentoInternoFiltros({
       <div
         role="group"
         aria-label="Classificação e equipamento"
-        className="flex flex-wrap items-center gap-1.5 rounded-md outline outline-1 outline-border outline-offset-2"
+        className="flex w-full min-w-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-md sm:outline sm:outline-1 sm:outline-border sm:outline-offset-2"
       >
         <SingleSelectFilter
           placeholder="Prioritário"

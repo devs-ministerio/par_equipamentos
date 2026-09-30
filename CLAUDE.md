@@ -252,13 +252,17 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
   referência normativa em nenhuma análise. PET-CT saiu da lista em
   2026-08-28 (produtividade real da Portaria de Consolidação n. 1/2017,
   art. 102-106 — ver `docs/metodologia-parametros.md`).
-- **Painel de Gestão do monitoramento interno sem mapa geográfico** (em
-  stand by, decisão do usuário 2026-09-10): faltava um jeito confiável de
-  ligar `InstrumentoEquipamento.municipio` (texto livre) a uma
-  macrorregião/UF sem risco de erro de grafia/acentuação — retomar
-  depois que o CNES de cada convenente estiver identificado (join bem
-  mais confiável que nome de município). Não propor cruzamento por nome
-  de município enquanto isso não for resolvido.
+- **Mapa do Painel de Gestão do monitoramento interno**: o standby de
+  2026-09-10 terminou após o vínculo FK de `InstrumentoEquipamento.cnes`
+  com `CnesEstabelecimento`, que fornece latitude/longitude. A listagem
+  consulta as coordenadas em lote; o frontend desenha os pontos sobre o
+  mesmo GeoJSON e a mesma projeção de `/mapa` e associa cada ponto à
+  macrorregião por `geoContains`. Selecionar uma macro substitui o mapa
+  nacional no mesmo card por um mapa rodoviário Leaflet/OSM sob demanda,
+  com ênfase apenas no contorno da macro e marcadores. Coordenada ausente
+  não derruba o painel e é contabilizada.
+  Não voltar a inferir macrorregião por nome de município; esses dados de
+  monitoramento continuam separados dos cálculos de cobertura.
 - **Login e aceite de convite não são auditados** (achado 2026-09-26, ver
   detalhe em "Gestão de usuários" acima): nenhum sucesso/falha de login,
   logout ou ativação de conta gera `AuditLog` ou qualquer histórico

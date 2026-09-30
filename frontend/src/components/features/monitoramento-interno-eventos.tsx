@@ -141,8 +141,8 @@ export function MonitoramentoInternoEventos({
               >
                 <div
                   className={cn(
-                    "flex gap-3",
-                    podeEditar && !emEdicao && !emExclusao && "pr-36",
+                    "flex flex-wrap gap-2 sm:flex-nowrap sm:gap-3",
+                    podeEditar && !emEdicao && !emExclusao && "sm:pr-36",
                   )}
                 >
                   <div
@@ -160,7 +160,7 @@ export function MonitoramentoInternoEventos({
                       ? fmtData(ev.data_ocorrencia)
                       : fmtData(ev.created_at.slice(0, 10))}
                   </div>
-                  <div className="flex-1">
+                  <div className="w-full min-w-0 sm:w-auto sm:flex-1">
                     <div className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">
                       {marco?.rotulo ?? `Marco ${ev.marco_id}`}
                       {ev.numero_documento && <> — nº {ev.numero_documento}</>}
@@ -194,7 +194,7 @@ export function MonitoramentoInternoEventos({
                   </div>
                 </div>
                 {podeEditar && !emEdicao && !emExclusao && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-row gap-1.5">
+                  <div className="flex flex-row justify-end gap-1.5 border-t border-border pt-2 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 sm:border-0 sm:pt-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -203,7 +203,7 @@ export function MonitoramentoInternoEventos({
                       }}
                       className={cn(
                         estiloInput,
-                        "cursor-pointer bg-transparent text-primary border border-primary text-[11px] font-semibold py-1 px-2",
+                        "min-h-11 cursor-pointer border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary sm:min-h-0 sm:px-2 sm:text-[11px]",
                       )}
                     >
                       Editar
@@ -216,7 +216,7 @@ export function MonitoramentoInternoEventos({
                       }}
                       className={cn(
                         estiloInput,
-                        "cursor-pointer bg-transparent text-destructive border border-destructive text-[11px] font-semibold py-1 px-2",
+                        "min-h-11 cursor-pointer border border-destructive bg-transparent px-3 py-1 text-xs font-semibold text-destructive sm:min-h-0 sm:px-2 sm:text-[11px]",
                       )}
                     >
                       Excluir

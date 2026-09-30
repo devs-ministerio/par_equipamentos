@@ -4,6 +4,7 @@ import type { ClasseEquipamento } from "@/types/dados-oficiais";
 export const TAMANHO_PAGINA_DADOS_OFICIAIS = 20;
 
 export function useDadosOficiaisFiltros() {
+  const [busca, setBusca] = useState("");
   const [uf, setUf] = useState<string | null>(null);
   const [municipio, setMunicipio] = useState<string | null>(null);
   const [cnes, setCnes] = useState<string | null>(null);
@@ -18,6 +19,7 @@ export function useDadosOficiaisFiltros() {
   const [pagina, setPagina] = useState(1);
 
   const limparFiltros = () => {
+    setBusca("");
     setUf(null);
     setMunicipio(null);
     setCnes(null);
@@ -31,6 +33,7 @@ export function useDadosOficiaisFiltros() {
   };
 
   const hasFiltros = Boolean(
+    busca.trim() ||
     uf ||
     municipio ||
     cnes ||
@@ -46,6 +49,7 @@ export function useDadosOficiaisFiltros() {
   useEffect(
     () => setPagina(1),
     [
+      busca,
       uf,
       municipio,
       cnes,
@@ -61,6 +65,8 @@ export function useDadosOficiaisFiltros() {
   useEffect(() => setEquipamento(null), [classeEquipamento]);
 
   return {
+    busca,
+    setBusca,
     uf,
     setUf,
     municipio,

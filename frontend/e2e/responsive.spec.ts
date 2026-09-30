@@ -8,6 +8,7 @@ const DIMENSOES = [320, 375, 400, 768, 1024, 1440] as const;
 const ROTAS_CRITICAS = [
   "/monitoramento-equipamentos",
   "/monitoramento-equipamentos/instrumentos",
+  "/monitoramento-equipamentos/painel",
   "/dashboard",
   "/mapa",
   "/relatorios",
@@ -45,6 +46,46 @@ test.describe("Responsividade autenticada", () => {
           `${rota} excede a viewport de ${largura}px (${dimensoes.scrollWidth}px de scrollWidth)`,
         ).toBeLessThanOrEqual(dimensoes.clientWidth);
       }
+    }
+  });
+
+  test("mesa de trabalho e detalhe do instrumento cabem no celular", async ({ page }) => {
+    test.setTimeout(90_000);
+
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(EMAIL);
+    await page.getByLabel("Senha").fill(SENHA);
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page).toHaveURL("/monitoramento-equipamentos", {
+      timeout: TEMPO_SESSAO_MS,
+    });
+
+    for (const largura of [320, 400, 768]) {
+      await page.setViewportSize({ width: largura, height: 900 });
+      await page.goto("/monitoramento-equipamentos/instrumentos");
+
+      const primeiroInstrumento = page.locator(
+        '[aria-label="Instrumentos monitorados"] article a',
+      ).first();
+      await expect(primeiroInstrumento).toBeVisible({ timeout: TEMPO_SESSAO_MS });
+      const href = await primeiroInstrumento.getAttribute("href");
+      expect(href).toBeTruthy();
+
+      const larguraMesa = await page.locator("html").evaluate((element) => ({
+        visivel: element.clientWidth,
+        conteudo: element.scrollWidth,
+      }));
+      expect(larguraMesa.conteudo).toBeLessThanOrEqual(larguraMesa.visivel);
+
+      await page.goto(href!);
+      await expect(page.locator("summary", { hasText: "Fase e cronograma" })).toBeVisible({
+        timeout: TEMPO_SESSAO_MS,
+      });
+      const larguraDetalhe = await page.locator("html").evaluate((element) => ({
+        visivel: element.clientWidth,
+        conteudo: element.scrollWidth,
+      }));
+      expect(larguraDetalhe.conteudo).toBeLessThanOrEqual(larguraDetalhe.visivel);
     }
   });
 });

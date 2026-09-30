@@ -40,7 +40,7 @@ export function FilterWorkspace({
         </button>
       )}
       {contagem && (
-        <span className="ml-auto pt-2 text-xs text-muted-foreground whitespace-nowrap">
+        <span className="w-full pt-1 text-right text-xs text-muted-foreground sm:ml-auto sm:w-auto sm:pt-2">
           {contagem}
         </span>
       )}

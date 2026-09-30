@@ -10,6 +10,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/common/status-badge";
 import { useHealthRegionByMacro } from "@/hooks/useHealthRegionByMacro";
 import { SubNivelRows } from "./sub-nivel-rows";
+import { CoberturaMobileCard } from "./cobertura-mobile-card";
 
 interface Props {
   row: CoberturaRow;
@@ -60,7 +61,7 @@ export function CoberturaMacroRow({
     <Fragment>
       <TableRow
         onClick={onToggle}
-        className="cursor-pointer border-t border-border [&>*]:whitespace-normal"
+        className="hidden cursor-pointer border-t border-border sm:table-row [&>*]:whitespace-normal"
       >
         <TableCell className="py-[9px] pr-2 pl-4.5 font-mono text-[11.5px] text-muted-foreground">
           {macro.id}
@@ -108,11 +109,26 @@ export function CoberturaMacroRow({
           <StatusBadge status={row.status} />
         </TableCell>
       </TableRow>
+      <TableRow className="border-t border-border sm:hidden">
+        <TableCell colSpan={6} className="p-0 whitespace-normal">
+          <CoberturaMobileCard
+            nome={macro.nome}
+            contexto={`Macro ${macro.id} · ${macro.uf}`}
+            populacao={macro.pop}
+            coeficiente={coeficiente != null ? formatMultiplicador(coeficiente) : "—"}
+            oferta={`${formatarQuantidadeEquipamento(row.oferta)} em uso SUS${row.ofertaTotal !== row.oferta ? ` de ${row.ofertaTotal} existentes` : ""}`}
+            status={row.status}
+            corTexto={corTexto}
+            expandida={expandida}
+            onToggle={onToggle}
+          />
+        </TableCell>
+      </TableRow>
       {expandida && (
         <TableRow className="bg-muted">
           <TableCell
             colSpan={6}
-            className="py-2.5 pr-4.5 pl-10.5 whitespace-normal"
+            className="min-w-0 px-3 py-2.5 whitespace-normal sm:pr-4.5 sm:pl-10.5"
           >
             {dados === "carregando" && (
               <div className="text-xs text-muted-foreground">
