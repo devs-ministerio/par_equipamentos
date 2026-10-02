@@ -36,7 +36,7 @@ export function MetricStrip({
           ? cn(
               "grid-cols-1 gap-px bg-border min-[375px]:grid-cols-2",
               balancedColumns
-                ? "lg:grid-cols-4"
+                ? "sm:grid-cols-3 xl:grid-cols-6"
                 : cn(
                     "sm:grid-cols-3",
                     desktopColumns === 6 ? "lg:grid-cols-6" : "lg:grid-cols-5",
@@ -59,9 +59,7 @@ export function MetricStrip({
                 ? cn(
                     "bg-card",
                     item.mobileFullWidth &&
-                      (balancedColumns
-                        ? "min-[375px]:col-span-2"
-                        : "min-[375px]:col-span-2 sm:col-span-1"),
+                      "min-[375px]:col-span-2 sm:col-span-1",
                     index === items.length - 1 &&
                       items.length % 2 === 1 &&
                       "min-[375px]:col-span-2 lg:col-span-1",
@@ -99,7 +97,8 @@ export function MetricStrip({
               className={cn(
                 "mt-2.5 break-words font-display text-2xl font-semibold tracking-tight tabular-nums text-foreground",
                 compactMobile && "max-sm:text-lg",
-                item.wideValue && "whitespace-nowrap",
+                item.wideValue &&
+                  "whitespace-nowrap text-lg xl:text-[clamp(1rem,1.3vw,1.25rem)]",
                 item.variant === "destructive" && "text-destructive",
                 item.variant === "success" && "text-success",
                 item.variant === "warning" && "text-warning",
