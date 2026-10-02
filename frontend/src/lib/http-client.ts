@@ -18,12 +18,15 @@ import { registrarEmissaoSessao } from "@/lib/sessao-expiracao";
  * sessão pertencer ao mesmo site que a interface e evita depender de
  * cookies de terceiros, cada vez mais bloqueados pelos navegadores.
  *
- * O valor explícito continua obrigatório no desenvolvimento/CI, onde API e
- * Vite rodam em portas distintas.
+ * Em produção, não aceitar `VITE_API_BASE_URL` antigo apontando direto para
+ * o Render: isso contornaria o proxy e o browser não enviaria o cookie de
+ * refresh (Path=/api/auth) a `/auth/refresh` no outro domínio. O valor
+ * explícito continua disponível no desenvolvimento/CI, onde API e Vite
+ * rodam em portas distintas.
  */
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.PROD ? "/api" : "http://localhost:8000");
+export const API_BASE_URL = import.meta.env.PROD
+  ? "/api"
+  : (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000");
 const HTTP_TIMEOUT_MS = 15_000;
 const MENSAGEM_TIMEOUT_HTTP = `A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`;
 

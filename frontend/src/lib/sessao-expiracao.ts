@@ -12,9 +12,9 @@
  * "desconhecido" e a UI esconde a contagem, sem quebrar nada. */
 
 /** Espelho de `ACCESS_TOKEN_EXPIRE_MINUTES` do backend
- * (`backend/app/config.py::access_token_expire_minutes`, default 20).
+ * (`backend/app/config.py::access_token_expire_minutes`, default 60).
  * Se o backend mudar esse valor, mudar aqui também. */
-export const DURACAO_SESSAO_MS = 20 * 60 * 1000;
+export const DURACAO_SESSAO_MS = 60 * 60 * 1000;
 
 const CHAVE = "sigeo_sessao_emitida_em";
 

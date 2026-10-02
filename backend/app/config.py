@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Duracao do access token -- reduzido de 8h (achado do diagnostico) pra
     # minutos, Bloco 2. Refresh token (mais longo) e quem sustenta a sessao.
-    access_token_expire_minutes: int = 20
+    access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 14
 
     # A API pública passa pelo proxy `/api` do Vercel, portanto o navegador

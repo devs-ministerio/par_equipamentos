@@ -99,3 +99,13 @@ def test_jwt_secret_valido_nao_derruba_o_boot():
         jwt_secret="segredo-com-pelo-menos-32-bytes-ok",
     )
     assert s.jwt_secret == "segredo-com-pelo-menos-32-bytes-ok"
+
+
+def test_access_token_dura_60_minutos_por_padrao(monkeypatch):
+    monkeypatch.delenv("ACCESS_TOKEN_EXPIRE_MINUTES", raising=False)
+    s = Settings(
+        database_url="postgresql+psycopg://user:pass@host:5432/db",
+        jwt_secret="segredo-com-pelo-menos-32-bytes-ok",
+        _env_file=None,
+    )
+    assert s.access_token_expire_minutes == 60
