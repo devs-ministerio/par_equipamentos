@@ -5,7 +5,7 @@ import { assinarSessao, obterExpiracaoSessao } from "@/lib/sessao-expiracao";
 /** Abaixo disso a contagem muda para o tom de alerta no menu do usuário. */
 export const LIMITE_ALERTA_SESSAO_MS = 2 * 60 * 1000;
 
-/** Contagem regressiva do access token (20 min), atualizada a cada segundo.
+/** Contagem regressiva do access token (60 min), atualizada a cada segundo.
  *
  * Zerar não desloga ninguém: o cookie de acesso expira, e a próxima chamada
  * à API renova a sessão sozinha via `/auth/refresh` (`lib/http-client.ts`).

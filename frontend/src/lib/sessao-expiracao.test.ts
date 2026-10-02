@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DURACAO_SESSAO_MS,
   assinarSessao,
@@ -8,6 +8,7 @@ import {
   registrarEmissaoSessao,
 } from "./sessao-expiracao";
 
+beforeEach(() => limparEmissaoSessao());
 afterEach(() => limparEmissaoSessao());
 
 describe("relógio da sessão", () => {
@@ -16,6 +17,7 @@ describe("relógio da sessão", () => {
   });
 
   it("expira DURACAO_SESSAO_MS depois da emissão", () => {
+    expect(DURACAO_SESSAO_MS).toBe(60 * 60 * 1000);
     registrarEmissaoSessao(1_000);
     expect(obterExpiracaoSessao()).toBe(1_000 + DURACAO_SESSAO_MS);
   });
@@ -34,7 +36,7 @@ describe("relógio da sessão", () => {
 
 describe("formatarTempoRestante", () => {
   it("formata mm:ss arredondando para cima", () => {
-    expect(formatarTempoRestante(20 * 60 * 1000)).toBe("20:00");
+    expect(formatarTempoRestante(DURACAO_SESSAO_MS)).toBe("1:00:00");
     expect(formatarTempoRestante(61_500)).toBe("01:02");
     expect(formatarTempoRestante(1)).toBe("00:01");
   });

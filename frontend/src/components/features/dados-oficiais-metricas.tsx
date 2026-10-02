@@ -20,7 +20,7 @@ export function DadosOficiaisMetricas({
     <div className="mb-5">
       <MetricStrip
         compactMobile
-        desktopColumns={6}
+        balancedColumns
         items={[
           { key: "instrumentos", label: "Instrumentos", value: instrumentos },
           {
@@ -45,6 +45,7 @@ export function DadosOficiaisMetricas({
             label: "Valor global",
             value: fmtMoeda(valorGlobal),
             mobileFullWidth: true,
+            wideValue: true,
           },
           {
             key: "desembolsado",
@@ -52,6 +53,7 @@ export function DadosOficiaisMetricas({
             value: fmtMoeda(desembolsado),
             variant: "success",
             mobileFullWidth: true,
+            wideValue: true,
           },
         ]}
       />

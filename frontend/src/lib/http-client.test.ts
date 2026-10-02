@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
-import { requisitar } from "@/lib/http-client";
+import { renovarSessao, requisitar } from "@/lib/http-client";
 
 /** Ambiente de teste é `node` (ver vite.config.ts) -- sem `window`/`document`
  * globais por padrão. `httpFetch` usa `typeof window !== 'undefined'` como
@@ -230,6 +230,30 @@ describe("lib/http-client", () => {
     expect(dado).toEqual({ ok: true });
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(String(fetchMock.mock.calls[1][0])).toContain("/auth/refresh");
+  });
+
+  it("renovação explícita envia CSRF e cookies e reinicia o relógio", async () => {
+    stubBrowserGlobals();
+    const setItem = vi.fn();
+    vi.stubGlobal("localStorage", { setItem });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, { status: "ok", csrf_token: "token-novo" }),
+    );
+
+    await expect(renovarSessao()).resolves.toBe(true);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/auth/refresh");
+    expect(init.method).toBe("POST");
+    expect(init.credentials).toBe("include");
+    expect((init.headers as Record<string, string>)["X-CSRF-Token"]).toBe(
+      "token-abc",
+    );
+    expect(setItem).toHaveBeenCalledWith(
+      "sigeo_sessao_emitida_em",
+      expect.any(String),
+    );
   });
 
   it("deduplica renovação: 2 chamadas simultâneas com 401 disparam só 1 POST /auth/refresh", async () => {
