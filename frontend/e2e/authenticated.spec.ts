@@ -6,32 +6,35 @@ import { autenticar, expect, test } from "./fixtures";
 // compartilhada de `./fixtures` (logout revogaria o refresh token no
 // servidor e derrubaria qualquer outro teste que ainda fosse reaproveitá-la).
 testeAnonimo.describe("Fluxo autenticado", () => {
-  testeAnonimo("login entra em rota protegida e oferece saída", async ({ page }) => {
-    await autenticar(page);
-    await page.getByRole("button", { name: /^Menu de / }).click();
-    await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
+  testeAnonimo(
+    "login entra em rota protegida e oferece saída",
+    async ({ page }) => {
+      await autenticar(page);
+      await page.getByRole("button", { name: /^Menu de / }).click();
+      await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
 
-    const refreshAnterior = (await page.context().cookies()).find(
-      (cookie) => cookie.name === "sigeo_refresh",
-    )?.value;
-    expect(refreshAnterior).toBeTruthy();
-    const respostaRenovacao = page.waitForResponse(
-      (resposta) =>
-        resposta.request().method() === "POST" &&
-        new URL(resposta.url()).pathname.endsWith("/auth/refresh"),
-    );
-    await page.getByRole("button", { name: "Renovar sessão" }).click();
-    expect((await respostaRenovacao).ok()).toBe(true);
-    await expect(page.getByText(/^Expira em /)).toBeVisible();
-    const refreshNovo = (await page.context().cookies()).find(
-      (cookie) => cookie.name === "sigeo_refresh",
-    )?.value;
-    expect(refreshNovo).toBeTruthy();
-    expect(refreshNovo).not.toBe(refreshAnterior);
+      const refreshAnterior = (await page.context().cookies()).find(
+        (cookie) => cookie.name === "sigeo_refresh",
+      )?.value;
+      expect(refreshAnterior).toBeTruthy();
+      const respostaRenovacao = page.waitForResponse(
+        (resposta) =>
+          resposta.request().method() === "POST" &&
+          new URL(resposta.url()).pathname.endsWith("/auth/refresh"),
+      );
+      await page.getByRole("button", { name: "Renovar sessão" }).click();
+      expect((await respostaRenovacao).ok()).toBe(true);
+      await expect(page.getByText(/^Expira em /)).toBeVisible();
+      const refreshNovo = (await page.context().cookies()).find(
+        (cookie) => cookie.name === "sigeo_refresh",
+      )?.value;
+      expect(refreshNovo).toBeTruthy();
+      expect(refreshNovo).not.toBe(refreshAnterior);
 
-    await page.reload();
-    await expect(page).not.toHaveURL(/\/login/);
-  });
+      await page.reload();
+      await expect(page).not.toHaveURL(/\/login/);
+    },
+  );
 
   testeAnonimo("sair retorna imediatamente ao login", async ({ page }) => {
     await autenticar(page);
