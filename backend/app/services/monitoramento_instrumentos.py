@@ -164,6 +164,7 @@ def listar_instrumentos_monitorados(
     ano_inicio: int | None = None,
     ano_fim: int | None = None,
     tipo_contratacao: str | None = None,
+    limite_estrito: bool = False,
 ) -> list[InstrumentoComFase]:
     """`fase_atual` calculado (achado 2026-09-10, pedido do usuario: filtro
     de fase na Visao Geral) -- mesmo padrao de calculo de `obter_resumo`
@@ -183,11 +184,14 @@ def listar_instrumentos_monitorados(
     normalmente."""
     instrumentos = monitoramento_repo.listar_instrumentos(
         db,
-        limit=limit,
+        # Exportação filtra o ano depois de calcular a fase; limitar antes
+        # disso pode rejeitar um recorte pequeno por causa de outros anos.
+        limit=None if limite_estrito else limit,
         ufs=ufs,
         municipio=municipio,
         cnes=cnes,
         tipo_contratacao=tipo_contratacao,
+        limite_estrito=limite_estrito,
     )
     fases_gerais_desc = monitoramento_repo.listar_marcos_fase_geral_desc(db)
     fase_ids = [m.id for m in fases_gerais_desc]
@@ -215,6 +219,8 @@ def listar_instrumentos_monitorados(
             for r in resultado
             if _no_periodo(r.instrumento.ano_instrumento) or (periodo_inclui_hoje and r.fase_atual != "Concluído")
         ]
+    if limite_estrito and len(resultado) > limit:
+        raise ValidationError("O recorte contém instrumentos demais para uma exportação. Refine os filtros.")
     return resultado
 
 

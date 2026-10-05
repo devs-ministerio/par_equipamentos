@@ -9,6 +9,7 @@ cada aba; este arquivo so sabe desenhar tabela.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date, datetime
 from io import BytesIO
 from typing import Any
 
@@ -57,13 +58,30 @@ def escrever_aba_tabela(
         celula.alignment = Alignment(horizontal="center")
     for linha in linhas:
         aba.append(list(linha))
+        # Valores de fontes externas nunca podem virar fórmulas ao abrir o
+        # arquivo. Preservamos o texto original (inclusive o prefixo) e
+        # forçamos o tipo OOXML de string; números/datas seguem tipados.
+        for celula in aba[aba.max_row]:
+            if isinstance(celula.value, str) and _texto_parece_formula(celula.value):
+                celula.data_type = "s"
     aba.freeze_panes = "A2"
     if linhas:
         aba.auto_filter.ref = f"A1:{get_column_letter(len(colunas))}{len(linhas) + 1}"
     _ajustar_largura_colunas(aba, colunas, linhas)
     _aplicar_formato_por_coluna(aba, colunas, len(linhas), colunas_moeda, FORMATO_MOEDA)
     _aplicar_formato_por_coluna(aba, colunas, len(linhas), colunas_data, FORMATO_DATA)
+    aba.print_options.horizontalCentered = True
+    aba.sheet_properties.pageSetUpPr.fitToPage = True
+    aba.page_setup.fitToWidth = 1
+    aba.page_setup.fitToHeight = 0
+    aba.print_title_rows = "1:1"
+    aba.print_area = f"A1:{get_column_letter(len(colunas))}{max(1, len(linhas) + 1)}" if colunas else None
     return aba
+
+
+def _texto_parece_formula(valor: str) -> bool:
+    """Detecta prefixos interpretáveis como fórmula após espaços/controles."""
+    return valor.lstrip().startswith(("=", "+", "-", "@"))
 
 
 def colorir_variacao(aba: Worksheet, coluna: int, linha: int, valor: float | None) -> None:
@@ -103,5 +121,15 @@ def _ajustar_largura_colunas(aba: Worksheet, colunas: Sequence[str], linhas: Seq
         maior = len(str(cabecalho))
         for linha in linhas:
             if indice - 1 < len(linha):
-                maior = max(maior, len(str(linha[indice - 1])))
+                valor = linha[indice - 1]
+                if isinstance(valor, (date, datetime)):
+                    tamanho = 10
+                elif isinstance(valor, (int, float)):
+                    tamanho = len(f"{valor:,.2f}") + 3
+                else:
+                    tamanho = len(str(valor)) if valor is not None else 0
+                maior = max(maior, tamanho)
         aba.column_dimensions[get_column_letter(indice)].width = min(maior + 2, _LARGURA_MAXIMA_COLUNA)
+        for celulas in aba.iter_cols(min_col=indice, max_col=indice):
+            for celula in celulas:
+                celula.alignment = Alignment(vertical="center", wrap_text=True)

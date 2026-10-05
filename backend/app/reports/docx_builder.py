@@ -14,13 +14,15 @@ from collections.abc import Sequence
 from datetime import datetime
 from io import BytesIO
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from docx import Document
 from docx.document import Document as DocumentType
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Pt, RGBColor
+from docx.shared import Cm, Pt, RGBColor
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 from docx.text.run import Run
@@ -30,6 +32,7 @@ from app.reports.formatacao import formatar_data, formatar_moeda
 _VERDE_VARIACAO = RGBColor(0x15, 0x80, 0x3D)
 _VERMELHO_VARIACAO = RGBColor(0xB9, 0x1C, 0x1C)
 _CINZA_LEGENDA = RGBColor(0x6B, 0x72, 0x80)
+_PRETO = RGBColor(0, 0, 0)
 
 # Mesmo timbre institucional usado nos briefings reais do departamento
 # (ver docs/relatorios em `data/relatorios/`, anexados pelo usuário
@@ -46,6 +49,41 @@ _CABECALHO_INSTITUCIONAL = (
 
 def novo_documento(titulo: str) -> DocumentType:
     documento = Document()
+    secao = documento.sections[0]
+    secao.page_width = Cm(21)
+    secao.page_height = Cm(29.7)
+    secao.top_margin = secao.bottom_margin = Cm(2)
+    secao.left_margin = secao.right_margin = Cm(2)
+    estilos = documento.styles
+    normal = estilos["Normal"]
+    normal.font.name = "Arial"
+    normal.font.size = Pt(9.5)
+    normal.font.color.rgb = _PRETO
+    normal.paragraph_format.space_after = Pt(4)
+    for nome, tamanho in (("Title", 16), ("Heading 1", 12), ("Heading 2", 10.5), ("Heading 3", 10), ("Heading 4", 9.5)):
+        estilo = estilos[nome]
+        estilo.font.name = "Arial"
+        estilo.font.size = Pt(tamanho)
+        estilo.font.color.rgb = _PRETO
+        estilo.font.bold = True
+        estilo.paragraph_format.space_before = Pt(9 if nome != "Title" else 0)
+        estilo.paragraph_format.space_after = Pt(4)
+        estilo.paragraph_format.keep_with_next = True
+        estilo.paragraph_format.keep_together = True
+        # O estilo Title do Word pode carregar uma borda azul temática.
+        ppr = estilo.element.pPr
+        if ppr is not None:
+            bordas = ppr.find(qn("w:pBdr"))
+            if bordas is not None:
+                ppr.remove(bordas)
+    rodape = secao.footer.paragraphs[0]
+    rodape.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    texto = rodape.add_run("SIGEO  ·  Página ")
+    texto.font.size = Pt(8)
+    texto.font.color.rgb = _CINZA_LEGENDA
+    campo = OxmlElement("w:fldSimple")
+    campo.set(qn("w:instr"), "PAGE")
+    rodape._p.append(campo)
     adicionar_titulo(documento, titulo, nivel=0)
     return documento
 
@@ -58,7 +96,8 @@ def adicionar_cabecalho_institucional(documento: DocumentType, *, gerado_em: dat
         run.font.size = Pt(10)
     aviso = documento.add_paragraph()
     run_aviso = aviso.add_run(
-        f"Documento gerado automaticamente pelo SIGEO em {gerado_em.strftime('%d/%m/%Y %H:%M')} "
+        f"Documento gerado automaticamente pelo SIGEO em {gerado_em.astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')} "
+        "(horário de Brasília) "
         "-- não substitui conferência humana antes de circulação oficial."
     )
     run_aviso.italic = True
@@ -100,14 +139,27 @@ def adicionar_fonte(documento: DocumentType, texto: str) -> None:
 def adicionar_tabela(documento: DocumentType, colunas: Sequence[str], linhas: Sequence[Sequence[Any]]) -> Table:
     tabela = documento.add_table(rows=1, cols=len(colunas))
     tabela.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tabela.style = "Table Grid"
     _aplicar_bordas(tabela)
+    propriedade_header = OxmlElement("w:tblHeader")
+    propriedade_header.set(qn("w:val"), "true")
+    tabela.rows[0]._tr.get_or_add_trPr().append(propriedade_header)
     for celula, cabecalho in zip(tabela.rows[0].cells, colunas, strict=True):
         run = celula.paragraphs[0].add_run(cabecalho)
         run.bold = True
+        run.font.size = Pt(8.5)
+        celula.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
     for linha in linhas:
-        celulas = tabela.add_row().cells
+        row = tabela.add_row()
+        row._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+        celulas = row.cells
         for celula, valor in zip(celulas, linha, strict=True):
-            celula.paragraphs[0].add_run("" if valor is None else str(valor))
+            run = celula.paragraphs[0].add_run("" if valor is None else str(valor))
+            run.font.size = Pt(8.5)
+            celula.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+    if not linhas:
+        celulas = tabela.add_row().cells
+        celulas[0].text = "Nenhum registro neste recorte."
     return tabela
 
 
@@ -117,6 +169,7 @@ def linhas_como_texto(
     *,
     colunas_moeda: Sequence[str] = (),
     colunas_data: Sequence[str] = (),
+    colunas_inteiro: Sequence[str] = (),
 ) -> list[list[str]]:
     """Word não tem número/data nativos numa tabela de texto -- formata pt-BR
     (`app/reports/formatacao.py`) por NOME de coluna antes de passar pra
@@ -124,6 +177,7 @@ def linhas_como_texto(
     faz o equivalente no Excel via `number_format` (mantendo o valor cru)."""
     moeda = set(colunas_moeda)
     data = set(colunas_data)
+    inteiro = set(colunas_inteiro)
     resultado: list[list[str]] = []
     for linha in linhas:
         nova_linha: list[str] = []
@@ -132,6 +186,8 @@ def linhas_como_texto(
                 nova_linha.append(formatar_moeda(valor))
             elif cabecalho in data:
                 nova_linha.append(formatar_data(valor))
+            elif cabecalho in inteiro and valor is not None:
+                nova_linha.append(f"{int(valor):,}".replace(",", "."))
             else:
                 nova_linha.append("—" if valor is None else str(valor))
         resultado.append(nova_linha)

@@ -45,6 +45,38 @@ REGIAO_POR_UF: dict[str, str] = {
     "TO": "Norte",
 }
 
+# Espelha os nomes de `frontend/src/data/geo-reference.ts::UF_INFO` para
+# descrições legíveis do recorte nos relatórios gerados pelo backend.
+NOME_POR_UF: dict[str, str] = {
+    "AC": "Acre",
+    "AL": "Alagoas",
+    "AP": "Amapá",
+    "AM": "Amazonas",
+    "BA": "Bahia",
+    "CE": "Ceará",
+    "DF": "Distrito Federal",
+    "ES": "Espírito Santo",
+    "GO": "Goiás",
+    "MA": "Maranhão",
+    "MT": "Mato Grosso",
+    "MS": "Mato Grosso do Sul",
+    "MG": "Minas Gerais",
+    "PA": "Pará",
+    "PB": "Paraíba",
+    "PR": "Paraná",
+    "PE": "Pernambuco",
+    "PI": "Piauí",
+    "RJ": "Rio de Janeiro",
+    "RN": "Rio Grande do Norte",
+    "RS": "Rio Grande do Sul",
+    "RO": "Rondônia",
+    "RR": "Roraima",
+    "SC": "Santa Catarina",
+    "SP": "São Paulo",
+    "SE": "Sergipe",
+    "TO": "Tocantins",
+}
+
 REGIOES = sorted(set(REGIAO_POR_UF.values()))
 
 UFS_POR_REGIAO: dict[str, list[str]] = {

@@ -131,6 +131,7 @@ export function MonitoramentoRelatoriosPage() {
     () => conveniosQuery.data?.itens ?? [],
     [conveniosQuery.data],
   );
+  const totalConveniosFonte = conveniosQuery.data?.total ?? 0;
 
   // Período de 2 datas (Bloco 8, 2026-09-27) -- substitui o antigo `ano`
   // único de `filtrarDadosOficiais` (que continua servindo só Dados
@@ -247,6 +248,7 @@ export function MonitoramentoRelatoriosPage() {
 
   const {
     propostas,
+    total: totalPropostasFonte,
     carregando: carregandoPropostas,
     erro: erroPropostas,
   } = usePropostasCandidatas();
@@ -309,18 +311,28 @@ export function MonitoramentoRelatoriosPage() {
   // 2. `Estabelecimento` nunca tinha campo próprio no backend -- resolvido
   //    pro CNES correspondente (1:1 na prática, mesmo dado de origem do
   //    dropdown) quando CNES não foi selecionado à parte.
-  const municipioItem = municipio
-    ? convenios.find((item) => normalizarTexto(item.municipio) === municipio)
-    : undefined;
+  const municipioItens = municipio
+    ? convenios.filter((item) => normalizarTexto(item.municipio) === municipio)
+    : [];
+  const ufsDoMunicipio = new Set(municipioItens.map((item) => item.uf));
+  const municipioAmbiguo = Boolean(municipio && !uf && ufsDoMunicipio.size > 1);
+  const municipioItem = municipioItens[0];
   const ufEfetiva = uf ?? municipioItem?.uf;
-  const estabelecimentoItem =
+  const estabelecimentoItens =
     !cnes && nomeEstabelecimento
-      ? convenios.find(
+      ? convenios.filter(
           (item) =>
             normalizarTexto(item.cnesNomeEstabelecimento ?? "") ===
             nomeEstabelecimento,
         )
-      : undefined;
+      : [];
+  const cnesDoEstabelecimento = new Set(
+    estabelecimentoItens.map((item) => item.cnes).filter(Boolean),
+  );
+  const estabelecimentoAmbiguo = Boolean(
+    nomeEstabelecimento && !cnes && cnesDoEstabelecimento.size > 1,
+  );
+  const estabelecimentoItem = estabelecimentoItens[0];
   const cnesEfetivo = cnes ?? estabelecimentoItem?.cnes ?? undefined;
 
   const escopoGeracao = cnesEfetivo
@@ -367,6 +379,9 @@ export function MonitoramentoRelatoriosPage() {
               <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                 {totalRegistros.toLocaleString("pt-BR")}
               </p>
+              <p className="text-[10px] text-muted-foreground">
+                na prévia carregada
+              </p>
             </div>
           </div>
         }
@@ -375,7 +390,7 @@ export function MonitoramentoRelatoriosPage() {
       <FilterWorkspace
         hasAnyFilter={hasFiltros}
         onClear={limparFiltros}
-        contagem={`${totalRegistros} ${totalRegistros === 1 ? "registro" : "registros"} no recorte`}
+        contagem={`${totalRegistros} ${totalRegistros === 1 ? "registro" : "registros"} na prévia`}
         className="mb-0 rounded-sm border border-border bg-card p-4 sm:p-5"
       >
         <div className="flex w-full flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
@@ -457,6 +472,14 @@ export function MonitoramentoRelatoriosPage() {
         />
       </FilterWorkspace>
 
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Indicadores e tabelas abaixo descrevem somente a prévia carregada.
+        {totalConveniosFonte > convenios.length &&
+          ` A fonte tem ${totalConveniosFonte.toLocaleString("pt-BR")} convênios; ${convenios.length.toLocaleString("pt-BR")} estão nesta prévia.`}
+        {totalPropostasFonte > propostas.length &&
+          ` A fonte tem ${totalPropostasFonte.toLocaleString("pt-BR")} propostas; ${propostas.length.toLocaleString("pt-BR")} estão nesta prévia.`}
+      </p>
+
       <RelatorioResumoCarteira
         instrumentos={conveniosFiltrados.length}
         valorInstrumentos={valorGlobalInstrumentos}
@@ -470,11 +493,19 @@ export function MonitoramentoRelatoriosPage() {
         </div>
         <div>
           <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
-            Prévia dos dados
+            Prévia parcial dos dados
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Confira as linhas incluídas no recorte selecionado.
+            A prévia usa até 1.000 convênios e 500 propostas; o arquivo consulta
+            as fontes novamente e pode incluir mais registros.
           </p>
+          {totalPropostasFonte > propostas.length && (
+            <p className="mt-1 text-xs text-amber-700">
+              {totalPropostasFonte.toLocaleString("pt-BR")} propostas na fonte;{" "}
+              {propostas.length.toLocaleString("pt-BR")} carregadas para a
+              prévia.
+            </p>
+          )}
         </div>
       </div>
 
@@ -525,10 +556,16 @@ export function MonitoramentoRelatoriosPage() {
       <RelatorioBotoesGerar
         nivel={nivel}
         onNivelChange={setNivel}
-        podeGerar
+        podeGerar={!municipioAmbiguo && !estabelecimentoAmbiguo}
         gerando={gerando}
         erro={erro}
-        contexto={`O arquivo reunirá o recorte de ${resumoEscopo}, com os filtros aplicados na prévia acima.`}
+        contexto={
+          municipioAmbiguo
+            ? "Há municípios com este nome em mais de uma UF. Selecione a UF antes de exportar."
+            : estabelecimentoAmbiguo
+              ? "Há mais de um CNES com este nome. Selecione o CNES antes de exportar."
+              : `O arquivo consultará novamente ${resumoEscopo}. Situação, programa e equipamento filtram apenas convênios; propostas e monitoramento seguem os filtros aplicáveis à sua fonte. A aba Leitura detalha o recorte.`
+        }
         onGerar={(formato) =>
           void gerar(formato, nivel, {
             escopo: escopoGeracao,

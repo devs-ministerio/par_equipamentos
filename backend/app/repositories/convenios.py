@@ -13,6 +13,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, aliased
 
 from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
+from app.domain_errors import ValidationError
 from app.pipeline.texto import normalizar_texto
 
 # Teto de seguranca do relatorio -- nao paginacao de UI (mesmo espirito do
@@ -77,9 +78,13 @@ def listar_convenios_filtrados(
                 Convenio.objeto.ilike(alvo),
             )
         )
-    stmt = stmt.order_by(Convenio.numero).limit(LIMITE_RELATORIO)
-    resultado = list(db.execute(stmt).scalars().all())
-    if municipio:
-        alvo_municipio = normalizar_texto(municipio)
-        resultado = [c for c in resultado if normalizar_texto(c.municipio) == alvo_municipio]
+    stmt = stmt.order_by(Convenio.numero, Convenio.id)
+    alvo_municipio = normalizar_texto(municipio) if municipio else None
+    resultado: list[Convenio] = []
+    for convenio in db.execute(stmt.execution_options(yield_per=500)).scalars():
+        if alvo_municipio and normalizar_texto(convenio.municipio) != alvo_municipio:
+            continue
+        resultado.append(convenio)
+        if len(resultado) > LIMITE_RELATORIO:
+            raise ValidationError("O recorte contém convênios demais para uma exportação. Refine os filtros.")
     return resultado

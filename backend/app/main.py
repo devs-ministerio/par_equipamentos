@@ -90,6 +90,14 @@ app.add_middleware(
     # falhava com a lista antiga (GET/POST/PATCH), sem DELETE.
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type", CSRF_HEADER_NAME, "X-Trace-Id"],
+    # Sem isso o JS de uma origem cross-site (dev local/E2E, onde front e
+    # back ficam em portas diferentes) nunca enxerga o header via
+    # `response.headers.get(...)` -- navegador devolve null mesmo com o
+    # header presente na resposta real. Achado ao vivo 2026-10-05: nome do
+    # relatorio baixado (GET /relatorios) caia sempre no fallback
+    # "relatorio.xlsx" nessa topologia, so' nao aparecia em producao porque
+    # o proxy /api da Vercel torna a chamada same-origin (CORS nem entra).
+    expose_headers=["Content-Disposition"],
 )
 
 # TrustedHostMiddleware (Plan Mode fechamento final 2026-09-25, Bloco 6) --
