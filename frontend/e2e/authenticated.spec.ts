@@ -1,21 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { test as testeAnonimo } from "@playwright/test";
+import { autenticar, expect, test } from "./fixtures";
 
-const EMAIL = process.env.E2E_EMAIL!;
-const SENHA = process.env.E2E_SENHA!;
-const TEMPO_SESSAO_MS = 20_000;
-
-async function autenticar(page: import("@playwright/test").Page) {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(EMAIL);
-  await page.getByLabel("Senha").fill(SENHA);
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL("/monitoramento-equipamentos", {
-    timeout: TEMPO_SESSAO_MS,
-  });
-}
-
-test.describe("Fluxo autenticado", () => {
-  test("login entra em rota protegida e oferece saída", async ({ page }) => {
+// "login entra..." e "sair..." testam o fluxo de autenticação em si, então
+// usam uma página anônima + login próprio (`autenticar`) -- nunca a sessão
+// compartilhada de `./fixtures` (logout revogaria o refresh token no
+// servidor e derrubaria qualquer outro teste que ainda fosse reaproveitá-la).
+testeAnonimo.describe("Fluxo autenticado", () => {
+  testeAnonimo("login entra em rota protegida e oferece saída", async ({ page }) => {
     await autenticar(page);
     await page.getByRole("button", { name: /^Menu de / }).click();
     await expect(page.getByRole("button", { name: "Sair" })).toBeVisible();
@@ -42,18 +33,21 @@ test.describe("Fluxo autenticado", () => {
     await expect(page).not.toHaveURL(/\/login/);
   });
 
-  test("sair retorna imediatamente ao login", async ({ page }) => {
+  testeAnonimo("sair retorna imediatamente ao login", async ({ page }) => {
     await autenticar(page);
     await page.getByRole("button", { name: /^Menu de / }).click();
     await page.getByRole("button", { name: "Sair" }).click();
     await expect(page).toHaveURL("/login");
     await expect(page.getByRole("heading", { name: /entrar/i })).toBeVisible();
   });
+});
 
+// Os testes abaixo só precisam estar logados, não testam o login em si --
+// reaproveitam a sessão compartilhada de `./fixtures` (1 login por worker).
+test.describe("Fluxo autenticado (sessão compartilhada)", () => {
   test("consulta os instrumentos monitorados após autenticar", async ({
     page,
   }) => {
-    await autenticar(page);
     const respostaInstrumentos = page.waitForResponse(
       (resposta) =>
         resposta.request().method() === "GET" &&
@@ -66,7 +60,6 @@ test.describe("Fluxo autenticado", () => {
   });
 
   test("baixa Excel e Word dos relatórios autenticados", async ({ page }) => {
-    await autenticar(page);
     await page.goto("/monitoramento-equipamentos/relatorios");
     await expect(
       page.getByRole("heading", { name: "Relatórios" }),
@@ -89,7 +82,6 @@ test.describe("Fluxo autenticado", () => {
   test("painel mostra recorte, dashboards e alternância do mapa", async ({
     page,
   }) => {
-    await autenticar(page);
     await page.route("**/monitoramento/instrumentos", async (route) => {
       const resposta = await route.fetch();
       const instrumentos = await resposta.json();
