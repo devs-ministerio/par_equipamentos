@@ -113,7 +113,7 @@ export async function gerarRelatorio(
         const blob = await resposta.blob();
         const nomeArquivo = nomeArquivoDoHeader(
           resposta.headers.get("content-disposition"),
-          `relatorio.${formato}`,
+          `relatorio-sem-nome.${formato}`,
         );
         return { blob, nomeArquivo };
       },
