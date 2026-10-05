@@ -11,6 +11,7 @@ import pytest
 
 from app.db.base import SessionLocal
 from app.db.models import Convenio, InstrumentoEquipamento
+from app.domain_errors import ValidationError
 from app.repositories import cobertura_relatorio as cobertura_repo
 from app.repositories import convenios as convenios_repo
 from app.repositories import execucoes as execucoes_repo
@@ -101,6 +102,29 @@ def test_listar_instrumentos_filtra_por_uf_municipio_cnes():
 
 
 @pytest.mark.db
+def test_timeline_em_lote_preserva_a_ordem_e_apenas_registros_ativos():
+    # Arrange
+    db = SessionLocal()
+    try:
+        instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, "948686")
+        assert instrumento is not None
+
+        # Act
+        eventos_lote = monitoramento_repo.listar_eventos_por_instrumentos(db, {instrumento.id})
+        acoes_lote = monitoramento_repo.listar_acoes_por_instrumentos(db, {instrumento.id})
+
+        # Assert
+        assert [e.id for e in eventos_lote[instrumento.id]] == [
+            e.id for e in monitoramento_repo.listar_eventos_do_instrumento(db, instrumento.id)
+        ]
+        assert [a.id for a in acoes_lote.get(instrumento.id, [])] == [
+            a.id for a in monitoramento_repo.listar_acoes_do_instrumento(db, instrumento.id)
+        ]
+    finally:
+        db.close()
+
+
+@pytest.mark.db
 def test_listar_instrumentos_filtro_municipio_ignora_acento_e_caixa():
     """Achado ao vivo (Plan Mode relatorios 2026-09-25, Bloco 4): pedido do
     usuário de relatório pro município de São Paulo/SP voltava vazio porque
@@ -137,6 +161,31 @@ def test_listar_convenios_filtrados_municipio_ignora_acento_e_caixa():
         assert any(c.numero == "__pytest_municipio_normalizado__" for c in resultado)
         db.rollback()  # nunca commita dado de teste
     finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_limite_e_aplicado_depois_do_municipio_e_nunca_trunca_silenciosamente(monkeypatch):
+    # Arrange: dois registros no mesmo escopo geográfico, em municípios
+    # diferentes. O desejado vem por último na ordenação.
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                Convenio(numero="__pytest_limite_1__", convenente_nome="Teste", municipio="Cidade Alfa", uf="DF"),
+                Convenio(numero="__pytest_limite_2__", convenente_nome="Teste", municipio="Cidade Beta", uf="DF"),
+            ]
+        )
+        db.flush()
+        monkeypatch.setattr(convenios_repo, "LIMITE_RELATORIO", 1)
+
+        # Act / Assert: o filtro municipal é executado antes do teto.
+        resultado = convenios_repo.listar_convenios_filtrados(db, ufs=["DF"], municipio="Cidade Beta")
+        assert [item.numero for item in resultado] == ["__pytest_limite_2__"]
+        with pytest.raises(ValidationError, match="Refine os filtros"):
+            convenios_repo.listar_convenios_filtrados(db, ufs=["DF"])
+    finally:
+        db.rollback()
         db.close()
 
 

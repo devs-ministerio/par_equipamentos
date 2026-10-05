@@ -86,3 +86,20 @@ def test_colunas_data_aplicam_number_format_mantendo_valor_cru():
 def test_coluna_moeda_inexistente_no_cabecalho_nao_quebra():
     pasta = nova_pasta()
     escrever_aba_tabela(pasta, "Vazia", ["A"], [["x"]], colunas_moeda=["Não existe"])
+
+
+def test_texto_externo_nao_vira_formula_e_preserva_valor_original():
+    # Arrange: diferentes prefixos perigosos, inclusive após whitespace.
+    entradas = ["=1+1", "+SUM(1,2)", "-1+2", "@SUM(1,2)", "\t=2+2", "normal"]
+    pasta = nova_pasta()
+
+    # Act
+    escrever_aba_tabela(pasta, "Propostas", ["Proponente", "Valor"], [[texto, 10] for texto in entradas])
+    aba = load_workbook(BytesIO(gerar_bytes(pasta)))["Propostas"]
+
+    # Assert
+    for indice, texto in enumerate(entradas, start=2):
+        assert aba.cell(indice, 1).value == texto
+        assert aba.cell(indice, 1).data_type == "s"
+        assert aba.cell(indice, 2).data_type == "n"
+    assert aba.print_area == "'Propostas'!$A$1:$B$7"

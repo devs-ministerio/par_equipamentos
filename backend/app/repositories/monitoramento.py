@@ -32,6 +32,7 @@ from app.db.models import (
     UserRole,
     UserStatus,
 )
+from app.domain_errors import ValidationError
 from app.pipeline.texto import normalizar_texto
 from app.repositories.notificacoes import criar_notificacao
 
@@ -136,11 +137,12 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
 def listar_instrumentos(
     db: Session,
     *,
-    limit: int = 500,
+    limit: int | None = 500,
     ufs: list[str] | None = None,
     municipio: str | None = None,
     cnes: str | None = None,
     tipo_contratacao: str | None = None,
+    limite_estrito: bool = False,
 ) -> list[InstrumentoEquipamento]:
     # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
     # consolidacao 2026-09-17) -- universo monitorado e pequeno hoje (86).
@@ -166,11 +168,17 @@ def listar_instrumentos(
         stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
     if tipo_contratacao:
         stmt = stmt.where(InstrumentoEquipamento.tipo_contratacao == tipo_contratacao)
-    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
-    resultado = list(db.execute(stmt).scalars().all())
-    if municipio:
-        alvo = normalizar_texto(municipio)
-        resultado = [i for i in resultado if normalizar_texto(i.municipio) == alvo]
+    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio, InstrumentoEquipamento.id)
+    alvo = normalizar_texto(municipio) if municipio else None
+    resultado: list[InstrumentoEquipamento] = []
+    for instrumento in db.execute(stmt.execution_options(yield_per=500)).scalars():
+        if alvo and normalizar_texto(instrumento.municipio) != alvo:
+            continue
+        resultado.append(instrumento)
+        if limit is not None and len(resultado) > limit:
+            if limite_estrito:
+                raise ValidationError("O recorte contém instrumentos demais para uma exportação. Refine os filtros.")
+            return resultado[:limit]
     return resultado
 
 
@@ -280,6 +288,21 @@ def listar_eventos_do_instrumento(db: Session, instrumento_id: int, *, apenas_at
     return list(db.execute(stmt.order_by(EventoMarco.created_at.desc(), EventoMarco.id.desc())).scalars().all())
 
 
+def listar_eventos_por_instrumentos(db: Session, instrumento_ids: set[int]) -> dict[int, list[EventoMarco]]:
+    """Timeline ativa em uma consulta para o relatório, sem N+1."""
+    resultado: dict[int, list[EventoMarco]] = defaultdict(list)
+    if not instrumento_ids:
+        return resultado
+    stmt = (
+        select(EventoMarco)
+        .where(EventoMarco.instrumento_id.in_(instrumento_ids), _EVENTO_ATIVO)
+        .order_by(EventoMarco.instrumento_id, EventoMarco.created_at.desc(), EventoMarco.id.desc())
+    )
+    for evento in db.execute(stmt).scalars():
+        resultado[evento.instrumento_id].append(evento)
+    return dict(resultado)
+
+
 def obter_evento_mais_recente_do_marco(
     db: Session,
     *,
@@ -326,6 +349,26 @@ def listar_acoes_do_instrumento(
         .scalars()
         .all()
     )
+
+
+def listar_acoes_por_instrumentos(db: Session, instrumento_ids: set[int]) -> dict[int, list[AcaoMonitoramento]]:
+    """Ações ativas em uma consulta para o relatório, com a ordem canônica."""
+    resultado: dict[int, list[AcaoMonitoramento]] = defaultdict(list)
+    if not instrumento_ids:
+        return resultado
+    stmt = (
+        select(AcaoMonitoramento)
+        .where(AcaoMonitoramento.instrumento_id.in_(instrumento_ids), _ACAO_ATIVA)
+        .order_by(
+            AcaoMonitoramento.instrumento_id,
+            AcaoMonitoramento.data_conclusao.desc().nulls_last(),
+            AcaoMonitoramento.created_at.desc(),
+            AcaoMonitoramento.id.desc(),
+        )
+    )
+    for acao in db.execute(stmt).scalars():
+        resultado[acao.instrumento_id].append(acao)
+    return dict(resultado)
 
 
 def listar_acoes_monitoradas(db: Session, *, pendentes: bool, limit: int) -> list[tuple[AcaoMonitoramento, str]]:

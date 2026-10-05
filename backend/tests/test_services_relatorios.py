@@ -29,6 +29,7 @@ from app.services.relatorios import (
     _data_inauguracao_previsao,
     _formatar_ultima_acao,
     _formatar_ultimo_evento,
+    _legendas_resumo,
     _linhas_convenio,
     _linhas_proposta,
     _observacao_publica,
@@ -50,7 +51,7 @@ def _garantir_convenio_948686(db) -> None:
     db.add(
         Convenio(
             numero="948686",
-            convenente_nome="INSTITUTO DE GESTAO ESTRATEGICA DE SAUDE DO DISTRITO FEDERAL - IGESDF",
+            convenente_nome="INSTITUICAO SINTETICA DE TESTE",
             uf="DF",
             tipo_contratacao="FAF",
         )
@@ -109,6 +110,40 @@ def test_filtro_titulo_inclui_ano_quando_informado():
 def test_filtro_titulo_inclui_periodo_quando_ano_inicio_e_fim_diferem():
     filtro = FiltroRelatorio(escopo="uf", uf="SP", ano_inicio=2020, ano_fim=2023)
     assert filtro.titulo() == "UF SP -- 2020 a 2023"
+
+
+def test_legendas_resumo_descrevem_geografia_periodo_e_filtros_por_fonte():
+    instrumentos, propostas, equipamentos = _legendas_resumo(
+        FiltroRelatorio(
+            escopo="uf",
+            uf="BA",
+            ano_inicio=2025,
+            ano_fim=2025,
+            equipamento="Mamógrafo",
+            tipo_contratacao="Convênio",
+        )
+    )
+    assert "no estado da Bahia no ano de 2025" in instrumentos
+    assert "equipamento: Mamógrafo" in instrumentos
+    assert "no estado da Bahia no ano de 2025" in propostas
+    assert "Mamógrafo" not in propostas
+    assert "equipamentos" in equipamentos.lower()
+    assert "equipamento: Mamógrafo" in equipamentos
+    assert "recorte selecionado" not in " ".join((instrumentos, propostas, equipamentos))
+
+
+def test_legendas_resumo_periodo_faixa_e_caracteres_geograficos():
+    instrumentos, propostas, equipamentos = _legendas_resumo(
+        FiltroRelatorio(
+            escopo="regiao",
+            regiao="Centro-Oeste",
+            ano_inicio=2020,
+            ano_fim=2023,
+        )
+    )
+    assert "na região Centro-Oeste no período de 2020 a 2023" in instrumentos
+    assert "na região Centro-Oeste no período de 2020 a 2023" in propostas
+    assert "na região Centro-Oeste no período de 2020 a 2023" in equipamentos
 
 
 def test_filtro_ano_fim_antes_de_ano_inicio_levanta_erro():
@@ -222,6 +257,7 @@ def test_instrumentos_repasse_xlsx_simplificado_tem_resumo_convenios_propostas_m
         )
         pasta = load_workbook(BytesIO(conteudo))
         assert pasta.sheetnames == [
+            "Leitura",
             "Resumo",
             "Resumo (Propostas)",
             "Resumo (Equipamentos)",
@@ -229,6 +265,8 @@ def test_instrumentos_repasse_xlsx_simplificado_tem_resumo_convenios_propostas_m
             "Propostas candidatas",
             "Monitoramento",
         ]
+        assert [cell.value for cell in pasta["Resumo"][1]] == ["Instrumentos/Programas", "Quantidade", "Valor"]
+        assert [cell.value for cell in pasta["Resumo (Equipamentos)"][1]] == ["Equipamentos", "Quantidade", "Valor"]
     finally:
         db.close()
 
@@ -265,6 +303,8 @@ def test_instrumentos_repasse_docx_completo_narra_um_bloco_por_convenio():
         )
         documento = Document(BytesIO(conteudo))
         textos = [p.text for p in documento.paragraphs]
+        assert any("Instrumentos e programas no CNES 9000001" in t for t in textos)
+        assert not any("recorte selecionado" in t for t in textos)
         # Rótulo usa o `tipo_contratacao` real do convênio (Bloco 8 --
         # "PERSUS, TED e FAF não são tratados como convênio"), não mais
         # "Convênio" fixo -- fixture (`tests/fixtures_cobertura.py`) marca
@@ -272,6 +312,16 @@ def test_instrumentos_repasse_docx_completo_narra_um_bloco_por_convenio():
         assert any("FAF __pytest_cnes_fk__" in t for t in textos)
         assert any(t.startswith("Objeto:") for t in textos)
         assert any(t == "Financeiro" for t in textos)
+        assert [cell.text for cell in documento.tables[0].rows[0].cells] == [
+            "Instrumentos/Programas",
+            "Quantidade",
+            "Valor",
+        ]
+        assert not any(
+            cell.text in {"Com valor", "Sem valor", "Valor conhecido"}
+            for tabela in documento.tables
+            for cell in tabela.rows[0].cells
+        )
         # Algumas tabelas do documento têm só cabeçalho (ex. "Resumo
         # (Equipamentos)" quando o convênio da fixture não tem
         # EquipamentoMarcador) -- `rows[1]` estouraria IndexError nelas, daí
@@ -372,7 +422,8 @@ def test_analise_merito_xlsx_so_tem_abas_de_cobertura():
             filtro=FiltroRelatorio(escopo="uf", uf="DF"),
         )
         pasta = load_workbook(BytesIO(conteudo))
-        assert all(nome.startswith("Cobertura") for nome in pasta.sheetnames)
+        assert pasta.sheetnames[0] == "Leitura"
+        assert all(nome.startswith("Cobertura") for nome in pasta.sheetnames[1:])
         assert "Convênios" not in pasta.sheetnames
         assert "Monitoramento" not in pasta.sheetnames
     finally:
@@ -410,8 +461,33 @@ def test_analise_merito_uf_sem_cobertura_gera_arquivo_valido_sem_quebrar():
             filtro=FiltroRelatorio(escopo="uf", uf="AC"),
         )
         pasta = load_workbook(BytesIO(conteudo))
-        assert pasta.sheetnames == ["Cobertura TOMOGRAFO"]
+        assert pasta.sheetnames == ["Leitura", "Cobertura TOMOGRAFO"]
         assert pasta["Cobertura TOMOGRAFO"].max_row == 1
+    finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_merito_municipio_simplificado_nao_exporta_total_da_macro():
+    # Arrange: fixture tem Cidade Alfa (120 mil) dentro de Macro Um (310 mil).
+    db = SessionLocal()
+    try:
+        # Act
+        conteudo = montar_relatorio(
+            db=db,
+            formato="xlsx",
+            nivel="simplificado",
+            tipo_relatorio="analise_merito",
+            filtro=FiltroRelatorio(escopo="municipio", uf="DF", municipio="Cidade Alfa"),
+        )
+        pasta = load_workbook(BytesIO(conteudo))
+        aba = pasta["Cobertura TOMOGRAFO"]
+
+        # Assert: grão municipal mesmo no nível simplificado.
+        assert aba["A1"].value == "Município"
+        assert aba["A2"].value == "Cidade Alfa"
+        assert aba["C2"].value == 120_000
+        assert aba.max_row == 2
     finally:
         db.close()
 
@@ -537,7 +613,7 @@ def test_analise_merito_sem_familia_publicada_gera_arquivo_com_aviso_em_vez_de_q
             filtro=FiltroRelatorio(escopo="brasil"),
         )
         pasta = load_workbook(BytesIO(conteudo))
-        assert pasta.sheetnames == ["Cobertura"]
+        assert pasta.sheetnames == ["Leitura", "Cobertura"]
         assert pasta["Cobertura"]["A2"].value.startswith("Nenhuma família")
     finally:
         db.close()

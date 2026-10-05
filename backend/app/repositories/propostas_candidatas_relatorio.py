@@ -13,6 +13,7 @@ from sqlalchemy import extract, select
 from sqlalchemy.orm import Session
 
 from app.db.models import PropostaCandidata
+from app.domain_errors import ValidationError
 from app.pipeline.texto import normalizar_texto
 
 # Teto de segurança do relatório -- mesmo espírito do Bloco 4 do Plan Mode
@@ -48,9 +49,13 @@ def listar_propostas_filtradas(
         stmt = stmt.where(extract("year", PropostaCandidata.data_proposta) >= ano_inicio)
     if ano_fim is not None:
         stmt = stmt.where(extract("year", PropostaCandidata.data_proposta) <= ano_fim)
-    stmt = stmt.order_by(PropostaCandidata.data_proposta.desc().nulls_last()).limit(LIMITE_RELATORIO)
-    resultado = list(db.execute(stmt).scalars().all())
-    if municipio:
-        alvo = normalizar_texto(municipio)
-        resultado = [p for p in resultado if normalizar_texto(p.municipio) == alvo]
+    stmt = stmt.order_by(PropostaCandidata.data_proposta.desc().nulls_last(), PropostaCandidata.id_proposta)
+    alvo = normalizar_texto(municipio) if municipio else None
+    resultado: list[PropostaCandidata] = []
+    for proposta in db.execute(stmt.execution_options(yield_per=500)).scalars():
+        if alvo and normalizar_texto(proposta.municipio) != alvo:
+            continue
+        resultado.append(proposta)
+        if len(resultado) > LIMITE_RELATORIO:
+            raise ValidationError("O recorte contém propostas demais para uma exportação. Refine os filtros.")
     return resultado

@@ -65,6 +65,27 @@ test.describe("Fluxo autenticado", () => {
     await expect(page).not.toHaveURL(/\/login/);
   });
 
+  test("baixa Excel e Word dos relatórios autenticados", async ({ page }) => {
+    await autenticar(page);
+    await page.goto("/monitoramento-equipamentos/relatorios");
+    await expect(
+      page.getByRole("heading", { name: "Relatórios" }),
+    ).toBeVisible();
+
+    for (const [rotulo, extensao] of [
+      ["Baixar Excel", ".xlsx"],
+      ["Baixar Word", ".docx"],
+    ] as const) {
+      const [download] = await Promise.all([
+        page.waitForEvent("download", { timeout: 60_000 }),
+        page.getByRole("button", { name: new RegExp(rotulo) }).click(),
+      ]);
+      expect(download.suggestedFilename().startsWith("relatorio-")).toBe(true);
+      expect(download.suggestedFilename().endsWith(extensao)).toBe(true);
+      expect(await download.failure()).toBeNull();
+    }
+  });
+
   test("painel mostra recorte, dashboards e alternância do mapa", async ({
     page,
   }) => {
