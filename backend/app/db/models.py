@@ -193,6 +193,15 @@ class RefreshToken(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    # Timeout por inatividade/absoluto (2026-10-05, ver `Settings.
+    # refresh_idle_timeout_minutes`/`refresh_absolute_timeout_minutes`).
+    # `last_used_at` e' atualizado a cada rotacao (idle); `session_started_at`
+    # e' copiado do login original pra toda a cadeia de rotacoes, nunca
+    # resetado (absoluto) -- sem os dois campos nao da pra distinguir "uso
+    # continuo" de "sessao recem-aberta".
+    last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    session_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
     __table_args__ = (
         Index("idx_refresh_token_user", "user_id"),
         UniqueConstraint("token_hash", name="uq_refresh_token_token_hash"),
