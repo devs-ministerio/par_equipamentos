@@ -281,9 +281,7 @@ def test_rotacao_propaga_session_started_at_pela_cadeia():
         token, sessao_id = create_refresh_token(db, user)
         db.commit()
         inicio_original = datetime.now(timezone.utc) - timedelta(hours=1)
-        db.execute(
-            update(RefreshToken).where(RefreshToken.id == sessao_id).values(session_started_at=inicio_original)
-        )
+        db.execute(update(RefreshToken).where(RefreshToken.id == sessao_id).values(session_started_at=inicio_original))
         db.commit()
 
         _, _, nova_sessao_id = rotate_refresh_token(db, token)
