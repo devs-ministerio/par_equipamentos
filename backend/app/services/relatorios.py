@@ -45,13 +45,23 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from docx.document import Document as DocumentType
 from sqlalchemy.orm import Session
 
-from app.db.models import AcaoMonitoramento, Convenio, EventoMarco, MarcoCatalogo, MarcoGrupo, PropostaCandidata
+from app.db.models import (
+    AcaoMonitoramento,
+    Competency,
+    Convenio,
+    EventoMarco,
+    Execution,
+    MarcoCatalogo,
+    MarcoGrupo,
+    PropostaCandidata,
+)
 from app.domain_errors import ValidationError
-from app.geo_reference import REGIOES, ufs_da_regiao
+from app.geo_reference import NOME_POR_UF, REGIOES, ufs_da_regiao
 from app.pipeline.texto import capitalizar_nome, parsear_valor_brasileiro
 from app.reports import docx_builder, xlsx_builder
 from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
@@ -228,6 +238,78 @@ def _assunto(db: Session | None, filtro: FiltroRelatorio) -> str:
     return "Brasil"
 
 
+def _descricao_recorte(filtro: FiltroRelatorio) -> str:
+    """Geografia e período compartilhados pelas fontes, sem atribuir a elas
+    os filtros exclusivos de convênios."""
+    if filtro.escopo == "brasil":
+        lugar = "no Brasil"
+    elif filtro.escopo == "regiao":
+        lugar = f"na região {filtro.regiao}"
+    elif filtro.escopo == "uf":
+        nome = NOME_POR_UF.get(filtro.uf or "", filtro.uf or "")
+        if filtro.uf == "DF":
+            lugar = "no Distrito Federal"
+        else:
+            artigo = (
+                "da"
+                if filtro.uf in {"BA", "PB"}
+                else "do"
+                if filtro.uf in {"AC", "AP", "AM", "CE", "ES", "MA", "PA", "PR", "PI", "RJ", "RN", "RS", "TO"}
+                else "de"
+            )
+            lugar = f"no estado {artigo} {nome}"
+    elif filtro.escopo == "municipio":
+        lugar = f"no município de {capitalizar_nome(filtro.municipio or '')}/{filtro.uf}"
+    else:
+        lugar = f"no CNES {filtro.cnes}"
+
+    if filtro.ano_inicio is None:
+        return lugar
+    if filtro.ano_inicio == filtro.ano_fim:
+        return f"{lugar} no ano de {filtro.ano_inicio}"
+    return f"{lugar} no período de {filtro.ano_inicio} a {filtro.ano_fim}"
+
+
+def _legendas_resumo(filtro: FiltroRelatorio) -> tuple[str, str, str]:
+    recorte = _descricao_recorte(filtro)
+    filtros_convenios = [
+        f"{rotulo}: {valor}"
+        for rotulo, valor in (
+            ("situação", filtro.situacao),
+            ("programa", filtro.programa),
+            ("equipamento", filtro.equipamento),
+            ("busca", filtro.busca),
+        )
+        if valor
+    ]
+    restricoes = f" Convênios filtrados por {'; '.join(filtros_convenios)}." if filtros_convenios else ""
+    tipo_instrumentos = (
+        f" Convênios e monitoramento filtrados por tipo de contratação: {filtro.tipo_contratacao}."
+        if filtro.tipo_contratacao
+        else ""
+    )
+    tipo_equipamentos = (
+        f" Convênios filtrados por tipo de contratação: {filtro.tipo_contratacao}." if filtro.tipo_contratacao else ""
+    )
+    contexto_propostas = (
+        "ano da proposta; sem filtros de convênios ou monitoramento"
+        if filtro.ano_inicio is not None
+        else "sem filtros de convênios ou monitoramento"
+    )
+    ressalva_monitoramento = ""
+    if (
+        filtro.ano_inicio is not None
+        and filtro.ano_fim is not None
+        and filtro.ano_inicio <= date.today().year <= filtro.ano_fim
+    ):
+        ressalva_monitoramento = " A carteira monitorada inclui instrumentos em andamento de anos anteriores."
+    return (
+        f"Instrumentos e programas {recorte}.{restricoes}{tipo_instrumentos}{ressalva_monitoramento}",
+        f"Propostas candidatas {recorte} ({contexto_propostas}).",
+        f"Equipamentos identificados em convênios {recorte}.{restricoes}{tipo_equipamentos}",
+    )
+
+
 # ---------------------------------------------------------------------
 # Análise de mérito (cobertura/déficit) -- sem dimensão de ano.
 # ---------------------------------------------------------------------
@@ -243,7 +325,7 @@ def _secao_cobertura_linhas(db: Session, filtro: FiltroRelatorio, nivel: Nivel) 
         exec_id = execucoes_repo.obter_execucao_publicada_mais_recente(db, familia)
         if exec_id is None:
             continue
-        if nivel == "simplificado":
+        if nivel == "simplificado" and filtro.escopo != "municipio":
             colunas = ["Macrorregião", "UF", "População", "Necessário", "Disponível SUS", "Saldo"]
             linhas = [
                 [m.macro_name, m.state, m.population, m.required_qty, m.available_qty, m.balance]
@@ -261,8 +343,73 @@ def _secao_cobertura_linhas(db: Session, filtro: FiltroRelatorio, nivel: Nivel) 
     return secoes
 
 
+def _competencias_publicadas(db: Session) -> dict[str, str]:
+    resultado: dict[str, str] = {}
+    for familia in execucoes_repo.listar_familias_publicadas(db):
+        execucao_id = execucoes_repo.obter_execucao_publicada_mais_recente(db, familia)
+        execucao = db.get(Execution, execucao_id) if execucao_id is not None else None
+        competencia = db.get(Competency, execucao.competency_id) if execucao else None
+        if competencia:
+            resultado[familia] = competencia.label
+    return resultado
+
+
+def _linhas_leitura(
+    filtro: FiltroRelatorio,
+    nivel: Nivel,
+    tipo: TipoRelatorio,
+    contagens: dict[str, int],
+    competencias: dict[str, str] | None = None,
+) -> list[list[object]]:
+    linhas: list[list[object]] = [
+        ["Relatório", "Análise de mérito" if tipo == "analise_merito" else "Instrumentos e repasse"],
+        ["Recorte", filtro.titulo()],
+        ["Nível", nivel.capitalize()],
+        [
+            "Gerado em (Brasília)",
+            datetime.now(timezone.utc).astimezone(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M"),
+        ],
+    ]
+    if tipo == "analise_merito":
+        linhas.append(["Fonte", "Cobertura publicada no SIGEO; oferta SUS e em uso (CNES/ElastiCNES)"])
+        linhas.append(["Grão", "Município" if nivel == "completo" or filtro.escopo == "municipio" else "Macrorregião"])
+        for familia, competencia in (competencias or {}).items():
+            linhas.append([f"Competência {familia}", competencia])
+        linhas.append(["Ano civil", "Não aplicável à cobertura; cada família usa sua execução publicada."])
+    else:
+        linhas.extend(
+            [
+                ["Fontes", "Convênios: SICONV/TransfereGov; propostas: TransfereGov; monitoramento: cadastro interno"],
+                [
+                    "Filtros gerais",
+                    "Geografia e CNES; período por ano do instrumento/proposta. Monitoramento inclui fase aberta no ano corrente.",
+                ],
+                [
+                    "Filtros exclusivos de convênios",
+                    "Situação, programa, equipamento e busca não filtram propostas nem monitoramento.",
+                ],
+                ["Tipo de contratação", "Filtra convênios e monitoramento; não filtra propostas."],
+                ["Valor", "Soma apenas valores informados; não estima registros sem valor."],
+                ["Contagem de convênios", contagens.get("convenios", 0)],
+                ["Contagem de propostas", contagens.get("propostas", 0)],
+                ["Contagem de instrumentos monitorados", contagens.get("monitoramento", 0)],
+            ]
+        )
+        for rotulo, valor in (
+            ("Situação do convênio", filtro.situacao),
+            ("Programa do convênio", filtro.programa),
+            ("Tipo de contratação", filtro.tipo_contratacao),
+            ("Equipamento do convênio", filtro.equipamento),
+            ("Busca em convênios", filtro.busca),
+        ):
+            if valor:
+                linhas.append([rotulo, valor])
+    return linhas
+
+
 def _montar_analise_merito(db: Session, formato: Formato, nivel: Nivel, filtro: FiltroRelatorio) -> bytes:
     secoes = _secao_cobertura_linhas(db, filtro, nivel)
+    competencias = _competencias_publicadas(db)
     if not secoes:
         # Nenhuma família de equipamento com execução publicada pro recorte
         # pedido -- achado ao vivo (Bloco 5): sem isso, uma pasta Excel sem
@@ -278,16 +425,27 @@ def _montar_analise_merito(db: Session, formato: Formato, nivel: Nivel, filtro: 
         ]
     if formato == "xlsx":
         pasta = xlsx_builder.nova_pasta()
+        xlsx_builder.escrever_aba_tabela(
+            pasta,
+            "Leitura",
+            ["Campo", "Valor"],
+            _linhas_leitura(filtro, nivel, "analise_merito", {}, competencias),
+        )
         for titulo_aba, colunas, linhas in secoes:
             xlsx_builder.escrever_aba_tabela(pasta, titulo_aba, colunas, linhas)
         return xlsx_builder.gerar_bytes(pasta)
     documento = docx_builder.novo_documento(f"Análise de mérito -- {filtro.titulo()}")
     docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=datetime.now(timezone.utc))
+    docx_builder.adicionar_paragrafo(documento, "Cobertura por família com execução publicada; oferta SUS e em uso.")
+    for familia, competencia in competencias.items():
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, f"Competência {familia}", competencia)
     tabelas = [
         SecaoTabela(
             titulo_secao,
             colunas,
-            docx_builder.linhas_como_texto(colunas, linhas),
+            docx_builder.linhas_como_texto(
+                colunas, linhas, colunas_inteiro=["População", "Necessário", "Disponível SUS", "Saldo"]
+            ),
             pesos_colunas=[3, 0.5, 1.5, 1.3, 1.5, 1] if len(colunas) == 6 else None,
             fonte_pt=11 if len(colunas) == 6 else None,
         )
@@ -665,22 +823,32 @@ def _resumo_instrumentos_programas(
     convenios: Sequence[Convenio], instrumentos: Sequence[InstrumentoComFase]
 ) -> tuple[list[str], list[list[object]]]:
     """1ª tabela do "Resumo executivo" (Bloco 8, mockup do usuário) --
-    contagem + valor global por `tipo_contratacao`, mais a contagem (sem
-    valor -- é acompanhamento, não financeiro) de instrumentos monitorados
+    contagem + valor global conhecido por `tipo_contratacao`, mais a contagem (sem
+    valor financeiro -- é acompanhamento) de instrumentos monitorados
     internamente."""
     colunas = ["Instrumentos/Programas", "Quantidade", "Valor"]
     contagem: Counter[str] = Counter()
+    com_valor: Counter[str] = Counter()
     valor_por_tipo: dict[str, float] = defaultdict(float)
     for c in convenios:
         tipo = c.tipo_contratacao or "Convênio"
         contagem[tipo] += 1
-        valor_por_tipo[tipo] += float(_valor_global_confiavel(c) or 0)
+        valor = _valor_global_confiavel(c)
+        if valor is not None:
+            com_valor[tipo] += 1
+            valor_por_tipo[tipo] += float(valor)
     linhas: list[list[object]] = []
     tipos_em_ordem = [t for t in _ORDEM_TIPO_CONTRATACAO if t in contagem]
     tipos_em_ordem += sorted(t for t in contagem if t not in _ORDEM_TIPO_CONTRATACAO)
     for tipo in tipos_em_ordem:
-        linhas.append([_ROTULO_TIPO_CONTRATACAO.get(tipo, tipo), contagem[tipo], valor_por_tipo[tipo]])
-    linhas.append(["Instrumentos monitorados", len(instrumentos), None])
+        linhas.append(
+            [
+                _ROTULO_TIPO_CONTRATACAO.get(tipo, tipo),
+                contagem[tipo],
+                valor_por_tipo[tipo] if com_valor[tipo] else None,
+            ]
+        )
+    linhas.append(["Instrumentos monitorados (carteira de acompanhamento)", len(instrumentos), None])
     return colunas, linhas
 
 
@@ -695,13 +863,19 @@ _SITUACOES_PROPOSTA = [
 def _resumo_propostas(propostas: Sequence[PropostaCandidata]) -> tuple[list[str], list[list[object]]]:
     """2ª tabela -- por `situacao_proposta` (as 4 únicas confirmadas contra
     o banco real -- Bloco 8) + "Parcerias Firmadas" (`tem_parceria`)."""
-    colunas = ["Instrumentos/Programas", "Quantidade", "Valor"]
+    colunas = ["Propostas candidatas", "Quantidade", "Valor"]
     linhas: list[list[object]] = []
     for chave, rotulo in _SITUACOES_PROPOSTA:
         itens = [p for p in propostas if p.situacao_proposta == chave]
         linhas.append([rotulo, len(itens), sum(float(p.vl_global_proposta or 0) for p in itens)])
     parcerias = [p for p in propostas if p.tem_parceria]
-    linhas.append(["Parcerias Firmadas", len(parcerias), sum(float(p.vl_global_proposta or 0) for p in parcerias)])
+    linhas.append(
+        [
+            "Parcerias firmadas (subconjunto das situações acima)",
+            len(parcerias),
+            sum(float(p.vl_global_proposta or 0) for p in parcerias),
+        ]
+    )
     return colunas, linhas
 
 
@@ -710,22 +884,21 @@ def _resumo_equipamentos(
 ) -> tuple[list[str], list[list[object]]]:
     """3ª tabela -- agregado de `EquipamentoMarcador` por tipo entre todos
     os convênios do recorte. "Valor" soma o `VALOR_TOTAL_ITEM` do plano de
-    aplicação (achado ao vivo 2026-09-27, lembrete do usuário) quando
-    achado pra TODAS as ocorrências daquele nome; fica `None` só quando
-    nenhuma ocorrência tem valor identificado (equipamento de origem sem
-    plano de aplicação estruturado, ex. PERSUS)."""
+    aplicação (achado ao vivo 2026-09-27, lembrete do usuário). A soma
+    contempla somente ocorrências com valor conhecido; as demais não são
+    tratadas como zero."""
     colunas = ["Equipamentos", "Quantidade", "Valor"]
     contagem: Counter[str] = Counter()
+    com_valor: Counter[str] = Counter()
     valor_por_nome: dict[str, float] = defaultdict(float)
-    tem_valor: dict[str, bool] = defaultdict(bool)
     for itens in equipamentos_por_convenio.values():
         for nome, valor in itens:
             contagem[nome] += 1
             if valor is not None:
                 valor_por_nome[nome] += valor
-                tem_valor[nome] = True
+                com_valor[nome] += 1
     linhas: list[list[object]] = [
-        [nome, quantidade, valor_por_nome[nome] if tem_valor.get(nome) else None]
+        [nome, quantidade, valor_por_nome[nome] if com_valor[nome] else None]
         for nome, quantidade in sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
     ]
     return colunas, linhas
@@ -739,13 +912,29 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
 
     pasta = xlsx_builder.nova_pasta()
     xlsx_builder.escrever_aba_tabela(
+        pasta,
+        "Leitura",
+        ["Campo", "Valor"],
+        _linhas_leitura(
+            filtro,
+            nivel,
+            "instrumentos_repasse",
+            {"convenios": len(convenios), "propostas": len(propostas), "monitoramento": len(instrumentos)},
+        ),
+    )
+    xlsx_builder.escrever_aba_tabela(
         pasta, "Resumo", *_resumo_instrumentos_programas(convenios, instrumentos), colunas_moeda=["Valor"]
     )
     xlsx_builder.escrever_aba_tabela(
         pasta, "Resumo (Propostas)", *_resumo_propostas(propostas), colunas_moeda=["Valor"]
     )
+    colunas_equip, linhas_equip = _resumo_equipamentos(equipamentos_por_convenio)
     xlsx_builder.escrever_aba_tabela(
-        pasta, "Resumo (Equipamentos)", *_resumo_equipamentos(equipamentos_por_convenio), colunas_moeda=["Valor"]
+        pasta,
+        "Resumo (Equipamentos)",
+        colunas_equip,
+        linhas_equip or [["Nenhum equipamento identificado", 0, None]],
+        colunas_moeda=["Valor"],
     )
     colunas_conv, linhas_conv = _tabela_convenios(convenios, nivel)
     xlsx_builder.escrever_aba_tabela(
@@ -935,7 +1124,13 @@ def _tabela_equipamentos_bloco(documento: DocumentType, itens: Sequence[tuple[st
     linhas: list[list[object]] = []
     for nome, valores in sorted(valores_por_nome.items(), key=lambda kv: (-len(kv[1]), kv[0])):
         preenchidos = [v for v in valores if v is not None]
-        linhas.append([nome, len(valores), sum(preenchidos) if preenchidos else None])
+        linhas.append(
+            [
+                nome,
+                len(valores),
+                sum(preenchidos) if preenchidos else None,
+            ]
+        )
     docx_builder.adicionar_tabela(
         documento, colunas, docx_builder.linhas_como_texto(colunas, linhas, colunas_moeda=["Valor"])
     )
@@ -1047,17 +1242,39 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
     periodo = filtro.periodo_referencia()
     if periodo:
         docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Período de referência", periodo)
+    filtros_exclusivos = [
+        f"{rotulo}: {valor}"
+        for rotulo, valor in (
+            ("situação", filtro.situacao),
+            ("programa", filtro.programa),
+            ("equipamento", filtro.equipamento),
+            ("busca", filtro.busca),
+        )
+        if valor
+    ]
+    if filtros_exclusivos:
+        docx_builder.adicionar_paragrafo_rotulo_valor(
+            documento, "Filtros exclusivos de convênios", "; ".join(filtros_exclusivos)
+        )
+    if filtro.tipo_contratacao:
+        docx_builder.adicionar_paragrafo_rotulo_valor(
+            documento, "Tipo de contratação (convênios e monitoramento)", filtro.tipo_contratacao
+        )
     docx_builder.adicionar_paragrafo(
         documento, "No que compete ao Departamento de Atenção ao Câncer – DECAN, informa-se:"
     )
     contador: Iterator[int] = itertools.count(1)
 
     docx_builder.adicionar_titulo(documento, "Resumo executivo")
+    legenda_instrumentos, legenda_propostas, legenda_equipamentos = _legendas_resumo(filtro)
     for colunas_resumo, linhas_resumo, legenda in (
-        (*_resumo_instrumentos_programas(convenios, instrumentos), "Instrumentos e programas do recorte selecionado."),
-        (*_resumo_propostas(propostas), "Propostas candidatas por situação."),
-        (*_resumo_equipamentos(equipamentos_por_convenio), "Equipamentos identificados no recorte selecionado."),
+        (*_resumo_instrumentos_programas(convenios, instrumentos), legenda_instrumentos),
+        (*_resumo_propostas(propostas), legenda_propostas),
+        (*_resumo_equipamentos(equipamentos_por_convenio), legenda_equipamentos),
     ):
+        if not linhas_resumo:
+            docx_builder.adicionar_paragrafo(documento, "Nenhum equipamento identificado neste recorte.")
+            continue
         docx_builder.adicionar_tabela(
             documento,
             colunas_resumo,
@@ -1067,6 +1284,9 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
     docx_builder.adicionar_fonte(
         documento,
         "Convênios (SICONV/TransfereGov), propostas candidatas (TransfereGov) e monitoramento interno, SIGEO.",
+    )
+    docx_builder.adicionar_paragrafo(
+        documento, "Os valores somam apenas registros com valor informado; não estimam os demais."
     )
     persus_ii_do_recorte = [c for c in convenios if c.tipo_contratacao == "PERSUS II"]
     if persus_ii_do_recorte and all(c.situacao == _SITUACAO_SEM_MONITORAMENTO_ESPERADO for c in persus_ii_do_recorte):

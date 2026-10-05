@@ -39,8 +39,10 @@ def test_tabelas_paginam_com_cabecalho_repetido_sem_partir_linhas(total):
         propriedades_linha = linha._tr.trPr
         assert propriedades_linha is not None
         assert propriedades_linha.find(qn("w:cantSplit")) is not None
+    # Tabela sem registros ganha uma linha de aviso, que também conta na paginação.
+    registros = max(total, 1)
     for indice, linha in enumerate(tabela.rows):
-        esperado = True if indice < total and (total + 1 <= 6 or indice == 0) else None
+        esperado = True if indice < registros and (registros + 1 <= 6 or indice == 0) else None
         assert linha.cells[0].paragraphs[0].paragraph_format.keep_with_next is esperado
     assert tabela.rows[-1].cells[0].paragraphs[0].paragraph_format.keep_with_next is None
 

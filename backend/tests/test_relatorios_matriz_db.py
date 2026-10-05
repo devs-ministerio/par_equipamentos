@@ -74,7 +74,9 @@ def test_filtro_exporta_exatamente_os_convenios_esperados(carteira_matriz, forma
         assert pasta["Convênios"].freeze_panes == "A2"
         resumo = pasta["Resumo"]
         assert sum(
-            linha[1].value for linha in resumo.iter_rows(min_row=2) if linha[0].value != "Instrumentos monitorados"
+            linha[1].value
+            for linha in resumo.iter_rows(min_row=2)
+            if not str(linha[0].value).startswith("Instrumentos monitorados")
         ) == len(numeros)
     else:
         documento = Document(BytesIO(conteudo))

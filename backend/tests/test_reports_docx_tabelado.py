@@ -47,7 +47,7 @@ def test_gravacao_progressiva_preserva_xml_e_partes_do_modelo(total, formatado):
             if nome != "word/document.xml":
                 assert a.read(nome) == b.read(nome)
     reaberto = Document(BytesIO(novo))
-    assert len(reaberto.tables[0].rows) == total + 1
+    assert len(reaberto.tables[0].rows) == max(total, 1) + 1  # sem registros, há linha de aviso
     assert len(progressivo.tables[0].rows) == 1  # XML dos dados não fica no template.
     if total:
         assert reaberto.tables[0].cell(1, 1).text == "0000434"
@@ -67,7 +67,7 @@ def test_multiplas_secoes_preservam_ordem_e_nao_misturam_linhas():
     assert [p.text for p in reaberto.paragraphs] == ["Capa", "Primeira", "Vazia", "Última"]
     assert [[c.text for r in t.rows for c in r.cells] for t in reaberto.tables] == [
         ["Nome", "ação"],
-        ["Nome"],
+        ["Nome", docx_builder.TEXTO_SEM_REGISTROS],
         ["Nome", "conclusão"],
     ]
 

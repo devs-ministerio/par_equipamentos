@@ -166,7 +166,7 @@ def listar_instrumentos(
         stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
     if tipo_contratacao:
         stmt = stmt.where(InstrumentoEquipamento.tipo_contratacao == tipo_contratacao)
-    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
+    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio, InstrumentoEquipamento.id).limit(limit)
     resultado = list(db.execute(stmt).scalars().all())
     if municipio:
         alvo = normalizar_texto(municipio)

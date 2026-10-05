@@ -10,6 +10,7 @@ from sqlalchemy import update
 from app.db.base import SessionLocal
 from app.db.models import Competency
 from app.domain_errors import ValidationError
+from app.reports import docx_builder
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from tests.fixtures_relatorios_merito import FAMILIAS, criar_publicacoes_merito, criar_resultado
 
@@ -35,9 +36,16 @@ def publicacoes_merito():
 def ler_secoes(conteudo, formato):
     if formato == "xlsx":
         pasta = load_workbook(BytesIO(conteudo))
-        return {aba.title: [list(row) for row in aba.iter_rows(values_only=True)] for aba in pasta}
+        # A aba "Leitura" descreve o recorte; o conteúdo de cobertura é o restante.
+        return {
+            aba.title: [list(row) for row in aba.iter_rows(values_only=True)] for aba in pasta if aba.title != "Leitura"
+        }
     documento = Document(BytesIO(conteudo))
-    titulos = [p.text for p in documento.paragraphs if p.text.startswith("Cobertura")]
+    titulos = [
+        p.text
+        for p in documento.paragraphs
+        if p.text.startswith("Cobertura") and not p.text.startswith("Cobertura por família")
+    ]
     return {
         titulo: [[c.text for c in row.cells] for row in tabela.rows]
         for titulo, tabela in zip(titulos, documento.tables, strict=True)
@@ -58,8 +66,18 @@ def linhas_esperadas(familia, nivel):
     ]
 
 
+def _texto_word(valor):
+    if valor is None:
+        return "—"
+    # Colunas numéricas do Word usam separador de milhar pt-BR.
+    return f"{valor:,}".replace(",", ".") if isinstance(valor, int) else str(valor)
+
+
 def normalizar_word(linhas):
-    return [["—" if valor is None else str(valor) for valor in linha] for linha in linhas]
+    if not linhas:
+        # Recorte sem registros: o Word traz uma linha de aviso na primeira coluna.
+        return [[docx_builder.TEXTO_SEM_REGISTROS, "", "", "", "", ""]]
+    return [[_texto_word(valor) for valor in linha] for linha in linhas]
 
 
 @pytest.mark.parametrize("formato", ["xlsx", "docx"])

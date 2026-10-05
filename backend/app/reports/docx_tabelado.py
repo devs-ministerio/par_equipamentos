@@ -8,7 +8,9 @@ from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from docx.document import Document as DocumentType
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml.ns import qn
+from docx.shared import Pt
 from docx.table import Table, _Row
 from lxml import etree
 
@@ -25,7 +27,8 @@ class SecaoTabela:
 
 
 def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> None:
-    total = len(secao.linhas) + 1
+    # Seção vazia ganha uma linha de aviso, igual a `docx_builder.adicionar_tabela`.
+    total = max(len(secao.linhas), 1) + 1
     cabecalho = tabela.rows[0]
     docx_builder._formatar_linha_tabela(cabecalho, secao.fonte_pt, indice=0, total=total)
     with xml.element(tabela._tbl.tag, tabela._tbl.attrib):
@@ -34,7 +37,9 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
         xml.write(cabecalho._tr)
         modelo = tabela.add_row()
         for celula in modelo.cells:
-            celula.paragraphs[0].add_run()
+            # Mesma apresentação de `docx_builder.adicionar_tabela`.
+            celula.paragraphs[0].add_run().font.size = Pt(8.5)
+            celula.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
         docx_builder._formatar_linha_tabela(modelo, secao.fonte_pt, indice=1, total=total)
         tabela._tbl.remove(modelo._tr)
         for indice, valores in enumerate(secao.linhas, start=1):
@@ -51,6 +56,10 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
             finally:
                 # A linha já está no ZIP; não acumular XML ou wrappers por município.
                 tabela._tbl.remove(linha._tr)
+        if not secao.linhas:
+            vazia = _Row(deepcopy(modelo._tr), tabela)
+            vazia.cells[0].paragraphs[0].runs[0].text = docx_builder.TEXTO_SEM_REGISTROS
+            xml.write(vazia._tr)
 
 
 def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]) -> bytes:
@@ -67,7 +76,12 @@ def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]
             docx_builder.adicionar_titulo(documento, secao.titulo)
             tabelas.append(
                 docx_builder.adicionar_tabela(
-                    documento, secao.colunas, [], pesos_colunas=secao.pesos_colunas, fonte_pt=secao.fonte_pt
+                    documento,
+                    secao.colunas,
+                    [],
+                    pesos_colunas=secao.pesos_colunas,
+                    fonte_pt=secao.fonte_pt,
+                    texto_vazio=None,
                 )
             )
         modelo = docx_builder.gerar_bytes(documento)

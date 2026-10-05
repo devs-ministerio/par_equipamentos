@@ -97,7 +97,7 @@ def listar_convenios_filtrados(
                 Convenio.objeto.ilike(alvo),
             )
         )
-    stmt = stmt.order_by(Convenio.numero)
+    stmt = stmt.order_by(Convenio.numero, Convenio.id)
     if municipio:
         alvo_municipio = normalizar_texto(municipio)
         return listar_sem_truncar(
