@@ -163,14 +163,26 @@ def _hash_refresh_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def create_refresh_token(db: Session, user: User) -> tuple[str, int]:
+def create_refresh_token(db: Session, user: User, session_started_at: datetime | None = None) -> tuple[str, int]:
     """Gera um refresh token opaco novo, grava o HASH em `refresh_token`
     (Bloco 2) e devolve o valor bruto -- so existe em claro neste retorno,
     pra ser setado no cookie HttpOnly pelo router. Nao faz `db.commit()`
-    (quem chama decide, mesmo padrao dos services de monitoramento)."""
+    (quem chama decide, mesmo padrao dos services de monitoramento).
+
+    `session_started_at` so e passado por `rotate_refresh_token`, pra
+    propagar o inicio da cadeia (login original) e sustentar o teto
+    absoluto (2026-10-05) -- login novo (sem argumento) comeca uma cadeia
+    nova, com `session_started_at` = agora."""
+    agora = datetime.now(timezone.utc)
     token = secrets.token_urlsafe(32)
-    expira_em = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
-    sessao = RefreshToken(user_id=user.id, token_hash=_hash_refresh_token(token), expires_at=expira_em)
+    expira_em = agora + timedelta(days=settings.refresh_token_expire_days)
+    sessao = RefreshToken(
+        user_id=user.id,
+        token_hash=_hash_refresh_token(token),
+        expires_at=expira_em,
+        last_used_at=agora,
+        session_started_at=session_started_at or agora,
+    )
     db.add(sessao)
     # O id e colocado no JWT de acesso. `flush` preserva a transação para
     # quem chama decidir o commit, mas já materializa a identidade da sessão.
@@ -201,7 +213,12 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str, int]:
         update(RefreshToken)
         .where(RefreshToken.token_hash == token_hash, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=agora)
-        .returning(RefreshToken.user_id, RefreshToken.expires_at)
+        .returning(
+            RefreshToken.user_id,
+            RefreshToken.expires_at,
+            RefreshToken.last_used_at,
+            RefreshToken.session_started_at,
+        )
     ).one_or_none()
     if resultado is None:
         # 0 linhas afetadas: token inexistente (garbage) OU ja revogado. Um
@@ -232,16 +249,30 @@ def rotate_refresh_token(db: Session, token: str) -> tuple[User, str, int]:
         else:
             db.rollback()
         raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
-    if resultado.expires_at < agora:
+    # Teto absoluto (sempre) + expiracao de fallback da linha (14 dias,
+    # defesa em profundidade caso os settings de idle/absoluto fiquem mal
+    # configurados). Checados ANTES do idle pra reportar o motivo certo
+    # quando os dois batem ao mesmo tempo.
+    limite_absoluto = resultado.session_started_at + timedelta(minutes=settings.refresh_absolute_timeout_minutes)
+    if resultado.expires_at < agora or limite_absoluto < agora:
         db.rollback()
         raise HTTPException(status_code=401, detail="Sessao invalida ou expirada.")
+
+    # Timeout por inatividade (2026-10-05): sem chamada nenhuma desde
+    # `last_used_at` por mais que o limite -- mata a sessao mesmo com
+    # `expires_at`/teto absoluto ainda longe. E' o que faltava pro achado
+    # "abrir o app 1x a cada 14 dias nunca desloga".
+    limite_idle = resultado.last_used_at + timedelta(minutes=settings.refresh_idle_timeout_minutes)
+    if limite_idle < agora:
+        db.rollback()
+        raise HTTPException(status_code=401, detail="Sessao expirada por inatividade.")
 
     user = db.execute(select(User).where(User.id == resultado.user_id)).scalar_one_or_none()
     if user is None or user.status != UserStatus.active or user.deleted_at is not None:
         db.rollback()
         raise HTTPException(status_code=403, detail="Usuario inexistente ou inativo.")
 
-    novo_token, nova_sessao_id = create_refresh_token(db, user)
+    novo_token, nova_sessao_id = create_refresh_token(db, user, session_started_at=resultado.session_started_at)
     db.commit()
     return user, novo_token, nova_sessao_id
 

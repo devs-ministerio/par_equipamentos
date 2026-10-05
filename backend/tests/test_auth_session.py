@@ -8,9 +8,13 @@ framework.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from sqlalchemy import update
 
 from app.auth import (
     ACCESS_COOKIE_NAME,
@@ -23,7 +27,7 @@ from app.auth import (
     rotate_refresh_token,
 )
 from app.db.base import SessionLocal
-from app.db.models import AuditLog, User, UserRole
+from app.db.models import AuditLog, RefreshToken, User, UserRole
 from app.main import app
 
 client = TestClient(app)
@@ -215,6 +219,78 @@ def test_logout_revoga_refresh_no_servidor():
         c.cookies.set(CSRF_COOKIE_NAME, csrf)
         pos_logout = c.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
         assert pos_logout.status_code == 401
+    finally:
+        db.close()
+
+
+def test_rotacao_falha_apos_timeout_de_inatividade():
+    """2026-10-05: achado real -- sem idle timeout, abrir o app 1x a cada
+    `refresh_token_expire_days` (14) nunca deslogava. `last_used_at` velho
+    (simula sessão sem nenhuma chamada há mais que `refresh_idle_timeout_
+    minutes`) precisa derrubar a rotação mesmo com `expires_at`/teto
+    absoluto ainda longe no futuro."""
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        token, sessao_id = create_refresh_token(db, user)
+        db.commit()
+        db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.id == sessao_id)
+            .values(last_used_at=datetime.now(timezone.utc) - timedelta(hours=3))
+        )
+        db.commit()
+
+        with pytest.raises(HTTPException) as excinfo:
+            rotate_refresh_token(db, token)
+        assert excinfo.value.status_code == 401
+    finally:
+        db.close()
+
+
+def test_rotacao_falha_apos_teto_absoluto_mesmo_com_uso_continuo():
+    """`session_started_at` nunca é resetado entre rotações -- uso contínuo
+    (`last_used_at` recente a cada chamada) não deve bastar pra sustentar a
+    sessão além do teto absoluto (`refresh_absolute_timeout_minutes`)."""
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        token, sessao_id = create_refresh_token(db, user)
+        db.commit()
+        db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.id == sessao_id)
+            .values(session_started_at=datetime.now(timezone.utc) - timedelta(days=2))
+        )
+        db.commit()
+
+        with pytest.raises(HTTPException) as excinfo:
+            rotate_refresh_token(db, token)
+        assert excinfo.value.status_code == 401
+    finally:
+        db.close()
+
+
+def test_rotacao_propaga_session_started_at_pela_cadeia():
+    """A cadeia de rotações precisa herdar o início original -- se cada
+    rotação resetasse `session_started_at`, o teto absoluto nunca venceria
+    com uso contínuo (o mesmo bug de fundo que motivou este campo)."""
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        token, sessao_id = create_refresh_token(db, user)
+        db.commit()
+        inicio_original = datetime.now(timezone.utc) - timedelta(hours=1)
+        db.execute(
+            update(RefreshToken).where(RefreshToken.id == sessao_id).values(session_started_at=inicio_original)
+        )
+        db.commit()
+
+        _, _, nova_sessao_id = rotate_refresh_token(db, token)
+
+        nova_sessao = db.get(RefreshToken, nova_sessao_id)
+        assert nova_sessao is not None
+        assert abs((nova_sessao.session_started_at - inicio_original).total_seconds()) < 1
     finally:
         db.close()
 
