@@ -17,6 +17,7 @@ from app.rate_limit import limiter
 from app.routers import (
     auditoria,
     auth,
+    candidatos_legados,
     convenios,
     equipment_offer,
     fontes,
@@ -67,6 +68,7 @@ app.include_router(monitoramento.router)
 app.include_router(notificacoes.router)
 app.include_router(fontes.router)
 app.include_router(propostas_candidatas.router)
+app.include_router(candidatos_legados.router)
 # Relatorios Excel/Word -- ver docs/arquitetura/planmode-relatorios-2026-09-25.md.
 app.include_router(relatorios.router)
 # Gestao de usuarios (Modulo Admin) -- so role=admin acessa

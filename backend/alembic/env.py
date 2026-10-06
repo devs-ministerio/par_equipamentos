@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.config import settings
 from app.db.base import Base
 from app.db import models  # noqa: F401 -- registra os modelos em Base.metadata
+from app.db import models_legado  # noqa: F401 -- registra o Radar legado
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
