@@ -187,12 +187,14 @@ def _filtrar_por_numero_convenio(
     return registros
 
 
-def _filtrar_plano_aplicacao_por_id_proposta(ids_proposta: set[str]) -> list[dict[str, str]]:
+def _filtrar_plano_aplicacao_por_id_proposta(
+    ids_proposta: set[str], *, atualizar_cache: bool = False
+) -> list[dict[str, str]]:
     """`siconv_plano_aplicacao.csv.zip` e o maior arquivo do dump (~280MB
     comprimido, >1GB descomprimido) -- filtra em streaming, nunca materializa
     o CSV inteiro na memoria."""
     print("Baixando siconv_plano_aplicacao.csv.zip (maior arquivo, pode demorar)...")
-    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_plano_aplicacao"))
+    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_plano_aplicacao", atualizar_cache=atualizar_cache))
     idx_proposta = cabecalho.index("ID_PROPOSTA")
     registros = []
     for linha in leitor:

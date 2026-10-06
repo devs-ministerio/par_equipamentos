@@ -23,7 +23,8 @@ def test_job_atualiza_duas_visoes_e_notifica_uma_vez(monkeypatch):
                     "NR_CONVENIO": numero,
                     "SIT_CONVENIO": "Em execução",
                     "VL_GLOBAL_CONV": "100,00",
-                }
+                },
+                "_espelho": {"versao": 1},
             },
         )
         instrumento = InstrumentoEquipamento(
@@ -40,9 +41,12 @@ def test_job_atualiza_duas_visoes_e_notifica_uma_vez(monkeypatch):
         def fonte(_nome, numeros, *, atualizar_cache):
             assert numero in numeros
             assert atualizar_cache is True
+            if _nome != job_verificacao_siconv.NOME_TABELA:
+                return []
             return [{"NR_CONVENIO": numero, "SIT_CONVENIO": situacao_nova, "VL_GLOBAL_CONV": "150,00"}]
 
         monkeypatch.setattr(job_verificacao_siconv, "_filtrar_por_numero_convenio", fonte)
+        monkeypatch.setattr(job_verificacao_siconv, "_filtrar_plano_aplicacao_por_id_proposta", lambda *a, **k: [])
         job_verificacao_siconv.run()
         db.expire_all()
         convenio_atual = db.query(Convenio).filter_by(numero=numero).one()
