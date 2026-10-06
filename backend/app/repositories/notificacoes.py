@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -31,6 +31,7 @@ class NotificacaoParaUsuario:
     notificacao: Notificacao
     destinatario_id: int
     lida: bool
+    arquivada: bool = False
 
 
 @dataclass(frozen=True)
@@ -133,19 +134,31 @@ def listar_notificacoes_paginadas(
     limit: int,
     offset: int,
     apenas_nao_lidas: bool,
+    busca: str | None = None,
+    tipo: NotificacaoTipo | None = None,
+    arquivadas: bool = False,
 ) -> PaginaNotificacoes:
     base = (
-        select(Notificacao, NotificacaoDestinatario.id, NotificacaoDestinatario.lida)
+        select(Notificacao, NotificacaoDestinatario.id, NotificacaoDestinatario.lida, NotificacaoDestinatario.arquivada)
         .join(NotificacaoDestinatario, NotificacaoDestinatario.notificacao_id == Notificacao.id)
-        .where(NotificacaoDestinatario.usuario_id == usuario_id)
+        .where(NotificacaoDestinatario.usuario_id == usuario_id, NotificacaoDestinatario.arquivada == arquivadas)
     )
     if apenas_nao_lidas:
         base = base.where(NotificacaoDestinatario.lida.is_(False))
+    if tipo is not None:
+        base = base.where(Notificacao.tipo == tipo)
+    if busca:
+        termo = busca.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        base = base.where(
+            Notificacao.titulo.ilike(f"%{termo}%", escape="\\") | Notificacao.corpo.ilike(f"%{termo}%", escape="\\")
+        )
 
-    linhas = db.execute(base.order_by(Notificacao.created_at.desc()).limit(limit).offset(offset)).all()
+    linhas = db.execute(
+        base.order_by(Notificacao.created_at.desc(), Notificacao.id.desc()).limit(limit).offset(offset)
+    ).all()
     itens = [
-        NotificacaoParaUsuario(notificacao=notificacao, destinatario_id=destinatario_id, lida=lida)
-        for notificacao, destinatario_id, lida in linhas
+        NotificacaoParaUsuario(notificacao=notificacao, destinatario_id=destinatario_id, lida=lida, arquivada=arquivada)
+        for notificacao, destinatario_id, lida, arquivada in linhas
     ]
 
     contagem_base = (
@@ -153,8 +166,10 @@ def listar_notificacoes_paginadas(
         .select_from(NotificacaoDestinatario)
         .where(NotificacaoDestinatario.usuario_id == usuario_id)
     )
-    total = db.execute(contagem_base).scalar_one()
-    nao_lidas = db.execute(contagem_base.where(NotificacaoDestinatario.lida.is_(False))).scalar_one()
+    total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
+    nao_lidas = db.execute(
+        contagem_base.where(NotificacaoDestinatario.lida.is_(False), NotificacaoDestinatario.arquivada.is_(False))
+    ).scalar_one()
 
     return PaginaNotificacoes(itens=itens, total=total, nao_lidas=nao_lidas)
 
@@ -177,6 +192,21 @@ def marcar_destinatario_lido(db: Session, destinatario: NotificacaoDestinatario)
         destinatario.lida = True
         destinatario.lida_em = datetime.now(UTC)
     return destinatario
+
+
+def marcar_todas_destinatario_lidas(db: Session, usuario_id: int) -> int:
+    alteradas = (
+        update(NotificacaoDestinatario)
+        .where(
+            NotificacaoDestinatario.usuario_id == usuario_id,
+            NotificacaoDestinatario.lida.is_(False),
+            NotificacaoDestinatario.arquivada.is_(False),
+        )
+        .values(lida=True, lida_em=datetime.now(UTC))
+        .returning(NotificacaoDestinatario.id)
+        .cte("lidas")
+    )
+    return db.execute(select(func.count()).select_from(alteradas)).scalar_one()
 
 
 def mapear_identificadores_instrumentos(db: Session, ids: set[int]) -> dict[int, str]:

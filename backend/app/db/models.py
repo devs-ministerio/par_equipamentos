@@ -1585,6 +1585,7 @@ class NotificacaoDestinatario(Base):
     __table_args__ = (
         UniqueConstraint("notificacao_id", "usuario_id", name="uq_notificacao_destinatario_usuario"),
         Index("idx_notificacao_destinatario_usuario_lida", "usuario_id", "lida", "created_at"),
+        Index("idx_notificacao_destinatario_usuario_arquivo", "usuario_id", "arquivada", "created_at"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -1596,4 +1597,5 @@ class NotificacaoDestinatario(Base):
     )
     lida: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     lida_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    arquivada: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

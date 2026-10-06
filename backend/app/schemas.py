@@ -122,6 +122,7 @@ class NotificacaoRead(BaseModel):
     lida: bool
     created_at: datetime
     destino: str | None = None
+    arquivada: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -130,6 +131,15 @@ class NotificacoesListRead(BaseModel):
     itens: list[NotificacaoRead]
     total: int
     nao_lidas: int
+
+
+class NotificacaoArquivoUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    arquivada: bool
+
+
+class NotificacoesLeituraRead(BaseModel):
+    alteradas: int
 
 
 # ----------------------------------------------------------------------------

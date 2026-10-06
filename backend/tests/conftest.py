@@ -49,6 +49,7 @@ _DB_TEST_MODULES = {
     "test_monitoramento_queries.py",
     "test_municipality_coverage.py",
     "test_notificacoes.py",
+    "test_notificacoes_central_db.py",
     "test_pipeline_dedup.py",
     "test_pipeline_runner.py",
     "test_propostas_candidatas.py",
