@@ -55,11 +55,14 @@ def test_espelho_integral_nao_tem_divergencia():
         SimpleNamespace(nr_convenio="825374", situacao_prestacao_contas="Prestação de Contas Concluída"),
     )
 
-    assert comparar_situacoes(
-        [convenio],
-        [instrumento],
-        [{"NR_CONVENIO": "825374", "SIT_CONVENIO": "Prestação de Contas Concluída"}],
-    ) == []
+    assert (
+        comparar_situacoes(
+            [convenio],
+            [instrumento],
+            [{"NR_CONVENIO": "825374", "SIT_CONVENIO": "Prestação de Contas Concluída"}],
+        )
+        == []
+    )
 
 
 def test_detecta_campo_financeiro_desatualizado_no_snapshot():
@@ -68,7 +71,13 @@ def test_detecta_campo_financeiro_desatualizado_no_snapshot():
         SimpleNamespace(
             numero="825374",
             situacao="Prestação de Contas Concluída",
-            siconv_raw={"convenio": {"NR_CONVENIO": "825374", "SIT_CONVENIO": "Prestação de Contas Concluída", "VL_GLOBAL_CONV": "100,00"}},
+            siconv_raw={
+                "convenio": {
+                    "NR_CONVENIO": "825374",
+                    "SIT_CONVENIO": "Prestação de Contas Concluída",
+                    "VL_GLOBAL_CONV": "100,00",
+                }
+            },
         ),
     )
 

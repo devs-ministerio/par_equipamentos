@@ -250,10 +250,14 @@ def test_criar_instrumento_via_post_cadastro_manual():
         assert log.action == "created"
         assert log.details["nr_convenio"] == nr_convenio_teste
 
-        notificacao = db.query(Notificacao).filter_by(
-            tipo=NotificacaoTipo.inclusao_monitoramento,
-            entidade_id=resultado.id,
-        ).one()
+        notificacao = (
+            db.query(Notificacao)
+            .filter_by(
+                tipo=NotificacaoTipo.inclusao_monitoramento,
+                entidade_id=resultado.id,
+            )
+            .one()
+        )
         destinatarios = db.query(NotificacaoDestinatario).filter_by(notificacao_id=notificacao.id).all()
         assert all(destinatario.usuario_id != usuario_teste.id for destinatario in destinatarios)
         assert f"{nr_convenio_teste}" in notificacao.titulo

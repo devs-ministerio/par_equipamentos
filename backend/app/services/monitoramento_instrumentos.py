@@ -147,10 +147,7 @@ def criar_instrumento_monitorado(
         Notificacao(
             tipo=NotificacaoTipo.inclusao_monitoramento,
             titulo=f"Instrumento {nr_convenio} incluído no monitoramento",
-            corpo=(
-                f"{dados.tipo_contratacao} · responsável: {titular.name}"
-                f" · incluído por {usuario.name}"
-            ),
+            corpo=(f"{dados.tipo_contratacao} · responsável: {titular.name} · incluído por {usuario.name}"),
             entidade_id=instrumento.id,
         ),
     )

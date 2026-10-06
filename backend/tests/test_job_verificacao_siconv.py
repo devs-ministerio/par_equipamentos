@@ -11,9 +11,7 @@ def test_825374_preenche_monitoramento_sem_inventar_mudanca_na_fonte():
     convenio = cast(Convenio, SimpleNamespace(situacao="Prestação de Contas Concluída"))
     instrumento = cast(InstrumentoEquipamento, SimpleNamespace(situacao_prestacao_contas=None))
 
-    fonte_mudou, instrumento_mudou = reconciliar_situacao(
-        convenio, instrumento, "Prestação de Contas Concluída"
-    )
+    fonte_mudou, instrumento_mudou = reconciliar_situacao(convenio, instrumento, "Prestação de Contas Concluída")
 
     assert (fonte_mudou, instrumento_mudou) == (False, True)
     assert instrumento.situacao_prestacao_contas == convenio.situacao

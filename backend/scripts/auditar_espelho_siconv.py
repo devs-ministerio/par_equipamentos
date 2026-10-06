@@ -68,9 +68,7 @@ def run() -> int:
     try:
         convenios = db.query(Convenio).filter(Convenio.tipo_contratacao == "Convênio").all()
         instrumentos = (
-            db.query(InstrumentoEquipamento)
-            .filter(InstrumentoEquipamento.tipo_contratacao == "Convênio")
-            .all()
+            db.query(InstrumentoEquipamento).filter(InstrumentoEquipamento.tipo_contratacao == "Convênio").all()
         )
         numeros = {c.numero for c in convenios} | {i.nr_convenio for i in instrumentos}
         if not numeros:
