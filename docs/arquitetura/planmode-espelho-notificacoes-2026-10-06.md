@@ -38,8 +38,10 @@ job, migration ou deploy deve ser executado em produção nesta fase.
    oficiais e agrupa avisos sem alterar revisão humana. Faltam validar
    esses contratos nas fontes reais, tratar coleções sem ID estável e
    completar projeções como CNES verificado e datas do legado.
-4. **Pendente:** descobrir novos convênios legados, validar assinatura no
-   Portal e apresentar candidatos no Radar; notificar gestor/admin quando
+4. **Parcial:** núcleo diagnóstico somente leitura descobre números novos
+   por cruzamento exato e valida identidade/publicação no Portal. Falta a
+   coleta recorrente fresca, persistência e apresentação dos candidatos no Radar;
+   notificar gestor/admin quando
    convênio ou proposta for incluído no monitoramento.
 5. **Parcial:** histórico/frescor via `GET /fontes/capturas`, alerta gerencial
    de fonte indisponível e central com busca, tipo, caixas, paginação,
@@ -104,3 +106,28 @@ nos testes de contrato, integração, E2E e operação programada.
   efêmera dos testes e da produção. Não representa uma captura real da fonte.
 - Permanecem pendentes descoberta do legado, contratos operacionais, workflow
   diário e New Relic. Este bloco não autoriza push, deploy ou jobs em produção.
+
+## Continuação — descoberta diagnóstica do legado
+
+- `diagnosticar_descoberta_siconv` lê ZIPs locais fornecidos explicitamente;
+  não baixa arquivos, não grava candidatos/carteira/capturas e não notifica.
+  A consulta opcional ao Portal é somente leitura, com chave no ambiente.
+- Cruzamento `ID_PROPOSTA` → `NR_CONVENIO`, limitado ao catálogo canônico,
+  mantém evidência por item e relação (aquisição/modernização/existente/menção).
+  Identidades ausentes/duplicadas divergentes abortam; não aproximar por CNPJ.
+- Exclui números já presentes em convênios legados ou monitoramento legado;
+  NUP de FAF/TED não é usado como identidade SICONV. ZIP é lido em streaming,
+  exige um CSV e cabeçalho íntegro; linha truncada/ambígua não é omitida.
+- Confirmação exige que o Portal devolva o mesmo número e data de publicação
+  válida. Ausência no Portal ou ausência de publicação mantém o candidato sem
+  confirmação. Isso não é autorização de inclusão no monitoramento.
+- Resultado tem teto explícito de processamento e contagem dos não processados;
+  snapshot local não é tratado como evidência de coleta atualizada.
+- Testes unitários/IO sintético e integração SQL cobrem deduplicação, ordem,
+  aliases, evidências, vazio, IDs inválidos, Portal ausente/parcial/divergente e
+  ZIP inválido. Não houve chamada à API real ou alteração em produção.
+- Próximo bloco: persistência própria dos candidatos, integração com Radar e
+  captura recorrente, mantendo confirmação de assinatura e revisão humana.
+- Validação: 458 testes backend passaram; cobertura de linhas/branches dos
+  novos Service e Repository em 100%, Ruff e mypy passaram. Não significa
+  cobertura global de 100% ou validação operacional contra o dump/API reais.
