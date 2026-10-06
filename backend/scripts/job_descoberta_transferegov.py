@@ -19,15 +19,15 @@ diferentes sem campo em comum -- achado 2026-09-15, ver docstring de
 PropostaCandidata.id_proposta em app/db/models.py).
 
 Uso: python -m scripts.job_descoberta_transferegov (de dentro de backend/,
-venv ativo). Idempotente -- roda de novo sem duplicar proposta ja vista, so
-atualiza campo que mudou de verdade (diff campo a campo) num candidato
-ainda PENDENTE e notifica -- candidato ja aceito/rejeitado nao e mais
-tocado por este job (decisao da equipe fica fechada).
+venv ativo). Idempotente: recaptura o detalhe oficial de propostas existentes,
+inclusive revisadas, sem alterar a decisão humana. A primeira captura completa
+é uma baseline silenciosa; rodadas seguintes notificam mudanças por campo.
 """
 
 from __future__ import annotations
 
 import re
+from datetime import UTC, date, datetime
 
 from app.db.base import SessionLocal
 from app.db.models import Notificacao, NotificacaoTipo, PropostaCandidata
@@ -44,10 +44,13 @@ from app.pipeline.transferegov_parcerias import (
     buscar_ordens_pagamento_por_documento,
     buscar_parcerias_por_proposta,
 )
+from app.repositories.monitoramento import obter_instrumento_por_nr_convenio
 from app.repositories.notificacoes import criar_notificacao
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.equipamento_marcadores import DadosMarcador, TipoEvidencia, registrar_marcadores
+from app.services.espelho_transferegov import reconciliar_arvore, resumir_mudancas
 from app.services.evidencias_transferegov import registrar_evidencias_relacionais
+from scripts.job_verificacao_transferegov import reconciliar_situacoes
 from scripts.levantamento_convenios_oncologia import (
     PALAVRAS_PROGRAMA_ONCOLOGIA,
     _componente_alvo_de,
@@ -56,11 +59,7 @@ from scripts.levantamento_convenios_oncologia import (
     _sessao_com_retry,
 )
 
-# Campos que, se mudarem num candidato ainda pendente, viram notificacao
-# camada 1 (atualizacao real vinda da API) -- mesmo criterio documentado em
-# docs/arquitetura/fluxo_requisicao.md, secao "Detectando o que realmente
-# mudou": so dispara quando o VALOR muda, nunca por presenca/ausencia.
-CAMPOS_DIFF = ("situacao_proposta", "vl_global_proposta", "nm_proponente", "cnpj_ente_recebedor")
+MARCADOR_BASELINE = "_espelho"
 
 # Acima disto, propostas novas na mesma rodada viram um único aviso-resumo
 # (carga inicial ou programa novo com dezenas de propostas não inunda a equipe).
@@ -114,7 +113,7 @@ def _resolver_programas_alvo(sessao) -> dict[int, dict]:
             continue
         componente = _componente_alvo_de(nome)
         if componente:
-            alvo[p["id_programa"]] = {"nome_programa": nome, "componente_alvo": componente}
+            alvo[p["id_programa"]] = {"nome_programa": nome, "componente_alvo": componente, "registro": p}
     return alvo
 
 
@@ -154,9 +153,8 @@ def _capturar_detalhe_completo(sessao, id_proposta: int, p: dict, parceria: dict
     """Detalhe completo pra revisao humana (pedido do usuario 2026-09-15:
     "a equipe tecnica precisara de mais informacoes" + depois "vamos trazer
     tudo parecer tecnico, origem e timeline financeira") -- tudo capturado
-    UMA VEZ, no momento em que o candidato e criado (nao reconsultado nos
-    diffs de candidato ja existente, pra nao multiplicar request por
-    rodada). Guardado cru (Any) em metas_resumo, mostrado como veio."""
+    a cada rodada, inclusive para candidatos já revisados. A decisão humana
+    não é alterada pela recaptura dos dados oficiais."""
     metas = buscar_metas_por_proposta(sessao, id_proposta)
     for meta in metas:
         for etapa in meta.get("etapas_proposta", []):
@@ -225,9 +223,94 @@ def _propostas_com_identificador(propostas: list[dict]) -> list[tuple[dict, int]
     return resultado
 
 
+def _registrar_marcadores_da_captura(db, candidata: PropostaCandidata, detalhe: dict) -> None:
+    evidencias = classificar_descricoes(extrair_descricoes(detalhe, {"nm_item"}))
+    tipo_evidencia: TipoEvidencia = "meta"
+    confianca = 100
+    if not evidencias:
+        evidencias = classificar_descricoes([candidata.ds_objeto], relacao_padrao="mencao")
+        tipo_evidencia = "objeto"
+        confianca = 40
+    registrar_marcadores(
+        db=db,
+        origem="proposta_candidata",
+        origem_id=candidata.id,
+        marcadores=[
+            DadosMarcador(
+                evidencia=evidencia, tipo_evidencia=tipo_evidencia, confianca=confianca, origem_dado="API TransfereGov"
+            )
+            for evidencia in evidencias
+        ],
+    )
+
+
 def run() -> None:
     with captura("transferegov_descoberta") as cap:
         _executar(cap)
+
+
+def _atualizar_captura_existente(db, existente: PropostaCandidata, detalhe: dict) -> tuple[bool, bool]:
+    anterior = existente.metas_resumo or {}
+    baseline = isinstance(anterior.get(MARCADOR_BASELINE), dict)
+    confirmado, mudancas = reconciliar_arvore(anterior, detalhe)
+    confirmado[MARCADOR_BASELINE] = anterior.get(MARCADOR_BASELINE) or {
+        "versao": 1,
+        "capturado_em": datetime.now(UTC).isoformat(),
+    }
+    proposta = confirmado["proposta"]
+    assert isinstance(proposta, dict)
+    for campo, fonte in (
+        ("situacao_proposta", "situacao_proposta"),
+        ("vl_global_proposta", "vl_total_planejamento_gastos"),
+        ("nm_proponente", "nm_ente_recebedor"),
+        ("cnpj_ente_recebedor", "cnpj_ente_recebedor"),
+        ("municipio", "nm_municipio_recebedor"),
+        ("uf", "sg_uf_recebedor"),
+        ("ds_objeto", "ds_objeto"),
+    ):
+        if proposta.get(fonte) is not None:
+            setattr(existente, campo, proposta[fonte])
+    if proposta.get("dt_proposta"):
+        existente.data_proposta = date.fromisoformat(str(proposta["dt_proposta"])[:10])
+    programa = confirmado.get("programa")
+    if isinstance(programa, dict) and programa.get("nm_programa"):
+        existente.nm_programa = programa["nm_programa"]
+    parceria = confirmado.get("parceria")
+    if isinstance(parceria, dict):
+        existente.tem_parceria = True
+        if parceria.get("cd_parceria") is not None:
+            existente.cd_parceria = str(parceria["cd_parceria"])
+    existente.equipamento_detectado = _equipamento_detectado(existente.ds_objeto)
+    existente.metas_resumo = confirmado
+    registrar_evidencias_relacionais(db, proposta_candidata_id=existente.id, detalhe=confirmado)
+    _registrar_marcadores_da_captura(db, existente, confirmado)
+    instrumento = obter_instrumento_por_nr_convenio(db, existente.cd_parceria or str(existente.id_proposta))
+    if instrumento is None and existente.cd_parceria:
+        instrumento = obter_instrumento_por_nr_convenio(db, str(existente.id_proposta))
+    if instrumento is not None and instrumento.tipo_contratacao != "Parceria TransfereGov":
+        instrumento = None
+    if instrumento is not None:
+        timeline = confirmado.get("timeline_financeira") or {}
+        assert isinstance(timeline, dict)
+        ordens = timeline.get("ordens_pagamento") or []
+        mais_recente = max(ordens, key=lambda ordem: ordem.get("dt_emissao_op") or "") if ordens else {}
+        reconciliar_situacoes(
+            instrumento,
+            parceria.get("in_situacao_parceria") if isinstance(parceria, dict) else None,
+            mais_recente.get("in_situacao_op"),
+        )
+    if baseline and mudancas:
+        criar_notificacao(
+            db,
+            Notificacao(
+                tipo=NotificacaoTipo.atualizacao_api if instrumento is not None else NotificacaoTipo.proposta_candidata,
+                titulo=f"Proposta {existente.id_proposta}: {len(mudancas)} mudança(s) no TransfereGov",
+                corpo=resumir_mudancas(mudancas),
+                entidade_id=instrumento.id if instrumento is not None else existente.id,
+            ),
+        )
+        return True, True
+    return bool(mudancas or not baseline), False
 
 
 def _executar(cap: CapturaEmAndamento) -> None:
@@ -269,6 +352,8 @@ def _executar(cap: CapturaEmAndamento) -> None:
                         str(parceria["cd_parceria"]) if parceria and parceria.get("cd_parceria") is not None else None
                     )
                     metas_resumo = _capturar_detalhe_completo(sessao, id_proposta, p, parceria)
+                    metas_resumo["programa"] = info["registro"]
+                    metas_resumo[MARCADOR_BASELINE] = {"versao": 1, "capturado_em": datetime.now(UTC).isoformat()}
                     candidato = PropostaCandidata(
                         id_proposta=id_proposta,
                         cnpj_ente_recebedor=valores_api["cnpj_ente_recebedor"],
@@ -295,27 +380,7 @@ def _executar(cap: CapturaEmAndamento) -> None:
                         proposta_candidata_id=candidato.id,
                         detalhe=metas_resumo,
                     )
-                    evidencias = classificar_descricoes(extrair_descricoes(metas_resumo, {"nm_item"}))
-                    tipo_evidencia: TipoEvidencia = "meta"
-                    confianca = 100
-                    if not evidencias:
-                        evidencias = classificar_descricoes([ds_objeto], relacao_padrao="mencao")
-                        tipo_evidencia = "objeto"
-                        confianca = 40
-                    registrar_marcadores(
-                        db=db,
-                        origem="proposta_candidata",
-                        origem_id=candidato.id,
-                        marcadores=[
-                            DadosMarcador(
-                                evidencia=evidencia,
-                                tipo_evidencia=tipo_evidencia,
-                                confianca=confianca,
-                                origem_dado="API TransfereGov",
-                            )
-                            for evidencia in evidencias
-                        ],
-                    )
+                    _registrar_marcadores_da_captura(db, candidato, metas_resumo)
                     novos_para_aviso.append(
                         (
                             candidato.id,
@@ -325,58 +390,14 @@ def _executar(cap: CapturaEmAndamento) -> None:
                     )
                     novos += 1
                 else:
-                    mudou: dict[str, dict] = {}
-                    for campo in CAMPOS_DIFF:
-                        antigo = getattr(existente, campo)
-                        novo = valores_api[campo]
-                        if antigo != novo:
-                            mudou[campo] = {"old": antigo, "new": novo}
-                            setattr(existente, campo, novo)
-                    # cd_parceria so pode SURGIR depois (proposta virou
-                    # parceria entre 1 rodada e outra) -- so vale a pena a
-                    # request extra quando ainda nao tinha parceria. Quando
-                    # surge, tambem captura a timeline financeira (nao
-                    # existia antes, agora existe).
-                    if not existente.tem_parceria:
-                        parceria = _buscar_parceria(sessao, id_proposta)
-                        cd_parceria = (
-                            str(parceria["cd_parceria"])
-                            if parceria and parceria.get("cd_parceria") is not None
-                            else None
-                        )
-                        if parceria is not None:
-                            mudou["cd_parceria"] = {"old": existente.cd_parceria, "new": cd_parceria}
-                            existente.tem_parceria = True
-                            existente.cd_parceria = cd_parceria
-                            existente.metas_resumo = {
-                                **(existente.metas_resumo or {}),
-                                "parceria": parceria,
-                                "timeline_financeira": _capturar_timeline_financeira(sessao, parceria["id_parceria"]),
-                            }
-                            registrar_evidencias_relacionais(
-                                db,
-                                proposta_candidata_id=existente.id,
-                                detalhe=existente.metas_resumo,
-                            )
-                    if mudou:
-                        # tipo=proposta_candidata (não atualizacao_api) -- entidade_id aqui é
-                        # PropostaCandidata.id, e o contrato documentado em
-                        # db/models.py::Notificacao resolve atualizacao_api/edicao_manual
-                        # sempre contra InstrumentoEquipamento.id (ver
-                        # services/notificacoes.py::listar_notificacoes). Usar
-                        # atualizacao_api aqui fazia o destino resolver contra a tabela
-                        # errada (instrumento coincidente por id numérico, ou None).
-                        criar_notificacao(
-                            db,
-                            Notificacao(
-                                tipo=NotificacaoTipo.proposta_candidata,
-                                titulo=f"Proposta {id_proposta} atualizada",
-                                corpo=f"Campo(s) alterado(s): {', '.join(mudou.keys())}",
-                                entidade_id=existente.id,
-                            ),
-                        )
-                        atualizados += 1
-                        avisos += 1
+                    parceria = _buscar_parceria(sessao, id_proposta)
+                    detalhe = _capturar_detalhe_completo(sessao, id_proposta, p, parceria)
+                    detalhe["programa"] = info["registro"]
+                    existente.id_programa = id_programa
+                    existente.componente_batido = info["componente_alvo"]
+                    mudou, avisou = _atualizar_captura_existente(db, existente, detalhe)
+                    atualizados += int(mudou)
+                    avisos += int(avisou)
         avisos += avisar_propostas_novas(db, novos_para_aviso, carga_inicial=carga_inicial)
         db.commit()
     finally:
