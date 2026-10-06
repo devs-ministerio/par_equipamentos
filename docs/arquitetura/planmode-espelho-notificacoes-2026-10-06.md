@@ -27,9 +27,12 @@ job, migration ou deploy deve ser executado em produção nesta fase.
 2. **Em homologação — concluído:** job TransfereGov preserva estados em resposta
    parcial e resume as duas situações num aviso; auditoria SICONV read-only
    detecta ausências e diferenças antes da aplicação.
-3. **Pendente:** snapshots duráveis e diff de **todos** os campos oficiais,
-   inclusive tabelas filhas, valores, datas e textos; atualização das colunas
-   e payloads expostos na UI na mesma transação que registra notificações.
+3. **Parcial:** o registro principal `siconv_convenio` usa o payload anterior
+   persistido como baseline, compara seus campos e agrupa o resumo por
+   convênio; valores financeiros derivados também são atualizados. Faltam
+   captura/frescor versionados, tabelas filhas (pagamentos, licitações,
+   itens), demais campos da API nova e atualização das outras colunas
+   expostas na UI na mesma transação.
 4. **Pendente:** descobrir novos convênios legados, validar assinatura no
    Portal e apresentar candidatos no Radar; notificar gestor/admin quando
    convênio ou proposta for incluído no monitoramento.

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from typing import cast
 
 from app.db.models import Convenio, InstrumentoEquipamento
-from scripts.job_verificacao_siconv import reconciliar_situacao
+from scripts.job_verificacao_siconv import comparar_campos_oficiais, reconciliar_situacao, resumo_campos
 
 
 def test_825374_preenche_monitoramento_sem_inventar_mudanca_na_fonte():
@@ -46,3 +46,26 @@ def test_reexecucao_nao_cria_nova_mudanca():
     )
 
     assert reconciliar_situacao(convenio, instrumento, "Prestação de Contas Concluída") == (False, False)
+
+
+def test_diff_agrupa_todos_os_campos_do_registro_principal():
+    anterior = {
+        "SIT_CONVENIO": "Em execução",
+        "VL_GLOBAL_CONV": "100,00",
+        "DIA_FIM_VIGENC_CONV": "20261031",
+    }
+    novo = {
+        "SIT_CONVENIO": "Prestação de Contas Concluída",
+        "VL_GLOBAL_CONV": "150,00",
+        "DIA_FIM_VIGENC_CONV": "20261231",
+    }
+
+    mudancas = comparar_campos_oficiais(anterior, novo)
+
+    assert len(mudancas) == 3
+    assert "VL_GLOBAL_CONV: 100,00 → 150,00" in resumo_campos(mudancas)
+    assert comparar_campos_oficiais(novo, novo) == {}
+
+
+def test_primeira_captura_nao_gera_aviso_historico():
+    assert comparar_campos_oficiais(None, {"SIT_CONVENIO": "Concluída"}) == {}
