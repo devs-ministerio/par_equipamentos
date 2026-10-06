@@ -8,9 +8,13 @@ framework.
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
+import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
+from sqlalchemy import update
 
 from app.auth import (
     ACCESS_COOKIE_NAME,
@@ -23,7 +27,7 @@ from app.auth import (
     rotate_refresh_token,
 )
 from app.db.base import SessionLocal
-from app.db.models import AuditLog, User, UserRole
+from app.db.models import AuditLog, RefreshToken, User, UserRole
 from app.main import app
 
 client = TestClient(app)
@@ -219,6 +223,76 @@ def test_logout_revoga_refresh_no_servidor():
         db.close()
 
 
+def test_rotacao_falha_apos_timeout_de_inatividade():
+    """2026-10-05: achado real -- sem idle timeout, abrir o app 1x a cada
+    `refresh_token_expire_days` (14) nunca deslogava. `last_used_at` velho
+    (simula sessão sem nenhuma chamada há mais que `refresh_idle_timeout_
+    minutes`) precisa derrubar a rotação mesmo com `expires_at`/teto
+    absoluto ainda longe no futuro."""
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        token, sessao_id = create_refresh_token(db, user)
+        db.commit()
+        db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.id == sessao_id)
+            .values(last_used_at=datetime.now(timezone.utc) - timedelta(hours=3))
+        )
+        db.commit()
+
+        with pytest.raises(HTTPException) as excinfo:
+            rotate_refresh_token(db, token)
+        assert excinfo.value.status_code == 401
+    finally:
+        db.close()
+
+
+def test_rotacao_falha_apos_teto_absoluto_mesmo_com_uso_continuo():
+    """`session_started_at` nunca é resetado entre rotações -- uso contínuo
+    (`last_used_at` recente a cada chamada) não deve bastar pra sustentar a
+    sessão além do teto absoluto (`refresh_absolute_timeout_minutes`)."""
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        token, sessao_id = create_refresh_token(db, user)
+        db.commit()
+        db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.id == sessao_id)
+            .values(session_started_at=datetime.now(timezone.utc) - timedelta(days=2))
+        )
+        db.commit()
+
+        with pytest.raises(HTTPException) as excinfo:
+            rotate_refresh_token(db, token)
+        assert excinfo.value.status_code == 401
+    finally:
+        db.close()
+
+
+def test_rotacao_propaga_session_started_at_pela_cadeia():
+    """A cadeia de rotações precisa herdar o início original -- se cada
+    rotação resetasse `session_started_at`, o teto absoluto nunca venceria
+    com uso contínuo (o mesmo bug de fundo que motivou este campo)."""
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        token, sessao_id = create_refresh_token(db, user)
+        db.commit()
+        inicio_original = datetime.now(timezone.utc) - timedelta(hours=1)
+        db.execute(update(RefreshToken).where(RefreshToken.id == sessao_id).values(session_started_at=inicio_original))
+        db.commit()
+
+        _, _, nova_sessao_id = rotate_refresh_token(db, token)
+
+        nova_sessao = db.get(RefreshToken, nova_sessao_id)
+        assert nova_sessao is not None
+        assert abs((nova_sessao.session_started_at - inicio_original).total_seconds()) < 1
+    finally:
+        db.close()
+
+
 def test_logout_invalida_imediatamente_access_cookie_reaproveitado():
     """O logout precisa invalidar a sessão inteira, não só o refresh.
 
@@ -320,6 +394,98 @@ def test_reuso_de_refresh_ja_revogado_gera_auditoria():
         assert reuso.status_code == 401
 
         assert "refresh_reuso_detectado" in _acoes_auditoria(db, entity_id=user.id)
+    finally:
+        db.close()
+
+
+def test_reuso_de_refresh_derruba_todas_as_sessoes_do_usuario():
+    """Correção 2026-09-30: quem renovou primeiro com o token copiado (às
+    vezes o invasor) seguia logado depois do reuso ser detectado. Agora o
+    reuso revoga TODAS as sessões do usuário -- inclusive a do outro lado."""
+    from app.rate_limit import limiter
+
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        limiter.reset()
+        vitima = TestClient(app)
+        vitima.post("/auth/login", json={"email": user.email, "password": senha})
+        copiado = vitima.cookies.get(REFRESH_COOKIE_NAME)
+        csrf = vitima.cookies.get(CSRF_COOKIE_NAME)
+        assert copiado is not None and csrf is not None
+
+        invasor = TestClient(app)
+        invasor.cookies.set(REFRESH_COOKIE_NAME, copiado)
+        invasor.cookies.set(CSRF_COOKIE_NAME, csrf)
+        renovou = invasor.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
+        assert renovou.status_code == 200
+        assert invasor.get("/auth/me").status_code == 200
+
+        reuso = vitima.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf})
+        assert reuso.status_code == 401
+
+        # A sessão que o invasor obteve cai imediatamente (access e refresh).
+        assert invasor.get("/auth/me").status_code == 401
+        csrf_invasor = renovou.json()["csrf_token"]
+        assert invasor.post("/auth/refresh", headers={CSRF_HEADER_NAME: csrf_invasor}).status_code == 401
+    finally:
+        db.close()
+
+
+def _configurar_email(monkeypatch, *, falhar: bool = False) -> list[str]:
+    from app.config import settings
+    from app.routers import auth as auth_router
+
+    monkeypatch.setattr(settings, "mail_api_url", "https://gateway.example.test/enviar")
+    monkeypatch.setattr(settings, "mail_api_secret", "segredo-teste")
+    enviados: list[str] = []
+
+    def _falso_enviar(*, destinatario, **_kwargs):
+        if falhar:
+            raise RuntimeError("gateway fora do ar")
+        enviados.append(destinatario)
+
+    monkeypatch.setattr(auth_router, "enviar_link", _falso_enviar)
+    return enviados
+
+
+def test_esqueci_senha_nao_bloqueia_login_com_a_senha_atual(monkeypatch):
+    """Correção 2026-09-30: pedir recuperação (qualquer pessoa, só com o
+    e-mail) trancava o login do usuário por 7 dias."""
+    from app.rate_limit import limiter
+
+    enviados = _configurar_email(monkeypatch)
+    db = SessionLocal()
+    try:
+        user, senha = _criar_usuario(db)
+        limiter.reset()
+        pedido = TestClient(app).post("/auth/esqueci-senha", json={"email": user.email})
+        assert pedido.status_code == 200
+        assert enviados == [user.email]
+        db.refresh(user)
+        assert user.activation_token_hash is not None  # link continua válido
+
+        login = TestClient(app).post("/auth/login", json={"email": user.email, "password": senha})
+        assert login.status_code == 200
+    finally:
+        db.close()
+
+
+def test_esqueci_senha_com_falha_no_email_nao_grava_token(monkeypatch):
+    """Correção 2026-09-30: o rollback vinha depois do commit, e o token
+    ficava gravado sem o e-mail ter saído."""
+    from app.rate_limit import limiter
+
+    _configurar_email(monkeypatch, falhar=True)
+    db = SessionLocal()
+    try:
+        user, _ = _criar_usuario(db)
+        limiter.reset()
+        pedido = TestClient(app).post("/auth/esqueci-senha", json={"email": user.email})
+        assert pedido.status_code == 200  # resposta genérica, sem revelar falha
+        db.refresh(user)
+        assert user.activation_token_hash is None
+        assert user.activation_expires_at is None
     finally:
         db.close()
 

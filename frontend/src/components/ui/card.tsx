@@ -11,11 +11,11 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        // Card estatico nunca leva sombra/ring (Secao 5 da constituicao
-        // frontend anexada pelo usuario: "sombra pesada em elemento
-        // estatico" e um dos "Nunca" -- so borda). Sombra fica reservada a
-        // overlay (ver ui/dialog.tsx).
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl border border-border bg-card py-(--card-spacing) text-sm text-card-foreground [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        // Card estatico leva so a elevacao suave `--shadow-soft` (1px de
+        // contato + halo difuso leve, ver index.css) -- nunca a sombra
+        // pesada de overlay (Secao 5 da constituicao frontend: "sombra
+        // pesada em elemento estatico" continua proibida).
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[var(--shadow-soft)] py-(--card-spacing) text-sm text-card-foreground [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-2xl *:[img:last-child]:rounded-b-2xl",
         className,
       )}
       {...props}

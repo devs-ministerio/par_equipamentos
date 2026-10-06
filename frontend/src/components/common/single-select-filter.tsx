@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { normalizarTexto } from "@/utils/texto";
 import { cn } from "@/lib/utils";
 
@@ -77,8 +77,12 @@ export function SingleSelectFilter({
   return (
     <div
       ref={ref}
-      className="relative w-full sm:w-auto"
-      style={{ maxWidth: `min(100%, ${Math.max(minWidth, 320)}px)` }}
+      className="relative min-w-0 w-full sm:w-auto sm:max-w-[var(--filter-max-width)]"
+      style={
+        {
+          "--filter-max-width": `${Math.max(minWidth, 320)}px`,
+        } as CSSProperties
+      }
     >
       <button
         type="button"
@@ -91,7 +95,7 @@ export function SingleSelectFilter({
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
         className={cn(
-          "flex w-full items-center justify-between gap-2 rounded-md border-[1.5px] px-3.5 py-1.5 text-left text-[12.5px] font-medium",
+          "flex min-h-11 w-full items-center justify-between gap-2 rounded-md border-[1.5px] px-3.5 py-1.5 text-left text-[12.5px] font-medium sm:min-h-0",
           value || open
             ? "border-primary text-primary"
             : "border-border text-foreground",

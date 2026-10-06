@@ -29,6 +29,13 @@ export const colors = {
   // call site agora, só o valor mudou.
   logoOrange: "#A35A12",
   logoOrangeBg: "#F6E6D2",
+  // Paleta de dados do Painel de Gestão, espelhada em index.css.
+  painelChartTeal: "#2D6A5C",
+  painelChartBlue: "#426B92",
+  painelChartOchre: "#A36B2C",
+  painelChartPlum: "#795C78",
+  painelChartOlive: "#637B43",
+  painelChartSlate: "#667385",
   topbarBg: "#F6F4EF",
   topbarBorder: "#E4DFD3",
 } as const;

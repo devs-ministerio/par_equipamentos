@@ -31,9 +31,9 @@ def test_gestor_pode_editar_instrumento_de_qualquer_um():
     assert usuario_pode_editar_instrumento(gestor, {_TITULAR_ID}) is True
 
 
-def test_colaborador_sem_titular_designado_nao_pode_editar():
+def test_colaborador_sem_titular_designado_pode_editar():
     colaborador = _usuario(UserRole.colaborador)
-    assert usuario_pode_editar_instrumento(colaborador, set()) is False
+    assert usuario_pode_editar_instrumento(colaborador, set()) is True
 
 
 def test_colaborador_que_nao_e_titular_nao_pode_editar():

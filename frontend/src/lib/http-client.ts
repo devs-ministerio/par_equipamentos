@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
 import { atualizarCsrfToken, csrfHeaders } from "@/lib/csrf";
+import { registrarEmissaoSessao } from "@/lib/sessao-expiracao";
 
 /** Bloco 1 do Plan Mode frontend 2026-09-17 -- cliente HTTP único
  * compartilhado por `services/api.ts`/`services/convenios.ts`/
@@ -17,12 +18,15 @@ import { atualizarCsrfToken, csrfHeaders } from "@/lib/csrf";
  * sessão pertencer ao mesmo site que a interface e evita depender de
  * cookies de terceiros, cada vez mais bloqueados pelos navegadores.
  *
- * O valor explícito continua obrigatório no desenvolvimento/CI, onde API e
- * Vite rodam em portas distintas.
+ * Em produção, não aceitar `VITE_API_BASE_URL` antigo apontando direto para
+ * o Render: isso contornaria o proxy e o browser não enviaria o cookie de
+ * refresh (Path=/api/auth) a `/auth/refresh` no outro domínio. O valor
+ * explícito continua disponível no desenvolvimento/CI, onde API e Vite
+ * rodam em portas distintas.
  */
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.PROD ? "/api" : "http://localhost:8000");
+export const API_BASE_URL = import.meta.env.PROD
+  ? "/api"
+  : (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000");
 const HTTP_TIMEOUT_MS = 15_000;
 const MENSAGEM_TIMEOUT_HTTP = `A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`;
 
@@ -121,6 +125,7 @@ function tentarRenovarSessao(): Promise<boolean> {
         if (!resposta?.ok) return false;
         const corpo = csrfResponseSchema.safeParse(await resposta.json());
         if (corpo.success) atualizarCsrfToken(corpo.data.csrf_token);
+        registrarEmissaoSessao();
         return true;
       })
       .catch(() => false)
@@ -129,6 +134,13 @@ function tentarRenovarSessao(): Promise<boolean> {
       });
   }
   return renovacaoEmAndamento;
+}
+
+/** Renovação explícita (botão "Renovar sessão" do menu do usuário) -- usa o
+ * mesmo mutex da renovação automática em 401, então nunca dispara duas
+ * rotações concorrentes do refresh token. */
+export function renovarSessao(): Promise<boolean> {
+  return tentarRenovarSessao();
 }
 
 /** Rotas de autenticação nunca disparam a tentativa de renovação --

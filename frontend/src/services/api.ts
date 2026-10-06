@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { API_BASE_URL, requisitar } from "@/lib/http-client";
+import { requisitar } from "@/lib/http-client";
 import { UF_INFO } from "../data/geo-reference";
 import type {
   CoberturaRow,
@@ -20,15 +20,17 @@ async function apiGet<T>(
   schema: z.ZodType<T>,
   params?: Record<string, string | string[]>,
 ): Promise<T> {
-  const url = new URL(path, API_BASE_URL);
+  // O transporte acrescenta API_BASE_URL ao caminho. Aqui só montamos a
+  // query: a base de produção é relativa (/api) e não serve como base de URL.
+  const query = new URLSearchParams();
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      if (Array.isArray(v))
-        v.forEach((item) => url.searchParams.append(k, item));
-      else url.searchParams.set(k, v);
+      if (Array.isArray(v)) v.forEach((item) => query.append(k, item));
+      else query.set(k, v);
     }
   }
-  return requisitar(url.pathname + url.search, schema);
+  const search = query.toString();
+  return requisitar(search ? `${path}?${search}` : path, schema);
 }
 
 function toStatus(

@@ -96,6 +96,7 @@ export function DashboardConteudo({
           options={options.cnes}
           selected={filtros.cnes}
           onChange={setFiltroCnes}
+          appearance="standard"
         />
         <MultiSelectFilter
           placeholder="Região"
@@ -109,6 +110,7 @@ export function DashboardConteudo({
             setFiltroMunicipios([]);
             setFiltroCnes([]);
           }}
+          appearance="standard"
         />
         <MultiSelectFilter
           placeholder="Estado (UF)"
@@ -121,6 +123,7 @@ export function DashboardConteudo({
             setFiltroMunicipios([]);
             setFiltroCnes([]);
           }}
+          appearance="standard"
         />
         <MultiSelectFilter
           placeholder="Macrorregião de Saúde"
@@ -132,6 +135,7 @@ export function DashboardConteudo({
             setFiltroMunicipios([]);
             setFiltroCnes([]);
           }}
+          appearance="standard"
         />
         <MultiSelectFilter
           placeholder="Região de Saúde"
@@ -142,6 +146,7 @@ export function DashboardConteudo({
             setFiltroMunicipios([]);
             setFiltroCnes([]);
           }}
+          appearance="standard"
         />
         <MultiSelectFilter
           placeholder="Município"
@@ -151,9 +156,11 @@ export function DashboardConteudo({
             setFiltroMunicipios(v);
             setFiltroCnes([]);
           }}
+          appearance="standard"
         />
       </FilterWorkspace>
       <MetricStrip
+        compactMobile
         items={[
           {
             key: "total",

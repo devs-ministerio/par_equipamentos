@@ -59,7 +59,7 @@ const convenioManual: ConvenioUnificado = {
 };
 
 describe("ConvenioCardDetalhes", () => {
-  it("explica o conteúdo técnico antes de expandir os detalhes", async () => {
+  it("permite expandir e recolher os detalhes técnicos", async () => {
     const user = userEvent.setup();
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -72,16 +72,13 @@ describe("ConvenioCardDetalhes", () => {
       </QueryClientProvider>,
     );
 
-    expect(
-      screen.getByText("SICONV, TransfereGov e monitoramento"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Mais detalhes")).toBeInTheDocument();
 
     await user.click(screen.getByText("Mais detalhes"));
 
-    expect(screen.getByText("Ocultar detalhes técnicos")).toBeInTheDocument();
-    expect(
-      screen.getByText("Resumo do instrumento continua acima"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Menos detalhes")).toBeInTheDocument();
+    await user.click(screen.getByText("Menos detalhes"));
+    expect(screen.getByText("Mais detalhes")).toBeInTheDocument();
   });
 
   it("não exibe texto de ausência quando o programa está vazio", () => {
@@ -97,7 +94,7 @@ describe("ConvenioCardDetalhes", () => {
       />,
     );
 
-    expect(screen.getByText("Programa:")).toBeInTheDocument();
+    expect(screen.queryByText("Programa:")).not.toBeInTheDocument();
     expect(
       screen.queryByText("não encontrado em nenhuma fonte"),
     ).not.toBeInTheDocument();
@@ -155,8 +152,9 @@ describe("ConvenioCardDetalhes", () => {
     );
 
     expect(screen.getByText(/Linha do tempo financeira/)).toBeInTheDocument();
-    expect(screen.getByText("Instrumento publicado")).toBeInTheDocument();
-    expect(screen.getByText("Desembolso registrado")).toBeInTheDocument();
-    expect(screen.getByText("Pagamento ao fornecedor")).toBeInTheDocument();
+    // A linha do tempo tem apresentações distintas para celular e desktop.
+    expect(screen.getAllByText("Instrumento publicado")).toHaveLength(2);
+    expect(screen.getAllByText("Desembolso registrado")).toHaveLength(2);
+    expect(screen.getAllByText("Pagamento ao fornecedor")).toHaveLength(2);
   });
 });

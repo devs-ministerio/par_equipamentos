@@ -86,4 +86,4 @@ O que já existe:
 
 ## Execuções por família
 
-Cada família (Tomógrafo, Ressonância, ...) tem sua própria `Competency`/`Execution` — "a execução mais recente" é sempre resolvida **dentro** da família selecionada, nunca globalmente (bug real corrigido: antes pegava a mais recente de qualquer família, e o filtro por família dava 0 linhas se a mais recente fosse de outra). `backend/app/routers/*.py::_latest_execution_id`.
+Cada família (Tomógrafo, Ressonância, ...) tem sua própria `Competency`/`Execution` — "a execução mais recente" é sempre resolvida **dentro** da família selecionada, nunca globalmente (bug real corrigido: antes pegava a mais recente de qualquer família, e o filtro por família dava 0 linhas se a mais recente fosse de outra). `backend/app/repositories/execucoes.py::obter_execucao_publicada_mais_recente`.

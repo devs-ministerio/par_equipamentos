@@ -1,7 +1,8 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { FamiliaEquipamentoProvider } from "../../context/familia-equipamento-context";
 import { CONTAINER_CLASS } from "@/lib/layout";
 import { AppHeader } from "./app-header";
+import { AppFooter } from "./app-footer";
 import { SeletorEquipamento } from "./top-nav";
 import { NAV_ITEMS_MONITORAMENTO } from "./monitoramento-nav-items";
 
@@ -14,16 +15,22 @@ import { NAV_ITEMS_MONITORAMENTO } from "./monitoramento-nav-items";
  * não mais aqui -- mesmo padrão de Dados oficiais/Mesa de trabalho, que
  * também têm seus cards de cabeçalho próprios por página. */
 export function AppLayout() {
+  const location = useLocation();
   return (
     <FamiliaEquipamentoProvider>
-      <div className="min-h-screen bg-background text-sm text-foreground">
+      <div className="flex min-h-screen flex-col text-sm text-foreground">
         <AppHeader
           navItems={NAV_ITEMS_MONITORAMENTO}
           leftExtra={<SeletorEquipamento />}
         />
-        <div className={`${CONTAINER_CLASS} py-6`}>
+        {/* `key` por rota: a animação de entrada roda a cada troca de página. */}
+        <main
+          key={location.pathname}
+          className={`${CONTAINER_CLASS} animar-entrada w-full flex-1 py-8`}
+        >
           <Outlet />
-        </div>
+        </main>
+        <AppFooter />
       </div>
     </FamiliaEquipamentoProvider>
   );

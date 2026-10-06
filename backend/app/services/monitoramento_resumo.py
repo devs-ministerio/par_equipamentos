@@ -9,16 +9,18 @@ inline no endpoint. Router fica só com `Depends`/`response_model`."""
 from __future__ import annotations
 
 from collections import Counter
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
 from app.db.models import MarcoCatalogo, MarcoGrupo
 from app.repositories import monitoramento as monitoramento_repo
 from app.schemas_monitoramento import (
+    AcaoAbertaResumoRead,
     ContagemRotulo,
     DivergenciaConclusaoRead,
     InauguracaoResumo,
+    IndicadoresInstrumentoRead,
     LicencaVencendoResumo,
     ResumoMonitoramentoRead,
 )
@@ -105,6 +107,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     inauguracoes: list[InauguracaoResumo] = []
     divergencias_conclusao: list[DivergenciaConclusaoRead] = []
     divergencias_por_fonte: Counter[str] = Counter()
+    indicadores_por_instrumento: list[IndicadoresInstrumentoRead] = []
 
     for inst in instrumentos:
         eventos_inst = eventos_por_instrumento.get(inst.id, [])
@@ -131,9 +134,11 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         # fora da distribuicao silenciosamente).
         contagem_tecnico[inst.tecnico_titular or "Sem técnico definido"] += 1
 
+        licenca_deferida = False
         if marco_licenca:
             evs_licenca = [e for e in eventos_inst if e.marco_id == marco_licenca.id]
-            if evs_licenca and any(e.status_regulatorio == "Deferido" for e in evs_licenca):
+            licenca_deferida = any(e.status_regulatorio == "Deferido" for e in evs_licenca)
+            if licenca_deferida:
                 licencas_deferidas += 1
             # Evento mais recente com data_validade preenchida -- mesma
             # regra ja usada no front (MonitoramentoInterno.tsx) pro
@@ -187,12 +192,40 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                         )
                     )
 
+        acoes_pendentes_inst, acoes_atrasadas_inst = dados.acoes_por_instrumento.get(inst.id, (0, 0))
+        indicadores_por_instrumento.append(
+            IndicadoresInstrumentoRead(
+                nr_convenio=inst.nr_convenio,
+                acoes_pendentes=acoes_pendentes_inst,
+                acoes_atrasadas=acoes_atrasadas_inst,
+                licenca_cnen_deferida=licenca_deferida,
+                pct_referencia_fase=(fase_atual.execucao_fisica_pct_referencia if fase_atual else None),
+                ultima_atividade_em=dados.ultima_atividade_por_instrumento.get(inst.id),
+            )
+        )
+
     inauguracoes.sort(key=lambda i: i.data)
     licencas_vencendo.sort(key=lambda i: i.data_validade)
+    instrumentos_por_id = {inst.id: inst for inst in instrumentos}
+    acoes_em_aberto = [
+        AcaoAbertaResumoRead(
+            id=acao.id,
+            nr_convenio=instrumentos_por_id[acao.instrumento_id].nr_convenio,
+            nome_convenente=instrumentos_por_id[acao.instrumento_id].nome_convenente,
+            descricao=acao.descricao,
+            data_prevista=acao.data_prevista,
+            dias=(acao.data_prevista - hoje).days if acao.data_prevista else None,
+            responsavel=responsavel_nome or acao.responsavel,
+        )
+        for acao, responsavel_nome in dados.acoes_em_aberto
+        if acao.instrumento_id in instrumentos_por_id
+    ]
 
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),
-        pct_execucao_fisica_medio=(sum(pcts) / len(pcts)) if pcts else None,
+        # Sem evento de fase, o instrumento é exibido como "Não iniciado" e
+        # contribui com 0% para a média da carteira, sem inflar o indicador.
+        pct_execucao_fisica_medio=(sum(pcts) / len(instrumentos)) if instrumentos else None,
         distribuicao_fase=[ContagemRotulo(rotulo=r, quantidade=q) for r, q in contagem_fase.most_common()],
         licencas_cnen_deferidas=licencas_deferidas,
         licencas_vencendo=licencas_vencendo,
@@ -206,4 +239,8 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
             ContagemRotulo(rotulo=rotulo, quantidade=quantidade)
             for rotulo, quantidade in divergencias_por_fonte.most_common()
         ],
+        indicadores_por_instrumento=indicadores_por_instrumento,
+        acoes_em_aberto=acoes_em_aberto,
+        fila_acoes_truncada=dados.acoes_pendentes > len(acoes_em_aberto),
+        gerado_em=datetime.now(timezone.utc),
     )

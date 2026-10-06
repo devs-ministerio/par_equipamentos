@@ -44,7 +44,7 @@ export function MonitoramentoInstrumentoPage() {
               {retorno.rotulo}
             </Link>
             <span className="mx-1.5">›</span>
-            <span className="text-primary">{nrConvenio}</span>
+            <span className="break-all text-primary">{nrConvenio}</span>
           </>
         }
         eyebrow="Monitoramento interno"

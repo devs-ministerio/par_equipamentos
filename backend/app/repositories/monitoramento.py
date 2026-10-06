@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
@@ -57,6 +57,9 @@ class DadosResumoMonitoramento:
     eventos_por_instrumento: dict[int, list[EventoMarco]]
     acoes_pendentes: int
     acoes_atrasadas: int
+    acoes_por_instrumento: dict[int, tuple[int, int]]
+    acoes_em_aberto: list[tuple[AcaoMonitoramento, str | None]]
+    ultima_atividade_por_instrumento: dict[int, datetime]
 
 
 def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResumoMonitoramento:
@@ -85,25 +88,48 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
         ).scalars():
             eventos_por_instrumento[evento.instrumento_id].append(evento)
 
-    acoes_pendentes = db.execute(
-        select(func.count()).select_from(AcaoMonitoramento).where(AcaoMonitoramento.data_conclusao.is_(None))
-    ).scalar_one()
-    acoes_atrasadas = db.execute(
-        select(func.count())
-        .select_from(AcaoMonitoramento)
-        .where(
-            AcaoMonitoramento.data_conclusao.is_(None),
-            AcaoMonitoramento.data_prevista.is_not(None),
-            AcaoMonitoramento.data_prevista < hoje,
+    # O histórico append-only não é carteira de tarefas: versões substituídas
+    # ou excluídas nunca podem inflar os indicadores executivos.
+    contagens_acoes = db.execute(
+        select(
+            AcaoMonitoramento.instrumento_id,
+            func.count(AcaoMonitoramento.id),
+            func.count(AcaoMonitoramento.id).filter(AcaoMonitoramento.data_prevista < hoje),
         )
-    ).scalar_one()
+        .where(_ACAO_ATIVA, AcaoMonitoramento.data_conclusao.is_(None))
+        .group_by(AcaoMonitoramento.instrumento_id)
+    ).all()
+    acoes_por_instrumento = {
+        instrumento_id: (pendentes, atrasadas) for instrumento_id, pendentes, atrasadas in contagens_acoes
+    }
+    acoes_em_aberto = [
+        (acao, responsavel_nome)
+        for acao, responsavel_nome in db.execute(
+            select(AcaoMonitoramento, User.name)
+            .outerjoin(User, User.id == AcaoMonitoramento.responsavel_id)
+            .where(_ACAO_ATIVA, AcaoMonitoramento.data_conclusao.is_(None))
+            .order_by(AcaoMonitoramento.data_prevista.asc().nulls_last(), AcaoMonitoramento.id)
+            .limit(500)
+        )
+    ]
+    ultima_atividade_por_instrumento: dict[int, datetime] = {}
+    for modelo, ativo in ((EventoMarco, _EVENTO_ATIVO), (AcaoMonitoramento, _ACAO_ATIVA)):
+        for instrumento_id, instante in db.execute(
+            select(modelo.instrumento_id, func.max(modelo.created_at)).where(ativo).group_by(modelo.instrumento_id)
+        ):
+            anterior = ultima_atividade_por_instrumento.get(instrumento_id)
+            if instante and (anterior is None or instante > anterior):
+                ultima_atividade_por_instrumento[instrumento_id] = instante
     return DadosResumoMonitoramento(
         instrumentos=instrumentos,
         propostas_por_chave=propostas_por_chave,
         marcos=marcos,
         eventos_por_instrumento=dict(eventos_por_instrumento),
-        acoes_pendentes=acoes_pendentes,
-        acoes_atrasadas=acoes_atrasadas,
+        acoes_pendentes=sum(pendentes for pendentes, _ in acoes_por_instrumento.values()),
+        acoes_atrasadas=sum(atrasadas for _, atrasadas in acoes_por_instrumento.values()),
+        acoes_por_instrumento=acoes_por_instrumento,
+        acoes_em_aberto=acoes_em_aberto,
+        ultima_atividade_por_instrumento=ultima_atividade_por_instrumento,
     )
 
 
@@ -146,6 +172,26 @@ def listar_instrumentos(
         alvo = normalizar_texto(municipio)
         resultado = [i for i in resultado if normalizar_texto(i.municipio) == alvo]
     return resultado
+
+
+def mapear_coordenadas_cnes(db: Session, cnes_codes: set[str]) -> dict[str, tuple[float | None, float | None]]:
+    """Busca as coordenadas em lote para a listagem, sem consulta por instrumento."""
+    if not cnes_codes:
+        return {}
+    linhas = db.execute(
+        select(
+            CnesEstabelecimento.cnes,
+            CnesEstabelecimento.latitude,
+            CnesEstabelecimento.longitude,
+        ).where(CnesEstabelecimento.cnes.in_(cnes_codes))
+    )
+    return {
+        cnes: (
+            float(latitude) if latitude is not None else None,
+            float(longitude) if longitude is not None else None,
+        )
+        for cnes, latitude, longitude in linhas
+    }
 
 
 def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:

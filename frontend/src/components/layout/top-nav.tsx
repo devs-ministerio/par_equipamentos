@@ -15,6 +15,7 @@ import { EQUIPAMENTOS } from "../../data/constants";
 export function SeletorEquipamento() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { familia, setFamilia } = useFamiliaEquipamento();
   const atual =
     EQUIPAMENTOS.find((eq) => eq.familia === familia) ?? EQUIPAMENTOS[0];
@@ -29,20 +30,43 @@ export function SeletorEquipamento() {
   }, []);
 
   return (
-    <div ref={ref} className="relative">
+    <div
+      ref={ref}
+      className="relative"
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          event.stopPropagation();
+          setOpen(false);
+          triggerRef.current?.focus();
+        }
+      }}
+    >
       <button
+        ref={triggerRef}
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="h-8 cursor-pointer rounded-[6px] border border-border bg-white px-3 text-[13px] font-semibold text-foreground"
+        aria-label={`Selecionar equipamento: ${atual.rotulo}`}
+        aria-expanded={open}
+        title={atual.rotulo}
+        className="flex min-h-11 max-w-[clamp(6.5rem,35vw,9rem)] cursor-pointer items-center gap-1 rounded-[6px] border border-border bg-white px-3 text-[13px] font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:min-h-8 lg:max-w-none"
       >
-        {atual.rotulo} ▾
+        <span className="min-w-0 truncate">{atual.rotulo}</span>
+        <span aria-hidden="true">▾</span>
       </button>
       {open && (
-        <div className="absolute top-full left-0 z-20 mt-1 min-w-[200px] rounded-[6px] border border-border bg-white py-1 shadow-[var(--shadow-overlay)]">
+        <div
+          role="group"
+          aria-label="Famílias de equipamento"
+          className="absolute top-full right-0 z-20 mt-1 min-w-[200px] rounded-[6px] border border-border bg-white py-1 shadow-[var(--shadow-overlay)] lg:right-auto lg:left-0"
+        >
           {EQUIPAMENTOS.map((eq) => (
-            <div
+            <button
               key={eq.familia}
+              type="button"
+              disabled={!eq.disponivel}
+              aria-pressed={eq.familia === atual.familia}
               title={eq.disponivel ? undefined : "Em breve"}
-              className={`flex w-full items-center border-none px-3.5 py-2 text-left text-[13px] ${
+              className={`flex min-h-11 w-full items-center border-none px-3.5 py-2 text-left text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:min-h-0 ${
                 eq.familia === atual.familia ? "bg-secondary" : "bg-transparent"
               } ${
                 eq.disponivel
@@ -52,13 +76,12 @@ export function SeletorEquipamento() {
                   : "cursor-not-allowed font-normal text-muted-foreground/70"
               }`}
               onClick={() => {
-                if (!eq.disponivel) return;
                 setFamilia(eq.familia);
                 setOpen(false);
               }}
             >
               {eq.rotulo}
-            </div>
+            </button>
           ))}
         </div>
       )}

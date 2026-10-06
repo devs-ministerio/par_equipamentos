@@ -157,6 +157,8 @@ class InstrumentoEquipamentoRead(BaseModel):
     municipio: str | None
     uf: str | None
     cnes: str | None
+    latitude: float | None = None
+    longitude: float | None = None
     # Equipamento PLANEJADO (SICONV/plano de aplicacao) -- nunca editavel
     # por aqui, ver InstrumentoEquipamentoUpdate.
     equipamento_descricao: str | None
@@ -511,6 +513,9 @@ def listar_instrumentos(
     HTTP (`fase_atual`/`pode_editar` não são coluna, por isso o `model_copy`)."""
     itens = listar_instrumentos_monitorados(db=db, limit=limit)
     ids_instrumentos = {item.instrumento.id for item in itens}
+    coordenadas_por_cnes = monitoramento_repo.mapear_coordenadas_cnes(
+        db, {item.instrumento.cnes for item in itens if item.instrumento.cnes}
+    )
     responsaveis_por_instrumento = monitoramento_repo.mapear_responsaveis_por_instrumentos(db, ids_instrumentos)
     responsaveis_com_papel = monitoramento_repo.mapear_responsaveis_com_papel_por_instrumentos(db, ids_instrumentos)
     return [
@@ -522,6 +527,8 @@ def listar_instrumentos(
                 ),
                 "tecnico_titular_id": responsaveis_com_papel.get(item.instrumento.id, {}).get("titular"),
                 "tecnico_suplente_id": responsaveis_com_papel.get(item.instrumento.id, {}).get("suplente"),
+                "latitude": coordenadas_por_cnes.get(item.instrumento.cnes or "", (None, None))[0],
+                "longitude": coordenadas_por_cnes.get(item.instrumento.cnes or "", (None, None))[1],
             }
         )
         for item in itens

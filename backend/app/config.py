@@ -45,8 +45,17 @@ class Settings(BaseSettings):
 
     # Duracao do access token -- reduzido de 8h (achado do diagnostico) pra
     # minutos, Bloco 2. Refresh token (mais longo) e quem sustenta a sessao.
-    access_token_expire_minutes: int = 20
+    access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 14
+
+    # Expiracao por inatividade/teto absoluto (achado 2026-10-05: sem isso,
+    # cada /auth/refresh renovava `expires_at` pra +14 dias de novo --
+    # bastava abrir o app uma vez a cada 14 dias pra sessao nunca morrer de
+    # verdade). Dois limites independentes, o menor vence:
+    # - idle: tempo sem NENHUMA chamada que renove a sessao.
+    # - absoluto: tempo desde o login original, mesmo com uso continuo.
+    refresh_idle_timeout_minutes: int = 120
+    refresh_absolute_timeout_minutes: int = 24 * 60
 
     # A API pública passa pelo proxy `/api` do Vercel, portanto o navegador
     # a enxerga no mesmo site da UI. `lax` reduz o envio de cookie em

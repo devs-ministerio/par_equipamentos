@@ -52,10 +52,13 @@ catálogo fixo de marcos do monitoramento.
   produção). Autenticação por JWT + refresh cookie rotativo (hash de senha
   `argon2id`), autorização em camada de Service (`DomainError`, não
   `HTTPException` direto), Repository/Service para os módulos migrados.
+  Geração de relatório (Excel/Word) também é feita aqui, com `openpyxl`/
+  `python-docx` — ver `app/services/relatorios.py`.
 - **Frontend** (`frontend/`): React 19 + TypeScript + Vite, Tailwind CSS v4 +
   shadcn/ui, TanStack Query + Zod (validação de contrato HTTP) + React Hook
-  Form, react-router-dom, Leaflet + D3 (mapas), exceljs/jspdf (export de
-  relatório).
+  Form, react-router-dom, Leaflet + D3 (mapas). Export de relatório não roda
+  mais no client (`exceljs`/`jspdf` removidos no Plan Mode relatórios
+  2026-09-25/26) — o frontend só consome o arquivo pronto do backend.
 - Sem monorepo tool — backend e frontend são projetos independentes, cada um
   com seu próprio dependency manager e deploy.
 

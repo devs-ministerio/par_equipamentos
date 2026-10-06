@@ -56,7 +56,7 @@ export function MonitoramentoInternoFiltros({
       <div
         role="group"
         aria-label="Classificação e equipamento"
-        className="flex flex-wrap items-center gap-1.5 rounded-md outline outline-1 outline-border outline-offset-2"
+        className="flex w-full min-w-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-md sm:outline sm:outline-1 sm:outline-border sm:outline-offset-2"
       >
         <SingleSelectFilter
           placeholder="Prioritário"

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   baixarArquivo,
   gerarRelatorio,
@@ -32,6 +33,7 @@ export function useGerarRelatorio(tipoRelatorio: TipoRelatorio) {
         filtro,
       );
       baixarArquivo(arquivo);
+      toast.success("Relatório gerado. O download foi iniciado.");
     } catch (e) {
       setErro(e);
     } finally {

@@ -130,49 +130,80 @@ export function DetalheBrutoProposta({
                         </div>
                         {/* Item por item do que será comprado. */}
                         {itens.length > 0 && (
-                          <div className="mt-1.5 overflow-x-auto">
-                            <table className="w-full min-w-[420px] border-collapse text-[11.5px]">
-                              <thead>
-                                <tr className="text-left text-[10px] uppercase text-muted-foreground">
-                                  <th className="py-0.5 pr-2">Item</th>
-                                  <th className="py-0.5 pr-2 text-right">
-                                    Qtd
-                                  </th>
-                                  <th className="py-0.5 pr-2 text-right">
-                                    Vl. unitário
-                                  </th>
-                                  <th className="py-0.5 text-right">
-                                    Vl. total
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {itens.map((it, k) => (
-                                  <tr
-                                    key={k}
-                                    className="border-t border-border"
-                                  >
-                                    <td
-                                      className="py-1 pr-2 text-foreground"
-                                      title={campo(it, "ds_item") ?? undefined}
-                                    >
-                                      {campo(it, "nm_item") || "—"}
-                                    </td>
-                                    <td className="py-1 pr-2 text-right tabular-nums">
+                          <div className="mt-1.5 min-w-0">
+                            <div className="space-y-2 sm:hidden">
+                              {itens.map((it, k) => (
+                                <div
+                                  key={k}
+                                  className="min-w-0 rounded-md border border-border bg-background p-2.5"
+                                >
+                                  <div className="break-words text-xs font-semibold text-foreground">
+                                    {campo(it, "nm_item") || "—"}
+                                  </div>
+                                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                                    <Campo label="Quantidade">
                                       {campoNum(it, "qt_quantidade") ?? "—"}
-                                    </td>
-                                    <td className="py-1 pr-2 text-right tabular-nums">
+                                    </Campo>
+                                    <Campo label="Valor unitário">
                                       {fmtMoeda(
                                         campoNum(it, "vl_unitario_item"),
                                       )}
-                                    </td>
-                                    <td className="py-1 text-right font-semibold tabular-nums">
+                                    </Campo>
+                                    <Campo label="Valor total">
                                       {fmtMoeda(campoNum(it, "vl_total_item"))}
-                                    </td>
+                                    </Campo>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="hidden overflow-x-auto sm:block">
+                              <table className="w-full min-w-[420px] border-collapse text-[11.5px]">
+                                <thead>
+                                  <tr className="text-left text-[10px] uppercase text-muted-foreground">
+                                    <th className="py-0.5 pr-2">Item</th>
+                                    <th className="py-0.5 pr-2 text-right">
+                                      Qtd
+                                    </th>
+                                    <th className="py-0.5 pr-2 text-right">
+                                      Vl. unitário
+                                    </th>
+                                    <th className="py-0.5 text-right">
+                                      Vl. total
+                                    </th>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {itens.map((it, k) => (
+                                    <tr
+                                      key={k}
+                                      className="border-t border-border"
+                                    >
+                                      <td
+                                        className="py-1 pr-2 text-foreground"
+                                        title={
+                                          campo(it, "ds_item") ?? undefined
+                                        }
+                                      >
+                                        {campo(it, "nm_item") || "—"}
+                                      </td>
+                                      <td className="py-1 pr-2 text-right tabular-nums">
+                                        {campoNum(it, "qt_quantidade") ?? "—"}
+                                      </td>
+                                      <td className="py-1 pr-2 text-right tabular-nums">
+                                        {fmtMoeda(
+                                          campoNum(it, "vl_unitario_item"),
+                                        )}
+                                      </td>
+                                      <td className="py-1 text-right font-semibold tabular-nums">
+                                        {fmtMoeda(
+                                          campoNum(it, "vl_total_item"),
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         )}
                       </div>

@@ -57,12 +57,14 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     externo de API."""
     detalhes = _detalhes_requisicao(request)
     user = db.execute(select(User).where(User.email == corpo.email.lower().strip())).scalar_one_or_none()
-    if (
-        user is None
-        or user.status != UserStatus.active
-        or user.deleted_at is not None
-        or user.activation_token_hash is not None
-    ):
+    # `activation_token_hash` NÃO bloqueia mais o login (correção 2026-09-30):
+    # a mesma coluna guarda o token de "esqueci minha senha", então qualquer
+    # pessoa que soubesse o e-mail de um técnico conseguia trancar o login
+    # dele por 7 dias só pedindo recuperação. Convite pendente continua sem
+    # acesso porque a senha gravada é aleatória e desconhecida (ver
+    # `services/usuarios.py::criar_usuario`) -- quem entra é quem sabe a
+    # senha. Link de redefinição pendente continua válido até usar/expirar.
+    if user is None or user.status != UserStatus.active or user.deleted_at is not None:
         log_action(
             db,
             user_id=None,
@@ -140,11 +142,15 @@ def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session 
     user = db.execute(
         select(User).where(User.email == corpo.email.lower().strip(), User.deleted_at.is_(None))
     ).scalar_one_or_none()
-    if user is not None and settings.servico_email_configurado:
+    if user is not None and user.status == UserStatus.active and settings.servico_email_configurado:
         token = secrets.token_urlsafe(32)
         user.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
         user.activation_expires_at = datetime.now(timezone.utc) + timedelta(weeks=1)
-        db.commit()
+        # Envia ANTES de gravar (correção 2026-09-30): antes o commit vinha
+        # primeiro e o `rollback` do except não desfazia nada -- o token
+        # ficava gravado mesmo sem o e-mail ter saído. Falha no gateway agora
+        # descarta a alteração; a resposta continua genérica (não revela se
+        # o e-mail existe).
         try:
             enviar_link(
                 destinatario=user.email,
@@ -155,6 +161,8 @@ def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session 
             )
         except Exception:
             db.rollback()
+        else:
+            db.commit()
     return {"status": "ok"}
 
 
@@ -170,6 +178,9 @@ def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Res
     user.activation_token_hash = None
     user.activation_expires_at = None
     user.activated_at = user.activated_at or datetime.now(timezone.utc)
+    # Quem redefiniu a senha provou posse do e-mail: destrava a conta
+    # (contador de falhas/bloqueio temporário) junto.
+    registrar_sucesso_login(user)
     revoke_all_refresh_tokens_for_user(db, user.id)
     db.commit()
     refresh_token, refresh_token_id = create_refresh_token(db, user)

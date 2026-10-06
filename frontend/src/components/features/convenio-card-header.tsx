@@ -31,8 +31,8 @@ export function ConvenioCardHeader({
 
   return (
     <>
-      <div className="flex justify-between gap-3 flex-wrap items-start">
-        <div>
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-[11.5px] font-bold text-primary bg-secondary py-0.5 px-[9px] rounded-[5px] font-mono">
               {c.numero}
@@ -80,17 +80,17 @@ export function ConvenioCardHeader({
             {c.municipio}/{c.uf}
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <div className="flex min-w-0 w-full flex-wrap items-start justify-between gap-3 border-t border-border pt-3 sm:w-auto sm:shrink-0 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
           <StatusPill
             texto={
               monitorado ? (faseMonitoramento ?? "Não iniciado") : c.situacao
             }
           />
-          <div className="text-right">
+          <div className="min-w-0 sm:text-right">
             <div className="text-[10px] text-muted-foreground uppercase">
               Valor global
             </div>
-            <div className="text-base font-extrabold text-foreground">
+            <div className="break-words text-base font-extrabold tabular-nums text-foreground">
               {fmtMoeda(c.financeiro.global)}
             </div>
             {pctDesembolsado !== null && (
@@ -105,25 +105,29 @@ export function ConvenioCardHeader({
 
       {/* Programa em destaque na camada 1 -- e o dado que classifica o
           convenio dentro da politica de financiamento. */}
-      <p className="text-[12.5px] leading-normal mt-3 mb-0 bg-background border border-border rounded-md py-2 px-2.5">
-        <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">
-          Programa:
-        </strong>
-        {programaSiconv}
-        {/* Tipologia deixou de ser exclusiva do PERSUS (Plan Mode
+      {(programaSiconv || c.tipologia) && (
+        <p className="mt-3 mb-0 rounded-md border border-border bg-background px-2.5 py-2 text-[12.5px] leading-normal break-words max-sm:border-l-[3px] max-sm:border-l-primary">
+          <strong className="text-muted-foreground text-[10.5px] uppercase mr-1">
+            Programa:
+          </strong>
+          {programaSiconv}
+          {/* Tipologia deixou de ser exclusiva do PERSUS (Plan Mode
             monitoramento-evolucao 2026-09-19, decisão do usuário: "é a
             mesma tipologia, use para todos") -- mostra pra qualquer tipo
             de contratação que tiver o campo preenchido. */}
-        {c.tipologia && (
-          <span className="ml-2 text-muted-foreground">
-            · Tipologia: {TIPOLOGIA_PERSUS[c.tipologia] ?? c.tipologia}
-          </span>
-        )}
-      </p>
+          {c.tipologia && (
+            <span className="ml-2 text-muted-foreground">
+              · Tipologia: {TIPOLOGIA_PERSUS[c.tipologia] ?? c.tipologia}
+            </span>
+          )}
+        </p>
+      )}
 
       {c.dadosOficiaisDisponiveis && (
-        <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))] gap-2.5 rounded-lg bg-background px-3 py-2.5">
-          <Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo>
+        <div className="mt-3 grid min-w-0 grid-cols-2 gap-x-3 gap-y-3 rounded-lg bg-background px-3 py-3 sm:[grid-template-columns:repeat(auto-fit,minmax(110px,1fr))]">
+          <div className="hidden sm:block">
+            <Campo label="Valor global">{fmtMoeda(c.financeiro.global)}</Campo>
+          </div>
           <Campo
             label="Valor repasse"
             legenda={pct(
@@ -150,14 +154,16 @@ export function ConvenioCardHeader({
           >
             {fmtMoeda(c.financeiro.ultimaLiberacaoValor)}
           </Campo>
-          <Campo
-            label="Valor pago ao fornecedor"
-            legenda={
-              pagamentosCount ? `${pagamentosCount} pagamento(s)` : undefined
-            }
-          >
-            {fmtMoeda(valorPagoFornecedor)}
-          </Campo>
+          <div className="col-span-2 border-t border-border pt-2.5 sm:col-span-1 sm:border-0 sm:pt-0">
+            <Campo
+              label="Valor pago ao fornecedor"
+              legenda={
+                pagamentosCount ? `${pagamentosCount} pagamento(s)` : undefined
+              }
+            >
+              {fmtMoeda(valorPagoFornecedor)}
+            </Campo>
+          </div>
         </div>
       )}
       {/* Correção 2026-09-18: FAF/TED/PERSUS/PRONON nunca tiveram dump

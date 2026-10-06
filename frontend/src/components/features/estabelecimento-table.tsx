@@ -12,6 +12,8 @@ import { SearchInput } from "@/components/common/search-input";
 import { useEstabelecimentosPage } from "@/hooks/useEstabelecimentosPage";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { SortableTableHead } from "@/components/common/sortable-table-head";
+import { MobileTableSort } from "@/components/common/mobile-table-sort";
+import { Button } from "@/components/ui/button";
 import { useEstabelecimentoDetalhe } from "@/hooks/useEstabelecimentoDetalhe";
 import { BotaoDetalhe } from "./botao-detalhe";
 import { MunicipioDetalheModal } from "./municipio-detalhe-modal";
@@ -25,7 +27,8 @@ interface Props {
   cnesCodes?: string[];
 }
 
-const PAGE_SIZE = 50;
+const DESKTOP_PAGE_SIZE = 50;
+const MOBILE_PAGE_SIZE = 10;
 
 type SortKey =
   | "cnes_code"
@@ -49,6 +52,12 @@ export function EstabelecimentoTable({
   const [busca, setBusca] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("facility_name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [mobile, setMobile] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      !!window.matchMedia?.("(max-width: 639px)").matches,
+  );
+  const pageSize = mobile ? MOBILE_PAGE_SIZE : DESKTOP_PAGE_SIZE;
   // Estabelecimento cujo botao de detalhe foi clicado -- dispara o fetch sob
   // demanda em useEstabelecimentoDetalhe (mesmo modal de Cobertura
   // Assistencial, mas o municipio dele so e buscado quando pedido).
@@ -57,6 +66,17 @@ export function EstabelecimentoTable({
     municipio: string;
     uf: string;
   } | null>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia?.("(max-width: 639px)");
+    if (!query) return;
+    const update = () => setMobile(query.matches);
+    query.addEventListener("change", update);
+    update();
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => setPage(1), [pageSize]);
 
   const { items, total, loading, error } = useEstabelecimentosPage({
     equipmentFamily,
@@ -69,7 +89,7 @@ export function EstabelecimentoTable({
     sortBy: sortKey,
     sortDir,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
   });
 
   const { detalhe, status: statusDetalhe } = useEstabelecimentoDetalhe(
@@ -126,14 +146,14 @@ export function EstabelecimentoTable({
 
   return (
     <div className="mt-5 rounded-lg bg-card">
-      <div className="flex items-center gap-3 border-b border-border px-4.5 py-3.5">
+      <div className="flex flex-col items-stretch gap-3 border-b border-border px-4.5 py-3.5 sm:flex-row sm:items-center">
         <div className="flex-1 text-sm font-semibold">
           Estabelecimentos de Saúde
         </div>
         <SearchInput
           value={buscaInput}
           onChange={setBuscaInput}
-          placeholder="Buscar por nome, CNES ou município..."
+          placeholder="Buscar nome, CNES ou município"
         />
       </div>
       {error && (
@@ -146,16 +166,32 @@ export function EstabelecimentoTable({
           {erroDetalhe}
         </div>
       )}
-      <div
-        style={{
-          maxHeight: 340,
-          overflow: "auto",
-          opacity: loading ? 0.6 : 1,
-          transition: "opacity .15s",
+      <MobileTableSort
+        value={sortKey}
+        direction={sortDir}
+        options={[
+          { value: "facility_name", label: "Nome" },
+          { value: "cnes_code", label: "CNES" },
+          { value: "municipality_name", label: "Município" },
+          { value: "state", label: "UF" },
+          { value: "existing_qty", label: "Qtd. equipamentos" },
+          { value: "in_use_qty", label: "Em uso" },
+          { value: "sus_flag", label: "SUS" },
+        ]}
+        onChange={(key) => {
+          setSortKey(key);
+          setSortDir("asc");
         }}
+        onToggleDirection={() =>
+          setSortDir((direction) => (direction === "asc" ? "desc" : "asc"))
+        }
+      />
+      <div
+        className="min-w-0 sm:max-h-[340px] sm:overflow-y-auto"
+        style={{ opacity: loading ? 0.6 : 1, transition: "opacity .15s" }}
       >
         <Table className="text-[12.5px]">
-          <TableHeader className="sticky top-0 z-[2] bg-card text-[11px] tracking-wide text-muted-foreground uppercase">
+          <TableHeader className="sticky top-0 z-[2] hidden bg-card text-[11px] tracking-wide text-muted-foreground uppercase sm:table-header-group">
             <TableRow>
               <SortableTableHead
                 className="py-[9px] px-4.5"
@@ -219,7 +255,10 @@ export function EstabelecimentoTable({
           </TableHeader>
           <TableBody>
             {items.map((r) => (
-              <TableRow key={r.cnes} className="border-t border-border">
+              <TableRow
+                key={r.cnes}
+                className="hidden border-t border-border sm:table-row"
+              >
                 <TableCell className="py-2 px-4.5 font-mono text-[11.5px] text-muted-foreground">
                   {r.cnes}
                 </TableCell>
@@ -262,6 +301,68 @@ export function EstabelecimentoTable({
                 </TableCell>
               </TableRow>
             ))}
+            {items.map((r) => (
+              <TableRow
+                key={`mobile-${r.cnes}`}
+                className="border-t border-border sm:hidden"
+              >
+                <TableCell colSpan={7} className="p-0 whitespace-normal">
+                  <div className="min-w-0 space-y-2 px-4 py-3">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-foreground">
+                        {r.nome}
+                      </div>
+                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                        {r.uf}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                      <span className="font-mono tabular-nums">
+                        CNES {r.cnes}
+                      </span>
+                      <span aria-hidden="true">·</span>
+                      <span className="min-w-0 break-words">{r.municipio}</span>
+                    </div>
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-border pt-2 text-xs">
+                      <span className="whitespace-nowrap text-foreground">
+                        <strong className="tabular-nums">{r.qtd}</strong> equip.
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="text-muted-foreground"
+                      >
+                        ·
+                      </span>
+                      <span className="whitespace-nowrap text-foreground">
+                        <strong className="tabular-nums">{r.qtdUso}</strong> em
+                        uso
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 font-semibold ${r.susFlag ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}
+                      >
+                        SUS {r.susFlag ? "Sim" : "Não"}
+                      </span>
+                      {r.susFlag &&
+                        (alvoDetalhe?.cnes === r.cnes &&
+                        statusDetalhe === "carregando" ? (
+                          <span className="text-muted-foreground">
+                            Carregando...
+                          </span>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="ml-auto min-h-11"
+                            onClick={() => abrirDetalhe(r)}
+                          >
+                            Detalhes
+                          </Button>
+                        ))}
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
             {!loading && items.length === 0 && (
               <TableRow>
                 <TableCell
@@ -278,8 +379,9 @@ export function EstabelecimentoTable({
       <Pagination
         page={page}
         totalItems={total}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         onPageChange={setPage}
+        mobileStacked
       />
       {alvoDetalhe && statusDetalhe === "sucesso" && detalhe && (
         <MunicipioDetalheModal

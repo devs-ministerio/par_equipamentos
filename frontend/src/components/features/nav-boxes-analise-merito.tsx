@@ -13,7 +13,7 @@ export function NavBoxesAnaliseMerito() {
   const location = useLocation();
   return (
     <nav
-      className="flex w-full flex-wrap gap-5 border-b border-border sm:w-auto"
+      className="flex w-full flex-wrap gap-3 border-b border-border sm:w-auto sm:gap-5"
       aria-label="Seções da análise de mérito"
     >
       {ITENS.map((item) => {
@@ -23,7 +23,7 @@ export function NavBoxesAnaliseMerito() {
             key={item.path}
             to={item.path}
             className={cn(
-              "-mb-px border-b-2 px-0.5 pb-2 text-sm no-underline transition-colors",
+              "-mb-px inline-flex min-h-11 items-center border-b-2 px-0.5 text-sm no-underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               ativo
                 ? "border-primary font-semibold text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground",

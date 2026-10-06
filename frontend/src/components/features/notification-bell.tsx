@@ -55,7 +55,7 @@ export function NotificationBell() {
           <Button
             variant="ghost"
             size="icon"
-            className="relative"
+            className="relative max-lg:min-h-11 max-lg:min-w-11"
             aria-label={
               naoLidas > 0
                 ? `Notificações (${naoLidas} não lida${naoLidas > 1 ? "s" : ""})`
@@ -75,7 +75,8 @@ export function NotificationBell() {
         </PopoverTrigger>
         <PopoverContent
           align="end"
-          className="w-90 max-w-[calc(100vw-2rem)] p-0"
+          collisionPadding={16}
+          className="w-[min(calc(100vw-2rem),22.5rem)] p-0"
         >
           <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
             <span className="text-sm font-bold text-foreground">

@@ -141,13 +141,19 @@ reintroduzir o erro:
   referência normativa em nenhuma análise. PET-CT saiu da lista em
   2026-08-28 (produtividade real da Portaria de Consolidação n. 1/2017,
   art. 102-106 — ver `docs/metodologia-parametros.md`).
-- **Painel de Gestão do monitoramento interno sem mapa geográfico** (em
-  stand by, decisão do usuário 2026-09-10): faltava um jeito confiável de
-  ligar `InstrumentoEquipamento.municipio` (texto livre) a uma
-  macrorregião/UF sem risco de erro de grafia/acentuação — retomar
-  depois que o CNES de cada convenente estiver identificado (join bem
-  mais confiável que nome de município). Não propor cruzamento por nome
-  de município enquanto isso não for resolvido.
+- **Mapa do Painel de Gestão**: o standby de 2026-09-10 foi encerrado
+  quando o CNES passou a apontar para `CnesEstabelecimento`, com latitude/
+  longitude. `GET /monitoramento/instrumentos` consulta essas coordenadas
+  em lote; o painel desenha pontos no CNES sobre a mesma geometria e
+  projeção do Mapa de Cobertura e resolve a macrorregião por `geoContains`
+  contra `frontend/public/geo/macrorregioes.geojson`.
+  Ao selecionar uma macro, o mapa nacional é substituído no mesmo espaço
+  por um mapa rodoviário Leaflet/OSM carregado sob demanda; o contorno da
+  macro é o destaque, sem borda retangular externa nessa visão. Os
+  marcadores mostram os instrumentos filtrados. Instrumentos sem
+  coordenadas ficam fora do mapa, com contagem visível;
+  nunca inferir macro pelo texto livre de município. Esse mapa descreve
+  apenas a carteira monitorada e não alimentam cobertura/déficit/distância.
 
 ## Estrutura de pastas do frontend (flat, kebab-case)
 

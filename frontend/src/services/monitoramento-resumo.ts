@@ -44,6 +44,29 @@ const divergenciaConclusaoSchema = z.object({
 });
 export type DivergenciaConclusao = z.infer<typeof divergenciaConclusaoSchema>;
 
+const indicadoresInstrumentoSchema = z.object({
+  nr_convenio: z.string(),
+  acoes_pendentes: z.number(),
+  acoes_atrasadas: z.number(),
+  licenca_cnen_deferida: z.boolean(),
+  pct_referencia_fase: z.number().nullable(),
+  ultima_atividade_em: z.string().nullable(),
+});
+export type IndicadoresInstrumento = z.infer<
+  typeof indicadoresInstrumentoSchema
+>;
+
+const acaoAbertaResumoSchema = z.object({
+  id: z.number(),
+  nr_convenio: z.string(),
+  nome_convenente: z.string(),
+  descricao: z.string(),
+  data_prevista: z.string().nullable(),
+  dias: z.number().nullable(),
+  responsavel: z.string().nullable(),
+});
+export type AcaoAbertaResumo = z.infer<typeof acaoAbertaResumoSchema>;
+
 const resumoMonitoramentoSchema = z.object({
   total_instrumentos: z.number(),
   pct_execucao_fisica_medio: z.number().nullable(),
@@ -57,6 +80,10 @@ const resumoMonitoramentoSchema = z.object({
   nr_convenios: z.array(z.string()),
   divergencias_conclusao: z.array(divergenciaConclusaoSchema),
   divergencias_conclusao_por_fonte: z.array(contagemRotuloSchema),
+  indicadores_por_instrumento: z.array(indicadoresInstrumentoSchema),
+  acoes_em_aberto: z.array(acaoAbertaResumoSchema),
+  fila_acoes_truncada: z.boolean(),
+  gerado_em: z.string(),
 });
 export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;
 

@@ -204,7 +204,8 @@ nos testes de contrato, integração, E2E e operação programada.
 - A central deixa de ser página completa: `Dialog` do mesmo padrão das
   notificações, foco contido, Escape/fechar e retorno de foco ao ícone.
 - Conteúdo carregado sob demanda com lazy/Suspense; consulta só enquanto
-  a central está montada. Link de financiamento fecha a janela e navega.
+  a central está montada. O link de financiamento foi removido por decisão
+  do usuário; o acesso permanece na navegação própria do módulo.
 - URL antiga `/monitoramento-equipamentos/entradas` redireciona à página
   operacional, sem manter uma segunda apresentação da central.
 - Rolagem vertical interna e margens da janela verificadas em 400/768;
@@ -218,3 +219,30 @@ nos testes de contrato, integração, E2E e operação programada.
 - 144 testes frontend, lint/tipos/build e dois E2E passaram; revisão React
   confirma reutilização de componentes, hooks de consulta e lazy loading.
 - Nenhum backend/schema alterado neste ajuste; produção permanece intocada.
+
+## Integração da base de produção na homologação local — 06/10/2026
+
+- Ajustes pendentes de UI preservados no commit local `e6da763`: Radar de
+  instrumentos, cards por convênio, monitor de capturas e central de
+  notificações no mesmo padrão. O monitor consulta histórico, não dispara job.
+- Integração de `origin/master` (`45126f3`) na branch local `homologacao`:
+  layout responsivo, menu, filtros, dashboards, métricas e correções de sessão.
+  Sem push, deploy, job remoto ou alteração em banco de produção.
+- Conflitos conciliados preservando a UI da master, o Radar e a central nova,
+  além dos filtros/paginação na URL e do retorno ao recorte de origem.
+  Sino único no cabeçalho; Radar permanece acessível no desktop e no celular.
+- Migration de merge `a4b5c6d7e8f9` une as duas pontas de histórico, sem DDL
+  próprio; não reescreve migrations já existentes. Validada desde banco vazio
+  no PostgreSQL local descartável `sigeo_test_integracao_master_20261006`.
+- Backend: 484 testes passaram no banco exclusivo, Ruff e mypy passaram.
+  Ambiente HTTP local usa COOKIE_SECURE=false e REFRESH_COOKIE_PATH=/auth;
+  os defaults de produção permanecem intactos.
+- Frontend: 205 testes, lint, tipagem e build passaram; dois E2E de Radar e
+  notificações passaram. Banco demo local atualizado, backend reiniciado.
+- Dois E2E autenticados adicionais passaram: ausência de overflow nas rotas
+  críticas em 320/375/400/768/1024/1440 e mesa/detalhe no celular. São testes
+  de layout com dados sintéticos, não validação de frescor de fontes reais.
+- Revisão de metodologia não identificou mudança nas regras de cálculo.
+- Aprovação de convênios permanece na próxima etapa do plano. A aba exclusiva
+  de propostas novas aguarda definição do critério de novidade; não exibe
+  silenciosamente todo o histórico como se fosse novo.

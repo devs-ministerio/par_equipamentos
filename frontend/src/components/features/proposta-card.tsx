@@ -47,10 +47,10 @@ export function CardProposta({
   const ano = p.data_proposta?.slice(0, 4);
 
   return (
-    <div className={cn(estiloCard, "mb-3")}>
+    <div className={cn(estiloCard, "mb-3 min-w-0 max-sm:px-4 max-sm:py-3.5")}>
       {/* ---------- Camada 1: sempre visível ---------- */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
               Proposta #{p.id_proposta}
@@ -79,20 +79,20 @@ export function CardProposta({
             {p.uf || "—"}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="flex min-w-0 w-full flex-wrap items-start justify-between gap-3 border-t border-border pt-3 sm:w-auto sm:shrink-0 sm:flex-col sm:items-end sm:border-0 sm:pt-0">
           <StatusPill texto={situacaoDeFato(p)} />
-          <div className="text-right">
+          <div className="min-w-0 sm:text-right">
             <div className="text-[10px] uppercase text-muted-foreground">
               Valor planejado
             </div>
-            <div className="text-base font-extrabold text-foreground">
+            <div className="break-words text-base font-extrabold tabular-nums text-foreground">
               {fmtMoeda(p.vl_global_proposta)}
             </div>
           </div>
         </div>
       </div>
 
-      <p className="mb-0 mt-3 rounded-md border border-border bg-background px-2.5 py-2 text-[12.5px] leading-normal">
+      <p className="mb-0 mt-3 rounded-md border border-border bg-background px-2.5 py-2 text-[12.5px] leading-normal break-words max-sm:border-l-[3px] max-sm:border-l-primary">
         <strong className="mr-1 text-[10.5px] uppercase text-muted-foreground">
           Componente:
         </strong>
@@ -107,7 +107,7 @@ export function CardProposta({
           setDetalheAberto((e.target as HTMLDetailsElement).open)
         }
       >
-        <summary className="cursor-pointer text-xs font-bold text-primary">
+        <summary className="flex min-h-11 cursor-pointer items-center text-xs font-bold text-primary">
           {detalheAberto ? "Menos detalhes" : "Mais detalhes"}
         </summary>
         <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">

@@ -63,7 +63,15 @@ def test_obter_resumo_agrega_acoes_no_banco_e_filtra_eventos_relevantes():
         assert resumo.total_instrumentos >= 1
         consultas_evento = [s for s in statements if " from evento_marco" in s]
         assert consultas_evento
-        assert all("marco_id in" in s or "marco_id = any" in s for s in consultas_evento)
+        consultas_eventos_relevantes = [s for s in consultas_evento if "marco_id in" in s or "marco_id = any" in s]
+        assert consultas_eventos_relevantes
+        # A última atividade considera qualquer evento ativo, não só os
+        # marcos usados nos indicadores; essa consulta deve agregar no SQL.
+        assert all(s in consultas_eventos_relevantes or "max(evento_marco.created_at)" in s for s in consultas_evento)
+        assert any(
+            "max(evento_marco.created_at)" in s and "group by evento_marco.instrumento_id" in s
+            for s in consultas_evento
+        )
         assert any(" from acao_monitoramento" in s and "count(" in s for s in statements)
     finally:
         db.close()

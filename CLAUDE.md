@@ -252,13 +252,17 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
   referência normativa em nenhuma análise. PET-CT saiu da lista em
   2026-08-28 (produtividade real da Portaria de Consolidação n. 1/2017,
   art. 102-106 — ver `docs/metodologia-parametros.md`).
-- **Painel de Gestão do monitoramento interno sem mapa geográfico** (em
-  stand by, decisão do usuário 2026-09-10): faltava um jeito confiável de
-  ligar `InstrumentoEquipamento.municipio` (texto livre) a uma
-  macrorregião/UF sem risco de erro de grafia/acentuação — retomar
-  depois que o CNES de cada convenente estiver identificado (join bem
-  mais confiável que nome de município). Não propor cruzamento por nome
-  de município enquanto isso não for resolvido.
+- **Mapa do Painel de Gestão do monitoramento interno**: o standby de
+  2026-09-10 terminou após o vínculo FK de `InstrumentoEquipamento.cnes`
+  com `CnesEstabelecimento`, que fornece latitude/longitude. A listagem
+  consulta as coordenadas em lote; o frontend desenha os pontos sobre o
+  mesmo GeoJSON e a mesma projeção de `/mapa` e associa cada ponto à
+  macrorregião por `geoContains`. Selecionar uma macro substitui o mapa
+  nacional no mesmo card por um mapa rodoviário Leaflet/OSM sob demanda,
+  com ênfase apenas no contorno da macro e marcadores. Coordenada ausente
+  não derruba o painel e é contabilizada.
+  Não voltar a inferir macrorregião por nome de município; esses dados de
+  monitoramento continuam separados dos cálculos de cobertura.
 - **Login e aceite de convite não são auditados** (achado 2026-09-26, ver
   detalhe em "Gestão de usuários" acima): nenhum sucesso/falha de login,
   logout ou ativação de conta gera `AuditLog` ou qualquer histórico
@@ -690,6 +694,34 @@ do mesmo gate, sem exceção.
   antes que só continha o sentinela `"nao-informado"`, nunca dado real),
   campo `UserCreate.cpf` removido (`schemas.py`), linha hardcoded removida
   de `scripts/criar_usuario.py`.
+
+## Expiração por inatividade e teto absoluto de sessão (2026-10-05)
+
+Achado ao vivo (usuário saiu sexta, o computador reiniciou no fim de semana, voltou segunda e o
+SIGEO abriu logado sem pedir senha): `rotate_refresh_token` sempre recriava `expires_at = agora +
+14 dias` a cada `/auth/refresh`, e o front chama `/auth/me`/refresh automaticamente a cada
+carregamento de página — bastava abrir o app uma vez a cada ≤14 dias pra a sessão nunca morrer de
+verdade (janela deslizante sem teto real, não "sessão de 14 dias" como a documentação anterior
+sugeria). Corrigido com dois limites independentes, o menor vence, decisão do usuário:
+
+- **Idle timeout = 2h** (`Settings.refresh_idle_timeout_minutes`, default 120) — sem nenhuma
+  chamada que rotacione o refresh por mais que esse tempo, a sessão morre mesmo com `expires_at`/
+  teto absoluto ainda longe. `RefreshToken.last_used_at` (nova coluna, migration `a3f1c9e7b204`) é
+  atualizado a cada rotação.
+- **Teto absoluto = 24h** (`Settings.refresh_absolute_timeout_minutes`, default 1440) — força login
+  de novo mesmo com uso contínuo. `RefreshToken.session_started_at` (nova coluna, mesma migration)
+  é copiado do login original pra toda a cadeia de rotações — `create_refresh_token` só recebe
+  `session_started_at` explícito quando chamado por `rotate_refresh_token`; login novo sempre
+  começa cadeia própria.
+- `expires_at`/`refresh_token_expire_days` (14 dias) continuam existindo como teto de fallback
+  (defesa em profundidade se os settings de idle/absoluto ficarem mal configurados) — na prática,
+  com os dois novos limites em 2h/24h, é o teto absoluto que vence quase sempre.
+- Migration usa `server_default=now()` nas duas colunas novas — sessão já aberta no momento do
+  deploy não desloga na hora, só começa a contar idle/absoluto a partir do deploy. Testes novos em
+  `tests/test_auth_session.py` (idle isolado, absoluto isolado mesmo com uso contínuo simulado,
+  propagação de `session_started_at` pela cadeia de rotações).
+- **Rodar `migrar_banco.yml` sempre antes do deploy do backend que já espera essas colunas** —
+  mesma disciplina já documentada em "Migration desacoplada do boot" em "Config e deploy" acima.
 
 ## Proxy same-origin `/api` para a sessão (2026-09-28)
 
