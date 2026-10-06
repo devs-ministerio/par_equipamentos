@@ -10,6 +10,7 @@ import { useNotificacoes } from "@/hooks/use-notificacoes";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
 import { NotificacaoItem } from "./notificacao-item";
+import { SituacaoFontes } from "./situacao-fontes";
 import type { Notificacao, NotificacaoTipo } from "@/services/notificacoes";
 
 const TAMANHO_PAGINA = 10;
@@ -145,6 +146,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
         className="min-h-0 flex-1 overflow-y-auto"
         aria-busy={avisos.carregando}
       >
+        <SituacaoFontes />
         {avisos.erro ? (
           <div role="alert" className="space-y-3 p-4">
             <p>{mensagemSeguraDoErro(avisos.erro)}</p>
