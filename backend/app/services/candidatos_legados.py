@@ -10,7 +10,7 @@ from app.db.models_legado import CandidatoLegadoCaptura, CandidatoLegadoEvidenci
 from app.domain_errors import ConflictError, ValidationError
 from app.repositories import candidatos_legados as repositorio
 from app.repositories.descoberta_legado import numeros_legados_conhecidos
-from app.schemas_legado import CandidatosLegadosRead, ConfirmacaoPortal, ReferenciaDescoberta
+from app.schemas_legado import CandidatosLegadosRead, ConfirmacaoPortal, ReferenciaDescoberta, SituacaoLegado
 from app.services.descoberta_legado import CandidatoLegado, EvidenciaLegado
 
 
@@ -114,7 +114,22 @@ def _registrar_candidato(
 
 
 def listar_candidatos(
-    *, db: Session, pagina: int, tamanho: int, busca: str | None, confirmacao: ConfirmacaoPortal | None
+    *,
+    db: Session,
+    pagina: int,
+    tamanho: int,
+    busca: str | None,
+    confirmacao: ConfirmacaoPortal | None,
+    situacao: SituacaoLegado | None = None,
+    somente_oficiais: bool = False,
 ) -> CandidatosLegadosRead:
-    total, itens = repositorio.listar_pagina(db, pagina=pagina, tamanho=tamanho, busca=busca, confirmacao=confirmacao)
-    return CandidatosLegadosRead(total=total, itens=itens)
+    total, itens = repositorio.listar_pagina(
+        db,
+        pagina=pagina,
+        tamanho=tamanho,
+        busca=busca,
+        confirmacao=confirmacao,
+        situacao=situacao,
+        somente_oficiais=somente_oficiais,
+    )
+    return CandidatosLegadosRead(total=total, novos=repositorio.contar_novos(db), itens=itens)

@@ -4,6 +4,7 @@ import { MonitorDescobertaLegado } from "./monitor-descoberta-legado";
 import { Tabs } from "radix-ui";
 import { lazy, Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NAV_ITEM_CLASS } from "@/lib/navigation-styles";
 
 const PropostasEmTramitacao = lazy(() =>
   import("./secao-propostas-candidatas").then((m) => ({
@@ -25,7 +26,7 @@ export function CentralEntradas() {
       <Tabs.Root defaultValue="legados" className="flex min-h-0 flex-col">
         <Tabs.List
           aria-label="Origem dos instrumentos"
-          className="flex shrink-0 gap-4 border-b border-border px-5 sm:px-6"
+          className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)] gap-1 border-b border-border px-5 py-3 sm:flex sm:px-6"
         >
           {[
             ["legados", "Convênios"],
@@ -40,7 +41,7 @@ export function CentralEntradas() {
                   ? "Aguardando definição do critério de propostas novas"
                   : undefined
               }
-              className="min-w-0 border-b-2 border-transparent py-3 text-left text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary"
+              className={`${NAV_ITEM_CLASS} min-h-11 min-w-0 justify-center text-center text-muted-foreground hover:bg-muted/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 data-[state=active]:bg-secondary data-[state=active]:font-semibold data-[state=active]:text-primary sm:min-h-8`}
             >
               {rotulo}
             </Tabs.Trigger>

@@ -9,6 +9,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { type LucideIcon, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CONTAINER_CLASS } from "@/lib/layout";
+import { NAV_ITEM_CLASS } from "@/lib/navigation-styles";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -58,7 +59,8 @@ function NavButton({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        NAV_ITEM_CLASS,
+        "whitespace-nowrap",
         active
           ? cn("font-semibold text-primary", mobile && "bg-secondary")
           : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",

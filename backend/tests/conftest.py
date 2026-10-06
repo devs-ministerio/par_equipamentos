@@ -30,6 +30,7 @@ _DB_TEST_MODULES = {
     "test_descoberta_transferegov_espelho_db.py",
     "test_descoberta_legado_db.py",
     "test_candidatos_legados_db.py",
+    "test_decisoes_legado_db.py",
     "test_competency_por_familia.py",
     "test_convenios_contracts.py",
     "test_config_decisions.py",

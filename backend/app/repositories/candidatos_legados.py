@@ -6,7 +6,12 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Convenio, EquipamentoCatalogo, InstrumentoEquipamento
-from app.db.models_legado import CandidatoLegadoCaptura, CandidatoLegadoEvidencia, CandidatoLegadoRegistro
+from app.db.models_legado import (
+    CandidatoLegadoCaptura,
+    CandidatoLegadoDecisao,
+    CandidatoLegadoEvidencia,
+    CandidatoLegadoRegistro,
+)
 from app.schemas_legado import CandidatoLegadoRead, EvidenciaLegadoRead
 
 
@@ -19,6 +24,10 @@ def obter_registros(db: Session, numeros: set[str]) -> dict[str, CandidatoLegado
         r.numero: r
         for r in db.scalars(select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero.in_(numeros)))
     }
+
+
+def obter_por_id(db: Session, candidato_id: int) -> CandidatoLegadoRegistro | None:
+    return db.get(CandidatoLegadoRegistro, candidato_id)
 
 
 def obter_capturas(db: Session, ids: set[int]) -> dict[int, CandidatoLegadoCaptura]:
@@ -64,11 +73,17 @@ def evidencias_por_captura(db: Session, ids: set[int]) -> dict[int, list[Evidenc
     return resultado
 
 
-def listar_pagina(
-    db: Session, *, pagina: int, tamanho: int, busca: str | None, confirmacao: str | None
-) -> tuple[int, list[CandidatoLegadoRead]]:
+def _consulta_candidatos():
     candidato, captura = CandidatoLegadoRegistro, CandidatoLegadoCaptura
-    consulta = select(candidato, captura).join(captura, captura.id == candidato.ultima_captura_id)
+    decisao = CandidatoLegadoDecisao
+    ultima_id = (
+        select(func.max(decisao.id)).where(decisao.candidato_id == candidato.id).correlate(candidato).scalar_subquery()
+    )
+    consulta = (
+        select(candidato, captura, decisao)
+        .join(captura, captura.id == candidato.ultima_captura_id)
+        .outerjoin(decisao, decisao.id == ultima_id)
+    )
     conhecido = (
         select(Convenio.id)
         .where(
@@ -85,7 +100,33 @@ def listar_pagina(
         )
         .exists()
     )
-    consulta = consulta.where(~conhecido, ~monitorado)
+    # Decisões encerradas continuam consultáveis, mesmo após entrada na carteira.
+    return consulta.where(or_(decisao.situacao.in_(["aprovado", "rejeitado"]), ~conhecido & ~monitorado))
+
+
+def contar_novos(db: Session) -> int:
+    consulta = _consulta_candidatos().where(
+        CandidatoLegadoCaptura.origem == "siconv_oficial", CandidatoLegadoDecisao.id.is_(None)
+    )
+    return db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
+
+
+def listar_pagina(
+    db: Session,
+    *,
+    pagina: int,
+    tamanho: int,
+    busca: str | None,
+    confirmacao: str | None,
+    situacao: str | None = None,
+    somente_oficiais: bool = False,
+) -> tuple[int, list[CandidatoLegadoRead]]:
+    candidato, captura, decisao = CandidatoLegadoRegistro, CandidatoLegadoCaptura, CandidatoLegadoDecisao
+    consulta = _consulta_candidatos()
+    if somente_oficiais:
+        consulta = consulta.where(captura.origem == "siconv_oficial")
+    if situacao:
+        consulta = consulta.where(func.coalesce(decisao.situacao, "novo") == situacao)
     if confirmacao:
         consulta = consulta.where(captura.confirmacao_portal == confirmacao)
     if busca:
@@ -99,7 +140,7 @@ def listar_pagina(
         .limit(tamanho)
         .offset((pagina - 1) * tamanho)
     ).all()
-    evidencias = evidencias_por_captura(db, {captura.id for _, captura in registros})
+    evidencias = evidencias_por_captura(db, {captura.id for _, captura, _ in registros})
     itens = [
         CandidatoLegadoRead.model_validate(
             {
@@ -112,8 +153,11 @@ def listar_pagina(
                 "descoberto_em": candidato.descoberto_em,
                 "verificado_em": candidato.verificado_em,
                 "evidencias": evidencias.get(captura.id, []),
+                "captura_id": captura.id,
+                "situacao": decisao.situacao if decisao else "novo",
+                "versao": decisao.id if decisao else 0,
             }
         )
-        for candidato, captura in registros
+        for candidato, captura, decisao in registros
     ]
     return total, itens

@@ -35,12 +35,21 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
     if (url.pathname.endsWith("/auth/csrf"))
       return route.fulfill({ json: { csrf_token: "qa" } });
     if (url.pathname.endsWith("/fontes/capturas"))
-      return route.fulfill({ json: [{
-        fonte: "siconv_legado", rotulo: "SICONV (convênios legados)", status: "parcial",
-        ultima_tentativa_em: "2026-10-06T10:00:00Z", ultimo_sucesso_em: "2026-10-03T10:00:00Z",
-        defasada: true, itens_verificados: 10, itens_alterados: 2,
-        erro: "A fonte retornou dados incompletos. Os últimos dados confirmados foram preservados.",
-      }] });
+      return route.fulfill({
+        json: [
+          {
+            fonte: "siconv_legado",
+            rotulo: "SICONV (convênios legados)",
+            status: "parcial",
+            ultima_tentativa_em: "2026-10-06T10:00:00Z",
+            ultimo_sucesso_em: "2026-10-03T10:00:00Z",
+            defasada: true,
+            itens_verificados: 10,
+            itens_alterados: 2,
+            erro: "A fonte retornou dados incompletos. Os últimos dados confirmados foram preservados.",
+          },
+        ],
+      });
     if (request.method() === "PATCH") {
       if (url.pathname.endsWith("/arquivo"))
         aviso.arquivada = request.postDataJSON().arquivada;
@@ -72,10 +81,14 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
   const dialog = page.getByRole("dialog", { name: "Central de notificações" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(aviso.titulo)).toBeVisible();
-  await dialog.locator("summary").click();
-  await expect(dialog.getByText("Resposta parcial")).toBeVisible();
-  await expect(dialog.getByText(/Dados defasados/)).toBeVisible();
-  for (const width of [320, 400, 768, 1440]) {
+  const card = dialog.getByRole("article", { name: aviso.titulo });
+  await expect(card.getByText("Não lida", { exact: true })).toBeVisible();
+  await expect(card.getByText(/VL_GLOBAL_CONV/)).toBeVisible();
+  await expect(card.locator("details")).toHaveCount(0);
+  await expect(
+    dialog.getByText("Atualização das fontes oficiais", { exact: true }),
+  ).toHaveCount(0);
+  for (const width of [320, 375, 400, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await dialog.evaluate(async (el) => {
       await Promise.all(
@@ -105,11 +118,13 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
       await page.screenshot({
         path: `/private/tmp/sigeo-notificacoes-${width}.png`,
       });
-    const arquivar = dialog.getByRole("button", { name: "Arquivar", exact: true });
+    const arquivar = dialog.getByRole("button", {
+      name: "Arquivar",
+      exact: true,
+    });
     await arquivar.scrollIntoViewIfNeeded();
     await expect(arquivar).toBeInViewport();
   }
-  await dialog.locator("summary").click();
   await dialog.getByRole("button", { name: "Arquivar", exact: true }).click();
   await expect(dialog.getByText(aviso.titulo)).not.toBeVisible();
   await dialog.getByRole("button", { name: /Tipo de notificação/ }).click();

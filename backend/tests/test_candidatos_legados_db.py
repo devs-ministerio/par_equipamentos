@@ -310,7 +310,11 @@ def test_banco_rejeita_estado_ou_publicacao_inconsistentes(candidatos, estado, d
 
 def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, headers_autenticados):
     with SessionLocal() as db:
-        registrar_descoberta(db=db, candidatos=[candidatos[0]], referencia=REFERENCIA)
+        registrar_descoberta(
+            db=db,
+            candidatos=[candidatos[0]],
+            referencia=ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="c" * 64),
+        )
     cliente = TestClient(app)
     assert cliente.get("/candidatos-legados").status_code == 401
     for params in ({"pagina": 0}, {"tamanho_pagina": 51}, {"confirmacao": "inventado"}):

@@ -6,19 +6,21 @@ import { Pagination } from "@/components/common/pagination";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
 import { useCandidatosLegados } from "@/hooks/use-candidatos-legados";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
-import { ROTULOS_CONFIRMACAO } from "@/lib/legado-rotulos";
+import { ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
 import { CandidatoLegadoItem } from "./candidato-legado-item";
-import type { ConfirmacaoLegado } from "@/services/candidatos-legados";
+import type { SituacaoLegado } from "@/services/candidatos-legados";
+import { CandidatoLegadoTriagem } from "./candidato-legado-triagem";
 
 export function CandidatosLegados() {
   const [pagina, setPagina] = useState(1);
   const [busca, setBusca] = useState("");
-  const [confirmacao, setConfirmacao] = useState<ConfirmacaoLegado>();
-  const consulta = useCandidatosLegados(true, pagina, busca, confirmacao);
+  const [situacao, setSituacao] = useState<SituacaoLegado>();
+  const consulta = useCandidatosLegados(true, pagina, busca, situacao);
   return (
     <section aria-label="Candidatos à entrada" className="min-w-0 pb-4">
-      <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-2">
+      <div className="mb-4 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 [&>div]:max-w-none">
         <Input
+          className="h-11 sm:h-8"
           aria-label="Buscar candidato legado"
           placeholder="Número do convênio ou proposta"
           maxLength={100}
@@ -29,16 +31,17 @@ export function CandidatosLegados() {
           }}
         />
         <SingleSelectFilter
-          placeholder="Confirmação no Portal"
-          clearLabel="Todas as confirmações"
-          value={confirmacao ?? null}
-          options={Object.entries(ROTULOS_CONFIRMACAO).map(
-            ([value, label]) => ({ value, label }),
-          )}
+          placeholder="Situação"
+          clearLabel="Todas as situações"
+          value={situacao ?? null}
+          options={Object.entries(ROTULOS_SITUACAO).map(([value, label]) => ({
+            value,
+            label,
+          }))}
           onChange={(valor) => {
-            setConfirmacao(
-              Object.keys(ROTULOS_CONFIRMACAO).find(
-                (chave): chave is ConfirmacaoLegado => chave === valor,
+            setSituacao(
+              Object.keys(ROTULOS_SITUACAO).find(
+                (chave): chave is SituacaoLegado => chave === valor,
               ),
             );
             setPagina(1);
@@ -66,7 +69,9 @@ export function CandidatosLegados() {
         <>
           <ul className="space-y-3 pb-4">
             {consulta.data?.itens.map((candidato) => (
-              <CandidatoLegadoItem key={candidato.id} candidato={candidato} />
+              <CandidatoLegadoItem key={candidato.id} candidato={candidato}>
+                <CandidatoLegadoTriagem candidato={candidato} />
+              </CandidatoLegadoItem>
             ))}
           </ul>
           <Pagination

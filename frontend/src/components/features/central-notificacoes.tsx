@@ -10,8 +10,9 @@ import { useNotificacoes } from "@/hooks/use-notificacoes";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
 import { NotificacaoItem } from "./notificacao-item";
-import { SituacaoFontes } from "./situacao-fontes";
 import type { Notificacao, NotificacaoTipo } from "@/services/notificacoes";
+import { NAV_ITEM_CLASS } from "@/lib/navigation-styles";
+import { cn } from "@/lib/utils";
 
 const TAMANHO_PAGINA = 10;
 type Caixa = "recebidas" | "nao-lidas" | "arquivadas";
@@ -70,7 +71,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
       </div>
       <div className="shrink-0 space-y-3 border-b border-border px-5 py-3 sm:px-6">
         <div
-          className="flex flex-wrap gap-2"
+          className="grid grid-cols-3 gap-1 sm:flex"
           aria-label="Caixas de notificações"
         >
           {(
@@ -84,7 +85,13 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
               key={valor}
               size="sm"
               variant="ghost"
-              className={`rounded-none border-b-2 px-0 ${caixa === valor ? "border-primary font-semibold text-primary" : "border-transparent text-muted-foreground"}`}
+              className={cn(
+                NAV_ITEM_CLASS,
+                "min-h-11 min-w-0 justify-center sm:min-h-8",
+                caixa === valor
+                  ? "bg-secondary font-semibold text-primary hover:bg-secondary"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+              )}
               aria-pressed={caixa === valor}
               onClick={() => {
                 setCaixa(valor);
@@ -148,7 +155,6 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
         className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6"
         aria-busy={avisos.carregando}
       >
-        <SituacaoFontes />
         {avisos.erro ? (
           <div role="alert" className="space-y-3 p-4">
             <p>{mensagemSeguraDoErro(avisos.erro)}</p>
@@ -170,15 +176,21 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
             busca.
           </p>
         ) : (
-          avisos.notificacoes.map((aviso) => (
-            <NotificacaoItem
-              key={aviso.id}
-              aviso={aviso}
-              ocupada={avisos.ocupada}
-              abrir={abrir}
-              arquivar={arquivar}
-            />
-          ))
+          <ul
+            aria-label="Notificações neste recorte"
+            className="space-y-3 py-4"
+          >
+            {avisos.notificacoes.map((aviso) => (
+              <li key={aviso.id}>
+                <NotificacaoItem
+                  aviso={aviso}
+                  ocupada={avisos.ocupada}
+                  abrir={abrir}
+                  arquivar={arquivar}
+                />
+              </li>
+            ))}
+          </ul>
         )}
       </div>
       <Pagination

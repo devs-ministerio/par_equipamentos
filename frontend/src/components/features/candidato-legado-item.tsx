@@ -1,13 +1,21 @@
 import { Badge } from "@/components/ui/badge";
-import { ROTULOS_CONFIRMACAO, ROTULOS_RELACAO } from "@/lib/legado-rotulos";
+import {
+  CLASSES_SITUACAO,
+  ROTULOS_SITUACAO,
+  ROTULOS_CONFIRMACAO,
+  ROTULOS_RELACAO,
+} from "@/lib/legado-rotulos";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
 import { estiloCard } from "./monitoramento-ui";
+import type { ReactNode } from "react";
 
 /** Texto original e proveniência permanecem acessíveis sem alongar a fila. */
 export function CandidatoLegadoItem({
   candidato,
+  children,
 }: {
   candidato: CandidatoLegado;
+  children?: ReactNode;
 }) {
   const equipamentos = [...new Set(candidato.evidencias.map((e) => e.nome))];
   return (
@@ -20,9 +28,9 @@ export function CandidatoLegadoItem({
         </h3>
         <Badge
           variant="outline"
-          className="max-w-full whitespace-normal text-xs"
+          className={`max-w-full whitespace-normal text-xs ${CLASSES_SITUACAO[candidato.situacao]}`}
         >
-          {ROTULOS_CONFIRMACAO[candidato.confirmacao_portal]}
+          {ROTULOS_SITUACAO[candidato.situacao]}
         </Badge>
       </div>
       <p className="mt-2 text-sm font-medium">{equipamentos.join(" · ")}</p>
@@ -38,9 +46,12 @@ export function CandidatoLegadoItem({
       </div>
       <details className="mt-3">
         <summary className="w-fit cursor-pointer text-xs font-semibold text-primary transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-          Ver evidências
+          Mais detalhes
         </summary>
         <div className="mt-3 border-l-2 border-border pl-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            {ROTULOS_CONFIRMACAO[candidato.confirmacao_portal]}
+          </p>
           <ul className="space-y-4">
             {candidato.evidencias.map((e) => (
               <li key={`${e.id_item}-${e.codigo}`}>
@@ -62,6 +73,7 @@ export function CandidatoLegadoItem({
           </p>
         </div>
       </details>
+      {children}
     </li>
   );
 }

@@ -1,6 +1,7 @@
 """Radar legado separado da carteira e do monitoramento pós-repasse."""
 
 from datetime import date, datetime
+from uuid import UUID
 
 from sqlalchemy import (
     BigInteger,
@@ -8,10 +9,12 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Identity,
     Index,
     String,
     UniqueConstraint,
+    Uuid,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -47,6 +50,7 @@ class CandidatoLegadoRegistro(Base):
 class CandidatoLegadoCaptura(Base):
     __tablename__ = "candidato_legado_captura"
     __table_args__ = (
+        UniqueConstraint("id", "candidato_id", name="uq_legado_captura_candidato"),
         CheckConstraint(
             "confirmacao_portal IN ('nao_consultado','nao_encontrado','sem_publicacao','confirmado')",
             name="ck_candidato_legado_captura_confirmacao",
@@ -93,3 +97,42 @@ class CandidatoLegadoEvidencia(Base):
     id_item: Mapped[str] = mapped_column(String, nullable=False)
     descricao: Mapped[str] = mapped_column(String, nullable=False)
     relacao: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class CandidatoLegadoDecisao(Base):
+    """Decisão humana imutável; confirmação da fonte não é aprovação."""
+
+    __tablename__ = "candidato_legado_decisao"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["captura_id", "candidato_id"],
+            ["candidato_legado_captura.id", "candidato_legado_captura.candidato_id"],
+            name="fk_legado_decisao_captura_candidato",
+            ondelete="RESTRICT",
+            onupdate="RESTRICT",
+        ),
+        UniqueConstraint("candidato_id", "chave", name="uq_candidato_legado_decisao_chave"),
+        CheckConstraint("situacao_anterior IN ('novo','em_analise')", name="ck_legado_decisao_anterior"),
+        CheckConstraint("situacao IN ('em_analise','rejeitado')", name="ck_legado_decisao_situacao"),
+        CheckConstraint(
+            "(situacao = 'em_analise' AND situacao_anterior = 'novo') OR situacao = 'rejeitado'",
+            name="ck_legado_decisao_transicao",
+        ),
+        CheckConstraint("length(btrim(justificativa)) BETWEEN 3 AND 1000", name="ck_legado_decisao_justificativa"),
+        Index("idx_legado_decisao_candidato_id", "candidato_id", "id"),
+        Index("idx_legado_decisao_captura", "captura_id"),
+        Index("idx_legado_decisao_usuario", "usuario_id"),
+    )
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    candidato_id: Mapped[int] = mapped_column(
+        ForeignKey("candidato_legado.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    captura_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    chave: Mapped[UUID] = mapped_column(Uuid, nullable=False)
+    situacao_anterior: Mapped[str] = mapped_column(String, nullable=False)
+    situacao: Mapped[str] = mapped_column(String, nullable=False)
+    justificativa: Mapped[str] = mapped_column(String(1000), nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

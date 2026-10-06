@@ -246,3 +246,96 @@ nos testes de contrato, integração, E2E e operação programada.
 - Aprovação de convênios permanece na próxima etapa do plano. A aba exclusiva
   de propostas novas aguarda definição do critério de novidade; não exibe
   silenciosamente todo o histórico como se fosse novo.
+
+## Padronização visual das centrais — 06/10/2026
+
+- Notificações apresentadas em cards no mesmo nível/contorno do Radar,
+  com destaque de não lida, tipo/data e mensagem integral sempre visível,
+  sem botão de expansão, conforme ajuste solicitado pelo usuário.
+  Ações de leitura, abertura, arquivo/restauração e paginação preservadas.
+- Bloco "Atualização das fontes oficiais" removido da central de notificações
+  por solicitação do usuário; monitor de consultas permanece no Radar.
+- Abas das duas centrais usam a forma pill, tipografia, foco e cor do nav
+  principal. Classe base compartilhada em `lib/navigation-styles.ts`, sem
+  alterar a navegação, o indicador animado ou as permissões do cabeçalho.
+- 209 testes frontend, lint/tipagem/build e dois E2E passaram. Inspeção visual
+  em 400/768; E2E das duas janelas em 320/375/400/768/1024/1440 sem overflow.
+- Apenas frontend e documentação da homologação local; sem mudança de API,
+  banco, regra de notificação, push ou deploy em produção.
+- Rótulos de confirmação do Radar simplificados no card e no filtro:
+  Aguardando verificação / Não localizado no Portal / Publicação pendente de
+  confirmação / Publicação confirmada. Cores neutra/âmbar/verde representam
+  apenas confirmação da fonte, nunca aprovação para entrada na carteira.
+  "Ver evidências" passa a "Mais detalhes", preservando o texto original.
+
+## Revisão de produto — origem e situação do Radar
+
+- Decisão posterior do usuário substitui a apresentação de confirmação do
+  Portal como situação do Radar: usar Novo, Em análise, Aprovado e Rejeitado,
+  com responsável/data/histórico reais na etapa de decisão append-only.
+  Não renomear confirmação de fonte como aprovação, nem simular o fluxo na UI.
+- Radar recebe exclusivamente descobertas das APIs. Ingestão manual deve ir
+  diretamente para Em tramitação de Linhas de financiamento; não ingressa
+  na fila de aprovação do Radar. O GET da fila agora exclui snapshots locais;
+  o filtro de situação humana foi implementado no bloco de triagem abaixo.
+- Confirmação no Portal não é situação operacional nem filtro futuro do
+  Radar. Preservar capturas/evidências técnicas no backend para auditoria,
+  sem transformar esse controle interno em etapa manual de aprovação.
+- Os dois campos atuais juntos ocupam a largura integral dos cards: lado a
+  lado a partir de 640px, empilhados no celular, sem alterar o seletor
+  compartilhado. E2E confirma a
+  largura em 320/375/400/768/1024/1440; lint e tipagem passaram.
+
+## Contador no ícone do Radar
+
+- Badge no mesmo padrão do sino, oculto com zero e abreviado para 99+.
+  Número completo disponível no nome acessível do botão.
+- Implementação inicial (substituída no bloco de triagem abaixo) usou `total` da fila retornado pela API existente,
+  nunca tamanho da página. Consulta autenticada e cache por usuário; refresh
+  a cada 60s enquanto a aba está ativa. Abrir a janela não zera o contador.
+- Até implementar as decisões, representa convênios na fila, não um contador
+  exclusivo do estado Novo ou de propostas novas. Na próxima etapa deve usar
+  contagem backend de Novo, excluindo Em análise/Aprovado/Rejeitado e manual.
+- 213 testes frontend, lint/tipagem/build passaram; E2E do Radar validou
+  contador com 0/1/120, 99+, preservação ao abrir e responsividade.
+
+## Triagem humana do Radar — implementada na homologação local
+
+- Migração aditiva `b5c6d7e8f9a0`: decisões relacionais append-only, FK para
+  candidato/captura/usuário, vínculo composto impede captura de outro candidato,
+  chave de replay única e trigger rejeita UPDATE/DELETE do histórico.
+  Situação deriva da última decisão; confirmação da fonte nunca vira aprovação.
+- POST `/candidatos-legados/{id}/decisoes`: iniciar análise ou rejeitar,
+  somente gestor/admin ativos no Service, justificativa obrigatória, CSRF,
+  lock por candidato e comparação da captura/versão mostradas ao usuário.
+  Replay retorna a mesma decisão; chave reutilizada com outros dados é conflito.
+- GET de histórico autenticado, paginado, com responsável, instante,
+  justificativa e captura utilizada. Cards e filtro usam situação humana;
+  confirmação do Portal fica exclusivamente em Mais detalhes na UI.
+- GET da fila aceita somente descoberta `siconv_oficial`; consulta diagnóstica
+  interna ainda pode ler snapshots. Nenhuma carga manual é transferida ou
+  reinterpretada como descoberta oficial. Badge usa `novos` calculado no
+  backend, sem depender da página, busca ou filtro, e não conta Em análise/Rejeitado.
+- Aprovação **não foi implementada neste bloco**. Não há botão nem comando
+  `aprovar` aceito; o rótulo/filtro Aprovado está preparado para o próximo bloco.
+  Recaptura íntegra, promoção à carteira e avisos gerenciais continuam pendentes.
+  Não houve escrita em Convenio ou InstrumentoEquipamento pela triagem.
+- 497 testes backend e 220 frontend passaram; lint, mypy, tipagem e build
+  passaram. Gates backend: services 93,8% linhas/85,8% branches;
+  repositories 94,2%/81,0%; routes 92,1%/63,0%. Gates frontend existentes passaram.
+  Nova triagem React: componente 100% linhas/95% branches; hook 92,3%/87,5%.
+- Migração up/down/up validada no banco local exclusivo de testes, sem
+  decisões persistidas; up aplicado também ao demo local. Reversão com
+  decisões reais exige exportar o histórico antes, pois o down remove a tabela.
+- Testes HTTP exercitam autenticação, CSRF, 403/404/409/422, replay, captura
+  desatualizada, estado encerrado, rollback e integridade contra PostgreSQL.
+  Bloqueio concorrente usa row lock; falta prova de duas decisões simultâneas
+  em sessões independentes com commit, a incluir antes da aprovação/rollout.
+- E2E de UI usa respostas sintéticas, não recaptura federal real. Verificação
+  visual em 400/768 e overflow em 320/375/400/768/1024/1440. Corrigido foco ao
+  fechar após troca desktop→celular; formulário declara JSON explicitamente.
+  Servidores locais: frontend 5181, backend 8001, banco demo local.
+- A skill React orientou histórico carregado sob demanda, cache por usuário
+  e validação RHF/Zod; a skill de verificação orientou o teste das fronteiras.
+  Auditoria metodológica confirmou ausência de alterações nos cálculos.
+  Produção, workflows recorrentes e APIs federais não foram acionados.
