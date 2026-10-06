@@ -38,11 +38,13 @@ job, migration ou deploy deve ser executado em produção nesta fase.
    oficiais e agrupa avisos sem alterar revisão humana. Faltam validar
    esses contratos nas fontes reais, tratar coleções sem ID estável e
    completar projeções como CNES verificado e datas do legado.
-4. **Parcial:** núcleo diagnóstico somente leitura descobre números novos
-   por cruzamento exato e valida identidade/publicação no Portal. Falta a
-   coleta recorrente fresca, persistência e apresentação dos candidatos no Radar;
-   notificar gestor/admin quando
-   convênio ou proposta for incluído no monitoramento.
+4. **Parcial:** diagnóstico, persistência própria, consulta paginada e job de
+   download fresco implementados em homologação. Convênios legados ficam na
+   Central de entradas, acessada por ícone no cabeçalho, fora de Linhas de
+   financiamento. Faltam decisão humana auditável, promoção à carteira e
+   avisos de descoberta no ícone; a recorrência operacional depende da etapa 6.
+   Avisos gerenciais de inclusão no monitoramento já foram implementados,
+   mas não confundem descoberta, aprovação na carteira e monitoramento interno.
 5. **Parcial:** histórico/frescor via `GET /fontes/capturas`, alerta gerencial
    de fonte indisponível e central com busca, tipo, caixas, paginação,
    arquivar/restaurar por destinatário e leitura em lote individual.
@@ -131,3 +133,68 @@ nos testes de contrato, integração, E2E e operação programada.
 - Validação: 458 testes backend passaram; cobertura de linhas/branches dos
   novos Service e Repository em 100%, Ruff e mypy passaram. Não significa
   cobertura global de 100% ou validação operacional contra o dump/API reais.
+
+## Ajuste solicitado — central de entradas e aprovação
+
+- Legados não aparecem como seção em Linhas de financiamento nem Dados Oficiais.
+- Ícone próprio no cabeçalho abre `/monitoramento-equipamentos/entradas`;
+  manter o sino de atualizações separado. Contagem futura representa entradas
+  pendentes reais, não quantidade inventada de notificações não lidas.
+- Propostas da nova API seguem diretamente para Linhas de financiamento →
+  Em tramitação, sem passar por aprovação nesta central. Preservar o estágio
+  oficial real; não regredir propostas já confirmadas para tramitação.
+- Legados exigem verificação oficial e aprovação humana antes de entrar em
+  Instrumentos/programas. Não criar monitoramento pós-repasse automaticamente.
+- Próximo bloco: decisão relacional append-only, FK para candidato, captura
+  utilizada, aprovador autenticado, instante, resultado e justificativa.
+- Aprovar/rejeitar somente gestor/admin, verificado no Service; leitura do
+  histórico autenticada. CSRF e contrato estrito nas rotas de decisão.
+- Aprovação bloqueada sem publicação/identidade confirmadas; recapturar dado
+  oficial necessário à carteira, sem fabricar campos a partir da descrição.
+- Uma transação inclui convênio, registra decisão e avisos gerenciais;
+  lock/UNIQUE garantem replay e cliques concorrentes sem duplicação.
+- Histórico paginado mantém quem decidiu, quando, evidência e destino,
+  mesmo depois que o candidato sair da fila. Rejeição não apaga capturas.
+- Arquivos: models/migration/schemas/repositories/services/routers da central;
+  frontend services/hooks/features e rota de composição, sem fetch na UI.
+- Migration aditiva separada para decisões, com up/down testados; rollback
+  perde somente decisões novas, exige backup antes de uso compartilhado.
+- Testes: gestor/admin versus colaborador/leitor, CSRF/IDOR, vazio, inválido,
+  fonte indisponível, estado não confirmado, repetição, concorrência e rollback;
+  E2E e inspeção visual em celular/tablet. Só I/O externo simulado.
+- Visual mantém tokens verdes, fonte do produto, divisores e densidade de
+  operação; sem cartões aninhados, títulos decorativos ou largura fixa.
+- Tudo local/homologação: sem push/deploy, jobs, migrations ou schedule na
+  produção. Aprovação e histórico ainda não estão disponíveis nesta etapa.
+
+## Continuação — persistência e central local
+
+- Migration `f9a0b1c2d3e4` cria candidato, captura e evidências relacionais;
+  não altera convênios/monitoramento. Up/down/reaplicação testados somente
+  no PostgreSQL efêmero; depois aplicada à base sintética de demonstração.
+- Lote é atômico, serializado por lock; replay não duplica capturas. Resposta
+  parcial preserva confirmação/evidência anterior. Identidade conflitante
+  aborta, inclusive com violação UNIQUE; teste com duas sessões concorrentes.
+- `GET /candidatos-legados` autenticado, paginado (máximo 50), busca literal
+  e filtro de confirmação no SQL; candidatos já na carteira saem da fila,
+  sem apagar o histórico. Nenhuma rota de escrita pública adicionada aqui.
+- Job de descoberta força download fresco, valida ZIP/identidades e consulta
+  o Portal antes de persistir o lote. Falha HTTP/limite aborta; captura da
+  falha permanece com mensagem segura. Não está conectado a schedule.
+- Job testa fronteiras externas simuladas, sem substituir a regra de negócio;
+  17 testes novos incluem coleta fresca, 404/500, replay, limite, rollback,
+  paginação, concorrência, constraints e contrato HTTP.
+- Validação: 475 testes backend sem warnings, Ruff e mypy (83 arquivos);
+  novos Service 98%, Repository e Router 100% na medição com branches.
+  Esses percentuais não são a cobertura global do sistema.
+- Frontend: 144 testes, lint/tipagem/build passaram; dois E2E com API sintética
+  cobrem central e notificações. Larguras 320/375/400/768/1024/1440 sem overflow
+  na central; inspeção visual de 400/768. Tokens/fonte existentes preservados.
+  Novo componente: 92,85% de linhas e 91,66% de branches na medição local.
+- Localhost `127.0.0.1:5181` usa backend `8001` e banco próprio de demonstração,
+  com dois candidatos explicitamente sintéticos, sem chave de fonte ou e-mail.
+  Login e consulta autenticada da API local confirmados com resposta 200.
+- Aprovação, trilha de decisões e aviso de descoberta permanecem pendentes;
+  fontes reais, operação diária e CI remoto não foram validados neste bloco.
+- Rollout futuro: migration → backend → frontend. Downgrade elimina só o
+  histórico novo de candidatos; exige backup se já houver dados compartilhados.
