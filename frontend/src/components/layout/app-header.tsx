@@ -62,8 +62,8 @@ function NavButton({
  * navegação (hoje só o NotificationBell do MonitoramentoLayout) -- 2 slots
  * simétricos em vez de crescer a assinatura com 1 prop por widget novo.
  *
- * Abaixo de `md` (768px) nav/leftExtra/rightExtra/UserMenu colapsam num
- * menu mobile (Sheet) atrás de um botão hambúrguer -- Radix Dialog já
+ * Abaixo de `lg` nav/leftExtra/UserMenu colapsam no menu mobile;
+ * ações de `rightExtra` permanecem ao lado do hambúrguer. Radix Dialog já
  * fecha com Escape e devolve foco ao trigger, sem código extra aqui. */
 export function AppHeader({
   navItems,
@@ -140,49 +140,51 @@ export function AppHeader({
           <UserMenu />
         </div>
 
-        {/* Mobile (<768px): tudo colapsa atrás do hambúrguer. */}
-        <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              aria-label="Abrir menu"
-            >
-              <Menu />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[85vw] max-w-[320px]">
-            <SheetHeader>
-              <SheetTitle>Menu</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
-              {leftExtra && <div>{leftExtra}</div>}
-              <nav className="flex flex-col items-stretch gap-1">
-                {navItems.map((item) => {
-                  const active = item.isActive
-                    ? item.isActive(location.pathname)
-                    : location.pathname.startsWith(item.path);
-                  return (
-                    <NavButton
-                      key={item.path}
-                      item={item}
-                      active={active}
-                      onNavigate={() => irPara(item.path)}
-                      className="w-full rounded-lg py-2.5 text-left"
-                    />
-                  );
-                })}
-              </nav>
-              {rightExtra}
-              <SheetClose asChild>
-                <div>
-                  <UserMenu />
-                </div>
-              </SheetClose>
-            </div>
-          </SheetContent>
-        </Sheet>
+        {/* Mobile/tablet: ações rápidas visíveis; navegação no menu. */}
+        <div className="flex shrink-0 items-center gap-1 lg:hidden">
+          {rightExtra}
+          <Sheet open={menuAberto} onOpenChange={setMenuAberto}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                aria-label="Abrir menu"
+              >
+                <Menu />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[85vw] max-w-[320px]">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-4">
+                {leftExtra && <div>{leftExtra}</div>}
+                <nav className="flex flex-col items-stretch gap-1">
+                  {navItems.map((item) => {
+                    const active = item.isActive
+                      ? item.isActive(location.pathname)
+                      : location.pathname.startsWith(item.path);
+                    return (
+                      <NavButton
+                        key={item.path}
+                        item={item}
+                        active={active}
+                        onNavigate={() => irPara(item.path)}
+                        className="w-full rounded-lg py-2.5 text-left"
+                      />
+                    );
+                  })}
+                </nav>
+                <SheetClose asChild>
+                  <div>
+                    <UserMenu />
+                  </div>
+                </SheetClose>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   );

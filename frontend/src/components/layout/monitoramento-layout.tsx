@@ -6,6 +6,7 @@
  * link de volta pro resto do app. */
 import { Outlet, useLocation } from "react-router-dom";
 import { NotificationBell } from "@/components/features/notification-bell";
+import { CentralEntradasLink } from "@/components/features/central-entradas-link";
 import { CONTAINER_CLASS } from "@/lib/layout";
 import { AppHeader } from "./app-header";
 import {
@@ -25,7 +26,15 @@ export function MonitoramentoLayout() {
 
   return (
     <div className="min-h-screen bg-background text-sm text-foreground">
-      <AppHeader navItems={navItems} rightExtra={<NotificationBell />} />
+      <AppHeader
+        navItems={navItems}
+        rightExtra={
+          <>
+            <CentralEntradasLink />
+            <NotificationBell />
+          </>
+        }
+      />
       <div className={`${CONTAINER_CLASS} py-6`}>
         <Outlet />
       </div>
