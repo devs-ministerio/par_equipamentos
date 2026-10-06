@@ -44,7 +44,16 @@ test("central independente, sem aprovação automática, responsiva", async ({
       return route.fulfill({ json: { total: 0, itens: [], nao_lidas: 0 } });
     return route.fulfill({ json: [] });
   });
-  await page.goto("/monitoramento-equipamentos/entradas");
+  await page.goto("/monitoramento-equipamentos");
+  const paginaOriginal = page.url();
+  const icone = () =>
+    page
+      .getByRole("button", { name: "Central de entradas", exact: true })
+      .filter({ visible: true });
+  await icone().click();
+  const dialog = page.getByRole("dialog", { name: "Central de entradas" });
+  await expect(dialog).toBeVisible();
+  expect(page.url()).toBe(paginaOriginal);
   await expect(
     page.getByRole("heading", { name: "Central de entradas" }),
   ).toBeVisible();
@@ -57,11 +66,10 @@ test("central independente, sem aprovação automática, responsiva", async ({
   ).toHaveCount(0);
   for (const width of [320, 375, 400, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    await expect(
-      page
-        .getByRole("link", { name: "Central de entradas", exact: true })
-        .filter({ visible: true }),
-    ).toBeInViewport();
+    await expect(dialog).toBeInViewport();
+    await expect
+      .poll(() => dialog.evaluate((el) => el.scrollWidth - el.clientWidth))
+      .toBeLessThanOrEqual(0);
     await expect
       .poll(() =>
         page.evaluate(
@@ -71,7 +79,7 @@ test("central independente, sem aprovação automática, responsiva", async ({
       .toBeLessThanOrEqual(0);
     if (width === 400 || width === 768)
       await page.screenshot({
-        path: `/private/tmp/sigeo-entradas-${width}.png`,
+        path: `/private/tmp/sigeo-entradas-modal-${width}.png`,
       });
   }
   const financiamento = page.getByRole("link", {
@@ -82,4 +90,13 @@ test("central independente, sem aprovação automática, responsiva", async ({
     "href",
     "/monitoramento-equipamentos?aba=componentes",
   );
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(icone()).toBeFocused();
+  expect(page.url()).toBe(paginaOriginal);
+  await icone().click();
+  await expect(dialog).toBeVisible();
+  await financiamento.click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(/aba=componentes/);
 });

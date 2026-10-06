@@ -1,20 +1,40 @@
 import { ClipboardList } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { lazy, Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const CentralEntradas = lazy(() =>
+  import("./central-entradas").then((m) => ({ default: m.CentralEntradas })),
+);
 
 /** Acesso independente das linhas de financiamento, também em celular. */
 export function CentralEntradasLink() {
-  const { pathname } = useLocation();
+  const [aberta, setAberta] = useState(false);
   return (
-    <Button variant="ghost" size="icon" asChild>
-      <Link
-        to="/monitoramento-equipamentos/entradas"
-        aria-label="Central de entradas"
-        aria-current={pathname.endsWith("/entradas") ? "page" : undefined}
-        title="Central de entradas"
-      >
-        <ClipboardList className="size-4.5" />
-      </Link>
-    </Button>
+    <Dialog open={aberta} onOpenChange={setAberta}>
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Central de entradas"
+          title="Central de entradas"
+        >
+          <ClipboardList className="size-4.5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw_-_2.25rem)] flex-col gap-0 p-0 sm:max-w-3xl">
+        <Suspense
+          fallback={
+            <Skeleton
+              aria-label="Carregando central de entradas"
+              className="m-6 h-32"
+            />
+          }
+        >
+          <CentralEntradas onNavigate={() => setAberta(false)} />
+        </Suspense>
+      </DialogContent>
+    </Dialog>
   );
 }

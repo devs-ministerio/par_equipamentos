@@ -40,7 +40,7 @@ job, migration ou deploy deve ser executado em produção nesta fase.
    completar projeções como CNES verificado e datas do legado.
 4. **Parcial:** diagnóstico, persistência própria, consulta paginada e job de
    download fresco implementados em homologação. Convênios legados ficam na
-   Central de entradas, acessada por ícone no cabeçalho, fora de Linhas de
+   Central de entradas flutuante, acessada por ícone no cabeçalho, fora de Linhas de
    financiamento. Faltam decisão humana auditável, promoção à carteira e
    avisos de descoberta no ícone; a recorrência operacional depende da etapa 6.
    Avisos gerenciais de inclusão no monitoramento já foram implementados,
@@ -137,7 +137,7 @@ nos testes de contrato, integração, E2E e operação programada.
 ## Ajuste solicitado — central de entradas e aprovação
 
 - Legados não aparecem como seção em Linhas de financiamento nem Dados Oficiais.
-- Ícone próprio no cabeçalho abre `/monitoramento-equipamentos/entradas`;
+- Ícone próprio no cabeçalho abre janela flutuante, mantendo a rota atual;
   manter o sino de atualizações separado. Contagem futura representa entradas
   pendentes reais, não quantidade inventada de notificações não lidas.
 - Propostas da nova API seguem diretamente para Linhas de financiamento →
@@ -198,3 +198,23 @@ nos testes de contrato, integração, E2E e operação programada.
   fontes reais, operação diária e CI remoto não foram validados neste bloco.
 - Rollout futuro: migration → backend → frontend. Downgrade elimina só o
   histórico novo de candidatos; exige backup se já houver dados compartilhados.
+
+## Ajuste — central flutuante e servidores locais
+
+- A central deixa de ser página completa: `Dialog` do mesmo padrão das
+  notificações, foco contido, Escape/fechar e retorno de foco ao ícone.
+- Conteúdo carregado sob demanda com lazy/Suspense; consulta só enquanto
+  a central está montada. Link de financiamento fecha a janela e navega.
+- URL antiga `/monitoramento-equipamentos/entradas` redireciona à página
+  operacional, sem manter uma segunda apresentação da central.
+- Rolagem vertical interna e margens da janela verificadas em 400/768;
+  E2E em 320/375/400/768/1024/1440, sem navegação ao abrir ou overflow.
+- Abas da página de fundo passam a permitir quebra em 320 px, corrigindo
+  overflow comprovado no teste. Sem alteração de filtro ou regra de negócio.
+- Servidores locais estavam desligados e foram reiniciados: Vite 5181,
+  API 8001, PostgreSQL 5432. Banco sintético e serviços externos desabilitados.
+- Validação ponta a ponta sem mock: login sintético → consulta autenticada
+  local → dois candidatos do banco → janela → Escape; sem erro JavaScript.
+- 144 testes frontend, lint/tipos/build e dois E2E passaram; revisão React
+  confirma reutilização de componentes, hooks de consulta e lazy loading.
+- Nenhum backend/schema alterado neste ajuste; produção permanece intocada.

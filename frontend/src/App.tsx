@@ -45,11 +45,6 @@ const MonitoramentoEquipamentosPage = lazy(() =>
     default: m.MonitoramentoEquipamentosPage,
   })),
 );
-const CentralEntradasPage = lazy(() =>
-  import("./pages/central-entradas-page").then((m) => ({
-    default: m.CentralEntradasPage,
-  })),
-);
 // Pagina propria do monitoramento interno POR instrumento (achado
 // 2026-09-09) -- antes vivia embutida dentro do card do convenio na lista
 // acima. Mesmo padrao de code-splitting, mesmo "fora do AppLayout".
@@ -179,7 +174,9 @@ function App() {
                 <Route element={<MonitoramentoLayout />}>
                   <Route
                     path="/monitoramento-equipamentos/entradas"
-                    element={<CentralEntradasPage />}
+                    element={
+                      <Navigate to="/monitoramento-equipamentos" replace />
+                    }
                   />
                   <Route
                     path="/monitoramento-equipamentos"

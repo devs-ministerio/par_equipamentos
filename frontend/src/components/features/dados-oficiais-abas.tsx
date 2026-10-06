@@ -13,7 +13,7 @@ export function AbasDadosOficiais({
   onChange: (aba: "convenios" | "componentes") => void;
 }) {
   return (
-    <div className="mb-5 flex gap-1 border-b border-border">
+    <div className="mb-5 flex flex-wrap gap-1 border-b border-border">
       {(
         [
           {
