@@ -18,6 +18,7 @@ from app.db.models import (
     Convenio,
     EventoMarco,
     InstrumentoEquipamento,
+    MacroCoverage,
     MarcoCatalogo,
     PropostaCandidata,
 )
@@ -399,19 +400,22 @@ def test_analise_merito_escopo_cnes_e_rejeitado():
 def test_analise_merito_uf_sem_cobertura_gera_arquivo_valido_sem_quebrar():
     db = SessionLocal()
     try:
+        # Cenário vazio explícito e reversível, inclusive em clone populado.
+        # Close da Session faz rollback: nunca apagar cobertura de trabalho.
+        db.query(MacroCoverage).filter(MacroCoverage.state == "AC").delete(synchronize_session=False)
         conteudo = montar_relatorio(
             db=db,
             formato="xlsx",
             nivel="simplificado",
             tipo_relatorio="analise_merito",
-            # UF sem nenhum dado de cobertura no seed sintético (só DF tem
-            # linha de MacroCoverage) -- a família TOMOGRAFO existe, só não
-            # tem dado pro AC; devolve aba com só cabeçalho, sem quebrar.
+            # A transação remove temporariamente cobertura de AC; todas
+            # as famílias publicadas devem produzir apenas cabeçalho.
             filtro=FiltroRelatorio(escopo="uf", uf="AC"),
         )
         pasta = load_workbook(BytesIO(conteudo))
-        assert pasta.sheetnames == ["Cobertura TOMOGRAFO"]
-        assert pasta["Cobertura TOMOGRAFO"].max_row == 1
+        assert "Cobertura TOMOGRAFO" in pasta.sheetnames
+        assert all(nome.startswith("Cobertura ") for nome in pasta.sheetnames)
+        assert all(pasta[nome].max_row == 1 for nome in pasta.sheetnames)
     finally:
         db.close()
 

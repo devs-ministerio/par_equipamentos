@@ -3,7 +3,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 import pytest
-from sqlalchemy import select, text
+from sqlalchemy import and_, or_, select, text
 
 from app.db.base import SessionLocal
 from app.db.models import AuditLog, Convenio, InstrumentoEquipamento, PagamentoObraPersus
@@ -101,8 +101,12 @@ def test_normalizador_dry_run_aplica_com_auditoria_sem_cnpj_em_claro():
             db.execute(
                 select(AuditLog).where(
                     AuditLog.action == "normalizacao_cnpj",
-                    AuditLog.entity_name.in_(ids_por_entidade),
-                    AuditLog.entity_id.in_([convenio.id, instrumento.id, pagamento.id]),
+                    or_(
+                        *(
+                            and_(AuditLog.entity_name == entidade, AuditLog.entity_id.in_(ids))
+                            for entidade, ids in ids_por_entidade.items()
+                        )
+                    ),
                 )
             )
             .scalars()

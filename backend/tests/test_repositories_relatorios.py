@@ -92,7 +92,8 @@ def test_listar_instrumentos_filtra_por_uf_municipio_cnes():
         assert any(i.nr_convenio == "948686" for i in por_municipio)
 
         por_cnes = monitoramento_repo.listar_instrumentos(db, cnes="0010456")
-        assert [i.nr_convenio for i in por_cnes] == ["948686"]
+        assert any(i.nr_convenio == "948686" for i in por_cnes)
+        assert all(i.cnes == "0010456" for i in por_cnes)
 
         nenhum = monitoramento_repo.listar_instrumentos(db, ufs=["ZZ"])
         assert nenhum == []
@@ -157,16 +158,18 @@ def test_listar_convenios_filtrados_por_situacao_programa_tipo_e_busca():
         db.add(convenio)
         db.flush()
 
-        assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, situacao="Em execução")] == [
-            "__pytest_filtros_convenio__"
-        ]
-        assert convenios_repo.listar_convenios_filtrados(db, situacao="Concluído") == []
+        em_execucao = convenios_repo.listar_convenios_filtrados(db, situacao="Em execução")
+        assert convenio in em_execucao
+        assert all(c.situacao == "Em execução" for c in em_execucao)
+        concluidos = convenios_repo.listar_convenios_filtrados(db, situacao="Concluído")
+        assert convenio not in concluidos
+        assert all(c.situacao == "Concluído" for c in concluidos)
         assert [
             c.numero for c in convenios_repo.listar_convenios_filtrados(db, programa="Programa Pytest de Oncologia")
         ] == ["__pytest_filtros_convenio__"]
-        assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, tipo_contratacao="TED")] == [
-            "__pytest_filtros_convenio__"
-        ]
+        teds = convenios_repo.listar_convenios_filtrados(db, tipo_contratacao="TED")
+        assert convenio in teds
+        assert all(c.tipo_contratacao == "TED" for c in teds)
         assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, busca="Hospital Pytest")] == [
             "__pytest_filtros_convenio__"
         ]

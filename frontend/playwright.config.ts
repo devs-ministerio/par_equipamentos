@@ -32,7 +32,8 @@ export default defineConfig({
       ? [
           {
             name: "autenticado-chromium",
-            testMatch: /(?:authenticated|responsive)\.spec\.ts/,
+            testMatch:
+              /(?:authenticated|responsive|homologacao-local)\.spec\.ts/,
             use: { ...devices["Desktop Chrome"] },
           },
         ]
