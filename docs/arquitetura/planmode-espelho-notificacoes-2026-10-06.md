@@ -29,16 +29,18 @@ job, migration ou deploy deve ser executado em produção nesta fase.
    detecta ausências e diferenças antes da aplicação.
 3. **Parcial:** o registro principal `siconv_convenio` usa o payload anterior
    persistido como baseline, compara seus campos e agrupa o resumo por
-   convênio; valores financeiros derivados também são atualizados. Faltam
-   captura/frescor versionados, tabelas filhas (pagamentos, licitações,
-   itens), demais campos da API nova e atualização das outras colunas
-   expostas na UI na mesma transação.
+   convênio; valores financeiros derivados também são atualizados. Capturas
+   e frescor por rodada estão registrados; empenhos, desembolsos, licitações,
+   termos aditivos, pagamentos e itens são comparados por chave, com baseline
+   inicial silenciosa e resumo dos campos alterados. Falta completar os
+   demais campos da API nova e as outras colunas expostas na UI.
 4. **Pendente:** descobrir novos convênios legados, validar assinatura no
    Portal e apresentar candidatos no Radar; notificar gestor/admin quando
    convênio ou proposta for incluído no monitoramento.
-5. **Pendente:** histórico/frescor/erros de coleta visíveis, alerta de fonte
-   indisponível, nova UX de notificações com busca, filtros, arquivar e ler
-   tudo, mantendo leitura individual e autorização.
+5. **Parcial:** histórico/frescor via `GET /fontes/capturas`, alerta gerencial
+   de fonte indisponível com dedup de 24h e contrato frontend compatível.
+   Falta apresentar frescor na UI e a nova UX de notificações com busca,
+   filtros, arquivar e ler tudo, mantendo autorização.
 6. **Pendente:** automatizar workflow diário somente depois de confirmar
    secret, runner, migrations e branch/deploy corretos; testar contra banco
    isolado, replay idempotente, alertas e rollback antes da produção.
@@ -47,3 +49,13 @@ job, migration ou deploy deve ser executado em produção nesta fase.
 
 Não declarar “espelho sempre atualizado” enquanto as etapas 3–6 não passarem
 nos testes de contrato, integração, E2E e operação programada.
+
+## Evidência da integração do trabalho do Claude (2026-10-06)
+
+- `ca33b02` e `cc877bc` preservados; navegação segue isolada em `8a7a8c1`.
+- Migration de capturas aplicada somente em PostgreSQL sintético local.
+- 423 testes backend e 132 frontend passaram; Ruff, mypy, lint e build passaram.
+- Testes cobrem as seis tabelas filhas, campos omitidos, replay e rollback
+  integral diante de chave duplicada/ausente ou pagamento inválido.
+- Downloads externos são substituídos na fronteira dos testes; nenhum job foi
+  executado contra produção. Ainda falta validação operacional das fontes reais.
