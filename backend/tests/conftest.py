@@ -35,6 +35,7 @@ _DB_TEST_MODULES = {
     "test_execucoes.py",
     "test_integridade_constraints.py",
     "test_integridade_fk_cnes.py",
+    "test_job_verificacao_siconv_db.py",
     "test_monitoramento.py",
     "test_monitoramento_eventos_titularidade.py",
     "test_monitoramento_instrumentos_elegibilidade.py",

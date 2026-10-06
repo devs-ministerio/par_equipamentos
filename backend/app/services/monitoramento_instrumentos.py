@@ -10,10 +10,19 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_monitoramento
-from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
+from app.db.models import (
+    CnesEstabelecimento,
+    EventoMarco,
+    InstrumentoEquipamento,
+    MarcoCatalogo,
+    Notificacao,
+    NotificacaoTipo,
+    User,
+)
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas as propostas_repo
+from app.repositories.notificacoes import criar_notificacao
 from app.services.monitoramento_eventos import substituir_responsaveis_instrumento
 
 
@@ -132,6 +141,18 @@ def criar_instrumento_monitorado(
             "tecnico_titular_id": titular.id,
             "tecnico_suplente_id": suplente.id if suplente is not None else None,
         },
+    )
+    criar_notificacao(
+        db,
+        Notificacao(
+            tipo=NotificacaoTipo.inclusao_monitoramento,
+            titulo=f"Instrumento {nr_convenio} incluído no monitoramento",
+            corpo=(
+                f"{dados.tipo_contratacao} · responsável: {titular.name}"
+                f" · incluído por {usuario.name}"
+            ),
+            entidade_id=instrumento.id,
+        ),
     )
     db.commit()
     db.refresh(instrumento)

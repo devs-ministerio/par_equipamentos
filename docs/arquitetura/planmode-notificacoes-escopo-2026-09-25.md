@@ -184,3 +184,20 @@ gerada).
 
 **Status**: as 4 etapas deste Plan Mode estão concluídas. Migration aplicada contra Postgres real
 (banco local de teste), suíte completa passando, documentação sincronizada.
+
+## Extensão de escopo (2026-10-06, somente branch `homologacao`)
+
+A inclusão explícita de um convênio ou proposta no monitoramento interno agora
+gera `inclusao_monitoramento` na mesma transação do cadastro e da auditoria.
+Os destinatários são apenas usuários ativos `gestor` e `admin`; colaboradores
+continuam a receber atualizações dos instrumentos de sua titularidade, mas
+não este aviso gerencial de inclusão. `leitor` permanece excluído. O destino
+do aviso é a página do instrumento criado e a leitura continua individual.
+
+Esta extensão é apenas o primeiro bloco do plano de integridade e atualização
+aprovado em 2026-10-06. Ela **não** significa que toda alteração de campo das
+fontes externas, a descoberta recorrente de convênios legados ou a nova
+interface de notificações já estejam implementadas. O job SICONV nesta etapa
+reconcilia somente a situação dos convênios conhecidos; a ativação automática
+do workflow e a implantação em produção continuam pendentes de validação
+separada.

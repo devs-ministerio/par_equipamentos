@@ -26,6 +26,7 @@ const RÓTULO_TIPO: Record<Notificacao["tipo"], string> = {
   atualizacao_api: "Atualização",
   edicao_manual: "Edição manual",
   alerta_vigencia: "Fim de vigência",
+  inclusao_monitoramento: "Novo monitoramento",
 };
 
 export function NotificationBell() {

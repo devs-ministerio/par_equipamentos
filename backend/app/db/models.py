@@ -85,6 +85,9 @@ class NotificacaoTipo(str, enum.Enum):
     # pra Convenio.id (4o valor no esquema polimorfico, ver
     # scripts/job_alerta_vigencia.py).
     alerta_vigencia = "alerta_vigencia"
+    # Inclusão explícita no monitoramento interno; entidade_id é
+    # InstrumentoEquipamento.id e destinatários são gestor/admin ativos.
+    inclusao_monitoramento = "inclusao_monitoramento"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -989,7 +992,7 @@ class InstrumentoEquipamento(Base):
     # "Inadimplente"...), nao da prestacao de contas. So existe pra
     # tipo_contratacao="Convênio" (universo SICONV) -- sincronizado por
     # scripts/job_verificacao_siconv.py (dump CSV bulk, sem endpoint de
-    # consulta por numero, so HEAD-check + reprocesso, ver docstring do
+    # consulta por numero, com download fresco a cada execução, ver docstring do
     # job). NUNCA usar pra "Parceria TransfereGov" -- ver
     # situacao_parceria_transferegov abaixo, achado 2026-09-15: o
     # TransfereGov NOVO (diferente do que se pensava aqui antes) TEM
@@ -1482,8 +1485,9 @@ class EquipamentoMarcador(Base):
 
 
 class Notificacao(Base):
-    """4 origens (Plan Mode notificacoes-escopo 2026-09-25 ampliou de 3 pra
-    4): tipo=atualizacao_api nasce do job de verificacao/descoberta achando
+    """Notificações de origem externa, ação interna e inclusão no monitoramento.
+
+    tipo=atualizacao_api nasce do job de verificacao/descoberta achando
     mudanca real (diff campo a campo, nunca so presenca/ausencia) num
     instrumento ja monitorado; tipo=edicao_manual nasce do PATCH de
     instrumento (app/services/monitoramento_eventos.py) -- SEMPRE junto de
@@ -1496,7 +1500,8 @@ class Notificacao(Base):
     tipo=proposta_candidata aponta pra proposta_candidata.id (proposta nova
     OU atualizada, ver scripts/job_descoberta_transferegov.py),
     atualizacao_api/edicao_manual apontam pra instrumento_equipamento.id,
-    alerta_vigencia aponta pra convenio.id.
+    alerta_vigencia aponta pra convenio.id; inclusao_monitoramento aponta
+    pra instrumento_equipamento.id e é destinada somente a gestor/admin.
 
     Quem VE cada notificacao e resolvido em
     app/repositories/notificacoes.py::resolver_destinatarios (materializado

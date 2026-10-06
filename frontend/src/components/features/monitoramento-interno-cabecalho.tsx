@@ -37,8 +37,9 @@ export function MonitoramentoInternoCabecalho({
     inst.situacao_prestacao_contas
       ?.toLocaleLowerCase("pt-BR")
       .includes("concluída") ?? false;
+  const prestacaoVerificada = Boolean(inst.situacao_prestacao_contas?.trim());
   const divergenciaInauguracao =
-    inaugurado && inst.tipo_contratacao === "Convênio" && !prestacaoConcluida;
+    inaugurado && inst.tipo_contratacao === "Convênio" && prestacaoVerificada && !prestacaoConcluida;
 
   const indicadores = [
     {
@@ -80,11 +81,13 @@ export function MonitoramentoInternoCabecalho({
           {
             rotulo: "Prestação de contas (SICONV)",
             valor: inst.situacao_prestacao_contas ?? "Sem dado",
-            detalhe: divergenciaInauguracao
-              ? "Atenção: Equipamento entregue, pendente de conclusão no TransfereGov"
-              : prestacaoConcluida
-                ? "Concluída"
-                : "Ainda não concluída",
+            detalhe: !prestacaoVerificada
+              ? "Situação externa ainda não verificada"
+              : divergenciaInauguracao
+                ? "Atenção: conclusão interna ainda não confirmada na fonte externa"
+                : prestacaoConcluida
+                  ? "Concluída"
+                  : "Ainda não concluída",
             alerta: divergenciaInauguracao,
           },
         ]

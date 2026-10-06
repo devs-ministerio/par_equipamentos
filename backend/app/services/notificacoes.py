@@ -54,7 +54,11 @@ def listar_notificacoes(
     ids_instrumentos = {
         item.notificacao.entidade_id
         for item in pagina.itens
-        if item.notificacao.tipo in (NotificacaoTipo.atualizacao_api, NotificacaoTipo.edicao_manual)
+        if item.notificacao.tipo in (
+            NotificacaoTipo.atualizacao_api,
+            NotificacaoTipo.edicao_manual,
+            NotificacaoTipo.inclusao_monitoramento,
+        )
     }
     ids_propostas = {
         item.notificacao.entidade_id

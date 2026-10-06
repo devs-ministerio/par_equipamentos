@@ -118,7 +118,7 @@ def _sessao_com_retry() -> requests.Session:
     return session
 
 
-def _baixar_zip(nome: str) -> bytes:
+def _baixar_zip(nome: str, *, atualizar_cache: bool = False) -> bytes:
     """Cache local em scripts/output/cache/ (compartilhado com
     levantamento_convenios_oncologia.py) -- siconv_plano_aplicacao.csv.zip
     e siconv_pagamento.csv.zip sozinhos sao ~280-340MB, sem necessidade de
@@ -128,18 +128,28 @@ def _baixar_zip(nome: str) -> bytes:
     com timeout/broken pipe em arquivo desse tamanho -- resolvido baixando
     em chunk pra disco, como `curl --retry` ja fazia manualmente)."""
     caminho = DIR_CACHE / f"{nome}.csv.zip"
-    if caminho.exists():
+    if caminho.exists() and not atualizar_cache:
         print(f"   (cache) {nome}.csv.zip ja baixado.")
         return caminho.read_bytes()
     DIR_CACHE.mkdir(parents=True, exist_ok=True)
     sessao = _sessao_com_retry()
+    destino = caminho.with_suffix(caminho.suffix + ".tmp") if atualizar_cache else caminho
     with sessao.get(
         f"{BASE_URL}/{nome}.csv.zip", stream=True, timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"}
     ) as resp:
         resp.raise_for_status()
-        with caminho.open("wb") as f:
+        with destino.open("wb") as f:
             for chunk in resp.iter_content(chunk_size=1024 * 1024):
                 f.write(chunk)
+    if atualizar_cache:
+        try:
+            with zipfile.ZipFile(destino) as arquivo:
+                if not arquivo.namelist() or arquivo.testzip() is not None:
+                    raise ValueError(f"ZIP inválido recebido para {nome}")
+        except (zipfile.BadZipFile, ValueError):
+            destino.unlink(missing_ok=True)
+            raise
+        destino.replace(caminho)
     return caminho.read_bytes()
 
 
@@ -156,9 +166,11 @@ def _linhas_csv_do_zip(conteudo_zip: bytes) -> tuple[list[str], Iterator[list[st
     return cabecalho, leitor
 
 
-def _filtrar_por_numero_convenio(nome: str, numeros: set[str]) -> list[dict[str, str]]:
+def _filtrar_por_numero_convenio(
+    nome: str, numeros: set[str], *, atualizar_cache: bool = False
+) -> list[dict[str, str]]:
     print(f"Baixando {nome}.csv.zip...")
-    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip(nome))
+    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip(nome, atualizar_cache=atualizar_cache))
     idx_convenio = cabecalho.index("NR_CONVENIO")
     n_campos = len(cabecalho)
     registros = []
