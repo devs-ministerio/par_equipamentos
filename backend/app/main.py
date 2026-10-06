@@ -19,6 +19,7 @@ from app.routers import (
     auth,
     convenios,
     equipment_offer,
+    fontes,
     macro_coverage,
     monitoramento,
     municipality_coverage,
@@ -64,6 +65,7 @@ app.include_router(monitoramento.router)
 # Radar de Convenios -- notificacao de proposta candidata/atualizacao de
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
 app.include_router(notificacoes.router)
+app.include_router(fontes.router)
 app.include_router(propostas_candidatas.router)
 # Relatorios Excel/Word -- ver docs/arquitetura/planmode-relatorios-2026-09-25.md.
 app.include_router(relatorios.router)

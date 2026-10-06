@@ -26,6 +26,7 @@ from app.db.base import SessionLocal
 from app.db.models import Convenio, InstrumentoEquipamento, Notificacao, NotificacaoTipo
 from app.pipeline.texto import parsear_valor_brasileiro
 from app.repositories.notificacoes import criar_notificacao
+from app.services.capturas_fonte import CapturaEmAndamento, captura
 
 # Reaproveita os helpers ja existentes de scripts/coletar_siconv_legado.py
 # (download com retry/cache, parse do zip, filtro por NR_CONVENIO) em vez
@@ -89,7 +90,9 @@ def reconciliar_registro(
 
 
 def resumo_campos(mudancas: dict[str, tuple[str, str]]) -> str:
-    return "; ".join(f"{campo}: {antigo or '(vazio)'} → {novo or '(vazio)'}" for campo, (antigo, novo) in mudancas.items())
+    return "; ".join(
+        f"{campo}: {antigo or '(vazio)'} → {novo or '(vazio)'}" for campo, (antigo, novo) in mudancas.items()
+    )
 
 
 def reconciliar_situacao(
@@ -115,10 +118,19 @@ def reconciliar_situacao(
     return fonte_mudou, instrumento_mudou
 
 
+# Fração de convênios conhecidos ausentes do dump a partir da qual a resposta
+# é tratada como parcial (alerta); abaixo disso fica só em ``detalhes``.
+LIMITE_AUSENTES_PARCIAL = 0.2
+
+
 def run(forcar: bool = False) -> None:
     if forcar:
         print("--forcar é redundante: este job sempre baixa a versão remota atual.")
+    with captura("siconv_legado") as cap:
+        _executar(cap)
 
+
+def _executar(cap: CapturaEmAndamento) -> None:
     db = SessionLocal()
     atualizados = 0
     notificados = 0
@@ -137,6 +149,14 @@ def run(forcar: bool = False) -> None:
             if not registros:
                 raise RuntimeError("Dump SICONV não retornou nenhum convênio conhecido; sincronização abortada.")
             registros_por_numero = {r["NR_CONVENIO"]: r for r in registros}
+            ausentes = sorted(numeros - set(registros_por_numero))
+            cap.itens_verificados = len(numeros)
+            cap.detalhes["ausentes_do_dump"] = len(ausentes)
+            if len(ausentes) / len(numeros) >= LIMITE_AUSENTES_PARCIAL:
+                cap.parcial = (
+                    f"{len(ausentes)} de {len(numeros)} convênios conhecidos não constam do dump; "
+                    "os dados anteriores foram preservados."
+                )
 
             for numero, registro in registros_por_numero.items():
                 instrumento = instrumentos_por_numero.get(numero)
@@ -159,6 +179,8 @@ def run(forcar: bool = False) -> None:
     finally:
         db.close()
 
+    cap.itens_alterados = atualizados
+    cap.avisos_criados = notificados
     print(f"Concluído: {atualizados} convênio(s) reconciliado(s), {notificados} aviso(s) agrupado(s).")
 
 

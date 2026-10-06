@@ -48,15 +48,23 @@ def test_job_atualiza_duas_visoes_e_notifica_uma_vez(monkeypatch):
         convenio_atual = db.query(Convenio).filter_by(numero=numero).one()
         assert convenio_atual.situacao == situacao_nova
         assert convenio_atual.valor_global == 150
-        assert convenio_atual.siconv_raw["convenio"]["VL_GLOBAL_CONV"] == "150,00"
-        assert db.query(InstrumentoEquipamento).filter_by(nr_convenio=numero).one().situacao_prestacao_contas == situacao_nova
-        notificacoes = db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).all()
+        assert (convenio_atual.siconv_raw or {})["convenio"]["VL_GLOBAL_CONV"] == "150,00"
+        assert (
+            db.query(InstrumentoEquipamento).filter_by(nr_convenio=numero).one().situacao_prestacao_contas
+            == situacao_nova
+        )
+        notificacoes = (
+            db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).all()
+        )
         assert len(notificacoes) == 1
-        assert "VL_GLOBAL_CONV: 100,00 → 150,00" in notificacoes[0].corpo
+        assert "VL_GLOBAL_CONV: 100,00 → 150,00" in (notificacoes[0].corpo or "")
 
         job_verificacao_siconv.run()
         db.expire_all()
-        assert db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).count() == 1
+        assert (
+            db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).count()
+            == 1
+        )
     finally:
         if instrumento_id is not None:
             db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).delete()

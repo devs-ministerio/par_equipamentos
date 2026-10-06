@@ -45,6 +45,7 @@ from app.pipeline.transferegov_parcerias import (
     buscar_parcerias_por_proposta,
 )
 from app.repositories.notificacoes import criar_notificacao
+from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.equipamento_marcadores import DadosMarcador, TipoEvidencia, registrar_marcadores
 from app.services.evidencias_transferegov import registrar_evidencias_relacionais
 from scripts.levantamento_convenios_oncologia import (
@@ -60,6 +61,39 @@ from scripts.levantamento_convenios_oncologia import (
 # docs/arquitetura/fluxo_requisicao.md, secao "Detectando o que realmente
 # mudou": so dispara quando o VALOR muda, nunca por presenca/ausencia.
 CAMPOS_DIFF = ("situacao_proposta", "vl_global_proposta", "nm_proponente", "cnpj_ente_recebedor")
+
+# Acima disto, propostas novas na mesma rodada viram um único aviso-resumo
+# (carga inicial ou programa novo com dezenas de propostas não inunda a equipe).
+LIMITE_AVISOS_INDIVIDUAIS = 10
+
+
+def avisar_propostas_novas(db, novos: list[tuple[int, str, str]], *, carga_inicial: bool) -> int:
+    """Avisos de proposta nova: individuais só em rodada pequena e com baseline.
+
+    ``novos`` traz (PropostaCandidata.id, título, corpo). Retorna quantos
+    avisos foram criados.
+    """
+    if not novos:
+        return 0
+    if carga_inicial or len(novos) > LIMITE_AVISOS_INDIVIDUAIS:
+        primeiro_id = novos[0][0]
+        titulo = (
+            f"Carga inicial do Radar: {len(novos)} proposta(s) registrada(s)"
+            if carga_inicial
+            else f"Radar: {len(novos)} proposta(s) nova(s) nesta rodada"
+        )
+        corpo = "Consulte a lista de novas propostas no Radar de convênios."
+        criar_notificacao(
+            db,
+            Notificacao(tipo=NotificacaoTipo.proposta_candidata, titulo=titulo, corpo=corpo, entidade_id=primeiro_id),
+        )
+        return 1
+    for entidade_id, titulo, corpo in novos:
+        criar_notificacao(
+            db,
+            Notificacao(tipo=NotificacaoTipo.proposta_candidata, titulo=titulo, corpo=corpo, entidade_id=entidade_id),
+        )
+    return len(novos)
 
 
 def _equipamento_detectado(texto: str) -> str | None:
@@ -192,17 +226,33 @@ def _propostas_com_identificador(propostas: list[dict]) -> list[tuple[dict, int]
 
 
 def run() -> None:
+    with captura("transferegov_descoberta") as cap:
+        _executar(cap)
+
+
+def _executar(cap: CapturaEmAndamento) -> None:
     sessao = _sessao_com_retry()
     programas_alvo = _resolver_programas_alvo(sessao)
     print(f"{len(programas_alvo)} programa(s) do TransfereGov batem com um dos 8 componentes-alvo.")
+    cap.detalhes["programas_alvo"] = len(programas_alvo)
+    if not programas_alvo:
+        # A API respondeu sem nenhum programa-alvo: não é prova de que eles
+        # deixaram de existir; registra como parcial e não altera nada.
+        cap.parcial = "API não devolveu nenhum programa-alvo; nenhuma proposta foi alterada."
+        return
 
     db = SessionLocal()
     novos = 0
     atualizados = 0
+    avisos = 0
+    verificadas = 0
+    novos_para_aviso: list[tuple[int, str, str]] = []
     try:
+        carga_inicial = db.query(PropostaCandidata.id).first() is None
         for id_programa, info in programas_alvo.items():
             propostas = _paginar_transferegov("proposta", {"id_programa": id_programa}, sessao)
             for p, id_proposta in _propostas_com_identificador(propostas):
+                verificadas += 1
                 ds_objeto = p.get("ds_objeto") or ""
                 valores_api = {
                     "situacao_proposta": p.get("situacao_proposta"),
@@ -266,14 +316,12 @@ def run() -> None:
                             for evidencia in evidencias
                         ],
                     )
-                    criar_notificacao(
-                        db,
-                        Notificacao(
-                            tipo=NotificacaoTipo.proposta_candidata,
-                            titulo=f"Proposta nova: {valores_api['nm_proponente'] or id_proposta}",
-                            corpo=f"{info['componente_alvo']} — {ds_objeto[:140]}",
-                            entidade_id=candidato.id,
-                        ),
+                    novos_para_aviso.append(
+                        (
+                            candidato.id,
+                            f"Proposta nova: {valores_api['nm_proponente'] or id_proposta}",
+                            f"{info['componente_alvo']} — {ds_objeto[:140]}",
+                        )
                     )
                     novos += 1
                 else:
@@ -328,10 +376,16 @@ def run() -> None:
                             ),
                         )
                         atualizados += 1
+                        avisos += 1
+        avisos += avisar_propostas_novas(db, novos_para_aviso, carga_inicial=carga_inicial)
         db.commit()
     finally:
         db.close()
 
+    cap.itens_verificados = verificadas
+    cap.itens_alterados = novos + atualizados
+    cap.avisos_criados = avisos
+    cap.detalhes.update(novos=novos, atualizados=atualizados, carga_inicial=carga_inicial)
     print(f"Concluído: {novos} candidato(s) novo(s), {atualizados} atualizado(s).")
 
 

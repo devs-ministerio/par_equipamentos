@@ -45,6 +45,7 @@ from app.pipeline.transferegov_parcerias import (
     buscar_parcerias_por_proposta,
 )
 from app.repositories.notificacoes import criar_notificacao
+from app.services.capturas_fonte import CapturaEmAndamento, captura
 from scripts.levantamento_convenios_oncologia import _sessao_com_retry
 
 
@@ -129,6 +130,11 @@ def resumo_mudancas(mudancas: dict[str, dict[str, str | None]]) -> str:
 
 
 def run() -> None:
+    with captura("transferegov_verificacao") as cap:
+        _executar(cap)
+
+
+def _executar(cap: CapturaEmAndamento) -> None:
     sessao = _sessao_com_retry()
     db = SessionLocal()
     atualizados = 0
@@ -167,6 +173,10 @@ def run() -> None:
     finally:
         db.close()
 
+    cap.itens_verificados = len(instrumentos)
+    cap.itens_alterados = atualizados
+    cap.avisos_criados = atualizados
+    cap.detalhes["sem_proposta_candidata"] = sem_id_proposta
     print(
         f"Concluído: {atualizados} instrumento(s) com situação atualizada"
         + (f", {sem_id_proposta} sem proposta candidata correspondente (ignorado)." if sem_id_proposta else ".")

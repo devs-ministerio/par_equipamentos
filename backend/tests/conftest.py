@@ -24,6 +24,8 @@ os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 _DB_TEST_MODULES = {
     "test_auditoria.py",
     "test_auth_session.py",
+    "test_capturas_fonte.py",
+    "test_jobs_capturas_integracao.py",
     "test_competency_por_familia.py",
     "test_convenios_contracts.py",
     "test_config_decisions.py",

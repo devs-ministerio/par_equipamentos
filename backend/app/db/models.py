@@ -88,6 +88,9 @@ class NotificacaoTipo(str, enum.Enum):
     # Inclusão explícita no monitoramento interno; entidade_id é
     # InstrumentoEquipamento.id e destinatários são gestor/admin ativos.
     inclusao_monitoramento = "inclusao_monitoramento"
+    # Falha ou resposta parcial de uma fonte oficial; entidade_id é
+    # FonteCaptura.id e destinatários são gestor/admin ativos.
+    fonte_indisponivel = "fonte_indisponivel"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -281,6 +284,35 @@ class FonteDado(Base):
     # bater com o schema real aplicado (test_schema_migrations.py), não
     # editar a migration já aplicada.
     criado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class FonteCaptura(Base):
+    """Histórico de cada rodada de coleta de uma fonte oficial.
+
+    Alimenta o frescor visível na UI ("última captura confirmada") e o alerta
+    de fonte indisponível. Gravada em sessão própria pelos jobs, para
+    sobreviver ao rollback da transação de dados quando a fonte falha. Uma
+    rodada com erro ou resposta parcial nunca apaga o último dado confirmado:
+    o job só aplica o que a fonte publicou."""
+
+    __tablename__ = "fonte_captura"
+    __table_args__ = (
+        Index("idx_fonte_captura_fonte_iniciado", "fonte", "iniciado_em"),
+        CheckConstraint("status IN ('ok', 'parcial', 'erro')", name="ck_fonte_captura_status"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    # Código estável do job/fonte, ex. "siconv_legado", "transferegov_verificacao".
+    fonte: Mapped[str] = mapped_column(String, nullable=False)
+    iniciado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    finalizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    itens_verificados: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    itens_alterados: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    avisos_criados: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    erro: Mapped[str | None] = mapped_column(String)
+    # Contagens por tabela/campo, itens sem resposta etc. Sem dado pessoal.
+    detalhes: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class AcceleratorRow(Base):

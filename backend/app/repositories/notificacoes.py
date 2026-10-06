@@ -98,7 +98,7 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
     if tipo == NotificacaoTipo.proposta_candidata:
         return _ids_broadcast(db)
 
-    if tipo == NotificacaoTipo.inclusao_monitoramento:
+    if tipo in (NotificacaoTipo.inclusao_monitoramento, NotificacaoTipo.fonte_indisponivel):
         return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
 
     if tipo == NotificacaoTipo.alerta_vigencia:

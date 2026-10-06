@@ -54,7 +54,8 @@ def listar_notificacoes(
     ids_instrumentos = {
         item.notificacao.entidade_id
         for item in pagina.itens
-        if item.notificacao.tipo in (
+        if item.notificacao.tipo
+        in (
             NotificacaoTipo.atualizacao_api,
             NotificacaoTipo.edicao_manual,
             NotificacaoTipo.inclusao_monitoramento,
@@ -83,6 +84,8 @@ def listar_notificacoes(
                 if notificacao.entidade_id in propostas
                 else None
             )
+        elif notificacao.tipo == NotificacaoTipo.fonte_indisponivel:
+            destino = None
         elif notificacao.tipo == NotificacaoTipo.alerta_vigencia:
             identificador = convenios_monitorados.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None
