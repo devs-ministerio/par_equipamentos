@@ -44,7 +44,8 @@ job, migration ou deploy deve ser executado em produção nesta fase.
 5. **Parcial:** histórico/frescor via `GET /fontes/capturas`, alerta gerencial
    de fonte indisponível e central com busca, tipo, caixas, paginação,
    arquivar/restaurar por destinatário e leitura em lote individual.
-   Falta apresentar frescor na UI e validar a operação nas fontes reais.
+   Frescor agora é visível na central de notificações, com última tentativa,
+   último sucesso, parcial/falha e defasagem. Falta validar a operação nas fontes reais.
 6. **Pendente:** automatizar workflow diário somente depois de confirmar
    secret, runner, migrations e branch/deploy corretos; testar contra banco
    isolado, replay idempotente, alertas e rollback antes da produção.
@@ -85,3 +86,21 @@ nos testes de contrato, integração, E2E e operação programada.
   popup do filtro e larguras 320/400/768/1440; inspeção visual em 400/768.
 - Rollout futuro: migration → backend → frontend. Nada aplicado em produção;
   rollback da migration elimina apenas a preferência de arquivo, não os avisos.
+
+## Continuação — frescor visível e mensagens seguras
+
+- Central apresenta as capturas persistidas, não uma data artificial de atualização.
+  Sem captura, informa que não é possível confirmar o frescor; uma tentativa com
+  erro/parcial preserva e exibe o último sucesso. Defasagem de 36h vem do backend.
+- Consultas movidas para Repository, teto de 50 fontes e última tentativa por
+  data de finalização (ID somente desempata). Sem nova migration.
+- Exceções cruas deixam de ser gravadas em novos avisos/capturas. A resposta
+  HTTP de capturas e avisos antigos também não expõe o detalhe técnico persistido.
+  A exceção original continua sendo propagada ao job: falha não vira sucesso.
+- 440 testes backend e 138 frontend, Ruff/mypy, lint/tipos/build passaram.
+  E2E com fronteira HTTP sintética e inspeção visual em 400/768px; verificação
+  de largura também em 320/1440px, com rolagem interna e arquivo/restauração.
+- Localhost de demonstração utiliza base sintética própria, distinta da base
+  efêmera dos testes e da produção. Não representa uma captura real da fonte.
+- Permanecem pendentes descoberta do legado, contratos operacionais, workflow
+  diário e New Relic. Este bloco não autoriza push, deploy ou jobs em produção.
