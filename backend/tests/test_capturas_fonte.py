@@ -71,7 +71,7 @@ def test_falha_da_fonte_persiste_erro_repropaga_e_avisa_so_gestor_admin_sem_dupl
                     raise RuntimeError("dump fora do ar")
         capturas = db.query(FonteCaptura).filter_by(fonte=fonte).order_by(FonteCaptura.id).all()
         assert [c.status for c in capturas] == ["erro", "erro"]
-        assert "dump fora do ar" in (capturas[0].erro or "")
+        assert capturas[0].erro == "Não foi possível concluir a coleta. Os últimos dados confirmados foram preservados."
 
         alertas = (
             db.query(Notificacao)
@@ -147,6 +147,60 @@ def test_endpoint_exige_sessao_e_lista_fontes(headers_autenticados):
         assert resposta.status_code == 200
         linha = next(f for f in resposta.json() if f["fonte"] == fonte)
         assert linha["status"] == "ok" and linha["defasada"] is False and linha["itens_verificados"] == 3
+    finally:
+        _limpar(db, fonte, [])
+        db.close()
+
+
+def test_excecao_com_segredo_nao_vaza_em_captura_aviso_ou_endpoint(headers_autenticados):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    fonte = f"teste_{uuid4().hex}"
+    segredo = "postgresql://usuario:SENHA_PRIVADA@servidor/base"
+    db = SessionLocal()
+    try:
+        with pytest.raises(RuntimeError, match="SENHA_PRIVADA"):
+            with captura(fonte):
+                raise RuntimeError(segredo)
+        registro = db.query(FonteCaptura).filter_by(fonte=fonte).one()
+        assert segredo not in registro.erro
+        alerta = db.query(Notificacao).filter_by(tipo=NotificacaoTipo.fonte_indisponivel, entidade_id=registro.id).one()
+        assert segredo not in alerta.corpo
+        from app.services.notificacoes import corpo_publico_da_notificacao
+
+        alerta.corpo = segredo
+        assert segredo not in corpo_publico_da_notificacao(alerta)
+        # Registro anterior à correção também não pode vazar na consulta pública.
+        registro.erro = segredo
+        db.commit()
+        resposta = TestClient(app).get("/fontes/capturas", headers=headers_autenticados)
+        assert resposta.status_code == 200
+        assert "SENHA_PRIVADA" not in resposta.text
+        linha = next(f for f in resposta.json() if f["fonte"] == fonte)
+        assert linha["status"] == "erro" and linha["ultimo_sucesso_em"] is None
+    finally:
+        _limpar(db, fonte, [])
+        db.close()
+
+
+@pytest.mark.parametrize("horas,defasada", [(36, False), (36.001, True)])
+def test_frescor_limite_e_ordem_por_data_nao_por_id(horas, defasada):
+    fonte = f"teste_{uuid4().hex}"
+    db = SessionLocal()
+    agora = datetime.now(UTC)
+    recente = agora - timedelta(hours=horas)
+    antigo = agora - timedelta(days=7)
+    try:
+        db.add(FonteCaptura(fonte=fonte, iniciado_em=recente, finalizado_em=recente, status="ok"))
+        db.flush()
+        db.add(FonteCaptura(fonte=fonte, iniciado_em=antigo, finalizado_em=antigo, status="erro"))
+        db.commit()
+        situacao = next(s for s in situacao_das_fontes(db, agora=agora) if s.fonte == fonte)
+        assert situacao.ultima_tentativa.status == "ok"
+        assert situacao.ultimo_sucesso_em == recente
+        assert situacao.defasada is defasada
     finally:
         _limpar(db, fonte, [])
         db.close()

@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.auth import require_current_user
 from app.db.base import get_db
 from app.db.models import User
-from app.services.capturas_fonte import situacao_das_fontes
+from app.services.capturas_fonte import mensagem_publica_da_captura, situacao_das_fontes
 
 router = APIRouter(prefix="/fontes", tags=["fontes"])
 
@@ -40,7 +40,8 @@ def listar_situacao_das_fontes(db: Session = Depends(get_db), _usuario: User = D
             defasada=s.defasada,
             itens_verificados=s.ultima_tentativa.itens_verificados,
             itens_alterados=s.ultima_tentativa.itens_alterados,
-            erro=s.ultima_tentativa.erro,
+            # Capturas anteriores também podem conter exceções cruas no banco.
+            erro=mensagem_publica_da_captura(s.ultima_tentativa.status),
         )
         for s in situacao_das_fontes(db)
     ]

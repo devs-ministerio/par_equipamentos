@@ -30,7 +30,12 @@ from app.auth import require_current_user
 from app.db.base import get_db
 from app.db.models import NotificacaoTipo, User
 from app.schemas import NotificacaoArquivoUpdate, NotificacaoRead, NotificacoesLeituraRead, NotificacoesListRead
-from app.services.notificacoes import arquivar_notificacao, marcar_notificacao_lida, marcar_todas_lidas
+from app.services.notificacoes import (
+    arquivar_notificacao,
+    corpo_publico_da_notificacao,
+    marcar_notificacao_lida,
+    marcar_todas_lidas,
+)
 from app.services.notificacoes import listar_notificacoes as listar_notificacoes_service
 
 router = APIRouter(prefix="/notificacoes", tags=["notificacoes"])
@@ -59,7 +64,12 @@ def listar_notificacoes(
     )
     itens = [
         NotificacaoRead.model_validate(item.notificacao).model_copy(
-            update={"destino": item.destino, "lida": item.lida, "arquivada": item.arquivada}
+            update={
+                "destino": item.destino,
+                "lida": item.lida,
+                "arquivada": item.arquivada,
+                "corpo": corpo_publico_da_notificacao(item.notificacao),
+            }
         )
         for item in pagina.itens
     ]
@@ -85,7 +95,11 @@ def atualizar_arquivo(
         db=db, usuario_id=usuario.id, notificacao_id=notificacao_id, arquivada=corpo.arquivada
     )
     return NotificacaoRead.model_validate(resultado.notificacao).model_copy(
-        update={"lida": resultado.lida, "arquivada": resultado.arquivada}
+        update={
+            "lida": resultado.lida,
+            "arquivada": resultado.arquivada,
+            "corpo": corpo_publico_da_notificacao(resultado.notificacao),
+        }
     )
 
 
@@ -97,5 +111,10 @@ def marcar_lida(
 ):
     resultado = marcar_notificacao_lida(db=db, notificacao_id=notificacao_id, usuario_id=usuario.id)
     return NotificacaoRead.model_validate(resultado.notificacao).model_copy(
-        update={"destino": resultado.destino, "lida": resultado.lida, "arquivada": resultado.arquivada}
+        update={
+            "destino": resultado.destino,
+            "lida": resultado.lida,
+            "arquivada": resultado.arquivada,
+            "corpo": corpo_publico_da_notificacao(resultado.notificacao),
+        }
     )

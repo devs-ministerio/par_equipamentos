@@ -13,11 +13,16 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import SessionLocal
 from app.db.models import FonteCaptura, Notificacao, NotificacaoTipo
+from app.repositories.capturas_fonte import (
+    adicionar_captura,
+    existe_alerta_recente,
+    listar_ultimas_tentativas,
+    listar_ultimos_sucessos,
+)
 from app.repositories.notificacoes import criar_notificacao
 
 ROTULOS_FONTE = {
@@ -29,6 +34,15 @@ ROTULOS_FONTE = {
 # Sem nova captura bem-sucedida por este tempo a fonte é exibida como defasada.
 LIMITE_DEFASAGEM = timedelta(hours=36)
 DEDUP_ALERTA = timedelta(hours=24)
+
+
+def mensagem_publica_da_captura(status: str) -> str | None:
+    """Não expor exceções, URLs com credenciais ou detalhes de infraestrutura."""
+    if status == "ok":
+        return None
+    if status == "parcial":
+        return "A fonte retornou dados incompletos. Os últimos dados confirmados foram preservados."
+    return "Não foi possível concluir a coleta. Os últimos dados confirmados foram preservados."
 
 
 @dataclass(frozen=True)
@@ -63,11 +77,10 @@ def registrar_captura(
             itens_verificados=itens_verificados,
             itens_alterados=itens_alterados,
             avisos_criados=avisos_criados,
-            erro=erro[:1000] if erro else None,
+            erro=mensagem_publica_da_captura(status),
             detalhes=detalhes,
         )
-        db.add(captura)
-        db.flush()
+        adicionar_captura(db, captura)
         if status != "ok":
             _alertar_fonte_indisponivel(db, captura)
         db.commit()
@@ -77,16 +90,7 @@ def registrar_captura(
 
 
 def _alertar_fonte_indisponivel(db: Session, captura: FonteCaptura) -> None:
-    recente = db.execute(
-        select(func.count())
-        .select_from(Notificacao)
-        .join(FonteCaptura, FonteCaptura.id == Notificacao.entidade_id)
-        .where(
-            Notificacao.tipo == NotificacaoTipo.fonte_indisponivel,
-            FonteCaptura.fonte == captura.fonte,
-            Notificacao.created_at >= datetime.now(UTC) - DEDUP_ALERTA,
-        )
-    ).scalar_one()
+    recente = existe_alerta_recente(db, captura.fonte, datetime.now(UTC) - DEDUP_ALERTA)
     if recente:
         return
     rotulo = ROTULOS_FONTE.get(captura.fonte, captura.fonte)
@@ -95,8 +99,6 @@ def _alertar_fonte_indisponivel(db: Session, captura: FonteCaptura) -> None:
         f"A coleta de {rotulo} {situacao}. Os últimos dados confirmados foram mantidos; "
         "nenhum valor foi apagado ou inferido."
     )
-    if captura.erro:
-        corpo += f" Detalhe: {captura.erro}"
     criar_notificacao(
         db,
         Notificacao(
@@ -131,13 +133,12 @@ def captura(fonte: str, *, fabrica_sessao: sessionmaker = SessionLocal) -> Itera
     em_andamento = CapturaEmAndamento(fonte=fonte, iniciado_em=datetime.now(UTC))
     try:
         yield em_andamento
-    except Exception as exc:
+    except Exception:
         registrar_captura(
             fonte,
             iniciado_em=em_andamento.iniciado_em,
             status="erro",
             itens_verificados=em_andamento.itens_verificados,
-            erro=f"{type(exc).__name__}: {exc}",
             detalhes=em_andamento.detalhes or None,
             fabrica_sessao=fabrica_sessao,
         )
@@ -157,16 +158,8 @@ def captura(fonte: str, *, fabrica_sessao: sessionmaker = SessionLocal) -> Itera
 
 def situacao_das_fontes(db: Session, *, agora: datetime | None = None) -> list[SituacaoFonte]:
     agora = agora or datetime.now(UTC)
-    ultimas = select(FonteCaptura.fonte, func.max(FonteCaptura.id).label("id")).group_by(FonteCaptura.fonte).subquery()
-    tentativas = db.execute(select(FonteCaptura).join(ultimas, ultimas.c.id == FonteCaptura.id)).scalars().all()
-    sucessos: dict[str, datetime] = {
-        fonte: finalizado
-        for fonte, finalizado in db.execute(
-            select(FonteCaptura.fonte, func.max(FonteCaptura.finalizado_em))
-            .where(FonteCaptura.status == "ok")
-            .group_by(FonteCaptura.fonte)
-        )
-    }
+    tentativas = listar_ultimas_tentativas(db)
+    sucessos = listar_ultimos_sucessos(db, [tentativa.fonte for tentativa in tentativas])
     resultado = []
     for tentativa in sorted(tentativas, key=lambda t: t.fonte):
         ultimo_ok = sucessos.get(tentativa.fonte)

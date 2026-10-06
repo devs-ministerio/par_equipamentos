@@ -36,6 +36,14 @@ class PaginaNotificacoesComDestino:
     nao_lidas: int
 
 
+def corpo_publico_da_notificacao(notificacao: Notificacao) -> str | None:
+    # Avisos de captura antigos podem ter sido gravados com a exceção crua.
+    # Não alterar a evidência persistida; excluir detalhes na fronteira pública.
+    if notificacao.tipo == NotificacaoTipo.fonte_indisponivel:
+        return "A coleta da fonte falhou ou ficou incompleta. Os últimos dados confirmados foram mantidos."
+    return notificacao.corpo
+
+
 def listar_notificacoes(
     *,
     db: Session,
