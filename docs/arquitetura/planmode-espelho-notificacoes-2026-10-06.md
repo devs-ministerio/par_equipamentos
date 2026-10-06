@@ -42,9 +42,9 @@ job, migration ou deploy deve ser executado em produção nesta fase.
    Portal e apresentar candidatos no Radar; notificar gestor/admin quando
    convênio ou proposta for incluído no monitoramento.
 5. **Parcial:** histórico/frescor via `GET /fontes/capturas`, alerta gerencial
-   de fonte indisponível com dedup de 24h e contrato frontend compatível.
-   Falta apresentar frescor na UI e a nova UX de notificações com busca,
-   filtros, arquivar e ler tudo, mantendo autorização.
+   de fonte indisponível e central com busca, tipo, caixas, paginação,
+   arquivar/restaurar por destinatário e leitura em lote individual.
+   Falta apresentar frescor na UI e validar a operação nas fontes reais.
 6. **Pendente:** automatizar workflow diário somente depois de confirmar
    secret, runner, migrations e branch/deploy corretos; testar contra banco
    isolado, replay idempotente, alertas e rollback antes da produção.
@@ -73,3 +73,15 @@ nos testes de contrato, integração, E2E e operação programada.
 - Primeira recaptura de payload antigo é silenciosa. Alterações posteriores
   avisam uma vez e sincronizam situações do monitoramento, sem duplicação
   pela verificação seguinte. Revisão humana permanece intacta.
+
+## Continuação — central de notificações
+
+- Migration `e8f9a0b1c2d3` adiciona arquivo por destinatário (sem excluir
+  histórico). Upgrade/downgrade/reaplicação testados só no PostgreSQL sintético.
+- API filtra/pagina no banco; contagem global ignora busca e exclui arquivos.
+  Arquivar, restaurar e ler todas não afetam outro usuário. IDOR/CSRF testados.
+- 437 testes backend, 134 frontend, Ruff, mypy, lint, tipagem e build passaram.
+- Teste de navegador com API sintética cobre arquivo/restauração/leitura,
+  popup do filtro e larguras 320/400/768/1440; inspeção visual em 400/768.
+- Rollout futuro: migration → backend → frontend. Nada aplicado em produção;
+  rollback da migration elimina apenas a preferência de arquivo, não os avisos.
