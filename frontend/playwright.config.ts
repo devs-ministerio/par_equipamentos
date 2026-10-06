@@ -25,7 +25,7 @@ export default defineConfig({
   projects: [
     {
       name: "smoke-chromium",
-      testMatch: /smoke\.spec\.ts/,
+      testMatch: /(?:smoke|notificacoes)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     ...(process.env.E2E_EMAIL && process.env.E2E_SENHA

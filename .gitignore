@@ -21,6 +21,8 @@ __pycache__/
 node_modules/
 dist/
 dist-ssr/
+frontend/test-results/
+frontend/playwright-report/
 
 # Env locais (segredo/URL de maquina) -- .env.example fica versionado.
 .env

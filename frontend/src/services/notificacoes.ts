@@ -26,6 +26,7 @@ const notificacaoSchema = z.object({
   lida: z.boolean(),
   created_at: z.string(),
   destino: z.string().nullable(),
+  arquivada: z.boolean().default(false),
 });
 export type Notificacao = z.infer<typeof notificacaoSchema>;
 
@@ -36,15 +37,44 @@ const notificacoesListSchema = z.object({
 });
 export type NotificacoesList = z.infer<typeof notificacoesListSchema>;
 
-export function fetchNotificacoes(opts?: {
+export interface FiltrosNotificacoes {
   limit?: number;
+  offset?: number;
   apenasNaoLidas?: boolean;
-}): Promise<NotificacoesList> {
+  busca?: string;
+  tipo?: NotificacaoTipo;
+  arquivadas?: boolean;
+}
+
+export function fetchNotificacoes(
+  opts?: FiltrosNotificacoes,
+): Promise<NotificacoesList> {
   const params = new URLSearchParams();
   if (opts?.limit) params.set("limit", String(opts.limit));
   if (opts?.apenasNaoLidas) params.set("apenas_nao_lidas", "true");
+  if (opts?.offset) params.set("offset", String(opts.offset));
+  if (opts?.busca) params.set("busca", opts.busca);
+  if (opts?.tipo) params.set("tipo", opts.tipo);
+  if (opts?.arquivadas) params.set("arquivadas", "true");
   const query = params.toString() ? `?${params.toString()}` : "";
   return requisitar(`/notificacoes${query}`, notificacoesListSchema, undefined);
+}
+
+export function arquivarNotificacao(
+  id: number,
+  arquivada: boolean,
+): Promise<Notificacao> {
+  return apiAuthed(`/notificacoes/${id}/arquivo`, notificacaoSchema, "PATCH", {
+    arquivada,
+  });
+}
+
+export function marcarTodasNotificacoesLidas(): Promise<{ alteradas: number }> {
+  return apiAuthed(
+    "/notificacoes/lidas",
+    z.object({ alteradas: z.number().int().nonnegative() }),
+    "PATCH",
+  );
 }
 
 export function marcarNotificacaoLida(
