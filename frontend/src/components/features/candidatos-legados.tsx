@@ -6,7 +6,8 @@ import { Pagination } from "@/components/common/pagination";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
 import { useCandidatosLegados } from "@/hooks/use-candidatos-legados";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
-import { ROTULOS_CONFIRMACAO, ROTULOS_RELACAO } from "@/lib/legado-rotulos";
+import { ROTULOS_CONFIRMACAO } from "@/lib/legado-rotulos";
+import { CandidatoLegadoItem } from "./candidato-legado-item";
 import type { ConfirmacaoLegado } from "@/services/candidatos-legados";
 
 export function CandidatosLegados() {
@@ -15,19 +16,11 @@ export function CandidatosLegados() {
   const [confirmacao, setConfirmacao] = useState<ConfirmacaoLegado>();
   const consulta = useCandidatosLegados(true, pagina, busca, confirmacao);
   return (
-    <section
-      aria-label="Candidatos à entrada"
-      className="mt-6 min-w-0 border-y border-border py-4"
-    >
-      <p className="mb-4 text-sm text-muted-foreground">
-        Evidências do SICONV para avaliação da equipe. Não fazem parte da
-        carteira nem do monitoramento interno. Confirmação de publicação não é
-        inclusão automática.
-      </p>
+    <section aria-label="Candidatos à entrada" className="min-w-0 pb-4">
       <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-2">
         <Input
           aria-label="Buscar candidato legado"
-          placeholder="Buscar número do convênio ou proposta"
+          placeholder="Número do convênio ou proposta"
           maxLength={100}
           value={busca}
           onChange={(event) => {
@@ -67,50 +60,13 @@ export function CandidatosLegados() {
         </div>
       ) : consulta.data?.total === 0 ? (
         <p className="py-4 text-sm text-muted-foreground">
-          Nenhum candidato neste recorte. Isso não confirma que a descoberta
-          automática já esteja ativa.
+          Nenhum convênio neste recorte. Coleta automática ainda em homologação.
         </p>
       ) : (
         <>
-          <ul className="divide-y divide-border">
+          <ul className="space-y-3 pb-4">
             {consulta.data?.itens.map((candidato) => (
-              <li
-                key={candidato.id}
-                className="min-w-0 space-y-3 border-l-2 border-primary py-4 pl-4 [overflow-wrap:anywhere]"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="font-semibold">Convênio {candidato.numero}</h3>
-                  <span className="text-xs text-muted-foreground">
-                    {ROTULOS_CONFIRMACAO[candidato.confirmacao_portal]}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Proposta SICONV {candidato.id_proposta} · Verificado em{" "}
-                  {new Date(candidato.verificado_em).toLocaleString("pt-BR")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {candidato.origem === "snapshot_local"
-                    ? "Snapshot local — frescor não confirmado"
-                    : "Captura do SICONV"}
-                </p>
-                <ul className="space-y-2">
-                  {candidato.evidencias.map((evidencia) => (
-                    <li
-                      key={`${evidencia.id_item}-${evidencia.codigo}`}
-                      className="text-sm"
-                    >
-                      <span className="font-medium">{evidencia.nome}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        {ROTULOS_RELACAO[evidencia.relacao]} · Item{" "}
-                        {evidencia.id_item}
-                      </span>
-                      <p className="mt-1 text-muted-foreground">
-                        {evidencia.descricao}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </li>
+              <CandidatoLegadoItem key={candidato.id} candidato={candidato} />
             ))}
           </ul>
           <Pagination

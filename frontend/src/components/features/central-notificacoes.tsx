@@ -60,13 +60,15 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
 
   return (
     <>
-      <div className="border-b border-border p-4 pr-12">
-        <DialogTitle>Central de notificações</DialogTitle>
+      <div className="shrink-0 border-b border-border px-5 py-5 pr-12 sm:px-6">
+        <DialogTitle className="font-display text-xl font-bold tracking-tight">
+          Central de notificações
+        </DialogTitle>
         <DialogDescription className="mt-1">
-          Atualizações das fontes oficiais e do acompanhamento da equipe.
+          Atualizações oficiais e da equipe
         </DialogDescription>
       </div>
-      <div className="space-y-3 border-b border-border p-4">
+      <div className="shrink-0 space-y-3 border-b border-border px-5 py-3 sm:px-6">
         <div
           className="flex flex-wrap gap-2"
           aria-label="Caixas de notificações"
@@ -81,7 +83,8 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
             <Button
               key={valor}
               size="sm"
-              variant={caixa === valor ? "secondary" : "ghost"}
+              variant="ghost"
+              className={`rounded-none border-b-2 px-0 ${caixa === valor ? "border-primary font-semibold text-primary" : "border-transparent text-muted-foreground"}`}
               aria-pressed={caixa === valor}
               onClick={() => {
                 setCaixa(valor);
@@ -124,8 +127,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>
-            {avisos.naoLidas} não lida{avisos.naoLidas !== 1 ? "s" : ""} na
-            caixa de entrada
+            {avisos.naoLidas} não lida{avisos.naoLidas !== 1 ? "s" : ""}
           </span>
           <Button
             size="sm"
@@ -143,7 +145,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
         </div>
       </div>
       <div
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6"
         aria-busy={avisos.carregando}
       >
         <SituacaoFontes />

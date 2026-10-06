@@ -48,16 +48,30 @@ test("central independente, sem aprovação automática, responsiva", async ({
   const paginaOriginal = page.url();
   const icone = () =>
     page
-      .getByRole("button", { name: "Central de entradas", exact: true })
+      .getByRole("button", { name: "Radar de instrumentos", exact: true })
       .filter({ visible: true });
   await icone().click();
-  const dialog = page.getByRole("dialog", { name: "Central de entradas" });
+  const dialog = page.getByRole("dialog", { name: "Radar de instrumentos" });
   await expect(dialog).toBeVisible();
   expect(page.url()).toBe(paginaOriginal);
   await expect(
-    page.getByRole("heading", { name: "Central de entradas" }),
+    page.getByRole("heading", { name: "Radar de instrumentos" }),
   ).toBeVisible();
   await expect(page.getByText("Convênio 900101")).toBeVisible();
+  await expect(
+    dialog.getByRole("tab", { name: "Convênios", exact: true }),
+  ).toHaveAttribute("data-state", "active");
+  await expect(
+    dialog.getByRole("tab", { name: "Propostas em tramitação", exact: true }),
+  ).toBeDisabled();
+  await expect(dialog.getByText("Nenhuma coleta registrada.")).toBeVisible();
+  const evidencia = dialog.getByText(
+    "Aquisição de acelerador linear — evidência sintética para demonstração de revisão.",
+  );
+  await expect(evidencia).not.toBeVisible();
+  await dialog.getByText("Ver evidências", { exact: true }).click();
+  await expect(evidencia).toBeVisible();
+  await dialog.getByText("Ver evidências", { exact: true }).click();
   await expect(
     page.getByText("Convênios legados descobertos", { exact: true }),
   ).toHaveCount(0);
@@ -66,6 +80,21 @@ test("central independente, sem aprovação automática, responsiva", async ({
   ).toHaveCount(0);
   for (const width of [320, 375, 400, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
+    await dialog.evaluate(async (el) => {
+      await Promise.all(
+        el.getAnimations().map((animation) => animation.finished),
+      );
+    });
+    await expect
+      .poll(() => dialog.evaluate((el) => el.getBoundingClientRect().left))
+      .toBeGreaterThanOrEqual(16);
+    await expect
+      .poll(() =>
+        dialog.evaluate(
+          (el) => window.innerWidth - el.getBoundingClientRect().right,
+        ),
+      )
+      .toBeGreaterThanOrEqual(16);
     await expect(dialog).toBeInViewport();
     await expect
       .poll(() => dialog.evaluate((el) => el.scrollWidth - el.clientWidth))
@@ -82,21 +111,14 @@ test("central independente, sem aprovação automática, responsiva", async ({
         path: `/private/tmp/sigeo-entradas-modal-${width}.png`,
       });
   }
-  const financiamento = page.getByRole("link", {
-    name: "Linhas de financiamento",
-    exact: true,
-  });
-  await expect(financiamento).toHaveAttribute(
-    "href",
-    "/monitoramento-equipamentos?aba=componentes",
-  );
+  await expect(
+    page.getByRole("link", { name: "Propostas em tramitação →", exact: true }),
+  ).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(icone()).toBeFocused();
   expect(page.url()).toBe(paginaOriginal);
   await icone().click();
   await expect(dialog).toBeVisible();
-  await financiamento.click();
-  await expect(dialog).toHaveCount(0);
-  await expect(page).toHaveURL(/aba=componentes/);
+  expect(page.url()).toBe(paginaOriginal);
 });

@@ -149,7 +149,7 @@ export function NotificationBell() {
         </PopoverContent>
       </Popover>
       <Dialog open={centralAberta} onOpenChange={setCentralAberta}>
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw_-_2.25rem)] flex-col gap-0 p-0 sm:max-w-3xl">
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw_-_2.25rem)] flex-col gap-0 p-0 sm:max-w-3xl!">
           <CentralNotificacoes fechar={() => setCentralAberta(false)} />
         </DialogContent>
       </Dialog>

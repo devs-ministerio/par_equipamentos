@@ -65,7 +65,7 @@ describe("Radar legado", () => {
       itens: [{ ...candidato, origem: "siconv_oficial" }],
     });
     await waitFor(() =>
-      expect(screen.getByText("Captura do SICONV")).toBeInTheDocument(),
+      expect(screen.getByText(/Captura do SICONV/)).toBeInTheDocument(),
     );
     fireEvent.click(
       screen.getByRole("button", { name: /Confirmação no Portal/ }),
@@ -133,7 +133,7 @@ describe("Radar legado", () => {
     prepararApi({ total: 0, itens: [] });
     await waitFor(() =>
       expect(
-        screen.getByText(/não confirma que a descoberta automática/),
+        screen.getByText(/Coleta automática ainda em homologação/),
       ).toBeInTheDocument(),
     );
   });

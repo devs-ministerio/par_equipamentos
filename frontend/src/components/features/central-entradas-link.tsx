@@ -17,22 +17,22 @@ export function CentralEntradasLink() {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Central de entradas"
-          title="Central de entradas"
+          aria-label="Radar de instrumentos"
+          title="Radar de instrumentos"
         >
           <ClipboardList className="size-4.5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw_-_2.25rem)] flex-col gap-0 p-0 sm:max-w-3xl">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw_-_2.25rem)] flex-col gap-0 p-0 sm:max-w-3xl!">
         <Suspense
           fallback={
             <Skeleton
-              aria-label="Carregando central de entradas"
+              aria-label="Carregando radar de instrumentos"
               className="m-6 h-32"
             />
           }
         >
-          <CentralEntradas onNavigate={() => setAberta(false)} />
+          <CentralEntradas />
         </Suspense>
       </DialogContent>
     </Dialog>
