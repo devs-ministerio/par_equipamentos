@@ -3,7 +3,7 @@ docs/arquitetura/fluxo_requisicao.md). Espelha job_verificacao_siconv.py,
 mas pro TransfereGov NOVO -- pedido do usuário 2026-09-15: "dá pra gente
 fazer o mesmo monitoramento de situação dos itens do transfere novo?".
 
-Diferente do SICONV legado (dump bulk, precisa do HEAD-check em 2 estágios):
+Diferente do SICONV legado (dump bulk atualizado a cada execução):
 o TransfereGov Novo tem endpoint de consulta AO VIVO por id_proposta/
 id_parceria (ver app/pipeline/transferegov_parcerias.py), então este job
 roda direto, sem estágio de "mudou ou não" prévio -- 1 request por
@@ -93,6 +93,41 @@ def _situacao_atual(sessao, id_proposta: int) -> tuple[str | None, str | None]:
     return situacao_parceria, situacao_op
 
 
+def reconciliar_situacoes(
+    instrumento: InstrumentoEquipamento,
+    situacao_parceria: str | None,
+    situacao_op: str | None,
+) -> dict[str, dict[str, str | None]]:
+    """Aplica somente estados publicados; ausência não é prova de remoção.
+
+    A fonte pode responder sem parceria ou sem ordens de pagamento. Não
+    apagamos valores conhecidos nem emitimos evento de mudança para vazio.
+    """
+    mudou: dict[str, dict[str, str | None]] = {}
+    for campo, novo in (
+        ("situacao_parceria_transferegov", situacao_parceria),
+        ("situacao_ordem_pagamento_transferegov", situacao_op),
+    ):
+        if not novo:
+            continue
+        antigo = getattr(instrumento, campo)
+        if antigo != novo:
+            mudou[campo] = {"old": antigo, "new": novo}
+            setattr(instrumento, campo, novo)
+    return mudou
+
+
+def resumo_mudancas(mudancas: dict[str, dict[str, str | None]]) -> str:
+    rotulos = {
+        "situacao_parceria_transferegov": "Situação da parceria",
+        "situacao_ordem_pagamento_transferegov": "Ordem de pagamento",
+    }
+    return "; ".join(
+        f"{rotulos[campo]}: {valores['old'] or '(não informado)'} → {valores['new']}"
+        for campo, valores in mudancas.items()
+    )
+
+
 def run() -> None:
     sessao = _sessao_com_retry()
     db = SessionLocal()
@@ -115,19 +150,7 @@ def run() -> None:
                 continue
 
             situacao_parceria, situacao_op = _situacao_atual(sessao, id_proposta)
-            mudou: dict[str, dict] = {}
-            if situacao_parceria != inst.situacao_parceria_transferegov:
-                mudou["situacao_parceria_transferegov"] = {
-                    "old": inst.situacao_parceria_transferegov,
-                    "new": situacao_parceria,
-                }
-                inst.situacao_parceria_transferegov = situacao_parceria
-            if situacao_op != inst.situacao_ordem_pagamento_transferegov:
-                mudou["situacao_ordem_pagamento_transferegov"] = {
-                    "old": inst.situacao_ordem_pagamento_transferegov,
-                    "new": situacao_op,
-                }
-                inst.situacao_ordem_pagamento_transferegov = situacao_op
+            mudou = reconciliar_situacoes(inst, situacao_parceria, situacao_op)
 
             if mudou:
                 criar_notificacao(
@@ -135,7 +158,7 @@ def run() -> None:
                     Notificacao(
                         tipo=NotificacaoTipo.atualizacao_api,
                         titulo=f"Convênio {inst.nr_convenio} mudou de situação no TransfereGov",
-                        corpo=", ".join(f"{c}: {v['old'] or '(vazio)'} → {v['new']}" for c, v in mudou.items()),
+                        corpo=resumo_mudancas(mudou),
                         entidade_id=inst.id,
                     ),
                 )
