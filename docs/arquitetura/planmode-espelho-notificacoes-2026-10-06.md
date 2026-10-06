@@ -32,8 +32,12 @@ job, migration ou deploy deve ser executado em produção nesta fase.
    convênio; valores financeiros derivados também são atualizados. Capturas
    e frescor por rodada estão registrados; empenhos, desembolsos, licitações,
    termos aditivos, pagamentos e itens são comparados por chave, com baseline
-   inicial silenciosa e resumo dos campos alterados. Falta completar os
-   demais campos da API nova e as outras colunas expostas na UI.
+   inicial silenciosa e resumo dos campos alterados. O Radar recaptura
+   proposta/programa, metas/etapas/itens, análises, cronograma, distribuição,
+   parceria e timeline financeira; compara por ID, atualiza as projeções
+   oficiais e agrupa avisos sem alterar revisão humana. Faltam validar
+   esses contratos nas fontes reais, tratar coleções sem ID estável e
+   completar projeções como CNES verificado e datas do legado.
 4. **Pendente:** descobrir novos convênios legados, validar assinatura no
    Portal e apresentar candidatos no Radar; notificar gestor/admin quando
    convênio ou proposta for incluído no monitoramento.
@@ -59,3 +63,13 @@ nos testes de contrato, integração, E2E e operação programada.
   integral diante de chave duplicada/ausente ou pagamento inválido.
 - Downloads externos são substituídos na fronteira dos testes; nenhum job foi
   executado contra produção. Ainda falta validação operacional das fontes reais.
+
+## Continuação — recaptura TransfereGov
+
+- 432 testes backend passaram, além de Ruff e mypy; nenhum schema novo.
+- Metas e dados financeiros deixam de ficar congelados na primeira coleta.
+- Coleções reordenadas não notificam; campos/itens omitidos são preservados;
+  IDs ambíguos ou falha HTTP abortam a transação, com captura de erro.
+- Primeira recaptura de payload antigo é silenciosa. Alterações posteriores
+  avisam uma vez e sincronizam situações do monitoramento, sem duplicação
+  pela verificação seguinte. Revisão humana permanece intacta.
