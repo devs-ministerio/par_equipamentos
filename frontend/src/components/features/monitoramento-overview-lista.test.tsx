@@ -8,6 +8,8 @@ describe("MonitoramentoOverviewLista", () => {
     render(
       <MemoryRouter>
         <MonitoramentoOverviewLista
+          pagina={1}
+          onPagina={() => undefined}
           instrumentos={[
             {
               nr_convenio: "953749",
@@ -25,6 +27,14 @@ describe("MonitoramentoOverviewLista", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("link", { name: "953749" })).toBeVisible();
+    const links = screen.getAllByRole("link", { name: "953749" });
+    expect(links).toHaveLength(2);
+    expect(
+      links.every(
+        (link) =>
+          link.getAttribute("href") ===
+          "/monitoramento-equipamentos/instrumentos/953749",
+      ),
+    ).toBe(true);
   });
 });

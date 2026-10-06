@@ -159,7 +159,11 @@ export function MonitoramentoOverviewPage() {
         />
       </div>
 
-      <MonitoramentoOverviewLista instrumentos={instrumentosFiltrados} />
+      <MonitoramentoOverviewLista
+        instrumentos={instrumentosFiltrados}
+        pagina={filtros.pagina}
+        onPagina={filtros.setPagina}
+      />
     </div>
   );
 }

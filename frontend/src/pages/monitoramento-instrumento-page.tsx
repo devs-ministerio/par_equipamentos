@@ -11,12 +11,20 @@
  * os menus de navegação") -- Header/nav ja cobertos la, aqui so o
  * conteudo especifico da pagina.
  */
-import { Link, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
 import { MonitoramentoInterno } from "@/components/features/monitoramento-interno";
+import { Button } from "@/components/ui/button";
+import { destinoDeRetorno } from "@/lib/navegacao-retorno";
 
 export function MonitoramentoInstrumentoPage() {
   const { nrConvenio } = useParams<{ nrConvenio: string }>();
+  const location = useLocation();
+  const retorno = destinoDeRetorno(
+    location.search,
+    "/monitoramento-equipamentos/instrumentos",
+  );
 
   if (!nrConvenio) {
     return (
@@ -30,10 +38,10 @@ export function MonitoramentoInstrumentoPage() {
         breadcrumb={
           <>
             <Link
-              to="/monitoramento-equipamentos/instrumentos"
+              to={retorno.href}
               className="text-muted-foreground no-underline hover:text-primary"
             >
-              Monitoramento interno
+              {retorno.rotulo}
             </Link>
             <span className="mx-1.5">›</span>
             <span className="text-primary">{nrConvenio}</span>
@@ -42,6 +50,18 @@ export function MonitoramentoInstrumentoPage() {
         eyebrow="Monitoramento interno"
         title={nrConvenio}
         description="Eventos, prazos e pendências do instrumento."
+        className="[&_h1]:break-all"
+        actions={
+          <Button asChild variant="outline" size="sm" className="group">
+            <Link to={retorno.href}>
+              <ArrowLeft
+                aria-hidden="true"
+                className="size-3.5 transition-transform duration-200 motion-safe:group-hover:-translate-x-0.5"
+              />
+              Voltar para {retorno.rotulo}
+            </Link>
+          </Button>
+        }
       />
 
       <MonitoramentoInterno numeroConvenio={nrConvenio} />

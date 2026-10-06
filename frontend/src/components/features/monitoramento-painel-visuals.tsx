@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import type {
   ContagemRotulo,
   DivergenciaConclusao,
@@ -173,9 +173,9 @@ export function AgendaExecutiva({
   return (
     <div className="divide-y divide-border">
       {itens.map((item) => (
-        <Link
+        <LinkDetalheInstrumento
           key={item.chave}
-          to={`/monitoramento-equipamentos/instrumentos/${item.nr}`}
+          nrConvenio={item.nr}
           className="group grid grid-cols-[1fr_auto] gap-3 py-3 text-inherit"
         >
           <div className="min-w-0">
@@ -196,7 +196,7 @@ export function AgendaExecutiva({
               className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
             />
           </div>
-        </Link>
+        </LinkDetalheInstrumento>
       ))}
     </div>
   );
@@ -216,9 +216,9 @@ export function DivergenciasConclusao({
   return (
     <div className="divide-y divide-border">
       {itens.slice(0, 8).map((item) => (
-        <Link
+        <LinkDetalheInstrumento
           key={item.nr_convenio}
-          to={`/monitoramento-equipamentos/instrumentos/${item.nr_convenio}`}
+          nrConvenio={item.nr_convenio}
           className="group grid gap-1 py-3 text-inherit sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4"
         >
           <div className="min-w-0">
@@ -237,7 +237,7 @@ export function DivergenciasConclusao({
               {item.status_externo_original}
             </div>
           </div>
-        </Link>
+        </LinkDetalheInstrumento>
       ))}
       {itens.length > 8 && (
         <p className="pt-3 text-xs text-muted-foreground">

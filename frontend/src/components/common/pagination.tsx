@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface Props {
   page: number; // 1-indexado
   totalItems: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  mobileStacked?: boolean;
 }
 
 export function Pagination({
@@ -12,17 +14,29 @@ export function Pagination({
   totalItems,
   pageSize,
   onPageChange,
+  mobileStacked = false,
 }: Props) {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const inicio = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
   const fim = Math.min(page * pageSize, totalItems);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4.5 py-2.5 text-xs text-muted-foreground">
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-2 border-t border-border px-4.5 py-2.5 text-xs text-muted-foreground",
+        mobileStacked &&
+          "max-sm:flex-col max-sm:items-stretch max-sm:text-center",
+      )}
+    >
       <span>
         Mostrando {inicio}–{fim} de {totalItems}
       </span>
-      <div className="flex flex-wrap items-center gap-2">
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2",
+          mobileStacked && "max-sm:justify-center",
+        )}
+      >
         <Button
           variant="outline"
           size="sm"

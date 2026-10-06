@@ -7,6 +7,7 @@
  * Camada 2 (collapse proprio, so essa parte): dados aninhados
  * (`ConvenioCardDetalhes`) -- ambas extraidas pra arquivo proprio (Secao 6
  * da migracao: componente >200 linhas). */
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -70,14 +71,30 @@ export function ConvenioCard({
 
       {/* ---------- Camada 2: dado tecnico aninhado, atras de 1 clique ---------- */}
       <details
-        className="mt-3 border-t border-border pt-2.5"
+        className="mt-4 border-t border-border pt-3"
         open={detalheAberto}
         onToggle={(e) =>
           setDetalheAberto((e.target as HTMLDetailsElement).open)
         }
       >
-        <summary className="cursor-pointer text-xs font-bold text-primary">
-          {detalheAberto ? "Menos detalhes" : "Mais detalhes"}
+        <summary className="flex min-h-12 list-none cursor-pointer items-center justify-between gap-3 rounded-md border border-border bg-muted/45 px-3 py-2.5 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-primary">
+              {detalheAberto ? "Ocultar detalhes técnicos" : "Mais detalhes"}
+            </span>
+            <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+              {detalheAberto
+                ? "Resumo do instrumento continua acima"
+                : "SICONV, TransfereGov e monitoramento"}
+            </span>
+          </span>
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 text-primary transition-transform duration-200",
+              detalheAberto && "rotate-180",
+            )}
+            aria-hidden="true"
+          />
         </summary>
         {detalheAberto && detalheQuery.isLoading ? (
           <p className="mt-3 text-xs text-muted-foreground">

@@ -1,6 +1,7 @@
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { SearchInput } from "@/components/common/search-input";
 import type { FiltrosMonitoramentoInterno } from "@/hooks/use-monitoramento-interno-filtros";
 
 export function MonitoramentoInternoFiltros({
@@ -14,6 +15,12 @@ export function MonitoramentoInternoFiltros({
       onClear={filtros.limparFiltros}
       contagem={`${filtros.filtrados.length} de ${filtros.total} instrumentos`}
     >
+      <SearchInput
+        value={filtros.busca}
+        onChange={filtros.setBusca}
+        placeholder="Buscar número, convenente, CNES ou município"
+        width={162}
+      />
       <SingleSelectFilter
         placeholder="Tipo de contratação"
         options={filtros.tipoContratacaoOptions}

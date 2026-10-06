@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /** Cabeçalho editorial único: hierarquia por tipografia e divisor, sem
  * transformar a introdução de toda página em um card/hero decorativo. */
@@ -8,15 +9,22 @@ export function PageHeader({
   title,
   description,
   actions,
+  className,
 }: {
   breadcrumb?: ReactNode;
   eyebrow: string;
   title: string;
   description?: string;
   actions?: ReactNode;
+  className?: string;
 }) {
   return (
-    <header className="relative mb-6 border-b border-border pb-5 pl-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary">
+    <header
+      className={cn(
+        "relative mb-6 border-b border-border pb-5 pl-4 before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-primary",
+        className,
+      )}
+    >
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0">
           {breadcrumb && (

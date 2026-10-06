@@ -19,11 +19,12 @@
  * separada das 3 fontes (so busca quando o card e aberto) -- ver
  * convenio-card.tsx e monitoramento-interno.tsx.
  */
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { SearchInput } from "@/components/common/search-input";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { SecaoPropostasCandidatas } from "@/components/features/secao-propostas-candidatas";
 import {
@@ -71,15 +72,42 @@ import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados
 // unificada em "Em operação" pra usar o mesmo vocabulário entre fontes).
 
 export function MonitoramentoEquipamentosPage() {
-  const [searchParams] = useSearchParams();
-  const [aba, setAba] = useState<AbaDadosOficiais>(() =>
-    searchParams.get("aba") === "componentes" ? "componentes" : "convenios",
+  const [searchParams, setSearchParams] = useSearchParams();
+  const aba: AbaDadosOficiais =
+    searchParams.get("aba") === "componentes" ? "componentes" : "convenios";
+  const subAbaFinanciamento: EstagioProposta =
+    searchParams.get("subaba") === "confirmada" ? "confirmada" : "tramitacao";
+  const setAba = useCallback(
+    (proximaAba: AbaDadosOficiais) => {
+      setSearchParams(
+        (anteriores) => {
+          const proximos = new URLSearchParams(anteriores);
+          if (proximaAba === "convenios") proximos.delete("aba");
+          else proximos.set("aba", proximaAba);
+          return proximos;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
   );
-  const [subAbaFinanciamento, setSubAbaFinanciamento] =
-    useState<EstagioProposta>(() =>
-      searchParams.get("subaba") === "confirmada" ? "confirmada" : "tramitacao",
-    );
+  const setSubAbaFinanciamento = useCallback(
+    (proximaSubAba: EstagioProposta) => {
+      setSearchParams(
+        (anteriores) => {
+          const proximos = new URLSearchParams(anteriores);
+          if (proximaSubAba === "tramitacao") proximos.delete("subaba");
+          else proximos.set("subaba", proximaSubAba);
+          return proximos;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
   const {
+    busca,
+    setBusca,
     uf,
     setUf,
     municipio,
@@ -142,6 +170,7 @@ export function MonitoramentoEquipamentosPage() {
       return filtrarDadosOficiais(
         convenios ?? [],
         {
+          busca,
           uf,
           municipio,
           cnes,
@@ -159,6 +188,7 @@ export function MonitoramentoEquipamentosPage() {
       );
     },
     [
+      busca,
       anoInicio,
       anoFim,
       cnes,
@@ -263,6 +293,12 @@ export function MonitoramentoEquipamentosPage() {
                 onLimpar={limparFiltros}
                 contagem={`${filtrados.length} de ${convenios.length} instrumentos`}
               >
+                <SearchInput
+                  value={busca}
+                  onChange={setBusca}
+                  placeholder="Buscar número, convenente, CNES ou município"
+                  width={162}
+                />
                 <SingleSelectFilter
                   placeholder="Tipo de contratação"
                   options={tipoContratacaoOptions}
