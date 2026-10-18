@@ -8,7 +8,9 @@ services:
     plan: free
     buildCommand: pip install 'uv==0.12.17' && uv sync --frozen
     startCommand: uv run sh ./start-server.sh
-    healthCheckPath: /health
+    # Vivacidade frequente não pode manter o Neon acordado por SELECT 1.
+    # /health continua verificando o banco e deve ter monitor separado.
+    healthCheckPath: /health/live
     autoDeployTrigger: checksPass
     envVars:
       - key: DATABASE_URL
