@@ -90,9 +90,21 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
   ).toHaveCount(0);
   for (const width of [320, 375, 400, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    await dialog.evaluate(async (el) => { await Promise.all(el.getAnimations().map((animacao) => animacao.finished)); });
-    await expect.poll(() => dialog.evaluate((el) => el.getBoundingClientRect().left)).toBeGreaterThanOrEqual(16);
-    await expect.poll(() => dialog.evaluate((el) => window.innerWidth - el.getBoundingClientRect().right)).toBeGreaterThanOrEqual(16);
+    await dialog.evaluate(async (el) => {
+      await Promise.all(
+        el.getAnimations().map((animacao) => animacao.finished),
+      );
+    });
+    await expect
+      .poll(() => dialog.evaluate((el) => el.getBoundingClientRect().left))
+      .toBeGreaterThanOrEqual(16);
+    await expect
+      .poll(() =>
+        dialog.evaluate(
+          (el) => window.innerWidth - el.getBoundingClientRect().right,
+        ),
+      )
+      .toBeGreaterThanOrEqual(16);
     await dialog.evaluate(async (el) => {
       await Promise.all(
         el.getAnimations().map((animacao) => animacao.finished),
@@ -131,8 +143,12 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
   await dialog.getByRole("button", { name: "Arquivar", exact: true }).click();
   await expect(dialog.getByText(aviso.titulo)).not.toBeVisible();
   await dialog.getByRole("button", { name: /Tipo de notificação/ }).click();
-  await expect(dialog.getByRole("option", { name: "Fonte indisponível", exact: true })).toBeInViewport();
-  await dialog.getByRole("option", { name: "Todos os tipos", exact: true }).click();
+  await expect(
+    dialog.getByRole("option", { name: "Fonte indisponível", exact: true }),
+  ).toBeInViewport();
+  await dialog
+    .getByRole("option", { name: "Todos os tipos", exact: true })
+    .click();
   await dialog.getByRole("button", { name: /Tipo de notificação/ }).click();
   await expect(
     dialog.getByRole("option", { name: "Fonte indisponível", exact: true }),

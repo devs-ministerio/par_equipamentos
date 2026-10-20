@@ -39,7 +39,10 @@ export function MonitoramentoInternoCabecalho({
       .includes("concluída") ?? false;
   const prestacaoVerificada = Boolean(inst.situacao_prestacao_contas?.trim());
   const divergenciaInauguracao =
-    inaugurado && inst.tipo_contratacao === "Convênio" && prestacaoVerificada && !prestacaoConcluida;
+    inaugurado &&
+    inst.tipo_contratacao === "Convênio" &&
+    prestacaoVerificada &&
+    !prestacaoConcluida;
 
   const indicadores = [
     {
