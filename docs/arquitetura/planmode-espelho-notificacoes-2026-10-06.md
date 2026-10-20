@@ -82,6 +82,48 @@ Contagens de testes não representam percentual de conclusão.
   são push em `master` ou pull request. CI remoto permanece pendente de PR;
   não alterar gatilhos, ativar cron ou publicar produção para contornar isso.
 
+### CI remoto — primeira execução e correções em 20/10
+
+- PR **#28**, rascunho para `homologacao`, autorizado pelo usuário; nenhum
+  merge/deploy/migration remota de ambiente operacional. A integração Vercel
+  registrou preview automático; não é publicação de produção.
+- Primeira rodada do SHA `168c799`: Semgrep, SBOM/imagem, actionlint e
+  Gitleaks passaram. Frontend, backend e E2E falharam; resultado local
+  anterior não será usado como substituto da validação remota.
+- Frontend: cinco arquivos fora do Prettier, corrigidos em commit exclusivo
+  de formatação (`29153a5`); gate integral local voltou a passar.
+- E2E: screenshots tinham `/private/tmp` fixo do macOS; usar `outputPath`
+  do próprio Playwright. Logs confirmaram 429 depois de cinco logins em um
+  minuto: compartilhar sessão somente em memória nos testes de consulta,
+  com contexto isolado por teste e login/saída ainda exercitados de verdade.
+  Não ampliar/desligar rate limit, adicionar retry ou remover cenários.
+- Backend: NAT do service container faz `inet_server_addr()` retornar IP
+  de bridge apesar do cliente usar 127.0.0.1. Preservar todas as guardas dos
+  utilitários; substituir somente o banco dos dois workflows por cluster
+  PostgreSQL 16 novo, nativo, loopback/porta 5433 e diretório privado no runner
+  GitHub hospedado/efêmero. Bootstrap recusa execução local/self-hosted.
+- Escopo de infra: workflows backend/ensaio e helper compartilhado; gates e
+  gatilhos existentes preservados. Sem novos secrets, cron, serviço pago ou
+  recurso persistente. Custo limitado às execuções já autorizadas do CI;
+  rollback por reversão do commit antes de merge, sem impacto em produção.
+- TCP: filho Python executa fora do checkout; declarar caminho de importação
+  somente do backend em vez de depender do `PYTHONPATH` da máquina de QA.
+- Validar bootstrap real sem rede em Linux não-root, suíte integral sem
+  `PYTHONPATH` herdado e stack E2E nova com PostgreSQL/credenciais sintéticos.
+  Não versionar os bancos, senhas ou artefatos privados desses ensaios.
+- Regressão local frontend após correção: **867 testes**, pisos por camada,
+  lint, tipos, build e Prettier integral aprovados. E2E **10/10 em 45,8 s**,
+  três logins reais 200 e nenhum 429; processos próprios encerrados.
+- Bootstrap exercitado em Linux arm64/Python 3.12.13, UID 10001, PostgreSQL
+  16.9 em 127.0.0.1:5433, sem rede/portas do host. Duas falhas da primeira
+  repetição vieram das variáveis PG da imagem base de QA: limpar o ambiente
+  desse launcher privado, não a guarda do produto. Repetição integral limpa
+  em andamento; não declarar CI remoto aprovado antes do resultado do GitHub.
+- Corrigido também o upload frontend para `frontend/coverage/…`, com teste de
+  regressão; sete testes dos workflows e gates estáticos locais aprovados.
+- Evidências privadas: `/private/tmp/sigeo-ci-evidencias-zhGTeH/` (frontend
+  e stack E2E) e `/private/tmp/sigeo-ci-loopback-mlEuJM/` (Linux/cluster).
+
 ### Portabilidade Linux/PostgreSQL 16 — execução local de 20/10
 
 - Continuação aprovada pelo usuário após autorização explícita para iniciar

@@ -3,7 +3,7 @@ import { decisaoLegadoSchema } from "../src/lib/validations/decisao-legado";
 
 test("central independente, sem aprovação automática, responsiva", async ({
   page,
-}) => {
+}, testInfo) => {
   let totalRadar = 1;
   const decisoes: {
     id: number;
@@ -197,7 +197,7 @@ test("central independente, sem aprovação automática, responsiva", async ({
       .toBeLessThanOrEqual(0);
     if (width === 400 || width === 768)
       await page.screenshot({
-        path: `/private/tmp/sigeo-entradas-modal-${width}.png`,
+        path: testInfo.outputPath(`entradas-modal-${width}.png`),
       });
   }
   await expect(
@@ -210,7 +210,7 @@ test("central independente, sem aprovação automática, responsiva", async ({
   await dialog
     .getByRole("textbox", { name: "Justificativa da análise" })
     .fill("Conferência sintética de evidências");
-  await page.screenshot({ path: "/private/tmp/sigeo-triagem-form-400.png" });
+  await page.screenshot({ path: testInfo.outputPath("triagem-form-400.png") });
   await dialog
     .getByRole("button", { name: "Confirmar decisão", exact: true })
     .click();
@@ -222,11 +222,11 @@ test("central independente, sem aprovação automática, responsiva", async ({
     dialog.getByText("Conferência sintética de evidências", { exact: true }),
   ).toBeVisible();
   await page.screenshot({
-    path: "/private/tmp/sigeo-triagem-historico-400.png",
+    path: testInfo.outputPath("triagem-historico-400.png"),
   });
   await page.setViewportSize({ width: 768, height: 900 });
   await page.screenshot({
-    path: "/private/tmp/sigeo-triagem-historico-768.png",
+    path: testInfo.outputPath("triagem-historico-768.png"),
   });
   await expect
     .poll(() => dialog.evaluate((el) => el.scrollWidth - el.clientWidth))

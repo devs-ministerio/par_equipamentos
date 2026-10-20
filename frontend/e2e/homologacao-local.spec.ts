@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./sessao-autenticada";
 
 test("clone local: login, dados oficiais, instrumentos e painel reais", async ({
   page,
@@ -17,13 +18,6 @@ test("clone local: login, dados oficiais, instrumentos e painel reais", async ({
     ) {
       falhas.push(resposta.status());
     }
-  });
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(process.env.E2E_EMAIL!);
-  await page.getByLabel("Senha").fill(process.env.E2E_SENHA!);
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/monitoramento-equipamentos$/, {
-    timeout: 20_000,
   });
   for (const [rota, titulo] of [
     ["/monitoramento-equipamentos", /Instrumentos e repasses/i],

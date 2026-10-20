@@ -17,26 +17,17 @@ jobs:
     if: github.ref == 'refs/heads/homologacao'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    services:
-      postgres:
-        image: postgres:16.9-alpine
-        env:
-          # Sentinela compatível com as guardas; cada container começa vazio.
-          POSTGRES_DB: sigeo_test_clone_20000101
-          POSTGRES_USER: postgres
-          # Credencial descartável do service container, nunca de ambiente real.
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd "pg_isready -U postgres -d sigeo_test_clone_20000101"
-          --health-interval 10s --health-timeout 5s --health-retries 5
-        ports: ["5432:5432"]
     defaults:
       run:
         working-directory: backend
     env:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/sigeo_test_clone_20000101
-      DATABASE_URL_MIGRATION: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/sigeo_test_clone_20000101
-      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/sigeo_test_clone_20000101
+      POSTGRES_DB: sigeo_test_clone_20000101
+      POSTGRES_USER: postgres
+      # Credencial exclusivamente sintética do cluster efêmero do CI.
+      POSTGRES_PASSWORD: postgres
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
+      DATABASE_URL_MIGRATION: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
       JWT_SECRET: ensaio-sintetico-sem-validade-fora-do-container-de-testes
       COOKIE_SECURE: "false"
       COOKIE_SAMESITE: lax
@@ -47,6 +38,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         # Sem ref fixo: valida exatamente o SHA escolhido da homologacao.
+      - name: Iniciar PostgreSQL 16 descartável com loopback real
+        run: bash ../.github/scripts/iniciar-postgres-ci.sh
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "0.12.17"

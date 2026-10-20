@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("central individual: arquivo, restauração, leitura e responsividade", async ({
   page,
-}) => {
+}, testInfo) => {
   const aviso = {
     id: 1,
     tipo: "atualizacao_api",
@@ -131,7 +131,7 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
     expect(dimensoes.direita).toBeGreaterThanOrEqual(16);
     if (width === 400 || width === 768)
       await page.screenshot({
-        path: `/private/tmp/sigeo-notificacoes-${width}.png`,
+        path: testInfo.outputPath(`notificacoes-${width}.png`),
       });
     const arquivar = dialog.getByRole("button", {
       name: "Arquivar",

@@ -121,6 +121,8 @@ def servidor_relatorios_tcp(monkeypatch, tmp_path):
         ambiente = dict(os.environ)
         url = conexao.engine.url.render_as_string(hide_password=False)
         ambiente.update(
+            # O filho roda fora do checkout; não herdar PYTHONPATH da máquina/CI.
+            PYTHONPATH=str(Path(__file__).resolve().parents[1]),
             DATABASE_URL=url,
             DATABASE_URL_MIGRATION=url,
             NEW_RELIC_ENABLED="false",
