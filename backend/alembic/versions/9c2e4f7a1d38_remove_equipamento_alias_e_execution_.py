@@ -44,6 +44,7 @@ def downgrade() -> None:
         "macro_exception",
         "macro_code_divergence",
         name="alert_type",
+        create_type=False,
     )
     alert_type.create(op.get_bind())
 
@@ -53,12 +54,12 @@ def downgrade() -> None:
         sa.Column(
             "execution_id",
             sa.BigInteger(),
-            sa.ForeignKey("execution.id", ondelete="CASCADE", onupdate="RESTRICT"),
+            sa.ForeignKey("execution.id", name="fk_execution_alert_execution", ondelete="CASCADE", onupdate="RESTRICT"),
             nullable=False,
         ),
         sa.Column("alert_type", alert_type, nullable=False),
         sa.Column("details", postgresql.JSONB(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
 
     op.create_table(

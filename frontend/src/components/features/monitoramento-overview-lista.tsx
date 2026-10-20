@@ -16,9 +16,14 @@ export function MonitoramentoOverviewLista({
   pagina: number;
   onPagina: (pagina: number) => void;
 }) {
+  // Uma recaptura pode reduzir o mesmo recorte sem alterar sua URL.
+  const paginaEfetiva = Math.max(
+    1,
+    Math.min(pagina, Math.ceil(instrumentos.length / PAGE_SIZE) || 1),
+  );
   const paginaAtual = instrumentos.slice(
-    (pagina - 1) * PAGE_SIZE,
-    pagina * PAGE_SIZE,
+    (paginaEfetiva - 1) * PAGE_SIZE,
+    paginaEfetiva * PAGE_SIZE,
   );
   return (
     <div className={estiloCard}>
@@ -71,7 +76,7 @@ export function MonitoramentoOverviewLista({
                     {item.situacao_prestacao_contas ===
                     PRESTACAO_CONTAS_CONCLUIDA ? (
                       <span className="rounded-full bg-success-bg px-1.5 py-px text-[10px] font-bold text-success">
-                        Concluída
+                        {item.situacao_prestacao_contas}
                       </span>
                     ) : (
                       (item.situacao_prestacao_contas ?? "—")
@@ -138,10 +143,7 @@ export function MonitoramentoOverviewLista({
                 <div className="col-span-2 min-w-0">
                   <dt className="text-muted-foreground">Prestação de contas</dt>
                   <dd className="mt-0.5 break-words font-medium text-foreground">
-                    {item.situacao_prestacao_contas ===
-                    PRESTACAO_CONTAS_CONCLUIDA
-                      ? "Concluída"
-                      : (item.situacao_prestacao_contas ?? "—")}
+                    {item.situacao_prestacao_contas ?? "—"}
                   </dd>
                 </div>
               </dl>
@@ -151,7 +153,7 @@ export function MonitoramentoOverviewLista({
       </div>
       {instrumentos.length > 0 && (
         <Pagination
-          page={pagina}
+          page={paginaEfetiva}
           totalItems={instrumentos.length}
           pageSize={PAGE_SIZE}
           onPageChange={onPagina}

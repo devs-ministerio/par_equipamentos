@@ -18,6 +18,9 @@ export function CandidatoLegadoItem({
   children?: ReactNode;
 }) {
   const equipamentos = [...new Set(candidato.evidencias.map((e) => e.nome))];
+  const componentes = [
+    ...new Set(candidato.componentes.map((c) => c.componente)),
+  ];
   return (
     <li
       className={`${estiloCard} min-w-0 border-l-[3px] border-l-primary [overflow-wrap:anywhere]`}
@@ -34,12 +37,13 @@ export function CandidatoLegadoItem({
         </Badge>
       </div>
       <p className="mt-2 text-sm font-medium">{equipamentos.join(" · ")}</p>
+      {componentes.length > 0 && (
+        <div className="mt-2 min-w-0 text-sm leading-relaxed">
+          <span className="text-xs text-muted-foreground">Componente</span>
+          <p className="mt-1">{componentes.join(" · ")}</p>
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span>Proposta {candidato.id_proposta}</span>
-        <span>
-          {candidato.evidencias.length}{" "}
-          {candidato.evidencias.length === 1 ? "evidência" : "evidências"}
-        </span>
         {candidato.origem === "snapshot_local" && (
           <span>Snapshot local · frescor não confirmado</span>
         )}
@@ -49,6 +53,9 @@ export function CandidatoLegadoItem({
           Mais detalhes
         </summary>
         <div className="mt-3 border-l-2 border-border pl-4">
+          <p className="mb-3 text-xs text-muted-foreground">
+            Proposta {candidato.id_proposta}
+          </p>
           <p className="mb-3 text-xs text-muted-foreground">
             {ROTULOS_CONFIRMACAO[candidato.confirmacao_portal]}
           </p>

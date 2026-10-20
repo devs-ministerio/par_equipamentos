@@ -12,7 +12,7 @@
  * `4xx` respondida, não uma falha de rede/schema), `publicMessage` é esse
  * mesmo texto -- o backend já garante que não vaza stack trace/SQL/path de
  * servidor nesse campo (Plan Mode segurança 2026-09-16, Bloco 1). Só falha
- * de rede/schema (nunca alcançou uma resposta de domínio de verdade) cai no
+ * de rede/schema/5xx (não é resposta de domínio controlada) cai no
  * fallback genérico. */
 export class ApiError extends Error {
   status?: number;

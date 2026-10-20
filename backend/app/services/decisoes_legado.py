@@ -39,7 +39,7 @@ def registrar_decisao(
         if dados.versao != versao or dados.captura_id != registro.ultima_captura_id:
             raise ConflictError("O candidato mudou. Atualize o Radar antes de decidir.")
         captura = candidatos.obter_capturas(db, {dados.captura_id}).get(dados.captura_id)
-        if captura is None or captura.origem != "siconv_oficial":
+        if captura is None or captura.origem != "siconv_oficial" or not captura.elegivel:
             raise ConflictError("Somente descobertas da fonte oficial podem ser analisadas no Radar.")
         if estado not in ("novo", "em_analise") or (situacao == "em_analise" and estado != "novo"):
             raise ConflictError("A situação atual não permite esta decisão.")

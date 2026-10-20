@@ -28,6 +28,15 @@ test("central independente, sem aprovação automática, responsiva", async ({
     origem: "siconv_oficial",
     descoberto_em: "2026-10-06T10:00:00Z",
     verificado_em: "2026-10-06T10:00:00Z",
+    componentes: [
+      {
+        id_programa: "53000",
+        nome_programa:
+          "REDE DE ATENCAO A PESSOA COM DOENCAS CRONICAS - AMBULATORIO PARA DIAGNOSTICO EM ONCOLOGIA",
+        componente:
+          "REDE DE ATENCAO A PESSOA COM DOENCAS CRONICAS - AMBULATORIO PARA DIAGNOSTICO EM ONCOLOGIA",
+      },
+    ],
     evidencias: [
       {
         id_item: "1",
@@ -43,6 +52,8 @@ test("central independente, sem aprovação automática, responsiva", async ({
     if (!["fetch", "xhr"].includes(route.request().resourceType()))
       return route.continue();
     const url = new URL(route.request().url());
+    if (url.pathname.endsWith("/auth/csrf"))
+      return route.fulfill({ json: { csrf_token: "csrf-sintetico" } });
     if (url.pathname.endsWith("/auth/me"))
       return route.fulfill({
         json: {
@@ -110,6 +121,13 @@ test("central independente, sem aprovação automática, responsiva", async ({
     page.getByRole("heading", { name: "Radar de instrumentos" }),
   ).toBeVisible();
   await expect(page.getByText("Convênio 900101")).toBeVisible();
+  await expect(
+    dialog.getByText(candidato.componentes[0].componente),
+  ).toBeVisible();
+  await expect(
+    dialog.getByText("Proposta 1001", { exact: true }),
+  ).not.toBeVisible();
+  await expect(dialog.getByText("1 evidência", { exact: true })).toHaveCount(0);
   await expect(
     dialog.getByRole("tab", { name: "Convênios", exact: true }),
   ).toHaveAttribute("data-state", "active");

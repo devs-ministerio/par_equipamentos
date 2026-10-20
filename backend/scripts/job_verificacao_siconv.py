@@ -37,7 +37,9 @@ from typing import Any
 from app.db.base import SessionLocal
 from app.db.models import Convenio, InstrumentoEquipamento, Notificacao, NotificacaoTipo
 from app.pipeline.texto import parsear_valor_brasileiro
+from app.repositories.espelho_siconv import bloquear_escopo_atual, numeros_oficiais_conhecidos
 from app.repositories.notificacoes import criar_notificacao
+from app.schemas_filhas_legado import chave_termo_aditivo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.espelho_diff import DiffLista, diff_lista, mesclar_lista
 
@@ -66,7 +68,7 @@ FILHAS = {
     "empenhos": ("siconv_empenho", "ID_EMPENHO", "Empenhos"),
     "desembolsos": ("siconv_desembolso", "ID_DESEMBOLSO", "Desembolsos"),
     "licitacoes": ("siconv_licitacao", "ID_LICITACAO", "Licitações"),
-    "termos_aditivos": ("siconv_termo_aditivo", "ID_SOLICITACAO", "Termos aditivos"),
+    "termos_aditivos": ("siconv_termo_aditivo", "CHAVE_ESPELHO", "Termos aditivos"),
     "pagamentos": ("siconv_pagamento", "NR_MOV_FIN", "Pagamentos"),
 }
 ITENS = ("itens_plano_aplicacao", "ID_ITEM_PAD", "Itens do plano de aplicação")
@@ -110,6 +112,20 @@ def _total_pago(pagamentos: list[dict[str, Any]]) -> Decimal:
             raise ValueError("Captura SICONV contém valor de pagamento ausente ou inválido.")
         total += Decimal(str(numero))
     return total
+
+
+def _preparar_termos(registros: list[dict[str, str]], *, anteriores: bool = False) -> list[dict[str, str]]:
+    resultado = []
+    for registro in registros:
+        solicitacao = str(registro.get("ID_SOLICITACAO") or "")
+        numero_ta = str(registro.get("NUMERO_TA") or "")
+        if anteriores and not solicitacao.strip() and not numero_ta.strip():
+            # Evidência antiga sem identidade não pode ser apagada nem ligada
+            # por aproximação. Somente a captura nova exige chave comprovada.
+            resultado.append(registro)
+        else:
+            resultado.append({**registro, "CHAVE_ESPELHO": chave_termo_aditivo(solicitacao, numero_ta)})
+    return resultado
 
 
 def reconciliar_registro(
@@ -159,12 +175,16 @@ def reconciliar_registro(
             continue
         antigas = raw.get(chave)
         antigas = antigas if isinstance(antigas, list) else None
-        diff = diff_lista(antigas if baseline else None, filhas[chave], coluna)
+        novas = filhas[chave]
+        if chave == "termos_aditivos":
+            antigas = _preparar_termos(antigas, anteriores=True) if antigas is not None else None
+            novas = _preparar_termos(novas)
+        diff = diff_lista(antigas if baseline else None, novas, coluna)
         if baseline and not diff.vazio:
             resultado.filhas[chave] = diff
         elif not baseline and antigas is not None:
-            resultado.absorvidas += len(diff_lista(antigas, filhas[chave], coluna).adicionados)
-        novo_raw[chave] = mesclar_lista(antigas, filhas[chave], coluna)
+            resultado.absorvidas += len(diff_lista(antigas, novas, coluna).adicionados)
+        novo_raw[chave] = mesclar_lista(antigas, novas, coluna)
 
     pagamentos = novo_raw.get("pagamentos")
     if filhas is not None and "pagamentos" in filhas and isinstance(pagamentos, list):
@@ -287,20 +307,22 @@ def _executar(cap: CapturaEmAndamento) -> None:
     absorvidas = 0
     cargas_iniciais = 0
     try:
-        instrumentos = (
-            db.query(InstrumentoEquipamento).filter(InstrumentoEquipamento.tipo_contratacao == "Convênio").all()
-        )
-        convenios = db.query(Convenio).filter(Convenio.tipo_contratacao == "Convênio").all()
-        convenios_por_numero = {c.numero: c for c in convenios}
-        instrumentos_por_numero = {i.nr_convenio: i for i in instrumentos}
-        numeros = set(convenios_por_numero) | set(instrumentos_por_numero)
+        numeros = numeros_oficiais_conhecidos(db)
+        db.rollback()  # Não manter leitura/transação/conexão ocupada durante HTTP.
         if not numeros:
             print("Nenhum convênio oficial conhecido para verificar.")
         else:
             registros = _filtrar_por_numero_convenio(NOME_TABELA, numeros, atualizar_cache=True)
             if not registros:
                 raise RuntimeError("Dump SICONV não retornou nenhum convênio conhecido; sincronização abortada.")
-            registros_por_numero = {r["NR_CONVENIO"]: r for r in registros}
+            registros_por_numero = {}
+            for registro in registros:
+                numero = registro.get("NR_CONVENIO")
+                if not numero or numero not in numeros:
+                    raise ValueError("Captura SICONV contém convênio fora do universo solicitado.")
+                if numero in registros_por_numero:
+                    raise ValueError("Captura SICONV contém identidade de convênio duplicada.")
+                registros_por_numero[numero] = registro
             ausentes = sorted(numeros - set(registros_por_numero))
             cap.itens_verificados = len(numeros)
             cap.detalhes["ausentes_do_dump"] = len(ausentes)
@@ -311,10 +333,15 @@ def _executar(cap: CapturaEmAndamento) -> None:
                     "os dados anteriores foram preservados.",
                 )
             filhas_por_tabela = coletar_filhas(numeros, registros_por_numero, cap)
+            convenios_por_numero, instrumentos_por_numero = bloquear_escopo_atual(db, numeros)
+            cap.detalhes["fora_escopo_apos_coleta"] = 0
 
             for numero, registro in registros_por_numero.items():
                 instrumento = instrumentos_por_numero.get(numero)
                 convenio = convenios_por_numero.get(numero)
+                if convenio is None and instrumento is None:
+                    cap.detalhes["fora_escopo_apos_coleta"] += 1
+                    continue
                 filhas = {chave: tabela.get(numero, []) for chave, tabela in filhas_por_tabela.items()}
                 resultado = reconciliar_registro(convenio, instrumento, registro, filhas)
                 absorvidas += resultado.absorvidas

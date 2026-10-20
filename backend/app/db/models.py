@@ -72,10 +72,12 @@ class PropostaCandidataStatus(str, enum.Enum):
 
 
 class NotificacaoTipo(str, enum.Enum):
-    """3 origens -- `entidade_id` aponta pra proposta_candidata.id (1o caso)
-    ou instrumento_equipamento.id (2 ultimos), sem FK fisica de proposito
-    (mesmo padrao ja usado por AuditLog.entity_name/entity_id), ver
-    docs/database/modelo_er.md."""
+    """Origem determina a entidade do identificador polimórfico.
+
+    Proposta, instrumento, convênio, captura de fonte e candidato do Radar
+    têm sequences independentes. Resolver a tabela por tipo, nunca por
+    coincidência de PK; ver repositories/notificacoes.py e modelo_er.md.
+    """
 
     proposta_candidata = "proposta_candidata"
     atualizacao_api = "atualizacao_api"
@@ -91,6 +93,11 @@ class NotificacaoTipo(str, enum.Enum):
     # Falha ou resposta parcial de uma fonte oficial; entidade_id é
     # FonteCaptura.id e destinatários são gestor/admin ativos.
     fonte_indisponivel = "fonte_indisponivel"
+    # Entrada na carteira, não inclusão no acompanhamento pós-repasse.
+    aprovacao_carteira = "aprovacao_carteira"
+    # Descoberta confirmada; entidade_id é CandidatoLegadoRegistro.id,
+    # não Convenio.id nem InstrumentoEquipamento.id.
+    convenio_descoberto = "convenio_descoberto"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -299,8 +306,8 @@ class FonteCaptura(Base):
     """Histórico de cada rodada de coleta de uma fonte oficial.
 
     Alimenta o frescor visível na UI ("última captura confirmada") e o alerta
-    de fonte indisponível. Gravada em sessão própria pelos jobs, para
-    sobreviver ao rollback da transação de dados quando a fonte falha. Uma
+    de fonte indisponível. Descoberta publica sucesso junto dos dados; falhas
+    são gravadas em sessão própria para sobreviver ao rollback. Uma
     rodada com erro ou resposta parcial nunca apaga o último dado confirmado:
     o job só aplica o que a fonte publicou."""
 
@@ -450,6 +457,8 @@ class Convenio(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     numero: Mapped[str] = mapped_column(String, nullable=False)
+    # Exclusão de escopo preserva a fonte e evita reentrada na descoberta.
+    fora_escopo_equipamentos: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     numero_instrumento: Mapped[str | None] = mapped_column(String)
     ano_instrumento: Mapped[int | None] = mapped_column(Integer)
     objeto: Mapped[str | None] = mapped_column(String)

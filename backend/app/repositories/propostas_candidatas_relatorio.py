@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import PropostaCandidata
 from app.pipeline.texto import normalizar_texto
+from app.repositories.limites_relatorio import listar_sem_truncar
 
 # Teto de segurança do relatório -- mesmo espírito do Bloco 4 do Plan Mode
 # consolidação 2026-09-17 (não é paginação de UI).
@@ -48,9 +49,13 @@ def listar_propostas_filtradas(
         stmt = stmt.where(extract("year", PropostaCandidata.data_proposta) >= ano_inicio)
     if ano_fim is not None:
         stmt = stmt.where(extract("year", PropostaCandidata.data_proposta) <= ano_fim)
-    stmt = stmt.order_by(PropostaCandidata.data_proposta.desc().nulls_last()).limit(LIMITE_RELATORIO)
-    resultado = list(db.execute(stmt).scalars().all())
+    stmt = stmt.order_by(PropostaCandidata.data_proposta.desc().nulls_last(), PropostaCandidata.id_proposta)
     if municipio:
         alvo = normalizar_texto(municipio)
-        resultado = [p for p in resultado if normalizar_texto(p.municipio) == alvo]
-    return resultado
+        return listar_sem_truncar(
+            db,
+            stmt,
+            limite=LIMITE_RELATORIO,
+            corresponde=lambda proposta: normalizar_texto(proposta.municipio) == alvo,
+        )
+    return listar_sem_truncar(db, stmt, limite=LIMITE_RELATORIO)

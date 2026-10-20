@@ -18,7 +18,32 @@ const aviso: Notificacao = {
 };
 
 describe("NotificacaoItem", () => {
-  it("identifica o card e mostra a mensagem completa sem expansão", () => {
+  it("identifica descoberta sem inventar link de instrumento ou aprovação", async () => {
+    const user = userEvent.setup();
+    const abrir = vi.fn().mockResolvedValue(undefined);
+    const descoberto: Notificacao = {
+      ...aviso,
+      tipo: "convenio_descoberto",
+      destino: null,
+    };
+    render(
+      <NotificacaoItem
+        aviso={descoberto}
+        ocupada={false}
+        abrir={abrir}
+        arquivar={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Novo convênio no Radar")).toBeVisible();
+    expect(screen.queryByText("Entrada aprovada")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Abrir registro" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Marcar como lida" }));
+    expect(abrir).toHaveBeenCalledWith(descoberto);
+  });
+
+  it("identifica o card e mantém a mensagem completa visível", () => {
     render(
       <NotificacaoItem
         aviso={aviso}
@@ -33,7 +58,30 @@ describe("NotificacaoItem", () => {
     expect(screen.getByText("Não lida")).toBeVisible();
     expect(screen.getByText(/Valor: 100 → 120/)).toBeVisible();
     expect(screen.queryByText("Ver alterações")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ver mensagem")).not.toBeInTheDocument();
+  });
+
+  it("distingue aprovação de monitoramento e abre o registro oficial", async () => {
+    const user = userEvent.setup();
+    const abrir = vi.fn().mockResolvedValue(undefined);
+    const aprovada: Notificacao = {
+      ...aviso,
+      tipo: "aprovacao_carteira",
+      destino: "/monitoramento-equipamentos?busca=999001",
+      corpo: "Convênio aprovado para entrada na carteira.",
+    };
+    render(
+      <NotificacaoItem
+        aviso={aprovada}
+        ocupada={false}
+        abrir={abrir}
+        arquivar={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Entrada aprovada")).toBeVisible();
+    expect(screen.getByText(aprovada.corpo!)).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Abrir registro" }));
+    expect(abrir).toHaveBeenCalledWith(aprovada);
+    expect(screen.queryByText("Novo monitoramento")).not.toBeInTheDocument();
   });
 
   it("mantém as ações individuais e seus respectivos registros", async () => {

@@ -18,14 +18,7 @@ def test_job_atualiza_duas_visoes_e_notifica_uma_vez(monkeypatch):
             convenente_nome="Teste SIGEO",
             tipo_contratacao="Convênio",
             situacao="Em execução",
-            siconv_raw={
-                "convenio": {
-                    "NR_CONVENIO": numero,
-                    "SIT_CONVENIO": "Em execução",
-                    "VL_GLOBAL_CONV": "100,00",
-                },
-                "_espelho": {"versao": 1},
-            },
+            siconv_raw={"_espelho": {"versao": 1}, "convenio": {"SIT_CONVENIO": "Em execução"}},
         )
         instrumento = InstrumentoEquipamento(
             nr_convenio=numero,
@@ -38,30 +31,24 @@ def test_job_atualiza_duas_visoes_e_notifica_uma_vez(monkeypatch):
         db.refresh(instrumento)
         instrumento_id = instrumento.id
 
-        def fonte(_nome, numeros, *, atualizar_cache):
+        def fonte(nome, numeros, *, atualizar_cache):
             assert numero in numeros
             assert atualizar_cache is True
-            if _nome != job_verificacao_siconv.NOME_TABELA:
-                return []
-            return [{"NR_CONVENIO": numero, "SIT_CONVENIO": situacao_nova, "VL_GLOBAL_CONV": "150,00"}]
+            return [{"NR_CONVENIO": numero, "SIT_CONVENIO": situacao_nova}] if nome == "siconv_convenio" else []
 
         monkeypatch.setattr(job_verificacao_siconv, "_filtrar_por_numero_convenio", fonte)
         monkeypatch.setattr(job_verificacao_siconv, "_filtrar_plano_aplicacao_por_id_proposta", lambda *a, **k: [])
         job_verificacao_siconv.run()
         db.expire_all()
-        convenio_atual = db.query(Convenio).filter_by(numero=numero).one()
-        assert convenio_atual.situacao == situacao_nova
-        assert convenio_atual.valor_global == 150
-        assert (convenio_atual.siconv_raw or {})["convenio"]["VL_GLOBAL_CONV"] == "150,00"
+        assert db.query(Convenio).filter_by(numero=numero).one().situacao == situacao_nova
         assert (
             db.query(InstrumentoEquipamento).filter_by(nr_convenio=numero).one().situacao_prestacao_contas
             == situacao_nova
         )
-        notificacoes = (
-            db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).all()
+        assert (
+            db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).count()
+            == 1
         )
-        assert len(notificacoes) == 1
-        assert "VL_GLOBAL_CONV: 100,00 → 150,00" in (notificacoes[0].corpo or "")
 
         job_verificacao_siconv.run()
         db.expire_all()

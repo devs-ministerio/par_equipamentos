@@ -2,7 +2,7 @@
  * paleta clara reaproveitando as variaveis Tailwind/shadcn (mesma linguagem
  * visual do Dashboard/Painel Geral), pagina continua fora do AppLayout
  * (decisao 2026-09-03, ver MonitoramentoEquipamentosPage.tsx). */
-import { useState } from "react";
+import { useId, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   situacaoVariant,
@@ -172,22 +172,29 @@ export function ConfirmarExclusaoComMotivo({
   onExcluir: (motivo: string) => Promise<void>;
   onCancelar: () => void;
 }) {
+  const motivoId = useId();
   const [motivo, setMotivo] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   return (
     <div className="mt-2 rounded-md border border-destructive/30 bg-destructive-bg/40 p-2.5">
-      <label className="text-[11px] text-muted-foreground block mb-1">
+      <label
+        htmlFor={motivoId}
+        className="text-[11px] text-muted-foreground block mb-1"
+      >
         Motivo da exclusão
       </label>
       <textarea
+        id={motivoId}
+        aria-invalid={Boolean(erro)}
+        aria-describedby={erro ? `${motivoId}-error` : undefined}
         className={cn(estiloInput, "w-full min-h-[50px] bg-background")}
         value={motivo}
         onChange={(e) => setMotivo(e.target.value)}
         placeholder="Explique por que este lançamento está sendo excluído..."
       />
-      <ErroCampo id="motivo-exclusao-error" mensagem={erro ?? undefined} />
+      <ErroCampo id={`${motivoId}-error`} mensagem={erro ?? undefined} />
       <div className="flex gap-2 mt-2">
         <button
           type="button"

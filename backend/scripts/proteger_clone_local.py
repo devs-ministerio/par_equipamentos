@@ -77,6 +77,7 @@ class ProtecaoTexto:
                 "contato",
                 "representante",
                 "responsavel",
+                "depositante",
             )
         ):
             return "[dado pessoal protegido]"
@@ -87,7 +88,9 @@ class ProtecaoTexto:
             return [self.payload(item, chave) for item in valor]
         if isinstance(valor, dict):
             pessoa_fisica = any(
-                "fornecedor" in nome.casefold() and isinstance(item, str) and re.fullmatch(r"\d{11}", item)
+                "fornecedor" in nome.casefold()
+                and isinstance(item, str)
+                and (re.fullmatch(r"\d{11}", item) or re.fullmatch(r"\*+[\d*]+\*+", item))
                 for nome, item in valor.items()
             )
             if pessoa_fisica:
@@ -186,5 +189,6 @@ def proteger_banco(conexao: psycopg.Connection, nomes_tabelas: list[str]) -> dic
                 if lote:
                     escrita.executemany(atualizar, lote)
                     alterados[tabela] += len(lote)
-    conexao.execute('UPDATE "user" SET activation_expires_at=NULL, failed_login_attempts=0, locked_until=NULL')
+    if "user" in nomes_tabelas:
+        conexao.execute('UPDATE "user" SET activation_expires_at=NULL, failed_login_attempts=0, locked_until=NULL')
     return alterados

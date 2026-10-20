@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ClasseEquipamento } from "@/types/dados-oficiais";
+import { chaveMunicipio } from "@/lib/municipio-filtro";
 
 export const TAMANHO_PAGINA_DADOS_OFICIAIS = 20;
 
@@ -32,7 +33,10 @@ export function useDadosOficiaisFiltros() {
   const [searchParams, setSearchParams] = useSearchParams();
   const busca = searchParams.get("busca") ?? "";
   const uf = searchParams.get("uf");
-  const municipio = searchParams.get("municipio");
+  const municipioNaUrl = searchParams.get("municipio");
+  const municipio = municipioNaUrl
+    ? chaveMunicipio(municipioNaUrl) || null
+    : null;
   const cnes = searchParams.get("cnes");
   const equipamento = searchParams.get("equipamento");
   const classeEquipamento: ClasseEquipamento =

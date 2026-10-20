@@ -3,7 +3,7 @@
  * validade; marco de entrega pede o equipamento físico). Extraído de
  * MonitoramentoInterno.tsx. */
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
@@ -59,6 +59,8 @@ export function MonitoramentoInternoFormEvento({
   rotuloSubmit?: string;
   previsaoInauguracao?: string | null;
 }) {
+  const formId = useId();
+  const campoId = (nome: string) => `${formId}-${nome}`;
   const {
     register,
     handleSubmit,
@@ -74,6 +76,7 @@ export function MonitoramentoInternoFormEvento({
   });
   const [conclusaoPendente, setConclusaoPendente] =
     useState<EnviarEventoFormValues | null>(null);
+  const [confirmandoConclusao, setConfirmandoConclusao] = useState(false);
 
   const marcoIdSelecionado = watch("marcoId");
   const marcoDoForm =
@@ -132,7 +135,7 @@ export function MonitoramentoInternoFormEvento({
         <div className="flex gap-2.5 flex-wrap items-start">
           <div className="min-w-0 flex-1 basis-full sm:min-w-60 sm:basis-auto">
             <label
-              htmlFor="evento-marco"
+              htmlFor={campoId("evento-marco")}
               className="text-[11px] text-muted-foreground block mb-1"
             >
               Marco
@@ -150,11 +153,11 @@ export function MonitoramentoInternoFormEvento({
               </div>
             ) : (
               <select
-                id="evento-marco"
+                id={campoId("evento-marco")}
                 className={cn(estiloInput, "w-full")}
                 aria-invalid={Boolean(errors.marcoId)}
                 aria-describedby={idsDescricaoCampo(
-                  "evento-marco",
+                  campoId("evento-marco"),
                   Boolean(errors.marcoId),
                   false,
                 )}
@@ -178,24 +181,24 @@ export function MonitoramentoInternoFormEvento({
               </select>
             )}
             <ErroCampo
-              id="evento-marco-error"
+              id={campoId("evento-marco-error")}
               mensagem={errors.marcoId?.message}
             />
           </div>
           {precisaFaseGeral && (
             <div className="min-w-0 flex-1 basis-full sm:min-w-52 sm:basis-auto">
               <label
-                htmlFor="evento-fase-geral"
+                htmlFor={campoId("evento-fase-geral")}
                 className="text-[11px] text-muted-foreground block mb-1"
               >
                 Fase geral correspondente
               </label>
               <select
-                id="evento-fase-geral"
+                id={campoId("evento-fase-geral")}
                 className={cn(estiloInput, "w-full")}
                 aria-invalid={Boolean(errors.faseGeralId)}
                 aria-describedby={idsDescricaoCampo(
-                  "evento-fase-geral",
+                  campoId("evento-fase-geral"),
                   Boolean(errors.faseGeralId),
                   false,
                 )}
@@ -212,7 +215,7 @@ export function MonitoramentoInternoFormEvento({
                 ))}
               </select>
               <ErroCampo
-                id="evento-fase-geral-error"
+                id={campoId("evento-fase-geral-error")}
                 mensagem={errors.faseGeralId?.message}
               />
             </div>
@@ -222,7 +225,7 @@ export function MonitoramentoInternoFormEvento({
               cnen vamos precisar da data da licença e da data de validade
               da licença", nao so um icone de calendario com tooltip. */}
             <label
-              htmlFor="evento-data-ocorrencia"
+              htmlFor={campoId("evento-data-ocorrencia")}
               className="text-[11px] text-muted-foreground block mb-1"
             >
               {ehLicencaOperacao
@@ -232,7 +235,7 @@ export function MonitoramentoInternoFormEvento({
                   : "Data de ocorrência"}
             </label>
             <input
-              id="evento-data-ocorrencia"
+              id={campoId("evento-data-ocorrencia")}
               type="date"
               className={cn(estiloInput, "w-full")}
               {...register("dataOcorrencia")}
@@ -241,13 +244,13 @@ export function MonitoramentoInternoFormEvento({
           {marcoDoForm?.grupo !== "fase_geral" && (
             <div className="w-full sm:w-auto">
               <label
-                htmlFor="evento-data-prevista"
+                htmlFor={campoId("evento-data-prevista")}
                 className="text-[11px] text-muted-foreground block mb-1"
               >
                 Data prevista
               </label>
               <input
-                id="evento-data-prevista"
+                id={campoId("evento-data-prevista")}
                 type="date"
                 className={cn(estiloInput, "w-full")}
                 {...register("dataPrevista")}
@@ -260,13 +263,13 @@ export function MonitoramentoInternoFormEvento({
           <div className="flex gap-2.5 flex-wrap items-start">
             <div className="min-w-0 flex-1 basis-full sm:min-w-40 sm:basis-auto">
               <label
-                htmlFor="evento-status-regulatorio"
+                htmlFor={campoId("evento-status-regulatorio")}
                 className="text-[11px] text-muted-foreground block mb-1"
               >
                 Status regulatório
               </label>
               <select
-                id="evento-status-regulatorio"
+                id={campoId("evento-status-regulatorio")}
                 className={cn(estiloInput, "w-full")}
                 defaultValue=""
                 {...register("statusRegulatorio")}
@@ -281,26 +284,26 @@ export function MonitoramentoInternoFormEvento({
             </div>
             <div className="min-w-0 flex-1 basis-full sm:min-w-40 sm:basis-auto">
               <label
-                htmlFor="evento-numero-documento"
+                htmlFor={campoId("evento-numero-documento")}
                 className="text-[11px] text-muted-foreground block mb-1"
               >
                 Nº matrícula/licença/processo
               </label>
               <input
-                id="evento-numero-documento"
+                id={campoId("evento-numero-documento")}
                 className={cn(estiloInput, "w-full")}
                 {...register("numeroDocumento")}
               />
             </div>
             <div className="w-full sm:w-auto">
               <label
-                htmlFor="evento-data-validade"
+                htmlFor={campoId("evento-data-validade")}
                 className="text-[11px] text-muted-foreground block mb-1"
               >
                 Data de validade
               </label>
               <input
-                id="evento-data-validade"
+                id={campoId("evento-data-validade")}
                 type="date"
                 className={cn(estiloInput, "w-full")}
                 {...register("dataValidade")}
@@ -320,52 +323,52 @@ export function MonitoramentoInternoFormEvento({
             <div className="grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
               <div>
                 <label
-                  htmlFor="evento-equip-marca"
+                  htmlFor={campoId("evento-equip-marca")}
                   className="text-[11px] text-muted-foreground block mb-1"
                 >
                   Marca
                 </label>
                 <input
-                  id="evento-equip-marca"
+                  id={campoId("evento-equip-marca")}
                   className={cn(estiloInput, "w-full")}
                   {...register("equipamentoMarca")}
                 />
               </div>
               <div>
                 <label
-                  htmlFor="evento-equip-modelo"
+                  htmlFor={campoId("evento-equip-modelo")}
                   className="text-[11px] text-muted-foreground block mb-1"
                 >
                   Modelo
                 </label>
                 <input
-                  id="evento-equip-modelo"
+                  id={campoId("evento-equip-modelo")}
                   className={cn(estiloInput, "w-full")}
                   {...register("equipamentoModelo")}
                 />
               </div>
               <div>
                 <label
-                  htmlFor="evento-equip-serie"
+                  htmlFor={campoId("evento-equip-serie")}
                   className="text-[11px] text-muted-foreground block mb-1"
                 >
                   Nº de série
                 </label>
                 <input
-                  id="evento-equip-serie"
+                  id={campoId("evento-equip-serie")}
                   className={cn(estiloInput, "w-full")}
                   {...register("equipamentoNumeroSerie")}
                 />
               </div>
               <div>
                 <label
-                  htmlFor="evento-equip-vida-util"
+                  htmlFor={campoId("evento-equip-vida-util")}
                   className="text-[11px] text-muted-foreground block mb-1"
                 >
                   Vida útil (anos)
                 </label>
                 <input
-                  id="evento-equip-vida-util"
+                  id={campoId("evento-equip-vida-util")}
                   type="number"
                   min={0}
                   className={cn(estiloInput, "w-full")}
@@ -378,13 +381,13 @@ export function MonitoramentoInternoFormEvento({
 
         <div>
           <label
-            htmlFor="evento-observacao"
+            htmlFor={campoId("evento-observacao")}
             className="text-[11px] text-muted-foreground block mb-1"
           >
             Observação
           </label>
           <textarea
-            id="evento-observacao"
+            id={campoId("evento-observacao")}
             className={cn(estiloInput, "w-full min-h-[60px]")}
             placeholder="O que aconteceu ou justificativa da reprogramação..."
             {...register("observacao")}
@@ -419,21 +422,32 @@ export function MonitoramentoInternoFormEvento({
           <DialogFooter>
             <Button
               variant="outline"
+              disabled={confirmandoConclusao}
               onClick={() => setConclusaoPendente(null)}
             >
               Voltar
             </Button>
             <Button
+              disabled={confirmandoConclusao}
               onClick={async () => {
-                if (!conclusaoPendente) return;
-                await onRegistrar({
-                  ...conclusaoPendente,
-                  confirmarInauguracao: true,
-                });
-                setConclusaoPendente(null);
+                if (!conclusaoPendente || confirmandoConclusao) return;
+                setConfirmandoConclusao(true);
+                try {
+                  await onRegistrar({
+                    ...conclusaoPendente,
+                    confirmarInauguracao: true,
+                  });
+                  setConclusaoPendente(null);
+                } catch {
+                  // O pai exibe o erro seguro; manter a confirmação para retry.
+                } finally {
+                  setConfirmandoConclusao(false);
+                }
               }}
             >
-              Confirmar inauguração
+              {confirmandoConclusao
+                ? "Confirmando..."
+                : "Confirmar inauguração"}
             </Button>
           </DialogFooter>
         </DialogContent>

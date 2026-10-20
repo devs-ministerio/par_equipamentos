@@ -43,10 +43,18 @@ def coleta_legado(monkeypatch, tmp_path, candidatos):
     with SessionLocal() as db:
         anteriores = set(db.scalars(select(FonteCaptura.id)))
 
-    def baixar(nome, *, atualizar_cache):
+    def baixar(nome, *, atualizar_cache, diretorio_cache):
         chamadas.append((nome, atualizar_cache))
         if nome == "siconv_convenio":
-            texto = "ID_PROPOSTA;NR_CONVENIO\n" + "".join(f"{c.id_proposta};{c.numero}\n" for c in candidatos)
+            texto = "ID_PROPOSTA;NR_CONVENIO;DIA_ASSIN_CONV;DIA_PUBL_CONV;SIT_CONVENIO\n" + "".join(
+                f"{c.id_proposta};{c.numero};01/01/2025;02/01/2025;Em execução\n" for c in candidatos
+            )
+        elif nome == "siconv_proposta":
+            texto = "ID_PROPOSTA;COD_ORGAO_SUP\n" + "".join(f"{c.id_proposta};36000\n" for c in candidatos)
+        elif nome == "siconv_programa":
+            texto = "ID_PROGRAMA;NOME_PROGRAMA;COD_ORGAO_SUP_PROGRAMA\n1;Programa genérico;36000\n"
+        elif nome == "siconv_programa_proposta":
+            texto = "ID_PROPOSTA;ID_PROGRAMA\n" + "".join(f"{c.id_proposta};1\n" for c in candidatos)
         else:
             texto = "ID_PROPOSTA;ID_ITEM_PAD;DESCRICAO_ITEM\n" + "".join(
                 f"{c.id_proposta};1;Aquisição de acelerador linear\n" for c in candidatos
@@ -55,17 +63,21 @@ def coleta_legado(monkeypatch, tmp_path, candidatos):
         with ZipFile(buffer, "w") as arquivo:
             arquivo.writestr(nome + ".csv", texto)
         conteudo = buffer.getvalue()
-        (tmp_path / (nome + ".csv.zip")).write_bytes(conteudo)
+        (diretorio_cache / (nome + ".csv.zip")).write_bytes(conteudo)
         return conteudo
 
     def consultar(sessao, url, *, params, headers, timeout):
         numero = params["numero"]
         resposta = requests.Response()
         resposta.status_code = estados[numero]
-        resposta._content = json.dumps({"dimConvenio": {"codigo": numero}, "dataPublicacao": "2026-10-01"}).encode()
+        resposta._content = json.dumps(
+            {
+                "dimConvenio": {"codigo": numero, "numero": "1/2026", "objeto": "Aquisição de acelerador linear"},
+                "dataPublicacao": "2026-10-01",
+            }
+        ).encode()
         return resposta
 
-    monkeypatch.setattr(job, "DIR_CACHE", tmp_path)
     monkeypatch.setattr(job, "_baixar_zip", baixar)
     monkeypatch.setattr(settings, "portal_transparencia_api_key", "somente-fixture")
     monkeypatch.setattr(requests.Session, "get", consultar)
@@ -85,7 +97,20 @@ def test_job_baixa_fresco_confirma_e_replay_nao_duplica(coleta_legado, candidato
     job, chamadas, _ = coleta_legado
     job.run()
     job.run()
-    assert chamadas == [("siconv_convenio", True), ("siconv_plano_aplicacao", True)] * 2
+    assert (
+        chamadas
+        == [
+            (nome, True)
+            for nome in (
+                "siconv_convenio",
+                "siconv_plano_aplicacao",
+                "siconv_proposta",
+                "siconv_programa",
+                "siconv_programa_proposta",
+            )
+        ]
+        * 2
+    )
     with SessionLocal() as db:
         item = listar(db, busca=candidatos[0].numero).itens[0]
         assert item.confirmacao_portal == "confirmado" and item.origem == "siconv_oficial"
@@ -101,6 +126,20 @@ def test_job_baixa_fresco_confirma_e_replay_nao_duplica(coleta_legado, candidato
             select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta").order_by(FonteCaptura.id)
         ).all()
         assert [(c.status, c.itens_alterados) for c in capturas] == [("ok", 3), ("ok", 0)]
+        ids_candidatos = select(CandidatoLegadoRegistro.id).where(
+            CandidatoLegadoRegistro.numero.in_([c.numero for c in candidatos])
+        )
+        # Duas rodadas completas, mas somente um aviso por primeira descoberta.
+        avisos = list(
+            db.scalars(
+                select(Notificacao).where(
+                    Notificacao.tipo == NotificacaoTipo.convenio_descoberto,
+                    Notificacao.entidade_id.in_(ids_candidatos),
+                )
+            )
+        )
+        assert len(avisos) == len(candidatos) == 3
+        assert len({aviso.entidade_id for aviso in avisos}) == 3
 
 
 def test_job_portal_ausente_nao_inclui_carteira(coleta_legado, candidatos):
@@ -108,8 +147,67 @@ def test_job_portal_ausente_nao_inclui_carteira(coleta_legado, candidatos):
     estados[candidatos[0].numero] = 404
     job.run()
     with SessionLocal() as db:
-        assert listar(db, busca=candidatos[0].numero).itens[0].confirmacao_portal == "nao_encontrado"
+        assert listar(db, busca=candidatos[0].numero).total == 0
+        registro = db.scalar(
+            select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero == candidatos[0].numero)
+        )
+        assert registro is not None
+        captura = db.get(CandidatoLegadoCaptura, registro.ultima_captura_id)
+        assert captura is not None
+        assert captura.confirmacao_portal == "nao_encontrado"
         assert db.scalar(select(Convenio.id).where(Convenio.numero == candidatos[0].numero)) is None
+
+
+def test_comando_local_baseline_silenciosa_e_incremental_notifica_so_novidade(coleta_legado, candidatos):
+    from scripts.descobrir_siconv_local import executar
+
+    job, _, estados = coleta_legado
+    executar(baseline_silenciosa=True)
+    job.run()
+    novo = candidatos[0].model_copy(update={"numero": str(uuid4().int), "id_proposta": str(uuid4().int)})
+    candidatos.append(novo)
+    estados[novo.numero] = 200
+    executar()
+    with SessionLocal() as db:
+        ids_candidatos = select(CandidatoLegadoRegistro.id).where(
+            CandidatoLegadoRegistro.numero.in_([c.numero for c in candidatos])
+        )
+        avisos = list(
+            db.scalars(
+                select(Notificacao).where(
+                    Notificacao.tipo == NotificacaoTipo.convenio_descoberto,
+                    Notificacao.entidade_id.in_(ids_candidatos),
+                )
+            )
+        )
+        novo_id = db.scalar(select(CandidatoLegadoRegistro.id).where(CandidatoLegadoRegistro.numero == novo.numero))
+        assert len(avisos) == 1 and avisos[0].entidade_id == novo_id
+        rodadas = list(
+            db.scalars(select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta").order_by(FonteCaptura.id))
+        )
+        modos = []
+        for rodada in rodadas:
+            assert rodada.detalhes is not None
+            modos.append(rodada.detalhes["modo_descoberta"])
+        assert modos == ["baseline_silenciosa", "incremental", "incremental"]
+        assert [r.itens_alterados for r in rodadas] == [3, 0, 1]
+
+
+def test_comando_local_recusa_engine_previamente_carregada_em_outro_banco(coleta_legado, monkeypatch):
+    from types import SimpleNamespace
+
+    from sqlalchemy.engine import make_url
+
+    from app.db import base
+    from scripts.descobrir_siconv_local import executar
+
+    _, chamadas, _ = coleta_legado
+    monkeypatch.setattr(
+        base, "engine", SimpleNamespace(url=make_url("postgresql://local@127.0.0.1/sigeo_test_clone_20261007"))
+    )
+    with pytest.raises(ValueError, match="Conexão carregada difere"):
+        executar()
+    assert chamadas == []
 
 
 def test_job_falha_http_aborta_lote_e_preserva_baseline(coleta_legado, candidatos):
@@ -147,6 +245,8 @@ def candidatos():
         CandidatoLegado(
             numero=str(uuid4().int),
             id_proposta=str(uuid4().int),
+            confirmacao_portal="confirmado",
+            data_publicacao=date(2026, 10, 1),
             evidencias=(
                 EvidenciaLegado(
                     id_item="1",
@@ -163,6 +263,12 @@ def candidatos():
         for registro in db.scalars(
             select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero.in_([c.numero for c in registros]))
         ):
+            avisos = select(Notificacao.id).where(
+                Notificacao.tipo == NotificacaoTipo.convenio_descoberto,
+                Notificacao.entidade_id == registro.id,
+            )
+            db.execute(delete(NotificacaoDestinatario).where(NotificacaoDestinatario.notificacao_id.in_(avisos)))
+            db.execute(delete(Notificacao).where(Notificacao.id.in_(avisos)))
             registro.ultima_captura_id = None
             db.flush()
             db.delete(registro)
@@ -200,7 +306,8 @@ def test_confirmacao_e_evidencia_antigas_preservadas_em_resposta_parcial(candida
     with SessionLocal() as db:
         assert registrar_descoberta(db=db, candidatos=[candidato], referencia=REFERENCIA) == 1
         parcial = candidatos[0].model_copy(update={"confirmacao_portal": "nao_encontrado", "evidencias": ()})
-        assert registrar_descoberta(db=db, candidatos=[parcial], referencia=REFERENCIA) == 0
+        with pytest.raises(ValidationError, match="evidência"):
+            registrar_descoberta(db=db, candidatos=[parcial], referencia=REFERENCIA)
         item = listar(db, busca=candidato.numero).itens[0]
         assert item.confirmacao_portal == "confirmado" and item.data_publicacao == date(2026, 10, 1)
         assert len(item.evidencias) == 1
@@ -269,7 +376,8 @@ def test_paginacao_filtro_literal_e_confirmacao(candidatos):
         pagina = listar(db, tamanho=2)
         assert pagina.total >= 3 and len(pagina.itens) == 2
         assert len(ids) == 3 and listar(db, busca="%").total == 0
-        assert listar(db, busca=candidatos[0].numero, confirmacao="confirmado").total == 0
+        assert listar(db, busca=candidatos[0].numero, confirmacao="confirmado").total == 1
+        assert listar(db, busca=candidatos[0].numero, confirmacao="nao_consultado").total == 0
         assert listar(db, busca=candidatos[0].numero, pagina=2, tamanho=1).itens == []
 
 
@@ -322,5 +430,5 @@ def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, he
     resposta = cliente.get("/candidatos-legados", params={"busca": candidatos[0].numero}, headers=headers_autenticados)
     assert resposta.status_code == 200 and resposta.json()["total"] == 1
     item = resposta.json()["itens"][0]
-    assert item["confirmacao_portal"] == "nao_consultado" and "hash_conteudo" not in item
+    assert item["confirmacao_portal"] == "confirmado" and "hash_conteudo" not in item
     assert "dados_portal" not in item

@@ -62,10 +62,14 @@ def test_identidade_ausente_ou_nao_numerica_e_rejeitada(registro):
 def test_confirmacao_exige_identidade_exata_e_publicacao(publicacao):
     candidato = descobrir_legado([convenio()], [item()], conhecidos=set())[0]
     portal = ConvenioPortalTransparencia.model_validate(
-        {"dimConvenio": {"codigo": "123456"}, "dataPublicacao": publicacao}
+        {
+            "dimConvenio": {"codigo": "123456", "numero": "1/2026", "objeto": "Aquisição de LINAC"},
+            "dataPublicacao": publicacao,
+        }
     )
     confirmado = confirmar_no_portal(candidato, portal)
     assert confirmado.confirmacao_portal == "confirmado"
+    assert confirmado.data_publicacao is not None
     assert confirmado.data_publicacao.isoformat() == "2026-10-01"
     assert candidato.confirmacao_portal == "nao_consultado"  # imutável
 
@@ -73,13 +77,39 @@ def test_confirmacao_exige_identidade_exata_e_publicacao(publicacao):
 def test_portal_ausente_sem_data_ou_identidade_divergente_nunca_confirma():
     candidato = descobrir_legado([convenio()], [item()], conhecidos=set())[0]
     assert confirmar_no_portal(candidato, None).confirmacao_portal == "nao_encontrado"
-    sem_data = ConvenioPortalTransparencia.model_validate({"dimConvenio": {"codigo": 123456}})
+    identidade = {"codigo": 123456, "numero": "1/2026", "objeto": "Aquisição de LINAC"}
+    sem_data = ConvenioPortalTransparencia.model_validate({"dimConvenio": identidade})
     assert confirmar_no_portal(candidato, sem_data).confirmacao_portal == "sem_publicacao"
-    errado = ConvenioPortalTransparencia.model_validate({"dimConvenio": {"codigo": 123457}})
+    errado = ConvenioPortalTransparencia.model_validate({"dimConvenio": {**identidade, "codigo": 123457}})
     with pytest.raises(ValueError, match="identidade diferente"):
         confirmar_no_portal(candidato, errado)
     with pytest.raises(ValidationError):
         confirmar_no_portal(candidato, ConvenioPortalTransparencia())
+
+
+@pytest.mark.parametrize("campo", ["numero", "objeto"])
+@pytest.mark.parametrize("valor", [None, "", "   "])
+def test_portal_com_codigo_e_data_mas_identidade_incompleta_nao_confirma(campo, valor):
+    # Arrange: formato incompleto observado no aceite nacional de 19/10.
+    candidato = descobrir_legado([convenio(numero="7AAFSX")], [item()], conhecidos=set())[0]
+    identidade = {"codigo": "7AAFSX", "numero": "1/2026", "objeto": "Aquisição de LINAC", campo: valor}
+    portal = ConvenioPortalTransparencia.model_validate({"dimConvenio": identidade, "dataPublicacao": "01/10/2026"})
+    # Act / Assert: não converter evidência incompleta em confirmação.
+    with pytest.raises(ValidationError):
+        confirmar_no_portal(candidato, portal)
+    assert candidato.confirmacao_portal == "nao_consultado"
+
+
+@pytest.mark.parametrize("campo", ["numero", "objeto"])
+def test_campo_de_identidade_omitido_nao_confirma(campo):
+    # Arrange
+    candidato = descobrir_legado([convenio()], [item()], conhecidos=set())[0]
+    identidade = {"codigo": "123456", "numero": "1/2026", "objeto": "Aquisição de LINAC"}
+    del identidade[campo]
+    portal = ConvenioPortalTransparencia.model_validate({"dimConvenio": identidade, "dataPublicacao": "01/10/2026"})
+    # Act / Assert
+    with pytest.raises(ValidationError):
+        confirmar_no_portal(candidato, portal)
 
 
 def test_snapshot_zip_preserva_texto_com_ponto_e_virgula_e_bom(tmp_path):

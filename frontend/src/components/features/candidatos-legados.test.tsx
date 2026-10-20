@@ -24,6 +24,7 @@ const candidato: CandidatoLegado = {
   origem: "snapshot_local",
   descoberto_em: "2026-10-06T10:00:00Z",
   verificado_em: "2026-10-06T10:00:00Z",
+  componentes: [],
   evidencias: [
     {
       id_item: "1",
@@ -67,6 +68,25 @@ function prepararApi(payload: unknown, status = 200) {
 }
 
 describe("Radar legado", () => {
+  it("mantém confirmação apenas nos detalhes, sem recriar filtro ou alterar situação", async () => {
+    const fetch = prepararApi({
+      total: 1,
+      novos: 1,
+      itens: [{ ...candidato, origem: "siconv_oficial" }],
+    });
+    await screen.findByText("Convênio 123456");
+    expect(
+      screen.queryByRole("button", { name: /Confirmação no Portal/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Não localizado no Portal")).not.toBeVisible();
+    fireEvent.click(screen.getByText("Mais detalhes"));
+    expect(screen.getByText("Não localizado no Portal")).toBeVisible();
+    expect(screen.getByText("Novo")).toBeVisible();
+    expect(fetch.mock.calls.some(([url]) => url.includes("confirmacao="))).toBe(
+      false,
+    );
+  });
+
   it.each<[ConfirmacaoLegado, string]>([
     ["nao_consultado", "Aguardando verificação"],
     ["nao_encontrado", "Não localizado no Portal"],

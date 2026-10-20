@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import MacroCoverage, MunicipalityCoverage
 from app.pipeline.texto import normalizar_texto
+from app.repositories.limites_relatorio import listar_sem_truncar
 
 # Tetos de seguranca do relatorio -- mesmo espirito do Bloco 4 do Plan Mode
 # consolidacao 2026-09-17 (nao e paginacao de UI). ~121 macrorregioes e
@@ -26,8 +27,8 @@ def listar_macro_coverage(db: Session, *, execution_id: int, ufs: list[str] | No
     stmt = select(MacroCoverage).where(MacroCoverage.execution_id == execution_id)
     if ufs:
         stmt = stmt.where(MacroCoverage.state.in_(ufs))
-    stmt = stmt.order_by(MacroCoverage.state, MacroCoverage.macro_name).limit(LIMITE_MACRO)
-    return list(db.execute(stmt).scalars().all())
+    stmt = stmt.order_by(MacroCoverage.state, MacroCoverage.macro_name, MacroCoverage.id)
+    return listar_sem_truncar(db, stmt, limite=LIMITE_MACRO)
 
 
 def listar_municipality_coverage(
@@ -42,9 +43,13 @@ def listar_municipality_coverage(
     stmt = select(MunicipalityCoverage).where(MunicipalityCoverage.execution_id == execution_id)
     if ufs:
         stmt = stmt.where(MunicipalityCoverage.state.in_(ufs))
-    stmt = stmt.order_by(MunicipalityCoverage.state, MunicipalityCoverage.municipality_name).limit(LIMITE_MUNICIPIO)
-    resultado = list(db.execute(stmt).scalars().all())
+    stmt = stmt.order_by(MunicipalityCoverage.state, MunicipalityCoverage.municipality_name, MunicipalityCoverage.id)
     if municipio:
         alvo = normalizar_texto(municipio)
-        resultado = [m for m in resultado if normalizar_texto(m.municipality_name) == alvo]
-    return resultado
+        return listar_sem_truncar(
+            db,
+            stmt,
+            limite=LIMITE_MUNICIPIO,
+            corresponde=lambda registro: normalizar_texto(registro.municipality_name) == alvo,
+        )
+    return listar_sem_truncar(db, stmt, limite=LIMITE_MUNICIPIO)

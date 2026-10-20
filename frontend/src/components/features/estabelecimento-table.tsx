@@ -114,6 +114,7 @@ export function EstabelecimentoTable({
   useEffect(
     () => setPage(1),
     [
+      equipmentFamily,
       statesKey,
       macrosKey,
       regioesSaudeKey,

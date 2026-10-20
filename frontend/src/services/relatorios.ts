@@ -1,5 +1,12 @@
 import { ApiError } from "@/lib/api-error";
 import { httpFetch, mensagemErroHttp } from "@/lib/http-client";
+import {
+  executarHttpComPrazo,
+  HttpCanceladoError,
+  HttpTimeoutError,
+} from "@/lib/http-prazo";
+
+const PRAZO_EXPORTACAO_MS = 90_000;
 
 // ---------------------------------------------------------------------
 // Relatórios Excel/Word (backend/app/routers/relatorios.py) -- Plan Mode
@@ -56,6 +63,7 @@ export async function gerarRelatorio(
   tipoRelatorio: TipoRelatorio,
   nivel: NivelRelatorio,
   filtro: FiltroRelatorio,
+  signal?: AbortSignal,
 ): Promise<ArquivoRelatorio> {
   const params = new URLSearchParams({
     formato,
@@ -76,17 +84,58 @@ export async function gerarRelatorio(
   if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
   if (filtro.busca) params.set("busca", filtro.busca);
 
-  const resposta = await httpFetch(`/relatorios?${params.toString()}`);
-  if (!resposta.ok) {
-    const mensagem = await mensagemErroHttp(resposta);
-    throw new ApiError(mensagem, resposta.status, mensagem);
+  try {
+    // O prazo inclui refresh e leitura do corpo, não apenas os cabeçalhos.
+    return await executarHttpComPrazo(
+      async (signalDownload) => {
+        const resposta = await httpFetch(
+          `/relatorios?${params.toString()}`,
+          { signal: signalDownload },
+          { timeoutMs: PRAZO_EXPORTACAO_MS, repetirEmTimeout: false },
+        );
+        if (!resposta.ok) {
+          if (resposta.status === 503) {
+            throw new ApiError(
+              "Exportação temporariamente indisponível (503)",
+              503,
+              "O servidor está ocupado ou temporariamente indisponível. Aguarde e tente gerar o relatório novamente.",
+            );
+          }
+          const mensagem = await mensagemErroHttp(resposta);
+          throw new ApiError(
+            mensagem,
+            resposta.status,
+            resposta.status < 500 ? mensagem : undefined,
+          );
+        }
+        const blob = await resposta.blob();
+        const nomeArquivo = nomeArquivoDoHeader(
+          resposta.headers.get("content-disposition"),
+          `relatorio.${formato}`,
+        );
+        return { blob, nomeArquivo };
+      },
+      PRAZO_EXPORTACAO_MS,
+      signal,
+    );
+  } catch (erro) {
+    if (erro instanceof HttpTimeoutError) {
+      throw new ApiError(
+        erro.message,
+        undefined,
+        "A geração excedeu 90 segundos. Selecione um recorte menor antes de tentar novamente.",
+      );
+    }
+    if (erro instanceof HttpCanceladoError) {
+      throw new ApiError(
+        erro.message,
+        undefined,
+        "Geração do relatório cancelada.",
+      );
+    }
+    if (erro instanceof ApiError) throw erro;
+    throw new ApiError("Falha ao receber o arquivo do relatório.");
   }
-  const blob = await resposta.blob();
-  const nomeArquivo = nomeArquivoDoHeader(
-    resposta.headers.get("content-disposition"),
-    `relatorio.${formato}`,
-  );
-  return { blob, nomeArquivo };
 }
 
 /** Dispara o download no browser -- sem servidor de arquivo estático

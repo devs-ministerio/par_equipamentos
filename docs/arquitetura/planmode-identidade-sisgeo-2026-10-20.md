@@ -1,0 +1,28 @@
+# Plan Mode — identidade SIGEO → SISGEO — 20/10/2026
+
+- **Estado:** planejamento solicitado; implementação não iniciada. Separado da remodelagem de equipamentos e do espelho oficial.
+- **Ordem:** estabilização do [plano atual](planmode-espelho-notificacoes-2026-10-06.md), depois [monitoramento por item](planmode-monitoramento-itens-equipamentos-2026-10-20.md); identidade de apresentação pode ser antecipada em alteração isolada após estabilização.
+- **Limites:** homologação/checkout recuperado; sem produção, renomeação de infraestrutura, credenciais, domínio, commit/push/deploy ou alterações na master sem autorização específica.
+- **Constituições:** seguir [Frontend](../../padroes/frontend/constiuicao_frontend.md), [Backend](../../padroes/backend/constituicao_backend.md), [Segurança](../../padroes/seguranca/constituicao_seguranca.md) e [Qualidade](../../padroes/qualidade/constituicao_qualidade.md); aplicar Database/DevOps se uma mudança técnica posterior alcançar essas camadas.
+- **Objetivo:** adotar SISGEO em toda identidade controlada pela aplicação, com inventário verificável do que mudou e das exceções necessárias à compatibilidade.
+- **Decisão pendente:** confirmar nome por extenso e eventual nova marca/monograma; alterar a sigla não autoriza inventar a expansão do nome, gerar logo ou mudar a paleta.
+- **Bloco 0 — mapa:** buscar `SIGEO`, `Sigeo`, `sigeo` e variantes no conteúdo versionado e nos assets relevantes; excluir dependências/builds/caches. Não ler ou exportar arquivos privados de credenciais para compor o inventário.
+- **Manifesto:** classificar ocorrências em apresentação, documentação atual, conteúdo histórico/de fonte, identificador técnico ou referência externa; registrar arquivo e decisão, sem afirmar que contagem textual cobre texto embutido em imagem.
+- **Superfícies:** header/mobile, login/convite/redefinição, título da aba/metadados, acessibilidade, mensagens, notificações futuras, templates de e-mail, DOCX/XLSX/PDF efetivamente gerados, logos/favicon e textos operacionais.
+- **Arquivos iniciais frontend:** `frontend/index.html`, `frontend/src/components/layout/`, páginas/componentes de autenticação, assets de `frontend/public/` e configurações/textos relacionados descobertos no mapa.
+- **Arquivos iniciais backend/docs:** templates de e-mail, `backend/app/reports/`, configuração de título da API quando presente, testes/fixtures de apresentação, `README.md`, `AGENTS.md` e documentação vigente.
+- **Bloco 1 — apresentação:** substituir o nome controlado pela aplicação, reutilizando componentes/tokens existentes; evitar textos divergentes entre desktop/mobile e não introduzir nova arquitetura de estado para trocar uma marca.
+- **Assets:** localizar arquivos-fonte editáveis e ocorrências visuais reais; ajustar somente identidade aprovada. Se precisar gerar arte ou contratar recurso externo, apresentar etapa própria antes de executar.
+- **Documentação:** atualizar referência ao produto atual e registrar a transição; manter citações de fontes, evidências de testes/deploys passados, conteúdo oficial espelhado e trilhas históricas sem falsificar o nome usado à época.
+- **Compatibilidade identificada:** cookies `sigeo_access`, `sigeo_refresh` e `sigeo_csrf` existem em `backend/app/auth.py`; substituição global pode invalidar sessões. Preservá-los nesta fase e registrá-los como exceção técnica explícita.
+- **Outras exceções técnicas:** inventariar chaves de cache/storage, prefixos de env, banco/roles, nomes de serviço/projeto, URLs e integrações. Não renomear automaticamente migrations históricas, IDs persistidos ou caminhos de artefatos.
+- **Bloco 2 — migração técnica, condicional:** se o usuário exigir também esses identificadores, propor compatibilidade de leitura/escrita, transição de cookies/sessões, manutenção de aliases, rollout/rollback e coordenação DevOps antes de implementar.
+- **Segurança:** não mudar TTL, SameSite, Secure, Path, Domain, CSRF, RBAC ou origens CORS como efeito colateral do nome. Nenhum segredo, conteúdo de cookie ou URL de conexão no manifesto/logs.
+- **UX:** preservar responsividade e acessibilidade; conferir largura do novo nome, monograma, títulos longos, notificações e e-mails no celular. Troca da marca não muda filtros, catálogo, dados ou regras de cálculo.
+- **Estado/dados:** apenas apresentação/configuração de nome; nenhuma migration necessária para esse bloco. Caso surja persistência de marca, avaliar antes de criar coluna ou reescrever registros.
+- **Testes:** unidade/DOM para textos e nomes acessíveis; contratos se título/campo público mudar; regressão de login, refresh, reload, logout, convites e retorno por links para demonstrar preservação da sessão.
+- **Relatórios/e-mails:** fixtures sintéticas; conferir assunto/remetente exibível, cabeçalhos/rodapés/nomes dos arquivos; renderizar os formatos afetados conforme as ferramentas de validação existentes, sem presumir que busca textual valida layout.
+- **Aceite visual:** desktop e celular para app shell/auth; arquivos gerados e assets reais inspecionados. Não substituir verificação em imagem/PDF/DOCX por alteração cega de snapshots de teste.
+- **CI:** nenhuma nova dependência externa necessária para renomear textos; rodar suites afetadas, regressão, lint/tipos/build e gates vigentes, registrando duração e cobertura sem baixar pisos.
+- **Critério de fechamento:** nenhuma ocorrência não classificada de identidade antiga nas superfícies atuais; exceções técnicas/históricas documentadas; nenhuma regressão de sessão, exportação, links ou dados oficiais.
+- **Entrega/rollback:** diff isolado e reversível de apresentação, com checklist do manifesto; migração técnica, publicação e verificação em produção dependem de aprovação separada.

@@ -6,5 +6,7 @@ export const ROTULOS_NOTIFICACAO: Record<NotificacaoTipo, string> = {
   edicao_manual: "Edição da equipe",
   alerta_vigencia: "Fim de vigência",
   inclusao_monitoramento: "Novo monitoramento",
+  aprovacao_carteira: "Entrada aprovada",
+  convenio_descoberto: "Novo convênio no Radar",
   fonte_indisponivel: "Fonte indisponível",
 };

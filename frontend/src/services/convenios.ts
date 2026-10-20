@@ -5,6 +5,7 @@
  * lista que só mostra resumo. */
 import { z } from "zod";
 import { requisitar } from "@/lib/http-client";
+import { ApiError } from "@/lib/api-error";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 function apiGet<T>(path: string, schema: z.ZodType<T>): Promise<T> {
   return requisitar(path, schema, undefined);
@@ -200,6 +201,9 @@ export async function fetchConvenioDetalhe(
     `/convenios/${encodeURIComponent(numero)}`,
     convenioDetalheApiSchema,
   );
+  if (c.numero !== numero) {
+    throw new ApiError("O detalhe retornado pertence a outro instrumento.");
+  }
   return {
     ...toConvenioUnificado(c),
     siconv: c.dados_oficiais_disponiveis

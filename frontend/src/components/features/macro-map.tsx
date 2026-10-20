@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef } from "react";
+import { forwardRef, useEffect, useId, useRef } from "react";
 // Imports nomeados dos submodulos do D3 em vez de `import * as d3 from 'd3'`
 // (2026-08-24) -- o metapacote 'd3' reexporta ~30 submodulos, a maioria
 // nunca usada aqui (transicao, drag, zoom, force, etc.); isso sozinho
@@ -109,6 +109,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
   encaminharRef,
 ) {
   const localRef = useRef<HTMLDivElement>(null);
+  const tooltipId = useId();
 
   useEffect(() => {
     const el = localRef.current;
@@ -151,6 +152,8 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
 
     const svg = select(el)
       .append("svg")
+      .attr("role", "group")
+      .attr("aria-label", "Mapa de cobertura por macrorregião")
       .attr("width", "100%")
       .attr("height", height)
       .attr("viewBox", `0 0 ${width} ${height}`);
@@ -159,17 +162,53 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
       construirProjecaoMacro(geo, zoomMacroId, width, height);
 
     const tooltip = document.createElement("div");
+    tooltip.id = tooltipId;
+    tooltip.setAttribute("role", "tooltip");
     tooltip.style.cssText =
       `position:absolute;background:${foreground};color:${background};padding:8px 12px;border-radius:8px;` +
       "font-size:12px;pointer-events:none;display:none;z-index:99;line-height:1.5;" +
       "box-shadow:0 4px 12px rgba(0,0,0,0.2);";
     el.appendChild(tooltip);
 
+    function mostrarTooltip(d: Feature, clientX: number, clientY: number) {
+      const macroId = d.properties?.cod_macro as string | undefined;
+      const rect = el!.getBoundingClientRect();
+      tooltip.style.display = "block";
+      tooltip.style.left = `${clientX - rect.left + 12}px`;
+      tooltip.style.top = `${clientY - rect.top - 40}px`;
+      tooltip.replaceChildren(
+        construirTooltipNode(
+          macroId,
+          macroId ? macroById.get(macroId) : undefined,
+          macroId ? coberturaById.get(macroId) : undefined,
+          produtividade,
+          background,
+        ),
+      );
+    }
+
     svg
       .selectAll("path")
       .data(featuresParaDesenhar)
       .enter()
       .append("path")
+      .attr("role", (d) => (d.properties?.cod_macro ? "button" : null))
+      .attr("tabindex", (d) => (d.properties?.cod_macro ? 0 : null))
+      .attr("aria-label", (d) => {
+        const id = d.properties?.cod_macro as string | undefined;
+        const macro = id ? macroById.get(id) : undefined;
+        return macro ? `${macro.nome} (${macro.uf})` : `Código ${id ?? "—"}`;
+      })
+      .attr("aria-pressed", (d) =>
+        d.properties?.cod_macro
+          ? String(d.properties.cod_macro === selectedMacroId)
+          : null,
+      )
+      .attr("aria-describedby", tooltipId)
+      .attr(
+        "class",
+        "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+      )
       .attr("d", path as unknown as (f: Feature) => string)
       .attr("stroke", card)
       .attr("stroke-width", (d) =>
@@ -188,21 +227,21 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
             : muted;
       })
       .on("mousemove", (event: MouseEvent, d) => {
-        const macroId = (d as Feature).properties?.cod_macro as
-          | string
-          | undefined;
-        const macro = macroId ? macroById.get(macroId) : undefined;
-        const row = macroId ? coberturaById.get(macroId) : undefined;
-        const rect = el.getBoundingClientRect();
-        tooltip.style.display = "block";
-        tooltip.style.left = `${event.clientX - rect.left + 12}px`;
-        tooltip.style.top = `${event.clientY - rect.top - 40}px`;
-        tooltip.replaceChildren(
-          construirTooltipNode(macroId, macro, row, produtividade, background),
-        );
+        mostrarTooltip(d, event.clientX, event.clientY);
       })
-      .on("mouseleave", () => {
+      .on("focus", function (_event: FocusEvent, d) {
+        const rect = this.getBoundingClientRect();
+        mostrarTooltip(d, rect.left + rect.width / 2, rect.top);
+      })
+      .on("mouseleave blur", () => {
         tooltip.style.display = "none";
+      })
+      .on("keydown", (event: KeyboardEvent, d) => {
+        const id = d.properties?.cod_macro as string | undefined;
+        if (id && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          onSelectMacro(id);
+        }
       })
       .on("click", (_event: MouseEvent, d) => {
         const macroId = (d as Feature).properties?.cod_macro as
@@ -224,6 +263,7 @@ export const MacroMap = forwardRef<HTMLDivElement, Props>(function MacroMap(
     zoomMacroId,
     produtividade,
     onSelectMacro,
+    tooltipId,
   ]);
 
   return (

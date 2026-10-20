@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
 import { renovarSessao, requisitar } from "@/lib/http-client";
+import { HttpTimeoutError } from "@/lib/http-prazo";
 
 /** Ambiente de teste é `node` (ver vite.config.ts) -- sem `window`/`document`
  * globais por padrão. `httpFetch` usa `typeof window !== 'undefined'` como
@@ -74,7 +75,7 @@ describe("lib/http-client", () => {
 
   it("repete uma única leitura após timeout interno para absorver aquecimento do serviço", async () => {
     fetchMock
-      .mockRejectedValueOnce(new Error("A solicitação excedeu 15 segundos."))
+      .mockRejectedValueOnce(new HttpTimeoutError(15_000))
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
 
     await expect(
@@ -87,9 +88,7 @@ describe("lib/http-client", () => {
     // A mutação já parte de uma sessão com CSRF disponível; o teste cobre
     // somente a regra de não repetir escrita após timeout.
     stubBrowserGlobals();
-    fetchMock.mockRejectedValueOnce(
-      new Error("A solicitação excedeu 15 segundos."),
-    );
+    fetchMock.mockRejectedValueOnce(new HttpTimeoutError(15_000));
 
     await expect(
       requisitar("/monitoramento/acoes", z.object({}), { method: "POST" }),
@@ -144,6 +143,23 @@ describe("lib/http-client", () => {
     ).rejects.toMatchObject({ message: "Conflito de versão", status: 409 });
   });
 
+  it.each([500, 502, 503, 504])(
+    "preserva diagnóstico de %s sem expor detalhe do servidor na UI",
+    async (status) => {
+      // Arrange
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse(status, { detail: "diagnóstico técnico sintético" }),
+      );
+      // Act / Assert
+      await expect(requisitar("/x", z.object({}))).rejects.toMatchObject({
+        status,
+        message: "diagnóstico técnico sintético",
+        publicMessage:
+          "Não foi possível completar a operação. Tente novamente em instantes.",
+      });
+    },
+  );
+
   it("anexa X-CSRF-Token em mutação, mas não em GET", async () => {
     stubBrowserGlobals();
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(200, {})));
@@ -179,7 +195,7 @@ describe("lib/http-client", () => {
 
   it("anexa um trace opaco e o preserva na repetição segura da mesma leitura", async () => {
     fetchMock
-      .mockRejectedValueOnce(new Error("A solicitação excedeu 15 segundos."))
+      .mockRejectedValueOnce(new HttpTimeoutError(15_000))
       .mockResolvedValueOnce(jsonResponse(200, { ok: true }));
 
     await requisitar("/auth/me", z.object({ ok: z.boolean() }), undefined);

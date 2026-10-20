@@ -24,6 +24,7 @@ const candidato: CandidatoLegado = {
   origem: "siconv_oficial",
   descoberto_em: "2026-10-06T10:00:00Z",
   verificado_em: "2026-10-06T10:00:00Z",
+  componentes: [],
   evidencias: [],
 };
 const decisao = {

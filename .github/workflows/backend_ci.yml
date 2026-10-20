@@ -22,19 +22,26 @@ jobs:
       postgres:
         image: postgres:16.9-alpine
         env:
-          POSTGRES_DB: sigeo_test
+          # Nome sentinela de banco efêmero; não é competência de dados.
+          POSTGRES_DB: sigeo_test_clone_20000101
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         options: >-
-          --health-cmd "pg_isready -U postgres -d sigeo_test"
+          --health-cmd "pg_isready -U postgres -d sigeo_test_clone_20000101"
           --health-interval 10s --health-timeout 5s --health-retries 5
         ports: ["5432:5432"]
     env:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/sigeo_test
-      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/sigeo_test
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/sigeo_test_clone_20000101
+      DATABASE_URL_MIGRATION: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/sigeo_test_clone_20000101
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/sigeo_test_clone_20000101
       JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
       COOKIE_SECURE: "false"
       COOKIE_SAMESITE: lax
+      NEW_RELIC_ENABLED: "false"
+      MAIL_API_URL: ""
+      MAIL_API_SECRET: ""
+      PORTAL_TRANSPARENCIA_API_KEY: ""
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5194
     defaults:
       run:
         working-directory: backend
@@ -60,6 +67,10 @@ jobs:
           fi
       - name: Tipos
         run: uv run mypy .
+      - name: Conferir utilitários exigidos pelos testes de recuperação
+        run: |
+          pg_dump --version
+          pg_restore --version
       - name: Preparar schema PostgreSQL efêmero
         run: uv run alembic upgrade head
       - name: Testes unitários e de integração com cobertura
@@ -74,8 +85,8 @@ jobs:
         with:
           name: backend-coverage
           path: |
-            coverage.json
-            coverage.xml
+            backend/coverage.json
+            backend/coverage.xml
           if-no-files-found: warn
           retention-days: 14
       - name: Auditoria de dependências

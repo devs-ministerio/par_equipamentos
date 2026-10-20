@@ -6,16 +6,34 @@ from hashlib import sha256
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.db.models_legado import CandidatoLegadoCaptura, CandidatoLegadoEvidencia, CandidatoLegadoRegistro
+from app.db.models_legado import (
+    CandidatoLegadoCaptura,
+    CandidatoLegadoComponente,
+    CandidatoLegadoEvidencia,
+    CandidatoLegadoRegistro,
+)
 from app.domain_errors import ConflictError, ValidationError
 from app.repositories import candidatos_legados as repositorio
 from app.repositories.descoberta_legado import numeros_legados_conhecidos
 from app.schemas_legado import CandidatosLegadosRead, ConfirmacaoPortal, ReferenciaDescoberta, SituacaoLegado
+from app.services.avisos_descoberta_legado import emitir_avisos, planejar_avisos
 from app.services.descoberta_legado import CandidatoLegado, EvidenciaLegado
 
 
-def registrar_descoberta(*, db: Session, candidatos: list[CandidatoLegado], referencia: ReferenciaDescoberta) -> int:
-    """Um lote/uma transação, com lock antes de verificar identidade e baseline."""
+def registrar_descoberta(
+    *,
+    db: Session,
+    candidatos: list[CandidatoLegado],
+    referencia: ReferenciaDescoberta,
+    notificar_novos: bool = True,
+    _confirmar_transacao: bool = True,
+) -> int:
+    """Um lote/uma transação, com lock antes de verificar identidade e baseline.
+
+    `_confirmar_transacao=False` é reservado à composição interna de
+    publicar_ciclo, que confirma descoberta/revalidações/avisos em conjunto.
+    Não é parâmetro de endpoint nem opção de coleta.
+    """
     try:
         repositorio.bloquear_lote(db)
         conhecidos = numeros_legados_conhecidos(db)
@@ -29,6 +47,10 @@ def registrar_descoberta(*, db: Session, candidatos: list[CandidatoLegado], refe
         anteriores = repositorio.evidencias_por_captura(db, set(capturas))
         confirmados = []
         for candidato in selecionados:
+            # model_copy não valida: revalidar o pacote antes de persistir.
+            candidato = CandidatoLegado.model_validate(candidato.model_dump())
+            if not candidato.evidencias and not candidato.componentes:
+                raise ValidationError("Candidato sem evidência válida de equipamento ou componente.")
             registro = registros.get(candidato.numero)
             anterior = capturas.get(registro.ultima_captura_id) if registro and registro.ultima_captura_id else None
             evidencias = (
@@ -38,7 +60,7 @@ def registrar_descoberta(*, db: Session, candidatos: list[CandidatoLegado], refe
                     )
                     for e in anteriores.get(anterior.id, [])
                 }
-                if anterior
+                if anterior and candidato.criterio_escopo is None
                 else {}
             )
             evidencias.update({(e.id_item, e.codigo_equipamento): e for e in candidato.evidencias})
@@ -48,7 +70,8 @@ def registrar_descoberta(*, db: Session, candidatos: list[CandidatoLegado], refe
             if (
                 anterior
                 and anterior.confirmacao_portal == "confirmado"
-                and candidato.confirmacao_portal != "confirmado"
+                and candidato.confirmacao_portal == "nao_consultado"
+                and anterior.criterio_escopo == candidato.criterio_escopo
             ):
                 confirmado = confirmado.model_copy(
                     update={"confirmacao_portal": "confirmado", "data_publicacao": anterior.data_publicacao}
@@ -57,8 +80,11 @@ def registrar_descoberta(*, db: Session, candidatos: list[CandidatoLegado], refe
         catalogo = repositorio.catalogo_por_codigos(
             db, {e.codigo_equipamento for c, _, _ in confirmados for e in c.evidencias}
         )
+        novos = planejar_avisos(db, selecionados, referencia, notificar_novos=notificar_novos)
         alterados = sum(_registrar_candidato(db, c, referencia, catalogo, r, a) for c, r, a in confirmados)
-        db.commit()
+        emitir_avisos(db, novos)
+        if _confirmar_transacao:
+            db.commit()
         return alterados
     except IntegrityError as exc:
         db.rollback()
@@ -76,7 +102,7 @@ def _registrar_candidato(
     registro: CandidatoLegadoRegistro | None,
     anterior: CandidatoLegadoCaptura | None,
 ) -> int:
-    if not candidato.evidencias or any(e.codigo_equipamento not in catalogo for e in candidato.evidencias):
+    if any(e.codigo_equipamento not in catalogo for e in candidato.evidencias):
         raise ValidationError("Candidato sem evidência válida no catálogo.")
     if (candidato.confirmacao_portal == "confirmado") != (candidato.data_publicacao is not None):
         raise ValidationError("Confirmação do Portal sem publicação consistente.")
@@ -93,11 +119,25 @@ def _registrar_candidato(
         candidato_id=registro.id,
         confirmacao_portal=candidato.confirmacao_portal,
         data_publicacao=candidato.data_publicacao,
+        criterio_escopo=candidato.criterio_escopo,
+        orgao_superior=candidato.orgao_superior,
+        data_assinatura_siconv=candidato.data_assinatura_siconv,
+        data_publicacao_siconv=candidato.data_publicacao_siconv,
         origem=referencia.origem,
         referencia_snapshot=referencia.hash_snapshot,
         hash_conteudo=hash_conteudo,
     )
     repositorio.adicionar(db, captura)
+    for componente in candidato.componentes:
+        repositorio.adicionar(
+            db,
+            CandidatoLegadoComponente(
+                captura_id=captura.id,
+                id_programa=componente.id_programa,
+                nome_programa=componente.nome_programa,
+                componente=componente.componente,
+            ),
+        )
     for evidencia in candidato.evidencias:
         repositorio.adicionar(
             db,

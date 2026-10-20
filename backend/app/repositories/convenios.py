@@ -11,14 +11,33 @@ from __future__ import annotations
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, aliased
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
 from app.pipeline.texto import normalizar_texto
+from app.repositories.equipamento_marcadores import marcador_de_financiamento
+from app.repositories.limites_relatorio import listar_sem_truncar
 
 # Teto de seguranca do relatorio -- nao paginacao de UI (mesmo espirito do
 # Bloco 4 do Plan Mode consolidacao 2026-09-17). 581 convenios hoje, bem
 # abaixo disso.
 LIMITE_RELATORIO = 5000
+
+
+def convenio_no_escopo_de_equipamentos() -> ColumnElement[bool]:
+    """Visibilidade da carteira; não apaga nem reclassifica a fonte oficial."""
+    return Convenio.fora_escopo_equipamentos.is_(False)
+
+
+def listar_numeros_fora_escopo(db: Session, numeros: set[str]) -> set[str]:
+    """Consulta em lote a decisão de exclusão, sem exigir espelho para cargas internas."""
+    if not numeros:
+        return set()
+    return set(
+        db.scalars(
+            select(Convenio.numero).where(Convenio.numero.in_(numeros), Convenio.fora_escopo_equipamentos.is_(True))
+        )
+    )
 
 
 def listar_convenios_filtrados(
@@ -39,8 +58,8 @@ def listar_convenios_filtrados(
     # relatorios 2026-09-25 Bloco 4: "SAO PAULO"/"São Paulo" convivem na
     # mesma coluna a depender da origem -- comparação exata sempre perdia
     # uma das grafias). Volume por UF é pequeno o bastante (algumas
-    # centenas no pior caso) pra filtrar depois de trazer.
-    stmt = select(Convenio)
+    # centenas no pior caso); leitura em lotes aplica esse filtro antes do teto.
+    stmt = select(Convenio).where(convenio_no_escopo_de_equipamentos())
     if ufs:
         stmt = stmt.where(Convenio.uf.in_(ufs))
     if cnes:
@@ -62,6 +81,7 @@ def listar_convenios_filtrados(
             .join(catalogo_alvo, catalogo_alvo.id == EquipamentoMarcador.equipamento_catalogo_id)
             .where(
                 EquipamentoMarcador.convenio_id == Convenio.id,
+                marcador_de_financiamento(),
                 catalogo_alvo.nome == equipamento,
             )
             .exists()
@@ -77,9 +97,13 @@ def listar_convenios_filtrados(
                 Convenio.objeto.ilike(alvo),
             )
         )
-    stmt = stmt.order_by(Convenio.numero).limit(LIMITE_RELATORIO)
-    resultado = list(db.execute(stmt).scalars().all())
+    stmt = stmt.order_by(Convenio.numero)
     if municipio:
         alvo_municipio = normalizar_texto(municipio)
-        resultado = [c for c in resultado if normalizar_texto(c.municipio) == alvo_municipio]
-    return resultado
+        return listar_sem_truncar(
+            db,
+            stmt,
+            limite=LIMITE_RELATORIO,
+            corresponde=lambda convenio: normalizar_texto(convenio.municipio) == alvo_municipio,
+        )
+    return listar_sem_truncar(db, stmt, limite=LIMITE_RELATORIO)

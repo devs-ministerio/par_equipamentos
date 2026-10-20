@@ -268,4 +268,18 @@ def downgrade() -> None:
     op.drop_table("user")
     op.drop_table("inca_estimate")
     op.drop_table("competency")
+    # DROP TABLE não remove tipos nativos. Somente os enums criados nesta
+    # revisão, após remover suas dependências; sem CASCADE nem limpeza ampla.
+    for nome in (
+        "inca_estimate_level",
+        "user_role",
+        "user_status",
+        "config_decision_key",
+        "reference_file_type",
+        "execution_mode",
+        "execution_status",
+        "alert_type",
+        "deficit_status",
+    ):
+        postgresql.ENUM(name=nome).drop(op.get_bind())
     # ### end Alembic commands ###

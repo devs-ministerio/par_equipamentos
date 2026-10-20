@@ -1,4 +1,5 @@
 import pytest
+from pydantic import JsonValue
 
 from scripts.clonar_banco_local import ambiente_pg, validar_destino
 from scripts.proteger_clone_local import ProtecaoTexto
@@ -30,7 +31,7 @@ def test_credenciais_somente_no_ambiente_pg():
 
 def test_protecao_preserva_valores_datas_identificadores():
     protecao = ProtecaoTexto(["Pessoa Exemplo"])
-    dados = {
+    dados: dict[str, JsonValue] = {
         "nr_convenio": "825374",
         "valor": "25247812630",
         "data": "2026-10-06",

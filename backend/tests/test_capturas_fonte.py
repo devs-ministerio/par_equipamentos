@@ -165,13 +165,14 @@ def test_excecao_com_segredo_nao_vaza_em_captura_aviso_ou_endpoint(headers_auten
             with captura(fonte):
                 raise RuntimeError(segredo)
         registro = db.query(FonteCaptura).filter_by(fonte=fonte).one()
-        assert segredo not in registro.erro
+        assert registro.erro is not None and segredo not in registro.erro
         alerta = db.query(Notificacao).filter_by(tipo=NotificacaoTipo.fonte_indisponivel, entidade_id=registro.id).one()
-        assert segredo not in alerta.corpo
+        assert alerta.corpo is not None and segredo not in alerta.corpo
         from app.services.notificacoes import corpo_publico_da_notificacao
 
         alerta.corpo = segredo
-        assert segredo not in corpo_publico_da_notificacao(alerta)
+        corpo_publico = corpo_publico_da_notificacao(alerta)
+        assert corpo_publico is not None and segredo not in corpo_publico
         # Registro anterior à correção também não pode vazar na consulta pública.
         registro.erro = segredo
         db.commit()

@@ -1,10 +1,12 @@
 """Job de descoberta -- Radar de Convenios (fluxo em
-docs/arquitetura/fluxo_requisicao.md). Roda DIARIO (TransfereGov novo e API
-leve/paginada, sem custo real de rodar todo dia -- diferente do SICONV
-legado, ver job_verificacao_siconv.py).
+docs/arquitetura/fluxo_requisicao.md). Frequência diária é a intenção do
+plano; este módulo não habilita recorrência ou deploy. O aceite atual
+continua restrito à homologação local.
 
 Escopo (2 filtros combinados, pedido do usuario 2026-09-15):
-  1. Só os `id_programa` que batem com um dos 8 COMPONENTES_ALVO (resolvido
+  1. Só programas cujo órgão superior é MS e cujo nome integral corresponde
+     ao catálogo canônico/aliases explicitamente curados, sem similaridade
+     (resolvido
      A CADA RODADA -- id_programa muda todo ano, novo `programa` e criado,
      ver docstring de levantar_componente() no levantamento).
   2. Dentro desses, casa `ds_objeto` contra PADROES_EQUIPAMENTO (roll
@@ -46,15 +48,15 @@ from app.pipeline.transferegov_parcerias import (
 )
 from app.repositories.monitoramento import obter_instrumento_por_nr_convenio
 from app.repositories.notificacoes import criar_notificacao
+from app.schemas_programa_descoberta import ProgramaDescobertaTransfereGov
+from app.schemas_proposta_descoberta import IdentidadePropostaDescoberta
 from app.services.capturas_fonte import CapturaEmAndamento, captura
+from app.services.criterios_descoberta import componente_prioritario
 from app.services.equipamento_marcadores import DadosMarcador, TipoEvidencia, registrar_marcadores
 from app.services.espelho_transferegov import reconciliar_arvore, resumir_mudancas
 from app.services.evidencias_transferegov import registrar_evidencias_relacionais
 from scripts.job_verificacao_transferegov import reconciliar_situacoes
 from scripts.levantamento_convenios_oncologia import (
-    PALAVRAS_PROGRAMA_ONCOLOGIA,
-    _componente_alvo_de,
-    _normalizar,
     _paginar_transferegov,
     _sessao_com_retry,
 )
@@ -101,19 +103,23 @@ def _equipamento_detectado(texto: str) -> str | None:
 
 
 def _resolver_programas_alvo(sessao) -> dict[int, dict]:
-    """id_programa -> {nome_programa, componente_alvo} -- so os que batem
-    com um dos 8 COMPONENTES_ALVO. Resolvido a cada rodada (nao cacheado)
-    porque id_programa muda todo ano."""
+    """Somente MS e catálogo exato/aliases curados; nunca similaridade."""
     programas = _paginar_transferegov("programa", {}, sessao)
     alvo: dict[int, dict] = {}
+    identidades: dict[int, ProgramaDescobertaTransfereGov] = {}
     for p in programas:
-        nome = p.get("nm_programa") or ""
-        objetivo = p.get("ds_objetivo") or ""
-        if not any(k in _normalizar(f"{nome} {objetivo}") for k in PALAVRAS_PROGRAMA_ONCOLOGIA):
+        programa = ProgramaDescobertaTransfereGov.model_validate(p)
+        if identidades.setdefault(programa.id_programa, programa) != programa:
+            raise ValueError("Programa oficial duplicado com evidência institucional divergente.")
+        if (programa.sg_ente_superior or "").strip().upper() != "MS":
             continue
-        componente = _componente_alvo_de(nome)
+        componente = componente_prioritario(programa.nm_programa)
         if componente:
-            alvo[p["id_programa"]] = {"nome_programa": nome, "componente_alvo": componente, "registro": p}
+            alvo[programa.id_programa] = {
+                "nome_programa": programa.nm_programa,
+                "componente_alvo": componente,
+                "registro": programa.model_dump(),
+            }
     return alvo
 
 
@@ -214,12 +220,18 @@ def _extrair_cnes(metas: list[dict]) -> str | None:
 
 
 def _propostas_com_identificador(propostas: list[dict]) -> list[tuple[dict, int]]:
-    """Descarta payloads inválidos na borda antes da persistência."""
+    """Falha fechada: identidade inválida/divergente não vira sucesso parcial."""
     resultado = []
+    identidades: dict[int, IdentidadePropostaDescoberta] = {}
     for proposta in propostas:
-        identificador = proposta.get("id_proposta")
-        if isinstance(identificador, int):
-            resultado.append((proposta, identificador))
+        validada = IdentidadePropostaDescoberta.model_validate(proposta)
+        identificador = validada.id_proposta
+        if identificador in identidades:
+            if identidades[identificador] != validada:
+                raise ValueError("Proposta oficial duplicada com payload divergente.")
+            continue
+        identidades[identificador] = validada
+        resultado.append((proposta, identificador))
     return resultado
 
 

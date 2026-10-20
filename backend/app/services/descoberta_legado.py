@@ -4,23 +4,20 @@ from collections.abc import Iterable
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.equipamentos import CATALOGO_EQUIPAMENTOS, classificar_descricoes
 from app.pipeline.portal_transparencia import ConvenioPortalTransparencia
+from app.schemas_escopo_descoberta import ComponenteDescoberto
+from app.schemas_identidade_legado import NumeroConvenioLegado
+from app.schemas_legado import ItemDump as ItemDump
+from app.schemas_portal_legado import DimConvenioPortal
 
 
 class ConvenioDump(BaseModel):
     model_config = ConfigDict(frozen=True)
     ID_PROPOSTA: str = Field(pattern=r"^[0-9]+$")
-    NR_CONVENIO: str = Field(pattern=r"^[0-9]+$")
-
-
-class ItemDump(BaseModel):
-    model_config = ConfigDict(frozen=True)
-    ID_PROPOSTA: str = Field(pattern=r"^[0-9]+$")
-    ID_ITEM_PAD: str = Field(pattern=r"^[0-9]+$")
-    DESCRICAO_ITEM: str
+    NR_CONVENIO: NumeroConvenioLegado
 
 
 class EvidenciaLegado(BaseModel):
@@ -33,11 +30,28 @@ class EvidenciaLegado(BaseModel):
 
 class CandidatoLegado(BaseModel):
     model_config = ConfigDict(frozen=True)
-    numero: str
-    id_proposta: str
+    numero: NumeroConvenioLegado
+    id_proposta: str = Field(pattern=r"^[0-9]+$")
     evidencias: tuple[EvidenciaLegado, ...]
+    componentes: tuple[ComponenteDescoberto, ...] = ()
     confirmacao_portal: Literal["nao_consultado", "nao_encontrado", "sem_publicacao", "confirmado"] = "nao_consultado"
     data_publicacao: date | None = None
+    criterio_escopo: Literal["prioritarios_ms_v1", "prioritarios_ms_celebrados_v2"] | None = None
+    orgao_superior: Literal["36000"] | None = None
+    data_assinatura_siconv: date | None = None
+    data_publicacao_siconv: date | None = None
+
+    @model_validator(mode="after")
+    def validar_escopo(self) -> "CandidatoLegado":
+        if self.componentes and self.criterio_escopo is None:
+            raise ValueError("Evidência de componente exige escopo institucional oficial.")
+        if (self.criterio_escopo is None) != (self.orgao_superior is None):
+            raise ValueError("Critério prioritário exige identificação do Ministério da Saúde.")
+        if self.criterio_escopo == "prioritarios_ms_celebrados_v2" and (
+            self.data_assinatura_siconv is None or self.data_publicacao_siconv is None
+        ):
+            raise ValueError("Convênio celebrado exige assinatura e publicação oficiais.")
+        return self
 
 
 def descobrir_legado(
@@ -93,12 +107,8 @@ def descobrir_legado(
     ]
 
 
-class IdentidadePortal(BaseModel):
-    codigo: str | int
-
-
 class PublicacaoPortal(BaseModel):
-    dimConvenio: IdentidadePortal
+    dimConvenio: DimConvenioPortal
     dataPublicacao: str | None = None
 
 

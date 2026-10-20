@@ -11,6 +11,7 @@ import {
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
 import { CandidatoLegadoHistorico } from "./candidato-legado-historico";
+import { CandidatoLegadoAprovacao } from "./candidato-legado-aprovacao";
 
 export function CandidatoLegadoTriagem({
   candidato,
@@ -30,7 +31,7 @@ export function CandidatoLegadoTriagem({
           fechar={() => setAcao(undefined)}
         />
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>button]:h-11 [&>button]:min-w-0 [&>button]:px-4 [&>button:first-child]:col-span-2">
           {podeDecidir && aberta && candidato.origem === "siconv_oficial" && (
             <>
               {candidato.situacao === "novo" && (
@@ -53,6 +54,13 @@ export function CandidatoLegadoTriagem({
           )}
         </div>
       )}
+      {!acao &&
+        podeDecidir &&
+        aberta &&
+        candidato.origem === "siconv_oficial" &&
+        candidato.confirmacao_portal === "confirmado" && (
+          <CandidatoLegadoAprovacao candidato={candidato} />
+        )}
       {candidato.versao > 0 && (
         <CandidatoLegadoHistorico candidatoId={candidato.id} />
       )}

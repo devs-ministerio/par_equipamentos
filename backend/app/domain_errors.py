@@ -34,3 +34,10 @@ class ValidationError(DomainError):
 
 class AuthorizationError(DomainError):
     status_code = 403
+
+
+class RelatorioOcupadoError(DomainError):
+    status_code = 503
+
+    def __init__(self) -> None:
+        super().__init__("Há outro relatório DOCX sendo gerado. Tente novamente em instantes.")

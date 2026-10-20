@@ -42,7 +42,11 @@ class PaginaNotificacoes:
 
 
 def _ids_ativos_por_role(db: Session, roles: tuple[UserRole, ...]) -> set[int]:
-    return set(db.execute(select(User.id).where(User.role.in_(roles), User.status == UserStatus.active)).scalars())
+    return set(
+        db.execute(
+            select(User.id).where(User.role.in_(roles), User.status == UserStatus.active, User.deleted_at.is_(None))
+        ).scalars()
+    )
 
 
 def _ids_broadcast(db: Session) -> set[int]:
@@ -64,6 +68,8 @@ def obter_ids_responsaveis_do_instrumento(db: Session, instrumento_id: int) -> s
 
 def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[int]:
     ids_designados = obter_ids_responsaveis_do_instrumento(db, instrumento_id)
+    if not ids_designados:
+        return _ids_broadcast(db)
     # Filtra por ativo E role != leitor -- titular/suplente designado que foi
     # inativado (módulo de gestão de usuários) ou é leitor (decisão do
     # usuário 2026-09-25: leitor nunca recebe notificação, mesmo sendo
@@ -75,6 +81,7 @@ def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[in
                 select(User.id).where(
                     User.id.in_(ids_designados),
                     User.status == UserStatus.active,
+                    User.deleted_at.is_(None),
                     User.role != UserRole.leitor,
                 )
             ).scalars()
@@ -99,7 +106,12 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
     if tipo == NotificacaoTipo.proposta_candidata:
         return _ids_broadcast(db)
 
-    if tipo in (NotificacaoTipo.inclusao_monitoramento, NotificacaoTipo.fonte_indisponivel):
+    if tipo in (
+        NotificacaoTipo.inclusao_monitoramento,
+        NotificacaoTipo.fonte_indisponivel,
+        NotificacaoTipo.aprovacao_carteira,
+        NotificacaoTipo.convenio_descoberto,
+    ):
         return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
 
     if tipo == NotificacaoTipo.alerta_vigencia:
@@ -110,8 +122,7 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
 
     # atualizacao_api / edicao_manual -- entidade_id é InstrumentoEquipamento.id.
     # Sem titular/suplente cadastrado, cai no broadcast (nunca fica órfã).
-    ids = _ids_titular_suplente_e_gestores(db, entidade_id)
-    return ids if ids else _ids_broadcast(db)
+    return _ids_titular_suplente_e_gestores(db, entidade_id)
 
 
 def criar_notificacao(db: Session, notificacao: Notificacao) -> Notificacao:
@@ -125,6 +136,24 @@ def criar_notificacao(db: Session, notificacao: Notificacao) -> Notificacao:
     for usuario_id in destinatarios:
         db.add(NotificacaoDestinatario(notificacao_id=notificacao.id, usuario_id=usuario_id))
     return notificacao
+
+
+def criar_avisos_descoberta(db: Session, avisos: list[Notificacao]) -> None:
+    """Insere em lote; destinatários gerenciais resolvidos uma única vez."""
+    if not avisos:
+        return
+    if any(aviso.tipo != NotificacaoTipo.convenio_descoberto for aviso in avisos):
+        raise ValueError("Lote de descoberta aceita somente avisos de convênio descoberto.")
+    ids = _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
+    db.add_all(avisos)
+    db.flush()
+    db.add_all(
+        [
+            NotificacaoDestinatario(notificacao_id=aviso.id, usuario_id=usuario_id)
+            for aviso in avisos
+            for usuario_id in ids
+        ]
+    )
 
 
 def listar_notificacoes_paginadas(
@@ -226,6 +255,16 @@ def mapear_ids_propostas(db: Session, ids: set[int]) -> set[int]:
     if not ids:
         return set()
     return set(db.execute(select(PropostaCandidata.id).where(PropostaCandidata.id.in_(ids))).scalars())
+
+
+def mapear_numeros_convenios(db: Session, ids: set[int]) -> dict[int, str]:
+    """Identidade oficial da carteira, sem exigir monitoramento interno."""
+    if not ids:
+        return {}
+    return {
+        convenio_id: numero
+        for convenio_id, numero in db.execute(select(Convenio.id, Convenio.numero).where(Convenio.id.in_(ids)))
+    }
 
 
 def mapear_convenios_monitorados(db: Session, ids: set[int]) -> dict[int, str]:

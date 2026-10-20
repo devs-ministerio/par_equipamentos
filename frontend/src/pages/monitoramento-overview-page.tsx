@@ -18,6 +18,7 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMonitoramentoResumo } from "@/hooks/useMonitoramentoResumo";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
+import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { useMonitoramentoInternoFiltros } from "@/hooks/use-monitoramento-interno-filtros";
 import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
 import {
@@ -30,8 +31,12 @@ import { mediaReferenciaFase } from "@/lib/monitoramento-painel-metricas";
 export function MonitoramentoOverviewPage() {
   const resumoQuery = useMonitoramentoResumo();
   const instrumentosQuery = useMonitoramentoInstrumentos();
+  const conveniosQuery = useConveniosLista();
   const instrumentos = (instrumentosQuery.data ?? []) as InstrumentoResumo[];
-  const filtros = useMonitoramentoInternoFiltros(instrumentos);
+  const filtros = useMonitoramentoInternoFiltros(
+    instrumentos,
+    conveniosQuery.data?.itens ?? [],
+  );
 
   // Atalho para a Análise de mérito: recurso interno do Monitoramento
   // interno, não item do header (decisão do usuário, 2026-09-30 -- antes
@@ -56,7 +61,11 @@ export function MonitoramentoOverviewPage() {
     />
   );
 
-  if (resumoQuery.isError || instrumentosQuery.isError) {
+  if (
+    resumoQuery.isError ||
+    instrumentosQuery.isError ||
+    conveniosQuery.isError
+  ) {
     return (
       <div>
         {header}
@@ -65,6 +74,7 @@ export function MonitoramentoOverviewPage() {
           onRetry={() => {
             resumoQuery.refetch();
             instrumentosQuery.refetch();
+            conveniosQuery.refetch();
           }}
         />
       </div>
@@ -73,6 +83,7 @@ export function MonitoramentoOverviewPage() {
   if (
     resumoQuery.isLoading ||
     instrumentosQuery.isLoading ||
+    conveniosQuery.isLoading ||
     !resumoQuery.data ||
     !instrumentosQuery.data
   ) {

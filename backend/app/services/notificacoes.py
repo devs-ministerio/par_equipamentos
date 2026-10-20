@@ -4,6 +4,7 @@ alerta de vigência). Ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-
 from __future__ import annotations
 
 from dataclasses import dataclass
+from urllib.parse import urlencode
 
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,7 @@ from app.repositories.notificacoes import (
     mapear_convenios_monitorados,
     mapear_identificadores_instrumentos,
     mapear_ids_propostas,
+    mapear_numeros_convenios,
     marcar_destinatario_lido,
     marcar_todas_destinatario_lidas,
     obter_destinatario,
@@ -94,6 +96,14 @@ def listar_notificacoes(
     instrumentos = mapear_identificadores_instrumentos(db, ids_instrumentos)
     propostas = mapear_ids_propostas(db, ids_propostas)
     convenios_monitorados = mapear_convenios_monitorados(db, ids_convenios)
+    convenios_aprovados = mapear_numeros_convenios(
+        db,
+        {
+            item.notificacao.entidade_id
+            for item in pagina.itens
+            if item.notificacao.tipo == NotificacaoTipo.aprovacao_carteira
+        },
+    )
 
     itens = []
     for item in pagina.itens:
@@ -106,6 +116,13 @@ def listar_notificacoes(
             )
         elif notificacao.tipo == NotificacaoTipo.fonte_indisponivel:
             destino = None
+        elif notificacao.tipo == NotificacaoTipo.convenio_descoberto:
+            # Triagem no Radar flutuante. Nunca confundir com instrumento
+            # que por acaso tenha a mesma PK do candidato descoberto.
+            destino = None
+        elif notificacao.tipo == NotificacaoTipo.aprovacao_carteira:
+            numero = convenios_aprovados.get(notificacao.entidade_id)
+            destino = f"/monitoramento-equipamentos?{urlencode({'busca': numero})}" if numero else None
         elif notificacao.tipo == NotificacaoTipo.alerta_vigencia:
             identificador = convenios_monitorados.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None

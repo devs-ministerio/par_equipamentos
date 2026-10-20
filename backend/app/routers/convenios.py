@@ -32,7 +32,8 @@ from sqlalchemy.orm import Session, aliased, load_only
 from app.auth import require_current_user
 from app.db.base import get_db
 from app.db.models import CnesEstabelecimento, Convenio, EquipamentoCatalogo, EquipamentoMarcador, User
-from app.repositories.equipamento_marcadores import listar_por_origens
+from app.repositories.convenios import convenio_no_escopo_de_equipamentos
+from app.repositories.equipamento_marcadores import listar_por_origens, marcador_de_financiamento
 from app.schemas_equipamentos import EquipamentoMarcadorRead, serializar_marcadores
 
 router = APIRouter(prefix="/convenios", tags=["convenios"])
@@ -211,6 +212,7 @@ def _aplicar_filtros_convenio(
     programa: str | None,
     tipo_contratacao: str | None,
 ):
+    query = query.where(convenio_no_escopo_de_equipamentos())
     if tipo_contratacao:
         query = query.where(Convenio.tipo_contratacao == tipo_contratacao)
     if uf:
@@ -225,6 +227,7 @@ def _aplicar_filtros_convenio(
             )
             .where(
                 EquipamentoMarcador.convenio_id == Convenio.id,
+                marcador_de_financiamento(),
                 catalogo_alvo.nome == equipamento,
             )
             .exists()
@@ -298,7 +301,9 @@ def listar_convenios(
 
 @router.get("/{numero}", response_model=ConvenioDetalheRead)
 def obter_convenio(numero: str, db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
-    convenio = db.execute(select(Convenio).where(Convenio.numero == numero)).scalar_one_or_none()
+    convenio = db.execute(
+        select(Convenio).where(Convenio.numero == numero, convenio_no_escopo_de_equipamentos())
+    ).scalar_one_or_none()
     if convenio is None:
         raise HTTPException(404, f"Convênio {numero} não encontrado.")
     return _com_nome_cnes(db, [convenio], ConvenioDetalheRead)[0]

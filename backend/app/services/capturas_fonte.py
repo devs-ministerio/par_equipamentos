@@ -28,6 +28,8 @@ from app.repositories.notificacoes import criar_notificacao
 ROTULOS_FONTE = {
     "siconv_legado": "SICONV (convênios legados)",
     "siconv_descoberta": "SICONV (descoberta de novos convênios)",
+    "siconv_recaptura": "SICONV (recaptura para revisão do Radar)",
+    "siconv_revalidacao": "SICONV (revalidação do escopo histórico do Radar)",
     "transferegov_verificacao": "TransfereGov (parcerias monitoradas)",
     "transferegov_descoberta": "TransfereGov (novas propostas)",
 }

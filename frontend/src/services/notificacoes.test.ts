@@ -34,6 +34,25 @@ function responderAviso(tipo: string) {
 }
 
 describe("contrato de notificações das fontes", () => {
+  it("aceita convênio descoberto sem confundir com aprovação", async () => {
+    responderAviso("convenio_descoberto");
+    const pagina = await fetchNotificacoes({ tipo: "convenio_descoberto" });
+    expect(pagina.itens[0].tipo).toBe("convenio_descoberto");
+    expect(pagina.itens[0].destino).toBeNull();
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain(
+      "tipo=convenio_descoberto",
+    );
+  });
+
+  it("aceita aprovação da carteira e envia o filtro específico", async () => {
+    responderAviso("aprovacao_carteira");
+    const pagina = await fetchNotificacoes({ tipo: "aprovacao_carteira" });
+    expect(pagina.itens[0].tipo).toBe("aprovacao_carteira");
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain(
+      "tipo=aprovacao_carteira",
+    );
+  });
+
   it("aceita fonte indisponível sem rejeitar a lista de avisos", async () => {
     responderAviso("fonte_indisponivel");
     await expect(fetchNotificacoes()).resolves.toEqual({

@@ -23,7 +23,7 @@ from scripts.levantamento_convenios_oncologia import COMPONENTES_ALVO
 @pytest.fixture
 def cenario(monkeypatch):
     db = SessionLocal()
-    identificador = -int(uuid4().int % 10**12)
+    identificador = int(uuid4().int % 10**12) + 1
     ultima_captura = db.query(func.coalesce(func.max(FonteCaptura.id), 0)).scalar()
     proposta = PropostaCandidata(
         id_proposta=identificador,
@@ -57,7 +57,7 @@ def cenario(monkeypatch):
 
     def paginar(endpoint, filtros, sessao):
         if endpoint == "programa":
-            return [{"id_programa": 1, "nm_programa": COMPONENTES_ALVO[0]}]
+            return [{"id_programa": 1, "nm_programa": COMPONENTES_ALVO[0], "sg_ente_superior": "MS"}]
         return resposta[endpoint]
 
     monkeypatch.setattr(job, "_paginar_transferegov", paginar)

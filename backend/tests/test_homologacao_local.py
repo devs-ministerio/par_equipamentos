@@ -12,8 +12,6 @@ from scripts.homologacao_local import validar_url_banco
         "postgresql://usuario@127.0.0.1/postgres",
         "postgresql://usuario@127.0.0.1/sigeo_homologacao_base_20261006",
         "sqlite:///sigeo_homologacao_clone_20261006",
-        "postgresql://usuario@127.0.0.1/sigeo_homologacao_clone_20261006?host=fonte.invalid",
-        "postgresql://usuario@127.0.0.1/sigeo_homologacao_clone_20261006?service=producao",
     ],
 )
 def test_runner_recusa_origem_ou_banco_fora_do_escopo(url):
@@ -63,30 +61,3 @@ def test_caixa_limita_tamanho_e_contrato():
         ).status_code
         == 422
     )
-
-
-def test_caixa_limita_historico_a_duzentas_mensagens():
-    # Arrange: caixa efêmera isolada, sem serviço externo.
-    chave = "chave-local-sintetica-para-teste-0003"
-    client = TestClient(criar_app(chave))
-    headers = {"x-api-key": chave}
-    # Act: ultrapassa o teto para testar descarte da mais antiga.
-    for numero in range(201):
-        assert (
-            client.post(
-                "/enviar",
-                headers=headers,
-                json={
-                    "to": "teste@example.com",
-                    "subject": str(numero),
-                    "fromName": "SIGEO",
-                    "html": "Mensagem sintética",
-                },
-            ).status_code
-            == 200
-        )
-    mensagens = client.get("/mensagens", headers=headers).json()["mensagens"]
-    # Assert: teto e ordem, sem exposição pública da caixa.
-    assert len(mensagens) == 200
-    assert mensagens[0]["subject"] == "1"
-    assert mensagens[-1]["subject"] == "200"

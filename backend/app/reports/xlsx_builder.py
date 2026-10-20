@@ -55,8 +55,16 @@ def escrever_aba_tabela(
         celula.fill = _COR_CABECALHO
         celula.font = _FONTE_CABECALHO
         celula.alignment = Alignment(horizontal="center")
-    for linha in linhas:
+    for numero_linha, linha in enumerate(linhas, start=2):
         aba.append(list(linha))
+        # O builder exporta valores da fonte, nunca fórmulas executáveis.
+        # Forçar texto conserva inclusive o '=' literal, sem prefixar apóstrofo.
+        # max_row e a seleção de linha inteira recalculam dimensões varrendo
+        # todas as células. Índices conhecidos evitam custo quadrático.
+        for numero_coluna in range(1, len(linha) + 1):
+            celula = aba.cell(row=numero_linha, column=numero_coluna)
+            if celula.data_type == "f":
+                celula.data_type = "s"
     aba.freeze_panes = "A2"
     if linhas:
         aba.auto_filter.ref = f"A1:{get_column_letter(len(colunas))}{len(linhas) + 1}"

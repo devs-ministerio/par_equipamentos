@@ -194,7 +194,9 @@ export function MonitoramentoPainelPendencias({
           </div>
         ) : (
           <p className="py-6 text-sm text-muted-foreground">
-            Nenhuma ação pendente neste recorte.
+            {acoesPendentes > 0
+              ? "Há ações pendentes neste recorte que não estão na lista carregada."
+              : "Nenhuma ação pendente neste recorte."}
           </p>
         )}
         {acoes.length > 0 && (
@@ -207,10 +209,10 @@ export function MonitoramentoPainelPendencias({
             />
           </nav>
         )}
-        {filaTruncada && (
+        {filaTruncada && acoesPendentes > acoes.length && (
           <p className="mt-2 text-xs text-muted-foreground">
-            A lista mostra as primeiras 500 ações por prazo; a contagem inclui
-            todas as ações vigentes.
+            A lista carregada contém as primeiras 500 ações da base por prazo;
+            há pendências deste recorte fora dela.
           </p>
         )}
       </PainelSecao>

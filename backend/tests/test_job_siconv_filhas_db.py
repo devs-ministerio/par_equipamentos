@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 from sqlalchemy import func
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import SessionLocal
 from app.db.models import (
@@ -73,6 +74,220 @@ def _fonte(numero, principal, filhas):
 
 def _avisos(db, instrumento_id):
     return db.query(Notificacao).filter_by(tipo=NotificacaoTipo.atualizacao_api, entidade_id=instrumento_id).all()
+
+
+def test_downloads_nao_mantem_transacao_sql_aberta(cenario, monkeypatch):
+    # Arrange: só a fábrica de conexão e HTTP, não a regra de domínio.
+    numero, db, _ = cenario
+    _criar(db, numero)
+    sessoes = []
+
+    class SessaoObservada(Session):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            sessoes.append(self)
+
+    monkeypatch.setattr(job, "SessionLocal", sessionmaker(bind=db.get_bind(), class_=SessaoObservada))
+    consultar = _fonte(numero, {"SIT_CONVENIO": "Em execução", "ID_PROPOSTA": "123"}, {})
+
+    def baixar(*args, **kwargs):
+        assert sessoes and not sessoes[-1].in_transaction()
+        return consultar(*args, **kwargs)
+
+    def itens(*args, **kwargs):
+        assert not sessoes[-1].in_transaction()
+        return []
+
+    monkeypatch.setattr(job, "_filtrar_por_numero_convenio", baixar)
+    monkeypatch.setattr(job, "_filtrar_plano_aplicacao_por_id_proposta", itens)
+    # Act
+    job.run()
+    # Assert
+    db.expire_all()
+    assert db.query(Convenio).filter_by(numero=numero).one().siconv_raw["convenio"]["ID_PROPOSTA"] == "123"
+    assert all(not sessao.in_transaction() for sessao in sessoes)
+
+
+def test_retipificacao_durante_coleta_preserva_decisao_humana(cenario, monkeypatch):
+    # Arrange: registro sai do escopo oficial enquanto a fonte é consultada.
+    numero, db, _ = cenario
+    instrumento_id = _criar(db, numero)
+    consultar = _fonte(numero, {"SIT_CONVENIO": "Prestação de Contas Concluída"}, {})
+
+    def baixar(nome, *args, **kwargs):
+        if nome == "siconv_convenio":
+            db.query(Convenio).filter_by(numero=numero).update({"tipo_contratacao": "TED"})
+            db.query(InstrumentoEquipamento).filter_by(id=instrumento_id).update({"tipo_contratacao": "TED"})
+            db.commit()
+        return consultar(nome, *args, **kwargs)
+
+    monkeypatch.setattr(job, "_filtrar_por_numero_convenio", baixar)
+    # Act
+    job.run()
+    # Assert
+    db.expire_all()
+    convenio = db.query(Convenio).filter_by(numero=numero).one()
+    instrumento = db.query(InstrumentoEquipamento).filter_by(id=instrumento_id).one()
+    assert convenio.tipo_contratacao == instrumento.tipo_contratacao == "TED"
+    assert convenio.situacao == instrumento.situacao_prestacao_contas == "Em execução"
+    assert convenio.siconv_raw is None and _avisos(db, instrumento_id) == []
+
+
+@pytest.mark.parametrize("defeito", ["duplicado_igual", "duplicado_divergente", "fora_do_universo"])
+def test_cabecalho_ambiguo_nao_sobrescreve_convenio_confirmado(cenario, monkeypatch, defeito):
+    # Arrange
+    numero, db, ultimo_id = cenario
+    original = {"_espelho": {"versao": 1}, "convenio": {"SIT_CONVENIO": "Em execução"}}
+    instrumento_id = _criar(db, numero, original)
+    registros = [{"NR_CONVENIO": numero, "SIT_CONVENIO": "Prestação de Contas Concluída"}]
+    if defeito == "fora_do_universo":
+        registros[0]["NR_CONVENIO"] = "convenio-nunca-solicitado"
+    else:
+        registros.append(
+            {
+                **registros[0],
+                "SIT_CONVENIO": "Em execução" if defeito == "duplicado_divergente" else registros[0]["SIT_CONVENIO"],
+            }
+        )
+    monkeypatch.setattr(job, "_filtrar_por_numero_convenio", lambda *a, **k: registros)
+    # Act
+    with pytest.raises(ValueError):
+        job.run()
+    db.expire_all()
+    # Assert: duas visões preservadas e nenhuma novidade falsa.
+    assert db.query(Convenio).filter_by(numero=numero).one().siconv_raw == original
+    assert db.query(Convenio).filter_by(numero=numero).one().situacao == "Em execução"
+    assert (
+        db.query(InstrumentoEquipamento).filter_by(id=instrumento_id).one().situacao_prestacao_contas == "Em execução"
+    )
+    assert _avisos(db, instrumento_id) == []
+    tentativa = db.query(FonteCaptura).filter(FonteCaptura.id > ultimo_id, FonteCaptura.fonte == "siconv_legado").one()
+    assert tentativa.status == "erro"
+
+
+def test_termos_da_mesma_solicitacao_nao_colidem_e_replay_nao_duplica(cenario, monkeypatch):
+    # Arrange
+    from app.schemas_filhas_legado import TermoRecapturado
+
+    numero, db, _ = cenario
+    primeiro = {"ID_SOLICITACAO": "7", "NUMERO_TA": "1", "VL_GLOBAL_TA": "100,00"}
+    instrumento_id = _criar(
+        db,
+        numero,
+        {"_espelho": {"versao": 1}, "convenio": {"SIT_CONVENIO": "Em execução"}, "termos_aditivos": [primeiro]},
+    )
+    novos = [
+        {**primeiro, "VL_GLOBAL_TA": "150,00"},
+        {"ID_SOLICITACAO": "7", "NUMERO_TA": "2", "VL_GLOBAL_TA": "200,00"},
+    ]
+    monkeypatch.setattr(
+        job,
+        "_filtrar_por_numero_convenio",
+        _fonte(numero, {"SIT_CONVENIO": "Em execução"}, {"siconv_termo_aditivo": novos}),
+    )
+    # Act
+    job.run()
+    job.run()
+    db.expire_all()
+    # Assert: chave idêntica à usada na recaptura; IDs da fonte não reescritos.
+    salvos = db.query(Convenio).filter_by(numero=numero).one().siconv_raw["termos_aditivos"]
+    assert [(r["ID_SOLICITACAO"], r["NUMERO_TA"], r["VL_GLOBAL_TA"]) for r in salvos] == [
+        ("7", "1", "150,00"),
+        ("7", "2", "200,00"),
+    ]
+    assert [r["CHAVE_ESPELHO"] for r in salvos] == [
+        TermoRecapturado.model_validate({"NR_CONVENIO": numero, **r}).CHAVE_ESPELHO for r in novos
+    ]
+    avisos = _avisos(db, instrumento_id)
+    assert len(avisos) == 1
+    assert "Termos aditivos: 1 novo(s), 1 alterado(s)" in avisos[0].corpo
+    assert "VL_GLOBAL_TA: 100,00 → 150,00" in avisos[0].corpo
+
+
+def test_termo_sem_solicitacao_usa_numero_oficial_e_preserva_evidencia_antiga(cenario, monkeypatch):
+    # Arrange
+    numero, db, _ = cenario
+    legado = {"JUSTIFICATIVA_TA": "Evidência antiga sem identidade utilizável"}
+    _criar(
+        db,
+        numero,
+        {"_espelho": {"versao": 1}, "convenio": {"SIT_CONVENIO": "Em execução"}, "termos_aditivos": [legado]},
+    )
+    monkeypatch.setattr(
+        job,
+        "_filtrar_por_numero_convenio",
+        _fonte(
+            numero, {"SIT_CONVENIO": "Em execução"}, {"siconv_termo_aditivo": [{"NUMERO_TA": "2", "VL_GLOBAL_TA": "0"}]}
+        ),
+    )
+    # Act
+    job.run()
+    db.expire_all()
+    # Assert
+    salvos = db.query(Convenio).filter_by(numero=numero).one().siconv_raw["termos_aditivos"]
+    assert salvos[0] == legado
+    assert salvos[1]["CHAVE_ESPELHO"] == "numero_ta:2"
+    assert salvos[1]["VL_GLOBAL_TA"] == "0"
+
+
+def test_termo_novo_sem_identidade_nao_vira_captura_valida(cenario, monkeypatch):
+    # Arrange
+    numero, db, ultimo_id = cenario
+    original = {"_espelho": {"versao": 1}, "convenio": {"SIT_CONVENIO": "Em execução"}}
+    instrumento_id = _criar(db, numero, original)
+    monkeypatch.setattr(
+        job,
+        "_filtrar_por_numero_convenio",
+        _fonte(numero, {"SIT_CONVENIO": "Concluído"}, {"siconv_termo_aditivo": [{"VL_GLOBAL_TA": "100"}]}),
+    )
+    # Act
+    with pytest.raises(ValueError, match="identificador oficial"):
+        job.run()
+    db.expire_all()
+    # Assert
+    assert db.query(Convenio).filter_by(numero=numero).one().siconv_raw == original
+    assert _avisos(db, instrumento_id) == []
+    assert (
+        db.query(FonteCaptura).filter(FonteCaptura.id > ultimo_id, FonteCaptura.fonte == "siconv_legado").one().status
+        == "erro"
+    )
+
+
+def test_csv_filho_truncado_preserva_colecao_e_marca_captura_parcial(cenario, monkeypatch):
+    # Arrange: parser real; apenas os bytes do download são substituídos.
+    from scripts import coletar_siconv_legado as coletor
+    from tests.test_coletor_siconv_integridade import zip_siconv
+
+    numero, db, ultimo_id = cenario
+    antigos = [{"ID_EMPENHO": "1", "VALOR_EMPENHO": "100,00"}]
+    instrumento_id = _criar(
+        db, numero, {"_espelho": {"versao": 1}, "convenio": {"SIT_CONVENIO": "Em execução"}, "empenhos": antigos}
+    )
+
+    def baixar(nome, *, atualizar_cache=False):
+        assert atualizar_cache is True
+        if nome == "siconv_convenio":
+            return zip_siconv(f"NR_CONVENIO;SIT_CONVENIO\n{numero};Prestação de Contas Concluída\n")
+        if nome == "siconv_empenho":
+            return zip_siconv(f"NR_CONVENIO;ID_EMPENHO;VALOR_EMPENHO\n{numero};1;200,00\n{numero};2\n")
+        return zip_siconv("NR_CONVENIO\n")
+
+    monkeypatch.setattr(coletor, "_baixar_zip", baixar)
+    # Act
+    job.run()
+    db.expire_all()
+    # Assert: não publica a primeira linha do arquivo parcialmente corrompido.
+    convenio = db.query(Convenio).filter_by(numero=numero).one()
+    assert convenio.siconv_raw["empenhos"] == antigos
+    assert convenio.situacao == "Prestação de Contas Concluída"
+    assert (
+        db.query(InstrumentoEquipamento).filter_by(id=instrumento_id).one().situacao_prestacao_contas
+        == convenio.situacao
+    )
+    tentativa = db.query(FonteCaptura).filter(FonteCaptura.id > ultimo_id, FonteCaptura.fonte == "siconv_legado").one()
+    assert tentativa.status == "parcial"
+    assert tentativa.detalhes["tabelas_com_falha"] == ["siconv_empenho (ValueError)"]
+    assert len(_avisos(db, instrumento_id)) == 1
 
 
 def test_primeira_captura_absorve_historico_sem_enxurrada(cenario, monkeypatch):
@@ -196,6 +411,8 @@ def test_item_que_a_fonte_deixou_de_devolver_nao_e_apagado(cenario, monkeypatch)
 def test_cada_tabela_filha_notifica_campos_alterados_e_preserva_omitidos(cenario, monkeypatch, chave):
     numero, db, _ = cenario
     arquivo, coluna, rotulo = job.FILHAS.get(chave, ("siconv_plano_aplicacao", job.ITENS[1], job.ITENS[2]))
+    if chave == "termos_aditivos":
+        coluna = "ID_SOLICITACAO"  # fixture da fonte, sem chave técnica pré-gerada.
     anterior = {coluna: "1", "DESCRICAO": "Anterior", "CAMPO_OMITIDO": "Preservado"}
     if chave == "pagamentos":
         anterior["VL_PAGO"] = "10,00"

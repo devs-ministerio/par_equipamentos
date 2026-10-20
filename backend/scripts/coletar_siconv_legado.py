@@ -1,5 +1,5 @@
-"""Baixa e filtra o dump CSV bulk do SICONV legado
-(repositorio.dados.gov.br/seges/detru/) pelos numeros de convenio do
+"""Baixa e filtra o dump CSV bulk do SICONV legado na fonte oficial atual
+(api-publica.transferegov.gestao.gov.br/downloads) pelos numeros de convenio do
 scripts/validar_convenios.py, e monta um JSON relacional por convenio.
 
 Por que este caminho em vez da API nova do TransfereGov (`/parcerias`, ver
@@ -12,9 +12,11 @@ EXATO, sem aproximacao. Sugestao do usuario (2026-09-03): varios ids mais
 granulares (ID_PROPOSTA, ID_EMPENHO, ID_ITEM_PAD, ID_LICITACAO,
 ID_DESEMBOLSO, ID_SOLICITACAO) vêm exatamente desse dump, nao da API nova.
 
-Tabelas baixadas (das 44 disponiveis no repositorio -- essas sao as
-relevantes pro monitoramento de equipamento; ver o diretorio completo em
-https://repositorio.dados.gov.br/seges/detru/ se precisar de mais):
+Fonte substituída conforme Comunicado Transferegov 23/2026; o endereço antigo
+continuava respondendo HTTP 200 com arquivos de julho. Não usar como fallback.
+Nomes remotos são mapeados em scripts/fontes_siconv.py, inclusive o plano
+de aplicação detalhado; nomes lógicos abaixo preservam o contrato interno.
+Tabelas relevantes pro monitoramento de equipamento:
   siconv_convenio.csv          -- 1 linha por convenio (situacao, valores agregados, saldo em conta)
   siconv_empenho.csv           -- N por convenio, keyed por NR_CONVENIO (ID_EMPENHO, NR_EMPENHO)
   siconv_desembolso.csv        -- N por convenio (ID_DESEMBOLSO, valor e data de cada repasse)
@@ -64,7 +66,7 @@ ultimo campo.
 Uso: python -m scripts.coletar_siconv_legado (de dentro de backend/, venv
 ativo). Baixa ~650MB no total na 1a vez (siconv_plano_aplicacao ~280MB +
 siconv_pagamento ~344MB sao os maiores) -- pode demorar alguns minutos,
-depois fica em cache local (scripts/output/cache/). Grava em
+depois fica em cache local (scripts/output/cache/transferegov_atual/). Grava em
 scripts/output/siconv_legado.json.
 """
 
@@ -75,12 +77,16 @@ import io
 import json
 import zipfile
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
+from uuid import uuid4
 
 import requests
 
-BASE_URL = "https://repositorio.dados.gov.br/seges/detru"
+from scripts.fontes_siconv import url_arquivo
+
 TIMEOUT = 300
 
 ARQUIVOS = [
@@ -105,7 +111,9 @@ def _numeros_convenio() -> list[str]:
     return [c["numero"] for c in convenios]
 
 
-DIR_CACHE = Path(__file__).parent / "output" / "cache"
+# Namespace novo impede reaproveitar silenciosamente o cache do endpoint
+# substituído. O cache histórico é preservado, mas não usado pela fonte atual.
+DIR_CACHE = Path(__file__).parent / "output" / "cache" / "transferegov_atual"
 
 
 def _sessao_com_retry() -> requests.Session:
@@ -118,8 +126,8 @@ def _sessao_com_retry() -> requests.Session:
     return session
 
 
-def _baixar_zip(nome: str, *, atualizar_cache: bool = False) -> bytes:
-    """Cache local em scripts/output/cache/ (compartilhado com
+def _baixar_zip(nome: str, *, atualizar_cache: bool = False, diretorio_cache: Path | None = None) -> bytes:
+    """Cache local em scripts/output/cache/transferegov_atual/ (compartilhado com
     levantamento_convenios_oncologia.py) -- siconv_plano_aplicacao.csv.zip
     e siconv_pagamento.csv.zip sozinhos sao ~280-340MB, sem necessidade de
     rebaixar toda vez que o universo de convenios
@@ -127,62 +135,85 @@ def _baixar_zip(nome: str, *, atualizar_cache: bool = False) -> bytes:
     retry (achado 2026-09-09: `requests.get(...).content` de uma vez cai
     com timeout/broken pipe em arquivo desse tamanho -- resolvido baixando
     em chunk pra disco, como `curl --retry` ja fazia manualmente)."""
-    caminho = DIR_CACHE / f"{nome}.csv.zip"
+    url_arquivo(nome)  # Valida catálogo também antes da leitura de cache local.
+    cache = diretorio_cache if diretorio_cache is not None else DIR_CACHE
+    caminho = cache / f"{nome}.csv.zip"
     if caminho.exists() and not atualizar_cache:
         print(f"   (cache) {nome}.csv.zip ja baixado.")
         return caminho.read_bytes()
-    DIR_CACHE.mkdir(parents=True, exist_ok=True)
-    sessao = _sessao_com_retry()
-    destino = caminho.with_suffix(caminho.suffix + ".tmp") if atualizar_cache else caminho
-    with sessao.get(
-        f"{BASE_URL}/{nome}.csv.zip", stream=True, timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"}
-    ) as resp:
-        resp.raise_for_status()
-        with destino.open("wb") as f:
-            for chunk in resp.iter_content(chunk_size=1024 * 1024):
-                f.write(chunk)
-    if atualizar_cache:
-        try:
-            with zipfile.ZipFile(destino) as arquivo:
-                if not arquivo.namelist() or arquivo.testzip() is not None:
-                    raise ValueError(f"ZIP inválido recebido para {nome}")
-        except (zipfile.BadZipFile, ValueError):
-            destino.unlink(missing_ok=True)
-            raise
+    cache.mkdir(parents=True, exist_ok=True)
+    # Retry do HTTPAdapter não alcança iter_content: uma queda após os
+    # headers exige reiniciar o corpo inteiro, nunca anexar ao arquivo parcial.
+    # Pasta exclusiva evita colisão entre jobs e mantém o último ZIP íntegro.
+    with TemporaryDirectory(prefix=".siconv-download-", dir=cache) as temporario:
+        destino = Path(temporario) / "snapshot.zip"
+        for tentativa in range(3):
+            try:
+                _transferir_zip(nome, destino)
+                break
+            except (requests.exceptions.ChunkedEncodingError, requests.ConnectionError, requests.Timeout):
+                if tentativa == 2:
+                    raise
+        with zipfile.ZipFile(destino) as arquivo:
+            if not arquivo.namelist() or arquivo.testzip() is not None:
+                raise ValueError(f"ZIP inválido recebido para {nome}")
         destino.replace(caminho)
     return caminho.read_bytes()
 
 
-def _linhas_csv_do_zip(conteudo_zip: bytes) -> tuple[list[str], Iterator[list[str]]]:
-    """Zip do SICONV tem 1 arquivo dentro, mas o nome nem sempre bate com o
-    nome do zip (ex. siconv_plano_aplicacao.csv.zip -> contem
-    siconv_plano_aplicacao_detalhado.csv) -- pega sempre o primeiro (e unico)
-    membro, nao assume nome."""
-    zf = zipfile.ZipFile(io.BytesIO(conteudo_zip))
-    membro = zf.namelist()[0]
-    texto = io.TextIOWrapper(zf.open(membro), encoding="utf-8-sig", newline="")
-    leitor = csv.reader(texto, delimiter=";")
-    cabecalho = next(leitor)
-    return cabecalho, leitor
+def _transferir_zip(nome: str, destino: Path) -> None:
+    from scripts.download_siconv import transferir_zip
+
+    # O proxy respondeu com arquivo de ontem mesmo com no-cache. Identificador
+    # opaco por transferência evita cache compartilhado, sem dados do usuário;
+    # permanece igual entre partes/fallback para não alterar sua identidade.
+    url = f"{url_arquivo(nome)}?sigeo_snapshot={uuid4().hex}"
+    with _sessao_com_retry() as sessao:
+        transferir_zip(url=url, destino=destino, sessao=sessao, timeout=TIMEOUT)
+
+
+@contextmanager
+def _linhas_csv_do_zip(
+    conteudo_zip: bytes, *, justificativa_ta: bool = False
+) -> Iterator[tuple[list[str], Iterator[list[str]]]]:
+    """CSV único e estrito; recurso fechado inclusive quando a leitura falha."""
+    with zipfile.ZipFile(io.BytesIO(conteudo_zip)) as arquivo:
+        membros = [nome for nome in arquivo.namelist() if not nome.endswith("/")]
+        if len(membros) != 1 or not membros[0].lower().endswith(".csv"):
+            raise ValueError("Snapshot SICONV deve conter exatamente um CSV.")
+        with arquivo.open(membros[0]) as binario, io.TextIOWrapper(binario, encoding="utf-8-sig", newline="") as texto:
+            leitor = csv.reader(texto, delimiter=";", strict=True)
+            cabecalho = next(leitor, [])
+            if not cabecalho or any(not nome.strip() for nome in cabecalho) or len(set(cabecalho)) != len(cabecalho):
+                raise ValueError("Cabeçalho SICONV ausente, vazio ou duplicado.")
+
+            def linhas_validas() -> Iterator[list[str]]:
+                for linha in leitor:
+                    # Única reparação histórica documentada: texto livre final
+                    # de JUSTIFICATIVA_TA, nunca deslocar campos de outra tabela.
+                    if justificativa_ta and cabecalho[-1] == "JUSTIFICATIVA_TA" and len(linha) > len(cabecalho):
+                        linha = linha[: len(cabecalho) - 1] + [";".join(linha[len(cabecalho) - 1 :])]
+                    if len(linha) != len(cabecalho):
+                        raise ValueError("Snapshot SICONV contém linha truncada ou ambígua.")
+                    yield linha
+
+            yield cabecalho, linhas_validas()
 
 
 def _filtrar_por_numero_convenio(
     nome: str, numeros: set[str], *, atualizar_cache: bool = False
 ) -> list[dict[str, str]]:
+    registros: list[dict[str, str]] = []
+    if not numeros:
+        return registros
     print(f"Baixando {nome}.csv.zip...")
-    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip(nome, atualizar_cache=atualizar_cache))
-    idx_convenio = cabecalho.index("NR_CONVENIO")
-    n_campos = len(cabecalho)
-    registros = []
-    for linha in leitor:
-        if len(linha) > n_campos:
-            # campo de texto livre no final (ex. JUSTIFICATIVA_TA) com ";"
-            # nao escapado -- reagrupa o excedente no ultimo campo.
-            linha = linha[: n_campos - 1] + [";".join(linha[n_campos - 1 :])]
-        if len(linha) < n_campos:
-            continue  # linha truncada/corrompida -- descarta, nunca inventa campo
-        if linha[idx_convenio] in numeros:
-            registros.append(dict(zip(cabecalho, linha)))
+    with _linhas_csv_do_zip(
+        _baixar_zip(nome, atualizar_cache=atualizar_cache), justificativa_ta=nome == "siconv_termo_aditivo"
+    ) as (cabecalho, leitor):
+        idx_convenio = cabecalho.index("NR_CONVENIO")
+        for linha in leitor:
+            if linha[idx_convenio] in numeros:
+                registros.append(dict(zip(cabecalho, linha, strict=True)))
     print(f"   {len(registros)} linha(s) de {nome}.")
     return registros
 
@@ -193,15 +224,18 @@ def _filtrar_plano_aplicacao_por_id_proposta(
     """`siconv_plano_aplicacao.csv.zip` e o maior arquivo do dump (~280MB
     comprimido, >1GB descomprimido) -- filtra em streaming, nunca materializa
     o CSV inteiro na memoria."""
+    registros: list[dict[str, str]] = []
+    if not ids_proposta:
+        return registros
     print("Baixando siconv_plano_aplicacao.csv.zip (maior arquivo, pode demorar)...")
-    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_plano_aplicacao", atualizar_cache=atualizar_cache))
-    idx_proposta = cabecalho.index("ID_PROPOSTA")
-    registros = []
-    for linha in leitor:
-        if len(linha) != len(cabecalho):
-            continue
-        if linha[idx_proposta] in ids_proposta:
-            registros.append(dict(zip(cabecalho, linha)))
+    with _linhas_csv_do_zip(_baixar_zip("siconv_plano_aplicacao", atualizar_cache=atualizar_cache)) as (
+        cabecalho,
+        leitor,
+    ):
+        idx_proposta = cabecalho.index("ID_PROPOSTA")
+        for linha in leitor:
+            if linha[idx_proposta] in ids_proposta:
+                registros.append(dict(zip(cabecalho, linha, strict=True)))
     print(f"   {len(registros)} item(ns) de plano de aplicacao.")
     return registros
 
@@ -213,16 +247,16 @@ def _filtrar_programa_proposta_por_id_proposta(ids_proposta: set[str]) -> dict[s
     fonte pode ter mais de 1 linha pra mesma proposta (regiao/UF
     duplicada), entao usa o primeiro e ignora o resto em vez de decidir
     qual e "o certo"."""
-    print("Baixando siconv_programa_proposta.csv.zip...")
-    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_programa_proposta"))
-    idx_prop = cabecalho.index("ID_PROPOSTA")
-    idx_prog = cabecalho.index("ID_PROGRAMA")
     programa_de_proposta: dict[str, str] = {}
-    for linha in leitor:
-        if len(linha) != len(cabecalho):
-            continue
-        if linha[idx_prop] in ids_proposta and linha[idx_prop] not in programa_de_proposta:
-            programa_de_proposta[linha[idx_prop]] = linha[idx_prog]
+    if not ids_proposta:
+        return programa_de_proposta
+    print("Baixando siconv_programa_proposta.csv.zip...")
+    with _linhas_csv_do_zip(_baixar_zip("siconv_programa_proposta")) as (cabecalho, leitor):
+        idx_prop = cabecalho.index("ID_PROPOSTA")
+        idx_prog = cabecalho.index("ID_PROGRAMA")
+        for linha in leitor:
+            if linha[idx_prop] in ids_proposta and linha[idx_prop] not in programa_de_proposta:
+                programa_de_proposta[linha[idx_prop]] = linha[idx_prog]
     print(f"   {len(programa_de_proposta)} proposta(s) com programa resolvido.")
     return programa_de_proposta
 
@@ -231,15 +265,15 @@ def _filtrar_programa_por_id(ids_programa: set[str]) -> dict[str, dict[str, str]
     """siconv_programa.csv: catalogo, mas com linha duplicada por
     regiao/UF pro mesmo ID_PROGRAMA (confirmado -- mesmo NOME_PROGRAMA
     repetido) -- guarda so a primeira ocorrencia de cada ID_PROGRAMA."""
-    print("Baixando siconv_programa.csv.zip...")
-    cabecalho, leitor = _linhas_csv_do_zip(_baixar_zip("siconv_programa"))
-    idx_id = cabecalho.index("ID_PROGRAMA")
     programas: dict[str, dict[str, str]] = {}
-    for linha in leitor:
-        if len(linha) != len(cabecalho):
-            continue
-        if linha[idx_id] in ids_programa and linha[idx_id] not in programas:
-            programas[linha[idx_id]] = dict(zip(cabecalho, linha))
+    if not ids_programa:
+        return programas
+    print("Baixando siconv_programa.csv.zip...")
+    with _linhas_csv_do_zip(_baixar_zip("siconv_programa")) as (cabecalho, leitor):
+        idx_id = cabecalho.index("ID_PROGRAMA")
+        for linha in leitor:
+            if linha[idx_id] in ids_programa and linha[idx_id] not in programas:
+                programas[linha[idx_id]] = dict(zip(cabecalho, linha, strict=True))
     print(f"   {len(programas)} programa(s) resolvido(s).")
     return programas
 

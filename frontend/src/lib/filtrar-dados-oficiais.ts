@@ -1,6 +1,7 @@
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import { nomePrioritarioCanonico } from "./equipamento-catalogo";
 import { correspondeBuscaLivre } from "./busca-livre";
+import { chaveMunicipio } from "./municipio-filtro";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
 
 type EstadoFiltros = {
@@ -34,7 +35,7 @@ export function filtrarDadosOficiais(
     if (
       ignorar !== "municipio" &&
       estado.municipio &&
-      item.municipio !== estado.municipio
+      chaveMunicipio(item.municipio) !== chaveMunicipio(estado.municipio)
     )
       return false;
     if (ignorar !== "cnes" && estado.cnes && item.cnes !== estado.cnes)

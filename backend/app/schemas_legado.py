@@ -6,8 +6,17 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas_escopo_descoberta import ComponenteDescoberto
+
 ConfirmacaoPortal = Literal["nao_consultado", "nao_encontrado", "sem_publicacao", "confirmado"]
 SituacaoLegado = Literal["novo", "em_analise", "aprovado", "rejeitado"]
+
+
+class ItemDump(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    ID_PROPOSTA: str = Field(pattern=r"^[0-9]+$")
+    ID_ITEM_PAD: str = Field(pattern=r"^[0-9]+$")
+    DESCRICAO_ITEM: str
 
 
 class EvidenciaLegadoRead(BaseModel):
@@ -28,6 +37,7 @@ class CandidatoLegadoRead(BaseModel):
     descoberto_em: datetime
     verificado_em: datetime
     evidencias: list[EvidenciaLegadoRead]
+    componentes: list[ComponenteDescoberto] = Field(default_factory=list)
     captura_id: int
     situacao: SituacaoLegado
     versao: int

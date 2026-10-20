@@ -26,6 +26,15 @@ const candidatoSchema = z.object({
   origem: z.enum(["snapshot_local", "siconv_oficial"]),
   descoberto_em: z.string().datetime({ offset: true }),
   verificado_em: z.string().datetime({ offset: true }),
+  componentes: z
+    .array(
+      z.object({
+        id_programa: z.string().regex(/^[0-9]+$/),
+        nome_programa: z.string().min(1),
+        componente: z.string().min(1),
+      }),
+    )
+    .default([]),
   evidencias: z.array(
     z.object({
       id_item: z.string(),
@@ -57,7 +66,7 @@ export function fetchCandidatosLegados(
   return requisitar(`/candidatos-legados?${params}`, paginaSchema);
 }
 
-const decisaoSchema = z.object({
+export const decisaoSchema = z.object({
   id: z.number().int().positive(),
   candidato_id: z.number().int().positive(),
   captura_id: z.number().int().positive(),

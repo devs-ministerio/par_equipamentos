@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
 import { atualizarCsrfToken, csrfHeaders } from "@/lib/csrf";
 import { registrarEmissaoSessao } from "@/lib/sessao-expiracao";
+import { executarHttpComPrazo, HttpTimeoutError } from "@/lib/http-prazo";
 
 /** Bloco 1 do Plan Mode frontend 2026-09-17 -- cliente HTTP único
  * compartilhado por `services/api.ts`/`services/convenios.ts`/
@@ -28,7 +29,6 @@ export const API_BASE_URL = import.meta.env.PROD
   ? "/api"
   : (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000");
 const HTTP_TIMEOUT_MS = 15_000;
-const MENSAGEM_TIMEOUT_HTTP = `A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`;
 
 /** Identificador opaco por operação HTTP: permite encontrar a chamada de uma
  * tela no evento `sigeo.http` da API. Não contém usuário, URL, sessão, corpo
@@ -159,6 +159,9 @@ export interface RequisitarOpts {
    * logado?", e 401 ali é um estado normal de visitante anônimo, não uma
    * sessão que expirou no meio de uma tela protegida. */
   redirecionarEm401?: boolean;
+  timeoutMs?: number;
+  /** GET de exportação é caro: não iniciar outra geração após timeout. */
+  repetirEmTimeout?: boolean;
 }
 
 /** Núcleo comum a GET/POST/PATCH/DELETE de toda chamada HTTP autenticada
@@ -175,37 +178,31 @@ export async function httpFetch(
   init?: RequestInit,
   opts: RequisitarOpts = {},
 ): Promise<Response> {
-  const { redirecionarEm401 = true } = opts;
+  const {
+    redirecionarEm401 = true,
+    timeoutMs = HTTP_TIMEOUT_MS,
+    repetirEmTimeout = true,
+  } = opts;
   const metodo = (init?.method ?? "GET").toUpperCase();
   const precisaCsrf = metodo !== "GET" && path !== "/auth/login";
   const traceId = novoTraceId();
   if (precisaCsrf) await garantirCsrfToken();
-  const executar = async () => {
-    const controller = new AbortController();
-    const timeout = globalThis.setTimeout(
-      () => controller.abort(),
-      HTTP_TIMEOUT_MS,
+  const executar = () =>
+    executarHttpComPrazo(
+      (signal) =>
+        fetch(`${API_BASE_URL}${path}`, {
+          ...init,
+          signal,
+          credentials: "include",
+          headers: {
+            ...init?.headers,
+            ...(precisaCsrf ? csrfHeaders() : {}),
+            "X-Trace-Id": traceId,
+          },
+        }),
+      timeoutMs,
+      init?.signal ?? undefined,
     );
-    try {
-      return await fetch(`${API_BASE_URL}${path}`, {
-        ...init,
-        signal: init?.signal ?? controller.signal,
-        credentials: "include",
-        headers: {
-          ...init?.headers,
-          ...(precisaCsrf ? csrfHeaders() : {}),
-          "X-Trace-Id": traceId,
-        },
-      });
-    } catch (erro) {
-      if (controller.signal.aborted) {
-        throw new Error(MENSAGEM_TIMEOUT_HTTP);
-      }
-      throw erro;
-    } finally {
-      globalThis.clearTimeout(timeout);
-    }
-  };
 
   let res: Response;
   try {
@@ -215,9 +212,10 @@ export async function httpFetch(
     // leitura. Só GET/HEAD são idempotentes: repete uma única vez o timeout
     // interno, nunca POST/PATCH/DELETE nem abort solicitado pelo chamador.
     const podeTentarAquecimento =
+      repetirEmTimeout &&
+      !init?.signal?.aborted &&
       (metodo === "GET" || metodo === "HEAD") &&
-      e instanceof Error &&
-      e.message === MENSAGEM_TIMEOUT_HTTP;
+      e instanceof HttpTimeoutError;
     if (podeTentarAquecimento) {
       try {
         res = await executar();
@@ -269,11 +267,14 @@ export async function requisitar<T>(
 ): Promise<T> {
   const res = await httpFetch(path, init, opts);
   if (!res.ok) {
-    // Resposta HTTP de domínio (4xx/5xx) -- o backend já garante que
-    // `detail`/`error` não vaza detalhe técnico (Plan Mode segurança
-    // 2026-09-16, Bloco 1), então essa mensagem é segura pro usuário.
+    // Só 4xx é resposta de domínio controlada. Um 5xx também pode vir do
+    // proxy/provedor: preserva o detalhe técnico sem repassá-lo para a UI.
     const mensagem = await mensagemErroHttp(res);
-    throw new ApiError(mensagem, res.status, mensagem);
+    throw new ApiError(
+      mensagem,
+      res.status,
+      res.status < 500 ? mensagem : undefined,
+    );
   }
   const json = res.status === 204 ? null : await res.json();
   const parsed = schema.safeParse(json);

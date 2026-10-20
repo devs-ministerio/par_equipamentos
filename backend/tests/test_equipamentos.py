@@ -1,8 +1,31 @@
 from __future__ import annotations
 
+import pytest
+
 from app.db.models import Convenio
 from app.equipamentos import classificar_descricoes
 from scripts.lib_monitoramento_convenio import adicionar_item_manual_inicial
+
+
+@pytest.mark.parametrize(
+    "descricao",
+    [
+        "Consultoria - atendimento ao vencedor do acelerador de empreendimento",
+        "Capital semente - incentivo aos participantes com recurso acelerador",
+        "Programa acelerador de negócios",
+    ],
+)
+def test_regressao_999548_acelerador_nao_medico_nao_vira_linear(descricao):
+    # Trechos reduzidos da evidência local de 999548; não simulam aquisição médica.
+    assert all(e.codigo != "acelerador_linear" for e in classificar_descricoes([descricao]))
+
+
+def test_curso_preserva_mencao_sem_comprovar_aquisicao_e_item_separado_preserva_bem():
+    evidencias = classificar_descricoes(["Curso de LINAC", "Aquisição de LINAC"])
+    assert [(e.codigo, e.relacao) for e in evidencias] == [
+        ("acelerador_linear", "mencao"),
+        ("acelerador_linear", "aquisicao"),
+    ]
 
 
 def test_classificador_reconhece_multiplos_equipamentos_e_preserva_evidencia():
