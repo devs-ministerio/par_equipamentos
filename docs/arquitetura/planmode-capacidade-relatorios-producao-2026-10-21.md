@@ -44,8 +44,9 @@ a master: repetir as provas aplicáveis antes de publicar.
   efêmero sem rede: **401 testes aprovados em 9,34 s**. Ruff/formatação/mypy
   integrais aprovados; cobertura linhas/branches: Services **92,6/82,6%**,
   Repositories **92,7/77,8%**, Routes **91,7/63,0%**, acima dos pisos.
-- Nenhuma versão de pacote alterada: `lxml 6.1.3` apenas explicitado como
-  dependência direta, com lock atualizado offline.
+- No bloco inicial de capacidade, `lxml 6.1.3` apenas explicitado como
+  dependência direta, sem atualização de versão. Exceção de segurança
+  posterior, aprovada pelo usuário, registrada abaixo.
 - Metadados locais privados: `/private/tmp/sigeo-release-capacidade-T15JV6/`.
 
 ### Revisão final antes da PR
@@ -69,6 +70,23 @@ a master: repetir as provas aplicáveis antes de publicar.
   armazenamento do jsdom; nenhum teste/configuração foi enfraquecido por isso.
 - O filtro Monitorado permanece no checkout de homologação, fora desta fatia.
 - CI remoto, publicação controlada e aceite operacional ainda pendentes.
+
+### Correção de segurança autorizada após o primeiro CI
+
+- PR #29, commit inicial `6ecf4cc`: testes, cobertura, tipos, formatação,
+  frontend e E2E remotos passaram. A auditoria Python e o scanner da imagem
+  bloquearam a dependência preexistente `certifi 2026.7.22`:
+  `PYSEC-2026-4320` / `GHSA-6q48-6c7w-9gw2`.
+- Usuário autorizou incluir exclusivamente `certifi 2026.10.19`, versão
+  corrigida indicada pelos dois scanners. `uv lock --upgrade-package
+  certifi==2026.10.19` alterou somente esse pacote e seus hashes oficiais.
+  Nenhuma outra dependência, política HTTPS, CA customizada ou verificação
+  TLS foi modificada; nenhum alerta foi ignorado.
+- Auditoria local repetida: `uv run --frozen --with pip-audit pip-audit`,
+  resultado `No known vulnerabilities found`. Regressão Linux repetida
+  com apenas certifi atualizado na imagem QA e rede desativada: **401 testes
+  em 9,30 s**, Ruff/formatação/mypy e pisos integrais aprovados. Novo CI
+  precisa incluir o lock corrigido antes do aceite final de publicação.
 
 ## Diferença encontrada no cliente de produção
 
