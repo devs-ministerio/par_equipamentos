@@ -48,6 +48,56 @@ function nomeArquivoDoHeader(header: string | null, fallback: string): string {
   return match?.[1] ?? fallback;
 }
 
+const PRAZO_EXPORTACAO_MS = 90_000;
+
+/** Limita toda a exportação, inclusive renovação de sessão e corpo binário. */
+async function receberArquivoComPrazo(
+  path: string,
+  formato: FormatoRelatorio,
+): Promise<ArquivoRelatorio> {
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const prazo = new Promise<never>((_, reject) => {
+    timeout = globalThis.setTimeout(() => {
+      reject(
+        new ApiError(
+          "A geração excedeu 90 segundos.",
+          undefined,
+          "A geração excedeu 90 segundos. Selecione um recorte menor antes de tentar novamente.",
+        ),
+      );
+      controller.abort();
+    }, PRAZO_EXPORTACAO_MS);
+  });
+  const receber = async (): Promise<ArquivoRelatorio> => {
+    const resposta = await httpFetch(
+      path,
+      { signal: controller.signal },
+      { timeoutMs: PRAZO_EXPORTACAO_MS, repetirEmTimeout: false },
+    );
+    // Não continuar uma exportação que venceu enquanto a sessão renovava.
+    controller.signal.throwIfAborted();
+    if (!resposta.ok) {
+      const mensagem = await mensagemErroHttp(resposta);
+      throw new ApiError(mensagem, resposta.status, mensagem);
+    }
+    const blob = await resposta.blob();
+    const nomeArquivo = nomeArquivoDoHeader(
+      resposta.headers.get("content-disposition"),
+      `relatorio.${formato}`,
+    );
+    return { blob, nomeArquivo };
+  };
+  try {
+    return await Promise.race([receber(), prazo]);
+  } catch (erro) {
+    if (erro instanceof ApiError) throw erro;
+    throw new ApiError("Falha ao receber o arquivo do relatório.");
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
+}
+
 /** Baixa o relatório do backend -- rota binária (nenhum service usava
  * `httpFetch` cru até agora, ver comentário em `lib/http-client.ts`), então
  * trata status/erro aqui mesmo em vez de `requisitar` (que espera JSON). */
@@ -76,17 +126,7 @@ export async function gerarRelatorio(
   if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
   if (filtro.busca) params.set("busca", filtro.busca);
 
-  const resposta = await httpFetch(`/relatorios?${params.toString()}`);
-  if (!resposta.ok) {
-    const mensagem = await mensagemErroHttp(resposta);
-    throw new ApiError(mensagem, resposta.status, mensagem);
-  }
-  const blob = await resposta.blob();
-  const nomeArquivo = nomeArquivoDoHeader(
-    resposta.headers.get("content-disposition"),
-    `relatorio.${formato}`,
-  );
-  return { blob, nomeArquivo };
+  return receberArquivoComPrazo(`/relatorios?${params.toString()}`, formato);
 }
 
 /** Dispara o download no browser -- sem servidor de arquivo estático

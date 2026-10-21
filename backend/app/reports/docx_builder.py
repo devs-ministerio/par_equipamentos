@@ -10,9 +10,11 @@ infra/dominio/postura de seguranca diferentes, so a tecnica foi reaproveitada).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
+from functools import wraps
 from io import BytesIO
+from threading import RLock
 from typing import Any
 
 from docx import Document
@@ -31,6 +33,20 @@ _VERDE_VARIACAO = RGBColor(0x15, 0x80, 0x3D)
 _VERMELHO_VARIACAO = RGBColor(0xB9, 0x1C, 0x1C)
 _CINZA_LEGENDA = RGBColor(0x6B, 0x72, 0x80)
 
+# Os parsers python-docx são compartilhados entre threads, inclusive quando
+# os documentos são distintos. A mesma trava protege o escritor progressivo.
+_TRAVA_XML = RLock()
+
+
+def _serializar_xml[**P, R](funcao: Callable[P, R]) -> Callable[P, R]:
+    @wraps(funcao)
+    def executar(*args: P.args, **kwargs: P.kwargs) -> R:
+        with _TRAVA_XML:
+            return funcao(*args, **kwargs)
+
+    return executar
+
+
 # Mesmo timbre institucional usado nos briefings reais do departamento
 # (ver docs/relatorios em `data/relatorios/`, anexados pelo usuário
 # 2026-09-26) -- documento gerado por aqui deixa explícito que é
@@ -44,12 +60,14 @@ _CABECALHO_INSTITUCIONAL = (
 )
 
 
+@_serializar_xml
 def novo_documento(titulo: str) -> DocumentType:
     documento = Document()
     adicionar_titulo(documento, titulo, nivel=0)
     return documento
 
 
+@_serializar_xml
 def adicionar_cabecalho_institucional(documento: DocumentType, *, gerado_em: datetime) -> None:
     for linha in _CABECALHO_INSTITUCIONAL:
         paragrafo = documento.add_paragraph()
@@ -66,14 +84,17 @@ def adicionar_cabecalho_institucional(documento: DocumentType, *, gerado_em: dat
     run_aviso.font.color.rgb = _CINZA_LEGENDA
 
 
+@_serializar_xml
 def adicionar_titulo(documento: DocumentType, texto: str, *, nivel: int = 1) -> None:
     documento.add_heading(texto, level=nivel)
 
 
+@_serializar_xml
 def adicionar_paragrafo(documento: DocumentType, texto: str) -> None:
     documento.add_paragraph(texto)
 
 
+@_serializar_xml
 def adicionar_paragrafo_rotulo_valor(documento: DocumentType, rotulo: str, valor: str) -> None:
     """`**Rótulo:** valor` -- mesmo padrão usado nos briefings reais do
     departamento pra ficha de instrumento (Convênio/SEI/Objeto/...)."""
@@ -83,12 +104,14 @@ def adicionar_paragrafo_rotulo_valor(documento: DocumentType, rotulo: str, valor
     paragrafo.add_run(valor)
 
 
+@_serializar_xml
 def adicionar_legenda_tabela(documento: DocumentType, numero: int, texto: str) -> None:
     paragrafo = documento.add_paragraph()
     run = paragrafo.add_run(f"Tabela {numero}. {texto}")
     run.italic = True
 
 
+@_serializar_xml
 def adicionar_fonte(documento: DocumentType, texto: str) -> None:
     paragrafo = documento.add_paragraph()
     run = paragrafo.add_run(f"Fonte: {texto}")
@@ -97,6 +120,7 @@ def adicionar_fonte(documento: DocumentType, texto: str) -> None:
     run.font.color.rgb = _CINZA_LEGENDA
 
 
+@_serializar_xml
 def adicionar_tabela(documento: DocumentType, colunas: Sequence[str], linhas: Sequence[Sequence[Any]]) -> Table:
     tabela = documento.add_table(rows=1, cols=len(colunas))
     tabela.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -138,6 +162,7 @@ def linhas_como_texto(
     return resultado
 
 
+@_serializar_xml
 def escrever_variacao(paragrafo: Paragraph, valor: float | None) -> Run:
     """Adiciona ao paragrafo o texto da variacao percentual, colorido de
     verde (positiva) ou vermelho (negativa). `valor is None` (primeiro ano
@@ -149,6 +174,7 @@ def escrever_variacao(paragrafo: Paragraph, valor: float | None) -> Run:
     return run
 
 
+@_serializar_xml
 def gerar_bytes(documento: DocumentType) -> bytes:
     buffer = BytesIO()
     documento.save(buffer)
