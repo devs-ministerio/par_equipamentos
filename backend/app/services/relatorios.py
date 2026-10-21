@@ -41,6 +41,7 @@ import itertools
 import re
 from collections import Counter, defaultdict
 from collections.abc import Iterator, Sequence
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Literal
@@ -53,6 +54,7 @@ from app.domain_errors import ValidationError
 from app.geo_reference import REGIOES, ufs_da_regiao
 from app.pipeline.texto import capitalizar_nome, parsear_valor_brasileiro
 from app.reports import docx_builder, xlsx_builder
+from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
 from app.reports.formatacao import formatar_data, formatar_moeda
 from app.repositories import cobertura_relatorio as cobertura_repo
 from app.repositories import convenios as convenios_repo
@@ -61,6 +63,7 @@ from app.repositories import execucoes as execucoes_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas_relatorio as propostas_repo
 from app.services.monitoramento_instrumentos import InstrumentoComFase, listar_instrumentos_monitorados
+from app.services.relatorios_admissao import reservar_geracao_docx
 
 Escopo = Literal["brasil", "regiao", "uf", "municipio", "cnes"]
 Nivel = Literal["simplificado", "completo"]
@@ -262,10 +265,11 @@ def _montar_analise_merito(db: Session, formato: Formato, nivel: Nivel, filtro: 
         return xlsx_builder.gerar_bytes(pasta)
     documento = docx_builder.novo_documento(f"Análise de mérito -- {filtro.titulo()}")
     docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=datetime.now(timezone.utc))
-    for titulo_secao, colunas, linhas in secoes:
-        docx_builder.adicionar_titulo(documento, titulo_secao)
-        docx_builder.adicionar_tabela(documento, colunas, docx_builder.linhas_como_texto(colunas, linhas))
-    return docx_builder.gerar_bytes(documento)
+    tabelas = [
+        SecaoTabela(titulo, colunas, docx_builder.linhas_como_texto(colunas, linhas))
+        for titulo, colunas, linhas in secoes
+    ]
+    return gerar_bytes_tabelados(documento, tabelas)
 
 
 # ---------------------------------------------------------------------
@@ -1064,11 +1068,12 @@ def _montar_instrumentos_repasse(db: Session, formato: Formato, nivel: Nivel, fi
 def montar_relatorio(
     *, db: Session, formato: Formato, nivel: Nivel, tipo_relatorio: TipoRelatorio, filtro: FiltroRelatorio
 ) -> bytes:
-    if tipo_relatorio == "analise_merito":
-        if filtro.escopo == "cnes":
-            raise ValidationError(
-                "Análise de mérito não tem granularidade por estabelecimento (CNES) -- "
-                "cobertura/déficit é calculada por macrorregião/município. Escolha outro escopo."
-            )
-        return _montar_analise_merito(db, formato, nivel, filtro)
-    return _montar_instrumentos_repasse(db, formato, nivel, filtro)
+    if tipo_relatorio == "analise_merito" and filtro.escopo == "cnes":
+        raise ValidationError(
+            "Análise de mérito não tem granularidade por estabelecimento (CNES) -- "
+            "cobertura/déficit é calculada por macrorregião/município. Escolha outro escopo."
+        )
+    with reservar_geracao_docx() if formato == "docx" else nullcontext():
+        if tipo_relatorio == "analise_merito":
+            return _montar_analise_merito(db, formato, nivel, filtro)
+        return _montar_instrumentos_repasse(db, formato, nivel, filtro)

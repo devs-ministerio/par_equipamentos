@@ -10,6 +10,28 @@ from app.main import app
 client = TestClient(app)
 
 
+def test_docx_ocupado_retorna_503_sem_arquivo_e_xlsx_continua_disponivel(headers_autenticados):
+    # Arrange: apenas a reserva está ocupada; autenticação e Service são reais.
+    from app.services.relatorios_admissao import reservar_geracao_docx
+
+    with reservar_geracao_docx():
+        # Act
+        resposta = client.get("/relatorios", params={"formato": "docx"}, headers=headers_autenticados)
+        xlsx = client.get("/relatorios", params={"formato": "xlsx"}, headers=headers_autenticados)
+        # Assert
+        assert resposta.status_code == 503
+        assert resposta.json() == {
+            "error": "Há outro relatório DOCX sendo gerado. Tente novamente em instantes.",
+            "detail": None,
+        }
+        assert "content-disposition" not in resposta.headers
+        assert xlsx.status_code == 200
+        assert '.xlsx"' in xlsx.headers["content-disposition"]
+    depois = client.get("/relatorios", params={"formato": "docx"}, headers=headers_autenticados)
+    assert depois.status_code == 200
+    assert '.docx"' in depois.headers["content-disposition"]
+
+
 def test_gerar_relatorio_exige_sessao():
     response = client.get("/relatorios", params={"formato": "xlsx"})
     assert response.status_code == 401

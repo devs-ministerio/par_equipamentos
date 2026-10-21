@@ -28,7 +28,6 @@ export const API_BASE_URL = import.meta.env.PROD
   ? "/api"
   : (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000");
 const HTTP_TIMEOUT_MS = 15_000;
-const MENSAGEM_TIMEOUT_HTTP = `A solicitação excedeu ${HTTP_TIMEOUT_MS / 1000} segundos.`;
 
 /** Identificador opaco por operação HTTP: permite encontrar a chamada de uma
  * tela no evento `sigeo.http` da API. Não contém usuário, URL, sessão, corpo
@@ -159,6 +158,10 @@ export interface RequisitarOpts {
    * logado?", e 401 ali é um estado normal de visitante anônimo, não uma
    * sessão que expirou no meio de uma tela protegida. */
   redirecionarEm401?: boolean;
+  /** Prazo por tentativa; exportações podem precisar de mais tempo. */
+  timeoutMs?: number;
+  /** Não repetir geração de arquivo após timeout (default true). */
+  repetirEmTimeout?: boolean;
 }
 
 /** Núcleo comum a GET/POST/PATCH/DELETE de toda chamada HTTP autenticada
@@ -175,17 +178,19 @@ export async function httpFetch(
   init?: RequestInit,
   opts: RequisitarOpts = {},
 ): Promise<Response> {
-  const { redirecionarEm401 = true } = opts;
+  const {
+    redirecionarEm401 = true,
+    timeoutMs = HTTP_TIMEOUT_MS,
+    repetirEmTimeout = true,
+  } = opts;
+  const mensagemTimeout = `A solicitação excedeu ${timeoutMs / 1000} segundos.`;
   const metodo = (init?.method ?? "GET").toUpperCase();
   const precisaCsrf = metodo !== "GET" && path !== "/auth/login";
   const traceId = novoTraceId();
   if (precisaCsrf) await garantirCsrfToken();
   const executar = async () => {
     const controller = new AbortController();
-    const timeout = globalThis.setTimeout(
-      () => controller.abort(),
-      HTTP_TIMEOUT_MS,
-    );
+    const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(`${API_BASE_URL}${path}`, {
         ...init,
@@ -199,7 +204,7 @@ export async function httpFetch(
       });
     } catch (erro) {
       if (controller.signal.aborted) {
-        throw new Error(MENSAGEM_TIMEOUT_HTTP);
+        throw new Error(mensagemTimeout);
       }
       throw erro;
     } finally {
@@ -215,9 +220,10 @@ export async function httpFetch(
     // leitura. Só GET/HEAD são idempotentes: repete uma única vez o timeout
     // interno, nunca POST/PATCH/DELETE nem abort solicitado pelo chamador.
     const podeTentarAquecimento =
+      repetirEmTimeout &&
       (metodo === "GET" || metodo === "HEAD") &&
       e instanceof Error &&
-      e.message === MENSAGEM_TIMEOUT_HTTP;
+      e.message === mensagemTimeout;
     if (podeTentarAquecimento) {
       try {
         res = await executar();
