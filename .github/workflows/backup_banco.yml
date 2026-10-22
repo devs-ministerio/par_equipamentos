@@ -41,6 +41,9 @@ jobs:
       BACKUP_CREDENTIAL_EXPIRES_ON: ${{ secrets.BACKUP_CREDENTIAL_EXPIRES_ON }}
       AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+      # O runner não tem ~/.postgresql/root.crt; `system` mantém verify-full usando
+      # os certificados do sistema (libpq >= 16). Não afrouxa o TLS.
+      PGSSLROOTCERT: system
       AWS_DEFAULT_REGION: auto
       AWS_PAGER: ""
       RETENCAO_DIAS: "7"
@@ -91,7 +94,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends age postgresql-common
           versao=$(psql "$BACKUP_DATABASE_URL" --no-psqlrc --tuples-only --no-align --command='SHOW server_version_num')
           principal=$(( versao / 10000 ))
-          if [ "$principal" -lt 12 ] || [ "$principal" -gt 30 ]; then
+          if [ "$principal" -lt 16 ] || [ "$principal" -gt 30 ]; then
             echo "Versão de servidor inesperada: $principal" >&2
             exit 1
           fi
