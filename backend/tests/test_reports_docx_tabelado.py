@@ -28,7 +28,7 @@ def test_gravacao_progressiva_preserva_xml_e_partes_do_modelo(total, formatado):
         11 if formatado else None,
     )
     comum = docx_builder.novo_documento("Relatório")
-    docx_builder.adicionar_titulo(comum, secao.titulo)
+    docx_builder.adicionar_titulo(comum, secao.titulo, solto=total > 6)  # mesma regra do gravador progressivo
     docx_builder.adicionar_tabela(
         comum, secao.colunas, linhas, pesos_colunas=secao.pesos_colunas, fonte_pt=secao.fonte_pt
     )
