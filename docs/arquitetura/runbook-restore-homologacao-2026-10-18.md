@@ -76,8 +76,17 @@ sintéticos. Os testes apagam somente seus próprios bancos e roles de UUID.
 
 ## RPO, RTO e aprovação de produção
 
-O ensaio **não define RPO/RTO de produção**. Um snapshot anterior pode deixar
-de fora aprovações, pagamentos capturados e trabalho manual posteriores.
+Aceite do usuário em **21/10/2026**: **RTO de 1 hora** para voltar a
+disponibilizar o sistema após uma falha. É um objetivo aprovado, não um prazo
+já comprovado no provedor. Em confirmação separada de **21/10/2026**, o
+usuário aprovou perda máxima de trabalho (**RPO**) de **até 24 horas**.
+Esses limites não comprovam a cobertura atual de backups nem autorizam
+alterar retenção, contratar serviço ou executar corte/restauração em produção.
+
+O ensaio local **não certifica o RTO de produção**. A validação operacional
+deverá medir detecção, restauração, troca segura de conexão e retorno validado
+do serviço no provedor, com os responsáveis envolvidos. Um snapshot anterior
+pode deixar de fora aprovações, pagamentos capturados e trabalho manual posteriores.
 Antes de qualquer corte real, identificar a janela e os registros afetados,
 obter aceite do responsável e decidir reconciliação sem apagar a história.
 Não fazer replay automático de decisões humanas ou sobrescrever sua origem.
@@ -87,3 +96,80 @@ política aprovada conforme a sensibilidade dos dados. Restore no provedor,
 credenciais/secret manager, troca de conexão, proxy, comunicação à equipe e
 monitoramento pós-corte continuam condicionados à autorização de publicação.
 Nenhuma dessas operações foi executada em produção neste ensaio.
+
+## Conferência somente leitura do provedor — 21/10/2026
+
+- Projeto Neon `par_equipamentos`, branch `production`: o resumo do projeto
+  e a tela Billing confirmam **Build**. Não foi contratado outro plano.
+- Backup & Restore informa **6 horas de histórico**, **nenhum snapshot** e
+  **nenhum agendamento**. A tela Postgres/History window oferece somente
+  0/1/2/6 horas e direciona janelas maiores para upgrade. Não se alterou o
+  slider nem se acionaram Create, Restore, Preview data ou mudança de plano.
+- Não confundir retenção com RPO: 6 horas é a idade máxima dos pontos
+  disponíveis para voltar no tempo, não a quantidade de trabalho perdida.
+  Essa janela pode ajudar em erro recente, mas não comprova recuperação de
+  corrupção ou exclusão percebida depois de 6 horas. RPO de 24 horas e RTO
+  de 1 hora permanecem objetivos, não garantias certificadas por essa tela.
+- Não foi encontrado workflow de backup no checkout. Isso não comprova
+  inexistência de cópia institucional fora do projeto. Dumps locais de
+  ensaios não substituem backup recorrente de produção.
+- Evidências privadas: `neon-recuperacao-atual.png` e
+  `neon-limite-historico.png` em
+  `/private/tmp/sigeo-fechamento-homologacao-o5mGyC/`. A tela de faturamento
+  foi apenas consultada; seus dados pessoais/financeiros não foram copiados
+  para o repositório ou para as capturas de evidência.
+
+### Decisão necessária antes de configurar backup
+
+**Atualização de 21/10 — decisão tomada e provisionamento parcial.** O usuário
+escolheu R2 e autorizou bucket privado, criptografia, periodicidade proposta
+de 12 horas/retenção de 7 dias e acesso restrito Neon/GitHub. A lista abaixo
+registra o caminho original; não representa ausência dessas autorizações.
+
+- Bucket `sigeo-backups-producao`, Standard, acesso público desabilitado.
+  Credencial R2 Object Read & Write limitada exclusivamente a esse bucket;
+  não há permissão administrativa ou exposição pública.
+- Ensaio real exclusivamente sintético: PostgreSQL 18.6 → pg_dump custom →
+  age → upload/download R2 → SHA-256 → age decrypt → pg_restore em outro
+  banco UUID local. Três registros conferidos; adulteração recusada.
+  GET sem assinatura foi recusado com HTTP 400/InvalidArgument, não 403;
+  o painel também confirma Public Access Disabled. Não interpretar esse
+  teste como verificação de toda política IAM ou recuperação de produção.
+- Role `sigeo_backup` criada por SQL, sem neon_superuser, SUPERUSER,
+  CREATEROLE, CREATEDB, REPLICATION ou BYPASSRLS. SELECT em tabelas/sequências
+  públicas e default privileges do owner de migrations para objetos futuros;
+  sem DML nas tabelas ou CREATE persistente. Limite de duas conexões,
+  read-only por padrão, lock timeout de 5 s e statement timeout de 5 min.
+  TEMP continua herdado de PUBLIC, preexistente: não se revogou PUBLIC nem
+  se mudou a política de acesso dos usuários existentes. Nenhuma função
+  SECURITY DEFINER pública executável foi encontrada. TLS verify-full validado.
+- Sete Secrets exclusivos `BACKUP_*` instalados e conferidos por nome no
+  environment GitHub `Production`. A conexão administrativa pontual não foi
+  enviada ao GitHub; sua cópia local temporária foi removida após uso. Chave
+  privada age permanece fora do GitHub em arquivo privado local ignorado.
+- Credenciais desta etapa expiram em **20/11/2026**: rotação deve preceder
+  essa data. Falta segunda cópia segura da identidade age fora do Mac.
+- **Ainda não há backup real de produção no R2, workflow/cron ativo, regra
+  de expiração ou monitor de atraso configurado.** O ensaio não certifica
+  RPO de 24 h nem RTO de 1 h. Não se alterou plano Neon, conexão da API,
+  schema ou dados da aplicação. Criar o acesso de backup é uma alteração
+  autorizada de permissões em produção, não deploy da aplicação.
+- Evidência privada: `/private/tmp/sigeo-r2-validacao-cQkdQw/resultado.json`.
+  Credenciais e identidade ficam em arquivos 0600 dentro do diretório privado
+  `.codex-work/runtime-backup-r2-20261021/`; nunca copiar valores para Git/logs.
+
+1. Manter Build e a recuperação recente do Neon, adicionando cópia externa
+   criptografada em destino institucional aprovado; ou avaliar mudança de
+   plano para ampliar a retenção nativa. Não executar upgrade automaticamente.
+2. Se escolhido backup externo: aprovar destino, responsáveis, permissões,
+   criptografia e retenção antes de transmitir qualquer dump. Proposta para
+   aceite: captura a cada 12 horas, retenção inicial de 7 dias, alerta em
+   falha e ao exceder 24 horas sem backup íntegro. São parâmetros propostos,
+   não agendamento/retention já autorizados ou implementados.
+3. Validar primeiro o fluxo com dados sintéticos e falhas de rede/espaço,
+   autenticidade/integridade do dump e restore em banco isolado. Um dump ou
+   um agendamento bem-sucedido, isoladamente, não certifica RPO/RTO.
+4. Somente com aprovação específica, instalar segredos de acesso mínimo,
+   habilitar a execução remota e medir restauração no provedor em destino
+   separado. Nenhuma troca da conexão ativa ou interrupção da produção faz
+   parte dessa autorização preliminar.

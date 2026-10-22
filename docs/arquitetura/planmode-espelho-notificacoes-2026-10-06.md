@@ -18,11 +18,67 @@ job, migration ou deploy deve ser executado em produção nesta fase.
 
 ## Diagnóstico de retomada — 2026-10-13
 
+### Complemento solicitado — filtro de encerrados em relatórios (21/10)
+
+Desenho para aceite antes da implementação, sem publicação em produção:
+
+- Filtro independente **Encerramento: Todos / Encerrados**, sem confundir
+  situação oficial, fase interna e encerramento financeiro.
+- Classificador único no backend, reaproveitado na prévia e DOCX/XLSX;
+  uma linha por instrumento/parceria e motivo explícito, sem duplicar
+  carteira, monitoramento e proposta da mesma parceria.
+- Precedência: prestação de contas concluída da carteira completa → fase
+  `fase_concluido` ativa → parceria confirmada com código e ordem “Paga”.
+  Proposta “Aprovada” não impede “Parceria paga”; estado da proposta,
+  presença de marcador ou pagamento previsto não provam ordem paga.
+  Ordem “Paga” prova aquele pagamento, não quitação integral da parceria
+  ou conclusão física; preservar a identificação e o status da ordem.
+- Eventos substituídos/excluídos não contam. Conclusão exclusivamente
+  interna sem data fica em pendências, fora da extração principal.
+- Conclusão interna não encerra a prestação de contas: manter motivo
+  “Concluído internamente — prestação de contas pendente” quando aberta;
+  ausência de status não será inventada como situação aberta/concluída.
+- Reconciliação confronta texto original, fonte, captura e identidade.
+  Divergência entre projeções de prestação de contas fica explícita em
+  pendências até confirmar a evidência oficial, sem overwrite silencioso.
+- Contagens informadas pelo usuário (304 candidatos, 296 instrumentos,
+  8 parcerias, 5 sem data, 299 após exclusão; 186 × 187 status externos)
+  são prévia a reconciliar, não baseline certificada ou constante do código.
+- Manter filtros geográficos/período/equipamento/tipo/programa aplicáveis,
+  escopo de equipamentos e autorização de leitura da exportação. Regressões
+  PostgreSQL cobrem precedência, deduplicação, evidência financeira, data
+  ausente, divergência, evento inativo e paridade prévia/DOCX/XLSX.
+
+#### Implementação e reconciliação (22/10, somente homologação)
+
+- Implementado e aprovado em homologação: filtro, prévia dedicada, DOCX e
+  XLSX pelo mesmo classificador (`app/repositories/relatorios_encerrados.py`,
+  `app/services/relatorios_encerrados.py`). Backend 1.812 testes, Ruff e mypy
+  aprovados em PostgreSQL vazio no head; frontend 892 testes, lint e tsc.
+- Correção na validação: `InstrumentoEquipamento.tipo_contratacao` é nulo
+  permitido e derrubava a extração; agora vale `coalesce(..., "Convênio")`,
+  como no ramo de `convenio`, com teste de regressão.
+- **186 × 187 explicado** no clone `sigeo_homologacao_clone_20261017` (leitura):
+  a carteira tem 186 “Prestação de Contas Concluída”, 2 deles fora do escopo
+  de equipamentos (744879, 813703) — 184 no escopo. O monitoramento acrescenta
+  exatamente 1 (948696: carteira “Em operação”, monitoramento “Concluída”).
+  186 + 1 = 187 sem aplicar escopo; 184 + 1 = 185 com escopo.
+- A divergência não é resolvida em silêncio: 948696 sai em pendências como
+  “Divergência de prestação de contas entre fontes”, com a evidência de cada
+  fonte, até confirmação oficial.
+- Extração nesse clone: 285 itens (184 prestação concluída, 87 concluído no
+  monitoramento, 14 concluído internamente com prestação pendente) e 7
+  pendências (6 conclusão sem data, 1 divergência), sem duplicidade. Esse
+  clone não tem parcerias com ordem “Paga”; as 8 da prévia original vêm de
+  outra base e continuam a reconciliar. Não são baseline certificada.
+- Sem migration, alteração de dados oficiais, aprovação no Radar ou deploy;
+  implementação isolada em homologação após aceite do complemento.
+
 **Esta seção prevalece sobre os estados históricos abaixo para a retomada.**
 Resultado de testes registrado no histórico não comprova o checkout atual.
 O plano não está concluído e as pendências não são somente de DevOps.
 
-### Checklist consolidado de fechamento — atualizado em 20/10
+### Checklist consolidado de fechamento — atualizado em 21/10
 
 Este checklist resume o estado atual; a tabela de recuperação e os blocos
 cronológicos seguintes são históricos, não uma lista cumulativa de pendências.
@@ -55,16 +111,400 @@ Contagens de testes não representam percentual de conclusão.
   formatação de 393 arquivos e mypy de 462 fontes; oito erros de testes
   corrigidos sem exclusão/ignore, com 132 testes dos módulos alterados passando.
 - [x] Portabilidade local Linux arm64/Python 3.12.13/PostgreSQL e clients 16.9:
-  **1.757 testes**, pisos aprovados, fonte RSS corrigida e limpeza isolada.
-  Não substitui GitHub Ubuntu amd64, aceite nativo ou capacidade do provedor.
-- [ ] Volume real e desempenho operacional: arquivos, RAM e latência sob
-  carga representativa; ensaios sintéticos não certificam SLA.
+  **1.760 testes**, pisos aprovados, sem PYTHONPATH herdado e limpeza isolada.
+  Não substitui aceite nativo ou capacidade do provedor.
+- [x] CI remoto do SHA `a78e521`, PR #28 em rascunho: sete workflows aprovados;
+  Ubuntu x86_64/PostgreSQL e clients 16.15, **1.760 testes backend**, **867
+  frontend**, **10 E2E**, pisos e auditorias aprovados. Sem merge/deploy.
+- [x] Exportação sequencial no volume do clone local, transações somente
+  leitura: 18 combinações, integridade das identidades/contagens preservada.
+- [x] Dois lotes HTTP diretos de quatro exportações simultâneas no volume
+  do clone local; XLSX independente, recusa controlada de DOCX concorrente
+  e recuperação após disputa. Memória e liveness medidos abaixo; não
+  substitui a prova sintética por proxy nem o aceite do provedor.
+- [ ] Desempenho operacional: concorrência HTTP, RAM e latência no provedor
+  sob carga representativa; medição local de Service/SQL não certifica SLA.
+  Mitigação local de RAM/CPU implementada e ensaiada em Linux 512 MiB/0,1 CPU;
+  publicação isolada e exportações pequenas controladas no provedor concluídas
+  em 21/10; carga representativa/concorrência remota ainda não certificadas,
+  conforme o caminho aprovado abaixo, sem exigir homologação remota nova.
 - [ ] Aceite nativo em Word/Excel; inspeção estrutural e LibreOffice não
-  substituem os aplicativos de destino.
+  substituem os aplicativos de destino. Usuário tem os aplicativos em outro
+  computador; lote reduzido preparado em 21/10, aguardando seu retorno.
 - [ ] Ciclo oficial nacional persistente com identidade completa e candidato
   elegível; não fabricar novidade ou enfraquecer confirmação para fechar.
-- [ ] CI remoto Linux/PostgreSQL 16 e aceite operacional de provedor,
-  retenção/RPO/RTO/restore; ativação remota/cron/produção exige autorização.
+- [x] Fechar a compatibilidade histórica da fila do Radar: inventário somente
+  leitura de 21/10 comprovou 4.934 registros sem critério de escopo/consulta
+  ao Portal ainda listados e contados como novos pelo Service. Complemento
+  pontual aprovado e aplicado localmente; regressão integral de 1.782 testes
+  aprovada em 21/10, sem escrita no clone ou publicação de produção.
+- [ ] Aceite operacional de provedor, retenção/RPO/RTO/restore;
+  RTO aprovado de 1 hora e RPO de até 24 horas (aceite em 21/10). Limites ainda não certificados no
+  provedor; ativação remota/cron/produção exige autorização.
+
+### Retomada local e complemento de integridade do Radar — 21/10
+
+- Continuação operacional após a correção: consulta autenticada e somente
+  leitura do Neon confirmou plano Build, janela de histórico de **6 horas**,
+  nenhum snapshot nem agendamento de snapshots. A configuração atual limita
+  recuperação tardia; não comprova o RPO/RTO aprovado, nem significa perder
+  6 horas de trabalho. A UI exige upgrade para janela maior/agendamento;
+  nenhum ajuste, snapshot, restore, plano ou cobrança foi acionado.
+- Runbook atualizado com a evidência e decisão pendente: destino/retention
+  institucional para cópia externa criptografada mantendo Build, ou avaliação
+  de ampliação do plano nativo. Não criar workflow com dump em artefato
+  público/temporário nem transmitir dados a destino ainda não aprovado.
+
+- Alinhado somente o pacote `certifi` no lockfile de homologação à versão
+  `2026.10.19` já aprovada/testada/publicada na PR #29. Mantida a alteração
+  local preexistente de dependência direta `lxml`; nenhum outro pacote foi
+  atualizado e nenhuma mudança foi enviada ao remoto nesta rodada.
+- Inventário do clone servido em transação `REPEATABLE READ READ ONLY`,
+  loopback/role/OID conferidos e timeout SQL de 10 s. Consultado o Service
+  real `listar_candidatos(somente_oficiais=True)`, não inferido pelo banco:
+  total/novos = 4.934. Todos esses registros históricos têm `criterio_escopo`
+  nulo e `confirmacao_portal=nao_consultado`. Não houve coleta, escrita,
+  aprovação, notificação ou exclusão. Trinta registros v1 não confirmados
+  também permanecem no histórico; um registro inelegível continua preservado.
+- Causa localizada em `repositories/candidatos_legados.py::_consulta_candidatos`:
+  o ramo de compatibilidade `criterio_escopo IS NULL` permite a fila sem
+  confirmação. O contador reutiliza essa consulta, por isso herda o problema.
+  Não é prova de que esses convênios atendem ao catálogo; não os promover.
+- Complemento aprovado pelo usuário em 21/10:
+  exigir o critério canônico atual do MS e confirmação oficial para a fila;
+  manter decisões encerradas consultáveis e todo histórico append-only.
+  Alterar somente a projeção Repository e regressões PostgreSQL de fila,
+  contador, decisões encerradas e revalidação. Sem novo endpoint/schema,
+  migração, exclusão, blacklist, afrouxamento da fonte ou deploy.
+- Risco/trade-off: candidatos antigos não validados deixam a fila de novos
+  até revalidação oficial; não somem das tabelas nem recebem falsa rejeição.
+  Asserções devem cobrir nulo/v1/não confirmado, confirmação válida atual,
+  paginação/contador consistentes e consulta das decisões encerradas.
+- Implementação local: a consulta oficial e o contador compartilham o filtro
+  de v2/MS/Portal confirmado. Consultas internas de diagnóstico continuam
+  disponíveis; o endpoint público usa explicitamente `somente_oficiais=True`.
+  Decisões aprovadas/rejeitadas mantêm a exceção de consulta histórica.
+- Quatro casos de regressão escritos antes da correção: ausência de escopo
+  e escopo v1 falharam; ausência de confirmação e caso válido já passavam.
+  Isso reproduz a brecha, sem atribuir ao patch uma proteção preexistente.
+  Acrescentada regressão de rejeição consultável após perder confirmação.
+  Fixtures de caminhos felizes de triagem/HTTP agora carregam escopo atual,
+  datas e confirmação, sem remover asserções de autorização ou integridade.
+- Repetida a leitura do clone com o Service corrigido: total/novos de
+  **4.934 → 0**, grupos e quantidades de registros/capturas idênticos antes e
+  depois. Evidência privada em `inventario-ciclo*.json`, sem escrita no clone.
+- Confirmação do usuário nesta retomada: **RPO de até 24 horas** e **RTO de
+  1 hora**, registrados no runbook. Aceite nativo Word/Excel continua pendente;
+  estar no macOS não impede esses aplicativos, mas eles não estão instalados.
+- QA intermediária: a imagem-base integral passou, mas não comprova a fonte
+  atual. A primeira execução explícita do checkout encontrou 10 falhas por
+  falta dos dois CSVs públicos e workflows no arquivo transportado (1.767
+  testes passaram). Corrigido somente o empacotamento privado da validação;
+  nenhum teste de aplicação foi relaxado para contornar arquivos ausentes.
+  Rodada focal: 80 passaram, um contrato HTTP apontou fixture sem escopo,
+  corrigida para a prova válida esperada. Aceite final ainda será registrado
+  pelo resultado do checkout completo, não pela soma dessas rodadas.
+- Resultado final do checkout congelado, com todos os arquivos públicos e
+  workflows requeridos: **1.782 testes aprovados em 393,60 s**, sem falhas,
+  em Linux arm64/Python 3.12.13/PostgreSQL 16.9 descartável migrado. Contêiner
+  sem rede, usuário 10001, entrypoint explícito e `certifi 2026.10.19`
+  confirmado. Não usa a rodada da fonte-base como aceite do checkout.
+- Gates integrais: Ruff e formatação aprovados (395 fontes), mypy aprovado
+  (464 fontes). Pisos linhas/branches: services **96,4%/90,6%**;
+  repositories **97,3%/89,0%**; routes **95,1%/70,3%**, sem exclusões novas
+  ou redução de thresholds. `git diff --check` aprovado.
+- Evidência final privada:
+  `/private/tmp/sigeo-fechamento-homologacao-o5mGyC/final/regressao.log`.
+  Contêiner descartado automaticamente ao terminar; bancos locais existentes,
+  clone servido e produção preservados. Sem commit, push ou deploy nesta rodada.
+
+### Caminho de capacidade aprovado — retomada de 21/10
+
+- Após esclarecer o custo/necessidade de homologação remota, o usuário
+  aprovou correção isolada sobre master, seguida de CI e validação controlada
+  em produção. É exceção restrita à capacidade dos relatórios: não autoriza
+  publicar este plano inteiro, habilitar jobs ou promover a PR #28.
+- Checkout separado: `codex/capacidade-relatorios-producao`, base `de81e98`;
+  commit `6ecf4cc` contém somente builder DOCX progressivo, admissão por
+  processo, adaptação mínima do Service, dependência direta e testes.
+- Complemento expressamente aprovado: exportação com prazo total de 90 s
+  e sem repetição por timeout; prazo de 15 s das demais chamadas preservado.
+  Sem alteração de autenticação, schema, UI, workflows ou plano contratado.
+- Adaptação sobre master revalidada em Linux/PostgreSQL descartáveis:
+  401 testes, Ruff/formatação/mypy integrais e pisos de camada aprovados.
+  Frontend: 187 testes, lint/tipos/formatação/cobertura/build aprovados.
+- Três DOCX sintéticos de 16.710 linhas, sem rede, 512 MiB sem swap e 0,1 CPU:
+  34,90 / 54,30 / 67,70 s; pico cgroup 169,7 MiB, nenhum OOM. Não inclui
+  SQL/proxy/instrumentação no provedor; não certifica SLA remoto.
+- Novo filtro Monitorado (Todos/Sim/Não) permanece apenas neste checkout de
+  homologação; 884 testes frontend e gates locais aprovados. Fora da correção
+  de produção. Banco, migrações e fontes oficiais não foram alterados por ele.
+- Gates da publicação mínima concluídos abaixo: PR independente, CI remoto,
+  conferência de SHA e publicação controlada. Word/Excel nativos, ciclo nacional
+  elegível e aceite RPO/RTO/provedor continuam pendências distintas.
+- PR independente #29 aberta, com o filtro Monitorado excluído. Primeiro CI:
+  execução funcional, pisos e E2E aprovados, mas auditoria Python e scanner
+  da imagem bloquearam certifi preexistente `2026.7.22`.
+- Usuário autorizou exclusivamente a correção para `certifi 2026.10.19`;
+  commit `73ecf5b` altera somente esse pacote/hashes e registra a evidência.
+  Auditoria local sem vulnerabilidades conhecidas; nova regressão Linux
+  completa: 401 testes em 9,30 s, gates/pisos aprovados. O CI do SHA final
+  foi conferido separadamente abaixo, sem reutilizar o aceite anterior.
+- CI final de `73ecf5b`: seis gates aplicáveis aprovados (backend/pisos/
+  auditoria, frontend, E2E, imagem/SBOM/scanner, Semgrep e gitleaks). PR #29
+  integrada em master como `799d3c6`, com árvore idêntica ao SHA testado,
+  conferida por diff vazio e pais do merge. Nenhuma outra PR promovida.
+- Deploy exato de `799d3c6` confirmado Live no Render (12:10:41 BRT) e Ready
+  em produção na Vercel. Seis gates também aprovados no merge. Sem mudar plano,
+  auto-deploy, variáveis, schema ou processos. `/health/live` e `/health`
+  responderam 200 antes/depois das exportações; sessão autenticada preservada.
+- Aceite controlado pelo Chrome em produção: UF BA, Simplificado, um DOCX e
+  depois um XLSX. Três famílias, nove macros por família (27 registros),
+  identidades e números equivalentes entre arquivos, ZIP íntegro, células
+  numéricas, filtros e congelamento preservados. Originais não reexportados.
+  Inspeção de quatro páginas Word e três abas Excel renderizadas concluída;
+  Word mantém quebras de linhas de tabela do layout anterior de master.
+  Isso não é aceite nativo nem implantação do redesign de homologação.
+- New Relic, conta 8544864 / SIGEO API, janela fixa 21/10 15:10–15:40 UTC
+  (12:10–12:40 BRT): `Transaction`, nome contendo `relatorio`, duas chamadas,
+  média 0,947 s, máximo 1,229 s, zero `error IS true`. Duração do backend,
+  não tempo total de download/navegador. Amostra pequena, sem percentil/SLA.
+- Na mesma janela, `Metric`: memória física média 152 MB e máximo amostrado
+  158,824 MB (`apm.service.memory.physical`). CPU user, pela expressão
+  `rate(sum(apm.service.cpu.usertime.utilization), 1 second) * 100`, retornou
+  0,00267 no agregado. Não converter esse valor em folga da cota Render:
+  normalização do agente/host, média temporal e picos do contêiner são distintos.
+  Memória em MB conforme documentação oficial de métricas APM do New Relic:
+  https://docs.newrelic.com/docs/data-apis/understand-data/metric-data/query-apm-metric-timeslice-data-nrql/
+  Render Free bloqueia seus gráficos de CPU/RAM; não houve upgrade contratado.
+- Evidências privadas em `/private/tmp/sigeo-aceite-producao-DJPJ54/`:
+  originais, conferência estrutural, renders e capturas do deploy/APM. Nenhum
+  payload real incluído no repositório. Não executar estresse concorrente em
+  produção para encerrar artificialmente o gate de carga representativa.
+
+### Capacidade de hospedagem e DOCX progressivo — 21/10
+
+Escopo confirmado pelo usuário: tratar capacidade dentro deste plano, sem
+autorizar produção. Estratégia apresentada antes da implementação:
+
+- Camadas: builder puro e orquestração de relatório de mérito no Service;
+  sem alteração de Repository, query, cálculo, schema ou contrato HTTP.
+- Gerar tabelas progressivamente no ZIP em memória, em vez de manter toda
+  a árvore XML de municípios; preservar template, conteúdo e paginação.
+- Reutilizar formatação da linha para reduzir CPU, sem truncar dados,
+  mudar filtros, ampliar timeout, forçar GC ou reiniciar por requisição.
+- Manter exclusão mútua de DOCX e independência de XLSX; testar paridade
+  estrutural, tabela vazia/curta/longa, caracteres especiais, erro e retomada.
+- Conferir visualmente pelo renderizador empacotado e repetir volume do clone,
+  HTTP concorrente e carga sintética Linux limitada. Sem dados reais no CI.
+- Não alterar plano contratado, processos, deploy, cron ou produção.
+
+Implementação e evidências:
+
+- Novo `app/reports/docx_tabelado.py`: grava as linhas em `word/document.xml`
+  sem acumular a árvore, copiando estrutura já formatada por linha. Mantém
+  as demais partes do pacote original e não usa arquivo temporário com dados.
+  `docx_builder.py` compartilha fonte/paginação com o caminho convencional;
+  apenas DOCX de mérito usa o novo caminho em `services/relatorios.py`.
+- `lxml` passou a dependência direta explícita. Lock offline preservou a
+  versão **6.1.3** já instalada como dependência de python-docx: nenhuma
+  atualização de pacote foi necessária.
+- 17 casos novos de paridade e falha em `test_reports_docx_tabelado.py`.
+  XML de conteúdo, estilos, larguras e paginação comparado ao builder
+  convencional; demais partes ZIP idênticas. Não é só teste de abertura.
+- Clone, nacional completo: **16.710 linhas/3 famílias**, sete SELECTs,
+  integridade conferida contra a seleção canônica. Pico de processo isolado
+  caiu de **419,2 para 117,5 MiB**; geração de **9,54 para 2,45 s**.
+  São medições macOS locais, não conversão direta para limite do provedor.
+- HTTP final: dois lotes de quatro clientes; DOCX nacional **3,04–3,11 s**,
+  XLSX **0,11–1,03 s**, um DOCX concorrente recusado corretamente em **503**
+  e geração posterior íntegra. RSS máximo observado **295,7 MiB**, ante
+  **570,1 MiB** no ensaio anterior. Contagens de domínio preservadas; há
+  diferença de aquecimento/estado do processo entre rodadas, não A/B exato.
+- Linux arm64 descartável, sem rede, RAM **512 MiB**, sem swap, aplicação
+  importada e linhas sintéticas de igual volume. Versão só com redução de
+  memória levou **101,39 s** sob **0,1 CPU**, ultrapassando o prazo de 90 s.
+  Por isso a correção também reutiliza a formatação XML da linha.
+- Revisão final, mesmos limites, três gerações consecutivas: **28,09 s**,
+  **29,99 s**, **47,50 s**; todas com **16.710 linhas**, sem erro de ZIP.
+  Pico do cgroup **150,5 MiB**, `oom=0`, `oom_kill=0` e `max=0`.
+  Esse teste é de montagem/serialização: não inclui SQL, proxy, tráfego
+  concorrente ou instrumentação New Relic. Não certifica prazo HTTP remoto.
+- Regressão integral Linux da primeira revisão progressiva: **1.777 testes**
+  em **424,58 s**, pisos de camada mantidos. Após otimização de CPU, **180
+  testes focados** em Linux/PostgreSQL em **73,62 s** e **47 locais**
+  aprovados; Ruff, formatação e mypy integrais sem erro. Não atribuir a
+  suíte integral anterior ao SHA final ainda não publicado no CI remoto.
+- Skill de documentos usada apenas na inspeção visual dos bytes exportados.
+  DOCX de mérito BA manteve duas páginas; comparação dos PNGs contra o
+  arquivo anterior encontrou diferença somente no horário de geração.
+  Não houve redesign. Aceite nativo do usuário continua pendente.
+- Evidência privada em `/private/tmp/sigeo-capacidade-oUMUoo/` e metadados
+  do volume em `/private/tmp/sigeo-volume-real-aT8DKr/`. Dados do clone não
+  entraram em fixture, commit, imagem QA ou serviço externo.
+
+Hospedagem verificada em leitura no painel Render em 21/10: `sieo-backend`
+está **Free, 0,1 CPU, 512 MB RAM**, vinculado a `master`, com último commit
+publicado `de81e98`; auto-deploy aparecia desabilitado por publicação de SHA
+específico. Nada disso foi alterado. A configuração coincide com o
+`render.yaml` e com a [documentação de planos do Render](https://render.com/docs/compute-plans).
+Não foram acionados Edit, Upgrade ou Manual Deploy.
+
+Estratégia inicial (substituída pelo caminho de capacidade aprovado acima):
+hospedar/validar a revisão em alvo remoto de
+homologação isolado, com banco de homologação, CPU/RAM e observabilidade
+comparáveis. Não há esse alvo verificado nesta rodada; criá-lo ou mudar o
+serviço de produção exige decisão/autorização própria. O ganho medido reduz
+o risco observado, mas não garante suporte a qualquer quantidade de usuários,
+cargas simultâneas ilimitadas, novos volumes ou disponibilidade do plano Free.
+
+### Concorrência HTTP no volume do clone — 21/10
+
+- Continuidade do aceite de volume e concorrência já aprovado, não nova
+  suíte com dados reais no CI. Script e metadados privados preservados em
+  `/private/tmp/sigeo-concorrencia-clone-TWIQn4/`; nenhum payload Office
+  foi salvo nesse ensaio. Preflight conferiu loopback, runtime restrito e
+  OID do clone antes de qualquer autenticação. Um processo Uvicorn existente,
+  com quatro clientes independentes compartilhando somente a sessão local.
+- Primeiro lote: DOCX nacional completo de mérito e três XLSX nacionais
+  completos (mérito e instrumentos, este repetido). **4 HTTP 200**;
+  DOCX **10,91 s**, XLSX **0,96–5,25 s**, integridade ZIP aprovada.
+  Um pedido repetido carregava `uf=BA` com `escopo=brasil`: pelo contrato,
+  o escopo Brasil prevalece; ele não comprova filtro por Bahia.
+- Segundo lote: dois DOCX nacionais completos de mérito e dois XLSX
+  nacionais completos. Um DOCX terminou **200 em 10,84 s**; o concorrente
+  foi recusado **503 em 0,008 s**, com mensagem de domínio esperada e sem
+  Content-Disposition. Ambos XLSX terminaram **200** e íntegros.
+- Após a disputa, DOCX completo do CNES `0000434` retornou **200** e
+  íntegro. As contagens das nove tabelas de domínio inventariadas ficaram
+  iguais antes/depois. Isso não é comparação byte a byte de toda a carteira;
+  login/saída geram os registros locais de autenticação esperados.
+- Health `/health`: **52 amostras HTTP 200**, maior duração **0,370 s**.
+  A rota executa `SELECT 1` (conferido em `app/main.py`); comprova essa
+  conexão mínima naquele instante, não consultas de negócio, todas as rotas,
+  comportamento do proxy ou experiência no navegador durante a carga.
+- RSS observado do servidor separado por amostragem (`ps`, intervalos com
+  espera de 250 ms): primeiro lote começou em **191,4 MiB** e chegou a
+  **531,2 MiB**; segundo começou/chegou a **570,1 MiB**. Não é pico exato
+  nem medição isolada de alocação de uma requisição. O processo já tinha
+  atendido outras exportações; retenção de memória sozinha não prova leak.
+- **Risco de capacidade permanece aberto**: esta carga não cabe com folga
+  num orçamento total de 512 MiB. Não extrapolar o RSS macOS para Linux,
+  nem presumir o plano/limite atual do provedor. O aceite remoto deverá
+  confrontar memória e concorrência disponíveis, processos/réplicas e
+  outras rotas, antes de decidir otimização adicional ou limite de recorte.
+  Não reduzir dados, mudar parâmetros, forçar GC/restart por requisição
+  ou enfraquecer o gate para declarar aprovação.
+- Nenhuma chamada a fonte oficial, ingestão, notificação de domínio,
+  migration, merge, cron, deploy ou alteração em produção nesta rodada.
+
+### Arquivos para aceite nativo e prazo de recuperação — 21/10
+
+- Interface, API e caixa de e-mail retomadas exclusivamente em loopback
+  (5181/8001/8002), usando o launcher do clone protegido; sem produção.
+- Quatro arquivos originais baixados por `GET /relatorios` autenticado na
+  API local: Instrumentos e repasse, completo, CNES `0000434` (DOCX/XLSX),
+  e Análise de mérito, simplificado, UF BA (DOCX/XLSX). HTTP 200, MIME,
+  Content-Disposition, CRC e SHA-256 conferidos. Não houve reautoria dos
+  arquivos nem alteração do layout com ferramentas de prévia.
+- Lote privado: `/private/tmp/sigeo-aceite-office-9fiLLU/`; manifesto e
+  `qa-integridade.json` preservados fora do Git. Autenticação/saída registram
+  somente a sessão local; exportação não executa ingestão ou mutação da
+  carteira. Esta prova HTTP é distinta do lote anterior somente leitura SQL.
+- Prévia LibreOffice dos dois DOCX: 8 e 2 páginas; todas inspecionadas.
+  XLSX: 6 e 3 abas importadas/renderizadas em modo de leitura. Conferência
+  do OOXML original confirma 6 instrumentos, 16 linhas de timeline,
+  9 macrorregiões por família publicada na Bahia e CNES/CNPJ textuais,
+  preservando zeros iniciais; sem células de erro. Os hashes dos quatro
+  originais continuaram idênticos depois da inspeção.
+- A prévia de planilha pode interpretar texto numérico/formato monetário
+  conforme seu renderizador. Isso não autoriza mudar tipos nem reexportar
+  os arquivos: o aceite no Excel deverá conferir identificadores, zeros e
+  moeda pt-BR no original. Não foi declarado aceite nativo antecipado.
+- Aceite solicitado ao usuário: abrir ambos DOCX no Word e ambos XLSX no
+  Excel sem aviso de reparação; conferir acentos, recorte, valores/datas,
+  tabelas entre páginas, filtros, cabeçalhos congelados e CNES `0000434`.
+  Registrar versão dos aplicativos e eventual página/aba/célula com falha.
+- Recuperação: usuário confirmou **1 hora para voltar (RTO)** e **perda
+  máxima a definir (RPO)**. Decisão refletida no runbook; não configura
+  backup, não comprova capacidade do provedor e não autoriza corte real.
+
+### Fechamento do CI e continuidade do aceite — 20/10
+
+- PR #28 permanece em rascunho para `homologacao`; commits `29153a5` e
+  `a78e521` corrigiram formatação, portabilidade do E2E e isolamento do banco
+  de CI. Mensagens seguem o padrão do projeto, identidade Git preservada.
+- Backend remoto: **1.760 testes em 422,98 s**, PostgreSQL/server/clients
+  **16.15**, x86_64, com loopback efetivo. Services **96,4%/90,6%**,
+  Repositories **97,3%/88,9%**, Routes **95,1%/70,3%** (linhas/branches).
+  `pip-audit` sem vulnerabilidades conhecidas; nenhum piso reduzido.
+- Frontend remoto aprovado e artefato de cobertura publicado; E2E **10/10
+  em 48,4 s**. Semgrep, Gitleaks, actionlint e SBOM/imagem aprovados.
+  Resultados e links das execuções registrados na descrição do PR.
+- Repetição Linux local limpa: **1.760 testes em 449,19 s**, mesmos pisos,
+  Ruff/formatação/mypy aprovados. Dois contêineres QA encerrados/removidos;
+  cluster E2E nativo sintético descartado, logs preservados. Nenhum banco
+  preexistente, `master` ou `homologacao` compartilhada foi alterado.
+- Próxima prova dentro do escopo aprovado: inventariar e exportar recortes
+  representativos do clone local validado por OID/runtime, em transações
+  somente leitura, sem autenticação/escrita, rede externa ou produção.
+  Medir tempo, consultas, tamanho e pico do processo; conferir identidades
+  e contagens dos arquivos finais contra a seleção canônica da aplicação.
+- Essa prova é aceite local de Service/SQL e integridade OOXML, não SLA,
+  benchmark de provedor, carga simultânea HTTP ou aceite nativo Word/Excel.
+  Dados privados e arquivos não entram no Git/CI. Não criar fixtures com
+  dados reais, instalar aplicativos pagos ou inventar candidato oficial.
+
+### Volume do clone e reconsulta limitada das fontes — 20/10
+
+- Inventário agregado com runtime restrito, OID validado e transação
+  `READ ONLY`/`REPEATABLE READ`: 560 convênios armazenados (seis fora de
+  escopo), 248 instrumentos armazenados, 28 propostas, 1.571 eventos,
+  213 ações, 363 linhas macro e 16.710 municipais. Não é inventário novo
+  da produção: são os dados do clone de homologação, sem copiar payloads
+  privados ou cadastrar esses registros como fixtures no CI.
+- **18 combinações aprovadas**: Brasil em ambos os tipos, níveis e formatos;
+  instrumentos completos em XLSX/DOCX por BA, tipo Convênio, acelerador,
+  município Salvador/BA e CNES. Cada caso roda em processo próprio, no
+  Service real, com SQL e guardas reais; geração somente em SELECT.
+- Arquivos ficaram em memória: CRC/OOXML e identidades/contagens conferidos
+  contra a seleção canônica dos Services. No nacional de instrumentos, a
+  aplicação selecionou **554 convênios, 28 propostas, 246 monitorados**;
+  exclusões não foram removidas nem redefinidas pelo ensaio. XLSX completo
+  preservou todas as ocorrências da timeline; DOCX conferiu os blocos sem
+  duplicar instrumentos compartilhados entre fontes.
+- Mérito usou as três famílias publicadas, sem mudar resolução de execução
+  por família ou cálculo: simplificado com **363 linhas**, completo com
+  **16.710**. Ambos os formatos preservaram todas as linhas selecionadas.
+- Medição nacional no Mac (tempo de geração / bytes / pico do processo):
+  instrumentos completo DOCX **3,145 s / 202.238 / 271.810.560**; XLSX
+  **0,270 s / 164.953 / 186.613.760**. Mérito completo DOCX **9,538 s /
+  342.817 / 439.549.952**; XLSX **0,509 s / 566.605 / 133.414.912**.
+  RSS de Darwin pós-exec, antes da validação; não é RAM por requisição.
+- Geração em 7–12 consultas por caso; nacional completo de instrumentos:
+  DOCX 11, XLSX nove; mérito sete. Essas medições não provam SLA, p95,
+  cold start, isolamento HTTP ou capacidade sob concorrência no provedor.
+  **Atenção de capacidade:** o DOCX nacional atingiu aproximadamente 419 MiB
+  neste processo; manter o aceite de RAM/provedor aberto, sem extrapolar esse
+  número de Darwin para Linux ou prometer ausência de OOM.
+- Evidências privadas em `/private/tmp/sigeo-volume-real-aT8DKr/`: launcher,
+  inventário, 18 metadados de resultado e `aceite.log`. Zero escrita no clone;
+  nenhum arquivo de relatório/dado privado foi adicionado ao repositório.
+- Reconsulta pública limitada concluída às **20:00:53 UTC**: 825374 passou
+  no contrato mínimo de identidade do Portal; 7AAFRI não foi encontrado;
+  7AAFSX continua sem `dimConvenio.numero` e `dimConvenio.objeto`. Não criar
+  candidato, aprovação ou notificação com esse payload incompleto.
+- O pequeno ZIP oficial de data de carga passou em CRC e informou
+  **20/10/2026 06:36:02**, SHA-256
+  `470ba9dd084f5e156326d94179d1b3f59aae2617c2212e382a985f5a35aa7990`.
+  Isso não certifica o frescor de todos os demais arquivos nem substitui
+  uma nova coleta nacional persistente. Nenhuma publicação ou escrita SQL.
+- Word/Excel nativos continuam ausentes nesta máquina. Foram solicitados ao
+  usuário disponibilidade para aceite nativo e limites operacionais de perda
+  de trabalho/parada; não escolher retenção/RPO/RTO em nome da equipe.
+- Sem mudança de aplicação, dependência, schema ou gatilho; nenhum merge,
+  deploy, migração operacional ou ativação de cron. Novos planos de itens/
+  fotos e identidade SISGEO permanecem separados e não iniciados.
 
 ### Publicação isolada para revisão — 20/10
 
