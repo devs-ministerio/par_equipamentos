@@ -182,7 +182,7 @@ describe("geração de relatórios com hook e transporte reais", () => {
       result.current.gerar("docx", "simplificado", { escopo: "brasil" }),
     );
     expect(result.current.erro).toBeNull();
-    expect(downloads[0]?.nome).toBe("relatorio.docx");
+    expect(downloads[0]?.nome).toBe("relatorio-sem-nome.docx");
     expect(
       new URL(String(fetchHttp.mock.calls[1][0])).searchParams.get(
         "tipo_relatorio",
@@ -216,6 +216,6 @@ describe("geração de relatórios com hook e transporte reais", () => {
       await operacao;
     });
     expect(result.current.gerando).toBeNull();
-    expect(downloads[0]?.nome).toBe("relatorio.xlsx");
+    expect(downloads[0]?.nome).toBe("relatorio-sem-nome.xlsx");
   });
 });
