@@ -19,29 +19,47 @@ from app.equipamentos import classificar_descricoes
 from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
 
 ORIGEM_ITEM_MANUAL_INICIAL = "carga_manual_inicial"
+ORIGEM_VALOR_ITEM_GLOBAL = "valor global do instrumento (PERSUS I: um acelerador por instrumento)"
 
 
-def adicionar_item_manual_inicial(convenio: Convenio, descricao: str | None, origem_dado: str | None) -> None:
+def valor_item_em_texto(valor: float | Decimal) -> str:
+    """Mesmo formato do SICONV em lote ("5928266,99"), que o relatório já interpreta."""
+    return f"{Decimal(str(valor)):.2f}".replace(".", ",")
+
+
+def adicionar_item_manual_inicial(
+    convenio: Convenio,
+    descricao: str | None,
+    origem_dado: str | None,
+    valor_total: float | Decimal | None = None,
+) -> None:
     """Inclui a evidência manual na mesma coleção de itens do plano.
 
     A estrutura continua sendo ``siconv_raw.itens_plano_aplicacao``, que é a
     fonte única dos marcadores de convênio. Os dois campos de proveniência
     deixam claro que este item não foi devolvido pela API SICONV.
+
+    ``valor_total`` grava o valor do equipamento no próprio item
+    (``VALOR_TOTAL_ITEM``), de onde o relatório o lê. Só é passado quando a
+    equipe define a regra (PERSUS I: um acelerador por instrumento, valor global
+    do instrumento) e nunca sobrescreve um valor já existente.
     """
     if not descricao or not descricao.strip():
         return
     bruto = dict(convenio.siconv_raw or {})
-    itens = list(bruto.get("itens_plano_aplicacao") or [])
+    itens = [dict(item) if isinstance(item, dict) else item for item in (bruto.get("itens_plano_aplicacao") or [])]
     descricao = descricao.strip()
-    if any(isinstance(item, dict) and item.get("DESCRICAO_ITEM") == descricao for item in itens):
-        return
-    itens.append(
-        {
+    existente = next((i for i in itens if isinstance(i, dict) and i.get("DESCRICAO_ITEM") == descricao), None)
+    if existente is None:
+        existente = {
             "DESCRICAO_ITEM": descricao,
             "ORIGEM_ITEM": ORIGEM_ITEM_MANUAL_INICIAL,
             "FONTE_ITEM": origem_dado or "carga manual inicial",
         }
-    )
+        itens.append(existente)
+    if valor_total is not None and not existente.get("VALOR_TOTAL_ITEM"):
+        existente["VALOR_TOTAL_ITEM"] = valor_item_em_texto(valor_total)
+        existente["VALOR_ITEM_ORIGEM"] = ORIGEM_VALOR_ITEM_GLOBAL
     bruto["itens_plano_aplicacao"] = itens
     convenio.siconv_raw = bruto
 
@@ -110,7 +128,14 @@ def espelhar_convenio(
     else:
         for campo, valor in campos.items():
             setattr(convenio, campo, valor)
-    adicionar_item_manual_inicial(convenio, equipamento_descricao, origem_dado)
+    # Convenção da equipe: cada PERSUS I é um único acelerador, então o valor global
+    # do instrumento é o valor do equipamento (a planilha não traz valor por item).
+    adicionar_item_manual_inicial(
+        convenio,
+        equipamento_descricao,
+        origem_dado,
+        valor_total=investimento if tipo_contratacao == "PERSUS I" else None,
+    )
     db.flush()
     evidencias = classificar_descricoes([equipamento_descricao or ""])
     registrar_marcadores(
