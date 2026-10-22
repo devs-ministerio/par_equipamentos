@@ -129,7 +129,7 @@ def novo_documento(titulo: str, *, paisagem: bool = False) -> DocumentType:
     normal.font.name = "Arial"
     normal.font.size = Pt(9.5)
     normal.font.color.rgb = _PRETO
-    normal.paragraph_format.space_after = Pt(4)
+    normal.paragraph_format.space_after = Pt(2)
     for nome, tamanho in (("Title", 16), ("Heading 1", 12), ("Heading 2", 10.5), ("Heading 3", 10), ("Heading 4", 9.5)):
         estilo = estilos[nome]
         estilo.font.name = "Arial"
@@ -274,9 +274,10 @@ def _formatar_linha_tabela(linha: _Row, fonte_pt: float | None, *, indice: int, 
     for celula in linha.cells:
         for paragrafo in celula.paragraphs:
             paragrafo.paragraph_format.keep_with_next = True if manter_junta else None
+            # Dentro da célula o espaçamento do estilo Normal só incha a linha.
+            paragrafo.paragraph_format.space_before = Pt(0)
+            paragrafo.paragraph_format.space_after = Pt(1)
             if fonte_pt is not None:
-                paragrafo.paragraph_format.space_before = Pt(0)
-                paragrafo.paragraph_format.space_after = Pt(2)
                 for run in paragrafo.runs:
                     run.font.size = Pt(fonte_pt)
 

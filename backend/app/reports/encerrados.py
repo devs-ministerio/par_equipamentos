@@ -40,7 +40,7 @@ _COLUNAS_WORD = [
     "Data de conclusão",
     "Critério",
 ]
-_PESOS_WORD = [3.2, 1.8, 1.2, 1.6, 2.6, 0.7, 1.4, 1.9, 1.6, 2.2]
+_PESOS_WORD = [3.0, 2.0, 1.2, 1.5, 2.4, 0.7, 1.4, 1.9, 2.1, 2.0]
 
 _NOTA_DATA = (
     "Data de conclusão: a registrada no monitoramento interno; na falta dela, o fim da vigência do "
@@ -143,9 +143,6 @@ def gerar_extracao(extracao: ExtracaoEncerrados, *, formato: Literal["xlsx", "do
         documento,
         f"Recorte: {recorte}. {len(extracao.itens)} concluídos; "
         f"{len(extracao.pendencias)} pendências excluídas da relação principal.",
-    )
-    docx_builder.adicionar_paragrafo(
-        documento, f"Precedência: {_PRECEDENCIA} {_NOTA_DATA} {_NOTA_QUANTIDADE} {_LIMITE}"
     )
     return gerar_bytes_tabelados(
         documento,

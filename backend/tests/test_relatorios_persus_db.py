@@ -142,70 +142,24 @@ def test_preenchimento_poe_o_valor_global_em_um_unico_item_sem_contar_em_dobro_e
 
 
 @pytest.mark.db
-def test_nota_do_valor_persus_i_so_aparece_quando_o_recorte_tem_persus_i():
-    # Given: um município só com PERSUS I e outro só com convênio comum
+def test_word_nao_traz_nota_de_valores_sob_o_resumo():
+    # Given: recorte com PERSUS I
     db = SessionLocal()
     try:
-        com_persus = convenio("nota-persus", "PERSUS I", "Em operação", 9_000_000.0)
-        com_persus.municipio = "Cidade Persus Teste"
-        sem_persus = convenio("nota-conv", "Convênio", "Em execução", 1_000_000.0)
-        sem_persus.municipio = "Cidade Comum Teste"
-        db.add_all([com_persus, sem_persus])
-        db.flush()
-
-        def textos(municipio: str) -> list[str]:
-            conteudo = montar_relatorio(
-                db=db,
-                formato="docx",
-                nivel="simplificado",
-                tipo_relatorio="instrumentos_repasse",
-                filtro=FiltroRelatorio(escopo="municipio", uf="BA", municipio=municipio),
-            )
-            return [p.text for p in Document(BytesIO(conteudo)).paragraphs]
-
-        # When / Then
-        assert any("pode incluir obras" in t for t in textos("Cidade Persus Teste"))
-        assert not any("pode incluir obras" in t for t in textos("Cidade Comum Teste"))
-        assert not any(
-            "PERSUS II" in t and "sem" not in t and "não têm valor" in t for t in textos("Cidade Comum Teste")
-        )
-    finally:
-        db.rollback()
-        db.close()
-
-
-def test_tabela_de_equipamentos_soma_so_itens_com_valor():
-    # Given: dois aceleradores, só um com valor (o outro, de PERSUS II, sem valor)
-    from app.services.relatorios import _resumo_equipamentos
-
-    colunas, linhas = _resumo_equipamentos({1: [("Acelerador Linear", 9_276_920.16)], 2: [("Acelerador Linear", None)]})
-    # Then: quantidade conta os dois, valor é o do item que tem; a nota do relatório explica
-    assert colunas == ["Equipamentos", "Quantidade", "Valor"]
-    assert linhas == [["Acelerador Linear", 2, 9_276_920.16]]
-
-
-def test_tabela_de_equipamentos_sem_nenhum_valor_fica_sem_valor():
-    from app.services.relatorios import _resumo_equipamentos
-
-    _, linhas = _resumo_equipamentos({1: [("Mamógrafo", None)]})
-    assert linhas == [["Mamógrafo", 1, None]]
-
-
-@pytest.mark.db
-def test_nota_cita_equipamento_do_persus_ii_sem_valor():
-    db = SessionLocal()
-    try:
-        db.add(convenio("nota-ps2", "PERSUS II", "Em contratação", 0.0))
+        c = convenio("nota-persus", "PERSUS I", "Em operação", 9_000_000.0)
+        c.municipio = "Cidade Persus Teste"
+        db.add(c)
         db.flush()
         conteudo = montar_relatorio(
             db=db,
             formato="docx",
             nivel="simplificado",
             tipo_relatorio="instrumentos_repasse",
-            filtro=FiltroRelatorio(escopo="uf", uf="BA", tipo_contratacao="PERSUS II"),
+            filtro=FiltroRelatorio(escopo="municipio", uf="BA", municipio="Cidade Persus Teste"),
         )
         textos = [p.text for p in Document(BytesIO(conteudo)).paragraphs]
-        assert any("PERSUS II" in t and "não têm valor informado" in t for t in textos)
+        # Then: sem o parágrafo de notas
+        assert not any("somam apenas registros" in t or "pode incluir obras" in t for t in textos)
     finally:
         db.rollback()
         db.close()

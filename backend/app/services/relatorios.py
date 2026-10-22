@@ -1004,9 +1004,6 @@ def _data_inauguracao_previsao(fase_atual: str, eventos_inauguracao: Sequence[Ev
 _SITUACAO_SEM_MONITORAMENTO_ESPERADO = "Em contratação"
 _TIPO_EM_CONTRATACAO = "PERSUS II"
 _TIPO_PERSUS_I = "PERSUS I"
-_NOTA_EQUIPAMENTO_PERSUS_II = (
-    "Equipamentos de instrumentos PERSUS II, ainda em contratação, estão na quantidade, mas não têm valor informado."
-)
 _NOTA_VALOR_PERSUS_I = (
     "Em instrumentos PERSUS I, o valor do equipamento é o valor global do instrumento e pode incluir obras."
 )
@@ -1297,12 +1294,6 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         documento,
         "Convênios (SICONV/TransfereGov), propostas (TransfereGov) e monitoramento interno, SIGEO.",
     )
-    nota_valores = "Os valores somam apenas registros com valor informado; não estimam os demais."
-    if any(c.tipo_contratacao == _TIPO_PERSUS_I for c in convenios):
-        nota_valores += f" {_NOTA_VALOR_PERSUS_I}"
-    if any(c.tipo_contratacao == _TIPO_EM_CONTRATACAO for c in convenios):
-        nota_valores += f" {_NOTA_EQUIPAMENTO_PERSUS_II}"
-    docx_builder.adicionar_paragrafo(documento, nota_valores)
     docx_builder.adicionar_titulo(documento, "Informações Detalhadas")
     instrumentos_por_nr = {i.instrumento.nr_convenio: i for i in instrumentos}
     marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, _MARCO_INAUGURACAO_CODIGO)
