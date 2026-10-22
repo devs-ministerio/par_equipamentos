@@ -16,6 +16,8 @@ from lxml import etree
 
 from app.reports import docx_builder
 
+_LINHAS_TABELA_CURTA = 6
+
 
 @dataclass(frozen=True)
 class SecaoTabela:
@@ -73,7 +75,8 @@ def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]
             raise ValueError("O documento tabulado deve iniciar sem tabelas.")
         tabelas = []
         for secao in secoes:
-            docx_builder.adicionar_titulo(documento, secao.titulo)
+            # Título preso (keepNext) a uma tabela longa vai sozinho para a página seguinte.
+            docx_builder.adicionar_titulo(documento, secao.titulo, solto=len(secao.linhas) > _LINHAS_TABELA_CURTA)
             tabelas.append(
                 docx_builder.adicionar_tabela(
                     documento,

@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 from docx import Document
 from docx.document import Document as DocumentType
 from docx.enum.section import WD_ORIENT
+from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
@@ -177,10 +178,32 @@ def adicionar_cabecalho_institucional(documento: DocumentType, *, gerado_em: dat
 
 
 @_serializar_xml
-def adicionar_titulo(documento: DocumentType, texto: str, *, nivel: int = 1) -> None:
+def adicionar_titulo(documento: DocumentType, texto: str, *, nivel: int = 1, solto: bool = False) -> None:
     if not 0 <= nivel <= 9:
         raise ValueError(f"level must be in range 0-9, got {nivel}")
+    if solto:
+        _novo_paragrafo(documento, texto, estilo=_garantir_estilo_titulo_solto(documento))
+        return
     _novo_paragrafo(documento, texto, estilo="Title" if nivel == 0 else f"Heading {nivel}")
+
+
+def _garantir_estilo_titulo_solto(documento: DocumentType) -> str:
+    """Título de nível 1 sem `keepNext`: o Word/Pages não o prendem à tabela longa que vem depois."""
+    nome = "Titulo 1 solto"
+    estilos = documento.styles
+    if nome not in [e.name for e in estilos]:
+        estilo = estilos.add_style(nome, WD_STYLE_TYPE.PARAGRAPH)
+        estilo.base_style = estilos["Normal"]
+        estilo.font.name = "Arial"
+        estilo.font.size = Pt(12)
+        estilo.font.bold = True
+        estilo.font.color.rgb = _PRETO
+        estilo.paragraph_format.space_before = Pt(9)
+        estilo.paragraph_format.space_after = Pt(4)
+        nivel = OxmlElement("w:outlineLvl")
+        nivel.set(qn("w:val"), "0")
+        estilo.element.get_or_add_pPr().append(nivel)
+    return nome
 
 
 @_serializar_xml
