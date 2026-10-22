@@ -264,6 +264,45 @@ job notifica por e-mail do GitHub; a verificação final do job transforma "sem
 backup íntegro em 24 h" em falha. O RPO de 24 h só é dado como atendido depois
 de ao menos um ciclo agendado completo com sucesso.
 
+**Ensaio de restauração em destino Neon (22/10/2026)**
+
+Projeto descartável `sigeo-ensaio-restauracao-20261022` (PostgreSQL 18, Ohio, 0,25–2 CU),
+conexão **direta** (sem `-pooler`: o pooler quebra o `pg_restore`). Comando medido:
+
+```bash
+age -d -i IDENTIDADE -o dump dump.age && \
+  pg_restore --no-owner --no-privileges --exit-on-error -j 4 -d "$NEON_URL" dump
+```
+
+- **Resultado:** 848 s (14 min 8 s) para decifrar e restaurar; `convenio` = 560,
+  `user` = 22, `alembic_version` = `a3f1c9e7b204`, idêntico ao backup. O download
+  do R2 não entrou nessa medida (poucos minutos no máximo nos ensaios).
+- **Lentidão:** vem do compute pequeno construindo índices de tabelas grandes
+  (`cnes_estabelecimento`, 635 mil linhas). Num desastre real, subir o mínimo do
+  compute (por exemplo 2 CU) antes de restaurar deve reduzir o tempo; não medido.
+- **Credencial do destino:** a string de conexão contém senha. Colar num `read -s`
+  do terminal, nunca em arquivo, chat ou histórico; o `pbpaste` lê o clipboard,
+  que é sobrescrito por qualquer comando copiado, então colar direto no prompt.
+- **Limpeza:** o projeto de ensaio contém cópia dos dados reais e deve ser
+  apagado pelo responsável assim que a medição terminar.
+
+**O que ainda falta para certificar o RTO de 1 h**
+
+1. **Recriar as roles após a restauração.** O `--no-owner --no-privileges` deixa as
+   tabelas sem dono e sem permissões: `sigeo_runtime` (só DML), `sigeo_migration`
+   (dona do schema, DDL) e `sigeo_backup` (somente leitura) precisam ser criadas e
+   receber `GRANT`/dono. **Não há script versionado que reproduza isso**
+   (gap P2 de `diagnostico-constituicao-database-2026-09-29.md`); sem ele a API não
+   conecta com a credencial de produção. É o principal item restante.
+2. Trocar `DATABASE_URL` (e `DATABASE_URL_MIGRATION`) no Render e esperar o redeploy;
+   tempo a medir no histórico de deploys do Render, sem tocar na produção.
+3. Teste funcional: subir a API contra o destino restaurado e conferir login e uma
+   leitura autenticada.
+
+Orçamento provisório: restauração de dados ~15 a 18 min (download + decifra +
+restauração) deixa ~40 min para detecção, roles, troca de URL e redeploy. Esse
+orçamento só vale depois dos itens 1 a 3.
+
 **Riscos e pendências**
 
 - **Identidade `age` 1 retirada de uso (22/10).** A identidade criada no ensaio
