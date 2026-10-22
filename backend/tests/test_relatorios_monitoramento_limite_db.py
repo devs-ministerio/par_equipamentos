@@ -19,6 +19,7 @@ from tests.fixtures_relatorios_monitoramento_limite import (
     criar_monitorados_limite,
     ocultar_monitorados,
 )
+from tests.numeros_relatorio import numeros_dos_blocos
 
 
 @pytest.fixture
@@ -97,9 +98,7 @@ def test_filtros_nao_perdem_monitorado_depois_do_primeiro_lote(carteira_monitora
         assert [row[0].value for row in aba.iter_rows(min_row=2)] == [ultimo.nr_convenio]
     else:
         documento = Document(BytesIO(conteudo))
-        assert [p.text for p in documento.paragraphs if p.text.startswith("Número: ")] == [
-            f"Número: {ultimo.nr_convenio}"
-        ]
+        assert numeros_dos_blocos(documento.paragraphs) == [ultimo.nr_convenio]
 
 
 @pytest.mark.parametrize("formato", ["xlsx", "docx"])

@@ -12,6 +12,7 @@ from app.db.base import SessionLocal
 from app.db.models import Convenio
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from tests.fixtures_relatorios_matriz import EQUIPAMENTO, PREFIXO, criar_carteira_matriz
+from tests.numeros_relatorio import numero_do_bloco, numeros_dos_blocos
 
 CASOS = [
     ("brasil", FiltroRelatorio(escopo="brasil"), (1, 2, 3, 4, 5)),
@@ -89,8 +90,8 @@ def test_filtro_exporta_exatamente_os_convenios_esperados(carteira_matriz, forma
             assert estilo is not None
             if estilo.name == "Heading 2" and paragrafo.text == "Acompanhamento interno no recorte":
                 break
-            if paragrafo.text.startswith("Número: "):
-                obtidos.add(paragrafo.text.removeprefix("Número: "))
+            if (numero := numero_do_bloco(paragrafo)) is not None:
+                obtidos.add(numero)
         assert obtidos == numeros
         assert documento.paragraphs[0].text.endswith(filtro.titulo())
 
@@ -162,4 +163,4 @@ def test_gera_amostra_sintetica_para_conferencia_visual(carteira_matriz, tmp_pat
         assert aba["A2"].value == "9007001"
     else:
         documento = Document(caminho)
-        assert [p.text for p in documento.paragraphs if p.text.startswith("Número: ")] == ["Número: 9007001"]
+        assert numeros_dos_blocos(documento.paragraphs) == ["9007001"]

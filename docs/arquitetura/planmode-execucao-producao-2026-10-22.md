@@ -119,16 +119,25 @@ backup, o ensaio no Neon e a consulta de permissões mostraram.
    Esperado: 17 objetos normalizados (3 tabelas, 3 sequências, 11 enums) e "depois: 0".
    **Sem este passo as migrations falham** com `must be owner of type notificacao_tipo`
    (reproduzido localmente). Repetir o script não tem efeito.
-5. **Migrations:** workflow `migrar_banco.yml` (as 12 revisões; ~0,4 s no ensaio).
+5. **Dado (PERSUS I):** o relatório lê o valor do acelerador em
+   `siconv_raw.itens_plano_aplicacao[].VALOR_TOTAL_ITEM`, vazio nos 92 PERSUS I. Rodar
+   primeiro a simulação e, depois, gravar, com autorização e backup recente:
+   `python -m scripts.preencher_valor_item_persus_i` (simulação) e
+   `python -m scripts.preencher_valor_item_persus_i --aplicar --confirmo-host HOST`.
+   Idempotente, grava o valor global do instrumento em UM item por convênio (nunca em
+   dobro), registra `VALOR_ITEM_ORIGEM` e uma linha de auditoria por convênio. Ensaiado
+   em cópia local: 92 gravados, repetição sem efeito. Sem este passo o acelerador
+   continua sem valor nos relatórios.
+6. **Migrations:** workflow `migrar_banco.yml` (as 12 revisões; ~0,4 s no ensaio).
    Conferir `alembic current` = `b7f35c806e4a`.
-6. **Código:** merge na `master` e **Manual Deploy no painel do Render**: o serviço
+7. **Código:** merge na `master` e **Manual Deploy no painel do Render**: o serviço
    **não tem deploy automático** (confirmado em 22/10). Anotar o horário de início e de
    fim do deploy (insumo do RTO).
-7. **Verificações:** `/health`, login, refresh, `/auth/me`, leituras de monitoramento,
+8. **Verificações:** `/health`, login, refresh, `/auth/me`, leituras de monitoramento,
    um relatório pequeno em DOCX e outro em XLSX, notificações, filtro de encerrados.
-8. Deploy do frontend (Vercel, automático) e smoke ponta a ponta.
-9. **Jobs e schedules continuam desligados** neste dia. Registrar tempo, erros, CPU e RAM.
-10. **Saída:** produção estável durante a janela de observação (a definir com o
+9. Deploy do frontend (Vercel, automático) e smoke ponta a ponta.
+10. **Jobs e schedules continuam desligados** neste dia. Registrar tempo, erros, CPU e RAM.
+11. **Saída:** produção estável durante a janela de observação (a definir com o
     usuário, sugestão 48 h) sem erro novo.
 
 **Rollback:** código, redeploy do commit anterior no Render; banco, restaurar o backup

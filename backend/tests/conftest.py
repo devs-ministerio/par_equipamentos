@@ -23,6 +23,7 @@ os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 
 _DB_TEST_MODULES = {
     "test_relatorios_encerrados_db.py",
+    "test_relatorios_persus_db.py",
     "test_relatorios_tcp_db.py",
     "test_relatorios_carga_preenchida_db.py",
     "test_relatorios_lotes_db.py",

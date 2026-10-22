@@ -9,6 +9,7 @@ import pytest
 from docx import Document
 
 from app.services.relatorios import FiltroRelatorio, TipoRelatorio, montar_relatorio
+from tests.numeros_relatorio import numeros_dos_blocos
 from tests.test_relatorios_volume_arquivos_db import _esperados
 from tests.test_relatorios_volume_arquivos_db import volume_arquivo as volume_arquivo
 
@@ -60,7 +61,7 @@ def test_docx_no_teto_preserva_todos_os_blocos_ou_linhas(volume_arquivo, nivel, 
             if " -- Proposta " in p.text and p.style is not None and p.style.name == "Heading 3"
         ]
     else:
-        obtidos = [p.text.removeprefix("Número: ") for p in documento.paragraphs if p.text.startswith("Número: ")]
+        obtidos = numeros_dos_blocos(documento.paragraphs)
     assert len(obtidos) == total
     assert len(set(obtidos)) == total
     assert set(obtidos) == esperados

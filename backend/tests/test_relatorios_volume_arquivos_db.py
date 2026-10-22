@@ -16,8 +16,8 @@ from tests.fixtures_relatorios_monitoramento_limite import criar_monitorados_lim
 CASOS = [
     ("convenios", "simplificado", "Convênios", 5000),
     ("convenios", "completo", "Convênios", 5000),
-    ("propostas", "simplificado", "Propostas candidatas", 5000),
-    ("propostas", "completo", "Propostas candidatas", 5000),
+    ("propostas", "simplificado", "Propostas", 5000),
+    ("propostas", "completo", "Propostas", 5000),
     ("macros", "simplificado", "Cobertura QA_LIMITE", 1000),
     ("municipios", "completo", "Cobertura QA_LIMITE", 10000),
     ("monitoramento", "simplificado", "Monitoramento", 500),

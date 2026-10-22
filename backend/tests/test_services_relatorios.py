@@ -263,7 +263,7 @@ def test_instrumentos_repasse_xlsx_simplificado_tem_resumo_convenios_propostas_m
             "Resumo (Propostas)",
             "Resumo (Equipamentos)",
             "Convênios",
-            "Propostas candidatas",
+            "Propostas",
             "Monitoramento",
         ]
         assert [cell.value for cell in pasta["Resumo"][1]] == ["Instrumentos/Programas", "Quantidade", "Valor"]

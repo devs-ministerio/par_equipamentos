@@ -13,6 +13,7 @@ from app.repositories.convenios import listar_numeros_fora_escopo
 from app.services import monitoramento_instrumentos
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from tests.fixtures_relatorios_cruzados import criar_carteira_cruzada
+from tests.numeros_relatorio import numero_do_bloco
 
 CASOS = [
     ("brasil", FiltroRelatorio(escopo="brasil"), (1, 2, 3, 4, 5), (1, 2, 3, 4, 5)),
@@ -50,8 +51,8 @@ def numeros_monitorados_word(documento):
     numeros = set()
     aguardando_fase = False
     for paragrafo in documento.paragraphs:
-        if paragrafo.text.startswith("Número: "):
-            numero = paragrafo.text.removeprefix("Número: ")
+        if (encontrado := numero_do_bloco(paragrafo)) is not None:
+            numero = encontrado
         if aguardando_fase:
             if paragrafo.text.startswith("Situação: ") and paragrafo.text != "Situação: —":
                 numeros.add(numero)
@@ -83,7 +84,7 @@ def test_recorte_preserva_propostas_e_monitorados_sem_reintroduzir_obras(
     # Then: oráculos explícitos, incluindo a exceção anual do acompanhamento em aberto.
     if formato == "xlsx":
         pasta = load_workbook(BytesIO(conteudo))
-        propostas_obtidas = {str(row[0].value) for row in pasta["Propostas candidatas"].iter_rows(min_row=2)}
+        propostas_obtidas = {str(row[0].value) for row in pasta["Propostas"].iter_rows(min_row=2)}
         aba = pasta["Monitoramento" if nivel == "simplificado" else "Monitoramento (timeline)"]
         mon_obtidos = {str(row[0].value) for row in aba.iter_rows(min_row=2)}
     else:
@@ -168,7 +169,7 @@ def test_acompanhamento_corrente_muda_na_virada_do_ano(carteira_cruzada, monkeyp
     if formato == "xlsx":
         pasta = load_workbook(BytesIO(conteudo))
         obtidos = {str(row[0].value) for row in pasta["Monitoramento (timeline)"].iter_rows(min_row=2)}
-        assert pasta["Propostas candidatas"].max_row == 1
+        assert pasta["Propostas"].max_row == 1
     else:
         documento = Document(BytesIO(conteudo))
         obtidos = numeros_monitorados_word(documento)

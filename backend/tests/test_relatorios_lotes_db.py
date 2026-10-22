@@ -14,6 +14,7 @@ from app.repositories import monitoramento as repo
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from app.services.relatorios_monitoramento import carregar_monitoramento_relatorio
 from tests.fixtures_relatorios_preenchidos import criar_carteira_preenchida
+from tests.numeros_relatorio import numeros_dos_blocos
 
 
 @contextmanager
@@ -57,9 +58,10 @@ def test_consultas_do_relatorio_nao_crescem_por_instrumento(formato, nivel, tmp_
             if formato == "docx":
                 documento = Document(BytesIO(arquivos[1]))
                 textos = "\n".join(p.text for p in documento.paragraphs)
+                numeros_blocos = set(numeros_dos_blocos(documento.paragraphs))
                 celulas = [c.text for t in documento.tables for r in t.rows for c in r.cells]
                 for n in range(8):
-                    assert f"Número: QA_CARGA_{n:04}" in textos
+                    assert f"QA_CARGA_{n:04}" in numeros_blocos
                     if nivel == "completo":
                         assert f"Concluída QA {n:04}" in celulas
                         assert f"Pendente QA {n:04}" in celulas

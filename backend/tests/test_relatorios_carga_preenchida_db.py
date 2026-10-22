@@ -13,6 +13,7 @@ from openpyxl import load_workbook
 from app.db.base import SessionLocal
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from tests.fixtures_relatorios_preenchidos import criar_carteira_preenchida
+from tests.numeros_relatorio import numeros_dos_blocos
 from tests.test_relatorios_lotes_db import contar_selects
 
 
@@ -51,9 +52,7 @@ def test_carteira_preenchida_de_500_preserva_todos_os_instrumentos(formato, tmp_
             esperados = {f"QA_CARGA_{n:04}" for n in range(500)}
             if formato == "docx":
                 documento = Document(BytesIO(conteudo))
-                numeros = [
-                    p.text.removeprefix("Número: ") for p in documento.paragraphs if p.text.startswith("Número: ")
-                ]
+                numeros = numeros_dos_blocos(documento.paragraphs)
                 assert len(numeros) == 500 and set(numeros) == esperados
                 celulas = [c.text for t in documento.tables for r in t.rows for c in r.cells]
                 for n in range(500):

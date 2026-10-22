@@ -305,7 +305,7 @@ def _legendas_resumo(filtro: FiltroRelatorio) -> tuple[str, str, str]:
         ressalva_monitoramento = " A carteira monitorada inclui instrumentos em andamento de anos anteriores."
     return (
         f"Instrumentos e programas {recorte}.{restricoes}{tipo_instrumentos}{ressalva_monitoramento}",
-        f"Propostas candidatas {recorte} ({contexto_propostas}).",
+        f"Propostas {recorte} ({contexto_propostas}).",
         f"Equipamentos identificados em convênios {recorte}.{restricoes}{tipo_equipamentos}",
     )
 
@@ -389,7 +389,7 @@ def _linhas_leitura(
                     "Situação, programa, equipamento e busca não filtram propostas nem monitoramento.",
                 ],
                 ["Tipo de contratação", "Filtra convênios e monitoramento; não filtra propostas."],
-                ["Valor", "Soma apenas valores informados; não estima registros sem valor."],
+                ["Valor", f"Soma apenas valores informados; não estima registros sem valor. {_NOTA_VALOR_PERSUS_I}"],
                 ["Contagem de convênios", contagens.get("convenios", 0)],
                 ["Contagem de propostas", contagens.get("propostas", 0)],
                 ["Contagem de instrumentos monitorados", contagens.get("monitoramento", 0)],
@@ -841,13 +841,16 @@ def _resumo_instrumentos_programas(
     tipos_em_ordem = [t for t in _ORDEM_TIPO_CONTRATACAO if t in contagem]
     tipos_em_ordem += sorted(t for t in contagem if t not in _ORDEM_TIPO_CONTRATACAO)
     for tipo in tipos_em_ordem:
-        linhas.append(
-            [
-                _ROTULO_TIPO_CONTRATACAO.get(tipo, tipo),
-                contagem[tipo],
-                valor_por_tipo[tipo] if com_valor[tipo] else None,
-            ]
-        )
+        valor_linha: object = valor_por_tipo[tipo] if com_valor[tipo] else None
+        itens_tipo = [c for c in convenios if (c.tipo_contratacao or "Convênio") == tipo]
+        if (
+            valor_linha is None
+            and tipo == _TIPO_EM_CONTRATACAO
+            and all(c.situacao == _SITUACAO_SEM_MONITORAMENTO_ESPERADO for c in itens_tipo)
+        ):
+            # Ainda sem repasse nem valor: a própria tabela diz o motivo.
+            valor_linha = _ROTULO_CONTRATACAO
+        linhas.append([_ROTULO_TIPO_CONTRATACAO.get(tipo, tipo), contagem[tipo], valor_linha])
     linhas.append(["Instrumentos monitorados (carteira de acompanhamento)", len(instrumentos), None])
     return colunas, linhas
 
@@ -863,7 +866,7 @@ _SITUACOES_PROPOSTA = [
 def _resumo_propostas(propostas: Sequence[PropostaCandidata]) -> tuple[list[str], list[list[object]]]:
     """2ª tabela -- por `situacao_proposta` (as 4 únicas confirmadas contra
     o banco real -- Bloco 8) + "Parcerias Firmadas" (`tem_parceria`)."""
-    colunas = ["Propostas candidatas", "Quantidade", "Valor"]
+    colunas = ["Propostas", "Quantidade", "Valor"]
     linhas: list[list[object]] = []
     for chave, rotulo in _SITUACOES_PROPOSTA:
         itens = [p for p in propostas if p.situacao_proposta == chave]
@@ -948,7 +951,7 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
     colunas_prop, linhas_prop = _tabela_propostas(propostas, nivel)
     xlsx_builder.escrever_aba_tabela(
         pasta,
-        "Propostas candidatas",
+        "Propostas",
         colunas_prop,
         linhas_prop,
         colunas_moeda=_MOEDA_PROPOSTA,
@@ -998,6 +1001,12 @@ def _data_inauguracao_previsao(fase_atual: str, eventos_inauguracao: Sequence[Ev
 
 
 _SITUACAO_SEM_MONITORAMENTO_ESPERADO = "Em contratação"
+_TIPO_EM_CONTRATACAO = "PERSUS II"
+_TIPO_PERSUS_I = "PERSUS I"
+_NOTA_VALOR_PERSUS_I = (
+    "Em instrumentos PERSUS I, o valor do equipamento é o valor global do instrumento e pode incluir obras."
+)
+_ROTULO_CONTRATACAO = "CONTRATAÇÃO"
 
 
 _COLUNAS_ACOES_BLOCO = ["Descrição", "Responsável", "Prevista", "Conclusão"]
@@ -1165,7 +1174,6 @@ def _bloco_instrumento_narrativo(
     # real do registro.
     tipo_rotulo = convenio.tipo_contratacao or "Convênio"
     docx_builder.adicionar_titulo(documento, f"{convenio.convenente_nome} -- {tipo_rotulo} {convenio.numero}", nivel=3)
-    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Número", convenio.numero)
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Convenente", convenio.convenente_nome)
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNPJ", convenio.convenente_cnpj or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNES", convenio.cnes or "—")
@@ -1283,19 +1291,12 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         docx_builder.adicionar_legenda_tabela(documento, next(contador), legenda)
     docx_builder.adicionar_fonte(
         documento,
-        "Convênios (SICONV/TransfereGov), propostas candidatas (TransfereGov) e monitoramento interno, SIGEO.",
+        "Convênios (SICONV/TransfereGov), propostas (TransfereGov) e monitoramento interno, SIGEO.",
     )
-    docx_builder.adicionar_paragrafo(
-        documento, "Os valores somam apenas registros com valor informado; não estimam os demais."
-    )
-    persus_ii_do_recorte = [c for c in convenios if c.tipo_contratacao == "PERSUS II"]
-    if persus_ii_do_recorte and all(c.situacao == _SITUACAO_SEM_MONITORAMENTO_ESPERADO for c in persus_ii_do_recorte):
-        docx_builder.adicionar_paragrafo(
-            documento,
-            f"Nota: os {len(persus_ii_do_recorte)} instrumento(s) PERSUS II deste recorte estão em fase de "
-            "contratação -- ainda sem obra, equipamento ou licença pra registrar no monitoramento interno.",
-        )
-
+    nota_valores = "Os valores somam apenas registros com valor informado; não estimam os demais."
+    if any(c.tipo_contratacao == _TIPO_PERSUS_I for c in convenios):
+        nota_valores += f" {_NOTA_VALOR_PERSUS_I}"
+    docx_builder.adicionar_paragrafo(documento, nota_valores)
     docx_builder.adicionar_titulo(documento, "Informações Detalhadas")
     instrumentos_por_nr = {i.instrumento.nr_convenio: i for i in instrumentos}
     marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, _MARCO_INAUGURACAO_CODIGO)
@@ -1365,7 +1366,7 @@ def montar_relatorio(
         try:
             if filtro.encerramento == "encerrados":
                 if tipo_relatorio != "instrumentos_repasse":
-                    raise ValidationError("Encerramento só se aplica ao relatório de instrumentos e parcerias.")
+                    raise ValidationError("Conclusão só se aplica ao relatório de instrumentos e parcerias.")
                 from app.reports.encerrados import gerar_extracao
                 from app.services.relatorios_encerrados import extrair_encerrados
 

@@ -15,6 +15,7 @@ from openpyxl import load_workbook
 
 from tests.fixtures_relatorios_tcp import SENHA_TCP
 from tests.fixtures_relatorios_tcp import servidor_relatorios_tcp as servidor_relatorios_tcp
+from tests.numeros_relatorio import numeros_dos_blocos
 
 
 def numeros(formato, conteudo):
@@ -22,7 +23,7 @@ def numeros(formato, conteudo):
         assert pacote.testzip() is None
     if formato == "docx":
         documento = Document(BytesIO(conteudo))
-        return [p.text.removeprefix("Número: ") for p in documento.paragraphs if p.text.startswith("Número: ")]
+        return numeros_dos_blocos(documento.paragraphs)
     pasta = load_workbook(BytesIO(conteudo))
     try:
         return [r[0] for r in pasta["Convênios"].iter_rows(min_row=2, values_only=True)]

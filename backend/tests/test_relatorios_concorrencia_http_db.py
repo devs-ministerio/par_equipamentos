@@ -19,6 +19,7 @@ from tests.fixtures_relatorios_concorrencia import (
 from tests.fixtures_relatorios_concorrencia import (
     relatorios_concorrentes as relatorios_concorrentes,
 )
+from tests.numeros_relatorio import numeros_dos_blocos
 
 
 def _solicitar(pedido: PedidoRelatorio, email: str, inicio: Barrier):
@@ -49,7 +50,7 @@ def _numeros_do_arquivo(formato: str, conteudo: bytes) -> frozenset[str]:
         finally:
             pasta.close()
     documento = Document(BytesIO(conteudo))
-    return frozenset(p.text.removeprefix("Número: ") for p in documento.paragraphs if p.text.startswith("Número: "))
+    return frozenset(numeros_dos_blocos(documento.paragraphs))
 
 
 def _conferir_respostas(pedidos, respostas, *, admite_ocupado=False):
