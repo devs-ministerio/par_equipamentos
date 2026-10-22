@@ -1,5 +1,7 @@
 # Homologação local protegida — plano aprovado de clonagem
 
+> **Estado em 22/10/2026: concluído.** A cópia protegida, o runtime restrito, as contas sintéticas e a validação existem e foram usadas nos ensaios do plano principal. O que sobrou (convite e primeiro login por link, aprovação do Radar pela interface, fontes e automação, gates finais) está acompanhado no [checklist do plano de espelho](planmode-espelho-notificacoes-2026-10-06.md) e na Fase 1 do [plano de execução](planmode-execucao-producao-2026-10-22.md). Este documento fica como referência do desenho.
+
 ## Estado de retomada — 17/10/2026 (prevalece sobre o histórico)
 
 - O checkout recuperado está isolado em
