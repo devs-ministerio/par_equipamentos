@@ -270,7 +270,10 @@ verificação final do job transforma "sem backup íntegro em 24 h" em falha.
   nunca GitHub, R2, Neon, Render, e-mail ou chat. **Risco aceito
   temporariamente (22/10):** hoje o cofre tem um único titular. Mover o item
   para uma coleção de organização com ao menos uma segunda pessoa (ou ativar o
-  acesso de emergência do Bitwarden) é pendência; até lá, perder o acesso ao
+  acesso de emergência do Bitwarden) é pendência. Ao restaurar, buscar o item do
+  Bitwarden **pelo id** (`bw list items --search age`; depois `bw get notes ID`),
+  nunca pelo nome: a busca por nome do `bw` é aproximada e pode devolver mais de
+  um item, e apagar por engano um deles descartaria uma das identidades; até lá, perder o acesso ao
   cofre e ao Mac simultaneamente torna os backups irrecuperáveis. O RTO só vale após restaurar com a **segunda**
   identidade retirada do seu local de guarda. Sem pelo menos uma identidade
   acessível, nenhum backup é restaurável.
