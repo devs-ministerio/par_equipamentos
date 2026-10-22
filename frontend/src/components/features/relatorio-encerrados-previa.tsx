@@ -1,4 +1,5 @@
 import { Pagination } from "@/components/common/pagination";
+import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import type { RegistroEncerrado } from "@/services/relatorios-encerrados";
 
 interface Props {
@@ -44,6 +45,10 @@ export function RelatorioEncerradosPrevia({
                   {item.numero} · {item.tipo} ·{" "}
                   {item.municipio ?? "Município não informado"}/{item.uf ?? "—"}
                 </p>
+                <p className="mt-2 break-words text-sm">
+                  <span className="text-muted-foreground">Equipamentos: </span>
+                  {item.equipamentos || "Não identificado"}
+                </p>
               </div>
               <div className="min-w-0">
                 <p
@@ -55,9 +60,20 @@ export function RelatorioEncerradosPrevia({
                 >
                   {item.motivo}
                 </p>
-                <p className="mt-1 break-words text-xs text-muted-foreground">
-                  {item.evidencia}
+                <p className="mt-1 text-sm tabular-nums">
+                  <span className="text-muted-foreground">Valor global: </span>
+                  {fmtMoeda(item.valor_global)}
+                  <span className="text-muted-foreground"> · Conclusão: </span>
+                  {fmtData(item.data_referencia)}
+                  {item.origem_data === "Fim da vigência" &&
+                    item.data_referencia &&
+                    " (fim da vigência)"}
                 </p>
+                {item.pendencia && (
+                  <p className="mt-1 break-words text-xs text-muted-foreground">
+                    {item.evidencia}
+                  </p>
+                )}
               </div>
             </li>
           ))}

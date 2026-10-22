@@ -21,10 +21,19 @@ class RegistroEncerrado(BaseModel):
     motivo: str
     evidencia: str
     data_conclusao: date | None = None
+    # Data para apontar a conclusão: a registrada no monitoramento interno ou, na
+    # falta dela, o fim da vigência do instrumento (`origem_data` diz qual).
+    data_referencia: date | None = None
+    origem_data: str | None = None
+    equipamentos: str = ""
     situacao_carteira: str | None = None
     situacao_monitoramento: str | None = None
     situacao_oficial: str | None = None
     pendencia: bool = False
+    # Só para localizar o equipamento; não fazem parte da resposta da API.
+    convenio_id: int | None = Field(default=None, exclude=True)
+    instrumento_id: int | None = Field(default=None, exclude=True)
+    proposta_id: int | None = Field(default=None, exclude=True)
 
 
 class PreviaEncerrados(BaseModel):
@@ -77,6 +86,10 @@ class FatoEncerramento(BaseModel):
     conclusao_ativa: bool = False
     data_conclusao: date | None = None
     proposta_id: int | None = None
+    proposta_pk: int | None = None
+    convenio_id: int | None = None
+    instrumento_id: int | None = None
+    data_final_vigencia: date | None = None
     parceria_confirmada: bool = False
     codigo_confirmado: str | None = None
     ordens: list[OrdemEncerramento] = Field(default_factory=list)

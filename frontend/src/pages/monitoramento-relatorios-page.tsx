@@ -432,8 +432,8 @@ export function MonitoramentoRelatoriosPage() {
           </div>
         </div>
         <SingleSelectFilter
-          placeholder="Encerramento"
-          options={[{ value: "encerrados", label: "Encerrados" }]}
+          placeholder="Conclusão"
+          options={[{ value: "encerrados", label: "Concluídos" }]}
           value={encerramento}
           onChange={setEncerramento}
           clearLabel="Todos"
@@ -549,7 +549,7 @@ export function MonitoramentoRelatoriosPage() {
           <Skeleton
             className="h-64 w-full"
             role="status"
-            aria-label="Carregando encerrados"
+            aria-label="Carregando concluídos"
           />
         ) : encerrados.isError ? (
           <ErrorAlert
@@ -563,14 +563,14 @@ export function MonitoramentoRelatoriosPage() {
               quitação integral nem conclusão física.
             </p>
             <RelatorioEncerradosPrevia
-              titulo="Encerrados"
+              titulo="Concluídos"
               itens={encerrados.data.itens}
               total={encerrados.data.total}
               pagina={encerrados.pagina}
               onPaginaChange={encerrados.setPagina}
             />
             <RelatorioEncerradosPrevia
-              titulo="Pendências excluídas dos encerrados"
+              titulo="Pendências excluídas dos concluídos"
               itens={encerrados.data.pendencias}
               total={encerrados.data.total_pendencias}
               pagina={encerrados.paginaPendencias}

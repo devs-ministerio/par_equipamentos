@@ -153,3 +153,30 @@ def test_ignora_fase_inativa_e_preserva_busca_sem_acentos():
     )
     # Assert
     assert [i.numero for i in resultado.itens] == ["999001"]
+
+
+def test_data_de_referencia_prefere_a_conclusao_do_monitoramento_e_cai_no_fim_da_vigencia():
+    # Given: três situações de data para um convênio com prestação de contas concluída
+    com_monitoramento = fato(
+        numero="1", situacao_carteira=FECHADA, data_conclusao=date(2025, 10, 5), data_final_vigencia=date(2026, 12, 3)
+    )
+    so_vigencia = fato(numero="2", situacao_carteira=FECHADA, data_final_vigencia=date(2024, 6, 30))
+    sem_data = fato(numero="3", situacao_carteira=FECHADA)
+    # When
+    extracao = classificar_encerrados([com_monitoramento, so_vigencia, sem_data], FiltroEncerramento())
+    por_numero = {i.numero: i for i in extracao.itens}
+    # Then: a conclusão real vence; o fim da vigência vem identificado; sem nenhuma, fica vazio
+    assert (por_numero["1"].data_referencia, por_numero["1"].origem_data) == (
+        date(2025, 10, 5),
+        "Conclusão no monitoramento",
+    )
+    assert (por_numero["2"].data_referencia, por_numero["2"].origem_data) == (date(2024, 6, 30), "Fim da vigência")
+    assert (por_numero["3"].data_referencia, por_numero["3"].origem_data) == (None, None)
+
+
+def test_texto_de_equipamentos_mostra_a_contagem_so_quando_ha_mais_de_um():
+    from app.services.relatorios_encerrados import _texto_equipamentos
+
+    assert _texto_equipamentos([]) == ""
+    assert _texto_equipamentos(["Acelerador Linear"]) == "Acelerador Linear"
+    assert _texto_equipamentos(["Mamógrafo", "Acelerador Linear", "Mamógrafo"]) == "Mamógrafo (2); Acelerador Linear"

@@ -10,7 +10,15 @@ from openpyxl import load_workbook
 from sqlalchemy import select
 
 from app.db.base import SessionLocal, get_db
-from app.db.models import Convenio, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, PropostaCandidata
+from app.db.models import (
+    Convenio,
+    EquipamentoCatalogo,
+    EquipamentoMarcador,
+    EventoMarco,
+    InstrumentoEquipamento,
+    MarcoCatalogo,
+    PropostaCandidata,
+)
 from app.main import app
 from app.schemas_relatorios_encerrados import FiltroEncerramento
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
@@ -139,11 +147,12 @@ def test_previa_http_e_arquivos_tem_mesmas_identidades_e_motivos(carteira_encerr
     )
     # Then
     numeros = [i["numero"] for i in resposta["itens"]]
-    assert numeros == [r[0] for r in planilha["Encerrados"].iter_rows(min_row=2, values_only=True)]
-    assert numeros == [r.cells[0].text for r in documento.tables[0].rows[1:]]
-    assert [i["motivo"] for i in resposta["itens"]] == [
-        r[7] for r in planilha["Encerrados"].iter_rows(min_row=2, values_only=True)
-    ]
+    colunas = [c.value for c in planilha["Concluídos"][1]]
+    linhas_xlsx = list(planilha["Concluídos"].iter_rows(min_row=2, values_only=True))
+    assert numeros == [r[colunas.index("Número")] for r in linhas_xlsx]
+    # No Word o número vem na segunda linha da célula da instituição.
+    assert numeros == [r.cells[0].text.split("\n")[-1] for r in documento.tables[0].rows[1:]]
+    assert [i["motivo"] for i in resposta["itens"]] == [r[colunas.index("Critério")] for r in linhas_xlsx]
     assert resposta["total_pendencias"] == planilha["Pendências"].max_row - 1 == 2
     assert [r.cells[0].text for r in documento.tables[1].rows[1:]] == [i["numero"] for i in resposta["pendencias"]]
 
@@ -169,3 +178,55 @@ def test_contrato_exige_sessao_e_valida_paginacao(carteira_encerrada, headers_au
         ).status_code
         == 422
     )
+
+
+def test_equipamento_do_convenio_aparece_na_relacao_de_concluidos(carteira_encerrada):
+    # Given: um convênio concluído com um acelerador e outro com mamógrafo e PET/CT
+    db = carteira_encerrada
+    catalogo = {c.codigo: c for c in db.scalars(select(EquipamentoCatalogo))}
+    por_numero = {c.numero: c for c in db.scalars(select(Convenio).where(Convenio.numero.like("990810%")))}
+    for indice, (convenio, codigo) in enumerate(
+        [
+            (por_numero["9908101"], "acelerador_linear"),
+            (por_numero["9908102"], "mamografo"),
+            (por_numero["9908102"], "pet_ct"),
+        ]
+    ):
+        db.add(
+            EquipamentoMarcador(
+                convenio_id=convenio.id,
+                equipamento_catalogo_id=catalogo[codigo].id,
+                descricao_original=f"Item sintético {indice}",
+                tipo_evidencia="planilha",
+                relacao="aquisicao",
+                confianca=100,
+                chave_evidencia=f"concluidos-{indice}",
+            )
+        )
+    db.flush()
+    # When
+    extracao = extrair_encerrados(db=db, filtro=FiltroEncerramento(busca=PREFIXO))
+    equipamentos = {i.numero: i.equipamentos for i in extracao.itens}
+    planilha = load_workbook(
+        BytesIO(
+            montar_relatorio(
+                db=db,
+                formato="xlsx",
+                nivel="simplificado",
+                tipo_relatorio="instrumentos_repasse",
+                filtro=FiltroRelatorio(escopo="uf", uf="BA", busca=PREFIXO, encerramento="encerrados"),
+            )
+        )
+    )
+    cabecalho = [c.value for c in planilha["Concluídos"][1]]
+    na_planilha = {
+        r[cabecalho.index("Número")]: r[cabecalho.index("Equipamento(s)")]
+        for r in planilha["Concluídos"].iter_rows(min_row=2, values_only=True)
+    }
+    # Then: tipos de equipamento do instrumento (a evidência é deduplicada por tipo); sem marcador, vazio
+    assert equipamentos["9908101"] == "Acelerador Linear"
+    assert equipamentos["9908102"] == "Mamógrafo; PET/CT"
+    assert equipamentos["9908103"] == ""
+    assert na_planilha["9908101"] == "Acelerador Linear"
+    assert na_planilha["9908102"] == "Mamógrafo; PET/CT"
+    assert na_planilha["9908103"] is None

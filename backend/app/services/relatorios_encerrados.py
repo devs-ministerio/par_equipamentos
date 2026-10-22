@@ -1,12 +1,13 @@
 """Extração única com precedência, reconciliação visível e nenhuma escrita."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
 from app.domain_errors import ValidationError
 from app.pipeline.texto import normalizar_texto
+from app.repositories import equipamento_marcadores as marcadores_repo
 from app.repositories import relatorios_encerrados as repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.schemas_relatorios_encerrados import FatoEncerramento, FiltroEncerramento, PreviaEncerrados, RegistroEncerrado
@@ -100,6 +101,14 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         pendencia = True
     if not motivos:
         return None
+    # A conclusão registrada no monitoramento é a data real; sem ela, o fim da
+    # vigência é só uma referência do instrumento e vem identificado como tal.
+    if fato.data_conclusao is not None:
+        data_referencia, origem_data = fato.data_conclusao, "Conclusão no monitoramento"
+    elif fato.data_final_vigencia is not None:
+        data_referencia, origem_data = fato.data_final_vigencia, "Fim da vigência"
+    else:
+        data_referencia, origem_data = None, None
     return prioridade, RegistroEncerrado(
         chave=chave,
         numero=fato.numero,
@@ -112,6 +121,11 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         motivo=motivos[0],
         evidencia=evidencia,
         data_conclusao=fato.data_conclusao,
+        data_referencia=data_referencia,
+        origem_data=origem_data,
+        convenio_id=fato.convenio_id,
+        instrumento_id=fato.instrumento_id,
+        proposta_id=fato.proposta_pk,
         situacao_carteira=fato.situacao_carteira,
         situacao_monitoramento=fato.situacao_monitoramento,
         situacao_oficial=fato.situacao_oficial,
@@ -143,12 +157,50 @@ def classificar_encerrados(fatos: list[FatoEncerramento], filtro: FiltroEncerram
     return ExtracaoEncerrados(itens, pendencias)
 
 
+def _texto_equipamentos(nomes: list[str]) -> str:
+    """ "Acelerador Linear; Mamógrafo (2)": nome e, quando há mais de um, a contagem."""
+    contagem = Counter(nomes)
+    ordenados = sorted(contagem.items(), key=lambda par: (-par[1], par[0]))
+    return "; ".join(f"{nome} ({quantidade})" if quantidade > 1 else nome for nome, quantidade in ordenados)
+
+
+def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEncerrados:
+    """Equipamentos de cada registro, sem uma consulta por linha.
+
+    A evidência do convênio prevalece; na falta dela, a do instrumento de
+    monitoramento e, por fim, a da proposta.
+    """
+    registros = [*extracao.itens, *extracao.pendencias]
+    marcadores = marcadores_repo.listar_por_origens(
+        db,
+        convenio_ids={r.convenio_id for r in registros if r.convenio_id is not None},
+        instrumento_ids={r.instrumento_id for r in registros if r.instrumento_id is not None},
+        proposta_ids={r.proposta_id for r in registros if r.proposta_id is not None},
+    )
+
+    def com_equipamentos(registro: RegistroEncerrado) -> RegistroEncerrado:
+        for origem, identificador in (
+            ("convenio", registro.convenio_id),
+            ("instrumento_equipamento", registro.instrumento_id),
+            ("proposta_candidata", registro.proposta_id),
+        ):
+            achados = marcadores.get((origem, identificador)) if identificador is not None else None  # type: ignore[arg-type]
+            if achados:
+                return registro.model_copy(update={"equipamentos": _texto_equipamentos([m.nome for m in achados])})
+        return registro
+
+    return ExtracaoEncerrados(
+        [com_equipamentos(r) for r in extracao.itens], [com_equipamentos(r) for r in extracao.pendencias]
+    )
+
+
 def extrair_encerrados(*, db: Session, filtro: FiltroEncerramento) -> ExtracaoEncerrados:
     try:
-        return classificar_encerrados(repo.listar_fatos(db, equipamento=filtro.equipamento), filtro)
+        extracao = classificar_encerrados(repo.listar_fatos(db, equipamento=filtro.equipamento), filtro)
+        return anexar_equipamentos(db, extracao)
     except LimiteConsultaExcedido as exc:
         raise ValidationError(
-            "A carteira excede o limite seguro da extração de encerrados. Contate a administração."
+            "A carteira excede o limite seguro da extração de concluídos. Contate a administração."
         ) from exc
 
 

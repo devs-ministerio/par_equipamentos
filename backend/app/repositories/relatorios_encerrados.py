@@ -55,6 +55,9 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
     convenio = (
         select(
             Convenio.numero,
+            Convenio.id.label("convenio_id"),
+            InstrumentoEquipamento.id.label("instrumento_id"),
+            Convenio.data_final_vigencia,
             Convenio.convenente_nome.label("nome"),
             func.coalesce(Convenio.tipo_contratacao, "Convênio").label("tipo"),
             Convenio.uf,
@@ -87,6 +90,7 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
     interno = (
         select(
             InstrumentoEquipamento.nr_convenio.label("numero"),
+            InstrumentoEquipamento.id.label("instrumento_id"),
             InstrumentoEquipamento.nome_convenente.label("nome"),
             func.coalesce(InstrumentoEquipamento.tipo_contratacao, "Convênio").label("tipo"),
             InstrumentoEquipamento.uf,
@@ -115,6 +119,7 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
     )
     propostas = select(
         PropostaCandidata.cd_parceria.label("numero"),
+        PropostaCandidata.id.label("proposta_pk"),
         PropostaCandidata.nm_proponente.label("nome"),
         PropostaCandidata.uf,
         PropostaCandidata.municipio,

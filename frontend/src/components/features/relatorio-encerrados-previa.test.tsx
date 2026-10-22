@@ -16,6 +16,9 @@ const registro: RegistroEncerrado = {
   motivo: "Conclusão interna sem data",
   evidencia: "Evento fase_concluido ativo sem data",
   data_conclusao: null,
+  data_referencia: null,
+  origem_data: null,
+  equipamentos: "",
   situacao_carteira: null,
   situacao_monitoramento: null,
   situacao_oficial: null,
@@ -43,11 +46,11 @@ it("exibe motivo e evidência sem esconder a pendência e permite paginar", asyn
   expect(pagina).toHaveBeenCalledWith(2);
 });
 
-it("apresenta recorte vazio sem inventar encerrados", () => {
+it("apresenta recorte vazio sem inventar concluídos", () => {
   // Arrange / Act
   render(
     <RelatorioEncerradosPrevia
-      titulo="Encerrados"
+      titulo="Concluídos"
       itens={[]}
       total={0}
       pagina={1}
@@ -59,4 +62,50 @@ it("apresenta recorte vazio sem inventar encerrados", () => {
     screen.getByText("Nenhum registro neste recorte."),
   ).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Próxima página" })).toBeDisabled();
+});
+
+it("apresenta equipamento, valor e data de conclusão, e identifica o fim da vigência", () => {
+  // Arrange
+  const concluido: RegistroEncerrado = {
+    ...registro,
+    chave: "Convênio:999002",
+    numero: "999002",
+    pendencia: false,
+    motivo: "Prestação de contas concluída",
+    uf: "BA",
+    municipio: "Salvador",
+    valor_global: 6400000,
+    equipamentos: "Acelerador Linear; Mamógrafo",
+    data_referencia: "2025-10-05",
+    origem_data: "Fim da vigência",
+  };
+  const noMonitoramento: RegistroEncerrado = {
+    ...concluido,
+    chave: "Convênio:999003",
+    numero: "999003",
+    data_referencia: "2024-06-30",
+    origem_data: "Conclusão no monitoramento",
+    equipamentos: "",
+  };
+  // Act
+  render(
+    <RelatorioEncerradosPrevia
+      titulo="Concluídos"
+      itens={[concluido, noMonitoramento]}
+      total={2}
+      pagina={1}
+      onPaginaChange={vi.fn()}
+    />,
+  );
+  // Assert
+  expect(screen.getByText("Acelerador Linear; Mamógrafo")).toBeInTheDocument();
+  expect(screen.getByText("Não identificado")).toBeInTheDocument();
+  expect(screen.getAllByText(/R\$\s*6\.400\.000/)).toHaveLength(2);
+  expect(
+    screen.getByText(/05\/10\/2025 \(fim da vigência\)/),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/30\/06\/2024/)).toBeInTheDocument();
+  expect(screen.queryByText(/30\/06\/2024 \(fim da vigência\)/)).toBeNull();
+  // a evidência técnica fica só nas pendências
+  expect(screen.queryByText(registro.evidencia)).toBeNull();
 });
