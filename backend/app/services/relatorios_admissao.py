@@ -1,4 +1,4 @@
-"""Admissão não bloqueante: um DOCX por processo; XLSX não usa a reserva."""
+"""Uma montagem DOCX por processo; não é fila nem limite entre réplicas."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager

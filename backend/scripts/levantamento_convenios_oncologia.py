@@ -71,12 +71,11 @@ from pathlib import Path
 
 import requests
 
-SICONV_BASE_URL = "https://repositorio.dados.gov.br/seges/detru"
-TRANSFEREGOV_BASE_URL = "https://api-publica.transferegov.gestao.gov.br/parcerias"
+from scripts.coletar_siconv_legado import DIR_CACHE, _baixar_zip
+
 TIMEOUT = 300
 
 DIR_SAIDA = Path(__file__).parent / "output"
-DIR_CACHE = DIR_SAIDA / "cache"
 
 # Padroes de equipamento -- texto normalizado (maiusculo, sem acento) contra
 # DESCRICAO_ITEM do SICONV. Rede ampla de proposito (fase de descoberta,
@@ -167,16 +166,8 @@ def _sessao_com_retry() -> requests.Session:
 
 
 def _baixar_zip_siconv(nome: str) -> Path:
-    caminho = DIR_CACHE / f"{nome}.csv.zip"
-    if caminho.exists():
-        print(f"   (cache) {nome}.csv.zip ja baixado.")
-        return caminho
-    print(f"   Baixando {nome}.csv.zip...")
-    resp = requests.get(f"{SICONV_BASE_URL}/{nome}.csv.zip", timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
-    resp.raise_for_status()
-    DIR_CACHE.mkdir(parents=True, exist_ok=True)
-    caminho.write_bytes(resp.content)
-    return caminho
+    _baixar_zip(nome)
+    return DIR_CACHE / f"{nome}.csv.zip"
 
 
 def _linhas_csv_do_zip(caminho: Path):
@@ -291,23 +282,10 @@ def levantar_equipamento() -> dict[str, list[dict]]:
 
 
 def _paginar_transferegov(endpoint: str, params: dict, sessao: requests.Session) -> list[dict]:
-    """`pagina` (portugues) e o parametro que realmente avanca -- os nomes
-    `page`/`page_number`/`offset` sao aceitos sem erro mas SEMPRE devolvem a
-    pagina 1 (confirmado ao vivo 2026-09-08). Ver docstring do modulo."""
-    registros = []
-    pagina = 1
-    while True:
-        resp = sessao.get(
-            f"{TRANSFEREGOV_BASE_URL}/{endpoint}", params={**params, "pagina": pagina, "limit": 50}, timeout=30
-        )
-        resp.raise_for_status()
-        dados = resp.json()["data"]
-        registros.extend(dados)
-        if len(dados) < 50:
-            break
-        pagina += 1
-        time.sleep(0.2)
-    return registros
+    """Mesmo cliente estrito na descoberta e na recaptura, sem corte por tamanho."""
+    from app.pipeline.transferegov_parcerias import _buscar_paginado
+
+    return _buscar_paginado(sessao, endpoint, params)
 
 
 def levantar_componente_siconv() -> dict[str, list[dict]]:

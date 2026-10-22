@@ -2,12 +2,13 @@
  * MonitoramentoInterno.tsx. */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 import {
   criarAcaoSchema,
   type CriarAcaoFormValues,
 } from "@/lib/validations/monitoramento";
-import { RESPONSAVEIS_ACAO } from "@/lib/monitoramento-opcoes";
+import { comValorAtual, RESPONSAVEIS_ACAO } from "@/lib/monitoramento-opcoes";
 import { ErroCampo, estiloInput } from "./monitoramento-ui";
 import { idsDescricaoCampo } from "@/lib/monitoramento-status";
 
@@ -28,6 +29,10 @@ export function MonitoramentoInternoFormAcao({
   rotuloEnviando?: string;
   limparAoEnviar?: boolean;
 }) {
+  const formId = useId();
+  const descricaoId = `${formId}-acao-descricao`;
+  const prazoId = `${formId}-acao-data-prevista`;
+  const responsavelId = `${formId}-acao-responsavel`;
   const {
     register,
     handleSubmit,
@@ -54,37 +59,37 @@ export function MonitoramentoInternoFormAcao({
     >
       <div className="min-w-0 flex-[2] max-sm:w-full sm:min-w-[220px]">
         <label
-          htmlFor="acao-descricao"
+          htmlFor={descricaoId}
           className="text-[11px] text-muted-foreground block mb-1"
         >
           Nova ação
         </label>
         <input
-          id="acao-descricao"
+          id={descricaoId}
           className={cn(estiloInput, "w-full")}
           placeholder="O que precisa ser feito..."
           aria-invalid={Boolean(errors.descricao)}
           aria-describedby={idsDescricaoCampo(
-            "acao-descricao",
+            descricaoId,
             Boolean(errors.descricao),
             false,
           )}
           {...register("descricao")}
         />
         <ErroCampo
-          id="acao-descricao-error"
+          id={`${descricaoId}-error`}
           mensagem={errors.descricao?.message}
         />
       </div>
       <div className="w-full sm:w-auto">
         <label
-          htmlFor="acao-data-prevista"
+          htmlFor={prazoId}
           className="text-[11px] text-muted-foreground block mb-1"
         >
           Prazo
         </label>
         <input
-          id="acao-data-prevista"
+          id={prazoId}
           type="date"
           className={cn(estiloInput, "w-full")}
           {...register("dataPrevista")}
@@ -92,22 +97,24 @@ export function MonitoramentoInternoFormAcao({
       </div>
       <div className="w-full min-w-0 sm:min-w-40 sm:w-auto">
         <label
-          htmlFor="acao-responsavel"
+          htmlFor={responsavelId}
           className="text-[11px] text-muted-foreground block mb-1"
         >
           Responsável
         </label>
         <select
-          id="acao-responsavel"
+          id={responsavelId}
           className={cn(estiloInput, "w-full bg-background")}
           {...register("responsavel")}
         >
           <option value="">— Não informado —</option>
-          {RESPONSAVEIS_ACAO.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
+          {comValorAtual(RESPONSAVEIS_ACAO, valoresIniciais?.responsavel).map(
+            (r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ),
+          )}
         </select>
       </div>
       {/* Label invisível do mesmo tamanho da dos outros campos -- achado

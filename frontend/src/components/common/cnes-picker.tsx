@@ -11,6 +11,7 @@ import { buscarCnesReferencia } from "@/services/cnes-referencia";
 import { cn } from "@/lib/utils";
 
 export function CnesPicker({
+  id,
   valorAtual,
   onEscolher,
   onCancelar,
@@ -21,6 +22,7 @@ export function CnesPicker({
    * "editar" antes. */
   inline,
 }: {
+  id?: string;
   valorAtual: string | null;
   onEscolher: (cnes: string | null) => void;
   onCancelar?: () => void;
@@ -33,10 +35,16 @@ export function CnesPicker({
     inputRef.current?.focus();
   }, []);
 
-  const { data: resultados = [], isFetching } = useQuery({
+  const {
+    data: resultados = [],
+    isFetching,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["cnes-referencia", busca],
     queryFn: () => buscarCnesReferencia(busca),
     enabled: busca.trim().length >= 2,
+    retry: false,
   });
 
   return (
@@ -49,6 +57,8 @@ export function CnesPicker({
     >
       <div className="flex items-center gap-1.5">
         <input
+          id={id}
+          aria-label={id ? undefined : "Buscar estabelecimento CNES"}
           ref={inputRef}
           type="text"
           value={busca}
@@ -81,17 +91,35 @@ export function CnesPicker({
             Buscando...
           </div>
         )}
-        {!isFetching && busca.trim().length >= 2 && resultados.length === 0 && (
-          <div className="px-1 py-2 text-xs italic text-muted-foreground">
-            Nenhum estabelecimento encontrado.
+        {isError && (
+          <div className="space-y-2 px-1 py-2">
+            <p role="alert" className="text-xs text-destructive">
+              Não foi possível consultar o CNES.
+            </p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="text-xs font-semibold text-primary"
+            >
+              Tentar novamente
+            </button>
           </div>
         )}
+        {!isFetching &&
+          !isError &&
+          busca.trim().length >= 2 &&
+          resultados.length === 0 && (
+            <div className="px-1 py-2 text-xs italic text-muted-foreground">
+              Nenhum estabelecimento encontrado.
+            </div>
+          )}
         {resultados.map((r) => (
-          <div
+          <button
+            type="button"
             key={r.cnes}
             onClick={() => onEscolher(r.cnes)}
             className={cn(
-              "cursor-pointer rounded-md px-2 py-1.5 text-[12px] hover:bg-secondary",
+              "w-full cursor-pointer rounded-md px-2 py-1.5 text-left text-[12px] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
               r.cnes === valorAtual && "bg-secondary font-semibold",
             )}
           >
@@ -102,7 +130,7 @@ export function CnesPicker({
             <div className="text-[10.5px] text-muted-foreground">
               {r.municipio}/{r.uf}
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

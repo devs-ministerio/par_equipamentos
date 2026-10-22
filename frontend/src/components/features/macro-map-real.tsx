@@ -9,6 +9,25 @@ import type { PontoEstabelecimento } from "./macro-map";
 type Feature = GeoJSON.Feature<Geometry, GeoJsonProperties>;
 type FeatureCollection = GeoJSON.FeatureCollection<Geometry, GeoJsonProperties>;
 
+/** Leaflet interpreta strings como HTML; dados da fonte entram só como texto. */
+function tooltipEstabelecimento(ponto: PontoEstabelecimento): HTMLElement {
+  const tooltip = document.createElement("div");
+  const titulo = document.createElement("strong");
+  titulo.textContent = ponto.nome ?? "(sem nome cadastrado)";
+  tooltip.append(titulo);
+  for (const texto of [
+    `CNES ${ponto.cnes}`,
+    `${ponto.municipio ?? "—"}${ponto.uf ? ` (${ponto.uf})` : ""}`,
+    `${ponto.qtd} equipamento${ponto.qtd === 1 ? "" : "s"}`,
+  ]) {
+    tooltip.append(
+      document.createElement("br"),
+      document.createTextNode(texto),
+    );
+  }
+  return tooltip;
+}
+
 interface Props {
   geo: FeatureCollection;
   /** Contorno da macro desenhado quando presente. Omitir (modo `centro`,
@@ -139,6 +158,10 @@ export function MacroMapReal({
     }
 
     if (centro) {
+      const tooltipCentro = document.createElement("span");
+      tooltipCentro.textContent = centro.nome
+        ? `Município: ${centro.nome}`
+        : "Município selecionado";
       const marcadorCentro = L.circleMarker([centro.lat, centro.lon], {
         radius: 6,
         color: card,
@@ -146,9 +169,7 @@ export function MacroMapReal({
         fillColor: destructive,
         fillOpacity: 1,
       })
-        .bindTooltip(
-          centro.nome ? `Município: ${centro.nome}` : "Município selecionado",
-        )
+        .bindTooltip(tooltipCentro)
         .addTo(conteudo);
       limites.extend(marcadorCentro.getLatLng());
     }
@@ -163,17 +184,7 @@ export function MacroMapReal({
         fillColor: p.susFlag ? foreground : mutedForeground,
         fillOpacity: 0.9,
       })
-        // HTML no tooltip (Leaflet renderiza por padrao) -- nome/municipio
-        // vem do proprio banco (equipment_offer_row), mesmo padrao ja
-        // usado no tooltip do mapa nacional (MacroMap.tsx). Pedido
-        // explicito 2026-08-24: alem da qtd/CNES que ja tinha, mostrar
-        // nome do estabelecimento, municipio e UF.
-        .bindTooltip(
-          `<strong>${p.nome ?? "(sem nome cadastrado)"}</strong><br>` +
-            `CNES ${p.cnes}<br>` +
-            `${p.municipio ?? "—"}${p.uf ? ` (${p.uf})` : ""}<br>` +
-            `${p.qtd} equipamento${p.qtd === 1 ? "" : "s"}`,
-        )
+        .bindTooltip(tooltipEstabelecimento(p))
         .addTo(conteudo);
       limites.extend(marcador.getLatLng());
     });

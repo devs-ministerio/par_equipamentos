@@ -2,7 +2,7 @@ import { useState } from "react";
 
 /** Filtros do relatório de Instrumentos e Repasse -- mesmo vocabulário de
  * "Instrumentos e repasses" (Dados Oficiais, `use-dados-oficiais-filtros.ts`),
- * só que sem `busca`/`classeEquipamento`/`soMonitorados`/`pagina` (busca
+ * só que sem `busca`/`classeEquipamento`/`monitorado`/`pagina` (busca
  * removida a pedido do usuário 2026-09-26; os demais não fazem sentido pra
  * prévia de relatório: filtro pensado pra recortar o que vai pro arquivo,
  * não pra paginar uma lista de UI). Estado único compartilhado entre a
@@ -20,6 +20,7 @@ import { useState } from "react";
  * deve ser dois campos pra gente escolher o período") substituem o antigo
  * `ano` único -- 2 seletores em vez de 1, mesmas opções (`anoOptions`). */
 export function useRelatorioInstrumentosFiltros() {
+  const [encerramento, setEncerramento] = useState<string | null>(null);
   const [uf, setUf] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<string | null>(null);
   const [anoInicio, setAnoInicio] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function useRelatorioInstrumentosFiltros() {
   );
 
   const limparFiltros = () => {
+    setEncerramento(null);
     setUf(null);
     setSituacao(null);
     setAnoInicio(null);
@@ -47,6 +49,7 @@ export function useRelatorioInstrumentosFiltros() {
   };
 
   const hasFiltros = Boolean(
+    encerramento ||
     uf ||
     situacao ||
     anoInicio ||
@@ -60,6 +63,8 @@ export function useRelatorioInstrumentosFiltros() {
   );
 
   return {
+    encerramento,
+    setEncerramento,
     uf,
     setUf,
     situacao,

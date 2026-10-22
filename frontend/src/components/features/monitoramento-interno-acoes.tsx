@@ -70,8 +70,8 @@ export function MonitoramentoInternoAcoes({
                 ? diasAte(acao.data_prevista)
                 : null;
               const atrasada = diasPrazo !== null && diasPrazo < 0;
-              const emEdicao = acaoEmEdicao === acao.id;
-              const emExclusao = acaoEmExclusao === acao.id;
+              const emEdicao = podeEditar && acaoEmEdicao === acao.id;
+              const emExclusao = podeEditar && acaoEmExclusao === acao.id;
               return (
                 <div
                   key={acao.id}

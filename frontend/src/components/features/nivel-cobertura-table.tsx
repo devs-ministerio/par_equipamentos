@@ -82,7 +82,24 @@ export function NivelCoberturaTable({
       statusFiltro,
       sortKey,
       sortDir,
+      equipmentFamily,
+      semCorteDePopulacao,
       nivel,
+      statesKey,
+      macrosKey,
+      regioesSaudeKey,
+      municipiosKey,
+    ],
+  );
+
+  // O detalhe guarda uma linha do recorte de origem. Não reaproveitar essa
+  // linha com comparativos de outra família ou seleção territorial.
+  useEffect(
+    () => setDetalheAberto(null),
+    [
+      equipmentFamily,
+      nivel,
+      semCorteDePopulacao,
       statesKey,
       macrosKey,
       regioesSaudeKey,
@@ -140,6 +157,16 @@ export function NivelCoberturaTable({
     });
     return copia;
   }, [rowsFiltradas, sortKey, sortDir]);
+
+  // A mesma consulta pode receber menos linhas numa atualização em segundo
+  // plano. Preservar a página se válida; nunca deixar uma página inexistente.
+  useEffect(() => {
+    const ultimaPagina = Math.max(
+      1,
+      Math.ceil(rowsOrdenadas.length / PAGE_SIZE),
+    );
+    setPage((atual) => Math.min(atual, ultimaPagina));
+  }, [rowsOrdenadas.length]);
 
   const rowsPaginadas = useMemo(
     () => rowsOrdenadas.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),

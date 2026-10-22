@@ -1,12 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
-import { nomePrioritarioCanonico } from "@/lib/equipamento-catalogo";
 import type { ClasseEquipamento } from "@/types/dados-oficiais";
-import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import { correspondeBuscaLivre } from "@/lib/busca-livre";
+import { chaveMunicipio, opcoesMunicipios } from "@/lib/municipio-filtro";
+import {
+  chaveEquipamentoFiltro,
+  equipamentosPorInstrumento,
+  opcoesEquipamentosFiltro,
+  type FonteEquipamentosFiltro,
+} from "@/lib/monitoramento-filtro-equipamentos";
 
 type OpcaoFiltro = { value: string; label: string };
 export type ClasseEquipamentoFiltro = ClasseEquipamento | "todos";
+
+const PARAMETROS = [
+  "busca",
+  "tipo_contratacao",
+  "cnes",
+  "uf",
+  "municipio",
+  "classe",
+  "equipamento",
+  "situacao",
+  "programa",
+  "ano_inicio",
+  "ano_fim",
+] as const;
+
+function paginaValida(valor: string | null): number {
+  const pagina = Number(valor);
+  return Number.isInteger(pagina) && pagina > 0 ? pagina : 1;
+}
 export type InstrumentoMonitoramentoFiltravel = Pick<
   InstrumentoEquipamento,
   | "nr_convenio"
@@ -38,67 +63,81 @@ function opcoes(
 function opcoesMunicipio(
   instrumentos: InstrumentoMonitoramentoFiltravel[],
 ): OpcaoFiltro[] {
-  const municipios = new Map<string, string>();
-  for (const instrumento of instrumentos) {
-    if (!instrumento.municipio) continue;
-    const chave = normalizarTexto(instrumento.municipio);
-    // A chave é estável para filtro; o rótulo evita variantes de caixa na UI.
-    municipios.set(chave, capitalizarNome(instrumento.municipio));
-  }
-  return [...municipios.entries()]
-    .sort(([, nomeA], [, nomeB]) => nomeA.localeCompare(nomeB, "pt-BR"))
-    .map(([value, label]) => ({ value, label }));
+  return opcoesMunicipios(instrumentos.map((item) => item.municipio)).map(
+    ({ value, label }) => ({ value, label }),
+  );
 }
 
-function chaveEquipamento(descricao: string | null | undefined): string {
-  if (!descricao) return "nao informado";
-  return nomePrioritarioCanonico(descricao) ?? normalizarTexto(descricao);
-}
-
-function opcoesEquipamento(
-  instrumentos: InstrumentoMonitoramentoFiltravel[],
-  classeEquipamento: ClasseEquipamentoFiltro,
-): OpcaoFiltro[] {
-  const equipamentos = new Map<string, string>();
-  for (const instrumento of instrumentos) {
-    const descricao = instrumento.equipamento_descricao;
-    if (!descricao) continue;
-    const prioritario = nomePrioritarioCanonico(descricao) !== null;
-    if (
-      classeEquipamento !== "todos" &&
-      (classeEquipamento === "prioritario") !== prioritario
-    )
-      continue;
-    const chave = chaveEquipamento(descricao);
-    equipamentos.set(
-      chave,
-      nomePrioritarioCanonico(descricao) ?? capitalizarNome(descricao),
-    );
-  }
-  return [...equipamentos.entries()]
-    .sort(([, nomeA], [, nomeB]) => nomeA.localeCompare(nomeB, "pt-BR"))
-    .map(([value, label]) => ({ value, label }));
-}
-
-/** Filtros locais das visões de monitoramento. A fonte é a mesma lista de
- * instrumentos usada pela mesa e pelo painel; não mistura dados internos
- * com os cálculos de cobertura. */
+/** Filtros das visões de monitoramento refletidos na URL.
+ *
+ * A fonte é a mesma lista usada pela mesa e pelo painel; não mistura dados
+ * internos com os cálculos de cobertura. A URL preserva o recorte quando o
+ * usuário abre um instrumento, recarrega a página ou compartilha o link. */
 export function useMonitoramentoInternoFiltros<
   T extends InstrumentoMonitoramentoFiltravel,
->(instrumentos: T[]) {
-  const [busca, setBusca] = useState("");
-  const [tipoContratacao, setTipoContratacao] = useState<string | null>(null);
-  const [cnes, setCnes] = useState<string | null>(null);
-  const [uf, setUf] = useState<string | null>(null);
-  const [municipio, setMunicipio] = useState<string | null>(null);
-  const [classeEquipamento, setClasseEquipamento] =
-    useState<ClasseEquipamentoFiltro>("todos");
-  const [equipamento, setEquipamento] = useState<string | null>(null);
-  const [situacao, setSituacao] = useState<string | null>(null);
-  const [programa, setPrograma] = useState<string | null>(null);
-  const [anoInicio, setAnoInicio] = useState<string | null>(null);
-  const [anoFim, setAnoFim] = useState<string | null>(null);
-  useEffect(() => setEquipamento(null), [classeEquipamento]);
+>(
+  instrumentos: T[],
+  fontesEquipamentos: readonly FonteEquipamentosFiltro[] = [],
+) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const busca = searchParams.get("busca") ?? "";
+  const tipoContratacao = searchParams.get("tipo_contratacao");
+  const cnes = searchParams.get("cnes");
+  const uf = searchParams.get("uf");
+  const municipioNaUrl = searchParams.get("municipio");
+  const municipio = municipioNaUrl
+    ? chaveMunicipio(municipioNaUrl) || null
+    : null;
+  const classeNaUrl = searchParams.get("classe");
+  const classeEquipamento: ClasseEquipamentoFiltro =
+    classeNaUrl === "prioritario" || classeNaUrl === "outro"
+      ? classeNaUrl
+      : "todos";
+  const equipamentoNaUrl = searchParams.get("equipamento");
+  const equipamento = equipamentoNaUrl
+    ? chaveEquipamentoFiltro(equipamentoNaUrl)
+    : null;
+  const marcadoresPorNumero = useMemo(
+    () => equipamentosPorInstrumento(fontesEquipamentos),
+    [fontesEquipamentos],
+  );
+  const situacao = searchParams.get("situacao");
+  const programa = searchParams.get("programa");
+  const anoInicio = searchParams.get("ano_inicio");
+  const anoFim = searchParams.get("ano_fim");
+  const pagina = paginaValida(searchParams.get("pagina"));
+
+  const definirFiltro = useCallback(
+    (chave: (typeof PARAMETROS)[number], valor: string | null) => {
+      setSearchParams(
+        (anteriores) => {
+          const proximos = new URLSearchParams(anteriores);
+          if (valor) proximos.set(chave, valor);
+          else proximos.delete(chave);
+          proximos.delete("pagina");
+          if (chave === "classe") proximos.delete("equipamento");
+          return proximos;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const setPagina = useCallback(
+    (proximaPagina: number) => {
+      setSearchParams(
+        (anteriores) => {
+          const proximos = new URLSearchParams(anteriores);
+          if (proximaPagina <= 1) proximos.delete("pagina");
+          else proximos.set("pagina", String(proximaPagina));
+          return proximos;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
 
   const filtrados = useMemo(
     () =>
@@ -128,12 +167,18 @@ export function useMonitoramentoInternoFiltros<
         if (uf && instrumento.uf !== uf) return false;
         if (
           municipio &&
-          normalizarTexto(instrumento.municipio ?? "") !== municipio
+          chaveMunicipio(instrumento.municipio ?? "") !== municipio
         )
           return false;
         if (
           equipamento &&
-          chaveEquipamento(instrumento.equipamento_descricao) !== equipamento
+          !(equipamento === "nao informado"
+            ? !marcadoresPorNumero.get(instrumento.nr_convenio)?.length
+            : marcadoresPorNumero
+                .get(instrumento.nr_convenio)
+                ?.some(
+                  (item) => chaveEquipamentoFiltro(item.nome) === equipamento,
+                ))
         )
           return false;
         if (situacao && (instrumento.fase_atual ?? "Não iniciado") !== situacao)
@@ -156,6 +201,7 @@ export function useMonitoramentoInternoFiltros<
       }),
     [
       instrumentos,
+      marcadoresPorNumero,
       busca,
       tipoContratacao,
       cnes,
@@ -169,57 +215,65 @@ export function useMonitoramentoInternoFiltros<
     ],
   );
 
-  const limparFiltros = () => {
-    setBusca("");
-    setTipoContratacao(null);
-    setCnes(null);
-    setUf(null);
-    setMunicipio(null);
-    setClasseEquipamento("todos");
-    setEquipamento(null);
-    setSituacao(null);
-    setPrograma(null);
-    setAnoInicio(null);
-    setAnoFim(null);
-  };
+  const limparFiltros = useCallback(() => {
+    setSearchParams(
+      (anteriores) => {
+        const proximos = new URLSearchParams(anteriores);
+        for (const parametro of PARAMETROS) proximos.delete(parametro);
+        proximos.delete("pagina");
+        return proximos;
+      },
+      { replace: true },
+    );
+  }, [setSearchParams]);
 
   return {
     filtrados,
     total: instrumentos.length,
     busca,
-    setBusca,
+    // A busca normaliza espaços ao comparar; não apagar o espaço recém-digitado.
+    setBusca: (valor: string) => definirFiltro("busca", valor || null),
     tipoContratacao,
-    setTipoContratacao,
+    setTipoContratacao: (valor: string | null) =>
+      definirFiltro("tipo_contratacao", valor),
     cnes,
-    setCnes,
+    setCnes: (valor: string | null) => definirFiltro("cnes", valor),
     uf,
-    setUf,
+    setUf: (valor: string | null) => definirFiltro("uf", valor),
     municipio,
-    setMunicipio,
+    setMunicipio: (valor: string | null) => definirFiltro("municipio", valor),
     classeEquipamento,
-    setClasseEquipamento,
+    setClasseEquipamento: (valor: ClasseEquipamentoFiltro) =>
+      definirFiltro("classe", valor === "todos" ? null : valor),
     equipamento,
-    setEquipamento,
+    setEquipamento: (valor: string | null) =>
+      definirFiltro("equipamento", valor),
     situacao,
-    setSituacao,
+    setSituacao: (valor: string | null) => definirFiltro("situacao", valor),
     programa,
-    setPrograma,
+    setPrograma: (valor: string | null) => definirFiltro("programa", valor),
     anoInicio,
-    setAnoInicio,
+    setAnoInicio: (valor: string | null) => definirFiltro("ano_inicio", valor),
     anoFim,
-    setAnoFim,
-    hasFiltros: Boolean(
-      busca.trim() ||
-      tipoContratacao ||
-      cnes ||
-      uf ||
-      municipio ||
-      equipamento ||
-      situacao ||
-      programa ||
-      anoInicio ||
-      anoFim,
-    ),
+    setAnoFim: (valor: string | null) => definirFiltro("ano_fim", valor),
+    setPeriodo: (inicio: string | null, fim: string | null) => {
+      // useSearchParams não enfileira dois setters como useState.
+      setSearchParams(
+        (anteriores) => {
+          const proximos = new URLSearchParams(anteriores);
+          if (inicio) proximos.set("ano_inicio", inicio);
+          else proximos.delete("ano_inicio");
+          if (fim) proximos.set("ano_fim", fim);
+          else proximos.delete("ano_fim");
+          proximos.delete("pagina");
+          return proximos;
+        },
+        { replace: true },
+      );
+    },
+    pagina,
+    setPagina,
+    hasFiltros: PARAMETROS.some((parametro) => searchParams.has(parametro)),
     limparFiltros,
     tipoContratacaoOptions: opcoes(
       instrumentos,
@@ -234,7 +288,11 @@ export function useMonitoramentoInternoFiltros<
       (item) => item.uf!,
     ),
     municipioOptions: opcoesMunicipio(instrumentos),
-    equipamentoOptions: opcoesEquipamento(instrumentos, classeEquipamento),
+    equipamentoOptions: opcoesEquipamentosFiltro(
+      new Set(instrumentos.map((item) => item.nr_convenio)),
+      fontesEquipamentos,
+      classeEquipamento,
+    ),
     situacaoOptions: opcoes(
       instrumentos,
       (item) => item.fase_atual ?? "Não iniciado",

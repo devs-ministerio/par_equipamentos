@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import closing
 from dataclasses import asdict, dataclass
 from datetime import date
 from typing import cast
@@ -10,11 +11,24 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_monitoramento
-from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
+from app.db.models import (
+    CnesEstabelecimento,
+    EventoMarco,
+    InstrumentoEquipamento,
+    MarcoCatalogo,
+    Notificacao,
+    NotificacaoTipo,
+    User,
+)
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
+from app.repositories import convenios as convenios_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas as propostas_repo
+from app.repositories.limites_relatorio import LimiteConsultaExcedido
+from app.repositories.notificacoes import criar_notificacao
 from app.services.monitoramento_eventos import substituir_responsaveis_instrumento
+
+LIMITE_MONITORAMENTO_RELATORIO = 500
 
 
 @dataclass(frozen=True)
@@ -133,6 +147,15 @@ def criar_instrumento_monitorado(
             "tecnico_suplente_id": suplente.id if suplente is not None else None,
         },
     )
+    criar_notificacao(
+        db,
+        Notificacao(
+            tipo=NotificacaoTipo.inclusao_monitoramento,
+            titulo=f"Instrumento {nr_convenio} incluído no monitoramento",
+            corpo=(f"{dados.tipo_contratacao} · responsável: {titular.name} · incluído por {usuario.name}"),
+            entidade_id=instrumento.id,
+        ),
+    )
     db.commit()
     db.refresh(instrumento)
     return instrumento
@@ -190,15 +213,34 @@ def listar_instrumentos_monitorados(
         tipo_contratacao=tipo_contratacao,
     )
     fases_gerais_desc = monitoramento_repo.listar_marcos_fase_geral_desc(db)
+    return _filtrar_periodo(
+        _instrumentos_com_fase(db=db, instrumentos=instrumentos, fases_gerais_desc=fases_gerais_desc),
+        ano_inicio,
+        ano_fim,
+    )
+
+
+def _instrumentos_com_fase(
+    *, db: Session, instrumentos: list[InstrumentoEquipamento], fases_gerais_desc: list[MarcoCatalogo]
+) -> list[InstrumentoComFase]:
+    if not instrumentos:
+        return []
     fase_ids = [m.id for m in fases_gerais_desc]
-    eventos_por_instrumento = monitoramento_repo.mapa_eventos_por_instrumento(db, fase_ids)
+    eventos_por_instrumento = monitoramento_repo.mapa_eventos_por_instrumento(
+        db, fase_ids, instrumento_ids=[i.id for i in instrumentos]
+    )
 
     resultado = []
     for inst in instrumentos:
         fase_atual_id = _fase_atual_id(fases_gerais_desc, eventos_por_instrumento.get(inst.id, set()))
         fase_atual = next((f.rotulo for f in fases_gerais_desc if f.id == fase_atual_id), "Não iniciado")
         resultado.append(InstrumentoComFase(instrumento=inst, fase_atual=fase_atual))
+    return resultado
 
+
+def _filtrar_periodo(
+    resultado: list[InstrumentoComFase], ano_inicio: int | None, ano_fim: int | None
+) -> list[InstrumentoComFase]:
     if ano_inicio is not None or ano_fim is not None:
         hoje = date.today().year
         periodo_inclui_hoje = (ano_inicio is None or ano_inicio <= hoje) and (ano_fim is None or hoje <= ano_fim)
@@ -215,6 +257,37 @@ def listar_instrumentos_monitorados(
             for r in resultado
             if _no_periodo(r.instrumento.ano_instrumento) or (periodo_inclui_hoje and r.fase_atual != "Concluído")
         ]
+    return resultado
+
+
+def listar_monitorados_para_relatorio(
+    *,
+    db: Session,
+    ufs: list[str] | None = None,
+    municipio: str | None = None,
+    cnes: str | None = None,
+    tipo_contratacao: str | None = None,
+    ano_inicio: int | None = None,
+    ano_fim: int | None = None,
+) -> list[InstrumentoComFase]:
+    """Recorte completo até 500; não reutiliza o corte anterior à fase da UI."""
+    fases = monitoramento_repo.listar_marcos_fase_geral_desc(db)
+    resultado: list[InstrumentoComFase] = []
+    with closing(
+        monitoramento_repo.iterar_instrumentos_relatorio(
+            db, ufs=ufs, municipio=municipio, cnes=cnes, tipo_contratacao=tipo_contratacao
+        )
+    ) as lotes:
+        for lote in lotes:
+            excluidos = convenios_repo.listar_numeros_fora_escopo(db, {i.nr_convenio for i in lote})
+            visiveis = [i for i in lote if i.nr_convenio not in excluidos]
+            resultado.extend(
+                _filtrar_periodo(
+                    _instrumentos_com_fase(db=db, instrumentos=visiveis, fases_gerais_desc=fases), ano_inicio, ano_fim
+                )
+            )
+            if len(resultado) > LIMITE_MONITORAMENTO_RELATORIO:
+                raise LimiteConsultaExcedido
     return resultado
 
 

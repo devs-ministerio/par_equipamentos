@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import type { EventoMarco } from "@/services/monitoramento-instrumentos";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { fmtData } from "@/lib/monitoramento-format";
+import { eventoMaisRecente } from "@/lib/monitoramento-eventos";
 import type { EnviarEventoFormValues } from "@/lib/validations/monitoramento";
 import { MonitoramentoInternoFormEvento } from "./monitoramento-interno-form-evento";
 import {
@@ -63,17 +64,9 @@ export function MonitoramentoInternoEventos({
     (marco) => marco.codigo === "cronograma_previsao_inauguracao",
   );
   const eventoInauguracao = marcoInauguracao
-    ? eventos
-        .filter((evento) => evento.marco_id === marcoInauguracao.id)
-        .reduce<EventoMarco | null>(
-          (maisRecente, evento) =>
-            !maisRecente ||
-            `${evento.created_at}-${evento.id}` >
-              `${maisRecente.created_at}-${maisRecente.id}`
-              ? evento
-              : maisRecente,
-          null,
-        )
+    ? eventoMaisRecente(
+        eventos.filter((evento) => evento.marco_id === marcoInauguracao.id),
+      )
     : null;
 
   // Organizado por data (mais recente primeiro) -- data_ocorrencia (fato
@@ -104,7 +97,7 @@ export function MonitoramentoInternoEventos({
         </button>
       }
     >
-      {formAberto && (
+      {podeEditar && formAberto && (
         <MonitoramentoInternoFormEvento
           marcos={marcos}
           previsaoInauguracao={
@@ -132,8 +125,8 @@ export function MonitoramentoInternoEventos({
           {eventosOrdenados.map((ev, i) => {
             const marco = marcoPorId.get(ev.marco_id);
             const numero = String(eventosOrdenados.length - i).padStart(2, "0");
-            const emEdicao = eventoEmEdicao === ev.id;
-            const emExclusao = eventoEmExclusao === ev.id;
+            const emEdicao = podeEditar && eventoEmEdicao === ev.id;
+            const emExclusao = podeEditar && eventoEmExclusao === ev.id;
             return (
               <div
                 key={ev.id}

@@ -94,4 +94,7 @@ def downgrade() -> None:
     op.drop_table("proposta_candidata")
     op.drop_index("ix_notificacao_lida_created", table_name="notificacao")
     op.drop_table("notificacao")
+    # Tipos nativos pertencem a esta revisão, não às tabelas removidas.
+    postgresql.ENUM(name="proposta_candidata_status").drop(op.get_bind())
+    postgresql.ENUM(name="notificacao_tipo").drop(op.get_bind())
     # ### end Alembic commands ###

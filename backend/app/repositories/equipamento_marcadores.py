@@ -14,6 +14,11 @@ from app.db.models import EquipamentoCatalogo, EquipamentoMarcador
 OrigemMarcador = Literal["convenio", "proposta_candidata", "instrumento_equipamento"]
 
 
+def marcador_de_financiamento() -> ColumnElement[bool]:
+    """Menção e equipamento existente não comprovam financiamento."""
+    return EquipamentoMarcador.relacao.in_(("aquisicao", "modernizacao"))
+
+
 @dataclass(frozen=True)
 class MarcadorLido:
     codigo: str
@@ -78,7 +83,7 @@ def listar_por_origens(
     linhas = db.execute(
         select(EquipamentoMarcador, EquipamentoCatalogo)
         .join(EquipamentoCatalogo, EquipamentoCatalogo.id == EquipamentoMarcador.equipamento_catalogo_id)
-        .where(or_(*filtros))
+        .where(or_(*filtros), marcador_de_financiamento())
         .order_by(EquipamentoCatalogo.prioritario.desc(), EquipamentoCatalogo.nome, EquipamentoMarcador.id)
     ).all()
     resultado: dict[tuple[OrigemMarcador, int], list[MarcadorLido]] = defaultdict(list)

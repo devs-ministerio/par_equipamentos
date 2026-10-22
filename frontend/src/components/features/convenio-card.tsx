@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { corrigirTextoSiconv } from "@/lib/monitoramento-format";
 import { fetchConvenioDetalhe } from "@/services/convenios";
 import type { ConvenioUnificado } from "@/types/monitoramento";
@@ -33,17 +34,20 @@ export function ConvenioCard({
   // A carga oficial ganha payload técnico sob demanda; a manual nunca o
   // consulta como se fosse SICONV, pois seu detalhe é só monitoramento.
   const detalheQuery = useQuery({
-    queryKey: ["convenio-detalhe", c.numero],
+    // O resumo não possui versão/data de atualização. Seu conteúdo faz parte
+    // da chave para não reaproveitar detalhe antigo após atualizar a listagem.
+    queryKey: ["convenio-detalhe", c.numero, c],
     queryFn: () => fetchConvenioDetalhe(c.numero),
-    enabled: detalheAberto,
+    enabled: detalheAberto && c.dadosOficiaisDisponiveis,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
-  const cDetalhado = detalheQuery.data ?? c;
+  const cDetalhado = c.dadosOficiaisDisponiveis ? (detalheQuery.data ?? c) : c;
 
   // corrigirTextoSiconv -- o dump SICONV tem acento corrompido em "?" (byte
   // perdido na origem, ver comentario em lib/monitoramento-format.ts), so
   // corrigivel na exibicao pro vocabulario burocratico fechado que se repete.
-  const programaSiconv = corrigirTextoSiconv(c.programa);
+  const programaSiconv = corrigirTextoSiconv(cDetalhado.programa);
 
   return (
     <div
@@ -57,20 +61,22 @@ export function ConvenioCard({
       )}
     >
       <ConvenioCardHeader
-        c={c}
+        c={cDetalhado}
         monitorado={monitorado}
         faseMonitoramento={faseMonitoramento}
         equipamentos={[
-          ...new Set(c.equipamentos.map((equipamento) => equipamento.nome)),
+          ...new Set(
+            cDetalhado.equipamentos.map((equipamento) => equipamento.nome),
+          ),
         ]}
         programaSiconv={programaSiconv}
-        valorPagoFornecedor={c.valorPagoFornecedor}
-        pagamentosCount={c.pagamentosCount}
+        valorPagoFornecedor={cDetalhado.valorPagoFornecedor}
+        pagamentosCount={cDetalhado.pagamentosCount}
       />
 
       {/* ---------- Camada 2: dado tecnico aninhado, atras de 1 clique ---------- */}
       <details
-        className="mt-3 border-t border-border pt-2.5"
+        className="mt-4 border-t border-border pt-3"
         open={detalheAberto}
         onToggle={(e) =>
           setDetalheAberto((e.target as HTMLDetailsElement).open)
@@ -79,13 +85,30 @@ export function ConvenioCard({
         <summary className="flex min-h-11 cursor-pointer items-center text-xs font-bold text-primary">
           {detalheAberto ? "Menos detalhes" : "Mais detalhes"}
         </summary>
-        {detalheAberto && detalheQuery.isLoading ? (
+        {detalheAberto &&
+        c.dadosOficiaisDisponiveis &&
+        detalheQuery.isLoading ? (
           <p className="mt-3 text-xs text-muted-foreground">
             Carregando detalhes...
           </p>
-        ) : (
+        ) : detalheAberto &&
+          c.dadosOficiaisDisponiveis &&
+          detalheQuery.isError ? (
+          <div className="mt-3 space-y-2">
+            <p role="alert" className="text-xs text-destructive">
+              Não foi possível carregar os detalhes. Tente novamente.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void detalheQuery.refetch()}
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        ) : detalheAberto ? (
           <ConvenioCardDetalhes c={cDetalhado} monitorado={monitorado} />
-        )}
+        ) : null}
       </details>
     </div>
   );

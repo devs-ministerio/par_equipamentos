@@ -3,6 +3,7 @@ import {
   campoData,
   campoNum,
   campoObjeto,
+  campoTexto,
   lista,
 } from "@/lib/campo-cru";
 import { enderecoProposta } from "@/lib/proposta-metas-resumo";
@@ -44,11 +45,10 @@ export function DetalheBrutoProposta({
   if (!metasResumo || typeof metasResumo !== "object") return null;
   const proposta = campoObjeto(metasResumo, "proposta");
   const metas = lista(metasResumo, "metas");
-  const cronograma = lista<{
-    nr_ref_mes_data_especif?: unknown;
-    nr_ref_ano_data_especif?: unknown;
-    vl_cronograma_desembolso?: unknown;
-  }>(metasResumo, "cronograma_desembolso");
+  const cronograma = lista(metasResumo, "cronograma_desembolso");
+  const analises = lista(metasResumo, "analise");
+  const distribuicoes = lista(metasResumo, "distribuicao_recurso");
+  const parceria = campoObjeto(metasResumo, "parceria");
 
   const endereco = enderecoProposta(proposta);
   const naturezaJuridica = campo(proposta, "nm_natureza_juridica");
@@ -65,7 +65,10 @@ export function DetalheBrutoProposta({
     resultadoEsperado ||
     publicoAlvo ||
     metas.length ||
-    cronograma.length;
+    cronograma.length ||
+    analises.length ||
+    distribuicoes.length ||
+    parceria;
   if (!temAlgo) return null;
 
   return (
@@ -223,12 +226,9 @@ export function DetalheBrutoProposta({
         >
           <div className="grid [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] gap-2.5">
             {cronograma.map((c, i) => {
-              const mes = Number(c.nr_ref_mes_data_especif) || 0;
-              const ano = c.nr_ref_ano_data_especif;
-              const valor =
-                typeof c.vl_cronograma_desembolso === "number"
-                  ? c.vl_cronograma_desembolso
-                  : null;
+              const mes = Number(campoTexto(c, "nr_ref_mes_data_especif")) || 0;
+              const ano = campoTexto(c, "nr_ref_ano_data_especif");
+              const valor = campoNum(c, "vl_cronograma_desembolso");
               return (
                 <Campo
                   key={i}
@@ -243,12 +243,10 @@ export function DetalheBrutoProposta({
         </Secao>
       )}
 
-      <SecaoAnaliseTecnica analises={lista(metasResumo, "analise")} />
-      <SecaoOrigemRecurso
-        distribuicoes={lista(metasResumo, "distribuicao_recurso")}
-      />
+      <SecaoAnaliseTecnica analises={analises} />
+      <SecaoOrigemRecurso distribuicoes={distribuicoes} />
       <PropostaDetalheTimelineFinanceira
-        parceria={campoObjeto(metasResumo, "parceria")}
+        parceria={parceria}
         timeline={campoObjeto(metasResumo, "timeline_financeira")}
       />
     </>

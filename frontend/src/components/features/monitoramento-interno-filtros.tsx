@@ -105,6 +105,7 @@ export function MonitoramentoInternoFiltros({
         fim={filtros.anoFim}
         onInicioChange={filtros.setAnoInicio}
         onFimChange={filtros.setAnoFim}
+        onIntervaloChange={filtros.setPeriodo}
       />
     </FilterWorkspace>
   );

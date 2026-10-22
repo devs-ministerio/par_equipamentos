@@ -36,7 +36,10 @@ export function MonitoramentoPainelPage() {
   const sessao = useAuthSession();
   const resumo = resumoQuery.data;
   const instrumentos = instrumentosQuery.data;
-  const filtros = useMonitoramentoInternoFiltros(instrumentos ?? []);
+  const filtros = useMonitoramentoInternoFiltros(
+    instrumentos ?? [],
+    conveniosQuery.data?.itens ?? [],
+  );
   const marcos = marcosQuery.data;
   const convenios = conveniosQuery.data?.itens;
 

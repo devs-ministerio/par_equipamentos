@@ -6,6 +6,16 @@ import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { SecaoOperacional, StatusPill } from "./monitoramento-ui";
 import { classeValidade } from "@/lib/monitoramento-status";
 import { diasAte, fmtData } from "@/lib/monitoramento-format";
+import { eventoMaisRecente } from "@/lib/monitoramento-eventos";
+
+function eventosVisiveis(
+  eventos: EventoMarco[],
+  multiplo: boolean,
+): EventoMarco[] {
+  if (multiplo) return eventos;
+  const atual = eventoMaisRecente(eventos);
+  return atual ? [atual] : [];
+}
 
 export function MonitoramentoInternoFaseGeral({
   fasesGerais,
@@ -75,7 +85,7 @@ export function MonitoramentoInternoCronograma({
         <div className="mt-2.5 grid gap-2">
           {cronogramaFisico.map((m) => {
             const todos = eventosPorMarco.get(m.id) ?? [];
-            const evs = multiploEquipamento ? todos : todos.slice(0, 1);
+            const evs = eventosVisiveis(todos, multiploEquipamento);
             return (
               <div
                 key={m.id}
@@ -119,7 +129,7 @@ export function MonitoramentoInternoCronograma({
         <div className="mt-2.5 grid gap-2">
           {regulatorio.map((m) => {
             const todos = eventosPorMarco.get(m.id) ?? [];
-            const evs = multiploEquipamento ? todos : todos.slice(0, 1);
+            const evs = eventosVisiveis(todos, multiploEquipamento);
             const ehLicenca = m.codigo === "regulatorio_licenca_operacao";
             if (evs.length === 0) {
               return (

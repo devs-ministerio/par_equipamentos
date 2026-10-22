@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useListaPaginada } from "@/hooks/useListaPaginada";
 import { Pagination } from "@/components/common/pagination";
 import { Button } from "@/components/ui/button";
 import { estiloCard, StatusPill } from "@/components/features/monitoramento-ui";
@@ -35,8 +35,12 @@ export function RelatorioPropostasTabela({
   descricao: string;
   onLimparFiltros?: () => void;
 }) {
-  const [pagina, setPagina] = useState(1);
-  const paginaAtual = itens.slice((pagina - 1) * PAGE_SIZE, pagina * PAGE_SIZE);
+  const { pagina, definirPagina, inicio } = useListaPaginada(
+    itens.length,
+    PAGE_SIZE,
+    itens.map((item) => item.id).join("|"),
+  );
+  const paginaAtual = itens.slice(inicio, inicio + PAGE_SIZE);
 
   return (
     <section className={estiloCard} aria-label={titulo}>
@@ -223,7 +227,7 @@ export function RelatorioPropostasTabela({
           page={pagina}
           totalItems={itens.length}
           pageSize={PAGE_SIZE}
-          onPageChange={setPagina}
+          onPageChange={definirPagina}
         />
       )}
     </section>

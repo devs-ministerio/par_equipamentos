@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { ArrowUpRight, CalendarClock } from "lucide-react";
 import {
   Dialog,
@@ -67,8 +67,8 @@ export function MonitoramentoPainelVigencias({
           <div className="max-h-[min(60vh,540px)] divide-y divide-border overflow-y-auto px-5 sm:px-6">
             {vigencias.map((item) => (
               <DialogClose key={item.nr_convenio} asChild>
-                <Link
-                  to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(item.nr_convenio)}`}
+                <LinkDetalheInstrumento
+                  nrConvenio={item.nr_convenio}
                   className="group flex flex-wrap items-baseline justify-between gap-x-5 gap-y-1 py-3 text-sm hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <span className="min-w-0">
@@ -83,7 +83,7 @@ export function MonitoramentoPainelVigencias({
                     {fmtData(item.data_final)} ·{" "}
                     {item.dias === 0 ? "vence hoje" : `em ${item.dias} dias`}
                   </span>
-                </Link>
+                </LinkDetalheInstrumento>
               </DialogClose>
             ))}
           </div>

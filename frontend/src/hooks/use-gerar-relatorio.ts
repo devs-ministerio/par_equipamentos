@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api-error";
 import {
   baixarArquivo,
   gerarRelatorio,
@@ -16,13 +17,18 @@ import {
  * entre os dois relatórios pra caber num componente só). */
 export function useGerarRelatorio(tipoRelatorio: TipoRelatorio) {
   const [gerando, setGerando] = useState<FormatoRelatorio | null>(null);
-  const [erro, setErro] = useState<unknown>(null);
+  const [erro, setErro] = useState<ApiError | null>(null);
+  const emAndamento = useRef<AbortController | null>(null);
+  useEffect(() => () => emAndamento.current?.abort(), []);
 
   async function gerar(
     formato: FormatoRelatorio,
     nivel: NivelRelatorio,
     filtro: FiltroRelatorio,
   ) {
+    if (emAndamento.current) return;
+    const controller = new AbortController();
+    emAndamento.current = controller;
     setErro(null);
     setGerando(formato);
     try {
@@ -31,13 +37,20 @@ export function useGerarRelatorio(tipoRelatorio: TipoRelatorio) {
         tipoRelatorio,
         nivel,
         filtro,
+        controller.signal,
       );
+      if (controller.signal.aborted) return;
       baixarArquivo(arquivo);
       toast.success("Relatório gerado. O download foi iniciado.");
     } catch (e) {
-      setErro(e);
+      if (!controller.signal.aborted) {
+        setErro(
+          e instanceof ApiError ? e : new ApiError("Falha ao gerar relatório."),
+        );
+      }
     } finally {
-      setGerando(null);
+      emAndamento.current = null;
+      if (!controller.signal.aborted) setGerando(null);
     }
   }
 

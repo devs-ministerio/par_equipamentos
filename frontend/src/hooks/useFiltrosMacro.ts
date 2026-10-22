@@ -217,18 +217,16 @@ export function useFiltrosMacro({
   // entao a forma de "filtrar cobertura" por eles e resolver pra sua(s)
   // macro(s) (via `facilities`) e filtrar a tabela por ela.
   const macrosImplicadasPor = useMemo(() => {
-    function macrosDe(
-      pred: (f: FacilityOption) => boolean,
-    ): Set<string> | null {
+    function macrosDe(pred: (f: FacilityOption) => boolean): Set<string> {
       const set = new Set<string>();
-      let algum = false;
       facilities.forEach((f) => {
         if (pred(f)) {
-          algum = true;
           if (f.macroId) set.add(f.macroId);
         }
       });
-      return algum ? set : null;
+      // null é reservado ao filtro desativado. Seleção órfã ou sem macro
+      // deve restringir a zero linhas, nunca liberar o recorte nacional.
+      return set;
     }
     return {
       regiaoSaude:

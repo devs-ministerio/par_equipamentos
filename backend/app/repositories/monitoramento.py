@@ -10,7 +10,7 @@ Seção 3).
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -166,12 +166,45 @@ def listar_instrumentos(
         stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
     if tipo_contratacao:
         stmt = stmt.where(InstrumentoEquipamento.tipo_contratacao == tipo_contratacao)
-    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio).limit(limit)
+    stmt = stmt.order_by(InstrumentoEquipamento.nr_convenio, InstrumentoEquipamento.id).limit(limit)
     resultado = list(db.execute(stmt).scalars().all())
     if municipio:
         alvo = normalizar_texto(municipio)
         resultado = [i for i in resultado if normalizar_texto(i.municipio) == alvo]
     return resultado
+
+
+def iterar_instrumentos_relatorio(
+    db: Session,
+    *,
+    ufs: list[str] | None = None,
+    municipio: str | None = None,
+    cnes: str | None = None,
+    tipo_contratacao: str | None = None,
+) -> Generator[list[InstrumentoEquipamento], None, None]:
+    """Candidatos em lotes; o service aplica fase/período antes do teto final."""
+    stmt = select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio)
+    if ufs:
+        stmt = stmt.where(InstrumentoEquipamento.uf.in_(ufs))
+    if cnes:
+        stmt = stmt.where(InstrumentoEquipamento.cnes == cnes)
+    if tipo_contratacao:
+        stmt = stmt.where(InstrumentoEquipamento.tipo_contratacao == tipo_contratacao)
+    alvo = normalizar_texto(municipio) if municipio else None
+    registros = db.scalars(stmt.execution_options(yield_per=500))
+    lote: list[InstrumentoEquipamento] = []
+    try:
+        for instrumento in registros:
+            if alvo is not None and normalizar_texto(instrumento.municipio) != alvo:
+                continue
+            lote.append(instrumento)
+            if len(lote) == 500:
+                yield lote
+                lote = []
+        if lote:
+            yield lote
+    finally:
+        registros.close()
 
 
 def mapear_coordenadas_cnes(db: Session, cnes_codes: set[str]) -> dict[str, tuple[float | None, float | None]]:
@@ -214,7 +247,9 @@ def listar_marcos_catalogo(db: Session, *, limit: int) -> list[MarcoCatalogo]:
     )
 
 
-def mapa_eventos_por_instrumento(db: Session, marco_ids: list[int]) -> dict[int, set[int]]:
+def mapa_eventos_por_instrumento(
+    db: Session, marco_ids: list[int], *, instrumento_ids: list[int] | None = None
+) -> dict[int, set[int]]:
     """`{instrumento_id: {marco_id, ...}}` -- só os pares relevantes pros
     `marco_ids` pedidos (fase_geral), não todo `EventoMarco` da tabela
     (universo monitorado é pequeno hoje, mas a query já nasce restrita).
@@ -222,11 +257,12 @@ def mapa_eventos_por_instrumento(db: Session, marco_ids: list[int]) -> dict[int,
     empurrar a fase pra frente."""
     eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
     if marco_ids:
-        for instrumento_id, marco_id in db.execute(
-            select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(
-                EventoMarco.marco_id.in_(marco_ids), _EVENTO_ATIVO
-            )
-        ):
+        stmt = select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(
+            EventoMarco.marco_id.in_(marco_ids), _EVENTO_ATIVO
+        )
+        if instrumento_ids is not None:
+            stmt = stmt.where(EventoMarco.instrumento_id.in_(instrumento_ids))
+        for instrumento_id, marco_id in db.execute(stmt):
             eventos_por_instrumento[instrumento_id].add(marco_id)
     return eventos_por_instrumento
 
@@ -274,10 +310,21 @@ def listar_eventos_do_instrumento(db: Session, instrumento_id: int, *, apenas_at
     deles. `id` cresce sempre na ordem real de inserção, então serve de
     desempate determinístico -- mesmo critério já usado em
     `obter_evento_mais_recente_do_marco` abaixo."""
-    stmt = select(EventoMarco).where(EventoMarco.instrumento_id == instrumento_id)
+    return listar_eventos_por_instrumentos(db, [instrumento_id], apenas_ativos=apenas_ativos).get(instrumento_id, [])
+
+
+def listar_eventos_por_instrumentos(
+    db: Session, instrumento_ids: Sequence[int], *, apenas_ativos: bool = True
+) -> dict[int, list[EventoMarco]]:
+    if not instrumento_ids:
+        return {}
+    stmt = select(EventoMarco).where(EventoMarco.instrumento_id.in_(instrumento_ids))
     if apenas_ativos:
         stmt = stmt.where(_EVENTO_ATIVO)
-    return list(db.execute(stmt.order_by(EventoMarco.created_at.desc(), EventoMarco.id.desc())).scalars().all())
+    resultado: dict[int, list[EventoMarco]] = defaultdict(list)
+    for evento in db.scalars(stmt.order_by(EventoMarco.created_at.desc(), EventoMarco.id.desc())):
+        resultado[evento.instrumento_id].append(evento)
+    return dict(resultado)
 
 
 def obter_evento_mais_recente_do_marco(
@@ -312,20 +359,27 @@ def listar_acoes_do_instrumento(
     relatorios 2026-09-25) pra achar "Última Ação". Ordenado por
     `data_conclusao` (ação concluída mais recente primeiro; pendente sem
     conclusão fica por último) com `created_at`/`id` de desempate."""
-    stmt = select(AcaoMonitoramento).where(AcaoMonitoramento.instrumento_id == instrumento_id)
+    return listar_acoes_por_instrumentos(db, [instrumento_id], apenas_ativas=apenas_ativas).get(instrumento_id, [])
+
+
+def listar_acoes_por_instrumentos(
+    db: Session, instrumento_ids: Sequence[int], *, apenas_ativas: bool = True
+) -> dict[int, list[AcaoMonitoramento]]:
+    if not instrumento_ids:
+        return {}
+    stmt = select(AcaoMonitoramento).where(AcaoMonitoramento.instrumento_id.in_(instrumento_ids))
     if apenas_ativas:
         stmt = stmt.where(_ACAO_ATIVA)
-    return list(
-        db.execute(
-            stmt.order_by(
-                AcaoMonitoramento.data_conclusao.desc().nulls_last(),
-                AcaoMonitoramento.created_at.desc(),
-                AcaoMonitoramento.id.desc(),
-            )
+    resultado: dict[int, list[AcaoMonitoramento]] = defaultdict(list)
+    for acao in db.scalars(
+        stmt.order_by(
+            AcaoMonitoramento.data_conclusao.desc().nulls_last(),
+            AcaoMonitoramento.created_at.desc(),
+            AcaoMonitoramento.id.desc(),
         )
-        .scalars()
-        .all()
-    )
+    ):
+        resultado[acao.instrumento_id].append(acao)
+    return dict(resultado)
 
 
 def listar_acoes_monitoradas(db: Session, *, pendentes: bool, limit: int) -> list[tuple[AcaoMonitoramento, str]]:

@@ -38,6 +38,7 @@ from app.db.models import (
     InstrumentoResponsavel,
     MarcoCatalogo,
     Notificacao,
+    NotificacaoDestinatario,
     NotificacaoTipo,
     User,
     UserRole,
@@ -250,6 +251,18 @@ def test_criar_instrumento_via_post_cadastro_manual():
         assert log.action == "created"
         assert log.details["nr_convenio"] == nr_convenio_teste
 
+        notificacao = (
+            db.query(Notificacao)
+            .filter_by(
+                tipo=NotificacaoTipo.inclusao_monitoramento,
+                entidade_id=resultado.id,
+            )
+            .one()
+        )
+        destinatarios = db.query(NotificacaoDestinatario).filter_by(notificacao_id=notificacao.id).all()
+        assert all(destinatario.usuario_id != usuario_teste.id for destinatario in destinatarios)
+        assert f"{nr_convenio_teste}" in notificacao.titulo
+
         # Segunda tentativa com o mesmo nr_convenio -- checagem de
         # duplicidade tem que barrar antes de criar linha repetida.
         with pytest.raises(ConflictError) as exc:
@@ -266,6 +279,12 @@ def test_criar_instrumento_via_post_cadastro_manual():
             )
         assert exc.value.status_code == 409
     finally:
+        instrumento_teste = db.query(InstrumentoEquipamento).filter_by(nr_convenio=nr_convenio_teste).one_or_none()
+        if instrumento_teste is not None:
+            db.query(Notificacao).filter_by(
+                tipo=NotificacaoTipo.inclusao_monitoramento,
+                entidade_id=instrumento_teste.id,
+            ).delete()
         if audit_log_id is not None:
             db.query(AuditLog).filter_by(id=audit_log_id).delete()
         db.query(InstrumentoEquipamento).filter_by(nr_convenio=nr_convenio_teste).delete()

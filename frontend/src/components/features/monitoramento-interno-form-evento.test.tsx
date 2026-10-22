@@ -4,7 +4,7 @@
  * pra marco fora do grupo fase_geral, e nunca exigir pra marco que já É
  * de fase_geral. */
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { MonitoramentoInternoFormEvento } from "./monitoramento-interno-form-evento";
@@ -57,6 +57,88 @@ async function selecionarMarco(rotulo: string) {
 }
 
 describe("MonitoramentoInternoFormEvento", () => {
+  it("falha ao confirmar mantém o diálogo e permite nova tentativa sem erro não tratado", async () => {
+    // Arrange
+    const onRegistrar = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Escrita recusada"))
+      .mockResolvedValueOnce(undefined);
+    render(
+      <MonitoramentoInternoFormEvento
+        marcos={MARCOS}
+        onRegistrar={onRegistrar}
+      />,
+    );
+    await selecionarMarco("Concluído");
+    await userEvent.type(
+      screen.getByLabelText("Data de ocorrência"),
+      "2026-10-19",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Registrar evento" }),
+    );
+    // Act / Assert
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirmar inauguração" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Confirmar inauguração" }),
+      ).toBeEnabled(),
+    );
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirmar inauguração" }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(onRegistrar).toHaveBeenCalledTimes(2);
+    expect(onRegistrar).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        confirmarInauguracao: true,
+        dataOcorrencia: "2026-10-19",
+      }),
+    );
+  });
+  it("confirmação em andamento bloqueia duplo envio de conclusão/inauguração", async () => {
+    // Arrange
+    let terminar!: () => void;
+    const pendente = new Promise<void>((resolve) => {
+      terminar = resolve;
+    });
+    const onRegistrar = vi.fn().mockReturnValue(pendente);
+    render(
+      <MonitoramentoInternoFormEvento
+        marcos={MARCOS}
+        onRegistrar={onRegistrar}
+      />,
+    );
+    await selecionarMarco("Concluído");
+    await userEvent.type(
+      screen.getByLabelText("Data de ocorrência"),
+      "2026-10-19",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Registrar evento" }),
+    );
+    // Act / Assert
+    try {
+      await userEvent.dblClick(
+        screen.getByRole("button", { name: "Confirmar inauguração" }),
+      );
+      expect(onRegistrar).toHaveBeenCalledTimes(1);
+      expect(
+        screen.getByRole("button", {
+          name: /Confirmando|Confirmar inauguração/,
+        }),
+      ).toBeDisabled();
+    } finally {
+      await act(async () => {
+        terminar();
+      });
+    }
+  });
   it("não exige fase geral para marco que já é de grupo fase_geral", async () => {
     const onRegistrar = vi.fn().mockResolvedValue(undefined);
     render(

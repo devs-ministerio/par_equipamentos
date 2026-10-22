@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import { ConvenioCardDetalhes } from "./convenio-card-detalhes";
 import { ConvenioCardHeader } from "./convenio-card-header";
+import { ConvenioCard } from "./convenio-card";
 
 const convenioManual: ConvenioUnificado = {
   numero: "25000000145202506",
@@ -56,6 +59,28 @@ const convenioManual: ConvenioUnificado = {
 };
 
 describe("ConvenioCardDetalhes", () => {
+  it("permite expandir e recolher os detalhes técnicos", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ConvenioCard c={convenioManual} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText("Mais detalhes")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Mais detalhes"));
+
+    expect(screen.getByText("Menos detalhes")).toBeInTheDocument();
+    await user.click(screen.getByText("Menos detalhes"));
+    expect(screen.getByText("Mais detalhes")).toBeInTheDocument();
+  });
+
   it("não exibe texto de ausência quando o programa está vazio", () => {
     render(
       <ConvenioCardHeader

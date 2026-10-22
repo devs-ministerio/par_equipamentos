@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ApiError } from "@/lib/api-error";
 import { atualizarCsrfToken, csrfHeaders } from "@/lib/csrf";
 import { registrarEmissaoSessao } from "@/lib/sessao-expiracao";
+import { executarHttpComPrazo, HttpTimeoutError } from "@/lib/http-prazo";
 
 /** Bloco 1 do Plan Mode frontend 2026-09-17 -- cliente HTTP único
  * compartilhado por `services/api.ts`/`services/convenios.ts`/
@@ -158,9 +159,8 @@ export interface RequisitarOpts {
    * logado?", e 401 ali é um estado normal de visitante anônimo, não uma
    * sessão que expirou no meio de uma tela protegida. */
   redirecionarEm401?: boolean;
-  /** Prazo por tentativa; exportações podem precisar de mais tempo. */
   timeoutMs?: number;
-  /** Não repetir geração de arquivo após timeout (default true). */
+  /** GET de exportação é caro: não iniciar outra geração após timeout. */
   repetirEmTimeout?: boolean;
 }
 
@@ -183,34 +183,28 @@ export async function httpFetch(
     timeoutMs = HTTP_TIMEOUT_MS,
     repetirEmTimeout = true,
   } = opts;
-  const mensagemTimeout = `A solicitação excedeu ${timeoutMs / 1000} segundos.`;
   const metodo = (init?.method ?? "GET").toUpperCase();
   const precisaCsrf = metodo !== "GET" && path !== "/auth/login";
   const traceId = novoTraceId();
   if (precisaCsrf) await garantirCsrfToken();
-  const executar = async () => {
-    const controller = new AbortController();
-    const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      return await fetch(`${API_BASE_URL}${path}`, {
-        ...init,
-        signal: init?.signal ?? controller.signal,
-        credentials: "include",
-        headers: {
-          ...init?.headers,
-          ...(precisaCsrf ? csrfHeaders() : {}),
-          "X-Trace-Id": traceId,
-        },
-      });
-    } catch (erro) {
-      if (controller.signal.aborted) {
-        throw new Error(mensagemTimeout);
-      }
-      throw erro;
-    } finally {
-      globalThis.clearTimeout(timeout);
-    }
-  };
+  const executar = () =>
+    executarHttpComPrazo(
+      (signal) =>
+        fetch(`${API_BASE_URL}${path}`, {
+          ...init,
+          signal,
+          credentials: "include",
+          headers: {
+            ...init?.headers,
+            ...(precisaCsrf ? csrfHeaders() : {}),
+            "X-Trace-Id": traceId,
+          },
+        }),
+      timeoutMs,
+      init?.signal ?? undefined,
+      // O corpo da resposta ainda pode estar em leitura quando o chamador aborta.
+      { propagarAbortAposResposta: true },
+    );
 
   let res: Response;
   try {
@@ -221,9 +215,9 @@ export async function httpFetch(
     // interno, nunca POST/PATCH/DELETE nem abort solicitado pelo chamador.
     const podeTentarAquecimento =
       repetirEmTimeout &&
+      !init?.signal?.aborted &&
       (metodo === "GET" || metodo === "HEAD") &&
-      e instanceof Error &&
-      e.message === mensagemTimeout;
+      e instanceof HttpTimeoutError;
     if (podeTentarAquecimento) {
       try {
         res = await executar();
@@ -275,11 +269,14 @@ export async function requisitar<T>(
 ): Promise<T> {
   const res = await httpFetch(path, init, opts);
   if (!res.ok) {
-    // Resposta HTTP de domínio (4xx/5xx) -- o backend já garante que
-    // `detail`/`error` não vaza detalhe técnico (Plan Mode segurança
-    // 2026-09-16, Bloco 1), então essa mensagem é segura pro usuário.
+    // Só 4xx é resposta de domínio controlada. Um 5xx também pode vir do
+    // proxy/provedor: preserva o detalhe técnico sem repassá-lo para a UI.
     const mensagem = await mensagemErroHttp(res);
-    throw new ApiError(mensagem, res.status, mensagem);
+    throw new ApiError(
+      mensagem,
+      res.status,
+      res.status < 500 ? mensagem : undefined,
+    );
   }
   const json = res.status === 204 ? null : await res.json();
   const parsed = schema.safeParse(json);

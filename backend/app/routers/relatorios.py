@@ -18,7 +18,9 @@ from sqlalchemy.orm import Session
 from app.auth import require_current_user
 from app.db.base import get_db
 from app.db.models import User
+from app.schemas_relatorios_encerrados import PreviaEncerrados
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
+from app.services.relatorios_encerrados import previa_encerrados
 
 router = APIRouter(prefix="/relatorios", tags=["relatorios"])
 
@@ -45,6 +47,7 @@ def gerar_relatorio(
     tipo_contratacao: str | None = Query(default=None),
     equipamento: str | None = Query(default=None),
     busca: str | None = Query(default=None),
+    encerramento: Literal["todos", "encerrados"] = "todos",
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> StreamingResponse:
@@ -61,6 +64,7 @@ def gerar_relatorio(
         tipo_contratacao=tipo_contratacao,
         equipamento=equipamento,
         busca=busca,
+        encerramento=encerramento,
     )
     conteudo = montar_relatorio(db=db, formato=formato, nivel=nivel, tipo_relatorio=tipo_relatorio, filtro=filtro)
     nome_arquivo = f"relatorio-{tipo_relatorio}-{escopo}-{nivel}.{formato}"
@@ -68,4 +72,18 @@ def gerar_relatorio(
         iter([conteudo]),
         media_type=_MEDIA_TYPE[formato],
         headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )
+
+
+@router.get("/encerrados", response_model=PreviaEncerrados)
+def consultar_encerrados(
+    filtro: FiltroRelatorio = Depends(),
+    pagina: int = Query(default=1, ge=1),
+    limite: int = Query(default=20, ge=1, le=100),
+    pagina_pendencias: int = Query(default=1, ge=1),
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+) -> PreviaEncerrados:
+    return previa_encerrados(
+        db=db, filtro=filtro.filtro_encerrados(), pagina=pagina, limite=limite, pagina_pendencias=pagina_pendencias
     )

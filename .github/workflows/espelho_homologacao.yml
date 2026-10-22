@@ -1,0 +1,69 @@
+name: Ensaio isolado do espelho e Radar
+
+# Apenas ensaio sintético. Não executa coletores nacionais nem usa secrets,
+# environment remoto, banco da equipe, deploy ou agendamento.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sigeo-ensaio-homologacao-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ensaio:
+    if: github.ref == 'refs/heads/homologacao'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      POSTGRES_DB: sigeo_test_clone_20000101
+      POSTGRES_USER: postgres
+      # Credencial exclusivamente sintética do cluster efêmero do CI.
+      POSTGRES_PASSWORD: postgres
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
+      DATABASE_URL_MIGRATION: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
+      JWT_SECRET: ensaio-sintetico-sem-validade-fora-do-container-de-testes
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: lax
+      NEW_RELIC_ENABLED: "false"
+      MAIL_API_URL: ""
+      MAIL_API_SECRET: ""
+      PORTAL_TRANSPARENCIA_API_KEY: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        # Sem ref fixo: valida exatamente o SHA escolhido da homologacao.
+      - name: Iniciar PostgreSQL 16 descartável com loopback real
+        run: bash ../.github/scripts/iniciar-postgres-ci.sh
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.17"
+          enable-cache: true
+      - name: Instalar dependências travadas
+        run: uv sync --frozen
+      - name: Lint
+        run: uv run ruff check .
+      - name: Formatação
+        run: uv run ruff format --check app tests scripts
+      - name: Tipos
+        run: uv run mypy .
+      - name: Conferir utilitários exigidos pelos testes de recuperação
+        run: |
+          pg_dump --version
+          pg_restore --version
+      - name: Migrar somente PostgreSQL efêmero
+        run: uv run alembic upgrade head
+      - name: Ensaiar domínio, jobs, falhas e replay com fontes sintéticas
+        # As fronteiras externas são substituídas pelas fixtures dos testes;
+        # os Services, repositories, jobs e transações executam de verdade.
+        # O aceite Chromium opt-in exige frontend e continua separado.
+        run: >-
+          uv run pytest -q --tb=short --cov --cov-branch
+          --cov-report=term:skip-covered --cov-report=json:coverage.json
+      - name: Validar pisos de cobertura por camada
+        run: uv run python -m scripts.validar_cobertura coverage.json

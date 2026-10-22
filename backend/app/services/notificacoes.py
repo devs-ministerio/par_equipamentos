@@ -4,6 +4,7 @@ alerta de vigência). Ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-
 from __future__ import annotations
 
 from dataclasses import dataclass
+from urllib.parse import urlencode
 
 from sqlalchemy.orm import Session
 
@@ -14,7 +15,9 @@ from app.repositories.notificacoes import (
     mapear_convenios_monitorados,
     mapear_identificadores_instrumentos,
     mapear_ids_propostas,
+    mapear_numeros_convenios,
     marcar_destinatario_lido,
+    marcar_todas_destinatario_lidas,
     obter_destinatario,
     obter_notificacao,
 )
@@ -25,6 +28,7 @@ class NotificacaoComDestino:
     notificacao: Notificacao
     destino: str | None
     lida: bool
+    arquivada: bool = False
 
 
 @dataclass(frozen=True)
@@ -34,6 +38,14 @@ class PaginaNotificacoesComDestino:
     nao_lidas: int
 
 
+def corpo_publico_da_notificacao(notificacao: Notificacao) -> str | None:
+    # Avisos de captura antigos podem ter sido gravados com a exceção crua.
+    # Não alterar a evidência persistida; excluir detalhes na fronteira pública.
+    if notificacao.tipo == NotificacaoTipo.fonte_indisponivel:
+        return "A coleta da fonte falhou ou ficou incompleta. Os últimos dados confirmados foram mantidos."
+    return notificacao.corpo
+
+
 def listar_notificacoes(
     *,
     db: Session,
@@ -41,6 +53,9 @@ def listar_notificacoes(
     limit: int,
     offset: int,
     apenas_nao_lidas: bool,
+    busca: str | None = None,
+    tipo: NotificacaoTipo | None = None,
+    arquivadas: bool = False,
 ) -> PaginaNotificacoesComDestino:
     """Escopada por destinatário (Plan Mode notificacoes-escopo 2026-09-25) --
     só devolve o que `NotificacaoDestinatario` materializou pra esse usuário
@@ -49,12 +64,24 @@ def listar_notificacoes(
     o badge do menu, precisa ser estável independente do filtro da lista que
     o usuário está vendo."""
     pagina = listar_notificacoes_paginadas(
-        db, usuario_id=usuario_id, limit=limit, offset=offset, apenas_nao_lidas=apenas_nao_lidas
+        db,
+        usuario_id=usuario_id,
+        limit=limit,
+        offset=offset,
+        apenas_nao_lidas=apenas_nao_lidas,
+        busca=busca,
+        tipo=tipo,
+        arquivadas=arquivadas,
     )
     ids_instrumentos = {
         item.notificacao.entidade_id
         for item in pagina.itens
-        if item.notificacao.tipo in (NotificacaoTipo.atualizacao_api, NotificacaoTipo.edicao_manual)
+        if item.notificacao.tipo
+        in (
+            NotificacaoTipo.atualizacao_api,
+            NotificacaoTipo.edicao_manual,
+            NotificacaoTipo.inclusao_monitoramento,
+        )
     }
     ids_propostas = {
         item.notificacao.entidade_id
@@ -69,6 +96,14 @@ def listar_notificacoes(
     instrumentos = mapear_identificadores_instrumentos(db, ids_instrumentos)
     propostas = mapear_ids_propostas(db, ids_propostas)
     convenios_monitorados = mapear_convenios_monitorados(db, ids_convenios)
+    convenios_aprovados = mapear_numeros_convenios(
+        db,
+        {
+            item.notificacao.entidade_id
+            for item in pagina.itens
+            if item.notificacao.tipo == NotificacaoTipo.aprovacao_carteira
+        },
+    )
 
     itens = []
     for item in pagina.itens:
@@ -79,13 +114,24 @@ def listar_notificacoes(
                 if notificacao.entidade_id in propostas
                 else None
             )
+        elif notificacao.tipo == NotificacaoTipo.fonte_indisponivel:
+            destino = None
+        elif notificacao.tipo == NotificacaoTipo.convenio_descoberto:
+            # Triagem no Radar flutuante. Nunca confundir com instrumento
+            # que por acaso tenha a mesma PK do candidato descoberto.
+            destino = None
+        elif notificacao.tipo == NotificacaoTipo.aprovacao_carteira:
+            numero = convenios_aprovados.get(notificacao.entidade_id)
+            destino = f"/monitoramento-equipamentos?{urlencode({'busca': numero})}" if numero else None
         elif notificacao.tipo == NotificacaoTipo.alerta_vigencia:
             identificador = convenios_monitorados.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None
         else:
             identificador = instrumentos.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None
-        itens.append(NotificacaoComDestino(notificacao=notificacao, destino=destino, lida=item.lida))
+        itens.append(
+            NotificacaoComDestino(notificacao=notificacao, destino=destino, lida=item.lida, arquivada=item.arquivada)
+        )
     return PaginaNotificacoesComDestino(itens=itens, total=pagina.total, nao_lidas=pagina.nao_lidas)
 
 
@@ -98,4 +144,27 @@ def marcar_notificacao_lida(*, db: Session, notificacao_id: int, usuario_id: int
     db.refresh(destinatario)
     notificacao = obter_notificacao(db, notificacao_id)
     assert notificacao is not None  # garantido pela FK notificacao_destinatario.notificacao_id
-    return NotificacaoComDestino(notificacao=notificacao, destino=None, lida=destinatario.lida)
+    return NotificacaoComDestino(
+        notificacao=notificacao, destino=None, lida=destinatario.lida, arquivada=destinatario.arquivada
+    )
+
+
+def marcar_todas_lidas(*, db: Session, usuario_id: int) -> int:
+    quantidade = marcar_todas_destinatario_lidas(db, usuario_id)
+    db.commit()
+    return quantidade
+
+
+def arquivar_notificacao(
+    *, db: Session, usuario_id: int, notificacao_id: int, arquivada: bool
+) -> NotificacaoComDestino:
+    destinatario = obter_destinatario(db, notificacao_id=notificacao_id, usuario_id=usuario_id)
+    if destinatario is None:
+        raise NotFoundError("Notificação não encontrada para este usuário.")
+    destinatario.arquivada = arquivada
+    db.commit()
+    notificacao = obter_notificacao(db, notificacao_id)
+    assert notificacao is not None
+    return NotificacaoComDestino(
+        notificacao=notificacao, destino=None, lida=destinatario.lida, arquivada=destinatario.arquivada
+    )

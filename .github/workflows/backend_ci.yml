@@ -3,9 +3,9 @@ name: Backend CI e segurança
 on:
   push:
     branches: [master]
-    paths: ["backend/**", ".github/workflows/backend_ci.yml"]
+    paths: ["backend/**", ".github/workflows/backend_ci.yml", ".github/scripts/iniciar-postgres-ci.sh"]
   pull_request:
-    paths: ["backend/**", ".github/workflows/backend_ci.yml"]
+    paths: ["backend/**", ".github/workflows/backend_ci.yml", ".github/scripts/iniciar-postgres-ci.sh"]
 
 permissions:
   contents: read
@@ -18,28 +18,29 @@ jobs:
   validar:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    services:
-      postgres:
-        image: postgres:16.9-alpine
-        env:
-          POSTGRES_DB: sigeo_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd "pg_isready -U postgres -d sigeo_test"
-          --health-interval 10s --health-timeout 5s --health-retries 5
-        ports: ["5432:5432"]
     env:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/sigeo_test
-      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/sigeo_test
+      POSTGRES_DB: sigeo_test_clone_20000101
+      POSTGRES_USER: postgres
+      # Credencial exclusivamente sintética do cluster efêmero do CI.
+      POSTGRES_PASSWORD: postgres
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
+      DATABASE_URL_MIGRATION: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5433/sigeo_test_clone_20000101
       JWT_SECRET: ci-only-secret-with-at-least-thirty-two-characters
       COOKIE_SECURE: "false"
       COOKIE_SAMESITE: lax
+      NEW_RELIC_ENABLED: "false"
+      MAIL_API_URL: ""
+      MAIL_API_SECRET: ""
+      PORTAL_TRANSPARENCIA_API_KEY: ""
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5194
     defaults:
       run:
         working-directory: backend
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Iniciar PostgreSQL 16 descartável com loopback real
+        run: bash ../.github/scripts/iniciar-postgres-ci.sh
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "0.12.17"
@@ -60,6 +61,10 @@ jobs:
           fi
       - name: Tipos
         run: uv run mypy .
+      - name: Conferir utilitários exigidos pelos testes de recuperação
+        run: |
+          pg_dump --version
+          pg_restore --version
       - name: Preparar schema PostgreSQL efêmero
         run: uv run alembic upgrade head
       - name: Testes unitários e de integração com cobertura
@@ -74,8 +79,8 @@ jobs:
         with:
           name: backend-coverage
           path: |
-            coverage.json
-            coverage.xml
+            backend/coverage.json
+            backend/coverage.xml
           if-no-files-found: warn
           retention-days: 14
       - name: Auditoria de dependências

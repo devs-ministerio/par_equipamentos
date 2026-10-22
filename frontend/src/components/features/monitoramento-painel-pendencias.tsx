@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { Pagination } from "@/components/common/pagination";
 import { useListaPaginada } from "@/hooks/useListaPaginada";
 import { cn } from "@/lib/utils";
@@ -159,9 +159,9 @@ export function MonitoramentoPainelPendencias({
         {acoes.length ? (
           <div className="divide-y divide-border">
             {acoes.slice(inicioAcoes, inicioAcoes + 8).map((acao) => (
-              <Link
+              <LinkDetalheInstrumento
                 key={acao.id}
-                to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(acao.nr_convenio)}`}
+                nrConvenio={acao.nr_convenio}
                 className="group grid gap-1 py-3 text-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4"
               >
                 <span className="min-w-0">
@@ -189,12 +189,14 @@ export function MonitoramentoPainelPendencias({
                         ? "Vence hoje"
                         : `Em ${acao.dias} dias`}
                 </span>
-              </Link>
+              </LinkDetalheInstrumento>
             ))}
           </div>
         ) : (
           <p className="py-6 text-sm text-muted-foreground">
-            Nenhuma ação pendente neste recorte.
+            {acoesPendentes > 0
+              ? "Há ações pendentes neste recorte que não estão na lista carregada."
+              : "Nenhuma ação pendente neste recorte."}
           </p>
         )}
         {acoes.length > 0 && (
@@ -207,10 +209,10 @@ export function MonitoramentoPainelPendencias({
             />
           </nav>
         )}
-        {filaTruncada && (
+        {filaTruncada && acoesPendentes > acoes.length && (
           <p className="mt-2 text-xs text-muted-foreground">
-            A lista mostra as primeiras 500 ações por prazo; a contagem inclui
-            todas as ações vigentes.
+            A lista carregada contém as primeiras 500 ações da base por prazo;
+            há pendências deste recorte fora dela.
           </p>
         )}
       </PainelSecao>

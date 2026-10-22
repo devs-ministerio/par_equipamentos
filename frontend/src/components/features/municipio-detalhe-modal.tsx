@@ -3,7 +3,12 @@ import type { NivelCoberturaRow, StatusCobertura } from "@/types/domain";
 import { calcularCoeficiente } from "@/utils/coeficiente";
 import { formatMultiplicador } from "@/utils/format";
 import { fetchHealthRegionCoverage, fetchMacroCoverage } from "@/services/api";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/common/status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -107,19 +112,18 @@ export function MunicipioDetalheModal({
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        aria-label="Janela de diálogo"
         showCloseButton={false}
         className="max-h-[90vh] w-full max-w-[460px] overflow-auto rounded-[10px] bg-card p-8"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xl font-extrabold text-foreground">
+            <DialogTitle className="text-xl font-extrabold text-foreground">
               {linha.nome}
-            </div>
-            <div className="mt-1 text-[12.5px] text-muted-foreground">
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-[12.5px] text-muted-foreground">
               {linha.uf} · {linha.macroNome ?? "Macrorregião não informada"} ·{" "}
               {linha.regiaoSaudeNome ?? "Região de saúde não informada"}
-            </div>
+            </DialogDescription>
           </div>
           <button
             onClick={onClose}

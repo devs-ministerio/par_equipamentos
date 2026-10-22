@@ -1,7 +1,6 @@
 /** Camada 2 (aninhada, atrás de "Mais detalhes") do card de convênio.
  * Extraído de convenio-card.tsx (Seção 6 da migração: componente >200
  * linhas). */
-import { Link } from "react-router-dom";
 import { fmtData, fmtMoeda, pct } from "@/lib/monitoramento-format";
 import { SiconvSubAbas } from "./siconv-sub-abas";
 import { AdicionarMonitoramentoButton } from "./adicionar-monitoramento-button";
@@ -11,6 +10,7 @@ import {
   LinhaDoTempoEventos,
   type EventoLinhaDoTempo,
 } from "./linha-do-tempo-eventos";
+import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 
 export function ConvenioCardDetalhes({
   c,
@@ -172,12 +172,12 @@ function SecaoMonitoramentoInterno({
       titulo="Monitoramento interno"
       acao={
         monitorado && (
-          <Link
-            to={`/monitoramento-equipamentos/instrumentos/${c.numero}`}
+          <LinkDetalheInstrumento
+            nrConvenio={c.numero}
             className="text-primary no-underline"
           >
             Ver detalhes →
-          </Link>
+          </LinkDetalheInstrumento>
         )
       }
     >

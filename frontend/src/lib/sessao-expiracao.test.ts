@@ -8,11 +8,28 @@ import {
   registrarEmissaoSessao,
 } from "./sessao-expiracao";
 
-beforeEach(() => limparEmissaoSessao());
-afterEach(() => limparEmissaoSessao());
+beforeEach(() => {
+  const valores = new Map<string, string>();
+  vi.stubGlobal("localStorage", {
+    getItem: (chave: string) => valores.get(chave) ?? null,
+    setItem: (chave: string, valor: string) => valores.set(chave, valor),
+    removeItem: (chave: string) => valores.delete(chave),
+  });
+  limparEmissaoSessao();
+});
+afterEach(() => {
+  limparEmissaoSessao();
+  vi.unstubAllGlobals();
+});
 
 describe("relógio da sessão", () => {
   it("sem emissão registrada, expiração é desconhecida", () => {
+    expect(obterExpiracaoSessao()).toBeNull();
+  });
+
+  it("mantém expiração desconhecida quando o armazenamento está indisponível", () => {
+    vi.stubGlobal("localStorage", undefined);
+    expect(() => registrarEmissaoSessao()).not.toThrow();
     expect(obterExpiracaoSessao()).toBeNull();
   });
 

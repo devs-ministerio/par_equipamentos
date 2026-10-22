@@ -9,9 +9,12 @@ from __future__ import annotations
 from datetime import date
 
 
-def formatar_moeda(valor: float | None) -> str:
+def formatar_moeda(valor: float | str | None) -> str:
     if valor is None:
         return "—"
+    if isinstance(valor, str):
+        # Rótulo no lugar do valor (ex.: CONTRATAÇÃO), nunca formatado como número.
+        return valor
     inteiro_e_decimal = f"{valor:,.2f}"
     # f-string usa separador americano (1,234.56) -- troca pra pt-BR
     # (1.234,56) via placeholder, sem depender de locale do processo.

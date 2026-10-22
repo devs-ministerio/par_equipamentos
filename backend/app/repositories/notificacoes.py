@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -31,6 +31,7 @@ class NotificacaoParaUsuario:
     notificacao: Notificacao
     destinatario_id: int
     lida: bool
+    arquivada: bool = False
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,11 @@ class PaginaNotificacoes:
 
 
 def _ids_ativos_por_role(db: Session, roles: tuple[UserRole, ...]) -> set[int]:
-    return set(db.execute(select(User.id).where(User.role.in_(roles), User.status == UserStatus.active)).scalars())
+    return set(
+        db.execute(
+            select(User.id).where(User.role.in_(roles), User.status == UserStatus.active, User.deleted_at.is_(None))
+        ).scalars()
+    )
 
 
 def _ids_broadcast(db: Session) -> set[int]:
@@ -63,6 +68,8 @@ def obter_ids_responsaveis_do_instrumento(db: Session, instrumento_id: int) -> s
 
 def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[int]:
     ids_designados = obter_ids_responsaveis_do_instrumento(db, instrumento_id)
+    if not ids_designados:
+        return _ids_broadcast(db)
     # Filtra por ativo E role != leitor -- titular/suplente designado que foi
     # inativado (módulo de gestão de usuários) ou é leitor (decisão do
     # usuário 2026-09-25: leitor nunca recebe notificação, mesmo sendo
@@ -74,6 +81,7 @@ def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[in
                 select(User.id).where(
                     User.id.in_(ids_designados),
                     User.status == UserStatus.active,
+                    User.deleted_at.is_(None),
                     User.role != UserRole.leitor,
                 )
             ).scalars()
@@ -98,6 +106,14 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
     if tipo == NotificacaoTipo.proposta_candidata:
         return _ids_broadcast(db)
 
+    if tipo in (
+        NotificacaoTipo.inclusao_monitoramento,
+        NotificacaoTipo.fonte_indisponivel,
+        NotificacaoTipo.aprovacao_carteira,
+        NotificacaoTipo.convenio_descoberto,
+    ):
+        return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
+
     if tipo == NotificacaoTipo.alerta_vigencia:
         instrumento_id = _instrumento_id_por_convenio_id(db, entidade_id)
         if instrumento_id is None:
@@ -106,8 +122,7 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
 
     # atualizacao_api / edicao_manual -- entidade_id é InstrumentoEquipamento.id.
     # Sem titular/suplente cadastrado, cai no broadcast (nunca fica órfã).
-    ids = _ids_titular_suplente_e_gestores(db, entidade_id)
-    return ids if ids else _ids_broadcast(db)
+    return _ids_titular_suplente_e_gestores(db, entidade_id)
 
 
 def criar_notificacao(db: Session, notificacao: Notificacao) -> Notificacao:
@@ -123,6 +138,24 @@ def criar_notificacao(db: Session, notificacao: Notificacao) -> Notificacao:
     return notificacao
 
 
+def criar_avisos_descoberta(db: Session, avisos: list[Notificacao]) -> None:
+    """Insere em lote; destinatários gerenciais resolvidos uma única vez."""
+    if not avisos:
+        return
+    if any(aviso.tipo != NotificacaoTipo.convenio_descoberto for aviso in avisos):
+        raise ValueError("Lote de descoberta aceita somente avisos de convênio descoberto.")
+    ids = _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
+    db.add_all(avisos)
+    db.flush()
+    db.add_all(
+        [
+            NotificacaoDestinatario(notificacao_id=aviso.id, usuario_id=usuario_id)
+            for aviso in avisos
+            for usuario_id in ids
+        ]
+    )
+
+
 def listar_notificacoes_paginadas(
     db: Session,
     *,
@@ -130,19 +163,31 @@ def listar_notificacoes_paginadas(
     limit: int,
     offset: int,
     apenas_nao_lidas: bool,
+    busca: str | None = None,
+    tipo: NotificacaoTipo | None = None,
+    arquivadas: bool = False,
 ) -> PaginaNotificacoes:
     base = (
-        select(Notificacao, NotificacaoDestinatario.id, NotificacaoDestinatario.lida)
+        select(Notificacao, NotificacaoDestinatario.id, NotificacaoDestinatario.lida, NotificacaoDestinatario.arquivada)
         .join(NotificacaoDestinatario, NotificacaoDestinatario.notificacao_id == Notificacao.id)
-        .where(NotificacaoDestinatario.usuario_id == usuario_id)
+        .where(NotificacaoDestinatario.usuario_id == usuario_id, NotificacaoDestinatario.arquivada == arquivadas)
     )
     if apenas_nao_lidas:
         base = base.where(NotificacaoDestinatario.lida.is_(False))
+    if tipo is not None:
+        base = base.where(Notificacao.tipo == tipo)
+    if busca:
+        termo = busca.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        base = base.where(
+            Notificacao.titulo.ilike(f"%{termo}%", escape="\\") | Notificacao.corpo.ilike(f"%{termo}%", escape="\\")
+        )
 
-    linhas = db.execute(base.order_by(Notificacao.created_at.desc()).limit(limit).offset(offset)).all()
+    linhas = db.execute(
+        base.order_by(Notificacao.created_at.desc(), Notificacao.id.desc()).limit(limit).offset(offset)
+    ).all()
     itens = [
-        NotificacaoParaUsuario(notificacao=notificacao, destinatario_id=destinatario_id, lida=lida)
-        for notificacao, destinatario_id, lida in linhas
+        NotificacaoParaUsuario(notificacao=notificacao, destinatario_id=destinatario_id, lida=lida, arquivada=arquivada)
+        for notificacao, destinatario_id, lida, arquivada in linhas
     ]
 
     contagem_base = (
@@ -150,8 +195,10 @@ def listar_notificacoes_paginadas(
         .select_from(NotificacaoDestinatario)
         .where(NotificacaoDestinatario.usuario_id == usuario_id)
     )
-    total = db.execute(contagem_base).scalar_one()
-    nao_lidas = db.execute(contagem_base.where(NotificacaoDestinatario.lida.is_(False))).scalar_one()
+    total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
+    nao_lidas = db.execute(
+        contagem_base.where(NotificacaoDestinatario.lida.is_(False), NotificacaoDestinatario.arquivada.is_(False))
+    ).scalar_one()
 
     return PaginaNotificacoes(itens=itens, total=total, nao_lidas=nao_lidas)
 
@@ -176,6 +223,21 @@ def marcar_destinatario_lido(db: Session, destinatario: NotificacaoDestinatario)
     return destinatario
 
 
+def marcar_todas_destinatario_lidas(db: Session, usuario_id: int) -> int:
+    alteradas = (
+        update(NotificacaoDestinatario)
+        .where(
+            NotificacaoDestinatario.usuario_id == usuario_id,
+            NotificacaoDestinatario.lida.is_(False),
+            NotificacaoDestinatario.arquivada.is_(False),
+        )
+        .values(lida=True, lida_em=datetime.now(UTC))
+        .returning(NotificacaoDestinatario.id)
+        .cte("lidas")
+    )
+    return db.execute(select(func.count()).select_from(alteradas)).scalar_one()
+
+
 def mapear_identificadores_instrumentos(db: Session, ids: set[int]) -> dict[int, str]:
     if not ids:
         return {}
@@ -193,6 +255,16 @@ def mapear_ids_propostas(db: Session, ids: set[int]) -> set[int]:
     if not ids:
         return set()
     return set(db.execute(select(PropostaCandidata.id).where(PropostaCandidata.id.in_(ids))).scalars())
+
+
+def mapear_numeros_convenios(db: Session, ids: set[int]) -> dict[int, str]:
+    """Identidade oficial da carteira, sem exigir monitoramento interno."""
+    if not ids:
+        return {}
+    return {
+        convenio_id: numero
+        for convenio_id, numero in db.execute(select(Convenio.id, Convenio.numero).where(Convenio.id.in_(ids)))
+    }
 
 
 def mapear_convenios_monitorados(db: Session, ids: set[int]) -> dict[int, str]:

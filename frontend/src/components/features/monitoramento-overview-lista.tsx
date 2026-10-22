@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { Pagination } from "@/components/common/pagination";
 import { estiloCard } from "@/components/features/monitoramento-ui";
 import type { InstrumentoMonitoramentoFiltravel } from "@/hooks/use-monitoramento-interno-filtros";
@@ -10,14 +9,21 @@ const PRESTACAO_CONTAS_CONCLUIDA = "Prestação de Contas Concluída";
 
 export function MonitoramentoOverviewLista({
   instrumentos,
+  pagina,
+  onPagina,
 }: {
   instrumentos: InstrumentoResumo[];
+  pagina: number;
+  onPagina: (pagina: number) => void;
 }) {
-  const [pagina, setPagina] = useState(1);
-  useEffect(() => setPagina(1), [instrumentos]);
+  // Uma recaptura pode reduzir o mesmo recorte sem alterar sua URL.
+  const paginaEfetiva = Math.max(
+    1,
+    Math.min(pagina, Math.ceil(instrumentos.length / PAGE_SIZE) || 1),
+  );
   const paginaAtual = instrumentos.slice(
-    (pagina - 1) * PAGE_SIZE,
-    pagina * PAGE_SIZE,
+    (paginaEfetiva - 1) * PAGE_SIZE,
+    paginaEfetiva * PAGE_SIZE,
   );
   return (
     <div className={estiloCard}>
@@ -52,12 +58,12 @@ export function MonitoramentoOverviewLista({
               paginaAtual.map((item) => (
                 <tr key={item.nr_convenio} className="border-t border-border">
                   <td className="px-2 py-1.5">
-                    <Link
-                      to={`/monitoramento-equipamentos/instrumentos/${item.nr_convenio}`}
+                    <LinkDetalheInstrumento
+                      nrConvenio={item.nr_convenio}
                       className="font-semibold text-primary no-underline"
                     >
                       {item.nr_convenio}
-                    </Link>
+                    </LinkDetalheInstrumento>
                     <span className="ml-1.5 rounded-full bg-warning-bg px-1.5 py-px text-[9.5px] font-bold text-warning">
                       {item.tipo_contratacao ?? "Convênio"}
                     </span>
@@ -70,7 +76,7 @@ export function MonitoramentoOverviewLista({
                     {item.situacao_prestacao_contas ===
                     PRESTACAO_CONTAS_CONCLUIDA ? (
                       <span className="rounded-full bg-success-bg px-1.5 py-px text-[10px] font-bold text-success">
-                        Concluída
+                        {item.situacao_prestacao_contas}
                       </span>
                     ) : (
                       (item.situacao_prestacao_contas ?? "—")
@@ -105,12 +111,12 @@ export function MonitoramentoOverviewLista({
               className="py-4 first:pt-1 last:pb-1"
             >
               <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-                <Link
-                  to={`/monitoramento-equipamentos/instrumentos/${item.nr_convenio}`}
+                <LinkDetalheInstrumento
+                  nrConvenio={item.nr_convenio}
                   className="inline-flex min-h-11 min-w-0 items-center break-all font-mono text-sm font-semibold text-primary no-underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   {item.nr_convenio}
-                </Link>
+                </LinkDetalheInstrumento>
                 <span className="rounded-full bg-warning-bg px-2 py-1 text-[11px] font-semibold text-warning">
                   {item.tipo_contratacao ?? "Convênio"}
                 </span>
@@ -137,10 +143,7 @@ export function MonitoramentoOverviewLista({
                 <div className="col-span-2 min-w-0">
                   <dt className="text-muted-foreground">Prestação de contas</dt>
                   <dd className="mt-0.5 break-words font-medium text-foreground">
-                    {item.situacao_prestacao_contas ===
-                    PRESTACAO_CONTAS_CONCLUIDA
-                      ? "Concluída"
-                      : (item.situacao_prestacao_contas ?? "—")}
+                    {item.situacao_prestacao_contas ?? "—"}
                   </dd>
                 </div>
               </dl>
@@ -150,10 +153,10 @@ export function MonitoramentoOverviewLista({
       </div>
       {instrumentos.length > 0 && (
         <Pagination
-          page={pagina}
+          page={paginaEfetiva}
           totalItems={instrumentos.length}
           pageSize={PAGE_SIZE}
-          onPageChange={setPagina}
+          onPageChange={onPagina}
           mobileStacked
         />
       )}

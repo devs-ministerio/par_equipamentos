@@ -10,6 +10,8 @@ import { RelatorioInstrumentosTabela } from "@/components/features/relatorio-ins
 import { RelatorioPropostasTabela } from "@/components/features/relatorio-propostas-tabela";
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-carteira";
+import { RelatorioEncerradosPrevia } from "@/components/features/relatorio-encerrados-previa";
+import { useRelatorioEncerrados } from "@/hooks/use-relatorio-encerrados";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
@@ -23,7 +25,7 @@ import { estagioDeFato } from "@/lib/proposta-status";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
-import type { NivelRelatorio } from "@/services/relatorios";
+import type { NivelRelatorio, FiltroRelatorio } from "@/services/relatorios";
 
 const situacaoExibida = (item: ConvenioUnificado) => item.situacao;
 const SEM_MONITORADOS = new Set<string>();
@@ -103,6 +105,8 @@ export function MonitoramentoRelatoriosPage() {
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
 
   const {
+    encerramento,
+    setEncerramento,
     uf,
     setUf,
     situacao,
@@ -131,6 +135,7 @@ export function MonitoramentoRelatoriosPage() {
     () => conveniosQuery.data?.itens ?? [],
     [conveniosQuery.data],
   );
+  const totalConveniosFonte = conveniosQuery.data?.total ?? 0;
 
   // Período de 2 datas (Bloco 8, 2026-09-27) -- substitui o antigo `ano`
   // único de `filtrarDadosOficiais` (que continua servindo só Dados
@@ -167,7 +172,7 @@ export function MonitoramentoRelatoriosPage() {
           anoFim: null,
           programa,
           tipoContratacao,
-          soMonitorados: false,
+          monitorado: null,
         },
         SEM_MONITORADOS,
         situacaoExibida,
@@ -247,6 +252,7 @@ export function MonitoramentoRelatoriosPage() {
 
   const {
     propostas,
+    total: totalPropostasFonte,
     carregando: carregandoPropostas,
     erro: erroPropostas,
   } = usePropostasCandidatas();
@@ -309,18 +315,28 @@ export function MonitoramentoRelatoriosPage() {
   // 2. `Estabelecimento` nunca tinha campo próprio no backend -- resolvido
   //    pro CNES correspondente (1:1 na prática, mesmo dado de origem do
   //    dropdown) quando CNES não foi selecionado à parte.
-  const municipioItem = municipio
-    ? convenios.find((item) => normalizarTexto(item.municipio) === municipio)
-    : undefined;
+  const municipioItens = municipio
+    ? convenios.filter((item) => normalizarTexto(item.municipio) === municipio)
+    : [];
+  const ufsDoMunicipio = new Set(municipioItens.map((item) => item.uf));
+  const municipioAmbiguo = Boolean(municipio && !uf && ufsDoMunicipio.size > 1);
+  const municipioItem = municipioItens[0];
   const ufEfetiva = uf ?? municipioItem?.uf;
-  const estabelecimentoItem =
+  const estabelecimentoItens =
     !cnes && nomeEstabelecimento
-      ? convenios.find(
+      ? convenios.filter(
           (item) =>
             normalizarTexto(item.cnesNomeEstabelecimento ?? "") ===
             nomeEstabelecimento,
         )
-      : undefined;
+      : [];
+  const cnesDoEstabelecimento = new Set(
+    estabelecimentoItens.map((item) => item.cnes).filter(Boolean),
+  );
+  const estabelecimentoAmbiguo = Boolean(
+    nomeEstabelecimento && !cnes && cnesDoEstabelecimento.size > 1,
+  );
+  const estabelecimentoItem = estabelecimentoItens[0];
   const cnesEfetivo = cnes ?? estabelecimentoItem?.cnes ?? undefined;
 
   const escopoGeracao = cnesEfetivo
@@ -338,10 +354,30 @@ export function MonitoramentoRelatoriosPage() {
         : escopoGeracao === "uf"
           ? (UF_INFO[ufEfetiva ?? ""]?.nome ?? ufEfetiva ?? "")
           : "Brasil";
-  const totalRegistros =
-    conveniosFiltrados.length +
-    propostasConfirmadas.length +
-    propostasEmTramitacao.length;
+  const somenteEncerrados = encerramento === "encerrados";
+  const filtroGeracao: FiltroRelatorio = {
+    escopo: escopoGeracao,
+    uf:
+      escopoGeracao === "uf" || escopoGeracao === "municipio"
+        ? ufEfetiva
+        : undefined,
+    municipio:
+      escopoGeracao === "municipio" ? (municipio ?? undefined) : undefined,
+    cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
+    anoInicio: anoInicio ? Number(anoInicio) : undefined,
+    anoFim: anoFim ? Number(anoFim) : undefined,
+    situacao: situacao ?? undefined,
+    programa: programa ?? undefined,
+    tipoContratacao: tipoContratacao ?? undefined,
+    equipamento: equipamento ?? undefined,
+    encerramento: somenteEncerrados ? "encerrados" : "todos",
+  };
+  const encerrados = useRelatorioEncerrados(filtroGeracao, somenteEncerrados);
+  const totalRegistros = somenteEncerrados
+    ? (encerrados.data?.total ?? 0)
+    : conveniosFiltrados.length +
+      propostasConfirmadas.length +
+      propostasEmTramitacao.length;
 
   return (
     <div className="flex flex-col gap-7 pb-8">
@@ -367,6 +403,9 @@ export function MonitoramentoRelatoriosPage() {
               <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                 {totalRegistros.toLocaleString("pt-BR")}
               </p>
+              <p className="text-[10px] text-muted-foreground">
+                na prévia carregada
+              </p>
             </div>
           </div>
         }
@@ -375,7 +414,7 @@ export function MonitoramentoRelatoriosPage() {
       <FilterWorkspace
         hasAnyFilter={hasFiltros}
         onClear={limparFiltros}
-        contagem={`${totalRegistros} ${totalRegistros === 1 ? "registro" : "registros"} no recorte`}
+        contagem={`${totalRegistros} ${totalRegistros === 1 ? "registro" : "registros"} na prévia`}
         className="mb-0 rounded-sm border border-border bg-card p-4 sm:p-5"
       >
         <div className="flex w-full flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
@@ -392,6 +431,14 @@ export function MonitoramentoRelatoriosPage() {
             </p>
           </div>
         </div>
+        <SingleSelectFilter
+          placeholder="Conclusão"
+          options={[{ value: "encerrados", label: "Concluídos" }]}
+          value={encerramento}
+          onChange={setEncerramento}
+          clearLabel="Todos"
+          minWidth={150}
+        />
         <SingleSelectFilter
           placeholder="Tipo de contratação"
           options={tipoContratacaoOptions}
@@ -457,12 +504,23 @@ export function MonitoramentoRelatoriosPage() {
         />
       </FilterWorkspace>
 
-      <RelatorioResumoCarteira
-        instrumentos={conveniosFiltrados.length}
-        valorInstrumentos={valorGlobalInstrumentos}
-        parcerias={propostasConfirmadas.length}
-        propostas={propostasEmTramitacao.length}
-      />
+      {!somenteEncerrados && (
+        <>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Indicadores e tabelas abaixo descrevem somente a prévia carregada.
+            {totalConveniosFonte > convenios.length &&
+              ` A fonte tem ${totalConveniosFonte.toLocaleString("pt-BR")} convênios; ${convenios.length.toLocaleString("pt-BR")} estão nesta prévia.`}
+            {totalPropostasFonte > propostas.length &&
+              ` A fonte tem ${totalPropostasFonte.toLocaleString("pt-BR")} propostas; ${propostas.length.toLocaleString("pt-BR")} estão nesta prévia.`}
+          </p>
+          <RelatorioResumoCarteira
+            instrumentos={conveniosFiltrados.length}
+            valorInstrumentos={valorGlobalInstrumentos}
+            parcerias={propostasConfirmadas.length}
+            propostas={propostasEmTramitacao.length}
+          />
+        </>
+      )}
 
       <div className="flex items-center gap-3 border-b border-border pb-3 pt-1">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -470,85 +528,125 @@ export function MonitoramentoRelatoriosPage() {
         </div>
         <div>
           <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
-            Prévia dos dados
+            Prévia parcial dos dados
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Confira as linhas incluídas no recorte selecionado.
+            A prévia usa até 1.000 convênios e 500 propostas; o arquivo consulta
+            as fontes novamente e pode incluir mais registros.
           </p>
+          {totalPropostasFonte > propostas.length && (
+            <p className="mt-1 text-xs text-amber-700">
+              {totalPropostasFonte.toLocaleString("pt-BR")} propostas na fonte;{" "}
+              {propostas.length.toLocaleString("pt-BR")} carregadas para a
+              prévia.
+            </p>
+          )}
         </div>
       </div>
 
-      {conveniosQuery.isLoading ? (
-        <Skeleton
-          className="h-64 w-full"
-          role="status"
-          aria-label="Carregando"
-        />
-      ) : conveniosQuery.isError ? (
-        <ErrorAlert
-          mensagem={mensagemSeguraDoErro(conveniosQuery.error)}
-          onRetry={() => conveniosQuery.refetch()}
-        />
-      ) : (
-        <RelatorioInstrumentosTabela
-          itens={conveniosFiltrados}
-          faseMonitoramento={faseMonitoramento}
-          onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-        />
-      )}
-
-      {carregandoPropostas ? (
-        <Skeleton
-          className="h-64 w-full"
-          role="status"
-          aria-label="Carregando"
-        />
-      ) : erroPropostas ? (
-        <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
+      {somenteEncerrados ? (
+        encerrados.isLoading ? (
+          <Skeleton
+            className="h-64 w-full"
+            role="status"
+            aria-label="Carregando concluídos"
+          />
+        ) : encerrados.isError ? (
+          <ErrorAlert
+            mensagem={mensagemSeguraDoErro(encerrados.error)}
+            onRetry={() => encerrados.refetch()}
+          />
+        ) : encerrados.data ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Uma linha por instrumento ou parceria. Ordem paga não comprova
+              quitação integral nem conclusão física.
+            </p>
+            <RelatorioEncerradosPrevia
+              titulo="Concluídos"
+              itens={encerrados.data.itens}
+              total={encerrados.data.total}
+              pagina={encerrados.pagina}
+              onPaginaChange={encerrados.setPagina}
+            />
+            <RelatorioEncerradosPrevia
+              titulo="Pendências excluídas dos concluídos"
+              itens={encerrados.data.pendencias}
+              total={encerrados.data.total_pendencias}
+              pagina={encerrados.paginaPendencias}
+              onPaginaChange={encerrados.setPaginaPendencias}
+            />
+          </>
+        ) : null
       ) : (
         <>
-          <RelatorioPropostasTabela
-            titulo="Parcerias confirmadas"
-            descricao="Instrumentos com parceria formalizada"
-            itens={propostasConfirmadas}
-            onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-          />
-          <RelatorioPropostasTabela
-            titulo="Propostas em tramitação"
-            descricao="Linhas de financiamento ainda em análise"
-            itens={propostasEmTramitacao}
-            onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-          />
+          {conveniosQuery.isLoading ? (
+            <Skeleton
+              className="h-64 w-full"
+              role="status"
+              aria-label="Carregando"
+            />
+          ) : conveniosQuery.isError ? (
+            <ErrorAlert
+              mensagem={mensagemSeguraDoErro(conveniosQuery.error)}
+              onRetry={() => conveniosQuery.refetch()}
+            />
+          ) : (
+            <RelatorioInstrumentosTabela
+              itens={conveniosFiltrados}
+              faseMonitoramento={faseMonitoramento}
+              onLimparFiltros={hasFiltros ? limparFiltros : undefined}
+            />
+          )}
+
+          {carregandoPropostas ? (
+            <Skeleton
+              className="h-64 w-full"
+              role="status"
+              aria-label="Carregando"
+            />
+          ) : erroPropostas ? (
+            <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
+          ) : (
+            <>
+              <RelatorioPropostasTabela
+                titulo="Parcerias confirmadas"
+                descricao="Instrumentos com parceria formalizada"
+                itens={propostasConfirmadas}
+                onLimparFiltros={hasFiltros ? limparFiltros : undefined}
+              />
+              <RelatorioPropostasTabela
+                titulo="Propostas em tramitação"
+                descricao="Linhas de financiamento ainda em análise"
+                itens={propostasEmTramitacao}
+                onLimparFiltros={hasFiltros ? limparFiltros : undefined}
+              />
+            </>
+          )}
         </>
       )}
 
       <RelatorioBotoesGerar
         nivel={nivel}
         onNivelChange={setNivel}
-        podeGerar
+        podeGerar={
+          !municipioAmbiguo &&
+          !estabelecimentoAmbiguo &&
+          (!somenteEncerrados ||
+            Boolean(
+              encerrados.data && !encerrados.isFetching && !encerrados.isError,
+            ))
+        }
         gerando={gerando}
         erro={erro}
-        contexto={`O arquivo reunirá o recorte de ${resumoEscopo}, com os filtros aplicados na prévia acima.`}
-        onGerar={(formato) =>
-          void gerar(formato, nivel, {
-            escopo: escopoGeracao,
-            uf:
-              escopoGeracao === "uf" || escopoGeracao === "municipio"
-                ? ufEfetiva
-                : undefined,
-            municipio:
-              escopoGeracao === "municipio"
-                ? (municipio ?? undefined)
-                : undefined,
-            cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
-            anoInicio: anoInicio ? Number(anoInicio) : undefined,
-            anoFim: anoFim ? Number(anoFim) : undefined,
-            situacao: situacao ?? undefined,
-            programa: programa ?? undefined,
-            tipoContratacao: tipoContratacao ?? undefined,
-            equipamento: equipamento ?? undefined,
-          })
+        contexto={
+          municipioAmbiguo
+            ? "Há municípios com este nome em mais de uma UF. Selecione a UF antes de exportar."
+            : estabelecimentoAmbiguo
+              ? "Há mais de um CNES com este nome. Selecione o CNES antes de exportar."
+              : `O arquivo reunirá o recorte de ${resumoEscopo}, com os filtros aplicados na prévia acima.`
         }
+        onGerar={(formato) => void gerar(formato, nivel, filtroGeracao)}
       />
     </div>
   );

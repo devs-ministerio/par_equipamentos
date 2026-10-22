@@ -35,6 +35,9 @@ export default defineConfig({
     setupFiles: ["./src/test-setup.ts"],
     coverage: {
       provider: "v8",
+      // Também contar arquivos não importados pelos testes: o piso é da
+      // camada inteira, não somente do subconjunto que a suíte executou.
+      include: ["src/**/*.{ts,tsx}"],
       reporter: ["text", "json", "lcov"],
       reportsDirectory: "coverage",
     },

@@ -15,6 +15,7 @@ from app.repositories import cobertura_relatorio as cobertura_repo
 from app.repositories import convenios as convenios_repo
 from app.repositories import execucoes as execucoes_repo
 from app.repositories import monitoramento as monitoramento_repo
+from app.repositories.limites_relatorio import LimiteConsultaExcedido
 
 
 @pytest.mark.db
@@ -92,10 +93,34 @@ def test_listar_instrumentos_filtra_por_uf_municipio_cnes():
         assert any(i.nr_convenio == "948686" for i in por_municipio)
 
         por_cnes = monitoramento_repo.listar_instrumentos(db, cnes="0010456")
-        assert [i.nr_convenio for i in por_cnes] == ["948686"]
+        assert any(i.nr_convenio == "948686" for i in por_cnes)
+        assert all(i.cnes == "0010456" for i in por_cnes)
 
         nenhum = monitoramento_repo.listar_instrumentos(db, ufs=["ZZ"])
         assert nenhum == []
+    finally:
+        db.close()
+
+
+@pytest.mark.db
+def test_timeline_em_lote_preserva_a_ordem_e_apenas_registros_ativos():
+    # Arrange
+    db = SessionLocal()
+    try:
+        instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, "948686")
+        assert instrumento is not None
+
+        # Act
+        eventos_lote = monitoramento_repo.listar_eventos_por_instrumentos(db, [instrumento.id])
+        acoes_lote = monitoramento_repo.listar_acoes_por_instrumentos(db, [instrumento.id])
+
+        # Assert
+        assert [e.id for e in eventos_lote[instrumento.id]] == [
+            e.id for e in monitoramento_repo.listar_eventos_do_instrumento(db, instrumento.id)
+        ]
+        assert [a.id for a in acoes_lote.get(instrumento.id, [])] == [
+            a.id for a in monitoramento_repo.listar_acoes_do_instrumento(db, instrumento.id)
+        ]
     finally:
         db.close()
 
@@ -141,6 +166,31 @@ def test_listar_convenios_filtrados_municipio_ignora_acento_e_caixa():
 
 
 @pytest.mark.db
+def test_limite_e_aplicado_depois_do_municipio_e_nunca_trunca_silenciosamente(monkeypatch):
+    # Arrange: dois registros no mesmo escopo geográfico, em municípios
+    # diferentes. O desejado vem por último na ordenação.
+    db = SessionLocal()
+    try:
+        db.add_all(
+            [
+                Convenio(numero="__pytest_limite_1__", convenente_nome="Teste", municipio="Cidade Alfa", uf="DF"),
+                Convenio(numero="__pytest_limite_2__", convenente_nome="Teste", municipio="Cidade Beta", uf="DF"),
+            ]
+        )
+        db.flush()
+        monkeypatch.setattr(convenios_repo, "LIMITE_RELATORIO", 1)
+
+        # Act / Assert: o filtro municipal é executado antes do teto.
+        resultado = convenios_repo.listar_convenios_filtrados(db, ufs=["DF"], municipio="Cidade Beta")
+        assert [item.numero for item in resultado] == ["__pytest_limite_2__"]
+        with pytest.raises(LimiteConsultaExcedido):
+            convenios_repo.listar_convenios_filtrados(db, ufs=["DF"])
+    finally:
+        db.rollback()
+        db.close()
+
+
+@pytest.mark.db
 def test_listar_convenios_filtrados_por_situacao_programa_tipo_e_busca():
     """Mesmos filtros de "Instrumentos e repasses" (Dados Oficiais), Plan
     Mode relatorios 2026-09-25 Bloco 7."""
@@ -157,16 +207,18 @@ def test_listar_convenios_filtrados_por_situacao_programa_tipo_e_busca():
         db.add(convenio)
         db.flush()
 
-        assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, situacao="Em execução")] == [
-            "__pytest_filtros_convenio__"
-        ]
-        assert convenios_repo.listar_convenios_filtrados(db, situacao="Concluído") == []
+        em_execucao = convenios_repo.listar_convenios_filtrados(db, situacao="Em execução")
+        assert convenio in em_execucao
+        assert all(c.situacao == "Em execução" for c in em_execucao)
+        concluidos = convenios_repo.listar_convenios_filtrados(db, situacao="Concluído")
+        assert convenio not in concluidos
+        assert all(c.situacao == "Concluído" for c in concluidos)
         assert [
             c.numero for c in convenios_repo.listar_convenios_filtrados(db, programa="Programa Pytest de Oncologia")
         ] == ["__pytest_filtros_convenio__"]
-        assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, tipo_contratacao="TED")] == [
-            "__pytest_filtros_convenio__"
-        ]
+        teds = convenios_repo.listar_convenios_filtrados(db, tipo_contratacao="TED")
+        assert convenio in teds
+        assert all(c.tipo_contratacao == "TED" for c in teds)
         assert [c.numero for c in convenios_repo.listar_convenios_filtrados(db, busca="Hospital Pytest")] == [
             "__pytest_filtros_convenio__"
         ]

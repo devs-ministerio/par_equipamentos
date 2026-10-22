@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import pool, Connection
 
 from alembic import context
 
@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app.config import settings
 from app.db.base import Base
 from app.db import models  # noqa: F401 -- registra os modelos em Base.metadata
+from app.db import models_legado  # noqa: F401 -- registra o Radar legado
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -32,7 +33,7 @@ print(
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
@@ -73,6 +74,17 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    connection = config.attributes.get("connection")
+    if connection is not None:
+        if not isinstance(connection, Connection):
+            raise TypeError("A conexão explícita de migration precisa ser SQLAlchemy Connection.")
+        # Ensaios programáticos usam conexão previamente validada pelo chamador.
+        # Não abrir outro banco a partir de Settings/.env quando ela é fornecida.
+        context.configure(connection=connection, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
+        return
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

@@ -62,7 +62,7 @@ class _RegistroTransfereGov(BaseModel):
 
 
 class PropostaTransfereGov(_RegistroTransfereGov):
-    id_proposta: int
+    id_proposta: int = Field(strict=True, gt=0)
     ds_objeto: str | None = None
     cnpj_ente_recebedor: str | None = None
 
@@ -131,11 +131,18 @@ def _buscar_paginado(
     endpoint: str,
     filtros: dict[str, str | int],
     limite: int | None = None,
+    *,
+    exigir_envelope: bool = True,
 ) -> list[dict[str, Any]]:
     """Pagina um endpoint ate esgotar ou atingir `limite` registros (None =
-    sem limite, cuidado: alguns entes tem centenas/milhares de propostas)."""
+    sem limite, cuidado: alguns entes tem centenas/milhares de propostas).
+
+    Coleção omitida não comprova vazio. Todos os consumidores operacionais
+    exigem envelope; modo permissivo só mediante opção explícita legada.
+    """
     registros: list[dict[str, Any]] = []
     pagina = 1
+    total_confirmado: int | None = None
     while True:
         params: dict[str, str | int] = {**filtros, "pagina": pagina, "tamanho_da_pagina": TAMANHO_PAGINA_PADRAO}
         resp = executar_chamada_externa(
@@ -145,11 +152,22 @@ def _buscar_paginado(
         )
         resp.raise_for_status()
         corpo = validar_objeto_externo(resp.json(), fonte=f"TransfereGov/{endpoint}")
+        if exigir_envelope:
+            total = corpo.get("total_pages")
+            if "data" not in corpo or type(total) is not int or total < 0:
+                raise ValueError("Envelope paginado TransfereGov ausente ou inválido.")
+            if total_confirmado is not None and total != total_confirmado:
+                raise ValueError("Paginação TransfereGov mudou durante a coleta.")
+            total_confirmado = total
         dados = validar_lista_objetos_externos(corpo.get("data", []), fonte=f"TransfereGov/{endpoint}.data")
+        if total_confirmado is not None and (
+            (not dados and (pagina < total_confirmado or pagina > 1)) or (dados and total_confirmado == 0)
+        ):
+            raise ValueError("Página TransfereGov incompleta ou divergente.")
         registros.extend(_validar_registros_do_endpoint(endpoint, dados))
         if limite is not None and len(registros) >= limite:
             return registros[:limite]
-        if len(dados) < TAMANHO_PAGINA_PADRAO or pagina >= corpo.get("total_pages", pagina):
+        if pagina >= corpo.get("total_pages", pagina) or (not exigir_envelope and len(dados) < TAMANHO_PAGINA_PADRAO):
             break
         pagina += 1
     return registros

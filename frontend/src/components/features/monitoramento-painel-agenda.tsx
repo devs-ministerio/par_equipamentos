@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { ArrowUpRight } from "lucide-react";
 import { Pagination } from "@/components/common/pagination";
 import { useListaPaginada } from "@/hooks/useListaPaginada";
@@ -62,9 +62,9 @@ export function AgendaExecutiva({
     <div className="flex flex-1 flex-col">
       <div className="divide-y divide-border">
         {itens.slice(inicio, inicio + TAMANHO_PAGINA).map((item) => (
-          <Link
+          <LinkDetalheInstrumento
             key={item.chave}
-            to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(item.nr)}`}
+            nrConvenio={item.nr}
             className="group grid gap-1 py-3 text-inherit sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-3"
           >
             <div className="min-w-0">
@@ -85,7 +85,7 @@ export function AgendaExecutiva({
                 className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
               />
             </div>
-          </Link>
+          </LinkDetalheInstrumento>
         ))}
       </div>
       {itens.length > TAMANHO_PAGINA && (

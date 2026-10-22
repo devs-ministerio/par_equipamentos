@@ -38,6 +38,10 @@ def _lista(valor: object) -> list[dict[str, object]]:
 
 
 def _chave(registro: Mapping[str, object], *, tipo: str, posicao: int) -> str:
+    aliases = {"ordem-pagamento": "id_op", "cronograma-desembolso": "id_proposta_cronograma_item"}
+    alias = aliases.get(tipo)
+    if alias is not None and registro.get(alias) is not None:
+        return str(registro[alias])
     for campo in (
         f"id_{tipo.replace('-', '_')}",
         "id_proposta",

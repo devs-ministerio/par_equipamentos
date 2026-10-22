@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { useQuery } from "@tanstack/react-query";
 import { RotateCcw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -244,12 +244,12 @@ export function MonitoramentoPainelGeografia({
                   <ul className="mt-4 max-h-[430px] divide-y divide-border overflow-y-auto">
                     {localAtivo.instrumentos.map(({ instrumento }) => (
                       <li key={instrumento.id} className="py-3 first:pt-0">
-                        <Link
-                          to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(instrumento.nr_convenio)}`}
+                        <LinkDetalheInstrumento
+                          nrConvenio={instrumento.nr_convenio}
                           className="text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                         >
                           {instrumento.nome_convenente}
-                        </Link>
+                        </LinkDetalheInstrumento>
                         <p className="mt-1 text-xs text-foreground">
                           {instrumento.equipamento_descricao ??
                             "Equipamento não informado"}

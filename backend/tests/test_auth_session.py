@@ -7,14 +7,17 @@ framework.
 
 from __future__ import annotations
 
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import update
+from sqlalchemy import text, update
+from sqlalchemy.engine import Engine
 
 from app.auth import (
     ACCESS_COOKIE_NAME,
@@ -25,12 +28,115 @@ from app.auth import (
     create_refresh_token,
     hash_password,
     rotate_refresh_token,
+    verify_password,
 )
 from app.db.base import SessionLocal
 from app.db.models import AuditLog, RefreshToken, User, UserRole
 from app.main import app
 
 client = TestClient(app)
+
+
+@pytest.mark.parametrize("desfecho", ["normal", "erro_navegador", "alteracao_indevida"])
+def test_fixture_convite_expirado_inativa_somente_sua_conta_mesmo_apos_falha(desfecho):
+    from scripts.convite_expirado_local import convite_expirado_sintetico
+
+    # Given: outra conta sintética deve permanecer intacta, inclusive a senha.
+    with SessionLocal() as db:
+        sentinela, _ = _criar_usuario(db)
+        senha_sentinela = sentinela.password_hash
+        expectativa = (
+            pytest.raises(RuntimeError, match="navegador simulado")
+            if desfecho == "erro_navegador"
+            else pytest.raises(ValueError, match="já inativada")
+            if desfecho == "alteracao_indevida"
+            else nullcontext()
+        )
+        # When: a mesma fixture usada pelo launcher faz commit e limpeza reais.
+        engine = db.get_bind()
+        assert isinstance(engine, Engine)
+        with expectativa, engine.connect() as conn, convite_expirado_sintetico(conn) as token:
+            token_hash = hashlib.sha256(token.get_secret_value().encode()).hexdigest()
+            with conn.begin():
+                usuario_id = conn.scalar(
+                    text('SELECT id FROM public."user" WHERE activation_token_hash=:hash'),
+                    {"hash": token_hash},
+                )
+                assert isinstance(usuario_id, int)
+                if desfecho == "alteracao_indevida":
+                    conn.execute(
+                        text('UPDATE public."user" SET password_hash=:senha WHERE id=:id'),
+                        {"senha": "fixture-alterada", "id": usuario_id},
+                    )
+            if desfecho == "erro_navegador":
+                raise RuntimeError("navegador simulado")
+        # Then: fixture fica inativa sem convite, com auditoria preservada.
+        fixture = db.get(User, usuario_id)
+        assert fixture is not None
+        assert fixture.status.value == "inactive"
+        assert fixture.activation_token_hash is None
+        assert fixture.activation_expires_at is None
+        acoes = (
+            db.execute(
+                text(
+                    "SELECT action FROM audit_log WHERE entity_name='ensaio_convite_expirado' AND entity_id=:id ORDER BY id"
+                ),
+                {"id": usuario_id},
+            )
+            .scalars()
+            .all()
+        )
+        assert acoes == ["fixture_criada", "fixture_inativada"]
+        db.refresh(sentinela)
+        assert sentinela.status.value == "active"
+        assert sentinela.password_hash == senha_sentinela
+
+
+@pytest.mark.parametrize("rota", ["/auth/ativar", "/auth/redefinir-senha"])
+@pytest.mark.parametrize("expirado", [True, False], ids=["expirado", "vigente"])
+def test_link_de_acesso_respeita_validade_sem_alterar_senha_quando_expirado(rota, expirado):
+    from app.rate_limit import limiter
+
+    # Given: usuário e token sintéticos em PostgreSQL descartável, sem envio.
+    db = SessionLocal()
+    try:
+        user, senha_anterior = _criar_usuario(db)
+        token = str(uuid4())
+        senha_nova = str(uuid4())
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        validade = datetime.now(timezone.utc) + timedelta(minutes=-1 if expirado else 1)
+        user.activation_token_hash = token_hash
+        user.activation_expires_at = validade
+        user.activated_at = None
+        hash_anterior = user.password_hash
+        db.commit()
+        limiter.reset()
+        cliente = TestClient(app)
+        # When: pilha HTTP real recebe exatamente o token armazenado, não um token inexistente.
+        resposta = cliente.post(rota, json={"token": token, "password": senha_nova})
+        db.refresh(user)
+        # Then: rejeição preserva senha/convite; sucesso consome o token e emite sessão.
+        assert resposta.status_code == (400 if expirado else 200)
+        assert token not in resposta.text
+        if expirado:
+            assert "inválido ou expirado" in resposta.json()["error"].lower()
+            assert user.password_hash == hash_anterior
+            assert user.activation_token_hash == token_hash
+            assert user.activation_expires_at == validade
+            assert user.activated_at is None
+            assert not resposta.headers.get_list("set-cookie")
+            assert cliente.get("/auth/me").status_code == 401
+            assert verify_password(senha_anterior, user.password_hash)
+        else:
+            assert user.activation_token_hash is None
+            assert user.activation_expires_at is None
+            assert user.activated_at is not None
+            assert verify_password(senha_nova, user.password_hash)
+            assert not verify_password(senha_anterior, user.password_hash)
+            assert cliente.get("/auth/me").status_code == 200
+            assert cliente.post(rota, json={"token": token, "password": senha_nova}).status_code == 400
+    finally:
+        db.close()
 
 
 def _criar_usuario(db, senha: str = "senha-teste-123") -> tuple[User, str]:

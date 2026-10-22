@@ -45,25 +45,27 @@ export function MonitoramentoInternoCadastro({
   onFechar: () => void;
   onSalvar: (valores: CadastroInternoFormValues) => Promise<void>;
 }) {
+  const emEdicao = aberto && podeEditar;
   return (
     <SecaoOperacional
       titulo="Cadastro interno"
       acao={
         <button
-          onClick={() => (aberto ? onFechar() : onAbrir())}
+          onClick={() => (emEdicao ? onFechar() : onAbrir())}
           disabled={!podeEditar}
-          aria-expanded={aberto}
+          aria-expanded={emEdicao}
           className={cn(
             estiloInput,
             "cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5",
           )}
         >
-          {aberto ? "Cancelar" : "Editar cadastro"}
+          {emEdicao ? "Cancelar" : "Editar cadastro"}
         </button>
       }
     >
-      {aberto ? (
+      {emEdicao ? (
         <MonitoramentoInternoFormCadastro
+          key={`${instrumento.id}:${instrumento.nr_convenio}`}
           instrumento={instrumento}
           onSalvar={async (valores) => {
             try {

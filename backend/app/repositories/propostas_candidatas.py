@@ -24,6 +24,14 @@ def obter_proposta_por_id(db: Session, proposta_candidata_id: int) -> PropostaCa
     return db.get(PropostaCandidata, proposta_candidata_id)
 
 
+def selecionar_recaptura_local(db: Session, *, limite: int, ids: tuple[int, ...] | None) -> list[PropostaCandidata]:
+    """Amostra exata e limitada; lock impede publicação concorrente na mesma proposta."""
+    consulta = select(PropostaCandidata)
+    if ids is not None:
+        consulta = consulta.where(PropostaCandidata.id_proposta.in_(ids))
+    return list(db.scalars(consulta.order_by(PropostaCandidata.id_proposta).limit(limite).with_for_update()))
+
+
 def aplicar_filtros_proposta(query, filtros: FiltrosPropostaCandidata):
     if filtros.uf:
         query = query.where(PropostaCandidata.uf == filtros.uf)
@@ -56,7 +64,7 @@ def listar_propostas_paginadas(
     itens = (
         db.execute(
             aplicar_filtros_proposta(select(PropostaCandidata), filtros)
-            .order_by(PropostaCandidata.created_at.desc())
+            .order_by(PropostaCandidata.created_at.desc(), PropostaCandidata.id.desc())
             .offset((pagina - 1) * tamanho_pagina)
             .limit(tamanho_pagina)
         )

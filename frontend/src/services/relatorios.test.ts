@@ -91,7 +91,7 @@ describe("exportação de relatórios", () => {
         escopo: "brasil",
       });
       const rejeicao = expect(geracao).rejects.toMatchObject({
-        message: "A geração excedeu 90 segundos.",
+        publicMessage: expect.stringContaining("A geração excedeu 90 segundos"),
       });
       await vi.advanceTimersByTimeAsync(89_999);
       expect(signal?.aborted).toBe(false);
@@ -119,7 +119,7 @@ describe("exportação de relatórios", () => {
       }),
     ).rejects.toMatchObject({
       status: 503,
-      message: "Há outro relatório em geração.",
+      publicMessage: expect.stringContaining("temporariamente indisponível"),
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
@@ -152,7 +152,7 @@ describe("exportação de relatórios", () => {
       uf: "BA",
     });
     expect(await arquivo.blob.text()).toBe("arquivo após renovação");
-    expect(arquivo.nomeArquivo).toBe("relatorio.docx");
+    expect(arquivo.nomeArquivo).toBe("relatorio-sem-nome.docx");
     expect(fetchMock).toHaveBeenCalledTimes(4);
     const rotas = fetchMock.mock.calls.map(
       ([url]) => new URL(String(url)).pathname,

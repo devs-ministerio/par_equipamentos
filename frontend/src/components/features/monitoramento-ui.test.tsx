@@ -9,6 +9,16 @@ import { ApiError } from "@/lib/api-error";
 import { ConfirmarExclusaoComMotivo } from "./monitoramento-ui";
 
 describe("ConfirmarExclusaoComMotivo", () => {
+  it("associa o rótulo de motivo ao campo usado pela confirmação", () => {
+    // Arrange / Act
+    render(
+      <ConfirmarExclusaoComMotivo onExcluir={vi.fn()} onCancelar={() => {}} />,
+    );
+    // Assert
+    expect(
+      screen.getByRole("textbox", { name: "Motivo da exclusão" }),
+    ).toBeInTheDocument();
+  });
   it("bloqueia confirmação com motivo vazio e mostra erro, sem chamar onExcluir", async () => {
     const onExcluir = vi.fn();
     render(

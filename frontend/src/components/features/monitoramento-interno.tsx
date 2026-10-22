@@ -20,6 +20,7 @@ import {
 import { componenteDoProgramaSiconv } from "@/lib/componente-siconv";
 import { derivarMonitoramentoInterno } from "@/lib/monitoramento-derivado";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { ApiError } from "@/lib/api-error";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OperationalDetailSection } from "@/components/common/operational-detail-section";
@@ -33,6 +34,19 @@ import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
 
 export function MonitoramentoInterno({
+  numeroConvenio,
+}: {
+  numeroConvenio: string;
+}) {
+  return (
+    <MonitoramentoInternoConteudo
+      key={numeroConvenio}
+      numeroConvenio={numeroConvenio}
+    />
+  );
+}
+
+function MonitoramentoInternoConteudo({
   numeroConvenio,
 }: {
   numeroConvenio: string;
@@ -57,10 +71,11 @@ export function MonitoramentoInterno({
   const excluirAcaoMutation = useExcluirAcao();
   const [concluindoAcaoId, setConcluindoAcaoId] = useState<number | null>(null);
 
-  function tratarErroEscrita(e: unknown): never {
-    sessao.tratarSessaoInvalida();
+  function tratarErroEscrita(e: unknown): void {
+    if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+      sessao.tratarSessaoInvalida();
+    }
     setErroEscrita(mensagemSeguraDoErro(e));
-    throw e;
   }
 
   async function executarEscrita(acao: () => Promise<unknown>): Promise<void> {
@@ -69,6 +84,7 @@ export function MonitoramentoInterno({
       await acao();
     } catch (erro) {
       tratarErroEscrita(erro);
+      throw erro;
     }
   }
 
@@ -109,6 +125,9 @@ export function MonitoramentoInterno({
   const timeline = timelineQuery.data;
   const acoes = acoesQuery.data;
   const inst = timeline.instrumento;
+  // A permissão do instrumento em cache não sobrepõe a sessão atual.
+  const podeEditar =
+    inst.pode_editar && sessao.podeEditar && !sessao.erroSessao;
 
   const {
     fasesGerais,
@@ -159,7 +178,7 @@ export function MonitoramentoInterno({
 
       <MonitoramentoInternoCadastro
         instrumento={inst}
-        podeEditar={inst.pode_editar}
+        podeEditar={podeEditar}
         aberto={cadastroAberto}
         onAbrir={() => setCadastroAberto(true)}
         onFechar={() => setCadastroAberto(false)}
@@ -206,7 +225,7 @@ export function MonitoramentoInterno({
         >
           <MonitoramentoInternoAcoes
             acoes={acoes}
-            podeEditar={inst.pode_editar}
+            podeEditar={podeEditar}
             concluindoAcaoId={concluindoAcaoId}
             onCriar={(valores) =>
               executarEscrita(() =>
@@ -252,7 +271,7 @@ export function MonitoramentoInterno({
           <MonitoramentoInternoEventos
             marcos={marcos}
             eventos={timeline.eventos}
-            podeEditar={inst.pode_editar}
+            podeEditar={podeEditar}
             onRegistrar={(valores) =>
               executarEscrita(() =>
                 registrarEventoMutation.mutateAsync({

@@ -173,6 +173,12 @@ function App() {
                 <Route path="/painel-geral" element={<PainelGeralPage />} />
                 <Route element={<MonitoramentoLayout />}>
                   <Route
+                    path="/monitoramento-equipamentos/entradas"
+                    element={
+                      <Navigate to="/monitoramento-equipamentos" replace />
+                    }
+                  />
+                  <Route
                     path="/monitoramento-equipamentos"
                     element={<MonitoramentoEquipamentosPage />}
                   />

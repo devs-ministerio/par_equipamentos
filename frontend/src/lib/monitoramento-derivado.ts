@@ -2,7 +2,7 @@
  * a partir de marcos + timeline + ações -- extraído do componente (era
  * tudo calculado inline no corpo da função) pra função testável e
  * reaproveitável pelos subcomponentes depois do split (Seção 6 da
- * migração). Mesma lógica de antes, char por char, só organizada. */
+ * migração). Seleção de registro vigente compartilhada com a UI. */
 import type { AcaoMonitoramento } from "@/services/monitoramento-acoes";
 import type {
   EventoMarco,
@@ -10,18 +10,7 @@ import type {
 } from "@/services/monitoramento-instrumentos";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { diasAte } from "./monitoramento-format";
-
-function eventoMaisRecente(eventos: EventoMarco[]): EventoMarco | null {
-  return eventos.reduce<EventoMarco | null>(
-    (maisRecente, evento) =>
-      !maisRecente ||
-      `${evento.created_at}-${evento.id}` >
-        `${maisRecente.created_at}-${maisRecente.id}`
-        ? evento
-        : maisRecente,
-    null,
-  );
-}
+import { eventoMaisRecente } from "./monitoramento-eventos";
 
 export function derivarMonitoramentoInterno(
   marcos: MarcoCatalogo[],

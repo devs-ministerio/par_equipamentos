@@ -74,6 +74,12 @@ ignore = ["E501"]
 # lista é fechada e deliberada: remover um item exige a revisão histórica do
 # arquivo; migration nova não entra aqui.
 "alembic/env.py" = ["I001"]
+# Cópias históricas recuperadas e revisão de triagem já compartilhada:
+# preservar os arquivos; somente a ordem dos imports é dispensada.
+"alembic/recuperados/a1c2d3e4f5b6_numero_convenio_alfanumerico.py" = ["I001"]
+"alembic/recuperados/e6a7b8c9d0f1_aviso_descoberta_radar.py" = ["I001"]
+"alembic/recuperados/f0a1b2c3d4e5_aviso_aprovacao_carteira.py" = ["I001"]
+"alembic/versions/b5c6d7e8f9a0_decisoes_radar.py" = ["I001"]
 "alembic/versions/01a01055b1af_adiciona_bloqueio_de_conta_em_user.py" = ["I001"]
 "alembic/versions/26becbd31f95_corrige_escopo_instrumentos_firmados.py" = ["I001"]
 "alembic/versions/28c0d8de92f2_colapsa_config_decision_e_config_.py" = ["I001"]

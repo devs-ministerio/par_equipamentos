@@ -6,9 +6,44 @@ from __future__ import annotations
 from datetime import date
 from io import BytesIO
 
+import pytest
 from openpyxl import load_workbook
 
 from app.reports.xlsx_builder import colorir_variacao, escrever_aba_tabela, gerar_bytes, nova_pasta
+
+
+def test_linhas_vazias_curtas_e_largas_preservam_posicao_zero_e_texto_literal():
+    # Given
+    pasta = nova_pasta()
+    linhas: list[list[str | int | None]] = [["=1+1", 0], [], ["Linha curta"], [None, None, "=2+2"]]
+    # When
+    escrever_aba_tabela(pasta, "Dados", ["Nome", "Valor"], linhas)
+    reaberta = load_workbook(BytesIO(gerar_bytes(pasta)))
+    # Then
+    try:
+        aba = reaberta["Dados"]
+        assert aba["A2"].value == "=1+1" and aba["A2"].data_type == "s"
+        assert aba["B2"].value == 0
+        assert aba["A3"].value is None
+        assert aba["A4"].value == "Linha curta"
+        assert aba["B4"].value is None
+        assert aba["A5"].value is None and aba["B5"].value is None
+        assert aba["C5"].value == "=2+2" and aba["C5"].data_type == "s"
+    finally:
+        reaberta.close()
+
+
+@pytest.mark.parametrize("texto", ["=1+1", "=SUM(1,2)", "+1", "-1", "@SUM(1,2)", "0012345"])
+def test_texto_exportado_nao_vira_formula_sem_alterar_conteudo(texto):
+    # Arrange / Act: o builder de tabela recebe dados, não expressões Excel.
+    pasta = nova_pasta()
+    escrever_aba_tabela(pasta, "Fonte", ["Descrição", "Valor"], [[texto, -1]])
+    # Assert: serialização e reabertura não promovem o texto a fórmula.
+    aba = load_workbook(BytesIO(gerar_bytes(pasta)))["Fonte"]
+    assert aba["A2"].value == texto
+    assert aba["A2"].data_type == "s"
+    assert aba["B2"].value == -1
+    assert aba["B2"].data_type == "n"
 
 
 def test_nova_pasta_nao_tem_aba_fantasma():
@@ -86,3 +121,20 @@ def test_colunas_data_aplicam_number_format_mantendo_valor_cru():
 def test_coluna_moeda_inexistente_no_cabecalho_nao_quebra():
     pasta = nova_pasta()
     escrever_aba_tabela(pasta, "Vazia", ["A"], [["x"]], colunas_moeda=["Não existe"])
+
+
+def test_texto_externo_nao_vira_formula_e_preserva_valor_original():
+    # Arrange: diferentes prefixos perigosos, inclusive após whitespace.
+    entradas = ["=1+1", "+SUM(1,2)", "-1+2", "@SUM(1,2)", "\t=2+2", "normal"]
+    pasta = nova_pasta()
+
+    # Act
+    escrever_aba_tabela(pasta, "Propostas", ["Proponente", "Valor"], [[texto, 10] for texto in entradas])
+    aba = load_workbook(BytesIO(gerar_bytes(pasta)))["Propostas"]
+
+    # Assert
+    for indice, texto in enumerate(entradas, start=2):
+        assert aba.cell(indice, 1).value == texto
+        assert aba.cell(indice, 1).data_type == "s"
+        assert aba.cell(indice, 2).data_type == "n"
+    assert aba.print_area == "'Propostas'!$A$1:$B$7"

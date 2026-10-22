@@ -52,7 +52,10 @@ export function CoberturaTable({
 
   // volta pra pagina 1 quando filtro/ordenacao mudar -- senao pode sobrar numa
   // pagina que nao existe mais depois de filtrar.
-  useEffect(() => setPage(1), [statusFiltro, sortKey, sortDir]);
+  useEffect(
+    () => setPage(1),
+    [rows, equipmentFamily, statusFiltro, sortKey, sortDir],
+  );
 
   // expandir/recolher e so estado de UI -- o fetch sob demanda de cada macro
   // mora em CoberturaMacroRow (useHealthRegionByMacro), disparado sozinho

@@ -15,6 +15,7 @@ from hashlib import sha256
 from typing import Literal
 
 RelacaoEquipamento = Literal["aquisicao", "modernizacao", "existente", "mencao"]
+RELACOES_FINANCIAMENTO = frozenset({"aquisicao", "modernizacao"})
 
 
 @dataclass(frozen=True)
@@ -30,7 +31,7 @@ CATALOGO_EQUIPAMENTOS: tuple[EquipamentoCatalogado, ...] = (
         "acelerador_linear",
         "Acelerador Linear",
         True,
-        re.compile(r"\b(?:ACELERAD(?:OR|O)?(?:\s+(?:LINEAR|LINAC))?|LINAC)\b"),
+        re.compile(r"\b(?:ACELERAD(?:OR|O)?\s+(?:LINEAR|LINAC)|LINAC)\b"),
     ),
     EquipamentoCatalogado("mamografo", "Mamógrafo", True, re.compile(r"MAMOGRAFO")),
     EquipamentoCatalogado("pet_ct", "PET/CT", True, re.compile(r"\bPET[\s/-]*CT\b")),
@@ -74,11 +75,61 @@ def normalizar_texto(valor: object) -> str:
 
 def relacao_da_descricao(descricao: str) -> RelacaoEquipamento:
     texto = normalizar_texto(descricao)
+    # Natureza explícita da descrição prevalece sobre aliases citados nela.
+    # Um item misto permanece conservador: aquisição precisa de evidência
+    # separada por item, não de uma palavra solta numa narrativa da obra.
+    if descricao_de_obra_ou_servico(descricao):
+        return "mencao"
     if re.search(r"\b(UPGRADE|MODERNIZAC|ATUALIZAC|SUBSTITUIC)\b", texto):
         return "modernizacao"
     if re.search(r"\b(EXISTENTE|JA INSTALAD|EM USO)\b", texto):
         return "existente"
     return "aquisicao"
+
+
+def descricao_de_obra_ou_servico(descricao: str) -> bool:
+    """Identifica natureza explícita; não decide apenas por 'hospital'."""
+    texto = normalizar_texto(descricao)
+    obra = re.search(
+        r"\b(?:OBRAS?\s+(?:DE\s+)?(?:CONSTRUCAO|REFORMA|AMPLIACAO)|"
+        r"(?:CONSTRUCAO|REFORMA|AMPLIACAO)\s+(?:DO|DA|DE)\s+(?:HOSPITAL|UNIDADE|PREDIO)|"
+        r"(?:EXECUCAO|CONTRATACAO)\s+(?:DAS?\s+)?OBRAS?|AREA\s+CONSTRUIDA)\b",
+        texto,
+    )
+    servico = re.search(
+        r"\b(?:PRESTACAO\s+DE\s+SERVICOS?|CONTRATACAO\s+(?:DE\s+)?(?:SERVICOS?|EMPRESA))\b",
+        texto,
+    )
+    return bool(obra or servico or descricao_de_formacao_ou_incentivo(descricao))
+
+
+def descricao_de_formacao_ou_incentivo(descricao: str) -> bool:
+    """Distingue o objeto financiado de treinamento acessório à aquisição.
+
+    Curso que menciona equipamento continua serviço, mesmo que sua ementa
+    cite compra. Equipamento adquirido com treinamento incluso continua bem.
+    Sem evidência explícita de aquisição, formação é conservada como menção.
+    """
+    texto = normalizar_texto(nome_do_item(descricao))
+    formacao = r"(?:CURSOS?|CAPACITAC(?:AO|OES)|TREINAMENTOS?|OFICINAS?|SEMINARIOS?|FORMACAO)"
+    objeto_formativo = re.match(
+        rf"(?:(?:REALIZACAO|OFERTA|EXECUCAO|CONTRATACAO|AQUISICAO)\s+(?:DE\s+)?)?{formacao}\b",
+        texto,
+    )
+    incentivo = re.search(r"\b(?:CONSULTORIA|CAPITAL\s+SEMENTE|EMPREENDEDOR(?:ES|ISMO)?)\b", texto)
+    tem_formacao = re.search(rf"\b{formacao}\b", texto)
+    aquisicao_equipamento = re.search(
+        r"\b(?:AQUISICAO|COMPRA|FORNECIMENTO)\s+(?:(?:DE|DO|DA)\s+)?"
+        r"(?:(?:UM|UMA)\s+)?(?:EQUIPAMENTOS?|APARELHOS?|ACELERADOR(?:ES)?\s+LINEAR(?:ES)?|"
+        r"LINAC|MAMOGRAFOS?|PET[\s/-]*CT|GAMA[\s-]*CAMARA|SPECT)\b",
+        texto,
+    )
+    equipamento_com_formacao = any(e.padrao.match(texto) for e in CATALOGO_EQUIPAMENTOS) and re.search(
+        rf"\b(?:COM|INCLUINDO)\s+(?:{formacao})\b", texto
+    )
+    return bool(
+        objeto_formativo or incentivo or (tem_formacao and not (aquisicao_equipamento or equipamento_com_formacao))
+    )
 
 
 def nome_do_item(descricao: str) -> str:
@@ -126,11 +177,11 @@ def classificar_descricoes(
                     relacao=relacao,
                 )
             )
-        # Todo item do plano é uma evidência de equipamento. Famílias que não
+        # Itens sem natureza explícita de serviço podem gerar evidência. Famílias que não
         # pertencem ao catálogo curado recebem um catálogo derivado, com nome
         # oficial do item e código estável; nunca ficam invisíveis só por não
         # serem prioritárias ou por ainda não terem um alias curado.
-        if not encontrou_catalogado and relacao_padrao == "aquisicao":
+        if not encontrou_catalogado and relacao_padrao == "aquisicao" and relacao != "mencao":
             nome = nome_do_item(descricao)
             chave = (codigo_do_item_generico(descricao), texto)
             if nome and chave not in vistos:

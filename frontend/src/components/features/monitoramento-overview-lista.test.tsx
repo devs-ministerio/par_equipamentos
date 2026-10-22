@@ -8,6 +8,8 @@ describe("MonitoramentoOverviewLista", () => {
     render(
       <MemoryRouter>
         <MonitoramentoOverviewLista
+          pagina={1}
+          onPagina={() => undefined}
           instrumentos={[
             {
               nr_convenio: "953749",
@@ -25,11 +27,14 @@ describe("MonitoramentoOverviewLista", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByRole("link", { name: "953749" })).toHaveLength(2);
-    const listaMobile = screen.getByLabelText("Instrumentos monitorados");
-    expect(listaMobile).toHaveTextContent("Hospital de teste");
-    expect(listaMobile).toHaveTextContent("Brasília/DF");
-    expect(listaMobile).toHaveTextContent("Não iniciado");
-    expect(listaMobile).toHaveTextContent("Pendente");
+    const links = screen.getAllByRole("link", { name: "953749" });
+    expect(links).toHaveLength(2);
+    expect(
+      links.every(
+        (link) =>
+          link.getAttribute("href") ===
+          "/monitoramento-equipamentos/instrumentos/953749",
+      ),
+    ).toBe(true);
   });
 });

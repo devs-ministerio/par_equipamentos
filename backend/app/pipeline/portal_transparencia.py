@@ -33,7 +33,11 @@ from urllib3.util.retry import Retry
 
 from app.config import settings
 from app.observability import executar_chamada_externa
-from app.pipeline.contratos_externos import validar_lista_objetos_externos, validar_objeto_externo
+from app.pipeline.contratos_externos import (
+    RespostaExternaInvalidaError,
+    validar_lista_objetos_externos,
+    validar_objeto_externo,
+)
 
 BASE_URL = "https://api.portaldatransparencia.gov.br/api-de-dados"
 TIMEOUT = 30
@@ -112,6 +116,8 @@ def buscar_convenio_por_numero_dto(
     corpo = resp.json()
     if isinstance(corpo, list):
         itens = validar_lista_objetos_externos(corpo, fonte="Portal da Transparência")
+        if len(itens) > 1:
+            raise RespostaExternaInvalidaError("Portal devolveu múltiplos registros para o mesmo número.")
         return _validar_convenio_portal(itens[0]) if itens else None
     if corpo is None:
         return None
