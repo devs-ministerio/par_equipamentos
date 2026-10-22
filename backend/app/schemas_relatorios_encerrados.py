@@ -26,6 +26,7 @@ class RegistroEncerrado(BaseModel):
     data_referencia: date | None = None
     origem_data: str | None = None
     equipamentos: str = ""
+    quantidade: int | None = None
     situacao_carteira: str | None = None
     situacao_monitoramento: str | None = None
     situacao_oficial: str | None = None
@@ -34,6 +35,7 @@ class RegistroEncerrado(BaseModel):
     convenio_id: int | None = Field(default=None, exclude=True)
     instrumento_id: int | None = Field(default=None, exclude=True)
     proposta_id: int | None = Field(default=None, exclude=True)
+    itens_plano: list[dict] = Field(default_factory=list, exclude=True)
 
 
 class PreviaEncerrados(BaseModel):
@@ -90,6 +92,7 @@ class FatoEncerramento(BaseModel):
     convenio_id: int | None = None
     instrumento_id: int | None = None
     data_final_vigencia: date | None = None
+    itens_plano: list[dict] = []
     parceria_confirmada: bool = False
     codigo_confirmado: str | None = None
     ordens: list[OrdemEncerramento] = Field(default_factory=list)

@@ -58,6 +58,7 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
             Convenio.id.label("convenio_id"),
             InstrumentoEquipamento.id.label("instrumento_id"),
             Convenio.data_final_vigencia,
+            Convenio.siconv_raw["itens_plano_aplicacao"].label("itens_plano"),
             Convenio.convenente_nome.label("nome"),
             func.coalesce(Convenio.tipo_contratacao, "Convênio").label("tipo"),
             Convenio.uf,
@@ -142,6 +143,11 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
         for linha in db.execute(consulta.limit(LIMITE + 1)).mappings():
             campos = dict(linha)
             campos["origem"] = origem
+            itens_plano = campos.get("itens_plano")
+            if "itens_plano" in campos:
+                campos["itens_plano"] = (
+                    [i for i in itens_plano if isinstance(i, dict)] if isinstance(itens_plano, list) else []
+                )
             if origem == "parceria":
                 campos["tipo"] = "Parceria TransfereGov"
                 raw = campos.pop("ordens_raw")

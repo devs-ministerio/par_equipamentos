@@ -5,6 +5,7 @@ from io import BytesIO
 
 import pytest
 from docx import Document
+from docx.enum.section import WD_ORIENT
 from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 from sqlalchemy import select
@@ -149,9 +150,10 @@ def test_previa_http_e_arquivos_tem_mesmas_identidades_e_motivos(carteira_encerr
     numeros = [i["numero"] for i in resposta["itens"]]
     colunas = [c.value for c in planilha["Concluídos"][1]]
     linhas_xlsx = list(planilha["Concluídos"].iter_rows(min_row=2, values_only=True))
-    assert numeros == [r[colunas.index("Número")] for r in linhas_xlsx]
-    # No Word o número vem na segunda linha da célula da instituição.
-    assert numeros == [r.cells[0].text.split("\n")[-1] for r in documento.tables[0].rows[1:]]
+    assert numeros == [r[colunas.index("Nº do convênio")] for r in linhas_xlsx]
+    # No Word o número tem coluna própria, ao lado do CNES.
+    assert documento.tables[0].rows[0].cells[3].text == "Nº do convênio"
+    assert numeros == [r.cells[3].text for r in documento.tables[0].rows[1:]]
     assert [i["motivo"] for i in resposta["itens"]] == [r[colunas.index("Critério")] for r in linhas_xlsx]
     assert resposta["total_pendencias"] == planilha["Pendências"].max_row - 1 == 2
     assert [r.cells[0].text for r in documento.tables[1].rows[1:]] == [i["numero"] for i in resposta["pendencias"]]
@@ -203,10 +205,17 @@ def test_equipamento_do_convenio_aparece_na_relacao_de_concluidos(carteira_encer
                 chave_evidencia=f"concluidos-{indice}",
             )
         )
+    por_numero["9908102"].siconv_raw = {
+        "itens_plano_aplicacao": [
+            {"DESCRICAO_ITEM": "Mamógrafo", "QTD_ITEM": "2"},
+            {"DESCRICAO_ITEM": "PET/CT", "QTD_ITEM": "1"},
+        ]
+    }
     db.flush()
     # When
     extracao = extrair_encerrados(db=db, filtro=FiltroEncerramento(busca=PREFIXO))
     equipamentos = {i.numero: i.equipamentos for i in extracao.itens}
+    quantidades = {i.numero: i.quantidade for i in extracao.itens}
     planilha = load_workbook(
         BytesIO(
             montar_relatorio(
@@ -220,13 +229,47 @@ def test_equipamento_do_convenio_aparece_na_relacao_de_concluidos(carteira_encer
     )
     cabecalho = [c.value for c in planilha["Concluídos"][1]]
     na_planilha = {
-        r[cabecalho.index("Número")]: r[cabecalho.index("Equipamento(s)")]
+        r[cabecalho.index("Nº do convênio")]: r[cabecalho.index("Equipamento(s)")]
         for r in planilha["Concluídos"].iter_rows(min_row=2, values_only=True)
     }
     # Then: tipos de equipamento do instrumento (a evidência é deduplicada por tipo); sem marcador, vazio
     assert equipamentos["9908101"] == "Acelerador Linear"
     assert equipamentos["9908102"] == "Mamógrafo; PET/CT"
     assert equipamentos["9908103"] == ""
+    # quantidade: soma do QTD_ITEM do plano (2 mamógrafos + 1 PET/CT); sem plano, 1 por tipo; sem equipamento, vazio
+    assert quantidades["9908101"] == 1
+    assert quantidades["9908102"] == 3
+    assert quantidades["9908103"] is None
+
     assert na_planilha["9908101"] == "Acelerador Linear"
     assert na_planilha["9908102"] == "Mamógrafo; PET/CT"
     assert na_planilha["9908103"] is None
+
+
+def test_word_de_concluidos_fica_deitado_e_separa_cnes_numero_e_quantidade(carteira_encerrada):
+    # Given / When
+    conteudo = montar_relatorio(
+        db=carteira_encerrada,
+        formato="docx",
+        nivel="simplificado",
+        tipo_relatorio="instrumentos_repasse",
+        filtro=FiltroRelatorio(escopo="uf", uf="BA", busca=PREFIXO, encerramento="encerrados"),
+    )
+    documento = Document(BytesIO(conteudo))
+    # Then: página deitada e uma coluna para cada informação
+    assert documento.sections[0].orientation == WD_ORIENT.LANDSCAPE
+    largura, altura = documento.sections[0].page_width, documento.sections[0].page_height
+    assert largura is not None and altura is not None and largura > altura
+    cabecalho = [c.text for c in documento.tables[0].rows[0].cells]
+    assert cabecalho == [
+        "Instituição",
+        "Município/UF",
+        "CNES",
+        "Nº do convênio",
+        "Equipamento(s)",
+        "Qtd.",
+        "Tipo",
+        "Valor global",
+        "Data de conclusão",
+        "Critério",
+    ]

@@ -42,12 +42,21 @@ export function RelatorioEncerradosPrevia({
               <div className="min-w-0">
                 <p className="break-words font-semibold">{item.nome}</p>
                 <p className="mt-1 break-words text-sm text-muted-foreground">
-                  {item.numero} · {item.tipo} ·{" "}
+                  Nº {item.numero} · CNES {item.cnes ?? "—"} · {item.tipo}
+                </p>
+                <p className="break-words text-sm text-muted-foreground">
                   {item.municipio ?? "Município não informado"}/{item.uf ?? "—"}
                 </p>
                 <p className="mt-2 break-words text-sm">
                   <span className="text-muted-foreground">Equipamentos: </span>
                   {item.equipamentos || "Não identificado"}
+                  {item.quantidade !== null && (
+                    <span className="tabular-nums">
+                      {" "}
+                      · <span className="text-muted-foreground">Qtd.: </span>
+                      {item.quantidade}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="min-w-0">

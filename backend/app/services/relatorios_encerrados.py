@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from app.domain_errors import ValidationError
-from app.pipeline.texto import normalizar_texto
+from app.equipamentos import classificar_descricoes
+from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
 from app.repositories import equipamento_marcadores as marcadores_repo
 from app.repositories import relatorios_encerrados as repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
@@ -126,6 +127,7 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         convenio_id=fato.convenio_id,
         instrumento_id=fato.instrumento_id,
         proposta_id=fato.proposta_pk,
+        itens_plano=fato.itens_plano,
         situacao_carteira=fato.situacao_carteira,
         situacao_monitoramento=fato.situacao_monitoramento,
         situacao_oficial=fato.situacao_oficial,
@@ -164,6 +166,30 @@ def _texto_equipamentos(nomes: list[str]) -> str:
     return "; ".join(f"{nome} ({quantidade})" if quantidade > 1 else nome for nome, quantidade in ordenados)
 
 
+def _quantidade_do_item(item: dict) -> int:
+    """`QTD_ITEM` do plano; sem valor legível, conta 1 unidade."""
+    valor = parsear_valor_brasileiro(item.get("QTD_ITEM"))
+    return int(valor) if valor is not None and valor >= 1 else 1
+
+
+def _quantidade_de_equipamentos(itens_plano: list[dict], codigos: list[str]) -> int:
+    """Unidades dos tipos de equipamento visíveis do registro.
+
+    Soma o `QTD_ITEM` de cada item do plano que pertence a um desses tipos, o que
+    inclui itens numerados ("Ultrassom 1", "Ultrassom 2"). Sem plano (PERSUS, FAF,
+    TED), cada tipo conta 1.
+    """
+    por_tipo: Counter[str] = Counter()
+    for item in itens_plano:
+        descricao = item.get("DESCRICAO_ITEM") if isinstance(item, dict) else None
+        if not descricao:
+            continue
+        for evidencia in classificar_descricoes([descricao]):
+            if evidencia.codigo in codigos:
+                por_tipo[evidencia.codigo] += _quantidade_do_item(item)
+    return sum(por_tipo[codigo] or 1 for codigo in codigos)
+
+
 def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEncerrados:
     """Equipamentos de cada registro, sem uma consulta por linha.
 
@@ -186,7 +212,12 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
         ):
             achados = marcadores.get((origem, identificador)) if identificador is not None else None  # type: ignore[arg-type]
             if achados:
-                return registro.model_copy(update={"equipamentos": _texto_equipamentos([m.nome for m in achados])})
+                return registro.model_copy(
+                    update={
+                        "equipamentos": _texto_equipamentos([m.nome for m in achados]),
+                        "quantidade": _quantidade_de_equipamentos(registro.itens_plano, [m.codigo for m in achados]),
+                    }
+                )
         return registro
 
     return ExtracaoEncerrados(

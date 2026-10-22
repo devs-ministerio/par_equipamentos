@@ -14,22 +14,41 @@ COLUNAS = [
     "Município",
     "Instituição",
     "CNES",
+    "Nº do convênio",
     "Equipamento(s)",
+    "Quantidade",
     "Tipo de contratação",
     "Valor global",
     "Data de conclusão",
     "Origem da data",
     "Critério",
-    "Número",
     "Evidência",
     "Situação carteira/proposta",
     "Situação monitoramento",
     "Situação SICONV",
 ]
 
+_COLUNAS_WORD = [
+    "Instituição",
+    "Município/UF",
+    "CNES",
+    "Nº do convênio",
+    "Equipamento(s)",
+    "Qtd.",
+    "Tipo",
+    "Valor global",
+    "Data de conclusão",
+    "Critério",
+]
+_PESOS_WORD = [3.2, 1.8, 1.2, 1.6, 2.6, 0.7, 1.4, 1.9, 1.6, 2.2]
+
 _NOTA_DATA = (
     "Data de conclusão: a registrada no monitoramento interno; na falta dela, o fim da vigência do "
     "instrumento, indicado como tal. O SICONV não informa a data em que a prestação de contas foi concluída."
+)
+_NOTA_QUANTIDADE = (
+    "Quantidade: unidades dos equipamentos do instrumento, pela soma da quantidade dos itens do plano de "
+    "aplicação; sem plano de aplicação (PERSUS, FAF, TED), conta uma unidade por tipo de equipamento."
 )
 _LIMITE = (
     "Ordem paga não comprova quitação integral da parceria ou conclusão física. Pendências não integram os concluídos."
@@ -43,13 +62,14 @@ def _linha(item: RegistroEncerrado) -> list[object]:
         item.municipio,
         item.nome,
         item.cnes,
+        item.numero,
         item.equipamentos or None,
+        item.quantidade,
         item.tipo,
         item.valor_global,
         item.data_referencia,
         item.origem_data,
         item.motivo,
-        item.numero,
         item.evidencia,
         item.situacao_carteira,
         item.situacao_monitoramento,
@@ -66,9 +86,12 @@ def _data_word(item: RegistroEncerrado) -> str:
 
 def _linha_concluido_word(item: RegistroEncerrado) -> list[str]:
     return [
-        f"{item.nome}\n{item.numero}",
+        item.nome,
         f"{item.municipio or '—'}/{item.uf or '—'}",
+        item.cnes or "—",
+        item.numero,
         item.equipamentos or "—",
+        str(item.quantidade) if item.quantidade is not None else "—",
         item.tipo,
         formatar_moeda(float(item.valor_global)) if item.valor_global is not None else "—",
         _data_word(item),
@@ -99,6 +122,7 @@ def gerar_extracao(extracao: ExtracaoEncerrados, *, formato: Literal["xlsx", "do
                 ["Pendências excluídas", len(extracao.pendencias)],
                 ["Precedência", _PRECEDENCIA],
                 ["Data de conclusão", _NOTA_DATA],
+                ["Quantidade", _NOTA_QUANTIDADE],
                 ["Limite", _LIMITE],
             ],
         )
@@ -112,29 +136,25 @@ def gerar_extracao(extracao: ExtracaoEncerrados, *, formato: Literal["xlsx", "do
                 colunas_data=["Data de conclusão"],
             )
         return xlsx_builder.gerar_bytes(pasta)
-    documento = docx_builder.novo_documento("Instrumentos e parcerias concluídos")
+    # Muitas colunas: página deitada.
+    documento = docx_builder.novo_documento("Instrumentos e parcerias concluídos", paisagem=True)
     docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=datetime.now(timezone.utc))
     docx_builder.adicionar_paragrafo(
         documento,
-        f"Recorte: {recorte}. {len(extracao.itens)} concluídos; {len(extracao.pendencias)} pendências excluídas da relação principal.",
+        f"Recorte: {recorte}. {len(extracao.itens)} concluídos; "
+        f"{len(extracao.pendencias)} pendências excluídas da relação principal.",
     )
-    docx_builder.adicionar_paragrafo(documento, f"Precedência: {_PRECEDENCIA} {_NOTA_DATA} {_LIMITE}")
+    docx_builder.adicionar_paragrafo(
+        documento, f"Precedência: {_PRECEDENCIA} {_NOTA_DATA} {_NOTA_QUANTIDADE} {_LIMITE}"
+    )
     return gerar_bytes_tabelados(
         documento,
         [
             SecaoTabela(
                 "Concluídos",
-                [
-                    "Instituição",
-                    "Município/UF",
-                    "Equipamento(s)",
-                    "Tipo",
-                    "Valor global",
-                    "Data de conclusão",
-                    "Critério",
-                ],
+                _COLUNAS_WORD,
                 [_linha_concluido_word(i) for i in extracao.itens],
-                pesos_colunas=[3.2, 1.7, 2.8, 1.5, 1.8, 1.7, 2.3],
+                pesos_colunas=_PESOS_WORD,
                 fonte_pt=9,
             ),
             SecaoTabela(

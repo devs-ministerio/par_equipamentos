@@ -169,3 +169,20 @@ def test_nota_do_valor_persus_i_so_aparece_quando_o_recorte_tem_persus_i():
     finally:
         db.rollback()
         db.close()
+
+
+def test_tabela_de_equipamentos_diz_quantos_itens_tem_valor():
+    # Given: dois aceleradores, só um com valor (o outro em contratação, sem valor)
+    from app.services.relatorios import _resumo_equipamentos
+
+    colunas, linhas = _resumo_equipamentos({1: [("Acelerador Linear", 9_276_920.16)], 2: [("Acelerador Linear", None)]})
+    # Then: o valor é o do item que tem valor, e a última coluna deixa claro que é parcial
+    assert colunas == ["Equipamentos", "Quantidade", "Valor", "Itens com valor"]
+    assert linhas == [["Acelerador Linear", 2, 9_276_920.16, "1 de 2"]]
+
+
+def test_tabela_de_equipamentos_sem_nenhum_valor_fica_sem_valor_e_com_zero_itens():
+    from app.services.relatorios import _resumo_equipamentos
+
+    _, linhas = _resumo_equipamentos({1: [("Mamógrafo", None)]})
+    assert linhas == [["Mamógrafo", 1, None, "0 de 1"]]

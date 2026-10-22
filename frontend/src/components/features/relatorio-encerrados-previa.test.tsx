@@ -19,6 +19,7 @@ const registro: RegistroEncerrado = {
   data_referencia: null,
   origem_data: null,
   equipamentos: "",
+  quantidade: null,
   situacao_carteira: null,
   situacao_monitoramento: null,
   situacao_oficial: null,
@@ -76,6 +77,8 @@ it("apresenta equipamento, valor e data de conclusão, e identifica o fim da vig
     municipio: "Salvador",
     valor_global: 6400000,
     equipamentos: "Acelerador Linear; Mamógrafo",
+    quantidade: 3,
+    cnes: "0000434",
     data_referencia: "2025-10-05",
     origem_data: "Fim da vigência",
   };
@@ -100,6 +103,11 @@ it("apresenta equipamento, valor e data de conclusão, e identifica o fim da vig
   // Assert
   expect(screen.getByText("Acelerador Linear; Mamógrafo")).toBeInTheDocument();
   expect(screen.getByText("Não identificado")).toBeInTheDocument();
+  // número, CNES e quantidade em itens próprios
+  expect(screen.getByText(/Nº 999002 · CNES 0000434/)).toBeInTheDocument();
+  expect(
+    screen.getAllByText(/Qtd\.:/).map((e) => e.parentElement?.textContent),
+  ).toContain(" · Qtd.: 3");
   expect(screen.getAllByText(/R\$\s*6\.400\.000/)).toHaveLength(2);
   expect(
     screen.getByText(/05\/10\/2025 \(fim da vigência\)/),

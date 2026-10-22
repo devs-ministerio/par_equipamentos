@@ -70,8 +70,8 @@ def test_carteira_preenchida_de_500_preserva_todos_os_instrumentos(formato, tmp_
                 assert len(itens) == 1002
                 assert itens.count(("Equipamento QA carga", "1", "R$ 0,00")) == 500
                 assert itens.count(("Equipamento QA auxiliar", "1", "—")) == 500
-                assert itens.count(("Equipamento QA carga", "500", "R$ 0,00")) == 1
-                assert itens.count(("Equipamento QA auxiliar", "500", "—")) == 1
+                assert itens.count(("Equipamento QA carga", "500", "R$ 0,00", "500 de 500")) == 1
+                assert itens.count(("Equipamento QA auxiliar", "500", "—", "0 de 500")) == 1
                 assert len(consultas) == 12
             else:
                 pasta = load_workbook(BytesIO(conteudo))
@@ -81,7 +81,10 @@ def test_carteira_preenchida_de_500_preserva_todos_os_instrumentos(formato, tmp_
                     assert {r[0] for r in linhas} == esperados
                     assert not any("HISTORICO_" in str(r) for r in linhas)
                     equipamentos = set(pasta["Resumo (Equipamentos)"].iter_rows(min_row=2, values_only=True))
-                    assert equipamentos == {("Equipamento QA carga", 500, 0), ("Equipamento QA auxiliar", 500, None)}
+                    assert equipamentos == {
+                        ("Equipamento QA carga", 500, 0, "500 de 500"),
+                        ("Equipamento QA auxiliar", 500, None, "0 de 500"),
+                    }
                     assert len(consultas) == 9
                 finally:
                     pasta.close()

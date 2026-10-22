@@ -890,7 +890,7 @@ def _resumo_equipamentos(
     aplicação (achado ao vivo 2026-09-27, lembrete do usuário). A soma
     contempla somente ocorrências com valor conhecido; as demais não são
     tratadas como zero."""
-    colunas = ["Equipamentos", "Quantidade", "Valor"]
+    colunas = ["Equipamentos", "Quantidade", "Valor", "Itens com valor"]
     contagem: Counter[str] = Counter()
     com_valor: Counter[str] = Counter()
     valor_por_nome: dict[str, float] = defaultdict(float)
@@ -900,8 +900,10 @@ def _resumo_equipamentos(
             if valor is not None:
                 valor_por_nome[nome] += valor
                 com_valor[nome] += 1
+    # "Valor" soma só os itens com valor; a última coluna diz quantos são, para que
+    # um valor parcial não pareça o total da quantidade ao lado.
     linhas: list[list[object]] = [
-        [nome, quantidade, valor_por_nome[nome] if com_valor[nome] else None]
+        [nome, quantidade, valor_por_nome[nome] if com_valor[nome] else None, f"{com_valor[nome]} de {quantidade}"]
         for nome, quantidade in sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
     ]
     return colunas, linhas
@@ -936,7 +938,7 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
         pasta,
         "Resumo (Equipamentos)",
         colunas_equip,
-        linhas_equip or [["Nenhum equipamento identificado", 0, None]],
+        linhas_equip or [["Nenhum equipamento identificado", 0, None, None]],
         colunas_moeda=["Valor"],
     )
     colunas_conv, linhas_conv = _tabela_convenios(convenios, nivel)

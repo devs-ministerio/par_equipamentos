@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 
 from docx import Document
 from docx.document import Document as DocumentType
+from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
@@ -110,11 +111,17 @@ def _nova_tabela(documento: DocumentType, colunas: int) -> Table:
 
 
 @_serializar_xml
-def novo_documento(titulo: str) -> DocumentType:
+def novo_documento(titulo: str, *, paisagem: bool = False) -> DocumentType:
     documento = Document()
     secao = documento.sections[0]
-    secao.page_width = Cm(21)
-    secao.page_height = Cm(29.7)
+    if paisagem:
+        # Tabelas largas (muitas colunas) cabem melhor na página deitada.
+        secao.orientation = WD_ORIENT.LANDSCAPE
+        secao.page_width = Cm(29.7)
+        secao.page_height = Cm(21)
+    else:
+        secao.page_width = Cm(21)
+        secao.page_height = Cm(29.7)
     secao.top_margin = secao.bottom_margin = Cm(2)
     secao.left_margin = secao.right_margin = Cm(2)
     estilos = documento.styles

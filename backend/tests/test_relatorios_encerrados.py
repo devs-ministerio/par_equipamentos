@@ -180,3 +180,26 @@ def test_texto_de_equipamentos_mostra_a_contagem_so_quando_ha_mais_de_um():
     assert _texto_equipamentos([]) == ""
     assert _texto_equipamentos(["Acelerador Linear"]) == "Acelerador Linear"
     assert _texto_equipamentos(["Mamógrafo", "Acelerador Linear", "Mamógrafo"]) == "Mamógrafo (2); Acelerador Linear"
+
+
+def test_quantidade_soma_o_qtd_item_dos_itens_do_tipo_inclusive_numerados():
+    from app.services.relatorios_encerrados import _quantidade_de_equipamentos
+
+    itens = [
+        {"DESCRICAO_ITEM": "Mamógrafo digital", "QTD_ITEM": "2"},
+        {"DESCRICAO_ITEM": "Ultrassom Diagnóstico 1", "QTD_ITEM": "1"},
+        {"DESCRICAO_ITEM": "Ultrassom Diagnóstico 2", "QTD_ITEM": "3"},
+        {"DESCRICAO_ITEM": "Mesa cirúrgica", "QTD_ITEM": "9"},  # não é equipamento do catálogo
+    ]
+    assert _quantidade_de_equipamentos(itens, ["mamografo"]) == 2
+    assert _quantidade_de_equipamentos(itens, ["ultrassom"]) == 4
+    assert _quantidade_de_equipamentos(itens, ["mamografo", "ultrassom"]) == 6
+
+
+def test_quantidade_sem_plano_ou_sem_qtd_conta_uma_unidade_por_tipo():
+    from app.services.relatorios_encerrados import _quantidade_de_equipamentos
+
+    assert _quantidade_de_equipamentos([], ["acelerador_linear"]) == 1
+    assert _quantidade_de_equipamentos([], ["mamografo", "pet_ct"]) == 2
+    assert _quantidade_de_equipamentos([{"DESCRICAO_ITEM": "Mamógrafo", "QTD_ITEM": ""}], ["mamografo"]) == 1
+    assert _quantidade_de_equipamentos([{"DESCRICAO_ITEM": "Mamógrafo", "QTD_ITEM": "0"}], ["mamografo"]) == 1
