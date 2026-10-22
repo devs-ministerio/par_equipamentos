@@ -183,16 +183,18 @@ Itens que seguem abertos depois da publicação. Cada um vira plano próprio, co
 
 Varredura de `docs/arquitetura/planmode-*.md` e dos diagnósticos por "depois", "fora de escopo", "plano próprio" e checklists abertos. O estado de cada item é o que o documento de origem registra; **confirmar contra o código e a produção antes de planejar**.
 
-**A. Esperam a estabilização/publicação do plano de espelho (decisão já registrada)**
+**A. Esperam o fechamento deste plano (decisão do usuário; incluídos em 22/10 os três últimos itens)**
 
 - [Identidade SISGEO](planmode-identidade-sisgeo-2026-10-20.md): implementação não iniciada. Pode ser antecipada como alteração isolada de apresentação; decisão pendente do nome por extenso e de nova marca.
 - [Monitoramento por item e equipamento físico](planmode-monitoramento-itens-equipamentos-2026-10-20.md): implementação não iniciada; fotos por último, com decisões de armazenamento, formatos, retenção e privacidade.
 - Itens ainda abertos no checklist do próprio [plano de espelho](planmode-espelho-notificacoes-2026-10-06.md): desempenho no provedor sob carga, ciclo nacional da descoberta com candidato elegível e aceite operacional de RPO/RTO (ver pendências 1, 8 e 9 acima).
+- **Apresentação "Todos" no padrão de "Concluídos"** (pedido do usuário; ver Fase 5, item 0).
+- [Normalização de dados, Onda 1](planmode-normalizacao-database-2026-09-28.md). **Avaliação em 22/10 (código):** o texto do plano está defasado. As CHECKs de CNPJ já existem: migration `c3d4e5f6a7b8` (as cinco constraints, adicionadas `NOT VALID` e validadas na mesma migration, de 28/09) e `CheckConstraint` correspondente no ORM; o teste `tests/test_normalizar_cnpj_database.py` existe. **O que resta é conferir em produção, só leitura:** que as cinco constraints estão presentes e validadas (`pg_constraint.convalidated`), e que nenhum CNPJ fora de 14 dígitos voltou a entrar. Se confirmado, fechar a Onda 1 por evidência.
+- [Governança de dados](planmode-governanca-dados-2026-09-28.md). **Avaliação em 22/10 (código):** a proveniência estruturada já tem schema (`fonte_dado`, `fonte_dado_id` em convênio, instrumento e outros; migration `e6f7a8b9c0d1`) e script de backfill (`scripts/backfill_fontes_dado.py`). **Restam duas verificações:** (a) se as cargas e importadores novos preenchem `fonte_dado_id` em todo registro criado depois do backfill; (b) o número atual de instrumentos monitorados sem titular/suplente em `instrumento_responsavel` (eram 182 em 28/09; a atribuição é manual pela equipe, sem inferir vínculo por nome, e o legado sem vínculo continua bloqueado para edição).
 
-**B. Estavam bloqueados pela cadeia de migrations em estabilização, agora liberados**
+**B. Estavam bloqueados pela cadeia de migrations**
 
-- [Normalização de dados, Onda 1](planmode-normalizacao-database-2026-09-28.md): CNPJ foi normalizado em produção, mas as **CHECKs de CNPJ (`NOT VALID`, depois validar)** ficaram para uma migration posterior à cadeia local; o teste de integração do script estava bloqueado pela divergência de revisão do banco de teste. Com o head `b7f35c806e4a` aplicado em produção, retomar.
-- [Governança de dados](planmode-governanca-dados-2026-09-28.md): a **atribuição manual dos 182 instrumentos sem titular** (legado bloqueado para edição até regularização, sem inferir vínculo por nome) e a referência estruturada de proveniência em cargas novas; conferir o estado atual em produção.
+- Resolvido pelo release de 22/10 (head `b7f35c806e4a` aplicado em produção): ver os dois itens de normalização e governança acima, que agora só pedem verificação.
 
 **C. Marcados "fora de escopo" ou "plano próprio" e nunca abertos**
 
