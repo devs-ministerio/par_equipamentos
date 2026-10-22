@@ -45,6 +45,19 @@
 - **Variáveis e secrets:** nenhum campo novo em `Settings`, nenhuma alteração em `render.yaml`, nenhum secret novo nos workflows; `radar_convenios.yml` inalterado (não agenda nada novo). Workflows novos: `espelho_homologacao.yml` (somente `workflow_dispatch` na ref `homologacao`, sem secrets) e `.github/scripts/iniciar-postgres-ci.sh`. O Render continua dependendo das variáveis já configuradas manualmente no painel (`JWT_SECRET`, `MAIL_*`, `APP_PUBLIC_URL`, `PORTAL_TRANSPARENCIA_API_KEY`, `ALLOWED_HOSTS`, `COOKIE_*`), a conferir na Fase 2.
 - **Pendente da Fase 0:** CI remoto do SHA final do #28 verde; depois encerrar o #26 com comentário apontando a absorção.
 
+### Evidências do backup e do ensaio de migração (22/10)
+
+- **Backup real de produção** (workflow `backup_banco.yml`, execução manual 39786123427 na `master`, após correção do TLS no PR #31): PostgreSQL 18 de origem, dump em ~21 s, cifrado para duas identidades `age` (2 e 4), enviado ao R2 com SHA-256 e tamanho remoto conferido; retenção sem exclusões; checagem de backup íntegro nas últimas 24 h aprovada. Primeiro disparo (39785279538) falhou antes de ler o banco por falta de `root.crt` no runner; corrigido com `PGSSLROOTCERT=system`, sem afrouxar o TLS.
+- **Restauração local com cada identidade:** identidade 2 (Bitwarden) em 97 s e identidade 4 (OneDrive, cifrada com senha) em 66 s, ambas com SHA-256 ok e contagens idênticas por tabela (29 tabelas; ex.: `convenio` 560, `instrumento_equipamento` 292, `cnes_estabelecimento` 635.113, `user` 22, `alembic_version` 1 linha). Cópia de 182 MB. A identidade 3 foi perdida antes de ser guardada e a 1 foi exposta acidentalmente; nenhuma recebeu backup real.
+- **RTO:** o componente de dados (download + decifra + restauração local) foi medido em 66 a 97 s. **O RTO de 1 h segue não certificado**: faltam a restauração num destino Neon separado e os passos de troca de `DATABASE_URL` e redeploy. **RPO de 24 h** só após o agendamento rodar por um ciclo completo.
+- **Ensaio das 12 migrations sobre cópia real da produção** (backup restaurado em PostgreSQL local, revisão de partida `a3f1c9e7b204` = head da `master`; somente DDL e contagens, nenhuma linha lida):
+  - `alembic upgrade head` até `b7f35c806e4a` em **0,41 s**; head único.
+  - Nenhuma tabela existente mudou de contagem; surgiram 7 tabelas (`candidato_legado`, `_captura`, `_componente`, `_decisao`, `_evidencia`, `_recaptura`, `fonte_captura`): 29 → 36.
+  - `alembic check`: nenhuma deriva entre schema e modelos.
+  - `convenio.fora_escopo_equipamentos`: 560 `false`, 0 `true`, 0 nulos; `notificacao_destinatario.arquivada`: 1.627 `false`; enum `notificacao_tipo` ganhou `aprovacao_carteira`, `convenio_descoberto`, `inclusao_monitoramento`, `fonte_indisponivel`.
+  - Reversão por `downgrade` até a revisão de produção deixou schema e contagens **idênticos** ao estado original (29 tabelas); nova subida reproduziu exatamente o primeiro resultado. Ressalva: valores de enum do PostgreSQL não são removidos pelo `downgrade`; a reversão de produção continua sendo restaurar o backup de pré-deploy.
+  - A cópia local com dados reais foi removida ao final.
+
 ## Fase 1 — Fechar pendências do plano avançado (homologação, sem produção)
 
 Ordem pensada para que o que bloqueia produção venha primeiro.
@@ -62,7 +75,7 @@ Ordem pensada para que o que bloqueia produção venha primeiro.
 ## Fase 2 — Preparar o release (sem tocar produção)
 
 1. **Estratégia de integração.** O #28 é grande demais para revisão linha a linha. Revisar por blocos temáticos (Radar/recaptura, notificações, relatórios, painel/monitoramento, CI/DevOps) com checklist por bloco; manter um único PR de integração para preservar a ordem das migrations, mas com descrição estruturada e commits por assunto. Se a revisão apontar acoplamento fraco entre blocos, fatiar.
-2. **Ensaio de migração com dado real.** Restaurar o backup mais recente de produção (leitura, snapshot consistente) em banco descartável local, aplicar as 12 migrations com a role de migração, conferir contagens por tabela, constraints e somas financeiras, e rodar a suíte de regressão sobre esse banco. Ensaiar a reversão pelo restore.
+2. **Ensaio de migração com dado real. Feito em 22/10 (ver evidências acima).** Restaurar o backup mais recente de produção (leitura, snapshot consistente) em banco descartável local, aplicar as 12 migrations com a role de migração, conferir contagens por tabela, constraints e somas financeiras, e rodar a suíte de regressão sobre esse banco. Ensaiar a reversão pelo restore.
 3. **Compatibilidade de versões.** Backend novo com schema antigo e frontend antigo com backend novo, durante a janela de deploy. Contrato HTTP só aditivo.
 4. **Pré-voo de deploy.** Variáveis presentes, `/health` sem consulta ao banco, jobs e schedules **desativados** no primeiro deploy, CSP/CORS/cookies inalterados.
 5. **Plano de rollback escrito.** Backend: redeploy do commit anterior. Banco: restaurar do backup pré-deploy; migrations são aditivas, então o código antigo continua funcionando com o schema novo. Frontend: promover o deploy anterior na Vercel.
