@@ -259,9 +259,12 @@ verificação final do job transforma "sem backup íntegro em 24 h" em falha.
   chave pública por linha e cada backup é cifrado para todas; qualquer
   identidade privada restaura. Nenhuma chave privada é copiada: a segunda é
   gerada (`age-keygen`) por outra pessoa responsável e só a linha `age1...`
-  vem para o GitHub. Guardas: cofre de senhas institucional compartilhado por
-  duas pessoas e cópia offline em armário trancado; nunca GitHub, R2, Neon,
-  Render, e-mail ou chat. O RTO só vale após restaurar com a **segunda**
+  vem para o GitHub. Guardas: Bitwarden e cópia offline em armário trancado;
+  nunca GitHub, R2, Neon, Render, e-mail ou chat. **Risco aceito
+  temporariamente (22/10):** hoje o cofre tem um único titular. Mover o item
+  para uma coleção de organização com ao menos uma segunda pessoa (ou ativar o
+  acesso de emergência do Bitwarden) é pendência; até lá, perder o acesso ao
+  cofre e ao Mac simultaneamente torna os backups irrecuperáveis. O RTO só vale após restaurar com a **segunda**
   identidade retirada do seu local de guarda. Sem pelo menos uma identidade
   acessível, nenhum backup é restaurável.
 - A chave de decifragem nunca vai ao GitHub, ao R2 ou aos logs.
