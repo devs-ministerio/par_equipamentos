@@ -64,40 +64,12 @@ ALTER ROLE sigeo_backup CONNECTION LIMIT 2;
 ALTER ROLE sigeo_backup SET default_transaction_read_only = on;
 ALTER ROLE sigeo_backup SET lock_timeout = '5s';
 ALTER ROLE sigeo_backup SET statement_timeout = '5min';
+ALTER ROLE sigeo_backup SET idle_in_transaction_session_timeout = '1min';
 
--- 2. Quem executa precisa poder atribuir donos a sigeo_migration.
-SELECT format('GRANT sigeo_migration TO %I WITH INHERIT FALSE, SET TRUE', current_user)
-WHERE NOT pg_has_role(current_user, 'sigeo_migration', 'SET') \gexec
-
--- O novo dono precisa de CREATE no schema para receber a posse (ALTER ... OWNER TO).
-GRANT USAGE, CREATE ON SCHEMA public TO sigeo_migration;
-
--- 3. Posse: tabelas, depois sequências independentes, tipos enum e funções do
--- schema public (objetos de extensão ficam de fora). Tabelas levam consigo as
--- sequências ligadas a colunas (serial/identity).
-SELECT format('ALTER TABLE %I.%I OWNER TO sigeo_migration', n.nspname, c.relname)
-FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
-  AND c.relowner <> 'sigeo_migration'::regrole
-  AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_class'::regclass AND d.objid = c.oid AND d.deptype = 'e')
-\gexec
-
-SELECT format('ALTER SEQUENCE %I.%I OWNER TO sigeo_migration', n.nspname, c.relname)
-FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname = 'public' AND c.relkind = 'S' AND c.relowner <> 'sigeo_migration'::regrole
-  AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_class'::regclass AND d.objid = c.oid AND d.deptype IN ('a', 'i'))
-\gexec
-
-SELECT format('ALTER TYPE %I.%I OWNER TO sigeo_migration', n.nspname, t.typname)
-FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
-WHERE n.nspname = 'public' AND t.typtype = 'e' AND t.typowner <> 'sigeo_migration'::regrole
-\gexec
-
-SELECT format('ALTER FUNCTION %s OWNER TO sigeo_migration', p.oid::regprocedure)
-FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-WHERE n.nspname = 'public' AND p.prokind IN ('f', 'p') AND p.proowner <> 'sigeo_migration'::regrole
-  AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
-\gexec
+-- 2. e 3. Posse: entrega tabelas, sequências, tipos enum e funções do schema
+-- public a sigeo_migration (o mesmo passo que roda isolado em produção antes
+-- das migrations; ver normalizar_posse_aplicacao.sql).
+\ir normalizar_posse_aplicacao.sql
 
 -- 4. Permissões no banco e no schema (a role administrativa é dona delas).
 -- PUBLIC não cria objetos no schema; só sigeo_migration.
