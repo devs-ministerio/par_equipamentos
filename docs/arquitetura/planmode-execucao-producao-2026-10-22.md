@@ -45,6 +45,26 @@
 - **Variáveis e secrets:** nenhum campo novo em `Settings`, nenhuma alteração em `render.yaml`, nenhum secret novo nos workflows; `radar_convenios.yml` inalterado (não agenda nada novo). Workflows novos: `espelho_homologacao.yml` (somente `workflow_dispatch` na ref `homologacao`, sem secrets) e `.github/scripts/iniciar-postgres-ci.sh`. O Render continua dependendo das variáveis já configuradas manualmente no painel (`JWT_SECRET`, `MAIL_*`, `APP_PUBLIC_URL`, `PORTAL_TRANSPARENCIA_API_KEY`, `ALLOWED_HOSTS`, `COOKIE_*`), a conferir na Fase 2.
 - **Pendente da Fase 0:** CI remoto do SHA final do #28 verde; depois encerrar o #26 com comentário apontando a absorção.
 
+### Achados de 22/10 que alteram o plano
+
+- **Posse dos objetos em produção pela metade** (consulta de catálogo): 3 tabelas, 3
+  sequências e os 11 enums continuam com `neondb_owner`; as migrations do release
+  falham sem a normalização (ver Fase 3, passo 4; PR #35). O ensaio de migrações
+  anterior, feito numa cópia com tudo da mesma role, **não** detectava isso.
+- **Permissões reais conferem com o script das roles** (DML do runtime, leitura do
+  backup, sequências `USAGE`/`SELECT`); única diferença corrigida: o
+  `idle_in_transaction_session_timeout=1min` da `sigeo_backup`.
+- **Render sem deploy automático:** a publicação do código é manual.
+- **Branch de homologação sincronizada com a `master`** (48 commits à frente, 0 atrás).
+  Nos arquivos de capacidade dos relatórios (DOCX progressivo, admissão, cliente HTTP)
+  prevaleceu a versão da homologação, a completa, sobre a adaptação isolada do #29.
+  Suítes completas após a mescla: backend 1.833 e frontend 902 testes. A mescla
+  revelou e corrigiu uma regressão real: o abort do chamador deixou de cancelar o
+  corpo da resposta em leitura (agora coberto por teste).
+- **RTO:** restauração de dados no Neon medida em 848 s; faltam o tempo de troca da
+  `DATABASE_URL` com Manual Deploy e o teste funcional da API contra o destino
+  restaurado.
+
 ### Evidências do backup e do ensaio de migração (22/10)
 
 - **Backup real de produção** (workflow `backup_banco.yml`, execução manual 39786123427 na `master`, após correção do TLS no PR #31): PostgreSQL 18 de origem, dump em ~21 s, cifrado para duas identidades `age` (2 e 4), enviado ao R2 com SHA-256 e tamanho remoto conferido; retenção sem exclusões; checagem de backup íntegro nas últimas 24 h aprovada. Primeiro disparo (39785279538) falhou antes de ler o banco por falta de `root.crt` no runner; corrigido com `PGSSLROOTCERT=system`, sem afrouxar o TLS.
@@ -84,16 +104,36 @@ Ordem pensada para que o que bloqueia produção venha primeiro.
 
 ## Fase 3 — Publicação em produção (cada passo exige autorização)
 
-Executar nesta ordem, parando a cada falha.
+Executar nesta ordem, parando a cada falha. Ordem revisada em 22/10 com o que o
+backup, o ensaio no Neon e a consulta de permissões mostraram.
 
-1. Confirmar backup do dia e fazer um `pg_dump` de pré-deploy para o R2.
-2. Verificar `alembic_version` de produção antes de aplicar nada (o histórico mostra bancos atrasados e restrição de permissão em `ALTER TYPE`).
-3. Aplicar as migrations pelo workflow `migrar_banco.yml` (`DATABASE_URL_MIGRATION`), isoladas do deploy, antes do código novo.
-4. Merge na `master` e deploy do backend. Conferir se o Render realmente sobe sozinho: o `render.yaml` declara `autoDeployTrigger: checksPass`, mas já houve caso de deploy manual necessário. Verificar e, se preciso, disparar o Manual Deploy.
-5. Verificações pós-backend: `/health`, login, refresh, `/auth/me`, leituras de monitoramento e relatórios com sessão real.
-6. Deploy do frontend (Vercel) e smoke ponta a ponta: login, painel, monitoramento, relatório DOCX/XLSX pequeno, notificações, filtro de encerrados.
-7. **Jobs e schedules continuam desligados** neste dia. Registrar tempo, erros e uso de CPU/RAM.
-8. **Saída:** produção estável por uma janela de observação definida (sugestão: 48 h) sem erro novo.
+1. **Pré-condições:** `master` com o backup agendado funcionando (pelo menos uma
+   execução agendada com sucesso); #28 sincronizado com a `master`, CI verde no SHA
+   que será publicado; janela combinada e responsável pela observação (o usuário).
+2. **Backup de pré-deploy:** disparar `backup_banco.yml` manualmente e conferir o
+   resumo; guardar o nome do objeto como ponto de retorno.
+3. **Conferir `alembic_version` de produção** (esperado `a3f1c9e7b204`), a versão do
+   PostgreSQL (16+) e que a role de migração consegue conectar.
+4. **Pré-voo de posse (alteração de DDL em produção, só metadado):** como `neondb_owner`,
+   `psql "$ADMIN_DATABASE_URL" -1 -v ON_ERROR_STOP=1 -f backend/scripts/sql/normalizar_posse_aplicacao.sql`.
+   Esperado: 17 objetos normalizados (3 tabelas, 3 sequências, 11 enums) e "depois: 0".
+   **Sem este passo as migrations falham** com `must be owner of type notificacao_tipo`
+   (reproduzido localmente). Repetir o script não tem efeito.
+5. **Migrations:** workflow `migrar_banco.yml` (as 12 revisões; ~0,4 s no ensaio).
+   Conferir `alembic current` = `b7f35c806e4a`.
+6. **Código:** merge na `master` e **Manual Deploy no painel do Render**: o serviço
+   **não tem deploy automático** (confirmado em 22/10). Anotar o horário de início e de
+   fim do deploy (insumo do RTO).
+7. **Verificações:** `/health`, login, refresh, `/auth/me`, leituras de monitoramento,
+   um relatório pequeno em DOCX e outro em XLSX, notificações, filtro de encerrados.
+8. Deploy do frontend (Vercel, automático) e smoke ponta a ponta.
+9. **Jobs e schedules continuam desligados** neste dia. Registrar tempo, erros, CPU e RAM.
+10. **Saída:** produção estável durante a janela de observação (a definir com o
+    usuário, sugestão 48 h) sem erro novo.
+
+**Rollback:** código, redeploy do commit anterior no Render; banco, restaurar o backup
+de pré-deploy (as migrations são aditivas, e valores de enum não são removidos pelo
+`downgrade`).
 
 ## Fase 4 — Ativação gradual e estabilização
 
