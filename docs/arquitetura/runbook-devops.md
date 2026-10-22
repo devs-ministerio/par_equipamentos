@@ -219,7 +219,8 @@ Meta aprovada: **RPO ≤ 24 h** e **RTO ≤ 1 h**. O histórico nativo do Neon B
   estrutura com `pg_restore --list`, cifra com `age` (só a chave pública está
   no GitHub), envia dump e SHA-256 ao bucket privado `sigeo-backups-producao`,
   confere o tamanho remoto, aplica a retenção e falha se não houver backup
-  íntegro nas últimas 24 h. Hoje **somente `workflow_dispatch`**.
+  íntegro nas últimas 24 h. Agendado às 02:17 e 14:17 UTC (a cada 12 h) desde
+  22/10/2026, além do disparo manual.
 - `backend/scripts/backup_retencao.py` (testado em `tests/test_backup_retencao.py`):
   nomeia o objeto, calcula expiração (7 dias) e atraso (24 h). Só considera
   objetos com o padrão `sigeo/producao/AAAA/MM/DD/sigeo-<UTC>-<run>.dump.age[.sha256]`,
@@ -256,10 +257,12 @@ manutenção; o ensaio do `restaurar_backup.sh` é só local.
 4. Registrar o tempo medido e as contagens (comparar com o banco de origem) como
    evidência do RTO. **RPO/RTO só são declarados atendidos depois disso.**
 
-**Ativar o agendamento (exige autorização):** descomentar `schedule:` no
-workflow (sugestão 02:17 e 14:17 UTC, a cada 12 h). Primeiro agendamento só
-depois da restauração medida. Falha do job notifica por e-mail do GitHub; a
-verificação final do job transforma "sem backup íntegro em 24 h" em falha.
+**Agendamento (ativo desde 22/10/2026):** o workflow roda às 02:17 e 14:17 UTC
+(a cada 12 h), ativado só depois de o backup real ser restaurado com duas
+identidades distintas. Para suspender, remover o bloco `schedule:`. Falha do
+job notifica por e-mail do GitHub; a verificação final do job transforma "sem
+backup íntegro em 24 h" em falha. O RPO de 24 h só é dado como atendido depois
+de ao menos um ciclo agendado completo com sucesso.
 
 **Riscos e pendências**
 

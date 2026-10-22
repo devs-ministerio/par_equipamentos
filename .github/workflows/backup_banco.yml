@@ -8,14 +8,13 @@ name: Backup cifrado do banco (Neon -> Cloudflare R2)
 # SHA-256 e confere o tamanho do objeto gravado. Depois aplica a retenção e
 # falha, de forma visível, se não houver backup íntegro nas últimas 24 h.
 #
-# So manual (`workflow_dispatch`) ate a restauracao medida e a autorizacao
-# explicita para agendar. Para ativar: descomentar o bloco `schedule:` abaixo.
-# O environment Production so aceita a branch `master`.
-#
-# on:
-#   schedule:
-#     - cron: "17 2,14 * * *"  # 02:17 e 14:17 UTC (23:17 e 11:17 em Brasília)
+# Agendado a cada 12 h (RPO <= 24 h) depois de o backup real ter sido restaurado
+# com duas identidades distintas (22/10/2026). Também pode ser disparado
+# manualmente. Para suspender, remova o bloco `schedule:`. O environment
+# Production so aceita a branch `master`.
 on:
+  schedule:
+    - cron: "17 2,14 * * *"  # 02:17 e 14:17 UTC (23:17 e 11:17 em Brasília)
   workflow_dispatch: {}
 
 permissions:
