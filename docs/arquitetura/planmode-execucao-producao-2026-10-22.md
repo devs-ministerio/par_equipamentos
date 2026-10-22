@@ -179,6 +179,31 @@ Itens que seguem abertos depois da publicação. Cada um vira plano próprio, co
 | 19 | **Fechar a janela de 48 h** com registro de erros, CPU/RAM e aceite, e conferir o instrumento 716619 (conclusão em 19/10/2026 na produção). | Fase 3, passos 10 e 11 |
 | 20 | **Suíte completa do backend não rodou limpa na máquina local** (testes de recuperação exigem o banco clone protegido); vale a CI como referência. | Gates |
 
+## Planos que dependem do fechamento deste plano (levantados em 22/10)
+
+Varredura de `docs/arquitetura/planmode-*.md` e dos diagnósticos por "depois", "fora de escopo", "plano próprio" e checklists abertos. O estado de cada item é o que o documento de origem registra; **confirmar contra o código e a produção antes de planejar**.
+
+**A. Esperam a estabilização/publicação do plano de espelho (decisão já registrada)**
+
+- [Identidade SISGEO](planmode-identidade-sisgeo-2026-10-20.md): implementação não iniciada. Pode ser antecipada como alteração isolada de apresentação; decisão pendente do nome por extenso e de nova marca.
+- [Monitoramento por item e equipamento físico](planmode-monitoramento-itens-equipamentos-2026-10-20.md): implementação não iniciada; fotos por último, com decisões de armazenamento, formatos, retenção e privacidade.
+- Itens ainda abertos no checklist do próprio [plano de espelho](planmode-espelho-notificacoes-2026-10-06.md): desempenho no provedor sob carga, ciclo nacional da descoberta com candidato elegível e aceite operacional de RPO/RTO (ver pendências 1, 8 e 9 acima).
+
+**B. Estavam bloqueados pela cadeia de migrations em estabilização, agora liberados**
+
+- [Normalização de dados, Onda 1](planmode-normalizacao-database-2026-09-28.md): CNPJ foi normalizado em produção, mas as **CHECKs de CNPJ (`NOT VALID`, depois validar)** ficaram para uma migration posterior à cadeia local; o teste de integração do script estava bloqueado pela divergência de revisão do banco de teste. Com o head `b7f35c806e4a` aplicado em produção, retomar.
+- [Governança de dados](planmode-governanca-dados-2026-09-28.md): a **atribuição manual dos 182 instrumentos sem titular** (legado bloqueado para edição até regularização, sem inferir vínculo por nome) e a referência estruturada de proveniência em cargas novas; conferir o estado atual em produção.
+
+**C. Marcados "fora de escopo" ou "plano próprio" e nunca abertos**
+
+- **Escopo de autorização por UF/técnico/órgão** (RBAC granular): hoje há 4 papéis globais; só revisitar sob demanda real de produto.
+- **Mapa de cobertura no Painel de Gestão** ("plano próprio"), mantendo a metodologia só de oferta SUS em uso.
+- **Ingestão relacional de propostas** (`evidencia_transferegov` sem escritor): plano dedicado de ingestão antes de migrar a leitura de `metas_resumo`.
+- **Paginação e virtualização reais, envelope de resposta unificado** além das duas rotas já migradas, e **observabilidade estruturada** (logs JSON, `trace_id`, duração).
+- **Remoção física da coluna `Notificacao.lida`** (deprecated) e **saída visual do mapa em Word** (decisão separada).
+- **Qualidade:** teste de carga, acessibilidade automatizada abrangente (auditoria WCAG AA completa, contraste, foco) e mutation testing.
+- **Custo e infraestrutura:** rate limit distribuído (Redis), staging/registry, PITR além de 6 h e cold start do Render, sempre com decisão de orçamento.
+
 ## Fase 5 — Planos que hoje estão só no papel (somente após a Fase 4)
 
 0. **Apresentação dos relatórios: visão "Todos" no padrão de "Concluídos"** (pedido do usuário em 22/10, após o release). Em Relatórios, o filtro Conclusão = Concluídos mostra cada instrumento em bloco legível (instituição; "Nº, CNES, tipo"; município/UF; equipamentos com quantidade; critério, valor global e data), e o usuário prefere essa organização à tabela da visão "Todos" (colunas Número, CNES, Convenente, Município/UF, Equipamento, Situação, Monitoramento, Ano, Valor global). Levar a mesma organização e os mesmos campos (equipamentos com quantidade, CNES e número em itens próprios, valor e datas formatados) para "Todos" na prévia da tela e, onde fizer sentido, nos arquivos Word/Excel, sem perder as colunas hoje exclusivas de "Todos" (situação do site, monitoramento, ano). Escopo, o que é obrigatório e o que muda nos arquivos a definir em plano próprio antes de implementar.
