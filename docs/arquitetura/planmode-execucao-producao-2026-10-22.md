@@ -2,6 +2,8 @@
 
 ## Decisões registradas (22/10)
 
+- **Correção de sequência (22/10):** o workflow de backup usa o environment `Production`, restrito à `master`, e só dispara a partir da branch padrão. Esperar o merge do #28 faria o backup depender do próprio release, que exige backup de pré-deploy. Decisão do usuário: o backup vai à `master` em PR próprio ([#30](https://github.com/devs-ministerio/par_equipamentos/pull/30), rascunho, sem código da aplicação nem migration) **antes** do release. A segunda identidade `age` será uma chave independente (cifra para duas chaves públicas), nunca cópia da privada; responsável a definir.
+
 - Plano e ordem das fases **aprovados** pelo usuário.
 - **PR #26 absorvido** no #28: `ce5eeef` (recortes e exportações DOCX/XLSX) e `65cb970` (CORS `Content-Disposition` e nome de arquivo de fallback) foram integrados por cherry-pick com resolução manual; os cinco commits restantes do #26 (ajuste de sessão nos E2E e três reexecuções de CI) não foram absorvidos por serem redundantes com `frontend/e2e/sessao-autenticada.ts`. Onde o #26 e a base divergiam, prevaleceu a implementação mais nova da base (`listar_sem_truncar`/`LimiteConsultaExcedido`, carregamento em lote `DadosMonitoramentoRelatorio`, gravador DOCX progressivo) e foram mantidos do #26 a aba Leitura, as legendas por fonte, o estado vazio explícito, o separador de milhar no Word, o bloqueio de município/CNES ambíguo e o desempate por `id`. Encerrar o #26 no GitHub depende de confirmação.
 - **Janela de observação pós-deploy (Fase 3):** quem acompanha e recebe os relatos da equipe é o usuário; duração a confirmar antes da publicação.
