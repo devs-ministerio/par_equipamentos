@@ -105,3 +105,41 @@ it("erro síncrono da fronteira preserva erro e libera timer", async () => {
   ).rejects.toBe(falha);
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it("sem a opção, nenhum listener sobra no sinal do chamador depois do sucesso", async () => {
+  // Given
+  const externo = new AbortController();
+  let sinal!: AbortSignal;
+  // When
+  await executarHttpComPrazo(
+    async (signal) => {
+      sinal = signal;
+      return "ok";
+    },
+    15_000,
+    externo.signal,
+  );
+  externo.abort();
+  // Then: o abort do chamador não alcança o sinal de uma operação já concluída
+  expect(sinal.aborted).toBe(false);
+});
+
+it("com a opção, o abort do chamador depois da resposta cancela o sinal já entregue (corpo em leitura)", async () => {
+  // Given
+  const externo = new AbortController();
+  let sinal!: AbortSignal;
+  // When: a resposta chega, o corpo seguiria em leitura
+  await executarHttpComPrazo(
+    async (signal) => {
+      sinal = signal;
+      return "cabecalhos";
+    },
+    15_000,
+    externo.signal,
+    { propagarAbortAposResposta: true },
+  );
+  expect(sinal.aborted).toBe(false);
+  externo.abort();
+  // Then
+  expect(sinal.aborted).toBe(true);
+});

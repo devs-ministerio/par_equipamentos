@@ -13,10 +13,18 @@ export class HttpCanceladoError extends Error {
   }
 }
 
+export interface OpcoesPrazoHttp {
+  /** Para operações que devolvem uma resposta com corpo ainda em leitura
+   * (fetch): mantém o abort do chamador ligado ao sinal já entregue, mesmo
+   * depois de a promessa resolver. Sem isso, nenhum listener sobra no sinal. */
+  propagarAbortAposResposta?: boolean;
+}
+
 export async function executarHttpComPrazo<T>(
   operacao: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number,
   signal?: AbortSignal,
+  opcoes: OpcoesPrazoHttp = {},
 ): Promise<T> {
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new RangeError("O prazo HTTP deve ser positivo e finito.");
@@ -47,5 +55,15 @@ export async function executarHttpComPrazo<T>(
   } finally {
     globalThis.clearTimeout(timeout);
     signal?.removeEventListener("abort", cancelar);
+    // Depois que a resposta chega, o corpo ainda pode estar em leitura
+    // (download de arquivo). Se o chamador abortar nesse intervalo, o sinal já
+    // entregue ao fetch precisa ser abortado também, ou a conexão fica aberta
+    // até o servidor fechar. A rejeição já foi decidida acima; aqui só se
+    // cancela a rede.
+    if (opcoes.propagarAbortAposResposta && signal && !signal.aborted) {
+      signal.addEventListener("abort", () => controller.abort(), {
+        once: true,
+      });
+    }
   }
 }

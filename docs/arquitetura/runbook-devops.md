@@ -219,7 +219,8 @@ Meta aprovada: **RPO ≤ 24 h** e **RTO ≤ 1 h**. O histórico nativo do Neon B
   estrutura com `pg_restore --list`, cifra com `age` (só a chave pública está
   no GitHub), envia dump e SHA-256 ao bucket privado `sigeo-backups-producao`,
   confere o tamanho remoto, aplica a retenção e falha se não houver backup
-  íntegro nas últimas 24 h. Hoje **somente `workflow_dispatch`**.
+  íntegro nas últimas 24 h. Agendado às 02:17 e 14:17 UTC (a cada 12 h) desde
+  22/10/2026, além do disparo manual.
 - `backend/scripts/backup_retencao.py` (testado em `tests/test_backup_retencao.py`):
   nomeia o objeto, calcula expiração (7 dias) e atraso (24 h). Só considera
   objetos com o padrão `sigeo/producao/AAAA/MM/DD/sigeo-<UTC>-<run>.dump.age[.sha256]`,
@@ -233,6 +234,14 @@ Meta aprovada: **RPO ≤ 24 h** e **RTO ≤ 1 h**. O histórico nativo do Neon B
 `BACKUP_CREDENTIAL_EXPIRES_ON` (AAAA-MM-DD; o workflow avisa a 10 dias do
 vencimento e recusa rodar depois dele). A credencial atual expira em
 **20/11/2026**; rotacionar antes e atualizar a data.
+
+**Impacto no sistema:** o backup **não derruba nem pausa a aplicação**. O
+`pg_dump` lê um retrato consistente do banco e não bloqueia leituras nem
+gravações; o que for gravado depois de o dump começar entra só no próximo
+backup (essa é a janela do RPO). O workflow usa o mesmo grupo de `concurrency`
+do `migrar_banco.yml` para nunca rodar junto de uma migration. Uma
+**restauração real após desastre** é outro assunto e exige janela de
+manutenção; o ensaio do `restaurar_backup.sh` é só local.
 
 **Primeira execução (manual, com autorização)**
 
@@ -248,18 +257,119 @@ vencimento e recusa rodar depois dele). A credencial atual expira em
 4. Registrar o tempo medido e as contagens (comparar com o banco de origem) como
    evidência do RTO. **RPO/RTO só são declarados atendidos depois disso.**
 
-**Ativar o agendamento (exige autorização):** descomentar `schedule:` no
-workflow (sugestão 02:17 e 14:17 UTC, a cada 12 h). Primeiro agendamento só
-depois da restauração medida. Falha do job notifica por e-mail do GitHub; a
-verificação final do job transforma "sem backup íntegro em 24 h" em falha.
+**Agendamento (ativo desde 22/10/2026):** o workflow roda às 02:17 e 14:17 UTC
+(a cada 12 h), ativado só depois de o backup real ser restaurado com duas
+identidades distintas. Para suspender, remover o bloco `schedule:`. Falha do
+job notifica por e-mail do GitHub; a verificação final do job transforma "sem
+backup íntegro em 24 h" em falha. O RPO de 24 h só é dado como atendido depois
+de ao menos um ciclo agendado completo com sucesso.
+
+**Ensaio de restauração em destino Neon (22/10/2026)**
+
+Projeto descartável `sigeo-ensaio-restauracao-20261022` (PostgreSQL 18, Ohio, 0,25–2 CU),
+conexão **direta** (sem `-pooler`: o pooler quebra o `pg_restore`). Comando medido:
+
+```bash
+age -d -i IDENTIDADE -o dump dump.age && \
+  pg_restore --no-owner --no-privileges --exit-on-error -j 4 -d "$NEON_URL" dump
+```
+
+- **Resultado:** 848 s (14 min 8 s) para decifrar e restaurar; `convenio` = 560,
+  `user` = 22, `alembic_version` = `a3f1c9e7b204`, idêntico ao backup. O download
+  do R2 não entrou nessa medida (poucos minutos no máximo nos ensaios).
+- **Lentidão:** vem do compute pequeno construindo índices de tabelas grandes
+  (`cnes_estabelecimento`, 635 mil linhas). Num desastre real, subir o mínimo do
+  compute (por exemplo 2 CU) antes de restaurar deve reduzir o tempo; não medido.
+- **Credencial do destino:** a string de conexão contém senha. Colar num `read -s`
+  do terminal, nunca em arquivo, chat ou histórico; o `pbpaste` lê o clipboard,
+  que é sobrescrito por qualquer comando copiado, então colar direto no prompt.
+- **Limpeza:** o projeto de ensaio contém cópia dos dados reais e deve ser
+  apagado pelo responsável assim que a medição terminar.
+
+**O que ainda falta para certificar o RTO de 1 h**
+
+1. **Recriar as roles após a restauração.** O `--no-owner --no-privileges` deixa as
+   tabelas sem dono e sem permissões: `sigeo_runtime` (só DML), `sigeo_migration`
+   (dona do schema, DDL) e `sigeo_backup` (somente leitura) precisam ser criadas e
+   receber `GRANT`/dono. **Não há script versionado que reproduza isso**
+   (gap P2 de `diagnostico-constituicao-database-2026-09-29.md`); sem ele a API não
+   conecta com a credencial de produção. É o principal item restante.
+2. Trocar `DATABASE_URL` (e `DATABASE_URL_MIGRATION`) no Render e esperar o redeploy;
+   tempo a medir no histórico de deploys do Render, sem tocar na produção.
+3. Teste funcional: subir a API contra o destino restaurado e conferir login e uma
+   leitura autenticada.
+
+Orçamento provisório: restauração de dados ~15 a 18 min (download + decifra +
+restauração) deixa ~40 min para detecção, roles, troca de URL e redeploy. Esse
+orçamento só vale depois dos itens 1 a 3.
 
 **Riscos e pendências**
 
-- A identidade privada `age` existe só em arquivo local do Mac; **falta segunda
-  cópia segura fora dele**. Sem ela, nenhum backup é restaurável.
+- **Identidade `age` 1 retirada de uso (22/10).** A identidade criada no ensaio
+  do R2 foi exposta acidentalmente durante a configuração e deve ser tratada
+  como comprometida. Nenhum backup real foi cifrado para ela; a chave pública
+  dela **não deve ser cadastrada** em `BACKUP_AGE_RECIPIENT`. A identidade 3 foi
+  perdida antes de ser guardada (apagada cedo demais; nenhum backup foi cifrado
+  para ela) e substituída pela identidade 4. Destinatários vigentes: identidade
+  2 (Bitwarden) e identidade 4 (Bitwarden e cópia cifrada com senha em OneDrive).
+- **Duas identidades `age` independentes.** `BACKUP_AGE_RECIPIENT` aceita uma
+  chave pública por linha e cada backup é cifrado para todas; qualquer
+  identidade privada restaura. Nenhuma chave privada é copiada: a segunda é
+  gerada (`age-keygen`) por outra pessoa responsável e só a linha `age1...`
+  vem para o GitHub. Guardas: Bitwarden e cópia offline em armário trancado;
+  nunca GitHub, R2, Neon, Render, e-mail ou chat. **Risco aceito
+  temporariamente (22/10):** hoje o cofre tem um único titular. Mover o item
+  para uma coleção de organização com ao menos uma segunda pessoa (ou ativar o
+  acesso de emergência do Bitwarden) é pendência. Ao restaurar, buscar o item do
+  Bitwarden **pelo id** (`bw list items --search age`; depois `bw get notes ID`),
+  nunca pelo nome: a busca por nome do `bw` é aproximada e pode devolver mais de
+  um item, e apagar por engano um deles descartaria uma das identidades; até lá, perder o acesso ao
+  cofre e ao Mac simultaneamente torna os backups irrecuperáveis. O RTO só vale após restaurar com a **segunda**
+  identidade retirada do seu local de guarda. Sem pelo menos uma identidade
+  acessível, nenhum backup é restaurável.
 - A chave de decifragem nunca vai ao GitHub, ao R2 ou aos logs.
 - O workflow não cobre indisponibilidade do próprio GitHub Actions; o monitor de
   atraso é a falha visível do job seguinte. Se desejar alerta independente,
   avaliar monitor externo (New Relic) sobre a data do último objeto.
 - Custo: R2 e Actions dentro das franquias gratuitas na escala atual
   (~226 MB de banco, 2 execuções/dia); reavaliar se o volume crescer.
+
+## Recriar as roles da aplicação após restaurar um backup (Plan Mode execução 2026-10-22)
+
+O backup é restaurado com `pg_restore --no-owner --no-privileges`, então o banco
+chega sem dono e sem permissões. Antes de apontar a aplicação para ele é preciso
+recriar `sigeo_migration` (dona do schema, único com DDL), `sigeo_runtime` (só DML)
+e `sigeo_backup` (somente leitura, 2 conexões, timeouts curtos). Isso agora está
+versionado em `backend/scripts/sql/recriar_roles_aplicacao.sql`, executado por
+`backend/scripts/recriar_roles_banco.sh`, que também **verifica** o resultado.
+
+```bash
+export ADMIN_DATABASE_URL='postgresql://ADMIN:SENHA@HOST/BANCO?sslmode=require'
+export SIGEO_RUNTIME_PASSWORD=... SIGEO_MIGRATION_PASSWORD=... SIGEO_BACKUP_PASSWORD=...
+backend/scripts/recriar_roles_banco.sh --confirmo-host HOST
+```
+
+- `ADMIN_DATABASE_URL` é a role administrativa do destino (no Neon, `neondb_owner`),
+  conectada ao banco restaurado, **com conexão direta (sem `-pooler`)**.
+- As três senhas são novas (>= 24 caracteres, distintas), geradas na hora, por
+  exemplo com `openssl rand -hex 16`, e nunca aparecem no script nem na linha de
+  comando. Depois, registrar nos secrets e no Render: `DATABASE_URL` (runtime),
+  `DATABASE_URL_MIGRATION` (migration) e `BACKUP_DATABASE_URL` (backup).
+- **Nunca rodar contra a produção viva:** o script redefine senhas e donos. Por isso
+  exige `--confirmo-host HOST` igual ao host da URL. Idempotente, PostgreSQL 16+.
+- A verificação conecta como cada role e confere: roles sem privilégios elevados;
+  tabelas e tipos enum do `public` pertencentes a `sigeo_migration`; `sigeo_runtime`
+  lê e tem DML mas **não cria tabela**; `sigeo_migration` altera o schema;
+  `sigeo_backup` só lê, com transação somente leitura por padrão.
+- **Ensaiado em 22/10/2026** em PostgreSQL 18 local, com uma role administrativa sem
+  superusuário (mesma limitação da `neondb_owner`), sobre um banco restaurado sem
+  dono: todas as verificações passaram; segunda execução idempotente; `pg_dump`
+  como `sigeo_backup` gerou o dump; `alembic downgrade -1` e `upgrade head` como
+  `sigeo_migration` rodaram; `ALTER TYPE ... ADD VALUE` funcionou (o tipo é da role
+  de migração); tabela criada depois já nasce com as permissões; a API leu dados
+  como `sigeo_runtime` e teve `CREATE TABLE` negado.
+- **A confirmar:** o desenho vem do Plan Mode database 2026-09-16. O privilégio de
+  `sigeo_runtime` em sequências foi assumido como `USAGE, SELECT` (sem `UPDATE`);
+  comparar as ACLs reais da produção com as deste script, por consulta somente
+  leitura, antes de depender dele num desastre. Este script **não recria**
+  extensões (`pg_trgm` vem do próprio dump) nem a role gerenciada `neondb_owner`.

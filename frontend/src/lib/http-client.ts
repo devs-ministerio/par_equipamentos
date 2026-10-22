@@ -202,6 +202,8 @@ export async function httpFetch(
         }),
       timeoutMs,
       init?.signal ?? undefined,
+      // O corpo da resposta ainda pode estar em leitura quando o chamador aborta.
+      { propagarAbortAposResposta: true },
     );
 
   let res: Response;

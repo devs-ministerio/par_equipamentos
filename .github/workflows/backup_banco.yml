@@ -3,26 +3,28 @@ name: Backup cifrado do banco (Neon -> Cloudflare R2)
 # Plan Mode execução 2026-10-22, Fase 1 (RPO <= 24 h, RTO <= 1 h).
 #
 # Gera um dump `pg_dump -Fc` com a role somente leitura `sigeo_backup`, cifra
-# com `age` (apenas a chave PÚBLICA está no GitHub; a identidade privada fica
-# fora do repositório e do GitHub), envia ao bucket privado do R2 junto do
+# com `age` para uma ou mais chaves PÚBLICAS (as identidades privadas ficam
+# fora do repositório e do GitHub, em guardas independentes), envia ao bucket privado do R2 junto do
 # SHA-256 e confere o tamanho do objeto gravado. Depois aplica a retenção e
 # falha, de forma visível, se não houver backup íntegro nas últimas 24 h.
 #
-# So manual (`workflow_dispatch`) ate a restauracao medida e a autorizacao
-# explicita para agendar. Para ativar: descomentar o bloco `schedule:` abaixo.
-# O environment Production so aceita a branch `master`.
-#
-# on:
-#   schedule:
-#     - cron: "17 2,14 * * *"  # 02:17 e 14:17 UTC (23:17 e 11:17 em Brasília)
+# Agendado a cada 12 h (RPO <= 24 h) depois de o backup real ter sido restaurado
+# com duas identidades distintas (22/10/2026). Também pode ser disparado
+# manualmente. Para suspender, remova o bloco `schedule:`. O environment
+# Production so aceita a branch `master`.
 on:
+  schedule:
+    - cron: "17 2,14 * * *"  # 02:17 e 14:17 UTC (23:17 e 11:17 em Brasília)
   workflow_dispatch: {}
 
 permissions:
   contents: read
 
+# Mesmo grupo do `migrar_banco.yml`: backup e migration nunca rodam juntos. O
+# pg_dump trava as tabelas em modo compartilhado ao começar e uma migration com
+# DDL esperaria por ele (ou o contrário), o que derrubaria o backup por timeout.
 concurrency:
-  group: sigeo-backup-banco
+  group: sigeo-production-database
   cancel-in-progress: false
 
 jobs:
@@ -38,6 +40,9 @@ jobs:
       BACKUP_CREDENTIAL_EXPIRES_ON: ${{ secrets.BACKUP_CREDENTIAL_EXPIRES_ON }}
       AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+      # O runner não tem ~/.postgresql/root.crt; `system` mantém verify-full usando
+      # os certificados do sistema (libpq >= 16). Não afrouxa o TLS.
+      PGSSLROOTCERT: system
       AWS_DEFAULT_REGION: auto
       AWS_PAGER: ""
       RETENCAO_DIAS: "7"
@@ -88,7 +93,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends age postgresql-common
           versao=$(psql "$BACKUP_DATABASE_URL" --no-psqlrc --tuples-only --no-align --command='SHOW server_version_num')
           principal=$(( versao / 10000 ))
-          if [ "$principal" -lt 12 ] || [ "$principal" -gt 30 ]; then
+          if [ "$principal" -lt 16 ] || [ "$principal" -gt 30 ]; then
             echo "Versão de servidor inesperada: $principal" >&2
             exit 1
           fi
@@ -117,7 +122,18 @@ jobs:
             exit 1
           fi
 
-          age --recipient "$BACKUP_AGE_RECIPIENT" --output "$trabalho/dump.age" "$trabalho/dump"
+          # Um destinatário por linha; qualquer uma das identidades correspondentes restaura.
+          printf '%s\n' "$BACKUP_AGE_RECIPIENT" | grep -v '^[[:space:]]*$' > "$trabalho/destinatarios.txt" || true
+          total=$(wc -l < "$trabalho/destinatarios.txt" | tr -d ' ')
+          invalidos=$(grep -cv '^age1[a-z0-9]*$' "$trabalho/destinatarios.txt" || true)
+          if [ "$total" -lt 1 ] || [ "${invalidos:-0}" -ne 0 ]; then
+            echo "BACKUP_AGE_RECIPIENT deve conter apenas chaves públicas age1..., uma por linha." >&2
+            exit 1
+          fi
+          if [ "$total" -lt 2 ]; then
+            echo "::warning::Só há $total destinatário age; cadastre uma segunda identidade independente."
+          fi
+          age --recipients-file "$trabalho/destinatarios.txt" --output "$trabalho/dump.age" "$trabalho/dump"
           rm -f "$trabalho/dump"
           tamanho=$(stat -c %s "$trabalho/dump.age")
           ( cd "$trabalho" && sha256sum dump.age | awk '{print $1}' > dump.age.sha256 )

@@ -29,6 +29,9 @@ from app.routers import (
     relatorios,
     usuarios,
 )
+from app.routers import (
+    health as health_router,
+)
 
 app = FastAPI(title="SIGEO — Sistema de Gestão de Equipamentos em Oncologia")
 register_exception_handlers(app)
@@ -54,6 +57,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 
 app.include_router(auth.router)
+app.include_router(health_router.router)
 app.include_router(macro_coverage.router)
 app.include_router(municipality_coverage.router)
 app.include_router(equipment_offer.router)
