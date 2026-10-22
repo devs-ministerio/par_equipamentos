@@ -1,0 +1,171 @@
+name: Backup cifrado do banco (Neon -> Cloudflare R2)
+
+# Plan Mode execução 2026-10-22, Fase 1 (RPO <= 24 h, RTO <= 1 h).
+#
+# Gera um dump `pg_dump -Fc` com a role somente leitura `sigeo_backup`, cifra
+# com `age` (apenas a chave PÚBLICA está no GitHub; a identidade privada fica
+# fora do repositório e do GitHub), envia ao bucket privado do R2 junto do
+# SHA-256 e confere o tamanho do objeto gravado. Depois aplica a retenção e
+# falha, de forma visível, se não houver backup íntegro nas últimas 24 h.
+#
+# So manual (`workflow_dispatch`) ate a restauracao medida e a autorizacao
+# explicita para agendar. Para ativar: descomentar o bloco `schedule:` abaixo.
+# O environment Production so aceita a branch `master`.
+#
+# on:
+#   schedule:
+#     - cron: "17 2,14 * * *"  # 02:17 e 14:17 UTC (23:17 e 11:17 em Brasília)
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sigeo-backup-banco
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-24.04
+    environment: Production
+    timeout-minutes: 30
+    env:
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      BACKUP_AGE_RECIPIENT: ${{ secrets.BACKUP_AGE_RECIPIENT }}
+      BACKUP_R2_ENDPOINT: ${{ secrets.BACKUP_R2_ENDPOINT }}
+      BACKUP_R2_BUCKET: ${{ secrets.BACKUP_R2_BUCKET }}
+      BACKUP_CREDENTIAL_EXPIRES_ON: ${{ secrets.BACKUP_CREDENTIAL_EXPIRES_ON }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_PAGER: ""
+      RETENCAO_DIAS: "7"
+      MINIMO_BACKUPS: "3"
+      LIMITE_ATRASO_HORAS: "24"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Exige os secrets de backup
+        run: |
+          for nome in BACKUP_DATABASE_URL BACKUP_AGE_RECIPIENT BACKUP_R2_ENDPOINT BACKUP_R2_BUCKET \
+                      BACKUP_CREDENTIAL_EXPIRES_ON AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!nome}" ]; then
+              echo "Secret ausente no environment Production: $nome" >&2
+              exit 1
+            fi
+          done
+
+      - name: Confere a validade da credencial do R2
+        run: |
+          hoje=$(date -u +%F)
+          if [[ ! "$BACKUP_CREDENTIAL_EXPIRES_ON" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "BACKUP_CREDENTIAL_EXPIRES_ON deve estar no formato AAAA-MM-DD." >&2
+            exit 1
+          fi
+          restantes=$(( ( $(date -u -d "$BACKUP_CREDENTIAL_EXPIRES_ON" +%s) - $(date -u -d "$hoje" +%s) ) / 86400 ))
+          if [ "$restantes" -lt 0 ]; then
+            echo "A credencial do R2 expirou em $BACKUP_CREDENTIAL_EXPIRES_ON; rotacione antes de novo backup." >&2
+            exit 1
+          fi
+          if [ "$restantes" -le 10 ]; then
+            echo "::warning::A credencial do R2 expira em $restantes dia(s) ($BACKUP_CREDENTIAL_EXPIRES_ON). Rotacione."
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.17"
+
+      - name: Instala o cliente PostgreSQL da mesma versão do servidor e o age
+        run: |
+          set +x
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends age postgresql-common
+          versao=$(psql "$BACKUP_DATABASE_URL" --no-psqlrc --tuples-only --no-align --command='SHOW server_version_num')
+          principal=$(( versao / 10000 ))
+          if [ "$principal" -lt 12 ] || [ "$principal" -gt 30 ]; then
+            echo "Versão de servidor inesperada: $principal" >&2
+            exit 1
+          fi
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
+          sudo apt-get install -y --no-install-recommends "postgresql-client-$principal"
+          echo "PG_BIN=/usr/lib/postgresql/$principal/bin" >> "$GITHUB_ENV"
+          echo "Servidor PostgreSQL $principal; cliente de mesma versão instalado."
+
+      - name: Gera, valida, cifra e envia o backup
+        run: |
+          set +x
+          set -euo pipefail
+          umask 077
+          trabalho=$(mktemp -d "$RUNNER_TEMP/backup-XXXXXX")
+          echo "TRABALHO=$trabalho" >> "$GITHUB_ENV"
+          chave=$(cd backend && uv run python -m scripts.backup_retencao nome-objeto)
+          echo "Objeto: $chave"
+
+          inicio=$(date +%s)
+          "$PG_BIN/pg_dump" "$BACKUP_DATABASE_URL" --format=custom --no-owner --no-privileges \
+            --file="$trabalho/dump"
+          # Estrutura legível: um dump truncado ou corrompido falha aqui, antes do envio.
+          "$PG_BIN/pg_restore" --list "$trabalho/dump" > "$trabalho/conteudo.txt"
+          if [ ! -s "$trabalho/conteudo.txt" ] || ! grep -q "TABLE DATA" "$trabalho/conteudo.txt"; then
+            echo "O dump não contém dados de tabela; backup recusado." >&2
+            exit 1
+          fi
+
+          age --recipient "$BACKUP_AGE_RECIPIENT" --output "$trabalho/dump.age" "$trabalho/dump"
+          rm -f "$trabalho/dump"
+          tamanho=$(stat -c %s "$trabalho/dump.age")
+          ( cd "$trabalho" && sha256sum dump.age | awk '{print $1}' > dump.age.sha256 )
+
+          aws s3 cp "$trabalho/dump.age" "s3://$BACKUP_R2_BUCKET/$chave" --endpoint-url "$BACKUP_R2_ENDPOINT" --only-show-errors
+          aws s3 cp "$trabalho/dump.age.sha256" "s3://$BACKUP_R2_BUCKET/$chave.sha256" --endpoint-url "$BACKUP_R2_ENDPOINT" --only-show-errors
+
+          # O que chegou ao R2 tem o mesmo tamanho do que saiu daqui.
+          remoto=$(aws s3api head-object --bucket "$BACKUP_R2_BUCKET" --key "$chave" \
+            --endpoint-url "$BACKUP_R2_ENDPOINT" --query ContentLength --output text)
+          if [ "$remoto" != "$tamanho" ]; then
+            echo "Tamanho remoto ($remoto) difere do local ($tamanho)." >&2
+            exit 1
+          fi
+          fim=$(date +%s)
+          {
+            echo "### Backup concluído"
+            echo "- Objeto: \`$chave\`"
+            echo "- Tamanho cifrado: $tamanho bytes"
+            echo "- Duração: $((fim - inicio)) s"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Aplica a retenção (apenas após envio íntegro)
+        run: |
+          set -euo pipefail
+          aws s3api list-objects-v2 --bucket "$BACKUP_R2_BUCKET" --prefix sigeo/producao/ \
+            --endpoint-url "$BACKUP_R2_ENDPOINT" --output json > "$TRABALHO/listagem.json"
+          ( cd backend && uv run python -m scripts.backup_retencao expirados \
+              --listagem "$TRABALHO/listagem.json" --dias "$RETENCAO_DIAS" --minimo "$MINIMO_BACKUPS" ) > "$TRABALHO/expirados.txt"
+          while IFS= read -r chave; do
+            [ -n "$chave" ] || continue
+            aws s3api delete-object --bucket "$BACKUP_R2_BUCKET" --key "$chave" --endpoint-url "$BACKUP_R2_ENDPOINT"
+            echo "Expirado: $chave"
+          done < "$TRABALHO/expirados.txt"
+
+      - name: Falha se não há backup íntegro nas últimas 24 h
+        run: |
+          set -euo pipefail
+          aws s3api list-objects-v2 --bucket "$BACKUP_R2_BUCKET" --prefix sigeo/producao/ \
+            --endpoint-url "$BACKUP_R2_ENDPOINT" --output json > "$TRABALHO/listagem-final.json"
+          cd backend
+          uv run python -m scripts.backup_retencao atraso --listagem "$TRABALHO/listagem-final.json" \
+            --limite-horas "$LIMITE_ATRASO_HORAS"
+
+      - name: Remove os arquivos temporários do runner
+        if: always()
+        run: |
+          if [ -n "${TRABALHO:-}" ] && [ -d "$TRABALHO" ]; then
+            find "$TRABALHO" -type f -exec shred -u {} + 2>/dev/null || true
+            rm -rf "$TRABALHO"
+          fi
