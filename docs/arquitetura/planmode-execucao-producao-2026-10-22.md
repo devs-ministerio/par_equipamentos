@@ -150,8 +150,11 @@ de pré-deploy (as migrations são aditivas, e valores de enum não são removid
 2. Rodada manual supervisionada de cada job antes de habilitar o agendamento.
 3. Revisão após uma semana: consumo do Neon, custo, fila do Radar, notificações recebidas por papel, falhas de fonte.
 4. Registrar o aceite final do plano principal e atualizar `CLAUDE.md`/`AGENTS.md`.
+5. **Deploy automático do Render (achado de 22/10).** Todos os deploys do `sieo-backend` desde 28/09 foram manuais. O serviço e o Blueprint apontam para o nome antigo do repositório (`gustavoleitte/par_equipamentos`, hoje `devs-ministerio/par_equipamentos`), e o Blueprint está na branch `fix/tomografo-execucao-por-familia`, sem sincronizar há 2 meses, então o `autoDeployTrigger: checksPass` do `render.yaml` nunca valeu. Religar o serviço ao repositório novo (com o app do Render autorizado na organização do GitHub), ressincronizar o Blueprint pela `master` e só então ativar o gatilho após os checks, **mantendo a regra de rodar `migrar_banco.yml` antes de qualquer release que mude schema** (com o gatilho ligado, o merge subiria o código antes da migração). Decisão do usuário a registrar antes de ativar.
 
 ## Fase 5 — Planos que hoje estão só no papel (somente após a Fase 4)
+
+0. **Apresentação dos relatórios: visão "Todos" no padrão de "Concluídos"** (pedido do usuário em 22/10, após o release). Em Relatórios, o filtro Conclusão = Concluídos mostra cada instrumento em bloco legível (instituição; "Nº, CNES, tipo"; município/UF; equipamentos com quantidade; critério, valor global e data), e o usuário prefere essa organização à tabela da visão "Todos" (colunas Número, CNES, Convenente, Município/UF, Equipamento, Situação, Monitoramento, Ano, Valor global). Levar a mesma organização e os mesmos campos (equipamentos com quantidade, CNES e número em itens próprios, valor e datas formatados) para "Todos" na prévia da tela e, onde fizer sentido, nos arquivos Word/Excel, sem perder as colunas hoje exclusivas de "Todos" (situação do site, monitoramento, ano). Escopo, o que é obrigatório e o que muda nos arquivos a definir em plano próprio antes de implementar.
 
 Ordem recomendada e decisões necessárias:
 
