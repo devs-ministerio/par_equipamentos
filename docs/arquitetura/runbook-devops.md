@@ -234,6 +234,14 @@ Meta aprovada: **RPO ≤ 24 h** e **RTO ≤ 1 h**. O histórico nativo do Neon B
 vencimento e recusa rodar depois dele). A credencial atual expira em
 **20/11/2026**; rotacionar antes e atualizar a data.
 
+**Impacto no sistema:** o backup **não derruba nem pausa a aplicação**. O
+`pg_dump` lê um retrato consistente do banco e não bloqueia leituras nem
+gravações; o que for gravado depois de o dump começar entra só no próximo
+backup (essa é a janela do RPO). O workflow usa o mesmo grupo de `concurrency`
+do `migrar_banco.yml` para nunca rodar junto de uma migration. Uma
+**restauração real após desastre** é outro assunto e exige janela de
+manutenção; o ensaio do `restaurar_backup.sh` é só local.
+
 **Primeira execução (manual, com autorização)**
 
 1. Após o merge na `master`, disparar `Backup cifrado do banco` em Actions.

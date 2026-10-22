@@ -21,8 +21,11 @@ on:
 permissions:
   contents: read
 
+# Mesmo grupo do `migrar_banco.yml`: backup e migration nunca rodam juntos. O
+# pg_dump trava as tabelas em modo compartilhado ao começar e uma migration com
+# DDL esperaria por ele (ou o contrário), o que derrubaria o backup por timeout.
 concurrency:
-  group: sigeo-backup-banco
+  group: sigeo-production-database
   cancel-in-progress: false
 
 jobs:
