@@ -128,12 +128,16 @@ export function MonitoramentoEquipamentosPage() {
     setPrograma,
     tipoContratacao,
     setTipoContratacao,
+    monitorado,
+    setMonitorado,
     pagina,
     setPagina,
     hasFiltros,
     limparFiltros,
   } = useDadosOficiaisFiltros();
   const instrumentosQuery = useMonitoramentoInstrumentos();
+  const monitoramentoPronto =
+    monitorado === null || instrumentosQuery.isSuccess;
   const fasesMonitoramento = useMemo(
     () =>
       new Map(
@@ -180,7 +184,7 @@ export function MonitoramentoEquipamentosPage() {
           anoFim,
           programa,
           tipoContratacao,
-          soMonitorados: false,
+          monitorado,
         },
         monitorados,
         situacaoExibida,
@@ -196,6 +200,7 @@ export function MonitoramentoEquipamentosPage() {
       equipamento,
       municipio,
       monitorados,
+      monitorado,
       programa,
       situacao,
       situacaoExibida,
@@ -279,19 +284,27 @@ export function MonitoramentoEquipamentosPage() {
                   saíram daqui -- duplicavam os cards do cabeçalho acima.
                   Legenda de cor (Em execução/Prestação de contas/Anulado/
                   Demais) também saiu, mesmo motivo. */}
-              <DadosOficiaisMetricas
-                instrumentos={filtrados.length}
-                monitorados={totalMonitorados}
-                concluidos={totalConcluidos}
-                valorGlobal={totalGlobal}
-                desembolsado={totalDesembolsado}
-                equipamentos={totalEquipamentos}
-              />
+              {monitoramentoPronto && (
+                <DadosOficiaisMetricas
+                  instrumentos={filtrados.length}
+                  monitorados={totalMonitorados}
+                  concluidos={totalConcluidos}
+                  valorGlobal={totalGlobal}
+                  desembolsado={totalDesembolsado}
+                  equipamentos={totalEquipamentos}
+                />
+              )}
 
               <DadosOficiaisFiltros
                 ativos={hasFiltros}
                 onLimpar={limparFiltros}
-                contagem={`${filtrados.length} de ${convenios.length} instrumentos`}
+                contagem={
+                  monitoramentoPronto
+                    ? `${filtrados.length} de ${convenios.length} instrumentos`
+                    : instrumentosQuery.isError
+                      ? "Monitoramento indisponível"
+                      : "Consultando monitoramento..."
+                }
               >
                 <SearchInput
                   value={busca}
@@ -305,6 +318,17 @@ export function MonitoramentoEquipamentosPage() {
                   value={tipoContratacao}
                   onChange={setTipoContratacao}
                   clearLabel="Tipo de contratação"
+                  minWidth={120}
+                />
+                <SingleSelectFilter
+                  placeholder="Monitorado"
+                  options={[
+                    { value: "sim", label: "Sim" },
+                    { value: "nao", label: "Não" },
+                  ]}
+                  value={monitorado}
+                  onChange={setMonitorado}
+                  clearLabel="Todos"
                   minWidth={120}
                 />
                 <SingleSelectFilter
@@ -379,14 +403,26 @@ export function MonitoramentoEquipamentosPage() {
                 />
               </DadosOficiaisFiltros>
 
-              <DadosOficiaisLista
-                itens={paginados}
-                monitorados={monitorados}
-                fases={fasesMonitoramento}
-                pagina={pagina}
-                total={filtrados.length}
-                onPagina={setPagina}
-              />
+              <DadosOficiaisInstrumentos
+                carregando={!monitoramentoPronto && !instrumentosQuery.isError}
+                erro={
+                  !monitoramentoPronto && instrumentosQuery.error
+                    ? "Não foi possível consultar o monitoramento interno. Tente novamente para aplicar o filtro."
+                    : null
+                }
+                onRetry={() => {
+                  void instrumentosQuery.refetch();
+                }}
+              >
+                <DadosOficiaisLista
+                  itens={paginados}
+                  monitorados={monitorados}
+                  fases={fasesMonitoramento}
+                  pagina={pagina}
+                  total={filtrados.length}
+                  onPagina={setPagina}
+                />
+              </DadosOficiaisInstrumentos>
             </>
           )}
         </DadosOficiaisInstrumentos>

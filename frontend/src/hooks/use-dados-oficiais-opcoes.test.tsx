@@ -20,7 +20,7 @@ const vazio: Estado = {
   anoFim: null,
   programa: null,
   tipoContratacao: null,
-  soMonitorados: false,
+  monitorado: null,
 };
 const situacaoExibida = (item: ConvenioUnificado) => item.situacao || null;
 

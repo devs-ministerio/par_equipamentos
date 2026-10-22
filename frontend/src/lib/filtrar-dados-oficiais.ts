@@ -2,7 +2,10 @@ import type { ConvenioUnificado } from "@/types/monitoramento";
 import { nomePrioritarioCanonico } from "./equipamento-catalogo";
 import { correspondeBuscaLivre } from "./busca-livre";
 import { chaveMunicipio } from "./municipio-filtro";
-import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
+import type {
+  FiltroDadosOficiais,
+  FiltroMonitorado,
+} from "@/types/dados-oficiais";
 
 type EstadoFiltros = {
   busca?: string;
@@ -15,7 +18,7 @@ type EstadoFiltros = {
   anoFim: string | null;
   programa: string | null;
   tipoContratacao: string | null;
-  soMonitorados: boolean;
+  monitorado: FiltroMonitorado | null;
 };
 export function filtrarDadosOficiais(
   itens: ConvenioUnificado[],
@@ -76,7 +79,11 @@ export function filtrarDadosOficiais(
       item.programa !== estado.programa
     )
       return false;
-    if (estado.soMonitorados && !monitorados.has(item.numero)) return false;
+    if (
+      estado.monitorado !== null &&
+      monitorados.has(item.numero) !== (estado.monitorado === "sim")
+    )
+      return false;
     if (
       estado.busca &&
       !correspondeBuscaLivre(estado.busca, [

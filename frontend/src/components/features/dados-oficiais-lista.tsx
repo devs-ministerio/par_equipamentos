@@ -19,6 +19,12 @@ export function DadosOficiaisLista({
 }) {
   return (
     <>
+      {itens.length === 0 && (
+        <p role="status" className="py-6 text-sm text-muted-foreground">
+          Nenhum instrumento encontrado. Ajuste ou limpe os filtros para ampliar
+          a busca.
+        </p>
+      )}
       <>
         {itens.map((item) => (
           <ConvenioCard

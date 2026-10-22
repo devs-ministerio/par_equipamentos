@@ -24,9 +24,35 @@ const recortes = [
   ["anoFim", "setAnoFim", "ano_fim", "2026"],
   ["programa", "setPrograma", "programa", "Programa sintético"],
   ["tipoContratacao", "setTipoContratacao", "tipo_contratacao", "Convênio"],
+  ["monitorado", "setMonitorado", "monitorado", "sim"],
+  ["monitorado", "setMonitorado", "monitorado", "nao"],
 ] as const;
 
 describe("recorte de Dados Oficiais refletido na URL", () => {
+  it.each(["sim", "nao"])(
+    "restaura Monitorado=%s e limpar preserva a navegação",
+    (valor) => {
+      const { result } = montar(`?monitorado=${valor}&pagina=3&aba=convenios`);
+      expect(result.current.filtros.monitorado).toBe(valor);
+      act(() => result.current.filtros.limparFiltros());
+      expect(result.current.filtros.monitorado).toBeNull();
+      expect(result.current.filtros.hasFiltros).toBe(false);
+      expect(result.current.local.search).toBe("?aba=convenios");
+    },
+  );
+
+  it.each(["", "true", "false", "desconhecido"])(
+    "não interpreta valor inválido %s como Não",
+    (valor) => {
+      const { result } = montar(`?monitorado=${valor}`);
+      expect(result.current.filtros.monitorado).toBeNull();
+      act(() => result.current.filtros.setMonitorado(valor));
+      expect(
+        new URLSearchParams(result.current.local.search).has("monitorado"),
+      ).toBe(false);
+    },
+  );
+
   it.each(["ANÁPOLIS", "anápolis", " anapolis "])(
     "restaura o município histórico %s sem reescrever a URL",
     (municipio) => {

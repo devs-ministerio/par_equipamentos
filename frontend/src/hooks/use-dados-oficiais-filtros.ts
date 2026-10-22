@@ -1,6 +1,9 @@
 import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { ClasseEquipamento } from "@/types/dados-oficiais";
+import type {
+  ClasseEquipamento,
+  FiltroMonitorado,
+} from "@/types/dados-oficiais";
 import { chaveMunicipio } from "@/lib/municipio-filtro";
 
 export const TAMANHO_PAGINA_DADOS_OFICIAIS = 20;
@@ -17,6 +20,7 @@ const PARAMETROS = [
   "ano_fim",
   "programa",
   "tipo_contratacao",
+  "monitorado",
 ] as const;
 
 function paginaValida(valor: string | null): number {
@@ -46,6 +50,11 @@ export function useDadosOficiaisFiltros() {
   const anoFim = searchParams.get("ano_fim");
   const programa = searchParams.get("programa");
   const tipoContratacao = searchParams.get("tipo_contratacao");
+  const monitoradoNaUrl = searchParams.get("monitorado");
+  const monitorado: FiltroMonitorado | null =
+    monitoradoNaUrl === "sim" || monitoradoNaUrl === "nao"
+      ? monitoradoNaUrl
+      : null;
   const pagina = paginaValida(searchParams.get("pagina"));
 
   const definirFiltro = useCallback(
@@ -118,6 +127,12 @@ export function useDadosOficiaisFiltros() {
     tipoContratacao,
     setTipoContratacao: (valor: string | null) =>
       definirFiltro("tipo_contratacao", valor),
+    monitorado,
+    setMonitorado: (valor: string | null) =>
+      definirFiltro(
+        "monitorado",
+        valor === "sim" || valor === "nao" ? valor : null,
+      ),
     pagina,
     setPagina,
     pageSize: TAMANHO_PAGINA_DADOS_OFICIAIS,
