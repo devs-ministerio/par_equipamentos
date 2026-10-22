@@ -294,3 +294,43 @@ de ao menos um ciclo agendado completo com sucesso.
   avaliar monitor externo (New Relic) sobre a data do último objeto.
 - Custo: R2 e Actions dentro das franquias gratuitas na escala atual
   (~226 MB de banco, 2 execuções/dia); reavaliar se o volume crescer.
+
+## Recriar as roles da aplicação após restaurar um backup (Plan Mode execução 2026-10-22)
+
+O backup é restaurado com `pg_restore --no-owner --no-privileges`, então o banco
+chega sem dono e sem permissões. Antes de apontar a aplicação para ele é preciso
+recriar `sigeo_migration` (dona do schema, único com DDL), `sigeo_runtime` (só DML)
+e `sigeo_backup` (somente leitura, 2 conexões, timeouts curtos). Isso agora está
+versionado em `backend/scripts/sql/recriar_roles_aplicacao.sql`, executado por
+`backend/scripts/recriar_roles_banco.sh`, que também **verifica** o resultado.
+
+```bash
+export ADMIN_DATABASE_URL='postgresql://ADMIN:SENHA@HOST/BANCO?sslmode=require'
+export SIGEO_RUNTIME_PASSWORD=... SIGEO_MIGRATION_PASSWORD=... SIGEO_BACKUP_PASSWORD=...
+backend/scripts/recriar_roles_banco.sh --confirmo-host HOST
+```
+
+- `ADMIN_DATABASE_URL` é a role administrativa do destino (no Neon, `neondb_owner`),
+  conectada ao banco restaurado, **com conexão direta (sem `-pooler`)**.
+- As três senhas são novas (>= 24 caracteres, distintas), geradas na hora, por
+  exemplo com `openssl rand -hex 16`, e nunca aparecem no script nem na linha de
+  comando. Depois, registrar nos secrets e no Render: `DATABASE_URL` (runtime),
+  `DATABASE_URL_MIGRATION` (migration) e `BACKUP_DATABASE_URL` (backup).
+- **Nunca rodar contra a produção viva:** o script redefine senhas e donos. Por isso
+  exige `--confirmo-host HOST` igual ao host da URL. Idempotente, PostgreSQL 16+.
+- A verificação conecta como cada role e confere: roles sem privilégios elevados;
+  tabelas e tipos enum do `public` pertencentes a `sigeo_migration`; `sigeo_runtime`
+  lê e tem DML mas **não cria tabela**; `sigeo_migration` altera o schema;
+  `sigeo_backup` só lê, com transação somente leitura por padrão.
+- **Ensaiado em 22/10/2026** em PostgreSQL 18 local, com uma role administrativa sem
+  superusuário (mesma limitação da `neondb_owner`), sobre um banco restaurado sem
+  dono: todas as verificações passaram; segunda execução idempotente; `pg_dump`
+  como `sigeo_backup` gerou o dump; `alembic downgrade -1` e `upgrade head` como
+  `sigeo_migration` rodaram; `ALTER TYPE ... ADD VALUE` funcionou (o tipo é da role
+  de migração); tabela criada depois já nasce com as permissões; a API leu dados
+  como `sigeo_runtime` e teve `CREATE TABLE` negado.
+- **A confirmar:** o desenho vem do Plan Mode database 2026-09-16. O privilégio de
+  `sigeo_runtime` em sequências foi assumido como `USAGE, SELECT` (sem `UPDATE`);
+  comparar as ACLs reais da produção com as deste script, por consulta somente
+  leitura, antes de depender dele num desastre. Este script **não recria**
+  extensões (`pg_trgm` vem do próprio dump) nem a role gerenciada `neondb_owner`.
