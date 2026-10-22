@@ -247,6 +247,10 @@ def candidatos():
             id_proposta=str(uuid4().int),
             confirmacao_portal="confirmado",
             data_publicacao=date(2026, 10, 1),
+            criterio_escopo="prioritarios_ms_celebrados_v2",
+            orgao_superior="36000",
+            data_assinatura_siconv=date(2026, 10, 1),
+            data_publicacao_siconv=date(2026, 10, 1),
             evidencias=(
                 EvidenciaLegado(
                     id_item="1",
@@ -277,6 +281,46 @@ def candidatos():
 
 def listar(db, busca=None, confirmacao=None, pagina=1, tamanho=10):
     return listar_candidatos(db=db, pagina=pagina, tamanho=tamanho, busca=busca, confirmacao=confirmacao)
+
+
+@pytest.mark.parametrize("defeito", ["sem_escopo", "escopo_v1", "sem_confirmacao", "valido"])
+def test_fila_oficial_e_contador_exigem_escopo_atual_confirmado(candidatos, defeito):
+    # Arrange: registros históricos são preservados, mas não são descobertas validadas.
+    alteracoes = {
+        "criterio_escopo": "prioritarios_ms_celebrados_v2",
+        "orgao_superior": "36000",
+        "data_assinatura_siconv": date(2026, 10, 1),
+        "data_publicacao_siconv": date(2026, 10, 1),
+    }
+    if defeito == "sem_escopo":
+        alteracoes.update(criterio_escopo=None, orgao_superior=None)
+    elif defeito == "escopo_v1":
+        alteracoes.update(criterio_escopo="prioritarios_ms_v1")
+    elif defeito == "sem_confirmacao":
+        alteracoes.update(confirmacao_portal="nao_consultado", data_publicacao=None)
+    registro = candidatos[0].model_copy(update=alteracoes)
+    with SessionLocal() as db:
+        antes = listar_candidatos(db=db, pagina=1, tamanho=10, busca=None, confirmacao=None, somente_oficiais=True)
+        registrar_descoberta(
+            db=db,
+            candidatos=[registro],
+            referencia=ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="b" * 64),
+            notificar_novos=False,
+        )
+        # Act
+        resultado = listar_candidatos(
+            db=db,
+            pagina=1,
+            tamanho=1,
+            busca=registro.numero,
+            confirmacao=None,
+            somente_oficiais=True,
+        )
+        # Assert: fila e badge usam a mesma elegibilidade; não apagam evidências.
+        esperado = int(defeito == "valido")
+        assert resultado.total == len(resultado.itens) == esperado
+        assert resultado.novos == antes.novos + esperado
+        assert db.scalar(select(CandidatoLegadoRegistro.id).where(CandidatoLegadoRegistro.numero == registro.numero))
 
 
 def test_replay_silencioso_sem_carteira_monitoramento_ou_aviso(candidatos):

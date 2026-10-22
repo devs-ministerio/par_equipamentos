@@ -157,7 +157,7 @@ def componentes_por_captura(db: Session, ids: set[int]) -> dict[int, list[Compon
     return resultado
 
 
-def _consulta_candidatos():
+def _consulta_candidatos(*, somente_oficiais: bool = False):
     candidato, captura = CandidatoLegadoRegistro, CandidatoLegadoCaptura
     decisao = CandidatoLegadoDecisao
     ultima_id = (
@@ -191,11 +191,18 @@ def _consulta_candidatos():
         & ~conhecido
         & ~monitorado
     )
+    if somente_oficiais:
+        # Compatibilidade diagnóstica não comprova descoberta oficial atual.
+        fila_elegivel &= (
+            (captura.criterio_escopo == "prioritarios_ms_celebrados_v2")
+            & (captura.orgao_superior == "36000")
+            & (captura.confirmacao_portal == "confirmado")
+        )
     return consulta.where(or_(decisao.situacao.in_(["aprovado", "rejeitado"]), fila_elegivel))
 
 
 def contar_novos(db: Session) -> int:
-    consulta = _consulta_candidatos().where(
+    consulta = _consulta_candidatos(somente_oficiais=True).where(
         CandidatoLegadoCaptura.origem == "siconv_oficial", CandidatoLegadoDecisao.id.is_(None)
     )
     return db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
@@ -212,7 +219,7 @@ def listar_pagina(
     somente_oficiais: bool = False,
 ) -> tuple[int, list[CandidatoLegadoRead]]:
     candidato, captura, decisao = CandidatoLegadoRegistro, CandidatoLegadoCaptura, CandidatoLegadoDecisao
-    consulta = _consulta_candidatos()
+    consulta = _consulta_candidatos(somente_oficiais=somente_oficiais)
     if somente_oficiais:
         consulta = consulta.where(captura.origem == "siconv_oficial")
     if situacao:

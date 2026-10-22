@@ -1,5 +1,6 @@
 """Triagem real em PostgreSQL; rollback externo preserva auditoria imutável."""
 
+from datetime import date
 from uuid import uuid4
 
 import pytest
@@ -36,6 +37,12 @@ def triagem():
         candidato = CandidatoLegado(
             numero=str(uuid4().int),
             id_proposta=str(uuid4().int),
+            criterio_escopo="prioritarios_ms_celebrados_v2",
+            orgao_superior="36000",
+            data_assinatura_siconv=date(2026, 10, 1),
+            data_publicacao_siconv=date(2026, 10, 2),
+            confirmacao_portal="confirmado",
+            data_publicacao=date(2026, 10, 2),
             evidencias=(
                 EvidenciaLegado(
                     id_item="1",
@@ -96,6 +103,29 @@ def test_analise_rejeicao_historico_e_badge_sem_inclusao(triagem):
     assert listar(db, item.numero, "novo").total == 0
     assert listar(db, item.numero, "rejeitado").total == 1
     assert [db.scalar(select(func.count()).select_from(t)) for t in (Convenio, InstrumentoEquipamento)] == contagens
+
+
+def test_rejeicao_permanece_consultavel_apos_captura_sem_confirmacao(triagem):
+    # Arrange
+    db, usuario, candidato, item = triagem
+    decidir(db, usuario, item, comando(item))
+    em_analise = listar(db, item.numero).itens[0]
+    rejeicao = decidir(db, usuario, em_analise, comando(em_analise, "rejeitar"))
+    nova_captura = candidato.model_copy(update={"confirmacao_portal": "nao_encontrado", "data_publicacao": None})
+    registrar_descoberta(
+        db=db,
+        candidatos=[nova_captura],
+        referencia=ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="c" * 64),
+    )
+    # Act
+    resultado = listar(db, item.numero, "rejeitado")
+    historico = consultar_historico(db=db, candidato_id=item.id, pagina=1, tamanho=10)
+    # Assert
+    assert resultado.total == 1 and resultado.itens[0].situacao == "rejeitado"
+    assert resultado.itens[0].confirmacao_portal == "nao_encontrado"
+    assert resultado.itens[0].captura_id != item.captura_id
+    assert historico.total == 2 and historico.itens[0].id == rejeicao.id
+    assert listar(db, item.numero, "novo").total == 0
 
 
 @pytest.mark.parametrize("role", [UserRole.gestor, UserRole.admin])
