@@ -206,3 +206,67 @@ região não elimina falso positivo regional: ampliar para ao menos três
 localizações depende de revisar a franquia/custo. Remova o monitor ao migrar a
 API para Railway ou uma instância sempre ativa; ele continua provisório e não
 substitui alertas, RPO/RTO ou política de recuperação.
+
+## Backup cifrado diário no R2 (Plan Mode execução 2026-10-22)
+
+Meta aprovada: **RPO ≤ 24 h** e **RTO ≤ 1 h**. O histórico nativo do Neon Build
+(6 h, sem snapshot) cobre só erro recente; este fluxo é a cópia independente.
+
+**Componentes**
+
+- `.github/workflows/backup_banco.yml` (environment `Production`, só branch
+  `master`): `pg_dump -Fc` com a role somente leitura `sigeo_backup`, valida a
+  estrutura com `pg_restore --list`, cifra com `age` (só a chave pública está
+  no GitHub), envia dump e SHA-256 ao bucket privado `sigeo-backups-producao`,
+  confere o tamanho remoto, aplica a retenção e falha se não houver backup
+  íntegro nas últimas 24 h. Hoje **somente `workflow_dispatch`**.
+- `backend/scripts/backup_retencao.py` (testado em `tests/test_backup_retencao.py`):
+  nomeia o objeto, calcula expiração (7 dias) e atraso (24 h). Só considera
+  objetos com o padrão `sigeo/producao/AAAA/MM/DD/sigeo-<UTC>-<run>.dump.age[.sha256]`,
+  só conta como íntegro o dump não vazio com `.sha256`, e **nunca expira os 3
+  backups íntegros mais recentes**, mesmo velhos.
+- `backend/scripts/restaurar_backup.sh`: ensaio local de restauração, mede o RTO.
+
+**Secrets (environment Production, só nomes):** `BACKUP_DATABASE_URL`,
+`BACKUP_AGE_RECIPIENT`, `BACKUP_R2_ENDPOINT`, `BACKUP_R2_BUCKET`,
+`BACKUP_R2_ACCESS_KEY_ID`, `BACKUP_R2_SECRET_ACCESS_KEY`,
+`BACKUP_CREDENTIAL_EXPIRES_ON` (AAAA-MM-DD; o workflow avisa a 10 dias do
+vencimento e recusa rodar depois dele). A credencial atual expira em
+**20/11/2026**; rotacionar antes e atualizar a data.
+
+**Primeira execução (manual, com autorização)**
+
+1. Após o merge na `master`, disparar `Backup cifrado do banco` em Actions.
+2. Conferir no resumo da execução: objeto, tamanho cifrado e duração.
+3. Rodar o ensaio de restauração em PostgreSQL local:
+   ```bash
+   backend/scripts/restaurar_backup.sh --env ARQUIVO_PRIVADO.env --identidade ARQUIVO_AGE_PRIVADO
+   ```
+   O `.env` e a identidade `age` precisam ter permissão 0600 e ficar fora do Git.
+   O script confere o SHA-256, decifra, restaura num banco novo `sigeo_restore_*`
+   em loopback, imprime o tempo e a contagem de linhas por tabela e remove o banco.
+4. Registrar o tempo medido e as contagens (comparar com o banco de origem) como
+   evidência do RTO. **RPO/RTO só são declarados atendidos depois disso.**
+
+**Ativar o agendamento (exige autorização):** descomentar `schedule:` no
+workflow (sugestão 02:17 e 14:17 UTC, a cada 12 h). Primeiro agendamento só
+depois da restauração medida. Falha do job notifica por e-mail do GitHub; a
+verificação final do job transforma "sem backup íntegro em 24 h" em falha.
+
+**Riscos e pendências**
+
+- **Duas identidades `age` independentes.** `BACKUP_AGE_RECIPIENT` aceita uma
+  chave pública por linha e cada backup é cifrado para todas; qualquer
+  identidade privada restaura. Nenhuma chave privada é copiada: a segunda é
+  gerada (`age-keygen`) por outra pessoa responsável e só a linha `age1...`
+  vem para o GitHub. Guardas: cofre de senhas institucional compartilhado por
+  duas pessoas e cópia offline em armário trancado; nunca GitHub, R2, Neon,
+  Render, e-mail ou chat. O RTO só vale após restaurar com a **segunda**
+  identidade retirada do seu local de guarda. Sem pelo menos uma identidade
+  acessível, nenhum backup é restaurável.
+- A chave de decifragem nunca vai ao GitHub, ao R2 ou aos logs.
+- O workflow não cobre indisponibilidade do próprio GitHub Actions; o monitor de
+  atraso é a falha visível do job seguinte. Se desejar alerta independente,
+  avaliar monitor externo (New Relic) sobre a data do último objeto.
+- Custo: R2 e Actions dentro das franquias gratuitas na escala atual
+  (~226 MB de banco, 2 execuções/dia); reavaliar se o volume crescer.
