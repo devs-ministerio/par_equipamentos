@@ -890,7 +890,7 @@ def _resumo_equipamentos(
     aplicação (achado ao vivo 2026-09-27, lembrete do usuário). A soma
     contempla somente ocorrências com valor conhecido; as demais não são
     tratadas como zero."""
-    colunas = ["Equipamentos", "Quantidade", "Valor", "Itens com valor"]
+    colunas = ["Equipamentos", "Quantidade", "Valor"]
     contagem: Counter[str] = Counter()
     com_valor: Counter[str] = Counter()
     valor_por_nome: dict[str, float] = defaultdict(float)
@@ -900,10 +900,9 @@ def _resumo_equipamentos(
             if valor is not None:
                 valor_por_nome[nome] += valor
                 com_valor[nome] += 1
-    # "Valor" soma só os itens com valor; a última coluna diz quantos são, para que
-    # um valor parcial não pareça o total da quantidade ao lado.
+    # "Valor" soma só os itens com valor; a nota do relatório explica os sem valor (PERSUS II).
     linhas: list[list[object]] = [
-        [nome, quantidade, valor_por_nome[nome] if com_valor[nome] else None, f"{com_valor[nome]} de {quantidade}"]
+        [nome, quantidade, valor_por_nome[nome] if com_valor[nome] else None]
         for nome, quantidade in sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
     ]
     return colunas, linhas
@@ -1005,6 +1004,9 @@ def _data_inauguracao_previsao(fase_atual: str, eventos_inauguracao: Sequence[Ev
 _SITUACAO_SEM_MONITORAMENTO_ESPERADO = "Em contratação"
 _TIPO_EM_CONTRATACAO = "PERSUS II"
 _TIPO_PERSUS_I = "PERSUS I"
+_NOTA_EQUIPAMENTO_PERSUS_II = (
+    "Equipamentos de instrumentos PERSUS II, ainda em contratação, estão na quantidade, mas não têm valor informado."
+)
 _NOTA_VALOR_PERSUS_I = (
     "Em instrumentos PERSUS I, o valor do equipamento é o valor global do instrumento e pode incluir obras."
 )
@@ -1298,6 +1300,8 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
     nota_valores = "Os valores somam apenas registros com valor informado; não estimam os demais."
     if any(c.tipo_contratacao == _TIPO_PERSUS_I for c in convenios):
         nota_valores += f" {_NOTA_VALOR_PERSUS_I}"
+    if any(c.tipo_contratacao == _TIPO_EM_CONTRATACAO for c in convenios):
+        nota_valores += f" {_NOTA_EQUIPAMENTO_PERSUS_II}"
     docx_builder.adicionar_paragrafo(documento, nota_valores)
     docx_builder.adicionar_titulo(documento, "Informações Detalhadas")
     instrumentos_por_nr = {i.instrumento.nr_convenio: i for i in instrumentos}

@@ -241,8 +241,8 @@ def test_linhas_e_resumos_do_relatorio_preservam_detalhes_e_ausencias():
     assert _observacao_publica("Nota. Importado de Controle.xlsx sha256:abcdef, linha 24.") == "Nota."
 
     colunas, linhas = _resumo_equipamentos({1: [("Tomógrafo", 100.0), ("Tomógrafo", None), ("Ressonância", None)]})
-    assert colunas == ["Equipamentos", "Quantidade", "Valor", "Itens com valor"]
-    assert linhas == [["Tomógrafo", 2, 100.0, "1 de 2"], ["Ressonância", 1, None, "0 de 1"]]
+    assert colunas == ["Equipamentos", "Quantidade", "Valor"]
+    assert linhas == [["Tomógrafo", 2, 100.0], ["Ressonância", 1, None]]
 
 
 @pytest.mark.db
@@ -271,7 +271,6 @@ def test_instrumentos_repasse_xlsx_simplificado_tem_resumo_convenios_propostas_m
             "Equipamentos",
             "Quantidade",
             "Valor",
-            "Itens com valor",
         ]
     finally:
         db.close()
