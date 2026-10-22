@@ -10,6 +10,8 @@ import { RelatorioInstrumentosTabela } from "@/components/features/relatorio-ins
 import { RelatorioPropostasTabela } from "@/components/features/relatorio-propostas-tabela";
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-carteira";
+import { RelatorioEncerradosPrevia } from "@/components/features/relatorio-encerrados-previa";
+import { useRelatorioEncerrados } from "@/hooks/use-relatorio-encerrados";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
@@ -23,7 +25,7 @@ import { estagioDeFato } from "@/lib/proposta-status";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
-import type { NivelRelatorio } from "@/services/relatorios";
+import type { NivelRelatorio, FiltroRelatorio } from "@/services/relatorios";
 
 const situacaoExibida = (item: ConvenioUnificado) => item.situacao;
 const SEM_MONITORADOS = new Set<string>();
@@ -103,6 +105,8 @@ export function MonitoramentoRelatoriosPage() {
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
 
   const {
+    encerramento,
+    setEncerramento,
     uf,
     setUf,
     situacao,
@@ -167,7 +171,7 @@ export function MonitoramentoRelatoriosPage() {
           anoFim: null,
           programa,
           tipoContratacao,
-          soMonitorados: false,
+          monitorado: null,
         },
         SEM_MONITORADOS,
         situacaoExibida,
@@ -338,10 +342,30 @@ export function MonitoramentoRelatoriosPage() {
         : escopoGeracao === "uf"
           ? (UF_INFO[ufEfetiva ?? ""]?.nome ?? ufEfetiva ?? "")
           : "Brasil";
-  const totalRegistros =
-    conveniosFiltrados.length +
-    propostasConfirmadas.length +
-    propostasEmTramitacao.length;
+  const somenteEncerrados = encerramento === "encerrados";
+  const filtroGeracao: FiltroRelatorio = {
+    escopo: escopoGeracao,
+    uf:
+      escopoGeracao === "uf" || escopoGeracao === "municipio"
+        ? ufEfetiva
+        : undefined,
+    municipio:
+      escopoGeracao === "municipio" ? (municipio ?? undefined) : undefined,
+    cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
+    anoInicio: anoInicio ? Number(anoInicio) : undefined,
+    anoFim: anoFim ? Number(anoFim) : undefined,
+    situacao: situacao ?? undefined,
+    programa: programa ?? undefined,
+    tipoContratacao: tipoContratacao ?? undefined,
+    equipamento: equipamento ?? undefined,
+    encerramento: somenteEncerrados ? "encerrados" : "todos",
+  };
+  const encerrados = useRelatorioEncerrados(filtroGeracao, somenteEncerrados);
+  const totalRegistros = somenteEncerrados
+    ? (encerrados.data?.total ?? 0)
+    : conveniosFiltrados.length +
+      propostasConfirmadas.length +
+      propostasEmTramitacao.length;
 
   return (
     <div className="flex flex-col gap-7 pb-8">
@@ -392,6 +416,14 @@ export function MonitoramentoRelatoriosPage() {
             </p>
           </div>
         </div>
+        <SingleSelectFilter
+          placeholder="Encerramento"
+          options={[{ value: "encerrados", label: "Encerrados" }]}
+          value={encerramento}
+          onChange={setEncerramento}
+          clearLabel="Todos"
+          minWidth={150}
+        />
         <SingleSelectFilter
           placeholder="Tipo de contratação"
           options={tipoContratacaoOptions}
@@ -457,12 +489,14 @@ export function MonitoramentoRelatoriosPage() {
         />
       </FilterWorkspace>
 
-      <RelatorioResumoCarteira
-        instrumentos={conveniosFiltrados.length}
-        valorInstrumentos={valorGlobalInstrumentos}
-        parcerias={propostasConfirmadas.length}
-        propostas={propostasEmTramitacao.length}
-      />
+      {!somenteEncerrados && (
+        <RelatorioResumoCarteira
+          instrumentos={conveniosFiltrados.length}
+          valorInstrumentos={valorGlobalInstrumentos}
+          parcerias={propostasConfirmadas.length}
+          propostas={propostasEmTramitacao.length}
+        />
+      )}
 
       <div className="flex items-center gap-3 border-b border-border pb-3 pt-1">
         <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
@@ -478,77 +512,101 @@ export function MonitoramentoRelatoriosPage() {
         </div>
       </div>
 
-      {conveniosQuery.isLoading ? (
-        <Skeleton
-          className="h-64 w-full"
-          role="status"
-          aria-label="Carregando"
-        />
-      ) : conveniosQuery.isError ? (
-        <ErrorAlert
-          mensagem={mensagemSeguraDoErro(conveniosQuery.error)}
-          onRetry={() => conveniosQuery.refetch()}
-        />
-      ) : (
-        <RelatorioInstrumentosTabela
-          itens={conveniosFiltrados}
-          faseMonitoramento={faseMonitoramento}
-          onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-        />
-      )}
-
-      {carregandoPropostas ? (
-        <Skeleton
-          className="h-64 w-full"
-          role="status"
-          aria-label="Carregando"
-        />
-      ) : erroPropostas ? (
-        <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
+      {somenteEncerrados ? (
+        encerrados.isLoading ? (
+          <Skeleton
+            className="h-64 w-full"
+            role="status"
+            aria-label="Carregando encerrados"
+          />
+        ) : encerrados.isError ? (
+          <ErrorAlert
+            mensagem={mensagemSeguraDoErro(encerrados.error)}
+            onRetry={() => encerrados.refetch()}
+          />
+        ) : encerrados.data ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Uma linha por instrumento ou parceria. Ordem paga não comprova
+              quitação integral nem conclusão física.
+            </p>
+            <RelatorioEncerradosPrevia
+              titulo="Encerrados"
+              itens={encerrados.data.itens}
+              total={encerrados.data.total}
+              pagina={encerrados.pagina}
+              onPaginaChange={encerrados.setPagina}
+            />
+            <RelatorioEncerradosPrevia
+              titulo="Pendências excluídas dos encerrados"
+              itens={encerrados.data.pendencias}
+              total={encerrados.data.total_pendencias}
+              pagina={encerrados.paginaPendencias}
+              onPaginaChange={encerrados.setPaginaPendencias}
+            />
+          </>
+        ) : null
       ) : (
         <>
-          <RelatorioPropostasTabela
-            titulo="Parcerias confirmadas"
-            descricao="Instrumentos com parceria formalizada"
-            itens={propostasConfirmadas}
-            onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-          />
-          <RelatorioPropostasTabela
-            titulo="Propostas em tramitação"
-            descricao="Linhas de financiamento ainda em análise"
-            itens={propostasEmTramitacao}
-            onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-          />
+          {conveniosQuery.isLoading ? (
+            <Skeleton
+              className="h-64 w-full"
+              role="status"
+              aria-label="Carregando"
+            />
+          ) : conveniosQuery.isError ? (
+            <ErrorAlert
+              mensagem={mensagemSeguraDoErro(conveniosQuery.error)}
+              onRetry={() => conveniosQuery.refetch()}
+            />
+          ) : (
+            <RelatorioInstrumentosTabela
+              itens={conveniosFiltrados}
+              faseMonitoramento={faseMonitoramento}
+              onLimparFiltros={hasFiltros ? limparFiltros : undefined}
+            />
+          )}
+
+          {carregandoPropostas ? (
+            <Skeleton
+              className="h-64 w-full"
+              role="status"
+              aria-label="Carregando"
+            />
+          ) : erroPropostas ? (
+            <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
+          ) : (
+            <>
+              <RelatorioPropostasTabela
+                titulo="Parcerias confirmadas"
+                descricao="Instrumentos com parceria formalizada"
+                itens={propostasConfirmadas}
+                onLimparFiltros={hasFiltros ? limparFiltros : undefined}
+              />
+              <RelatorioPropostasTabela
+                titulo="Propostas em tramitação"
+                descricao="Linhas de financiamento ainda em análise"
+                itens={propostasEmTramitacao}
+                onLimparFiltros={hasFiltros ? limparFiltros : undefined}
+              />
+            </>
+          )}
         </>
       )}
 
       <RelatorioBotoesGerar
         nivel={nivel}
         onNivelChange={setNivel}
-        podeGerar
+        podeGerar={
+          !somenteEncerrados ||
+          Boolean(
+            encerrados.data && !encerrados.isFetching && !encerrados.isError,
+          )
+        }
         gerando={gerando}
         erro={erro}
         contexto={`O arquivo reunirá o recorte de ${resumoEscopo}, com os filtros aplicados na prévia acima.`}
-        onGerar={(formato) =>
-          void gerar(formato, nivel, {
-            escopo: escopoGeracao,
-            uf:
-              escopoGeracao === "uf" || escopoGeracao === "municipio"
-                ? ufEfetiva
-                : undefined,
-            municipio:
-              escopoGeracao === "municipio"
-                ? (municipio ?? undefined)
-                : undefined,
-            cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
-            anoInicio: anoInicio ? Number(anoInicio) : undefined,
-            anoFim: anoFim ? Number(anoFim) : undefined,
-            situacao: situacao ?? undefined,
-            programa: programa ?? undefined,
-            tipoContratacao: tipoContratacao ?? undefined,
-            equipamento: equipamento ?? undefined,
-          })
-        }
+        onGerar={(formato) => void gerar(formato, nivel, filtroGeracao)}
       />
     </div>
   );

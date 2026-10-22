@@ -1,0 +1,168 @@
+"""Extração única com precedência, reconciliação visível e nenhuma escrita."""
+
+from collections import defaultdict
+from dataclasses import dataclass
+
+from sqlalchemy.orm import Session
+
+from app.domain_errors import ValidationError
+from app.pipeline.texto import normalizar_texto
+from app.repositories import relatorios_encerrados as repo
+from app.repositories.limites_relatorio import LimiteConsultaExcedido
+from app.schemas_relatorios_encerrados import FatoEncerramento, FiltroEncerramento, PreviaEncerrados, RegistroEncerrado
+
+_CONCLUSIVOS = {"PRESTACAO DE CONTAS CONCLUIDA", "PRESTACAO DE CONTAS CONCLUIDAS"}
+
+
+@dataclass(frozen=True)
+class ExtracaoEncerrados:
+    itens: list[RegistroEncerrado]
+    pendencias: list[RegistroEncerrado]
+
+
+def _corresponde(fato: FatoEncerramento, filtro: FiltroEncerramento) -> bool:
+    if filtro.uf and fato.uf not in filtro.uf:
+        return False
+    for campo in ("municipio", "cnes", "programa", "tipo_contratacao", "situacao"):
+        valor = getattr(filtro, campo)
+        origem = {"tipo_contratacao": fato.tipo, "situacao": fato.situacao_carteira}.get(
+            campo, getattr(fato, campo, None)
+        )
+        if valor and normalizar_texto(valor) != normalizar_texto(origem):
+            return False
+    if filtro.ano_inicio is not None and (fato.ano is None or fato.ano < filtro.ano_inicio):
+        return False
+    if filtro.ano_fim is not None and (fato.ano is None or fato.ano > filtro.ano_fim):
+        return False
+    return not filtro.busca or normalizar_texto(filtro.busca) in normalizar_texto(
+        f"{fato.numero} {fato.nome} {fato.municipio or ''}"
+    )
+
+
+def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncerrado] | None:
+    motivos = []
+    evidencia = ""
+    pendencia = False
+    prioridade = 9
+    if fato.tipo == "Convênio":
+        estados = [
+            s for s in (fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial) if s and s.strip()
+        ]
+        conclusivos = [normalizar_texto(s) in _CONCLUSIVOS for s in estados]
+        if any(conclusivos):
+            prioridade = 1
+            if not all(conclusivos):
+                motivos.append("Divergência de prestação de contas entre fontes")
+                pendencia = True
+            else:
+                motivos.append("Prestação de contas concluída")
+            evidencia = " | ".join(
+                f"{fonte}: {status}"
+                for fonte, status in (
+                    ("Carteira", fato.situacao_carteira),
+                    ("Monitoramento", fato.situacao_monitoramento),
+                    ("SICONV", fato.situacao_oficial),
+                )
+                if status
+            )
+    if not motivos and fato.conclusao_ativa:
+        prioridade = 2
+        if fato.data_conclusao is None:
+            motivos.append("Conclusão interna sem data")
+            pendencia = True
+        elif fato.tipo == "Convênio":
+            conhecida = any((fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial))
+            motivos.append(
+                "Concluído internamente — prestação de contas pendente"
+                if conhecida
+                else "Concluído internamente — prestação de contas sem informação"
+            )
+        else:
+            motivos.append("Concluído no monitoramento interno")
+        evidencia = "Evento fase_concluido ativo" + (
+            f" em {fato.data_conclusao:%d/%m/%Y}" if fato.data_conclusao else " sem data de ocorrência"
+        )
+    pagas = [
+        o for o in fato.ordens if normalizar_texto(o.in_situacao_op) == "PAGA" and o.id_ordem_pagamento is not None
+    ]
+    if (
+        not motivos
+        and fato.origem == "parceria"
+        and fato.parceria_confirmada
+        and fato.numero == fato.codigo_confirmado
+        and pagas
+    ):
+        prioridade = 3
+        motivos.append("Parceria paga")
+        evidencia = "; ".join(f"Ordem {o.id_ordem_pagamento}: {o.in_situacao_op}" for o in pagas)
+    if not motivos and fato.evidencia_invalida:
+        motivos.append("Evidência financeira inválida")
+        pendencia = True
+    if not motivos:
+        return None
+    return prioridade, RegistroEncerrado(
+        chave=chave,
+        numero=fato.numero,
+        nome=fato.nome,
+        tipo=fato.tipo,
+        uf=fato.uf,
+        municipio=fato.municipio,
+        cnes=fato.cnes,
+        valor_global=fato.valor_global,
+        motivo=motivos[0],
+        evidencia=evidencia,
+        data_conclusao=fato.data_conclusao,
+        situacao_carteira=fato.situacao_carteira,
+        situacao_monitoramento=fato.situacao_monitoramento,
+        situacao_oficial=fato.situacao_oficial,
+        pendencia=pendencia,
+    )
+
+
+def classificar_encerrados(fatos: list[FatoEncerramento], filtro: FiltroEncerramento) -> ExtracaoEncerrados:
+    aliases = {str(f.proposta_id): f.numero for f in fatos if f.origem == "parceria" and f.proposta_id is not None}
+    grupos: dict[str, list[tuple[int, RegistroEncerrado]]] = defaultdict(list)
+    for fato in fatos:
+        if not _corresponde(fato, filtro):
+            continue
+        numero = aliases.get(fato.numero, fato.numero) if fato.tipo == "Parceria TransfereGov" else fato.numero
+        chave = f"{fato.tipo}:{numero}"
+        candidato = _classificar(fato.model_copy(update={"numero": numero}), chave)
+        if candidato is not None:
+            grupos[chave].append(candidato)
+    itens: list[RegistroEncerrado] = []
+    pendencias: list[RegistroEncerrado] = []
+    for chave in sorted(grupos):
+        candidatos = grupos[chave]
+        conflito = next(
+            (r for _, r in candidatos if r.motivo == "Divergência de prestação de contas entre fontes"), None
+        )
+        validos = [(p, r) for p, r in candidatos if not r.pendencia]
+        escolhido = conflito or min(validos or candidatos, key=lambda par: (par[0], par[1].evidencia))[1]
+        (pendencias if escolhido.pendencia else itens).append(escolhido)
+    return ExtracaoEncerrados(itens, pendencias)
+
+
+def extrair_encerrados(*, db: Session, filtro: FiltroEncerramento) -> ExtracaoEncerrados:
+    try:
+        return classificar_encerrados(repo.listar_fatos(db, equipamento=filtro.equipamento), filtro)
+    except LimiteConsultaExcedido as exc:
+        raise ValidationError(
+            "A carteira excede o limite seguro da extração de encerrados. Contate a administração."
+        ) from exc
+
+
+def previa_encerrados(
+    *, db: Session, filtro: FiltroEncerramento, pagina: int, limite: int, pagina_pendencias: int = 1
+) -> PreviaEncerrados:
+    extracao = extrair_encerrados(db=db, filtro=filtro)
+    inicio = (pagina - 1) * limite
+    return PreviaEncerrados(
+        total=len(extracao.itens),
+        total_pendencias=len(extracao.pendencias),
+        pagina=pagina,
+        pagina_pendencias=pagina_pendencias,
+        limite=limite,
+        itens=extracao.itens[inicio : inicio + limite],
+        pendencias=extracao.pendencias[(pagina_pendencias - 1) * limite : pagina_pendencias * limite],
+    )

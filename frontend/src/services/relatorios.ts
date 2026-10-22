@@ -43,6 +43,7 @@ export interface FiltroRelatorio {
    * ignorava. Só filtra Convênios (mesmo mecanismo de `/convenios`). */
   equipamento?: string;
   busca?: string;
+  encerramento?: "todos" | "encerrados";
 }
 
 export interface ArquivoRelatorio {
@@ -83,6 +84,7 @@ export async function gerarRelatorio(
     params.set("tipo_contratacao", filtro.tipoContratacao);
   if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
   if (filtro.busca) params.set("busca", filtro.busca);
+  if (filtro.encerramento) params.set("encerramento", filtro.encerramento);
 
   try {
     // O prazo inclui refresh e leitura do corpo, não apenas os cabeçalhos.

@@ -27,7 +27,7 @@ from docx.oxml.table import CT_Tbl
 from docx.oxml.xmlchemy import BaseOxmlElement
 from docx.section import Section
 from docx.shared import Emu, Inches, Pt, RGBColor
-from docx.table import Table
+from docx.table import Table, _Row
 from docx.text.paragraph import Paragraph
 from docx.text.run import Run
 
@@ -193,27 +193,29 @@ def adicionar_tabela(
             celula.paragraphs[0].add_run("" if valor is None else str(valor))
     if pesos_colunas is not None:
         _aplicar_larguras(documento, tabela, pesos_colunas)
-    if fonte_pt is not None:
-        for linha_tabela in tabela.rows:
-            for celula in linha_tabela.cells:
-                for paragrafo in celula.paragraphs:
-                    paragrafo.paragraph_format.space_before = Pt(0)
-                    paragrafo.paragraph_format.space_after = Pt(2)
-                    for run in paragrafo.runs:
-                        run.font.size = Pt(fonte_pt)
     # Evita linhas partidas e cabeçalho órfão ao paginar no Word/LibreOffice.
     tabela.rows[0]._tr.get_or_add_trPr().append(OxmlElement("w:tblHeader"))
     # A tabela já está completa; len(rows) refaz a lista de elementos XML.
     total_linhas = len(tabela.rows)
     for indice, linha_tabela in enumerate(tabela.rows):
-        linha_tabela._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
-        # Tabelas curtas (resumos/financeiro) devem permanecer em um bloco;
-        # tabelas longas continuam pagináveis, com cabeçalho repetido.
-        if indice < total_linhas - 1 and (total_linhas <= 6 or indice == 0):
-            for celula in linha_tabela.cells:
-                for paragrafo in celula.paragraphs:
-                    paragrafo.paragraph_format.keep_with_next = True
+        _formatar_linha_tabela(linha_tabela, fonte_pt, indice=indice, total=total_linhas)
     return tabela
+
+
+def _formatar_linha_tabela(linha: _Row, fonte_pt: float | None, *, indice: int, total: int) -> None:
+    propriedades = linha._tr.get_or_add_trPr()
+    if propriedades.find(qn("w:cantSplit")) is None:
+        propriedades.append(OxmlElement("w:cantSplit"))
+    # A mesma paginação vale para a árvore completa e para a gravação progressiva.
+    manter_junta = indice < total - 1 and (total <= 6 or indice == 0)
+    for celula in linha.cells:
+        for paragrafo in celula.paragraphs:
+            paragrafo.paragraph_format.keep_with_next = True if manter_junta else None
+            if fonte_pt is not None:
+                paragrafo.paragraph_format.space_before = Pt(0)
+                paragrafo.paragraph_format.space_after = Pt(2)
+                for run in paragrafo.runs:
+                    run.font.size = Pt(fonte_pt)
 
 
 def _aplicar_larguras(documento: DocumentType, tabela: Table, pesos: Sequence[float]) -> None:

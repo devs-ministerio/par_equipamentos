@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { useRelatorioInstrumentosFiltros } from "./use-relatorio-instrumentos-filtros";
 
 const recortes = [
+  ["encerramento", "setEncerramento", "encerrados"],
   ["uf", "setUf", "BA"],
   ["situacao", "setSituacao", "Em execução"],
   ["anoInicio", "setAnoInicio", "2025"],
@@ -44,7 +45,7 @@ describe("estado dos filtros do relatório", () => {
     expect(principal.result.current).not.toHaveProperty("busca");
     act(() => principal.result.current.limparFiltros());
     expect(recortes.map(([campo]) => principal.result.current[campo])).toEqual(
-      Array(10).fill(null),
+      Array(recortes.length).fill(null),
     );
   });
 });
