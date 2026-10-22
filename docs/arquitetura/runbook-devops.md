@@ -373,3 +373,44 @@ backend/scripts/recriar_roles_banco.sh --confirmo-host HOST
   comparar as ACLs reais da produção com as deste script, por consulta somente
   leitura, antes de depender dele num desastre. Este script **não recria**
   extensões (`pg_trgm` vem do próprio dump) nem a role gerenciada `neondb_owner`.
+
+## Pré-voo de posse dos objetos antes de migrar (achado em 22/10/2026)
+
+Uma consulta somente de catálogo em produção mostrou que a posse do schema `public`
+está **pela metade**: `sigeo_migration` é dona de 26 das 29 tabelas e de 24 das 27
+sequências, mas `neondb_owner` ficou com as tabelas `evidencia_transferegov`,
+`instrumento_responsavel` e `notificacao_destinatario`, suas 3 sequências e **os
+11 tipos enum** (entre eles `notificacao_tipo`). `sigeo_migration` não é membro de
+`neondb_owner`, então não herda nada dele.
+
+**Consequência:** só o dono altera tabela ou tipo. As migrations do release
+(`ALTER TYPE notificacao_tipo ADD VALUE` em `95d13a6e4c28`, `c6e7f8091a2b` e
+`d7e8f9a0b1c2`; coluna e índice novos em `notificacao_destinatario` em
+`e8f9a0b1c2d3`) falham em produção com `must be owner of type notificacao_tipo`.
+Reproduzido localmente com a mesma posse (3 tabelas, 3 sequências e 11 enums com a
+role administrativa): a primeira migration falha e a revisão fica em `a3f1c9e7b204`.
+
+**Correção (só muda o dono; não altera dados, senhas nem permissões):**
+`backend/scripts/sql/normalizar_posse_aplicacao.sql`, executado como a role
+administrativa (no Neon, `neondb_owner`) em transação única, **antes** de
+`alembic upgrade head`:
+
+```bash
+psql "$ADMIN_DATABASE_URL" --no-psqlrc -1 -v ON_ERROR_STOP=1 \
+  -f backend/scripts/sql/normalizar_posse_aplicacao.sql
+```
+
+- Idempotente. Informa quantos objetos estavam fora de `sigeo_migration` antes e
+  depois, e **falha se sobrar algum**. Exige PostgreSQL 16+ e a role
+  `sigeo_migration` já criada.
+- Concede a `neondb_owner` o direito de atribuir posse (`GRANT sigeo_migration TO
+  neondb_owner WITH INHERIT FALSE, SET TRUE`), sem herdar privilégios.
+- Ensaiado em PostgreSQL 18 local com a posse idêntica à de produção (3/3/11):
+  corrigiu 17 objetos; segunda execução sem efeito; em seguida as 12 migrations do
+  release aplicaram como `sigeo_migration` em 0,40 s, sem deriva do schema.
+- **Em produção:** alteração de DDL; só depois de um backup íntegro recente e com
+  autorização explícita. Faz parte do pré-voo da publicação, antes do workflow
+  `migrar_banco.yml`.
+- O script de recuperação (`recriar_roles_aplicacao.sql`) reaproveita este mesmo passo.
+  A comparação com produção também mostrou que `sigeo_backup` tem
+  `idle_in_transaction_session_timeout=1min`, agora incluído no script.
