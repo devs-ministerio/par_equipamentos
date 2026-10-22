@@ -28,6 +28,21 @@
 4. Inventariar variáveis e secrets exigidos pelo código novo contra `render.yaml`, Vercel e GitHub (`MAIL_*`, `PORTAL_TRANSPARENCIA_API_KEY`, `DATABASE_URL_MIGRATION`, credenciais R2, `REFRESH_COOKIE_PATH`). Só nomes e presença, nunca valores.
 5. **Saída:** lista congelada do que entra no release e o que fica de fora.
 
+### Resultado da Fase 0 (22/10)
+
+- **Alembic:** head da `master` `a3f1c9e7b204`; head da branch `b7f35c806e4a`; head único (a migration `a4b5c6d7e8f9` une sessão e Radar). A branch acrescenta 12 revisões em cadeia linear.
+- **Revisões antigas modificadas:** 4 arquivos (`06e73a1db53b`, `92fe48aa5b7b`, `9c2e4f7a1d38`, `c214b6dc6a4a`) mudaram apenas `downgrade()` e um import; os `upgrade()`, que são o que roda em produção, estão intactos.
+- **Classificação das 12 novas, por `upgrade()`:**
+  - Tabelas novas, sem dado preexistente: `42d8a91c6f03`, `73b91e4c2a06`, `84c02f5d3b17`, `b5c6d7e8f9a0`, `d7e8f9a0b1c2`, `f9a0b1c2d3e4`, `e8f9a0b1c2d3` (coluna com default).
+  - `ALTER TYPE notificacao_tipo ADD VALUE IF NOT EXISTS` em `autocommit_block`: `95d13a6e4c28`, `c6e7f8091a2b`, `d7e8f9a0b1c2`. Aditivas, mas exigem que a role de migração seja dona do tipo; já houve `InsufficientPrivilege` na homologação.
+  - `a6e24b7f5d39`: `LOCK TABLE` exclusivo e estreitamento de `varchar` apenas nas tabelas novas do Radar (vazias em produção), com verificação prévia que aborta em vez de truncar; mais `convenio.fora_escopo_equipamentos BOOLEAN NOT NULL DEFAULT false`, sem reescrita de tabela no PostgreSQL moderno, porém com `ACCESS EXCLUSIVE` breve em `convenio`.
+  - `b7f35c806e4a`: troca de constraint em tabela nova do Radar.
+  - Merge `a4b5c6d7e8f9`: sem operação de schema.
+  - **Nenhuma remove ou reescreve dado de tabela existente em produção.** Reversão por `downgrade()` existe, mas a reversão de produção é restaurar o backup pré-deploy.
+- **Pré-requisitos a conferir em produção antes de migrar (somente leitura):** `alembic_version` atual; dono do tipo `notificacao_tipo` e privilégio da role `sigeo_migration`; versão do PostgreSQL; inexistência de tabelas `candidato_legado_*` preexistentes.
+- **Variáveis e secrets:** nenhum campo novo em `Settings`, nenhuma alteração em `render.yaml`, nenhum secret novo nos workflows; `radar_convenios.yml` inalterado (não agenda nada novo). Workflows novos: `espelho_homologacao.yml` (somente `workflow_dispatch` na ref `homologacao`, sem secrets) e `.github/scripts/iniciar-postgres-ci.sh`. O Render continua dependendo das variáveis já configuradas manualmente no painel (`JWT_SECRET`, `MAIL_*`, `APP_PUBLIC_URL`, `PORTAL_TRANSPARENCIA_API_KEY`, `ALLOWED_HOSTS`, `COOKIE_*`), a conferir na Fase 2.
+- **Pendente da Fase 0:** CI remoto do SHA final do #28 verde; depois encerrar o #26 com comentário apontando a absorção.
+
 ## Fase 1 — Fechar pendências do plano avançado (homologação, sem produção)
 
 Ordem pensada para que o que bloqueia produção venha primeiro.
