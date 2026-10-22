@@ -1,5 +1,12 @@
 # Plan Mode — execução: fechar o plano avançado, publicar, depois os planos novos — 22/10/2026
 
+## Decisões registradas (22/10)
+
+- Plano e ordem das fases **aprovados** pelo usuário.
+- **PR #26 absorvido** no #28: `ce5eeef` (recortes e exportações DOCX/XLSX) e `65cb970` (CORS `Content-Disposition` e nome de arquivo de fallback) foram integrados por cherry-pick com resolução manual; os cinco commits restantes do #26 (ajuste de sessão nos E2E e três reexecuções de CI) não foram absorvidos por serem redundantes com `frontend/e2e/sessao-autenticada.ts`. Onde o #26 e a base divergiam, prevaleceu a implementação mais nova da base (`listar_sem_truncar`/`LimiteConsultaExcedido`, carregamento em lote `DadosMonitoramentoRelatorio`, gravador DOCX progressivo) e foram mantidos do #26 a aba Leitura, as legendas por fonte, o estado vazio explícito, o separador de milhar no Word, o bloqueio de município/CNES ambíguo e o desempate por `id`. Encerrar o #26 no GitHub depende de confirmação.
+- **Janela de observação pós-deploy (Fase 3):** quem acompanha e recebe os relatos da equipe é o usuário; duração a confirmar antes da publicação.
+
+
 - **Estado:** proposta para aprovação; nada executado além do que já está em homologação. Nenhuma etapa que toque produção, cron, secret, Render, Neon ou Vercel começa sem autorização específica por etapa.
 - **Decisão do usuário:** primeiro fechar o que falta do [plano de espelho/notificações](planmode-espelho-notificacoes-2026-10-06.md) e deixá-lo disponível em produção; só depois iniciar [identidade SISGEO](planmode-identidade-sisgeo-2026-10-20.md) e [monitoramento por item](planmode-monitoramento-itens-equipamentos-2026-10-20.md), que hoje existem só em papel.
 - **Constituições:** [Backend](../../padroes/backend/constituicao_backend.md), [Database](../../padroes/database/constituicao_database.md), [DevOps](../../padroes/devops/constituicao_devops.md), [Segurança](../../padroes/seguranca/constituicao_seguranca.md), [Qualidade](../../padroes/qualidade/constituicao_qualidade.md) e [Frontend](../../padroes/frontend/constiuicao_frontend.md).
@@ -16,7 +23,7 @@
 ## Fase 0 — Congelar a linha de base (sem risco)
 
 1. Aguardar `validar` e `e2e` do #28; registrar o resultado. Falha nova é corrigida antes de qualquer outra coisa.
-2. Comparar #26 × #28 (arquivos em comum em `relatorios`, `docx_builder`, `xlsx_builder`, páginas de relatório). Decisão: absorver o #26 no #28, ou encerrá-lo como superado. Registrar a escolha.
+2. Comparar #26 × #28 (arquivos em comum em `relatorios`, `docx_builder`, `xlsx_builder`, páginas de relatório). **Feito em 22/10:** absorvido; backend 1.818 testes, Ruff, formatação e mypy aprovados; frontend 892 testes, lint, tsc e prettier aprovados.
 3. Confirmar head único do Alembic na árvore final e listar as 12 migrations com classificação: apenas aditiva (expand) ou destrutiva. Qualquer item não aditivo vira bloco próprio, com plano de reversão.
 4. Inventariar variáveis e secrets exigidos pelo código novo contra `render.yaml`, Vercel e GitHub (`MAIL_*`, `PORTAL_TRANSPARENCIA_API_KEY`, `DATABASE_URL_MIGRATION`, credenciais R2, `REFRESH_COOKIE_PATH`). Só nomes e presença, nunca valores.
 5. **Saída:** lista congelada do que entra no release e o que fica de fora.
@@ -102,7 +109,7 @@ Ordem recomendada e decisões necessárias:
 ## Decisões que preciso de você
 
 1. Aprovar este plano e a ordem das fases.
-2. Absorver ou encerrar o PR #26.
-3. Janela de observação após o deploy (sugestão 48 h) e quem acompanha.
+2. ~~Absorver ou encerrar o PR #26~~ — absorvido (ver decisões).
+3. Duração da janela de observação após o deploy (sugestão 48 h); o usuário acompanha.
 4. Free ou Build no Neon, depois da medição.
 5. Para a Fase 5, quando chegar: nome por extenso do SISGEO e armazenamento das fotos.
