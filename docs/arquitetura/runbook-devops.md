@@ -258,8 +258,10 @@ verificação final do job transforma "sem backup íntegro em 24 h" em falha.
 - **Identidade `age` 1 retirada de uso (22/10).** A identidade criada no ensaio
   do R2 foi exposta acidentalmente durante a configuração e deve ser tratada
   como comprometida. Nenhum backup real foi cifrado para ela; a chave pública
-  dela **não deve ser cadastrada** em `BACKUP_AGE_RECIPIENT`. Destinatários
-  vigentes: identidade 2 (Bitwarden) e identidade 3 (guarda separada).
+  dela **não deve ser cadastrada** em `BACKUP_AGE_RECIPIENT`. A identidade 3 foi
+  perdida antes de ser guardada (apagada cedo demais; nenhum backup foi cifrado
+  para ela) e substituída pela identidade 4. Destinatários vigentes: identidade
+  2 (Bitwarden) e identidade 4 (Bitwarden e cópia cifrada com senha em OneDrive).
 - **Duas identidades `age` independentes.** `BACKUP_AGE_RECIPIENT` aceita uma
   chave pública por linha e cada backup é cifrado para todas; qualquer
   identidade privada restaura. Nenhuma chave privada é copiada: a segunda é
