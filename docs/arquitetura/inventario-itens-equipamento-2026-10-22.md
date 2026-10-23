@@ -31,7 +31,9 @@ Campos do item SICONV: `ID_ITEM_PAD`, `ID_PROPOSTA`, `DESCRICAO_ITEM`, `QTD_ITEM
 
 ## Bug encontrado em produção durante o inventário
 
-A "Quantidade" do relatório de Concluídos soma `QTD_ITEM` de itens classificados como equipamento sem filtrar por `TIPO_DESPESA_ITEM`. No arquivo de aceite de 22/10 isso gerou valores como **2.296 (convênio 851416, PET/CT)** e **600 (convênio 905903, acelerador e braquiterapia)**, que são área/serviço e não unidades. Correção proposta: somar apenas itens `BEM`; sem item `BEM`, mostrar quantidade desconhecida ("—") em vez de 1 ou do número da obra. Depende de aprovação do usuário e de deploy.
+**Contexto:** as obras já foram retiradas do SIGEO, na forma da marcação `convenio.fora_escopo_equipamentos` (6 convênios na cópia, por exemplo o 971253, que não entram nas contas). Restam, porém, 27 itens de `OBRA`/`SERVICO` dentro de convênios que **continuam no escopo** porque também têm equipamento, e a "Quantidade" do relatório de Concluídos os soma como se fossem unidades, sem filtrar por `TIPO_DESPESA_ITEM`.
+
+No arquivo de aceite de 22/10 isso gerou **2.296 (convênio 851416, PET/CT)** e **600 (convênio 905903, acelerador e braquiterapia)**, que são área/serviço e não unidades. Correção proposta e estreita: somar apenas itens `BEM`; sem item `BEM`, mostrar quantidade desconhecida ("—") em vez de 1 ou do valor da obra. Depende de aprovação do usuário e de deploy.
 
 ## Pendências do Bloco 0
 
