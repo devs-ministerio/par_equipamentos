@@ -95,6 +95,51 @@ Não alterar o intervalo de 1 hora como padrão permanente sem medir o consumo d
 2. Se a janela de reforço (medida 4) vale para releases futuros e por quanto tempo.
 3. Se a verificação de privilégio do runtime (medida 6) entra.
 
+## Triagem diária de e-mail (configurada pelo usuário em 23/10/2026)
+
+O usuário passou a rodar uma triagem diária, somente leitura, sobre a caixa de e-mail do SIGEO, que resume alertas do New Relic, falhas do GitHub Actions, avisos do Render e da Vercel e alertas de segurança do Google. Na primeira execução (janela de 2 dias, 22 threads) ela classificou três itens como "ação necessária".
+
+### O que a triagem acertou e o que errou (conferido contra o estado real no mesmo dia)
+
+| Item da triagem | Estado real |
+|---|---|
+| Backup agendado falhou em 23/10 07:38 UTC | **Real e grave.** `pg_dump: permission denied for table fonte_captura`: tabelas novas ficaram com dono e permissões errados. Sem backup válido por cerca de 12 horas. Corrigido no mesmo dia; ver [incidente](incidente-api-neondb-owner-2026-10-23.md). **Foi a triagem que expôs isso.** |
+| Alerta "falha de prontidão do banco" aberto | **Já fechado.** O New Relic não tinha issue ativo; a triagem viu só o e-mail de ativação e nenhum de fechamento. |
+| Backend CI falhou no commit 118499a | **Obsoleto.** O run foi substituído; os commits seguintes do PR passaram em todos os workflows. |
+
+Conclusão: o valor da triagem é achar o que ninguém olhou; o erro dela é tratar **evento de e-mail como estado**. O mesmo e-mail pode estar velho, e a ausência de e-mail não prova que algo deu certo (o GitHub só avisa falha; o Neon não manda e-mail). Registrado pela própria triagem em "Lacunas".
+
+### O que ela resolve do desenho e o que não
+
+- **Resolve em parte a medida 2** (segundo leitor): é um leitor diário e consolidado.
+- **Não resolve** a medida 1 (push na madrugada), a 3 (escalonamento), a 5 (teste de fumaça) nem a 6 (privilégio do runtime). Latência de até 24 h, só e-mail, nenhum teste funcional.
+- O push do aplicativo do New Relic continua sendo a medida de maior efeito para incidente em andamento.
+
+### Evolução proposta: da leitura de e-mail para a verificação de estado
+
+A triagem passa a **verificar o estado atual**, usando o e-mail só como pista, e cada verificação tem um limite explícito. Ordem de importância:
+
+| # | Verificação | Fonte (não e-mail) | Alerta quando |
+|---|---|---|---|
+| 1 | **Último backup bem-sucedido** | API do GitHub Actions (`backup_banco.yml`) e idade do objeto mais novo no R2 | passou de 14 h sem execução com sucesso (a agenda é de 12 h) |
+| 2 | **Saúde da API** | `GET /health` (espera `database: connected`) e `/health/live`, com tempo de resposta | resposta diferente de 200, ou lenta |
+| 3 | **Alertas do New Relic agora** | consulta de issues ativos e taxa de sucesso do monitor de prontidão em 24 h | issue ativo, ou sucesso abaixo de 95% |
+| 4 | **Deploy contra a `master`** | commit publicado no Render e na Vercel contra o `HEAD` da `master` | `master` à frente do Render por mais que o combinado (o deploy do Render é manual) |
+| 5 | **CI na `master`** | último resultado de cada workflow na `master`, e checks dos PRs abertos | falha na `master` (ruído de PR não conta) |
+| 6 | **Neon** | consumo de CU-h e armazenamento contra o plano | acima de 80% do plano |
+| 7 | **Segurança da conta** | manter a leitura dos alertas do Google | qualquer alerta novo, para confirmação humana |
+
+Regras de severidade:
+- O que o **estado confirma** como falha (itens 1 a 5) é prioridade máxima e vai para o push do celular; o resto fica no resumo diário.
+- Item de e-mail cujo estado atual já está saudável é **rebaixado** a informativo ("resolvido"), com a evidência.
+- Todo "ação necessária" traz o comando ou o link para verificar, e o que o estado mostra, não só o que o e-mail disse.
+- A triagem precisa de um **sinal de vida** próprio: se ela não rodar, alguém é avisado (o mesmo princípio do backup).
+
+### Lacunas que o desenho não cobre ainda
+
+- Ninguém verifica **o usuário** com que cada credencial conecta; a nova verificação do `migrar_banco.yml` cobre só a migração.
+- Falta uma checagem periódica de que as **permissões dos roles** cobrem as tabelas existentes (hoje só a migração as reaplica).
+
 ## Fontes
 
 - https://render.com/docs/health-checks
