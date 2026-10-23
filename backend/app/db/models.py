@@ -1585,6 +1585,17 @@ class ItemPlano(Base):
             name="ck_item_plano_codigo_fonte",
         ),
         CheckConstraint("quantidade_planejada IS NULL OR quantidade_planejada >= 1", name="ck_item_plano_quantidade"),
+        CheckConstraint(
+            "tipo_lancamento IN ('aquisicao','rendimento_aplicacao','acessorio_insumo','multiplo','nao_equipamento')",
+            name="ck_item_plano_tipo_lancamento",
+        ),
+        CheckConstraint("situacao_classificacao IN ('aplicada','pendente')", name="ck_item_plano_situacao_classificacao"),
+        Index("idx_item_plano_principal", "item_principal_id"),
+        Index(
+            "idx_item_plano_pendente",
+            "id",
+            postgresql_where=text("situacao_classificacao = 'pendente'"),
+        ),
         Index("idx_item_plano_instrumento", "instrumento_id"),
         Index("idx_item_plano_convenio", "convenio_id"),
         Index("idx_item_plano_catalogo", "catalogo_id"),
@@ -1608,6 +1619,14 @@ class ItemPlano(Base):
     controla_unidade: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     quantidade_planejada: Mapped[int | None] = mapped_column(Integer)
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    # Rendimento da aplicação não soma unidade e aponta para o item principal do mesmo convênio.
+    tipo_lancamento: Mapped[str] = mapped_column(String, nullable=False, server_default="aquisicao")
+    situacao_classificacao: Mapped[str] = mapped_column(String, nullable=False, server_default="aplicada")
+    motivo_classificacao: Mapped[str | None] = mapped_column(Text)
+    valor_total: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    item_principal_id: Mapped[int | None] = mapped_column(
+        ForeignKey("item_plano.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
     removido_na_fonte_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     hash_conteudo: Mapped[str | None] = mapped_column(String)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

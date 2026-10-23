@@ -26,6 +26,7 @@ import hashlib
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.engine import make_url
@@ -70,6 +71,9 @@ class Alvo:
     catalogo_id: int | None
     controla_unidade: bool
     familia: str | None
+    tipo_lancamento: str = "aquisicao"
+    pendente: bool = False
+    motivo: str | None = None
 
 
 @dataclass
@@ -83,6 +87,10 @@ class Resultado:
     por_origem: Counter[str] = field(default_factory=Counter)
     por_familia: Counter[str] = field(default_factory=Counter)
     sem_familia: int = 0
+    por_tipo: Counter[str] = field(default_factory=Counter)
+    pendentes: int = 0
+    rendimentos_ligados: int = 0
+    rendimentos_sem_principal: int = 0
     codigo_a_definir: int = 0
     manual_por_codigo_fonte: Counter[str] = field(default_factory=Counter)
 
@@ -123,6 +131,16 @@ def _controla(ctx: Contexto, catalogo_id: int | None, *, conta: bool | None, pen
     return ctx.catalogo_por_id[catalogo_id].controle_por_unidade
 
 
+def _precisa_revisar(motor, tipo: str) -> bool:
+    """Só vai para a fila o que a regra suspeita ser equipamento controlado e não decide com segurança."""
+    if tipo == "multiplo":
+        return True
+    if motor.confianca == "alta":
+        return False
+    # Sem família reconhecida e sem pista de equipamento controlado: é outro equipamento, não é dúvida.
+    return "sem família reconhecida" not in motor.motivo
+
+
 def alvo_item_api(ctx: Contexto, convenio_numero: str, item: dict) -> Alvo:
     descricao = str(item.get("DESCRICAO_ITEM") or "")
     valor = _decimal(item.get("VALOR_TOTAL_ITEM"))
@@ -131,9 +149,11 @@ def alvo_item_api(ctx: Contexto, convenio_numero: str, item: dict) -> Alvo:
     tipo: str = motor.tipo
     codigo, conta, familia = motor.codigo_item, motor.conta_unidade, motor.familia
     fonte = "descricao" if codigo else None
-    pendente = motor.confianca != "alta"
+    pendente = _precisa_revisar(motor, tipo)
+    motivo: str | None = motor.motivo
     if decisao is not None:
         tipo, conta, pendente = decisao.tipo_lancamento, decisao.conta_unidade, decisao.status == "pendente"
+        motivo = decisao.observacao or ("Decisão da equipe" if decisao.origem != "motor" else motivo)
         if decisao.codigo_item:
             codigo = decisao.codigo_item
             fonte = "definido_pela_equipe" if decisao.origem != "motor" else "descricao"
@@ -142,7 +162,16 @@ def alvo_item_api(ctx: Contexto, convenio_numero: str, item: dict) -> Alvo:
     catalogo_id = catalogo.id if catalogo else ctx.catalogo_do_codigo.get(codigo or "")
     if tipo != "aquisicao":
         conta = False
-    return Alvo(codigo, fonte, catalogo_id, _controla(ctx, catalogo_id, conta=conta, pendente=pendente), familia)
+    return Alvo(
+        codigo,
+        fonte,
+        catalogo_id,
+        _controla(ctx, catalogo_id, conta=conta, pendente=pendente),
+        familia,
+        tipo,
+        pendente,
+        motivo,
+    )
 
 
 def _familia_do_codigo(ctx: Contexto, codigo: str | None) -> str | None:
@@ -168,6 +197,8 @@ def alvo_item_manual(ctx: Contexto, tipo_contratacao: str | None, item: dict) ->
     familia = _familia_do_codigo(ctx, codigo) or base.familia
     catalogo = ctx.catalogo_por_codigo.get(familia or "")
     catalogo_id = catalogo.id if catalogo else ctx.catalogo_do_codigo.get(codigo or "")
+    if base.fonte == "multiplo":
+        return Alvo(None, None, None, False, None, "multiplo", True, "Texto descreve mais de um equipamento")
     return Alvo(codigo, fonte, catalogo_id, _controla(ctx, catalogo_id, conta=bool(familia)), familia)
 
 
@@ -176,6 +207,11 @@ def _decimal(valor: object) -> float | None:
         return float(str(valor).replace(",", ".")) if valor not in (None, "") else None
     except ValueError:
         return None
+
+
+def _moeda(valor: object) -> Decimal | None:
+    numero = _decimal(valor)
+    return None if numero is None else Decimal(str(numero)).quantize(Decimal("0.01"))
 
 
 def _quantidade(valor: object) -> int | None:
@@ -212,11 +248,31 @@ def _sincronizar(db: Session, existente: ItemPlano | None, novo: dict, resultado
         existente.atualizado_em = datetime.now(UTC)
 
 
+def resolver_principais(
+    registros: list[tuple[int, tuple[str, str], str, int | None]],
+) -> dict[tuple[str, str], tuple[str, str] | None]:
+    """Rendimento herda o item principal do mesmo convênio quando ele é único; senão fica sem principal
+    ("rateio a definir"). Com a família do rendimento conhecida, só conta o principal da mesma família."""
+    por_convenio: dict[int, list[tuple[tuple[str, str], str, int | None]]] = {}
+    for convenio_id, chave, tipo, catalogo_id in registros:
+        por_convenio.setdefault(convenio_id, []).append((chave, tipo, catalogo_id))
+    resultado: dict[tuple[str, str], tuple[str, str] | None] = {}
+    for itens in por_convenio.values():
+        principais = [(c, cat) for c, tipo, cat in itens if tipo == "aquisicao" and cat is not None]
+        for chave, tipo, cat in itens:
+            if tipo != "rendimento_aplicacao":
+                continue
+            candidatos = [c for c, c_cat in principais if cat is None or c_cat == cat]
+            resultado[chave] = candidatos[0] if len(candidatos) == 1 else None
+    return resultado
+
+
 def projetar(db: Session, *, aplicar: bool) -> Resultado:
     resultado = Resultado()
     ctx = carregar_contexto(db)
     existentes = {(i.origem, i.id_origem): i for i in db.execute(select(ItemPlano)).scalars()}
     vistos: set[tuple[str, str]] = set()
+    ligacao: list[tuple[int, tuple[str, str], str, int | None]] = []  # convênio, chave, tipo, catálogo
     for convenio in db.execute(select(Convenio).order_by(Convenio.id)).scalars():
         itens = (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []
         ordem_manual = 0
@@ -244,6 +300,9 @@ def projetar(db: Session, *, aplicar: bool) -> Resultado:
                 continue
             vistos.add(chave)
             resultado.por_origem[origem] += 1
+            resultado.por_tipo[alvo.tipo_lancamento] += 1
+            resultado.pendentes += int(alvo.pendente)
+            ligacao.append((convenio.id, chave, alvo.tipo_lancamento, alvo.catalogo_id))
             if alvo.controla_unidade and alvo.familia:
                 resultado.por_familia[alvo.familia] += 1
             if alvo.familia is None:
@@ -263,9 +322,21 @@ def projetar(db: Session, *, aplicar: bool) -> Resultado:
                 catalogo_id=alvo.catalogo_id,
                 controla_unidade=alvo.controla_unidade,
                 quantidade_planejada=quantidade,
+                tipo_lancamento=alvo.tipo_lancamento,
+                situacao_classificacao="pendente" if alvo.pendente else "aplicada",
+                motivo_classificacao=alvo.motivo,
+                valor_total=_moeda(item.get("VALOR_TOTAL_ITEM")),
                 hash_conteudo=_hash(item),
             )
             _sincronizar(db, existentes.get(chave), novo, resultado, aplicar)
+    principais = resolver_principais(ligacao)
+    resultado.rendimentos_ligados = sum(1 for v in principais.values() if v is not None)
+    resultado.rendimentos_sem_principal = sum(1 for v in principais.values() if v is None)
+    if aplicar:
+        db.flush()
+        por_chave = {(i.origem, i.id_origem): i for i in db.execute(select(ItemPlano)).scalars()}
+        for chave_rend, chave_princ in principais.items():
+            por_chave[chave_rend].item_principal_id = por_chave[chave_princ].id if chave_princ else None
     agora = datetime.now(UTC)
     for chave, existente in existentes.items():
         if chave not in vistos and existente.ativo and existente.origem == "siconv":
@@ -309,6 +380,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"  por origem: {dict(r.por_origem)}")
     print(f"  sem família: {r.sem_familia}; família com código a definir: {r.codigo_a_definir}")
+    print(f"  por tipo de lançamento: {dict(r.por_tipo)}; a revisar: {r.pendentes}")
+    print(
+        f"  rendimento ligado ao principal: {r.rendimentos_ligados}; sem principal único: {r.rendimentos_sem_principal}"
+    )
     print(f"  manuais por fonte do código: {dict(r.manual_por_codigo_fonte)}")
     print("  controlados por unidade, por família:")
     for familia, n in r.por_familia.most_common():
