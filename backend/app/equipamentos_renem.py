@@ -166,6 +166,7 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
 )
 
 _CODIGO_INICIAL = re.compile(r"^\s*(?:C[OÓ]D\.?\s*)?0*(\d{3,6})(?=\s*[-–:.]|\s)", re.IGNORECASE)
+_LIMITE_TEXTO_COM_MAIS = 160
 _CODIGO_EM_QUALQUER_LUGAR = re.compile(r"(?:^|\+)\s*(?:C[OÓ]D\.?\s*)?0*(\d{3,6})\s*[-–]")
 
 
@@ -224,7 +225,10 @@ def classificar_item(descricao: str, *, nomes_renem: dict[str, str] | None = Non
     texto = (descricao or "").strip()
     if not texto:
         return ClassificacaoItem(None, None, "nao_classificado")
-    if len(_CODIGO_EM_QUALQUER_LUGAR.findall(texto)) >= 2 or re.search(r"\s\+\s", texto):
+    # Dois equipamentos num só texto: dois códigos separados por "+", ou um "+" entre nomes curtos.
+    # Descrição técnica longa pode trazer "+" sem ser lista de equipamentos.
+    dois_codigos = len(_CODIGO_EM_QUALQUER_LUGAR.findall(texto)) >= 2
+    if dois_codigos or (re.search(r"\s\+\s", texto) and len(texto) <= _LIMITE_TEXTO_COM_MAIS):
         return ClassificacaoItem(None, extrair_codigo(texto), "multiplo")
     codigo = extrair_codigo(texto)
     if codigo is not None:

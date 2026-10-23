@@ -87,6 +87,23 @@ def test_nao_classifica_acessorios_variantes_e_textos_com_dois_equipamentos(desc
     assert classificar_item(descricao).familia is None
 
 
+def test_descricao_tecnica_longa_com_mais_nao_e_lista_de_equipamentos():
+    longa = (
+        "Acelerador Linear de média energia (6MV-10MV), com menor energia de fótons de 6MV e maior energia "
+        "de fótons de 10MV, compatível com sistema de planejamento + console de controle e acessórios, "
+        "incluindo colimador multilâminas, imagem portal e treinamento da equipe técnica"
+    )
+    assert len(longa) > 160
+    assert classificar_item(longa).familia == "acelerador_linear"
+    com_codigo = (
+        "CÓD. 10933 ACELERADOR LINEAR, PARTES PEÇAS E ACESSÓRIOS1.1. Sistema de Planejamento 3D 1.1.1. Hardware: "
+        "i. Computador com as especificações mínimas + monitor de 24 polegadas + estabilizador, conforme edital, "
+        "incluindo instalação, treinamento e garantia de 24 meses"
+    )
+    assert len(com_codigo) > 160
+    assert classificar_item(com_codigo).familia == "acelerador_linear"
+
+
 def test_itens_com_dois_equipamentos_ficam_como_multiplo():
     assert classificar_item("Ultrasom + Mamógrafo").fonte == "multiplo"
 
