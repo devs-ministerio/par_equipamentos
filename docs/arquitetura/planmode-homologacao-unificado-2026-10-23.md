@@ -50,7 +50,7 @@ Escopo fechado pelo inventário: título da aba (`index.html`), cabeçalho, roda
 4. Fotografias (isolado, por último).
 5. Prazos e notificações.
 
-Depende das decisões da seção 5. Os blocos 1 a 3 são um pacote de release; o 4 e o 5 são pacotes à parte.
+**Detalhamento etapa por etapa, com as respostas do usuário de 23/10:** [planmode-monitoramento-itens-detalhado-2026-10-23.md](planmode-monitoramento-itens-detalhado-2026-10-23.md), que **substitui a seção 5** abaixo (as nove perguntas foram respondidas; restam seis, listadas lá, cada uma com recomendação). Os blocos 1 a 3 são um pacote de release; o 4 e o 5 são pacotes à parte.
 
 ### C. Relatórios
 
@@ -98,7 +98,7 @@ Regras que saem dele:
 **Release 1** (noite de 24/10): só o #38 e o preenchimento de quantidade 1, pelo roteiro de sempre.
 **Release 2** (próxima semana): A e D1. Não tem migração; o risco é visual.
 
-## 5. Dúvidas do monitoramento por item (para fechar o Bloco 1)
+## 5. Dúvidas do monitoramento por item (respondidas em 23/10; ver o plano detalhado)
 
 Cada pergunta traz a minha recomendação; responder "de acordo" basta.
 
