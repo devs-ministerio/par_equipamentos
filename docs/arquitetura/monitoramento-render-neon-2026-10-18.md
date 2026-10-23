@@ -49,6 +49,52 @@ para `/health`, verificar a prontidão e então reverter o commit pelo fluxo
 normal. Isso retorna o consumo anterior; não muda schema, cookies ou dados.
 Não fazer rollback para um destino `/health/live` ausente na versão anterior.
 
+## Atualização de 23/10/2026 — o que o incidente da `DATABASE_URL` mostrou
+
+Contexto: [incidente de 23/10](incidente-api-neondb-owner-2026-10-23.md). A troca da senha do `neondb_owner` derrubou a API (`/health` 500, `/health/live` 200) e o problema só foi percebido de manhã.
+
+### Estado verificado no New Relic (conta 8544864, em 23/10, só leitura)
+
+- **Monitores** (tipo Ping, ambos habilitados): "SIGEO API — health externo" (5 min, `/health/live`, 100% de sucesso em 24 h) e "SIGEO — prontidão do banco (1 hora)" (1 h, `/health`, **54,17% de sucesso em 24 h**, o que corresponde às checagens da noite e da manhã que falharam).
+- **Política** "SIGEO — Produção", 5 condições: erro elevado da API (acima de 5% por 5 min), falhas do monitor externo (acima de 1 em 10 min), indisponibilidade (sem transações por 10 min), latência p95 (acima de 2 s por 10 min) e **falha de prontidão do banco** (acima de 0 falhas em 1 min).
+- **Notificação:** um único workflow, "SIGEO — Notificações de Produção", com destino **e-mail**, habilitado.
+- **Log de notificações:** a condição de prontidão abriu issue e enviou e-mail às **00:38 de 23/10** (horário da conta; confirmar fuso). Outros dois envios (11:14 ativação e 11:23 encerramento) são de um alerta da API.
+
+### Diagnóstico
+
+A **detecção funcionou** (menos de uma hora) e a **entrega falhou**: o e-mail chegou de madrugada e ninguém o leu. Os pontos fracos são humanos e de canal, não de medição:
+
+1. Um único canal (e-mail) e um único destinatário.
+2. Sem push, sem segundo destinatário e sem escalonamento se o issue continua aberto.
+3. O alerta de prontidão detecta falha de conexão, mas **não valida as permissões** do role (`SELECT 1` passa mesmo se faltar `INSERT` em `refresh_token`).
+4. Nenhuma verificação manual obrigatória depois de trocar credencial ou fazer deploy.
+
+### Desenho proposto (para aprovação do usuário)
+
+| # | Medida | Custo | Observação |
+|---|---|---|---|
+| 1 | **Push no celular**: app New Relic mobile (ou destino equivalente) para os issues da política "SIGEO — Produção" | Sem custo | Cobre a madrugada; precisa de configuração do próprio usuário no aparelho |
+| 2 | **Segundo destinatário** de e-mail (colega ou e-mail alternativo) no mesmo workflow | Sem custo | Evita ponto único de falha humana |
+| 3 | **Escalonamento**: se o issue de prontidão continuar aberto após 30 min, repetir a notificação em outro canal | Sem custo | Depende do destino escolhido em 1 |
+| 4 | **Janela de reforço**: durante releases e trocas de credencial, executar o monitor de prontidão sob demanda ("Run now") ou passá-lo a 15 min por 48 h | Cerca de 60 CU-h/mês se ficasse permanente a 15 min (0,25 CU, banco ativo ~⅓ do tempo); só em janelas, desprezível | O plano Build temporário comporta; no Free medir antes |
+| 5 | **Teste de fumaça pós-mudança** (script único, sem credenciais de usuário): `/health` com banco, `/auth/me` sem sessão esperando 401, uma rota autenticada esperando 401, e checagem de que o login devolve 422 sem corpo, executado depois de todo deploy e de toda troca de credencial | Sem custo | Complementa, não substitui, o login real feito pelo usuário |
+| 6 | **Verificação de privilégio do runtime**: rota ou job interno somente leitura que confirme `current_user = sigeo_runtime` e as permissões DML esperadas (`has_table_privilege`) nas tabelas de sessão, sem expor o resultado a usuários | Baixo | Só vale se o usuário quiser fechar também o risco de permissão faltante |
+| 7 | **Runtime dos monitores**: o painel avisa que o runtime Node.js 16 de monitores sintéticos acaba em 18/11/2026; os dois monitores são do tipo Ping, que provavelmente não dependem dele. Confirmar antes da data | Sem custo | Evita surpresa |
+
+Não alterar o intervalo de 1 hora como padrão permanente sem medir o consumo de CU-h no Neon (ver "Neon Free"): a frequência alta resolve a detecção, não a entrega, e o incidente foi um problema de entrega.
+
+### Validação e rollback
+
+- Cada medida de 1 a 4 se valida por **teste de envio** do destino e, para o escalonamento, por um issue sintético (monitor temporário apontando para uma URL que falha) com o usuário presente; nunca derrubando a produção para testar.
+- Rollback: desabilitar o workflow ou o destino novo; as condições e os monitores existentes continuam intactos.
+- As medidas 5 e 6 entram por PR normal, com testes; nenhuma exige alterar schema nem credenciais.
+
+### Decisões do usuário
+
+1. Qual canal adicional de entrega usar (push do app New Relic, Slack, Telegram, outro) e quem recebe como segundo destinatário.
+2. Se a janela de reforço (medida 4) vale para releases futuros e por quanto tempo.
+3. Se a verificação de privilégio do runtime (medida 6) entra.
+
 ## Fontes
 
 - https://render.com/docs/health-checks
