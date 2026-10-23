@@ -149,3 +149,9 @@ C1 a C3 são pré-requisito da projeção de itens (etapa 3 do plano dos itens).
 **Para instrumentos fora da API** (PERSUS, FAF, TED, PRONON): o valor pago vem de `pagamento_obra_persus` e das planilhas da equipe, fora da cadeia SICONV; entram em fase posterior, com a mesma ideia de "planejado × pago".
 
 **Fora de escopo, por decisão:** rateio de rendimento entre bens; qualquer valor inventado para completar item sem pagamento.
+
+## 11. Resultados medidos (2026-10-23)
+
+**Motor de descrição (`backend/app/classificacao_itens.py`)** contra o gabarito revisado de 77 itens: tipo de lançamento 75/77 (97%); família e código 26/26 (100%) nas aquisições decididas. Os dois erros restantes não se resolvem por texto: a linha 14 (software de neuronavegação, aquisição fora das 16 famílias) e a linha 39 (ultrassom cujo texto é igual ao de uma compra; só a revisão humana ou o valor distingue). Esses casos entram na fila de revisão, nunca em aplicação automática.
+
+**Vínculo item do plano × item do documento de liquidação (etapa V1).** Filtrados 403 propostas, 1.731 documentos de liquidação e 2.029 itens de liquidação dos nossos convênios. Dos 426 itens de família controlada, 349 (82%) têm algum item de liquidação compatível por valor (±20%) ou por nome (304 por valor, 325 por nome). Os 77 sem par aparecem em convênios sem liquidação lançada do equipamento ou com nome diferente (ex.: acelerador com texto distinto). O vínculo é uma sugestão a confirmar, não regra automática; o valor pago ao fornecedor só substitui o planejado quando o vínculo é confirmado.
