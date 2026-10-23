@@ -52,8 +52,19 @@ jobs:
       - name: Instala dependencias
         run: uv sync --frozen
 
+      # Incidente de 23/10/2026: uma migração rodada como neondb_owner criou tabelas
+      # com o dono errado e sem leitura para o backup. Só segue se a conexão for do
+      # role de migração.
+      - name: Confere que a conexão é do role de migração
+        run: uv run python -m scripts.garantir_permissoes_banco --so-usuario
+
       - name: Mostra revision atual
         run: uv run alembic current
 
       - name: Aplica migrations pendentes
         run: uv run alembic upgrade head
+
+      # Reaplica as concessões (idempotente) e falha, listando as tabelas, se algum
+      # objeto ficar sem dono correto ou sem acesso para sigeo_backup/sigeo_runtime.
+      - name: Reaplica e confere dono e permissões
+        run: uv run python -m scripts.garantir_permissoes_banco --corrigir
