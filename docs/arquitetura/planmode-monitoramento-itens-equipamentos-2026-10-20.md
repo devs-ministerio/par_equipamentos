@@ -1,6 +1,7 @@
 # Plan Mode — monitoramento por item e equipamento físico — 20/10/2026
 
 - **Estado:** planejamento solicitado; implementação não iniciada. Aprovar decisões pendentes antes dos respectivos blocos.
+- **Ordem e perguntas em aberto:** ver [planmode-homologacao-unificado-2026-10-23.md](planmode-homologacao-unificado-2026-10-23.md) (trilha B e seção 5). Resultado do Bloco 0 em [inventario-itens-equipamento-2026-10-22.md](inventario-itens-equipamento-2026-10-22.md).
 - **Ordem:** após estabilização funcional do [plano de espelho/notificações](planmode-espelho-notificacoes-2026-10-06.md); não depende de publicar esse plano em produção.
 - **Limites:** executar em homologação/checkout recuperado e bancos descartáveis; sem produção, cron, contratação de armazenamento, commit/push/deploy ou alterações na master sem autorização específica.
 - **Constituições:** [Backend](../../padroes/backend/constituicao_backend.md), [Database](../../padroes/database/constituicao_database.md), [Frontend](../../padroes/frontend/constiuicao_frontend.md), [Segurança](../../padroes/seguranca/constituicao_seguranca.md) e [Qualidade](../../padroes/qualidade/constituicao_qualidade.md).
