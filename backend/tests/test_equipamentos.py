@@ -108,4 +108,4 @@ def test_item_manual_de_persus_faf_ted_nasce_com_quantidade_um_e_o_de_convenio_n
 
         adicionar_item_manual_inicial(convenio, "Acelerador Linear", "planilha")
 
-        assert convenio.siconv_raw["itens_plano_aplicacao"][0].get("QTD_ITEM") == esperado
+        assert (convenio.siconv_raw or {})["itens_plano_aplicacao"][0].get("QTD_ITEM") == esperado
