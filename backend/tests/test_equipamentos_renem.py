@@ -53,6 +53,9 @@ def test_16_familias_com_codigos_unicos():
         ("Acelerador Linear", "acelerador_linear", "nome_exato"),
         ("PET CT", "pet_ct", "nome_exato"),
         ("Braquiterapia com sistema de controle remoto", "braquiterapia", "nome_exato"),
+        ("ACELERADOR LINEAR DE FÓTONS ELÉTRONS (10 MV)", "acelerador_linear", "nome_inicio"),
+        ("Braquiterapia com Sistema de Controle Remoto.", "braquiterapia", "nome_inicio"),
+        ("Mamógrafo digital com tomossíntese", "mamografo", "nome_inicio"),
     ],
 )
 def test_classifica_pelo_codigo_ou_pelo_nome_exato(descricao, familia, fonte):
@@ -71,7 +74,10 @@ def test_classifica_pelo_codigo_ou_pelo_nome_exato(descricao, familia, fonte):
         "011805-Tomógrafo Computadorizado (Acima de 16 canais até 80 canais)",
         "010875-Tomógrafo Computadorizado (64 Cortes)",
         "010400-Sistema de Vídeo Endoscopia",  # ambíguo: nem flexível nem rígida
-        "Monitor Multiparâmetros para Ressonância Magnética",  # sem código, nome não é exato
+        "Monitor Multiparâmetros para Ressonância Magnética",  # sem código, nome não começa pela família
+        "No-Break (Para Mamógrafo)",
+        "Lavadora de Endoscópio",
+        "Tomógrafo Computadorizado",  # sem faixa de canais: ambíguo
         "Ultrasom + Mamógrafo",
         "011422-Ultrassom Diagnóstico sem Aplicação Transesofágica + 010925-Mamógrafo",
         "",

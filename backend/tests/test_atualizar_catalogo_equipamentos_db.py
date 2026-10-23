@@ -29,6 +29,15 @@ ITENS = [
 ]
 
 
+def test_valor_numerico_do_banco_nao_conta_como_alteracao():
+    from decimal import Decimal
+
+    from scripts.atualizar_catalogo_equipamentos import _igual
+
+    assert _igual(Decimal("9441993.1733"), 9441993.1733)
+    assert not _igual(Decimal("9441993.1733"), 9441993.2)
+
+
 def test_planilha_renem_do_repositorio_tem_840_itens_e_codigos_de_seis_digitos():
     itens = ler_renem(ARQUIVO_PADRAO)
     assert len(itens) == 840

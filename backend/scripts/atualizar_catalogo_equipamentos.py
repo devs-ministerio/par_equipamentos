@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass, field
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -70,6 +71,13 @@ def ler_renem(caminho: Path) -> list[dict]:
     return itens
 
 
+def _igual(atual: object, novo: object) -> bool:
+    """Compara valores da planilha com os do banco (Numeric volta como Decimal, com 4 casas)."""
+    if isinstance(atual, (int, float, Decimal)) and isinstance(novo, (int, float, Decimal)):
+        return round(float(atual), 4) == round(float(novo), 4)
+    return atual == novo
+
+
 def atualizar(db: Session, itens: list[dict], versao: str) -> Resultado:
     resultado = Resultado()
     existentes = {
@@ -81,7 +89,7 @@ def atualizar(db: Session, itens: list[dict], versao: str) -> Resultado:
             db.add(RenemItem(versao_lista=versao, **dados))
             resultado.renem_novos += 1
             continue
-        if any(getattr(atual, k) != v for k, v in dados.items()):
+        if any(not _igual(getattr(atual, k), v) for k, v in dados.items()):
             for chave, valor in dados.items():
                 setattr(atual, chave, valor)
             resultado.renem_atualizados += 1

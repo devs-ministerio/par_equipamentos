@@ -18,7 +18,9 @@ from typing import Literal
 
 from app.equipamentos import nome_do_item, normalizar_texto
 
-FonteClassificacao = Literal["codigo_oficial", "codigo_legado", "nome_exato", "multiplo", "nao_classificado"]
+FonteClassificacao = Literal[
+    "codigo_oficial", "codigo_legado", "nome_exato", "nome_inicio", "multiplo", "nao_classificado"
+]
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,8 @@ class FamiliaControlada:
     renem: tuple[str, ...] = ()
     legados: tuple[CodigoLegado, ...] = ()
     sinonimos: tuple[str, ...] = ()
+    # Rótulos com que o NOME do item começa (sem código). Só onde o início identifica a família.
+    prefixos: tuple[str, ...] = ()
     novo_no_catalogo: bool = False
     nome_catalogo: str | None = None
     nomes_renem: tuple[str, ...] = field(default=(), compare=False)
@@ -49,8 +53,11 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
         renem=("010925",),
         legados=(CodigoLegado("000277", "Mamógrafo Convencional", "dados"),),
         sinonimos=("Mamógrafo", "Mamógrafo Digital", "Mamógrafo Convencional"),
+        prefixos=("Mamógrafo",),
     ),
-    FamiliaControlada("colposcopio", "Colposcópio", renem=("000378",), novo_no_catalogo=True),
+    FamiliaControlada(
+        "colposcopio", "Colposcópio", renem=("000378",), prefixos=("Colposcópio",), novo_no_catalogo=True
+    ),
     FamiliaControlada(
         "video_endoscopia_flexivel",
         "Sistema de Vídeo Endoscopia Flexível",
@@ -63,7 +70,13 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
         renem=("010254",),
         novo_no_catalogo=True,
     ),
-    FamiliaControlada("endoscopio_rigido", "Endoscópio Rígido", renem=("000547",), novo_no_catalogo=True),
+    FamiliaControlada(
+        "endoscopio_rigido",
+        "Endoscópio Rígido",
+        renem=("000547",),
+        prefixos=("Endoscópio Rígido",),
+        novo_no_catalogo=True,
+    ),
     FamiliaControlada(
         "endoscopio_flexivel",
         "Endoscópio Flexível (Fibroendoscopia)",
@@ -100,13 +113,21 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
             "Ressonância Nuclear Magnética 1,5 T",
             "Ressonância Nuclear Magnética 3,0 T",
         ),
+        prefixos=("Ressonância Nuclear Magnética", "Ressonância Magnética"),
     ),
-    FamiliaControlada("pet_ct", "PET-CT", renem=("000301",), sinonimos=("PET CT", "PET/CT")),
+    FamiliaControlada(
+        "pet_ct",
+        "PET-CT",
+        renem=("000301",),
+        sinonimos=("PET CT", "PET/CT"),
+        prefixos=("PET CT", "PET/CT", "PET-CT"),
+    ),
     FamiliaControlada(
         "gama_camera_spect",
         "Câmara Cintilográfica (Gama Câmara)",
         renem=("000595",),
         sinonimos=("Câmara Cintilográfica",),
+        prefixos=("Câmara Cintilográfica",),
     ),
     FamiliaControlada(
         "acelerador_linear",
@@ -123,14 +144,18 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
             "Acelerador Linear de Alta Energia (até 15 MV)",
             "Acelerador Linear de Baixa Energia (até 6 MV)",
         ),
+        prefixos=("Acelerador Linear",),
     ),
     FamiliaControlada(
         "braquiterapia",
         "Braquiterapia",
         renem=("010547",),
         sinonimos=("Braquiterapia com sistema de controle remoto",),
+        prefixos=("Braquiterapia",),
     ),
-    FamiliaControlada("arco_cirurgico", "Arco Cirúrgico", renem=("000253",), novo_no_catalogo=True),
+    FamiliaControlada(
+        "arco_cirurgico", "Arco Cirúrgico", renem=("000253",), prefixos=("Arco Cirúrgico",), novo_no_catalogo=True
+    ),
     FamiliaControlada(
         "cirurgia_robotica",
         "Sistema Cirúrgico Robótico (Cirurgia Robótica)",
@@ -217,6 +242,10 @@ def classificar_item(descricao: str, *, nomes_renem: dict[str, str] | None = Non
     if familia is not None:
         codigo_unico = familia.renem[0] if len(familia.renem) == 1 else None
         return ClassificacaoItem(familia.catalogo_codigo, codigo_unico, "nome_exato")
+    for candidata in FAMILIAS:
+        for prefixo in candidata.prefixos:
+            if nome == normalizar_texto(prefixo) or nome.startswith(normalizar_texto(prefixo) + " "):
+                return ClassificacaoItem(candidata.catalogo_codigo, None, "nome_inicio")
     return ClassificacaoItem(None, None, "nao_classificado")
 
 
