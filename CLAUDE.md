@@ -1,4 +1,10 @@
-# Contexto do projeto — SIGEO (par_equipamentos)
+# Contexto do projeto — SISGEO (par_equipamentos)
+
+> O produto se chamava **SIGEO** e passou a **SISGEO** em 23/10/2026 (apresentação, e-mails, relatórios e
+> documentação atual; monograma "GEO"). Documentos datados em `docs/` mantêm o nome da época. **Identificadores
+> técnicos continuam `sigeo_*`** de propósito: cookies `sigeo_access`/`sigeo_refresh`/`sigeo_csrf`, roles
+> `sigeo_runtime`/`sigeo_migration`/`sigeo_backup`, prefixo do R2, grupo de concorrência dos workflows e
+> variáveis `SIGEO_LOCAL_*` (renomear deslogaria todos e quebraria backups). Plano: `docs/arquitetura/planmode-identidade-sisgeo-2026-10-20.md`.
 
 Leia [`README.md`](README.md) primeiro para stack e como rodar. Este arquivo
 é sobre convenções e pegadinhas específicas deste repo.

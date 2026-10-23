@@ -35,15 +35,15 @@ export function LoginPage() {
             to="/monitoramento-equipamentos"
             className="mb-1 flex items-center gap-2.5 text-foreground"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
-              S
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-[10px] font-bold tracking-tight text-primary-foreground">
+              GEO
             </span>
             <span className="font-display text-[15px] font-bold tracking-tight">
-              SIGEO
+              SISGEO
             </span>
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">
-            Entrar no SIGEO
+            Entrar no SISGEO
           </h1>
           <p className="mt-1.5 mb-5 text-sm text-muted-foreground">
             Acesso operacional -- edição de monitoramento interno, inclusão de

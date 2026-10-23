@@ -156,7 +156,7 @@ def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session 
                 destinatario=user.email,
                 nome=user.name,
                 token=token,
-                assunto="Redefina sua senha do SIGEO",
+                assunto="Redefina sua senha do SISGEO",
                 caminho="/redefinir-senha",
             )
         except Exception:

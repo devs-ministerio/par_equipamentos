@@ -1,4 +1,4 @@
-"""Ponto de entrada da API do SIGEO."""
+"""Ponto de entrada da API do SISGEO."""
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,7 +34,7 @@ from app.routers import (
     health as health_router,
 )
 
-app = FastAPI(title="SIGEO — Sistema de Gestão de Equipamentos em Oncologia")
+app = FastAPI(title="SISGEO — Sistema de Gestão de Equipamentos em Oncologia")
 register_exception_handlers(app)
 
 # Rate limiting (Plan Mode seguranca 2026-09-16, Bloco 2) -- so /auth/login

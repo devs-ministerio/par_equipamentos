@@ -1,4 +1,4 @@
-# SIGEO — Sistema de Gestão de Equipamentos em Oncologia
+# SISGEO — Sistema de Gestão de Equipamentos em Oncologia
 
 Ferramenta do DECAN/MS (Departamento de Controle do Câncer) para gestão de
 equipamento oncológico de ponta a ponta: da decisão de investimento
@@ -31,7 +31,7 @@ Decisões de arquitetura, convenções e histórico de cada Plan Mode executado:
   editado in-place, só substituído com rastro).
 - **Radar de Convênios / Linhas de financiamento** — descoberta automática de
   propostas novas no TransfereGov, casamento com o catálogo de equipamentos
-  do SIGEO, e triagem manual antes de entrar no monitoramento interno.
+  do SISGEO, e triagem manual antes de entrar no monitoramento interno.
 - **Notificações** — alerta por destinatário (técnico titular/suplente do
   instrumento) de atualização de proposta, edição manual e vencimento de
   licença/vigência, sem depender de e-mail externo.

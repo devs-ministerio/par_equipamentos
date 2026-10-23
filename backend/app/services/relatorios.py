@@ -31,7 +31,7 @@ Gaps conhecidos, NUNCA fabricados: "habilitação" CNES (não existe em
 `CnesEstabelecimento`, só nome/endereço/CNPJ/município) e "produção
 assistencial" (SIH/SIA/SUS por procedimento) -- essa última é dado do
 projeto irmão `nota-informativa-decan` (DuckDB/parquet), fora do banco do
-SIGEO; nenhuma das duas seções existe aqui até uma fonte real ser
+SISGEO; nenhuma das duas seções existe aqui até uma fonte real ser
 integrada (ver plan-mode, "Fora de escopo").
 """
 
@@ -374,7 +374,7 @@ def _linhas_leitura(
         ],
     ]
     if tipo == "analise_merito":
-        linhas.append(["Fonte", "Cobertura publicada no SIGEO; oferta SUS e em uso (CNES/ElastiCNES)"])
+        linhas.append(["Fonte", "Cobertura publicada no SISGEO; oferta SUS e em uso (CNES/ElastiCNES)"])
         linhas.append(["Grão", "Município" if nivel == "completo" or filtro.escopo == "municipio" else "Macrorregião"])
         for familia, competencia in (competencias or {}).items():
             linhas.append([f"Competência {familia}", competencia])
@@ -1338,7 +1338,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         docx_builder.adicionar_legenda_tabela(documento, next(contador), legenda)
     docx_builder.adicionar_fonte(
         documento,
-        "Convênios (SICONV/TransfereGov), propostas (TransfereGov) e monitoramento interno, SIGEO.",
+        "Convênios (SICONV/TransfereGov), propostas (TransfereGov) e monitoramento interno, SISGEO.",
     )
     docx_builder.adicionar_titulo(documento, "Informações Detalhadas")
     instrumentos_por_nr = {i.instrumento.nr_convenio: i for i in instrumentos}

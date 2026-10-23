@@ -31,7 +31,7 @@ def test_montar_conteudo_acesso_caminho_desconhecido_usa_contexto_padrao(monkeyp
     url = montar_url_acesso(token="token-unico", caminho="/outra-rota")
     eyebrow, _body, html = montar_conteudo_acesso(nome="Ana", url=url, caminho="/outra-rota")
 
-    assert eyebrow == "Ação necessária no SIGEO"
+    assert eyebrow == "Ação necessária no SISGEO"
     assert "Continuar" in html
 
 
@@ -54,7 +54,7 @@ def test_enviar_link_entrega_payload_completo_ao_gateway(monkeypatch):
         destinatario="e2e@example.com",
         nome="Usuário E2E",
         token="token-unico",
-        assunto="Ative seu acesso ao SIGEO",
+        assunto="Ative seu acesso ao SISGEO",
         caminho="/ativar",
     )
 
@@ -62,7 +62,7 @@ def test_enviar_link_entrega_payload_completo_ao_gateway(monkeypatch):
     assert capturado["headers"] == {"x-api-key": "segredo-de-teste"}
     assert capturado["timeout"] == 15
     assert capturado["json"]["to"] == "e2e@example.com"
-    assert capturado["json"]["subject"] == "Ative seu acesso ao SIGEO"
+    assert capturado["json"]["subject"] == "Ative seu acesso ao SISGEO"
     assert capturado["json"]["fromName"] == _NOME_REMETENTE
     assert "#token=token-unico" in capturado["json"]["html"]
     assert "Ativar minha conta" in capturado["json"]["html"]

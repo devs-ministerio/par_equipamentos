@@ -7,7 +7,7 @@ import requests
 
 from app.config import settings
 
-_NOME_REMETENTE = "Sistema de Gestão de Equipamentos em Oncologia - SIGEO"
+_NOME_REMETENTE = "Sistema de Gestão de Equipamentos em Oncologia - SISGEO"
 
 # Mesma paleta de frontend/src/styles/tokens.ts -- mudar uma exige mudar a
 # outra (não há fonte única compartilhada entre back e front pra isso).
@@ -36,22 +36,22 @@ class _ContextoAcesso:
 # conta ou trocava senha). Caminho não reconhecido cai em `_CONTEXTO_PADRAO`.
 _CONTEXTOS: dict[str, _ContextoAcesso] = {
     "/ativar": _ContextoAcesso(
-        preheader="Ative sua conta no SIGEO -- o link expira em 7 dias.",
+        preheader="Ative sua conta no SISGEO -- o link expira em 7 dias.",
         eyebrow="Ativação de conta",
-        corpo="Você foi convidado a acessar o SIGEO. Clique no botão abaixo para criar sua senha e ativar sua conta.",
+        corpo="Você foi convidado a acessar o SISGEO. Clique no botão abaixo para criar sua senha e ativar sua conta.",
         cta="Ativar minha conta",
     ),
     "/redefinir-senha": _ContextoAcesso(
-        preheader="Redefina sua senha no SIGEO -- o link expira em 7 dias.",
+        preheader="Redefina sua senha no SISGEO -- o link expira em 7 dias.",
         eyebrow="Redefinição de senha",
-        corpo="Recebemos uma solicitação para redefinir sua senha no SIGEO. Clique no botão abaixo para escolher uma nova senha.",
+        corpo="Recebemos uma solicitação para redefinir sua senha no SISGEO. Clique no botão abaixo para escolher uma nova senha.",
         cta="Redefinir senha",
     ),
 }
 _CONTEXTO_PADRAO = _ContextoAcesso(
-    preheader="Você recebeu uma solicitação de acesso ao SIGEO.",
-    eyebrow="Ação necessária no SIGEO",
-    corpo="Você recebeu uma solicitação de acesso ao SIGEO. Clique no botão abaixo para continuar.",
+    preheader="Você recebeu uma solicitação de acesso ao SISGEO.",
+    eyebrow="Ação necessária no SISGEO",
+    corpo="Você recebeu uma solicitação de acesso ao SISGEO. Clique no botão abaixo para continuar.",
     cta="Continuar",
 )
 
@@ -85,7 +85,7 @@ def montar_conteudo_acesso(*, nome: str, url: str, caminho: str = "") -> tuple[s
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>SIGEO</title>
+    <title>SISGEO</title>
   </head>
   <body style="margin:0;padding:0;background-color:{_COR_SUPERFICIE};">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:{_COR_SUPERFICIE};">
@@ -100,10 +100,10 @@ def montar_conteudo_acesso(*, nome: str, url: str, caminho: str = "") -> tuple[s
                 <table role="presentation" cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="width:36px;height:36px;background-color:{_COR_PRIMARIA};border-radius:8px;text-align:center;">
-                      <span style="display:block;font-family:{_FONTE};font-size:16px;font-weight:700;line-height:36px;color:#ffffff;">S</span>
+                      <span style="display:block;font-family:{_FONTE};font-size:11px;font-weight:700;line-height:36px;color:#ffffff;letter-spacing:-0.02em;">GEO</span>
                     </td>
                     <td style="padding-left:12px;">
-                      <span style="display:block;font-family:{_FONTE};font-size:15px;font-weight:700;color:{_COR_TEXTO};">SIGEO</span>
+                      <span style="display:block;font-family:{_FONTE};font-size:15px;font-weight:700;color:{_COR_TEXTO};">SISGEO</span>
                       <span style="display:block;font-family:{_FONTE};font-size:11px;color:{_COR_TEXTO_SUBTLE};">Gestão de Equipamentos em Oncologia</span>
                     </td>
                   </tr>

@@ -233,12 +233,12 @@ export function AppHeader({
             to="/monitoramento-equipamentos"
             className="flex shrink-0 items-center gap-2.5 text-foreground"
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#1f4c42] font-display text-[15px] font-bold text-primary-foreground shadow-sm ring-1 ring-black/5 ring-inset">
-              S
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#1f4c42] font-display text-[11px] font-bold tracking-tight text-primary-foreground shadow-sm ring-1 ring-black/5 ring-inset">
+              GEO
             </span>
             <span className="flex items-baseline gap-2 whitespace-nowrap">
               <span className="font-display text-[15px] font-bold tracking-tight">
-                SIGEO
+                SISGEO
               </span>
               <span className="h-3.5 w-px bg-border" aria-hidden="true" />
               <span className="hidden text-xs text-muted-foreground sm:inline">

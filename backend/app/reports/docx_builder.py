@@ -149,7 +149,7 @@ def novo_documento(titulo: str, *, paisagem: bool = False) -> DocumentType:
                 ppr.remove(bordas)
     rodape = secao.footer.paragraphs[0]
     rodape.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    texto = rodape.add_run("SIGEO  ·  Página ")
+    texto = rodape.add_run("SISGEO  ·  Página ")
     texto.font.size = Pt(8)
     texto.font.color.rgb = _CINZA_LEGENDA
     campo = OxmlElement("w:fldSimple")
@@ -168,7 +168,7 @@ def adicionar_cabecalho_institucional(documento: DocumentType, *, gerado_em: dat
         run.font.size = Pt(10)
     aviso = _novo_paragrafo(documento)
     run_aviso = aviso.add_run(
-        f"Documento gerado automaticamente pelo SIGEO em {gerado_em.astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')} "
+        f"Documento gerado automaticamente pelo SISGEO em {gerado_em.astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')} "
         "(horário de Brasília) "
         "-- não substitui conferência humana antes de circulação oficial."
     )

@@ -122,7 +122,7 @@ function NotFoundPage() {
           Página não encontrada
         </p>
         <h1 className="mt-2 text-2xl font-bold text-foreground">
-          Este endereço não existe no SIGEO.
+          Este endereço não existe no SISGEO.
         </h1>
         <Link
           className="mt-5 inline-flex text-sm font-semibold text-primary underline-offset-4 hover:underline"

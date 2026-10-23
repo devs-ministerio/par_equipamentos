@@ -1447,7 +1447,7 @@ class EvidenciaTransfereGov(Base):
 
 
 class EquipamentoCatalogo(Base):
-    """Dicionário canônico dos equipamentos acompanhados pelo SIGEO."""
+    """Dicionário canônico dos equipamentos acompanhados pelo SISGEO."""
 
     __tablename__ = "equipamento_catalogo"
     __table_args__ = (
