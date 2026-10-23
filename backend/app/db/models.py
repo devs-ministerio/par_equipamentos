@@ -20,6 +20,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    Text,
     UniqueConstraint,
     func,
     text,
@@ -1452,10 +1453,69 @@ class EquipamentoCatalogo(Base):
     nome: Mapped[str] = mapped_column(String, nullable=False)
     prioritario: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    # Famílias cujo item é acompanhado por unidade física (marca, modelo, série) na entrega.
+    controle_por_unidade: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    nome_oficial: Mapped[str | None] = mapped_column(String)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class RenemItem(Base):
+    """Item da RENEM (Relação Nacional de Equipamentos e Materiais Permanentes, FNS).
+
+    Uma linha por (código, versão da lista); novas edições entram como nova versão, sem
+    apagar a anterior. `catalogo_id` liga o item à família do catálogo quando ela é acompanhada.
+    """
+
+    __tablename__ = "renem_item"
+    __table_args__ = (
+        UniqueConstraint("codigo_item", "versao_lista", name="uq_renem_item_codigo_versao"),
+        CheckConstraint("codigo_item ~ '^[0-9]{6}$'", name="ck_renem_item_codigo"),
+        Index("idx_renem_item_catalogo", "catalogo_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo_item: Mapped[str] = mapped_column(String(6), nullable=False)
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+    definicao: Mapped[str | None] = mapped_column(Text)
+    classificacao: Mapped[str | None] = mapped_column(String)
+    valor_sugerido: Mapped[float | None] = mapped_column(Numeric(16, 4))
+    item_dolarizado: Mapped[bool | None] = mapped_column(Boolean)
+    versao_lista: Mapped[str] = mapped_column(String, nullable=False)
+    catalogo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("equipamento_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class CodigoItemLegado(Base):
+    """Código que aparece nos dados mas não consta da RENEM vigente (ou ainda não consta).
+
+    `origem`: `dados` (visto nos itens do SICONV) ou `usuario` (informado pela equipe, por
+    exemplo o 012005, Sistema Cirúrgico Robótico, ausente da lista de março de 2026).
+    """
+
+    __tablename__ = "codigo_item_legado"
+    __table_args__ = (
+        UniqueConstraint("codigo_item", name="uq_codigo_item_legado_codigo"),
+        CheckConstraint("codigo_item ~ '^[0-9]{6}$'", name="ck_codigo_item_legado_codigo"),
+        CheckConstraint("origem IN ('dados', 'usuario')", name="ck_codigo_item_legado_origem"),
+        Index("idx_codigo_item_legado_catalogo", "catalogo_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo_item: Mapped[str] = mapped_column(String(6), nullable=False)
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+    catalogo_id: Mapped[int] = mapped_column(
+        ForeignKey("equipamento_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    origem: Mapped[str] = mapped_column(String, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class EquipamentoMarcador(Base):

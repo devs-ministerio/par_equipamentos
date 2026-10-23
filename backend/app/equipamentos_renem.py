@@ -80,6 +80,7 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
         "simulador_tomografo_radioterapia",
         "Simulador/Tomógrafo para Radioterapia",
         renem=("000719",),
+        sinonimos=("Simulador/ Tomógrafo para Radioterapia",),
         novo_no_catalogo=True,
     ),
     FamiliaControlada(
@@ -87,12 +88,18 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
         "Tomógrafo Computadorizado (até 16 canais)",
         renem=("011804",),
         legados=(CodigoLegado("010874", "Tomógrafo Computadorizado (16 Cortes)", "dados"),),
+        sinonimos=("Tomógrafo Computadorizado (Até 16 canais)",),
         novo_no_catalogo=True,
     ),
     FamiliaControlada(
         "ressonancia",
         "Ressonância Magnética",
         renem=("010889", "010890", "010891"),
+        sinonimos=(
+            "Ressonância Nuclear Magnética até 0,5 T",
+            "Ressonância Nuclear Magnética 1,5 T",
+            "Ressonância Nuclear Magnética 3,0 T",
+        ),
     ),
     FamiliaControlada("pet_ct", "PET-CT", renem=("000301",), sinonimos=("PET CT", "PET/CT")),
     FamiliaControlada(
@@ -111,6 +118,8 @@ FAMILIAS: tuple[FamiliaControlada, ...] = (
             CodigoLegado("010910", "Acelerador Linear de Fótons e Elétrons (dual 15 MV)", "dados"),
         ),
         sinonimos=(
+            "Acelerador Linear (Básico - Intermediário)",
+            "Acelerador Linear (Recursos avançados com IGRT 3D)",
             "Acelerador Linear de Alta Energia (até 15 MV)",
             "Acelerador Linear de Baixa Energia (até 6 MV)",
         ),

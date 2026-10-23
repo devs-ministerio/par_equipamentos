@@ -160,6 +160,25 @@ def classificar_descricoes(
         relacao = relacao_da_descricao(descricao)
         if relacao == "aquisicao":
             relacao = relacao_padrao
+        # Famílias com controle por unidade: o código RENEM do item (ou o nome exato) decide, e
+        # nenhuma palavra-chave genérica soma evidência ao mesmo item.
+        from app.equipamentos_renem import FAMILIAS, classificar_item  # import tardio: evita ciclo
+
+        classificacao = classificar_item(descricao)
+        if classificacao.familia is not None:
+            familia = next(f for f in FAMILIAS if f.catalogo_codigo == classificacao.familia)
+            chave = (familia.catalogo_codigo, texto)
+            if chave not in vistos:
+                vistos.add(chave)
+                evidencias.append(
+                    EvidenciaEquipamento(
+                        codigo=familia.catalogo_codigo,
+                        nome=familia.nome_catalogo or familia.nome_oficial,
+                        descricao_original=descricao.strip(),
+                        relacao=relacao,
+                    )
+                )
+            continue
         encontrou_catalogado = False
         for equipamento in CATALOGO_EQUIPAMENTOS:
             if not equipamento.padrao.search(texto):
