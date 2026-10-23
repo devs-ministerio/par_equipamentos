@@ -1518,6 +1518,49 @@ class CodigoItemLegado(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class DecisaoClassificacaoItem(Base):
+    """Decisão de classificação de um item do plano de aplicação (append-only).
+
+    A linha vigente é a que tem `substituida_por_id IS NULL`. Corrigir uma decisão cria outra
+    linha e aponta a antiga para ela; nunca há UPDATE do conteúdo nem DELETE. `status=pendente`
+    é a fila de revisão: o motor não tinha certeza ou a equipe pediu verificação.
+    """
+
+    __tablename__ = "decisao_classificacao_item"
+    __table_args__ = (
+        CheckConstraint(
+            "tipo_lancamento IN ('aquisicao','rendimento_aplicacao','acessorio_insumo','multiplo','nao_equipamento')",
+            name="ck_decisao_class_item_tipo",
+        ),
+        CheckConstraint("codigo_item IS NULL OR codigo_item ~ '^[0-9]{6}$'", name="ck_decisao_class_item_codigo"),
+        CheckConstraint("origem IN ('motor','revisao_equipe','tecnico')", name="ck_decisao_class_item_origem"),
+        CheckConstraint("status IN ('aplicada','pendente')", name="ck_decisao_class_item_status"),
+        Index("idx_decisao_class_item_convenio", "convenio_numero"),
+        Index(
+            "uq_decisao_class_item_vigente",
+            "convenio_numero",
+            "chave_item",
+            unique=True,
+            postgresql_where=text("substituida_por_id IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    convenio_numero: Mapped[str] = mapped_column(String, nullable=False)
+    # ID_ITEM_PAD do SICONV; para carga manual (sem ID), hash do texto normalizado do item.
+    chave_item: Mapped[str] = mapped_column(String, nullable=False)
+    tipo_lancamento: Mapped[str] = mapped_column(String, nullable=False)
+    codigo_item: Mapped[str | None] = mapped_column(String(6))
+    conta_unidade: Mapped[bool | None] = mapped_column(Boolean)
+    origem: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, server_default="aplicada")
+    observacao: Mapped[str | None] = mapped_column(Text)
+    substituida_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("decisao_classificacao_item.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class EquipamentoMarcador(Base):
     """Evidência de equipamento ligada a exatamente uma entidade de origem.
 
