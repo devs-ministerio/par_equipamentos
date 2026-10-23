@@ -30,6 +30,7 @@ import {
   MonitoramentoInternoFaseGeral,
   MonitoramentoInternoCronograma,
 } from "./monitoramento-interno-fase-cronograma";
+import { EquipamentosInstrumento } from "./equipamentos-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
 
@@ -142,7 +143,6 @@ function MonitoramentoInternoConteudo({
     diasInauguracao,
     acoesAbertas,
     acoesAtrasadas,
-    equipamentoFisico,
     validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
@@ -169,7 +169,6 @@ function MonitoramentoInternoConteudo({
         dataInauguracao={dataInauguracao}
         inaugurado={inaugurado}
         diasInauguracao={diasInauguracao}
-        equipamentoFisico={equipamentoFisico}
         statusLicenca={eventoLicenca?.status_regulatorio ?? "Sem registro"}
         alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
         acoesAbertasCount={acoesAbertas.length}
@@ -202,6 +201,12 @@ function MonitoramentoInternoConteudo({
             }),
           )
         }
+      />
+
+      <EquipamentosInstrumento
+        numeroConvenio={numeroConvenio}
+        podeEditarInstrumento={podeEditar}
+        aoSessaoInvalida={sessao.tratarSessaoInvalida}
       />
 
       <div className="grid gap-4">

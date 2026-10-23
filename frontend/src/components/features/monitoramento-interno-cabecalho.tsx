@@ -12,7 +12,6 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao,
   inaugurado,
   diasInauguracao,
-  equipamentoFisico,
   statusLicenca,
   alertaLicenca,
   acoesAbertasCount,
@@ -23,7 +22,6 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao: string | null;
   inaugurado: boolean;
   diasInauguracao: number | null;
-  equipamentoFisico: string | null;
   statusLicenca: string;
   alertaLicenca: boolean;
   acoesAbertasCount: number;
@@ -46,8 +44,8 @@ export function MonitoramentoInternoCabecalho({
 
   const indicadores = [
     {
-      rotulo: "Equipamento físico",
-      valor: equipamentoFisico ?? equipamentoReferencia,
+      rotulo: "Equipamento planejado",
+      valor: equipamentoReferencia,
     },
     {
       rotulo: "Licença CNEN",

@@ -23,7 +23,6 @@ function renderizar(situacao: string | null) {
       dataInauguracao={null}
       inaugurado
       diasInauguracao={null}
-      equipamentoFisico={null}
       statusLicenca="Sem registro"
       alertaLicenca={false}
       acoesAbertasCount={0}
