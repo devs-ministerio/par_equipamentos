@@ -78,6 +78,7 @@ _DB_TEST_MODULES = {
     "test_contrato_escopo_legado_db.py",
     "test_recaptura_propostas_local_db.py",
     "test_notificacoes_destinatarios_db.py",
+    "test_aviso_entrega_legada_db.py",
     "test_auditoria.py",
     "test_auth_session.py",
     "test_capturas_fonte.py",

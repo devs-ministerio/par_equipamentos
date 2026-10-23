@@ -35,8 +35,11 @@ from app.db.models import (
     InstrumentoEquipamento,
     ItemPlano,
     MarcoCatalogo,
+    Notificacao,
+    NotificacaoTipo,
     UnidadeEquipamento,
 )
+from app.repositories.notificacoes import criar_notificacao
 
 MARCO_ENTREGA = "cronograma_entrega"
 
@@ -48,6 +51,7 @@ class Resultado:
     ja_tratadas: int = 0
     revisoes: Counter[str] = field(default_factory=Counter)
     instrumentos_com_revisao: set[int] = field(default_factory=set)
+    avisos: int = 0
 
 
 def decidir(eventos_do_instrumento: int, itens: list[ItemPlano]) -> tuple[ItemPlano | None, str | None]:
@@ -61,6 +65,37 @@ def decidir(eventos_do_instrumento: int, itens: list[ItemPlano]) -> tuple[ItemPl
     if itens[0].quantidade_planejada is None:
         return None, "quantidade_desconhecida"
     return itens[0], None
+
+
+def _avisar(
+    db: Session, resultado: Resultado, instrumentos: dict[int, InstrumentoEquipamento], *, aplicar: bool
+) -> None:
+    """Um aviso por instrumento com revisão pendente; não repete se já existe aviso desse tipo."""
+    pendentes = (
+        set(
+            db.execute(
+                select(EntregaLegadaRevisao.instrumento_id).where(EntregaLegadaRevisao.situacao == "pendente")
+            ).scalars()
+        )
+        | resultado.instrumentos_com_revisao
+    )
+    ja_avisados = set(
+        db.execute(
+            select(Notificacao.entidade_id).where(Notificacao.tipo == NotificacaoTipo.entrega_legada_revisao)
+        ).scalars()
+    )
+    for instrumento_id in sorted(pendentes - ja_avisados):
+        resultado.avisos += 1
+        if aplicar:
+            criar_notificacao(
+                db,
+                Notificacao(
+                    tipo=NotificacaoTipo.entrega_legada_revisao,
+                    titulo=f"Convênio {instrumentos[instrumento_id].nr_convenio} — vincule a entrega aos itens",
+                    corpo="Entrega registrada antes do controle por unidade: vincule aos itens do plano.",
+                    entidade_id=instrumento_id,
+                ),
+            )
 
 
 def vincular(db: Session, *, aplicar: bool) -> Resultado:
@@ -133,6 +168,7 @@ def vincular(db: Session, *, aplicar: bool) -> Resultado:
                         vida_util_anos=inst.equipamento_vida_util_anos,
                     )
                 )
+    _avisar(db, resultado, instrumentos, aplicar=aplicar)
     return resultado
 
 
@@ -162,7 +198,9 @@ def main(argv: list[str] | None = None) -> int:
             db.rollback()
     print("Entregas gravadas." if args.aplicar else "Simulação: nada foi alterado.")
     print(f"  vinculadas {r.vinculadas} (parciais: {r.parciais}); já tratadas {r.ja_tratadas}")
-    print(f"  para revisão: {dict(r.revisoes)}; instrumentos com aviso: {len(r.instrumentos_com_revisao)}")
+    print(
+        f"  para revisão: {dict(r.revisoes)}; instrumentos com revisão: {len(r.instrumentos_com_revisao)}; avisos novos: {r.avisos}"
+    )
     return 0
 
 

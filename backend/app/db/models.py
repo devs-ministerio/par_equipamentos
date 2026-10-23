@@ -99,6 +99,9 @@ class NotificacaoTipo(str, enum.Enum):
     # Descoberta confirmada; entidade_id é CandidatoLegadoRegistro.id,
     # não Convenio.id nem InstrumentoEquipamento.id.
     convenio_descoberto = "convenio_descoberto"
+    # Entrega registrada antes do controle por unidade, sem vínculo inequívoco a um item;
+    # entidade_id é InstrumentoEquipamento.id (titular, suplente, gestor e admin).
+    entrega_legada_revisao = "entrega_legada_revisao"
 
 
 class IncaEstimateLevel(str, enum.Enum):

@@ -81,6 +81,7 @@ def listar_notificacoes(
             NotificacaoTipo.atualizacao_api,
             NotificacaoTipo.edicao_manual,
             NotificacaoTipo.inclusao_monitoramento,
+            NotificacaoTipo.entrega_legada_revisao,
         )
     }
     ids_propostas = {

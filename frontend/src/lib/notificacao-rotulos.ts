@@ -9,4 +9,5 @@ export const ROTULOS_NOTIFICACAO: Record<NotificacaoTipo, string> = {
   aprovacao_carteira: "Entrada aprovada",
   convenio_descoberto: "Novo convênio no Radar",
   fonte_indisponivel: "Fonte indisponível",
+  entrega_legada_revisao: "Entrega a vincular",
 };
