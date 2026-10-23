@@ -129,6 +129,8 @@ A triagem passa a **verificar o estado atual**, usando o e-mail só como pista, 
 | 6 | **Neon** | consumo de CU-h e armazenamento contra o plano | acima de 80% do plano |
 | 7 | **Segurança da conta** | manter a leitura dos alertas do Google | qualquer alerta novo, para confirmação humana |
 
+O texto pronto para colar na rotina está em [triagem-diaria-instrucoes.md](triagem-diaria-instrucoes.md).
+
 Regras de severidade:
 - O que o **estado confirma** como falha (itens 1 a 5) é prioridade máxima e vai para o push do celular; o resto fica no resumo diário.
 - Item de e-mail cujo estado atual já está saudável é **rebaixado** a informativo ("resolvido"), com a evidência.
