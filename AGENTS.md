@@ -353,6 +353,7 @@ Resumo operacional; a versão completa, com evidências, está em `CLAUDE.md` (m
 - Relatório de Concluídos: CNES, Nº do convênio e Quantidade em colunas próprias; data de conclusão cai no fim da
   vigência, rotulado, quando o monitoramento não tem a data. Valor dos PERSUS I gravado no item do equipamento.
 - Antes de qualquer consulta a produção, confirmar `select current_database(), current_user`.
+- Antes de trocar a senha de um role, conferir onde ele é usado (Render, secrets do GitHub, Vercel): em 23/10 a troca da senha do `neondb_owner` derrubou o login porque o Render ainda o usava. A API deve usar `sigeo_runtime`.
 
 ## Comandos úteis
 

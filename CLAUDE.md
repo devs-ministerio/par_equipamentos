@@ -1314,8 +1314,10 @@ revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimento
   `backend/scripts/sql/normalizar_posse_aplicacao.sql` na produção (banco `neondb`, projeto `par_equipamentos`).
   Em 22/10 havia 17 objetos (3 tabelas, 3 sequências, 11 enums) ainda com `neondb_owner`; sem isso as migrations
   falham com `must be owner of type notificacao_tipo`. O script aborta sozinho se a role `sigeo_migration` não
-  existir, o que também denuncia conexão no banco errado. O `neondb_owner` não é usado por nenhuma credencial da
-  aplicação; a senha dele foi trocada em 22/10 depois de exposta.
+  existir, o que também denuncia conexão no banco errado. O `neondb_owner` só deve ser usado por quem roda o
+  pré-voo; a senha dele foi trocada em 22/10 depois de exposta, e **isso derrubou o login em produção**, porque o
+  Render ainda usava esse role em vez do `sigeo_runtime` (corrigido em 23/10; ver
+  `docs/arquitetura/incidente-api-neondb-owner-2026-10-23.md`). Antes de trocar uma credencial, inventariar os usos.
 - **Backup:** `backup_banco.yml` agenda `02:17` e `14:17` UTC (23:17 e 11:17 em Brasília), `pg_dump -Fc` com a role
   somente leitura `sigeo_backup`, cifra com `age` para duas identidades, envia ao R2 e aplica retenção de 7 dias
   (mantém ao menos 3 íntegros), com checagem de backup íntegro nas últimas 24 h. Só roda na `master` (environment
