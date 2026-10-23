@@ -109,10 +109,43 @@ O relatório de aderência sai por camada e por categoria de erro, e roda no CI 
 
 C1 a C3 são pré-requisito da projeção de itens (etapa 3 do plano dos itens). Tudo em commits locais, sem envio ao remoto até a sua autorização.
 
-## 9. Pontos para o usuário confirmar
+## 9. Decisões do usuário (23/10, respostas à primeira versão)
 
-1. **"Esses 77 itens ficam como rendimento da aplicação":** a revisão classifica 37 como rendimento, 30 como aquisição, 8 como acessório e 2 como multi. Confirmar que a regra é para os **37**, e que as aquisições, os acessórios e os multi mantêm o seu tipo.
-2. **Valor do equipamento:** mostrar **aquisição e rendimento separados**, com o total como soma explícita (recomendado), ou somar o rendimento ao item principal?
-3. **Rendimento rateado entre bens** (convênio 768433, R$ 1,48 mi): aceitar "rateio a definir" até a equipe informar a divisão?
-4. **Acessórios** (PET, negatoscópio, lavadora, estação de planejamento): ficam em `acessorio_insumo`, **sem família** e sem unidade; correto?
-5. **"Famílias visíveis (12), faltam 4, e `011268` não está entre as visíveis":** em qual tela ou filtro? Na base local o `011268` já aparece como "Sistema de Vídeo Endoscopia Flexível" no catálogo.
+1. **Os 77 itens:** ficam como rendimento da aplicação **só se realmente forem**; o usuário prefere a avaliação do sistema. Vale a regra por evidência da seção 3 (a revisão aponta 37), e não uma troca em bloco. A fonte oficial de solicitações de rendimento (seção 10) passa a ser a evidência mais forte.
+2. **Valor do equipamento é mais complexo do que parecia:** o valor registrado no plano **não é exatamente** o que consta no pagamento ao fornecedor. Precisa de avaliação própria (seção 10).
+3. **Rateio de rendimento entre bens:** **fora de escopo.** "O que vale para a gente é o valor do item e o valor pago ao fornecedor através da nota fiscal." Para os instrumentos da API, o valor a usar deve ser **o valor pago ao fornecedor, se for possível vincular o item ao pagamento.**
+4. **Acessórios:** ficam **sem família** (e sem unidade).
+5. **"Famílias visíveis (12)":** esclarecido abaixo.
+
+**Sobre a pergunta 5:** a coluna "Nas famílias visíveis?" e a frase "faltam 4, e 011268 não está entre as visíveis" da revisão vêm de uma limitação da **minha** planilha, e não de uma tela: a minha função de "família sugerida" só conseguia sugerir 12 das 16 famílias (todo "endoscópio" ia para vídeo endoscopia rígida; faltavam Vídeo Endoscopia Flexível, Endoscópio Rígido, Endoscópio Flexível e Cirurgia Robótica). É o mesmo defeito do item 2 da seção 1, e as regras por família da seção 3 o corrigem. Nenhuma tela precisa de ajuste.
+
+## 10. Valor do equipamento: item do plano × pago ao fornecedor
+
+**O que o sistema guarda hoje (medido na cópia de 17/10):**
+
+- **Plano de aplicação** (`siconv_plano_aplicacao_detalhado`): valor unitário e total por item. É o **planejado**.
+- **Pagamentos** (`siconv_pagamento`): 1.601 pagamentos em 291 convênios, cada um com `ID_DL`, `NR_DL`, tipo do documento fiscal (`DESC_DL`, por exemplo "INVOICE - DOCUMENTO FISCAL DE IMPORTAÇÃO"), fornecedor, CNPJ, valor pago e data. **Não trazem o item comprado.**
+- **Nada hoje liga um pagamento a um item do plano.**
+
+**O que a fonte oficial publica e ainda não usamos** (lista de arquivos do Transferegov, atualizada em 23/10/2026):
+
+| Arquivo | Tamanho | Serve para |
+|---|---:|---|
+| `siconv_itens_dl.zip` | 520 MB | itens do **documento de liquidação** (a nota), com descrição e valor: o elo entre pagamento e equipamento (o `itens_dl` que o usuário mencionou) |
+| `siconv_dl.zip` | 205 MB | o documento de liquidação em si (tipo, número, emissão), para ligar `ID_DL` do pagamento aos itens |
+| `siconv_solicitacao_rendimento_aplicacao.zip` | 0,3 MB | **registro oficial das solicitações de rendimento da aplicação**: prova de que um lançamento é rendimento, sem depender do texto |
+| `siconv_itens_licitacao.zip` | 222 MB | itens da licitação (outra pista do preço contratado) |
+
+**Cadeia de vínculo a investigar:** `pagamento.ID_DL` → `DL` → `itens_dl` (descrição e valor do que a nota faturou) → item do plano (por identificador, se o arquivo trouxer; senão por convênio e descrição, com conferência de valor, sempre como **vínculo sugerido** até ser provado).
+
+**Estados do valor de cada item:** `valor_planejado` (plano), `valor_nota` (soma dos itens de DL ligados), `valor_pago` (pagamentos ao fornecedor ligados) e `situacao_vinculo` (`vinculado_por_id`, `vinculado_por_descricao_e_valor`, `nao_vinculado`, `parcial`). Relatórios e painel passam a mostrar **planejado e pago lado a lado**; o **pago** prevalece como "valor do equipamento" **somente quando o vínculo existe**; sem vínculo, o valor continua o planejado, rotulado como tal.
+
+**Avaliação antes de decidir (etapa V1, sem alterar o sistema):**
+1. Baixar os arquivos acima para uma pasta temporária **fora do repositório**, filtrar pelos nossos 560 convênios e **descartar o bruto**.
+2. Medir cobertura: quantos pagamentos têm `itens_dl`; quantos itens do plano das 16 famílias ligam a um item de nota; quanto do valor planejado bate com o pago; onde divergem (câmbio, nota de importação, parcelas, desconto, impostos).
+3. Medir quantas solicitações de rendimento oficiais correspondem aos 37 lançamentos da revisão (e se há outros que o texto não pegou).
+4. Entregar relatório de aderência e a **proposta de regra do valor** para o usuário aprovar.
+
+**Para instrumentos fora da API** (PERSUS, FAF, TED, PRONON): o valor pago vem de `pagamento_obra_persus` e das planilhas da equipe, fora da cadeia SICONV; entram em fase posterior, com a mesma ideia de "planejado × pago".
+
+**Fora de escopo, por decisão:** rateio de rendimento entre bens; qualquer valor inventado para completar item sem pagamento.
