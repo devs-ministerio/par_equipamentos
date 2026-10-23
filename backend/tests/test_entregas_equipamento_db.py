@@ -25,7 +25,7 @@ from app.db.models import (
     UserRole,
 )
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
-from app.schemas_entregas import EntregaCreate, ItemEntregaCreate, UnidadeUpdate
+from app.schemas_entregas import EntregaCreate, ItemEntregaCreate, UnidadeEntregaCreate, UnidadeUpdate
 from app.services import entregas_equipamento as svc
 
 pytestmark = pytest.mark.db
@@ -105,8 +105,16 @@ def _dados(*itens: ItemEntregaCreate, chave: str | None = None, data: date | Non
     )
 
 
-def _item(item: ItemPlano, quantidade: int = 1, **kw) -> ItemEntregaCreate:
-    return ItemEntregaCreate(item_id=item.id, quantidade=quantidade, **kw)
+def _item(
+    item: ItemPlano, quantidade: int = 1, series: list[str] | None = None, marca: str | None = None, **kw
+) -> ItemEntregaCreate:
+    """`quantidade` unidades; as séries preenchem as primeiras."""
+    series = series or []
+    unidades = [
+        UnidadeEntregaCreate(marca=marca, numero_serie=series[i] if i < len(series) else None)
+        for i in range(quantidade)
+    ]
+    return ItemEntregaCreate(item_id=item.id, unidades=unidades, **kw)
 
 
 def test_entrega_cria_unidades_evento_e_atualiza_a_situacao(db):
@@ -278,3 +286,19 @@ def test_http_leitura_exige_sessao_e_devolve_contrato(headers_autenticados):
         == 404
     )
     assert cliente.post("/monitoramento/instrumentos/948686/entregas", json={}).status_code == 403  # sem CSRF/sessão
+
+
+def test_cada_unidade_e_lancada_com_os_proprios_dados(db):
+    c = Cenario(db)
+    item = ItemEntregaCreate(
+        item_id=c.dois.id,
+        unidades=[
+            UnidadeEntregaCreate(marca="A", modelo="M1", numero_serie="X1", vida_util_anos=10),
+            UnidadeEntregaCreate(marca="B", modelo="M2", numero_serie="X2", vida_util_anos=8),
+        ],
+    )
+    entrega = svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(item), db=db, usuario=c.titular)
+    assert [(u.marca, u.modelo, u.numero_serie, u.vida_util_anos) for u in entrega.unidades] == [
+        ("A", "M1", "X1", 10),
+        ("B", "M2", "X2", 8),
+    ]

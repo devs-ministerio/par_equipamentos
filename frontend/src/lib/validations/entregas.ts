@@ -1,27 +1,32 @@
 import { z } from "zod";
+import type { ItemEntregaInput } from "@/services/entregas-equipamento";
 
-/** Form "Registrar entrega": um bloco por item pendente; só os marcados entram.
- * A regra de negócio final (limite do planejado, série única) é do backend;
- * aqui só evita o round-trip óbvio. */
-export const itemEntregaSchema = z.object({
-  itemId: z.number(),
-  selecionado: z.boolean(),
-  quantidade: z.string(),
+/** Form "Registrar entrega": cada item marcado entra com uma ou mais unidades,
+ * cada uma com os próprios dados. A regra final (limite do planejado, série
+ * única) é do backend; aqui só evita o round-trip óbvio. */
+export const unidadeEntregaSchema = z.object({
   marca: z.string().optional(),
   modelo: z.string().optional(),
   vidaUtilAnos: z.string().optional(),
-  series: z.string().optional(),
+  serie: z.string().optional(),
+});
+export type UnidadeEntregaFormValues = z.infer<typeof unidadeEntregaSchema>;
+
+export const itemEntregaSchema = z.object({
+  itemId: z.number(),
+  selecionado: z.boolean(),
   /** O que ainda falta entregar; `null` = quantidade planejada desconhecida. */
   falta: z.number().nullable(),
+  unidades: z.array(unidadeEntregaSchema),
 });
 export type ItemEntregaFormValues = z.infer<typeof itemEntregaSchema>;
 
-export function linhasDeSerie(texto: string | undefined): string[] {
-  return (texto ?? "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+export const unidadeVazia: UnidadeEntregaFormValues = {
+  marca: "",
+  modelo: "",
+  vidaUtilAnos: "",
+  serie: "",
+};
 
 export const registrarEntregaSchema = z
   .object({
@@ -48,53 +53,51 @@ export const registrarEntregaSchema = z
       });
     }
     for (const { item, indice } of marcados) {
-      const quantidade = Number(item.quantidade);
-      const caminho = (campo: string) => ["itens", indice, campo];
-      if (!Number.isInteger(quantidade) || quantidade < 1) {
+      if (item.falta !== null && item.unidades.length > item.falta) {
         ctx.addIssue({
           code: "custom",
-          path: caminho("quantidade"),
-          message: "Informe uma quantidade inteira maior que zero.",
-        });
-        continue;
-      }
-      if (item.falta !== null && quantidade > item.falta) {
-        ctx.addIssue({
-          code: "custom",
-          path: caminho("quantidade"),
+          path: ["itens", indice, "unidades"],
           message: `Acima do planejado: faltam ${item.falta}.`,
         });
       }
-      const series = linhasDeSerie(item.series);
-      if (series.length > quantidade) {
-        ctx.addIssue({
-          code: "custom",
-          path: caminho("series"),
-          message: "Há mais números de série do que a quantidade.",
-        });
-      } else if (new Set(series).size !== series.length) {
-        ctx.addIssue({
-          code: "custom",
-          path: caminho("series"),
-          message: "Número de série repetido.",
-        });
-      }
+      const vistas = new Set<string>();
+      item.unidades.forEach((u, k) => {
+        const vida = u.vidaUtilAnos?.trim();
+        if (vida && (!/^\d+$/.test(vida) || Number(vida) > 100)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["itens", indice, "unidades", k, "vidaUtilAnos"],
+            message: "Informe anos inteiros (0 a 100).",
+          });
+        }
+        const serie = u.serie?.trim();
+        if (!serie) return;
+        if (vistas.has(serie)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["itens", indice, "unidades", k, "serie"],
+            message: "Número de série repetido.",
+          });
+        }
+        vistas.add(serie);
+      });
     }
   });
 export type RegistrarEntregaFormValues = z.infer<typeof registrarEntregaSchema>;
 
 export function itensParaApi(
   itens: ItemEntregaFormValues[],
-): import("@/services/entregas-equipamento").ItemEntregaInput[] {
+): ItemEntregaInput[] {
   return itens
     .filter((i) => i.selecionado)
     .map((i) => ({
       item_id: i.itemId,
-      quantidade: Number(i.quantidade),
-      marca: i.marca?.trim() || null,
-      modelo: i.modelo?.trim() || null,
-      vida_util_anos: i.vidaUtilAnos ? Number(i.vidaUtilAnos) : null,
-      series: linhasDeSerie(i.series),
+      unidades: i.unidades.map((u) => ({
+        marca: u.marca?.trim() || null,
+        modelo: u.modelo?.trim() || null,
+        numero_serie: u.serie?.trim() || null,
+        vida_util_anos: u.vidaUtilAnos?.trim() ? Number(u.vidaUtilAnos) : null,
+      })),
       confirmar_quantidade_desconhecida: i.falta === null,
     }));
 }

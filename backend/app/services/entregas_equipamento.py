@@ -133,9 +133,7 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
 
 
 def _limpar_series(dados: ItemEntregaCreate) -> list[str]:
-    series = [s.strip() for s in dados.series if s and s.strip()]
-    if len(series) > dados.quantidade:
-        raise ValidationError("Há mais números de série do que a quantidade entregue.")
+    series = [u.numero_serie.strip() for u in dados.unidades if u.numero_serie and u.numero_serie.strip()]
     if len(set(series)) != len(series):
         raise ValidationError("Número de série repetido na mesma entrega.")
     return series
@@ -164,7 +162,7 @@ def _validar_itens(
                 raise ValidationError(f"O item {item.id} não tem quantidade planejada; confirme a quantidade entregue.")
         else:
             falta = item.quantidade_planejada - repo.quantidade_entregue(db, item.id)
-            if dados.quantidade > falta:
+            if len(dados.unidades) > falta:
                 raise ValidationError(
                     f"Quantidade acima do planejado para o item {item.id}: faltam {max(falta, 0)} unidade(s)."
                 )
@@ -197,17 +195,17 @@ def _gravar_entrega(
     repo.adicionar(db, entrega)
     for v in validados:
         ordem = repo.proxima_ordem(db, v.item.id)
-        for posicao in range(v.dados.quantidade):
+        for posicao, u in enumerate(v.dados.unidades):
             repo.adicionar(
                 db,
                 UnidadeEquipamento(
                     entrega_id=entrega.id,
                     item_id=v.item.id,
                     ordem=ordem + posicao,
-                    marca=v.dados.marca,
-                    modelo=v.dados.modelo,
-                    numero_serie=v.series[posicao] if posicao < len(v.series) else None,
-                    vida_util_anos=v.dados.vida_util_anos,
+                    marca=(u.marca or "").strip() or None,
+                    modelo=(u.modelo or "").strip() or None,
+                    numero_serie=(u.numero_serie or "").strip() or None,
+                    vida_util_anos=u.vida_util_anos,
                 ),
             )
     return entrega
@@ -221,7 +219,7 @@ def _notificar(db: Session, instrumento: InstrumentoEquipamento, titulo: str, co
 
 
 def _resumo_itens(validados: list[_ItemValidado]) -> list[dict[str, object]]:
-    return [{"item_id": v.item.id, "quantidade": v.dados.quantidade, "series": v.series} for v in validados]
+    return [{"item_id": v.item.id, "quantidade": len(v.dados.unidades), "series": v.series} for v in validados]
 
 
 def registrar_entrega(*, nr_convenio: str, dados: EntregaCreate, db: Session, usuario: User) -> EntregaRead:
@@ -269,7 +267,7 @@ def registrar_entrega(*, nr_convenio: str, dados: EntregaCreate, db: Session, us
             db,
             instrumento,
             f"{usuario.name} registrou entrega em {nr_convenio}",
-            f"{sum(v.dados.quantidade for v in validados)} unidade(s) em {len(validados)} item(ns).",
+            f"{sum(len(v.dados.unidades) for v in validados)} unidade(s) em {len(validados)} item(ns).",
         )
         db.commit()
     except IntegrityError:

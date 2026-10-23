@@ -1,6 +1,7 @@
 /** Tabela de itens controlados: planejado x entregue, situação e unidades.
  * Grade que vira lista empilhada em tela estreita. */
-import { Check } from "lucide-react";
+import { Check, Menu } from "lucide-react";
+import { useState } from "react";
 import { fmtData } from "@/lib/monitoramento-format";
 import { nomeSemCodigo, posicaoEntreIguais } from "@/lib/equipamento-rotulos";
 import { cn } from "@/lib/utils";
@@ -24,7 +25,7 @@ const SITUACAO: Record<ItemEquipamento["situacao"], [string, string]> = {
 };
 
 const COLUNAS =
-  "md:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_6.5rem_2.5rem] md:items-center";
+  "md:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_6.5rem_5rem] md:items-center";
 
 export function EquipamentosInstrumentoLista({
   itens,
@@ -39,7 +40,9 @@ export function EquipamentosInstrumentoLista({
   onCorrigir: (unidade: UnidadeEquipamento) => void;
   onExcluirEntrega: (entregaId: number, motivo: string) => Promise<void>;
 }) {
+  const [verUnidades, setVerUnidades] = useState<number | null>(null);
   const posicoes = posicaoEntreIguais(itens);
+  const itemAberto = itens.find((i) => i.id === verUnidades);
   return (
     <div>
       <div
@@ -120,7 +123,18 @@ export function EquipamentosInstrumentoLista({
               <div className="text-[12px] text-muted-foreground">
                 {item.ultima_entrega ? fmtData(item.ultima_entrega) : "—"}
               </div>
-              <div className="md:justify-self-end">
+              <div className="flex justify-end gap-1.5 md:justify-self-end">
+                {item.unidades.length > 0 && (
+                  <button
+                    type="button"
+                    className={botaoIcone}
+                    aria-label={`Ver unidades de ${nome}`}
+                    title="Unidades"
+                    onClick={() => setVerUnidades(item.id)}
+                  >
+                    <Menu className="size-4" aria-hidden="true" />
+                  </button>
+                )}
                 {podeEditar && item.situacao !== "entregue" && (
                   <button
                     type="button"
@@ -134,18 +148,19 @@ export function EquipamentosInstrumentoLista({
                 )}
               </div>
             </div>
-            {item.unidades.length > 0 && (
-              <EquipamentosInstrumentoUnidades
-                nome={nome}
-                unidades={item.unidades}
-                podeEditar={podeEditar}
-                onCorrigir={onCorrigir}
-                onExcluirEntrega={onExcluirEntrega}
-              />
-            )}
           </div>
         );
       })}
+      {itemAberto && (
+        <EquipamentosInstrumentoUnidades
+          nome={nomeSemCodigo(itemAberto.descricao)}
+          unidades={itemAberto.unidades}
+          podeEditar={podeEditar}
+          onFechar={() => setVerUnidades(null)}
+          onCorrigir={onCorrigir}
+          onExcluirEntrega={onExcluirEntrega}
+        />
+      )}
     </div>
   );
 }

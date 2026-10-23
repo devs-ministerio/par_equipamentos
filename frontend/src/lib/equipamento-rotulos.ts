@@ -23,3 +23,17 @@ export function posicaoEntreIguais(
     }),
   );
 }
+
+/** Quanto ainda falta entregar; `null` quando a quantidade planejada é desconhecida. */
+export function faltam(item: ItemEquipamento): number | null {
+  return item.quantidade_planejada === null
+    ? null
+    : Math.max(item.quantidade_planejada - item.quantidade_entregue, 0);
+}
+
+export function rotuloFalta(item: ItemEquipamento): string {
+  const falta = faltam(item);
+  return falta === null
+    ? "quantidade planejada desconhecida"
+    : `faltam ${falta}`;
+}

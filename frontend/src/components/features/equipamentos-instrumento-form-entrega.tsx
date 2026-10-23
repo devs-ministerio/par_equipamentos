@@ -12,12 +12,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { nomeSemCodigo, posicaoEntreIguais } from "@/lib/equipamento-rotulos";
+import {
+  faltam,
+  nomeSemCodigo,
+  posicaoEntreIguais,
+  rotuloFalta,
+} from "@/lib/equipamento-rotulos";
 import { cn } from "@/lib/utils";
 import {
   type RegistrarEntregaFormValues,
   itensParaApi,
   registrarEntregaSchema,
+  unidadeVazia,
 } from "@/lib/validations/entregas";
 import type {
   ItemEntregaInput,
@@ -31,19 +37,6 @@ export interface EnvioEntrega {
   dataOcorrencia: string;
   observacao: string | null;
   itens: ItemEntregaInput[];
-}
-
-function rotuloFalta(item: ItemEquipamento): string {
-  const falta = faltam(item);
-  return falta === null
-    ? "quantidade planejada desconhecida"
-    : `faltam ${falta}`;
-}
-
-function faltam(item: ItemEquipamento): number | null {
-  return item.quantidade_planejada === null
-    ? null
-    : Math.max(item.quantidade_planejada - item.quantidade_entregue, 0);
 }
 
 export function EquipamentosInstrumentoFormEntrega({
@@ -81,9 +74,8 @@ export function EquipamentosInstrumentoFormEntrega({
       itens: pendentes.map((i) => ({
         itemId: i.id,
         selecionado: apenasItemId !== undefined,
-        quantidade: String(faltam(i) ?? 1),
         falta: faltam(i),
-        series: "",
+        unidades: [{ ...unidadeVazia }],
       })),
     },
   });
@@ -166,6 +158,7 @@ export function EquipamentosInstrumentoFormEntrega({
                   ativo={Boolean(ativo)}
                   erro={erro}
                   register={register}
+                  control={control}
                   rotuloFalta={rotuloFalta(item)}
                   titulo={[
                     nomeSemCodigo(item.descricao),

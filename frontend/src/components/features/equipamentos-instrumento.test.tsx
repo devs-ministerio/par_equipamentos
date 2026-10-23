@@ -47,8 +47,11 @@ describe("lista de equipamentos do instrumento", () => {
     );
     expect(screen.getByText("Parcial")).toBeInTheDocument();
     expect(screen.getByText("010925")).toBeInTheDocument();
-    await userEvent.click(screen.getByText(/Unidades \(1\)/));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ver unidades de Mamógrafo" }),
+    );
     expect(screen.getByText("Série: S1")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
     await userEvent.click(
       screen.getByRole("button", { name: "Registrar entrega de Mamógrafo" }),
     );
@@ -64,7 +67,9 @@ describe("lista de equipamentos do instrumento", () => {
         podeEditar={false}
       />,
     );
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Registrar entrega/ }),
+    ).not.toBeInTheDocument();
     rerender(
       <EquipamentosInstrumentoLista
         {...props}
@@ -97,49 +102,75 @@ describe("form de registrar entrega", () => {
     expect(onEnviar).not.toHaveBeenCalled();
   });
 
-  it("bloqueia quantidade acima do que falta", async () => {
-    const onEnviar = vi.fn();
+  it("não deixa adicionar mais unidades do que falta", async () => {
     render(
       <EquipamentosInstrumentoFormEntrega
         itens={[item()]}
         apenasItemId={1}
-        onEnviar={onEnviar}
+        onEnviar={vi.fn()}
         onFechar={vi.fn()}
       />,
     );
-    const quantidade = screen.getByLabelText("Quantidade");
-    await userEvent.clear(quantidade);
-    await userEvent.type(quantidade, "3");
-    await userEvent.click(
-      screen.getByRole("button", { name: "Confirmar entrega" }),
-    );
     expect(
-      await screen.findByText("Acima do planejado: faltam 1."),
-    ).toBeInTheDocument();
-    expect(onEnviar).not.toHaveBeenCalled();
+      screen.getByRole("button", { name: "Adicionar unidade" }),
+    ).toBeDisabled();
   });
 
-  it("envia o item marcado com série e chave de idempotência", async () => {
+  it("lança cada unidade com os próprios dados", async () => {
     const onEnviar = vi.fn().mockResolvedValue(undefined);
     const onFechar = vi.fn();
     render(
       <EquipamentosInstrumentoFormEntrega
-        itens={[item()]}
+        itens={[item({ quantidade_planejada: 3, quantidade_entregue: 0 })]}
         apenasItemId={1}
         onEnviar={onEnviar}
         onFechar={onFechar}
       />,
     );
-    await userEvent.type(screen.getByLabelText(/Números de série/), "ABC1");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Adicionar unidade" }),
+    );
+    const marcas = screen.getAllByLabelText("Marca");
+    const series = screen.getAllByLabelText("Nº de série");
+    await userEvent.type(marcas[0], "A");
+    await userEvent.type(series[0], "S1");
+    await userEvent.type(marcas[1], "B");
+    await userEvent.type(series[1], "S2");
     await userEvent.click(
       screen.getByRole("button", { name: "Confirmar entrega" }),
     );
     await waitFor(() => expect(onEnviar).toHaveBeenCalledTimes(1));
-    const envio = onEnviar.mock.calls[0][0];
-    expect(envio.chave).toBeTruthy();
-    expect(envio.itens).toEqual([
-      expect.objectContaining({ item_id: 1, quantidade: 1, series: ["ABC1"] }),
+    const { chave, itens } = onEnviar.mock.calls[0][0];
+    expect(chave).toBeTruthy();
+    expect(itens[0].unidades).toEqual([
+      expect.objectContaining({ marca: "A", numero_serie: "S1" }),
+      expect.objectContaining({ marca: "B", numero_serie: "S2" }),
     ]);
     expect(onFechar).toHaveBeenCalled();
+  });
+
+  it("recusa número de série repetido entre as unidades", async () => {
+    const onEnviar = vi.fn();
+    render(
+      <EquipamentosInstrumentoFormEntrega
+        itens={[item({ quantidade_planejada: 3, quantidade_entregue: 0 })]}
+        apenasItemId={1}
+        onEnviar={onEnviar}
+        onFechar={vi.fn()}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Adicionar unidade" }),
+    );
+    for (const campo of screen.getAllByLabelText("Nº de série")) {
+      await userEvent.type(campo, "IGUAL");
+    }
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirmar entrega" }),
+    );
+    expect(
+      await screen.findByText("Número de série repetido."),
+    ).toBeInTheDocument();
+    expect(onEnviar).not.toHaveBeenCalled();
   });
 });

@@ -61,13 +61,16 @@ const entregaLegadaSchema = z.object({
 });
 export type EntregaLegada = z.infer<typeof entregaLegadaSchema>;
 
+export interface UnidadeEntregaInput {
+  marca: string | null;
+  modelo: string | null;
+  numero_serie: string | null;
+  vida_util_anos: number | null;
+}
+
 export interface ItemEntregaInput {
   item_id: number;
-  quantidade: number;
-  marca?: string | null;
-  modelo?: string | null;
-  vida_util_anos?: number | null;
-  series: string[];
+  unidades: UnidadeEntregaInput[];
   confirmar_quantidade_desconhecida?: boolean;
 }
 

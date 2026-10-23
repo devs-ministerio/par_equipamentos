@@ -10,13 +10,18 @@ from pydantic import BaseModel, ConfigDict, Field
 SituacaoItem = Literal["pendente", "parcial", "entregue", "legado_a_revisar"]
 
 
-class ItemEntregaCreate(BaseModel):
-    item_id: int
-    quantidade: int = Field(ge=1)
+class UnidadeEntregaCreate(BaseModel):
+    """Uma unidade física entregue: cada uma é lançada com seus próprios dados."""
+
     marca: str | None = Field(default=None, max_length=120)
     modelo: str | None = Field(default=None, max_length=120)
+    numero_serie: str | None = Field(default=None, max_length=120)
     vida_util_anos: int | None = Field(default=None, ge=0, le=100)
-    series: list[str] = Field(default_factory=list, max_length=500)
+
+
+class ItemEntregaCreate(BaseModel):
+    item_id: int
+    unidades: list[UnidadeEntregaCreate] = Field(min_length=1, max_length=500)
     confirmar_quantidade_desconhecida: bool = False
 
 
