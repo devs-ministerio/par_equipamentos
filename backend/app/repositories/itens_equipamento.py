@@ -148,3 +148,65 @@ def listar_revisoes_pendentes(
 
 def obter_revisao(db: Session, revisao_id: int) -> EntregaLegadaRevisao | None:
     return db.get(EntregaLegadaRevisao, revisao_id, with_for_update=True)
+
+
+def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -> dict[int, int]:
+    """Unidades entregues, só dos instrumentos que têm item controlado por unidade (0 quando nada foi entregue)."""
+    if not instrumento_ids:
+        return {}
+    controlados = set(
+        db.execute(
+            select(ItemPlano.instrumento_id).where(
+                ItemPlano.instrumento_id.in_(instrumento_ids),
+                ItemPlano.controla_unidade.is_(True),
+                ItemPlano.ativo.is_(True),
+            )
+        ).scalars()
+    )
+    entregues = {
+        int(instrumento): int(total)
+        for instrumento, total in db.execute(
+            select(EntregaEquipamento.instrumento_id, func.count(UnidadeEquipamento.id))
+            .join(UnidadeEquipamento, UnidadeEquipamento.entrega_id == EntregaEquipamento.id)
+            .where(EntregaEquipamento.instrumento_id.in_(controlados), *_ENTREGA_ATIVA)
+            .group_by(EntregaEquipamento.instrumento_id)
+        ).all()
+    }
+    return {i: entregues.get(i, 0) for i in controlados if i is not None}
+
+
+def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> list[tuple[int, str, int, int]]:
+    """(instrumento, família, planejado, entregue) dos itens controlados; planejado desconhecido não soma."""
+    if not instrumento_ids:
+        return []
+    planejado = {
+        (int(i), str(f)): int(q)
+        for i, f, q in db.execute(
+            select(
+                ItemPlano.instrumento_id,
+                EquipamentoCatalogo.nome,
+                func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0),
+            )
+            .join(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
+            .where(
+                ItemPlano.instrumento_id.in_(instrumento_ids),
+                ItemPlano.controla_unidade.is_(True),
+                ItemPlano.ativo.is_(True),
+            )
+            .group_by(ItemPlano.instrumento_id, EquipamentoCatalogo.nome)
+        ).all()
+    }
+    entregue = {
+        (int(i), str(f)): int(q)
+        for i, f, q in db.execute(
+            select(ItemPlano.instrumento_id, EquipamentoCatalogo.nome, func.count(UnidadeEquipamento.id))
+            .join(UnidadeEquipamento, UnidadeEquipamento.item_id == ItemPlano.id)
+            .join(EntregaEquipamento, EntregaEquipamento.id == UnidadeEquipamento.entrega_id)
+            .join(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
+            .where(ItemPlano.instrumento_id.in_(instrumento_ids), *_ENTREGA_ATIVA)
+            .group_by(ItemPlano.instrumento_id, EquipamentoCatalogo.nome)
+        ).all()
+    }
+    return [
+        (i, f, planejado.get((i, f), 0), entregue.get((i, f), 0)) for i, f in sorted(set(planejado) | set(entregue))
+    ]

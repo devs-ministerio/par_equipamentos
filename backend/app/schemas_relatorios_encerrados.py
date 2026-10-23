@@ -27,6 +27,8 @@ class RegistroEncerrado(BaseModel):
     origem_data: str | None = None
     equipamentos: str = ""
     quantidade: int | None = None
+    # Unidades entregues (controle por unidade); None quando o instrumento ainda não tem esse controle.
+    quantidade_entregue: int | None = None
     situacao_carteira: str | None = None
     situacao_monitoramento: str | None = None
     situacao_oficial: str | None = None

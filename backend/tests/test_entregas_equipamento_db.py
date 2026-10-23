@@ -17,6 +17,7 @@ from app.db.base import engine
 from app.db.models import (
     Convenio,
     EntregaLegadaRevisao,
+    EquipamentoCatalogo,
     EventoMarco,
     InstrumentoEquipamento,
     InstrumentoResponsavel,
@@ -302,3 +303,31 @@ def test_cada_unidade_e_lancada_com_os_proprios_dados(db):
         ("A", "M1", "X1", 10),
         ("B", "M2", "X2", 8),
     ]
+
+
+def test_relatorio_conta_unidades_entregues_so_onde_ha_controle(db):
+    from app.repositories import itens_equipamento as repo
+
+    c = Cenario(db)
+    assert repo.unidades_entregues_por_instrumento(db, {c.inst.id}) == {c.inst.id: 0}
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2)), db=db, usuario=c.titular)
+    assert repo.unidades_entregues_por_instrumento(db, {c.inst.id}) == {c.inst.id: 2}
+    sem_controle = InstrumentoEquipamento(
+        nr_convenio=f"PYT{uuid4().hex[:8]}", nome_convenente="x", tipo_contratacao="Convênio"
+    )
+    db.add(sem_controle)
+    db.flush()
+    assert repo.unidades_entregues_por_instrumento(db, {sem_controle.id}) == {}
+
+
+def test_resumo_planejado_x_entregue_por_familia(db):
+    from app.repositories import itens_equipamento as repo
+
+    c = Cenario(db)
+    mamografo = EquipamentoCatalogo(codigo=f"fam{uuid4().hex[:6]}", nome=f"Familia {uuid4().hex[:6]}")
+    db.add(mamografo)
+    db.flush()
+    c.dois.catalogo_id = mamografo.id
+    db.flush()
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 1)), db=db, usuario=c.titular)
+    assert repo.resumo_por_instrumento_e_familia(db, {c.inst.id}) == [(c.inst.id, mamografo.nome, 2, 1)]

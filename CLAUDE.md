@@ -239,6 +239,29 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
   populado pra fase_geral) ficou **fora desta rodada** por decisão do usuário — mesma pendência já
   registrada como "em revisão com a equipe técnica" antes deste Plan Mode.
 
+## Monitoramento por item e unidade (Plan Mode monitoramento-itens, 2026-10-23)
+
+Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md` (classificação em
+`planmode-classificacao-itens-2026-10-23.md`). Sem push/PR/merge sem autorização do usuário.
+
+- **Modelo**: `item_plano` (projeção dos itens do SICONV por `ID_ITEM_PAD`, ou `manual:{numero}:{ordem}` nas
+  cargas manuais; `OBRA`/`SERVICO` ficam de fora), `entrega_equipamento` (append-only, soft delete com motivo),
+  `unidade_equipamento` (nasce na entrega: marca, modelo, série única dentro do item, vida útil) e
+  `entrega_legada_revisao` (fila das entregas antigas sem vínculo inequívoco). Cada `item_plano` é um equipamento
+  distinto: dois itens com o mesmo código e nome são duas linhas.
+- **Só 16 famílias** controlam unidade (`equipamento_catalogo.controle_por_unidade`) e definem "Prioritário".
+  Aceleradores manuais de PERSUS I/II usam o código 011806 (`codigo_fonte = regra_da_equipe`).
+- **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`,
+  `vincular_entregas_legadas.py` (conservador; avisa os técnicos pelo tipo `entrega_legada_revisao`).
+- **API** (`routers/entregas.py`): leitura dos itens do instrumento, entrega com várias unidades por item e
+  idempotência, correção de unidade (AuditLog antes/depois), exclusão com motivo, fila e vínculo de legado.
+  Entrega acima do planejado é bloqueada; toda entrega vincula pelo menos um item.
+- **Tela**: seção "Equipamentos do instrumento" acima do Cadastro interno. A entrega no estabelecimento não é mais
+  lançada pelo seletor de marcos da linha do tempo (o backend ainda aceita o marco).
+- **Relatórios/painel**: Concluídos mostra quantidade planejada e entregue; o painel mostra entregues/planejados por
+  família. Os relatórios de instrumentos ainda contam por marcador (sem coluna de entregues).
+- NUP só em FAF/TED, formatado `25000.198305/2024-59`; eventos e ações ordenados por lançamento mais recente.
+
 ## Limitações conhecidas
 
 - **Cobertura/déficit/distância sem granularidade por equipamento

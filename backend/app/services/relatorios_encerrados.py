@@ -9,6 +9,7 @@ from app.domain_errors import ValidationError
 from app.equipamentos import classificar_descricoes
 from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
 from app.repositories import equipamento_marcadores as marcadores_repo
+from app.repositories import itens_equipamento as itens_repo
 from app.repositories import relatorios_encerrados as repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.schemas_relatorios_encerrados import FatoEncerramento, FiltroEncerramento, PreviaEncerrados, RegistroEncerrado
@@ -204,6 +205,10 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
         proposta_ids={r.proposta_id for r in registros if r.proposta_id is not None},
     )
 
+    entregues = itens_repo.unidades_entregues_por_instrumento(
+        db, {r.instrumento_id for r in registros if r.instrumento_id is not None}
+    )
+
     def com_equipamentos(registro: RegistroEncerrado) -> RegistroEncerrado:
         for origem, identificador in (
             ("convenio", registro.convenio_id),
@@ -216,6 +221,9 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
                     update={
                         "equipamentos": _texto_equipamentos([m.nome for m in achados]),
                         "quantidade": _quantidade_de_equipamentos(registro.itens_plano, [m.codigo for m in achados]),
+                        "quantidade_entregue": entregues.get(registro.instrumento_id)
+                        if registro.instrumento_id is not None
+                        else None,
                     }
                 )
         return registro
