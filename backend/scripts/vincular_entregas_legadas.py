@@ -98,14 +98,15 @@ def vincular(db: Session, *, aplicar: bool) -> Resultado:
             if evento.id in tratados:
                 resultado.ja_tratadas += 1
                 continue
-            item, motivo = decidir(len(lista), itens_por_instrumento.get(instrumento_id, []))
-            if item is None and motivo is not None:
+            escolhido, motivo = decidir(len(lista), itens_por_instrumento.get(instrumento_id, []))
+            if escolhido is None and motivo is not None:
                 resultado.revisoes[motivo] += 1
                 resultado.instrumentos_com_revisao.add(instrumento_id)
                 if aplicar:
                     db.add(EntregaLegadaRevisao(instrumento_id=instrumento_id, evento_id=evento.id, motivo=motivo))
                 continue
-            assert item is not None and evento.data_ocorrencia is not None
+            assert escolhido is not None and evento.data_ocorrencia is not None
+            item = escolhido
             resultado.vinculadas += 1
             if (item.quantidade_planejada or 1) > 1:
                 resultado.parciais += 1
