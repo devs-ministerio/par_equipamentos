@@ -178,6 +178,7 @@ Itens que seguem abertos depois da publicação. Cada um vira plano próprio, co
 | 18 | **Valor dos 92 PERSUS I em produção** (Fase 3, passo 8): simulação, depois gravação com autorização. | Fase 3 |
 | 19 | **Fechar a janela de 48 h** com registro de erros, CPU/RAM e aceite, e conferir o instrumento 716619 (conclusão em 19/10/2026 na produção). | Fase 3, passos 10 e 11 |
 | 20 | **Suíte completa do backend não rodou limpa na máquina local** (testes de recuperação exigem o banco clone protegido); vale a CI como referência. | Gates |
+| 21 | **Decisão do usuário (22/10): o PR #38 só é mesclado depois das 48 h de observação** (janela até a noite de 24/10/2026, contada a partir do deploy das 20:15 de Brasília de 22/10). Ele corrige a quantidade e o valor de equipamento nos relatórios (itens de obra e serviço fora do cálculo) e traz o script `preencher_quantidade_item_manual` (quantidade 1 nas cargas manuais de PERSUS I e II, FAF e TED, e remoção do duplicado de caixa). Sequência de produção: backup manual, merge, Manual Deploy do Render, simulação do script, gravação só com o "pode gravar" do usuário, conferência pelo relatório. Os 22 itens manuais de "Convênio" ficam intocados (repetem o que a API já traz) e não somam na quantidade. | Decisão de 22/10 |
 
 ## Planos que dependem do fechamento deste plano (levantados em 22/10)
 

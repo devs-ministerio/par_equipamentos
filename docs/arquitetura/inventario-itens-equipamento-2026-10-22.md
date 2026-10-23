@@ -35,10 +35,17 @@ Campos do item SICONV: `ID_ITEM_PAD`, `ID_PROPOSTA`, `DESCRICAO_ITEM`, `QTD_ITEM
 
 No arquivo de aceite de 22/10 isso gerou **2.296 (convênio 851416, PET/CT)** e **600 (convênio 905903, acelerador e braquiterapia)**, que são área/serviço e não unidades. Correção proposta e estreita: somar apenas itens `BEM`; sem item `BEM`, mostrar quantidade desconhecida ("—") em vez de 1 ou do valor da obra. Depende de aprovação do usuário e de deploy.
 
+## Complementos do Bloco 0 (22/10)
+
+- **As duas fontes não se sobrepõem hoje.** Nenhum convênio da carteira vem do TransfereGov novo: as 28 propostas candidatas (10 com parceria) não coincidem com nenhum `convenio.numero` e não há instrumento de monitoramento do tipo parceria TransfereGov. Portanto o mapa `id_item_proposta` ↔ `ID_ITEM_PAD` **não pode ser validado com dado real** e não deve ser presumido. O modelo do Bloco 1 precisa aceitar as duas identidades de item como origens distintas (SICONV `ID_ITEM_PAD`; TransfereGov `id_item_proposta`), sem equivalência entre elas.
+- **Histórico de itens na fonte.** `candidato_legado_evidencia` guarda item e equipamento por captura (6.556 linhas, 6.418 `id_item` distintos) para candidatos do Radar; `candidato_legado_recaptura` está vazia na cópia, então **não há comparação de itens alterados ou removidos para inventariar** ainda. Para convênios já na carteira, o `siconv_raw` é substituído pelo job de verificação e a evidência de mudança fica em `fonte_captura` (`itens_alterados`, `detalhes`). Verificar na produção, em leitura, antes do Bloco 1.
+- **Cargas manuais de "Convênio" (22 itens)** repetem em texto da planilha o que a API já traz; não precisam de identidade própria e não devem somar quantidade (corrigido no PR #38).
+- **Avisos existentes** (inventário para o Bloco 5): produtores em `monitoramento_instrumentos.py` (inclusão), `monitoramento_eventos.py` (edição manual), `aprovacao_legado.py`, `capturas_fonte.py` (fonte indisponível, dedup de 24 h), `job_descoberta_transferegov.py`, `job_verificacao_transferegov.py`, `job_verificacao_siconv.py` e `job_alerta_vigencia.py` (dedup de 30 dias por convênio). Destinatários resolvidos na criação por `resolver_destinatarios`: gestor e admin ativos recebem tudo; titular e suplente recebem os do próprio instrumento; sem titular, difusão; leitor nunca. Os avisos de prazo do Bloco 5 devem reutilizar `criar_notificacao` e a mesma regra, com chave de deduplicação por pessoa, entidade, tipo e janela.
+
 ## Pendências do Bloco 0
 
-- Itens alterados ou removidos na fonte (comparar capturas da recaptura).
+- Itens alterados ou removidos na fonte: verificar `fonte_captura` na produção (sem histórico na cópia).
 - Cargas sem item oficial: decidir a representação.
-- Validar `id_item_proposta` ↔ `ID_ITEM_PAD` em convênios presentes nas duas fontes.
+- ~~Validar `id_item_proposta` ↔ `ID_ITEM_PAD`~~: sem convênio nas duas fontes; tratar como identidades separadas.
 - Inventariar produtor, destinatários e deduplicação dos avisos existentes antes de criar os de prazo (Bloco 5).
 - Repetir as contagens na produção, só leitura, antes do Bloco 1.
