@@ -1,0 +1,1849 @@
+[
+ {
+  "linha": 2,
+  "convenio": "710615",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "EQUIPAMENTO DE RAIOS-X TIPO ARCO CIRÚRGICO, COM GERADOR DE RAIOS-X DE ALTA FREQÜÊNCIA MICROPROCESSADO, DE  POTÊNCIA NOMINAL DE, NO MÍNIMO, 8 KW, ALIMENTAÇÃO MONOFÁSICA 220V / 60HZ, OPÇÃO PARA TRABALHO EM RADIOGRAF IA OU FLUOROSCOPIA, CORRENTE MÍNIMA DE 80 MA PARA RADIOGRAF IA, FLUOROSCOPIA PULSADA DE, NO MÍNIMO, 10 MA, INDICAÇÃO DIGITAL DE KV, MA, TEMPO E MAS, PROTEÇÃO TÉRMICA DO TUBO DE RAIOS-X EM FUNÇÃO DA CARGA APLICADA, MOVIMENTO DO ARCO, PENDULAR(LATERAL): +/- 15 GRAUS, ORBITAL MANUAL DE 125 GRAUS, DESLOCAMENTO HORIZONTAL MÍNIMO DE 20 CM, DESLOCAMENTO VERTICAL MOTORIZADO MÍNIMO DE 40 CM, ROTAÇÃO PIVOTAL MANUAL DE +/- 180 GRAUS, COM TUBO DE RAIOS-X: ANODO GIRATÓRIO DE TUNGSTÊNIO PARA 125 KV, DUPLO FOCO DE 0.3/0,6 MM, CAPACIDADE TÉRMICA MÍNIMA DE 200 KHU, SELEÇÃO AUTOMÁTICA DE FOCO, COLIMADOR TELECOMANDADO COM LOCALIZADOR CIRCULAR, INTENSIF ICADOR DE IMAGEM DE 9 POLEGADAS(3 CAMPOS) DE ALTA RESOLUÇÃO, CONTRASTE E BRILHO APLICADO A ÁREA VASCULAR, COM 02 MONITORES TV 17 POLEGADAS, ALTA RESOLUÇÃO, CONTRASTE E BRILHO COM VARREDURA HORIZONTAL DE 1049 LINHAS, CÂMERA DE TV DE ALTA PERFORMACE, MATRIZ INTEGRADA CCD, ALTA RESOLUÇÃO, BAIXA REMANESCÊNCIA DE IMAGEM, ALTA RESOLUÇÃO 512 X 512 PIXEL, SISTEMA DE TRATAMENTO DIGITAL DE IMAGEM, AQUISIÇÃO MÍNIMA DE 3 A 6 QUADROS POR SEGUNDO EM DSA (EM TEMPO REAL OU PÓS-PROCESSAMENTO), AQUISIÇÃO DIGITAL MÍNIMA 30 QUADROS POR SEGUNDO EM MODO FLUOROSCOPIA PULSADA, CAPACIDADE MÍNIMA DE ARMAZENAMENTO DE 140.000 QUADROS EM CONFORMIDADE DICOM 3.0, PROCESSAMENTO VASCULAR DE IMAGENS DIGITAIS, PACOTE DICOM 3.0 (STORAGE E PRINT), ROTAÇÃO E INVERSÃO DE IMAGENS E FILTROS DE RUÍDOS DINÂMICOS PARA A CORREÇÃO DE ARTEFATOS, INVERSÃO (HORIZONTAL/VERTICAL / NEGATIVO/POSITIVO) ON-LINE, ZOOM DE REGIÃO SELECIONADA, ROI (REGIÃO DE INTERESSE NA IMAGEM) COM EXIBIÇÃO NO CANTO DO MONITOR, AJUSTE DE BRILHO, CONTRASTE E REFERÊNCIA DE CONTRASTE EM TEMPO REAL, FILTRO DE REALCE DE CONTORNO, DESENHO À MÃO LIVRE E INSERÇÃO DE SETAS INDICATIVAS, INSERÇÃO DE TEXTOS SOBRE A IMAGEM, PROGRAMA PARA DSA (SUBTRAÇÃO DIGITAL DE IMAGENS), MEDIÇÃO LINEAR, ROADMAPPING, LANDMARKING, APRESENTAÇÃO SIMULTÂNEA(IMAGEM CONGELADA/TEMPO REAL), RETENÇÃO DA ÚLTIMA IMAGEM, DIRETÓRIO DE DADOS PARA CADASTRAMENTO DE DADOS DE PACIENTES, GRAVAÇÃO E LEITURA NA WORKSTATION OU NA ESTAÇÃO REMOTA EM DISCO ÓPTICO(CD ROM), GRAVAÇÃO DE CD ROM COM PROGRAMA RESIDENTE(CD VIEWER), QUE PERMITE SEJA RODADO COM TODAS AS FUNÇÕES DO SISTEMA (LOOPING, EDIÇÃO, IMPRESSÃO) EM QUALQUER PC.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "000253",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 280000.0,
+  "valor_total": 280000.0,
+  "observacao": "Arco c/ DSA vascular; +51% corrigido – coerente com arco topo de linha.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 3,
+  "convenio": "710615",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "CÂMARA DE CINTILAÇÃO GAMA DE UM DETECTOR RETANGULAR, SEM CANTOS CHANFRADOS, DETECTOR DIGITAL, COM UM CONVERSOR ANALÓGO-DIGITAL EXCLUSIVO PARA CADA FOTOMULTIPLICADORA. ANGULAÇÃO NA DIREÇÃO CRÂNIO-CAUDAL DE -15° A +90°, INDEPENDÊNCIA ENERGÉTICA: APENAS UMA AQUISIÇÃO DE COBALTO OU TECNÉCIO PARA O CONTROLE DE QUALIDADE DE TODAS AS ENERGIAS, SISTEMA AUTOMÁTICO DE DETECÇÃO DE CONTORNO CORPORAL PARA ÓRBITAS NÃO CIRCULARES, EM TEMPO REAL, PARA EXAMES SPECT, SPECT CARDÍACO E DE CORPO INTEIRO, TOTALMENTE AUTOMÁTICO, SEM A NECESSIDADE DE PRÉ-SELEÇÃO DE DISTÂNCIAS MÍNIMAS ANTES DO INÍCIO DA AQUISIÇÃO, CAMPO DE VISÃO (FOV) MÍNIMO DE 35 X 50CM, CRISTAIS DE CINTILAÇÃO DE 3/8” DE NAI (IODETO DE SÓDIO), TROCA DE COLIMADORES AUTOMÁTICA (OU SEMI-AUTOMÁTICA), SPECT COM ÓRBITAS CIRCULARES OU NÃO CIRCULARES, MESA DE PACIENTES COM MOVIMENTOS LONGITUDINAL E VERTICAL MOTORIZADOS, QUE SUPORTE ATÉ 180KG, QUE POSSA BAIXAR ATÉ UMA DISTÂNCIA IGUAL OU INFERIOR A 50 CM DO PISO, POSSIBILIDADE DE SE REALIZAR EXAMES EM PACIENTES SENTADOS, DE PÉ, EM CADEIRA DE RODAS OU EM MACA, ESTAÇÃO DE TRABALHO COM DISCO RÍGIDO DE NO MÍNIMO 18GB, DICOM QUERY/RETRIEVE, DICOM PRINT, DICOM WORKLIST, PROTOCOLOS DE PROCESSAMENTO: PLANARES ESTÁTICOS E DINÂMICOS, ANÁLISE DE CURVAS DINÂMICAS, ESTUDOS DE CORPO INTEIRO, PROTOCOLOS ESPECÍFICOS DE PROCESSAMENTO: ESVAZIAMENTO GÁSTRICO, EJEÇÃO DA VESÍCULA BILIAR, ANÁLISES ANGIOGRÁFICAS NUCLEARES CARDÍACAS, SPECT DO MIOCÁRDIO, PLANAR GATED BLOODPOOL, VENTILAÇÃO E PERFUSÃO PULMONARES, ANÁLISES RENAIS MAG3 E DTPA, PARATIREÓIDE, TIREÓIDE, ANÁLISE DO FLUXO SANGUÍNEO CEREBRAL, RECONSTRUÇÃO TOMOGRÁFICA PARA ESTUDOS MULTI-PICO, RECONSTRUÇÕES FBP OU ITERATIVA, FERRAMENTA INTERATIVA DE FILTROS, CORREÇÃO DE ATENUAÇÃO PELO MÉTODO CHANG, SOFTWARE QUANTIFICAÇÃO DO MIOCÁRDIO DO DR. GUIDO GERMANO OU SIMILAR, REORIENTAÇÃO 3D EM ÂNGULO LIVRE DE SÉRIES TOMOGRÁFICAS RECONSTRUÍDAS, MODEM PARA TROCA DE IMAGENS E DIAGNÓSTICO TÉCNICO REMOTO, POSSIBILIDADE DE INSTALAÇÃO FUTURA DE UM SEGUNDO DETECTOR, SEM TROCA DO GANTRY, DA MESA E DA ESTAÇÃO DE TRABALHO, POSSIBILIDADE DE INSTALAÇÃO FUTURA DE CIRCUITO COINCIDÊNCIA PARA REALIZAÇÃO DE EXAMES PET, SEM TROCA DO GANTRY, DA MESA E DA ESTAÇÃO DE TRABALHO, SUPORTE ACOLCHOADO DE CABEÇA COM APOIO PARA OS ANTEBRAÇOS, GRAVADOR DE CDS PARA ARQUIVO DE EXAMES, EM DETRIMENTO DE OUTROS MÉTODOS DE ARQUIVO, SOFWTARE DE CORREÇÃO DE MOVIMENTO AUTOMÁTICO PARA EXAMES CARDÍACOS, SOFTWARE DE PROCESSAMENTO INTERATIVO PARA AQUISIÇÃO DE CINTILOGRAFIA DE CORPO INTEIRO NA METADE DO TEMPO, COM OS SEGUINTES ACESSÓRIOS OBRIGATÓRIOS: MONITOR DE ECG PARA EXAMES SINCRONIZADOS, COLIMADOR DE BAIXA ENERGIA, 140KEV, E ALTA RESOLUÇÃO, COLIMADORES DE ALTA ENERGIA, 360KEV, FANTOMA DE BARRAS, FANTOMA PLANO PREENCHÍVEL COM TC-99M, IMPRESSORA COLORIDA DE ALTA RESOLUÇÃO.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "000595",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 490000.0,
+  "valor_total": 490000.0,
+  "observacao": "Texto é gama câmara SPECT 1 detector. Sugestão PET-CT errada (pista por valor também: -94%).",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 4,
+  "convenio": "718315",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "aQUISIÇÃO DE UM MAMÓGRAFO.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "010925",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 110000.0,
+  "valor_total": 110000.0,
+  "observacao": "Valor corrigido -81%: mamógrafo analógico (família cobre convencional).",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 5,
+  "convenio": "725685",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "Unidade para armazenamento de rejeitos radioativos para PET",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "—",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 21790.0,
+  "valor_total": 21790.0,
+  "observacao": "Infraestrutura do serviço de PET.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 6,
+  "convenio": "725685",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "Unidade para armazenamento de fontes radioativas para PET",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "—",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 21790.0,
+  "valor_total": 21790.0,
+  "observacao": "Acessório de radioproteção.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 7,
+  "convenio": "725685",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "Anteparo tipo capela para PET",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "—",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 13326.0,
+  "valor_total": 13326.0,
+  "observacao": "Acessório de radioproteção.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 8,
+  "convenio": "725685",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "Calibrador de dose para PET",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "—",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 31450.0,
+  "valor_total": 31450.0,
+  "observacao": "Curiômetro – acessório.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 9,
+  "convenio": "725685",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "Tomógrafo por Emissão de Pósitrons com tecnologia para Tomografia Computadorizada acoplada (PET-CT)",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "000301",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 2870415.0,
+  "valor_total": 2870415.0,
+  "observacao": "US$ -9% vs RENEM: valor totalmente coerente.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 10,
+  "convenio": "730663",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "SIMULADOR DE TRATAMENTO PARA RADIOTERAPIA- Variação do isocentro com raio menor que 1 mm;- Isocentro a 100 cm;- Rotação do gantry com +/- 185º;- Rotação do colimador com +/- 185º.- 4 (quatro) dispositivos de localização de paciente a laser, sendo dois laterais, um sagital e um no teto;- Controle local, remoto e digital para os marcadores de campos;- Software e hardware de gerenciamento anti-colisão;- Sistema de imagens digital;- Precisão digital +/- 0,5º;- Resolução digital 0,1º;- Sistema de planejamento 2D;- Pencil Beam CT;- Carga da mesa igual ou superior a 200Kg;- Fluoroscopia;- 01 (um) Transformador e estabilizador de rede compatível com a máquina;- Abertura de campo de simulação de 1cm x 1cm até 40cm x 40cm;- Medição da distância área e ângulo;- Visualização de no mínimo duas imagens na fluoroscopia;- Sistema de planejamento e display para mlc com 120 lâminas;- Sistema de verificação e visualização de imagens- Importação e exportação de imagens em DICOM 3;- Licenças para DICOM RT;- Acessórios para simulação de tratamento de elétrons;- Laser backpointer;- Kit de peças de reposição;- Sistema reticulado para simulação de campos.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "000719",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 882000.0,
+  "valor_total": 882000.0,
+  "observacao": "Simulador convencional 2009; -33% corrigido, coerente.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 11,
+  "convenio": "730663",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "01)\tAcelerador Linear para radioterapia com energia de 6MV fótons- Console de controle digital microprocessado;- Sistema Magnetron de radiofreqüência;- Taxa de dose mínima menor ou igual a 100 unidades monitoras por minuto a um TSD de 100 cm em um campo de 10 cm x 10 cm;-Taxa de dose máxima maior ou igual a 600 unidades monitoras por minuto a um TSD de 100 cm em um campo de 10 cm x 10 cm;-Dmax (cm) a 1,5 +/- 0,2%;- Percentual de dose de 67% +/-  2% a 10 cm de profundidade para um campo 10 cm x 10 cm, a 100 cm de SSD;- Comando manual de movimentos de mesa, gantry e colimador;-Controle local e remoto;-Modo operação para radiografia portal a partir do console;- Gantry com rotação de +/- 185º em relação ao vertical, com precisão de +/- 1º;-Suporte de acessórios para o colimador- 4 (quatro) dispositivos de localização de paciente a laser, sendo dois laterais, um sagital e um no teto;- Sistema de colimador assimétricos nas quatro lâminas, com rotação maior ou igual a 95º;- Penumbra de campo (10 cm x 10 cm) entre as curvas de 20-80% inferior a 10 mm;- Limite de dose em arco terapia de 0,5 a 5UM/grau;-Precisão de sistema dosimétrico de 1% ou 1 UM;-Distância do isocentro de 100 +/- 0,1cm;- Variação do isocentro menor ou igual a 1 mm- Tamanho de campos variáveis de 1 cm x 1 cm a 40 cm x 40 cm no Isocentro;- Laser back pointer;- Front pointer mecânico;-Sistema de display dos parâmetros do paciente de dentro da sala de tratamento;- 1 (um) Jogo de filtros em cunha de 15º, 30º, 45º, e 60º ou outro sistema de filtros que ofereça, no mínimo, estes quatro ângulos, filtro dinâmico;- 1 (um) conjunto de bandejas para suporte de acessórios sendo 30 unidades bandejas vazadas e 30 bandejas lisas;- 01 (um) sistema de colimador com multileaf de 120 lâminas;- Todos os sistema e dispositivos para execução tratamento de radioterapia de intensidade modulada-01 (um) Sistema de imagem digital (Portal Vision);- Mesa de tratamento com movimentação longitudinal, lateral, vertical e rotacional com leituras e comando digital local e remoto, incluindo abertura central com rede ou grade;- Suporte para chassis, lateral, AP/PA;- Sistema de fixação de paciente na mesa composto de: 01 (um) suporte para fixação de máscara base padrão; 01 (um) suporte para fixação de máscara com anguladores de 0º a 45º; 01 (um) jogo de apoio de cabeça e pescoço com várias angulações; 50 (cinqüenta) máscaras termoplásticas para cabeça e pescoço com 2,4 mm de espessura. 01 (um) aquecedor de água para máscara termoplástica com dimensão compatível  com o tamanho das mascaras;- Rampa de mama com angulação variando de 5º a 25º no mínimo composto por suporte de braço, pulso e cabeça;- Bandeja com retículo  para simulação; - Kit de peças de reposição- 01 (um) Transformador e estabilizador de rede compatível com a máquina;- Sistema de refrigeração tipo Chiller com faixa de temperatura de trabalho compatível com a máquina;- 01 (uma) prancha de transferência de paciente maca-mesa do acelerador;- 01 (um) Abaixador de ombro para tratamento de Cabeça e Pescoço;- 01 (um) Par de Intercomunicador oral, de mesa, portátil, sem fio, com filtro amenizador de interferência e ruídos na linha que opere em freqüência diferentes com os de outras salas  (No mínimo 4 freqüências)- Câmara CCD ¼ color com zoom de 22x ótico e 10x digital, com monitor interno e externo de 14`` e  panoramizador de uso interno;- 01 Conjunto dosimétrico composto de: 01 (uma) câmara de ionização cilíndrica tipo Farmer de 0,6cm3 com parede de plástico (PMMA OU A-150), à prova d´água; 02 (duas) câmaras de ionização PinPoint com volume de 0,016Cm3 ou de menor volume e 01 (uma) câmara de placas paralelas Tipo Markus,  02 (dois) cabos 10 metros de comprimento com conexões compatíveis com câmaras-eletrômetro; 1 (um) eletrômetro digital compatível com as câmaras, com voltagem de coleção variável (100 a 300)Volts e polaridade reversível (+/-), que meça corrente PA e carga elétrica de 1nC;- Barômetro com precisão de no mínimo  1,0mbar, digital, que possa medir, no mínimo na faixa de 900 a 1030 mbar;- Termômetro com precisão de no mínimo 0,25ºC, digital, com sonda à prova de d’água;- Higrômetro com precisão de umidade relativa de 1%;- Fatoma de água com paredes em acrílico, tamanho 40 cm x 40 cm x 30 cm. Com posicionamento variável da câmara de ionização e suportes para os tipos de câmaras acima citados, com precisão de 0,1mm.- Cronômetro.- 01 (um) Monitor portátil de radiação;- 01 (um) Alinhador de Lasers, com Nível;- 01 (um) Sistema para controle de qualidade para IMRT com mais de 1500 detectores (array 2D), tamanho mínimo 30cm x 25cm (22 arrays), com alta definição e resolução;- 01 (um) sistema de escaneamento 1D automatizado, com profundidade mínima de 30cm, dimensões de 35cm x 35cm x 40cm e análise de PDP (dinâmico)- 01 (um) sistema para organização, gerenciamento, analise e emita relatórios de dosimetria e controle da qualidade da radiação.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "011806",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1440000.0,
+  "valor_total": 1440000.0,
+  "observacao": "6 MV, IMRT, MLC, portal MV, sem IGRT kV/CBCT.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 12,
+  "convenio": "731380",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "Aparelho para Radio Cirurgia - Utilizado em Tratamento no Departamento de Radioterapia.Características:Todos acessórios para sua colocação no aparelho que permitam sua utilização e funcionamento para tratamentos de radiocirurgia.Interface com sistema de planejamento computadorizado,habilitado e funcionando. Interface com sistema de gerenciamento de vários tipos, habilitado e funcionando.Este equipamento deverá permitir a realização de testes no Acelerador com filme e suporte. Acessório para a mesa de tratamento Verificação dos lasers e da consistência do isocentro.Verificação da precisão mecânica do Acelerador e Mesa de tratamento. O sistema permite liberdade máxima para de gantry e mesa.Incluso ponta metálica para alinhamento com o isocentro e marcação central no filme irradiado.Suporte de filme.Transferência rápida e segura das coordenadas do isocentro planejado. Alinhamento com os lasers dos gráficos gerados no computador.Documentação direta da posição do isocentro.Projeção do contorno da lesão em todas as visualizações ortogonais e do feixe de radiação.Possibilidade de uso em diversos tamanhos de pacientes.Verificação visual do posicionamento com a projeção do campo de luz.Mecanismos de trava para arco e máscara.Tenha marcadores adicionais para verificação e compensação após rotação da mesa. Localizadores de TC/RX e suporte. Trata-se de um sistema de referência de TC/RXpara localização estereotáxica de alvo,que tem as seguintes características:Fiduciais para localização em TC e compensação de tilt.Fiduciais removíveis para localização de Raios-X/DSA.Tenha longo alcance vertical para tratar lesões profundas.Suporte de imobilização de paciente compatível com todas as mesas de aparelhos de tomografia computadorizada.Seja fixável ao anel de cabeça e sistema de máscaras.Acessório para mesa de tratamento que permita fixação rápida e precisa a mesa de tratamento no acelerador linear.Ajuste fino para movimento AP,lateral e crânio caudal.Permite também calibração de tilt para compensar declinação da mesa.Travas de segurança para garantir estabilidade do ajuste.Não restringe os 360º de rotação do gantry.Possui adaptador removível para fixação do arco de cabeça ao acessório da mesa.Possuir um colimador de alta resolução.Usa sistema com lâminas entre 02mm a 5mm o no isocentro,sendo capaz de determinar o formato do tumor,o que possibilita um tratamento mais preciso e eficiente.É capaz de deslocar as lâminas com precisão igual ou superior/menor a 5 cm além do seu centro.Sistema segue protocolos internacionais de radiocirurgia,com suas lâminas centrais do campo gerando uma penumbra menor que 3mm.Sistema que atende aos padrões internacionais mencionados na AAPM 54 que regulamenta os parâmetros mínimos aceitos para realização de radiocirurgia.Sistema de dupla checagem do micro colimador,com verificação através de escovas eletrônicas monitoradoras de posicionamento de lâmina e controle de voltas do motor do sistema.Transmissão interfolhas menor que 2%.Possui um carrinho de serviço para fácil fixação/remoção do colimador no acelerador linear.Acompanha software de controle e estação de trabalho dedicada.Trata-se do mMLC controller mLCX,que utiliza microprocessador de última geração. Software de controle para micro colimador que assegura o controle do Interlock e o posicionamento das lâminas com segurança e precisão de 0,2 mm.Possui software compatível com os computadores de integração de funcionalidade de software e hardware, para sincronização automática entre os campos do acelerador e micro colimador e com seus respectivos sistemas de segurança. Possui interface de comunicação com o sistema de gerenciamento através de DicomRT.Software com os computadores de integração de funcionalidade de software e hardware para a sincronização automática entre campos do acelerador e multilâminas ou micro-multilâminas e com seus respectivos sistemas de segurança.Sistema de planejamento para radioterapia estereotáxica com multilâmilas ou micromultilâminas.Capaz de tratar casos arco conformado, arco dinâmico e estático.Características do software de planejamento iPlanApresenta a ferramenta Automatic Image Fusion que permite realizar fusões de diferentes modalidades de imagens em poucos segundos.Apresenta a ferramenta Fusão de Imagens Automática, além da possibilidade de realizar fusão com ajustes manuais e também através da definição de área específica de interesse, aumentando a precisão do sistema automático.Permite visualização da fusão da imagens em várias reconstruções e possui múltiplas ferramentas para checagem com Spyglass entre outras.Possibilita fusão de diversos sets de imagens tais como TC, RM(T1,T2,angio-RM).Permite também ajustem finos manuais nas imagens carregadas.Software capaz de delinear MAV usando imagens angiográficas,Software capaz de identificar fiduciais de localizadores de TC e RX, permitindo correlacionar automaticamente imagens de raios-X com as de TC para delimitação de objetos nos 2 tipos de imagens.",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "—",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1761000.0,
+  "valor_total": 1761000.0,
+  "observacao": "Micro-MLC + arco estereotáxico + iPlan = kit de radiocirurgia acoplado ao AL. Não é AL. R$1,76 mi: decidir se soma no VALOR da família AL.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 345446.51
+   }
+  ]
+ },
+ {
+  "linha": 13,
+  "convenio": "731380",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "Equipamento de Ressonância Magnética - Equipamento de Ressonância Magnética de 1,5 Tesla1.\tCaracterísticas técnicas mínimas:Magneto:Para corpo inteiro;Supercondutivo de 1,5 Tesla;Sistema de refrigeração com criogênio (hélio líquido);Consumo de hélio: 30 ml/h ou menor;Diâmetro interno mínimo do magneto: 60 cm;Deve apresentar intercomunicador com o paciente/operador em duas vias;Resfriado “in loco” (a empresa deverá entregar o equipamento funcionando com carga total de Hélio);Bobina principal do magneto e gradiente com blindagem ativa e ou passiva. 1.2\tGradientes: Sistema de gradiente não ressonante 100% (duty cicle) Intensidade mínima de gradiente por eixo (x,y e z): 30 mT/m;Slew rate mínimo por eixo (x,y e z): 100 T/m/s; Sistema de refrigeração completo com chiller;1.3\tTransmissão e recepção de rádio freqüência:Sistema de RF: 15 kW ou maior;Sistema de RF com no mínimo 16canais e 1Mhz; 1.4\tMesa do Paciente:Movimentos totalmente motorizados;Capacidade de carga: no mínimo de 150 kg;Sistema de trolley ou maca não magnética, para preparação e locomoção do paciente no interior da sala do magneto;Sistema de chamada de emergência para o paciente;Sistema de emergência para retirada do paciente;Monitoração de ECG/Respiração do paciente;1.5Parâmetros de Aquisição:Tempo mínimo de echo (TE) (matriz 256x256): 1,0 ms ou menor;Tempo de repetição (TR) (matriz 256x256): 4,0 ms ou menor;FOV mínimo: 10mm ou menor;FOV máximo: 400mm ou maior;Espessura de corte 2D: 0,7mm ou menor;Espessura de corte 3D: 0,1mm ou menor;Aquisições em 2D e 3D;Matriz de aquisição 1024x1024;1.6\tBobinas:Todas as bobinas de recepção de sinal devem estar disponíveis junto com a entrega do sistema:Bobina de Cabeça Phased Array com tecnologia de aquisição paralela de no mínimo 8 canais;Bobina de cabeça e pescoço (neurovascular) com tecnologia de aquisição paralela de no mínimo 8 canais; Bobina de coluna tipo phase array (C/T/L – cervical, torácica e lombar);Bobina de abdômen e pélvis com tecnologia de aquisição paralela de no mínimo 4 canais;Bobina de cárdio com tecnologia de aquisição paralela;Bobina de ombro Phased Array ; Bobina de punho Phased Array;Bobina de mama Phased Array com tecnologia de aquisição paralela;Bobina de joelho com tecnologia Phased Array de no mínimo 8 canais; Bobina endo-retal para exames de próstata;02 bobinas flexíveis de uso geral; compatível com aquisição paralela. 02 bobinas circulares de uso geral;Adaptador/posicionador para exames de articulação temporo-mandibular (ATM);1.7\tSeqüências de Pulso:Spin Echo (SE) e Fast Spin Echo (FSE) ou Turbo; Single Shot FSE ou Turbo;Inversion Recovery (IR);Seqüência Eco-planar (EPI);Flair (Fluid Attenuation IR);Single shot EPI;(2D-TOF) e (3D-TOF);FIR (Fast Inversion Recovery);Phase Contrast Vascular Imaging;CINE;STIR;Multi Shot EPI;Saturação de gordura e água;Seqüência para estudo T1 ou T2 de alta resolução;1.8\tComputador:Console do operador;Monitor colorido de alta resolução, LCD, de no mínimo 18”, tela plana;Mouse e Teclado alfanumérico; Capacidade de memória interna do processador de imagens mínimo: 1Gb;Sistema intercomunicador com o paciente;Capacidade de armazenar no mínimo 150.000 imagens em matriz 256 x 256, não comprimidas; 1.9\tWorkstation avançada de trabalho:Dois monitores coloridos de alta resolução, LCD, de no mínimo 18”, tela plana;Capacidade para processar imagens de outros equipamentos com DICOM;Mouse e teclado alfanumérico;Capacidade para arquivo auxiliar em CD-R ou DVD-RW no console principal;Deve ser capaz de imprimir e enviar/receber imagens tipo DICOM 3.0 (Visualização, envio (PACS), impressão, armazenamento e resgate de imagem para máquina);Capacidade de impressão em câmara laser ou sistema de impressão a seco (dry);Softwares avançados de processamento, no mínimo: 3D Volume analisys, Volume Rendering, Pós-processamento de Difusão e Perfusão;Reformatação multi-planar;Projeção de intensidade máxima (MIP);Medição de distância e ângulo;Medição das regiões de interesse (ROI);Subtração ou soma de imagens;",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "010889",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 2574000.0,
+  "valor_total": 2574000.0,
+  "observacao": "1,5 T explícito. Pista do sistema (010891 = 0,5 T) está errada: efeito de comparar valor nominal 2009.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 345446.51
+   }
+  ]
+ },
+ {
+  "linha": 14,
+  "convenio": "731380",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "APARELHO DE NEURONAVEGADOR PLATAFORMA TRANSFERÊNCIA DE TC TRANSFERÊNCIA DE RM PLATAFORMA IPLAN RT ESTAÇÃO DE TRABALHO IPLAN COM TELA PLANA E IMPRESSORA TRANSFERÊNCIA RAIO X DICOM TRANSFERÊNCIA RAIO X SCANNER TWAIN SCANNER DE IMAGEM DE RAIO-X EXPORTAÇÃO DE PLANEJAMENTO DICOM RT PLANEJAMENTO IPLAN RT PLATAFORMA IPLAN RT IMAGEM SOFTWARE DE FUSÃO AUTOMÁTICA DE IMAGENS IPLAN SEGMENTAÇÃO AUTOMÁTICA PARA SOFTWARE DE PLANEJAMENTO IPLAN SEGMENTAÇÃO PINCEL E DELINEADOR INTELIGENTE PARA SOFTWARE DE PLANEJAMENTO IPLAN REGISTRO ANGIOGRÁFICO IPLAN RT PLATAFORMA IPLAN RT DOSE PLANEJAMENTO DE ARCO CONFORMAL PLANEJAMENTO DE ARCO CONFORMAL DINÂMICO EQUIPAMENTO DE TRATAMENTO M3 MICRO-MLC PARA VARIAN COM MLC INTEGRAÇÃO DO M3 COM VARIS 6.5 OU SUPERIOR INTEGRAÇÃO AVANÇADA DO M3 COM ACELERADOR LINEAR ANEL ESTEREOTÁXICO DE CABEÇA PACOTE DO SISTEMA DE MÁSCARA ESTEREOTÁXICA CONJUNTO DE ANEL PARA MÁSCARA SUPORTE PARA MÁSCARA CONJUNTO DE FIXAÇÃO PARA LESÃO BAIXA CONJUNTO DE MÁSCARA PARA UM PACIENTE POSTE VERTICAL (DIREITA) POSTE VERTICAL (ESQUERDA) BANDEJA PARA ACESSÓRIOS DA MÁSCARA CONJUNTO DE CLIP CONJUNTO DE ESPAÇADORES PARAFUSO T/FIXAÇÀO CD COM VÍDEO SISTEMA DE MÁSCARA MANUAL DE USUÁRIO RT/RS HARDWARE ESTEREOTÁXICO LOCALIZADOR E SUPORTE DE TC E RAIO-X POSICIONADOR ESTEREOTÁXICO DE ALVOS POSICIONADOR DE ANEL ESTEREOTÁXICO ADAPTADOR PARA POSICIONADOR DE ANEL ESTEREOTÁXICO PONTEIRO DE FANTOMA(PARA ANEL DE CABEÇA) SUPORTE DE FILME PARA M3 1",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "001543",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 780000.0,
+  "valor_total": 780000.0,
+  "observacao": "Neuronavegador/iPlan; valor +21% corrigido vs 001543 – confirma o código. Fora das famílias (não é AL).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 345446.51
+   }
+  ]
+ },
+ {
+  "linha": 15,
+  "convenio": "731675",
+  "ano": 2009,
+  "tipo_contratacao": "Convênio",
+  "texto": "AQUISIÇÃO DE UM ACELERADOR LINEAR DE ALTA ENERGIA, QUE SERÁ UTILIZADO PARA TRATAMENTO DE RADIOTERAPIA SUPERFICIAL E PROFUNDA AOS PACIENTES ATENDIDOS NO HOSPITAL DO CÂNCER DE CASCAVEL-UOPECCAN.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "011806",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 2700000.0,
+  "valor_total": 2700000.0,
+  "observacao": "US$1,35 mi; sem IGRT citado.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Cancelado pelo Convenente",
+    "valor": 434130.69
+   }
+  ]
+ },
+ {
+  "linha": 16,
+  "convenio": "750236",
+  "ano": 2010,
+  "tipo_contratacao": "Convênio",
+  "texto": "Vídeo Endoscópio",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011268",
+  "conta_unidade": "S*",
+  "confianca": "Média",
+  "quantidade": 1.0,
+  "valor_unitario": 111200.0,
+  "valor_total": 111200.0,
+  "observacao": "\"Vídeo endoscópio\" = endoscópio flexível com CCD (rígida usa ótica + câmera). Valor não discrimina (RENEM 349k x 418k). *Só conta se 011268 estiver nas 4 famílias não visíveis.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 17,
+  "convenio": "752426",
+  "ano": 2010,
+  "tipo_contratacao": "Convênio",
+  "texto": "Tomógrafo Computadorizado",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "VERIFICAR",
+  "codigo_indicado": "011804 ou 011805",
+  "conta_unidade": "Verificar",
+  "confianca": "Baixa",
+  "quantidade": 1.0,
+  "valor_unitario": 873600.0,
+  "valor_total": 873600.0,
+  "observacao": "Sem nº de canais. R$873,6 mil (2010) corrigido = R$2,12 mi: +43% do 011804 e -29% do 011805 – empate técnico. O valor não decide; checar especificação no plano de trabalho.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Aguardando Análise do Concedente",
+    "valor": 59641.2
+   }
+  ]
+ },
+ {
+  "linha": 18,
+  "convenio": "752772",
+  "ano": 2010,
+  "tipo_contratacao": "Convênio",
+  "texto": "TOMOGRAFO COMPUTADORIZADO HELICOIDAL 64 CANAIS.1- Características gerais: Helicoidal rotação contínua; Aquisição mínima de 64 canais de aquisição; Capacidade de aquisição em 0,35 segundo em rotação de 360º; Para exames em pacientes adultos e pediátricos; Com sistema prospectivo de controle automático do mAs para redução de dose. 2- Gantry: Detectores de estado sólido no mínimo 1.340 canais de detecção, ou Superior; Rotação em 360º com tempo de corte total de 0,35 segundo ou inferior; Espessura mínima de corte de 1,0 a 10,0 mm ou superior; Inclinação de +/- 30º; Abertura de pelo menos 70 cm ou superior. 3- Tubo de raios-X: Capacidade anodica mínima do tubo de: 8.0 MHU ou superior; Taxa de resfriamento térmica do anodo de 4.500 KHU/minuto ou superior. 4- Gerador de raios-X: Potência de 72 kW ou maior ou Superior; Faixa de tensão de 80 a 140KV; Faixa mínima de corrente de 30 a 550 mA ou maior. 5- Aquisição espiral: Tempo de scan helicoidal contínuo mínimo de 100 segundos ou maior; Matriz de Reconstrução de 512x512 ou maior; Matriz de exibição de 1024x1024. 6- Mesa do paciente: Deslocamento horizontal escaneável de 155 cm ou maior; Capacidade de suportar no mínimo 220 Kg ou maior; Altura mínima do solo de 55 cm ou menor. 7- Processamento de imagem: Matriz de reconstrução de 512 x 512 e display 1024x1024; Tempo de reconstrução de 20 imagens por segundo ou melhor. 8- Console de Operação: Com 01 monitor colorido, tela de cristal líquido LCD de matriz ativa, e tamanho de 19; Com resolução de 1280 x 1024; 01 teclado; 01 mouse; Capacidade do disco rígido de 140 Gbytes ou maior; Unidade de gravador de imagens em CD-R e DVD-R. 9- Estação de Trabalho: Com 01 monitor colorido, tela de cristal líquido LCD de matriz ativa, e tamanho de 19; Com resolução de 1280 x 1024; 01 teclado; 01 mouse; Capacidade do disco rígido de 140 Gbytes ou maior; Unidade de gravador de imagens em CD-R e DVD-R. 10- Softwares: Reconstruções com técnica de renderização de volume - VRT (Console e Estação de trabalho); Software para detecção automática da chegada do meio de contraste em uma região de interesse, conhecido como -bolus traking (console); MIP, MPR, SSD, Minip (Console e Estação de trabalho); Software para eliminação virtual da estrutura óssea (Estação de trabalho); Software para medidas de volume em cm3 de lesões, baseadas em diferenças de densidades (Console e Estação de trabalho); Software para reconstruções vasculares curvilíneas em diferentes planos (Console e Estação de trabalho); Software para aquisições cardíacas prospectivas e retrospectivas; Sistema de modulação de dose de radiação sincronizada com o ECG (Console); Avaliação da anatomia e função cardíaca complet (Estação de trabalho); Análise e caracterização de placas nas artérias coronárias(Estação de trabalho); Segmentação vascular de qualquer região permitindo quantificação automática de estenoses (Estação de trabalho); Protocolo Dicom 3.0 compatível: Worklist (somente para console); Conexões para redes PACS; Dicom send/receive; Dicom Query/Retrieve; Dicom Basic Print; Dicom Viewer incluso em cada cópia gerada, sem limite de licenças e disponível em todos os postos de geração. 11- Acessórios Relacionados ao Tomógrafo: Suporte de cabeça e braço; Cunhas para posicionamento de pacientes; Suporte de cabeça coronal; Fantomas para calibração. 12 – Garantia: 12 meses, incluindo tubo de raios X, sem limite de cortes.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011805",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1300000.0,
+  "valor_total": 1300000.0,
+  "observacao": "64 canais. Sugestão AL errada. 011805 está fora da família \"até 16 canais\".",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 171761.33
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 149634.77
+   }
+  ]
+ },
+ {
+  "linha": 19,
+  "convenio": "752772",
+  "ano": 2010,
+  "tipo_contratacao": "Convênio",
+  "texto": "Workstation de Planejamento de braquiterapia Processador Dual Core Xeon, 2,26 Ghz ou superior, 4 Gb memória RAM DDR3 1066 Mhz, 2 discos rígidos SATA de capacidade de 250 Gb ou superior, unidade DVD/RW SATA, Windows XP Pro, placa aceleradora gráfica de 256 Mb ou superior, 4 portas USB ou superior, monitor LCD 20 polegadas, impressora jato de tinta colorida tamanho papel A4. Scanner USB com densidade óptica de 0.00 – 3.40, tamanho 17,2 x 12,2 polegadas, área de transparência 16,5 x 12,2 polegadas, grayshade 4096, resolução de 2400 x 4800 dpi. Computador console, com processador Core 2 Duo 1.86 Ghz ou superior, 512 Mb memória RAM, HD 80 Gb ou superior, impressora jato de tinta colorida tamanho papel A4, monitor LCD 19 polegadas ou superior, software de controle de tratamento GammaMed (Upgrade), instalação e treinamento. A solução deve prever um sistema completo de planejamento de tratamentos 3D baseados no paciente e nas imagens. e que atenda todas as necessidades de planejamento de braquiterapia, oferecendo: - Integração com o sistema de planejamento de tratamentos com banco de dados, registro de pacientes e interface comuns; - Aquisição de imagens por meio de digitalizador de . lmes, DICOM 3, ultra-som ou diretamente de um sistema de planejamento, simulação; - Inserção de dados relativos a aplicadores em radiografia. as, coordenadas, imagens transversais ou planos reconstruídos, além de planos padronizados e bibliotecas de aplicadores; - Marcação de contornos e segmentação; - Processo interativo de planejamento e otimização; - Avaliação e análise de planos.",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "—",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 145000.0,
+  "valor_total": 145000.0,
+  "observacao": "Estação de planejamento de braquiterapia (acessório da 010547). Não é AL.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 171761.33
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 149634.77
+   }
+  ]
+ },
+ {
+  "linha": 20,
+  "convenio": "752772",
+  "ano": 2010,
+  "tipo_contratacao": "Convênio",
+  "texto": "SISTEMA DE DIGITALIZAÇÃO DE IMAGEM COMPOSTO POR: 1 CR - Digitalizador multi-cassete, com buffer automático de alimentação de cassete de no mínimo 8 cassetes, compatível com digitalizações de radiografia em geral e mamografia em alta definição, troughput (desempenho) mínimo de 50 cassetes por hora usando as dimensões 35 x 43 e no mínimo 90 cassetes usando dimensões 18 x 24. Contendo: - Estação de CR integrada ao sistema de digitalização com funções de identificação de cassetes, estação de trabalho para visualização, manuseio, processamento e envio de imagens ao sistema de arquivamento e gerenciamento de PACS, interface HIS/RIS worklist, DICOM Send e DICOM Print, equipado com monitor, teclado e mouse, interface ethernet 10/100/1000 mbps, nobreak e todos os softwares aplicativos necessários para o funcionamento da solução. - 10 unidades de cassetes para RX 35 x 43 cm, - 12 unidades de cassetes para RX 24 x 30 cm, - 12 unidades de cassetes para RX 18 x 24 cm, - 8 unidades de cassetes para MAMOGRAFIA 18 x 24 cm, - 1 impressora Drystar (R$ 243.000,00); 1 Servidor – RIS e PACS, com Gabinete rack 2U, Fonte de alimentação redundante, Ventiladores redundantes, 2 Processadores Quad Core 2.33 ghz ou superior, 8 Mb cachê, 8 Gb RAM 667 Mhz ou superior, 2 Discos SAS 300 Gb ou superior, Controladora RAID, 2 Placa rede 10/100/1000 On-Board, 1 Interface de rede 1000PT Dual Port PCI, Unidade DVD/RW, Licença Windows Server Standard 64 bits, 3 anos de garantia com atendimento on-site no próximo dia útil (R$ 18.195.69); 3 Workstation para laudos, com: Processador Xeon Dual Core 2 Ghz ou superior, 4MB L3 Cache, Windows® 7 Professional Original, 64 bits, Memória RAM de 4GB DDR3, Disco Rígido SATA 300 GB ou superior, Unidade Óptica 16X DVD+/-RW ou superior, Placa Vídeo: nVidia Quadro FX 3800 com 1 Gb, com capacidade de utilizar dois monitores DVI ou Dois VGA ou DVI + VGA, Placa Rede Broadcom NetXtreme 10/100/1000 GbEthernet PCI Express, Mouse. Ótico, Teclado USB, 1 Monitor LCD 24 polegadas, com ajuste de altural, 1 Monitor LCD 19 polegadas,com ajuste de altura, 3 anos de garantia com atendimento on-site no próximo dia útil; (R$ 23.677,17); 1 Storage para armazenamento de imagem em rack, com: 11 discos rígidos de 500GB (ou superior) Serial Ata2 de 07.200 rpm, Placa controladora PERC6/E, 512MB, Suporte a discos SAS ou SATA II, Conexão para até 2 servidores, Expansível a 15 discos por Enclosure, 2 cabos SAS de 2m, 3 anos de garantia ProSupport for IT com atendimento on-site no próximo dia útil, Gabinete de 3Us com trilhos para rack Dell padrão 19 polegadas.(R$ 20.551,13); 1 Unidade de armazenamento em fita LTO-5, Controladora SAS 6 Gbps, Cabo SAS 2 metros, 6 Gbps, Gabinete 2 Us com trilhos para rack 19 polegadas, pacote com 10 midias LTO-5, 3 anos de garantia, 3 anos de garantia com atendimento on-site no próximo dia útil (R$ 15.083,79); 1 Rack padrão 42U ou 44U altura , Dimensões: largura: 60,5 cm – profundidade: 107 mm, com 2 bandejas fixas, Estabilizadores laterais para rack, 4 Cabos de força, 250V, 20A, 3.7m de comprimento, 4 Unidades de distribuição de energia de 16A 100-240V, 13 tomadas C13 3 anos de garantia com atendimento on-site no próximo dia útil, Instalação do rack (em dias úteis, horário comercial) (R$ 10.461,17); 1 Switch Gigabit Ethernet 24 portas 10/100/1000 BASE-T, com 2 portas combo SFP FC, que oferecem suporte a transceptores 1000BASE-SX e 1000BASE-LX, Capacidade de switch fabric de até 48 Gbps, 2 Mbit de memória de buffer de pacote, Suporta até 64 VLANs baseadas em porta, Configurável pela Web, 3 anos de garantia ProSupport for IT com atendimento on-site no próximo dia útil. (R$ 2.350,08); 6 Monitores 2 Mega Pixel 24 polegadas ou superior com alta definição 2 Mega Pixel Policromático (R$ 16.944,00); 2 Monitores 5 Mega Pixel 21 polegadas ou superior – Monocromático (R$ 66.710,00).",
+  "tipo_lancamento": "Multi-equipamento",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "010921 + 000288 + servidor",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 400000.0,
+  "valor_total": 400000.0,
+  "observacao": "NOVO na v2. CR multicassete + Drystar (R$243 mil no texto) + servidor RIS/PACS. Sugestão Mamógrafo errada; nenhum dos bens está nas famílias.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 171761.33
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 149634.77
+   }
+  ]
+ },
+ {
+  "linha": 21,
+  "convenio": "755217",
+  "ano": 2010,
+  "tipo_contratacao": "Convênio",
+  "texto": "Aquisição de equipamento acelerador linear",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "VERIFICAR",
+  "codigo_indicado": "011806?",
+  "conta_unidade": "Verificar",
+  "confianca": "Baixa",
+  "quantidade": 1.0,
+  "valor_unitario": 202809.79,
+  "valor_total": 202809.79,
+  "observacao": "\"Aquisição\" de AL por R$202,8 mil = US$115 mil (-94%). Impossível para AL inteiro: provável parcela/contrapartida. Não contar unidade sem o plano de aplicação.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 202809.79
+   }
+  ]
+ },
+ {
+  "linha": 22,
+  "convenio": "757045",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimento de aplicação para complementação do mamógrafo, conforme parecer favorável.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "010925",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 48211.71,
+  "valor_total": 48211.71,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 35791.21
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 12420.5
+   }
+  ]
+ },
+ {
+  "linha": 23,
+  "convenio": "761683",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Lavadora de Endoscópio",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "000398",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 4.0,
+  "valor_unitario": 25000.0,
+  "valor_total": 100000.0,
+  "observacao": "Lavadora de endoscópio (apoio).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Aguardando Análise do Concedente",
+    "valor": 367000.0
+   }
+  ]
+ },
+ {
+  "linha": 24,
+  "convenio": "761683",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Vídeo Endoscópio",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011268",
+  "conta_unidade": "S*",
+  "confianca": "Média",
+  "quantidade": 2.0,
+  "valor_unitario": 250000.0,
+  "valor_total": 500000.0,
+  "observacao": "Ver linha 16. 2×R$250 mil (2011).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Aguardando Análise do Concedente",
+    "valor": 367000.0
+   }
+  ]
+ },
+ {
+  "linha": 25,
+  "convenio": "765389",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "O IBCC comprou o Acelerador Linear da Varian, modelo Clinac IX, sob o número de série H295735, na época por US$ 1.208.477,00 e já pagou uma parcela do aparelho no valor de R$ US$ 900.000,00, equivalente a R$ 2.103.839,90 e ainda falta quitar o valor de US$ 308.477,00 por este motivo solicitou autorização para utilizar o saldo do rendimento da aplicação financeira como complementação para quitar 100% do Acelerador Linear.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 173859.22,
+  "valor_total": 173859.22,
+  "observacao": "Quitação do Clinac iX (US$308 mil). Não é unidade nova.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 173859.22
+   }
+  ]
+ },
+ {
+  "linha": 26,
+  "convenio": "765399",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimentos da aplicação, complementação financeira para aquisição do equipamento Acelerador Linear.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 308920.58,
+  "valor_total": 308920.58,
+  "observacao": "Rendimento (parcela 1 de 2 – valores distintos, não é duplicata).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 308920.58
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 2155973.45
+   }
+  ]
+ },
+ {
+  "linha": 27,
+  "convenio": "765399",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimentos da Aplicação, complementação financeira para aquisição do equipamento Acelerador Linear",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 2155973.45,
+  "valor_total": 2155973.45,
+  "observacao": "Rendimento (parcela 2 de 2 – R$2,16 mi).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 308920.58
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 2155973.45
+   }
+  ]
+ },
+ {
+  "linha": 28,
+  "convenio": "765400",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "01 ACELERADOR LINEAR DE ALTA ENERGIA (6MV) - Acelerador Linear: Energia de fóton de 6 MV, no mínimo, com porcentagem de dose de 67,0% +/- 2,0% em 10cm com campo de 10 X 10cm, a 100cm SSD; Energia de fóton de 15 MV, no mínimo, com porcentagem de dose de 77,0% +/- 2,0% em 10cm com campo de 10 X 10cm, a 100cm SSD; Taxa de dose igual ou maior a 200 unidades de monitor por minuto para ambos os feixes de fótons a um SSD de 100cm; Quatro (04) faixas de energias de elétrons no mínimo, com taxa de dose variável a definir pela equipe médica; Tamanho dos campos variáveis de 0,5 X 0,5cm a 40 X 40cm; Capacidade para tratamentos de irradiação de corpo inteiro em Fótons (Sigla TBI) e Elétrons (Sigla TBE); Capacidade de alta taxa de dose em elétrons para pele (Sigla HDTSE), que possibilite taxas de 2500 UM/Min no isocentro, no mínimo; Capacidade de tratamento em arco dinâmico em fótons e elétrons ou com intensidade variada; Sistema de distribuição de feixe através de guia acelerador de onda estacionada, um canhão de elétrons desmontável e um maguineto de curva acromática de 270°; Sistema Klystron ou Magnetron de Rádio Freqüência; Sistema de direção de feixe capaz de direcionar o feixe em eixos longitudinal e transversal em todos os ângulos do Gantry; Gantry com rotação mínima de +/- 180° em relação vertical, precisão de +/- 1,0° , controle local e remoto; Colimador com rotação mínima de +/- 95°; Colimação assimétrica e independente de dois jogos de blocos, ambos capazes de cruzar o centro da linha; Um jogo de filtros de ângulo fixo (15, 30, 45 e 60 graus), e um bloco com movimento separado com o modo de operação de filtro dinâmico; Dispositivo de Cabeça Extendida do Acelerador (¿Extended Head Rotation¿), que permita a rotação mínima do colimador de +/- 95° a até +/- 165°, através de ¿software¿ e ¿hardware¿ específicos; Câmaras de monitoramento de dose seladas tanto para elétrons quanto para fótons, operando independentemente da temperatura e pressão ambiente; Possuir filtro dinâmico com os seguintes ângulos (10, 15, 20, 25, 30, 45, e 60 graus); Limites de dose em arcoterapia de 0,5 a 20 UM/grau; Precisão do sistema dosimétrico de +/- 1% ou 1 UM; Variação máxima de dose de até 3%; Distância do isocentro de 100cm +/- 0,2cm; Variação do isocentro de 1mm; Interface com sistema de planejamento computadorizado; Interlocks com indicadores visíveis para assegurar a operação do acelerador e mostradores de parâmetros; Console de controle computadorizado com controles de operação do acelerador e mostradores de parâmetros; Capacidade de ajuste dos parâmetros mecânicos de tratamento no console de controle do acelerador, bem como internamente; Alimentação 380/220V/60Hz, trifásico com potência de 50 KVA; Mesa de Tratamento: Material: fibra de carbono, tipo pedestal, com movimentos lateral, longitudinal, vertical, e rotacional, com controle remoto digital, permitindo o procedimento de radiocirurgia; Deslocamento lateral motorizado de no mínimo 25cm com velocidade variável e possibilidade de deslocamento manual; Deslocamento longitudinal motorizado de no mínimo 154,5cm com velocidade variável e possibilidade de deslocamento manual; Acionamentos simultâneos dos deslocamentos lateral e longitudinal; Deslocamento rotacional da mesa motorizado de no mínimo 95° com velocidade variável e possibilidade de deslocamento manual; Leitura de comando digital e remoto; Monitoração vertical contínua com velocidade variável; Dimensões mínimas do tampo; largura 50cm, comprimento 215cm; Capacidade mínima de até 180Kg; Deflexão máxima do tampo, totalmente estendido, menor ou igual a 5mm no isocentro, para carga de 82Kg igualmente distribuídos numa área de 50cm2 em torno do isocentro; Abertura no tampo (Rede) tipo ¿Mylar ¿ Raquete de tênis¿ com 62cm de comprimento e 48cm de largura,",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "011806",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 2500000.0,
+  "valor_total": 2500000.0,
+  "observacao": "6/15 MV + elétrons, sem IGRT; US$1,49 mi (-17%).",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 29,
+  "convenio": "765405",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Uso do rendimento de aplicação financeira para conclusão do objeto do Convênio, acelerador linear de radioterapia, uma vez que este é cotado em dólar, e os repasses efetuados pelo M.da Saúde não são suficientes.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 410920.82,
+  "valor_total": 410920.82,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Cancelado pelo Convenente",
+    "valor": 410920.82
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 410920.82
+   }
+  ]
+ },
+ {
+  "linha": 30,
+  "convenio": "765777",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "A nova despesa refere-se à utilização de rendimentos de aplicação e será utilizada para complementar o item Acelerador Linear",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 428657.47,
+  "valor_total": 428657.47,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 428657.47
+   }
+  ]
+ },
+ {
+  "linha": 31,
+  "convenio": "766000",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "RENDIMENTOS DE APLICAÇÃO PARA COMPLEMENTAR O ITEM TOMOGRAFO COMPUTADORIZADO.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "herda TC do convênio 766000",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 486542.13,
+  "valor_total": 486542.13,
+  "observacao": "Complemento: herda o código do TC original do convênio – não precisa inferir canais.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 131286.27
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 486542.13
+   }
+  ]
+ },
+ {
+  "linha": 32,
+  "convenio": "766000",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Aquisição de equipamento Câmara Cintilográfica (Gama Câmara).",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "VERIFICAR",
+  "codigo_indicado": "000595",
+  "conta_unidade": "Verificar",
+  "confianca": "Média",
+  "quantidade": 1.0,
+  "valor_unitario": 131286.27,
+  "valor_total": 131286.27,
+  "observacao": "\"Aquisição\" de gama câmara por R$131 mil (2011) = -92% corrigido. Incompatível com equipamento inteiro: provável parcela.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 131286.27
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 486542.13
+   }
+  ]
+ },
+ {
+  "linha": 33,
+  "convenio": "768433",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Ultrassom com doppler",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011422",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 3.0,
+  "valor_unitario": 133000.0,
+  "valor_total": 399000.0,
+  "observacao": "Doppler é padrão no 011422.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1485691.66
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1476102.09
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1024658.9
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1034001.15
+   }
+  ]
+ },
+ {
+  "linha": 34,
+  "convenio": "768433",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Ultrassom Oftalmológico",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "000194",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 58000.0,
+  "valor_total": 58000.0,
+  "observacao": "Ultrassom oftalmológico tem código próprio; fora da família US.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1485691.66
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1476102.09
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1024658.9
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1034001.15
+   }
+  ]
+ },
+ {
+  "linha": 35,
+  "convenio": "768433",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimento de aplicação para complemantação do item Endoscópio Rígido (15 unidades).",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "000547",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1034001.15,
+  "valor_total": 1034001.15,
+  "observacao": "Complemento de 15 óticas rígidas (≈R$69 mil/un, coerente com 000547). Não é Sistema de Vídeo Endoscopia Rígida – a dif. +147% da pista é artefato.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1485691.66
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1476102.09
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1024658.9
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1034001.15
+   }
+  ]
+ },
+ {
+  "linha": 36,
+  "convenio": "768433",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Utilização de rendimentos de aplicação e será utilizado para complementar o valor dos bens (Cama Hospitalar, Sistema de Video Endoc. Rígida e Câmara Cintilográfica).",
+  "tipo_lancamento": "Multi-equipamento",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "herda: cama + 010254 + 000595",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1476102.09,
+  "valor_total": 1476102.09,
+  "observacao": "Rendimento rateado entre 3 bens; R$1,48 mi sem divisão. Precisa do rateio para atribuir valor às famílias.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1485691.66
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1476102.09
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 1024658.9
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1034001.15
+   }
+  ]
+ },
+ {
+  "linha": 37,
+  "convenio": "768839",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Vídeo Endoscópio",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011268",
+  "conta_unidade": "S*",
+  "confianca": "Média",
+  "quantidade": 2.0,
+  "valor_unitario": 175000.0,
+  "valor_total": 350000.0,
+  "observacao": "Ver linha 16. 2×R$175 mil.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 902556.74
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 946534.71
+   }
+  ]
+ },
+ {
+  "linha": 38,
+  "convenio": "768839",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Ultrassom Diagnóstico - Cardio/exames avançados (Ecógrafo) - Adquirido com parte de rendimentos",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011422",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 112139.39,
+  "valor_total": 112139.39,
+  "observacao": "Ecógrafo cardio/avançado sem transesofágico.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 902556.74
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 946534.71
+   }
+  ]
+ },
+ {
+  "linha": 39,
+  "convenio": "768839",
+  "ano": 2011,
+  "tipo_contratacao": "Convênio",
+  "texto": "Ultrassom Diagnóstico-Cardio/Exames Avançados",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011422",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 39414.77,
+  "valor_total": 39414.77,
+  "observacao": "NÃO é duplicata da linha 38 (R$39 mil vs R$112 mil): parcela de rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 902556.74
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 946534.71
+   }
+  ]
+ },
+ {
+  "linha": 40,
+  "convenio": "774867",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Ultrassom Diagnóstico",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011422",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 2.0,
+  "valor_unitario": 98000.0,
+  "valor_total": 196000.0,
+  "observacao": "",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 593201.85
+   }
+  ]
+ },
+ {
+  "linha": 41,
+  "convenio": "774867",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Colposcópios",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "000378",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 3.0,
+  "valor_unitario": 16000.0,
+  "valor_total": 48000.0,
+  "observacao": "",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 593201.85
+   }
+  ]
+ },
+ {
+  "linha": 42,
+  "convenio": "774867",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Utilização do rendimento da aplicação financeira para complementar o valor do Mamógrafo Digital, conforme descrito no Termo de Referência de ajuste.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "010925",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 593201.85,
+  "valor_total": 593201.85,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 593201.85
+   }
+  ]
+ },
+ {
+  "linha": 43,
+  "convenio": "774867",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Negatoscópios para Mamografia",
+  "tipo_lancamento": "Acessório/insumo",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "000541",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 3.0,
+  "valor_unitario": 3567.63,
+  "valor_total": 10702.9,
+  "observacao": "Negatoscópio – acessório.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 593201.85
+   }
+  ]
+ },
+ {
+  "linha": 44,
+  "convenio": "775429",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "MAMÓGRAFO: Mamógrafo de alta resolução com Estereotaxia para utilização em pacientes com diagnóstico e terapêutica de câncer. Caracaterísticas: GERADOR: Gerador de alta freqüência, multipulso, com potência mínima de 5 KW microprocessado, com rendimentos mínimos de 23 a 35 kV e de 2 a 600mAs; Exposímetro automático microprocessado; Visualização digital dos principais parâmetros. TUBO DE RAIOS X: Tubo com ânodo giratório bimetálico com pista dupla anódica; Focos de 0,1 mm e 0,3 mm; Filtros de molibdênio e Rhódio; Capacidade térmica do ânodo de no mínimo 160.000 HU; mA máximo igual ou superior a 150 mA. CARACTERÍSTICAS RADIOGRÁFICAS: Movimentos do braço totalmente motorizados e possibilidade de ajuste manual. Distância fonte-imagem de 65 cm; Rotação motorizada e isocêntrica em torno da mama de 180 graus; Altura ajustável de no mínimo entre 650 mm e 1350 mm; Dispositivo Automático de dose e detetores para compensação de radiotransparência; Porta-chassis com grade anti-difusora de 18x24 cm; Porta-chassis com grade anti-difusora de 24x30 cm; Dispositivo de magnificação fator 1,8 para filmes de formato 18x24 com placa de compressão transparente e placa de compressão localizada; Dispositivo de magnificação fator 1,8 para filmes de formato 24x30 com placa de compressão transparente e placa de compressão localizada; Colimação automática de acordo com o tamanho do filme. Placa perfurada para biópsia a mão livre. AUTOMATISMO DE DOSE: Seleção automática das combinações mais adequadas para vários tipos de mama. A seleção deve conter: material de ânodo, filtro, valor de kV, densidade do filme através de programas de usuários. O equipamento deverá possibilitar a realização de exames e procedimentos de estereotaxia com pacientes em pé, sentadas ou em maca DISPOSITIVO PARA ESTEREOTAXIA COMPOSTO DE: Unidade de Biópsia;Mesa do objeto integrada com abertura para cassetes de mamografia de 15 mm em formato 18 x 24cm; Placa de compressão descartável com abertura retangular; Guia de agulhas dupla esterilizável; Ajustável separadamente nos eixos x, y, z em passos de 0.1 mm; Display digital da posição da agulha. Suporte de agulhas fechadas 0,7mm (22G), 0,9mm (20G), 1,2mm (18G), 1,65mm (16G), 2,1mm (14G), 2,5mm (13G) 2,8 mm (12G) e abertas 0,9mm (20G) e 1,2 mm (18G) Possibilidade de conexão com dispositivo de mamotomia. Unidade de Avaliação: Filme trancado magneticamente durante avaliação; Sistema de coordenadas ajustável separadamente; Display digital dos valores x, y, e z; Comprimento da agulha livremente selecionável entre 30 mm e 175 mm. ACESSÓRIO ACOMPANHA: Bandeja para mama grandes e bandeja para mama pequena; Placa Senestrada.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "OK",
+  "codigo_indicado": "010925",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 210000.0,
+  "valor_total": 210000.0,
+  "observacao": "Analógico c/ estereotaxia (-70% corrigido).",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 45,
+  "convenio": "775526",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Tomógrafo Computadorizado (32 Cortes)Tomográfo com aquisição Multislice de no mínimo 32 cortes simultâneos por rotação de 360 graus. Efetuar 32 cortes simultâneos mesmo com o Gantry inclinado em 30 ou -30 graus, faixa de espessura de corte, obtidas com 32 cortes simultâneos de 0,625 mm ou menor, campo de visão variável entre 50 e 500 mm. Gantry com abertura mínima de 70 cm, faixa de angulação mínima de +/- 30 graus, tempo de corte total (360 graus) de 0,8 segundos ou menor, capacidade para aquisição helical contínua sem interrupção de no mínimo 100 segundos, capacidade de estudos helicoidais com gantry angulado. Potência do gerador de no mínimo 40 KW, corrente do tubo com mA máxima de 300 ou supeior, KV do tubo de no máximo 130 ou superior, capacidade térmica do anodo de no mínimo 3.5 MHU, capacidade de resfriamento do tubo de no mínimo 810 KHU/min., comprimento volumétrico de no mínimo 150 cm livre de metais. Deve possuir tecnologia para redução de dose aplicada ao paciente, possuindo entre outros recurso dinâmico de otimização de dose aplicada ao paciente, nos planos X, Y e Z durante a aquisição, com capacidade de modulação da corrente (mA) de acordo com a região do corpo a ser examinada, recurso avançado automatizado de reconstrução iterativa (i-Dose 4, Safire, AIDR-3D, ASIR ou similar). Console multifunção com monitor LCD colorido de no mínimo 18 polegadas, teclado e mouse. O sistema deve permitir manipulação, filmagem e processamento de imagens previamente armazenadas durante a aquisição de novas imagens, Software 3D, permitindo diferentes tipos de reconstrução: Volume Rendering, Surface, e projeção de RX (CVR), Software Multiplanar em tempo real (MPR), Software Angiográfico (MIP), Software Pulmonar (mIP), Software para Estudos Dinâmicos (Dynamic Scan), Sistema de subtração digital óssea, Software para visualização de imagens em tempo real, durante a aquisição, com taxa de amostragem de no mínimo de 6 (seis) imagens por segundo, Software de gatilhamento de aquisição por nível de contraste, permitindo múltiplos ROIs. Capacidade total em Hard disk de no mínimo 200 Gbytes e capacidade de armazenamento de imagens de no mínimo 100.000 imagens e dados brutos das 3500 últimas rotações, unidade de gravação de CD/DVD, tempo de reconstrução de imagens axiais em matriz 512x512, de no mínimo 8 imagens/segundo, protocolo DICOM 3.0 completo: Print, Storage SCU/SCP, MWM (Worklist), Q/R, MPPS, Storage Commitment, resolução de alto contraste mínima de 15 lp/cm, instrução automática para os pacientes com no mínimo 10 mensagens programáveis, interface para impressão padrão DICOM e Windows post-script. Mesa do paciente com peso suportável de 200 kg, largura mínima do tampo móvel de 400 mm, altura mínima do solo entre 300 e 450 mm, quando completamente abaixada, precisão de movimento longitudinal de 0,25 mm. Workstation - Estação de Trabalho independente com configuração de Hardware mínima: Processador Intel Xeon Quad Core 2.4GHz (ou superior), 8GB de memória RAM (ou superior), HD com capacidade mínima de 500 GB (ou superior), monitor LCD de no mínimo 18 polegadas, gravador de CD-RW e DVD-RW, modem e placa de rede padrão Ethernet, placa de vídeo com no mínimo 1GB de memória, teclado e mouse, sistema operacional compatível com o equipamento. Softwares: Reconstrução multiplanar (MPR), MPR curvo e oblíquo, MIP, min-MIP, reconstrução tridimensional (3D) SSD e VR, remoção de ossos automática, Software para endoscopia virtual, Pacote vascular avançado para AngioCT - segmentação automática de vasos. Acessórios: suporte de crânio, suporte de pernas, suporte de cabeça coronal, se necessário estabilizador de tensão de rede com potência compatível para todo o equipamento. Nobreak para console e estação de trabalho.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011805",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1353025.29,
+  "valor_total": 1353025.29,
+  "observacao": "32 cortes. Sugestão \"Vídeo Endoscopia Rígida\" errada (dif. +224% denuncia). Fora da família \"até 16 canais\".",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1353025.29
+   }
+  ]
+ },
+ {
+  "linha": 46,
+  "convenio": "780603",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Utilização de Rendimentos para complementação para aquisição do Acelerador Linear",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 617878.43,
+  "valor_total": 617878.43,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 617878.43
+   }
+  ]
+ },
+ {
+  "linha": 47,
+  "convenio": "781334",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Utilização do rendimento de aplicação para complementar recurso aprovado para aquisição do equipamento PET CT.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "000301",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 181240.34,
+  "valor_total": 181240.34,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 181240.34
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 181240.34
+   }
+  ]
+ },
+ {
+  "linha": 48,
+  "convenio": "781906",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Complementação devido a variação cambial, para aquisição de Acelerador Linear.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 20000.0,
+  "valor_total": 20000.0,
+  "observacao": "Variação cambial.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 30.49
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 20000.0
+   }
+  ]
+ },
+ {
+  "linha": 49,
+  "convenio": "782123",
+  "ano": 2012,
+  "tipo_contratacao": "Convênio",
+  "texto": "Gama Câmara",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "VERIFICAR",
+  "codigo_indicado": "000595",
+  "conta_unidade": "S",
+  "confianca": "Média",
+  "quantidade": 4.0,
+  "valor_unitario": 990000.0,
+  "valor_total": 3960000.0,
+  "observacao": "4 un × R$990 mil (2012) = US$506 mil/un (-26%): unitário plausível, mas 4 gama câmaras num convênio é atípico. Confirmar quantidade.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 50,
+  "convenio": "792992",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "utilização dos rendimentos de aplicação e será utilizado para complementar o valor do equipamento Acelerador Linear.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "011806",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 287912.07,
+  "valor_total": 287912.07,
+  "observacao": "Rendimento do AL da linha 51 (mesmo convênio 792992).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 287912.07
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 963000.0
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 900787.71
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 881864.0
+   }
+  ]
+ },
+ {
+  "linha": 51,
+  "convenio": "792992",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "“ACELERADOR LINEAR PARA RADIOTERAPIA”(Características mínimas)Com todos os hardwares e softwares necessários para a realização dos seguintes tipos de tratamento: Radioterapia convencional; Radioterapia tridimensional conformada; Arcoterapia com feixes de fótons; Radioterapia de corpo todo com fótons; Radiocirurgia; Radioterapia estereotáxica fracionada; Radioterapia com Intensidade Modulada; Constituído com os sistemas de: Gerador de radiações, com energia de fótons de 06 M e taxa de dose entre 100 e 500 UM/min; Gantry; Colimação para realização de radiocirurgia, de 80 lâminas com Micro-Multilâminas ou de 120 lâminas com Micro-Multilâminas e/ou por sistema de cones; Posicionamento através de lasers, 01 sagital, 01 coronal, 02 laterais e 01 back pointer; Mesa de tratamento com tampo e acessórios inteiros em fibra de carbono; CFTV com comunicação bidirecional de voz, 02 câmeras de vídeo e 02 monitores de LCD; Dosimetria com 02 canais; Sistema eletrônico para Aquisição de Imagem Digital (Portal Digital) com tecnologia “flat panel” (método de conversão: Silício amorfo); Gerenciamento Computadorizado com softwares, hardwares, licenças vitalícias necessárias, 05 estações de trabalho integradas, no-breaks para estações, servidor de dados, câmera fotográfica digital para registro dos pacientes, impressora laser colorida local, impressora laser colorida em rede e sistema de backup automático; Planejamento Computadorizado com softwares, hardwares, licenças vitalícias necessárias, 03 estações de trabalho integradas para cálculo, no-breaks para estações, impressora laser colorida local e sistema de backup automático; Resfriamento de água; Estabilizador de tensão; Consoles local e remoto;Acessórios: Monitor de LCD de 19” para indicar parâmetros na sala de exames; Painel de comando elétrico com as proteções contra sobre-corrente e curto-circuito; Controle manual reserva; Suporte de acessórios modificadores do feixe; 01 jogo de filtros em cunha de campo inteiro com ângulos de 15°, 30°, 45° e 60° ou filtro de cunha motorizado, com ângulos variando de 1° até 60º ou com modalidade de filtro dinâmico para 4 angulações; 01 front pointer mecânico; 30 bandejas em policarbonato perfuradas; 30 bandejas em policarbonato lisas; 01 suporte para fixação de máscara com anguladores de 0º a 45º; 01 jogo de apoios de cabeça e pescoço adulto com várias angulações com base plana e base neuro-eixo; 02 tracionadores para ombros; 01 suporte tipo “BellyBoard” em fibra de carbono com apoio para tórax; 01 apoio indexado para fixação simultânea de pernas e pés, de tamanhos pequeno, médio e grande; 02 jogos de apoios para os pés/ tornozelos de cada um dos tamanhos pequeno, médio e grande; 01 espessômetro em alumínio (Caliper) com leitura em centímetros escala bidirecional, e precisão de 0,1 cm, sendo um capaz de medir até 25 cm e um capaz de medir até 55 cm; 20 colchões posicionadores a vácuo (Vac-lock / Vac-fix) de tamanho médio; 01 bomba de vácuo; 01 jogo de blindagens oculares contendo 03 tamanhos: pequena, média e grande; 01 blindagem para testículos com suporte; 01 sistema com câmaras de ionização tipo “tracker” para controle diário de dosimetria;Acessórios para radiocirurgia e radioterapia estereotáxica: Fantoma para realização de testes de controle de qualidade com conjunto de suporte de filme; Posicionador de alvos – caixa com posicionadores estereotáxicos fiduciais para posicionamento preciso; 01 arco estereotáxico de cabeça para fração única; 01 caixa estereotáxixa extra-craniana; 02 conjuntos de parafusos de fixação anti-artefato reutilizáveis e de vários tamanhos; 01 localizador de TC/RX e suporte – sistema de referência de TC/RX para localização estereotáxica de alvo; Fiduciais para localização em TC e compensação de tilt; Fiduciais removíveis para localização de Raio-X/DAS; Suporte de imobilização de paciente compatível com todas as mesas de aparelhos de tomografia computadorizada; 30 jogos de máscaras específicas para radioterapia estereotáxica de alta densidade; 01 extensor de mesa para tratamento de cabeça e pescoço; 30 máscaras para IMRT, que deverão ir até os ombros.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011806",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 3775612.4,
+  "valor_total": 3775612.4,
+  "observacao": "CORREÇÃO: antes indiquei 011807. Texto tem IMRT/radiocirurgia/micro-MLC mas só portal MV (sem kV/CBCT) → não atende \"IGRT 3D\". US$1,75 mi ≈ 011806 (-3%).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 287912.07
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 963000.0
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 900787.71
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 881864.0
+   }
+  ]
+ },
+ {
+  "linha": 52,
+  "convenio": "792992",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "Complementar valor do acelerador linear",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "VERIFICAR",
+  "codigo_indicado": "011806",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1844864.0,
+  "valor_total": 1844864.0,
+  "observacao": "Complemento R$1,84 mi. Soma do convênio 792992 (linhas 50–52) = R$5,91 mi (US$2,74 mi) > até o 011807. Verificar se inclui obra/bunker ou câmbio.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 287912.07
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 963000.0
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 900787.71
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 881864.0
+   }
+  ]
+ },
+ {
+  "linha": 53,
+  "convenio": "793057",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "RENDIMENTO DE APLICAÇÃO (RECURSO COMPLEMENTAR PARA AQUISIÇÃO DE ACELERADOR LINEAR)",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 465686.86,
+  "valor_total": 465686.86,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 465686.86
+   }
+  ]
+ },
+ {
+  "linha": 54,
+  "convenio": "797270",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "Contrapartida financeira para complementação do valor do Acelerador Linear",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 668523.29,
+  "valor_total": 668523.29,
+  "observacao": "Contrapartida.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 541346.71
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1102766.32
+   }
+  ]
+ },
+ {
+  "linha": 55,
+  "convenio": "797270",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "O valor do rendimento de aplicação será utilizado para complementar o valor do equipamento ACELERADOR LINEAR, já aprovado.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1102766.32,
+  "valor_total": 1102766.32,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 541346.71
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1102766.32
+   }
+  ]
+ },
+ {
+  "linha": 56,
+  "convenio": "797270",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "Ultrassom Diagnóstico",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011422",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 72870.0,
+  "valor_total": 72870.0,
+  "observacao": "",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 541346.71
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1102766.32
+   }
+  ]
+ },
+ {
+  "linha": 57,
+  "convenio": "797861",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "Aquisição de Acelerador Linear - Utilização de Reendimentos - Em virtude da grande variação ocorrida no valor do dólar e agravada nos últimos meses em decorrência da pandemia do novo coronavirus (uma vez que o valor original do equipamento está na moeda americana) faz-se necessário a utilização dos rendimentos por parte do Pessoa local c31b1043bd para que possamos atingir o objetivo do convenio.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 1076606.75,
+  "valor_total": 1076606.75,
+  "observacao": "Texto cita pandemia em convênio de 2013 → item reprogramado ≥2020; \"Ano\" é do convênio, não do item. Texto contém token de anonimização \"c31b1043bd\".",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 1076606.75
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 895769.85
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 810051.14
+   }
+  ]
+ },
+ {
+  "linha": 58,
+  "convenio": "799668",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimento de aplicação utilizado para complementar o valor do equipamento Sistema de Vídeo Endoscopia Flexível",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "011268",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 130381.96,
+  "valor_total": 130381.96,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 130381.96
+   }
+  ]
+ },
+ {
+  "linha": 59,
+  "convenio": "799668",
+  "ano": 2013,
+  "tipo_contratacao": "Convênio",
+  "texto": "Sistema de Vídeo Endoscópio Flexível",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011268",
+  "conta_unidade": "S*",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 178082.04,
+  "valor_total": 178082.04,
+  "observacao": "Texto diz FLEXÍVEL; sugestão \"Rígida\" errada.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 130381.96
+   }
+  ]
+ },
+ {
+  "linha": 60,
+  "convenio": "801974",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "UTILIZAÇÃO DOS RENDIMENTOS DE APLICAÇÃO PARA COMPLEMENTAÇÃO DO VALOR DE AQUISIÇÃO DO ACELERADOR LINEAR.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 205311.72,
+  "valor_total": 205311.72,
+  "observacao": "Parcela 1 de 3 (valores distintos – não é duplicata).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 143719.42
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 205311.72
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 365100.0
+   }
+  ]
+ },
+ {
+  "linha": 61,
+  "convenio": "801974",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "UTILIZAÇÃO DE RENDIMENTO DE APLICAÇÃO PARA COMPLEMENTAR AQUISIÇÃO DE ACELERADOR LINEAR",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 143719.42,
+  "valor_total": 143719.42,
+  "observacao": "Parcela 2 de 3.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 143719.42
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 205311.72
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 365100.0
+   }
+  ]
+ },
+ {
+  "linha": 62,
+  "convenio": "801974",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "UTILIZAÇÃO DE RENDIMENTO DE APLICAÇÃO PARA COMPLEMENTAR AQUISIÇÃO DE ACELERADOR LINEAR",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 365100.0,
+  "valor_total": 365100.0,
+  "observacao": "Parcela 3 de 3.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 143719.42
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 205311.72
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 365100.0
+   }
+  ]
+ },
+ {
+  "linha": 63,
+  "convenio": "807820",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "Complementação para aquisição da Gama Câmara",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "000595",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 122325.28,
+  "valor_total": 122325.28,
+  "observacao": "Parcela 1 de 2 (não é duplicata).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 35485.13
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 72132.3
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 122325.28
+   }
+  ]
+ },
+ {
+  "linha": 64,
+  "convenio": "807820",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "Complementação para aquisição da gama câmara.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "000595",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 35485.13,
+  "valor_total": 35485.13,
+  "observacao": "Parcela 2 de 2.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 35485.13
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 72132.3
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 122325.28
+   }
+  ]
+ },
+ {
+  "linha": 65,
+  "convenio": "811353",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimentos de Aplicação Financeira que será utilizado para complementar o valor do equipamento Acelerador Linear de Fótons e Elétrons.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 78123.15,
+  "valor_total": 78123.15,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 78123.15
+   }
+  ]
+ },
+ {
+  "linha": 66,
+  "convenio": "812878",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "Utilização de rendimentos de aplicação e será utilizado para complementar o valor do equipamento Acelerador Linear",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 273555.56,
+  "valor_total": 273555.56,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 273555.56
+   }
+  ]
+ },
+ {
+  "linha": 67,
+  "convenio": "813423",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "O item refere-se a utilização dos rendimentos de aplicação financeira e será utilizado para complementar o valor do item Endoscópio Rígido - Nefroscópio no valor de R$ 95.367,94",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "000547",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 95367.94,
+  "valor_total": 95367.94,
+  "observacao": "Nefroscópio (ótica urológica).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 95367.94
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 22190.58
+   },
+   {
+    "status": "Cancelado pelo Convenente",
+    "valor": 22190.58
+   }
+  ]
+ },
+ {
+  "linha": 68,
+  "convenio": "813423",
+  "ano": 2014,
+  "tipo_contratacao": "Convênio",
+  "texto": "O item refere-se à utilização de rendimentos de aplicação e será utilizado para complementar o valor do equipamento Endoscópio Rígido Uterorrenoscópio valor a ser utilizado R$ 22.190,58.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "000547",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 22190.58,
+  "valor_total": 22190.58,
+  "observacao": "Ureterorrenoscópio (ótica urológica).",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 95367.94
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 22190.58
+   },
+   {
+    "status": "Cancelado pelo Convenente",
+    "valor": 22190.58
+   }
+  ]
+ },
+ {
+  "linha": 69,
+  "convenio": "824090",
+  "ano": 2015,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimentos de aplicação para complementar o valor do equipamento (011422Ultrassom Diagnóstico sem Aplicação Transesofágica)",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011422",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 59900.0,
+  "valor_total": 59900.0,
+  "observacao": "Código 011422 colado no texto – falha do parser.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 59900.0
+   }
+  ]
+ },
+ {
+  "linha": 70,
+  "convenio": "825391",
+  "ano": 2015,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimentos de Aplicação                                                   Refere-se a utilização dos rendimentos de aplicação que será utilizado para complementar aquisição do bem: 01 Ultrassom Transesofágico no valor de R$ 261.666,67, conforme descrito no TR do ajuste.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "ERRO",
+  "codigo_indicado": "011423",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 146616.68,
+  "valor_total": 146616.68,
+  "observacao": "Transesofágico explícito → fora da família US.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 146616.68
+   }
+  ]
+ },
+ {
+  "linha": 71,
+  "convenio": "835093",
+  "ano": 2016,
+  "tipo_contratacao": "Convênio",
+  "texto": "RENDIMENTOS DE APLICAÇÃO FINANCEIRA PARA COMPLEMENTAR O VALOR DO EQUIPAMENTO ACELERADOR LINEAR DE FÓTONS MONOENERGÉTICO 6 MV",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 232589.51,
+  "valor_total": 232589.51,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 232589.51
+   }
+  ]
+ },
+ {
+  "linha": 72,
+  "convenio": "836959",
+  "ano": 2016,
+  "tipo_contratacao": "Convênio",
+  "texto": "RENDIMENTO DE APLICAÇÃO PARA AQUISIÇÃO DO MAMÓGRAFO",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "010925",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 27841.0,
+  "valor_total": 27841.0,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 27841.0
+   }
+  ]
+ },
+ {
+  "linha": 73,
+  "convenio": "840013",
+  "ano": 2016,
+  "tipo_contratacao": "Convênio",
+  "texto": "Ultrassom Diagnóstico - Aplicação: Pesquisa multidisciplinar; Investigação/Diagnóstico: Abdominal; Gineco-obstétrico; Fetal intrauterino; Nódulos mamários; Tumores; Fertilização assistida; Apoio estereotáxico; Características Gerais: Móvel; 4 rodízios giratórios sendo 2 c/ travas; Para utilização em: Adultos; Pediátricos; Neonatais; Monitor: Colorido; Não entrelaçado; Tam. da tela de 19”; Em cristal líquido de matriz. Ajuste de posicionamento: Vertical e/ou angular; Horizontal; Painel de comando c/: Teclas de atalho para carregar funções e programas específicos definidos pelo usuário (painel programável); Sist. de movimentação do cursor “trackball”; Tela c/ sist. de sensibilidade ao toque do operador (“Touch Screen”); Sist. de ajuste de: Altura; C/ 256 níveis de cinza; Medidas automáticas em tempo real; Faixa dinâmica de 180 dB; Com conexão simultânea de 3 transdutores ativos, excluindo a porta para transdutor do tipo caneta (“Pedoff”), quando aplicável; Ajustes de imagem: Pré-processamento (Presets); Pós-processamento; Ampliação (“zoom”): Em tempo real; Com a imagem congelada; De 8x c/ possibilidade de rolagem da tela para pesquisar a região de interesse na imagem; “Presets” programáveis pelo usuário: 20 programas e/ou 10 programas por transdutor; Possibilidade de “upgrades”; Disco rígido com capacidade de 500 GB e/ou 178 GB dedicados para imagem; Taxa de atualização (“frame rate”) de 500 quadros por segundo no modo B; Sistema de armazenamento de imagens por intermédio de uma das opções abaixo descritas: Pen Drive; Gravador de CDR e DVDR integrado no equipamento; Portas de comunicação: Monitores externos; 04 USB (no mínimo 01 possibilitando a utilização de impressora); Ethernet; Alimentação elétrica: 110 (127)VAC@60Hz; Saída DICOM 3.0: habilitação para sistema:  “C-Store”;  “Print”;  “Storage Commitment”;  “Media Storage”;  “Modality Worklist”;  “MPPS”;  “Structured Report”; Modos: B; B/B; M; B/M; Collor “flow mapping”; Doppler espectral pulsado; Doppler tecidual; Power doppler; Triplex em tempo real; Função “cine loop” armazenamento de 256 MB ou 2.200 quadros; Transdutores: Eletrônicos; Multi-freqüenciais com tecnologia de “banda larga”, permitindo seleção eletrônica de 6 freq. diferentes contemplando os modos bidirecionais (2D) e THI; Compatíveis c/ harmônica tecidual com inversão de pulso; Aptos para serem utilizados nos modos: B; M; Collor Doppler; Doppler Pulsado; 02 Transdutores convexos para exames abdominais com: Freqüência de 03 a 05 MHz; Abertura de 60°; C/ 160 cristais piezoelétricos; 2 Transdutores lineares para exames vasculares, músculo-esquelético, mama e tireoide: Freqüência de 7.0 a 12 MHz; Abertura de 32 mm; Com 192 cristais piezoelétricos; Área de contato efetiva de 38 mm; 02 Transdutores endocavitários para uso transvaginal e transretal: Freqüência de 04 a 09 MHz; Abertura de 140°; Com 160 cristais piezoelétricos; guia de biópsia reutilizável para cada um dos transdutores; Continua nas observações.",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "VERIFICAR",
+  "codigo_indicado": "011422",
+  "conta_unidade": "S",
+  "confianca": "Alta",
+  "quantidade": 2.0,
+  "valor_unitario": 357682.66,
+  "valor_total": 715365.32,
+  "observacao": "Código certo, mas 2×R$357,7 mil (2016) = +220% corrigido. Equipamento premium (4 modos, 6 transdutores) ou sobrepreço – vale checar.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 166964.3
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 119597.54
+   }
+  ]
+ },
+ {
+  "linha": 74,
+  "convenio": "840013",
+  "ano": 2016,
+  "tipo_contratacao": "Convênio",
+  "texto": "Rendimento de aplicação para complementar o valor da Braquiterapia com sistema de controle remoto, em virtude da variação cambial.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "010547",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 119597.54,
+  "valor_total": 119597.54,
+  "observacao": "Rendimento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 166964.3
+   },
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 119597.54
+   }
+  ]
+ },
+ {
+  "linha": 75,
+  "convenio": "841023",
+  "ano": 2016,
+  "tipo_contratacao": "Convênio",
+  "texto": "Valor de Aplicação dos rendimentos para compor o valor do item Tomógrafo Computadorizado 16 Cortes",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011804",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 505020.33,
+  "valor_total": 505020.33,
+  "observacao": "16 cortes – complemento.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 505020.33
+   }
+  ]
+ },
+ {
+  "linha": 76,
+  "convenio": "875921",
+  "ano": 2018,
+  "tipo_contratacao": "Convênio",
+  "texto": "Tomógrafo Computadorizado",
+  "tipo_lancamento": "Aquisição",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "011805",
+  "conta_unidade": "N?",
+  "confianca": "Baixa",
+  "quantidade": 1.0,
+  "valor_unitario": 1600000.0,
+  "valor_total": 1600000.0,
+  "observacao": "Sem nº de canais. R$1,6 mi (2018) → IPCA R$2,40 mi / US$438 mil: os dois métodos ficam acima do ponto médio 011804/011805 → inclina 011805 (fora da família). Confirmar.",
+  "solicitacoes_rendimento": []
+ },
+ {
+  "linha": 77,
+  "convenio": "877501",
+  "ano": 2018,
+  "tipo_contratacao": "Convênio",
+  "texto": "COMPLEMENTAÇÃO PARA A AQUISIÇÃO DO APARELHO DE RESSONÂNCIA MAGNÉTICA.",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "AJUSTE",
+  "codigo_indicado": "herda RM do convênio 877501",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 189896.0,
+  "valor_total": 189896.0,
+  "observacao": "Complemento: herda o campo (T) do item original – não precisa inferir.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 189896.0
+   },
+   {
+    "status": "Recusada pelo Concedente",
+    "valor": 269000.0
+   }
+  ]
+ },
+ {
+  "linha": 78,
+  "convenio": "953716",
+  "ano": 2023,
+  "tipo_contratacao": "Convênio",
+  "texto": "USO DE RENDIMENTO DE APLICAÇÃO FINANCEIRA PARA COMPLEMENTAÇÃO DE AUISIÇÃO DE ACELERADOR NUCLEAR",
+  "tipo_lancamento": "Complemento/rendimento",
+  "avaliacao": "OK",
+  "codigo_indicado": "herda AL do convênio",
+  "conta_unidade": "N",
+  "confianca": "Alta",
+  "quantidade": 1.0,
+  "valor_unitario": 227121.0,
+  "valor_total": 227121.0,
+  "observacao": "\"Acelerador nuclear\" = erro de digitação.",
+  "solicitacoes_rendimento": [
+   {
+    "status": "PT Ajustado e Aprovado",
+    "valor": 227121.0
+   }
+  ]
+ }
+]
