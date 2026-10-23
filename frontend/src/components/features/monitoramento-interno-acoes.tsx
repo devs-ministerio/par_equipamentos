@@ -59,11 +59,7 @@ export function MonitoramentoInternoAcoes({
         <div className="grid gap-1.5">
           {[...acoes]
             .sort(
-              (a, b) =>
-                Number(!!a.data_conclusao) - Number(!!b.data_conclusao) ||
-                (a.data_prevista ?? "9999").localeCompare(
-                  b.data_prevista ?? "9999",
-                ),
+              (a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id,
             )
             .map((acao) => {
               const diasPrazo = !acao.data_conclusao

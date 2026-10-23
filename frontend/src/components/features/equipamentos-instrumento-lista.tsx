@@ -63,9 +63,6 @@ export function EquipamentosInstrumentoLista({
         const nome = nomeSemCodigo(item.descricao);
         const posicao = posicoes.get(item.id);
         const planejado = item.quantidade_planejada;
-        const pct = planejado
-          ? Math.min(100, (item.quantidade_entregue / planejado) * 100)
-          : 0;
         return (
           <div
             key={item.id}
@@ -89,10 +86,7 @@ export function EquipamentosInstrumentoLista({
                   </span>
                 )}
               </div>
-              <div
-                className="text-[12.5px] tabular-nums"
-                aria-label={`${item.quantidade_entregue} de ${planejado ?? "quantidade desconhecida"} entregue`}
-              >
+              <div className="text-[12.5px] tabular-nums">
                 <span className="font-semibold">
                   {item.quantidade_entregue}
                 </span>
@@ -100,15 +94,6 @@ export function EquipamentosInstrumentoLista({
                   {" "}
                   / {planejado ?? "?"}
                 </span>
-                <div
-                  className="mt-1 h-1 overflow-hidden rounded-full bg-muted"
-                  aria-hidden="true"
-                >
-                  <div
-                    className="h-full rounded-full bg-success"
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
               </div>
               <div>
                 <span
