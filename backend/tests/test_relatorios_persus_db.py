@@ -14,6 +14,7 @@ from app.services.relatorios import (
     _resumo_instrumentos_programas,
     montar_relatorio,
 )
+from scripts.preencher_quantidade_item_manual import preencher as preencher_quantidade
 from scripts.preencher_valor_item_persus_i import preencher
 
 PREFIXO = "__pytest_persus_"
@@ -160,6 +161,48 @@ def test_word_nao_traz_nota_de_valores_sob_o_resumo():
         textos = [p.text for p in Document(BytesIO(conteudo)).paragraphs]
         # Then: sem o parágrafo de notas
         assert not any("somam apenas registros" in t or "pode incluir obras" in t for t in textos)
+    finally:
+        db.rollback()
+        db.close()
+
+
+@pytest.mark.db
+def test_quantidade_um_vai_em_um_item_manual_por_instrumento_so_nos_tipos_da_regra_e_e_idempotente():
+    # Given: PERSUS I com a descrição repetida só na caixa, e um Convênio com item manual
+    db = SessionLocal()
+    try:
+        persus = convenio("qtd-persus", "PERSUS I", "Em operação", 1.0)
+        persus.siconv_raw = {
+            "itens_plano_aplicacao": [
+                {"DESCRICAO_ITEM": "Acelerador Linear", "ORIGEM_ITEM": "carga_manual_inicial"},
+                {"DESCRICAO_ITEM": "Acelerador linear", "ORIGEM_ITEM": "carga_manual_inicial"},
+            ]
+        }
+        ja_com = convenio("qtd-ted", "TED", "Em execução", 1.0)
+        ja_com.siconv_raw = {
+            "itens_plano_aplicacao": [
+                {"DESCRICAO_ITEM": "Mamógrafo", "ORIGEM_ITEM": "carga_manual_inicial", "QTD_ITEM": "2"}
+            ]
+        }
+        convenio_comum = convenio("qtd-conv", "Convênio", "Em execução", 1.0)
+        convenio_comum.siconv_raw = {
+            "itens_plano_aplicacao": [{"DESCRICAO_ITEM": "Mamógrafo", "ORIGEM_ITEM": "carga_manual_inicial"}]
+        }
+        db.add_all([persus, ja_com, convenio_comum])
+        db.flush()
+        # When
+        simulado = preencher_quantidade(db, aplicar=False)
+        assert "QTD_ITEM" not in str(persus.siconv_raw)
+        aplicado = preencher_quantidade(db, aplicar=True)
+        db.flush()
+        repetido = preencher_quantidade(db, aplicar=True)
+        # Then: só o primeiro item manual recebe 1; quantidade existente e Convênio ficam como estavam
+        itens = persus.siconv_raw["itens_plano_aplicacao"]
+        assert [i.get("QTD_ITEM") for i in itens] == ["1", None]
+        assert ja_com.siconv_raw["itens_plano_aplicacao"][0]["QTD_ITEM"] == "2"
+        assert "QTD_ITEM" not in convenio_comum.siconv_raw["itens_plano_aplicacao"][0]
+        assert simulado.alterados >= 1 and aplicado.alterados >= 1 and repetido.alterados == 0
+        assert aplicado.fora_da_regra >= 1
     finally:
         db.rollback()
         db.close()

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.domain_errors import ValidationError
 from app.equipamentos import classificar_descricoes
+from app.pipeline.itens_plano import descricoes_so_de_obra_ou_servico, item_conta_como_equipamento
 from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
 from app.repositories import equipamento_marcadores as marcadores_repo
 from app.repositories import relatorios_encerrados as repo
@@ -175,15 +176,25 @@ def _quantidade_do_item(item: dict) -> int:
 def _quantidade_de_equipamentos(itens_plano: list[dict], codigos: list[str]) -> int:
     """Unidades dos tipos de equipamento visíveis do registro.
 
-    Soma o `QTD_ITEM` de cada item do plano que pertence a um desses tipos, o que
-    inclui itens numerados ("Ultrassom 1", "Ultrassom 2"). Sem plano (PERSUS, FAF,
-    TED), cada tipo conta 1.
+    Soma o `QTD_ITEM` de cada item de bem do plano que pertence a um desses tipos, o
+    que inclui itens numerados ("Ultrassom 1", "Ultrassom 2"). Itens de obra e
+    serviço não contam (a quantidade neles é área ou serviço). Item de carga manual
+    (sem `ID_ITEM_PAD`) vale uma unidade, e a mesma descrição repetida só muda de
+    caixa conta uma vez. Sem plano (PERSUS, FAF, TED), cada tipo conta 1.
     """
     por_tipo: Counter[str] = Counter()
+    manuais_vistos: set[str] = set()
     for item in itens_plano:
-        descricao = item.get("DESCRICAO_ITEM") if isinstance(item, dict) else None
+        if not item_conta_como_equipamento(item):
+            continue
+        descricao = item.get("DESCRICAO_ITEM")
         if not descricao:
             continue
+        if not item.get("ID_ITEM_PAD"):
+            chave = normalizar_texto(descricao)
+            if chave in manuais_vistos:
+                continue
+            manuais_vistos.add(chave)
         for evidencia in classificar_descricoes([descricao]):
             if evidencia.codigo in codigos:
                 por_tipo[evidencia.codigo] += _quantidade_do_item(item)
@@ -211,6 +222,9 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
             ("proposta_candidata", registro.proposta_id),
         ):
             achados = marcadores.get((origem, identificador)) if identificador is not None else None  # type: ignore[arg-type]
+            if achados and origem == "convenio":
+                so_obra = descricoes_so_de_obra_ou_servico(registro.itens_plano)
+                achados = [m for m in achados if m.descricao_original not in so_obra]
             if achados:
                 return registro.model_copy(
                     update={
