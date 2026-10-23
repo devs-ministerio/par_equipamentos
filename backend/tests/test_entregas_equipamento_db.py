@@ -331,3 +331,17 @@ def test_resumo_planejado_x_entregue_por_familia(db):
     db.flush()
     svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 1)), db=db, usuario=c.titular)
     assert repo.resumo_por_instrumento_e_familia(db, {c.inst.id}) == [(c.inst.id, mamografo.nome, 2, 1)]
+
+
+def test_relatorio_de_instrumentos_traz_entregues_por_familia_do_convenio(db):
+    from app.services.relatorios import _entregues_por_convenio
+
+    c = Cenario(db)
+    familia = EquipamentoCatalogo(codigo=f"fam{uuid4().hex[:6]}", nome=f"Familia {uuid4().hex[:6]}")
+    db.add(familia)
+    db.flush()
+    c.dois.catalogo_id = familia.id
+    db.flush()
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2)), db=db, usuario=c.titular)
+    convenio = db.get(Convenio, c.dois.convenio_id)
+    assert _entregues_por_convenio(db, [convenio]) == {convenio.id: {familia.nome: 2}}
