@@ -113,8 +113,14 @@ jobs:
           echo "Objeto: $chave"
 
           inicio=$(date +%s)
-          "$PG_BIN/pg_dump" "$BACKUP_DATABASE_URL" --format=custom --no-owner --no-privileges \
-            --file="$trabalho/dump"
+          if ! "$PG_BIN/pg_dump" "$BACKUP_DATABASE_URL" --format=custom --no-owner --no-privileges \
+            --file="$trabalho/dump" 2> "$trabalho/pg_dump.erro"; then
+            cat "$trabalho/pg_dump.erro" >&2
+            if grep -q "permission denied" "$trabalho/pg_dump.erro"; then
+              echo "::error title=Backup sem permissão::sigeo_backup não lê alguma tabela (tabela nova sem GRANT). Rode migrar_banco.yml, que reaplica as permissões, e veja docs/arquitetura/incidente-api-neondb-owner-2026-10-23.md." >&2
+            fi
+            exit 1
+          fi
           # Estrutura legível: um dump truncado ou corrompido falha aqui, antes do envio.
           "$PG_BIN/pg_restore" --list "$trabalho/dump" > "$trabalho/conteudo.txt"
           if [ ! -s "$trabalho/conteudo.txt" ] || ! grep -q "TABLE DATA" "$trabalho/conteudo.txt"; then
