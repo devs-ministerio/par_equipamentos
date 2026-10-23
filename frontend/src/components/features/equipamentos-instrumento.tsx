@@ -78,7 +78,7 @@ export function EquipamentosInstrumento({
   return (
     <SecaoOperacional
       titulo="Equipamentos do instrumento"
-      subtitulo={`${dados.itens.length} item(ns) controlado(s) por unidade${dados.outros_itens ? ` · ${dados.outros_itens} outro(s) item(ns) do plano` : ""}`}
+      cartao
       acao={
         podeEditar ? (
           <button
@@ -137,10 +137,16 @@ export function EquipamentosInstrumento({
           }
         />
       )}
+      {dados.outros_itens > 0 && (
+        <p className="m-0 mt-3 text-[11.5px] text-muted-foreground">
+          + {dados.outros_itens} outro(s) item(ns) do plano sem controle por
+          unidade
+        </p>
+      )}
       {painel && (
         <EquipamentosInstrumentoFormEntrega
           itens={dados.itens}
-          itemInicialId={painel.tipo === "entrega" ? painel.itemId : undefined}
+          apenasItemId={painel.tipo === "entrega" ? painel.itemId : undefined}
           dataLegada={
             painel.tipo === "legado" ? (painel.data ?? "") : undefined
           }

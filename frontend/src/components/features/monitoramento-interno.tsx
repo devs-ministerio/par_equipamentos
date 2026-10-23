@@ -26,10 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { OperationalDetailSection } from "@/components/common/operational-detail-section";
 import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho";
 import { MonitoramentoInternoCadastro } from "./monitoramento-interno-cadastro";
-import {
-  MonitoramentoInternoFaseGeral,
-  MonitoramentoInternoCronograma,
-} from "./monitoramento-interno-fase-cronograma";
+import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
+import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
@@ -175,6 +173,12 @@ function MonitoramentoInternoConteudo({
         acoesAtrasadasCount={acoesAtrasadas.length}
       />
 
+      <EquipamentosInstrumento
+        numeroConvenio={numeroConvenio}
+        podeEditarInstrumento={podeEditar}
+        aoSessaoInvalida={sessao.tratarSessaoInvalida}
+      />
+
       <MonitoramentoInternoCadastro
         instrumento={inst}
         podeEditar={podeEditar}
@@ -201,12 +205,6 @@ function MonitoramentoInternoConteudo({
             }),
           )
         }
-      />
-
-      <EquipamentosInstrumento
-        numeroConvenio={numeroConvenio}
-        podeEditarInstrumento={podeEditar}
-        aoSessaoInvalida={sessao.tratarSessaoInvalida}
       />
 
       <div className="grid gap-4">

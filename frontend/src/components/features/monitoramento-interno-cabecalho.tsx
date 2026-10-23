@@ -29,7 +29,6 @@ export function MonitoramentoInternoCabecalho({
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
-  const equipamentoReferencia = inst.equipamento_descricao ?? "Não informado";
   const origemAlternativa = Boolean(inst.origem_dado);
   const prestacaoConcluida =
     inst.situacao_prestacao_contas
@@ -43,10 +42,6 @@ export function MonitoramentoInternoCabecalho({
     !prestacaoConcluida;
 
   const indicadores = [
-    {
-      rotulo: "Equipamento planejado",
-      valor: equipamentoReferencia,
-    },
     {
       rotulo: "Licença CNEN",
       valor:

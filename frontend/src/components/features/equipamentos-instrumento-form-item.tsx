@@ -14,6 +14,8 @@ export function EquipamentosInstrumentoFormItem({
   erro,
   register,
   rotuloFalta,
+  titulo,
+  fixo,
 }: {
   indice: number;
   item: ItemEquipamento;
@@ -21,13 +23,17 @@ export function EquipamentosInstrumentoFormItem({
   erro?: { quantidade?: { message?: string }; series?: { message?: string } };
   register: UseFormRegister<RegistrarEntregaFormValues>;
   rotuloFalta: string;
+  titulo: string;
+  /** Item único já escolhido: sem caixa de seleção. */
+  fixo: boolean;
 }) {
   return (
     <div className="rounded-md border p-2.5">
       <label className="flex items-center gap-2 text-[12.5px] font-semibold">
-        <input type="checkbox" {...register(`itens.${i}.selecionado`)} />
-        {item.descricao}
-        {item.codigo_item ? ` (${item.codigo_item})` : ""}
+        {!fixo && (
+          <input type="checkbox" {...register(`itens.${i}.selecionado`)} />
+        )}
+        {titulo}
         <span className="font-normal text-muted-foreground">{rotuloFalta}</span>
       </label>
       {ativo && (

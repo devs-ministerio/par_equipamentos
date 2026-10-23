@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -72,12 +71,9 @@ export function EquipamentosInstrumentoEditarUnidade({
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && onFechar()}>
-      <DialogContent>
+      <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Corrigir unidade {unidade.ordem}</DialogTitle>
-          <DialogDescription>
-            A correção fica registrada com os valores anteriores.
-          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2 sm:grid-cols-2">
           {campo("Marca", marca, setMarca)}

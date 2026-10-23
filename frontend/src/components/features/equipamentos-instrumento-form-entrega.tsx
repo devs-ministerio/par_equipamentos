@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { nomeSemCodigo, posicaoEntreIguais } from "@/lib/equipamento-rotulos";
 import { cn } from "@/lib/utils";
 import {
   type RegistrarEntregaFormValues,
@@ -48,13 +48,14 @@ function faltam(item: ItemEquipamento): number | null {
 
 export function EquipamentosInstrumentoFormEntrega({
   itens,
-  itemInicialId,
+  apenasItemId,
   dataLegada,
   onEnviar,
   onFechar,
 }: {
   itens: ItemEquipamento[];
-  itemInicialId?: number;
+  /** Aberto pelo ícone de um item: mostra só ele. Sem isso, lista os pendentes. */
+  apenasItemId?: number;
   /** Presente no vínculo de entrega antiga: data fixa do evento original. */
   dataLegada?: string | null;
   onEnviar: (envio: EnvioEntrega) => Promise<void>;
@@ -62,7 +63,10 @@ export function EquipamentosInstrumentoFormEntrega({
 }) {
   const formId = useId();
   const chave = useRef(crypto.randomUUID());
-  const pendentes = itens.filter((i) => faltam(i) !== 0);
+  const posicoes = posicaoEntreIguais(itens);
+  const pendentes = itens.filter((i) =>
+    apenasItemId ? i.id === apenasItemId : faltam(i) !== 0,
+  );
   const {
     register,
     control,
@@ -76,7 +80,7 @@ export function EquipamentosInstrumentoFormEntrega({
       observacao: "",
       itens: pendentes.map((i) => ({
         itemId: i.id,
-        selecionado: i.id === itemInicialId,
+        selecionado: apenasItemId !== undefined,
         quantidade: String(faltam(i) ?? 1),
         falta: faltam(i),
         series: "",
@@ -102,15 +106,14 @@ export function EquipamentosInstrumentoFormEntrega({
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && onFechar()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent
+        aria-describedby={undefined}
+        className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+      >
         <DialogHeader>
           <DialogTitle>
             {dataLegada ? "Vincular entrega registrada" : "Registrar entrega"}
           </DialogTitle>
-          <DialogDescription>
-            Marque os equipamentos entregues. A unidade nasce aqui, com marca,
-            modelo e número de série (opcional).
-          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(aoSubmeter)} className="grid gap-3">
           {!dataLegada && (
@@ -164,6 +167,13 @@ export function EquipamentosInstrumentoFormEntrega({
                   erro={erro}
                   register={register}
                   rotuloFalta={rotuloFalta(item)}
+                  titulo={[
+                    nomeSemCodigo(item.descricao),
+                    posicoes.get(item.id) && `(${posicoes.get(item.id)})`,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  fixo={apenasItemId !== undefined}
                 />
               );
             })}

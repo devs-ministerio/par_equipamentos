@@ -1,27 +1,30 @@
-/** Um cartão por item controlado: planejado x entregue, situação e unidades. */
-import { useState } from "react";
+/** Tabela de itens controlados: planejado x entregue, situação e unidades.
+ * Grade que vira lista empilhada em tela estreita. */
+import { Check } from "lucide-react";
 import { fmtData } from "@/lib/monitoramento-format";
+import { nomeSemCodigo, posicaoEntreIguais } from "@/lib/equipamento-rotulos";
 import { cn } from "@/lib/utils";
 import type {
   ItemEquipamento,
   UnidadeEquipamento,
 } from "@/services/entregas-equipamento";
-import { ConfirmarExclusaoComMotivo, estiloInput } from "./monitoramento-ui";
+import {
+  EquipamentosInstrumentoUnidades,
+  botaoIcone,
+} from "./equipamentos-instrumento-unidades";
 
 const SITUACAO: Record<ItemEquipamento["situacao"], [string, string]> = {
   pendente: ["Pendente", "bg-warning-bg text-warning border-warning/20"],
   parcial: ["Parcial", "bg-warning-bg text-warning border-warning/20"],
   entregue: ["Entregue", "bg-success-bg text-success border-success/20"],
   legado_a_revisar: [
-    "Entrega a vincular",
+    "A vincular",
     "bg-destructive-bg text-destructive border-destructive/20",
   ],
 };
 
-const botao = cn(
-  estiloInput,
-  "cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5",
-);
+const COLUNAS =
+  "md:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_6.5rem_2.5rem] md:items-center";
 
 export function EquipamentosInstrumentoLista({
   itens,
@@ -36,113 +39,113 @@ export function EquipamentosInstrumentoLista({
   onCorrigir: (unidade: UnidadeEquipamento) => void;
   onExcluirEntrega: (entregaId: number, motivo: string) => Promise<void>;
 }) {
-  const [excluindo, setExcluindo] = useState<number | null>(null);
+  const posicoes = posicaoEntreIguais(itens);
   return (
-    <ul className="m-0 grid list-none gap-2.5 p-0">
+    <div>
+      <div
+        aria-hidden="true"
+        className={cn(
+          "hidden gap-3 border-b border-border pb-2 text-[10.5px] font-bold uppercase tracking-[.03em] text-muted-foreground md:grid",
+          COLUNAS,
+        )}
+      >
+        <span>Equipamento</span>
+        <span>Entregue</span>
+        <span>Situação</span>
+        <span>Última</span>
+        <span />
+      </div>
       {itens.map((item) => {
         const [rotulo, classes] = SITUACAO[item.situacao];
-        const completo = item.situacao === "entregue";
+        const nome = nomeSemCodigo(item.descricao);
+        const posicao = posicoes.get(item.id);
+        const planejado = item.quantidade_planejada;
+        const pct = planejado
+          ? Math.min(100, (item.quantidade_entregue / planejado) * 100)
+          : 0;
         return (
-          <li key={item.id} className="rounded-lg border border-border p-3">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <strong className="min-w-0 flex-1 break-words text-[13px]">
-                {item.descricao}
+          <div
+            key={item.id}
+            role="group"
+            aria-label={nome}
+            className="border-b border-border py-3 last:border-b-0"
+          >
+            <div className={cn("grid grid-cols-2 gap-x-3 gap-y-2", COLUNAS)}>
+              <div className="col-span-2 min-w-0 md:col-span-1">
+                <div className="break-words text-[13px] font-semibold">
+                  {nome}
+                  {posicao && (
+                    <span className="ml-1.5 font-normal text-muted-foreground">
+                      · item {posicao}
+                    </span>
+                  )}
+                </div>
                 {item.codigo_item && (
-                  <span className="ml-1.5 font-normal text-muted-foreground">
-                    ({item.codigo_item})
+                  <span className="mt-0.5 inline-block rounded bg-muted px-1.5 py-px font-mono text-[10.5px] text-muted-foreground">
+                    {item.codigo_item}
                   </span>
                 )}
-              </strong>
-              <span
-                className={cn(
-                  "rounded-full border px-2.5 py-[3px] text-[10.5px] font-bold",
-                  classes,
-                )}
+              </div>
+              <div
+                className="text-[12.5px] tabular-nums"
+                aria-label={`${item.quantidade_entregue} de ${planejado ?? "quantidade desconhecida"} entregue`}
               >
-                {rotulo}
-              </span>
-              <span className="text-[12.5px] tabular-nums">
-                {item.quantidade_entregue} de {item.quantidade_planejada ?? "?"}{" "}
-                entregue(s)
-              </span>
-              {podeEditar && !completo && (
-                <button
-                  type="button"
-                  className={botao}
-                  onClick={() => onRegistrar(item.id)}
+                <span className="font-semibold">
+                  {item.quantidade_entregue}
+                </span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  / {planejado ?? "?"}
+                </span>
+                <div
+                  className="mt-1 h-1 overflow-hidden rounded-full bg-muted"
+                  aria-hidden="true"
                 >
-                  Registrar entrega
-                </button>
-              )}
+                  <div
+                    className="h-full rounded-full bg-success"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+              <div>
+                <span
+                  className={cn(
+                    "inline-block rounded-full border px-2.5 py-[3px] text-[10.5px] font-bold",
+                    classes,
+                  )}
+                >
+                  {rotulo}
+                </span>
+              </div>
+              <div className="text-[12px] text-muted-foreground">
+                {item.ultima_entrega ? fmtData(item.ultima_entrega) : "—"}
+              </div>
+              <div className="md:justify-self-end">
+                {podeEditar && item.situacao !== "entregue" && (
+                  <button
+                    type="button"
+                    className={botaoIcone}
+                    aria-label={`Registrar entrega de ${nome}`}
+                    title="Registrar entrega"
+                    onClick={() => onRegistrar(item.id)}
+                  >
+                    <Check className="size-4" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
             </div>
-            {item.ultima_entrega && (
-              <p className="m-0 mt-1 text-[11.5px] text-muted-foreground">
-                Última entrega em {fmtData(item.ultima_entrega)}
-              </p>
-            )}
             {item.unidades.length > 0 && (
-              <details className="mt-2">
-                <summary className="cursor-pointer text-[12px] font-semibold">
-                  Unidades ({item.unidades.length})
-                </summary>
-                <ul className="m-0 mt-1.5 grid list-none gap-1.5 p-0">
-                  {item.unidades.map((u) => (
-                    <li
-                      key={u.id}
-                      className="border-t border-border pt-1.5 text-[12.5px]"
-                    >
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <span>Unidade {u.ordem}</span>
-                        <span>
-                          {[u.marca, u.modelo].filter(Boolean).join(" / ") ||
-                            "marca e modelo não informados"}
-                        </span>
-                        <span>Série: {u.numero_serie ?? "—"}</span>
-                        <span>
-                          Vida útil:{" "}
-                          {u.vida_util_anos != null
-                            ? `${u.vida_util_anos} anos`
-                            : "—"}
-                        </span>
-                        <span className="text-muted-foreground">
-                          Entrega de {fmtData(u.data_entrega)}
-                        </span>
-                        {podeEditar && (
-                          <>
-                            <button
-                              type="button"
-                              className={botao}
-                              onClick={() => onCorrigir(u)}
-                            >
-                              Corrigir
-                            </button>
-                            <button
-                              type="button"
-                              className={botao}
-                              onClick={() => setExcluindo(u.entrega_id)}
-                            >
-                              Excluir entrega
-                            </button>
-                          </>
-                        )}
-                      </div>
-                      {excluindo === u.entrega_id && (
-                        <ConfirmarExclusaoComMotivo
-                          onCancelar={() => setExcluindo(null)}
-                          onExcluir={async (motivo) => {
-                            await onExcluirEntrega(u.entrega_id, motivo);
-                            setExcluindo(null);
-                          }}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </details>
+              <EquipamentosInstrumentoUnidades
+                nome={nome}
+                unidades={item.unidades}
+                podeEditar={podeEditar}
+                onCorrigir={onCorrigir}
+                onExcluirEntrega={onExcluirEntrega}
+              />
             )}
-          </li>
+          </div>
         );
       })}
-    </ul>
+    </div>
   );
 }

@@ -10,7 +10,7 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
   return {
     id: 1,
     codigo_item: "010925",
-    descricao: "Mamógrafo",
+    descricao: "010925-Mamógrafo",
     familia: "mamografo",
     controla_unidade: true,
     quantidade_planejada: 2,
@@ -46,11 +46,11 @@ describe("lista de equipamentos do instrumento", () => {
       <EquipamentosInstrumentoLista {...props} itens={[item()]} podeEditar />,
     );
     expect(screen.getByText("Parcial")).toBeInTheDocument();
-    expect(screen.getByText(/1 de 2 entregue/)).toBeInTheDocument();
+    expect(screen.getByText("010925")).toBeInTheDocument();
     await userEvent.click(screen.getByText(/Unidades \(1\)/));
     expect(screen.getByText("Série: S1")).toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole("button", { name: "Registrar entrega" }),
+      screen.getByRole("button", { name: "Registrar entrega de Mamógrafo" }),
     );
     expect(props.onRegistrar).toHaveBeenCalledWith(1);
     expect(await axe(container)).toHaveNoViolations();
@@ -73,7 +73,7 @@ describe("lista de equipamentos do instrumento", () => {
       />,
     );
     expect(
-      screen.queryByRole("button", { name: "Registrar entrega" }),
+      screen.queryByRole("button", { name: /Registrar entrega/ }),
     ).not.toBeInTheDocument();
   });
 });
@@ -102,7 +102,7 @@ describe("form de registrar entrega", () => {
     render(
       <EquipamentosInstrumentoFormEntrega
         itens={[item()]}
-        itemInicialId={1}
+        apenasItemId={1}
         onEnviar={onEnviar}
         onFechar={vi.fn()}
       />,
@@ -125,7 +125,7 @@ describe("form de registrar entrega", () => {
     render(
       <EquipamentosInstrumentoFormEntrega
         itens={[item()]}
-        itemInicialId={1}
+        apenasItemId={1}
         onEnviar={onEnviar}
         onFechar={onFechar}
       />,
