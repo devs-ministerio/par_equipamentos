@@ -48,6 +48,13 @@ def test_religa_pelo_codigo_recalcula_a_chave_nao_toca_acessorio_e_e_idempotente
         convenio = Convenio(numero=f"{PREFIXO}1", convenente_nome="Hospital sintético", tipo_contratacao="Convênio")
         db.add(convenio)
         db.flush()
+        convenio.siconv_raw = {
+            "itens_plano_aplicacao": [
+                {"DESCRICAO_ITEM": "000253-Arco Cirúrgico", "TIPO_DESPESA_ITEM": "BEM", "ID_ITEM_PAD": "1"},
+                {"DESCRICAO_ITEM": "Reforma com arco cirúrgico", "TIPO_DESPESA_ITEM": "OBRA", "ID_ITEM_PAD": "2"},
+            ]
+        }
+        db.flush()
         item = "010254-Sistema de Vídeo Endoscopia Rígida"
         acessorio = "011237-Monitor Multiparâmetros para Ressonância Magnética"
         rigida = _marcador(db, convenio, endoscopia, item, "chave-antiga-1")
@@ -73,6 +80,11 @@ def test_religa_pelo_codigo_recalcula_a_chave_nao_toca_acessorio_e_e_idempotente
         # acessório de ressonância não é o equipamento: fica onde estava e aparece como suspeito
         assert monitor.equipamento_catalogo_id == ressonancia.id
         assert aplicado.suspeitos["ressonancia"] >= 1
+        # item de bem classificado sem marcador ganha o marcador; item de obra não
+        criados = db.scalars(select(EquipamentoMarcador).where(EquipamentoMarcador.convenio_id == convenio.id)).all()
+        descricoes = {m.descricao_original for m in criados}
+        assert "000253-Arco Cirúrgico" in descricoes and "Reforma com arco cirúrgico" not in descricoes
+        assert aplicado.criados == 1 and repetido.criados == 0
         # nada foi apagado
         assert db.scalar(select(EquipamentoMarcador).where(EquipamentoMarcador.id == monitor.id)) is not None
     finally:

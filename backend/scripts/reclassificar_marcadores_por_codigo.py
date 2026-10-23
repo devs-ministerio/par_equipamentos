@@ -8,6 +8,9 @@ script:
   da família, recalculando `chave_evidencia` (que inclui o código) para a próxima carga
   reconhecer a mesma evidência e não duplicar;
 - **não apaga** nenhum marcador; se o destino já existir, pula e informa;
+- **cria** o marcador que falta quando um item de bem do convênio é classificado numa família e ainda
+  não tem marcador com a mesma descrição (por exemplo Arco Cirúrgico e Colposcópio, que não tinham
+  palavra-chave);
 - **lista como suspeitos** os marcadores de família controlada cujo item NÃO é classificado
   nela (por exemplo "Monitor Multiparâmetros para Ressonância Magnética"), para revisão.
 
@@ -30,14 +33,17 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.db.base import SessionLocal, engine
-from app.db.models import EquipamentoCatalogo, EquipamentoMarcador
+from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
+from app.equipamentos import relacao_da_descricao
 from app.equipamentos_renem import classificar_item, familias_controladas
+from app.pipeline.itens_plano import item_conta_como_equipamento
 from app.services.equipamento_marcadores import chave_da_evidencia
 
 
 @dataclass
 class Resultado:
     religados: int = 0
+    criados: int = 0
     ja_corretos: int = 0
     colisoes: int = 0
     por_familia: Counter[str] = field(default_factory=Counter)
@@ -94,7 +100,46 @@ def reclassificar(db: Session, *, aplicar: bool) -> Resultado:
             marcador.equipamento_catalogo_id = destino.id
             marcador.chave_evidencia = nova_chave
             existentes.add(((origem, origem_id), destino.id, nova_chave))
+    _criar_faltantes(db, resultado, catalogo, aplicar=aplicar)
     return resultado
+
+
+def _criar_faltantes(db: Session, resultado: Resultado, catalogo: dict, *, aplicar: bool) -> None:
+    com_marcador = {
+        (m.convenio_id, m.descricao_original)
+        for m in db.execute(select(EquipamentoMarcador).where(EquipamentoMarcador.convenio_id.is_not(None))).scalars()
+    }
+    for convenio in db.execute(select(Convenio)).scalars():
+        for item in (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []:
+            if not isinstance(item, dict) or not item_conta_como_equipamento(item):
+                continue
+            descricao = str(item.get("DESCRICAO_ITEM") or "")
+            classificacao = classificar_item(descricao)
+            destino = catalogo.get(classificacao.familia or "")
+            if destino is None or (convenio.id, descricao) in com_marcador:
+                continue
+            resultado.criados += 1
+            resultado.por_familia[destino.codigo] += 1
+            com_marcador.add((convenio.id, descricao))
+            if aplicar:
+                db.add(
+                    EquipamentoMarcador(
+                        convenio_id=convenio.id,
+                        equipamento_catalogo_id=destino.id,
+                        descricao_original=descricao.strip(),
+                        tipo_evidencia="item_orcamentario",
+                        relacao=relacao_da_descricao(descricao),
+                        confianca=100 if classificacao.fonte.startswith("codigo") else 90,
+                        chave_evidencia=chave_da_evidencia(
+                            origem="convenio",
+                            origem_id=convenio.id,
+                            codigo=destino.codigo,
+                            descricao=descricao,
+                            tipo_evidencia="item_orcamentario",
+                        ),
+                        origem_dado="reclassificacao por codigo RENEM",
+                    )
+                )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -116,13 +161,17 @@ def main(argv: list[str] | None = None) -> int:
                 entity_name="equipamento_marcador",
                 entity_id=0,
                 action="reclassificar_marcadores_por_codigo",
-                details={"religados": resultado.religados, "por_familia": dict(resultado.por_familia)},
+                details={
+                    "religados": resultado.religados,
+                    "criados": resultado.criados,
+                    "por_familia": dict(resultado.por_familia),
+                },
             )
             db.commit()
         else:
             db.rollback()
     modo = "religados" if args.aplicar else "a religar (simulação, nada foi alterado)"
-    print(f"Marcadores {modo}: {resultado.religados}")
+    print(f"Marcadores {modo}: {resultado.religados}; criados (item sem marcador): {resultado.criados}")
     print(f"  já na família correta: {resultado.ja_corretos}; colisões (puladas): {resultado.colisoes}")
     for familia, n in resultado.por_familia.most_common():
         print(f"    -> {familia}: {n}")
