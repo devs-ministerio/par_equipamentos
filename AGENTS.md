@@ -339,6 +339,21 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   existente. Usar `app/config_decisions.py::registrar_decisao`, não montar
   isso na mão em outro lugar.
 
+## Release de 22/10/2026 e operação de produção
+
+Resumo operacional; a versão completa, com evidências, está em `CLAUDE.md` (mesma seção) e em
+`docs/arquitetura/planmode-execucao-producao-2026-10-22.md`.
+
+- Ordem de release com schema novo: backup manual → pré-voo de posse (`backend/scripts/sql/normalizar_posse_aplicacao.sql`,
+  como `neondb_owner`) → merge → `migrar_banco.yml` (faz checkout da `master`) → Manual Deploy no Render → verificações.
+- O Render não faz deploy automático (serviço preso ao nome antigo do repositório); não ligar o gatilho sem manter
+  "migrar antes do código".
+- Backup agendado às 02:17 e 14:17 UTC (`backup_banco.yml`); `pipelines.yml` e `radar_convenios.yml` seguem com o
+  cron desligado até a ativação gradual.
+- Relatório de Concluídos: CNES, Nº do convênio e Quantidade em colunas próprias; data de conclusão cai no fim da
+  vigência, rotulado, quando o monitoramento não tem a data. Valor dos PERSUS I gravado no item do equipamento.
+- Antes de qualquer consulta a produção, confirmar `select current_database(), current_user`.
+
 ## Comandos úteis
 
 ```bash

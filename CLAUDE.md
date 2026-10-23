@@ -1294,6 +1294,57 @@ descartável de `/tmp`.
   processo reconhecido depois do fato, em auditoria de conformidade pedida pelo próprio usuário;
   registrado aqui em vez de silenciado, sem retroagir.
 
+## Release de 22/10/2026 e operação de produção
+
+Primeiro release grande para produção depois da integração do espelho oficial, do Radar e das notificações
+(PR #28, merge `ef2baa2`). Plano e evidências em `docs/arquitetura/planmode-execucao-producao-2026-10-22.md`;
+revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimentos em `docs/arquitetura/runbook-devops.md`.
+
+- **Ordem de um release que muda schema (nunca inverter):** backup manual (`backup_banco.yml`) → pré-voo de posse
+  (abaixo) → merge na `master` → `migrar_banco.yml` → **Manual Deploy no Render** → verificações (`/health`, login,
+  relatório pequeno em DOCX e XLSX, notificações) → preenchimentos de dado, se houver. `migrar_banco.yml` faz
+  checkout da **`master`**, então o merge vem antes da migração. O frontend (Vercel) publica sozinho ao mesclar; o
+  Render não, e entre os dois há uma janela curta com frontend novo falando com API antiga (contrato só aditivo).
+- **Render sem deploy automático:** todos os deploys desde 28/09 foram "Manual". O serviço e o Blueprint apontam
+  para o nome antigo do repositório (`gustavoleitte/par_equipamentos`, hoje `devs-ministerio/par_equipamentos`), e
+  o Blueprint está numa branch antiga, então o `autoDeployTrigger: checksPass` do `render.yaml` nunca vale. Religar é
+  pendência pós-janela de observação; **com o gatilho ligado, o merge subiria o código antes da migração**, então
+  manter "migrar antes" como regra. Deploy medido em 22/10: 2 min 11 s.
+- **Pré-voo de posse (obrigatório antes das migrations):** como `neondb_owner`, rodar
+  `backend/scripts/sql/normalizar_posse_aplicacao.sql` na produção (banco `neondb`, projeto `par_equipamentos`).
+  Em 22/10 havia 17 objetos (3 tabelas, 3 sequências, 11 enums) ainda com `neondb_owner`; sem isso as migrations
+  falham com `must be owner of type notificacao_tipo`. O script aborta sozinho se a role `sigeo_migration` não
+  existir, o que também denuncia conexão no banco errado. O `neondb_owner` não é usado por nenhuma credencial da
+  aplicação; a senha dele foi trocada em 22/10 depois de exposta.
+- **Backup:** `backup_banco.yml` agenda `02:17` e `14:17` UTC (23:17 e 11:17 em Brasília), `pg_dump -Fc` com a role
+  somente leitura `sigeo_backup`, cifra com `age` para duas identidades, envia ao R2 e aplica retenção de 7 dias
+  (mantém ao menos 3 íntegros), com checagem de backup íntegro nas últimas 24 h. Só roda na `master` (environment
+  Production). Restauração: `backend/scripts/restaurar_backup.sh`. RPO de 24 h tem ciclo agendado comprovado em
+  22/10; **RTO de 1 h segue não certificado** (medidos: restauração no Neon 848 s e deploy do Render; falta a troca de
+  `DATABASE_URL` e o teste funcional). Rotacionar a credencial do R2 antes de 20/11/2026.
+- **Agendamentos desligados de propósito:** `pipelines.yml` e `radar_convenios.yml` (cron comentado). Escrevem em
+  produção e geram notificações; ativar um de cada vez, com rodada manual supervisionada antes (Fase 4 do plano).
+- **Conferência de produção só de leitura:** usar `psql` com heredoc de aspas simples (`<<'SQL'`) para não esbarrar
+  na expansão de `!` do zsh; sempre confirmar `select current_database(), current_user` antes, porque uma variável de
+  ambiente vazia faz o `psql` cair no Postgres local sem aviso.
+
+### Relatórios: o que mudou neste release
+
+- **Concluídos** (`GET /relatorios/encerrados`, filtro "Conclusão" na tela): CNES, Nº do convênio e Quantidade em
+  colunas próprias no Excel e no Word (paisagem). Data de conclusão: a do marco `fase_concluido` do monitoramento
+  interno; sem ela, o **fim da vigência**, sempre rotulado como tal, porque o SICONV não informa quando a prestação
+  de contas foi concluída. Quantidade: soma de `QTD_ITEM` dos itens do plano de aplicação classificados nos tipos de
+  equipamento visíveis; sem plano (PERSUS, FAF, TED), uma unidade por tipo.
+- **Valor do equipamento** vem de `Convenio.siconv_raw["itens_plano_aplicacao"][].VALOR_TOTAL_ITEM` casado com a
+  descrição do marcador. **PERSUS I:** cada instrumento é um acelerador, então o valor global do instrumento foi
+  gravado no item (`scripts/preencher_valor_item_persus_i.py`, 92 registros em 22/10, idempotente, `VALOR_ITEM_ORIGEM`
+  e `AuditLog` por convênio). **PERSUS II** (em contratação) não tem valor e aparece como "CONTRATAÇÃO" na tabela
+  de instrumentos.
+- **Word:** sem parágrafos de nota sob as tabelas (decisão do usuário); espaçamento moderado nas células. Título de
+  seção seguido de tabela longa (mais de 6 linhas) usa o estilo "Titulo 1 solto", sem `keepNext`: com o título preso à
+  tabela, o Word/Pages empurrava a tabela inteira para a página seguinte. O Excel mantém as abas "Critérios" e "Leitura".
+- **Pendente (pedido do usuário):** levar a organização da visão "Concluídos" para a visão "Todos".
+
 ## Comandos úteis
 
 ```bash
