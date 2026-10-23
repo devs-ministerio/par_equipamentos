@@ -72,3 +72,13 @@ def test_valor_do_plano_nao_inclui_o_valor_da_obra():
         }
 
     assert _valores_por_item_plano(Fake()) == {"Tomógrafo": 1_000_000.0}  # type: ignore[arg-type]
+
+
+def test_carga_manual_nao_soma_quando_o_convenio_ja_tem_itens_da_api():
+    # Given: texto da planilha repete o mamógrafo que a API já traz com quantidade 12
+    itens = [
+        {"DESCRICAO_ITEM": "Mamógrafo", "ORIGEM_ITEM": "carga_manual_inicial"},
+        {"DESCRICAO_ITEM": "010925-Mamógrafo", "ID_ITEM_PAD": "9", "QTD_ITEM": "12", "TIPO_DESPESA_ITEM": "BEM"},
+    ]
+    # Then
+    assert _quantidade_de_equipamentos(itens, ["mamografo"]) == 12

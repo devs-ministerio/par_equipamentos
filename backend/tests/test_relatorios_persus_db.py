@@ -196,9 +196,10 @@ def test_quantidade_um_vai_em_um_item_manual_por_instrumento_so_nos_tipos_da_reg
         aplicado = preencher_quantidade(db, aplicar=True)
         db.flush()
         repetido = preencher_quantidade(db, aplicar=True)
-        # Then: só o primeiro item manual recebe 1; quantidade existente e Convênio ficam como estavam
+        # Then: o primeiro item manual recebe 1 e o duplicado de caixa é removido; quantidade existente e Convênio ficam
         itens = persus.siconv_raw["itens_plano_aplicacao"]
-        assert [i.get("QTD_ITEM") for i in itens] == ["1", None]
+        assert [(i["DESCRICAO_ITEM"], i.get("QTD_ITEM")) for i in itens] == [("Acelerador Linear", "1")]
+        assert aplicado.duplicados_removidos >= 1 and repetido.duplicados_removidos == 0
         assert ja_com.siconv_raw["itens_plano_aplicacao"][0]["QTD_ITEM"] == "2"
         assert "QTD_ITEM" not in convenio_comum.siconv_raw["itens_plano_aplicacao"][0]
         assert simulado.alterados >= 1 and aplicado.alterados >= 1 and repetido.alterados == 0

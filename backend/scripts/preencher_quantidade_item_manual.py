@@ -7,7 +7,9 @@ equipamento. Os itens de carga manual (`ORIGEM_ITEM = carga_manual_inicial`) vie
 - Só PERSUS I, PERSUS II, FAF e TED. Itens manuais de "Convênio" e PRONON ficam de fora
   e são apenas contados no relatório da execução.
 - Um item por convênio: o da descrição do marcador visível, senão o primeiro item
-  manual. Quando existem dois itens que diferem só na caixa, o segundo não recebe.
+  manual. Quando existem dois itens que diferem só na caixa, o segundo é um duplicado
+  da carga e é **removido** (só item manual, nunca item da API), com o texto removido
+  gravado na auditoria.
 - Nunca sobrescreve quantidade existente; idempotente.
 - Sem ``--aplicar`` apenas informa o que mudaria. Uma linha de ``AuditLog`` por convênio.
 
@@ -27,6 +29,7 @@ from sqlalchemy.engine import make_url
 from app.audit import log_action
 from app.db.base import SessionLocal, engine
 from app.db.models import Convenio
+from app.pipeline.texto import normalizar_texto
 from app.repositories import equipamento_marcadores as marcadores_repo
 from scripts.lib_monitoramento_convenio import (
     ORIGEM_ITEM_MANUAL_INICIAL,
@@ -44,6 +47,7 @@ class Resultado:
     ja_com_quantidade: int = 0
     sem_item_manual: int = 0
     fora_da_regra: int = 0
+    duplicados_removidos: int = 0
 
 
 def _indice_alvo(itens: list, descricao_marcador: str | None) -> int | None:
@@ -63,7 +67,7 @@ def _indice_alvo(itens: list, descricao_marcador: str | None) -> int | None:
 
 
 def preencher(db, *, aplicar: bool) -> Resultado:
-    alterados = ja = sem_item = 0
+    alterados = ja = sem_item = removidos = 0
     convenios = db.execute(select(Convenio).where(Convenio.tipo_contratacao.in_(TIPOS)).order_by(Convenio.id)).scalars()
     for convenio in list(convenios):
         itens = [
@@ -77,10 +81,23 @@ def preencher(db, *, aplicar: bool) -> Resultado:
         if indice is None:
             sem_item += 1
             continue
-        if itens[indice].get("QTD_ITEM"):
+        alvo = itens[indice]
+        chave = normalizar_texto(alvo["DESCRICAO_ITEM"])
+        duplicados = [
+            i
+            for i, item in enumerate(itens)
+            if i != indice
+            and isinstance(item, dict)
+            and item.get("ORIGEM_ITEM") == ORIGEM_ITEM_MANUAL_INICIAL
+            and normalizar_texto(item.get("DESCRICAO_ITEM")) == chave
+        ]
+        if alvo.get("QTD_ITEM") and not duplicados:
             ja += 1
             continue
-        itens[indice]["QTD_ITEM"] = QUANTIDADE_ITEM_MANUAL
+        textos_removidos = [itens[i]["DESCRICAO_ITEM"] for i in duplicados]
+        itens = [item for i, item in enumerate(itens) if i not in duplicados]
+        alvo["QTD_ITEM"] = alvo.get("QTD_ITEM") or QUANTIDADE_ITEM_MANUAL
+        removidos += len(duplicados)
         if aplicar:
             bruto = dict(convenio.siconv_raw or {})
             bruto["itens_plano_aplicacao"] = itens
@@ -91,7 +108,11 @@ def preencher(db, *, aplicar: bool) -> Resultado:
                 entity_name="convenio",
                 entity_id=convenio.id,
                 action=ACAO,
-                details={"item": itens[indice]["DESCRICAO_ITEM"], "quantidade": QUANTIDADE_ITEM_MANUAL},
+                details={
+                    "item": alvo["DESCRICAO_ITEM"],
+                    "quantidade": alvo["QTD_ITEM"],
+                    "duplicados_removidos": textos_removidos,
+                },
             )
         alterados += 1
     brutos = db.execute(select(Convenio.siconv_raw).where(Convenio.tipo_contratacao.not_in(TIPOS))).scalars()
@@ -101,7 +122,7 @@ def preencher(db, *, aplicar: bool) -> Resultado:
         for item in ((bruto or {}).get("itens_plano_aplicacao") or [])
         if isinstance(item, dict) and item.get("ORIGEM_ITEM") == ORIGEM_ITEM_MANUAL_INICIAL and not item.get("QTD_ITEM")
     )
-    return Resultado(alterados, ja, sem_item, fora_da_regra)
+    return Resultado(alterados, ja, sem_item, fora_da_regra, removidos)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -123,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
     modo = "gravados" if args.aplicar else "a gravar (simulação, nada foi alterado)"
     print(f"Quantidade 1 {modo}: {resultado.alterados}")
     print(f"  já tinham quantidade: {resultado.ja_com_quantidade}")
+    print(f"  duplicados de caixa removidos: {resultado.duplicados_removidos}")
     print(f"  sem item manual (ignorados): {resultado.sem_item_manual}")
     print(f"  itens manuais fora da regra (Convênio, PRONON), sem quantidade: {resultado.fora_da_regra}")
     return 0

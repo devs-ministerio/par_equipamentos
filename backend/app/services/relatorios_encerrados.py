@@ -179,11 +179,13 @@ def _quantidade_de_equipamentos(itens_plano: list[dict], codigos: list[str]) -> 
     Soma o `QTD_ITEM` de cada item de bem do plano que pertence a um desses tipos, o
     que inclui itens numerados ("Ultrassom 1", "Ultrassom 2"). Itens de obra e
     serviço não contam (a quantidade neles é área ou serviço). Item de carga manual
-    (sem `ID_ITEM_PAD`) vale uma unidade, e a mesma descrição repetida só muda de
-    caixa conta uma vez. Sem plano (PERSUS, FAF, TED), cada tipo conta 1.
+    (sem `ID_ITEM_PAD`) vale uma unidade, a mesma descrição repetida só muda de
+    caixa conta uma vez, e num convênio que já tem itens da API a carga manual não
+    soma (é a mesma informação, vinda da planilha). Sem plano (PERSUS, FAF, TED), cada tipo conta 1.
     """
     por_tipo: Counter[str] = Counter()
     manuais_vistos: set[str] = set()
+    tem_item_oficial = any(isinstance(i, dict) and i.get("ID_ITEM_PAD") for i in itens_plano)
     for item in itens_plano:
         if not item_conta_como_equipamento(item):
             continue
@@ -191,6 +193,8 @@ def _quantidade_de_equipamentos(itens_plano: list[dict], codigos: list[str]) -> 
         if not descricao:
             continue
         if not item.get("ID_ITEM_PAD"):
+            if tem_item_oficial:
+                continue  # texto da planilha repete o que a API já traz; não soma de novo
             chave = normalizar_texto(descricao)
             if chave in manuais_vistos:
                 continue
