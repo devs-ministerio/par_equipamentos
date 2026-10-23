@@ -150,8 +150,67 @@ de pré-deploy (as migrations são aditivas, e valores de enum não são removid
 2. Rodada manual supervisionada de cada job antes de habilitar o agendamento.
 3. Revisão após uma semana: consumo do Neon, custo, fila do Radar, notificações recebidas por papel, falhas de fonte.
 4. Registrar o aceite final do plano principal e atualizar `CLAUDE.md`/`AGENTS.md`.
+5. **Deploy automático do Render (achado de 22/10).** Todos os deploys do `sieo-backend` desde 28/09 foram manuais. O serviço e o Blueprint apontam para o nome antigo do repositório (`gustavoleitte/par_equipamentos`, hoje `devs-ministerio/par_equipamentos`), e o Blueprint está na branch `fix/tomografo-execucao-por-familia`, sem sincronizar há 2 meses, então o `autoDeployTrigger: checksPass` do `render.yaml` nunca valeu. Religar o serviço ao repositório novo (com o app do Render autorizado na organização do GitHub), ressincronizar o Blueprint pela `master` e só então ativar o gatilho após os checks, **mantendo a regra de rodar `migrar_banco.yml` antes de qualquer release que mude schema** (com o gatilho ligado, o merge subiria o código antes da migração). Decisão do usuário a registrar antes de ativar.
+
+## Pendências conhecidas após o release (levantadas em 22/10)
+
+Itens que seguem abertos depois da publicação. Cada um vira plano próprio, com decisão do usuário, antes de qualquer execução. Origem entre parênteses.
+
+| # | Pendência | Origem |
+|---|---|---|
+| 1 | **RTO de 1 h não certificado.** Medidos: restauração de dados no Neon (848 s) e Manual Deploy do Render (2 min 11 s em 22/10). Faltam o tempo de troca da `DATABASE_URL` e o teste funcional da API contra o destino restaurado. | Fase 3, RTO |
+| 2 | **Trocar a senha do `neondb_owner`**, exposta no chat em 22/10 (nenhuma credencial da aplicação a usa). | Execução do passo 3 |
+| 3 | **Plano do Neon:** Build é temporário (US$ 10/mês, 250 CU-h); decidir manter Build ou voltar ao Free (100 CU-h, 1 GB) antes de 1/11, com consumo medido. | Fase 1, item 2 |
+| 4 | **Rotacionar a credencial do R2 do backup antes de 20/11/2026.** | Backup |
+| 5 | **`fast-uri` (npm audit, severidade moderada, indireta):** acompanhar correção. | Revisão de segurança |
+| 6 | **CSP da API em Report-Only:** promover a enforcement só com relatório real de violação. | Segurança |
+| 7 | **Classificar os 401 esperados no New Relic** para não esconder falha de sessão. | Fase 1, item 7 |
+| 8 | **Carga representativa dos relatórios no provedor** ou aceite formal do limite atual (admissão DOCX por processo, 512 MiB). | Fase 1, item 6 |
+| 9 | **Recaptura diária, ciclo nacional da descoberta e UX de frescor das fontes:** conferir o estado de cada etapa 3 a 6 no plano de espelho antes de ativar jobs. | Fases 1 e 4 |
+| 10 | **Deploy automático do Render** (ver Fase 4, item 5). | Achado de 22/10 |
+| 11 | **Apresentação dos relatórios** (ver Fase 5, item 0). | Pedido do usuário |
+| 12 | **Excel: abas "Critérios" e "Leitura" ainda trazem as notas** que foram removidas do Word; decidir se saem também. | Aceite dos relatórios |
+| 13 | **Login e aceite de convite não são auditados** (nem sucesso nem falha). | `CLAUDE.md`, seção Gestão de usuários |
+| 14 | **Dados de teste (`pytest-*@example.com`, conta `teste_E2E`) em produção:** alcance não investigado. | `CLAUDE.md`, limitações |
+| 15 | **16 grupos de eventos legados duplicados** deixados de fora da limpeza de 19/09, sem revisão da equipe. | `CLAUDE.md`, monitoramento |
+| 16 | **Overflow intermitente a 320 px** em `/monitoramento-equipamentos` (suspeita: carga de fonte). | `CLAUDE.md`, sessão |
+| 17 | **Seções "Habilitação" CNES e "Produção assistencial" ausentes dos relatórios**, por falta de fonte integrada. | `CLAUDE.md`, relatórios |
+| 18 | **Valor dos 92 PERSUS I em produção** (Fase 3, passo 8): simulação, depois gravação com autorização. | Fase 3 |
+| 19 | **Fechar a janela de 48 h** com registro de erros, CPU/RAM e aceite, e conferir o instrumento 716619 (conclusão em 19/10/2026 na produção). | Fase 3, passos 10 e 11 |
+| 20 | **Suíte completa do backend não rodou limpa na máquina local** (testes de recuperação exigem o banco clone protegido); vale a CI como referência. | Gates |
+
+## Planos que dependem do fechamento deste plano (levantados em 22/10)
+
+Varredura de `docs/arquitetura/planmode-*.md` e dos diagnósticos por "depois", "fora de escopo", "plano próprio" e checklists abertos. O estado de cada item é o que o documento de origem registra; **confirmar contra o código e a produção antes de planejar**.
+
+**A. Esperam o fechamento deste plano (decisão do usuário; incluídos em 22/10 os três últimos itens)**
+
+- [Identidade SISGEO](planmode-identidade-sisgeo-2026-10-20.md): implementação não iniciada. Pode ser antecipada como alteração isolada de apresentação; decisão pendente do nome por extenso e de nova marca.
+- [Monitoramento por item e equipamento físico](planmode-monitoramento-itens-equipamentos-2026-10-20.md): implementação não iniciada; fotos por último, com decisões de armazenamento, formatos, retenção e privacidade.
+- Itens ainda abertos no checklist do próprio [plano de espelho](planmode-espelho-notificacoes-2026-10-06.md): desempenho no provedor sob carga, ciclo nacional da descoberta com candidato elegível e aceite operacional de RPO/RTO (ver pendências 1, 8 e 9 acima).
+- **Apresentação "Todos" no padrão de "Concluídos"** (pedido do usuário; ver Fase 5, item 0).
+- [Normalização de dados, Onda 1](planmode-normalizacao-database-2026-09-28.md). **Fechada por evidência em 22/10 (produção, só leitura):** as cinco CHECKs de CNPJ (migration `c3d4e5f6a7b8`) existem e estão validadas (`convalidated = true` em `convenio`, `instrumento_equipamento`, `proposta_candidata`, `cnes_estabelecimento` e `pagamento_obra_persus`), e há **zero** CNPJ fora de 14 dígitos nas quatro tabelas conferidas. O texto original do plano ("CHECKs ficaram para depois") está defasado.
+- [Governança de dados](planmode-governanca-dados-2026-09-28.md). **Medido em produção em 22/10:**
+  - **Titulares:** 113 dos 292 instrumentos monitorados estão sem titular/suplente em `instrumento_responsavel` (eram 182 em 28/09). A atribuição continua manual pela equipe, sem vínculo por aproximação de nome; o legado sem vínculo segue bloqueado para edição por colaborador (admin e gestor editam).
+  - **Proveniência estruturada, lacuna real:** existem 6 fontes em `fonte_dado`, mas 418 dos 560 convênios e 207 dos 292 instrumentos estão com `fonte_dado_id` nulo; só `pagamento_obra_persus` está completo (0 nulos). O script `scripts/backfill_fontes_dado.py` só vincula origens legadas reconhecíveis pelo texto de `origem_dado`, e **nenhum código além dele grava `fonte_dado_id`** (conferido por busca em `app/` e `scripts/`): importadores, aprovação do Radar e criação manual ainda não preenchem a fonte. Esse é o trabalho que falta.
+
+**B. Estavam bloqueados pela cadeia de migrations**
+
+- Resolvido pelo release de 22/10 (head `b7f35c806e4a` aplicado em produção): ver os dois itens de normalização e governança acima, que agora só pedem verificação.
+
+**C. Marcados "fora de escopo" ou "plano próprio" e nunca abertos**
+
+- **Escopo de autorização por UF/técnico/órgão** (RBAC granular): hoje há 4 papéis globais; só revisitar sob demanda real de produto.
+- **Mapa de cobertura no Painel de Gestão** ("plano próprio"), mantendo a metodologia só de oferta SUS em uso.
+- **Ingestão relacional de propostas** (`evidencia_transferegov` sem escritor): plano dedicado de ingestão antes de migrar a leitura de `metas_resumo`.
+- **Paginação e virtualização reais, envelope de resposta unificado** além das duas rotas já migradas, e **observabilidade estruturada** (logs JSON, `trace_id`, duração).
+- **Remoção física da coluna `Notificacao.lida`** (deprecated) e **saída visual do mapa em Word** (decisão separada).
+- **Qualidade:** teste de carga, acessibilidade automatizada abrangente (auditoria WCAG AA completa, contraste, foco) e mutation testing.
+- **Custo e infraestrutura:** rate limit distribuído (Redis), staging/registry, PITR além de 6 h e cold start do Render, sempre com decisão de orçamento.
 
 ## Fase 5 — Planos que hoje estão só no papel (somente após a Fase 4)
+
+0. **Apresentação dos relatórios: visão "Todos" no padrão de "Concluídos"** (pedido do usuário em 22/10, após o release). Em Relatórios, o filtro Conclusão = Concluídos mostra cada instrumento em bloco legível (instituição; "Nº, CNES, tipo"; município/UF; equipamentos com quantidade; critério, valor global e data), e o usuário prefere essa organização à tabela da visão "Todos" (colunas Número, CNES, Convenente, Município/UF, Equipamento, Situação, Monitoramento, Ano, Valor global). Levar a mesma organização e os mesmos campos (equipamentos com quantidade, CNES e número em itens próprios, valor e datas formatados) para "Todos" na prévia da tela e, onde fizer sentido, nos arquivos Word/Excel, sem perder as colunas hoje exclusivas de "Todos" (situação do site, monitoramento, ano). Escopo, o que é obrigatório e o que muda nos arquivos a definir em plano próprio antes de implementar.
 
 Ordem recomendada e decisões necessárias:
 
