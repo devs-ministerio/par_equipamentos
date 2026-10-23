@@ -19,6 +19,7 @@ from app.routers import (
     auth,
     candidatos_legados,
     convenios,
+    entregas,
     equipment_offer,
     fontes,
     macro_coverage,
@@ -67,6 +68,8 @@ app.include_router(convenios.router)
 # Monitoramento de equipamento pos-repasse -- esforco separado da analise de
 # merito (decisao 2026-09-03), ver app/routers/monitoramento.py.
 app.include_router(monitoramento.router)
+# Itens, entregas e unidades de equipamento do instrumento (controle por unidade).
+app.include_router(entregas.router)
 # Radar de Convenios -- notificacao de proposta candidata/atualizacao de
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
 app.include_router(notificacoes.router)
