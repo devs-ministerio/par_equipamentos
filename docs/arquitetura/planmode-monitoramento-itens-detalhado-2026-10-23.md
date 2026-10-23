@@ -7,7 +7,7 @@ Detalha, etapa por etapa, o [plano de monitoramento por item](planmode-monitoram
 | # | Decisão do usuário (23/10) | Consequência |
 |---|---|---|
 | 1 | Controlam-se por unidade só **16 famílias**: Mamógrafo (convencional e digital), Colposcópio, Sistema de Vídeo Endoscópio Flexível, Sistema de Vídeo Endoscopia Rígida, Endoscópio Rígido, Endoscópio Flexível (Fibroendoscopia), Ultrassom Diagnóstico sem Aplicação Transesofágica, Simulador/Tomógrafo para Radioterapia, Tomógrafo Computadorizado (até 16 canais), Ressonância Magnética, PET-CT, Câmara Cintilográfica (Gama Câmara), Acelerador Linear, Braquiterapia, Arco Cirúrgico, Cirurgia Robótica. **O catálogo precisa ser atualizado** (etapa 1). |
-| 2 | Unidade não é pré-criada: nasce na entrega. | A entrega mostra os itens do instrumento para o colaborador selecionar; ver etapa 5. |
+| 2 | Unidade não é pré-criada: nasce na entrega. | A entrega mostra os itens do instrumento para o colaborador selecionar; ver etapa 5. A **tabela de equipamentos fica abaixo do Cadastro Interno** (decisão de 23/10, que prevalece sobre a primeira versão deste plano). |
 | 3 | **Toda entrega vincula pelo menos um equipamento, podendo selecionar mais de um.** | Regra de validação obrigatória no backend e na tela. |
 | 4 | Cargas manuais recebem um **ID criado pelo sistema**. | Identificador sintético estável (etapa 2). |
 | 5 | Vínculo automático só quando é inequívoco; o resto fica "a revisar", **com alerta aos técnicos responsáveis**. | Backfill conservador e aviso por notificação (etapa 3). |
@@ -15,17 +15,24 @@ Detalha, etapa por etapa, o [plano de monitoramento por item](planmode-monitoram
 | 7 | Prazos: D−1, D0 e D+1, 08:00 de São Paulo. | Etapa 8. |
 | 8 | NUP só em FAF e TED, formatado `25000.198305/2024-59`. | Etapa 7. |
 | — | Cargas manuais valem quantidade 1; itens `OBRA`/`SERVICO` ficam fora (PR #38). | Já decidido. |
+| 9 | **Cargas manuais devem ser ligadas a um código de catálogo quando for possível.** | Etapa 1 (tabela RENEM) e etapa 3 (vínculo por código, nome idêntico ou revisão). |
+| 10 | A lista de 16 também define o conceito de **Prioritário**; Ultrassom só a variante "sem Aplicação Transesofágica"; acessórios excluídos; série opcional e única dentro do item; entrega acima do planejado bloqueada. | Respostas 1, 2, 3, 5 e 6 de 23/10, todas "de acordo". |
+| 11 | **Cirurgia Robótica = código `012005`, "Sistema Cirúrgico Robótico"**, que **não consta** da lista RENEM. | Entra como código local no catálogo. |
 
 **Esclarecimento sobre "série":** é o **número de série do aparelho** (o que vem gravado na placa), e não "série histórica". Cada unidade tem marca, modelo, número de série e vida útil.
 
-### Perguntas que restam (cada uma com recomendação)
+### Perguntas (todas respondidas em 23/10)
 
-1. **A lista de 16 também passa a ser o conceito de "Prioritário"** nos filtros e relatórios ("Prioritários" em Dados oficiais e Relatórios)? *Recomendo sim*, uma lista só. Hoje são 5 prioritários (acelerador, braquiterapia, gama-câmara, mamógrafo, PET/CT).
-2. **Ultrassom:** a sua lista cita só "sem Aplicação Transesofágica" (código 011422). Na base há outras variantes do mesmo equipamento: "com Aplicação Transesofágica" (011423, 11 itens), "Cardio/exames avançados (Ecógrafo)" (011422, 7) e "Gineco/Obstetrícia e exames básicos" (011421, 3). *Recomendo ficar só com a variante da lista*; as demais continuam contadas como antes, sem controle por unidade.
-3. **Acessórios que citam o equipamento no nome** ("Monitor Multiparâmetros para Ressonância Magnética", "Aparelho de Anestesia para Ressonância", "Carro Maca para Ressonância", "Lavadora de Endoscópio"): *recomendo excluir*, pois não são o equipamento.
-4. **Cirurgia Robótica:** não há nenhum item assim na base hoje. Preciso do **código de catálogo** (ou do nome oficial) para registrar a família; até lá ela existe no catálogo sem itens.
-5. **Número de série obrigatório?** *Recomendo opcional* no registro e, quando informado, único dentro do mesmo item (um aviso, não bloqueio, se repetir em outro item).
-6. **Quantidade entregue acima do planejado:** *recomendo bloquear*; corrigir a quantidade planejada é uma operação de gestor.
+| # | Pergunta | Resposta |
+|---|---|---|
+| 1 | A lista de 16 vira o "Prioritário"? | Sim |
+| 2 | Ultrassom: só a variante da lista? | De acordo |
+| 3 | Excluir acessórios que citam o equipamento? | Concordo |
+| 4 | Código da Cirurgia Robótica? | `012005`, "Sistema Cirúrgico Robótico" (fora da RENEM) |
+| 5 | Série opcional e única dentro do item? | De acordo (a pergunta 5 do usuário confirmou o formato) |
+| 6 | Entrega acima do planejado bloqueada? | Concordo |
+
+Também ficou verificado que **não há API pública da RENEM** que o projeto use (nenhuma integração no código; busca na web sem resultado); a fonte é a planilha `data/raw/Lista.Renem_.Site_.FNS_030326-1.xlsx` (RENEM de 03/03/2026, 840 itens).
 
 ## 1. Etapa 1 — Catálogo oficial por código (pré-requisito de tudo)
 
@@ -33,7 +40,8 @@ Detalha, etapa por etapa, o [plano de monitoramento por item](planmode-monitoram
 
 **O que se faz:**
 1. **Migração aditiva** em `equipamento_catalogo`: colunas `controle_por_unidade BOOLEAN NOT NULL DEFAULT false` e `nome_oficial TEXT`. Nenhuma linha removida.
-2. **Nova tabela `equipamento_item_oficial`** (`id`, `codigo_item TEXT`, `nome_oficial TEXT`, `catalogo_id FK`, `ativo`, `UNIQUE(codigo_item, nome_oficial)`), semeada por migração/seed com os códigos observados nos dados:
+2. **Nova tabela `renem_item`** com a lista oficial (`codigo_item` de 6 dígitos, `nome`, `definicao`, `classificacao`, `valor_sugerido`, `item_dolarizado`, `versao_lista`, `catalogo_id FK NULL`), carregada por script idempotente a partir de `data/raw/Lista.Renem_.Site_.FNS_030326-1.xlsx` (840 itens; a planilha é versionada com o repositório e cada nova edição da lista entra como nova `versao_lista`, sem apagar a anterior). Os 16 itens/famílias do usuário apontam para o catálogo. Códigos **que aparecem nos dados mas não estão na RENEM atual** (legados, por exemplo `000277` Mamógrafo Convencional, `010933`, `010911` e `010910` de aceleradores, `010874` Tomógrafo 16 cortes) e o código local `012005` entram numa tabela `codigo_item_legado` (`codigo_item`, `nome_visto`, `catalogo_id`, `origem` = `dados` ou `usuario`), revisada pelo usuário. A tabela do próximo item (`equipamento_item_oficial`) fica **substituída** por estas duas.
+3. (Mapeamento que o seed deve conter, por família, a revisar:) (`id`, `codigo_item TEXT`, `nome_oficial TEXT`, `catalogo_id FK`, `ativo`, `UNIQUE(codigo_item, nome_oficial)`), semeada por migração/seed com os códigos observados nos dados:
 
    | Família | Códigos e nomes vistos na base |
    |---|---|
@@ -55,9 +63,9 @@ Detalha, etapa por etapa, o [plano de monitoramento por item](planmode-monitoram
    | Cirurgia Robótica | **sem código ainda** (pergunta 4) |
 
    A tabela é revisada pelo usuário antes de entrar: códigos ambíguos (por exemplo `010400-Sistema de Vídeo Endoscopia`, sem "flexível" nem "rígida") ficam **sem família** e aparecem num relatório de não classificados.
-3. **Classificador (`app/equipamentos.py`)**: primeiro casa o prefixo numérico contra `equipamento_item_oficial`; só na falta de código usa o nome normalizado exato (itens de carga manual, que não têm código); o casamento por palavra solta passa a ser o último recurso e **nunca** marca família com controle por unidade. Lista de exclusão de acessórios (pergunta 3).
-4. **Reclassificação** dos marcadores existentes por script idempotente (`--simulacao` por padrão), que também **desativa** as linhas `item_plano_*` sem marcador, sem apagar.
-5. **Filtro "Prioritários"** passa a usar a lista de 16 (se a pergunta 1 for aprovada); ajustar o front (`lib/equipamento-tags.ts`) e os relatórios.
+4. **Classificador (`app/equipamentos.py`)**: primeiro casa o prefixo numérico contra `equipamento_item_oficial`; só na falta de código usa o nome normalizado exato (itens de carga manual, que não têm código); o casamento por palavra solta passa a ser o último recurso e **nunca** marca família com controle por unidade. Lista de exclusão de acessórios (pergunta 3).
+5. **Reclassificação** dos marcadores existentes por script idempotente (`--simulacao` por padrão), que também **desativa** as linhas `item_plano_*` sem marcador, sem apagar.
+6. **Filtro "Prioritários"** passa a usar a lista de 16 (se a pergunta 1 for aprovada); ajustar o front (`lib/equipamento-tags.ts`) e os relatórios.
 
 **Testes:** casamento por código para cada família e cada código acima; os acessórios de ressonância e a lavadora de endoscópio **não** classificam; idempotência da reclassificação; item sem código cai em não classificado.
 **Aceite:** relatório de não classificados revisado pelo usuário; contagem por família confere com o inventário (~740 itens e ~800 unidades nas 15 famílias com dado; cirurgia robótica zerada).
@@ -68,7 +76,7 @@ Detalha, etapa por etapa, o [plano de monitoramento por item](planmode-monitoram
 Tudo em migração aditiva, `sigeo_migration` como dono, permissões garantidas pelo `migrar_banco.yml`.
 
 **`item_plano`** — o item planejado, projeção do que a fonte informa:
-`id`, `convenio_id FK`, `instrumento_id FK NULL`, `origem` (`siconv` | `transferegov` | `manual`), `id_origem TEXT` (`ID_ITEM_PAD`, `id_item_proposta` ou ID sintético), `codigo_item`, `descricao`, `catalogo_id FK NULL`, `controla_unidade BOOLEAN`, `quantidade_planejada INTEGER NULL`, `ativo BOOLEAN`, `removido_na_fonte_em TIMESTAMPTZ NULL`, `hash_conteudo`, `criado_em`, `atualizado_em`. `UNIQUE(origem, id_origem)`; `CHECK quantidade_planejada >= 1`; índices por `instrumento_id`, `convenio_id` e `catalogo_id`. Populada pelo script da etapa 3 a partir de `siconv_raw`, e mantida pela recaptura **sem nunca tocar nas unidades**: item removido na fonte vira `ativo=false` e gera conciliação.
+`id`, `convenio_id FK`, `instrumento_id FK NULL`, `origem` (`siconv` | `transferegov` | `manual`), `id_origem TEXT` (`ID_ITEM_PAD`, `id_item_proposta` ou ID sintético), `codigo_item` (6 dígitos, NULL quando a equipe ainda não definiu), `codigo_fonte` (`descricao` | `nome_renem` | `definido_pela_equipe`), `descricao`, `catalogo_id FK NULL`, `controla_unidade BOOLEAN`, `quantidade_planejada INTEGER NULL`, `ativo BOOLEAN`, `removido_na_fonte_em TIMESTAMPTZ NULL`, `hash_conteudo`, `criado_em`, `atualizado_em`. `UNIQUE(origem, id_origem)`; `CHECK quantidade_planejada >= 1`; índices por `instrumento_id`, `convenio_id` e `catalogo_id`. Populada pelo script da etapa 3 a partir de `siconv_raw`, e mantida pela recaptura **sem nunca tocar nas unidades**: item removido na fonte vira `ativo=false` e gera conciliação.
 
 **`entrega_equipamento`** — o ato de entrega (1 por registro, ligado à linha do tempo):
 `id`, `instrumento_id FK`, `evento_id FK evento_marco` (o evento `cronograma_entrega`, para a fase e a timeline continuarem iguais), `data_ocorrencia DATE`, `observacao`, `autor_id FK user`, `chave_idempotencia UUID UNIQUE`, `criado_em`, `substituido_por_id`, `deletado_em`, `deletado_por_id`, `motivo_exclusao` (mesmo padrão append-only de `EventoMarco`: corrigir cria nova versão e aponta a antiga; excluir é soft delete com motivo).
@@ -91,6 +99,15 @@ Tudo em migração aditiva, `sigeo_migration` como dono, permissões garantidas 
 - Itens de carga manual ganham `origem=manual` e `id_origem = manual:{numero_convenio}:{ordem}`, quantidade 1, sem ligação com a API. Os 22 itens manuais de "Convênio" que repetem a API **não** viram item.
 - Classifica pelo catálogo da etapa 1; `controla_unidade` é verdadeiro só nas 16 famílias.
 - Relatório: itens por origem e família, não classificados, descrição repetida entre itens.
+
+**3.1.1 Vínculo de código nas cargas manuais** (pedido do usuário de 23/10). Para cada item manual, nesta ordem, e só quando o resultado é único:
+1. **Código no texto** (`010925-Mamógrafo`, `10925 - Mamógrafo`, `301 - PET CT`): normaliza para 6 dígitos e confere em `renem_item` ou em `codigo_item_legado`.
+2. **Nome idêntico** a um único item da RENEM (por exemplo "Mamógrafo", "Braquiterapia com sistema de controle remoto").
+3. **Caso contrário**: o item recebe a **família** (pelo catálogo), `codigo_item = NULL` e o estado "código a definir". Nunca se escolhe um código por semelhança de valor ou de nome.
+
+Estado medido na cópia de 17/10 (183 itens manuais): 21 com código no texto presente na RENEM, 7 com nome idêntico a um item da RENEM, 4 com código legado fora da RENEM, e **150 sem código possível**, dos quais 147 são "Acelerador Linear" de PERSUS I e II. Para esses a RENEM tem duas variantes (`011806` básico-intermediário e `011807` com IGRT 3D), então **a escolha é humana**: a tela do instrumento oferece ao titular, suplente, gestor e admin um seletor de código restrito à família, e a decisão fica registrada (`codigo_fonte = definido_pela_equipe`, autor e data). A lista de itens a definir sai também em relatório para a equipe fazer em lote. Como apoio, o relatório mostra, só como **sugestão não aplicada**, a variante cujo valor sugerido da RENEM é mais próximo do valor do instrumento.
+
+Casos de dado a corrigir à parte: o item "Ultrasom + Mamógrafo" de um FAF descreve **dois** equipamentos num só texto (contradiz a regra de um equipamento por instrumento FAF/TED) e vai para revisão. Os 22 itens manuais de convênio, que repetem a API, não recebem código.
 
 **3.2 Backfill das entregas antigas** (`scripts/vincular_entregas_legadas.py`, mesma disciplina): para cada instrumento com entrega ativa:
 - Se tem **exatamente um item controlado e um evento de entrega ativo**, cria `entrega_equipamento` + uma `unidade_equipamento` com os campos físicos que já existem no instrumento. Quantidade planejada 1 é a regra; se for maior que 1, cria só a unidade de ordem 1 e deixa o item como "parcial".
@@ -133,9 +150,9 @@ Padrão Router → Service → Repository, `DomainError`, autorização no Servi
 
 **Testes:** unidade das validações; integração com PostgreSQL (transação, unicidade, concorrência de duas entregas do mesmo item, idempotência); autorização (titular, suplente, gestor, admin, colaborador de outro instrumento, leitor, IDOR em `item_id` de outro instrumento); contrato Pydantic/Zod; CSRF.
 
-## 5. Etapa 5 — Tela do instrumento (resposta à pergunta "como funciona")
+## 5. Etapa 5 — Tela do instrumento
 
-**Posição:** a nova seção **"Equipamentos do instrumento" fica acima do "Cadastro interno"**, no lugar do atual card "Equipamento físico" do cabeçalho (como você pediu; o plano de 20/10 dizia "abaixo", e fica corrigido para "acima").
+**Posição:** a nova seção **"Equipamentos do instrumento" fica abaixo do "Cadastro interno"** (decisão de 23/10, que confirma o plano de 20/10), e o atual card "Equipamento físico" do cabeçalho sai, para não haver dois lugares para o mesmo dado.
 
 **A tabela** (uma linha por item controlado do instrumento):
 
