@@ -459,8 +459,12 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   `Settings.database_url_alembic` cai pro `database_url` de runtime quando
   `database_url_migration` está vazio (ambiente local/teste sem essa
   separação). `neondb_owner` (role gerenciado da conta, com
-  `CREATEDB`/`CREATEROLE`) não é mais usado por nenhuma credencial de
-  aplicação. Migration não roda mais no boot da API nem nos jobs de dado —
+  `CREATEDB`/`CREATEROLE`) **não deve ser usado por nenhuma credencial de
+  aplicação**. Isso só passou a ser verdade em 23/10/2026: até então a
+  `DATABASE_URL` do Render ainda usava o `neondb_owner`, e a troca da senha
+  dele derrubou o login (ver `docs/arquitetura/incidente-api-neondb-owner-2026-10-23.md`).
+  Antes de trocar qualquer credencial, inventariar onde ela é usada (Render,
+  secrets do GitHub por environment, Vercel). Migration não roda mais no boot da API nem nos jobs de dado —
   ver "Migration desacoplada do boot" logo abaixo. **Precedência desde o
   Plan Mode database 2026-09-17 (Bloco 2)**: um `DATABASE_URL` exportado de
   verdade no processo (`os.environ`, não o valor só mesclado do `.env`

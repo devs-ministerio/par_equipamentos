@@ -414,3 +414,13 @@ psql "$ADMIN_DATABASE_URL" --no-psqlrc -1 -v ON_ERROR_STOP=1 \
 - O script de recuperação (`recriar_roles_aplicacao.sql`) reaproveita este mesmo passo.
   A comparação com produção também mostrou que `sigeo_backup` tem
   `idle_in_transaction_session_timeout=1min`, agora incluído no script.
+
+## Trocar a senha de um role do banco (regra após o incidente de 23/10/2026)
+
+A troca da senha do `neondb_owner` derrubou a API porque o Render ainda a usava (ver [incidente](incidente-api-neondb-owner-2026-10-23.md)). Antes de resetar qualquer role:
+
+1. **Inventariar os usos pelo nome do usuário**, não pela documentação: variável `DATABASE_URL` do Render, secrets do repositório e do environment `Production` no GitHub (`DATABASE_URL`, `DATABASE_URL_MIGRATION`, `BACKUP_DATABASE_URL`), variáveis da Vercel, `.env` locais e jobs agendados. Só o usuário que vê os valores consegue conferir o usuário de cada string.
+2. **Ter a string nova pronta** para cada ponto de uso e trocá-las na mesma janela, começando pelo Render.
+3. **Verificar depois:** `/health` com `database: connected`, um login real, e o próximo backup agendado.
+4. Nunca colar a string de conexão em chat, issue ou log; mascarar a senha ao pedir ajuda.
+
