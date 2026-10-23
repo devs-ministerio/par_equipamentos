@@ -46,7 +46,7 @@ export function LoginPage() {
             Entrar no SISGEO
           </h1>
           <p className="mt-1.5 mb-5 text-sm text-muted-foreground">
-            Acesso operacional -- edição de monitoramento interno, inclusão de
+            Acesso operacional: edição de monitoramento interno, inclusão de
             propostas e notificações.
           </p>
           <MonitoramentoInternoFormLogin
