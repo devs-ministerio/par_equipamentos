@@ -100,3 +100,12 @@ def test_item_manual_entra_na_mesma_colecao_de_itens_do_plano_sem_duplicar():
             },
         ]
     }
+
+
+def test_item_manual_de_persus_faf_ted_nasce_com_quantidade_um_e_o_de_convenio_nao():
+    for tipo, esperado in (("PERSUS I", "1"), ("FAF", "1"), ("TED", "1"), ("Convênio", None)):
+        convenio = Convenio(numero=f"manual-{tipo}", tipo_contratacao=tipo, siconv_raw={})
+
+        adicionar_item_manual_inicial(convenio, "Acelerador Linear", "planilha")
+
+        assert convenio.siconv_raw["itens_plano_aplicacao"][0].get("QTD_ITEM") == esperado

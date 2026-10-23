@@ -28,9 +28,13 @@ from app.audit import log_action
 from app.db.base import SessionLocal, engine
 from app.db.models import Convenio
 from app.repositories import equipamento_marcadores as marcadores_repo
-from scripts.lib_monitoramento_convenio import ORIGEM_ITEM_MANUAL_INICIAL, QUANTIDADE_ITEM_MANUAL
+from scripts.lib_monitoramento_convenio import (
+    ORIGEM_ITEM_MANUAL_INICIAL,
+    QUANTIDADE_ITEM_MANUAL,
+    TIPOS_COM_UM_EQUIPAMENTO,
+)
 
-TIPOS = ("PERSUS I", "PERSUS II", "FAF", "TED")
+TIPOS = TIPOS_COM_UM_EQUIPAMENTO
 ACAO = "preencher_quantidade_item_manual"
 
 
