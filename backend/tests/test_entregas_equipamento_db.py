@@ -345,3 +345,18 @@ def test_relatorio_de_instrumentos_traz_entregues_por_familia_do_convenio(db):
     svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2)), db=db, usuario=c.titular)
     convenio = db.get(Convenio, c.dois.convenio_id)
     assert _entregues_por_convenio(db, [convenio]) == {convenio.id: {familia.nome: 2}}
+
+
+def test_rendimento_aparece_como_linha_filha_e_nao_conta_como_outro_item(db):
+    c = Cenario(db)
+    antes = svc.listar_equipamentos_do_instrumento(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    rendimento = c._item(db, db.get(Convenio, c.dois.convenio_id), "Rendimento da aplicação", 1, False)
+    rendimento.tipo_lancamento = "rendimento_aplicacao"
+    rendimento.item_principal_id = c.dois.id
+    rendimento.valor_total = 1500
+    db.flush()
+    depois = svc.listar_equipamentos_do_instrumento(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    principal = next(i for i in depois.itens if i.id == c.dois.id)
+    assert [(r.descricao, r.valor_total) for r in principal.rendimentos] == [("Rendimento da aplicação", 1500.0)]
+    assert depois.outros_itens == antes.outros_itens
+    assert principal.quantidade_planejada == 2  # o rendimento não soma unidade

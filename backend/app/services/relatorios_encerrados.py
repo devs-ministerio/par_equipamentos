@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.classificacao_itens import classificar
 from app.domain_errors import ValidationError
 from app.equipamentos import classificar_descricoes
 from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
@@ -183,8 +184,8 @@ def _quantidade_de_equipamentos(itens_plano: list[dict], codigos: list[str]) -> 
     por_tipo: Counter[str] = Counter()
     for item in itens_plano:
         descricao = item.get("DESCRICAO_ITEM") if isinstance(item, dict) else None
-        if not descricao:
-            continue
+        if not descricao or classificar(str(descricao)).tipo != "aquisicao":
+            continue  # rendimento, acessório e item múltiplo não somam unidade (classificação C5)
         for evidencia in classificar_descricoes([descricao]):
             if evidencia.codigo in codigos:
                 por_tipo[evidencia.codigo] += _quantidade_do_item(item)

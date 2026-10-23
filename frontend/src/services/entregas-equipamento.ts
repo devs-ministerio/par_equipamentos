@@ -18,6 +18,13 @@ const unidadeSchema = z.object({
 });
 export type UnidadeEquipamento = z.infer<typeof unidadeSchema>;
 
+const rendimentoSchema = z.object({
+  id: z.number(),
+  descricao: z.string(),
+  valor_total: z.number().nullable(),
+});
+export type RendimentoItem = z.infer<typeof rendimentoSchema>;
+
 const itemSchema = z.object({
   id: z.number(),
   codigo_item: z.string().nullable(),
@@ -29,6 +36,7 @@ const itemSchema = z.object({
   situacao: z.enum(["pendente", "parcial", "entregue", "legado_a_revisar"]),
   ultima_entrega: z.string().nullable(),
   unidades: z.array(unidadeSchema),
+  rendimentos: z.array(rendimentoSchema).default([]),
 });
 export type ItemEquipamento = z.infer<typeof itemSchema>;
 

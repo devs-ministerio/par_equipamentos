@@ -38,6 +38,7 @@ from app.schemas_entregas import (
     EquipamentosInstrumentoRead,
     ItemEntregaCreate,
     ItemEquipamentoRead,
+    RendimentoRead,
     SituacaoItem,
     UnidadeRead,
     UnidadeUpdate,
@@ -106,6 +107,17 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
     for unidade, data in repo.listar_unidades_ativas(db, [item.id for item, _ in controlados]):
         unidades_por_item.setdefault(unidade.item_id, []).append(_unidade_read(unidade, data))
     revisoes = repo.contar_revisoes_pendentes(db, instrumento.id)
+    rendimentos: dict[int, list[RendimentoRead]] = {}
+    for filho in itens:
+        item_filho = filho[0]
+        if item_filho.tipo_lancamento == "rendimento_aplicacao" and item_filho.item_principal_id is not None:
+            rendimentos.setdefault(item_filho.item_principal_id, []).append(
+                RendimentoRead(
+                    id=item_filho.id,
+                    descricao=item_filho.descricao,
+                    valor_total=float(item_filho.valor_total) if item_filho.valor_total is not None else None,
+                )
+            )
     resultado = []
     for item, familia in controlados:
         unidades = unidades_por_item.get(item.id, [])
@@ -121,13 +133,14 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                 situacao=_situacao(item.quantidade_planejada, len(unidades), revisoes > 0),
                 ultima_entrega=max((u.data_entrega for u in unidades), default=None),
                 unidades=unidades,
+                rendimentos=rendimentos.get(item.id, []),
             )
         )
     return EquipamentosInstrumentoRead(
         nr_convenio=nr_convenio,
         pode_editar=usuario_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id)),
         itens=resultado,
-        outros_itens=len(itens) - len(controlados),
+        outros_itens=len(itens) - len(controlados) - sum(len(rendimentos.get(i.id, [])) for i, _ in controlados),
         revisoes_pendentes=revisoes,
     )
 

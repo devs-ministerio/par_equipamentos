@@ -24,6 +24,11 @@ const SITUACAO: Record<ItemEquipamento["situacao"], [string, string]> = {
   ],
 };
 
+const formatarMoeda = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
 const COLUNAS =
   "md:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_6.5rem_5rem] md:items-center";
 
@@ -133,6 +138,17 @@ export function EquipamentosInstrumentoLista({
                 )}
               </div>
             </div>
+            {item.rendimentos.map((r) => (
+              <p
+                key={r.id}
+                className="m-0 mt-2 border-l-2 border-border pl-3 text-[12px] text-muted-foreground"
+              >
+                Rendimento da aplicação
+                {r.valor_total != null &&
+                  `: ${formatarMoeda.format(r.valor_total)}`}{" "}
+                · não soma unidade
+              </p>
+            ))}
           </div>
         );
       })}

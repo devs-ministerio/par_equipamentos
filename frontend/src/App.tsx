@@ -6,6 +6,7 @@ import { AppLayout } from "./components/layout/app-layout";
 import { MonitoramentoLayout } from "./components/layout/monitoramento-layout";
 import { ProtectedRoute } from "./components/layout/protected-route";
 import { AdminRoute } from "./components/layout/admin-route";
+import { GestaoRoute } from "./components/layout/gestao-route";
 import { Toaster } from "./components/ui/sonner";
 import { AppErrorBoundary } from "./components/common/app-error-boundary";
 
@@ -88,6 +89,12 @@ const UsuariosPage = lazy(() =>
 const AuditoriaPage = lazy(() =>
   import("./pages/auditoria-page").then((m) => ({
     default: m.AuditoriaPage,
+  })),
+);
+// Fila de revisão da classificação dos itens (gestor e admin).
+const ClassificacaoItensPage = lazy(() =>
+  import("./pages/classificacao-itens-page").then((m) => ({
+    default: m.ClassificacaoItensPage,
   })),
 );
 const AccountActionPage = lazy(() =>
@@ -198,6 +205,12 @@ function App() {
                     path="/monitoramento-equipamentos/instrumentos/:nrConvenio"
                     element={<MonitoramentoInstrumentoPage />}
                   />
+                  <Route element={<GestaoRoute />}>
+                    <Route
+                      path="/monitoramento-equipamentos/revisao-itens"
+                      element={<ClassificacaoItensPage />}
+                    />
+                  </Route>
                   <Route element={<AdminRoute />}>
                     <Route path="/admin/usuarios" element={<UsuariosPage />} />
                     <Route

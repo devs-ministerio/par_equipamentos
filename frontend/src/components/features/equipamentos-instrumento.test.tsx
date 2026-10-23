@@ -17,6 +17,7 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
     quantidade_entregue: 1,
     situacao: "parcial",
     ultima_entrega: "2026-10-01",
+    rendimentos: [],
     unidades: [
       {
         id: 9,
@@ -57,6 +58,26 @@ describe("lista de equipamentos do instrumento", () => {
     );
     expect(props.onRegistrar).toHaveBeenCalledWith(1);
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("mostra o rendimento como linha filha, sem somar unidade", () => {
+    render(
+      <EquipamentosInstrumentoLista
+        {...props}
+        itens={[
+          item({
+            rendimentos: [
+              { id: 5, descricao: "Rendimento", valor_total: 1500 },
+            ],
+          }),
+        ]}
+        podeEditar={false}
+      />,
+    );
+    expect(
+      screen.getByText(/Rendimento da aplicação: R\$\s?1\.500,00/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/não soma unidade/)).toBeInTheDocument();
   });
 
   it("leitor não vê nenhuma ação e item entregue não oferece nova entrega", () => {

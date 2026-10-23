@@ -267,6 +267,13 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
 - **Relatórios/painel**: Concluídos mostra quantidade planejada e entregue; o painel mostra entregues/planejados por
   família; os relatórios de instrumentos (Excel/Word) ganham a coluna "Entregues" nas tabelas de equipamentos só
   quando algum instrumento do recorte tem controle por unidade ("—" nas famílias sem controle).
+- **Classificação do item** (`app/classificacao_itens.py`, plano `planmode-classificacao-itens-2026-10-23.md`):
+  `item_plano.tipo_lancamento` (aquisição, rendimento da aplicação, acessório, múltiplo, não equipamento) e
+  `situacao_classificacao` (`pendente` = fila de revisão, só o que a regra não decide: ~12 itens locais). Rendimento
+  não soma unidade, aparece como linha filha do item principal único do convênio (`item_principal_id`) e não entra
+  na quantidade nem no valor dos relatórios. Fila em `/monitoramento-equipamentos/revisao-itens` (gestor/admin):
+  confirmar, corrigir ou "não é equipamento" gravam `decisao_classificacao_item` (`origem=tecnico`, append-only), que
+  a projeção reaplica. Código de catálogo no texto resolve quando a especificação não decide.
 - **Prazos** (`scripts/job_prazos_monitoramento.py`, serviço `prazos_monitoramento.py`): avisos D-1/D0/D+1 de ação
   aberta com prazo e de previsão de inauguração não realizada, deduplicados por `Notificacao.chave_dedup`
   (`tipo:referência:data:janela`); concluir/excluir/reagendar arquivam os avisos antigos. Simulação por padrão e

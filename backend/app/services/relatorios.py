@@ -51,6 +51,7 @@ from docx.document import Document as DocumentType
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.classificacao_itens import classificar
 from app.db.models import (
     AcaoMonitoramento,
     Competency,
@@ -818,7 +819,13 @@ def _carregar_equipamentos_por_convenio(
             continue
         convenio = convenios_por_id.get(convenio_id)
         valores_item = _valores_por_item_plano(convenio) if convenio else {}
-        resultado[convenio_id] = [(m.nome, valores_item.get(m.descricao_original)) for m in itens]
+        # Rendimento da aplicação, acessório e item com vários equipamentos não são aquisição de um equipamento:
+        # não entram na quantidade nem no valor do equipamento (classificação C5).
+        resultado[convenio_id] = [
+            (m.nome, valores_item.get(m.descricao_original))
+            for m in itens
+            if classificar(m.descricao_original).tipo == "aquisicao"
+        ]
     return resultado
 
 

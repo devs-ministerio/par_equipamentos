@@ -188,7 +188,21 @@ def classificar(
         return ResultadoItem(tipo, familia, codigo, False, "alta", motivo_tipo)
     base = classificar_item(descricao)
     espec = _especificar(texto_norm)
-    if espec is not None:
+    conta: bool | None
+    confianca: Confianca
+    por_codigo = bool(
+        base.familia
+        and base.codigo_item
+        and base.fonte in ("codigo_oficial", "codigo_legado")
+        and espec is not None
+        and espec[3] == "baixa"
+    )
+    if por_codigo:
+        # A leitura da especificação não decidiu (ex.: tomógrafo sem canais): o código de catálogo
+        # que consta do próprio texto resolve.
+        familia, codigo, conta, confianca = base.familia, base.codigo_item, True, "alta"
+        motivo = f"código {base.codigo_item} no texto"
+    elif espec is not None:
         familia, codigo, conta, confianca, motivo = espec
     elif base.familia:
         familia, codigo, conta, confianca, motivo = (

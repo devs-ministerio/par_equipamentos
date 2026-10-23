@@ -61,6 +61,14 @@ class UnidadeRead(BaseModel):
     data_entrega: date
 
 
+class RendimentoRead(BaseModel):
+    """Rendimento da aplicação ligado ao item principal: não soma unidade."""
+
+    id: int
+    descricao: str
+    valor_total: float | None
+
+
 class ItemEquipamentoRead(BaseModel):
     id: int
     codigo_item: str | None
@@ -72,6 +80,7 @@ class ItemEquipamentoRead(BaseModel):
     situacao: SituacaoItem
     ultima_entrega: date | None
     unidades: list[UnidadeRead]
+    rendimentos: list[RendimentoRead] = []
 
 
 class EquipamentosInstrumentoRead(BaseModel):

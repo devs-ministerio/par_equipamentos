@@ -40,3 +40,8 @@ def test_nenhum_rendimento_ou_acessorio_vira_equipamento_com_alta_confianca():
         if x.get("tipo_lancamento") in ("Complemento/rendimento", "Acessório/insumo"):
             r = _resultado(x)
             assert not (r.tipo == "aquisicao" and r.conta_unidade and r.confianca == "alta"), x["linha"]
+
+
+def test_codigo_no_texto_resolve_quando_a_especificacao_nao_decide():
+    r = classificar("000719-Simulador/ Tomógrafo para Radioterapia (sem número de canais)")
+    assert (r.familia, r.codigo_item, r.confianca) == ("simulador_tomografo_radioterapia", "000719", "alta")
