@@ -82,6 +82,8 @@ def listar_notificacoes(
             NotificacaoTipo.edicao_manual,
             NotificacaoTipo.inclusao_monitoramento,
             NotificacaoTipo.entrega_legada_revisao,
+            NotificacaoTipo.prazo_acao,
+            NotificacaoTipo.prazo_inauguracao,
         )
     }
     ids_propostas = {

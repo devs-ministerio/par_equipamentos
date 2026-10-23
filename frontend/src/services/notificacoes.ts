@@ -16,6 +16,8 @@ const notificacaoTipoSchema = z.enum([
   "convenio_descoberto",
   "fonte_indisponivel",
   "entrega_legada_revisao",
+  "prazo_acao",
+  "prazo_inauguracao",
 ]);
 export type NotificacaoTipo = z.infer<typeof notificacaoTipoSchema>;
 

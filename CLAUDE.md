@@ -260,6 +260,10 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   lançada pelo seletor de marcos da linha do tempo (o backend ainda aceita o marco).
 - **Relatórios/painel**: Concluídos mostra quantidade planejada e entregue; o painel mostra entregues/planejados por
   família. Os relatórios de instrumentos ainda contam por marcador (sem coluna de entregues).
+- **Prazos** (`scripts/job_prazos_monitoramento.py`, serviço `prazos_monitoramento.py`): avisos D-1/D0/D+1 de ação
+  aberta com prazo e de previsão de inauguração não realizada, deduplicados por `Notificacao.chave_dedup`
+  (`tipo:referência:data:janela`); concluir/excluir/reagendar arquivam os avisos antigos. Simulação por padrão e
+  **agendamento das 08:00 de São Paulo NÃO ligado** (só depois da operação de alertas e de rodada supervisionada).
 - NUP só em FAF/TED, formatado `25000.198305/2024-59`; eventos e ações ordenados por lançamento mais recente.
 
 ## Limitações conhecidas

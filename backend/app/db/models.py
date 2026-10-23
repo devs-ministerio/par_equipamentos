@@ -102,6 +102,10 @@ class NotificacaoTipo(str, enum.Enum):
     # Entrega registrada antes do controle por unidade, sem vínculo inequívoco a um item;
     # entidade_id é InstrumentoEquipamento.id (titular, suplente, gestor e admin).
     entrega_legada_revisao = "entrega_legada_revisao"
+    # Prazos (D-1, D0, D+1): entidade_id é InstrumentoEquipamento.id; a ação ou a previsão
+    # específica vai em `Notificacao.chave_dedup` (scripts/job_prazos_monitoramento.py).
+    prazo_acao = "prazo_acao"
+    prazo_inauguracao = "prazo_inauguracao"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -1813,7 +1817,15 @@ class Notificacao(Base):
     consumidor."""
 
     __tablename__ = "notificacao"
-    __table_args__ = (Index("idx_notificacao_lida_created", "lida", "created_at"),)
+    __table_args__ = (
+        Index("idx_notificacao_lida_created", "lida", "created_at"),
+        Index(
+            "uq_notificacao_chave_dedup",
+            "chave_dedup",
+            unique=True,
+            postgresql_where=text("chave_dedup IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     tipo: Mapped[NotificacaoTipo] = mapped_column(
@@ -1829,6 +1841,8 @@ class Notificacao(Base):
     # nao e 1:1 ainda por isso fica string livre, nao FK/enum, pra nao
     # travar em cima de uma decisao pendente.
     nivel_minimo: Mapped[str | None] = mapped_column(String)
+    # Evita aviso repetido do mesmo prazo (tipo:referência:data:janela); nulo nas demais notificações.
+    chave_dedup: Mapped[str | None] = mapped_column(String)
     # DEPRECATED -- ver docstring da classe. Nao ler/escrever em codigo novo.
     lida: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
