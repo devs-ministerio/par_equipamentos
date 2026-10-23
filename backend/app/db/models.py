@@ -1589,7 +1589,9 @@ class ItemPlano(Base):
             "tipo_lancamento IN ('aquisicao','rendimento_aplicacao','acessorio_insumo','multiplo','nao_equipamento')",
             name="ck_item_plano_tipo_lancamento",
         ),
-        CheckConstraint("situacao_classificacao IN ('aplicada','pendente')", name="ck_item_plano_situacao_classificacao"),
+        CheckConstraint(
+            "situacao_classificacao IN ('aplicada','pendente')", name="ck_item_plano_situacao_classificacao"
+        ),
         Index("idx_item_plano_principal", "item_principal_id"),
         Index(
             "idx_item_plano_pendente",

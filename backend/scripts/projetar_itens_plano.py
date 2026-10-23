@@ -33,7 +33,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.classificacao_itens import classificar
+from app.classificacao_itens import chave_do_item, classificar
 from app.db.base import SessionLocal, engine
 from app.db.models import (
     CodigoItemLegado,
@@ -47,7 +47,6 @@ from app.db.models import (
 from app.equipamentos import normalizar_texto
 from app.equipamentos_renem import classificar_item, extrair_codigo
 from app.pipeline.itens_plano import item_conta_como_equipamento
-from scripts.importar_revisao_classificacao import chave_do_item
 
 CODIGO_ACELERADOR_PERSUS = "011806"
 TIPOS_PERSUS = frozenset({"PERSUS I", "PERSUS II"})

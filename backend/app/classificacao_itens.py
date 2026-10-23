@@ -12,6 +12,7 @@ endoscópio). Valor corrigido por IPCA ou dólar é só confirmação e fica for
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from itertools import combinations
@@ -36,6 +37,14 @@ _ACESSORIO = re.compile(
     r"\bPARA RESSONANCIA\b|\bPARA MAMOGRAFO\b"
 )
 _MULTI = re.compile(r"\bCR\b.*\bDRY\b|DIGITALIZA\w+ DE IMAGEM COMPOSTO|DIGITALIZADOR.*IMPRESSORA")
+
+
+def chave_do_item(item: dict) -> str:
+    """Chave estável da decisão: `ID_ITEM_PAD` ou, em carga manual (sem ID), o hash do texto normalizado."""
+    if item.get("ID_ITEM_PAD"):
+        return str(item["ID_ITEM_PAD"])
+    texto = normalizar_texto(str(item.get("DESCRICAO_ITEM") or ""))
+    return "txt:" + hashlib.sha256(texto.encode()).hexdigest()[:16]
 
 
 @dataclass(frozen=True)

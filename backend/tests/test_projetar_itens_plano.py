@@ -52,7 +52,12 @@ def test_item_com_dois_equipamentos_fica_sem_familia_e_sem_controle() -> None:
 
 def test_decisao_pendente_nunca_controla_unidade() -> None:
     decisao = SimpleNamespace(
-        tipo_lancamento="aquisicao", conta_unidade=True, status="pendente", codigo_item=None, origem="motor"
+        tipo_lancamento="aquisicao",
+        conta_unidade=True,
+        status="pendente",
+        codigo_item=None,
+        origem="motor",
+        observacao=None,
     )
     item = {"ID_ITEM_PAD": "1", "DESCRICAO_ITEM": "Mamógrafo digital", "VALOR_TOTAL_ITEM": "100"}
     assert alvo_item_api(_ctx({("123", "1"): decisao}), "123", item).controla_unidade is False
@@ -66,6 +71,7 @@ def test_decisao_da_equipe_define_o_codigo() -> None:
         status="aplicada",
         codigo_item="010925",
         origem="revisao_equipe",
+        observacao=None,
     )
     item = {"ID_ITEM_PAD": "2", "DESCRICAO_ITEM": "Equipamento de imagem", "VALOR_TOTAL_ITEM": "100"}
     alvo = alvo_item_api(_ctx({("123", "2"): decisao}), "123", item)

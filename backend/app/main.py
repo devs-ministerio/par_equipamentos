@@ -18,6 +18,7 @@ from app.routers import (
     auditoria,
     auth,
     candidatos_legados,
+    classificacao_itens,
     convenios,
     entregas,
     equipment_offer,
@@ -70,6 +71,7 @@ app.include_router(convenios.router)
 app.include_router(monitoramento.router)
 # Itens, entregas e unidades de equipamento do instrumento (controle por unidade).
 app.include_router(entregas.router)
+app.include_router(classificacao_itens.router)
 # Radar de Convenios -- notificacao de proposta candidata/atualizacao de
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
 app.include_router(notificacoes.router)

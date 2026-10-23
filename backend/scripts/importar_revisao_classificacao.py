@@ -16,7 +16,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import hashlib
 from collections import Counter
 
 import openpyxl
@@ -24,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
+from app.classificacao_itens import chave_do_item
 from app.db.base import SessionLocal, engine
 from app.db.models import Convenio, DecisaoClassificacaoItem
 from app.pipeline.texto import normalizar_texto
@@ -34,13 +34,6 @@ _TIPOS = {
     "multi-equipamento": "multiplo",
     "acessório/insumo": "acessorio_insumo",
 }
-
-
-def chave_do_item(item: dict) -> str:
-    if item.get("ID_ITEM_PAD"):
-        return str(item["ID_ITEM_PAD"])
-    texto = normalizar_texto(str(item.get("DESCRICAO_ITEM") or ""))
-    return "txt:" + hashlib.sha256(texto.encode()).hexdigest()[:16]
 
 
 def _linhas(caminho: str) -> list[dict]:
