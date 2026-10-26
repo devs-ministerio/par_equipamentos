@@ -137,6 +137,13 @@ def nome_do_item(descricao: str) -> str:
     return re.sub(r"^\s*\d+\s*-\s*", "", descricao).strip()
 
 
+def nome_curto_do_item(descricao: str, *, limite: int = 90) -> str:
+    """Nome de exibição para item sem código na RENEM: só o título, nunca a especificação técnica."""
+    nome = re.sub(r"^\s*(?:C[OÓ]D\.?\s*\d+|\d+\))\s*", "", nome_do_item(descricao), flags=re.IGNORECASE)
+    titulo = next((p.strip() for p in re.split(r"\s[-–]\s|[:;\n\t]|\.\s", nome) if p.strip()), nome.strip())
+    return titulo if len(titulo) <= limite else titulo[: limite - 1].rstrip() + "…"
+
+
 def codigo_do_item_generico(descricao: str) -> str:
     normalizado = normalizar_texto(nome_do_item(descricao))
     return f"item_plano_{sha256(normalizado.encode('utf-8')).hexdigest()[:16]}"
@@ -153,6 +160,7 @@ def classificar_descricoes(
     """
     evidencias: list[EvidenciaEquipamento] = []
     vistos: set[tuple[str, str]] = set()
+    item_de_plano = relacao_padrao == "aquisicao"
     for descricao in descricoes:
         if not descricao or not descricao.strip():
             continue
@@ -160,40 +168,110 @@ def classificar_descricoes(
         relacao = relacao_da_descricao(descricao)
         if relacao == "aquisicao":
             relacao = relacao_padrao
-        encontrou_catalogado = False
-        for equipamento in CATALOGO_EQUIPAMENTOS:
-            if not equipamento.padrao.search(texto):
-                continue
-            encontrou_catalogado = True
-            chave = (equipamento.codigo, texto)
-            if chave in vistos:
-                continue
+        trechos = _trechos_do_item(descricao) if item_de_plano else [descricao]
+        for trecho in trechos:
+            evidencias.extend(_evidencias_do_trecho(descricao, trecho, texto, relacao, item_de_plano, vistos))
+    return evidencias
+
+
+def _trechos_do_item(descricao: str) -> list[str]:
+    """Item de plano que junta equipamentos ("A + B") vale um marcador por equipamento."""
+    trechos = [t.strip() for t in re.split(r"\s\+\s", descricao) if t.strip()]
+    return trechos if len(trechos) > 1 else [descricao]
+
+
+def _cabecalho_do_item(trecho: str) -> str:
+    """Nome do item: o que vem antes da especificação técnica (": ", " - ", quebra de linha)."""
+    nome = nome_do_item(trecho)
+    nome = re.sub(r"^\s*(?:C[OÓ]D\.?\s*\d+|\d+\))\s*", "", nome, flags=re.IGNORECASE)
+    cabecalho = re.split(r"\s[-–]\s|:|[\n\t]", nome)[0].strip()
+    # "Equipamento existente: mamógrafo": sem equipamento antes do separador, o nome vem depois.
+    if any(e.padrao.search(normalizar_texto(cabecalho)) for e in CATALOGO_EQUIPAMENTOS):
+        return cabecalho
+    return nome
+
+
+def _evidencias_do_trecho(
+    descricao: str,
+    trecho: str,
+    texto: str,
+    relacao: RelacaoEquipamento,
+    item_de_plano: bool,
+    vistos: set[tuple[str, str]],
+) -> list[EvidenciaEquipamento]:
+    from app.classificacao_itens import classificar  # import tardio: classificacao_itens importa este módulo
+    from app.equipamentos_renem import FAMILIAS, classificar_item  # import tardio: evita ciclo
+
+    evidencias: list[EvidenciaEquipamento] = []
+    # Famílias com controle por unidade: o código RENEM do item (ou o nome exato) decide, e
+    # nenhuma palavra-chave genérica soma evidência ao mesmo item.
+    classificacao = classificar_item(trecho)
+    if classificacao.familia is not None:
+        familia = next(f for f in FAMILIAS if f.catalogo_codigo == classificacao.familia)
+        chave = (familia.catalogo_codigo, texto)
+        if chave not in vistos:
             vistos.add(chave)
             evidencias.append(
                 EvidenciaEquipamento(
-                    codigo=equipamento.codigo,
-                    nome=equipamento.nome,
+                    codigo=familia.catalogo_codigo,
+                    nome=familia.nome_catalogo or familia.nome_oficial,
                     descricao_original=descricao.strip(),
                     relacao=relacao,
                 )
             )
-        # Itens sem natureza explícita de serviço podem gerar evidência. Famílias que não
-        # pertencem ao catálogo curado recebem um catálogo derivado, com nome
-        # oficial do item e código estável; nunca ficam invisíveis só por não
-        # serem prioritárias ou por ainda não terem um alias curado.
-        if not encontrou_catalogado and relacao_padrao == "aquisicao" and relacao != "mencao":
-            nome = nome_do_item(descricao)
-            chave = (codigo_do_item_generico(descricao), texto)
-            if nome and chave not in vistos:
-                vistos.add(chave)
-                evidencias.append(
-                    EvidenciaEquipamento(
-                        codigo=chave[0],
-                        nome=nome,
-                        descricao_original=descricao.strip(),
-                        relacao=relacao,
-                    )
+        return evidencias
+    # Palavra-chave só vale para o equipamento que o item é, nunca para o que ele menciona
+    # ("Monitor ... para Ressonância", "Rendimento ... do mamógrafo"): o motor de classificação
+    # decide a natureza do item e o nome do item (antes da especificação) limita a busca.
+    texto_busca = texto
+    acessorio = False
+    if item_de_plano:
+        resultado = classificar(trecho)
+        if resultado.tipo not in ("aquisicao", "multiplo", "acessorio_insumo"):
+            return evidencias
+        acessorio = resultado.tipo == "acessorio_insumo"
+        if acessorio and relacao == "mencao":
+            return evidencias
+        texto_busca = "" if acessorio else normalizar_texto(_cabecalho_do_item(trecho))
+    achados = [(m.start(), e) for e in CATALOGO_EQUIPAMENTOS if (m := e.padrao.search(texto_busca))]
+    if item_de_plano and achados:
+        # "Acelerador Linear para radioterapia": o que vem depois de "para" é destino, não o item.
+        itens = [(i, e) for i, e in achados if not re.search(r"\bPARA\s+$", texto_busca[:i])]
+        achados = itens or achados
+        # PET/CT é um tomógrafo: a menção mais específica fica com o marcador.
+        if any(e.codigo == "pet_ct" for _, e in achados):
+            achados = [(i, e) for i, e in achados if e.codigo != "tomografo"]
+    for _, equipamento in achados:
+        chave = (equipamento.codigo, texto)
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        evidencias.append(
+            EvidenciaEquipamento(
+                codigo=equipamento.codigo,
+                nome=equipamento.nome,
+                descricao_original=descricao.strip(),
+                relacao=relacao,
+            )
+        )
+    # Itens sem natureza explícita de serviço podem gerar evidência. Famílias que não
+    # pertencem ao catálogo curado recebem um catálogo derivado, com nome
+    # oficial do item e código estável; nunca ficam invisíveis só por não
+    # serem prioritárias ou por ainda não terem um alias curado.
+    cita_catalogado = any(e.padrao.search(texto) for e in CATALOGO_EQUIPAMENTOS)
+    if not achados and item_de_plano and relacao != "mencao" and (acessorio or not cita_catalogado):
+        nome = nome_do_item(trecho)
+        chave = (codigo_do_item_generico(trecho), texto)
+        if nome and chave not in vistos:
+            vistos.add(chave)
+            evidencias.append(
+                EvidenciaEquipamento(
+                    codigo=chave[0],
+                    nome=nome,
+                    descricao_original=descricao.strip(),
+                    relacao=relacao,
                 )
+            )
     return evidencias
 
 

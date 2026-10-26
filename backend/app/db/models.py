@@ -20,6 +20,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    Text,
     UniqueConstraint,
     func,
     text,
@@ -98,6 +99,13 @@ class NotificacaoTipo(str, enum.Enum):
     # Descoberta confirmada; entidade_id é CandidatoLegadoRegistro.id,
     # não Convenio.id nem InstrumentoEquipamento.id.
     convenio_descoberto = "convenio_descoberto"
+    # Entrega registrada antes do controle por unidade, sem vínculo inequívoco a um item;
+    # entidade_id é InstrumentoEquipamento.id (titular, suplente, gestor e admin).
+    entrega_legada_revisao = "entrega_legada_revisao"
+    # Prazos (D-1, D0, D+1): entidade_id é InstrumentoEquipamento.id; a ação ou a previsão
+    # específica vai em `Notificacao.chave_dedup` (scripts/job_prazos_monitoramento.py).
+    prazo_acao = "prazo_acao"
+    prazo_inauguracao = "prazo_inauguracao"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -1439,7 +1447,7 @@ class EvidenciaTransfereGov(Base):
 
 
 class EquipamentoCatalogo(Base):
-    """Dicionário canônico dos equipamentos acompanhados pelo SIGEO."""
+    """Dicionário canônico dos equipamentos acompanhados pelo SISGEO."""
 
     __tablename__ = "equipamento_catalogo"
     __table_args__ = (
@@ -1452,10 +1460,274 @@ class EquipamentoCatalogo(Base):
     nome: Mapped[str] = mapped_column(String, nullable=False)
     prioritario: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    # Famílias cujo item é acompanhado por unidade física (marca, modelo, série) na entrega.
+    controle_por_unidade: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    nome_oficial: Mapped[str | None] = mapped_column(String)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class RenemItem(Base):
+    """Item da RENEM (Relação Nacional de Equipamentos e Materiais Permanentes, FNS).
+
+    Uma linha por (código, versão da lista); novas edições entram como nova versão, sem
+    apagar a anterior. `catalogo_id` liga o item à família do catálogo quando ela é acompanhada.
+    """
+
+    __tablename__ = "renem_item"
+    __table_args__ = (
+        UniqueConstraint("codigo_item", "versao_lista", name="uq_renem_item_codigo_versao"),
+        CheckConstraint("codigo_item ~ '^[0-9]{6}$'", name="ck_renem_item_codigo"),
+        Index("idx_renem_item_catalogo", "catalogo_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo_item: Mapped[str] = mapped_column(String(6), nullable=False)
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+    definicao: Mapped[str | None] = mapped_column(Text)
+    classificacao: Mapped[str | None] = mapped_column(String)
+    valor_sugerido: Mapped[float | None] = mapped_column(Numeric(16, 4))
+    item_dolarizado: Mapped[bool | None] = mapped_column(Boolean)
+    versao_lista: Mapped[str] = mapped_column(String, nullable=False)
+    catalogo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("equipamento_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class CodigoItemLegado(Base):
+    """Código que aparece nos dados mas não consta da RENEM vigente (ou ainda não consta).
+
+    `origem`: `dados` (visto nos itens do SICONV) ou `usuario` (informado pela equipe, por
+    exemplo o 012005, Sistema Cirúrgico Robótico, ausente da lista de março de 2026).
+    """
+
+    __tablename__ = "codigo_item_legado"
+    __table_args__ = (
+        UniqueConstraint("codigo_item", name="uq_codigo_item_legado_codigo"),
+        CheckConstraint("codigo_item ~ '^[0-9]{6}$'", name="ck_codigo_item_legado_codigo"),
+        CheckConstraint("origem IN ('dados', 'usuario')", name="ck_codigo_item_legado_origem"),
+        Index("idx_codigo_item_legado_catalogo", "catalogo_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    codigo_item: Mapped[str] = mapped_column(String(6), nullable=False)
+    nome: Mapped[str] = mapped_column(String, nullable=False)
+    catalogo_id: Mapped[int] = mapped_column(
+        ForeignKey("equipamento_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    origem: Mapped[str] = mapped_column(String, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class DecisaoClassificacaoItem(Base):
+    """Decisão de classificação de um item do plano de aplicação (append-only).
+
+    A linha vigente é a que tem `substituida_por_id IS NULL`. Corrigir uma decisão cria outra
+    linha e aponta a antiga para ela; nunca há UPDATE do conteúdo nem DELETE. `status=pendente`
+    é a fila de revisão: o motor não tinha certeza ou a equipe pediu verificação.
+    """
+
+    __tablename__ = "decisao_classificacao_item"
+    __table_args__ = (
+        CheckConstraint(
+            "tipo_lancamento IN ('aquisicao','rendimento_aplicacao','acessorio_insumo','multiplo','nao_equipamento')",
+            name="ck_decisao_class_item_tipo",
+        ),
+        CheckConstraint("codigo_item IS NULL OR codigo_item ~ '^[0-9]{6}$'", name="ck_decisao_class_item_codigo"),
+        CheckConstraint("origem IN ('motor','revisao_equipe','tecnico')", name="ck_decisao_class_item_origem"),
+        CheckConstraint("status IN ('aplicada','pendente')", name="ck_decisao_class_item_status"),
+        Index("idx_decisao_class_item_convenio", "convenio_numero"),
+        Index(
+            "uq_decisao_class_item_vigente",
+            "convenio_numero",
+            "chave_item",
+            unique=True,
+            postgresql_where=text("substituida_por_id IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    convenio_numero: Mapped[str] = mapped_column(String, nullable=False)
+    # ID_ITEM_PAD do SICONV; para carga manual (sem ID), hash do texto normalizado do item.
+    chave_item: Mapped[str] = mapped_column(String, nullable=False)
+    tipo_lancamento: Mapped[str] = mapped_column(String, nullable=False)
+    codigo_item: Mapped[str | None] = mapped_column(String(6))
+    conta_unidade: Mapped[bool | None] = mapped_column(Boolean)
+    origem: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, server_default="aplicada")
+    observacao: Mapped[str | None] = mapped_column(Text)
+    substituida_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("decisao_classificacao_item.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class ItemPlano(Base):
+    """Item planejado do instrumento (projeção da fonte), base do controle por unidade.
+
+    A recaptura nunca toca nas unidades: item removido na fonte vira `ativo=false`.
+    """
+
+    __tablename__ = "item_plano"
+    __table_args__ = (
+        UniqueConstraint("origem", "id_origem", name="uq_item_plano_origem"),
+        CheckConstraint("origem IN ('siconv','transferegov','manual')", name="ck_item_plano_origem"),
+        CheckConstraint("codigo_item IS NULL OR codigo_item ~ '^[0-9]{6}$'", name="ck_item_plano_codigo"),
+        CheckConstraint(
+            "codigo_fonte IS NULL OR codigo_fonte IN "
+            "('descricao','nome_renem','regra_da_equipe','definido_pela_equipe')",
+            name="ck_item_plano_codigo_fonte",
+        ),
+        CheckConstraint("quantidade_planejada IS NULL OR quantidade_planejada >= 1", name="ck_item_plano_quantidade"),
+        CheckConstraint(
+            "tipo_lancamento IN ('aquisicao','rendimento_aplicacao','acessorio_insumo','multiplo','nao_equipamento')",
+            name="ck_item_plano_tipo_lancamento",
+        ),
+        CheckConstraint(
+            "situacao_classificacao IN ('aplicada','pendente')", name="ck_item_plano_situacao_classificacao"
+        ),
+        Index("idx_item_plano_principal", "item_principal_id"),
+        Index(
+            "idx_item_plano_pendente",
+            "id",
+            postgresql_where=text("situacao_classificacao = 'pendente'"),
+        ),
+        Index("idx_item_plano_instrumento", "instrumento_id"),
+        Index("idx_item_plano_convenio", "convenio_id"),
+        Index("idx_item_plano_catalogo", "catalogo_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    convenio_id: Mapped[int] = mapped_column(
+        ForeignKey("convenio.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    instrumento_id: Mapped[int | None] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    origem: Mapped[str] = mapped_column(String, nullable=False)
+    id_origem: Mapped[str] = mapped_column(String, nullable=False)
+    codigo_item: Mapped[str | None] = mapped_column(String(6))
+    codigo_fonte: Mapped[str | None] = mapped_column(String)
+    descricao: Mapped[str] = mapped_column(Text, nullable=False)
+    catalogo_id: Mapped[int | None] = mapped_column(
+        ForeignKey("equipamento_catalogo.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    controla_unidade: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    quantidade_planejada: Mapped[int | None] = mapped_column(Integer)
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    # Rendimento da aplicação não soma unidade e aponta para o item principal do mesmo convênio.
+    tipo_lancamento: Mapped[str] = mapped_column(String, nullable=False, server_default="aquisicao")
+    situacao_classificacao: Mapped[str] = mapped_column(String, nullable=False, server_default="aplicada")
+    motivo_classificacao: Mapped[str | None] = mapped_column(Text)
+    valor_total: Mapped[float | None] = mapped_column(Numeric(16, 2))
+    item_principal_id: Mapped[int | None] = mapped_column(
+        ForeignKey("item_plano.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    removido_na_fonte_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    hash_conteudo: Mapped[str | None] = mapped_column(String)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class EntregaEquipamento(Base):
+    """Ato de entrega ligado ao evento `cronograma_entrega` (append-only, como `EventoMarco`)."""
+
+    __tablename__ = "entrega_equipamento"
+    __table_args__ = (
+        UniqueConstraint("chave_idempotencia", name="uq_entrega_equipamento_idempotencia"),
+        Index("idx_entrega_equipamento_instrumento", "instrumento_id"),
+        Index("idx_entrega_equipamento_evento", "evento_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    evento_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evento_marco.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    data_ocorrencia: Mapped[date] = mapped_column(Date, nullable=False)
+    observacao: Mapped[str | None] = mapped_column(Text)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    chave_idempotencia: Mapped[str] = mapped_column(String, nullable=False)
+    substituido_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("entrega_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class UnidadeEquipamento(Base):
+    """Unidade física entregue: marca, modelo, número de série e vida útil. Nasce na entrega."""
+
+    __tablename__ = "unidade_equipamento"
+    __table_args__ = (
+        UniqueConstraint("item_id", "ordem", name="uq_unidade_equipamento_ordem"),
+        CheckConstraint("vida_util_anos IS NULL OR vida_util_anos >= 0", name="ck_unidade_equipamento_vida_util"),
+        Index(
+            "uq_unidade_equipamento_serie",
+            "item_id",
+            "numero_serie",
+            unique=True,
+            postgresql_where=text("numero_serie IS NOT NULL"),
+        ),
+        Index("idx_unidade_equipamento_entrega", "entrega_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    entrega_id: Mapped[int] = mapped_column(
+        ForeignKey("entrega_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    item_id: Mapped[int] = mapped_column(
+        ForeignKey("item_plano.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    ordem: Mapped[int] = mapped_column(Integer, nullable=False)
+    marca: Mapped[str | None] = mapped_column(String)
+    modelo: Mapped[str | None] = mapped_column(String)
+    numero_serie: Mapped[str | None] = mapped_column(String)
+    vida_util_anos: Mapped[int | None] = mapped_column(Integer)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class EntregaLegadaRevisao(Base):
+    """Entrega antiga sem vínculo inequívoco a um item: espera revisão da equipe."""
+
+    __tablename__ = "entrega_legada_revisao"
+    __table_args__ = (
+        UniqueConstraint("evento_id", name="uq_entrega_legada_revisao_evento"),
+        CheckConstraint(
+            "motivo IN ('varios_itens','sem_item_controlado','varias_entregas','quantidade_desconhecida')",
+            name="ck_entrega_legada_revisao_motivo",
+        ),
+        CheckConstraint("situacao IN ('pendente','resolvida')", name="ck_entrega_legada_revisao_situacao"),
+        Index("idx_entrega_legada_revisao_instrumento", "instrumento_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    evento_id: Mapped[int] = mapped_column(
+        ForeignKey("evento_marco.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    motivo: Mapped[str] = mapped_column(String, nullable=False)
+    situacao: Mapped[str] = mapped_column(String, nullable=False, server_default="pendente")
+    resolvida_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolvida_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    entrega_id: Mapped[int | None] = mapped_column(
+        ForeignKey("entrega_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
 class EquipamentoMarcador(Base):
@@ -1566,7 +1838,15 @@ class Notificacao(Base):
     consumidor."""
 
     __tablename__ = "notificacao"
-    __table_args__ = (Index("idx_notificacao_lida_created", "lida", "created_at"),)
+    __table_args__ = (
+        Index("idx_notificacao_lida_created", "lida", "created_at"),
+        Index(
+            "uq_notificacao_chave_dedup",
+            "chave_dedup",
+            unique=True,
+            postgresql_where=text("chave_dedup IS NOT NULL"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     tipo: Mapped[NotificacaoTipo] = mapped_column(
@@ -1582,6 +1862,8 @@ class Notificacao(Base):
     # nao e 1:1 ainda por isso fica string livre, nao FK/enum, pra nao
     # travar em cima de uma decisao pendente.
     nivel_minimo: Mapped[str | None] = mapped_column(String)
+    # Evita aviso repetido do mesmo prazo (tipo:referência:data:janela); nulo nas demais notificações.
+    chave_dedup: Mapped[str | None] = mapped_column(String)
     # DEPRECATED -- ver docstring da classe. Nao ler/escrever em codigo novo.
     lida: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

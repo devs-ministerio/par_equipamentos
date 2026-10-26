@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from fastapi import HTTPException
 from psycopg import Error as DatabaseDriverError
 from sqlalchemy import inspect, select, text
@@ -109,4 +110,7 @@ def test_downgrade_nao_descarta_decisao_de_ocultacao(radar_versionado):
     assert erro.value.orig.sqlstate == "23514"
     conn.rollback()
     assert conn.scalar(text("SELECT fora_escopo_equipamentos FROM convenio")) is True
-    assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "b7f35c806e4a"
+    assert (
+        conn.scalar(text("SELECT version_num FROM alembic_version"))
+        == ScriptDirectory.from_config(config).get_current_head()
+    )

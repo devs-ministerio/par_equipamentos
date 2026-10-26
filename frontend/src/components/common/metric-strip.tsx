@@ -31,7 +31,7 @@ export function MetricStrip({
   return (
     <div
       className={cn(
-        "grid overflow-hidden rounded-2xl border border-border/80 shadow-[var(--shadow-soft)]",
+        "relative grid overflow-hidden rounded-2xl border border-border/80 shadow-[var(--shadow-soft)]",
         compactMobile
           ? cn(
               "grid-cols-1 gap-px bg-border min-[375px]:grid-cols-2",
@@ -45,6 +45,10 @@ export function MetricStrip({
           : "bg-card [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]",
       )}
     >
+      <span
+        aria-hidden="true"
+        className="faixa-laco pointer-events-none absolute inset-x-0 top-0 z-10 h-[3px]"
+      />
       {items.map((item, index) => {
         const Tag = item.onClick ? "button" : "div";
         return (

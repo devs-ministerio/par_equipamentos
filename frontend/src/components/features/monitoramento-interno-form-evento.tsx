@@ -38,6 +38,9 @@ const GRUPOS: { chave: MarcoCatalogo["grupo"]; rotulo: string }[] = [
   { chave: "regulatorio", rotulo: "Regulatório (CNEN)" },
 ];
 
+/** A entrega passou a ser lançada em "Equipamentos do instrumento". */
+const MARCO_ENTREGA_NO_ESTABELECIMENTO = "cronograma_entrega";
+
 export function MonitoramentoInternoFormEvento({
   marcos,
   onRegistrar,
@@ -170,7 +173,11 @@ export function MonitoramentoInternoFormEvento({
                 {GRUPOS.map(({ chave, rotulo }) => (
                   <optgroup key={chave} label={rotulo}>
                     {marcos
-                      .filter((m) => m.grupo === chave)
+                      .filter(
+                        (m) =>
+                          m.grupo === chave &&
+                          m.codigo !== MARCO_ENTREGA_NO_ESTABELECIMENTO,
+                      )
                       .map((m) => (
                         <option key={m.id} value={m.id}>
                           {m.rotulo}

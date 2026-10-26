@@ -14,7 +14,7 @@ export function AppFooter() {
       >
         <p className="m-0">
           <span className="font-display font-semibold text-foreground">
-            SIGEO
+            SISGEO
           </span>{" "}
           · Sistema de Gestão de Equipamentos em Oncologia
         </p>

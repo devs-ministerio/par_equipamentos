@@ -219,7 +219,9 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     // Act
     fireEvent.click(screen.getByRole("button", { name: "Registrar evento" }));
     // Assert
-    expect(await screen.findByText("Contratado — 50%")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/etapa \d+ de \d+ · 50%/),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Registrar evento" }),
     ).not.toBeInTheDocument();

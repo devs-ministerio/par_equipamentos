@@ -40,7 +40,7 @@ def test_narrativa_de_obra_servico_acessorio_e_nao_prioritario_nao_comprova_equi
     "descricao,codigo",
     [
         ("Aquisição de Acelerador Linear", "acelerador_linear"),
-        ("010911-Mamógrafo", "mamografo"),
+        ("010925-Mamógrafo", "mamografo"),
         ("Aquisição de PET-CT", "pet_ct"),
         ("Aquisição de equipamento de braquiterapia", "braquiterapia"),
         ("Aquisição de Acelerador Linear com treinamento operacional incluso", "acelerador_linear"),

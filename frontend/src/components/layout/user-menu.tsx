@@ -8,7 +8,7 @@
  * `mobile` é a versão do painel lateral (Sheet do AppHeader): bloco "Conta"
  * já aberto, sem popover dentro do Sheet. `onNavigate` fecha o Sheet. */
 import { useLocation, useNavigate } from "react-router-dom";
-import { Clock, LogOut, RefreshCw, Users } from "lucide-react";
+import { ClipboardCheck, Clock, LogOut, RefreshCw, Users } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useTempoSessao } from "@/hooks/useTempoSessao";
 import { formatarTempoRestante } from "@/lib/sessao-expiracao";
@@ -80,11 +80,13 @@ function PainelConta({
   tempo,
   onSair,
   onUsuarios,
+  onRevisao,
   mobile,
 }: {
   tempo: TempoSessao;
   onSair: () => void;
   onUsuarios?: () => void;
+  onRevisao?: () => void;
   mobile: boolean;
 }) {
   const sessao = useAuthSession();
@@ -126,6 +128,17 @@ function PainelConta({
           />
           {tempo.renovando ? "Renovando…" : "Renovar sessão"}
         </Button>
+        {onRevisao && (
+          <Button
+            size={mobile ? "default" : "sm"}
+            variant="ghost"
+            className={botao}
+            onClick={onRevisao}
+          >
+            <ClipboardCheck className="size-4" aria-hidden="true" />
+            Revisão de itens
+          </Button>
+        )}
         {onUsuarios && (
           <Button
             size={mobile ? "default" : "sm"}
@@ -174,6 +187,11 @@ export function UserMenu({
     onNavigate?.();
   }
 
+  function abrirRevisao() {
+    navigate("/monitoramento-equipamentos/revisao-itens");
+    onNavigate?.();
+  }
+
   function abrirLogin() {
     navigate("/login", { state: { from: location.pathname } });
     onNavigate?.();
@@ -208,6 +226,10 @@ export function UserMenu({
   const irParaUsuarios =
     sessao.usuarioAtual?.role === "admin" ? abrirUsuarios : undefined;
 
+  const papel = sessao.usuarioAtual?.role;
+  const irParaRevisao =
+    papel === "admin" || papel === "gestor" ? abrirRevisao : undefined;
+
   if (mobile) {
     return (
       <div className="px-5 py-4">
@@ -218,6 +240,7 @@ export function UserMenu({
           tempo={tempo}
           onSair={sairDaSessao}
           onUsuarios={irParaUsuarios}
+          onRevisao={irParaRevisao}
           mobile
         />
       </div>
@@ -255,6 +278,7 @@ export function UserMenu({
           tempo={tempo}
           onSair={sairDaSessao}
           onUsuarios={irParaUsuarios}
+          onRevisao={irParaRevisao}
           mobile={false}
         />
       </PopoverContent>

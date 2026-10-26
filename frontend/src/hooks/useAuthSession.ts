@@ -73,7 +73,7 @@ export function useAuthSession() {
         throw new ApiError(
           "Login respondeu sem uma sessão que pudesse ser confirmada.",
           401,
-          "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SIGEO e tente novamente.",
+          "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SISGEO e tente novamente.",
         );
       }
       queryClient.setQueryData(monitoramentoKeys.currentUser, usuario);

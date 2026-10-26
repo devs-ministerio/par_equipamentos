@@ -87,6 +87,7 @@ def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]
                     texto_vazio=None,
                 )
             )
+        docx_builder.adicionar_logotipo_final(documento)
         modelo = docx_builder.gerar_bytes(documento)
         saida = BytesIO()
         with ZipFile(BytesIO(modelo)) as origem, ZipFile(saida, "w", compression=ZIP_DEFLATED) as destino:

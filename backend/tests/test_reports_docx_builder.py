@@ -8,12 +8,14 @@ from io import BytesIO
 
 import pytest
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 
 from app.reports.docx_builder import (
     adicionar_cabecalho_institucional,
     adicionar_fonte,
     adicionar_legenda_tabela,
+    adicionar_logotipo_final,
     adicionar_paragrafo,
     adicionar_paragrafo_rotulo_valor,
     adicionar_tabela,
@@ -69,6 +71,15 @@ def test_adicionar_paragrafo_grava_texto():
     adicionar_paragrafo(documento, "Filtro: Regiao Nordeste")
     reaberto = Document(BytesIO(gerar_bytes(documento)))
     assert reaberto.paragraphs[-1].text == "Filtro: Regiao Nordeste"
+
+
+def test_logotipo_do_sisgeo_fecha_o_documento_centralizado():
+    documento = novo_documento("Capa")
+    adicionar_logotipo_final(documento)
+    reaberto = Document(BytesIO(gerar_bytes(documento)))
+    ultimo = reaberto.paragraphs[-1]
+    assert ultimo.alignment == WD_ALIGN_PARAGRAPH.CENTER
+    assert len(ultimo.runs[0]._r.xpath(".//pic:pic")) == 1
 
 
 def test_adicionar_tabela_grava_cabecalho_em_negrito_e_linhas():
@@ -151,7 +162,7 @@ def test_adicionar_cabecalho_institucional_grava_timbre_e_aviso_automatico():
     textos = [p.text for p in reaberto.paragraphs]
     assert "Ministério da Saúde" in textos
     assert any("DECAN" in t for t in textos)
-    assert any("gerado automaticamente pelo SIGEO" in t for t in textos)
+    assert any("gerado automaticamente pelo SISGEO" in t for t in textos)
 
 
 def test_adicionar_paragrafo_rotulo_valor_negrito_so_no_rotulo():
@@ -171,8 +182,8 @@ def test_adicionar_legenda_tabela_numera_e_usa_o_texto():
 
 def test_adicionar_fonte_prefixa_com_fonte():
     documento = novo_documento("Capa")
-    adicionar_fonte(documento, "SIGEO.")
-    assert documento.paragraphs[-1].text == "Fonte: SIGEO."
+    adicionar_fonte(documento, "SISGEO.")
+    assert documento.paragraphs[-1].text == "Fonte: SISGEO."
 
 
 def test_linhas_como_texto_formata_moeda_e_data_por_nome_de_coluna():

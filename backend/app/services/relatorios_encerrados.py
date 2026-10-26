@@ -5,11 +5,13 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.classificacao_itens import classificar
 from app.domain_errors import ValidationError
 from app.equipamentos import classificar_descricoes
 from app.pipeline.itens_plano import descricoes_so_de_obra_ou_servico, item_conta_como_equipamento
 from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
 from app.repositories import equipamento_marcadores as marcadores_repo
+from app.repositories import itens_equipamento as itens_repo
 from app.repositories import relatorios_encerrados as repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.schemas_relatorios_encerrados import FatoEncerramento, FiltroEncerramento, PreviaEncerrados, RegistroEncerrado
@@ -192,6 +194,8 @@ def _quantidade_de_equipamentos(itens_plano: list[dict], codigos: list[str]) -> 
         descricao = item.get("DESCRICAO_ITEM")
         if not descricao:
             continue
+        if classificar(str(descricao)).tipo != "aquisicao":
+            continue  # rendimento, acessório e item múltiplo não somam unidade (classificação C5)
         if not item.get("ID_ITEM_PAD"):
             if tem_item_oficial:
                 continue  # texto da planilha repete o que a API já traz; não soma de novo
@@ -219,6 +223,10 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
         proposta_ids={r.proposta_id for r in registros if r.proposta_id is not None},
     )
 
+    entregues = itens_repo.unidades_entregues_por_instrumento(
+        db, {r.instrumento_id for r in registros if r.instrumento_id is not None}
+    )
+
     def com_equipamentos(registro: RegistroEncerrado) -> RegistroEncerrado:
         for origem, identificador in (
             ("convenio", registro.convenio_id),
@@ -234,6 +242,9 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
                     update={
                         "equipamentos": _texto_equipamentos([m.nome for m in achados]),
                         "quantidade": _quantidade_de_equipamentos(registro.itens_plano, [m.codigo for m in achados]),
+                        "quantidade_entregue": entregues.get(registro.instrumento_id)
+                        if registro.instrumento_id is not None
+                        else None,
                     }
                 )
         return registro

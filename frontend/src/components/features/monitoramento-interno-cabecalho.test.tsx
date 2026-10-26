@@ -3,11 +3,16 @@ import { render, screen } from "@testing-library/react";
 import type { InstrumentoTimeline } from "@/services/monitoramento-instrumentos";
 import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho";
 
-function renderizar(situacao: string | null) {
+function renderizar(
+  situacao: string | null,
+  identidade: { nr_convenio: string; tipo_contratacao: string } = {
+    nr_convenio: "825374",
+    tipo_contratacao: "Convênio",
+  },
+) {
   const timeline = {
     instrumento: {
-      nr_convenio: "825374",
-      tipo_contratacao: "Convênio",
+      ...identidade,
       nome_convenente: "Hospital de teste",
       municipio: "Urussanga",
       uf: "SC",
@@ -23,7 +28,6 @@ function renderizar(situacao: string | null) {
       dataInauguracao={null}
       inaugurado
       diasInauguracao={null}
-      equipamentoFisico={null}
       statusLicenca="Sem registro"
       alertaLicenca={false}
       acoesAbertasCount={0}
@@ -51,5 +55,18 @@ describe("MonitoramentoInternoCabecalho", () => {
       screen.getByText("Prestação de Contas Concluída"),
     ).toBeInTheDocument();
     expect(screen.getByText("Concluída")).toBeInTheDocument();
+  });
+
+  it("mostra o NUP formatado só em FAF e TED", () => {
+    renderizar(null, {
+      nr_convenio: "25000198305202459",
+      tipo_contratacao: "FAF",
+    });
+    expect(screen.getByText("NUP 25000.198305/2024-59")).toBeInTheDocument();
+  });
+
+  it("não mostra NUP em convênio", () => {
+    renderizar(null);
+    expect(screen.queryByText(/^NUP /)).not.toBeInTheDocument();
   });
 });

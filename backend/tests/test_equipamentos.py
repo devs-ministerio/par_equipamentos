@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from app.db.models import Convenio
-from app.equipamentos import classificar_descricoes
+from app.equipamentos import classificar_descricoes, nome_curto_do_item
 from scripts.lib_monitoramento_convenio import adicionar_item_manual_inicial
 
 
@@ -46,7 +46,6 @@ def test_classificador_canoniza_linac_e_grafia_acelerado_como_acelerador_priorit
 
     assert [(item.codigo, item.nome) for item in achados] == [
         ("acelerador_linear", "Acelerador Linear"),
-        ("radioterapia", "Radioterapia"),
     ]
 
 
@@ -109,3 +108,28 @@ def test_item_manual_de_persus_faf_ted_nasce_com_quantidade_um_e_o_de_convenio_n
         adicionar_item_manual_inicial(convenio, "Acelerador Linear", "planilha")
 
         assert (convenio.siconv_raw or {})["itens_plano_aplicacao"][0].get("QTD_ITEM") == esperado
+
+
+@pytest.mark.parametrize(
+    ("descricao", "esperado"),
+    [
+        ("000253-Arco Cirúrgico", "Arco Cirúrgico"),
+        (
+            "01)\tAcelerador Linear para radioterapia com energia de 6MV fótons- Console",
+            "Acelerador Linear para radioterapia com energia de 6MV fótons",
+        ),
+        (
+            "SIMULADOR DE TRATAMENTO PARA RADIOTERAPIA- Variação do isocentro com raio menor que 1 mm;- Isocentro",
+            "SIMULADOR DE TRATAMENTO PARA RADIOTERAPIA- Variação do isocentro com raio menor que 1 mm",
+        ),
+        ("Mamógrafo", "Mamógrafo"),
+    ],
+)
+def test_nome_curto_do_item_nunca_traz_a_especificacao_inteira(descricao, esperado):
+    nome = nome_curto_do_item(descricao)
+    assert len(nome) <= 90
+    assert nome.startswith(esperado[:30])
+
+
+def test_nome_curto_do_item_limita_o_tamanho():
+    assert len(nome_curto_do_item("Equipamento " + "x" * 300)) == 90

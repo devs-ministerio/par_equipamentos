@@ -20,6 +20,7 @@ const registroSchema = z.object({
   origem_data: z.string().nullable(),
   equipamentos: z.string(),
   quantidade: z.number().int().nullable(),
+  quantidade_entregue: z.number().int().nullable().optional(),
   situacao_carteira: z.string().nullable(),
   situacao_monitoramento: z.string().nullable(),
   situacao_oficial: z.string().nullable(),

@@ -69,20 +69,14 @@ export function MonitoramentoInternoEventos({
       )
     : null;
 
-  // Organizado por data (mais recente primeiro) -- data_ocorrencia (fato
-  // consumado) tem prioridade sobre data_prevista (só planejamento); sem
-  // nenhuma das duas, cai pra created_at (evento sem data nenhuma, ex.
-  // "Aguardando repasse" importado da planilha).
-  const eventosOrdenados = [...eventos].sort((a, b) => {
-    const dataA = a.data_ocorrencia ?? a.data_prevista ?? a.created_at;
-    const dataB = b.data_ocorrencia ?? b.data_prevista ?? b.created_at;
-    return dataB.localeCompare(dataA);
-  });
+  // Mais recente lançado primeiro (created_at, depois id), como no backend.
+  const eventosOrdenados = [...eventos].sort(
+    (a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id,
+  );
 
   return (
     <SecaoOperacional
       titulo="Linha do tempo de eventos"
-      subtitulo="Histórico dos marcos lançados para este instrumento."
       acao={
         <button
           disabled={!podeEditar}
@@ -148,10 +142,16 @@ export function MonitoramentoInternoEventos({
                   >
                     {numero}
                   </div>
-                  <div className="min-w-20 text-[11px] text-muted-foreground">
-                    {fmtData(ev.data_ocorrencia) !== "—"
-                      ? fmtData(ev.data_ocorrencia)
-                      : fmtData(ev.created_at.slice(0, 10))}
+                  <div className="min-w-24 text-[11px] leading-snug text-muted-foreground">
+                    {ev.data_ocorrencia && (
+                      <div>Ocorreu {fmtData(ev.data_ocorrencia)}</div>
+                    )}
+                    {ev.data_prevista && (
+                      <div>Prev. {fmtData(ev.data_prevista)}</div>
+                    )}
+                    {!ev.data_ocorrencia && !ev.data_prevista && (
+                      <div>{fmtData(ev.created_at.slice(0, 10))}</div>
+                    )}
                   </div>
                   <div className="w-full min-w-0 sm:w-auto sm:flex-1">
                     <div className="font-semibold text-sm flex items-center gap-1.5 flex-wrap">

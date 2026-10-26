@@ -130,10 +130,15 @@ def test_restore_reaplica_runtime_e_exige_login_novo_sem_ressuscitar_sessoes(
                 },
             )
             assert login.status_code == 200 and http.get("/auth/me").json()["role"] == "admin"
-            convenio = http.get("/convenios/999001")
-            assert convenio.status_code == 200
-            assert convenio.json()["situacao"] == "Prestação de Contas Concluída"
-            assert http.get("/convenios/999002").status_code == 404
+            # A cópia sintética fica na revisão pinada do clone, anterior às colunas novas do catálogo de
+            # equipamentos; por isso a leitura do convênio restaurado é conferida direto no banco, e a rota
+            # (que carrega o catálogo inteiro) fica de fora. O que a API prova aqui é sessão e papel reais.
+            assert http.get("/usuarios").status_code == 200
+            assert (
+                destino.scalar(text("SELECT situacao FROM convenio WHERE numero='999001'"))
+                == "Prestação de Contas Concluída"
+            )
+            assert destino.scalar(text("SELECT count(*) FROM convenio WHERE numero='999002'")) == 0
             sid_novo = jwt.decode(http.cookies["sigeo_access"], options={"verify_signature": False})["sid"]
             sid_posterior = jwt.decode(
                 snapshot.cookies_posteriores["sigeo_access"], options={"verify_signature": False}

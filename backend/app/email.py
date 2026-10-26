@@ -7,11 +7,11 @@ import requests
 
 from app.config import settings
 
-_NOME_REMETENTE = "Sistema de Gestão de Equipamentos em Oncologia - SIGEO"
+_NOME_REMETENTE = "Sistema de Gestão de Equipamentos em Oncologia - SISGEO"
 
 # Mesma paleta de frontend/src/styles/tokens.ts -- mudar uma exige mudar a
 # outra (não há fonte única compartilhada entre back e front pra isso).
-_COR_PRIMARIA = "#2D6A5C"
+_COR_PRIMARIA = "#2A4D9B"
 _COR_TEXTO = "#1C1A16"
 _COR_TEXTO_CORPO = "#3A362E"
 _COR_SUPERFICIE = "#F6F4EF"
@@ -36,22 +36,22 @@ class _ContextoAcesso:
 # conta ou trocava senha). Caminho não reconhecido cai em `_CONTEXTO_PADRAO`.
 _CONTEXTOS: dict[str, _ContextoAcesso] = {
     "/ativar": _ContextoAcesso(
-        preheader="Ative sua conta no SIGEO -- o link expira em 7 dias.",
+        preheader="Ative sua conta no SISGEO -- o link expira em 7 dias.",
         eyebrow="Ativação de conta",
-        corpo="Você foi convidado a acessar o SIGEO. Clique no botão abaixo para criar sua senha e ativar sua conta.",
+        corpo="Você foi convidado a acessar o SISGEO. Clique no botão abaixo para criar sua senha e ativar sua conta.",
         cta="Ativar minha conta",
     ),
     "/redefinir-senha": _ContextoAcesso(
-        preheader="Redefina sua senha no SIGEO -- o link expira em 7 dias.",
+        preheader="Redefina sua senha no SISGEO -- o link expira em 7 dias.",
         eyebrow="Redefinição de senha",
-        corpo="Recebemos uma solicitação para redefinir sua senha no SIGEO. Clique no botão abaixo para escolher uma nova senha.",
+        corpo="Recebemos uma solicitação para redefinir sua senha no SISGEO. Clique no botão abaixo para escolher uma nova senha.",
         cta="Redefinir senha",
     ),
 }
 _CONTEXTO_PADRAO = _ContextoAcesso(
-    preheader="Você recebeu uma solicitação de acesso ao SIGEO.",
-    eyebrow="Ação necessária no SIGEO",
-    corpo="Você recebeu uma solicitação de acesso ao SIGEO. Clique no botão abaixo para continuar.",
+    preheader="Você recebeu uma solicitação de acesso ao SISGEO.",
+    eyebrow="Ação necessária no SISGEO",
+    corpo="Você recebeu uma solicitação de acesso ao SISGEO. Clique no botão abaixo para continuar.",
     cta="Continuar",
 )
 
@@ -69,6 +69,7 @@ def montar_conteudo_acesso(*, nome: str, url: str, caminho: str = "") -> tuple[s
     Mail, que ignoram ou removem <style>/grid/flex."""
     contexto = _CONTEXTOS.get(caminho, _CONTEXTO_PADRAO)
     url_escapada = escape(url, quote=True)
+    logotipo = escape(f"{settings.app_public_url.rstrip('/')}/email/sisgeo-logo.png", quote=True)
     nome_escapado = escape(nome)
 
     texto = (
@@ -85,7 +86,7 @@ def montar_conteudo_acesso(*, nome: str, url: str, caminho: str = "") -> tuple[s
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>SIGEO</title>
+    <title>SISGEO</title>
   </head>
   <body style="margin:0;padding:0;background-color:{_COR_SUPERFICIE};">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;font-size:1px;line-height:1px;color:{_COR_SUPERFICIE};">
@@ -96,15 +97,23 @@ def montar_conteudo_acesso(*, nome: str, url: str, caminho: str = "") -> tuple[s
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background-color:#ffffff;border:1px solid {_COR_BORDA};border-radius:12px;">
             <tr>
-              <td style="padding:24px 32px;border-bottom:1px solid {_COR_BORDA};">
-                <table role="presentation" cellpadding="0" cellspacing="0">
+              <td style="padding:0;border-radius:12px 12px 0 0;overflow:hidden;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                   <tr>
-                    <td style="width:36px;height:36px;background-color:{_COR_PRIMARIA};border-radius:8px;text-align:center;">
-                      <span style="display:block;font-family:{_FONTE};font-size:16px;font-weight:700;line-height:36px;color:#ffffff;">S</span>
-                    </td>
-                    <td style="padding-left:12px;">
-                      <span style="display:block;font-family:{_FONTE};font-size:15px;font-weight:700;color:{_COR_TEXTO};">SIGEO</span>
-                      <span style="display:block;font-family:{_FONTE};font-size:11px;color:{_COR_TEXTO_SUBTLE};">Gestão de Equipamentos em Oncologia</span>
+                    <td width="25%" style="height:4px;line-height:4px;font-size:0;background-color:#2A4D9B;border-radius:12px 0 0 0;">&nbsp;</td>
+                    <td width="25%" style="height:4px;line-height:4px;font-size:0;background-color:#6D3FA0;">&nbsp;</td>
+                    <td width="25%" style="height:4px;line-height:4px;font-size:0;background-color:#B0236F;">&nbsp;</td>
+                    <td width="25%" style="height:4px;line-height:4px;font-size:0;background-color:#F0902A;border-radius:0 12px 0 0;">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:24px 32px;border-bottom:1px solid {_COR_BORDA};text-align:center;">
+                <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                  <tr>
+                    <td align="center">
+                      <img src="{logotipo}" alt="SISGEO - Gestão de Equipamentos em Oncologia" width="180" style="display:block;border:0;outline:none;text-decoration:none;font-family:{_FONTE};font-size:18px;font-weight:700;color:{_COR_TEXTO};">
                     </td>
                   </tr>
                 </table>

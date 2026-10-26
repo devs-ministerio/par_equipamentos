@@ -203,3 +203,13 @@ def test_quantidade_sem_plano_ou_sem_qtd_conta_uma_unidade_por_tipo():
     assert _quantidade_de_equipamentos([], ["mamografo", "pet_ct"]) == 2
     assert _quantidade_de_equipamentos([{"DESCRICAO_ITEM": "Mamógrafo", "QTD_ITEM": ""}], ["mamografo"]) == 1
     assert _quantidade_de_equipamentos([{"DESCRICAO_ITEM": "Mamógrafo", "QTD_ITEM": "0"}], ["mamografo"]) == 1
+
+
+def test_rendimento_e_acessorio_nao_somam_unidade_na_quantidade():
+    from app.services.relatorios_encerrados import _quantidade_de_equipamentos
+
+    itens = [
+        {"DESCRICAO_ITEM": "Mamógrafo digital", "QTD_ITEM": "2"},
+        {"DESCRICAO_ITEM": "Utilização de rendimento de aplicação para complementar o mamógrafo", "QTD_ITEM": "1"},
+    ]
+    assert _quantidade_de_equipamentos(itens, ["mamografo"]) == 2

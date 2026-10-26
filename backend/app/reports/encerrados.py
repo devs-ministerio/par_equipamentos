@@ -16,7 +16,8 @@ COLUNAS = [
     "CNES",
     "Nº do convênio",
     "Equipamento(s)",
-    "Quantidade",
+    "Quantidade planejada",
+    "Quantidade entregue",
     "Tipo de contratação",
     "Valor global",
     "Data de conclusão",
@@ -34,21 +35,24 @@ _COLUNAS_WORD = [
     "CNES",
     "Nº do convênio",
     "Equipamento(s)",
-    "Qtd.",
+    "Qtd. plan.",
+    "Qtd. entr.",
     "Tipo",
     "Valor global",
     "Data de conclusão",
     "Critério",
 ]
-_PESOS_WORD = [3.0, 2.0, 1.2, 1.5, 2.4, 0.7, 1.4, 1.9, 2.1, 2.0]
+_PESOS_WORD = [3.0, 2.0, 1.2, 1.5, 2.4, 0.8, 0.8, 1.4, 1.9, 2.1, 2.0]
 
 _NOTA_DATA = (
     "Data de conclusão: a registrada no monitoramento interno; na falta dela, o fim da vigência do "
     "instrumento, indicado como tal. O SICONV não informa a data em que a prestação de contas foi concluída."
 )
 _NOTA_QUANTIDADE = (
-    "Quantidade: unidades dos equipamentos do instrumento, pela soma da quantidade dos itens do plano de "
-    "aplicação; sem plano de aplicação (PERSUS, FAF, TED), conta uma unidade por tipo de equipamento."
+    "Quantidade planejada: unidades dos equipamentos do instrumento, pela soma da quantidade dos itens do plano "
+    "de aplicação; sem plano de aplicação (PERSUS, FAF, TED), conta uma unidade por tipo de equipamento. "
+    "Quantidade entregue: unidades registradas na entrega, só nos instrumentos que já têm controle por unidade; "
+    "nos demais fica em branco."
 )
 _LIMITE = (
     "Ordem paga não comprova quitação integral da parceria ou conclusão física. Pendências não integram os concluídos."
@@ -65,6 +69,7 @@ def _linha(item: RegistroEncerrado) -> list[object]:
         item.numero,
         item.equipamentos or None,
         item.quantidade,
+        item.quantidade_entregue,
         item.tipo,
         item.valor_global,
         item.data_referencia,
@@ -92,6 +97,7 @@ def _linha_concluido_word(item: RegistroEncerrado) -> list[str]:
         item.numero,
         item.equipamentos or "—",
         str(item.quantidade) if item.quantidade is not None else "—",
+        str(item.quantidade_entregue) if item.quantidade_entregue is not None else "—",
         item.tipo,
         formatar_moeda(float(item.valor_global)) if item.valor_global is not None else "—",
         _data_word(item),

@@ -107,7 +107,7 @@ describe("Filtros reais do monitoramento e URL", () => {
   });
 
   it.each([
-    ["Tipo de contratação", "TED", "sintetico-1"],
+    ["Contratação", "TED", "sintetico-1"],
     ["CNES", "teste-0", "sintetico-0"],
     ["UF", "BA", "sintetico-1"],
     ["Município", "Cidade Alfa", "sintetico-0"],
@@ -136,7 +136,7 @@ describe("Filtros reais do monitoramento e URL", () => {
     const user = montar();
     // When
     await selecionar(user, "UF", "BA");
-    await selecionar(user, "Tipo de contratação", "Convênio");
+    await selecionar(user, "Contratação", "Convênio");
     // Then
     expect(screen.getByText("0 de 2 instrumentos")).toBeInTheDocument();
     expect(screen.getByLabelText("Resultados")).toBeEmptyDOMElement();

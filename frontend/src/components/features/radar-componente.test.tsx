@@ -35,7 +35,7 @@ describe("componente oficial no card do Radar", () => {
       await screen.findByRole("heading", { name: "Convênio 999001" });
       // Assert
       expect(screen.getByText(componente.componente)).toBeVisible();
-      expect(screen.getByText("Proposta 111001")).not.toBeVisible();
+      expect(screen.queryByText("Proposta 111001")).not.toBeInTheDocument();
       expect(screen.queryByText("1 evidência")).not.toBeInTheDocument();
     } finally {
       unmount();

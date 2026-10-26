@@ -46,6 +46,15 @@ const MARCOS: MarcoCatalogo[] = [
     rotulo: "Entrega no estabelecimento",
     descricao_referencia: null,
   },
+  {
+    id: 13,
+    codigo: "cronograma_instalacao_inicio",
+    grupo: "cronograma_fisico",
+    ordem: null,
+    execucao_fisica_pct_referencia: null,
+    rotulo: "Instalação — início",
+    descricao_referencia: null,
+  },
 ];
 
 async function selecionarMarco(rotulo: string) {
@@ -166,7 +175,7 @@ describe("MonitoramentoInternoFormEvento", () => {
     await selecionarMarco("Em licitação");
     expect(screen.queryByLabelText("Data prevista")).not.toBeInTheDocument();
 
-    await selecionarMarco("Entrega no estabelecimento");
+    await selecionarMarco("Instalação — início");
     expect(screen.getByLabelText("Data prevista")).toBeInTheDocument();
   });
 
@@ -209,7 +218,7 @@ describe("MonitoramentoInternoFormEvento", () => {
       />,
     );
 
-    await selecionarMarco("Entrega no estabelecimento");
+    await selecionarMarco("Instalação — início");
     expect(
       screen.getByLabelText("Fase geral correspondente"),
     ).toBeInTheDocument();
@@ -232,7 +241,7 @@ describe("MonitoramentoInternoFormEvento", () => {
       />,
     );
 
-    await selecionarMarco("Entrega no estabelecimento");
+    await selecionarMarco("Instalação — início");
     const selectFase = screen.getByLabelText("Fase geral correspondente");
     await userEvent.selectOptions(
       selectFase,
@@ -243,8 +252,20 @@ describe("MonitoramentoInternoFormEvento", () => {
     );
 
     expect(onRegistrar).toHaveBeenCalledWith(
-      expect.objectContaining({ marcoId: "12", faseGeralId: "2" }),
+      expect.objectContaining({ marcoId: "13", faseGeralId: "2" }),
     );
+  });
+
+  it("não oferece a entrega no estabelecimento (lançada em Equipamentos do instrumento)", () => {
+    render(
+      <MonitoramentoInternoFormEvento marcos={MARCOS} onRegistrar={vi.fn()} />,
+    );
+    const select = screen.getByLabelText("Marco");
+    expect(
+      within(select).queryByRole("option", {
+        name: "Entrega no estabelecimento",
+      }),
+    ).not.toBeInTheDocument();
   });
 
   it("em modo de correção mostra o marco fixo (não editável) e rótulo customizado", () => {

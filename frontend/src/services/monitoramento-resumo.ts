@@ -67,6 +67,16 @@ const acaoAbertaResumoSchema = z.object({
 });
 export type AcaoAbertaResumo = z.infer<typeof acaoAbertaResumoSchema>;
 
+const equipamentoInstrumentoSchema = z.object({
+  nr_convenio: z.string(),
+  familia: z.string(),
+  planejado: z.number(),
+  entregue: z.number(),
+});
+export type EquipamentoInstrumentoResumo = z.infer<
+  typeof equipamentoInstrumentoSchema
+>;
+
 const resumoMonitoramentoSchema = z.object({
   total_instrumentos: z.number(),
   pct_execucao_fisica_medio: z.number().nullable(),
@@ -83,6 +93,7 @@ const resumoMonitoramentoSchema = z.object({
   indicadores_por_instrumento: z.array(indicadoresInstrumentoSchema),
   acoes_em_aberto: z.array(acaoAbertaResumoSchema),
   fila_acoes_truncada: z.boolean(),
+  equipamentos_por_instrumento: z.array(equipamentoInstrumentoSchema),
   gerado_em: z.string(),
 });
 export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;

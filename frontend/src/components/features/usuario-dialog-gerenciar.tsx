@@ -125,7 +125,7 @@ export function UsuarioDialogGerenciar({
                   descricao={
                     usuario.status === "active"
                       ? "Encerra sessões e bloqueia novos acessos."
-                      : "Permite que a pessoa volte a acessar o SIGEO."
+                      : "Permite que a pessoa volte a acessar o SISGEO."
                   }
                   onClick={() => onAlterarStatus(usuario)}
                   destructive={usuario.status === "active"}

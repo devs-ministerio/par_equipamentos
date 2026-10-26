@@ -2,7 +2,7 @@
 
 `TIPO_DESPESA_ITEM` separa `BEM` de `OBRA`/`SERVICO`. Nesses dois últimos a
 descrição apenas menciona equipamentos e `QTD_ITEM` é área ou serviço (por exemplo
-38.447 m²), nunca unidades; o valor é da obra. Obras não fazem parte do SIGEO, então
+38.447 m²), nunca unidades; o valor é da obra. Obras não fazem parte do SISGEO, então
 esses itens ficam na fonte (evidência e baseline da recaptura), mas não entram em
 equipamento, quantidade nem valor dos relatórios.
 """

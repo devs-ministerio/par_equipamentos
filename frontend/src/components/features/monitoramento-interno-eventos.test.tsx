@@ -50,7 +50,7 @@ describe("interação da timeline de eventos", () => {
     expect(props.onRegistrar).not.toHaveBeenCalled();
   });
 
-  it("prioriza ocorrência, previsão e criação ao ordenar sem alterar a coleção recebida", () => {
+  it("ordena pelo lançamento mais recente e mostra ocorrência e previsão separadas", () => {
     // Arrange
     const props = criarProps();
     props.eventos = [
@@ -58,6 +58,7 @@ describe("interação da timeline de eventos", () => {
         id: 1,
         marco_id: 1,
         data_ocorrencia: "2026-01-01",
+        created_at: "2026-01-02T10:00:00Z",
         observacao: "Ordem ocorrência",
       }),
       criarEventoTeste({
@@ -65,6 +66,7 @@ describe("interação da timeline de eventos", () => {
         marco_id: 2,
         data_ocorrencia: null,
         data_prevista: "2026-02-01",
+        created_at: "2026-02-02T10:00:00Z",
         observacao: "Ordem previsão",
       }),
       criarEventoTeste({
@@ -85,6 +87,8 @@ describe("interação da timeline de eventos", () => {
     ]);
     expect(props.eventos.map((e) => e.id)).toEqual([1, 2, 3]);
     expect(screen.getByText("Marco 999")).toBeInTheDocument();
+    expect(screen.getByText("Ocorreu 01/01/2026")).toBeInTheDocument();
+    expect(screen.getByText("Prev. 01/02/2026")).toBeInTheDocument();
     expect(screen.getAllByText(/Autor não registrado/)).toHaveLength(3);
   });
 

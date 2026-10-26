@@ -32,6 +32,7 @@ def test_gravacao_progressiva_preserva_xml_e_partes_do_modelo(total, formatado):
     docx_builder.adicionar_tabela(
         comum, secao.colunas, linhas, pesos_colunas=secao.pesos_colunas, fonte_pt=secao.fonte_pt
     )
+    docx_builder.adicionar_logotipo_final(comum)  # o gravador progressivo fecha o documento com o logotipo
     progressivo = docx_builder.novo_documento("Relatório")
     # Act
     antigo = docx_builder.gerar_bytes(comum)
@@ -64,7 +65,9 @@ def test_multiplas_secoes_preservam_ordem_e_nao_misturam_linhas():
     arquivo = gerar_bytes_tabelados(docx_builder.novo_documento("Capa"), secoes)
     # Assert
     reaberto = Document(BytesIO(arquivo))
-    assert [p.text for p in reaberto.paragraphs] == ["Capa", "Primeira", "Vazia", "Última"]
+    # O parágrafo final, sem texto, carrega o logotipo do SISGEO.
+    assert [p.text for p in reaberto.paragraphs] == ["Capa", "Primeira", "Vazia", "Última", ""]
+    assert len(reaberto.paragraphs[-1].runs[0]._r.xpath(".//pic:pic")) == 1
     assert [[c.text for r in t.rows for c in r.cells] for t in reaberto.tables] == [
         ["Nome", "ação"],
         ["Nome", docx_builder.TEXTO_SEM_REGISTROS],

@@ -14,6 +14,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { MonitoramentoInternoFormLogin } from "@/components/features/monitoramento-interno-form-login";
 import { Card, CardContent } from "@/components/ui/card";
+import { Logo } from "@/components/common/logo";
 
 export function LoginPage() {
   const sessao = useAuthSession();
@@ -33,22 +34,11 @@ export function LoginPage() {
         <CardContent className="p-8">
           <Link
             to="/monitoramento-equipamentos"
-            className="mb-1 flex items-center gap-2.5 text-foreground"
+            className="mb-8 flex justify-center text-foreground"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-sm font-bold text-primary-foreground">
-              S
-            </span>
-            <span className="font-display text-[15px] font-bold tracking-tight">
-              SIGEO
-            </span>
+            <Logo variante="completo" className="h-14" />
           </Link>
-          <h1 className="mt-5 text-xl font-bold text-foreground">
-            Entrar no SIGEO
-          </h1>
-          <p className="mt-1.5 mb-5 text-sm text-muted-foreground">
-            Acesso operacional -- edição de monitoramento interno, inclusão de
-            propostas e notificações.
-          </p>
+          <h1 className="sr-only">Entrar no SISGEO</h1>
           <MonitoramentoInternoFormLogin
             onEntrar={async (valores) => {
               await sessao.login({

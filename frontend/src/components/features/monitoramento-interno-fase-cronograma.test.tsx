@@ -2,10 +2,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { criarMarcosInteracao } from "@/test-fixtures/monitoramento-interacoes";
 import { criarEventoTeste } from "@/test-fixtures/monitoramento-hooks";
-import {
-  MonitoramentoInternoCronograma,
-  MonitoramentoInternoFaseGeral,
-} from "./monitoramento-interno-fase-cronograma";
+import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
+import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -28,7 +26,10 @@ describe("fase e cronograma do monitoramento", () => {
       />,
     );
     // Assert
-    expect(screen.getByText("Contratado — 50%")).toBeInTheDocument();
+    expect(
+      screen.getByText("Contratado", { selector: "strong" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/etapa 1 de 2 · 50%/)).toBeInTheDocument();
   });
 
   it("mantém não iniciado sem evento de fase geral", () => {
@@ -41,7 +42,10 @@ describe("fase e cronograma do monitoramento", () => {
       />,
     );
     // Assert
-    expect(screen.getByText("Não iniciado — 0%")).toBeInTheDocument();
+    expect(
+      screen.getByText("Não iniciado", { selector: "strong" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/etapa 0 de 2 · 0%/)).toBeInTheDocument();
   });
 
   it.each([2, 3])(
@@ -149,7 +153,7 @@ describe("fase e cronograma do monitoramento", () => {
     },
   );
 
-  it("mostra marcos do catálogo sem datas quando não há eventos", () => {
+  it("marcos sem evento ficam recolhidos em 'Sem registro', sem linha vazia", () => {
     // Arrange / Act
     render(
       <MonitoramentoInternoCronograma
@@ -162,6 +166,8 @@ describe("fase e cronograma do monitoramento", () => {
     // Assert
     expect(screen.getByText("Previsão de inauguração")).toBeInTheDocument();
     expect(screen.getByText("Licença de operação")).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(2);
+    expect(screen.getAllByText(/Sem registro \(1\)/)).toHaveLength(2);
+    expect(screen.getByText("Nenhum marco registrado.")).toBeInTheDocument();
+    expect(screen.queryByText("—")).not.toBeInTheDocument();
   });
 });

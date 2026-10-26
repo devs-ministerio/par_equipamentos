@@ -145,7 +145,8 @@ test("central independente, sem aprovação automática, responsiva", async ({
     dialog.getByText("Aguardando verificação", { exact: true }),
   ).toBeVisible();
   await expect(evidencia).toBeVisible();
-  await dialog.getByText("Mais detalhes", { exact: true }).click();
+  await dialog.getByText("Menos detalhes", { exact: true }).click();
+  await expect(evidencia).not.toBeVisible();
   await expect(
     page.getByText("Convênios legados descobertos", { exact: true }),
   ).toHaveCount(0);

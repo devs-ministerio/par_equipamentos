@@ -95,12 +95,15 @@ export function SecaoOperacional({
   subtitulo,
   acao,
   destaque = false,
+  cartao = false,
   children,
 }: {
   titulo: string;
   subtitulo?: string;
   acao?: React.ReactNode;
   destaque?: boolean;
+  /** Cartão branco com borda, como os cards do cabeçalho. */
+  cartao?: boolean;
   // Opcional (achado 2026-09-15) -- MonitoramentoInternoAcesso ficou só
   // com header+ação depois que o login parou de abrir form inline aqui.
   children?: React.ReactNode;
@@ -108,7 +111,9 @@ export function SecaoOperacional({
   return (
     <section
       className={cn(
-        "mb-4 border-t border-border pt-3.5",
+        cartao
+          ? "mb-4 rounded-[10px] border border-border bg-card px-5 py-4"
+          : "mb-4 border-t border-border pt-3.5",
         destaque && "bg-muted/35 px-4 pb-4",
       )}
     >

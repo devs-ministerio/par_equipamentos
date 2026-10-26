@@ -1,4 +1,10 @@
-# Contexto do projeto — SIGEO (par_equipamentos)
+# Contexto do projeto — SISGEO (par_equipamentos)
+
+> O produto se chamava **SIGEO** e passou a **SISGEO** em 23/10/2026 (apresentação, e-mails, relatórios e
+> documentação atual; monograma "GEO"). Documentos datados em `docs/` mantêm o nome da época. **Identificadores
+> técnicos continuam `sigeo_*`** de propósito: cookies `sigeo_access`/`sigeo_refresh`/`sigeo_csrf`, roles
+> `sigeo_runtime`/`sigeo_migration`/`sigeo_backup`, prefixo do R2, grupo de concorrência dos workflows e
+> variáveis `SIGEO_LOCAL_*` (renomear deslogaria todos e quebraria backups). Plano: `docs/arquitetura/planmode-identidade-sisgeo-2026-10-20.md`.
 
 Leia [`README.md`](README.md) primeiro para stack e como rodar. Este arquivo
 é sobre convenções e pegadinhas específicas deste repo.
@@ -86,7 +92,7 @@ reintroduzir o erro:
 - **Escopo bem menor que os 581 "Instrumentos firmados", e nem tudo que é
   firmado é monitorado internamente**: `convenio` ("Instrumentos
   firmados", `backend/app/routers/convenios.py`) é o universo completo de
-  repasse — 581 registros desde a correção de 2026-09-18 (403 Convênio/
+  repasse — 581 registros desde a correção de 2026-09-18 (**desatualizado**: 560 em 26/10/2026, sem PRONON, ver "Monitoramento por item e unidade") (403 Convênio/
   SICONV/TransfereGov originais + 178 de FAF/TED/PERSUS I/PERSUS II/PRONON,
   ver `docs/arquitetura/diagnostico-ingestao-dados-2026-09-18.md`).
   `instrumento_equipamento` (monitoramento interno pós-repasse) é um
@@ -238,6 +244,75 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
 - Reordenação do cronograma físico (`MarcoCatalogo.ordem` pra grupo físico/regulatório, hoje só
   populado pra fase_geral) ficou **fora desta rodada** por decisão do usuário — mesma pendência já
   registrada como "em revisão com a equipe técnica" antes deste Plan Mode.
+
+## Monitoramento por item e unidade (Plan Mode monitoramento-itens, 2026-10-23)
+
+Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md` (classificação em
+`planmode-classificacao-itens-2026-10-23.md`). Sem push/PR/merge sem autorização do usuário.
+
+- **Modelo**: `item_plano` (projeção dos itens do SICONV por `ID_ITEM_PAD`, ou `manual:{numero}:{ordem}` nas
+  cargas manuais; `OBRA`/`SERVICO` ficam de fora), `entrega_equipamento` (append-only, soft delete com motivo),
+  `unidade_equipamento` (nasce na entrega: marca, modelo, série única dentro do item, vida útil) e
+  `entrega_legada_revisao` (fila das entregas antigas sem vínculo inequívoco). Cada `item_plano` é um equipamento
+  distinto: dois itens com o mesmo código e nome são duas linhas.
+- **16 famílias** controlam unidade (`equipamento_catalogo.controle_por_unidade`) e definem "Prioritário". **Regra de
+  valor (26/10/2026):** equipamento fora das 16 famílias também entra no monitoramento por item quando o valor de uma
+  **unidade** (valor do item no plano ÷ quantidade) é **≥ R$ 300 mil** (`LIMITE_VALOR_UNITARIO_MONITORADO` em
+  `app/classificacao_itens.py`; decisão explícita da equipe sobre o item prevalece; carga manual não tem valor, não entra).
+  Pela linha inteira entrariam lotes baratos (293 computadores, 120 camas), por isso o critério é por unidade.
+  Na tela o item aparece sem família; no painel, em "Outros equipamentos (a partir de R$ 300 mil)".
+  Aceleradores manuais de PERSUS I/II usam o código 011806 (`codigo_fonte = regra_da_equipe`).
+- **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`,
+  `vincular_entregas_legadas.py` (conservador; avisa os técnicos pelo tipo `entrega_legada_revisao`).
+- **API** (`routers/entregas.py`): leitura dos itens do instrumento, entrega com várias unidades por item e
+  idempotência, correção de unidade (AuditLog antes/depois), exclusão com motivo, fila e vínculo de legado.
+  Entrega acima do planejado é bloqueada; toda entrega vincula pelo menos um item.
+- **Tela**: seção "Equipamentos do instrumento" acima do Cadastro interno. A entrega no estabelecimento não é mais
+  lançada pelo seletor de marcos da linha do tempo (o backend ainda aceita o marco).
+- **Relatórios/painel**: Concluídos mostra quantidade planejada e entregue; o painel mostra entregues/planejados por
+  família; os relatórios de instrumentos (Excel/Word) ganham a coluna "Entregues" nas tabelas de equipamentos só
+  quando algum instrumento do recorte tem controle por unidade ("—" nas famílias sem controle).
+- **Classificação do item** (`app/classificacao_itens.py`, plano `planmode-classificacao-itens-2026-10-23.md`):
+  `item_plano.tipo_lancamento` (aquisição, rendimento da aplicação, acessório, múltiplo, não equipamento) e
+  `situacao_classificacao` (`pendente` = fila de revisão, só o que a regra não decide: ~12 itens locais). Rendimento
+  não soma unidade, aparece como linha filha do item principal único do convênio (`item_principal_id`) e não entra
+  na quantidade nem no valor dos relatórios. Fila em `/monitoramento-equipamentos/revisao-itens` (gestor/admin):
+  confirmar, corrigir ou "não é equipamento" gravam `decisao_classificacao_item` (`origem=tecnico`, append-only), que
+  a projeção reaplica. Código de catálogo no texto resolve quando a especificação não decide.
+- **Prazos** (`scripts/job_prazos_monitoramento.py`, serviço `prazos_monitoramento.py`): avisos D-1/D0/D+1 de ação
+  aberta com prazo e de previsão de inauguração não realizada, deduplicados por `Notificacao.chave_dedup`
+  (`tipo:referência:data:janela`); concluir/excluir/reagendar arquivam os avisos antigos. Simulação por padrão e
+  **agendamento das 08:00 de São Paulo NÃO ligado** (só depois da operação de alertas e de rodada supervisionada).
+- **Fora de escopo (26/10/2026):** convênio cujos itens na fonte são **todos obra ou serviço** (18 em 26/10) não faz parte
+  do SISGEO: fica no banco com `fora_escopo_equipamentos=true` (`scripts/marcar_fora_escopo_obras.py`, simulação por
+  padrão, `--desfazer`) e some de todo lugar (instrumentos firmados, monitoramento, painel, relatórios, avisos e prazos);
+  `instrumento_no_escopo()` (`repositories/convenios.py`) esconde o instrumento monitorado ligado a ele (o detalhe dá 404).
+  Universo medido em 26/10: 560 firmados (403 Convênio, 92 PERSUS I, 50 PERSUS II, 12 FAF, 3 TED; PRONON saiu em 21/09),
+  542 depois da marcação; 292 monitorados, 288 depois.
+- NUP só em FAF/TED, formatado `25000.198305/2024-59`; eventos e ações ordenados por lançamento mais recente.
+
+- **Marcador vale para o que o item é, não para o que ele menciona** (2026-10-26): "Monitor
+  Multiparâmetros para Ressonância Magnética" (instrumento 985680) virava marcador "Ressonância" porque a
+  palavra-chave era procurada no texto inteiro. `app/equipamentos.py::classificar_descricoes`, para item de
+  plano (`relacao_padrao="aquisicao"`), agora (1) separa itens "A + B" em um marcador por equipamento,
+  (2) pergunta ao motor `classificar`: rendimento/serviço/obra não geram marcador, acessório gera só o
+  marcador genérico com o próprio nome, equipamento de família usa a família do motor, (3) procura a
+  palavra-chave só no nome do item (antes da especificação) e fica com a primeira ocorrência. Texto narrativo
+  (`relacao_padrao="mencao"`) segue por palavra-chave. Marcadores antigos: `scripts/sanear_marcadores_equipamento.py`
+  (simulação por padrão, `--aplicar --confirmo-host`, auditoria); local: 172 removidos, 81 criados, 95 origens.
+  Corrigido junto: "Tomógrafo (Acima de 16 canais até 80)" era lido como "até 16" (`_canais`).
+
+- **Identidade visual SISGEO (2026-10-26, `docs/arquitetura/planmode-identidade-visual-sisgeo-2026-10-26.md`)**:
+  primário azul `#2A4D9B` (CTA, foco, estado ativo); as quatro cores do laço só no logotipo
+  (`components/common/logo.tsx`, SVGs em `src/assets/brand/`), na faixa `.faixa-laco` (`MetricStrip`, `PageHeader`) e nas séries
+  dos gráficos. Âmbar nunca em texto (contraste 2,2:1). Login só com o logotipo centralizado; e-mails de convite/redefinição usam `public/email/sisgeo-logo.png` (URL absoluta por `APP_PUBLIC_URL`, centralizado, com faixa do laço no topo); relatórios Word fecham com o logotipo centralizado (`app/reports/assets/sisgeo-logo.png`). Séries de gráfico: 8 cores com distância Lab ≥ 25 (teste). Significado do laço: azul = Novembro Azul (próstata), magenta = Outubro Rosa (mama), roxo = campanhas lilás (colo do útero), âmbar = Setembro Dourado (infantil); vale só para logotipo e faixa. "Mais detalhes" usa `DetalhesAnimados`
+  em vez de `<details>` nativo; o conteúdo fecha desmontado, então teste abre o botão antes de procurar o texto.
+
+- **Nome do equipamento no monitoramento é o da RENEM** (2026-10-26): `ItemEquipamentoRead.nome` vem de
+  `renem_item.nome` (versão mais recente) pelo `codigo_item`; sem código, `equipamentos.nome_curto_do_item`
+  (só o título, máx. 90 caracteres). A descrição informada na API continua em `descricao`, mas nenhuma tela de
+  monitoramento a mostra como rótulo (a fila de classificação a mostra de propósito, para revisão). O front não
+  tem mais `nomeSemCodigo`: usar sempre `item.nome`.
 
 ## Limitações conhecidas
 
