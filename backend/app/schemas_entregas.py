@@ -72,6 +72,7 @@ class RendimentoRead(BaseModel):
 class ItemEquipamentoRead(BaseModel):
     id: int
     codigo_item: str | None
+    nome: str
     descricao: str
     familia: str | None
     controla_unidade: bool

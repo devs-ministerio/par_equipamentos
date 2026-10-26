@@ -15,18 +15,31 @@ from app.db.models import (
     InstrumentoEquipamento,
     InstrumentoResponsavel,
     ItemPlano,
+    RenemItem,
     UnidadeEquipamento,
 )
 
 _ENTREGA_ATIVA = (EntregaEquipamento.deletado_em.is_(None), EntregaEquipamento.substituido_por_id.is_(None))
 
 
-def listar_itens_do_instrumento(db: Session, instrumento_id: int) -> list[tuple[ItemPlano, str | None]]:
-    """Itens ativos do instrumento com a família do catálogo (quando houver)."""
+def _nome_renem_vigente():
+    """Nome oficial do código na versão mais recente da RENEM carregada."""
+    return (
+        select(RenemItem.nome)
+        .where(RenemItem.codigo_item == ItemPlano.codigo_item)
+        .order_by(RenemItem.versao_lista.desc())
+        .limit(1)
+        .correlate(ItemPlano)
+        .scalar_subquery()
+    )
+
+
+def listar_itens_do_instrumento(db: Session, instrumento_id: int) -> list[tuple[ItemPlano, str | None, str | None]]:
+    """Itens ativos do instrumento com a família do catálogo e o nome oficial na RENEM (quando houver)."""
     return [
-        (item, familia)
-        for item, familia in db.execute(
-            select(ItemPlano, EquipamentoCatalogo.codigo)
+        (item, familia, nome_renem)
+        for item, familia, nome_renem in db.execute(
+            select(ItemPlano, EquipamentoCatalogo.codigo, _nome_renem_vigente())
             .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
             .where(ItemPlano.instrumento_id == instrumento_id, ItemPlano.ativo.is_(True))
             .order_by(ItemPlano.id)

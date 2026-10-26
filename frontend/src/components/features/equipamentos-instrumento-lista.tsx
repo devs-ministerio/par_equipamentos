@@ -3,7 +3,7 @@
 import { Check, Menu } from "lucide-react";
 import { useState } from "react";
 import { fmtData } from "@/lib/monitoramento-format";
-import { nomeSemCodigo, posicaoEntreIguais } from "@/lib/equipamento-rotulos";
+import { posicaoEntreIguais } from "@/lib/equipamento-rotulos";
 import { cn } from "@/lib/utils";
 import type {
   ItemEquipamento,
@@ -65,7 +65,7 @@ export function EquipamentosInstrumentoLista({
       </div>
       {itens.map((item) => {
         const [rotulo, classes] = SITUACAO[item.situacao];
-        const nome = nomeSemCodigo(item.descricao);
+        const nome = item.nome;
         const posicao = posicoes.get(item.id);
         const planejado = item.quantidade_planejada;
         return (
@@ -154,7 +154,7 @@ export function EquipamentosInstrumentoLista({
       })}
       {itemAberto && (
         <EquipamentosInstrumentoUnidades
-          nome={nomeSemCodigo(itemAberto.descricao)}
+          nome={itemAberto.nome}
           unidades={itemAberto.unidades}
           podeEditar={podeEditar}
           onFechar={() => setVerUnidades(null)}

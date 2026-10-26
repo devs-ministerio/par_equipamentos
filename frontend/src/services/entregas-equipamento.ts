@@ -28,6 +28,7 @@ export type RendimentoItem = z.infer<typeof rendimentoSchema>;
 const itemSchema = z.object({
   id: z.number(),
   codigo_item: z.string().nullable(),
+  nome: z.string(),
   descricao: z.string(),
   familia: z.string().nullable(),
   controla_unidade: z.boolean(),

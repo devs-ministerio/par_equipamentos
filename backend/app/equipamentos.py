@@ -137,6 +137,13 @@ def nome_do_item(descricao: str) -> str:
     return re.sub(r"^\s*\d+\s*-\s*", "", descricao).strip()
 
 
+def nome_curto_do_item(descricao: str, *, limite: int = 90) -> str:
+    """Nome de exibição para item sem código na RENEM: só o título, nunca a especificação técnica."""
+    nome = re.sub(r"^\s*(?:C[OÓ]D\.?\s*\d+|\d+\))\s*", "", nome_do_item(descricao), flags=re.IGNORECASE)
+    titulo = next((p.strip() for p in re.split(r"\s[-–]\s|[:;\n\t]|\.\s", nome) if p.strip()), nome.strip())
+    return titulo if len(titulo) <= limite else titulo[: limite - 1].rstrip() + "…"
+
+
 def codigo_do_item_generico(descricao: str) -> str:
     normalizado = normalizar_texto(nome_do_item(descricao))
     return f"item_plano_{sha256(normalizado.encode('utf-8')).hexdigest()[:16]}"

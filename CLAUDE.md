@@ -308,6 +308,12 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   dos gráficos. Âmbar nunca em texto (contraste 2,2:1). Login só com o logotipo centralizado; e-mails de convite/redefinição usam `public/email/sisgeo-logo.png` (URL absoluta por `APP_PUBLIC_URL`, centralizado, com faixa do laço no topo); relatórios Word fecham com o logotipo centralizado (`app/reports/assets/sisgeo-logo.png`). Séries de gráfico: 8 cores com distância Lab ≥ 25 (teste). Significado do laço: azul = Novembro Azul (próstata), magenta = Outubro Rosa (mama), roxo = campanhas lilás (colo do útero), âmbar = Setembro Dourado (infantil); vale só para logotipo e faixa. "Mais detalhes" usa `DetalhesAnimados`
   em vez de `<details>` nativo; o conteúdo fecha desmontado, então teste abre o botão antes de procurar o texto.
 
+- **Nome do equipamento no monitoramento é o da RENEM** (2026-10-26): `ItemEquipamentoRead.nome` vem de
+  `renem_item.nome` (versão mais recente) pelo `codigo_item`; sem código, `equipamentos.nome_curto_do_item`
+  (só o título, máx. 90 caracteres). A descrição informada na API continua em `descricao`, mas nenhuma tela de
+  monitoramento a mostra como rótulo (a fila de classificação a mostra de propósito, para revisão). O front não
+  tem mais `nomeSemCodigo`: usar sempre `item.nome`.
+
 ## Limitações conhecidas
 
 - **Cobertura/déficit/distância sem granularidade por equipamento

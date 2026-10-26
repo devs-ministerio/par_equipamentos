@@ -22,6 +22,7 @@ from app.db.models import (
     InstrumentoEquipamento,
     InstrumentoResponsavel,
     ItemPlano,
+    RenemItem,
     User,
     UserRole,
 )
@@ -370,3 +371,23 @@ def test_item_controlado_por_valor_sem_familia_entra_no_resumo_com_rotulo_propri
     linhas = {(f, p, e) for _, f, p, e in repo.resumo_por_instrumento_e_familia(db, {c.inst.id})}
     # `dois` (planejado 2, 1 entregue) e `um` (planejado 1), ambos sem família no catálogo
     assert (repo.ROTULO_FAMILIA_POR_VALOR, 3, 1) in linhas
+
+
+def test_nome_exibido_e_o_da_renem_e_nunca_a_especificacao_da_api(db):
+    c = Cenario(db)
+    versao = f"pytest-{uuid4().hex[:6]}"
+    db.add(RenemItem(codigo_item="999991", nome="Simulador/ Tomógrafo para Radioterapia", versao_lista=versao))
+    db.add(RenemItem(codigo_item="999991", nome="Nome antigo", versao_lista="0000-antiga"))
+    c.dois.codigo_item = "999991"
+    c.dois.descricao = (
+        "SIMULADOR DE TRATAMENTO PARA RADIOTERAPIA- Variação do isocentro com raio menor que 1 mm;- Isocentro"
+    )
+    c.um.descricao = "Colposcópio digital - Câmera de 5 MP;- Zoom óptico; especificação técnica longa"
+    db.flush()
+    por_id = {
+        i.id: i
+        for i in svc.listar_equipamentos_do_instrumento(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.gestor).itens
+    }
+    assert por_id[c.dois.id].nome == "Simulador/ Tomógrafo para Radioterapia"
+    assert por_id[c.dois.id].descricao.startswith("SIMULADOR DE TRATAMENTO")
+    assert por_id[c.um.id].nome == "Colposcópio digital"

@@ -28,6 +28,7 @@ from app.db.models import (
     UserRole,
 )
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
+from app.equipamentos import nome_curto_do_item
 from app.repositories import itens_equipamento as repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
@@ -102,9 +103,9 @@ def _situacao(planejado: int | None, entregue: int, revisao_pendente: bool) -> S
 def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario: User) -> EquipamentosInstrumentoRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     itens = repo.listar_itens_do_instrumento(db, instrumento.id)
-    controlados = [(item, familia) for item, familia in itens if item.controla_unidade]
+    controlados = [(item, familia, nome_renem) for item, familia, nome_renem in itens if item.controla_unidade]
     unidades_por_item: dict[int, list[UnidadeRead]] = {}
-    for unidade, data in repo.listar_unidades_ativas(db, [item.id for item, _ in controlados]):
+    for unidade, data in repo.listar_unidades_ativas(db, [item.id for item, _, _ in controlados]):
         unidades_por_item.setdefault(unidade.item_id, []).append(_unidade_read(unidade, data))
     revisoes = repo.contar_revisoes_pendentes(db, instrumento.id)
     rendimentos: dict[int, list[RendimentoRead]] = {}
@@ -119,12 +120,13 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                 )
             )
     resultado = []
-    for item, familia in controlados:
+    for item, familia, nome_renem in controlados:
         unidades = unidades_por_item.get(item.id, [])
         resultado.append(
             ItemEquipamentoRead(
                 id=item.id,
                 codigo_item=item.codigo_item,
+                nome=nome_renem or nome_curto_do_item(item.descricao),
                 descricao=item.descricao,
                 familia=familia,
                 controla_unidade=True,
@@ -140,7 +142,7 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
         nr_convenio=nr_convenio,
         pode_editar=usuario_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id)),
         itens=resultado,
-        outros_itens=len(itens) - len(controlados) - sum(len(rendimentos.get(i.id, [])) for i, _ in controlados),
+        outros_itens=len(itens) - len(controlados) - sum(len(rendimentos.get(i.id, [])) for i, _, _ in controlados),
         revisoes_pendentes=revisoes,
     )
 

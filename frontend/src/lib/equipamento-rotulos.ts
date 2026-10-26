@@ -1,16 +1,10 @@
 import type { ItemEquipamento } from "@/services/entregas-equipamento";
 
-/** A descrição do SICONV costuma começar com o código ("000253-Arco Cirúrgico"). */
-export function nomeSemCodigo(descricao: string): string {
-  return descricao.replace(/^\s*\d{3,6}\s*[-–]\s*/, "").trim() || descricao;
-}
-
 /** Itens com o mesmo código e nome são equipamentos distintos: recebem "1/3". */
 export function posicaoEntreIguais(
   itens: ItemEquipamento[],
 ): Map<number, string | null> {
-  const chave = (i: ItemEquipamento) =>
-    `${i.codigo_item ?? ""}|${nomeSemCodigo(i.descricao)}`;
+  const chave = (i: ItemEquipamento) => `${i.codigo_item ?? ""}|${i.nome}`;
   const total = new Map<string, number>();
   for (const i of itens) total.set(chave(i), (total.get(chave(i)) ?? 0) + 1);
   const visto = new Map<string, number>();

@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   faltam,
-  nomeSemCodigo,
   posicaoEntreIguais,
   rotuloFalta,
 } from "@/lib/equipamento-rotulos";
@@ -161,7 +160,7 @@ export function EquipamentosInstrumentoFormEntrega({
                   control={control}
                   rotuloFalta={rotuloFalta(item)}
                   titulo={[
-                    nomeSemCodigo(item.descricao),
+                    item.nome,
                     posicoes.get(item.id) && `(${posicoes.get(item.id)})`,
                   ]
                     .filter(Boolean)

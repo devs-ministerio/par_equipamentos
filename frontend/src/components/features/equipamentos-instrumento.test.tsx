@@ -10,7 +10,9 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
   return {
     id: 1,
     codigo_item: "010925",
-    descricao: "010925-Mamógrafo",
+    nome: "Mamógrafo",
+    descricao:
+      "Mamógrafo digital com estereotaxia, detector de 24x30 cm - especificação técnica longa informada na API",
     familia: "mamografo",
     controla_unidade: true,
     quantidade_planejada: 2,
@@ -42,6 +44,19 @@ describe("lista de equipamentos do instrumento", () => {
     onExcluirEntrega: vi.fn().mockResolvedValue(undefined),
   };
 
+  it("mostra o nome da RENEM e nunca a descrição informada na API", () => {
+    render(
+      <EquipamentosInstrumentoLista
+        {...props}
+        itens={[item()]}
+        podeEditar={false}
+      />,
+    );
+    expect(screen.getByText("Mamógrafo")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/especificação técnica longa/),
+    ).not.toBeInTheDocument();
+  });
   it("mostra situação, quantidades e unidades; editor vê as ações", async () => {
     const { container } = render(
       <EquipamentosInstrumentoLista {...props} itens={[item()]} podeEditar />,
