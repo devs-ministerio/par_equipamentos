@@ -19,6 +19,8 @@ from app.equipamentos import classificar_descricoes
 from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
 
 ORIGEM_ITEM_MANUAL_INICIAL = "carga_manual_inicial"
+QUANTIDADE_ITEM_MANUAL = "1"
+TIPOS_COM_UM_EQUIPAMENTO = ("PERSUS I", "PERSUS II", "FAF", "TED")
 ORIGEM_VALOR_ITEM_GLOBAL = "valor global do instrumento (PERSUS I: um acelerador por instrumento)"
 
 
@@ -56,6 +58,9 @@ def adicionar_item_manual_inicial(
             "ORIGEM_ITEM": ORIGEM_ITEM_MANUAL_INICIAL,
             "FONTE_ITEM": origem_dado or "carga manual inicial",
         }
+        # Cada PERSUS, FAF e TED tem um único equipamento (regra da equipe).
+        if convenio.tipo_contratacao in TIPOS_COM_UM_EQUIPAMENTO:
+            existente["QTD_ITEM"] = QUANTIDADE_ITEM_MANUAL
         itens.append(existente)
     if valor_total is not None and not existente.get("VALOR_TOTAL_ITEM"):
         existente["VALOR_TOTAL_ITEM"] = valor_item_em_texto(valor_total)
