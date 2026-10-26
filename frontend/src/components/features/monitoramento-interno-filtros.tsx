@@ -22,11 +22,11 @@ export function MonitoramentoInternoFiltros({
         width={162}
       />
       <SingleSelectFilter
-        placeholder="Tipo de contratação"
+        placeholder="Contratação"
         options={filtros.tipoContratacaoOptions}
         value={filtros.tipoContratacao}
         onChange={filtros.setTipoContratacao}
-        clearLabel="Tipo de contratação"
+        clearLabel="Contratação"
         minWidth={170}
       />
       <SingleSelectFilter

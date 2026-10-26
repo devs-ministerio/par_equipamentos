@@ -440,11 +440,11 @@ export function MonitoramentoRelatoriosPage() {
           minWidth={150}
         />
         <SingleSelectFilter
-          placeholder="Tipo de contratação"
+          placeholder="Contratação"
           options={tipoContratacaoOptions}
           value={tipoContratacao}
           onChange={setTipoContratacao}
-          clearLabel="Tipo de contratação"
+          clearLabel="Contratação"
           minWidth={120}
         />
         <SingleSelectFilter

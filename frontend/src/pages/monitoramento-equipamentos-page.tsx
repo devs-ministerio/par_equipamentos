@@ -310,14 +310,14 @@ export function MonitoramentoEquipamentosPage() {
                   value={busca}
                   onChange={setBusca}
                   placeholder="Buscar número, convenente, CNES ou município"
-                  width={162}
+                  width={90}
                 />
                 <SingleSelectFilter
-                  placeholder="Tipo de contratação"
+                  placeholder="Contratação"
                   options={tipoContratacaoOptions}
                   value={tipoContratacao}
                   onChange={setTipoContratacao}
-                  clearLabel="Tipo de contratação"
+                  clearLabel="Contratação"
                   minWidth={120}
                 />
                 <SingleSelectFilter
@@ -381,7 +381,7 @@ export function MonitoramentoEquipamentosPage() {
                     value={equipamento}
                     onChange={setEquipamento}
                     clearLabel="Equipamento"
-                    minWidth={180}
+                    minWidth={150}
                   />
                 </div>
                 <SingleSelectFilter
