@@ -162,7 +162,8 @@ def novo_documento(titulo: str, *, paisagem: bool = False) -> DocumentType:
     return documento
 
 
-def _adicionar_logotipo_final(documento: DocumentType) -> None:
+@_serializar_xml
+def adicionar_logotipo_final(documento: DocumentType) -> None:
     """Logotipo do SISGEO centralizado ao fim do documento, sob um filete azul institucional."""
     paragrafo = _novo_paragrafo(documento)
     paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -387,7 +388,6 @@ def escrever_variacao(paragrafo: Paragraph, valor: float | None) -> Run:
 
 @_serializar_xml
 def gerar_bytes(documento: DocumentType) -> bytes:
-    _adicionar_logotipo_final(documento)
     buffer = BytesIO()
     documento.save(buffer)
     return buffer.getvalue()

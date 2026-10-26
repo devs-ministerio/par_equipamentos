@@ -15,6 +15,7 @@ from app.reports.docx_builder import (
     adicionar_cabecalho_institucional,
     adicionar_fonte,
     adicionar_legenda_tabela,
+    adicionar_logotipo_final,
     adicionar_paragrafo,
     adicionar_paragrafo_rotulo_valor,
     adicionar_tabela,
@@ -69,12 +70,13 @@ def test_adicionar_paragrafo_grava_texto():
     documento = novo_documento("Capa")
     adicionar_paragrafo(documento, "Filtro: Regiao Nordeste")
     reaberto = Document(BytesIO(gerar_bytes(documento)))
-    # O último parágrafo é o logotipo do SISGEO, centralizado ao fim do documento.
-    assert reaberto.paragraphs[-2].text == "Filtro: Regiao Nordeste"
+    assert reaberto.paragraphs[-1].text == "Filtro: Regiao Nordeste"
 
 
 def test_logotipo_do_sisgeo_fecha_o_documento_centralizado():
-    reaberto = Document(BytesIO(gerar_bytes(novo_documento("Capa"))))
+    documento = novo_documento("Capa")
+    adicionar_logotipo_final(documento)
+    reaberto = Document(BytesIO(gerar_bytes(documento)))
     ultimo = reaberto.paragraphs[-1]
     assert ultimo.alignment == WD_ALIGN_PARAGRAPH.CENTER
     assert len(ultimo.runs[0]._r.xpath(".//pic:pic")) == 1

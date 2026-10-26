@@ -1405,6 +1405,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         for proposta in propostas:
             _bloco_proposta_narrativo(documento, proposta)
 
+    docx_builder.adicionar_logotipo_final(documento)
     return docx_builder.gerar_bytes(documento)
 
 
