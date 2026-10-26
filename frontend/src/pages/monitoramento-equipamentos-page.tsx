@@ -310,14 +310,14 @@ export function MonitoramentoEquipamentosPage() {
                   value={busca}
                   onChange={setBusca}
                   placeholder="Buscar número, convenente, CNES ou município"
-                  width={162}
+                  width={90}
                 />
                 <SingleSelectFilter
-                  placeholder="Tipo de contratação"
+                  placeholder="Contratação"
                   options={tipoContratacaoOptions}
                   value={tipoContratacao}
                   onChange={setTipoContratacao}
-                  clearLabel="Tipo de contratação"
+                  clearLabel="Contratação"
                   minWidth={120}
                 />
                 <SingleSelectFilter
@@ -355,29 +355,35 @@ export function MonitoramentoEquipamentosPage() {
                   clearLabel="Município"
                   minWidth={150}
                 />
-                <SingleSelectFilter
-                  placeholder="Prioritário"
-                  options={[
-                    { value: "prioritario", label: "Prioritários" },
-                    { value: "outro", label: "Outros identificados" },
-                  ]}
-                  value={classeEquipamento}
-                  onChange={(valor) =>
-                    setClasseEquipamento(
-                      (valor ?? "prioritario") as ClasseEquipamento,
-                    )
-                  }
-                  clearLabel="Prioritários"
-                  minWidth={160}
-                />
-                <SingleSelectFilter
-                  placeholder="Equipamento"
-                  options={equipamentoOptions}
-                  value={equipamento}
-                  onChange={setEquipamento}
-                  clearLabel="Equipamento"
-                  minWidth={150}
-                />
+                <div
+                  role="group"
+                  aria-label="Classificação e equipamento"
+                  className="flex w-full min-w-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-md sm:outline sm:outline-1 sm:outline-border sm:outline-offset-2"
+                >
+                  <SingleSelectFilter
+                    placeholder="Prioritário"
+                    options={[
+                      { value: "prioritario", label: "Prioritários" },
+                      { value: "outro", label: "Outros identificados" },
+                    ]}
+                    value={classeEquipamento}
+                    onChange={(valor) =>
+                      setClasseEquipamento(
+                        (valor ?? "prioritario") as ClasseEquipamento,
+                      )
+                    }
+                    clearLabel="Prioritários"
+                    minWidth={125}
+                  />
+                  <SingleSelectFilter
+                    placeholder="Equipamento"
+                    options={equipamentoOptions}
+                    value={equipamento}
+                    onChange={setEquipamento}
+                    clearLabel="Equipamento"
+                    minWidth={150}
+                  />
+                </div>
                 <SingleSelectFilter
                   placeholder="Situação"
                   options={situacaoOptions}
