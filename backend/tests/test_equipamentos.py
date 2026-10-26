@@ -46,7 +46,6 @@ def test_classificador_canoniza_linac_e_grafia_acelerado_como_acelerador_priorit
 
     assert [(item.codigo, item.nome) for item in achados] == [
         ("acelerador_linear", "Acelerador Linear"),
-        ("radioterapia", "Radioterapia"),
     ]
 
 

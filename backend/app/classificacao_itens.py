@@ -84,6 +84,10 @@ def _tipo_lancamento(
 
 
 def _canais(texto_norm: str) -> int | None:
+    # "Acima de 16 canais até 80" é faixa superior: o número citado é o piso, não o total.
+    acima = re.search(r"\b(?:ACIMA|MAIS|SUPERIOR)\s+(?:DE|A|DO QUE)\s*(\d{1,3})\s*(?:CANAIS|CORTES)\b", texto_norm)
+    if acima:
+        return int(acima.group(1)) + 1
     m = re.search(r"\b(\d{1,3})\s*(?:CANAIS|CORTES)\b", texto_norm)
     return int(m.group(1)) if m else None
 

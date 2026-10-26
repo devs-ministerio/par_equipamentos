@@ -291,6 +291,17 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   542 depois da marcação; 292 monitorados, 288 depois.
 - NUP só em FAF/TED, formatado `25000.198305/2024-59`; eventos e ações ordenados por lançamento mais recente.
 
+- **Marcador vale para o que o item é, não para o que ele menciona** (2026-10-26): "Monitor
+  Multiparâmetros para Ressonância Magnética" (instrumento 985680) virava marcador "Ressonância" porque a
+  palavra-chave era procurada no texto inteiro. `app/equipamentos.py::classificar_descricoes`, para item de
+  plano (`relacao_padrao="aquisicao"`), agora (1) separa itens "A + B" em um marcador por equipamento,
+  (2) pergunta ao motor `classificar`: rendimento/serviço/obra não geram marcador, acessório gera só o
+  marcador genérico com o próprio nome, equipamento de família usa a família do motor, (3) procura a
+  palavra-chave só no nome do item (antes da especificação) e fica com a primeira ocorrência. Texto narrativo
+  (`relacao_padrao="mencao"`) segue por palavra-chave. Marcadores antigos: `scripts/sanear_marcadores_equipamento.py`
+  (simulação por padrão, `--aplicar --confirmo-host`, auditoria); local: 172 removidos, 81 criados, 95 origens.
+  Corrigido junto: "Tomógrafo (Acima de 16 canais até 80)" era lido como "até 16" (`_canais`).
+
 ## Limitações conhecidas
 
 - **Cobertura/déficit/distância sem granularidade por equipamento

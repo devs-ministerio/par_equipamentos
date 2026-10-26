@@ -78,7 +78,7 @@ Os números do clone de 17/10 e do backup de hoje são idênticos nas projeçõe
 3. Manual Deploy no Render; Vercel publica o front.
 4. Verificação: `/health`, login, abrir um instrumento com e sem itens, painel, relatório de Concluídos.
 5. Janela de observação (48 h).
-6. Em simulação e, depois de revisar os números, com o "pode gravar" do usuário, **nesta ordem**: `atualizar_catalogo_equipamentos` → `reclassificar_marcadores_por_codigo` → `importar_revisao_classificacao` → `projetar_itens_plano` → `vincular_entregas_legadas` (cria os avisos aos técnicos).
+6. Em simulação e, depois de revisar os números, com o "pode gravar" do usuário, **nesta ordem**: `atualizar_catalogo_equipamentos` → `reclassificar_marcadores_por_codigo` → `sanear_marcadores_equipamento` → `importar_revisao_classificacao` → `projetar_itens_plano` → `vincular_entregas_legadas` (cria os avisos aos técnicos).
 7. Fora de escopo: `marcar_fora_escopo_obras` em simulação e, depois, com o "pode gravar" (18 convênios; 4 deixam de ser monitorados).
 7b. Fila de revisão: gestor e admin decidem os itens pendentes.
 8. Job de prazos: uma rodada manual supervisionada em simulação; **agendamento só depois** da operação de alertas.
