@@ -65,6 +65,7 @@ from app.db.models import (
 )
 from app.domain_errors import ValidationError
 from app.geo_reference import NOME_POR_UF, REGIOES, ufs_da_regiao
+from app.pipeline.itens_plano import descricoes_so_de_obra_ou_servico, item_conta_como_equipamento
 from app.pipeline.texto import capitalizar_nome, parsear_valor_brasileiro
 from app.reports import docx_builder, xlsx_builder
 from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
@@ -799,6 +800,8 @@ def _valores_por_item_plano(convenio: Convenio) -> dict[str, float]:
     itens = (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []
     valores: dict[str, float] = defaultdict(float)
     for item in itens:
+        if not item_conta_como_equipamento(item):
+            continue
         descricao = item.get("DESCRICAO_ITEM")
         valor = parsear_valor_brasileiro(item.get("VALOR_TOTAL_ITEM"))
         if descricao and valor is not None:
@@ -819,12 +822,17 @@ def _carregar_equipamentos_por_convenio(
             continue
         convenio = convenios_por_id.get(convenio_id)
         valores_item = _valores_por_item_plano(convenio) if convenio else {}
+        so_obra = (
+            descricoes_so_de_obra_ou_servico((convenio.siconv_raw or {}).get("itens_plano_aplicacao") or [])
+            if convenio
+            else frozenset()
+        )
         # Rendimento da aplicação, acessório e item com vários equipamentos não são aquisição de um equipamento:
         # não entram na quantidade nem no valor do equipamento (classificação C5).
         resultado[convenio_id] = [
             (m.nome, valores_item.get(m.descricao_original))
             for m in itens
-            if classificar(m.descricao_original).tipo == "aquisicao"
+            if m.descricao_original not in so_obra and classificar(m.descricao_original).tipo == "aquisicao"
         ]
     return resultado
 
