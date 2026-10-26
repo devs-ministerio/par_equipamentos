@@ -14,6 +14,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { MonitoramentoInternoFormLogin } from "@/components/features/monitoramento-interno-form-login";
 import { Card, CardContent } from "@/components/ui/card";
+import { Logo } from "@/components/common/logo";
 
 export function LoginPage() {
   const sessao = useAuthSession();
@@ -33,14 +34,9 @@ export function LoginPage() {
         <CardContent className="p-8">
           <Link
             to="/monitoramento-equipamentos"
-            className="mb-1 flex items-center gap-2.5 text-foreground"
+            className="mb-1 flex items-center text-foreground"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-display text-[10px] font-bold tracking-tight text-primary-foreground">
-              GEO
-            </span>
-            <span className="font-display text-[15px] font-bold tracking-tight">
-              SISGEO
-            </span>
+            <Logo variante="completo" className="h-12" />
           </Link>
           <h1 className="mt-5 text-xl font-bold text-foreground">
             Entrar no SISGEO

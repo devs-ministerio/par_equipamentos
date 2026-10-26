@@ -302,6 +302,12 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   (simulação por padrão, `--aplicar --confirmo-host`, auditoria); local: 172 removidos, 81 criados, 95 origens.
   Corrigido junto: "Tomógrafo (Acima de 16 canais até 80)" era lido como "até 16" (`_canais`).
 
+- **Identidade visual SISGEO (2026-10-26, `docs/arquitetura/planmode-identidade-visual-sisgeo-2026-10-26.md`)**:
+  primário azul `#2A4D9B` (CTA, foco, estado ativo); as quatro cores do laço só no logotipo
+  (`components/common/logo.tsx`, SVGs em `src/assets/brand/`), na faixa `.faixa-laco` (`MetricStrip`, `PageHeader`) e nas séries
+  dos gráficos. Âmbar nunca em texto (contraste 2,2:1). "Mais detalhes" usa `DetalhesAnimados`
+  em vez de `<details>` nativo; o conteúdo fecha desmontado, então teste abre o botão antes de procurar o texto.
+
 ## Limitações conhecidas
 
 - **Cobertura/déficit/distância sem granularidade por equipamento

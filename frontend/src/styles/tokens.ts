@@ -1,12 +1,12 @@
 /** Design tokens do handoff (docs/design, README do protótipo .dc.html).
  * Paleta do protótipo anexado pelo usuário (2026-09-11, mensagem "Aplique
  * estas cores do protótipo ao tema do projeto"): fundo levemente aquecido,
- * accent verde-petróleo, alerta terracota. Espelhado em src/index.css --
+ * accent azul institucional (SISGEO, 2026-10-26), alerta terracota. Espelhado em src/index.css --
  * mudar aqui exige mudar lá também. hiperGreen/hipoRed continuam status
  * (sem mudança) -- accent é marca, não semáforo. */
 export const colors = {
-  primary: "#2D6A5C",
-  primaryLight: "#E1EAE7",
+  primary: "#2A4D9B",
+  primaryLight: "#E3E8F4",
   primaryDark: "#1C1A16",
   hiperGreen: "#2F6A1D",
   hiperGreenBg: "#eaf3e0",
@@ -30,12 +30,12 @@ export const colors = {
   logoOrange: "#A35A12",
   logoOrangeBg: "#F6E6D2",
   // Paleta de dados do Painel de Gestão, espelhada em index.css.
-  painelChartTeal: "#2D6A5C",
-  painelChartBlue: "#426B92",
-  painelChartOchre: "#A36B2C",
-  painelChartPlum: "#795C78",
-  painelChartOlive: "#637B43",
-  painelChartSlate: "#667385",
+  painelChartAzul: "#2A4D9B",
+  painelChartAmbar: "#F0902A",
+  painelChartMagenta: "#B0236F",
+  painelChartRoxo: "#6D3FA0",
+  painelChartOliva: "#637B43",
+  painelChartArdosia: "#667385",
   topbarBg: "#F6F4EF",
   topbarBorder: "#E4DFD3",
 } as const;

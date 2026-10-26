@@ -78,7 +78,9 @@ describe("Radar legado", () => {
     expect(
       screen.queryByRole("button", { name: /Confirmação no Portal/ }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Não localizado no Portal")).not.toBeVisible();
+    expect(
+      screen.queryByText("Não localizado no Portal"),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("Mais detalhes"));
     expect(screen.getByText("Não localizado no Portal")).toBeVisible();
     expect(screen.getByText("Novo")).toBeVisible();
@@ -103,10 +105,10 @@ describe("Radar legado", () => {
         </ul>,
       );
       expect(screen.getByText("Novo")).toBeVisible();
-      expect(screen.getByText(rotulo)).not.toBeVisible();
+      expect(screen.queryByText(rotulo)).not.toBeInTheDocument();
       expect(screen.queryByText(/Aprovado/)).not.toBeInTheDocument();
       expect(screen.queryByText("Ver evidências")).not.toBeInTheDocument();
-      expect(screen.getByText("LINAC sintético")).not.toBeVisible();
+      expect(screen.queryByText("LINAC sintético")).not.toBeInTheDocument();
       fireEvent.click(screen.getByText("Mais detalhes"));
       expect(screen.getByText(rotulo)).toBeVisible();
       expect(screen.getByText("LINAC sintético")).toBeVisible();
@@ -119,6 +121,8 @@ describe("Radar legado", () => {
       novos: 1,
       itens: [{ ...candidato, origem: "siconv_oficial" }],
     });
+    await screen.findByText("Convênio 123456");
+    fireEvent.click(screen.getByText("Mais detalhes"));
     await waitFor(() =>
       expect(screen.getByText(/Captura do SICONV/)).toBeInTheDocument(),
     );
@@ -131,7 +135,11 @@ describe("Radar legado", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /Em análise/ }));
     fireEvent.click(screen.getByRole("option", { name: "Todas as situações" }));
-    expect(screen.getByText("Não localizado no Portal")).toBeInTheDocument();
+    const detalhes = await screen.findByText(/Mais detalhes|Menos detalhes/);
+    if (detalhes.textContent?.includes("Mais")) fireEvent.click(detalhes);
+    expect(
+      await screen.findByText("Não localizado no Portal"),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /^Situação/ }),
     ).toBeInTheDocument();
@@ -142,6 +150,7 @@ describe("Radar legado", () => {
     await waitFor(() =>
       expect(screen.getByText("Convênio 123456")).toBeInTheDocument(),
     );
+    fireEvent.click(screen.getByText("Mais detalhes"));
     expect(screen.getByText("Não localizado no Portal")).toBeInTheDocument();
     expect(screen.getByText(/Equipamento existente/)).toBeInTheDocument();
     expect(screen.getByText(/frescor não confirmado/)).toBeInTheDocument();

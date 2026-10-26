@@ -14,7 +14,7 @@
 
      Paleta do protótipo anexado pelo usuário (2026-09-11, "Aplique estas
      cores do protótipo ao tema do projeto") -- fundo levemente aquecido
-     (#f6f4ef), accent verde-petróleo (#2d6a5c), alerta terracota
+     (#f6f4ef), accent azul institucional (#2a4d9b, identidade SISGEO 2026-10-26), alerta terracota
      (#a35a12 sobre #f6e6d2). Formato continua hex (não hsl(var(--x))) --
      é o formato que este arquivo já usava antes, não tem conversão a
      fazer. --success (oliva, "hiperssuficiente") fica como estava --
@@ -27,13 +27,13 @@
   --popover-foreground: #1c1a16;
   --border: #e4dfd3;
   --input: #e4dfd3;
-  --primary: #2d6a5c;
+  --primary: #2a4d9b;
   --primary-foreground: #ffffff;
-  --secondary: #e1eae7;
+  --secondary: #e3e8f4;
   --secondary-foreground: #1c1a16;
   --muted: #efebe3;
   --muted-foreground: #6b6459;
-  --accent: #e1eae7;
+  --accent: #e3e8f4;
   --accent-foreground: #1c1a16;
   --destructive: #b40d0d;
   --destructive-foreground: #ffffff;
@@ -54,13 +54,18 @@
   --warning-foreground: #a35a12;
   --warning-bg: #f6e6d2;
   /* Paleta categórica do Painel de Gestão: séries e categorias, nunca status. */
-  --painel-chart-teal: #2d6a5c;
-  --painel-chart-blue: #426b92;
-  --painel-chart-ochre: #a36b2c;
-  --painel-chart-plum: #795c78;
-  --painel-chart-olive: #637b43;
-  --painel-chart-slate: #667385;
-  --ring: #2d6a5c;
+  --painel-chart-azul: #2a4d9b;
+  --painel-chart-ambar: #f0902a;
+  --painel-chart-magenta: #b0236f;
+  --painel-chart-roxo: #6d3fa0;
+  --painel-chart-oliva: #637b43;
+  --painel-chart-ardosia: #667385;
+  /* Faixa de assinatura: as quatro cores do laço do logotipo (identidade SISGEO). */
+  --laco-azul: #2a4d9b;
+  --laco-roxo: #6d3fa0;
+  --laco-magenta: #b0236f;
+  --laco-ambar: #f0902a;
+  --ring: #2a4d9b;
   /* --radius fica maior que o default (era 0.5rem) -- cards/dialog usam
      essa escala (--radius-xl abaixo); botao/input pedem radius MENOR
      (Secao 4 da constituicao: "controles com radius menor que cards"),
@@ -162,6 +167,26 @@ body {
 }
 
 /* Entrada de página: leve fade + subida de 6px ao trocar de rota. */
+.faixa-laco {
+  background: linear-gradient(
+    to right,
+    var(--laco-azul) 0 25%,
+    var(--laco-roxo) 25% 50%,
+    var(--laco-magenta) 50% 75%,
+    var(--laco-ambar) 75% 100%
+  );
+}
+
+.faixa-laco-vertical {
+  background: linear-gradient(
+    to bottom,
+    var(--laco-azul) 0 25%,
+    var(--laco-roxo) 25% 50%,
+    var(--laco-magenta) 50% 75%,
+    var(--laco-ambar) 75% 100%
+  );
+}
+
 @keyframes sigeo-entrar {
   from {
     opacity: 0;
@@ -173,7 +198,35 @@ body {
   }
 }
 
+@keyframes sigeo-detalhes-abrir {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes sigeo-detalhes-fechar {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  .animar-detalhes[data-state="open"] {
+    animation: sigeo-detalhes-abrir 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animar-detalhes[data-state="closed"] {
+    animation: sigeo-detalhes-fechar 180ms ease-in both;
+  }
   .animar-entrada {
     animation: sigeo-entrar 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }

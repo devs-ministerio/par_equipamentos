@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { DetalhesAnimados } from "@/components/common/detalhes-animados";
 import {
   CLASSES_SITUACAO,
   ROTULOS_SITUACAO,
@@ -17,6 +19,7 @@ export function CandidatoLegadoItem({
   candidato: CandidatoLegado;
   children?: ReactNode;
 }) {
+  const [detalheAberto, setDetalheAberto] = useState(false);
   const equipamentos = [...new Set(candidato.evidencias.map((e) => e.nome))];
   const componentes = [
     ...new Set(candidato.componentes.map((c) => c.componente)),
@@ -48,10 +51,11 @@ export function CandidatoLegadoItem({
           <span>Snapshot local · frescor não confirmado</span>
         )}
       </div>
-      <details className="mt-3">
-        <summary className="w-fit cursor-pointer text-xs font-semibold text-primary transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-          Mais detalhes
-        </summary>
+      <DetalhesAnimados
+        className="mt-3"
+        aberto={detalheAberto}
+        onAbertoChange={setDetalheAberto}
+      >
         <div className="mt-3 border-l-2 border-border pl-4">
           <p className="mb-3 text-xs text-muted-foreground">
             Proposta {candidato.id_proposta}
@@ -79,7 +83,7 @@ export function CandidatoLegadoItem({
             {new Date(candidato.verificado_em).toLocaleString("pt-BR")}
           </p>
         </div>
-      </details>
+      </DetalhesAnimados>
       {children}
     </li>
   );

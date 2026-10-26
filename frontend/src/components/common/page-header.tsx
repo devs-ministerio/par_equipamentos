@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 /** Cabeçalho editorial único: hierarquia por tipografia (eyebrow em
- * etiqueta, título display) e o filete verde à esquerda, sem transformar a
+ * etiqueta, título display) e o filete de quatro cores do laço à esquerda, sem transformar a
  * introdução de toda página em um card/hero decorativo. */
 export function PageHeader({
   breadcrumb,
@@ -22,7 +22,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "relative mb-7 pl-4 before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-gradient-to-b before:from-primary before:to-primary/30",
+        "relative mb-7 pl-4 before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:faixa-laco-vertical",
         className,
       )}
     >
