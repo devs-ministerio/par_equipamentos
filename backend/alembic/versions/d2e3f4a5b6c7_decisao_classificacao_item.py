@@ -5,6 +5,7 @@ Revises: c1d2e3f4a5b6
 """
 
 import sqlalchemy as sa
+
 from alembic import op
 
 revision = "d2e3f4a5b6c7"
