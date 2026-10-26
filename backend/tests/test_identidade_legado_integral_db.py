@@ -3,6 +3,7 @@
 from copy import deepcopy
 
 import pytest
+from alembic.script import ScriptDirectory
 from psycopg import Error as DatabaseDriverError
 from pydantic import ValidationError
 from sqlalchemy import select, text
@@ -133,4 +134,7 @@ def test_migration_preserva_numericos_restringe_down_e_reaplica(banco_migrations
     assert erro.value.orig.sqlstate == "23514"
     conn.rollback()
     assert list(conn.scalars(text("SELECT numero FROM candidato_legado ORDER BY numero"))) == ["000999001", "7ATEST"]
-    assert conn.scalar(text("SELECT version_num FROM alembic_version")) == "b7f35c806e4a"
+    assert (
+        conn.scalar(text("SELECT version_num FROM alembic_version"))
+        == ScriptDirectory.from_config(config).get_current_head()
+    )
