@@ -15,6 +15,7 @@ from datetime import datetime
 from functools import wraps
 from io import BytesIO
 from math import isfinite
+from pathlib import Path
 from threading import RLock
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -36,6 +37,8 @@ from docx.text.paragraph import Paragraph
 from docx.text.run import Run
 
 from app.reports.formatacao import formatar_data, formatar_moeda
+
+_LOGOTIPO = Path(__file__).parent / "assets" / "sisgeo-logo.png"
 
 _VERDE_VARIACAO = RGBColor(0x15, 0x80, 0x3D)
 _VERMELHO_VARIACAO = RGBColor(0xB9, 0x1C, 0x1C)
@@ -157,6 +160,21 @@ def novo_documento(titulo: str, *, paisagem: bool = False) -> DocumentType:
     rodape._p.append(campo)
     adicionar_titulo(documento, titulo, nivel=0)
     return documento
+
+
+def _adicionar_logotipo_final(documento: DocumentType) -> None:
+    """Logotipo do SISGEO centralizado ao fim do documento, sob um filete azul institucional."""
+    paragrafo = _novo_paragrafo(documento)
+    paragrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    paragrafo.paragraph_format.space_before = Pt(18)
+    paragrafo.add_run().add_picture(str(_LOGOTIPO), width=Cm(3.6))
+    propriedades = paragrafo._p.get_or_add_pPr()
+    borda = OxmlElement("w:pBdr")
+    superior = OxmlElement("w:top")
+    for chave, valor in (("val", "single"), ("sz", "8"), ("space", "10"), ("color", "2A4D9B")):
+        superior.set(qn(f"w:{chave}"), valor)
+    borda.append(superior)
+    propriedades.append(borda)
 
 
 @_serializar_xml
@@ -369,6 +387,7 @@ def escrever_variacao(paragrafo: Paragraph, valor: float | None) -> Run:
 
 @_serializar_xml
 def gerar_bytes(documento: DocumentType) -> bytes:
+    _adicionar_logotipo_final(documento)
     buffer = BytesIO()
     documento.save(buffer)
     return buffer.getvalue()

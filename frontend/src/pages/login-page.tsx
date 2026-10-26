@@ -34,17 +34,10 @@ export function LoginPage() {
         <CardContent className="p-8">
           <Link
             to="/monitoramento-equipamentos"
-            className="mb-1 flex items-center text-foreground"
+            className="mb-8 flex justify-center text-foreground"
           >
-            <Logo variante="completo" className="h-12" />
+            <Logo variante="completo" className="h-14" />
           </Link>
-          <h1 className="mt-5 text-xl font-bold text-foreground">
-            Entrar no SISGEO
-          </h1>
-          <p className="mt-1.5 mb-5 text-sm text-muted-foreground">
-            Acesso operacional: edição de monitoramento interno, inclusão de
-            propostas e notificações.
-          </p>
           <MonitoramentoInternoFormLogin
             onEntrar={async (valores) => {
               await sessao.login({

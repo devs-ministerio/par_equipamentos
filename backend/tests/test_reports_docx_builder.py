@@ -8,6 +8,7 @@ from io import BytesIO
 
 import pytest
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 
 from app.reports.docx_builder import (
@@ -68,7 +69,15 @@ def test_adicionar_paragrafo_grava_texto():
     documento = novo_documento("Capa")
     adicionar_paragrafo(documento, "Filtro: Regiao Nordeste")
     reaberto = Document(BytesIO(gerar_bytes(documento)))
-    assert reaberto.paragraphs[-1].text == "Filtro: Regiao Nordeste"
+    # O último parágrafo é o logotipo do SISGEO, centralizado ao fim do documento.
+    assert reaberto.paragraphs[-2].text == "Filtro: Regiao Nordeste"
+
+
+def test_logotipo_do_sisgeo_fecha_o_documento_centralizado():
+    reaberto = Document(BytesIO(gerar_bytes(novo_documento("Capa"))))
+    ultimo = reaberto.paragraphs[-1]
+    assert ultimo.alignment == WD_ALIGN_PARAGRAPH.CENTER
+    assert len(ultimo.runs[0]._r.xpath(".//pic:pic")) == 1
 
 
 def test_adicionar_tabela_grava_cabecalho_em_negrito_e_linhas():

@@ -97,7 +97,7 @@ Medido no backup de 26/10 com a classificação da branch (só leitura). Os 560 
 - **FAF sem itens, a verificar com a equipe:** `25000083818202628` (MG, sem nenhum item) e `25000083829202616` (RR, só um item "Ultrasom + Mamógrafo", que descreve dois equipamentos e aguarda separação). Ambos são monitorados.
 - **Obras (18 convênios só de obra): decidido em 26/10** que não fazem parte do escopo e **não devem aparecer em lugar nenhum**; ficam no banco. Implementado: `scripts/marcar_fora_escopo_obras.py` (simulação, auditoria, `--desfazer`) e o filtro `instrumento_no_escopo()` em monitoramento, painel, relatórios, avisos e prazos. Quatro eram monitorados (744879, 813703, 851416 e 971253): saem junto (monitorados 292 → 288; firmados 560 → 542). Passo novo do release, **depois** dos scripts de carga e **com autorização**: `marcar_fora_escopo_obras`.
 - **Regra dos R$ 300 mil (decidida em 26/10):** equipamento fora das 16 famílias com valor por unidade ≥ R$ 300 mil entra no monitoramento por item (75 itens no backup de 26/10, 55 convênios; sem a regra eram 0). Aplica-se com `projetar_itens_plano`.
-- **Proposta, aguardando decisão:** permitir que titular, suplente, gestor e admin **adicionem item** em instrumento de carga manual (FAF, TED, PERSUS I e II), com código escolhido no catálogo, quantidade, auditoria e id gerado pelo sistema; a projeção não pode desativá-lo.
+- **Adicionar item manual (decidido em 26/10): não será permitido por ora.** O colaborador não insere item em instrumento de carga manual (FAF, TED, PERSUS I e II); a pendência dos dois FAFs acima fica registrada para o responsável verificar com a equipe.
 
 ## Rollback
 

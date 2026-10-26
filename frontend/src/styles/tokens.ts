@@ -33,9 +33,11 @@ export const colors = {
   painelChartAzul: "#2A4D9B",
   painelChartAmbar: "#F0902A",
   painelChartMagenta: "#B0236F",
-  painelChartRoxo: "#6D3FA0",
+  painelChartTurquesa: "#2A9D8F",
   painelChartOliva: "#637B43",
   painelChartArdosia: "#667385",
+  painelChartTerra: "#8A5A3C",
+  painelChartCeleste: "#5AA9E6",
   topbarBg: "#F6F4EF",
   topbarBorder: "#E4DFD3",
 } as const;
