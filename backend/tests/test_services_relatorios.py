@@ -244,6 +244,13 @@ def test_linhas_e_resumos_do_relatorio_preservam_detalhes_e_ausencias():
     assert colunas == ["Equipamentos", "Quantidade", "Valor"]
     assert linhas == [["Tomógrafo", 2, 100.0], ["Ressonância", 1, None]]
 
+    colunas, linhas = _resumo_equipamentos(
+        {1: [("Tomógrafo", 100.0), ("Ressonância", None)], 2: [("Tomógrafo", None)]},
+        {1: {"Tomógrafo": 1}, 2: {"Tomógrafo": 2}},
+    )
+    assert colunas == ["Equipamentos", "Quantidade", "Entregues", "Valor"]
+    assert linhas == [["Tomógrafo", 2, 3, 100.0], ["Ressonância", 1, None, None]]
+
 
 @pytest.mark.db
 def test_instrumentos_repasse_xlsx_simplificado_tem_resumo_convenios_propostas_monitoramento():

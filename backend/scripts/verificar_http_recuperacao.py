@@ -51,7 +51,7 @@ def test_saude_cors_e_caixa_sem_transporte_externo(ambiente_local: dict[str, str
         mensagem = {
             "to": "verificacao@example.com",
             "subject": "Verificação local",
-            "fromName": "SIGEO local",
+            "fromName": "SISGEO local",
             "html": "<p>Mensagem sintética de verificação, sem token.</p>",
         }
         assert caixa.post("/enviar", json=mensagem, headers=headers).status_code == 200

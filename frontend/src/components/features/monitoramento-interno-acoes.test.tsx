@@ -55,7 +55,7 @@ describe("interação das ações de monitoramento", () => {
     expect(props.onConcluir).not.toHaveBeenCalled();
   });
 
-  it("ordena pendentes por prazo antes das concluídas sem alterar a lista recebida", () => {
+  it("ordena pela criação mais recente (created_at, depois id) sem alterar a lista recebida", () => {
     // Arrange
     const props = criarProps();
     props.acoes = [
@@ -84,8 +84,8 @@ describe("interação das ações de monitoramento", () => {
       (b) => b.getAttribute("aria-label"),
     );
     expect(ordem).toEqual([
-      "Concluir ação: Prazo antigo",
       "Concluir ação: Prazo futuro",
+      "Concluir ação: Prazo antigo",
       "Concluir ação: Sem prazo",
     ]);
     expect(props.acoes.map((a) => a.id)).toEqual([1, 2, 3, 4]);

@@ -80,6 +80,15 @@ class AcaoAbertaResumoRead(BaseModel):
     responsavel: str | None
 
 
+class EquipamentoInstrumentoResumo(BaseModel):
+    """Planejado x entregue de uma família num instrumento (itens controlados por unidade)."""
+
+    nr_convenio: str
+    familia: str
+    planejado: int
+    entregue: int
+
+
 class ResumoMonitoramentoRead(BaseModel):
     """1 chamada so pra pagina de overview (achado 2026-09-09, pedido do
     usuario: pagina INDEPENDENTE, nao so o detalhe de 1 convenio) -- tudo
@@ -109,4 +118,5 @@ class ResumoMonitoramentoRead(BaseModel):
     indicadores_por_instrumento: list[IndicadoresInstrumentoRead]
     acoes_em_aberto: list[AcaoAbertaResumoRead]
     fila_acoes_truncada: bool
+    equipamentos_por_instrumento: list[EquipamentoInstrumentoResumo]
     gerado_em: datetime

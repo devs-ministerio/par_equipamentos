@@ -26,10 +26,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { OperationalDetailSection } from "@/components/common/operational-detail-section";
 import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho";
 import { MonitoramentoInternoCadastro } from "./monitoramento-interno-cadastro";
-import {
-  MonitoramentoInternoFaseGeral,
-  MonitoramentoInternoCronograma,
-} from "./monitoramento-interno-fase-cronograma";
+import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
+import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
+import { EquipamentosInstrumento } from "./equipamentos-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
 
@@ -142,7 +141,6 @@ function MonitoramentoInternoConteudo({
     diasInauguracao,
     acoesAbertas,
     acoesAtrasadas,
-    equipamentoFisico,
     validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
@@ -169,11 +167,16 @@ function MonitoramentoInternoConteudo({
         dataInauguracao={dataInauguracao}
         inaugurado={inaugurado}
         diasInauguracao={diasInauguracao}
-        equipamentoFisico={equipamentoFisico}
         statusLicenca={eventoLicenca?.status_regulatorio ?? "Sem registro"}
         alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
         acoesAbertasCount={acoesAbertas.length}
         acoesAtrasadasCount={acoesAtrasadas.length}
+      />
+
+      <EquipamentosInstrumento
+        numeroConvenio={numeroConvenio}
+        podeEditarInstrumento={podeEditar}
+        aoSessaoInvalida={sessao.tratarSessaoInvalida}
       />
 
       <MonitoramentoInternoCadastro

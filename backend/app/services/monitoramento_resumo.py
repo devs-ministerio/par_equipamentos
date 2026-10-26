@@ -14,11 +14,13 @@ from datetime import date, datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.db.models import MarcoCatalogo, MarcoGrupo
+from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.schemas_monitoramento import (
     AcaoAbertaResumoRead,
     ContagemRotulo,
     DivergenciaConclusaoRead,
+    EquipamentoInstrumentoResumo,
     InauguracaoResumo,
     IndicadoresInstrumentoRead,
     LicencaVencendoResumo,
@@ -221,6 +223,12 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         if acao.instrumento_id in instrumentos_por_id
     ]
 
+    numero_por_id = {i.id: i.nr_convenio for i in instrumentos}
+    equipamentos_por_instrumento = [
+        EquipamentoInstrumentoResumo(nr_convenio=numero_por_id[i], familia=f, planejado=p, entregue=e)
+        for i, f, p, e in itens_repo.resumo_por_instrumento_e_familia(db, set(numero_por_id))
+    ]
+
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),
         # Sem evento de fase, o instrumento é exibido como "Não iniciado" e
@@ -242,5 +250,6 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         indicadores_por_instrumento=indicadores_por_instrumento,
         acoes_em_aberto=acoes_em_aberto,
         fila_acoes_truncada=dados.acoes_pendentes > len(acoes_em_aberto),
+        equipamentos_por_instrumento=equipamentos_por_instrumento,
         gerado_em=datetime.now(timezone.utc),
     )

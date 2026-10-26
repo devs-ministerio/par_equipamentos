@@ -100,7 +100,7 @@ describe("useAuthSession", () => {
         }),
       ).rejects.toMatchObject({
         publicMessage:
-          "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SIGEO e tente novamente.",
+          "Não foi possível concluir a sessão. Verifique se o navegador permite cookies para o SISGEO e tente novamente.",
       });
     });
   });

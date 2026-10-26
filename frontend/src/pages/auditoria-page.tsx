@@ -50,7 +50,7 @@ export function AuditoriaPage() {
       <PageHeader
         eyebrow="Administração"
         title="Auditoria"
-        description="Histórico de login, sessão e ações administrativas no SIGEO."
+        description="Histórico de login, sessão e ações administrativas no SISGEO."
         actions={
           usuarioIdInicial ? (
             <Button

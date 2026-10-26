@@ -44,6 +44,7 @@ def run() -> None:
                     Convenio.data_final_vigencia.is_not(None),
                     Convenio.data_final_vigencia >= hoje,
                     Convenio.data_final_vigencia <= limite,
+                    Convenio.fora_escopo_equipamentos.is_(False),
                 )
             )
             .scalars()

@@ -31,7 +31,7 @@ Gaps conhecidos, NUNCA fabricados: "habilitação" CNES (não existe em
 `CnesEstabelecimento`, só nome/endereço/CNPJ/município) e "produção
 assistencial" (SIH/SIA/SUS por procedimento) -- essa última é dado do
 projeto irmão `nota-informativa-decan` (DuckDB/parquet), fora do banco do
-SIGEO; nenhuma das duas seções existe aqui até uma fonte real ser
+SISGEO; nenhuma das duas seções existe aqui até uma fonte real ser
 integrada (ver plan-mode, "Fora de escopo").
 """
 
@@ -48,20 +48,24 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 from docx.document import Document as DocumentType
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.classificacao_itens import classificar
 from app.db.models import (
     AcaoMonitoramento,
     Competency,
     Convenio,
     EventoMarco,
     Execution,
+    InstrumentoEquipamento,
     MarcoCatalogo,
     MarcoGrupo,
     PropostaCandidata,
 )
 from app.domain_errors import ValidationError
 from app.geo_reference import NOME_POR_UF, REGIOES, ufs_da_regiao
+from app.pipeline.itens_plano import descricoes_so_de_obra_ou_servico, item_conta_como_equipamento
 from app.pipeline.texto import capitalizar_nome, parsear_valor_brasileiro
 from app.reports import docx_builder, xlsx_builder
 from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
@@ -70,6 +74,7 @@ from app.repositories import cobertura_relatorio as cobertura_repo
 from app.repositories import convenios as convenios_repo
 from app.repositories import equipamento_marcadores as equipamento_marcadores_repo
 from app.repositories import execucoes as execucoes_repo
+from app.repositories import itens_equipamento as itens_equipamento_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas_relatorio as propostas_repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
@@ -371,7 +376,7 @@ def _linhas_leitura(
         ],
     ]
     if tipo == "analise_merito":
-        linhas.append(["Fonte", "Cobertura publicada no SIGEO; oferta SUS e em uso (CNES/ElastiCNES)"])
+        linhas.append(["Fonte", "Cobertura publicada no SISGEO; oferta SUS e em uso (CNES/ElastiCNES)"])
         linhas.append(["Grão", "Município" if nivel == "completo" or filtro.escopo == "municipio" else "Macrorregião"])
         for familia, competencia in (competencias or {}).items():
             linhas.append([f"Competência {familia}", competencia])
@@ -795,6 +800,8 @@ def _valores_por_item_plano(convenio: Convenio) -> dict[str, float]:
     itens = (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []
     valores: dict[str, float] = defaultdict(float)
     for item in itens:
+        if not item_conta_como_equipamento(item):
+            continue
         descricao = item.get("DESCRICAO_ITEM")
         valor = parsear_valor_brasileiro(item.get("VALOR_TOTAL_ITEM"))
         if descricao and valor is not None:
@@ -815,8 +822,42 @@ def _carregar_equipamentos_por_convenio(
             continue
         convenio = convenios_por_id.get(convenio_id)
         valores_item = _valores_por_item_plano(convenio) if convenio else {}
-        resultado[convenio_id] = [(m.nome, valores_item.get(m.descricao_original)) for m in itens]
+        so_obra = (
+            descricoes_so_de_obra_ou_servico((convenio.siconv_raw or {}).get("itens_plano_aplicacao") or [])
+            if convenio
+            else frozenset()
+        )
+        # Rendimento da aplicação, acessório e item com vários equipamentos não são aquisição de um equipamento:
+        # não entram na quantidade nem no valor do equipamento (classificação C5).
+        resultado[convenio_id] = [
+            (m.nome, valores_item.get(m.descricao_original))
+            for m in itens
+            if m.descricao_original not in so_obra and classificar(m.descricao_original).tipo == "aquisicao"
+        ]
     return resultado
+
+
+def _entregues_por_convenio(db: Session, convenios: Sequence[Convenio]) -> dict[int, dict[str, int]]:
+    """Unidades entregues por família em cada convênio, só onde o instrumento tem controle por unidade."""
+    if not convenios:
+        return {}
+    numeros = {c.numero for c in convenios}
+    instrumentos = {
+        i.nr_convenio: i.id
+        for i in db.execute(
+            select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio.in_(numeros))
+        ).scalars()
+    }
+    por_instrumento: dict[int, dict[str, int]] = defaultdict(dict)
+    for instrumento_id, familia, _planejado, entregue in itens_equipamento_repo.resumo_por_instrumento_e_familia(
+        db, set(instrumentos.values())
+    ):
+        por_instrumento[instrumento_id][familia] = entregue
+    return {
+        c.id: por_instrumento[instrumentos[c.numero]]
+        for c in convenios
+        if c.numero in instrumentos and instrumentos[c.numero] in por_instrumento
+    }
 
 
 def _resumo_instrumentos_programas(
@@ -884,6 +925,7 @@ def _resumo_propostas(propostas: Sequence[PropostaCandidata]) -> tuple[list[str]
 
 def _resumo_equipamentos(
     equipamentos_por_convenio: dict[int, list[tuple[str, float | None]]],
+    entregues_por_convenio: dict[int, dict[str, int]] | None = None,
 ) -> tuple[list[str], list[list[object]]]:
     """3ª tabela -- agregado de `EquipamentoMarcador` por tipo entre todos
     os convênios do recorte. "Valor" soma o `VALOR_TOTAL_ITEM` do plano de
@@ -905,7 +947,15 @@ def _resumo_equipamentos(
         [nome, quantidade, valor_por_nome[nome] if com_valor[nome] else None]
         for nome, quantidade in sorted(contagem.items(), key=lambda kv: (-kv[1], kv[0]))
     ]
-    return colunas, linhas
+    entregues: Counter[str] = Counter()
+    for por_familia in (entregues_por_convenio or {}).values():
+        entregues.update(por_familia)
+    if not entregues_por_convenio or not any(entregues_por_convenio.values()):
+        return colunas, linhas
+    # "Entregues" são unidades registradas na entrega; "—" nas famílias sem controle por unidade.
+    controladas = {nome for por_familia in entregues_por_convenio.values() for nome in por_familia}
+    com_entregues = [[n, q, entregues[n] if n in controladas else None, v] for n, q, v in linhas]
+    return ["Equipamentos", "Quantidade", "Entregues", "Valor"], com_entregues
 
 
 def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroRelatorio) -> bytes:
@@ -913,6 +963,7 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
     propostas = _propostas(db, filtro)
     instrumentos = _instrumentos(db, filtro)
     equipamentos_por_convenio = _carregar_equipamentos_por_convenio(db, convenios)
+    entregues_por_convenio = _entregues_por_convenio(db, convenios)
 
     pasta = xlsx_builder.nova_pasta()
     xlsx_builder.escrever_aba_tabela(
@@ -932,7 +983,7 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
     xlsx_builder.escrever_aba_tabela(
         pasta, "Resumo (Propostas)", *_resumo_propostas(propostas), colunas_moeda=["Valor"]
     )
-    colunas_equip, linhas_equip = _resumo_equipamentos(equipamentos_por_convenio)
+    colunas_equip, linhas_equip = _resumo_equipamentos(equipamentos_por_convenio, entregues_por_convenio)
     xlsx_builder.escrever_aba_tabela(
         pasta,
         "Resumo (Equipamentos)",
@@ -1122,7 +1173,9 @@ def _secao_monitoramento_interno(
     )
 
 
-def _tabela_equipamentos_bloco(documento: DocumentType, itens: Sequence[tuple[str, float | None]]) -> None:
+def _tabela_equipamentos_bloco(
+    documento: DocumentType, itens: Sequence[tuple[str, float | None]], entregues: dict[str, int] | None = None
+) -> None:
     docx_builder.adicionar_titulo(documento, "Equipamentos", nivel=4)
     if not itens:
         docx_builder.adicionar_paragrafo(documento, "— nenhum equipamento identificado —")
@@ -1130,7 +1183,8 @@ def _tabela_equipamentos_bloco(documento: DocumentType, itens: Sequence[tuple[st
     valores_por_nome: dict[str, list[float | None]] = defaultdict(list)
     for nome, valor in itens:
         valores_por_nome[nome].append(valor)
-    colunas = ["Equipamentos", "Quantidade", "Valor"]
+    com_entregues = bool(entregues)
+    colunas = ["Equipamentos", "Quantidade", *(["Entregues"] if com_entregues else []), "Valor"]
     linhas: list[list[object]] = []
     for nome, valores in sorted(valores_por_nome.items(), key=lambda kv: (-len(kv[1]), kv[0])):
         preenchidos = [v for v in valores if v is not None]
@@ -1138,6 +1192,7 @@ def _tabela_equipamentos_bloco(documento: DocumentType, itens: Sequence[tuple[st
             [
                 nome,
                 len(valores),
+                *([(entregues or {}).get(nome)] if com_entregues else []),
                 sum(preenchidos) if preenchidos else None,
             ]
         )
@@ -1167,6 +1222,7 @@ def _bloco_instrumento_narrativo(
     equipamentos_por_convenio: dict[int, list[tuple[str, float | None]]],
     marco_inauguracao_id: int | None,
     nivel: Nivel,
+    entregues_por_convenio: dict[int, dict[str, int]] | None = None,
 ) -> None:
     # Rótulo dinâmico (achado ao vivo 2026-09-27, usuário: "PERSUS, TED e FAF
     # não são tratados como convênio e sim como instrumentos/programas") --
@@ -1194,7 +1250,11 @@ def _bloco_instrumento_narrativo(
         f"{formatar_data(convenio.data_inicio_vigencia)} a {formatar_data(convenio.data_final_vigencia)}",
     )
     _secao_monitoramento_interno(documento, dados, inst, marco_inauguracao_id, convenio.situacao, nivel=nivel)
-    _tabela_equipamentos_bloco(documento, equipamentos_por_convenio.get(convenio.id, []))
+    _tabela_equipamentos_bloco(
+        documento,
+        equipamentos_por_convenio.get(convenio.id, []),
+        (entregues_por_convenio or {}).get(convenio.id),
+    )
     _tabela_financeiro_bloco(documento, convenio)
 
 
@@ -1244,6 +1304,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
     instrumentos = _instrumentos(db, filtro)
     dados = carregar_monitoramento_relatorio(db=db, instrumento_ids=[i.instrumento.id for i in instrumentos])
     equipamentos_por_convenio = _carregar_equipamentos_por_convenio(db, convenios)
+    entregues_por_convenio = _entregues_por_convenio(db, convenios)
 
     documento = docx_builder.novo_documento(f"Instrumentos e repasse -- {filtro.titulo()}")
     docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=datetime.now(timezone.utc))
@@ -1279,7 +1340,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
     for colunas_resumo, linhas_resumo, legenda in (
         (*_resumo_instrumentos_programas(convenios, instrumentos), legenda_instrumentos),
         (*_resumo_propostas(propostas), legenda_propostas),
-        (*_resumo_equipamentos(equipamentos_por_convenio), legenda_equipamentos),
+        (*_resumo_equipamentos(equipamentos_por_convenio, entregues_por_convenio), legenda_equipamentos),
     ):
         if not linhas_resumo:
             docx_builder.adicionar_paragrafo(documento, "Nenhum equipamento identificado neste recorte.")
@@ -1292,7 +1353,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         docx_builder.adicionar_legenda_tabela(documento, next(contador), legenda)
     docx_builder.adicionar_fonte(
         documento,
-        "Convênios (SICONV/TransfereGov), propostas (TransfereGov) e monitoramento interno, SIGEO.",
+        "Convênios (SICONV/TransfereGov), propostas (TransfereGov) e monitoramento interno, SISGEO.",
     )
     docx_builder.adicionar_titulo(documento, "Informações Detalhadas")
     instrumentos_por_nr = {i.instrumento.nr_convenio: i for i in instrumentos}
@@ -1315,6 +1376,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
                 equipamentos_por_convenio,
                 marco_inauguracao_id,
                 nivel,
+                entregues_por_convenio,
             )
     itens_outros = [c for c in convenios if (c.tipo_contratacao or "Convênio") not in tipos_ja_agrupados]
     if itens_outros:
@@ -1328,6 +1390,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
                 equipamentos_por_convenio,
                 marco_inauguracao_id,
                 nivel,
+                entregues_por_convenio,
             )
 
     numeros_com_bloco = {convenio.numero for convenio in convenios}
@@ -1342,6 +1405,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         for proposta in propostas:
             _bloco_proposta_narrativo(documento, proposta)
 
+    docx_builder.adicionar_logotipo_final(documento)
     return docx_builder.gerar_bytes(documento)
 
 

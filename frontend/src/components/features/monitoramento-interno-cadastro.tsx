@@ -49,6 +49,7 @@ export function MonitoramentoInternoCadastro({
   return (
     <SecaoOperacional
       titulo="Cadastro interno"
+      cartao
       acao={
         <button
           onClick={() => (emEdicao ? onFechar() : onAbrir())}

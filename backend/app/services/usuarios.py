@@ -79,7 +79,7 @@ def criar_usuario(*, db: Session, admin_atual: User, dados: UserCreateRequest) -
                 destinatario=usuario.email,
                 nome=usuario.name,
                 token=token,
-                assunto="Ative seu acesso ao SIGEO",
+                assunto="Ative seu acesso ao SISGEO",
                 caminho="/ativar",
             )
         except Exception as exc:
@@ -126,7 +126,7 @@ def reenviar_convite(*, db: Session, admin_atual: User, user_id: int) -> User:
             destinatario=usuario.email,
             nome=usuario.name,
             token=token,
-            assunto="Ative seu acesso ao SIGEO",
+            assunto="Ative seu acesso ao SISGEO",
             caminho="/ativar",
         )
     except Exception as exc:
@@ -157,7 +157,7 @@ def enviar_redefinicao_senha(*, db: Session, admin_atual: User, user_id: int) ->
             destinatario=usuario.email,
             nome=usuario.name,
             token=token,
-            assunto="Redefina sua senha do SIGEO",
+            assunto="Redefina sua senha do SISGEO",
             caminho="/redefinir-senha",
         )
     except Exception as exc:

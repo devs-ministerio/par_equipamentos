@@ -9,11 +9,11 @@ universo inteiro que bate o filtro, sem paginacao. Função solta com
 
 from __future__ import annotations
 
-from sqlalchemy import or_, select
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql.elements import ColumnElement
 
-from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
+from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador, InstrumentoEquipamento
 from app.pipeline.texto import normalizar_texto
 from app.repositories.equipamento_marcadores import marcador_de_financiamento
 from app.repositories.limites_relatorio import listar_sem_truncar
@@ -27,6 +27,17 @@ LIMITE_RELATORIO = 5000
 def convenio_no_escopo_de_equipamentos() -> ColumnElement[bool]:
     """Visibilidade da carteira; não apaga nem reclassifica a fonte oficial."""
     return Convenio.fora_escopo_equipamentos.is_(False)
+
+
+def instrumento_no_escopo() -> ColumnElement[bool]:
+    """O instrumento monitorado só existe para o SISGEO enquanto o convênio dele não está fora de escopo
+    (por exemplo, convênio só de obra: fica no banco, mas não aparece em lugar nenhum)."""
+    return ~exists().where(
+        Convenio.numero == InstrumentoEquipamento.nr_convenio,
+        func.coalesce(Convenio.tipo_contratacao, "Convênio")
+        == func.coalesce(InstrumentoEquipamento.tipo_contratacao, "Convênio"),
+        Convenio.fora_escopo_equipamentos.is_(True),
+    )
 
 
 def listar_numeros_fora_escopo(db: Session, numeros: set[str]) -> set[str]:

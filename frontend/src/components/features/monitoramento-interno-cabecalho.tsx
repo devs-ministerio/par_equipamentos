@@ -1,6 +1,7 @@
 /** Cabeçalho de MonitoramentoInterno -- card de identificação/valor global +
  * grid de indicadores rápidos. Extraído do arquivo original (Seção 6 da
  * migração). */
+import { nupDoInstrumento } from "@/lib/nup";
 import { cn } from "@/lib/utils";
 import type { InstrumentoTimeline } from "@/services/monitoramento-instrumentos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
@@ -12,7 +13,6 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao,
   inaugurado,
   diasInauguracao,
-  equipamentoFisico,
   statusLicenca,
   alertaLicenca,
   acoesAbertasCount,
@@ -23,7 +23,6 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao: string | null;
   inaugurado: boolean;
   diasInauguracao: number | null;
-  equipamentoFisico: string | null;
   statusLicenca: string;
   alertaLicenca: boolean;
   acoesAbertasCount: number;
@@ -31,7 +30,7 @@ export function MonitoramentoInternoCabecalho({
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
-  const equipamentoReferencia = inst.equipamento_descricao ?? "Não informado";
+  const nup = nupDoInstrumento(inst.tipo_contratacao, inst.nr_convenio);
   const origemAlternativa = Boolean(inst.origem_dado);
   const prestacaoConcluida =
     inst.situacao_prestacao_contas
@@ -45,10 +44,6 @@ export function MonitoramentoInternoCabecalho({
     !prestacaoConcluida;
 
   const indicadores = [
-    {
-      rotulo: "Equipamento físico",
-      valor: equipamentoFisico ?? equipamentoReferencia,
-    },
     {
       rotulo: "Licença CNEN",
       valor:
@@ -145,6 +140,14 @@ export function MonitoramentoInternoCabecalho({
                     {inst.tipo_contratacao}
                   </span>
                 )}
+              {nup && (
+                <span
+                  className="text-[11px] font-semibold tabular-nums text-muted-foreground"
+                  title="Número Único de Protocolo (SEI)"
+                >
+                  NUP {nup}
+                </span>
+              )}
             </div>
             <div className="relative break-words text-xs text-muted-foreground">
               {inst.municipio}/{inst.uf} · CNES {inst.cnes ?? "—"}

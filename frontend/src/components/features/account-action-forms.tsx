@@ -240,7 +240,7 @@ function AccountCard({
       <Card className="w-full max-w-[420px]">
         <CardContent className="p-8">
           <Link to="/login" className="font-display text-[15px] font-bold">
-            SIGEO
+            SISGEO
           </Link>
           <h1 className="mt-6 text-xl font-bold">{titulo}</h1>
           {children}

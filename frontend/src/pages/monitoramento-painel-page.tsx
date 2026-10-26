@@ -17,6 +17,8 @@ import {
 import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
 import { MonitoramentoPainelGeografia } from "@/components/features/monitoramento-painel-geografia";
 import { MonitoramentoPainelAnalises } from "@/components/features/monitoramento-painel-analises";
+import { MonitoramentoPainelEntregues } from "@/components/features/monitoramento-painel-entregues";
+import { entreguesPorFamilia } from "@/lib/equipamentos-entregues";
 import { MonitoramentoPainelPendencias } from "@/components/features/monitoramento-painel-pendencias";
 import { MonitoramentoPainelEvolucao } from "@/components/features/monitoramento-painel-evolucao";
 
@@ -156,7 +158,7 @@ export function MonitoramentoPainelPage() {
         apoio={`${instrumentosFiltrados.length} instrumentos monitorados`}
         className="mt-8"
       >
-        <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+        <div className="grid gap-x-10 gap-y-6 md:grid-cols-3">
           <div>
             <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
               Por equipamento
@@ -168,6 +170,17 @@ export function MonitoramentoPainelPage() {
               Por técnico titular
             </h4>
             <DistribuicaoHorizontal itens={dados.porTecnico} limite={6} />
+          </div>
+          <div>
+            <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
+              Entregues / planejados
+            </h4>
+            <MonitoramentoPainelEntregues
+              familias={entreguesPorFamilia(
+                resumo.equipamentos_por_instrumento,
+                new Set(instrumentosFiltrados.map((i) => i.nr_convenio)),
+              )}
+            />
           </div>
         </div>
       </PainelSecao>

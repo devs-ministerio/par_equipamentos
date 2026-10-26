@@ -11,6 +11,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.db.models import (
     Convenio,
@@ -24,6 +25,7 @@ from app.db.models import (
     UserRole,
     UserStatus,
 )
+from app.repositories.convenios import instrumento_no_escopo
 
 
 @dataclass(frozen=True)
@@ -156,6 +158,26 @@ def criar_avisos_descoberta(db: Session, avisos: list[Notificacao]) -> None:
     )
 
 
+_TIPOS_DE_INSTRUMENTO = (
+    NotificacaoTipo.atualizacao_api,
+    NotificacaoTipo.edicao_manual,
+    NotificacaoTipo.inclusao_monitoramento,
+    NotificacaoTipo.entrega_legada_revisao,
+    NotificacaoTipo.prazo_acao,
+    NotificacaoTipo.prazo_inauguracao,
+)
+
+
+def notificacao_no_escopo() -> ColumnElement[bool]:
+    """Aviso de instrumento ou convênio fora de escopo (só obra, por exemplo) não aparece para ninguém."""
+    instrumentos_fora = select(InstrumentoEquipamento.id).where(~instrumento_no_escopo())
+    convenios_fora = select(Convenio.id).where(Convenio.fora_escopo_equipamentos.is_(True))
+    return ~(
+        (Notificacao.tipo.in_(_TIPOS_DE_INSTRUMENTO) & Notificacao.entidade_id.in_(instrumentos_fora))
+        | ((Notificacao.tipo == NotificacaoTipo.alerta_vigencia) & Notificacao.entidade_id.in_(convenios_fora))
+    )
+
+
 def listar_notificacoes_paginadas(
     db: Session,
     *,
@@ -170,7 +192,11 @@ def listar_notificacoes_paginadas(
     base = (
         select(Notificacao, NotificacaoDestinatario.id, NotificacaoDestinatario.lida, NotificacaoDestinatario.arquivada)
         .join(NotificacaoDestinatario, NotificacaoDestinatario.notificacao_id == Notificacao.id)
-        .where(NotificacaoDestinatario.usuario_id == usuario_id, NotificacaoDestinatario.arquivada == arquivadas)
+        .where(
+            NotificacaoDestinatario.usuario_id == usuario_id,
+            NotificacaoDestinatario.arquivada == arquivadas,
+            notificacao_no_escopo(),
+        )
     )
     if apenas_nao_lidas:
         base = base.where(NotificacaoDestinatario.lida.is_(False))
@@ -193,7 +219,8 @@ def listar_notificacoes_paginadas(
     contagem_base = (
         select(func.count())
         .select_from(NotificacaoDestinatario)
-        .where(NotificacaoDestinatario.usuario_id == usuario_id)
+        .join(Notificacao, Notificacao.id == NotificacaoDestinatario.notificacao_id)
+        .where(NotificacaoDestinatario.usuario_id == usuario_id, notificacao_no_escopo())
     )
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
     nao_lidas = db.execute(

@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { DetalhesAnimados } from "@/components/common/detalhes-animados";
 import { corrigirTextoSiconv } from "@/lib/monitoramento-format";
 import { fetchConvenioDetalhe } from "@/services/convenios";
 import type { ConvenioUnificado } from "@/types/monitoramento";
@@ -75,25 +76,16 @@ export function ConvenioCard({
       />
 
       {/* ---------- Camada 2: dado tecnico aninhado, atras de 1 clique ---------- */}
-      <details
+      <DetalhesAnimados
         className="mt-4 border-t border-border pt-3"
-        open={detalheAberto}
-        onToggle={(e) =>
-          setDetalheAberto((e.target as HTMLDetailsElement).open)
-        }
+        aberto={detalheAberto}
+        onAbertoChange={setDetalheAberto}
       >
-        <summary className="flex min-h-11 cursor-pointer items-center text-xs font-bold text-primary">
-          {detalheAberto ? "Menos detalhes" : "Mais detalhes"}
-        </summary>
-        {detalheAberto &&
-        c.dadosOficiaisDisponiveis &&
-        detalheQuery.isLoading ? (
+        {c.dadosOficiaisDisponiveis && detalheQuery.isLoading ? (
           <p className="mt-3 text-xs text-muted-foreground">
             Carregando detalhes...
           </p>
-        ) : detalheAberto &&
-          c.dadosOficiaisDisponiveis &&
-          detalheQuery.isError ? (
+        ) : c.dadosOficiaisDisponiveis && detalheQuery.isError ? (
           <div className="mt-3 space-y-2">
             <p role="alert" className="text-xs text-destructive">
               Não foi possível carregar os detalhes. Tente novamente.
@@ -106,10 +98,10 @@ export function ConvenioCard({
               Tentar novamente
             </Button>
           </div>
-        ) : detalheAberto ? (
+        ) : (
           <ConvenioCardDetalhes c={cDetalhado} monitorado={monitorado} />
-        ) : null}
-      </details>
+        )}
+      </DetalhesAnimados>
     </div>
   );
 }

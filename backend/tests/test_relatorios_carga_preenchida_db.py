@@ -72,7 +72,7 @@ def test_carteira_preenchida_de_500_preserva_todos_os_instrumentos(formato, tmp_
                 assert itens.count(("Equipamento QA auxiliar", "1", "—")) == 500
                 assert itens.count(("Equipamento QA carga", "500", "R$ 0,00")) == 1
                 assert itens.count(("Equipamento QA auxiliar", "500", "—")) == 1
-                assert len(consultas) == 12
+                assert len(consultas) == 15  # +3 consultas fixas das unidades entregues
             else:
                 pasta = load_workbook(BytesIO(conteudo))
                 try:
@@ -85,7 +85,7 @@ def test_carteira_preenchida_de_500_preserva_todos_os_instrumentos(formato, tmp_
                         ("Equipamento QA carga", 500, 0),
                         ("Equipamento QA auxiliar", 500, None),
                     }
-                    assert len(consultas) == 9
+                    assert len(consultas) == 12  # +3 consultas fixas das unidades entregues
                 finally:
                     pasta.close()
         finally:

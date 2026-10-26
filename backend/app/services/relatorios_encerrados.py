@@ -5,10 +5,13 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
+from app.classificacao_itens import classificar
 from app.domain_errors import ValidationError
 from app.equipamentos import classificar_descricoes
+from app.pipeline.itens_plano import descricoes_so_de_obra_ou_servico, item_conta_como_equipamento
 from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
 from app.repositories import equipamento_marcadores as marcadores_repo
+from app.repositories import itens_equipamento as itens_repo
 from app.repositories import relatorios_encerrados as repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.schemas_relatorios_encerrados import FatoEncerramento, FiltroEncerramento, PreviaEncerrados, RegistroEncerrado
@@ -175,15 +178,31 @@ def _quantidade_do_item(item: dict) -> int:
 def _quantidade_de_equipamentos(itens_plano: list[dict], codigos: list[str]) -> int:
     """Unidades dos tipos de equipamento visíveis do registro.
 
-    Soma o `QTD_ITEM` de cada item do plano que pertence a um desses tipos, o que
-    inclui itens numerados ("Ultrassom 1", "Ultrassom 2"). Sem plano (PERSUS, FAF,
-    TED), cada tipo conta 1.
+    Soma o `QTD_ITEM` de cada item de bem do plano que pertence a um desses tipos, o
+    que inclui itens numerados ("Ultrassom 1", "Ultrassom 2"). Itens de obra e
+    serviço não contam (a quantidade neles é área ou serviço). Item de carga manual
+    (sem `ID_ITEM_PAD`) vale uma unidade, a mesma descrição repetida só muda de
+    caixa conta uma vez, e num convênio que já tem itens da API a carga manual não
+    soma (é a mesma informação, vinda da planilha). Sem plano (PERSUS, FAF, TED), cada tipo conta 1.
     """
     por_tipo: Counter[str] = Counter()
+    manuais_vistos: set[str] = set()
+    tem_item_oficial = any(isinstance(i, dict) and i.get("ID_ITEM_PAD") for i in itens_plano)
     for item in itens_plano:
-        descricao = item.get("DESCRICAO_ITEM") if isinstance(item, dict) else None
+        if not item_conta_como_equipamento(item):
+            continue
+        descricao = item.get("DESCRICAO_ITEM")
         if not descricao:
             continue
+        if classificar(str(descricao)).tipo != "aquisicao":
+            continue  # rendimento, acessório e item múltiplo não somam unidade (classificação C5)
+        if not item.get("ID_ITEM_PAD"):
+            if tem_item_oficial:
+                continue  # texto da planilha repete o que a API já traz; não soma de novo
+            chave = normalizar_texto(descricao)
+            if chave in manuais_vistos:
+                continue
+            manuais_vistos.add(chave)
         for evidencia in classificar_descricoes([descricao]):
             if evidencia.codigo in codigos:
                 por_tipo[evidencia.codigo] += _quantidade_do_item(item)
@@ -204,6 +223,10 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
         proposta_ids={r.proposta_id for r in registros if r.proposta_id is not None},
     )
 
+    entregues = itens_repo.unidades_entregues_por_instrumento(
+        db, {r.instrumento_id for r in registros if r.instrumento_id is not None}
+    )
+
     def com_equipamentos(registro: RegistroEncerrado) -> RegistroEncerrado:
         for origem, identificador in (
             ("convenio", registro.convenio_id),
@@ -211,11 +234,17 @@ def anexar_equipamentos(db: Session, extracao: ExtracaoEncerrados) -> ExtracaoEn
             ("proposta_candidata", registro.proposta_id),
         ):
             achados = marcadores.get((origem, identificador)) if identificador is not None else None  # type: ignore[arg-type]
+            if achados and origem == "convenio":
+                so_obra = descricoes_so_de_obra_ou_servico(registro.itens_plano)
+                achados = [m for m in achados if m.descricao_original not in so_obra]
             if achados:
                 return registro.model_copy(
                     update={
                         "equipamentos": _texto_equipamentos([m.nome for m in achados]),
                         "quantidade": _quantidade_de_equipamentos(registro.itens_plano, [m.codigo for m in achados]),
+                        "quantidade_entregue": entregues.get(registro.instrumento_id)
+                        if registro.instrumento_id is not None
+                        else None,
                     }
                 )
         return registro

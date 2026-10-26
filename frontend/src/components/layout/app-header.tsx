@@ -20,6 +20,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { UserMenu } from "./user-menu";
+import { Logo } from "@/components/common/logo";
 import { NotificationBell } from "@/components/features/notification-bell";
 
 export interface HeaderNavItem {
@@ -231,20 +232,10 @@ export function AppHeader({
           {/* A marca leva à entrada operacional definida para o sistema. */}
           <Link
             to="/monitoramento-equipamentos"
-            className="flex shrink-0 items-center gap-2.5 text-foreground"
+            className="flex shrink-0 items-center text-foreground"
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-[#1f4c42] font-display text-[15px] font-bold text-primary-foreground shadow-sm ring-1 ring-black/5 ring-inset">
-              S
-            </span>
-            <span className="flex items-baseline gap-2 whitespace-nowrap">
-              <span className="font-display text-[15px] font-bold tracking-tight">
-                SIGEO
-              </span>
-              <span className="h-3.5 w-px bg-border" aria-hidden="true" />
-              <span className="hidden text-xs text-muted-foreground sm:inline">
-                Gestão de Equipamentos em Oncologia
-              </span>
-            </span>
+            <Logo variante="completo" className="hidden h-10 lg:block" />
+            <Logo variante="reduzido" className="h-9 lg:hidden" />
           </Link>
           <div className="hidden lg:block">{leftExtra}</div>
         </div>

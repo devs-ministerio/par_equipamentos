@@ -1,4 +1,4 @@
-# Contexto do projeto — SIGEO (par_equipamentos)
+# Contexto do projeto — SISGEO (par_equipamentos)
 
 Leia [`README.md`](README.md) primeiro para stack e como rodar. Este arquivo
 é sobre convenções e pegadinhas específicas deste repo.

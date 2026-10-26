@@ -33,6 +33,7 @@ from app.db.models import (
     UserStatus,
 )
 from app.pipeline.texto import normalizar_texto
+from app.repositories.convenios import instrumento_no_escopo
 from app.repositories.notificacoes import criar_notificacao
 
 # Evento/ação ATIVO = ainda vigente (não corrigido nem excluído) -- ver
@@ -63,7 +64,7 @@ class DadosResumoMonitoramento:
 
 
 def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResumoMonitoramento:
-    instrumentos = list(db.execute(select(InstrumentoEquipamento)).scalars())
+    instrumentos = list(db.execute(select(InstrumentoEquipamento).where(instrumento_no_escopo())).scalars())
     propostas = list(db.execute(select(PropostaCandidata)).scalars())
     propostas_por_chave = {
         chave: proposta
@@ -159,7 +160,7 @@ def listar_instrumentos(
     # `fase_atual` -- esse filtro migrou pra
     # `app/services/monitoramento_instrumentos.py::listar_instrumentos_monitorados`,
     # em Python, pós-cálculo de fase.
-    stmt = select(InstrumentoEquipamento)
+    stmt = select(InstrumentoEquipamento).where(instrumento_no_escopo())
     if ufs:
         stmt = stmt.where(InstrumentoEquipamento.uf.in_(ufs))
     if cnes:
@@ -183,7 +184,7 @@ def iterar_instrumentos_relatorio(
     tipo_contratacao: str | None = None,
 ) -> Generator[list[InstrumentoEquipamento], None, None]:
     """Candidatos em lotes; o service aplica fase/período antes do teto final."""
-    stmt = select(InstrumentoEquipamento).order_by(InstrumentoEquipamento.nr_convenio)
+    stmt = select(InstrumentoEquipamento).where(instrumento_no_escopo()).order_by(InstrumentoEquipamento.nr_convenio)
     if ufs:
         stmt = stmt.where(InstrumentoEquipamento.uf.in_(ufs))
     if cnes:
@@ -269,7 +270,7 @@ def mapa_eventos_por_instrumento(
 
 def obter_instrumento_por_nr_convenio(db: Session, nr_convenio: str) -> InstrumentoEquipamento | None:
     return db.execute(
-        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio)
+        select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio, instrumento_no_escopo())
     ).scalar_one_or_none()
 
 

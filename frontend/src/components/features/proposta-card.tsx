@@ -8,6 +8,7 @@ import { LinhaDoTempoProposta } from "./proposta-linha-do-tempo";
 import type { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 import { formatarCnpj } from "@/utils/texto";
+import { DetalhesAnimados } from "@/components/common/detalhes-animados";
 import { AdicionarMonitoramentoButton } from "./adicionar-monitoramento-button";
 
 /** O CNES descoberto é somente leitura na proposta; correções são feitas no
@@ -100,16 +101,11 @@ export function CardProposta({
       </p>
 
       {/* ---------- Camada 2: dado técnico aninhado, atrás de 1 clique ---------- */}
-      <details
+      <DetalhesAnimados
         className="mt-3 border-t border-border pt-2.5"
-        open={detalheAberto}
-        onToggle={(e) =>
-          setDetalheAberto((e.target as HTMLDetailsElement).open)
-        }
+        aberto={detalheAberto}
+        onAbertoChange={setDetalheAberto}
       >
-        <summary className="flex min-h-11 cursor-pointer items-center text-xs font-bold text-primary">
-          {detalheAberto ? "Menos detalhes" : "Mais detalhes"}
-        </summary>
         <div className="mt-3 grid [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
           <Campo label="Programa">{p.nm_programa}</Campo>
           <Campo label="Data da proposta">
@@ -166,7 +162,7 @@ export function CardProposta({
             </p>
           )}
         </div>
-      </details>
+      </DetalhesAnimados>
     </div>
   );
 }
