@@ -38,6 +38,7 @@ export function LoginPage() {
           >
             <Logo variante="completo" className="h-14" />
           </Link>
+          <h1 className="sr-only">Entrar no SISGEO</h1>
           <MonitoramentoInternoFormLogin
             onEntrar={async (valores) => {
               await sessao.login({
