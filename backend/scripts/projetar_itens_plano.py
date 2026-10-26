@@ -33,7 +33,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.classificacao_itens import chave_do_item, classificar
+from app.classificacao_itens import LIMITE_VALOR_UNITARIO_MONITORADO, chave_do_item, classificar
 from app.db.base import SessionLocal, engine
 from app.db.models import (
     CodigoItemLegado,
@@ -73,6 +73,7 @@ class Alvo:
     tipo_lancamento: str = "aquisicao"
     pendente: bool = False
     motivo: str | None = None
+    por_valor: bool = False
 
 
 @dataclass
@@ -89,6 +90,7 @@ class Resultado:
     por_tipo: Counter[str] = field(default_factory=Counter)
     pendentes: int = 0
     rendimentos_ligados: int = 0
+    por_valor: int = 0
     rendimentos_sem_principal: int = 0
     codigo_a_definir: int = 0
     manual_por_codigo_fonte: Counter[str] = field(default_factory=Counter)
@@ -161,16 +163,19 @@ def alvo_item_api(ctx: Contexto, convenio_numero: str, item: dict) -> Alvo:
     catalogo_id = catalogo.id if catalogo else ctx.catalogo_do_codigo.get(codigo or "")
     if tipo != "aquisicao":
         conta = False
-    return Alvo(
-        codigo,
-        fonte,
-        catalogo_id,
-        _controla(ctx, catalogo_id, conta=conta, pendente=pendente),
-        familia,
-        tipo,
-        pendente,
-        motivo,
-    )
+    controla = _controla(ctx, catalogo_id, conta=conta, pendente=pendente)
+    explicito = decisao is not None and decisao.conta_unidade is not None
+    por_valor = False
+    if not controla and not explicito and tipo == "aquisicao" and not pendente:
+        por_valor = controla = valor_unitario(item) >= LIMITE_VALOR_UNITARIO_MONITORADO
+    return Alvo(codigo, fonte, catalogo_id, controla, familia, tipo, pendente, motivo, por_valor)
+
+
+def valor_unitario(item: dict) -> float:
+    """Valor de uma unidade: valor do item no plano dividido pela quantidade (0 quando não há valor)."""
+    total = _decimal(item.get("VALOR_TOTAL_ITEM"))
+    quantidade = _quantidade(item.get("QTD_ITEM")) or 1
+    return (total or 0.0) / quantidade
 
 
 def _familia_do_codigo(ctx: Contexto, codigo: str | None) -> str | None:
@@ -301,6 +306,7 @@ def projetar(db: Session, *, aplicar: bool) -> Resultado:
             resultado.por_origem[origem] += 1
             resultado.por_tipo[alvo.tipo_lancamento] += 1
             resultado.pendentes += int(alvo.pendente)
+            resultado.por_valor += int(alvo.por_valor)
             ligacao.append((convenio.id, chave, alvo.tipo_lancamento, alvo.catalogo_id))
             if alvo.controla_unidade and alvo.familia:
                 resultado.por_familia[alvo.familia] += 1
@@ -384,6 +390,9 @@ def main(argv: list[str] | None = None) -> int:
         f"  rendimento ligado ao principal: {r.rendimentos_ligados}; sem principal único: {r.rendimentos_sem_principal}"
     )
     print(f"  manuais por fonte do código: {dict(r.manual_por_codigo_fonte)}")
+    print(
+        f"  controlados por valor (unidade a partir de R$ {int(LIMITE_VALOR_UNITARIO_MONITORADO) // 1000} mil): {r.por_valor}"
+    )
     print("  controlados por unidade, por família:")
     for familia, n in r.por_familia.most_common():
         print(f"    {familia}: {n}")

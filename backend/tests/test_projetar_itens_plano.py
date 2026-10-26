@@ -110,3 +110,62 @@ def test_rendimento_e_outro_equipamento_nao_entram_na_fila():
         _ctx(), "1", {"ID_ITEM_PAD": "10", "DESCRICAO_ITEM": "Cadeira de rodas", "VALOR_TOTAL_ITEM": "900"}
     )
     assert outro.pendente is False
+
+
+def test_valor_por_unidade_a_partir_de_300_mil_entra_no_monitoramento_por_item():
+    item = {
+        "ID_ITEM_PAD": "20",
+        "DESCRICAO_ITEM": "Sistema de Hemodinâmica",
+        "QTD_ITEM": "1",
+        "VALOR_TOTAL_ITEM": "1305000",
+    }
+    alvo = alvo_item_api(_ctx(), "1", item)
+    assert alvo.controla_unidade is True and alvo.por_valor is True and alvo.familia is None
+
+
+def test_lote_barato_nao_entra_mesmo_com_total_acima_de_300_mil():
+    cama = {"ID_ITEM_PAD": "21", "DESCRICAO_ITEM": "Cama Hospitalar", "QTD_ITEM": "120", "VALOR_TOTAL_ITEM": "3600000"}
+    assert alvo_item_api(_ctx(), "1", cama).controla_unidade is False
+
+
+def test_limite_e_inclusivo_e_item_de_300_mil_exatos_entra():
+    exato = {
+        "ID_ITEM_PAD": "22",
+        "DESCRICAO_ITEM": "Microscópio Cirúrgico",
+        "QTD_ITEM": "1",
+        "VALOR_TOTAL_ITEM": "300000",
+    }
+    abaixo = {
+        "ID_ITEM_PAD": "23",
+        "DESCRICAO_ITEM": "Microscópio Cirúrgico",
+        "QTD_ITEM": "1",
+        "VALOR_TOTAL_ITEM": "299999",
+    }
+    assert alvo_item_api(_ctx(), "1", exato).controla_unidade is True
+    assert alvo_item_api(_ctx(), "1", abaixo).controla_unidade is False
+
+
+def test_decisao_explicita_da_equipe_prevalece_sobre_o_valor():
+    decisao = SimpleNamespace(
+        tipo_lancamento="aquisicao",
+        conta_unidade=False,
+        status="aplicada",
+        codigo_item=None,
+        origem="revisao_equipe",
+        observacao=None,
+    )
+    item = {
+        "ID_ITEM_PAD": "24",
+        "DESCRICAO_ITEM": "Sistema de Hemodinâmica",
+        "QTD_ITEM": "1",
+        "VALOR_TOTAL_ITEM": "1305000",
+    }
+    assert alvo_item_api(_ctx({("1", "24"): decisao}), "1", item).controla_unidade is False
+
+
+def test_valor_sem_quantidade_vale_como_uma_unidade_e_manual_nunca_entra_por_valor():
+    from scripts.projetar_itens_plano import valor_unitario
+
+    assert valor_unitario({"VALOR_TOTAL_ITEM": "500000"}) == 500000
+    assert valor_unitario({"VALOR_TOTAL_ITEM": "500000", "QTD_ITEM": "2"}) == 250000
+    assert alvo_item_manual(_ctx(), "FAF", {"DESCRICAO_ITEM": "Cadeira de rodas"}).por_valor is False

@@ -25,6 +25,7 @@ from app.db.models import (
     NotificacaoTipo,
 )
 from app.repositories import monitoramento as monitoramento_repo
+from app.repositories.convenios import instrumento_no_escopo
 from app.repositories.notificacoes import criar_notificacao
 
 FUSO = ZoneInfo("America/Sao_Paulo")
@@ -60,7 +61,9 @@ class _Prazo:
 
 
 def _prazos_vigentes(db: Session) -> list[_Prazo]:
-    instrumentos = {i.id: i.nr_convenio for i in db.execute(select(InstrumentoEquipamento)).scalars()}
+    instrumentos = {
+        i.id: i.nr_convenio for i in db.execute(select(InstrumentoEquipamento).where(instrumento_no_escopo())).scalars()
+    }
     prazos: list[_Prazo] = []
     acoes = db.execute(
         select(AcaoMonitoramento).where(

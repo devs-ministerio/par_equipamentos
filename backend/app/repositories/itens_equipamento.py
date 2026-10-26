@@ -175,36 +175,38 @@ def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -
     return {i: entregues.get(i, 0) for i in controlados if i is not None}
 
 
+ROTULO_FAMILIA_POR_VALOR = "Outros equipamentos (a partir de R$ 300 mil)"
+
+
 def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> list[tuple[int, str, int, int]]:
-    """(instrumento, família, planejado, entregue) dos itens controlados; planejado desconhecido não soma."""
+    """(instrumento, família, planejado, entregue) dos itens controlados; planejado desconhecido não soma.
+
+    Item controlado por valor, sem família no catálogo, vai para `ROTULO_FAMILIA_POR_VALOR`."""
     if not instrumento_ids:
         return []
+    familia = func.coalesce(EquipamentoCatalogo.nome, ROTULO_FAMILIA_POR_VALOR)
     planejado = {
         (int(i), str(f)): int(q)
         for i, f, q in db.execute(
-            select(
-                ItemPlano.instrumento_id,
-                EquipamentoCatalogo.nome,
-                func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0),
-            )
-            .join(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
+            select(ItemPlano.instrumento_id, familia, func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0))
+            .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
             .where(
                 ItemPlano.instrumento_id.in_(instrumento_ids),
                 ItemPlano.controla_unidade.is_(True),
                 ItemPlano.ativo.is_(True),
             )
-            .group_by(ItemPlano.instrumento_id, EquipamentoCatalogo.nome)
+            .group_by(ItemPlano.instrumento_id, familia)
         ).all()
     }
     entregue = {
         (int(i), str(f)): int(q)
         for i, f, q in db.execute(
-            select(ItemPlano.instrumento_id, EquipamentoCatalogo.nome, func.count(UnidadeEquipamento.id))
+            select(ItemPlano.instrumento_id, familia, func.count(UnidadeEquipamento.id))
             .join(UnidadeEquipamento, UnidadeEquipamento.item_id == ItemPlano.id)
             .join(EntregaEquipamento, EntregaEquipamento.id == UnidadeEquipamento.entrega_id)
-            .join(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
+            .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
             .where(ItemPlano.instrumento_id.in_(instrumento_ids), *_ENTREGA_ATIVA)
-            .group_by(ItemPlano.instrumento_id, EquipamentoCatalogo.nome)
+            .group_by(ItemPlano.instrumento_id, familia)
         ).all()
     }
     return [

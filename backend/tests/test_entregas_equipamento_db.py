@@ -330,7 +330,7 @@ def test_resumo_planejado_x_entregue_por_familia(db):
     c.dois.catalogo_id = mamografo.id
     db.flush()
     svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 1)), db=db, usuario=c.titular)
-    assert repo.resumo_por_instrumento_e_familia(db, {c.inst.id}) == [(c.inst.id, mamografo.nome, 2, 1)]
+    assert (c.inst.id, mamografo.nome, 2, 1) in repo.resumo_por_instrumento_e_familia(db, {c.inst.id})
 
 
 def test_relatorio_de_instrumentos_traz_entregues_por_familia_do_convenio(db):
@@ -344,7 +344,7 @@ def test_relatorio_de_instrumentos_traz_entregues_por_familia_do_convenio(db):
     db.flush()
     svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2)), db=db, usuario=c.titular)
     convenio = db.get(Convenio, c.dois.convenio_id)
-    assert _entregues_por_convenio(db, [convenio]) == {convenio.id: {familia.nome: 2}}
+    assert _entregues_por_convenio(db, [convenio])[convenio.id][familia.nome] == 2
 
 
 def test_rendimento_aparece_como_linha_filha_e_nao_conta_como_outro_item(db):
@@ -360,3 +360,13 @@ def test_rendimento_aparece_como_linha_filha_e_nao_conta_como_outro_item(db):
     assert [(r.descricao, r.valor_total) for r in principal.rendimentos] == [("Rendimento da aplicação", 1500.0)]
     assert depois.outros_itens == antes.outros_itens
     assert principal.quantidade_planejada == 2  # o rendimento não soma unidade
+
+
+def test_item_controlado_por_valor_sem_familia_entra_no_resumo_com_rotulo_proprio(db):
+    from app.repositories import itens_equipamento as repo
+
+    c = Cenario(db)  # `dois` não tem catálogo: equivale a item controlado por valor
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 1)), db=db, usuario=c.titular)
+    linhas = {(f, p, e) for _, f, p, e in repo.resumo_por_instrumento_e_familia(db, {c.inst.id})}
+    # `dois` (planejado 2, 1 entregue) e `um` (planejado 1), ambos sem família no catálogo
+    assert (repo.ROTULO_FAMILIA_POR_VALOR, 3, 1) in linhas

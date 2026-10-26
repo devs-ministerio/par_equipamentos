@@ -79,7 +79,8 @@ Os números do clone de 17/10 e do backup de hoje são idênticos nas projeçõe
 4. Verificação: `/health`, login, abrir um instrumento com e sem itens, painel, relatório de Concluídos.
 5. Janela de observação (48 h).
 6. Em simulação e, depois de revisar os números, com o "pode gravar" do usuário, **nesta ordem**: `atualizar_catalogo_equipamentos` → `reclassificar_marcadores_por_codigo` → `importar_revisao_classificacao` → `projetar_itens_plano` → `vincular_entregas_legadas` (cria os avisos aos técnicos).
-7. Fila de revisão: gestor e admin decidem os itens pendentes.
+7. Fora de escopo: `marcar_fora_escopo_obras` em simulação e, depois, com o "pode gravar" (18 convênios; 4 deixam de ser monitorados).
+7b. Fila de revisão: gestor e admin decidem os itens pendentes.
 8. Job de prazos: uma rodada manual supervisionada em simulação; **agendamento só depois** da operação de alertas.
 
 ## Pendências para a equipe (investigação do universo de 560 instrumentos, 26/10)
@@ -94,7 +95,8 @@ Medido no backup de 26/10 com a classificação da branch (só leitura). Os 560 
 | E. Sem item algum | 2 (FAF) |
 
 - **FAF sem itens, a verificar com a equipe:** `25000083818202628` (MG, sem nenhum item) e `25000083829202616` (RR, só um item "Ultrasom + Mamógrafo", que descreve dois equipamentos e aguarda separação). Ambos são monitorados.
-- **Obras (18 convênios só de obra)** devem sair da contagem de instrumentos, pela decisão já tomada de que obra não faz parte do SISGEO. Falta uma regra explícita: marcar `fora_escopo_equipamentos` (com simulação e auditoria) nesses 18. Quatro deles são **monitorados** (744879, 813703, 851416 e 971253, este com R$ 223 mi em SC): decidir se o monitoramento continua.
+- **Obras (18 convênios só de obra): decidido em 26/10** que não fazem parte do escopo e **não devem aparecer em lugar nenhum**; ficam no banco. Implementado: `scripts/marcar_fora_escopo_obras.py` (simulação, auditoria, `--desfazer`) e o filtro `instrumento_no_escopo()` em monitoramento, painel, relatórios, avisos e prazos. Quatro eram monitorados (744879, 813703, 851416 e 971253): saem junto (monitorados 292 → 288; firmados 560 → 542). Passo novo do release, **depois** dos scripts de carga e **com autorização**: `marcar_fora_escopo_obras`.
+- **Regra dos R$ 300 mil (decidida em 26/10):** equipamento fora das 16 famílias com valor por unidade ≥ R$ 300 mil entra no monitoramento por item (75 itens no backup de 26/10, 55 convênios; sem a regra eram 0). Aplica-se com `projetar_itens_plano`.
 - **Proposta, aguardando decisão:** permitir que titular, suplente, gestor e admin **adicionem item** em instrumento de carga manual (FAF, TED, PERSUS I e II), com código escolhido no catálogo, quantidade, auditoria e id gerado pelo sistema; a projeção não pode desativá-lo.
 
 ## Rollback

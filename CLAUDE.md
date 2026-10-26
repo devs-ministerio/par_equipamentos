@@ -92,7 +92,7 @@ reintroduzir o erro:
 - **Escopo bem menor que os 581 "Instrumentos firmados", e nem tudo que é
   firmado é monitorado internamente**: `convenio` ("Instrumentos
   firmados", `backend/app/routers/convenios.py`) é o universo completo de
-  repasse — 581 registros desde a correção de 2026-09-18 (403 Convênio/
+  repasse — 581 registros desde a correção de 2026-09-18 (**desatualizado**: 560 em 26/10/2026, sem PRONON, ver "Monitoramento por item e unidade") (403 Convênio/
   SICONV/TransfereGov originais + 178 de FAF/TED/PERSUS I/PERSUS II/PRONON,
   ver `docs/arquitetura/diagnostico-ingestao-dados-2026-09-18.md`).
   `instrumento_equipamento` (monitoramento interno pós-repasse) é um
@@ -255,7 +255,12 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   `unidade_equipamento` (nasce na entrega: marca, modelo, série única dentro do item, vida útil) e
   `entrega_legada_revisao` (fila das entregas antigas sem vínculo inequívoco). Cada `item_plano` é um equipamento
   distinto: dois itens com o mesmo código e nome são duas linhas.
-- **Só 16 famílias** controlam unidade (`equipamento_catalogo.controle_por_unidade`) e definem "Prioritário".
+- **16 famílias** controlam unidade (`equipamento_catalogo.controle_por_unidade`) e definem "Prioritário". **Regra de
+  valor (26/10/2026):** equipamento fora das 16 famílias também entra no monitoramento por item quando o valor de uma
+  **unidade** (valor do item no plano ÷ quantidade) é **≥ R$ 300 mil** (`LIMITE_VALOR_UNITARIO_MONITORADO` em
+  `app/classificacao_itens.py`; decisão explícita da equipe sobre o item prevalece; carga manual não tem valor, não entra).
+  Pela linha inteira entrariam lotes baratos (293 computadores, 120 camas), por isso o critério é por unidade.
+  Na tela o item aparece sem família; no painel, em "Outros equipamentos (a partir de R$ 300 mil)".
   Aceleradores manuais de PERSUS I/II usam o código 011806 (`codigo_fonte = regra_da_equipe`).
 - **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`,
   `vincular_entregas_legadas.py` (conservador; avisa os técnicos pelo tipo `entrega_legada_revisao`).
@@ -278,6 +283,12 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   aberta com prazo e de previsão de inauguração não realizada, deduplicados por `Notificacao.chave_dedup`
   (`tipo:referência:data:janela`); concluir/excluir/reagendar arquivam os avisos antigos. Simulação por padrão e
   **agendamento das 08:00 de São Paulo NÃO ligado** (só depois da operação de alertas e de rodada supervisionada).
+- **Fora de escopo (26/10/2026):** convênio cujos itens na fonte são **todos obra ou serviço** (18 em 26/10) não faz parte
+  do SISGEO: fica no banco com `fora_escopo_equipamentos=true` (`scripts/marcar_fora_escopo_obras.py`, simulação por
+  padrão, `--desfazer`) e some de todo lugar (instrumentos firmados, monitoramento, painel, relatórios, avisos e prazos);
+  `instrumento_no_escopo()` (`repositories/convenios.py`) esconde o instrumento monitorado ligado a ele (o detalhe dá 404).
+  Universo medido em 26/10: 560 firmados (403 Convênio, 92 PERSUS I, 50 PERSUS II, 12 FAF, 3 TED; PRONON saiu em 21/09),
+  542 depois da marcação; 292 monitorados, 288 depois.
 - NUP só em FAF/TED, formatado `25000.198305/2024-59`; eventos e ações ordenados por lançamento mais recente.
 
 ## Limitações conhecidas

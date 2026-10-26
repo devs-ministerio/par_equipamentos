@@ -30,6 +30,9 @@ _RENDIMENTO = re.compile(
     r"VALOR DE APLICACAO|IBCC COMPROU"
 )
 _ADQUIRIDO_COM_RENDIMENTO = re.compile(r"ADQUIRID[OA]S? COM (?:PARTE DE )?RENDIMENTO")
+# Regra da equipe (26/10/2026): equipamento fora das 16 famílias entra no monitoramento por item quando o valor
+# de uma unidade (valor do item no plano dividido pela quantidade) chega a este limite, em reais.
+LIMITE_VALOR_UNITARIO_MONITORADO = 300_000.0
 _JANELA_DO_TIPO = 400  # termo de rendimento no meio de uma especificação técnica longa não conta
 _ACESSORIO = re.compile(
     r"ARMAZENAMENTO DE (?:REJEITOS|FONTES)|ANTEPARO|CALIBRADOR DE DOSE|NEGATOSCOPIO|LAVADORA DE ENDOSCOPIO|"
