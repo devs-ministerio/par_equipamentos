@@ -44,6 +44,7 @@ export function criarConvenioTeste(
     numeroProcesso: "",
     cnes: "0000001",
     cnesNomeEstabelecimento: "Unidade sintética",
+    cnesMunicipio: null,
     programa: "Programa Alfa",
     equipamentos: [],
     dadosOficiaisDisponiveis: true,

@@ -314,6 +314,14 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   monitoramento a mostra como rótulo (a fila de classificação a mostra de propósito, para revisão). O front não
   tem mais `nomeSemCodigo`: usar sempre `item.nome`.
 
+- **Filtro por município vale para o convenente e para o estabelecimento (CNES)** (2026-10-26): o 968527
+  (convenente FUNDES, sede em São Paulo; CNES do HC da Unicamp, em Campinas) não aparecia em "Campinas" nos
+  relatórios. Agora `Convenio.municipio` OU o município do CNES do instrumento (`repositories/cnes_municipio.py`,
+  usado em `listar_convenios_filtrados` e `listar_propostas_filtradas`); a API de convênios expõe
+  `cnes_municipio` e o front usa `municipiosDoInstrumento` (Dados oficiais e Relatórios) para filtro e opções.
+  Monitoramento interno continua pelo município do próprio instrumento. Propostas candidatas no front seguem
+  pelo município da proposta (a API de propostas não traz o município do CNES).
+
 ## Limitações conhecidas
 
 - **Cobertura/déficit/distância sem granularidade por equipamento

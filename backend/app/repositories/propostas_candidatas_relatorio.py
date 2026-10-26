@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import PropostaCandidata
 from app.pipeline.texto import normalizar_texto
+from app.repositories.cnes_municipio import cnes_do_municipio
 from app.repositories.limites_relatorio import listar_sem_truncar
 
 # Teto de segurança do relatório -- mesmo espírito do Bloco 4 do Plan Mode
@@ -52,10 +53,11 @@ def listar_propostas_filtradas(
     stmt = stmt.order_by(PropostaCandidata.data_proposta.desc().nulls_last(), PropostaCandidata.id_proposta)
     if municipio:
         alvo = normalizar_texto(municipio)
+        cnes_do_local = cnes_do_municipio(db, municipio, ufs)
         return listar_sem_truncar(
             db,
             stmt,
             limite=LIMITE_RELATORIO,
-            corresponde=lambda proposta: normalizar_texto(proposta.municipio) == alvo,
+            corresponde=lambda proposta: normalizar_texto(proposta.municipio) == alvo or proposta.cnes in cnes_do_local,
         )
     return listar_sem_truncar(db, stmt, limite=LIMITE_RELATORIO)

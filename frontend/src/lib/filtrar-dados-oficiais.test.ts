@@ -26,6 +26,7 @@ const CONVENIO_COM_CNES: ConvenioUnificado = {
   numeroProcesso: "",
   cnes: "1234567",
   cnesNomeEstabelecimento: "Hospital de teste",
+  cnesMunicipio: null,
   programa: null,
   equipamentos: [],
   dadosOficiaisDisponiveis: true,
@@ -192,5 +193,25 @@ describe("filtrarDadosOficiais", () => {
     );
 
     expect(resultado).toEqual([CONVENIO_COM_CNES]);
+  });
+
+  it("município vale para o convenente e para o estabelecimento que recebe o equipamento", () => {
+    const fundoEstadual = {
+      ...CONVENIO_COM_CNES,
+      numero: "968527",
+      municipio: "SÃO PAULO",
+      cnesMunicipio: "CAMPINAS",
+    };
+    const filtrar = (municipio: string) =>
+      filtrarDadosOficiais(
+        [fundoEstadual],
+        { ...estadoVazio, municipio },
+        new Set(),
+        (item) => item.situacao,
+      );
+
+    expect(filtrar("campinas")).toEqual([fundoEstadual]);
+    expect(filtrar("São Paulo")).toEqual([fundoEstadual]);
+    expect(filtrar("Santos")).toEqual([]);
   });
 });

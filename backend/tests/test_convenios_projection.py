@@ -20,6 +20,7 @@ def test_listagem_convenios_projeta_todos_os_campos_do_schema_resumo():
     # convenio; o restante do resumo precisa continuar no load_only.
     campos_schema = set(ConvenioRead.model_fields) - {
         "cnes_nome_estabelecimento",
+        "cnes_municipio",
         "equipamentos",
         "dados_oficiais_disponiveis",
         "desembolso_integral_da_carga",
