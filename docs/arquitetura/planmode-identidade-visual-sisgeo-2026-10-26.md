@@ -10,6 +10,11 @@ Base: Constituição Frontend, Seções 2, 4, 5, 14 e 15. Nenhuma implementaçã
 - `lib/design-tokens.ts` não foi criado: `tokens.ts` segue como espelho de `index.css`.
 - Fora do plano original, pedido junto: "Mais detalhes" anima altura e opacidade (`DetalhesAnimados`, Radix Collapsible, `animar-detalhes`, desligada com `prefers-reduced-motion`) nos cards de convênio, proposta e candidato do Radar; o conteúdo só fica montado quando aberto.
 
+## Significado das cores do laço (confirmado pelo usuário, 2026-10-26)
+O laço representa quatro campanhas de conscientização em oncologia: azul `#2A4D9B` (Novembro Azul, próstata), magenta `#B0236F` (Outubro Rosa, mama), roxo `#6D3FA0` (campanhas lilás, colo do útero) e âmbar `#F0902A` (Setembro Dourado, câncer infantil).
+- O significado vale só para o logotipo e a faixa de assinatura. Cor de série de gráfico não representa tipo de câncer; sempre acompanha rótulo.
+- Evitar usar magenta ou âmbar sozinhos para sinalizar algo específico de uma campanha fora do logotipo.
+
 ## Objetivo
 - Aplicar a identidade final aprovada: logotipo com nome e anel aberto; versão reduzida só com o laço (kit em `identidade visual/final/`).
 - Trocar o nome exibido de SIGEO para SISGEO na interface, incluindo título da aba e favicon (hoje é o ícone padrão do Vite).

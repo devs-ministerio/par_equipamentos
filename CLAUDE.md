@@ -305,7 +305,7 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
 - **Identidade visual SISGEO (2026-10-26, `docs/arquitetura/planmode-identidade-visual-sisgeo-2026-10-26.md`)**:
   primário azul `#2A4D9B` (CTA, foco, estado ativo); as quatro cores do laço só no logotipo
   (`components/common/logo.tsx`, SVGs em `src/assets/brand/`), na faixa `.faixa-laco` (`MetricStrip`, `PageHeader`) e nas séries
-  dos gráficos. Âmbar nunca em texto (contraste 2,2:1). "Mais detalhes" usa `DetalhesAnimados`
+  dos gráficos. Âmbar nunca em texto (contraste 2,2:1). Significado do laço: azul = Novembro Azul (próstata), magenta = Outubro Rosa (mama), roxo = campanhas lilás (colo do útero), âmbar = Setembro Dourado (infantil); vale só para logotipo e faixa. "Mais detalhes" usa `DetalhesAnimados`
   em vez de `<details>` nativo; o conteúdo fecha desmontado, então teste abre o botão antes de procurar o texto.
 
 ## Limitações conhecidas
