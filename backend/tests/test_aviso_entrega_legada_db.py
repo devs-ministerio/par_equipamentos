@@ -28,3 +28,20 @@ def test_aviso_uma_vez_por_instrumento():
     finally:
         db.rollback()
         db.close()
+
+
+@pytest.mark.db
+def test_vincular_nao_avisa_ninguem_por_padrao(monkeypatch):
+    from scripts import vincular_entregas_legadas as modulo
+
+    chamadas = []
+    monkeypatch.setattr(modulo, "_avisar", lambda *a, **k: chamadas.append(1))
+    db = SessionLocal()
+    try:
+        modulo.vincular(db, aplicar=False)
+        assert chamadas == []
+        modulo.vincular(db, aplicar=False, avisar=True)
+        assert chamadas == [1]
+    finally:
+        db.rollback()
+        db.close()

@@ -9,7 +9,8 @@ vinculada:
 - **qualquer outro caso**: não atribui nada e grava `entrega_legada_revisao` com o motivo (`varias_entregas`,
   `sem_item_controlado`, `varios_itens`, `quantidade_desconhecida`). Nunca escolhe "a primeira unidade" por conveniência.
 
-Sem ``--aplicar`` apenas simula. Idempotente: evento que já tem entrega ou revisão é pulado.
+Sem ``--aplicar`` apenas simula. Idempotente: evento que já tem entrega ou revisão é pulado. Não notifica ninguém por
+padrão (decisão de 26/10: a equipe resolve internamente); ``--avisar`` cria o aviso aos técnicos.
 
 Uso:
     python -m scripts.vincular_entregas_legadas
@@ -98,7 +99,7 @@ def _avisar(
             )
 
 
-def vincular(db: Session, *, aplicar: bool) -> Resultado:
+def vincular(db: Session, *, aplicar: bool, avisar: bool = False) -> Resultado:
     resultado = Resultado()
     eventos = list(
         db.execute(
@@ -168,13 +169,19 @@ def vincular(db: Session, *, aplicar: bool) -> Resultado:
                         vida_util_anos=inst.equipamento_vida_util_anos,
                     )
                 )
-    _avisar(db, resultado, instrumentos, aplicar=aplicar)
+    if avisar:
+        _avisar(db, resultado, instrumentos, aplicar=aplicar)
     return resultado
 
 
 def main(argv: list[str] | None = None) -> int:
     analisador = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     analisador.add_argument("--aplicar", action="store_true", help="grava; sem isso só simula")
+    analisador.add_argument(
+        "--avisar",
+        action="store_true",
+        help="cria o aviso aos técnicos dos instrumentos com revisão (padrão: não avisa)",
+    )
     analisador.add_argument("--confirmo-host", default="", help="host do banco, exigido com --aplicar")
     args = analisador.parse_args(argv)
 
@@ -183,7 +190,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Destino: host={host}. Para gravar, confirme com --confirmo-host {host}.")
         return 2
     with SessionLocal() as db:
-        r = vincular(db, aplicar=args.aplicar)
+        r = vincular(db, aplicar=args.aplicar, avisar=args.avisar)
         if args.aplicar:
             log_action(
                 db,
