@@ -82,6 +82,21 @@ Os números do clone de 17/10 e do backup de hoje são idênticos nas projeçõe
 7. Fila de revisão: gestor e admin decidem os itens pendentes.
 8. Job de prazos: uma rodada manual supervisionada em simulação; **agendamento só depois** da operação de alertas.
 
+## Pendências para a equipe (investigação do universo de 560 instrumentos, 26/10)
+
+Medido no backup de 26/10 com a classificação da branch (só leitura). Os 560 são as linhas de `convenio`; nenhum tratamento de item (remover obra, identificar item fora do catálogo) reduz esse número, porque o único mecanismo que tira um instrumento do universo é a marca manual `fora_escopo_equipamentos` (hoje 0 marcados).
+
+| Grupo | Instrumentos |
+|---|---|
+| A. Ao menos 1 equipamento das 16 famílias | 479 |
+| B. Equipamento fora das 16 famílias, de programa oncológico (mantido; inclui acessório, como o 985680 com o item 011237, monitor para ressonância) | 61 |
+| D. Só obra/serviço | 18 |
+| E. Sem item algum | 2 (FAF) |
+
+- **FAF sem itens, a verificar com a equipe:** `25000083818202628` (MG, sem nenhum item) e `25000083829202616` (RR, só um item "Ultrasom + Mamógrafo", que descreve dois equipamentos e aguarda separação). Ambos são monitorados.
+- **Obras (18 convênios só de obra)** devem sair da contagem de instrumentos, pela decisão já tomada de que obra não faz parte do SISGEO. Falta uma regra explícita: marcar `fora_escopo_equipamentos` (com simulação e auditoria) nesses 18. Quatro deles são **monitorados** (744879, 813703, 851416 e 971253, este com R$ 223 mi em SC): decidir se o monitoramento continua.
+- **Proposta, aguardando decisão:** permitir que titular, suplente, gestor e admin **adicionem item** em instrumento de carga manual (FAF, TED, PERSUS I e II), com código escolhido no catálogo, quantidade, auditoria e id gerado pelo sistema; a projeção não pode desativá-lo.
+
 ## Rollback
 
 Backend: redeploy do commit anterior (as migrations são aditivas e o código antigo continua funcionando). Front: promover o deploy anterior na Vercel. Banco: restaurar o backup de pré-deploy. Dados gravados pelos scripts do passo 6 são reversíveis por restauração; as decisões da fila (passo 7) são append-only.
