@@ -15,6 +15,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador, InstrumentoEquipamento
 from app.pipeline.texto import normalizar_texto
+from app.repositories.cnes_municipio import cnes_do_municipio
 from app.repositories.equipamento_marcadores import marcador_de_financiamento
 from app.repositories.limites_relatorio import listar_sem_truncar
 
@@ -111,10 +112,15 @@ def listar_convenios_filtrados(
     stmt = stmt.order_by(Convenio.numero, Convenio.id)
     if municipio:
         alvo_municipio = normalizar_texto(municipio)
+        # O convenente pode ter sede em outro município (ex.: fundo estadual): vale também o município
+        # do estabelecimento (CNES) que recebe o equipamento.
+        cnes_do_local = cnes_do_municipio(db, municipio, ufs)
         return listar_sem_truncar(
             db,
             stmt,
             limite=LIMITE_RELATORIO,
-            corresponde=lambda convenio: normalizar_texto(convenio.municipio) == alvo_municipio,
+            corresponde=lambda convenio: (
+                normalizar_texto(convenio.municipio) == alvo_municipio or convenio.cnes in cnes_do_local
+            ),
         )
     return listar_sem_truncar(db, stmt, limite=LIMITE_RELATORIO)

@@ -20,6 +20,7 @@ import { useRelatorioInstrumentosFiltros } from "@/hooks/use-relatorio-instrumen
 import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
 import { UF_INFO } from "@/data/geo-reference";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
+import { municipiosDoInstrumento } from "@/lib/municipio-filtro";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { estagioDeFato } from "@/lib/proposta-status";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
@@ -40,16 +41,20 @@ type IgnorarExtra = "municipio" | "cnes" | "estabelecimento";
  * tiver. */
 function opcoesAgrupadas(
   itens: ConvenioUnificado[],
-  valor: (item: ConvenioUnificado) => string | null | undefined,
+  valor: (
+    item: ConvenioUnificado,
+  ) => string | null | undefined | (string | null | undefined)[],
 ): { value: string; label: string }[] {
   const grupos = new Map<string, string[]>();
   for (const item of itens) {
-    const bruto = valor(item);
-    if (!bruto) continue;
-    const chave = normalizarTexto(bruto);
-    const lista = grupos.get(chave);
-    if (lista) lista.push(bruto);
-    else grupos.set(chave, [bruto]);
+    const encontrado = valor(item);
+    for (const bruto of Array.isArray(encontrado) ? encontrado : [encontrado]) {
+      if (!bruto) continue;
+      const chave = normalizarTexto(bruto);
+      const lista = grupos.get(chave);
+      if (lista) lista.push(bruto);
+      else grupos.set(chave, [bruto]);
+    }
   }
   return [...grupos.entries()]
     .map(([chave, brutos]) => ({
@@ -183,7 +188,9 @@ export function MonitoramentoRelatoriosPage() {
           dentroDoPeriodo(item.anoInstrumento) &&
           (ignorarExtra === "municipio" ||
             !municipio ||
-            normalizarTexto(item.municipio) === municipio) &&
+            municipiosDoInstrumento(item).some(
+              (nome) => normalizarTexto(nome) === municipio,
+            )) &&
           (ignorarExtra === "cnes" || !cnes || item.cnes === cnes) &&
           (ignorarExtra === "estabelecimento" ||
             !nomeEstabelecimento ||
@@ -225,9 +232,8 @@ export function MonitoramentoRelatoriosPage() {
 
   const municipioOptions = useMemo(
     () =>
-      opcoesAgrupadas(
-        filtrarTudo(undefined, "municipio"),
-        (item) => item.municipio,
+      opcoesAgrupadas(filtrarTudo(undefined, "municipio"), (item) =>
+        municipiosDoInstrumento(item),
       ),
     [filtrarTudo],
   );
@@ -316,7 +322,11 @@ export function MonitoramentoRelatoriosPage() {
   //    pro CNES correspondente (1:1 na prática, mesmo dado de origem do
   //    dropdown) quando CNES não foi selecionado à parte.
   const municipioItens = municipio
-    ? convenios.filter((item) => normalizarTexto(item.municipio) === municipio)
+    ? convenios.filter((item) =>
+        municipiosDoInstrumento(item).some(
+          (nome) => normalizarTexto(nome) === municipio,
+        ),
+      )
     : [];
   const ufsDoMunicipio = new Set(municipioItens.map((item) => item.uf));
   const municipioAmbiguo = Boolean(municipio && !uf && ufsDoMunicipio.size > 1);

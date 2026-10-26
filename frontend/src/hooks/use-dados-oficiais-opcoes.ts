@@ -1,5 +1,8 @@
 import { useMemo } from "react";
-import { opcoesMunicipios } from "@/lib/municipio-filtro";
+import {
+  municipiosDoInstrumento,
+  opcoesMunicipios,
+} from "@/lib/municipio-filtro";
 import {
   nomePrioritarioCanonico,
   resumirEquipamentoNaoPrioritario,
@@ -99,7 +102,9 @@ export function useDadosOficiaisOpcoes({
 
   const municipioOptions = useMemo(
     () =>
-      opcoesMunicipios(filtrar("municipio").map((item) => item.municipio))
+      opcoesMunicipios(
+        filtrar("municipio").flatMap((item) => municipiosDoInstrumento(item)),
+      )
         .sort(
           (a, b) =>
             b.total - a.total || a.label.localeCompare(b.label, "pt-BR"),

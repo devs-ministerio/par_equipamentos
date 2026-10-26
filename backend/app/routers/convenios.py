@@ -100,6 +100,8 @@ class ConvenioRead(BaseModel):
     # nome em 357 linhas quando já está em CnesEstabelecimento por
     # `cnes`), resolvido aqui com 1 lookup em lote (ver `_com_nome_cnes`).
     cnes_nome_estabelecimento: str | None = None
+    # Município do estabelecimento (CNES): onde o equipamento fica, quando o convenente tem sede em outro.
+    cnes_municipio: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -166,17 +168,18 @@ CONVENIO_LIST_LOAD_ONLY = (
 def _com_nome_cnes(db: Session, convenios: list[Convenio], modelo: type[BaseModel] = ConvenioRead) -> list[BaseModel]:
     codigos = {c.cnes for c in convenios if c.cnes}
     nomes = {}
+    municipios = {}
     if codigos:
-        nomes = {
-            row.cnes: row.nome_estabelecimento
-            for row in db.execute(select(CnesEstabelecimento).where(CnesEstabelecimento.cnes.in_(codigos))).scalars()
-        }
+        for row in db.execute(select(CnesEstabelecimento).where(CnesEstabelecimento.cnes.in_(codigos))).scalars():
+            nomes[row.cnes] = row.nome_estabelecimento
+            municipios[row.cnes] = row.municipio
     marcadores = listar_por_origens(db, convenio_ids={c.id for c in convenios})
     resultado = []
     for convenio in convenios:
         disponibilidade = _projecao_disponibilidade_dados(convenio)
         campos = {
             "cnes_nome_estabelecimento": nomes.get(convenio.cnes or ""),
+            "cnes_municipio": municipios.get(convenio.cnes or ""),
             "equipamentos": serializar_marcadores(marcadores.get(("convenio", convenio.id), [])),
             **disponibilidade,
         }

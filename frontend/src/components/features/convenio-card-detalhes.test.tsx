@@ -31,6 +31,7 @@ const convenioManual: ConvenioUnificado = {
   numeroProcesso: "",
   cnes: null,
   cnesNomeEstabelecimento: null,
+  cnesMunicipio: null,
   programa: "Programa de teste",
   equipamentos: [],
   dadosOficiaisDisponiveis: false,
