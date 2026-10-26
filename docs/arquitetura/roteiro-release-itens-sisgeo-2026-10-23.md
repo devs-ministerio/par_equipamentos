@@ -45,12 +45,31 @@ Cópia descartável do clone de 17/10 (`sigeo_homologacao_clone_20261017`, revis
 
 **Atenção ao release:** o passo do catálogo muda o significado de "Prioritário" nas 6 famílias já existentes (decisão do usuário de 23/10: as 16 famílias definem o prioritário); conferir os relatórios e filtros que usam `prioritario` depois de gravar.
 
+## Ensaio com o backup real de produção (26/10, autorizado pelo usuário)
+
+Backup `sigeo/producao/2026/10/26/sigeo-20261026T075305Z-40288491488.dump.age` (agendado, 04:52 de Brasília; SHA-256 conferido), decifrado e restaurado pelo usuário em `sigeo_restore_manual` (183 MB, `alembic_version` `b7f35c806e4a`, 560 convênios, 292 instrumentos monitorados, 22 usuários). O ensaio rodou numa cópia dele, só no Mac, sem tocar em produção.
+
+| Passo | Resultado |
+|---|---|
+| 6 migrations | `b7f35c806e4a` → `b6c7d8e9f0a1`; só criam 7 tabelas novas (vazias); as 29 existentes mantêm a contagem; `alembic check` limpo |
+| `atualizar_catalogo_equipamentos` | 840 itens RENEM; **9 famílias criadas** (inclui colposcópio, que em produção ainda não tinha linha) e 1 adotada (arco cirúrgico); 6 atualizadas; 6 códigos legados; 2ª execução sem mudança |
+| `reclassificar_marcadores_por_codigo` | 112 religados e 19 criados; 2ª execução sem mudança |
+| `importar_revisao_classificacao` | 71 aplicadas e 6 pendentes; 2ª execução `ja_igual` 77 |
+| `projetar_itens_plano` | 2.548 itens (2.387 API, 161 manuais, todos com quantidade 1), 623 controlados por unidade, 12 na fila, 46 rendimentos ligados; 2ª execução sem mudança |
+| `vincular_entregas_legadas` | 57 entregas, 3 revisões; **2 avisos para 14 destinatários cada** (instrumentos sem titular: difusão a todo colaborador, gestor e admin); 2ª execução sem mudança |
+| `job_prazos_monitoramento` (simulação) | 26/10: 1 aviso D0; 27/10: 1 D+1; 05/11: 2 D+1 |
+| Relatórios (Excel e Word, instrumentos e Concluídos, simplificado e completo, Brasil e SP) | todos gerados e abertos, 0,3 a 1,1 s cada, com a coluna de entregues; Concluídos com 290 instrumentos; PERSUS I com quantidade planejada 1 (efeito do #38) |
+| API de equipamentos e fila (serviço, com um admin real da cópia) | instrumento com entrega lista item `entregue`; fila com 12 itens; 3 entregas legadas visíveis ao admin |
+| `downgrade` e nova subida | 6 reversões e 6 subidas, sem erro; o que os scripts gravaram em tabelas existentes não volta (restaurar o backup de pré-deploy) |
+
+Os números do clone de 17/10 e do backup de hoje são idênticos nas projeções.
+
 ## Ainda não feito (bloqueia a subida)
 
-1. **Ensaio com o backup real de produção** (pelo `restaurar_backup.sh`, com credencial e identidade do usuário), repetindo a tabela acima e conferindo as contagens.
-2. **Conferência humana de layout:** Word e Excel abertos nos aplicativos, e-mail em Gmail e Outlook, e2e do front.
-3. **Resíduos decididos à parte:** nome por extenso do SISGEO, "SIEO" no `pyproject`/Render, nomes externos (New Relic, repositório).
-4. **PR #38** (quantidade e valor de equipamento) só depois da janela de 48 h (até a noite de 24/10); o pacote assume que ele já está na `master`.
+1. **Conferência humana de layout:** Word e Excel abertos nos aplicativos (os arquivos foram gerados e lidos, não vistos), e-mail em Gmail e Outlook, e2e do front.
+2. **Decisões e resíduos:** nome por extenso do SISGEO, "SIEO" no `pyproject`/Render, nomes externos (New Relic, repositório).
+3. **Difusão dos 2 avisos de entrega a vincular** (14 pessoas cada): confirmar se é o desejado ou se o aviso deve ir só a gestor e admin quando não há titular.
+4. Roles `sigeo_runtime`/`sigeo_migration` não existem no restauro local: o teste de permissões só vale no `migrar_banco.yml`.
 
 ## Sequência em produção (cada passo com autorização)
 
