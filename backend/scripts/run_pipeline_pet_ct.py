@@ -51,6 +51,7 @@ from app.db.models import (
 from app.pipeline import api_demas, api_elasticnes, api_sidra
 from app.pipeline.cobertura import OfertaAgregada, calcular_cobertura, nova_oferta_agregada, populacao_sus_dependente
 from app.pipeline.geo import carregar_coordenadas_municipios
+from app.pipeline.integridade import validar_populacoes
 from app.pipeline.radiofarmaco import (
     carregar_produtores_radiofarmaco_pet,
     horas_aviao,
@@ -74,8 +75,7 @@ def _buscar_ans_por_municipio() -> dict[str, int]:
     referencia ativo mais recente -- ver scripts/importar_populacao_municipios.py.
     Sem API oficial ao vivo conhecida pra isso (diferente de population_residente,
     que continua vindo do SIDRA ao vivo). Devolve {} se ninguem rodou o
-    importador ainda -- nesse caso o pipeline segue rodando, so sem parcela
-    ANS (sus_dependente = residente inteiro, RN de fallback documentada abaixo)."""
+    importador ainda; validar_populacoes bloqueia a publicacao nesse caso."""
     db = SessionLocal()
     try:
         reference_file_id = db.execute(
@@ -107,14 +107,8 @@ def run() -> None:
     print(f"   Populacao {ano_pop} de {len(populacao)} municipios.")
 
     ans_por_municipio = _buscar_ans_por_municipio()
-    if ans_por_municipio:
-        print(f"   Populacao ANS de {len(ans_por_municipio)} municipios (arquivo de referencia ativo).")
-    else:
-        print(
-            "   [AVISO] sem arquivo de populacao ANS importado -- rode "
-            "'python -m scripts.importar_populacao_municipios' antes pra ter SUS-dependente "
-            "de verdade. Por enquanto, sus_dependente = residente inteiro (sem desconto de ANS)."
-        )
+    validar_populacoes(municipios.keys(), populacao, ans_por_municipio)
+    print(f"   Populacao ANS de {len(ans_por_municipio)} municipios (arquivo de referencia ativo).")
 
     print("3/4 - Baixando inventario de PET_CT do ElastiCNES...")
     equipamentos, competencia_elasticnes = api_elasticnes.buscar_equipamentos_pet_ct()

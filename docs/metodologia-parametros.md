@@ -41,6 +41,16 @@ O que já existe (`backend/app/pipeline/radiofarmaco.py` + `backend/scripts/run_
 
 Denominador de população: **SUS-dependente** = população residente (IBGE/SIDRA, ao vivo) − beneficiários de plano de saúde (ANS, arquivo de referência), nunca negativa.
 
+**Completude antes da publicação (ativação de 27/10/2026):** os pipelines de
+Tomógrafo, Ressonância e PET-CT chamam
+`backend/app/pipeline/integridade.py::validar_populacoes` antes de agregar/gravar.
+Município da dimensão sem população residente ou sem referência ANS, população
+residente não positiva e ANS negativa interrompem a rodada; ausência não vira
+zero. ANS explicitamente zero continua válida. O cliente ElastiCNES também
+recusa busca ainda parcial, timeout, shard com falha ou inventário nacional
+vazio (`backend/app/pipeline/api_elasticnes.py::_bsearch`/`_buscar_equipamentos`).
+Esses bloqueios preservam a execução anterior; não mudam as fórmulas abaixo.
+
 ```
 required_qty      = ceil(população_sus_dependente / produtividade)
 balance           = equipamentos_em_uso_sus − required_qty
