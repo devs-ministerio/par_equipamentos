@@ -49,6 +49,8 @@ test("central independente, sem aprovação automática, responsiva", async ({
     ],
   };
   await page.route("**/*", async (route) => {
+    if (new URL(route.request().url()).hostname === "fonts.googleapis.com")
+      return route.fulfill({ contentType: "text/css", body: "" });
     if (!["fetch", "xhr"].includes(route.request().resourceType()))
       return route.continue();
     const url = new URL(route.request().url());
@@ -138,13 +140,36 @@ test("central independente, sem aprovação automática, responsiva", async ({
   const evidencia = dialog.getByText(
     "Aquisição de acelerador linear — evidência sintética para demonstração de revisão.",
   );
+  const expansao = dialog.locator('.animar-detalhes[data-state="open"]');
   await expect(evidencia).not.toBeVisible();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await dialog.getByText("Mais detalhes", { exact: true }).click();
+  await expect(evidencia).toBeVisible();
+  await expect(expansao).toHaveCSS("animation-name", "none");
+  await dialog.getByText("Menos detalhes", { exact: true }).click();
+  await expect(evidencia).not.toBeVisible();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(dialog.getByText("Novo", { exact: true })).toBeVisible();
   await dialog.getByText("Mais detalhes", { exact: true }).click();
   await expect(
     dialog.getByText("Aguardando verificação", { exact: true }),
   ).toBeVisible();
   await expect(evidencia).toBeVisible();
+  // Conteúdo que chega depois da animação não pode ficar preso à altura inicial.
+  await expansao.evaluate(async (el) => {
+    await Promise.all(el.getAnimations().map((animacao) => animacao.finished));
+    const tardio = document.createElement("p");
+    tardio.dataset.testeExpansao = "true";
+    tardio.textContent = "Conteúdo recebido após a abertura";
+    tardio.style.minHeight = "400px";
+    el.append(tardio);
+  });
+  await expect
+    .poll(() => expansao.evaluate((el) => el.scrollHeight - el.clientHeight))
+    .toBeLessThanOrEqual(1);
+  await expansao
+    .locator('[data-teste-expansao="true"]')
+    .evaluate((el) => el.remove());
   await dialog.getByText("Menos detalhes", { exact: true }).click();
   await expect(evidencia).not.toBeVisible();
   await expect(
@@ -237,7 +262,8 @@ test("central independente, sem aprovação automática, responsiva", async ({
   await expect(icone()).toBeFocused();
   await expect(icone()).toHaveAttribute("aria-label", "Radar de instrumentos");
   expect(page.url()).toBe(paginaOriginal);
-  await icone().click();
+  await icone().focus();
+  await page.keyboard.press("Enter");
   await expect(dialog).toBeVisible();
   expect(page.url()).toBe(paginaOriginal);
   totalRadar = 120;

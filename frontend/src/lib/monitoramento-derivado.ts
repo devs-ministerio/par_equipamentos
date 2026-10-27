@@ -44,6 +44,10 @@ export function derivarMonitoramentoInterno(
   const marcoLicenca = regulatorio.find(
     (m) => m.codigo === "regulatorio_licenca_operacao",
   );
+  // Documento/data exibidos não exigem validade; o alerta mantém sua seleção.
+  const registroLicenca = marcoLicenca
+    ? eventoMaisRecente(eventosPorMarco.get(marcoLicenca.id) ?? [])
+    : null;
   const eventoLicenca = marcoLicenca
     ? eventoMaisRecente(
         (eventosPorMarco.get(marcoLicenca.id) ?? []).filter((evento) =>
@@ -93,6 +97,7 @@ export function derivarMonitoramentoInterno(
     regulatorio,
     marcoLicenca,
     eventoLicenca,
+    registroLicenca,
     marcoInauguracao,
     eventoInauguracao,
     inaugurado,
