@@ -94,3 +94,19 @@ controladamente; não trocar `parcial` por `ok` para obter workflow verde.
   do segundo rejeitado por número descritivo/objeto vazios no Portal. Reprodução
   somente leitura confirmou o erro. O PR #52 isola o registro inconclusivo,
   preservando as exigências dos testes de confirmação e sinalizando parcial.
+
+## Ativação e conferências complementares — 27/10
+
+- Variáveis `ATUALIZACOES_PIPELINES_ATIVAS` e `ATUALIZACOES_RADAR_ATIVAS`
+  habilitadas e lidas novamente como `true`, às 16:01 UTC. Isso comprova a
+  configuração; a primeira execução agendada ainda não foi observada.
+- Conferência somente leitura: 385 datas finais oficiais comparadas com o
+  payload SICONV, sem divergências ou formatos inválidos.
+- Os 34 alertas de vigência possuem 339 vínculos de destinatários, abrangendo
+  14 usuários; nenhum vínculo estava marcado como lido na conferência.
+  Não são avisos de alteração SICONV: essa primeira captura foi silenciosa.
+- CI `40536410255`: 2.028 testes backend passaram e os pisos de cobertura por
+  camada foram atendidos. O gate final detectou `CVE-2026-114605` no
+  `dnspython 2.8.0`; atualização isolada do lockfile para 2.9.0, versão indicada
+  pela auditoria. Todos os gates precisam passar na revisão atual antes da
+  integração. A execução seletiva de descoberta em produção permanece pendente.
