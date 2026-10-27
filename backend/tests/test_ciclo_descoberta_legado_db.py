@@ -136,11 +136,9 @@ def test_replay_do_job_nao_repete_ocultacao_aviso_ou_download_por_candidato(cicl
 
 
 @pytest.mark.parametrize("campo", ["numero", "objeto"])
-def test_portal_incompleto_impede_publicacao_e_preserva_fila_anterior(ciclo, monkeypatch, campo):
+def test_portal_incompleto_sinaliza_parcial_sem_publicar_ou_mudar_fila_anterior(ciclo, monkeypatch, campo):
     # Arrange: HTTP responde 200 e publicação, mas não comprova identidade completa.
     import json
-
-    from pydantic import ValidationError as ErroContrato
 
     from app.db.models import NotificacaoTipo
 
@@ -157,18 +155,59 @@ def test_portal_incompleto_impede_publicacao_e_preserva_fila_anterior(ciclo, mon
 
     monkeypatch.setattr(requests.Session, "get", incompleto)
     # Act / Assert: não confundir incompletude com sucesso vazio/inelegibilidade.
-    with pytest.raises(ErroContrato):
+    with pytest.raises(ValueError, match="Ciclo parcial"):
         job.run()
     db.expire_all()
     assert (contar(db, CandidatoLegadoRegistro), contar(db, CandidatoLegadoCaptura)) == antes
     assert db.get(CandidatoLegadoRegistro, ref.candidato_id).ultima_captura_id == ref.captura_id
-    assert db.scalar(select(FonteCaptura.status).where(FonteCaptura.fonte == "siconv_descoberta")) == "erro"
+    rodada = db.scalar(select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta"))
+    assert rodada.status == "parcial"
+    assert len(rodada.detalhes["confirmacoes_inconclusivas"]) == 1
+    assert rodada.detalhes["revalidacoes_adiadas_portal"] == 1
     assert (
         db.scalar(
             select(func.count()).select_from(Notificacao).where(Notificacao.tipo == NotificacaoTipo.convenio_descoberto)
         )
         == 0
     )
+
+
+def test_contrato_parcial_publica_novo_valido_sem_ocultar_fila_historica(ciclo, monkeypatch):
+    # Arrange: um novo candidato incompleto e outro comprovado na mesma fonte.
+    import json
+
+    db, _, ref, linhas, *_ = ciclo
+    linhas["siconv_convenio"][0].append(
+        {**linhas["siconv_convenio"][0][1], "NR_CONVENIO": "999003", "ID_PROPOSTA": "111003"}
+    )
+    linhas["siconv_proposta"][0].append({"ID_PROPOSTA": "111003", "COD_ORGAO_SUP": "36000"})
+    linhas["siconv_plano_aplicacao"][0].append(
+        {"ID_PROPOSTA": "111003", "ID_ITEM_PAD": "3", "DESCRICAO_ITEM": "Aquisição de mamógrafo"}
+    )
+    consultar = requests.Session.get
+
+    def resposta_parcial(self, url, **kwargs):
+        resposta = consultar(self, url, **kwargs)
+        if kwargs["params"]["numero"] == "999002":
+            payload = resposta.json()
+            payload["dimConvenio"]["objeto"] = ""
+            resposta._content = json.dumps(payload).encode()
+        return resposta
+
+    monkeypatch.setattr(requests.Session, "get", resposta_parcial)
+    # Act
+    with pytest.raises(ValueError, match="Ciclo parcial"):
+        job.run()
+    # Assert: parcial explícita, um registro novo íntegro e histórico imutável.
+    db.expire_all()
+    assert db.get(CandidatoLegadoRegistro, ref.candidato_id).ultima_captura_id == ref.captura_id
+    assert db.scalar(select(CandidatoLegadoRegistro.id).where(CandidatoLegadoRegistro.numero == "999002")) is None
+    valido = db.scalar(select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero == "999003"))
+    assert db.get(CandidatoLegadoCaptura, valido.ultima_captura_id).confirmacao_portal == "confirmado"
+    assert contar(db, CandidatoLegadoCaptura) == 2
+    rodada = db.scalar(select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta"))
+    assert rodada.status == "parcial" and rodada.itens_alterados == 1
+    assert rodada.detalhes["publicacao"] == "concluida"
 
 
 @pytest.mark.parametrize("omitido", ["convenio", "proposta", "itens"])

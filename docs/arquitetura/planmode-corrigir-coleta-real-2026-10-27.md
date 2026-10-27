@@ -34,3 +34,8 @@
   Parcial sem publicação e conflito não estabelecem baseline.
 - A rotina continua sinalizando parcial como falha operacional. O estado parcial
   não será apresentado como coleta integral aprovada.
+- Em contrato incompleto, as revalidações históricas são adiadas: nenhum item da
+  fila anterior pode ser ocultado ou alterado por causa da incompletude de outro
+  registro. Apenas candidatos novos íntegros podem ser publicados nessa rodada.
+- 59 testes direcionados passaram em PostgreSQL 18.6 descartável local, incluindo
+  cenário misto, preservação de fila, baseline, contador e replay. CI usa PostgreSQL 16.

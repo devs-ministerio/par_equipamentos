@@ -16,6 +16,7 @@ from app.domain_errors import ConflictError
 from app.pipeline.portal_transparencia import _headers, _sessao_com_retry, buscar_convenio_por_numero_dto
 from app.repositories.descoberta_legado import ler_snapshot_csv, numeros_legados_conhecidos
 from app.schemas_legado import ReferenciaDescoberta
+from app.schemas_revalidacao_legado import RevalidacoesCiclo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.ciclo_descoberta_legado import publicar_ciclo, selecionar_revalidacoes
 from app.services.descoberta_legado import CandidatoLegado, confirmar_no_portal
@@ -60,6 +61,7 @@ def run(*, limite: int = 1000, baseline_silenciosa: bool = False) -> None:
         raise ValueError("Modo baseline deve ser booleano explícito.")
     conflito: ConflictError | None = None
     inconclusivos = 0
+    contratos_inconclusivos = 0
     with captura("siconv_descoberta") as rodada, TemporaryDirectory(prefix="sigeo-descoberta-") as diretorio:
         cache = Path(diretorio)
         rodada.detalhes["modo_descoberta"] = "baseline_silenciosa" if baseline_silenciosa else "incremental"
@@ -111,12 +113,20 @@ def run(*, limite: int = 1000, baseline_silenciosa: bool = False) -> None:
         with _sessao_com_retry() as sessao:
             confirmados = confirmar_candidatos(candidatos, sessao=sessao, rodada=rodada)
         rodada.itens_verificados = len(candidatos) + len(revalidacoes.entradas)
+        contratos_inconclusivos = len(rodada.detalhes.get("confirmacoes_inconclusivas", []))
+        if contratos_inconclusivos and revalidacoes.entradas:
+            # Contrato incompleto não pode ocultar ou mudar a fila histórica.
+            adiadas = tuple(entrada.alvo.candidato_id for entrada in revalidacoes.entradas)
+            rodada.detalhes["revalidacoes_adiadas_portal"] = len(adiadas)
+            revalidacoes = RevalidacoesCiclo(entradas=(), inconclusivos=(*revalidacoes.inconclusivos, *adiadas))
         rodada.detalhes["hashes_escopo"] = hashes_escopo
-        rodada.detalhes["candidatos_sem_confirmacao"] = sum(c.confirmacao_portal != "confirmado" for c in confirmados)
+        rodada.detalhes["candidatos_sem_confirmacao"] = (
+            sum(c.confirmacao_portal != "confirmado" for c in confirmados) + contratos_inconclusivos
+        )
         inconclusivos = len(revalidacoes.inconclusivos)
         rodada.detalhes["revalidacoes_inconclusivas"] = inconclusivos
         if inconclusivos:
-            mensagem = "Parte da fila histórica não teve identidade ou itens retornados; histórico preservado."
+            mensagem = "Revalidações inconclusivas ou adiadas; histórico preservado até uma rodada íntegra."
             rodada.parcial = f"{rodada.parcial} {mensagem}" if rodada.parcial else mensagem
         try:
             with SessionLocal() as db:
@@ -136,8 +146,8 @@ def run(*, limite: int = 1000, baseline_silenciosa: bool = False) -> None:
             rodada.detalhes["publicacao"] = "conflito_revisao"
     if conflito is not None:
         raise conflito
-    if inconclusivos:
-        raise ValueError("Ciclo parcial: revalidações inconclusivas preservadas para nova consulta.")
+    if inconclusivos or contratos_inconclusivos:
+        raise ValueError("Ciclo parcial: confirmações ou revalidações inconclusivas preservadas para nova consulta.")
 
 
 if __name__ == "__main__":
