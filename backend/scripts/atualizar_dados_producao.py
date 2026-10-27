@@ -11,10 +11,12 @@ import importlib
 import json
 import os
 import secrets
+import traceback
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import TypedDict
 
+from pydantic import ValidationError as ErroContrato
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.pool import NullPool
@@ -141,8 +143,12 @@ def executar(tarefa: str) -> None:
                 job.run(baseline_silenciosa=not _tem_baseline(fonte))
             elif tarefa in {"tomografo", "ressonancia", "pet-ct", "vigencia", "populacao"}:
                 with captura(fonte) as rodada:
+                    rodada.detalhes["github_run_id"] = os.environ.get("GITHUB_RUN_ID")
+                    rodada.detalhes["github_sha"] = os.environ.get("GITHUB_SHA")
                     if tarefa == "populacao":
                         _preparar_populacao(job.importar)
+                    elif tarefa == "vigencia":
+                        rodada.avisos_criados = job.run()
                     else:
                         job.run()
                     if tarefa in {"tomografo", "ressonancia", "pet-ct"}:
@@ -150,8 +156,6 @@ def executar(tarefa: str) -> None:
                         resumo = _resumo_pipeline(familia)
                         rodada.itens_verificados = resumo["equipamentos"]
                         rodada.detalhes.update(resumo)
-                    rodada.detalhes["github_run_id"] = os.environ.get("GITHUB_RUN_ID")
-                    rodada.detalhes["github_sha"] = os.environ.get("GITHUB_SHA")
             else:
                 job.run()
             resultado = _ultima_captura(fonte, depois_de=anterior["id"] if anterior else 0)
@@ -194,7 +198,10 @@ def _tem_baseline(fonte: str) -> bool:
     with engine.connect() as conexao:
         return bool(
             conexao.execute(
-                text("SELECT EXISTS (SELECT 1 FROM fonte_captura WHERE fonte = :fonte AND status = 'ok')"),
+                text(
+                    "SELECT EXISTS (SELECT 1 FROM fonte_captura WHERE fonte = :fonte AND "
+                    "(status = 'ok' OR (status = 'parcial' AND detalhes->>'publicacao' = 'concluida')))"
+                ),
                 {"fonte": fonte},
             ).scalar_one()
         )
@@ -216,6 +223,21 @@ def _preparar_populacao(importar: Callable[[], None]) -> None:
         importar()
 
 
+def diagnostico_seguro(erro: Exception) -> dict[str, object]:
+    diagnostico: dict[str, object] = {"tipo": type(erro).__name__}
+    if isinstance(erro, ErroContrato):
+        diagnostico["contrato"] = erro.title
+        diagnostico["campos"] = [
+            {"local": e["loc"], "tipo": e["type"]}
+            for e in erro.errors(include_input=False, include_context=False, include_url=False)[:10]
+        ]
+    diagnostico["origem"] = [
+        {"arquivo": Path(frame.filename).name, "funcao": frame.name, "linha": frame.lineno}
+        for frame in traceback.extract_tb(erro.__traceback__)[-4:]
+    ]
+    return diagnostico
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("tarefa", choices=["preflight", *TAREFAS])
@@ -228,7 +250,7 @@ def main() -> None:
                 {
                     "tarefa": args.tarefa,
                     "status": "erro",
-                    "tipo": type(erro).__name__,
+                    **diagnostico_seguro(erro),
                     "mensagem": "Atualização não concluída; confira preflight, capturas e disponibilidade da fonte.",
                 },
                 ensure_ascii=False,

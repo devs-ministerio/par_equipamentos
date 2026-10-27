@@ -25,11 +25,25 @@ A aba de propostas em tramitação continua dependendo de critério aprovado.
 
 ## Aceite de uma rodada
 
-Cada etapa deve concluir e gravar `fonte_captura` com `status=ok`. Captura
+Para considerar uma coleta integralmente aprovada, cada etapa deve concluir
+e gravar `fonte_captura` com `status=ok`. Captura
 parcial faz o executor falhar visivelmente; fontes independentes continuam
 sendo tentadas. Conferir fonte, horário, itens verificados/alterados e avisos.
 Nos pipelines, conferir também competência, execução publicada e oferta por
 família; não usar uma execução global para validar as três famílias.
+
+Agendamento ativo não significa fonte íntegra. Tentativas diárias podem ficar
+habilitadas durante indisponibilidade federal, mantendo a falha e o alerta
+visíveis e preservando a publicação anterior. Não declarar atualização de uma
+fonte que não concluiu. Desligar a tentativa automática não resolve a fonte
+e impediria recuperação sem nova intervenção manual.
+
+No Radar, uma resposta individual do Portal com contrato incompleto não
+confirma nem publica aquele candidato. Os demais são processados, a captura
+fica parcial e o diagnóstico registra somente código público e campos/tipos
+rejeitados. Identidade divergente continua abortando o lote. Uma publicação
+parcial explicitamente concluída estabelece baseline; ela não vira sucesso
+integral, mas também não mantém todas as novidades futuras silenciosas.
 
 Primeira descoberta SICONV sem captura íntegra anterior usa baseline silenciosa:
 registra candidatos, preserva revisão humana e não transforma passivo histórico
@@ -62,3 +76,37 @@ controladamente; não trocar `parcial` por `ok` para obter workflow verde.
 - Revisão `metodologia-sync`: fórmulas e regras SUS/em uso/per-família preservadas.
 - CI e rodada real: registrar resultados após execução; estes itens não são
   considerados aprovados apenas pela existência do agendamento.
+
+## Primeira rodada real — 27/10
+
+- Código integrado pelo PR #51: `b6e449e973da9c4b6096905808b9d99074464b4e`.
+- Backup de pré-carga `40512838168`: sucesso.
+- Pipelines `40514494999`: pré-voo e referência ANS passaram; as três famílias
+  falharam na conexão ao DEMAS. Publicações preservadas: Tomógrafo #5,
+  Ressonância #6 e PET-CT #11, competência 2026-07. Não chamar esses dados de atuais.
+- Radar/fontes `40514507181`: TransfereGov verificou/atualizou 10 registros;
+  SICONV verificou 425 e atualizou 403, com zero avisos de atualização na carga
+  inicial. A verificação de parcerias monitoradas teve zero instrumentos elegíveis.
+- O job de vigência emitiu 34 alertas. O wrapper antigo registrou zero no contador;
+  o log e as notificações reais são a evidência dessa rodada. O contador é
+  corrigido no PR #52 sem reescrever a captura histórica.
+- Descoberta SICONV: dois candidatos no cruzamento dos cinco snapshots; contrato
+  do segundo rejeitado por número descritivo/objeto vazios no Portal. Reprodução
+  somente leitura confirmou o erro. O PR #52 isola o registro inconclusivo,
+  preservando as exigências dos testes de confirmação e sinalizando parcial.
+
+## Ativação e conferências complementares — 27/10
+
+- Variáveis `ATUALIZACOES_PIPELINES_ATIVAS` e `ATUALIZACOES_RADAR_ATIVAS`
+  habilitadas e lidas novamente como `true`, às 16:01 UTC. Isso comprova a
+  configuração; a primeira execução agendada ainda não foi observada.
+- Conferência somente leitura: 385 datas finais oficiais comparadas com o
+  payload SICONV, sem divergências ou formatos inválidos.
+- Os 34 alertas de vigência possuem 339 vínculos de destinatários, abrangendo
+  14 usuários; nenhum vínculo estava marcado como lido na conferência.
+  Não são avisos de alteração SICONV: essa primeira captura foi silenciosa.
+- CI `40536410255`: 2.028 testes backend passaram e os pisos de cobertura por
+  camada foram atendidos. O gate final detectou `CVE-2026-114605` no
+  `dnspython 2.8.0`; atualização isolada do lockfile para 2.9.0, versão indicada
+  pela auditoria. Todos os gates precisam passar na revisão atual antes da
+  integração. A execução seletiva de descoberta em produção permanece pendente.

@@ -26,6 +26,11 @@ from app.repositories.capturas_fonte import (
 from app.repositories.notificacoes import criar_notificacao
 
 ROTULOS_FONTE = {
+    "cnes_tomografo": "Cobertura de tomógrafos",
+    "cnes_ressonancia": "Cobertura de ressonância magnética",
+    "cnes_pet_ct": "Cobertura de PET-CT",
+    "populacao_ans": "Referência de população ANS",
+    "alerta_vigencia": "Alertas de vigência",
     "siconv_legado": "SICONV (convênios legados)",
     "siconv_descoberta": "SICONV (descoberta de novos convênios)",
     "siconv_recaptura": "SICONV (recaptura para revisão do Radar)",
