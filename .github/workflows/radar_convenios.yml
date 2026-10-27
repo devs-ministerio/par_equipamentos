@@ -4,7 +4,14 @@ name: Radar e atualização das fontes oficiais
 on:
   schedule:
     - cron: "30 9 * * *" # 06:30 Brasília
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tarefa:
+        description: Fonte a executar (as demais não serão repetidas)
+        type: choice
+        required: true
+        default: todas
+        options: [todas, descoberta-transferegov, siconv, transferegov, descoberta-siconv, vigencia]
 
 permissions:
   contents: read
@@ -47,16 +54,17 @@ jobs:
         id: preflight
         run: uv run python -m scripts.atualizar_dados_producao preflight
       - name: Descoberta TransfereGov
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && (github.event_name == 'schedule' || inputs.tarefa == 'todas' || inputs.tarefa == 'descoberta-transferegov') }}
         run: uv run python -m scripts.atualizar_dados_producao descoberta-transferegov
       - name: Atualização SICONV dos convênios conhecidos
-        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && (github.event_name == 'schedule' || inputs.tarefa == 'todas' || inputs.tarefa == 'siconv') }}
         run: uv run python -m scripts.atualizar_dados_producao siconv
       - name: Atualização TransfereGov das parcerias monitoradas
-        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && (github.event_name == 'schedule' || inputs.tarefa == 'todas' || inputs.tarefa == 'transferegov') }}
         run: uv run python -m scripts.atualizar_dados_producao transferegov
       - name: Descoberta SICONV e confirmação Portal para o Radar
-        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && (github.event_name == 'schedule' || inputs.tarefa == 'todas' || inputs.tarefa == 'descoberta-siconv') }}
         run: uv run python -m scripts.atualizar_dados_producao descoberta-siconv
       - name: Alertas de vigência com deduplicação
-        if: ${{ !cancelled() && steps.preflight.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && (github.event_name == 'schedule' || inputs.tarefa == 'todas' || inputs.tarefa == 'vigencia') }}
         run: uv run python -m scripts.atualizar_dados_producao vigencia

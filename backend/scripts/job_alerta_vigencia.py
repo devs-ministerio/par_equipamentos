@@ -32,7 +32,7 @@ JANELA_DIAS = 90
 DEDUP_DIAS = 30
 
 
-def run() -> None:
+def run() -> int:
     db = SessionLocal()
     emitidos = 0
     try:
@@ -52,7 +52,7 @@ def run() -> None:
         )
         if not convenios:
             print(f"Nenhum convênio com vigência terminando nos próximos {JANELA_DIAS} dias.")
-            return
+            return 0
 
         corte_dedup = date.today() - timedelta(days=DEDUP_DIAS)
         for convenio in convenios:
@@ -88,6 +88,7 @@ def run() -> None:
         db.close()
 
     print(f"Concluído: {emitidos} alerta(s) de vigência emitido(s).")
+    return emitidos
 
 
 if __name__ == "__main__":

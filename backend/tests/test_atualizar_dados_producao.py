@@ -1,8 +1,9 @@
 """Guardas do executor recusam destino ou configuração incompatíveis."""
 
 import pytest
+from pydantic import BaseModel, ValidationError
 
-from scripts.atualizar_dados_producao import TAREFAS, validar_ambiente
+from scripts.atualizar_dados_producao import TAREFAS, diagnostico_seguro, validar_ambiente
 
 
 @pytest.fixture
@@ -49,3 +50,19 @@ def test_executor_inclui_descoberta_ausente_no_workflow_antigo():
     # Assert
     assert modulo == "scripts.job_descoberta_siconv"
     assert fonte == "siconv_descoberta"
+
+
+def test_diagnostico_de_contrato_identifica_campo_sem_expor_valor():
+    # Arrange
+    class RegistroSintetico(BaseModel):
+        quantidade: int
+
+    segredo_sintetico = "valor-sensivel-que-nao-pode-aparecer"
+    # Act
+    with pytest.raises(ValidationError) as falha:
+        RegistroSintetico.model_validate({"quantidade": segredo_sintetico})
+    diagnostico = diagnostico_seguro(falha.value)
+    # Assert
+    assert diagnostico["contrato"] == "RegistroSintetico"
+    assert diagnostico["campos"] == [{"local": ("quantidade",), "tipo": "int_parsing"}]
+    assert segredo_sintetico not in str(diagnostico)
