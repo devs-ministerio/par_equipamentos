@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import User, UserRole, UserStatus
+from app.db.models import AuditLog, User, UserRole, UserStatus
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,18 @@ def listar_usuarios_paginados(
 
 def obter_usuario_por_id(db: Session, user_id: int) -> User | None:
     return db.execute(select(User).where(User.id == user_id, User.deleted_at.is_(None))).scalar_one_or_none()
+
+
+def obter_ultimos_logins(db: Session, usuario_ids: set[int]) -> dict[int, datetime]:
+    """Somente logins bem-sucedidos; leitura em lote limitada à página atual."""
+    if not usuario_ids:
+        return {}
+    linhas = db.execute(
+        select(AuditLog.user_id, func.max(AuditLog.created_at).label("ultimo_login_em"))
+        .where(AuditLog.user_id.in_(usuario_ids), AuditLog.entity_name == "auth", AuditLog.action == "login_sucesso")
+        .group_by(AuditLog.user_id)
+    ).all()
+    return {linha.user_id: linha.ultimo_login_em for linha in linhas}
 
 
 def obter_usuario_por_email(db: Session, email: str) -> User | None:
