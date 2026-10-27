@@ -167,6 +167,7 @@ describe("derivação do monitoramento sem I/O", () => {
     );
     // Assert: esta seleção específica já é a regra do resumo no backend.
     expect(d.eventoLicenca?.id).toBe(9);
+    expect(d.registroLicenca?.id).toBe(10);
     expect(d.validadeLicenca).toBe(1);
   });
 
