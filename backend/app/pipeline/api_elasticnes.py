@@ -172,9 +172,12 @@ def _bsearch(session: requests.Session, body: dict) -> dict:
         resultado = resp.json()["result"]
         tentativas += 1
 
-    if resultado.get("isRunning"):
-        raise TimeoutError("ElastiCNES nao terminou a busca a tempo (apos 15 tentativas).")
-    return resultado["rawResponse"]
+    if resultado.get("isRunning") or resultado.get("isPartial"):
+        raise TimeoutError("ElastiCNES não concluiu uma resposta íntegra após 15 tentativas.")
+    resposta = resultado["rawResponse"]
+    if resposta.get("timed_out") or resposta.get("_shards", {}).get("failed", 0):
+        raise ValueError("ElastiCNES retornou timeout ou falha parcial; publicação cancelada.")
+    return resposta
 
 
 def _competencia_mais_recente(session: requests.Session) -> str:
@@ -291,4 +294,6 @@ def _buscar_equipamentos(
             )
         )
 
+    if not registros:
+        raise ValueError("Inventário nacional ElastiCNES vazio; publicação cancelada.")
     return registros, competencia

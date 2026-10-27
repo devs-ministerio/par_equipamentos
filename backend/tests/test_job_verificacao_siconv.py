@@ -1,10 +1,16 @@
 """Regressões do espelho SICONV, incluindo o caso real 825374."""
 
+from datetime import date
 from types import SimpleNamespace
 from typing import cast
 
 from app.db.models import Convenio, InstrumentoEquipamento
-from scripts.job_verificacao_siconv import comparar_campos_oficiais, reconciliar_situacao, resumo_campos
+from scripts.job_verificacao_siconv import (
+    comparar_campos_oficiais,
+    reconciliar_registro,
+    reconciliar_situacao,
+    resumo_campos,
+)
 
 
 def test_825374_preenche_monitoramento_sem_inventar_mudanca_na_fonte():
@@ -67,3 +73,25 @@ def test_diff_agrupa_todos_os_campos_do_registro_principal():
 
 def test_primeira_captura_nao_gera_aviso_historico():
     assert comparar_campos_oficiais(None, {"SIT_CONVENIO": "Concluída"}) == {}
+
+
+def test_prorrogacao_atualiza_coluna_usada_pelo_alerta_e_replay_e_idempotente():
+    # Arrange
+    convenio = Convenio(numero="123456", situacao="Em execução", siconv_raw={}, data_final_vigencia=date(2026, 10, 31))
+    registro = {"DIA_FIM_VIGENC_CONV": "20271231"}
+    # Act
+    primeiro = reconciliar_registro(convenio, None, registro)
+    segundo = reconciliar_registro(convenio, None, registro)
+    # Assert
+    assert convenio.data_final_vigencia == date(2027, 12, 31)
+    assert primeiro.alterou is True
+    assert segundo.alterou is False
+
+
+def test_vigencia_ausente_preserva_coluna_confirmada():
+    # Arrange
+    convenio = Convenio(numero="123456", situacao="Em execução", siconv_raw={}, data_final_vigencia=date(2026, 10, 31))
+    # Act
+    reconciliar_registro(convenio, None, {"DIA_FIM_VIGENC_CONV": ""})
+    # Assert
+    assert convenio.data_final_vigencia == date(2026, 10, 31)
