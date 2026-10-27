@@ -19,3 +19,18 @@
   lint, tipos, actionlint e CI completo antes de repetir a descoberta em produção.
 - Riscos: indisponibilidade federal e novo formato oficial; falhar sem publicar dados inconclusivos.
 - Sem migrations, disparo retroativo de avisos SICONV ou incorporação de frentes futuras.
+
+## Causa reproduzida e correção delimitada
+
+- Os quatro snapshots estruturais validaram integralmente. O cruzamento completo
+  encontrou dois candidatos; o segundo falhou em PublicacaoPortal por número
+  descritivo e objeto vazios (`string_too_short`). A reprodução não persistiu dados.
+- Os testes preexistentes exigem esses campos: confirmação permanece estrita.
+  O coletor separa o registro inconclusivo e preserva qualquer captura anterior,
+  publica somente os demais e marca a fonte como parcial, com metadados sem payload.
+- Identidade divergente continua abortando o lote; não é tratada como falta de campo.
+- Uma publicação parcial explicitamente concluída estabelece baseline para que
+  pendência permanente de um registro não silencie todas as novidades futuras.
+  Parcial sem publicação e conflito não estabelecem baseline.
+- A rotina continua sinalizando parcial como falha operacional. O estado parcial
+  não será apresentado como coleta integral aprovada.

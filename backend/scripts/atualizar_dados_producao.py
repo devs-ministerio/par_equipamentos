@@ -198,7 +198,10 @@ def _tem_baseline(fonte: str) -> bool:
     with engine.connect() as conexao:
         return bool(
             conexao.execute(
-                text("SELECT EXISTS (SELECT 1 FROM fonte_captura WHERE fonte = :fonte AND status = 'ok')"),
+                text(
+                    "SELECT EXISTS (SELECT 1 FROM fonte_captura WHERE fonte = :fonte AND "
+                    "(status = 'ok' OR (status = 'parcial' AND detalhes->>'publicacao' = 'concluida')))"
+                ),
                 {"fonte": fonte},
             ).scalar_one()
         )
