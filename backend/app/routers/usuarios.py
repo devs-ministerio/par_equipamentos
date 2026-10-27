@@ -42,11 +42,9 @@ def listar(
     db: Session = Depends(get_db),
     admin_atual: User = Depends(require_admin_user),
 ):
-    pagina = listar_usuarios(
+    return listar_usuarios(
         db=db, admin_atual=admin_atual, limit=limit, offset=offset, busca=busca, role=role, status=status
     )
-    itens = [UserRead.model_validate(u) for u in pagina.itens]
-    return UserListResponse(itens=itens, total=pagina.total)
 
 
 @router.post("", response_model=UserRead, status_code=201)

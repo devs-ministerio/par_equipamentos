@@ -22,6 +22,7 @@ from sqlalchemy.engine import make_url
 os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 
 _DB_TEST_MODULES = {
+    "test_usuarios_ultimo_login_db.py",
     "test_baseline_batch_db.py",
     "test_job_alerta_vigencia_contadores_db.py",
     "test_relatorios_encerrados_db.py",

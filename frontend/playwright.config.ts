@@ -44,7 +44,7 @@ export default defineConfig({
     {
       name: "smoke-chromium",
       testMatch:
-        /(?:smoke|notificacoes|entradas|monitoramento-visual)\.spec\.ts/,
+        /(?:smoke|notificacoes|entradas|monitoramento-visual|usuarios-visual)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
     },
     ...(process.env.E2E_EMAIL && process.env.E2E_SENHA
