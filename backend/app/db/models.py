@@ -1203,6 +1203,7 @@ class EventoMarco(Base):
             "idx_evento_marco_ativo",
             "instrumento_id",
             "marco_id",
+            unique=True,
             postgresql_where=text("substituido_por_id IS NULL AND deletado_em IS NULL"),
         ),
     )
