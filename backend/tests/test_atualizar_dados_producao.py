@@ -2,6 +2,7 @@
 
 import pytest
 from pydantic import BaseModel, ValidationError
+from sqlalchemy.exc import OperationalError
 
 from scripts.atualizar_dados_producao import TAREFAS, diagnostico_seguro, validar_ambiente
 
@@ -66,3 +67,21 @@ def test_diagnostico_de_contrato_identifica_campo_sem_expor_valor():
     assert diagnostico["contrato"] == "RegistroSintetico"
     assert diagnostico["campos"] == [{"local": ("quantidade",), "tipo": "int_parsing"}]
     assert segredo_sintetico not in str(diagnostico)
+
+
+def test_diagnostico_de_erro_dbapi_identifica_sqlstate_sem_expor_mensagem():
+    # Arrange
+    class ErroDriverSintetico(Exception):
+        sqlstate = "57014"
+
+    url_sintetica = "postgresql://sigeo_runtime:senha-sintetica@exemplo.neon.tech/sigeo"
+    orig = ErroDriverSintetico(f"connection to server failed: {url_sintetica}")
+    erro = OperationalError("SELECT 1", {}, orig, connection_invalidated=True)
+    # Act
+    diagnostico = diagnostico_seguro(erro)
+    # Assert
+    assert diagnostico["driver_erro"] == "ErroDriverSintetico"
+    assert diagnostico["sqlstate"] == "57014"
+    assert diagnostico["conexao_invalidada"] is True
+    assert url_sintetica not in str(diagnostico)
+    assert "senha-sintetica" not in str(diagnostico)

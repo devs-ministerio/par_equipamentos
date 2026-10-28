@@ -19,6 +19,7 @@ from typing import TypedDict
 from pydantic import ValidationError as ErroContrato
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import DBAPIError as ErroDbapi
 from sqlalchemy.pool import NullPool
 
 TAREFAS = {
@@ -231,6 +232,15 @@ def diagnostico_seguro(erro: Exception) -> dict[str, object]:
             {"local": e["loc"], "tipo": e["type"]}
             for e in erro.errors(include_input=False, include_context=False, include_url=False)[:10]
         ]
+    if isinstance(erro, ErroDbapi):
+        # Só classe/código do driver -- nunca `erro.orig` nem `.statement`/`.params`,
+        # que podem conter trecho de SQL ou dado sensível. SQLSTATE é documentado e
+        # público (https://www.postgresql.org/docs/current/errcodes-appendix.html);
+        # `connection_invalidated` já é o próprio diagnóstico do SQLAlchemy sobre o
+        # pool ter descartado a conexão por suspeita de desconexão.
+        diagnostico["driver_erro"] = type(erro.orig).__name__ if erro.orig is not None else None
+        diagnostico["sqlstate"] = getattr(erro.orig, "sqlstate", None) or getattr(erro.orig, "pgcode", None)
+        diagnostico["conexao_invalidada"] = erro.connection_invalidated
     diagnostico["origem"] = [
         {"arquivo": Path(frame.filename).name, "funcao": frame.name, "linha": frame.lineno}
         for frame in traceback.extract_tb(erro.__traceback__)[-4:]
