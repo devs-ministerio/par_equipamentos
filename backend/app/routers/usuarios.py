@@ -7,12 +7,13 @@ leitor/resto), aqui so `role=admin` passa (ver `app/auth.py`)."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.auth import require_admin_user
 from app.db.base import get_db
 from app.db.models import User, UserRole, UserStatus
+from app.rate_limit import chave_por_sessao, limiter
 from app.schemas import (
     UserCreateRequest,
     UserListResponse,
@@ -69,7 +70,9 @@ def atualizar(
 
 
 @router.post("/{user_id}/enviar-redefinicao", response_model=UserRead)
+@limiter.limit("10/minute", key_func=chave_por_sessao)
 def enviar_redefinicao(
+    request: Request,
     user_id: int,
     db: Session = Depends(get_db),
     admin_atual: User = Depends(require_admin_user),
@@ -78,7 +81,10 @@ def enviar_redefinicao(
 
 
 @router.post("/{user_id}/reenviar-convite", response_model=UserRead)
-def reenviar(user_id: int, db: Session = Depends(get_db), admin_atual: User = Depends(require_admin_user)):
+@limiter.limit("10/minute", key_func=chave_por_sessao)
+def reenviar(
+    request: Request, user_id: int, db: Session = Depends(get_db), admin_atual: User = Depends(require_admin_user)
+):
     return reenviar_convite(db=db, admin_atual=admin_atual, user_id=user_id)
 
 

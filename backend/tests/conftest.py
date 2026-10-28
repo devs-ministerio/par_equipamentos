@@ -22,6 +22,7 @@ from sqlalchemy.engine import make_url
 os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 
 _DB_TEST_MODULES = {
+    "test_limites_http_db.py",
     "test_relatorios_encerrados_db.py",
     "test_relatorios_persus_db.py",
     "test_relatorios_tcp_db.py",
@@ -227,3 +228,13 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if path.name in _DB_TEST_MODULES:
             item.add_marker(db_marker)
             item.add_marker(skip_db)
+
+
+@pytest.fixture(autouse=True)
+def _zerar_limite_de_requisicoes():
+    """O limite é por processo e a sessão de teste é compartilhada: sem zerar, a soma de
+    chamadas de vários testes a `/relatorios` estouraria o limite de um minuto."""
+    from app.rate_limit import limiter
+
+    limiter.reset()
+    yield
