@@ -19,8 +19,10 @@ from app.auth import require_current_user
 from app.db.base import get_db
 from app.db.models import User
 from app.schemas_relatorios_encerrados import PreviaEncerrados
+from app.schemas_relatorios_entregues import PreviaEntregues
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from app.services.relatorios_encerrados import previa_encerrados
+from app.services.relatorios_entregues import previa_entregues
 
 router = APIRouter(prefix="/relatorios", tags=["relatorios"])
 
@@ -47,7 +49,8 @@ def gerar_relatorio(
     tipo_contratacao: str | None = Query(default=None),
     equipamento: str | None = Query(default=None),
     busca: str | None = Query(default=None),
-    encerramento: Literal["todos", "encerrados"] = "todos",
+    encerramento: Literal["todos", "encerrados", "entregues"] = "todos",
+    situacao_origem: Literal["instrumento", "monitoramento", "proposta"] | None = Query(default=None),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> StreamingResponse:
@@ -65,6 +68,7 @@ def gerar_relatorio(
         equipamento=equipamento,
         busca=busca,
         encerramento=encerramento,
+        situacao_origem=situacao_origem,
     )
     conteudo = montar_relatorio(db=db, formato=formato, nivel=nivel, tipo_relatorio=tipo_relatorio, filtro=filtro)
     nome_arquivo = f"relatorio-{tipo_relatorio}-{escopo}-{nivel}.{formato}"
@@ -87,3 +91,14 @@ def consultar_encerrados(
     return previa_encerrados(
         db=db, filtro=filtro.filtro_encerrados(), pagina=pagina, limite=limite, pagina_pendencias=pagina_pendencias
     )
+
+
+@router.get("/entregues", response_model=PreviaEntregues)
+def consultar_entregues(
+    filtro: FiltroRelatorio = Depends(),
+    pagina: int = Query(default=1, ge=1),
+    limite: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+) -> PreviaEntregues:
+    return previa_entregues(db=db, filtro=filtro.filtro_encerrados(), pagina=pagina, limite=limite)

@@ -1433,6 +1433,11 @@ revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimento
   seção seguido de tabela longa (mais de 6 linhas) usa o estilo "Titulo 1 solto", sem `keepNext`: com o título preso à
   tabela, o Word/Pages empurrava a tabela inteira para a página seguinte. O Excel mantém as abas "Critérios" e "Leitura".
 - **Pendente (pedido do usuário):** levar a organização da visão "Concluídos" para a visão "Todos".
+- **Situação única e "Equipamento entregue" (28/10/2026):** o filtro Situação é uma lista agrupada (Instrumento,
+  Monitoramento, Proposta); o valor leva a origem (`situacao_origem`) e as seções de outras origens somem da prévia e
+  do arquivo. O filtro Conclusão ganhou "Equipamento entregue" (`GET /relatorios/entregues`, uma linha por unidade
+  entregue). Programa, tipo e equipamento também filtram propostas e monitoramento no backend; a prévia de propostas
+  aplica origem, situação, tipo, UF, período e local (programa/equipamento só no arquivo).
 
 ## Comandos úteis
 

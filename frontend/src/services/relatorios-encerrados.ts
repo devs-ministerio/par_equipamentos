@@ -57,6 +57,7 @@ export function consultarEncerrados(
     ano_inicio: filtro.anoInicio,
     ano_fim: filtro.anoFim,
     situacao: filtro.situacao,
+    situacao_origem: filtro.situacaoOrigem,
     programa: filtro.programa,
     tipo_contratacao: filtro.tipoContratacao,
     equipamento: filtro.equipamento,

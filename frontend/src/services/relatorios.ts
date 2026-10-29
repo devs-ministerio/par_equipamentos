@@ -43,7 +43,9 @@ export interface FiltroRelatorio {
    * ignorava. Só filtra Convênios (mesmo mecanismo de `/convenios`). */
   equipamento?: string;
   busca?: string;
-  encerramento?: "todos" | "encerrados";
+  encerramento?: "todos" | "encerrados" | "entregues";
+  /** Origem do valor de `situacao` (filtro único): as demais seções ficam fora do relatório. */
+  situacaoOrigem?: "instrumento" | "monitoramento" | "proposta";
 }
 
 export interface ArquivoRelatorio {
@@ -85,6 +87,8 @@ export async function gerarRelatorio(
   if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
   if (filtro.busca) params.set("busca", filtro.busca);
   if (filtro.encerramento) params.set("encerramento", filtro.encerramento);
+  if (filtro.situacaoOrigem)
+    params.set("situacao_origem", filtro.situacaoOrigem);
 
   try {
     // O prazo inclui refresh e leitura do corpo, não apenas os cabeçalhos.
