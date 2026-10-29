@@ -6,6 +6,13 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from typing import cast
+
+import pytest
+import requests
+
+from app.pipeline import api_elasticnes
 from app.pipeline.api_elasticnes import RegistroElastiCNES, _parse_location
 
 
@@ -48,3 +55,36 @@ def test_registro_cnes_exige_chaves_usadas_na_oferta():
         }
     )
     assert registro.cnes == "001"
+
+
+@pytest.mark.parametrize("estado", [{"isRunning": False, "isPartial": True}, {"isRunning": True, "isPartial": False}])
+def test_bsearch_nao_aceita_resultado_incompleto(monkeypatch, estado):
+    # Arrange: somente I/O da fonte e espera são substituídos.
+    resultado = {"id": "busca-sintetica", "rawResponse": {"hits": {"hits": []}}, **estado}
+    resposta = SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"result": resultado})
+    sessao = SimpleNamespace(post=lambda *args, **kwargs: resposta)
+    monkeypatch.setattr(api_elasticnes.time, "sleep", lambda _: None)
+    # Act / Assert
+    with pytest.raises(TimeoutError, match="resposta íntegra"):
+        api_elasticnes._bsearch(cast(requests.Session, sessao), {})
+
+
+@pytest.mark.parametrize("raw", [{"timed_out": True}, {"_shards": {"failed": 1}}])
+def test_bsearch_recusa_timeout_ou_shard_com_falha(raw):
+    # Arrange
+    resposta = SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"result": {"rawResponse": raw}})
+    sessao = SimpleNamespace(post=lambda *args, **kwargs: resposta)
+    # Act / Assert
+    with pytest.raises(ValueError, match="falha parcial"):
+        api_elasticnes._bsearch(cast(requests.Session, sessao), {})
+
+
+def test_bsearch_devolve_resposta_completa():
+    # Arrange
+    raw = {"hits": {"hits": [{"_id": "sintetico"}]}, "_shards": {"failed": 0}}
+    resposta = SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"result": {"rawResponse": raw}})
+    sessao = SimpleNamespace(post=lambda *args, **kwargs: resposta)
+    # Act
+    retorno = api_elasticnes._bsearch(cast(requests.Session, sessao), {})
+    # Assert
+    assert retorno == raw

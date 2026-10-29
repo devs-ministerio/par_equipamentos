@@ -23,12 +23,12 @@ from app.db.models import User, UserRole, UserStatus
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.email import enviar_link
 from app.repositories.usuarios import (
-    PaginaUsuarios,
     listar_usuarios_paginados,
+    obter_ultimos_logins,
     obter_usuario_por_email,
     obter_usuario_por_id,
 )
-from app.schemas import UserCreateRequest, UserUpdateRequest
+from app.schemas import UserCreateRequest, UserListItemRead, UserListResponse, UserUpdateRequest
 
 
 def listar_usuarios(
@@ -40,9 +40,15 @@ def listar_usuarios(
     busca: str | None,
     role: UserRole | None,
     status: UserStatus | None,
-) -> PaginaUsuarios:
+) -> UserListResponse:
     assert_e_admin(admin_atual)
-    return listar_usuarios_paginados(db, limit=limit, offset=offset, busca=busca, role=role, status=status)
+    pagina = listar_usuarios_paginados(db, limit=limit, offset=offset, busca=busca, role=role, status=status)
+    ultimos_logins = obter_ultimos_logins(db, {usuario.id for usuario in pagina.itens})
+    itens = [
+        UserListItemRead.model_validate(usuario).model_copy(update={"ultimo_login_em": ultimos_logins.get(usuario.id)})
+        for usuario in pagina.itens
+    ]
+    return UserListResponse(itens=itens, total=pagina.total)
 
 
 def criar_usuario(*, db: Session, admin_atual: User, dados: UserCreateRequest) -> User:

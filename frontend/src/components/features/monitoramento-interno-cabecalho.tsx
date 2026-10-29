@@ -3,7 +3,10 @@
  * migração). */
 import { nupDoInstrumento } from "@/lib/nup";
 import { cn } from "@/lib/utils";
-import type { InstrumentoTimeline } from "@/services/monitoramento-instrumentos";
+import type {
+  EventoMarco,
+  InstrumentoTimeline,
+} from "@/services/monitoramento-instrumentos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import { estiloCard, StatusPill } from "./monitoramento-ui";
 
@@ -13,7 +16,7 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao,
   inaugurado,
   diasInauguracao,
-  statusLicenca,
+  registroLicenca,
   alertaLicenca,
   acoesAbertasCount,
   acoesAtrasadasCount,
@@ -23,7 +26,7 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao: string | null;
   inaugurado: boolean;
   diasInauguracao: number | null;
-  statusLicenca: string;
+  registroLicenca: EventoMarco | null;
   alertaLicenca: boolean;
   acoesAbertasCount: number;
   acoesAtrasadasCount: number;
@@ -32,6 +35,13 @@ export function MonitoramentoInternoCabecalho({
   const aoVivo = timeline.ao_vivo;
   const nup = nupDoInstrumento(inst.tipo_contratacao, inst.nr_convenio);
   const origemAlternativa = Boolean(inst.origem_dado);
+  const numeroScra = registroLicenca?.numero_documento?.trim();
+  const documentoLicenca = numeroScra
+    ? `SCRA ${numeroScra}`
+    : "SCRA não informado";
+  const emissaoLicenca = registroLicenca?.data_ocorrencia
+    ? fmtData(registroLicenca.data_ocorrencia)
+    : "Data de emissão não informada";
   const prestacaoConcluida =
     inst.situacao_prestacao_contas
       ?.toLocaleLowerCase("pt-BR")
@@ -46,12 +56,12 @@ export function MonitoramentoInternoCabecalho({
   const indicadores = [
     {
       rotulo: "Licença CNEN",
-      valor:
-        !statusLicenca || statusLicenca === "Sem registro"
-          ? origemAlternativa
-            ? "Não informada na fonte"
-            : "Sem registro"
-          : statusLicenca,
+      valor: registroLicenca
+        ? `${documentoLicenca} — ${emissaoLicenca}`
+        : origemAlternativa
+          ? "Não informada na fonte"
+          : "Sem registro",
+      detalhe: registroLicenca?.status_regulatorio ?? undefined,
       alerta: alertaLicenca,
     },
     {
@@ -269,7 +279,7 @@ export function MonitoramentoInternoCabecalho({
             <div className="mb-1.5 text-[10.5px] font-extrabold tracking-[0.05em] text-muted-foreground uppercase">
               {item.rotulo}
             </div>
-            <strong className="block text-[15px] leading-tight text-foreground">
+            <strong className="block break-words text-[15px] leading-tight text-foreground">
               {item.valor}
             </strong>
             {item.detalhe && (

@@ -26,6 +26,7 @@ const userSchema = z.object({
   status: userStatusSchema,
   created_at: z.string(),
   activated_at: z.string().nullable(),
+  ultimo_login_em: z.string().datetime({ offset: true }).nullish(),
 });
 export type Usuario = z.infer<typeof userSchema>;
 

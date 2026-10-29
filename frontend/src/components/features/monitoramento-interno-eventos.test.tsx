@@ -201,7 +201,7 @@ describe("interação da timeline de eventos", () => {
       "Em análise",
     );
     expect(
-      within(form).getByLabelText("Nº matrícula/licença/processo"),
+      within(form).getByLabelText("Nº matrícula/licença/processo/SCRA"),
     ).toHaveValue("0000123");
     expect(within(form).getByLabelText("Data de validade")).toHaveValue(
       "2027-12-31",

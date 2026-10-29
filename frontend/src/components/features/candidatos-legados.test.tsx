@@ -187,7 +187,7 @@ describe("Radar legado", () => {
     prepararApi({ total: 0, novos: 0, itens: [] });
     await waitFor(() =>
       expect(
-        screen.getByText(/Coleta automática ainda em homologação/),
+        screen.getByText(/Consulte o estado da coleta acima/),
       ).toBeInTheDocument(),
     );
   });

@@ -1,22 +1,9 @@
-name: Pipelines de dado (TOMOGRAFO / RESSONANCIA / PET_CT)
+name: Pipelines de dados (Tomógrafo, Ressonância e PET-CT)
 
-# So manual por enquanto (Run workflow) -- o "schedule:" fica comentado
-# de proposito: projeto ainda so roda local (2026-08-24), sem Postgres em
-# producao alcancavel pelos runners do GitHub. Um cron diario contra
-# banco nenhum so geraria falha automatica (e notificacao de e-mail) todo
-# dia. Reativar o cron abaixo quando o deploy (Railway ou outro) e o
-# secret DATABASE_URL apontando pra URL PUBLICA do banco existirem.
-#
-# Plan Mode database 2026-09-16/17, Bloco 1+4: DATABASE_URL aqui e o role
-# `sigeo_runtime` (so DML) -- NAO roda mais 'alembic upgrade head' neste
-# job (nunca precisou de DDL, so grava linha em tabela ja existente).
-# Migration pendente aplica-se pelo workflow dedicado
-# '.github/workflows/migrar_banco.yml', sempre antes de rodar este.
-#
-# on:
-#   schedule:
-#     - cron: "0 9 * * *"  # 09:00 UTC = 06:00 em Brasilia
+# Para suspender o agendamento: ATUALIZACOES_PIPELINES_ATIVAS=false.
 on:
+  schedule:
+    - cron: "0 9 * * *" # 06:00 Brasília
   workflow_dispatch: {}
 
 permissions:
@@ -24,9 +11,10 @@ permissions:
 
 jobs:
   rodar_pipelines:
+    if: github.event_name == 'workflow_dispatch' || vars.ATUALIZACOES_PIPELINES_ATIVAS == 'true'
     runs-on: ubuntu-24.04
     environment: Production
-    timeout-minutes: 45
+    timeout-minutes: 90
     concurrency:
       group: sigeo-production-database
       cancel-in-progress: false
@@ -35,50 +23,37 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ATUALIZACOES_PRODUCAO: "true"
+      PYTHONUNBUFFERED: "1"
     steps:
-      - name: Exige o secret DATABASE_URL
-        # Roda antes do checkout (working-directory: backend do job ainda
-        # nao existe no runner nesse ponto -- erro real encontrado
-        # 2026-08-24: "No such file or directory" ao tentar iniciar o bash
-        # com esse cwd). Sobrescreve pra raiz do workspace so nesse step.
+      - name: Exige credencial runtime
         working-directory: .
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "DATABASE_URL ausente no environment Production." >&2
             exit 1
           fi
-
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: master
-
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           version: "0.12.17"
           enable-cache: true
-
-      - name: Instala dependencias
+      - name: Instala dependências travadas
         run: uv sync --frozen
-
-      - name: Importa populacao ANS (POPULACAO_CNC) -- so se ainda nao tem arquivo ativo
-        # Sem isso, sus_dependente cai no fallback (= residente inteiro,
-        # sem desconto de beneficiarios de plano de saude) -- ver aviso
-        # que os pipelines abaixo imprimem quando falta. Idempotente: o
-        # importador desativa o ReferenceFile anterior antes de gravar o
-        # novo, entao rodar de novo em runs futuras so re-importa o mesmo
-        # CSV (sem duplicar linha ativa).
-        run: uv run python -m scripts.importar_populacao_municipios
-
-      - name: Roda pipeline TOMOGRAFO
-        run: uv run python -m scripts.run_pipeline_tomografo
-
-      - name: Roda pipeline RESSONANCIA
-        # sempre tenta, mesmo se TOMOGRAFO falhar -- cada run() ja registra
-        # a propria falha em AuditLog (app/pipeline/runner.py) antes de
-        # relancar a excecao. So nao roda se o guard inicial ja bloqueou tudo.
-        if: always()
-        run: uv run python -m scripts.run_pipeline_ressonancia
-
-      - name: Roda pipeline PET_CT
-        if: always()
-        run: uv run python -m scripts.run_pipeline_pet_ct
+      - name: Pré-voo de schema, destino e permissões runtime
+        id: preflight
+        run: uv run python -m scripts.atualizar_dados_producao preflight
+      - name: Garante referência ANS sem substituir a referência ativa
+        id: populacao
+        run: uv run python -m scripts.atualizar_dados_producao populacao
+      - name: Atualiza Tomógrafo
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && steps.populacao.outcome == 'success' }}
+        run: uv run python -m scripts.atualizar_dados_producao tomografo
+      - name: Atualiza Ressonância
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && steps.populacao.outcome == 'success' }}
+        run: uv run python -m scripts.atualizar_dados_producao ressonancia
+      - name: Atualiza PET-CT
+        if: ${{ !cancelled() && steps.preflight.outcome == 'success' && steps.populacao.outcome == 'success' }}
+        run: uv run python -m scripts.atualizar_dados_producao pet-ct

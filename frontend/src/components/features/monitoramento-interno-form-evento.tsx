@@ -294,7 +294,7 @@ export function MonitoramentoInternoFormEvento({
                 htmlFor={campoId("evento-numero-documento")}
                 className="text-[11px] text-muted-foreground block mb-1"
               >
-                Nº matrícula/licença/processo
+                Nº matrícula/licença/processo/SCRA
               </label>
               <input
                 id={campoId("evento-numero-documento")}

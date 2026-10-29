@@ -102,8 +102,12 @@ class UserUpdateRequest(BaseModel):
     role: UserRole
 
 
+class UserListItemRead(UserRead):
+    ultimo_login_em: datetime | None = None
+
+
 class UserListResponse(BaseModel):
-    itens: list[UserRead]
+    itens: list[UserListItemRead]
     total: int
 
 

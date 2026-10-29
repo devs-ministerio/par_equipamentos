@@ -63,7 +63,7 @@ export function CandidatosLegados() {
         </div>
       ) : consulta.data?.total === 0 ? (
         <p className="py-4 text-sm text-muted-foreground">
-          Nenhum convênio neste recorte. Coleta automática ainda em homologação.
+          Nenhum convênio neste recorte. Consulte o estado da coleta acima.
         </p>
       ) : (
         <>

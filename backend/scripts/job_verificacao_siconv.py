@@ -42,6 +42,7 @@ from app.repositories.notificacoes import criar_notificacao
 from app.schemas_filhas_legado import chave_termo_aditivo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.espelho_diff import DiffLista, diff_lista, mesclar_lista
+from app.services.projecao_legado import _data_siconv
 
 # Reaproveita os helpers ja existentes de scripts/coletar_siconv_legado.py
 # (download com retry/cache, parse do zip, filtro por NR_CONVENIO) em vez
@@ -154,6 +155,15 @@ def reconciliar_registro(
     resultado.alterou = fonte_mudou or instrumento_mudou
     if convenio is None:
         return resultado
+
+    for campo, coluna in (
+        ("DIA_INIC_VIGENC_CONV", "data_inicio_vigencia"),
+        ("DIA_FIM_VIGENC_CONV", "data_final_vigencia"),
+    ):
+        data_oficial = _data_siconv(registro.get(campo))
+        if data_oficial is not None and getattr(convenio, coluna) != data_oficial:
+            setattr(convenio, coluna, data_oficial)
+            resultado.alterou = True
 
     situacao_contratacao = registro.get("SITUACAO_CONTRATACAO")
     if situacao_contratacao and convenio.situacao_contratacao != situacao_contratacao:

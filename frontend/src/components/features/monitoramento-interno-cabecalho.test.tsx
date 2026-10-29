@@ -28,7 +28,7 @@ function renderizar(
       dataInauguracao={null}
       inaugurado
       diasInauguracao={null}
-      statusLicenca="Sem registro"
+      registroLicenca={null}
       alertaLicenca={false}
       acoesAbertasCount={0}
       acoesAtrasadasCount={0}
