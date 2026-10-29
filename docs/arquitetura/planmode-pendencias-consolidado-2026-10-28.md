@@ -38,8 +38,8 @@ Decisões já tomadas:
 | A1 | Backend: relatório de entregues (repositório, serviço, Excel, Word, `GET /relatorios/entregues`) | feita (commit `bbfbe39`) | testes `test_relatorios_entregues_db.py` passando |
 | A2 | Backend: `situacao_origem` e filtros nas três seções | feita (commit `bbfbe39`) | bateria `-k relatorio` sem falhas |
 | A3 | Registrar `test_relatorios_entregues_db.py` em `_DB_TEST_MODULES` | feita (commit `bbfbe39`) | arquivo na lista; suíte pula sem `TEST_DATABASE_URL` |
-| A4 | Conferir o que o `ruff format` mexeu em `services/relatorios.py` | aberta | `git diff` só com linhas intencionais |
-| A5 | Teste da origem "monitoramento" (convênios restritos à fase escolhida) | aberta | teste novo verde |
+| A4 | Conferir o que o `ruff format` mexeu em `services/relatorios.py` | feita: `ruff format --check` sem diferença nos arquivos de relatórios | `git diff` só com linhas intencionais |
+| A5 | Teste da origem "monitoramento" (convênios restritos à fase escolhida) | feita: teste `test_situacao_de_monitoramento_restringe_convenios_a_fase_e_esconde_propostas` | teste novo verde |
 | A6 | Frontend: ligar a página de Relatórios (Conclusão com "Equipamento entregue", Situação agrupada, seções escondidas por origem, filtros nas propostas da prévia) | feita (commit `bbfbe39`); prévia de propostas ainda não filtra por programa/equipamento (só o arquivo) | prévia e arquivo mostram o mesmo recorte |
 | A7 | Frontend: testes (página, hook de entregues, `single-select-filter` com grupos), lint, typecheck, build | parcial: lint, `tsc` e 931 testes verdes; `build` e testes de página/hook ainda não | `npm run lint`, `tsc`, `test` e `build` verdes |
 | A8 | Rótulos da aba "Leitura" já seguem a origem; conferir Word e Excel gerados | aberta | arquivos abertos e conferidos |
