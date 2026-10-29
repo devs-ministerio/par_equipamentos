@@ -20,8 +20,8 @@ Registro único das frentes abertas, para nada ficar inacabado ou esquecido. Nen
 
 ## 3. Estado do código
 - Worktree: `.codex-work/recuperacao-homologacao-20261013`, branch `feat/itens-equipamento`.
-- Último commit: `4d9ea3c` (filtro de município por CNES), enviado, PR #50 aberto para `homologacao`.
-- Trabalho **não commitado** (frente A): arquivos novos e alterados de relatórios no backend e no frontend. Existe só nesta árvore de trabalho.
+- Último commit: `bbfbe39` (frente A, commitada só no local, 29/10/2026); o anterior, `4d9ea3c` (filtro de município por CNES), foi enviado e está no PR #50 para `homologacao`.
+- Nada do trabalho de 28 e 29/10 foi enviado ao remoto. A pilha de branches locais está na seção O.
 
 ## 4. Frentes
 
@@ -35,13 +35,13 @@ Decisões já tomadas:
 
 | ID | Pendência | Estado | Critério de pronto |
 |----|-----------|--------|--------------------|
-| A1 | Backend: relatório de entregues (repositório, serviço, Excel, Word, `GET /relatorios/entregues`) | feita (não commitada) | testes `test_relatorios_entregues_db.py` passando |
-| A2 | Backend: `situacao_origem` e filtros nas três seções | feita (não commitada) | bateria `-k relatorio` sem falhas |
-| A3 | Registrar `test_relatorios_entregues_db.py` em `_DB_TEST_MODULES` | aberta | arquivo na lista; suíte pula sem `TEST_DATABASE_URL` |
+| A1 | Backend: relatório de entregues (repositório, serviço, Excel, Word, `GET /relatorios/entregues`) | feita (commit `bbfbe39`) | testes `test_relatorios_entregues_db.py` passando |
+| A2 | Backend: `situacao_origem` e filtros nas três seções | feita (commit `bbfbe39`) | bateria `-k relatorio` sem falhas |
+| A3 | Registrar `test_relatorios_entregues_db.py` em `_DB_TEST_MODULES` | feita (commit `bbfbe39`) | arquivo na lista; suíte pula sem `TEST_DATABASE_URL` |
 | A4 | Conferir o que o `ruff format` mexeu em `services/relatorios.py` | aberta | `git diff` só com linhas intencionais |
 | A5 | Teste da origem "monitoramento" (convênios restritos à fase escolhida) | aberta | teste novo verde |
-| A6 | Frontend: ligar a página de Relatórios (Conclusão com "Equipamento entregue", Situação agrupada, seções escondidas por origem, filtros nas propostas da prévia) | em andamento | prévia e arquivo mostram o mesmo recorte |
-| A7 | Frontend: testes (página, hook de entregues, `single-select-filter` com grupos), lint, typecheck, build | aberta | `npm run lint`, `tsc`, `test` e `build` verdes |
+| A6 | Frontend: ligar a página de Relatórios (Conclusão com "Equipamento entregue", Situação agrupada, seções escondidas por origem, filtros nas propostas da prévia) | feita (commit `bbfbe39`); prévia de propostas ainda não filtra por programa/equipamento (só o arquivo) | prévia e arquivo mostram o mesmo recorte |
+| A7 | Frontend: testes (página, hook de entregues, `single-select-filter` com grupos), lint, typecheck, build | parcial: lint, `tsc` e 931 testes verdes; `build` e testes de página/hook ainda não | `npm run lint`, `tsc`, `test` e `build` verdes |
 | A8 | Rótulos da aba "Leitura" já seguem a origem; conferir Word e Excel gerados | aberta | arquivos abertos e conferidos |
 | A9 | Decidir se Situação vale no relatório de entregues (hoje ignorada) | aberta | decisão do usuário registrada |
 | A10 | Levar a organização da visão "Concluídos" para a visão "Todos" (pedido antigo, ver `CLAUDE.md`) | aberta | visão "Todos" organizada igual |
@@ -193,16 +193,46 @@ Base: os diagnósticos de 28 e 29/09 (`diagnostico-constituicao-*`), reverificad
 | N2 | N+1 da timeline do relatório completo (banco, P1) | **feita** (`carregar_monitoramento_relatorio` em lote) | só registrar |
 | N3 | Limite de requisições em `GET /relatorios` e `POST /usuarios/{id}/enviar-redefinicao` (segurança, P1) | **feita no commit local** (branch `fix/constituicao-bloco1-seguranca-banco`, a partir de `origin/homologacao`); 481 testes passando | teste de 429 |
 | N4 | Validar `https` em `mail_api_url` (segurança, P2) | **feita no commit local** (mesma branch) | teste de configuração |
-| N5 | `comment=` nas colunas sensíveis (e-mail, CNPJ, CEP, `siconv_raw`, `transferegov_raw`) (banco, P1) | **aberta** (0 comentários) | migration só com comentários; teste do catálogo |
+| N5 | `comment=` nas colunas sensíveis (e-mail, CNPJ, CEP, `siconv_raw`, `transferegov_raw`) (banco, P1) | **feita no commit local** `6620d9f` (branch `fix/constituicao-n5-comentarios-colunas`, migration `d8e9f0a1b2c3`, 9 colunas) | migration só com comentários; teste do catálogo |
 | N6 | Drift de migration e migrations aplicadas fora do repositório (banco/devops, P1) | **agravada** por L10 | `alembic heads` igual à produção; checklist pós-deploy |
-| N7 | Oito rotas sem `response_model` (backend, P1) | **aberta** (8 de 65) | cada rota classificada e tipada |
-| N8 | Router sem Service e Repository: `auth`, `convenios`, `equipment_offer`, `macro_coverage`, `monitoramento`, `municipality_coverage`, `propostas_candidatas` (backend, P1) | **aberta** | um router por PR, contrato HTTP intacto |
+| N7 | Oito rotas sem `response_model` (backend, P1) | **feita no commit local** `ac6f0f8` (eram 9: 7 de `/auth`, `/health` e o relatório em arquivo, que declara `response_model=None`; teste `test_contrato_rotas.py` impede regressão) | cada rota classificada e tipada |
+| N8 | Router sem Service e Repository: `auth`, `convenios`, `equipment_offer`, `macro_coverage`, `monitoramento`, `municipality_coverage`, `propostas_candidatas` (backend, P1) | **parcial, 3 commits locais**: `convenios` e `propostas_candidatas` (`89f2a49`), `equipment_offer` (`fc6e606`), `macro_coverage` e `municipality_coverage` (`51af8d2`). Faltam `auth` (10 commits no router, PR próprio) e `monitoramento` | um router por PR, contrato HTTP intacto |
 | N9 | Arquivos grandes: `services/relatorios.py` (1.521 linhas, cresceu), `routers/monitoramento.py` (817), `services/monitoramento_eventos.py` (741) (backend, P2) | **agravada** | extração por caso de uso, com testes de contrato |
 | N10 | Rate limit distribuído (`RATE_LIMIT_STORAGE_URI`) e CSP em modo de relatório (segurança, P1 operacional) | **aberta** (decisão de custo/infra) | decisão registrada |
 | N11 | E2E de jornada administrativa e recuperação de erro da auditoria (frontend/qualidade, P1/P2) | **a verificar** | teste E2E com usuário admin efêmero |
 | N12 | Evidência operacional datada: proteção de branch, checagens obrigatórias, rollback, backup restaurável (devops, P1) | **aberta** (só o usuário comprova) | evidência anexada sem credenciais |
 | N13 | `apt-get upgrade` no Dockerfile (build não reproduzível) e script versionado de `GRANT`/`REVOKE` (devops/banco, P2) | **aberta** | decisão e plano-mode próprio |
 | N14 | Diagnósticos têm um mês e não cobrem outubro (itens por unidade, entregas, identidade SISGEO, relatórios de concluídos e entregues) | **aberta** | rodada nova de diagnóstico por área antes de fechar o N8 e o N9 |
+
+### O. Pilha de branches locais (29/10/2026) e ordem de subida
+Todas locais, nada enviado. Cada uma parte da anterior; sobem para a `homologacao` nesta ordem, só com o seu ok, e a suíte completa roda na ponta antes.
+
+| # | Branch | Commit | Conteúdo | Pendências que fecha |
+|---|--------|--------|----------|----------------------|
+| 1 | `fix/versiona-indice-unico-evento-marco` | `0f45e9f` | índice único só para marcos de fase geral, migration `c7d8e9f0a1b2`, scripts de consolidação e reabertura | L2, L4, L9, L10, L14 |
+| 2 | `fix/constituicao-n5-comentarios-colunas` | `6620d9f` | migration `d8e9f0a1b2c3` (comentários) | N5 |
+| 3 | `fix/constituicao-response-model` | `ac6f0f8` | `response_model` + teste de contrato | N7 |
+| 4 | `fix/constituicao-camadas-routers` | `89f2a49` | `convenios`, `propostas_candidatas` | N8 (parte) |
+| 5 | `fix/constituicao-camadas-equipment-offer` | `fc6e606` | `equipment_offer` | N8 (parte) |
+| 6 | `fix/constituicao-camadas-cobertura` | `51af8d2` | `macro_coverage`, `municipality_coverage` | N8 (parte) |
+| fora | `fix/constituicao-bloco1-seguranca-banco` | `4be1e84` | rate limit, `https` em `mail_api_url` | N3, N4 |
+| fora | `feat/itens-equipamento` | `bbfbe39` | frente A (PR #50 já aberto) | A1 a A3, A6 |
+
+Ordem de produção (você executa): backup, migration `c7d8e9f0a1b2` e `d8e9f0a1b2c3`, deploy manual no Render, depois `reabrir_eventos_consolidados.py` em simulação e com `--aplicar --confirmo-host`. Antes, rodar a consulta de entregas ligadas a eventos ocultos (L12).
+
+Falhas conhecidas só de ambiente: `COOKIE_SECURE=false` e host `127.0.0.1` nos testes locais; os dois testes de `test_candidatos_legados_db` recusam variáveis herdadas do shell; o clone local `sigeo_test_clone_20000101` tem tabelas `candidato_legado*` de outra branch (17 diferenças no teste de drift).
+
+Resultado da suíte completa na ponta da pilha (`fix/constituicao-camadas-cobertura`, 29/10/2026): **2029 passaram, 2 falharam**; as duas falhas são `test_candidatos_legados_db` (recusam variáveis PG e `.env` herdados do shell, ambiente, não código). `ruff` limpo e `mypy` limpo nos arquivos tocados.
+
+**Conflito conhecido com o PR #50:** a branch `fix/constituicao-camadas-routers` (`89f2a49`) refatora `routers/convenios.py`, que o #50 também alterou (`cnes_municipio`). Resolvido na branch local `local/teste-integrado` levando o campo para `schemas_convenios.py`, `repositories/cnes_estabelecimento.py` (`municipios_por_cnes`) e `services/convenios.py`. Quando o #50 for mesclado, rebasear a pilha e aplicar a mesma resolução.
+
+**Ambiente de teste local (29/10/2026):** API `localhost:8010`, web `localhost:5180` (as portas 8000 e 5173 são do projeto `painel-investimentos`), banco `sigeo_local_integrado` (cópia do `sigeo_local_itens`, revisão `d8e9f0a1b2c3`), branch `local/teste-integrado`. Usuário admin local em `.codex-work/teste-integrado/.credenciais-local.txt` (fora do git).
+
+### P. Ajustes identificados no uso do SISGEO (29/10/2026)
+Registrar aqui cada ajuste que o usuário for apontando, no formato ID, pendência, estado, critério de pronto.
+
+| ID | Pendência | Estado | Critério de pronto |
+|----|-----------|--------|--------------------|
 
 ## 5. Espaço para complementar
 Acrescentar aqui frentes de outros planos, no mesmo formato (ID, pendência, estado, critério de pronto).
