@@ -18,33 +18,15 @@ Dois niveis:
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import MunicipalityCoverage, User
-from app.pipeline.cobertura import calcular_cobertura, produtividade_por_familia
-from app.pipeline.geo import carregar_codigo_ibge_7_digitos, carregar_coordenadas_municipios
-from app.repositories import execucoes as execucoes_repo
+from app.db.models import User
 from app.schemas import HealthRegionCoverageRead, MunicipalityCoverageRead
+from app.services import cobertura_assistencial as servico
 
 router = APIRouter(tags=["cobertura-assistencial"])
-
-
-def _filtrar_municipio(stmt, municipality: list[str] | None):
-    """Mesma chave composta "NOME|UF" usada em equipment_offer_row (varios
-    municipios brasileiros compartilham nome entre estados)."""
-    if not municipality:
-        return stmt
-    condicoes = []
-    for item in municipality:
-        nome, _, uf = item.partition("|")
-        if uf:
-            condicoes.append(and_(MunicipalityCoverage.municipality_name == nome, MunicipalityCoverage.state == uf))
-        else:
-            condicoes.append(MunicipalityCoverage.municipality_name == nome)
-    return stmt.where(or_(*condicoes))
 
 
 @router.get("/municipality-coverage", response_model=list[MunicipalityCoverageRead])
@@ -71,38 +53,17 @@ def listar_municipality_coverage(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> list[MunicipalityCoverageRead]:
-    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
-    if exec_id is None:
-        return []
-
-    stmt = select(MunicipalityCoverage).where(MunicipalityCoverage.execution_id == exec_id)
-    if equipment_family:
-        stmt = stmt.where(MunicipalityCoverage.equipment_family == equipment_family)
-    if state:
-        stmt = stmt.where(MunicipalityCoverage.state.in_(state))
-    if macro_code:
-        stmt = stmt.where(MunicipalityCoverage.macro_code.in_(macro_code))
-    if health_region_code:
-        stmt = stmt.where(MunicipalityCoverage.health_region_code.in_(health_region_code))
-    stmt = _filtrar_municipio(stmt, municipality)
-    if min_population is not None:
-        stmt = stmt.where(MunicipalityCoverage.population >= min_population)
-    stmt = stmt.limit(limit)
-
-    rows = db.execute(stmt).scalars().all()
-    coordenadas = carregar_coordenadas_municipios()
-    codigos_ibge_7 = carregar_codigo_ibge_7_digitos()
-    resultado = []
-    for r in rows:
-        data = MunicipalityCoverageRead.model_validate(r)
-        if r.required_qty:
-            data.coverage_percentage = round((r.available_qty or 0) / r.required_qty * 100, 1)
-        coord = coordenadas.get(r.ibge_code)
-        if coord:
-            data.latitude, data.longitude = coord
-        data.ibge_code_7 = codigos_ibge_7.get(r.ibge_code)
-        resultado.append(data)
-    return resultado
+    return servico.listar_municipality_coverage(
+        db=db,
+        equipment_family=equipment_family,
+        execution_id=execution_id,
+        state=state,
+        macro_code=macro_code,
+        health_region_code=health_region_code,
+        municipality=municipality,
+        min_population=min_population,
+        limit=limit,
+    )
 
 
 @router.get("/health-region-coverage", response_model=list[HealthRegionCoverageRead])
@@ -124,70 +85,11 @@ def listar_health_region_coverage(
     100_000), nao soma dos ceils individuais -- senao superestimaria
     demanda ao contar cada municipio pequeno como exigindo 1 aparelho
     proprio)."""
-    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
-    if exec_id is None:
-        return []
-
-    stmt = (
-        select(
-            MunicipalityCoverage.health_region_code,
-            func.max(MunicipalityCoverage.health_region_name).label("health_region_name"),
-            func.max(MunicipalityCoverage.macro_code).label("macro_code"),
-            func.max(MunicipalityCoverage.macro_name).label("macro_name"),
-            func.max(MunicipalityCoverage.state).label("state"),
-            func.sum(MunicipalityCoverage.population).label("population"),
-            func.sum(MunicipalityCoverage.population_residente).label("population_residente"),
-            func.sum(MunicipalityCoverage.population_ans).label("population_ans"),
-            func.sum(MunicipalityCoverage.existing_qty).label("existing_qty"),
-            func.sum(MunicipalityCoverage.available_qty).label("available_qty"),
-            func.sum(MunicipalityCoverage.facility_count).label("facility_count"),
-            func.max(MunicipalityCoverage.equipment_family).label("equipment_family"),
-        )
-        .where(
-            MunicipalityCoverage.execution_id == exec_id,
-            MunicipalityCoverage.health_region_code.is_not(None),
-        )
-        .group_by(MunicipalityCoverage.health_region_code)
+    return servico.listar_health_region_coverage(
+        db=db,
+        equipment_family=equipment_family,
+        execution_id=execution_id,
+        state=state,
+        macro_code=macro_code,
+        limit=limit,
     )
-    if equipment_family:
-        stmt = stmt.where(MunicipalityCoverage.equipment_family == equipment_family)
-    if state:
-        stmt = stmt.where(MunicipalityCoverage.state.in_(state))
-    if macro_code:
-        stmt = stmt.where(MunicipalityCoverage.macro_code.in_(macro_code))
-    stmt = stmt.limit(limit)
-
-    linhas = db.execute(stmt).mappings().all()
-    resultado = []
-    for r in linhas:
-        familia = equipment_family or r["equipment_family"]
-        cobertura = calcular_cobertura(
-            population=r["population"] or 0,
-            in_use_sus=r["available_qty"] or 0,
-            produtividade=produtividade_por_familia(familia),
-        )
-        coverage_percentage = (
-            round(cobertura.available_qty / cobertura.required_qty * 100, 1) if cobertura.required_qty else None
-        )
-        resultado.append(
-            HealthRegionCoverageRead(
-                health_region_code=r["health_region_code"],
-                health_region_name=r["health_region_name"],
-                macro_code=r["macro_code"],
-                macro_name=r["macro_name"],
-                state=r["state"],
-                equipment_family=familia or "",
-                population=r["population"],
-                population_residente=r["population_residente"],
-                population_ans=r["population_ans"],
-                estimated_need=cobertura.estimated_need,
-                required_qty=cobertura.required_qty,
-                available_qty=cobertura.available_qty,
-                existing_qty=r["existing_qty"],
-                facility_count=r["facility_count"],
-                balance=cobertura.balance,
-                deficit_status=cobertura.deficit_status,
-                coverage_percentage=coverage_percentage,
-            )
-        )
-    return resultado

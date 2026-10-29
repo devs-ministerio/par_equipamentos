@@ -7,23 +7,15 @@ fluxo gerar automatico/manual for retomado).
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import MacroCoverage, User
-from app.repositories import execucoes as execucoes_repo
+from app.db.models import User
 from app.schemas import MacroCoverageRead
+from app.services import cobertura_assistencial as servico
 
 router = APIRouter(prefix="/macro-coverage", tags=["macro-coverage"])
-
-
-def _to_read(row: MacroCoverage) -> MacroCoverageRead:
-    data = MacroCoverageRead.model_validate(row)
-    if row.required_qty:  # nunca divide por zero/None
-        data.coverage_percentage = round((row.available_qty or 0) / row.required_qty * 100, 1)
-    return data
 
 
 @router.get("", response_model=list[MacroCoverageRead])
@@ -46,16 +38,6 @@ def listar_macro_coverage(
     buscar so a macro dele em vez da lista inteira (~121 linhas). Exige
     sessão (decisão do usuário 2026-09-17: todo o app fica atrás de login
     por enquanto, não só o monitoramento interno)."""
-    exec_id = execution_id or execucoes_repo.obter_execucao_publicada_mais_recente(db, equipment_family)
-    if exec_id is None:
-        return []
-
-    stmt = select(MacroCoverage).where(MacroCoverage.execution_id == exec_id)
-    if equipment_family:
-        stmt = stmt.where(MacroCoverage.equipment_family == equipment_family)
-    if macro_code:
-        stmt = stmt.where(MacroCoverage.macro_code.in_(macro_code))
-    stmt = stmt.limit(limit)
-
-    rows = db.execute(stmt).scalars().all()
-    return [_to_read(r) for r in rows]
+    return servico.listar_macro_coverage(
+        db=db, equipment_family=equipment_family, execution_id=execution_id, macro_code=macro_code, limit=limit
+    )
