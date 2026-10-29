@@ -84,14 +84,14 @@ Decisões já tomadas:
 ### F. Qualidade e higiene
 | ID | Pendência | Estado | Critério de pronto |
 |----|-----------|--------|--------------------|
-| F1 | 2 testes de `test_candidatos_legados_db` falham só no ambiente local (também sem as mudanças) | aberta | causa entendida ou teste ajustado |
+| F1 | 2 testes de `test_candidatos_legados_db` falham só no ambiente local (também sem as mudanças) | feita: causa entendida. O guard de `scripts/descoberta_local_guardas.py` exige `DATABASE_URL` e `DATABASE_URL_MIGRATION` explícitos e iguais; com os dois e `TEST_DATABASE_URL` os 23 testes passam | causa entendida ou teste ajustado |
 | F2 | Limpeza local: banco `sigeo_homologacao_base_20261026`, servidores locais, bancos e worktrees antigos | aberta (só se o usuário pedir) | limpeza autorizada e feita |
-| F3 | Commit de segurança do trabalho da frente A | aberta (precisa de autorização para commit local) | commit sem atribuição do Claude |
+| F3 | Commit de segurança do trabalho da frente A | feita (commits locais sem atribuição) | commit sem atribuição do Claude |
 
 ### G. Documentação
 | ID | Pendência | Estado | Critério de pronto |
 |----|-----------|--------|--------------------|
-| G1 | Nota no `CLAUDE.md`: Situação por origem, relatório de entregues, filtros valendo para todas as seções | aberta | seção curta publicada |
+| G1 | Nota no `CLAUDE.md`: Situação por origem, relatório de entregues, filtros valendo para todas as seções | feita (`CLAUDE.md`, commit `bbfbe39`) | seção curta publicada |
 | G2 | Nota de projeto na memória com estado e pendências | aberta | arquivo e linha no índice |
 | G3 | Este documento revisado ao fechar cada PR | contínua | estados atualizados |
 
@@ -219,6 +219,8 @@ Todas locais, nada enviado. Cada uma parte da anterior; sobem para a `homologaca
 | fora | `feat/itens-equipamento` | `bbfbe39` | frente A (PR #50 já aberto) | A1 a A3, A6 |
 
 Ordem de produção (você executa): backup, migration `c7d8e9f0a1b2` e `d8e9f0a1b2c3`, deploy manual no Render, depois `reabrir_eventos_consolidados.py` em simulação e com `--aplicar --confirmo-host`. Antes, rodar a consulta de entregas ligadas a eventos ocultos (L12).
+
+Como rodar a suíte completa localmente: `JWT_SECRET` com 32+ caracteres, `COOKIE_SECURE=false`, `DATABASE_URL`, `DATABASE_URL_MIGRATION` e `TEST_DATABASE_URL` iguais, em `127.0.0.1` e num banco `sigeo_test_clone_*`. Com isso a suíte fica toda verde. (Sem `DATABASE_URL_MIGRATION` falham 2 testes de `candidatos_legados`.)
 
 Falhas conhecidas só de ambiente: `COOKIE_SECURE=false` e host `127.0.0.1` nos testes locais; os dois testes de `test_candidatos_legados_db` recusam variáveis herdadas do shell; o clone local `sigeo_test_clone_20000101` tem tabelas `candidato_legado*` de outra branch (17 diferenças no teste de drift).
 
