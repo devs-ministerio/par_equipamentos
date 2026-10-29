@@ -228,6 +228,8 @@ Resultado da suíte completa na ponta da pilha (`fix/constituicao-camadas-cobert
 
 **Ambiente de teste local (29/10/2026):** API `localhost:8010`, web `localhost:5180` (as portas 8000 e 5173 são do projeto `painel-investimentos`), banco `sigeo_local_integrado` (cópia do `sigeo_local_itens`, revisão `d8e9f0a1b2c3`), branch `local/teste-integrado`. Usuário admin local em `.codex-work/teste-integrado/.credenciais-local.txt` (fora do git).
 
+**Linha consolidada para PR único (29/10/2026):** a branch local `local/teste-integrado` reúne a `origin/master` (PRs #51 a #55), os PRs abertos #43, #44, #45 e #50 (documentos e filtro de município por CNES), a frente A e a pilha de seis branches. Conflitos resolvidos: `tests/conftest.py` (duas vezes, lista de testes de banco), `routers/convenios.py` (ver acima) e um link duplicado em `planmode-monitoramento-itens-equipamentos-2026-10-20.md` (mantidos os dois). Cadeia de migrations com um único head (`d8e9f0a1b2c3`). Para abrir o PR único: base `homologacao` (depois do realinhamento M2) e fechar #43, #44, #45 e #50 como incluídos.
+
 ### P. Ajustes identificados no uso do SISGEO (29/10/2026)
 Registrar aqui cada ajuste que o usuário for apontando, no formato ID, pendência, estado, critério de pronto.
 
