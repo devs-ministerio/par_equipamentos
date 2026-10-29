@@ -176,3 +176,22 @@ def test_programa_e_busca_valem_tambem_para_propostas(entregas):
     assert len(_propostas(db, por_programa)) == 1
     assert _propostas(db, outro_programa) == []
     assert _propostas(db, FiltroRelatorio(**base, tipo_contratacao="FAF", busca=marca)) == []
+
+
+def test_situacao_de_monitoramento_restringe_convenios_a_fase_e_esconde_propostas(entregas):
+    db, numero, marca = entregas
+    from app.services.relatorios import _convenios, _instrumentos, _instrumentos_do_recorte, _propostas
+
+    base = FiltroRelatorio(escopo="brasil", busca=marca)
+    fase = next(i.fase_atual for i in _instrumentos_do_recorte(db, base) if i.instrumento.nr_convenio == numero)
+
+    da_fase = FiltroRelatorio(escopo="brasil", situacao=fase, situacao_origem="monitoramento", busca=marca)
+    assert [i.instrumento.nr_convenio for i in _instrumentos(db, da_fase)] == [numero]
+    assert [c.numero for c in _convenios(db, da_fase)] == [numero]
+    assert _propostas(db, da_fase) == []
+
+    outra_fase = FiltroRelatorio(
+        escopo="brasil", situacao="Fase que não existe", situacao_origem="monitoramento", busca=marca
+    )
+    assert _instrumentos(db, outra_fase) == []
+    assert _convenios(db, outra_fase) == []
