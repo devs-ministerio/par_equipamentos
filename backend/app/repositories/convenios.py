@@ -1,7 +1,7 @@
 """Acesso a dados de Convenio para os relatorios (Plan Mode docs/arquitetura/
 planmode-relatorios-2026-09-25.md, Blocos 2 e 7).
 
-Separado da query de `app/routers/convenios.py::_aplicar_filtros_convenio`
+Separado da query paginada `aplicar_filtros_convenio` (mais abaixo)
 de proposito -- essa e paginada (uso de UI), o relatorio precisa do
 universo inteiro que bate o filtro, sem paginacao. Função solta com
 `db: Session` posicional, mesmo contrato de app/repositories/monitoramento.py.
@@ -10,7 +10,7 @@ universo inteiro que bate o filtro, sem paginacao. Função solta com
 from __future__ import annotations
 
 from sqlalchemy import exists, func, or_, select
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, load_only
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador, InstrumentoEquipamento
@@ -118,3 +118,137 @@ def listar_convenios_filtrados(
             corresponde=lambda convenio: normalizar_texto(convenio.municipio) == alvo_municipio,
         )
     return listar_sem_truncar(db, stmt, limite=LIMITE_RELATORIO)
+
+
+CONVENIO_LIST_LOAD_ONLY = (
+    Convenio.numero,
+    Convenio.numero_instrumento,
+    Convenio.ano_instrumento,
+    Convenio.objeto,
+    Convenio.situacao,
+    Convenio.situacao_portal,
+    Convenio.situacao_contratacao,
+    Convenio.convenente_nome,
+    Convenio.convenente_cnpj,
+    Convenio.convenente_tipo,
+    Convenio.tipo_contratacao,
+    Convenio.tipologia,
+    Convenio.municipio,
+    Convenio.uf,
+    Convenio.codigo_ibge,
+    Convenio.codigo_ibge_municipio,
+    Convenio.regiao,
+    Convenio.orgao,
+    Convenio.unidade_gestora,
+    Convenio.subfuncao,
+    Convenio.funcao,
+    Convenio.tipo_instrumento,
+    Convenio.numero_processo,
+    Convenio.programa,
+    Convenio.data_publicacao,
+    Convenio.data_inicio_vigencia,
+    Convenio.data_final_vigencia,
+    Convenio.data_conclusao,
+    Convenio.data_ultima_liberacao,
+    Convenio.valor_global,
+    Convenio.valor_repasse,
+    Convenio.valor_empenhado,
+    Convenio.valor_desembolsado,
+    Convenio.valor_contrapartida,
+    Convenio.valor_saldo_conta,
+    Convenio.valor_ultima_liberacao,
+    Convenio.valor_pago_fornecedor,
+    Convenio.pagamentos_count,
+    Convenio.financeiro_fonte_confiavel,
+    Convenio.cnes,
+)
+
+
+def aplicar_filtros_convenio(
+    query,
+    *,
+    busca: str | None,
+    uf: str | None,
+    equipamento: str | None,
+    situacao: str | None,
+    ano: int | None,
+    programa: str | None,
+    tipo_contratacao: str | None,
+):
+    query = query.where(convenio_no_escopo_de_equipamentos())
+    if tipo_contratacao:
+        query = query.where(Convenio.tipo_contratacao == tipo_contratacao)
+    if uf:
+        query = query.where(Convenio.uf == uf)
+    if equipamento:
+        catalogo_alvo = aliased(EquipamentoCatalogo)
+        query = query.where(
+            select(EquipamentoMarcador.id)
+            .join(
+                catalogo_alvo,
+                catalogo_alvo.id == EquipamentoMarcador.equipamento_catalogo_id,
+            )
+            .where(
+                EquipamentoMarcador.convenio_id == Convenio.id,
+                marcador_de_financiamento(),
+                catalogo_alvo.nome == equipamento,
+            )
+            .exists()
+        )
+    if situacao:
+        query = query.where(Convenio.situacao == situacao)
+    if ano:
+        query = query.where(Convenio.ano_instrumento == ano)
+    if programa:
+        query = query.where(Convenio.programa == programa)
+    if busca:
+        alvo = f"%{busca}%"
+        query = query.where(
+            Convenio.numero.ilike(alvo)
+            | Convenio.convenente_nome.ilike(alvo)
+            | Convenio.convenente_cnpj.ilike(alvo)
+            | Convenio.municipio.ilike(alvo)
+            | Convenio.objeto.ilike(alvo)
+        )
+    return query
+
+
+def listar_convenios_paginados(
+    db: Session,
+    *,
+    busca: str | None,
+    uf: str | None,
+    equipamento: str | None,
+    situacao: str | None,
+    ano: int | None,
+    programa: str | None,
+    tipo_contratacao: str | None,
+    pagina: int,
+    tamanho_pagina: int,
+) -> tuple[int, list[Convenio]]:
+    def com_filtros(query):
+        return aplicar_filtros_convenio(
+            query,
+            busca=busca,
+            uf=uf,
+            equipamento=equipamento,
+            situacao=situacao,
+            ano=ano,
+            programa=programa,
+            tipo_contratacao=tipo_contratacao,
+        )
+
+    total = db.execute(com_filtros(select(func.count()).select_from(Convenio))).scalar_one()
+    query = com_filtros(select(Convenio).options(load_only(*CONVENIO_LIST_LOAD_ONLY)))
+    itens = (
+        db.execute(query.order_by(Convenio.numero).offset((pagina - 1) * tamanho_pagina).limit(tamanho_pagina))
+        .scalars()
+        .all()
+    )
+    return total, list(itens)
+
+
+def obter_convenio_por_numero(db: Session, numero: str) -> Convenio | None:
+    return db.execute(
+        select(Convenio).where(Convenio.numero == numero, convenio_no_escopo_de_equipamentos())
+    ).scalar_one_or_none()

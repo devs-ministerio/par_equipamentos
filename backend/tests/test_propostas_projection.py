@@ -7,11 +7,8 @@ from __future__ import annotations
 
 import inspect
 
-from app.routers.propostas_candidatas import (
-    PropostaCandidataListaRead,
-    PropostaCandidataRead,
-    listar_propostas_candidatas,
-)
+from app.routers.propostas_candidatas import listar_propostas_candidatas
+from app.schemas_propostas_candidatas import PropostaCandidataListaRead, PropostaCandidataRead
 
 
 def test_listagem_propostas_devolve_envelope_com_total_e_itens():

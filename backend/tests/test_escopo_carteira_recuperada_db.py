@@ -5,13 +5,13 @@ from pathlib import Path
 import pytest
 from alembic.config import Config
 from alembic.script import ScriptDirectory
-from fastapi import HTTPException
 from psycopg import Error as DatabaseDriverError
 from sqlalchemy import inspect, select, text
 from sqlalchemy.exc import DBAPIError
 
 from alembic import command
 from app.db.models import Convenio
+from app.domain_errors import NotFoundError
 from app.repositories.convenios import listar_convenios_filtrados
 from app.repositories.descoberta_legado import numeros_legados_conhecidos
 from app.routers.convenios import listar_convenios, obter_convenio
@@ -68,9 +68,8 @@ def test_detalhe_excluido_nao_e_exposto_nem_apagado(radar_versionado):
     db, usuarios = radar_versionado
     db.add(Convenio(numero="971252", convenente_nome="Instituição sintética", fora_escopo_equipamentos=True))
     db.commit()
-    with pytest.raises(HTTPException) as erro:
+    with pytest.raises(NotFoundError):
         obter_convenio("971252", db=db, usuario=usuarios["admin"])
-    assert erro.value.status_code == 404
     assert db.scalar(select(Convenio.numero)) == "971252"
 
 
