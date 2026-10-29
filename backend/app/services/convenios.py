@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Convenio
 from app.domain_errors import NotFoundError
-from app.repositories.cnes_estabelecimento import nomes_por_cnes
+from app.repositories.cnes_estabelecimento import municipios_por_cnes, nomes_por_cnes
 from app.repositories.convenios import listar_convenios_paginados, obter_convenio_por_numero
 from app.repositories.equipamento_marcadores import listar_por_origens
 from app.schemas_convenios import ConvenioDetalheRead, ConvenioListaRead, ConvenioRead
@@ -37,13 +37,16 @@ def projecao_disponibilidade_dados(convenio: Convenio) -> dict[str, bool | float
 
 
 def _com_nome_cnes(db: Session, convenios: list[Convenio], modelo: type[BaseModel] = ConvenioRead) -> list[BaseModel]:
-    nomes = nomes_por_cnes(db, {c.cnes for c in convenios if c.cnes})
+    codigos = {c.cnes for c in convenios if c.cnes}
+    nomes = nomes_por_cnes(db, codigos)
+    municipios = municipios_por_cnes(db, codigos)
     marcadores = listar_por_origens(db, convenio_ids={c.id for c in convenios})
     resultado = []
     for convenio in convenios:
         disponibilidade = projecao_disponibilidade_dados(convenio)
         campos = {
             "cnes_nome_estabelecimento": nomes.get(convenio.cnes or ""),
+            "cnes_municipio": municipios.get(convenio.cnes or ""),
             "equipamentos": serializar_marcadores(marcadores.get(("convenio", convenio.id), [])),
             **disponibilidade,
         }

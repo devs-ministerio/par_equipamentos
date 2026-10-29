@@ -43,3 +43,26 @@ export function opcoesMunicipios(
     a.label.localeCompare(b.label, "pt-BR"),
   );
 }
+
+/** Municípios em que o instrumento aparece: o do convenente e o do estabelecimento (CNES) que recebe o equipamento. */
+export function municipiosDoInstrumento(item: {
+  municipio: string;
+  cnesMunicipio: string | null;
+}): string[] {
+  const nomes = [item.municipio];
+  if (
+    item.cnesMunicipio &&
+    chaveMunicipio(item.cnesMunicipio) !== chaveMunicipio(item.municipio)
+  )
+    nomes.push(item.cnesMunicipio);
+  return nomes;
+}
+
+export function instrumentoEstaNoMunicipio(
+  item: { municipio: string; cnesMunicipio: string | null },
+  chave: string,
+): boolean {
+  return municipiosDoInstrumento(item).some(
+    (nome) => chaveMunicipio(nome) === chave,
+  );
+}

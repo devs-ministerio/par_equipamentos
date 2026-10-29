@@ -1,10 +1,19 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import {
+  Fragment,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { normalizarTexto } from "@/utils/texto";
 import { cn } from "@/lib/utils";
 
 export interface SingleSelectOption {
   value: string;
   label: string;
+  /** Título do grupo; opções seguidas com o mesmo grupo aparecem sob um único cabeçalho. */
+  group?: string;
 }
 
 interface SingleSelectFilterProps {
@@ -154,12 +163,20 @@ export function SingleSelectFilter({
                 {clearLabel}
               </button>
             )}
-            {filtered.map((opt) => (
+            {filtered.map((opt, indice) => (
+              <Fragment key={opt.value}>
+                {opt.group && opt.group !== filtered[indice - 1]?.group && (
+                  <div
+                    role="presentation"
+                    className="px-3 pt-2 pb-1 text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase"
+                  >
+                    {opt.group}
+                  </div>
+                )}
               <button
                 type="button"
                 role="option"
                 aria-selected={opt.value === value}
-                key={opt.value}
                 onClick={() => escolher(opt.value)}
                 className={cn(
                   "block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]",
@@ -170,6 +187,7 @@ export function SingleSelectFilter({
               >
                 {opt.label}
               </button>
+              </Fragment>
             ))}
             {filtered.length === 0 && (
               <div className="px-3 py-2.5 text-xs text-muted-foreground">

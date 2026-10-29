@@ -11,6 +11,8 @@ import { RelatorioPropostasTabela } from "@/components/features/relatorio-propos
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-carteira";
 import { RelatorioEncerradosPrevia } from "@/components/features/relatorio-encerrados-previa";
+import { RelatorioEntreguesPrevia } from "@/components/features/relatorio-entregues-previa";
+import { useRelatorioEntregues } from "@/hooks/use-relatorio-entregues";
 import { useRelatorioEncerrados } from "@/hooks/use-relatorio-encerrados";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
@@ -20,7 +22,9 @@ import { useRelatorioInstrumentosFiltros } from "@/hooks/use-relatorio-instrumen
 import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
 import { UF_INFO } from "@/data/geo-reference";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
+import { municipiosDoInstrumento } from "@/lib/municipio-filtro";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { decodificarSituacao, opcoesSituacao } from "@/lib/situacao-relatorio";
 import { estagioDeFato } from "@/lib/proposta-status";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import type { ConvenioUnificado } from "@/types/monitoramento";
@@ -28,6 +32,7 @@ import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
 import type { NivelRelatorio, FiltroRelatorio } from "@/services/relatorios";
 
 const situacaoExibida = (item: ConvenioUnificado) => item.situacao;
+const TIPO_PROPOSTA = "Parceria TransfereGov";
 const SEM_MONITORADOS = new Set<string>();
 const TEM_ACENTO = /[À-ÖØ-öø-ÿ]/;
 type IgnorarExtra = "municipio" | "cnes" | "estabelecimento";
@@ -40,16 +45,20 @@ type IgnorarExtra = "municipio" | "cnes" | "estabelecimento";
  * tiver. */
 function opcoesAgrupadas(
   itens: ConvenioUnificado[],
-  valor: (item: ConvenioUnificado) => string | null | undefined,
+  valor: (
+    item: ConvenioUnificado,
+  ) => string | null | undefined | (string | null | undefined)[],
 ): { value: string; label: string }[] {
   const grupos = new Map<string, string[]>();
   for (const item of itens) {
-    const bruto = valor(item);
-    if (!bruto) continue;
-    const chave = normalizarTexto(bruto);
-    const lista = grupos.get(chave);
-    if (lista) lista.push(bruto);
-    else grupos.set(chave, [bruto]);
+    const encontrado = valor(item);
+    for (const bruto of Array.isArray(encontrado) ? encontrado : [encontrado]) {
+      if (!bruto) continue;
+      const chave = normalizarTexto(bruto);
+      const lista = grupos.get(chave);
+      if (lista) lista.push(bruto);
+      else grupos.set(chave, [bruto]);
+    }
   }
   return [...grupos.entries()]
     .map(([chave, brutos]) => ({
@@ -130,6 +139,11 @@ export function MonitoramentoRelatoriosPage() {
     limparFiltros,
   } = useRelatorioInstrumentosFiltros();
 
+  const situacaoEscolhida = decodificarSituacao(situacao);
+  const origemSituacao = situacaoEscolhida?.origem ?? null;
+  const situacaoInstrumento =
+    origemSituacao === "instrumento" ? situacaoEscolhida!.valor : null;
+
   const conveniosQuery = useConveniosLista();
   const convenios = useMemo(
     () => conveniosQuery.data?.itens ?? [],
@@ -167,7 +181,7 @@ export function MonitoramentoRelatoriosPage() {
           municipio: null,
           cnes: null,
           equipamento,
-          situacao,
+          situacao: situacaoInstrumento,
           anoInicio: null,
           anoFim: null,
           programa,
@@ -183,7 +197,9 @@ export function MonitoramentoRelatoriosPage() {
           dentroDoPeriodo(item.anoInstrumento) &&
           (ignorarExtra === "municipio" ||
             !municipio ||
-            normalizarTexto(item.municipio) === municipio) &&
+            municipiosDoInstrumento(item).some(
+              (nome) => normalizarTexto(nome) === municipio,
+            )) &&
           (ignorarExtra === "cnes" || !cnes || item.cnes === cnes) &&
           (ignorarExtra === "estabelecimento" ||
             !nomeEstabelecimento ||
@@ -194,7 +210,7 @@ export function MonitoramentoRelatoriosPage() {
     [
       convenios,
       uf,
-      situacao,
+      situacaoInstrumento,
       dentroDoPeriodo,
       programa,
       tipoContratacao,
@@ -214,7 +230,7 @@ export function MonitoramentoRelatoriosPage() {
     ufs,
     equipamentoOptions,
     anoOptions,
-    situacaoOptions,
+    situacaoOptions: situacaoInstrumentoOptions,
     tipoContratacaoOptions,
     programaOptions,
   } = useDadosOficiaisOpcoes({
@@ -225,9 +241,8 @@ export function MonitoramentoRelatoriosPage() {
 
   const municipioOptions = useMemo(
     () =>
-      opcoesAgrupadas(
-        filtrarTudo(undefined, "municipio"),
-        (item) => item.municipio,
+      opcoesAgrupadas(filtrarTudo(undefined, "municipio"), (item) =>
+        municipiosDoInstrumento(item),
       ),
     [filtrarTudo],
   );
@@ -235,8 +250,6 @@ export function MonitoramentoRelatoriosPage() {
     () => opcoesUnicas(filtrarTudo(undefined, "cnes"), (item) => item.cnes),
     [filtrarTudo],
   );
-
-  const conveniosFiltrados = useMemo(() => filtrarTudo(), [filtrarTudo]);
 
   const instrumentosQuery = useMonitoramentoInstrumentos();
   const faseMonitoramento = useMemo(
@@ -250,6 +263,17 @@ export function MonitoramentoRelatoriosPage() {
     [instrumentosQuery.data],
   );
 
+  const conveniosFiltrados = useMemo(() => {
+    if (origemSituacao === "proposta") return [];
+    const base = filtrarTudo();
+    if (origemSituacao !== "monitoramento") return base;
+    const alvo = normalizarTexto(situacaoEscolhida!.valor);
+    return base.filter(
+      (item) =>
+        normalizarTexto(faseMonitoramento.get(item.numero) ?? "") === alvo,
+    );
+  }, [filtrarTudo, origemSituacao, situacaoEscolhida, faseMonitoramento]);
+
   const {
     propostas,
     total: totalPropostasFonte,
@@ -257,9 +281,33 @@ export function MonitoramentoRelatoriosPage() {
     erro: erroPropostas,
   } = usePropostasCandidatas();
 
+  const situacaoOptions = useMemo(
+    () =>
+      opcoesSituacao({
+        instrumento: situacaoInstrumentoOptions.map((o) => o.value),
+        monitoramento: [...new Set(faseMonitoramento.values())],
+        proposta: propostas
+          .map((p) => p.situacao_proposta)
+          .filter((v): v is string => Boolean(v)),
+      }),
+    [situacaoInstrumentoOptions, faseMonitoramento, propostas],
+  );
+
   const propostasFiltradas = useMemo(
     () =>
       propostas.filter((p) => {
+        if (
+          origemSituacao === "instrumento" ||
+          origemSituacao === "monitoramento"
+        )
+          return false;
+        if (tipoContratacao && tipoContratacao !== TIPO_PROPOSTA) return false;
+        if (
+          situacaoEscolhida &&
+          normalizarTexto(p.situacao_proposta ?? "") !==
+            normalizarTexto(situacaoEscolhida.valor)
+        )
+          return false;
         if (uf && p.uf !== uf) return false;
         if (anoInicio || anoFim) {
           const anoProposta = Number(p.data_proposta?.slice(0, 4));
@@ -278,7 +326,18 @@ export function MonitoramentoRelatoriosPage() {
           return false;
         return true;
       }),
-    [propostas, uf, anoInicio, anoFim, municipio, cnes, nomeEstabelecimento],
+    [
+      propostas,
+      uf,
+      anoInicio,
+      anoFim,
+      municipio,
+      cnes,
+      nomeEstabelecimento,
+      origemSituacao,
+      situacaoEscolhida,
+      tipoContratacao,
+    ],
   );
   const propostasConfirmadas = useMemo(
     () => propostasFiltradas.filter((p) => estagioDeFato(p) === "confirmada"),
@@ -316,7 +375,11 @@ export function MonitoramentoRelatoriosPage() {
   //    pro CNES correspondente (1:1 na prática, mesmo dado de origem do
   //    dropdown) quando CNES não foi selecionado à parte.
   const municipioItens = municipio
-    ? convenios.filter((item) => normalizarTexto(item.municipio) === municipio)
+    ? convenios.filter((item) =>
+        municipiosDoInstrumento(item).some(
+          (nome) => normalizarTexto(nome) === municipio,
+        ),
+      )
     : [];
   const ufsDoMunicipio = new Set(municipioItens.map((item) => item.uf));
   const municipioAmbiguo = Boolean(municipio && !uf && ufsDoMunicipio.size > 1);
@@ -355,6 +418,7 @@ export function MonitoramentoRelatoriosPage() {
           ? (UF_INFO[ufEfetiva ?? ""]?.nome ?? ufEfetiva ?? "")
           : "Brasil";
   const somenteEncerrados = encerramento === "encerrados";
+  const somenteEntregues = encerramento === "entregues";
   const filtroGeracao: FiltroRelatorio = {
     escopo: escopoGeracao,
     uf:
@@ -366,18 +430,26 @@ export function MonitoramentoRelatoriosPage() {
     cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
     anoInicio: anoInicio ? Number(anoInicio) : undefined,
     anoFim: anoFim ? Number(anoFim) : undefined,
-    situacao: situacao ?? undefined,
+    situacao: situacaoEscolhida?.valor,
+    situacaoOrigem: situacaoEscolhida?.origem,
     programa: programa ?? undefined,
     tipoContratacao: tipoContratacao ?? undefined,
     equipamento: equipamento ?? undefined,
-    encerramento: somenteEncerrados ? "encerrados" : "todos",
+    encerramento: somenteEncerrados
+      ? "encerrados"
+      : somenteEntregues
+        ? "entregues"
+        : "todos",
   };
   const encerrados = useRelatorioEncerrados(filtroGeracao, somenteEncerrados);
+  const entregues = useRelatorioEntregues(filtroGeracao, somenteEntregues);
   const totalRegistros = somenteEncerrados
     ? (encerrados.data?.total ?? 0)
-    : conveniosFiltrados.length +
-      propostasConfirmadas.length +
-      propostasEmTramitacao.length;
+    : somenteEntregues
+      ? (entregues.data?.total ?? 0)
+      : conveniosFiltrados.length +
+        propostasConfirmadas.length +
+        propostasEmTramitacao.length;
 
   return (
     <div className="flex flex-col gap-7 pb-8">
@@ -433,7 +505,10 @@ export function MonitoramentoRelatoriosPage() {
         </div>
         <SingleSelectFilter
           placeholder="Conclusão"
-          options={[{ value: "encerrados", label: "Concluídos" }]}
+          options={[
+            { value: "encerrados", label: "Concluídos" },
+            { value: "entregues", label: "Equipamento entregue" },
+          ]}
           value={encerramento}
           onChange={setEncerramento}
           clearLabel="Todos"
@@ -504,7 +579,7 @@ export function MonitoramentoRelatoriosPage() {
         />
       </FilterWorkspace>
 
-      {!somenteEncerrados && (
+      {!somenteEncerrados && !somenteEntregues && (
         <>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Indicadores e tabelas abaixo descrevem somente a prévia carregada.
@@ -544,7 +619,27 @@ export function MonitoramentoRelatoriosPage() {
         </div>
       </div>
 
-      {somenteEncerrados ? (
+      {somenteEntregues ? (
+        entregues.isLoading ? (
+          <Skeleton
+            className="h-64 w-full"
+            role="status"
+            aria-label="Carregando entregues"
+          />
+        ) : entregues.isError ? (
+          <ErrorAlert
+            mensagem={mensagemSeguraDoErro(entregues.error)}
+            onRetry={() => entregues.refetch()}
+          />
+        ) : entregues.data ? (
+          <RelatorioEntreguesPrevia
+            itens={entregues.data.itens}
+            total={entregues.data.total}
+            pagina={entregues.pagina}
+            onPaginaChange={entregues.setPagina}
+          />
+        ) : null
+      ) : somenteEncerrados ? (
         encerrados.isLoading ? (
           <Skeleton
             className="h-64 w-full"
@@ -580,7 +675,7 @@ export function MonitoramentoRelatoriosPage() {
         ) : null
       ) : (
         <>
-          {conveniosQuery.isLoading ? (
+          {origemSituacao === "proposta" ? null : conveniosQuery.isLoading ? (
             <Skeleton
               className="h-64 w-full"
               role="status"
@@ -607,7 +702,8 @@ export function MonitoramentoRelatoriosPage() {
             />
           ) : erroPropostas ? (
             <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
-          ) : (
+          ) : origemSituacao === "instrumento" ||
+            origemSituacao === "monitoramento" ? null : (
             <>
               <RelatorioPropostasTabela
                 titulo="Parcerias confirmadas"
@@ -635,6 +731,10 @@ export function MonitoramentoRelatoriosPage() {
           (!somenteEncerrados ||
             Boolean(
               encerrados.data && !encerrados.isFetching && !encerrados.isError,
+            )) &&
+          (!somenteEntregues ||
+            Boolean(
+              entregues.data && !entregues.isFetching && !entregues.isError,
             ))
         }
         gerando={gerando}

@@ -21,3 +21,13 @@ def nomes_por_cnes(db: Session, codigos: Collection[str]) -> dict[str, str | Non
         row.cnes: row.nome_estabelecimento
         for row in db.execute(select(CnesEstabelecimento).where(CnesEstabelecimento.cnes.in_(codigos))).scalars()
     }
+
+
+def municipios_por_cnes(db: Session, codigos: Collection[str]) -> dict[str, str | None]:
+    """Município do estabelecimento por código CNES, em uma consulta só."""
+    if not codigos:
+        return {}
+    return {
+        row.cnes: row.municipio
+        for row in db.execute(select(CnesEstabelecimento).where(CnesEstabelecimento.cnes.in_(codigos))).scalars()
+    }

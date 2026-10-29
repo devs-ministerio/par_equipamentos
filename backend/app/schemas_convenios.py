@@ -68,6 +68,8 @@ class ConvenioRead(BaseModel):
     # nome em 357 linhas quando já está em CnesEstabelecimento por
     # `cnes`), resolvido aqui com 1 lookup em lote (ver `_com_nome_cnes`).
     cnes_nome_estabelecimento: str | None = None
+    # Município do estabelecimento (CNES): onde o equipamento fica, quando o convenente tem sede em outro.
+    cnes_municipio: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

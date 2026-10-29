@@ -66,7 +66,7 @@ from app.db.models import (
 from app.domain_errors import ValidationError
 from app.geo_reference import NOME_POR_UF, REGIOES, ufs_da_regiao
 from app.pipeline.itens_plano import descricoes_so_de_obra_ou_servico, item_conta_como_equipamento
-from app.pipeline.texto import capitalizar_nome, parsear_valor_brasileiro
+from app.pipeline.texto import capitalizar_nome, normalizar_texto, parsear_valor_brasileiro
 from app.reports import docx_builder, xlsx_builder
 from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
 from app.reports.formatacao import formatar_data, formatar_moeda
@@ -93,6 +93,8 @@ _ROTULO_GRUPO_MARCO = {
     MarcoGrupo.cronograma_fisico: "Cronograma físico",
     MarcoGrupo.regulatorio: "Regulatório",
 }
+
+_TIPO_PROPOSTA = "Parceria TransfereGov"
 
 
 @dataclass(frozen=True)
@@ -124,7 +126,16 @@ class FiltroRelatorio:
     # Monitoramento não têm essa granularidade hoje.
     equipamento: str | None = None
     busca: str | None = None
-    encerramento: Literal["todos", "encerrados"] = "todos"
+    encerramento: Literal["todos", "encerrados", "entregues"] = "todos"
+    # Filtro único de Situação: o valor vale só na seção da origem escolhida e as demais ficam de fora.
+    # Sem origem (chamada direta da API), `situacao` segue filtrando só os convênios.
+    situacao_origem: Literal["instrumento", "monitoramento", "proposta"] | None = None
+
+    def rotulo_situacao(self) -> str:
+        return {
+            "monitoramento": "Fase do monitoramento",
+            "proposta": "Situação da proposta",
+        }.get(self.situacao_origem or "", "Situação do convênio")
 
     def filtro_encerrados(self) -> FiltroEncerramento:
         return FiltroEncerramento(
@@ -133,7 +144,7 @@ class FiltroRelatorio:
             cnes=self.cnes_do_escopo(),
             ano_inicio=self.ano_inicio,
             ano_fim=self.ano_fim,
-            situacao=self.situacao,
+            situacao=self.situacao if self.situacao_origem in (None, "instrumento", "proposta") else None,
             programa=self.programa,
             tipo_contratacao=self.tipo_contratacao,
             equipamento=self.equipamento,
@@ -280,7 +291,7 @@ def _legendas_resumo(filtro: FiltroRelatorio) -> tuple[str, str, str]:
     filtros_convenios = [
         f"{rotulo}: {valor}"
         for rotulo, valor in (
-            ("situação", filtro.situacao),
+            (filtro.rotulo_situacao().lower(), filtro.situacao),
             ("programa", filtro.programa),
             ("equipamento", filtro.equipamento),
             ("busca", filtro.busca),
@@ -401,7 +412,7 @@ def _linhas_leitura(
             ]
         )
         for rotulo, valor in (
-            ("Situação do convênio", filtro.situacao),
+            (filtro.rotulo_situacao(), filtro.situacao),
             ("Programa do convênio", filtro.programa),
             ("Tipo de contratação", filtro.tipo_contratacao),
             ("Equipamento do convênio", filtro.equipamento),
@@ -465,6 +476,16 @@ def _montar_analise_merito(db: Session, formato: Formato, nivel: Nivel, filtro: 
 
 
 def _convenios(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
+    if filtro.situacao_origem == "proposta":
+        return []
+    convenios = _convenios_do_recorte(db, filtro)
+    if filtro.situacao_origem == "monitoramento":
+        numeros = {i.instrumento.nr_convenio for i in _instrumentos(db, filtro)}
+        return [c for c in convenios if c.numero in numeros]
+    return convenios
+
+
+def _convenios_do_recorte(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
     return convenios_repo.listar_convenios_filtrados(
         db,
         ufs=filtro.ufs(),
@@ -472,7 +493,7 @@ def _convenios(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
         cnes=filtro.cnes_do_escopo(),
         ano_inicio=filtro.ano_inicio,
         ano_fim=filtro.ano_fim,
-        situacao=filtro.situacao,
+        situacao=filtro.situacao if filtro.situacao_origem in (None, "instrumento") else None,
         programa=filtro.programa,
         tipo_contratacao=filtro.tipo_contratacao,
         equipamento=filtro.equipamento,
@@ -481,15 +502,35 @@ def _convenios(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
 
 
 def _propostas(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
-    # `programa`/`situacao` NÃO são repassados aqui de propósito (achado
-    # ao vivo, Bloco 7): `PropostaCandidata.nm_programa`/`situacao_proposta`
-    # usam vocabulário do TransfereGov novo, diferente do `Convenio.programa`/
-    # `situacao` (SICONV) -- aplicar o mesmo valor filtraria pra um conjunto
-    # vazio quase sempre, silenciosamente. `uf`/`ano`/`cnes` são comparáveis
-    # 1:1 entre as duas fontes. `cnes` (Bloco 8 -- lembrete do usuário
-    # "as propostas devem responder ao filtro também") faltava: sem ele,
-    # `escopo=cnes` rodava sem filtro nenhum (`ufs()`/`municipio_do_escopo()`
-    # devolvem `None` pra esse escopo por design).
+    if filtro.situacao_origem in ("instrumento", "monitoramento"):
+        return []
+    propostas = _propostas_do_recorte(db, filtro)
+    if filtro.situacao_origem == "proposta" and filtro.situacao:
+        alvo = normalizar_texto(filtro.situacao)
+        propostas = [p for p in propostas if normalizar_texto(p.situacao_proposta) == alvo]
+    # Os demais filtros valem para todas as seções; proposta é sempre "Parceria TransfereGov".
+    if filtro.tipo_contratacao and normalizar_texto(filtro.tipo_contratacao) != normalizar_texto(_TIPO_PROPOSTA):
+        return []
+    if filtro.programa:
+        alvo = normalizar_texto(filtro.programa)
+        propostas = [p for p in propostas if normalizar_texto(p.nm_programa) == alvo]
+    if filtro.busca:
+        alvo = normalizar_texto(filtro.busca)
+        propostas = [
+            p
+            for p in propostas
+            if alvo in normalizar_texto(f"{p.cd_parceria or ''} {p.id_proposta} {p.nm_proponente} {p.municipio or ''}")
+        ]
+    if filtro.equipamento:
+        ids = equipamento_marcadores_repo.ids_com_equipamento(
+            db, "proposta_candidata", {p.id for p in propostas}, filtro.equipamento
+        )
+        propostas = [p for p in propostas if p.id in ids]
+    return propostas
+
+
+def _propostas_do_recorte(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
+    # Geografia e período aqui; situação, programa, tipo, equipamento e busca em `_propostas`.
     return propostas_repo.listar_propostas_filtradas(
         db,
         ufs=filtro.ufs(),
@@ -501,11 +542,35 @@ def _propostas(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
 
 
 def _instrumentos(db: Session, filtro: FiltroRelatorio) -> list[InstrumentoComFase]:
-    # `programa` também fica de fora aqui pelo mesmo motivo do comentário
-    # acima -- é preenchido manualmente pela equipe, sem garantia de bater
-    # com `Convenio.programa` string a string. `tipo_contratacao` é o
-    # único desses 2 campos com vocabulário fechado e idêntico nas duas
-    # tabelas (Convênio/FAF/TED/PERSUS I/PERSUS II), seguro de repassar.
+    if filtro.situacao_origem in ("instrumento", "proposta"):
+        return []
+    instrumentos = _instrumentos_do_recorte(db, filtro)
+    if filtro.situacao_origem == "monitoramento" and filtro.situacao:
+        alvo = normalizar_texto(filtro.situacao)
+        instrumentos = [i for i in instrumentos if normalizar_texto(i.fase_atual) == alvo]
+    if filtro.programa:
+        alvo = normalizar_texto(filtro.programa)
+        instrumentos = [i for i in instrumentos if normalizar_texto(i.instrumento.programa) == alvo]
+    if filtro.busca:
+        alvo = normalizar_texto(filtro.busca)
+        instrumentos = [
+            i
+            for i in instrumentos
+            if alvo
+            in normalizar_texto(
+                f"{i.instrumento.nr_convenio} {i.instrumento.nome_convenente or ''} {i.instrumento.municipio or ''}"
+            )
+        ]
+    if filtro.equipamento:
+        ids = equipamento_marcadores_repo.ids_com_equipamento(
+            db, "instrumento_equipamento", {i.instrumento.id for i in instrumentos}, filtro.equipamento
+        )
+        instrumentos = [i for i in instrumentos if i.instrumento.id in ids]
+    return instrumentos
+
+
+def _instrumentos_do_recorte(db: Session, filtro: FiltroRelatorio) -> list[InstrumentoComFase]:
+    # Geografia, período e tipo aqui; situação, programa, equipamento e busca em `_instrumentos`.
     return listar_monitorados_para_relatorio(
         db=db,
         ufs=filtro.ufs(),
@@ -1315,7 +1380,7 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
     filtros_exclusivos = [
         f"{rotulo}: {valor}"
         for rotulo, valor in (
-            ("situação", filtro.situacao),
+            (filtro.rotulo_situacao().lower(), filtro.situacao),
             ("programa", filtro.programa),
             ("equipamento", filtro.equipamento),
             ("busca", filtro.busca),
@@ -1433,6 +1498,17 @@ def montar_relatorio(
 
                 return gerar_extracao(
                     extrair_encerrados(db=db, filtro=filtro.filtro_encerrados()),
+                    formato=formato,
+                    recorte=filtro.titulo(),
+                )
+            if filtro.encerramento == "entregues":
+                if tipo_relatorio != "instrumentos_repasse":
+                    raise ValidationError("Equipamento entregue só se aplica ao relatório de instrumentos e parcerias.")
+                from app.reports.entregues import gerar_extracao as gerar_entregues
+                from app.services.relatorios_entregues import extrair_entregues
+
+                return gerar_entregues(
+                    extrair_entregues(db=db, filtro=filtro.filtro_encerrados()),
                     formato=formato,
                     recorte=filtro.titulo(),
                 )
