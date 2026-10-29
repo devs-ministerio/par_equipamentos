@@ -157,7 +157,9 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    email: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(
+        String, nullable=False, comment="Dado pessoal (LGPD): e-mail de login do usuário."
+    )
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[UserRole] = mapped_column(
         PgEnum(UserRole, name="user_role", native_enum=True),
@@ -408,11 +410,13 @@ class CnesEstabelecimento(Base):
 
     cnes: Mapped[str] = mapped_column(String(7), primary_key=True)
     nome_estabelecimento: Mapped[str] = mapped_column(String, nullable=False)
-    cnpj: Mapped[str | None] = mapped_column(String)
+    cnpj: Mapped[str | None] = mapped_column(
+        String, comment="Dado cadastral do estabelecimento (CNES); pessoa jurídica."
+    )
     municipio: Mapped[str | None] = mapped_column(String)
     municipio_normalizado: Mapped[str | None] = mapped_column(String)
     uf: Mapped[str | None] = mapped_column(String(2))
-    cep: Mapped[str | None] = mapped_column(String)
+    cep: Mapped[str | None] = mapped_column(String, comment="Endereço do estabelecimento (CNES).")
     logradouro: Mapped[str | None] = mapped_column(String)
     # Achado 2026-09-16, pedido do usuário: "vamos precisar de dados como
     # latitude e longitude... para validar o cnes dos novos instrumentos/
@@ -478,7 +482,9 @@ class Convenio(Base):
     # monitoramento-ingestao: essas fontes chegam por CNES e não publicam
     # CNPJ, mesma regra já aplicada em InstrumentoEquipamento.cnpj_convenente
     # -- nunca preencher com sentinela ou CNPJ inventado).
-    convenente_cnpj: Mapped[str | None] = mapped_column(String)
+    convenente_cnpj: Mapped[str | None] = mapped_column(
+        String, comment="CNPJ do convenente (pessoa jurídica); só dígitos."
+    )
     convenente_tipo: Mapped[str | None] = mapped_column(String)
     municipio: Mapped[str | None] = mapped_column(String)
     municipio_normalizado: Mapped[str | None] = mapped_column(String)
@@ -550,8 +556,12 @@ class Convenio(Base):
     # pra essas origens, ver scripts/lib_identificadores.py) fique estável
     # sozinho. Nula pros 403 convênios reais (`numero` já é estável).
     chave_origem: Mapped[str | None] = mapped_column(String, unique=True)
-    siconv_raw: Mapped[dict | None] = mapped_column(JSONB)
-    transferegov_raw: Mapped[dict | None] = mapped_column(JSONB)
+    siconv_raw: Mapped[dict | None] = mapped_column(
+        JSONB, comment="Payload bruto do SICONV; contém CEP, endereço e telefone do item. Nunca expor inteiro na API."
+    )
+    transferegov_raw: Mapped[dict | None] = mapped_column(
+        JSONB, comment="Payload bruto do TransfereGov; pode conter dados de contato. Nunca expor inteiro na API."
+    )
     atualizado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -953,7 +963,9 @@ class InstrumentoEquipamento(Base):
     chave_origem: Mapped[str | None] = mapped_column(String, unique=True)
     # PERSUS/PRONON chegam por CNES e não publicam CNPJ nesta fonte. Nulo é
     # dado desconhecido; nunca preencher com sentinela ou CNPJ inventado.
-    cnpj_convenente: Mapped[str | None] = mapped_column(String)
+    cnpj_convenente: Mapped[str | None] = mapped_column(
+        String, comment="CNPJ do convenente (pessoa jurídica); só dígitos."
+    )
     nome_convenente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
     municipio_normalizado: Mapped[str | None] = mapped_column(String)
@@ -1128,7 +1140,9 @@ class PagamentoObraPersus(Base):
     codigo_obra: Mapped[str | None] = mapped_column(String)
     nup_pagamento: Mapped[str | None] = mapped_column(String)
     fornecedor_nome: Mapped[str | None] = mapped_column(String)
-    fornecedor_cnpj: Mapped[str | None] = mapped_column(String)
+    fornecedor_cnpj: Mapped[str | None] = mapped_column(
+        String, comment="CNPJ do fornecedor/empreiteira (pessoa jurídica); só dígitos."
+    )
     data_nota_fiscal: Mapped[date | None] = mapped_column(Date)
     data_pagamento: Mapped[date | None] = mapped_column(Date)
     valor: Mapped[float | None] = mapped_column(Numeric(16, 2))
@@ -1350,7 +1364,9 @@ class PropostaCandidata(Base):
     # diferentes, sem campo em comum), comparar contra o legado so gera
     # falso-negativo (achado 2026-09-15, corrigindo desenho anterior).
     id_proposta: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    cnpj_ente_recebedor: Mapped[str] = mapped_column(String, nullable=False)
+    cnpj_ente_recebedor: Mapped[str] = mapped_column(
+        String, nullable=False, comment="CNPJ do ente recebedor (pessoa jurídica); só dígitos."
+    )
     nm_proponente: Mapped[str] = mapped_column(String, nullable=False)
     municipio: Mapped[str | None] = mapped_column(String)
     municipio_normalizado: Mapped[str | None] = mapped_column(String)
