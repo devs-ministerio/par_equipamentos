@@ -1203,9 +1203,12 @@ class EventoMarco(Base):
             "idx_evento_marco_ativo",
             "instrumento_id",
             "marco_id",
-            unique=True,
             postgresql_where=text("substituido_por_id IS NULL AND deletado_em IS NULL"),
         ),
+        # Existe também o índice único parcial `uq_evento_marco_fase_geral_ativo` (migration
+        # c7d8e9f0a1b2): um único evento ativo por (instrumento, marco) quando o marco é de fase geral.
+        # Fica fora do modelo porque o predicado lista os ids dos marcos de fase geral, lidos do catálogo.
+        # Cronograma físico e regulatório podem repetir (um evento por equipamento ou por entrega).
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)

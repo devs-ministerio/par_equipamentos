@@ -29,12 +29,20 @@ def alembic_config() -> Config:
     return cfg
 
 
+# Criado só pela migration/seed (predicado depende do catálogo); ver app/db/indices.py.
+INDICES_FORA_DO_MODELO = {"uq_evento_marco_fase_geral_ativo"}
+
+
+def _incluir_objeto(objeto: Any, nome: str | None, tipo: str, *_: Any) -> bool:
+    return not (tipo == "index" and nome in INDICES_FORA_DO_MODELO)
+
+
 def diff_metadata_vs_banco(engine: Engine, metadata: MetaData) -> list[Any]:
     """Diff do autogenerate do Alembic entre `metadata` (app/db/models.py) e
     o schema realmente aplicado no banco de `engine`. Lista vazia = de
     acordo."""
     with engine.connect() as conn:
-        contexto = MigrationContext.configure(conn)
+        contexto = MigrationContext.configure(conn, opts={"include_object": _incluir_objeto})
         return compare_metadata(contexto, metadata)
 
 
@@ -45,7 +53,7 @@ def comparar_heads(engine: Engine, cfg: Config | None = None) -> tuple[str | Non
     head_dos_arquivos = script.get_current_head()
 
     with engine.connect() as conn:
-        contexto = MigrationContext.configure(conn)
+        contexto = MigrationContext.configure(conn, opts={"include_object": _incluir_objeto})
         head_do_banco = contexto.get_current_revision()
 
     return head_do_banco, head_dos_arquivos

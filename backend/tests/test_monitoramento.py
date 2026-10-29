@@ -73,6 +73,27 @@ from app.services.monitoramento_eventos import (
 )
 from app.services.monitoramento_instrumentos import listar_instrumentos_monitorados
 
+
+@pytest.fixture(autouse=True)
+def _limpar_eventos_criados_no_teste():
+    """Os testes deste módulo gravam eventos no banco de teste. Com o índice único de fase geral, a sobra
+    de uma execução faria a próxima falhar (409), então o que o teste criou é removido ao final."""
+    from sqlalchemy import func
+
+    with SessionLocal() as db:
+        maior = db.query(func.max(EventoMarco.id)).scalar() or 0
+    yield
+    with SessionLocal() as db:
+        novos = [i for (i,) in db.query(EventoMarco.id).filter(EventoMarco.id > maior)]
+        if novos:
+            alvo = EventoMarco.id.in_(novos)
+            # Sair do índice único antes de desfazer os vínculos entre eles.
+            db.query(EventoMarco).filter(alvo).update({EventoMarco.deletado_em: func.now()}, synchronize_session=False)
+            db.query(EventoMarco).filter(alvo).update({EventoMarco.substituido_por_id: None}, synchronize_session=False)
+            db.query(EventoMarco).filter(alvo).delete(synchronize_session=False)
+            db.commit()
+
+
 NR_CONVENIO_SEED = "948686"  # unico instrumento seedado (scripts/seed_monitoramento.py)
 
 
@@ -1455,4 +1476,40 @@ def test_atualizar_cadastro_modalidade_invalida_rejeitada():
             )
     finally:
         db.rollback()
+        db.close()
+
+
+def test_fase_geral_repetida_para_o_mesmo_instrumento_e_recusada_e_a_correcao_passa_pelo_indice():
+    """Linha única de fase geral (migration c7d8e9f0a1b2): registrar a mesma fase de novo vira 409, e a
+    correção append-only precisa tirar o antigo de cena antes de inserir o novo."""
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    try:
+        marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_em_andamento").one()
+        antigo = registrar_evento_monitorado(
+            nr_convenio=NR_CONVENIO_SEED,
+            dados=NovoEventoMonitorado(marco_id=marco_fase.id, data_ocorrencia=date(2026, 1, 1)),
+            db=db,
+            usuario=usuario,
+        )
+        with pytest.raises(ConflictError, match="já está registrada"):
+            registrar_evento_monitorado(
+                nr_convenio=NR_CONVENIO_SEED,
+                dados=NovoEventoMonitorado(marco_id=marco_fase.id, data_ocorrencia=date(2026, 1, 2)),
+                db=db,
+                usuario=usuario,
+            )
+        db.rollback()
+        novo = editar_evento_monitorado(
+            evento_id=antigo.id,
+            dados=NovoEventoMonitorado(marco_id=marco_fase.id, data_ocorrencia=date(2026, 1, 3)),
+            db=db,
+            usuario=usuario,
+        )
+        ativos = [e.id for e in _eventos_ativos_do_instrumento(db, NR_CONVENIO_SEED) if e.marco_id == marco_fase.id]
+        assert ativos == [novo.id]
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
         db.close()

@@ -1,4 +1,9 @@
-"""Consolida EventoMarco com mais de 1 evento ativo pro mesmo (instrumento, marco).
+"""Consolida EventoMarco de FASE GERAL com mais de 1 evento ativo pro mesmo (instrumento, marco).
+
+Cronograma físico e regulatório ficam de fora de propósito: ali o mesmo marco repete de verdade
+(convênio com mais de um equipamento, entrega por item e unidade, licença por equipamento). A
+primeira rodada em produção (28/10/2026) tratou todos os grupos e escondeu 98 registros desses;
+`scripts/reabrir_eventos_consolidados.py` desfaz isso nos instrumentos indicados.
 
 Achado na auditoria de banco (2026-10-28): a regra "ativo = substituido_por_id IS NULL AND
 deletado_em IS NULL, só 1 por marco" (ver docstring de EventoMarco) nunca foi garantida por
@@ -38,7 +43,7 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.db.base import SessionLocal, engine
-from app.db.models import EventoMarco
+from app.db.models import EventoMarco, MarcoCatalogo, MarcoGrupo
 
 
 @dataclass
@@ -54,9 +59,19 @@ def _chave_prioridade(evento: EventoMarco) -> tuple[bool, datetime, int]:
 
 def executar(db: Session, *, aplicar: bool) -> Resultado:
     resultado = Resultado()
-    ativos = db.execute(
-        select(EventoMarco).where(EventoMarco.substituido_por_id.is_(None), EventoMarco.deletado_em.is_(None))
-    ).scalars().all()
+    ativos = (
+        db.execute(
+            select(EventoMarco)
+            .join(MarcoCatalogo, MarcoCatalogo.id == EventoMarco.marco_id)
+            .where(
+                EventoMarco.substituido_por_id.is_(None),
+                EventoMarco.deletado_em.is_(None),
+                MarcoCatalogo.grupo == MarcoGrupo.fase_geral,
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     grupos: dict[tuple[int, int], list[EventoMarco]] = defaultdict(list)
     for evento in ativos:

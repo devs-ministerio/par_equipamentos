@@ -32,7 +32,7 @@ def db():
     transacao = conexao.begin()
     # O índice único (migration c7d8e9f0a1b2) impede criar o duplicado que este script existe para
     # consolidar; sai dentro da transação de teste e volta com o rollback.
-    conexao.exec_driver_sql("DROP INDEX IF EXISTS idx_evento_marco_ativo")
+    conexao.exec_driver_sql("DROP INDEX IF EXISTS uq_evento_marco_fase_geral_ativo")
     sessao = Session(bind=conexao, join_transaction_mode="create_savepoint")
     try:
         yield sessao
@@ -59,6 +59,10 @@ def _marco(db, codigo: str, grupo: str = "cronograma_fisico") -> MarcoCatalogo:
     return marco
 
 
+def _marco_fase_geral(db, indice: int = 0) -> MarcoCatalogo:
+    return db.query(MarcoCatalogo).filter_by(grupo="fase_geral").order_by(MarcoCatalogo.id).all()[indice]
+
+
 def _evento(db, inst, marco, *, data_ocorrencia=None, data_prevista=None, criado_em=None):
     ev = EventoMarco(
         instrumento_id=inst.id,
@@ -78,7 +82,7 @@ def _evento(db, inst, marco, *, data_ocorrencia=None, data_prevista=None, criado
 
 def test_sem_duplicado_e_noop(db):
     inst = _instrumento(db)
-    marco = _marco(db, "cronograma_entrega")
+    marco = _marco_fase_geral(db)
     _evento(db, inst, marco, data_ocorrencia=date(2026, 1, 1))
     resultado = executar(db, aplicar=True)
     assert inst.id not in resultado.por_instrumento
@@ -86,7 +90,7 @@ def test_sem_duplicado_e_noop(db):
 
 def test_resolve_vazio_mais_preenchido_apontando_pro_preenchido(db):
     inst = _instrumento(db)
-    marco = _marco(db, "cronograma_entrega")
+    marco = _marco_fase_geral(db)
     vazio = _evento(db, inst, marco, criado_em=date(2026, 9, 9))
     preenchido = _evento(db, inst, marco, data_ocorrencia=date(2026, 5, 1), criado_em=date(2026, 9, 20))
     resultado = executar(db, aplicar=True)
@@ -111,7 +115,7 @@ def test_resolve_dois_preenchidos_com_mesma_data_fica_so_o_mais_recente(db):
 
 def test_data_ocorrencia_preenchida_vence_sobre_so_data_prevista_mesmo_sendo_mais_antigo(db):
     inst = _instrumento(db)
-    marco = _marco(db, "cronograma_previsao_inauguracao")
+    marco = _marco_fase_geral(db)
     so_previsao = _evento(db, inst, marco, data_prevista=date(2026, 12, 1), criado_em=date(2026, 9, 25))
     com_ocorrencia = _evento(db, inst, marco, data_ocorrencia=date(2026, 6, 1), criado_em=date(2026, 9, 9))
     executar(db, aplicar=True)
@@ -123,7 +127,7 @@ def test_data_ocorrencia_preenchida_vence_sobre_so_data_prevista_mesmo_sendo_mai
 
 def test_tres_ativos_no_mesmo_grupo_fica_so_1_vigente(db):
     inst = _instrumento(db)
-    marco = _marco(db, "regulatorio_licenca_operacao", grupo="regulatorio")
+    marco = _marco_fase_geral(db)
     e1 = _evento(db, inst, marco, criado_em=date(2026, 9, 9))
     e2 = _evento(db, inst, marco, data_prevista=date(2026, 11, 30), criado_em=date(2026, 9, 18))
     e3 = _evento(db, inst, marco, data_prevista=date(2026, 11, 30), criado_em=date(2026, 9, 28))
@@ -138,7 +142,7 @@ def test_tres_ativos_no_mesmo_grupo_fica_so_1_vigente(db):
 
 def test_nao_altera_evento_ja_substituido_ou_deletado(db):
     inst = _instrumento(db)
-    marco = _marco(db, "cronograma_entrega")
+    marco = _marco_fase_geral(db)
     ja_substituido = _evento(db, inst, marco, data_ocorrencia=date(2026, 1, 1))
     vigente = _evento(db, inst, marco, data_ocorrencia=date(2026, 2, 1))
     ja_substituido.substituido_por_id = vigente.id
@@ -149,7 +153,7 @@ def test_nao_altera_evento_ja_substituido_ou_deletado(db):
 
 def test_simulacao_nao_grava(db):
     inst = _instrumento(db)
-    marco = _marco(db, "cronograma_entrega")
+    marco = _marco_fase_geral(db)
     vazio = _evento(db, inst, marco, criado_em=date(2026, 9, 9))
     preenchido = _evento(db, inst, marco, data_ocorrencia=date(2026, 5, 1), criado_em=date(2026, 9, 20))
     resultado = executar(db, aplicar=False)
@@ -161,9 +165,22 @@ def test_simulacao_nao_grava(db):
 
 def test_idempotente(db):
     inst = _instrumento(db)
-    marco = _marco(db, "cronograma_entrega")
+    marco = _marco_fase_geral(db)
     _evento(db, inst, marco, criado_em=date(2026, 9, 9))
     _evento(db, inst, marco, data_ocorrencia=date(2026, 5, 1), criado_em=date(2026, 9, 20))
     executar(db, aplicar=True)
     resultado = executar(db, aplicar=True)
     assert inst.id not in resultado.por_instrumento
+
+
+def test_cronograma_e_regulatorio_nao_sao_consolidados(db):
+    inst = _instrumento(db)
+    for codigo in ("cronograma_entrega", "regulatorio_matricula_cnen"):
+        marco = _marco(db, codigo)
+        primeiro = _evento(db, inst, marco, data_ocorrencia=date(2026, 1, 1), criado_em=date(2026, 9, 9))
+        segundo = _evento(db, inst, marco, data_ocorrencia=date(2026, 6, 1), criado_em=date(2026, 9, 20))
+        resultado = executar(db, aplicar=True)
+        db.refresh(primeiro)
+        db.refresh(segundo)
+        assert inst.id not in resultado.por_instrumento
+        assert primeiro.substituido_por_id is None and segundo.substituido_por_id is None

@@ -40,7 +40,7 @@ from app.db.models import (
     UserRole,
     UserStatus,
 )
-from app.domain_errors import NotFoundError, ValidationError
+from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 
@@ -373,6 +373,10 @@ def registrar_evento_monitorado(
     evento_anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
         db, instrumento_id=instrumento.id, marco_id=dados.marco_id
     )
+    if marco.grupo == MarcoGrupo.fase_geral and evento_anterior is not None:
+        raise ConflictError(
+            f"A fase \"{marco.rotulo}\" já está registrada para {nr_convenio}. Edite o lançamento existente."
+        )
     reprogramou = bool(
         dados.data_prevista
         and evento_anterior
@@ -483,8 +487,7 @@ def editar_evento_monitorado(
         observacao=_compor_observacao(usuario.name, dados.observacao),
         autor_id=usuario.id,
     )
-    monitoramento_repo.adicionar_evento(db, novo)
-    antigo.substituido_por_id = novo.id
+    monitoramento_repo.substituir_evento(db, antigo, novo)
     antigo.atualizado_em = _agora_utc()
     log_action(
         db,

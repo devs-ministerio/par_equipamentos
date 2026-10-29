@@ -438,6 +438,18 @@ def adicionar_evento(db: Session, evento: EventoMarco) -> None:
     db.flush()
 
 
+def substituir_evento(db: Session, antigo: EventoMarco, novo: EventoMarco) -> None:
+    """Persiste `novo` no lugar de `antigo` (correção append-only).
+
+    O índice único de fase geral não admite dois ativos do mesmo marco nem por um instante, e o
+    `novo.id` só existe depois do INSERT. Por isso o antigo sai de cena apontando para si mesmo, o
+    novo entra e só então o antigo passa a apontar para o novo."""
+    antigo.substituido_por_id = antigo.id
+    db.flush()
+    adicionar_evento(db, novo)
+    antigo.substituido_por_id = novo.id
+
+
 def adicionar_acao(db: Session, acao: AcaoMonitoramento) -> None:
     """Persiste ação monitorada e materializa sua chave primária."""
     db.add(acao)
