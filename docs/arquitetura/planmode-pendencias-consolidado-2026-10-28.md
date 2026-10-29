@@ -237,6 +237,15 @@ Registrar aqui cada ajuste que o usuário for apontando, no formato ID, pendênc
 
 | ID | Pendência | Estado | Critério de pronto |
 |----|-----------|--------|--------------------|
+| P1 | Integridade e confiança dos dados (D24 a D27, D32, D33, D40): reabertura silenciosa de ação concluída, licença com cronologia incoerente, conclusão sem data, resultados de PET-CT que divergem da fórmula, classificação de equipamento por fonte única | aberta | cada caso reproduzido e conferido em produção por procedimento próprio, antes de qualquer reparo de dados |
+| P2 | Conclusão e referência temporal (D01 a D07, D15, D17, D41, D42): destacar concluídos, data real e previsão; separar vigência, pagamento, entrega e conclusão; período por data de evento | aberta | cenários de aceite da seção 7 do diagnóstico |
+| P3 | Operação sem efeito inesperado (D16, D23, D31, D38, D46, D53, D57): Cancelar nas edições, filtro ativo sempre visível, leitura em lote com alcance explícito, contexto preservado | aberta | cada caso reproduzido e corrigido |
+| P4 | Carteira e financiamento (D03, D20, D21): FAF manual e API e TED em Linhas de financiamento, conciliação sem fusão por CNES | aberta (decisão do usuário sobre nome e grupo) | contagem única, vínculos preservados |
+| P5 | Leitura executiva e rastreabilidade (D08 a D14, D18, D43 a D49, D54 a D56) | aberta | itens do diagnóstico, seção 16, ordem 5 |
+| P6 | Radar e coleta (D50 a D52) | aberta | validação com candidatos oficiais elegíveis |
+| P7 | **Notificações chegam a mais pessoas do que deveriam.** Verificado em 29/10 na produção (só leitura): a leitura filtra certo por destinatário e os 8 colaboradores ativos recebem em média 1,4 aviso de instrumento (não todos); quem recebe tudo são os 7 gestores/admins (regra do plano de 25/09). O espalhamento vem do **fallback**: instrumento sem titular/suplente envia para todo colaborador. Dos 928 avisos entregues a colaboradores (`edicao_manual` e `atualizacao_api`), 154 (17%) saíram desse fallback (49 com o instrumento ainda sem responsável, 105 com responsável designado depois do aviso, 7 usuários e 16 instrumentos). Hoje 44 dos 385 instrumentos não têm responsável. `proposta_candidata` e `alerta_vigencia` sem instrumento também vão a todos por decisão anterior | aberta (decisão do usuário) | decidir a regra do fallback (por exemplo, só gestores/admins quando não há responsável) e, se mudar, atualizar `CLAUDE.md`, `resolver_destinatarios` e os testes; aviso já enviado não é retroativo |
+
+Origem de P1 a P6: `diagnostico-relatorios-financiamento-2026-10-29.md` (57 registros: 16 P1 e 27 P2). Nenhum item foi implementado.
 
 ## 5. Espaço para complementar
 Acrescentar aqui frentes de outros planos, no mesmo formato (ID, pendência, estado, critério de pronto).
