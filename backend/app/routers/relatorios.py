@@ -30,7 +30,7 @@ _MEDIA_TYPE = {
 }
 
 
-@router.get("")
+@router.get("", response_model=None, response_class=StreamingResponse)
 def gerar_relatorio(
     formato: Literal["xlsx", "docx"],
     tipo_relatorio: Literal["instrumentos_repasse", "analise_merito"] = "instrumentos_repasse",

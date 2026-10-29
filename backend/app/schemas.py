@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from email_validator import EmailNotValidError, validate_email
 from pydantic import AfterValidator, BaseModel, ConfigDict
@@ -361,3 +361,21 @@ class FacilityOptionRead(BaseModel):
     health_region_code: str | None
     health_region_name: str | None
     municipality_name: str | None
+
+
+class StatusOk(BaseModel):
+    status: Literal["ok"] = "ok"
+
+
+class SessaoIniciada(StatusOk):
+    """Login, ativação, redefinição e refresh: a sessão vive nos cookies; o corpo só traz o token CSRF."""
+
+    csrf_token: str
+
+
+class CsrfRead(BaseModel):
+    csrf_token: str
+
+
+class HealthRead(StatusOk):
+    database: Literal["connected"]
