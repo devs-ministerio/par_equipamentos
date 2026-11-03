@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +9,7 @@ import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useMonitoramentoInternoFiltros } from "@/hooks/use-monitoramento-interno-filtros";
 import { fmtMoeda } from "@/lib/monitoramento-format";
+import { rotulosEquipamentoDoInstrumento } from "@/lib/monitoramento-filtro-equipamentos";
 import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
 import { MetricStrip } from "@/components/common/metric-strip";
 import {
@@ -44,6 +46,16 @@ export function MonitoramentoPainelPage() {
   );
   const marcos = marcosQuery.data;
   const convenios = conveniosQuery.data?.itens;
+  const equipamentosPorNumero = useMemo(
+    () =>
+      new Map(
+        (convenios ?? []).map((item) => [
+          item.numero,
+          rotulosEquipamentoDoInstrumento(item.equipamentos),
+        ]),
+      ),
+    [convenios],
+  );
 
   if (
     resumoQuery.isError ||
@@ -146,7 +158,10 @@ export function MonitoramentoPainelPage() {
         ]}
       />
 
-      <MonitoramentoPainelGeografia instrumentos={instrumentosFiltrados} />
+      <MonitoramentoPainelGeografia
+        instrumentos={instrumentosFiltrados}
+        equipamentosPorNumero={equipamentosPorNumero}
+      />
 
       <MonitoramentoPainelAnalises
         instrumentos={instrumentosFiltrados}

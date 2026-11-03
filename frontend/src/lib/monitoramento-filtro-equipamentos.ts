@@ -22,6 +22,23 @@ export function equipamentosPorInstrumento(
   return new Map(fontes.map((fonte) => [fonte.numero, fonte.equipamentos]));
 }
 
+/** Rótulos canônicos do instrumento (um por equipamento distinto), vindos só dos marcadores. Vazio = sem classificação. */
+export function rotulosEquipamentoDoInstrumento(
+  marcadores: ReadonlyArray<{ nome: string }> | undefined,
+): string[] {
+  const rotulos = new Map<string, string>();
+  for (const marcador of marcadores ?? []) {
+    const chave = chaveEquipamentoFiltro(marcador.nome);
+    if (!chave || rotulos.has(chave)) continue;
+    rotulos.set(
+      chave,
+      nomePrioritarioCanonico(marcador.nome) ??
+        marcador.nome.replace(/^\s*\d+\s*-\s*/, "").trim(),
+    );
+  }
+  return [...rotulos.values()];
+}
+
 export function opcoesEquipamentosFiltro(
   numeros: ReadonlySet<string>,
   fontes: readonly FonteEquipamentosFiltro[],

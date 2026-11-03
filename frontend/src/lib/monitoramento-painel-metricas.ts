@@ -1,4 +1,4 @@
-import { nomePrioritarioCanonico } from "@/lib/equipamento-catalogo";
+import { rotulosEquipamentoDoInstrumento } from "@/lib/monitoramento-filtro-equipamentos";
 import { diasAte } from "@/lib/monitoramento-format";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 import type {
@@ -6,22 +6,6 @@ import type {
   ResumoMonitoramento,
 } from "@/services/monitoramento-resumo";
 import type { ConvenioUnificado } from "@/types/monitoramento";
-import { normalizarTexto } from "@/utils/texto";
-
-function extrairFamilia(descricao: string | null): string {
-  if (!descricao) return "Não informado";
-  const prioritario = nomePrioritarioCanonico(descricao);
-  if (prioritario) return prioritario;
-  const texto = normalizarTexto(descricao);
-  if (texto.includes("tomograf")) return "Tomógrafo";
-  if (texto.includes("ressonancia")) return "Ressonância Magnética";
-  if (texto.includes("ultrasson") || texto.includes("ultrasom"))
-    return "Ultrassom";
-  if (texto.includes("endoscopia")) return "Endoscopia";
-  if (texto.includes("cintilograf") || texto.includes("gama probe"))
-    return "Medicina Nuclear";
-  return "Outro";
-}
 
 function contar(rotulos: string[]): ContagemRotulo[] {
   const mapa = new Map<string, number>();
@@ -241,8 +225,15 @@ export function montarMetricasPainel(
     fases: contar(
       instrumentos.map((item) => item.fase_atual ?? "Não iniciado"),
     ),
+    // Conta instrumentos por equipamento, pelos marcadores canônicos (mesma fonte do filtro). Instrumento com
+    // mais de um equipamento entra em cada um, então esta distribuição pode somar mais que o total de instrumentos.
     porEquipamento: contar(
-      instrumentos.map((item) => extrairFamilia(item.equipamento_descricao)),
+      instrumentos.flatMap((item) => {
+        const rotulos = rotulosEquipamentoDoInstrumento(
+          conveniosPorNumero.get(item.nr_convenio)?.equipamentos,
+        );
+        return rotulos.length ? rotulos : ["Não informado"];
+      }),
     ),
     porTecnico: contar(
       instrumentos.map((item) => item.tecnico_titular ?? "Não informado"),

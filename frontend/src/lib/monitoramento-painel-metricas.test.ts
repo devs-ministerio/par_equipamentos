@@ -133,6 +133,24 @@ describe("montarMetricasPainel", () => {
     expect(dados.pontosAtencao).toBe(0);
   });
 
+  it("conta o equipamento pelos marcadores, não pela descrição planejada", () => {
+    const comMamografo = {
+      ...convenio("1", 100, 40),
+      equipamentos: [{ nome: "Mamógrafo", prioritario: true }],
+    } as unknown as ConvenioUnificado;
+    const dados = montarMetricasPainel(
+      [{ ...instrumento("1"), equipamento_descricao: null }, instrumento("2")],
+      resumo,
+      [comMamografo, convenio("2", 200, null)],
+    );
+    const rotulos = dados.porEquipamento.map((item) => item.rotulo);
+    expect(rotulos).toContain("Mamógrafo");
+    expect(
+      dados.porEquipamento.find((i) => i.rotulo === "Não informado")
+        ?.quantidade,
+    ).toBe(1);
+  });
+
   it("inclui instrumentos sem marco como 0% na média referencial da carteira", () => {
     const dados = montarMetricasPainel(
       [instrumento("1"), instrumento("2"), instrumento("3")],

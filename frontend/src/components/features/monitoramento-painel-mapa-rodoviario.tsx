@@ -10,7 +10,11 @@ import { caminhoAtual, urlDetalheInstrumento } from "@/lib/navegacao-retorno";
 
 type GeoMacrorregioes = FeatureCollection<Geometry, GeoJsonProperties>;
 
-function popupDoLocal(local: LocalInstrumentos, retorno: string) {
+function popupDoLocal(
+  local: LocalInstrumentos,
+  retorno: string,
+  equipamentosPorNumero?: ReadonlyMap<string, string[]>,
+) {
   const popup = document.createElement("div");
   popup.className = "max-w-72 p-1 font-sans";
   const titulo = document.createElement("p");
@@ -33,8 +37,10 @@ function popupDoLocal(local: LocalInstrumentos, retorno: string) {
     link.textContent = `${instrumento.nr_convenio} · ${instrumento.nome_convenente}`;
     const equipamento = document.createElement("p");
     equipamento.className = "mt-1 text-xs text-foreground";
-    equipamento.textContent =
-      instrumento.equipamento_descricao ?? "Equipamento não informado";
+    const classificados = equipamentosPorNumero?.get(instrumento.nr_convenio);
+    equipamento.textContent = classificados?.length
+      ? classificados.join(", ")
+      : (instrumento.equipamento_descricao ?? "Equipamento não informado");
     const detalhe = document.createElement("p");
     detalhe.className = "mt-1 text-[11px] text-muted-foreground";
     detalhe.textContent = `CNES ${instrumento.cnes ?? "não informado"} · ${instrumento.fase_atual ?? "Não iniciado"}`;
@@ -52,10 +58,12 @@ export function MonitoramentoPainelMapaRodoviario({
   geo,
   macroId,
   locais,
+  equipamentosPorNumero,
 }: {
   geo: GeoMacrorregioes;
   macroId: string;
   locais: LocalInstrumentos[];
+  equipamentosPorNumero?: ReadonlyMap<string, string[]>;
 }) {
   const retorno = caminhoAtual(useLocation());
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,7 +108,9 @@ export function MonitoramentoPainelMapaRodoviario({
         title: `${local.instrumentos.length} ${local.instrumentos.length === 1 ? "instrumento" : "instrumentos"} nesta localização`,
         keyboard: true,
       })
-        .bindPopup(popupDoLocal(local, retorno), { maxWidth: 320 })
+        .bindPopup(popupDoLocal(local, retorno, equipamentosPorNumero), {
+          maxWidth: 320,
+        })
         .addTo(conteudo);
       limites.extend(marcador.getLatLng());
     }
@@ -117,7 +127,15 @@ export function MonitoramentoPainelMapaRodoviario({
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [geo, macroId, locais, retorno, mapRef, conteudoRef]);
+  }, [
+    geo,
+    macroId,
+    locais,
+    retorno,
+    equipamentosPorNumero,
+    mapRef,
+    conteudoRef,
+  ]);
 
   return (
     <div

@@ -22,8 +22,11 @@ const MonitoramentoPainelMapaRodoviario = lazy(() =>
 
 export function MonitoramentoPainelGeografia({
   instrumentos,
+  equipamentosPorNumero,
 }: {
   instrumentos: InstrumentoEquipamento[];
+  /** Rótulos canônicos por instrumento (marcadores); sem eles, cai na descrição planejada. */
+  equipamentosPorNumero?: ReadonlyMap<string, string[]>;
 }) {
   const geoQuery = useMacroGeojson();
   // Usa a nomenclatura já exibida no Mapa de Cobertura, sem usar nenhum
@@ -172,6 +175,7 @@ export function MonitoramentoPainelGeografia({
                       geo={geoQuery.data}
                       macroId={macroSelecionada}
                       locais={locais}
+                      equipamentosPorNumero={equipamentosPorNumero}
                     />
                   </Suspense>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -251,8 +255,13 @@ export function MonitoramentoPainelGeografia({
                           {instrumento.nome_convenente}
                         </LinkDetalheInstrumento>
                         <p className="mt-1 text-xs text-foreground">
-                          {instrumento.equipamento_descricao ??
-                            "Equipamento não informado"}
+                          {equipamentosPorNumero?.get(instrumento.nr_convenio)
+                            ?.length
+                            ? equipamentosPorNumero
+                                .get(instrumento.nr_convenio)
+                                ?.join(", ")
+                            : (instrumento.equipamento_descricao ??
+                              "Equipamento não informado")}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {instrumento.nr_convenio} · CNES{" "}
