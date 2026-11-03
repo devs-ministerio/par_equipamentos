@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ClipboardCheck, Clock, LogOut, RefreshCw, Users } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useTempoSessao } from "@/hooks/useTempoSessao";
+import { destinoDe } from "@/lib/destino-retorno";
 import { formatarTempoRestante } from "@/lib/sessao-expiracao";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ function CaixaSessao({ tempo }: { tempo: TempoSessao }) {
         {tempo.restanteMs === null ? (
           "Calculando…"
         ) : tempo.expirada ? (
-          "Expirada — será renovada na próxima ação"
+          "Expirada — tentaremos renovar na próxima ação"
         ) : (
           <>
             Expira em{" "}
@@ -193,7 +194,7 @@ export function UserMenu({
   }
 
   function abrirLogin() {
-    navigate("/login", { state: { from: location.pathname } });
+    navigate("/login", { state: { from: destinoDe(location) } });
     onNavigate?.();
   }
 

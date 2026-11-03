@@ -8,9 +8,9 @@ import { HttpTimeoutError } from "@/lib/http-prazo";
  * globais por padrão. `httpFetch` usa `typeof window !== 'undefined'` como
  * guarda (não quebra em SSR/teste), então o redirect só é observável se a
  * gente empilhar um `window`/`document` falso antes de cada teste. */
-function stubBrowserGlobals(pathname = "/dashboard") {
+function stubBrowserGlobals(pathname = "/dashboard", search = "", hash = "") {
   const assign = vi.fn();
-  vi.stubGlobal("window", { location: { pathname, assign } });
+  vi.stubGlobal("window", { location: { pathname, search, hash, assign } });
   vi.stubGlobal("document", { cookie: "sigeo_csrf=token-abc" });
   return { assign };
 }
@@ -329,7 +329,11 @@ describe("lib/http-client", () => {
   });
 
   it("/auth/refresh e /auth/logout nunca tentam renovar (evita loop) e redirecionam em 401 definitivo", async () => {
-    const { assign } = stubBrowserGlobals("/monitoramento-equipamentos");
+    const { assign } = stubBrowserGlobals(
+      "/monitoramento-equipamentos/painel",
+      "?uf=SC&busca=Sa%C3%BAde",
+      "#mapa",
+    );
     fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(401, {})));
 
     await expect(
@@ -339,7 +343,10 @@ describe("lib/http-client", () => {
     // Só a chamada original -- nenhuma tentativa de POST /auth/refresh
     // (evitaria loop óbvio: 401 em /auth/refresh tentando se renovar via /auth/refresh).
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(assign).toHaveBeenCalledWith("/login");
+    // Guarda página, filtros e fragmento para voltar após o login.
+    expect(assign).toHaveBeenCalledWith(
+      `/login?retorno=${encodeURIComponent("/monitoramento-equipamentos/painel?uf=SC&busca=Sa%C3%BAde#mapa")}`,
+    );
   });
 
   it("redirecionarEm401:false não redireciona (uso de fetchCurrentUser em página pública)", async () => {

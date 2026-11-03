@@ -9,7 +9,14 @@
  * resto do módulo) em vez de duplicar o form. Depois de logar, volta pra
  * onde o usuário veio (`location.state.from`, setado pelo botão "Login" do
  * header em UserMenu.tsx) ou pro Painel Geral por padrão. */
-import { useNavigate, useLocation, Link, Navigate } from "react-router-dom";
+import {
+  useNavigate,
+  useLocation,
+  useSearchParams,
+  Link,
+  Navigate,
+} from "react-router-dom";
+import { destinoSeguro } from "@/lib/destino-retorno";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { MonitoramentoInternoFormLogin } from "@/components/features/monitoramento-interno-form-login";
@@ -20,8 +27,10 @@ export function LoginPage() {
   const sessao = useAuthSession();
   const navigate = useNavigate();
   const location = useLocation();
+  const [params] = useSearchParams();
   const destino =
-    (location.state as { from?: string } | null)?.from ||
+    destinoSeguro((location.state as { from?: string } | null)?.from) ??
+    destinoSeguro(params.get("retorno")) ??
     "/monitoramento-equipamentos";
 
   if (sessao.autenticado) {

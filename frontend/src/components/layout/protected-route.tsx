@@ -9,6 +9,7 @@
  * página, mesmo com sessão válida. */
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { destinoDe } from "@/lib/destino-retorno";
 import { ErrorAlert } from "@/components/common/error-alert";
 
 export function ProtectedRoute() {
@@ -42,7 +43,7 @@ export function ProtectedRoute() {
   }
 
   if (!sessao.autenticado) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace state={{ from: destinoDe(location) }} />;
   }
 
   return <Outlet />;
