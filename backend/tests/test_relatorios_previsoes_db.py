@@ -91,3 +91,38 @@ def test_periodo_por_data_do_evento_nao_vale_em_previsoes(db, numero):
             tipo_relatorio="instrumentos_repasse",
             filtro=_filtro(numero, periodo_por="data_do_evento"),
         )
+
+
+def test_filtro_de_contratacao_reconhece_faf_e_pronon_nas_propostas(db):
+    from app.db.models import PropostaCandidata
+    from app.services.relatorios_recorte import _propostas
+
+    marca = int(uuid4().int % 10**8) + 900_000_000
+    for deslocamento, programa, metas in (
+        (0, "ATENÇÃO ESPECIALIZADA EM SAÚDE", {"d": "Normas na modalidade Fundo a Fundo"}),
+        (1, "Pronon - Serviços médico-assistenciais", {}),
+        (2, "ATENÇÃO ESPECIALIZADA EM SAÚDE", {}),
+    ):
+        db.add(
+            PropostaCandidata(
+                id_proposta=marca + deslocamento,
+                cnpj_ente_recebedor="12345678000190",
+                nm_proponente=f"Proponente D03 {marca}",
+                ds_objeto="x",
+                nm_programa=programa,
+                id_programa=1,
+                componente_batido="x",
+                metas_resumo=metas,
+                uf="SP",
+            )
+        )
+    db.flush()
+
+    def ids(tipo):
+        filtro = FiltroRelatorio(escopo="brasil", tipo_contratacao=tipo, busca=f"D03 {marca}")
+        return sorted(p.id_proposta - marca for p in _propostas(db, filtro))
+
+    assert ids("FAF") == [0]
+    assert ids("PRONON") == [1]
+    assert ids("Parceria TransfereGov") == [2]
+    assert ids("TED") == []

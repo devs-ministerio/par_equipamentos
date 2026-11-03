@@ -37,6 +37,7 @@ export function criarPropostaPrevia(
     cnes_nome_estabelecimento: null,
     tem_parceria: false,
     cd_parceria: null,
+    tipo_contratacao: "Parceria TransfereGov",
     created_at: "2026-10-20T10:00:00Z",
     ...overrides,
   };

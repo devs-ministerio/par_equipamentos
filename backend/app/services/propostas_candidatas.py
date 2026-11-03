@@ -8,6 +8,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.db.models import PropostaCandidata
+from app.pipeline.tipo_proposta import evidencia_fundo_a_fundo, tipo_da_proposta
 from app.repositories.cnes_estabelecimento import nomes_por_cnes
 from app.repositories.equipamento_marcadores import listar_por_origens
 from app.repositories.propostas_candidatas import FiltrosPropostaCandidata, listar_propostas_paginadas
@@ -22,6 +23,9 @@ def _com_nome_cnes(db: Session, propostas: list[PropostaCandidata]) -> list[Prop
         PropostaCandidataRead.model_validate(p).model_copy(
             update={
                 "cnes_nome_estabelecimento": nomes.get(p.cnes or ""),
+                "tipo_contratacao": tipo_da_proposta(
+                    p.nm_programa, fundo_a_fundo=evidencia_fundo_a_fundo(p.metas_resumo)
+                ),
                 "equipamentos": serializar_marcadores(marcadores.get(("proposta_candidata", p.id), [])),
             }
         )

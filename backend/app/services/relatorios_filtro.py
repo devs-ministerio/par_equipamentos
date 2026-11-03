@@ -35,7 +35,6 @@ _ROTULO_GRUPO_MARCO = {
     MarcoGrupo.regulatorio: "Regulatório",
 }
 
-_TIPO_PROPOSTA = "Parceria TransfereGov"
 
 
 @dataclass(frozen=True)

@@ -86,6 +86,9 @@ class FatoEncerramento(BaseModel):
     numero: str
     nome: str
     tipo: str
+    # Tipo resolvido da proposta (FAF, PRONON...) só para o filtro; `tipo` segue a chave de conciliação com o
+    # instrumento monitorado, que nasce como "Parceria TransfereGov".
+    tipo_filtro: str | None = None
     uf: str | None = None
     municipio: str | None = None
     cnes: str | None = None

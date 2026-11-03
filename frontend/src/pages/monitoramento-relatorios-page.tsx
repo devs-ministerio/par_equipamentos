@@ -34,7 +34,6 @@ import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
 import type { NivelRelatorio, FiltroRelatorio } from "@/services/relatorios";
 
 const situacaoExibida = (item: ConvenioUnificado) => item.situacao;
-const TIPO_PROPOSTA = "Parceria TransfereGov";
 const SEM_MONITORADOS = new Set<string>();
 const TEM_ACENTO = /[À-ÖØ-öø-ÿ]/;
 type IgnorarExtra = "municipio" | "cnes" | "estabelecimento";
@@ -314,6 +313,18 @@ export function MonitoramentoRelatoriosPage() {
     [situacaoInstrumentoOptions, faseMonitoramento, propostas],
   );
 
+  // Os tipos das propostas (ex.: FAF, PRONON) também são opções, mesmo sem instrumento do tipo.
+  const tipoOptions = useMemo(() => {
+    const existentes = new Set(tipoContratacaoOptions.map((o) => o.value));
+    const extras = [
+      ...new Set(propostas.map((p) => p.tipo_contratacao)),
+    ].filter((tipo) => !existentes.has(tipo));
+    return [
+      ...tipoContratacaoOptions,
+      ...extras.map((value) => ({ value, label: value })),
+    ];
+  }, [tipoContratacaoOptions, propostas]);
+
   const propostasFiltradas = useMemo(
     () =>
       propostas.filter((p) => {
@@ -322,7 +333,8 @@ export function MonitoramentoRelatoriosPage() {
           origemSituacao === "monitoramento"
         )
           return false;
-        if (tipoContratacao && tipoContratacao !== TIPO_PROPOSTA) return false;
+        if (tipoContratacao && tipoContratacao !== p.tipo_contratacao)
+          return false;
         if (
           situacaoEscolhida &&
           normalizarTexto(p.situacao_proposta ?? "") !==
@@ -597,7 +609,7 @@ export function MonitoramentoRelatoriosPage() {
         )}
         <SingleSelectFilter
           placeholder="Contratação"
-          options={tipoContratacaoOptions}
+          options={tipoOptions}
           value={tipoContratacao}
           onChange={setTipoContratacao}
           clearLabel="Contratação"

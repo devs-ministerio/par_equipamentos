@@ -74,7 +74,6 @@ from app.services.relatorios_filtro import (  # noqa: F401
     _ROTULO_GRUPO_MARCO,
     _SITUACAO_SEM_MONITORAMENTO_ESPERADO,
     _TIPO_EM_CONTRATACAO,
-    _TIPO_PROPOSTA,
     Escopo,
     FiltroRelatorio,
     Formato,

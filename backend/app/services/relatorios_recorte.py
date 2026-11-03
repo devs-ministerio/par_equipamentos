@@ -12,11 +12,12 @@ from app.db.models import (
     PropostaCandidata,
 )
 from app.pipeline.texto import normalizar_texto
+from app.pipeline.tipo_proposta import evidencia_fundo_a_fundo, tipo_da_proposta
 from app.repositories import convenios as convenios_repo
 from app.repositories import equipamento_marcadores as equipamento_marcadores_repo
 from app.repositories import propostas_candidatas_relatorio as propostas_repo
 from app.services.monitoramento_instrumentos import InstrumentoComFase, listar_monitorados_para_relatorio
-from app.services.relatorios_filtro import _TIPO_PROPOSTA, FiltroRelatorio
+from app.services.relatorios_filtro import FiltroRelatorio
 
 # ---------------------------------------------------------------------
 # Instrumentos e repasse (convênios + propostas candidatas + monitoramento).
@@ -57,8 +58,14 @@ def _propostas(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
         alvo = normalizar_texto(filtro.situacao)
         propostas = [p for p in propostas if normalizar_texto(p.situacao_proposta) == alvo]
     # Os demais filtros valem para todas as seções; proposta é sempre "Parceria TransfereGov".
-    if filtro.tipo_contratacao and normalizar_texto(filtro.tipo_contratacao) != normalizar_texto(_TIPO_PROPOSTA):
-        return []
+    if filtro.tipo_contratacao:
+        alvo = normalizar_texto(filtro.tipo_contratacao)
+        propostas = [
+            p
+            for p in propostas
+            if normalizar_texto(tipo_da_proposta(p.nm_programa, fundo_a_fundo=evidencia_fundo_a_fundo(p.metas_resumo)))
+            == alvo
+        ]
     if filtro.programa:
         alvo = normalizar_texto(filtro.programa)
         propostas = [p for p in propostas if normalizar_texto(p.nm_programa) == alvo]

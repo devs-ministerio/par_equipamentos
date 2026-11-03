@@ -30,7 +30,7 @@ def _corresponde(fato: FatoEncerramento, filtro: FiltroEncerramento) -> bool:
         return False
     for campo in ("municipio", "cnes", "programa", "tipo_contratacao", "situacao"):
         valor = getattr(filtro, campo)
-        origem = {"tipo_contratacao": fato.tipo, "situacao": fato.situacao_carteira}.get(
+        origem = {"tipo_contratacao": fato.tipo_filtro or fato.tipo, "situacao": fato.situacao_carteira}.get(
             campo, getattr(fato, campo, None)
         )
         if valor and normalizar_texto(valor) != normalizar_texto(origem):
