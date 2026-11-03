@@ -327,4 +327,45 @@ describe("useMonitoramentoInternoFiltros", () => {
     expect(result.current.filtrados).toHaveLength(2);
     expect(result.current.hasFiltros).toBe(false);
   });
+  it("período por inauguração realizada traz instrumento antigo e identifica quem não tem a data", () => {
+    // Given: um instrumento de 2020 inaugurado em 2026, outro só com previsão e outro sem data
+    const antigo = { ...instrumentos[0]!, ano_instrumento: 2020 };
+    const previsto = { ...instrumentos[1]!, ano_instrumento: 2026 };
+    const semData = {
+      ...instrumentos[1]!,
+      nr_convenio: "sem-data",
+      ano_instrumento: 2026,
+    };
+    const datas = [
+      { nr_convenio: antigo.nr_convenio, data: "2026-03-01", realizada: true },
+      {
+        nr_convenio: previsto.nr_convenio,
+        data: "2026-12-01",
+        realizada: false,
+      },
+    ];
+    const { result } = renderHook(
+      () =>
+        useMonitoramentoInternoFiltros([antigo, previsto, semData], [], datas),
+      {
+        wrapper: ({ children }) => (
+          <MemoryRouter
+            initialEntries={[
+              "/?referencia=inauguracao_realizada&ano_inicio=2026&ano_fim=2026",
+            ]}
+          >
+            {children}
+          </MemoryRouter>
+        ),
+      },
+    );
+    // Then
+    expect(result.current.filtrados.map((i) => i.nr_convenio)).toEqual([
+      antigo.nr_convenio,
+    ]);
+    expect(result.current.semDataNaReferencia).toBe(2);
+    // Voltar ao ano do instrumento limpa o intervalo e devolve todo o universo, inclusive o sem data.
+    act(() => result.current.setReferencia(null));
+    expect(result.current.filtrados).toHaveLength(3);
+  });
 });

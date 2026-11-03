@@ -2,6 +2,7 @@ import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
 import { SearchInput } from "@/components/common/search-input";
+import { OPCOES_REFERENCIA } from "@/lib/referencia-periodo-painel";
 import type { FiltrosMonitoramentoInterno } from "@/hooks/use-monitoramento-interno-filtros";
 
 export function MonitoramentoInternoFiltros({
@@ -99,6 +100,18 @@ export function MonitoramentoInternoFiltros({
         clearLabel="Programas"
         minWidth={160}
       />
+      {filtros.temReferencias && (
+        <SingleSelectFilter
+          placeholder="Período por"
+          options={OPCOES_REFERENCIA}
+          value={
+            filtros.referencia === "ano_instrumento" ? null : filtros.referencia
+          }
+          onChange={filtros.setReferencia}
+          clearLabel="Ano do instrumento"
+          minWidth={170}
+        />
+      )}
       <AnoIntervaloFilter
         options={filtros.anoOptions}
         inicio={filtros.anoInicio}
@@ -107,6 +120,12 @@ export function MonitoramentoInternoFiltros({
         onFimChange={filtros.setAnoFim}
         onIntervaloChange={filtros.setPeriodo}
       />
+      {filtros.semDataNaReferencia > 0 && (
+        <p className="w-full text-xs text-muted-foreground" role="status">
+          {filtros.semDataNaReferencia} instrumentos sem esta data ficam fora do
+          período; escolha &quot;Ano do instrumento&quot; para vê-los.
+        </p>
+      )}
     </FilterWorkspace>
   );
 }

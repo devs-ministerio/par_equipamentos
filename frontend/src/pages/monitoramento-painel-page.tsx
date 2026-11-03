@@ -44,6 +44,7 @@ export function MonitoramentoPainelPage() {
   const filtros = useMonitoramentoInternoFiltros(
     instrumentos ?? [],
     conveniosQuery.data?.itens ?? [],
+    resumo?.inauguracoes ?? null,
   );
   const marcos = marcosQuery.data;
   const convenios = conveniosQuery.data?.itens;
