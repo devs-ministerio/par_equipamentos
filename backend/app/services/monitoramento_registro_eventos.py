@@ -259,6 +259,9 @@ def editar_evento_monitorado(
         raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
         raise ValidationError("A data realizada não pode estar no futuro.")
+    if marco.codigo == "fase_concluido" and dados.data_ocorrencia is None:
+        # Mesma invariante da criação (achado D27): a correção não pode deixar a conclusão sem data.
+        raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
 
     novo = EventoMarco(
         instrumento_id=antigo.instrumento_id,

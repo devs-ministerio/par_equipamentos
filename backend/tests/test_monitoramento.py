@@ -1237,6 +1237,49 @@ def test_fase_geral_rejeita_data_prevista_e_conclusao_sem_confirmacao():
         db.close()
 
 
+def test_corrigir_conclusao_sem_data_e_recusado_e_com_data_passa():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    instrumento = InstrumentoEquipamento(
+        nr_convenio=f"PYTEST-CORRECAO-{uuid4()}",
+        nome_convenente="Convenente Pytest",
+        tipo_contratacao="Convênio",
+    )
+    try:
+        db.add(instrumento)
+        db.flush()
+        marco = db.query(MarcoCatalogo).filter_by(codigo="fase_concluido").one()
+        concluido = registrar_evento_monitorado(
+            nr_convenio=instrumento.nr_convenio,
+            dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2025, 9, 2), confirmar_inauguracao=True),
+            db=db,
+            usuario=usuario,
+        )
+
+        with pytest.raises(ValidationError, match="Informe a data de ocorrência"):
+            editar_evento_monitorado(
+                evento_id=concluido.id,
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=None),
+                db=db,
+                usuario=usuario,
+            )
+        db.refresh(concluido)
+        assert concluido.substituido_por_id is None  # recusa não grava nada
+
+        corrigido = editar_evento_monitorado(
+            evento_id=concluido.id,
+            dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2025, 9, 3)),
+            db=db,
+            usuario=usuario,
+        )
+        assert corrigido.data_ocorrencia == date(2025, 9, 3)
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
+        db.close()
+
+
 def test_excluir_evento_monitorado_soft_delete():
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
@@ -1382,6 +1425,41 @@ def test_editar_acao_monitorada_corrige_e_fecha_original():
         assert nova.criado_por_id == usuario.id
         assert antiga.substituido_por_id == nova.id
         assert antiga.atualizado_em is not None
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
+        db.close()
+
+
+def test_corrigir_acao_concluida_preserva_a_conclusao():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    try:
+        acao = registrar_acao_monitorada(
+            nr_convenio=NR_CONVENIO_SEED,
+            descricao="ação a concluir",
+            data_prevista=None,
+            responsavel=None,
+            db=db,
+            usuario=usuario,
+        )
+        concluida = concluir_acao_monitorada(acao_id=acao.id, db=db, usuario=usuario)
+        data_conclusao = concluida.data_conclusao
+        assert data_conclusao is not None
+
+        corrigida = editar_acao_monitorada(
+            acao_id=acao.id,
+            descricao="ação com texto corrigido",
+            data_prevista=None,
+            responsavel=None,
+            responsavel_id=None,
+            db=db,
+            usuario=usuario,
+        )
+
+        assert corrigida.data_conclusao == data_conclusao
+        assert concluida.substituido_por_id == corrigida.id
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()

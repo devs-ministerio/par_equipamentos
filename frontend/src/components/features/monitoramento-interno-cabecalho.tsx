@@ -100,7 +100,9 @@ export function MonitoramentoInternoCabecalho({
           },
         ]
       : []),
-    ...(inst.situacao_programa
+    // Só PERSUS I tem "Situação do programa" (regra do produto, 29/10/2026); nos demais tipos o dado fica
+    // guardado, mas não é exibido como indicador.
+    ...(inst.situacao_programa && inst.tipo_contratacao === "PERSUS I"
       ? [
           {
             rotulo: "Situação do programa",

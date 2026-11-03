@@ -75,6 +75,7 @@ def _resumo_acao(acao: AcaoMonitoramento) -> dict[str, object | None]:
         "data_prevista": acao.data_prevista.isoformat() if acao.data_prevista else None,
         "responsavel": acao.responsavel,
         "responsavel_id": acao.responsavel_id,
+        "data_conclusao": acao.data_conclusao.isoformat() if acao.data_conclusao else None,
     }
 
 
@@ -90,9 +91,10 @@ def editar_acao_monitorada(
 ) -> AcaoMonitoramento:
     """Mesma disciplina append-only de `editar_evento_monitorado` -- corrige
     lançando uma ação nova e aponta a antiga pra ela via
-    `substituido_por_id`. `data_conclusao` de uma ação pendente não migra
-    pra correção (a correção nasce pendente de novo; concluir é ato
-    separado, ver `concluir_acao_monitorada`)."""
+    `substituido_por_id`. Corrigir texto, prazo ou responsável é correção cadastral e NÃO reabre a ação:
+    a `data_conclusao` migra para a versão corrigida (achado D25 do diagnóstico de 29/10/2026; antes a
+    correção nascia pendente e reabria a tarefa em silêncio). Concluir segue sendo ato separado, ver
+    `concluir_acao_monitorada`."""
     antiga = monitoramento_repo.obter_acao_por_id(db, acao_id)
     if antiga is None:
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
@@ -106,6 +108,7 @@ def editar_acao_monitorada(
         instrumento_id=antiga.instrumento_id,
         descricao=descricao,
         data_prevista=data_prevista,
+        data_conclusao=antiga.data_conclusao,
         responsavel=responsavel,
         responsavel_id=responsavel_id,
         criado_por_id=usuario.id,
