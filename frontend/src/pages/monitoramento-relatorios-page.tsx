@@ -460,6 +460,8 @@ export function MonitoramentoRelatoriosPage() {
   };
   const encerrados = useRelatorioEncerrados(filtroGeracao, somenteEncerrados);
   const entregues = useRelatorioEntregues(filtroGeracao, somenteEntregues);
+  // Cada visão conta uma entidade diferente: instrumentos na carteira e na conclusão, unidades físicas nas entregas.
+  const unidadeContagem = somenteEntregues ? "unidade" : "registro";
   const totalRegistros = somenteEncerrados
     ? (encerrados.data?.total ?? 0)
     : somenteEntregues
@@ -487,7 +489,7 @@ export function MonitoramentoRelatoriosPage() {
             </div>
             <div>
               <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
-                Registros
+                {somenteEntregues ? "Unidades" : "Registros"}
               </p>
               <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                 {totalRegistros.toLocaleString("pt-BR")}
@@ -503,7 +505,7 @@ export function MonitoramentoRelatoriosPage() {
       <FilterWorkspace
         hasAnyFilter={hasFiltros}
         onClear={limparFiltros}
-        contagem={`${totalRegistros} ${totalRegistros === 1 ? "registro" : "registros"} na prévia`}
+        contagem={`${totalRegistros} ${totalRegistros === 1 ? unidadeContagem : `${unidadeContagem}s`} na prévia`}
         className="mb-0 rounded-sm border border-border bg-card p-4 sm:p-5"
       >
         <div className="flex w-full flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
@@ -521,10 +523,10 @@ export function MonitoramentoRelatoriosPage() {
           </div>
         </div>
         <SingleSelectFilter
-          placeholder="Conclusão"
+          placeholder="Visão"
           options={[
-            { value: "encerrados", label: "Concluídos" },
-            { value: "entregues", label: "Equipamento entregue" },
+            { value: "encerrados", label: "Conclusão (instrumentos)" },
+            { value: "entregues", label: "Entregas (unidades)" },
           ]}
           value={encerramento}
           onChange={(valor) => {
@@ -535,8 +537,8 @@ export function MonitoramentoRelatoriosPage() {
               setDataFim(null);
             }
           }}
-          clearLabel="Todos"
-          minWidth={150}
+          clearLabel="Carteira e financiamento"
+          minWidth={190}
         />
         {visaoPorEvento && (
           <SingleSelectFilter
