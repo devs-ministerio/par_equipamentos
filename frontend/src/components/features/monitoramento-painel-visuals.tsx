@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { ContagemRotulo } from "@/services/monitoramento-resumo";
-import { PALETA_CATEGORICA } from "@/lib/monitoramento-painel-palette";
+import { COR_RANKING } from "@/lib/monitoramento-painel-palette";
 
 export function PainelSecao({
   titulo,
@@ -44,7 +44,7 @@ export function DistribuicaoHorizontal({
   const maior = Math.max(1, ...visiveis.map((item) => item.quantidade));
   return (
     <div className="divide-y divide-border">
-      {visiveis.map((item, indice) => (
+      {visiveis.map((item) => (
         <div
           key={item.rotulo}
           className="grid grid-cols-[minmax(0,1.5fr)_minmax(3rem,3fr)_auto] items-center gap-3 py-3 transition-colors duration-150 hover:bg-muted/30"
@@ -63,8 +63,7 @@ export function DistribuicaoHorizontal({
               className="h-full rounded-sm"
               style={{
                 width: `${(item.quantidade / maior) * 100}%`,
-                backgroundColor:
-                  PALETA_CATEGORICA[indice % PALETA_CATEGORICA.length],
+                backgroundColor: COR_RANKING,
               }}
             />
           </div>
