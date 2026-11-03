@@ -39,6 +39,7 @@ from app.db.models import Convenio, InstrumentoEquipamento, Notificacao, Notific
 from app.pipeline.texto import parsear_valor_brasileiro
 from app.repositories.espelho_siconv import bloquear_escopo_atual, numeros_oficiais_conhecidos
 from app.repositories.notificacoes import criar_notificacao
+from app.rotulos_siconv import rotulo_campo_siconv
 from app.schemas_filhas_legado import chave_termo_aditivo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.espelho_diff import DiffLista, diff_lista, mesclar_lista
@@ -214,7 +215,8 @@ def reconciliar_registro(
 
 def resumo_campos(mudancas: dict[str, tuple[str, str]]) -> str:
     return "; ".join(
-        f"{campo}: {antigo or '(vazio)'} → {novo or '(vazio)'}" for campo, (antigo, novo) in mudancas.items()
+        f"{rotulo_campo_siconv(campo)}: {antigo or '(vazio)'} → {novo or '(vazio)'}"
+        for campo, (antigo, novo) in mudancas.items()
     )
 
 

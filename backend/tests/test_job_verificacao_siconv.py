@@ -67,7 +67,7 @@ def test_diff_agrupa_todos_os_campos_do_registro_principal():
     mudancas = comparar_campos_oficiais(anterior, novo)
 
     assert len(mudancas) == 3
-    assert "VL_GLOBAL_CONV: 100,00 → 150,00" in resumo_campos(mudancas)
+    assert "Valor global: 100,00 → 150,00" in resumo_campos(mudancas)
     assert comparar_campos_oficiais(novo, novo) == {}
 
 
