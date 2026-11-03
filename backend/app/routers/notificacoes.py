@@ -78,10 +78,13 @@ def listar_notificacoes(
 
 @router.patch("/lidas", response_model=NotificacoesLeituraRead)
 def marcar_todas(
+    busca: Annotated[str | None, Query(max_length=200)] = None,
+    tipo: NotificacaoTipo | None = None,
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    return NotificacoesLeituraRead(alteradas=marcar_todas_lidas(db=db, usuario_id=usuario.id))
+    """Sem `busca`/`tipo`: todas as recebidas não arquivadas. Com eles: só o recorte."""
+    return NotificacoesLeituraRead(alteradas=marcar_todas_lidas(db=db, usuario_id=usuario.id, busca=busca, tipo=tipo))
 
 
 @router.patch("/{notificacao_id}/arquivo", response_model=NotificacaoRead)

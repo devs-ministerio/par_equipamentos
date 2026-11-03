@@ -22,6 +22,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
   const [tipo, setTipo] = useState<NotificacaoTipo | undefined>();
   const [caixa, setCaixa] = useState<Caixa>("recebidas");
   const [pagina, setPagina] = useState(1);
+  const temRecorte = busca.trim() !== "" || tipo !== undefined;
   const avisos = useNotificacoes({
     limit: TAMANHO_PAGINA,
     offset: (pagina - 1) * TAMANHO_PAGINA,
@@ -136,19 +137,37 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
           <span>
             {avisos.naoLidas} não lida{avisos.naoLidas !== 1 ? "s" : ""}
           </span>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={avisos.ocupada || avisos.naoLidas === 0}
-            onClick={() =>
-              void avisos
-                .marcarTodas()
-                .then(() => setPagina(1))
-                .catch(() => undefined)
-            }
-          >
-            Marcar todas como lidas
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {temRecorte && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={avisos.ocupada || caixa === "arquivadas"}
+                onClick={() =>
+                  void avisos
+                    .marcarTodas({ busca, tipo })
+                    .then(() => setPagina(1))
+                    .catch(() => undefined)
+                }
+              >
+                Marcar resultados deste recorte como lidos
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={avisos.ocupada || avisos.naoLidas === 0}
+              title="Inclui avisos fora da busca e do tipo selecionados; não inclui arquivados"
+              onClick={() =>
+                void avisos
+                  .marcarTodas(undefined)
+                  .then(() => setPagina(1))
+                  .catch(() => undefined)
+              }
+            >
+              Marcar todas as minhas recebidas como lidas ({avisos.naoLidas})
+            </Button>
+          </div>
         </div>
       </div>
       <div

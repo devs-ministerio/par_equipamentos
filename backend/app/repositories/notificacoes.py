@@ -205,10 +205,7 @@ def listar_notificacoes_paginadas(
     if tipo is not None:
         base = base.where(Notificacao.tipo == tipo)
     if busca:
-        termo = busca.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        base = base.where(
-            Notificacao.titulo.ilike(f"%{termo}%", escape="\\") | Notificacao.corpo.ilike(f"%{termo}%", escape="\\")
-        )
+        base = base.where(_filtro_busca(busca))
 
     linhas = db.execute(
         base.order_by(Notificacao.created_at.desc(), Notificacao.id.desc()).limit(limit).offset(offset)
@@ -232,6 +229,11 @@ def listar_notificacoes_paginadas(
     return PaginaNotificacoes(itens=itens, total=total, nao_lidas=nao_lidas)
 
 
+def _filtro_busca(busca: str):
+    termo = busca.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return Notificacao.titulo.ilike(f"%{termo}%", escape="\\") | Notificacao.corpo.ilike(f"%{termo}%", escape="\\")
+
+
 def obter_destinatario(db: Session, *, notificacao_id: int, usuario_id: int) -> NotificacaoDestinatario | None:
     return db.execute(
         select(NotificacaoDestinatario).where(
@@ -252,14 +254,28 @@ def marcar_destinatario_lido(db: Session, destinatario: NotificacaoDestinatario)
     return destinatario
 
 
-def marcar_todas_destinatario_lidas(db: Session, usuario_id: int) -> int:
-    alteradas = (
-        update(NotificacaoDestinatario)
+def marcar_todas_destinatario_lidas(
+    db: Session, usuario_id: int, *, busca: str | None = None, tipo: NotificacaoTipo | None = None
+) -> int:
+    """Marca como lidas as recebidas não arquivadas do usuário. Com `busca`/`tipo`,
+    só as que combinam com esse recorte; sem eles, todas."""
+    alvo = (
+        select(NotificacaoDestinatario.id)
+        .join(Notificacao, Notificacao.id == NotificacaoDestinatario.notificacao_id)
         .where(
             NotificacaoDestinatario.usuario_id == usuario_id,
             NotificacaoDestinatario.lida.is_(False),
             NotificacaoDestinatario.arquivada.is_(False),
+            notificacao_no_escopo(),
         )
+    )
+    if tipo is not None:
+        alvo = alvo.where(Notificacao.tipo == tipo)
+    if busca and busca.strip():
+        alvo = alvo.where(_filtro_busca(busca))
+    alteradas = (
+        update(NotificacaoDestinatario)
+        .where(NotificacaoDestinatario.id.in_(alvo))
         .values(lida=True, lida_em=datetime.now(UTC))
         .returning(NotificacaoDestinatario.id)
         .cte("lidas")

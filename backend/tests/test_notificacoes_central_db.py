@@ -89,6 +89,20 @@ def test_ler_todas_idempotente_exclui_arquivo_e_preserva_outro_usuario(caixa):
     assert listar(db, usuarios[0], arquivadas=True).itens[0].lida is False
 
 
+def test_ler_recorte_nao_toca_avisos_fora_da_busca_ou_do_tipo(caixa):
+    db, usuarios, _ = caixa
+    # busca sem resultado: nada muda (caso do D53)
+    assert marcar_todas_lidas(db=db, usuario_id=usuarios[0].id, busca="sem-resultado-qa") == 0
+    assert listar(db, usuarios[0]).nao_lidas == 2
+    # por tipo: só o tipo escolhido
+    assert marcar_todas_lidas(db=db, usuario_id=usuarios[0].id, tipo=NotificacaoTipo.fonte_indisponivel) == 1
+    assert listar(db, usuarios[0]).nao_lidas == 1
+    # por busca literal (sem curinga): só o aviso que contém o texto
+    assert marcar_todas_lidas(db=db, usuario_id=usuarios[0].id, busca="%") == 1
+    assert listar(db, usuarios[0]).nao_lidas == 0
+    assert listar(db, usuarios[1]).nao_lidas == 2
+
+
 def test_nao_destinatario_nao_pode_arquivar(caixa):
     db, _, avisos = caixa
     with pytest.raises(NotFoundError):

@@ -59,8 +59,12 @@ export function useNotificacoes(filtros: FiltrosNotificacoes = { limit: 20 }) {
   });
   const todas = useMutation({
     mutationFn: marcarTodasNotificacoesLidas,
-    onSuccess: async () => {
-      toast.success("Notificações marcadas como lidas.");
+    onSuccess: async (resultado) => {
+      toast.success(
+        resultado.alteradas === 1
+          ? "1 notificação marcada como lida."
+          : `${resultado.alteradas} notificações marcadas como lidas.`,
+      );
       await invalidar();
     },
     onError: falhou,

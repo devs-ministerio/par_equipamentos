@@ -151,11 +151,15 @@ describe("Central de notificações integrada à API", () => {
     montar();
     await screen.findByText("1 não lida");
     fireEvent.click(
-      screen.getByRole("button", { name: "Marcar todas como lidas" }),
+      screen.getByRole("button", {
+        name: /Marcar todas as minhas recebidas como lidas/,
+      }),
     );
     await screen.findByText("0 não lidas");
     expect(
-      screen.getByRole("button", { name: "Marcar todas como lidas" }),
+      screen.getByRole("button", {
+        name: /Marcar todas as minhas recebidas como lidas/,
+      }),
     ).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Não lidas" }));
     expect(
@@ -163,16 +167,45 @@ describe("Central de notificações integrada à API", () => {
     ).toBeVisible();
   });
 
+  it("busca sem resultado: ação do recorte não toca avisos fora dele e a global informa o universo", async () => {
+    const { controle } = montar();
+    await screen.findByText("1 não lida");
+    fireEvent.change(screen.getByLabelText("Buscar notificações"), {
+      target: { value: "QA-SEM-RESULTADO" },
+    });
+    await screen.findByText(/Nenhuma notificação neste recorte/);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Marcar resultados deste recorte como lidos",
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText("0 notificações marcadas como lidas."),
+      ).toBeVisible(),
+    );
+    expect(controle.itens.every((item) => !item.lida)).toBe(true);
+    expect(
+      screen.getByRole("button", {
+        name: "Marcar todas as minhas recebidas como lidas (1)",
+      }),
+    ).toBeEnabled();
+  });
+
   it("preserva não lidas quando a leitura em lote falha", async () => {
     const { controle } = montar();
     controle.erroEscrita = true;
     await screen.findByText("1 não lida");
     fireEvent.click(
-      screen.getByRole("button", { name: "Marcar todas como lidas" }),
+      screen.getByRole("button", {
+        name: /Marcar todas as minhas recebidas como lidas/,
+      }),
     );
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Marcar todas como lidas" }),
+        screen.getByRole("button", {
+          name: /Marcar todas as minhas recebidas como lidas/,
+        }),
       ).toBeEnabled(),
     );
     expect(screen.getByText("1 não lida")).toBeVisible();
