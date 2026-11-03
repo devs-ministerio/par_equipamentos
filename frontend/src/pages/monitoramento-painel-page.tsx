@@ -169,6 +169,41 @@ export function MonitoramentoPainelPage() {
         ]}
       />
 
+      <MonitoramentoPainelEvolucao
+        inauguracoesPorAno={dados.inauguracoesPorAno}
+        previsoesVencidas={dados.previsoesVencidasForaDaSerie}
+        porTipo={dados.porTipo}
+        total={instrumentosFiltrados.length}
+        semCnes={dados.semCnes}
+        semCoordenadas={dados.semCoordenadas}
+        semTecnico={dados.semTecnico}
+        semAno={dados.semAno}
+        comPagamentoDeterminado={
+          dados.instrumentosComPagamento + dados.pagamentosManuaisConcluidos
+        }
+        cargasManuais={dados.cargasManuais}
+        viewerRole={sessao.usuarioAtual?.role}
+      />
+
+      <MonitoramentoPainelLacunas lacunas={dados.lacunas} />
+
+      <MonitoramentoPainelPendencias
+        vigencias={dados.vigenciasProximas}
+        licencas={dados.licencas}
+        inauguracoes={dados.inauguracoes}
+        divergencias={dados.divergencias}
+        divergenciasPorFonte={divergenciasPorFonte}
+        semTecnico={dados.semTecnico}
+        acoesAtrasadas={dados.acoesAtrasadas}
+        acoesPendentes={dados.acoesPendentes}
+        licencasCnenDeferidas={{
+          quantidade: dados.licencasDeferidas,
+          total: instrumentosFiltrados.length,
+        }}
+        acoes={dados.acoes}
+        filaTruncada={resumo.fila_acoes_truncada}
+      />
+
       <MonitoramentoPainelGeografia
         instrumentos={instrumentosFiltrados}
         equipamentosPorNumero={equipamentosPorNumero}
@@ -210,41 +245,6 @@ export function MonitoramentoPainelPage() {
           </div>
         </div>
       </PainelSecao>
-
-      <MonitoramentoPainelEvolucao
-        inauguracoesPorAno={dados.inauguracoesPorAno}
-        previsoesVencidas={dados.previsoesVencidasForaDaSerie}
-        porTipo={dados.porTipo}
-        total={instrumentosFiltrados.length}
-        semCnes={dados.semCnes}
-        semCoordenadas={dados.semCoordenadas}
-        semTecnico={dados.semTecnico}
-        semAno={dados.semAno}
-        comPagamentoDeterminado={
-          dados.instrumentosComPagamento + dados.pagamentosManuaisConcluidos
-        }
-        cargasManuais={dados.cargasManuais}
-        viewerRole={sessao.usuarioAtual?.role}
-      />
-
-      <MonitoramentoPainelLacunas lacunas={dados.lacunas} />
-
-      <MonitoramentoPainelPendencias
-        vigencias={dados.vigenciasProximas}
-        licencas={dados.licencas}
-        inauguracoes={dados.inauguracoes}
-        divergencias={dados.divergencias}
-        divergenciasPorFonte={divergenciasPorFonte}
-        semTecnico={dados.semTecnico}
-        acoesAtrasadas={dados.acoesAtrasadas}
-        acoesPendentes={dados.acoesPendentes}
-        licencasCnenDeferidas={{
-          quantidade: dados.licencasDeferidas,
-          total: instrumentosFiltrados.length,
-        }}
-        acoes={dados.acoes}
-        filaTruncada={resumo.fila_acoes_truncada}
-      />
     </div>
   );
 }

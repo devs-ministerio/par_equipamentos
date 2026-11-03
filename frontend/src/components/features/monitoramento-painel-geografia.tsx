@@ -43,7 +43,17 @@ export function MonitoramentoPainelGeografia({
       ),
     [nomesQuery.data],
   );
+  const ufPorMacro = useMemo(
+    () =>
+      new Map(
+        nomesQuery.data?.macros.map((macro) => [macro.id, macro.uf]) ?? [],
+      ),
+    [nomesQuery.data],
+  );
   const nomeMacro = (id: string) => rotuloMacrorregiao(id, nomesPorMacro);
+  // No ranking, UF e código distinguem denominações repetidas (ex.: "Metropolitana").
+  const nomeMacroRanking = (id: string) =>
+    `${nomeMacro(id)}${ufPorMacro.get(id) ? ` (${ufPorMacro.get(id)})` : ""} · ${id}`;
   const [macroSelecionada, setMacroSelecionada] = useState<string | null>(null);
   const [localSelecionado, setLocalSelecionado] = useState<string | null>(null);
   const distribuicao = useMemo(
@@ -328,7 +338,7 @@ export function MonitoramentoPainelGeografia({
                               <span className="mr-3 font-data text-xs text-muted-foreground">
                                 {String(indice + 1).padStart(2, "0")}
                               </span>
-                              {nomeMacro(macroId)}
+                              {nomeMacroRanking(macroId)}
                             </span>
                             <strong className="font-data tabular-nums">
                               {quantidade}
@@ -370,9 +380,12 @@ export function MonitoramentoPainelGeografia({
               {avisoMacro}
             </p>
           )}
-          {distribuicao.semCoordenadas > 0 && (
+          {(distribuicao.semCoordenadas > 0 ||
+            distribuicao.foraDasMacros > 0) && (
             <p className="mt-3 text-xs text-muted-foreground">
-              {distribuicao.semCoordenadas} sem coordenadas no CNES.
+              Fora do mapa: {distribuicao.semCoordenadas} sem coordenadas no
+              CNES · {distribuicao.foraDasMacros} com coordenadas que não caem
+              em nenhuma macrorregião da geometria.
             </p>
           )}
         </>
