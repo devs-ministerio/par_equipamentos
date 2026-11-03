@@ -266,6 +266,8 @@ def test_instrumentos_repasse_xlsx_simplificado_tem_resumo_convenios_propostas_m
         pasta = load_workbook(BytesIO(conteudo))
         assert pasta.sheetnames == [
             "Leitura",
+            "Síntese de conclusão",
+            "Conclusão e agenda",
             "Resumo",
             "Resumo (Propostas)",
             "Resumo (Equipamentos)",

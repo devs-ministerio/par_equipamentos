@@ -5,11 +5,22 @@ Parte do pacote de relatórios; a fachada pública é `app.services.relatorios`.
 
 from __future__ import annotations
 
+from datetime import date
+
 from sqlalchemy.orm import Session
 
 from app.reports import xlsx_builder
+from app.services.relatorios_conclusao import (
+    COLUNAS_AGENDA,
+    COLUNAS_SINTESE,
+    DATAS_AGENDA,
+    agenda_dos_instrumentos,
+    linhas_agenda,
+    sintese,
+)
 from app.services.relatorios_filtro import FiltroRelatorio, Nivel
 from app.services.relatorios_merito import _linhas_leitura
+from app.services.relatorios_monitoramento import carregar_monitoramento_relatorio
 from app.services.relatorios_recorte import _convenios, _instrumentos, _propostas
 from app.services.relatorios_tabelas import (
     _DATA_CONVENIO_COMPLETO,
@@ -49,6 +60,21 @@ def _montar_instrumentos_repasse_xlsx(db: Session, nivel: Nivel, filtro: FiltroR
             {"convenios": len(convenios), "propostas": len(propostas), "monitoramento": len(instrumentos)},
         ),
     )
+    if instrumentos:
+        # D05: a leitura executiva abre pela conclusão e pela agenda de previsões, nos dois níveis.
+        hoje = date.today()
+        dados = carregar_monitoramento_relatorio(
+            db=db, instrumento_ids=[i.instrumento.id for i in instrumentos], com_acoes=False
+        )
+        agenda = agenda_dos_instrumentos(instrumentos, dados, hoje)
+        xlsx_builder.escrever_aba_tabela(pasta, "Síntese de conclusão", COLUNAS_SINTESE, sintese(agenda))
+        xlsx_builder.escrever_aba_tabela(
+            pasta,
+            "Conclusão e agenda",
+            COLUNAS_AGENDA,
+            linhas_agenda(agenda, hoje),
+            colunas_data=DATAS_AGENDA,
+        )
     xlsx_builder.escrever_aba_tabela(
         pasta, "Resumo", *_resumo_instrumentos_programas(convenios, instrumentos), colunas_moeda=["Valor"]
     )

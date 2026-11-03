@@ -8,7 +8,7 @@ from __future__ import annotations
 import itertools
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from docx.document import Document as DocumentType
 from sqlalchemy.orm import Session
@@ -25,6 +25,13 @@ from app.reports import docx_builder
 from app.reports.formatacao import formatar_data, formatar_moeda
 from app.repositories import monitoramento as monitoramento_repo
 from app.services.monitoramento_instrumentos import InstrumentoComFase
+from app.services.relatorios_conclusao import (
+    COLUNAS_PROXIMAS,
+    COLUNAS_SINTESE,
+    agenda_dos_instrumentos,
+    proximas_previsoes,
+    sintese,
+)
 from app.services.relatorios_filtro import (
     _SITUACAO_SEM_MONITORAMENTO_ESPERADO,
     FiltroRelatorio,
@@ -160,6 +167,15 @@ def _secao_monitoramento_interno(
         if inst is None:
             docx_builder.adicionar_paragrafo(documento, "— nenhum evento ou ação registrado —")
             return
+        eventos_completo = dados.eventos_por_instrumento.get(inst.instrumento.id, [])
+        docx_builder.adicionar_paragrafo_rotulo_valor(
+            documento,
+            "Data de Inauguração/Previsão",
+            _data_inauguracao_previsao(
+                inst.fase_atual,
+                [e for e in eventos_completo if marco_inauguracao_id and e.marco_id == marco_inauguracao_id],
+            ),
+        )
         linhas_timeline = [
             [f"{linha[3] or '—'}\n{linha[4] or '—'}", *linha[5:-1]]
             for linha in _linhas_timeline_instrumento(dados, inst)
@@ -184,17 +200,18 @@ def _secao_monitoramento_interno(
         docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Último Evento", "—")
         docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Data de Inauguração/Previsão", "—")
         return
+    eventos = dados.eventos_por_instrumento.get(inst.instrumento.id, [])
+    eventos_inauguracao = [e for e in eventos if marco_inauguracao_id and e.marco_id == marco_inauguracao_id]
+    # D05: a data de inauguração/previsão vem logo depois da situação, antes de última ação e último evento.
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Data de Inauguração/Previsão", _data_inauguracao_previsao(inst.fase_atual, eventos_inauguracao)
+    )
     acoes = dados.acoes_por_instrumento.get(inst.instrumento.id, [])
     docx_builder.adicionar_paragrafo_rotulo_valor(
         documento, "Última Ação", _formatar_ultima_acao(acoes[0]) if acoes else "—"
     )
-    eventos = dados.eventos_por_instrumento.get(inst.instrumento.id, [])
     docx_builder.adicionar_paragrafo_rotulo_valor(
         documento, "Último Evento", _formatar_ultimo_evento(eventos[0], dados.marcos) if eventos else "—"
-    )
-    eventos_inauguracao = [e for e in eventos if marco_inauguracao_id and e.marco_id == marco_inauguracao_id]
-    docx_builder.adicionar_paragrafo_rotulo_valor(
-        documento, "Data de Inauguração/Previsão", _data_inauguracao_previsao(inst.fase_atual, eventos_inauguracao)
     )
 
 
@@ -323,6 +340,41 @@ def _bloco_proposta_narrativo(documento: DocumentType, proposta: PropostaCandida
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Data da proposta", formatar_data(proposta.data_proposta))
 
 
+def _secao_sintese_conclusao(
+    documento: DocumentType,
+    instrumentos: Sequence[InstrumentoComFase],
+    dados: DadosMonitoramentoRelatorio,
+    contador: Iterator[int],
+) -> None:
+    docx_builder.adicionar_titulo(documento, "Síntese de conclusões e próximas previsões")
+    if not instrumentos:
+        docx_builder.adicionar_paragrafo(documento, "Nenhum instrumento em monitoramento interno neste recorte.")
+        return
+    hoje = date.today()
+    agenda = agenda_dos_instrumentos(instrumentos, dados, hoje)
+    docx_builder.adicionar_tabela(
+        documento,
+        COLUNAS_SINTESE,
+        docx_builder.linhas_como_texto(COLUNAS_SINTESE, sintese(agenda)),
+    )
+    docx_builder.adicionar_legenda_tabela(
+        documento,
+        next(contador),
+        "Situação de conclusão dos instrumentos em monitoramento interno. Lacunas de cadastro (sem data de conclusão "
+        "ou sem previsão) são pendências de registro, não atraso.",
+    )
+    for titulo, vencidas in (("Próximas previsões de inauguração", False), ("Previsões de inauguração vencidas", True)):
+        linhas = proximas_previsoes(agenda, hoje, vencidas=vencidas)
+        if not linhas:
+            continue
+        docx_builder.adicionar_titulo(documento, titulo, nivel=3)
+        docx_builder.adicionar_tabela(
+            documento,
+            COLUNAS_PROXIMAS,
+            docx_builder.linhas_como_texto(COLUNAS_PROXIMAS, linhas, colunas_data=["Previsão de inauguração"]),
+        )
+
+
 def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroRelatorio) -> bytes:
     convenios = _convenios(db, filtro)
     propostas = _propostas(db, filtro)
@@ -359,6 +411,9 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         documento, "No que compete ao Departamento de Atenção ao Câncer – DECAN, informa-se:"
     )
     contador: Iterator[int] = itertools.count(1)
+
+    # D05: a leitura executiva abre pela conclusão e pela agenda de previsões, nos dois níveis.
+    _secao_sintese_conclusao(documento, instrumentos, dados, contador)
 
     docx_builder.adicionar_titulo(documento, "Resumo executivo")
     legenda_instrumentos, legenda_propostas, legenda_equipamentos = _legendas_resumo(filtro)
