@@ -107,7 +107,10 @@ def test_reconcilia_escopo_eventos_ativos_e_novos_convenios_sem_monitoramento(ca
     assert {i.numero for i in resultado.pendencias} == {"9908104"}
     # D06: conclusão física datada prevalece sobre a divergência de prestação de contas, que fica visível.
     divergente = next(i for i in resultado.itens if i.numero == "9908105")
-    assert (divergente.conclusao_fisica, divergente.situacao_administrativa) == ("Registrada", "Divergência entre fontes")
+    assert (divergente.conclusao_fisica, divergente.situacao_administrativa) == (
+        "Registrada",
+        "Divergência entre fontes",
+    )
     assert resultado.itens[0].valor_global == 0
     assert resultado.itens[2].motivo == "Concluído no monitoramento interno"
     assert resultado.itens[2].situacao_administrativa == "Prestação de contas pendente"
@@ -279,3 +282,38 @@ def test_word_de_concluidos_fica_deitado_e_separa_cnes_numero_e_quantidade(carte
         "Fim da vigência",
         "Critério",
     ]
+
+
+def test_periodo_por_data_da_conclusao_na_previa_e_recusado_no_relatorio_geral(
+    carteira_encerrada, headers_autenticados
+):
+    client = TestClient(app)
+    base = {"escopo": "brasil", "busca": PREFIXO, "periodo_por": "data_do_evento"}
+    # Todas as conclusões datadas da fixture são de 01/01/2025, mesmo ano de origem: o recorte por data as acha...
+    dentro = client.get(
+        "/relatorios/encerrados",
+        params={**base, "data_inicio": "2025-01-01", "data_fim": "2025-12-31"},
+        headers=headers_autenticados,
+    )
+    assert dentro.status_code == 200, dentro.text
+    assert dentro.json()["total"] >= 1
+    # ...e um intervalo que não as contém não traz nenhuma conclusão datada.
+    fora = client.get(
+        "/relatorios/encerrados",
+        params={**base, "data_inicio": "2026-01-01", "data_fim": "2026-12-31"},
+        headers=headers_autenticados,
+    )
+    assert fora.status_code == 200, fora.text
+    assert all(i["conclusao_fisica"] != "Registrada" for i in fora.json()["itens"])
+    # O relatório geral (sem Concluídos/Entregue) não aceita referência por data do evento.
+    geral = client.get(
+        "/relatorios",
+        params={
+            "formato": "xlsx",
+            "escopo": "brasil",
+            "periodo_por": "data_do_evento",
+            "data_inicio": "2025-01-01",
+        },
+        headers=headers_autenticados,
+    )
+    assert geral.status_code == 422

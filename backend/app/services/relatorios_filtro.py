@@ -71,6 +71,25 @@ class FiltroRelatorio:
     # Filtro único de Situação: o valor vale só na seção da origem escolhida e as demais ficam de fora.
     # Sem origem (chamada direta da API), `situacao` segue filtrando só os convênios.
     situacao_origem: Literal["instrumento", "monitoramento", "proposta"] | None = None
+    # Referência do período (D02): por padrão o ano de origem do instrumento; "data_do_evento" usa datas completas
+    # e vale só nas extrações por evento (Concluídos = data da conclusão, Equipamento entregue = data da entrega).
+    periodo_por: Literal["ano_instrumento", "data_do_evento"] = "ano_instrumento"
+    data_inicio: date | None = None
+    data_fim: date | None = None
+
+    def validar_referencia_do_periodo(self) -> None:
+        """Na geração do arquivo, o período por data do evento só tem sentido nas extrações por evento."""
+        if self.por_data_do_evento() and self.encerramento == "todos":
+            raise ValidationError(
+                "O período por data do evento vale só em Concluídos e Equipamento entregue; "
+                "use o ano do instrumento nos demais relatórios."
+            )
+
+    def por_data_do_evento(self) -> bool:
+        return self.periodo_por == "data_do_evento"
+
+    def rotulo_evento(self) -> str:
+        return "entrega" if self.encerramento == "entregues" else "conclusão"
 
     def rotulo_situacao(self) -> str:
         return {
@@ -83,8 +102,10 @@ class FiltroRelatorio:
             uf=self.ufs(),
             municipio=self.municipio_do_escopo(),
             cnes=self.cnes_do_escopo(),
-            ano_inicio=self.ano_inicio,
-            ano_fim=self.ano_fim,
+            ano_inicio=None if self.por_data_do_evento() else self.ano_inicio,
+            ano_fim=None if self.por_data_do_evento() else self.ano_fim,
+            data_inicio=self.data_inicio if self.por_data_do_evento() else None,
+            data_fim=self.data_fim if self.por_data_do_evento() else None,
             situacao=self.situacao if self.situacao_origem in (None, "instrumento", "proposta") else None,
             programa=self.programa,
             tipo_contratacao=self.tipo_contratacao,
@@ -106,6 +127,11 @@ class FiltroRelatorio:
                 raise ValidationError("Escopo 'municipio' exige os parâmetros 'uf' e 'municipio'.")
         elif self.escopo == "cnes" and not self.cnes:
             raise ValidationError("Escopo 'cnes' exige o parâmetro 'cnes'.")
+        if self.por_data_do_evento():
+            if self.data_inicio and self.data_fim and self.data_inicio > self.data_fim:
+                raise ValidationError("'data_inicio' não pode ser depois de 'data_fim'.")
+        elif self.data_inicio or self.data_fim:
+            raise ValidationError("Informe 'periodo_por=data_do_evento' para usar data inicial e final.")
         # Se só 1 dos 2 campos do período vier, o outro assume o mesmo valor
         # (período de 1 ano só, mesmo comportamento do antigo `ano` único).
         if self.ano_inicio is not None and self.ano_fim is None:
@@ -220,6 +246,10 @@ def _descricao_recorte(filtro: FiltroRelatorio) -> str:
     else:
         lugar = f"no CNES {filtro.cnes}"
 
+    if filtro.por_data_do_evento() and (filtro.data_inicio or filtro.data_fim):
+        inicio = filtro.data_inicio.strftime("%d/%m/%Y") if filtro.data_inicio else "o início"
+        fim = filtro.data_fim.strftime("%d/%m/%Y") if filtro.data_fim else "hoje"
+        return f"{lugar} com data de {filtro.rotulo_evento()} de {inicio} a {fim}"
     if filtro.ano_inicio is None:
         return lugar
     if filtro.ano_inicio == filtro.ano_fim:

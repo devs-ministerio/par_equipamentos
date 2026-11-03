@@ -36,6 +36,14 @@ def _corresponde(linha: dict, filtro: FiltroEncerramento) -> bool:
         return False
     if filtro.ano_fim is not None and (ano is None or ano > filtro.ano_fim):
         return False
+    if filtro.data_inicio or filtro.data_fim:
+        entrega = linha["data_entrega"]
+        if entrega is None:
+            return False
+        if filtro.data_inicio and entrega < filtro.data_inicio:
+            return False
+        if filtro.data_fim and entrega > filtro.data_fim:
+            return False
     return not filtro.busca or normalizar_texto(filtro.busca) in normalizar_texto(
         f"{linha['instrumento']} {linha['convenente']} {linha['municipio'] or ''} {linha['numero_serie'] or ''}"
     )

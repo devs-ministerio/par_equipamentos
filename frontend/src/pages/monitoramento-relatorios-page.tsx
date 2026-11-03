@@ -116,6 +116,12 @@ export function MonitoramentoRelatoriosPage() {
   const {
     encerramento,
     setEncerramento,
+    periodoPor,
+    setPeriodoPor,
+    dataInicio,
+    setDataInicio,
+    dataFim,
+    setDataFim,
     uf,
     setUf,
     situacao,
@@ -419,6 +425,10 @@ export function MonitoramentoRelatoriosPage() {
           : "Brasil";
   const somenteEncerrados = encerramento === "encerrados";
   const somenteEntregues = encerramento === "entregues";
+  // Período por data do evento (D02): conclusão em Concluídos, entrega em Equipamento entregue. Nas demais visões
+  // o período continua sendo o ano do instrumento.
+  const visaoPorEvento = somenteEncerrados || somenteEntregues;
+  const porDataDoEvento = visaoPorEvento && periodoPor === "data_do_evento";
   const filtroGeracao: FiltroRelatorio = {
     escopo: escopoGeracao,
     uf:
@@ -428,8 +438,15 @@ export function MonitoramentoRelatoriosPage() {
     municipio:
       escopoGeracao === "municipio" ? (municipio ?? undefined) : undefined,
     cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
-    anoInicio: anoInicio ? Number(anoInicio) : undefined,
-    anoFim: anoFim ? Number(anoFim) : undefined,
+    anoInicio: anoInicio && !porDataDoEvento ? Number(anoInicio) : undefined,
+    anoFim: anoFim && !porDataDoEvento ? Number(anoFim) : undefined,
+    ...(porDataDoEvento
+      ? {
+          periodoPor: "data_do_evento" as const,
+          dataInicio: dataInicio ?? undefined,
+          dataFim: dataFim ?? undefined,
+        }
+      : {}),
     situacao: situacaoEscolhida?.valor,
     situacaoOrigem: situacaoEscolhida?.origem,
     programa: programa ?? undefined,
@@ -510,10 +527,34 @@ export function MonitoramentoRelatoriosPage() {
             { value: "entregues", label: "Equipamento entregue" },
           ]}
           value={encerramento}
-          onChange={setEncerramento}
+          onChange={(valor) => {
+            setEncerramento(valor);
+            if (!valor) {
+              setPeriodoPor(null);
+              setDataInicio(null);
+              setDataFim(null);
+            }
+          }}
           clearLabel="Todos"
           minWidth={150}
         />
+        {visaoPorEvento && (
+          <SingleSelectFilter
+            placeholder="Período por"
+            options={[
+              {
+                value: "data_do_evento",
+                label: somenteEntregues
+                  ? "Data da entrega"
+                  : "Data da conclusão",
+              },
+            ]}
+            value={periodoPor}
+            onChange={setPeriodoPor}
+            clearLabel="Ano do instrumento"
+            minWidth={170}
+          />
+        )}
         <SingleSelectFilter
           placeholder="Contratação"
           options={tipoContratacaoOptions}
@@ -570,13 +611,38 @@ export function MonitoramentoRelatoriosPage() {
           clearLabel="Programas"
           minWidth={160}
         />
-        <AnoIntervaloFilter
-          options={anoOptions}
-          inicio={anoInicio}
-          fim={anoFim}
-          onInicioChange={setAnoInicio}
-          onFimChange={setAnoFim}
-        />
+        {porDataDoEvento ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">De</span>
+              <input
+                type="date"
+                value={dataInicio ?? ""}
+                max={dataFim ?? undefined}
+                onChange={(e) => setDataInicio(e.target.value || null)}
+                className="h-9 rounded-md border border-border bg-background px-2"
+              />
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Até</span>
+              <input
+                type="date"
+                value={dataFim ?? ""}
+                min={dataInicio ?? undefined}
+                onChange={(e) => setDataFim(e.target.value || null)}
+                className="h-9 rounded-md border border-border bg-background px-2"
+              />
+            </label>
+          </div>
+        ) : (
+          <AnoIntervaloFilter
+            options={anoOptions}
+            inicio={anoInicio}
+            fim={anoFim}
+            onInicioChange={setAnoInicio}
+            onFimChange={setAnoFim}
+          />
+        )}
       </FilterWorkspace>
 
       {!somenteEncerrados && !somenteEntregues && (

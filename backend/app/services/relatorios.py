@@ -152,6 +152,7 @@ def montar_relatorio(
             "Análise de mérito não tem granularidade por estabelecimento (CNES) -- "
             "cobertura/déficit é calculada por macrorregião/município. Escolha outro escopo."
         )
+    filtro.validar_referencia_do_periodo()
     with reservar_geracao_docx() if formato == "docx" else nullcontext():
         try:
             if filtro.encerramento == "encerrados":

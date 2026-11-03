@@ -69,6 +69,9 @@ class FiltroEncerramento(BaseModel):
     cnes: str | None = None
     ano_inicio: int | None = None
     ano_fim: int | None = None
+    # Período por data do evento (D02): conclusão em Concluídos, entrega em Equipamento entregue.
+    data_inicio: date | None = None
+    data_fim: date | None = None
     situacao: str | None = None
     programa: str | None = None
     tipo_contratacao: str | None = None

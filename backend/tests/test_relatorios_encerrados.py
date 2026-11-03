@@ -4,6 +4,7 @@ from datetime import date
 
 import pytest
 
+from app.domain_errors import ValidationError
 from app.schemas_relatorios_encerrados import FatoEncerramento, FiltroEncerramento, OrdemEncerramento
 from app.services.relatorios_encerrados import classificar_encerrados
 
@@ -269,3 +270,67 @@ def test_rendimento_e_acessorio_nao_somam_unidade_na_quantidade():
         {"DESCRICAO_ITEM": "Utilização de rendimento de aplicação para complementar o mamógrafo", "QTD_ITEM": "1"},
     ]
     assert _quantidade_de_equipamentos(itens, ["mamografo"]) == 2
+
+
+def test_periodo_por_data_da_conclusao_pega_instrumento_antigo_concluido_no_periodo():
+    # D02: "o que concluímos em 2026" não depende do ano de origem do instrumento.
+    antigo_concluido_em_2026 = fato(
+        numero="1", ano=2023, conclusao_ativa=True, data_conclusao=date(2026, 5, 1), situacao_carteira="Em execução"
+    )
+    concluido_em_2025 = fato(numero="2", ano=2026, conclusao_ativa=True, data_conclusao=date(2025, 5, 1))
+    so_prestacao = fato(numero="3", ano=2026, situacao_carteira=FECHADA)
+    sem_data = fato(numero="4", ano=2026, conclusao_ativa=True)
+    filtro = FiltroEncerramento(data_inicio=date(2026, 1, 1), data_fim=date(2026, 12, 31))
+
+    resultado = classificar_encerrados([antigo_concluido_em_2026, concluido_em_2025, so_prestacao, sem_data], filtro)
+
+    assert [i.numero for i in resultado.itens] == ["1"]
+    # conclusão registrada sem data não some do recorte: aparece como pendência de saneamento
+    assert [p.numero for p in resultado.pendencias] == ["4"]
+
+
+def test_filtro_relatorio_valida_a_referencia_do_periodo():
+    from app.services.relatorios import FiltroRelatorio
+
+    base = {"escopo": "brasil", "periodo_por": "data_do_evento"}
+    with pytest.raises(ValidationError, match="vale só em Concluídos"):
+        FiltroRelatorio(**base, data_inicio=date(2026, 1, 1)).validar_referencia_do_periodo()
+    with pytest.raises(ValidationError, match="periodo_por"):
+        FiltroRelatorio(escopo="brasil", encerramento="encerrados", data_inicio=date(2026, 1, 1))
+    with pytest.raises(ValidationError, match="data_inicio"):
+        FiltroRelatorio(**base, encerramento="encerrados", data_inicio=date(2026, 2, 1), data_fim=date(2026, 1, 1))
+
+    valido = FiltroRelatorio(
+        **base, encerramento="encerrados", ano_inicio=2020, data_inicio=date(2026, 1, 1), data_fim=date(2026, 12, 31)
+    )
+    encerrados = valido.filtro_encerrados()
+    # por data do evento o ano de origem não é aplicado em paralelo
+    assert (encerrados.ano_inicio, encerrados.data_inicio, encerrados.data_fim) == (
+        None,
+        date(2026, 1, 1),
+        date(2026, 12, 31),
+    )
+
+
+def test_periodo_por_data_da_entrega_considera_so_entregas_com_data_no_intervalo():
+    from app.services.relatorios_entregues import _corresponde
+
+    def linha(entrega):
+        return {
+            "uf": "SP",
+            "municipio": "Campinas",
+            "cnes": "1",
+            "programa": None,
+            "tipo": "Convênio",
+            "familia": "Mamógrafo",
+            "ano": 2020,
+            "instrumento": "1",
+            "convenente": "Hospital",
+            "numero_serie": "S1",
+            "data_entrega": entrega,
+        }
+
+    filtro = FiltroEncerramento(data_inicio=date(2026, 1, 1), data_fim=date(2026, 12, 31))
+    assert _corresponde(linha(date(2026, 3, 1)), filtro)  # instrumento de 2020, entregue em 2026
+    assert not _corresponde(linha(date(2025, 3, 1)), filtro)
+    assert not _corresponde(linha(None), filtro)

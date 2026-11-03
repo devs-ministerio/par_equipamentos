@@ -9,6 +9,7 @@ Atrás de `require_current_user`, mesmo gate do resto do app.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -54,6 +55,9 @@ def gerar_relatorio(
     busca: str | None = Query(default=None),
     encerramento: Literal["todos", "encerrados", "entregues"] = "todos",
     situacao_origem: Literal["instrumento", "monitoramento", "proposta"] | None = Query(default=None),
+    periodo_por: Literal["ano_instrumento", "data_do_evento"] = "ano_instrumento",
+    data_inicio: date | None = Query(default=None),
+    data_fim: date | None = Query(default=None),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ) -> StreamingResponse:
@@ -72,6 +76,9 @@ def gerar_relatorio(
         busca=busca,
         encerramento=encerramento,
         situacao_origem=situacao_origem,
+        periodo_por=periodo_por,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
     )
     conteudo = montar_relatorio(db=db, formato=formato, nivel=nivel, tipo_relatorio=tipo_relatorio, filtro=filtro)
     nome_arquivo = f"relatorio-{tipo_relatorio}-{escopo}-{nivel}.{formato}"

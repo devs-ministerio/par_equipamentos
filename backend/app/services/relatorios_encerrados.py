@@ -39,6 +39,15 @@ def _corresponde(fato: FatoEncerramento, filtro: FiltroEncerramento) -> bool:
         return False
     if filtro.ano_fim is not None and (fato.ano is None or fato.ano > filtro.ano_fim):
         return False
+    if filtro.data_inicio or filtro.data_fim:
+        if fato.data_conclusao is None:
+            # Sem data não há como situar no período; a conclusão registrada sem data segue visível como
+            # pendência de saneamento, e o resto (sem conclusão datada) fica de fora do recorte por data.
+            return fato.conclusao_ativa
+        if filtro.data_inicio and fato.data_conclusao < filtro.data_inicio:
+            return False
+        if filtro.data_fim and fato.data_conclusao > filtro.data_fim:
+            return False
     return not filtro.busca or normalizar_texto(filtro.busca) in normalizar_texto(
         f"{fato.numero} {fato.nome} {fato.municipio or ''}"
     )
