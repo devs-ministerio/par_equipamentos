@@ -11,13 +11,14 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.auth import require_current_user
 from app.db.base import get_db
 from app.db.models import User
+from app.rate_limit import chave_por_sessao, limiter
 from app.schemas_relatorios_encerrados import PreviaEncerrados
 from app.schemas_relatorios_entregues import PreviaEntregues
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
@@ -33,7 +34,9 @@ _MEDIA_TYPE = {
 
 
 @router.get("", response_model=None, response_class=StreamingResponse)
+@limiter.limit("10/minute", key_func=chave_por_sessao)
 def gerar_relatorio(
+    request: Request,
     formato: Literal["xlsx", "docx"],
     tipo_relatorio: Literal["instrumentos_repasse", "analise_merito"] = "instrumentos_repasse",
     nivel: Literal["simplificado", "completo"] = "simplificado",

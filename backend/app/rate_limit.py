@@ -12,9 +12,26 @@ suposicao de protecao mais forte do que realmente existe.
 
 from __future__ import annotations
 
+import hashlib
+
+from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from app.config import settings
 
 limiter = Limiter(key_func=get_remote_address, storage_uri=settings.rate_limit_storage_uri)
+
+_COOKIE_SESSAO = "sigeo_access"
+
+
+def chave_por_sessao(request: Request) -> str:
+    """Conta por sessão autenticada; sem cookie, volta ao IP.
+
+    Atrás do proxy da Vercel o IP visto pela API pode ser o mesmo para todo
+    mundo, então um limite por IP seria compartilhado pela equipe inteira.
+    Só o hash do token entra na chave, nunca o token."""
+    token = request.cookies.get(_COOKIE_SESSAO)
+    if token:
+        return "sessao:" + hashlib.sha256(token.encode()).hexdigest()[:32]
+    return get_remote_address(request)
