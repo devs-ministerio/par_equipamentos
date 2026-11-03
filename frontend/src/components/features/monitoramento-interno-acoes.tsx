@@ -175,6 +175,8 @@ export function MonitoramentoInternoAcoes({
                       rotuloSubmit="Salvar correção"
                       rotuloEnviando="Salvando..."
                       limparAoEnviar={false}
+                      rotuloCampo="Corrigir ação"
+                      onCancelar={() => setAcaoEmEdicao(null)}
                       onCriar={async (valores) => {
                         await onEditar(acao.id, valores);
                         setAcaoEmEdicao(null);

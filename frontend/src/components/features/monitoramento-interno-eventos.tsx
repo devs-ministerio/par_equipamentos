@@ -227,6 +227,7 @@ export function MonitoramentoInternoEventos({
                     marcoFixo={marco}
                     valoresIniciais={valoresIniciaisDoEvento(ev)}
                     rotuloSubmit="Salvar correção"
+                    onCancelar={() => setEventoEmEdicao(null)}
                     onRegistrar={async (valores) => {
                       await onEditar(ev.id, valores);
                       setEventoEmEdicao(null);

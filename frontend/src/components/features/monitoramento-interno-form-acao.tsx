@@ -19,6 +19,8 @@ export function MonitoramentoInternoFormAcao({
   rotuloSubmit = "+ Adicionar",
   rotuloEnviando = "Adicionando...",
   limparAoEnviar = true,
+  onCancelar,
+  rotuloCampo = "Nova ação",
 }: {
   podeEditar: boolean;
   onCriar: (valores: CriarAcaoFormValues) => Promise<void>;
@@ -28,6 +30,9 @@ export function MonitoramentoInternoFormAcao({
   rotuloSubmit?: string;
   rotuloEnviando?: string;
   limparAoEnviar?: boolean;
+  /** Descarta a edição aberta sem enviar nada. */
+  onCancelar?: () => void;
+  rotuloCampo?: string;
 }) {
   const formId = useId();
   const descricaoId = `${formId}-acao-descricao`;
@@ -62,7 +67,7 @@ export function MonitoramentoInternoFormAcao({
           htmlFor={descricaoId}
           className="text-[11px] text-muted-foreground block mb-1"
         >
-          Nova ação
+          {rotuloCampo}
         </label>
         <input
           id={descricaoId}
@@ -139,6 +144,19 @@ export function MonitoramentoInternoFormAcao({
         >
           {isSubmitting ? rotuloEnviando : rotuloSubmit}
         </button>
+        {onCancelar && (
+          <button
+            type="button"
+            onClick={onCancelar}
+            disabled={isSubmitting}
+            className={cn(
+              estiloInput,
+              "cursor-pointer border border-border bg-transparent font-semibold w-full sm:w-auto",
+            )}
+          >
+            Cancelar
+          </button>
+        )}
       </div>
     </form>
   );

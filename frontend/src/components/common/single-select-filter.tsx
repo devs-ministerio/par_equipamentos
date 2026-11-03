@@ -73,6 +73,12 @@ export function SingleSelectFilter({
     normalizarTexto(o.label).includes(normalizarTexto(search)),
   );
   const selecionado = options.find((o) => o.value === value);
+  // Filtro ativo sem opção correspondente (a cascata a removeu): continua
+  // visível, para o usuário saber que ele ainda restringe a consulta.
+  const semCorrespondencia = !!value && !selecionado;
+  const rotulo = semCorrespondencia
+    ? `${value} (sem correspondência)`
+    : (selecionado?.label ?? placeholder);
 
   function escolher(v: string | null) {
     onChange(v);
@@ -112,7 +118,7 @@ export function SingleSelectFilter({
         )}
       >
         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-          {selecionado?.label ?? placeholder}
+          {rotulo}
         </span>
         <span className="shrink-0">▾</span>
       </button>
