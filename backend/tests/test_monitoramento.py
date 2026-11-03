@@ -1839,3 +1839,38 @@ def test_resumo_aponta_lacunas_de_conclusao_sem_confundir_com_atraso():
         db.query(User).filter_by(id=usuario.id).delete()
         db.commit()
         db.close()
+
+
+def test_listagem_traz_acompanhamento_de_inauguracao_e_entrega_para_os_dados_oficiais():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    try:
+        marcos = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
+
+        def evento(instrumento, codigo, **campos):
+            db.add(
+                EventoMarco(instrumento_id=instrumento.id, marco_id=marcos[codigo].id, autor_id=usuario.id, **campos)
+            )
+
+        incoerente = _instrumento_efemero(db, "PYTEST-ACOMP-CONF")
+        evento(incoerente, "cronograma_previsao_inauguracao", data_ocorrencia=date(2022, 3, 17))
+        evento(incoerente, "cronograma_entrega", data_ocorrencia=date(2022, 4, 29))
+        previsto = _instrumento_efemero(db, "PYTEST-ACOMP-PREV")
+        evento(previsto, "cronograma_previsao_inauguracao", data_prevista=date(2027, 1, 1))
+        vazio = _instrumento_efemero(db, "PYTEST-ACOMP-VAZIO")
+        db.flush()
+
+        itens = {i.nr_convenio: i.acompanhamento for i in listar_instrumentos(limit=500, db=db, usuario=usuario)}
+
+        assert itens[incoerente.nr_convenio].inauguracao_realizada is True
+        assert itens[incoerente.nr_convenio].inauguracao_data == date(2022, 3, 17)
+        assert "conferir a carga" in itens[incoerente.nr_convenio].conferencia
+        assert itens[previsto.nr_convenio].inauguracao_realizada is False
+        assert itens[previsto.nr_convenio].inauguracao_data == date(2027, 1, 1)
+        assert itens[previsto.nr_convenio].conferencia is None
+        assert itens[vazio.nr_convenio].inauguracao_data is None
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
+        db.close()

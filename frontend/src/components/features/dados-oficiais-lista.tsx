@@ -1,11 +1,13 @@
 import { ConvenioCard } from "@/components/features/convenio-card";
 import { Pagination } from "@/components/common/pagination";
 import type { ConvenioUnificado } from "@/types/monitoramento";
+import type { Acompanhamento } from "@/lib/acompanhamento-instrumento";
 
 export function DadosOficiaisLista({
   itens,
   monitorados,
   fases,
+  acompanhamentos,
   pagina,
   total,
   onPagina,
@@ -13,6 +15,7 @@ export function DadosOficiaisLista({
   itens: ConvenioUnificado[];
   monitorados: Set<string>;
   fases: Map<string, string>;
+  acompanhamentos: Map<string, Acompanhamento>;
   pagina: number;
   total: number;
   onPagina: (pagina: number) => void;
@@ -32,6 +35,7 @@ export function DadosOficiaisLista({
             c={item}
             monitorado={monitorados.has(item.numero)}
             faseMonitoramento={fases.get(item.numero) ?? null}
+            acompanhamento={acompanhamentos.get(item.numero) ?? null}
           />
         ))}
       </>

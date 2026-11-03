@@ -43,6 +43,7 @@ from app.schemas_monitoramento_api import (
     ValorSituacaoAoVivoRead,
 )
 from app.serializers_monitoramento import _acao_read, _ao_vivo_de, _evento_read
+from app.services.monitoramento_acompanhamento import acompanhamento_dos_instrumentos
 from app.services.monitoramento_eventos import (
     DadosEquipamentoEntregue,
     NovoEventoMonitorado,
@@ -116,6 +117,7 @@ def listar_instrumentos(
     )
     responsaveis_por_instrumento = monitoramento_repo.mapear_responsaveis_por_instrumentos(db, ids_instrumentos)
     responsaveis_com_papel = monitoramento_repo.mapear_responsaveis_com_papel_por_instrumentos(db, ids_instrumentos)
+    acompanhamento = acompanhamento_dos_instrumentos(db, sorted(ids_instrumentos))
     return [
         InstrumentoEquipamentoRead.model_validate(item.instrumento).model_copy(
             update={
@@ -125,6 +127,7 @@ def listar_instrumentos(
                 ),
                 "tecnico_titular_id": responsaveis_com_papel.get(item.instrumento.id, {}).get("titular"),
                 "tecnico_suplente_id": responsaveis_com_papel.get(item.instrumento.id, {}).get("suplente"),
+                "acompanhamento": acompanhamento.get(item.instrumento.id),
                 "latitude": coordenadas_por_cnes.get(item.instrumento.cnes or "", (None, None))[0],
                 "longitude": coordenadas_por_cnes.get(item.instrumento.cnes or "", (None, None))[1],
             }

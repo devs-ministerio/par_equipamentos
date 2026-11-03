@@ -104,6 +104,15 @@ class MotivoExclusao(BaseModel):
     anular_inauguracao_vinculada: bool = False
 
 
+class AcompanhamentoRead(BaseModel):
+    """Inauguração e entrega em leitura (D17): a data real tem `inauguracao_realizada`; sem ela é previsão."""
+
+    inauguracao_data: date | None = None
+    inauguracao_realizada: bool = False
+    entrega_data: date | None = None
+    conferencia: str | None = None
+
+
 class InstrumentoEquipamentoRead(BaseModel):
     id: int
     nr_convenio: str
@@ -177,6 +186,8 @@ class InstrumentoEquipamentoRead(BaseModel):
     # Default True cobre POST/PATCH, que ja provaram a permissao pra chegar
     # ali -- so listar_instrumentos/obter_timeline recalculam de verdade.
     pode_editar: bool = True
+    # Só em `listar_instrumentos`: resumo de leitura para os Dados oficiais (D17); nunca editável por aqui.
+    acompanhamento: AcompanhamentoRead | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

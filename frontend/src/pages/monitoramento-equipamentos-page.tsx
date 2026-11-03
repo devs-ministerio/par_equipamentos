@@ -148,6 +148,17 @@ export function MonitoramentoEquipamentosPage() {
       ),
     [instrumentosQuery.data],
   );
+  const acompanhamentos = useMemo(
+    () =>
+      new Map(
+        (instrumentosQuery.data ?? []).flatMap((instrumento) =>
+          instrumento.acompanhamento
+            ? [[instrumento.nr_convenio, instrumento.acompanhamento] as const]
+            : [],
+        ),
+      ),
+    [instrumentosQuery.data],
+  );
   const monitorados = useMemo(
     () => new Set(fasesMonitoramento.keys()),
     [fasesMonitoramento],
@@ -424,6 +435,7 @@ export function MonitoramentoEquipamentosPage() {
                   itens={paginados}
                   monitorados={monitorados}
                   fases={fasesMonitoramento}
+                  acompanhamentos={acompanhamentos}
                   pagina={pagina}
                   total={filtrados.length}
                   onPagina={setPagina}

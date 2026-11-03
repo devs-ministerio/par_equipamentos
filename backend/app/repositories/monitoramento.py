@@ -315,11 +315,13 @@ def listar_eventos_do_instrumento(db: Session, instrumento_id: int, *, apenas_at
 
 
 def listar_eventos_por_instrumentos(
-    db: Session, instrumento_ids: Sequence[int], *, apenas_ativos: bool = True
+    db: Session, instrumento_ids: Sequence[int], *, apenas_ativos: bool = True, marco_ids: Sequence[int] | None = None
 ) -> dict[int, list[EventoMarco]]:
     if not instrumento_ids:
         return {}
     stmt = select(EventoMarco).where(EventoMarco.instrumento_id.in_(instrumento_ids))
+    if marco_ids is not None:
+        stmt = stmt.where(EventoMarco.marco_id.in_(marco_ids))
     if apenas_ativos:
         stmt = stmt.where(_EVENTO_ATIVO)
     resultado: dict[int, list[EventoMarco]] = defaultdict(list)

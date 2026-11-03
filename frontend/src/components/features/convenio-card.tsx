@@ -18,15 +18,18 @@ import type { ConvenioUnificado } from "@/types/monitoramento";
 import { estiloCard } from "./monitoramento-ui";
 import { ConvenioCardHeader } from "./convenio-card-header";
 import { ConvenioCardDetalhes } from "./convenio-card-detalhes";
+import type { Acompanhamento } from "@/lib/acompanhamento-instrumento";
 
 export function ConvenioCard({
   c,
   monitorado = false,
   faseMonitoramento = null,
+  acompanhamento = null,
 }: {
   c: ConvenioUnificado;
   monitorado?: boolean;
   faseMonitoramento?: string | null;
+  acompanhamento?: Acompanhamento | null;
 }) {
   // So controla a camada 2 (dado tecnico aninhado) -- a camada 1 (status/
   // objeto/financeiro) e sempre renderizada, nao precisa de estado.
@@ -65,6 +68,7 @@ export function ConvenioCard({
         c={cDetalhado}
         monitorado={monitorado}
         faseMonitoramento={faseMonitoramento}
+        acompanhamento={acompanhamento}
         equipamentos={[
           ...new Set(
             cDetalhado.equipamentos.map((equipamento) => equipamento.nome),
