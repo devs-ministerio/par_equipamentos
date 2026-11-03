@@ -28,6 +28,13 @@ import { municipiosDoInstrumento } from "@/lib/municipio-filtro";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { decodificarSituacao, opcoesSituacao } from "@/lib/situacao-relatorio";
 import { estagioDeFato } from "@/lib/proposta-status";
+import {
+  equipamentosFinanciados,
+  mesclarOpcoes,
+  opcoesSituacaoDaVisao,
+  propostaCombina,
+  situacaoVale,
+} from "@/lib/recorte-relatorio";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
@@ -313,6 +320,28 @@ export function MonitoramentoRelatoriosPage() {
     [situacaoInstrumentoOptions, faseMonitoramento, propostas],
   );
 
+  const situacaoDaVisaoOptions = useMemo(
+    () => opcoesSituacaoDaVisao(situacaoOptions, encerramento),
+    [situacaoOptions, encerramento],
+  );
+  // Programas e equipamentos que só existem nas propostas também entram nas opções (D04).
+  const programaTodasOptions = useMemo(
+    () =>
+      mesclarOpcoes(
+        programaOptions,
+        propostas.map((p) => p.nm_programa),
+      ),
+    [programaOptions, propostas],
+  );
+  const equipamentoTodasOptions = useMemo(
+    () =>
+      mesclarOpcoes(
+        equipamentoOptions,
+        propostas.flatMap(equipamentosFinanciados),
+      ),
+    [equipamentoOptions, propostas],
+  );
+
   // Os tipos das propostas (ex.: FAF, PRONON) também são opções, mesmo sem instrumento do tipo.
   const tipoOptions = useMemo(() => {
     const existentes = new Set(tipoContratacaoOptions.map((o) => o.value));
@@ -351,6 +380,7 @@ export function MonitoramentoRelatoriosPage() {
         if (municipio && normalizarTexto(p.municipio ?? "") !== municipio)
           return false;
         if (cnes && p.cnes !== cnes) return false;
+        if (!propostaCombina(p, { programa, equipamento })) return false;
         if (
           nomeEstabelecimento &&
           normalizarTexto(p.cnes_nome_estabelecimento ?? "") !==
@@ -370,6 +400,8 @@ export function MonitoramentoRelatoriosPage() {
       origemSituacao,
       situacaoEscolhida,
       tipoContratacao,
+      programa,
+      equipamento,
     ],
   );
   const propostasConfirmadas = useMemo(
@@ -569,6 +601,7 @@ export function MonitoramentoRelatoriosPage() {
           onChange={(valor) => {
             setEncerramento(valor);
             setSituacaoConclusao(null);
+            if (!situacaoVale(situacao, valor)) setSituacao(null);
             if (!valor || valor === "previsoes") {
               setPeriodoPor(null);
               setDataInicio(null);
@@ -641,23 +674,25 @@ export function MonitoramentoRelatoriosPage() {
         />
         <SingleSelectFilter
           placeholder="Equipamento"
-          options={equipamentoOptions}
+          options={equipamentoTodasOptions}
           value={equipamento}
           onChange={setEquipamento}
           clearLabel="Equipamento"
           minWidth={160}
         />
-        <SingleSelectFilter
-          placeholder="Situação"
-          options={situacaoOptions}
-          value={situacao}
-          onChange={setSituacao}
-          clearLabel="Situação"
-          minWidth={150}
-        />
+        {!somenteEntregues && (
+          <SingleSelectFilter
+            placeholder="Situação"
+            options={situacaoDaVisaoOptions}
+            value={situacao}
+            onChange={setSituacao}
+            clearLabel="Situação"
+            minWidth={150}
+          />
+        )}
         <SingleSelectFilter
           placeholder="Programas"
-          options={programaOptions}
+          options={programaTodasOptions}
           value={programa}
           onChange={setPrograma}
           clearLabel="Programas"
