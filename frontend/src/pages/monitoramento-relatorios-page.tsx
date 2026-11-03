@@ -13,6 +13,8 @@ import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-
 import { RelatorioEncerradosPrevia } from "@/components/features/relatorio-encerrados-previa";
 import { RelatorioEntreguesPrevia } from "@/components/features/relatorio-entregues-previa";
 import { useRelatorioEntregues } from "@/hooks/use-relatorio-entregues";
+import { RelatorioPrevisoesPrevia } from "@/components/features/relatorio-previsoes-previa";
+import { useRelatorioPrevisoes } from "@/hooks/use-relatorio-previsoes";
 import { useRelatorioEncerrados } from "@/hooks/use-relatorio-encerrados";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
@@ -110,12 +112,25 @@ function opcoesUnicas(
  * junto), depois UF; `Estabelecimento`/`Equipamento` não têm campo próprio
  * ali, ficam só na prévia.
  */
+// Mesmos códigos de `CATEGORIAS_CONCLUSAO` no backend; as contagens reais chegam com a prévia.
+const SITUACOES_CONCLUSAO = [
+  { codigo: "concluido", rotulo: "Concluído" },
+  { codigo: "concluido_sem_data", rotulo: "Concluído sem data de conclusão" },
+  { codigo: "inaugurado", rotulo: "Em andamento, inaugurado" },
+  { codigo: "previsao_vigente", rotulo: "Em andamento, previsão vigente" },
+  { codigo: "previsao_vencida", rotulo: "Em andamento, previsão vencida" },
+  { codigo: "sem_previsao", rotulo: "Em andamento, sem previsão" },
+  { codigo: "nao_iniciado", rotulo: "Não iniciado" },
+];
+
 export function MonitoramentoRelatoriosPage() {
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
 
   const {
     encerramento,
     setEncerramento,
+    situacaoConclusao,
+    setSituacaoConclusao,
     periodoPor,
     setPeriodoPor,
     dataInicio,
@@ -425,6 +440,7 @@ export function MonitoramentoRelatoriosPage() {
           : "Brasil";
   const somenteEncerrados = encerramento === "encerrados";
   const somenteEntregues = encerramento === "entregues";
+  const somentePrevisoes = encerramento === "previsoes";
   // Período por data do evento (D02): conclusão em Concluídos, entrega em Equipamento entregue. Nas demais visões
   // o período continua sendo o ano do instrumento.
   const visaoPorEvento = somenteEncerrados || somenteEntregues;
@@ -456,19 +472,27 @@ export function MonitoramentoRelatoriosPage() {
       ? "encerrados"
       : somenteEntregues
         ? "entregues"
-        : "todos",
+        : somentePrevisoes
+          ? "previsoes"
+          : "todos",
+    situacaoConclusao: somentePrevisoes
+      ? (situacaoConclusao ?? undefined)
+      : undefined,
   };
   const encerrados = useRelatorioEncerrados(filtroGeracao, somenteEncerrados);
   const entregues = useRelatorioEntregues(filtroGeracao, somenteEntregues);
+  const previsoes = useRelatorioPrevisoes(filtroGeracao, somentePrevisoes);
   // Cada visão conta uma entidade diferente: instrumentos na carteira e na conclusão, unidades físicas nas entregas.
   const unidadeContagem = somenteEntregues ? "unidade" : "registro";
   const totalRegistros = somenteEncerrados
     ? (encerrados.data?.total ?? 0)
     : somenteEntregues
       ? (entregues.data?.total ?? 0)
-      : conveniosFiltrados.length +
-        propostasConfirmadas.length +
-        propostasEmTramitacao.length;
+      : somentePrevisoes
+        ? (previsoes.data?.total ?? 0)
+        : conveniosFiltrados.length +
+          propostasConfirmadas.length +
+          propostasEmTramitacao.length;
 
   return (
     <div className="flex flex-col gap-7 pb-8">
@@ -525,13 +549,15 @@ export function MonitoramentoRelatoriosPage() {
         <SingleSelectFilter
           placeholder="Visão"
           options={[
-            { value: "encerrados", label: "Conclusão (instrumentos)" },
+            { value: "previsoes", label: "Conclusão e previsões" },
+            { value: "encerrados", label: "Concluídos (detalhe)" },
             { value: "entregues", label: "Entregas (unidades)" },
           ]}
           value={encerramento}
           onChange={(valor) => {
             setEncerramento(valor);
-            if (!valor) {
+            setSituacaoConclusao(null);
+            if (!valor || valor === "previsoes") {
               setPeriodoPor(null);
               setDataInicio(null);
               setDataFim(null);
@@ -540,6 +566,18 @@ export function MonitoramentoRelatoriosPage() {
           clearLabel="Carteira e financiamento"
           minWidth={190}
         />
+        {somentePrevisoes && (
+          <SingleSelectFilter
+            placeholder="Situação da conclusão"
+            options={(previsoes.data?.contagens ?? SITUACOES_CONCLUSAO).map(
+              (c) => ({ value: c.codigo, label: c.rotulo }),
+            )}
+            value={situacaoConclusao}
+            onChange={setSituacaoConclusao}
+            clearLabel="Todas as situações"
+            minWidth={200}
+          />
+        )}
         {visaoPorEvento && (
           <SingleSelectFilter
             placeholder="Período por"
@@ -687,7 +725,28 @@ export function MonitoramentoRelatoriosPage() {
         </div>
       </div>
 
-      {somenteEntregues ? (
+      {somentePrevisoes ? (
+        previsoes.isLoading ? (
+          <Skeleton
+            className="h-64 w-full"
+            role="status"
+            aria-label="Carregando previsões"
+          />
+        ) : previsoes.isError ? (
+          <ErrorAlert
+            mensagem={mensagemSeguraDoErro(previsoes.error)}
+            onRetry={() => previsoes.refetch()}
+          />
+        ) : previsoes.data ? (
+          <RelatorioPrevisoesPrevia
+            itens={previsoes.data.itens}
+            total={previsoes.data.total}
+            contagens={previsoes.data.contagens}
+            pagina={previsoes.pagina}
+            onPaginaChange={previsoes.setPagina}
+          />
+        ) : null
+      ) : somenteEntregues ? (
         entregues.isLoading ? (
           <Skeleton
             className="h-64 w-full"
@@ -803,6 +862,10 @@ export function MonitoramentoRelatoriosPage() {
           (!somenteEntregues ||
             Boolean(
               entregues.data && !entregues.isFetching && !entregues.isError,
+            )) &&
+          (!somentePrevisoes ||
+            Boolean(
+              previsoes.data && !previsoes.isFetching && !previsoes.isError,
             ))
         }
         gerando={gerando}

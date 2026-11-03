@@ -21,6 +21,9 @@ import { useState } from "react";
  * `ano` único -- 2 seletores em vez de 1, mesmas opções (`anoOptions`). */
 export function useRelatorioInstrumentosFiltros() {
   const [encerramento, setEncerramento] = useState<string | null>(null);
+  const [situacaoConclusao, setSituacaoConclusao] = useState<string | null>(
+    null,
+  );
   const [uf, setUf] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<string | null>(null);
   const [periodoPor, setPeriodoPor] = useState<string | null>(null);
@@ -39,6 +42,7 @@ export function useRelatorioInstrumentosFiltros() {
 
   const limparFiltros = () => {
     setEncerramento(null);
+    setSituacaoConclusao(null);
     setUf(null);
     setSituacao(null);
     setPeriodoPor(null);
@@ -56,6 +60,7 @@ export function useRelatorioInstrumentosFiltros() {
 
   const hasFiltros = Boolean(
     encerramento ||
+    situacaoConclusao ||
     uf ||
     situacao ||
     anoInicio ||
@@ -74,6 +79,8 @@ export function useRelatorioInstrumentosFiltros() {
   return {
     encerramento,
     setEncerramento,
+    situacaoConclusao,
+    setSituacaoConclusao,
     uf,
     setUf,
     situacao,

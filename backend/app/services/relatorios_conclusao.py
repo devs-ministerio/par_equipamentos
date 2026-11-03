@@ -82,6 +82,27 @@ def agenda_dos_instrumentos(
     return agenda
 
 
+# Código estável da situação de conclusão, usado pelo filtro da prévia e do arquivo (D01).
+CATEGORIAS_CONCLUSAO = {
+    "concluido": "Concluído",
+    "concluido_sem_data": "Concluído sem data de conclusão",
+    "inaugurado": "Em andamento, inaugurado",
+    "previsao_vigente": "Em andamento, previsão vigente",
+    "previsao_vencida": "Em andamento, previsão vencida",
+    "sem_previsao": "Em andamento, sem previsão",
+    "nao_iniciado": "Não iniciado",
+}
+
+
+def categoria_da(item: AgendaInstrumento) -> str:
+    for codigo, rotulo in CATEGORIAS_CONCLUSAO.items():
+        if item.situacao.startswith(rotulo) and not (
+            codigo == "concluido" and item.situacao.startswith(CATEGORIAS_CONCLUSAO["concluido_sem_data"])
+        ):
+            return codigo
+    return "concluido"
+
+
 def sintese(agenda: Sequence[AgendaInstrumento]) -> list[list[object]]:
     def contar(*prefixos: str) -> int:
         return sum(1 for a in agenda if a.situacao.startswith(prefixos))

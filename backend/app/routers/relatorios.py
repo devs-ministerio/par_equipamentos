@@ -22,9 +22,11 @@ from app.db.models import User
 from app.rate_limit import chave_por_sessao, limiter
 from app.schemas_relatorios_encerrados import PreviaEncerrados
 from app.schemas_relatorios_entregues import PreviaEntregues
+from app.schemas_relatorios_previsoes import PreviaPrevisoes
 from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from app.services.relatorios_encerrados import previa_encerrados
 from app.services.relatorios_entregues import previa_entregues
+from app.services.relatorios_previsoes import previa_previsoes
 
 router = APIRouter(prefix="/relatorios", tags=["relatorios"])
 
@@ -53,7 +55,8 @@ def gerar_relatorio(
     tipo_contratacao: str | None = Query(default=None),
     equipamento: str | None = Query(default=None),
     busca: str | None = Query(default=None),
-    encerramento: Literal["todos", "encerrados", "entregues"] = "todos",
+    encerramento: Literal["todos", "encerrados", "entregues", "previsoes"] = "todos",
+    situacao_conclusao: str | None = Query(default=None),
     situacao_origem: Literal["instrumento", "monitoramento", "proposta"] | None = Query(default=None),
     periodo_por: Literal["ano_instrumento", "data_do_evento"] = "ano_instrumento",
     data_inicio: date | None = Query(default=None),
@@ -75,6 +78,7 @@ def gerar_relatorio(
         equipamento=equipamento,
         busca=busca,
         encerramento=encerramento,
+        situacao_conclusao=situacao_conclusao,
         situacao_origem=situacao_origem,
         periodo_por=periodo_por,
         data_inicio=data_inicio,
@@ -112,3 +116,45 @@ def consultar_entregues(
     usuario: User = Depends(require_current_user),
 ) -> PreviaEntregues:
     return previa_entregues(db=db, filtro=filtro.filtro_encerrados(), pagina=pagina, limite=limite)
+
+
+@router.get("/previsoes", response_model=PreviaPrevisoes)
+def consultar_previsoes(
+    request: Request,
+    escopo: Literal["brasil", "regiao", "uf", "municipio", "cnes"] = "brasil",
+    regiao: str | None = Query(default=None),
+    uf: str | None = Query(default=None),
+    municipio: str | None = Query(default=None),
+    cnes: str | None = Query(default=None),
+    ano_inicio: int | None = Query(default=None),
+    ano_fim: int | None = Query(default=None),
+    situacao: str | None = Query(default=None),
+    situacao_origem: Literal["instrumento", "monitoramento", "proposta"] | None = Query(default=None),
+    programa: str | None = Query(default=None),
+    tipo_contratacao: str | None = Query(default=None),
+    equipamento: str | None = Query(default=None),
+    busca: str | None = Query(default=None),
+    situacao_conclusao: str | None = Query(default=None),
+    pagina: int = Query(default=1, ge=1),
+    limite: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+) -> PreviaPrevisoes:
+    filtro = FiltroRelatorio(
+        escopo=escopo,
+        regiao=regiao,
+        uf=uf,
+        municipio=municipio,
+        cnes=cnes,
+        ano_inicio=ano_inicio,
+        ano_fim=ano_fim,
+        situacao=situacao,
+        situacao_origem=situacao_origem,
+        programa=programa,
+        tipo_contratacao=tipo_contratacao,
+        equipamento=equipamento,
+        busca=busca,
+        encerramento="previsoes",
+        situacao_conclusao=situacao_conclusao,
+    )
+    return previa_previsoes(db=db, filtro=filtro, pagina=pagina, limite=limite)

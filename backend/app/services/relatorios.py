@@ -177,6 +177,17 @@ def montar_relatorio(
                     formato=formato,
                     recorte=filtro.titulo(),
                 )
+            if filtro.encerramento == "previsoes":
+                if tipo_relatorio != "instrumentos_repasse":
+                    raise ValidationError(
+                        "Conclusão e previsões só se aplica ao relatório de instrumentos e parcerias."
+                    )
+                from app.reports.previsoes import gerar_extracao as gerar_previsoes
+                from app.services.relatorios_previsoes import extrair_previsoes
+
+                return gerar_previsoes(
+                    extrair_previsoes(db=db, filtro=filtro), formato=formato, recorte=filtro.titulo()
+                )
             if tipo_relatorio == "analise_merito":
                 return _montar_analise_merito(db, formato, nivel, filtro)
             return _montar_instrumentos_repasse(db, formato, nivel, filtro)

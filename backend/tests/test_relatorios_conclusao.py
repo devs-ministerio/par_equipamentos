@@ -107,3 +107,19 @@ def test_linhas_da_agenda_trazem_as_tres_datas_sem_preencher_o_que_falta():
     assert concluido_completo[9] is None  # nenhuma previsão inventada
     sem_data = linhas[1]
     assert sem_data[7] is None and sem_data[8] is None and sem_data[9] is None
+
+
+def test_categoria_de_cada_situacao_e_estavel():
+    from app.services.relatorios_conclusao import CATEGORIAS_CONCLUSAO, categoria_da
+
+    instrumentos, d = montar()
+    codigos = [categoria_da(a) for a in agenda_dos_instrumentos(instrumentos, d, HOJE)]
+    assert codigos == [
+        "concluido",
+        "concluido_sem_data",
+        "previsao_vigente",
+        "previsao_vencida",
+        "sem_previsao",
+        "nao_iniciado",
+    ]
+    assert set(codigos) <= set(CATEGORIAS_CONCLUSAO)

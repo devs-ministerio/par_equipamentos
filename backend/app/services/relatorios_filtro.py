@@ -67,7 +67,9 @@ class FiltroRelatorio:
     # Monitoramento não têm essa granularidade hoje.
     equipamento: str | None = None
     busca: str | None = None
-    encerramento: Literal["todos", "encerrados", "entregues"] = "todos"
+    encerramento: Literal["todos", "encerrados", "entregues", "previsoes"] = "todos"
+    # Situação de conclusão da visão "previsões" (D01); código de `relatorios_conclusao.CATEGORIAS_CONCLUSAO`.
+    situacao_conclusao: str | None = None
     # Filtro único de Situação: o valor vale só na seção da origem escolhida e as demais ficam de fora.
     # Sem origem (chamada direta da API), `situacao` segue filtrando só os convênios.
     situacao_origem: Literal["instrumento", "monitoramento", "proposta"] | None = None
@@ -79,7 +81,7 @@ class FiltroRelatorio:
 
     def validar_referencia_do_periodo(self) -> None:
         """Na geração do arquivo, o período por data do evento só tem sentido nas extrações por evento."""
-        if self.por_data_do_evento() and self.encerramento == "todos":
+        if self.por_data_do_evento() and self.encerramento in ("todos", "previsoes"):
             raise ValidationError(
                 "O período por data do evento vale só em Concluídos e Equipamento entregue; "
                 "use o ano do instrumento nos demais relatórios."
