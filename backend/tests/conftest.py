@@ -27,6 +27,7 @@ _DB_TEST_MODULES = {
     "test_consolidar_eventos_marco_duplicados_db.py",
     "test_preencher_cnes_ano_descricao_instrumento_db.py",
     "test_relatorios_entregues_db.py",
+    "test_recalcular_cobertura_macro_db.py",
     "test_usuarios_ultimo_login_db.py",
     "test_baseline_batch_db.py",
     "test_job_alerta_vigencia_contadores_db.py",
