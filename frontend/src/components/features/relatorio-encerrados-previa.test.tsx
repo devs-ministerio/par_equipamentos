@@ -18,6 +18,7 @@ const registro: RegistroEncerrado = {
   data_conclusao: null,
   data_referencia: null,
   origem_data: null,
+  data_final_vigencia: null,
   equipamentos: "",
   quantidade: null,
   situacao_carteira: null,
@@ -65,7 +66,7 @@ it("apresenta recorte vazio sem inventar concluídos", () => {
   expect(screen.getByRole("button", { name: "Próxima página" })).toBeDisabled();
 });
 
-it("apresenta equipamento, valor e data de conclusão, e identifica o fim da vigência", () => {
+it("apresenta equipamento, valor e data de conclusão, com o fim da vigência separado", () => {
   // Arrange
   const concluido: RegistroEncerrado = {
     ...registro,
@@ -79,8 +80,9 @@ it("apresenta equipamento, valor e data de conclusão, e identifica o fim da vig
     equipamentos: "Acelerador Linear; Mamógrafo",
     quantidade: 3,
     cnes: "0000434",
-    data_referencia: "2025-10-05",
-    origem_data: "Fim da vigência",
+    data_referencia: null,
+    origem_data: null,
+    data_final_vigencia: "2025-10-05",
   };
   const noMonitoramento: RegistroEncerrado = {
     ...concluido,
@@ -88,6 +90,7 @@ it("apresenta equipamento, valor e data de conclusão, e identifica o fim da vig
     numero: "999003",
     data_referencia: "2024-06-30",
     origem_data: "Conclusão no monitoramento",
+    data_final_vigencia: null,
     equipamentos: "",
   };
   // Act
@@ -109,11 +112,12 @@ it("apresenta equipamento, valor e data de conclusão, e identifica o fim da vig
     screen.getAllByText(/Qtd\.:/).map((e) => e.parentElement?.textContent),
   ).toContain(" · Qtd.: 3");
   expect(screen.getAllByText(/R\$\s*6\.400\.000/)).toHaveLength(2);
-  expect(
-    screen.getByText(/05\/10\/2025 \(fim da vigência\)/),
-  ).toBeInTheDocument();
+  // D07: sem conclusão registrada, a data fica "Não informada" e a vigência aparece à parte, nunca como conclusão.
+  expect(screen.getByText(/Não informada/)).toBeInTheDocument();
+  expect(screen.getByText(/05\/10\/2025/)).toBeInTheDocument();
+  expect(screen.getByText(/Fim da vigência:/)).toBeInTheDocument();
   expect(screen.getByText(/30\/06\/2024/)).toBeInTheDocument();
-  expect(screen.queryByText(/30\/06\/2024 \(fim da vigência\)/)).toBeNull();
+  expect(screen.getAllByText(/Fim da vigência:/)).toHaveLength(1);
   // a evidência técnica fica só nas pendências
   expect(screen.queryByText(registro.evidencia)).toBeNull();
 });

@@ -272,5 +272,6 @@ def test_word_de_concluidos_fica_deitado_e_separa_cnes_numero_e_quantidade(carte
         "Tipo",
         "Valor global",
         "Data de conclusão",
+        "Fim da vigência",
         "Critério",
     ]

@@ -21,7 +21,7 @@ COLUNAS = [
     "Tipo de contratação",
     "Valor global",
     "Data de conclusão",
-    "Origem da data",
+    "Fim da vigência",
     "Critério",
     "Evidência",
     "Situação carteira/proposta",
@@ -40,13 +40,15 @@ _COLUNAS_WORD = [
     "Tipo",
     "Valor global",
     "Data de conclusão",
+    "Fim da vigência",
     "Critério",
 ]
-_PESOS_WORD = [3.0, 2.0, 1.2, 1.5, 2.4, 0.8, 0.8, 1.4, 1.9, 2.1, 2.0]
+_PESOS_WORD = [2.8, 1.9, 1.1, 1.4, 2.2, 0.8, 0.8, 1.3, 1.7, 1.5, 1.5, 1.8]
 
 _NOTA_DATA = (
-    "Data de conclusão: a registrada no monitoramento interno; na falta dela, o fim da vigência do "
-    "instrumento, indicado como tal. O SICONV não informa a data em que a prestação de contas foi concluída."
+    'Data de conclusão: somente a registrada no monitoramento interno; sem ela, "Não informada". '
+    "Fim da vigência: informação contratual em coluna própria, que não substitui a conclusão. "
+    "O SICONV não informa a data em que a prestação de contas foi concluída."
 )
 _NOTA_QUANTIDADE = (
     "Quantidade planejada: unidades dos equipamentos do instrumento, pela soma da quantidade dos itens do plano "
@@ -72,8 +74,8 @@ def _linha(item: RegistroEncerrado) -> list[object]:
         item.quantidade_entregue,
         item.tipo,
         item.valor_global,
-        item.data_referencia,
-        item.origem_data,
+        item.data_referencia or _NAO_INFORMADA,
+        item.data_final_vigencia,
         item.motivo,
         item.evidencia,
         item.situacao_carteira,
@@ -82,11 +84,15 @@ def _linha(item: RegistroEncerrado) -> list[object]:
     ]
 
 
+_NAO_INFORMADA = "Não informada"
+
+
 def _data_word(item: RegistroEncerrado) -> str:
-    if item.data_referencia is None:
-        return "—"
-    texto = formatar_data(item.data_referencia)
-    return texto if item.origem_data != "Fim da vigência" else f"{texto}\n(fim da vigência)"
+    return formatar_data(item.data_referencia) if item.data_referencia else _NAO_INFORMADA
+
+
+def _vigencia_word(item: RegistroEncerrado) -> str:
+    return formatar_data(item.data_final_vigencia) if item.data_final_vigencia else "—"
 
 
 def _linha_concluido_word(item: RegistroEncerrado) -> list[str]:
@@ -101,6 +107,7 @@ def _linha_concluido_word(item: RegistroEncerrado) -> list[str]:
         item.tipo,
         formatar_moeda(float(item.valor_global)) if item.valor_global is not None else "—",
         _data_word(item),
+        _vigencia_word(item),
         item.motivo,
     ]
 
@@ -139,7 +146,7 @@ def gerar_extracao(extracao: ExtracaoEncerrados, *, formato: Literal["xlsx", "do
                 COLUNAS,
                 [_linha(i) for i in itens],
                 colunas_moeda=["Valor global"],
-                colunas_data=["Data de conclusão"],
+                colunas_data=["Data de conclusão", "Fim da vigência"],
             )
         return xlsx_builder.gerar_bytes(pasta)
     # Muitas colunas: página deitada.

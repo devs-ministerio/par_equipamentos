@@ -105,12 +105,10 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         pendencia = True
     if not motivos:
         return None
-    # A conclusão registrada no monitoramento é a data real; sem ela, o fim da
-    # vigência é só uma referência do instrumento e vem identificado como tal.
+    # Só a conclusão registrada no monitoramento é data de conclusão. O fim da vigência é contratual e segue em
+    # campo próprio: nunca ocupa a coluna de conclusão, nem recorta ou ordena conclusões (D07).
     if fato.data_conclusao is not None:
         data_referencia, origem_data = fato.data_conclusao, "Conclusão no monitoramento"
-    elif fato.data_final_vigencia is not None:
-        data_referencia, origem_data = fato.data_final_vigencia, "Fim da vigência"
     else:
         data_referencia, origem_data = None, None
     return prioridade, RegistroEncerrado(
@@ -127,6 +125,7 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         data_conclusao=fato.data_conclusao,
         data_referencia=data_referencia,
         origem_data=origem_data,
+        data_final_vigencia=fato.data_final_vigencia,
         convenio_id=fato.convenio_id,
         instrumento_id=fato.instrumento_id,
         proposta_id=fato.proposta_pk,

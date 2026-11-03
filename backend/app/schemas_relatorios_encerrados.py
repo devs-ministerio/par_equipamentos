@@ -21,10 +21,11 @@ class RegistroEncerrado(BaseModel):
     motivo: str
     evidencia: str
     data_conclusao: date | None = None
-    # Data para apontar a conclusão: a registrada no monitoramento interno ou, na
-    # falta dela, o fim da vigência do instrumento (`origem_data` diz qual).
+    # Data da conclusão: SÓ a registrada no monitoramento interno; sem ela fica vazia (D07, 29/10/2026). O fim da
+    # vigência é informação contratual, vem em campo próprio e nunca substitui a conclusão.
     data_referencia: date | None = None
     origem_data: str | None = None
+    data_final_vigencia: date | None = None
     equipamentos: str = ""
     quantidade: int | None = None
     # Unidades entregues (controle por unidade); None quando o instrumento ainda não tem esse controle.

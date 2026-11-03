@@ -73,10 +73,18 @@ export function RelatorioEncerradosPrevia({
                   <span className="text-muted-foreground">Valor global: </span>
                   {fmtMoeda(item.valor_global)}
                   <span className="text-muted-foreground"> · Conclusão: </span>
-                  {fmtData(item.data_referencia)}
-                  {item.origem_data === "Fim da vigência" &&
-                    item.data_referencia &&
-                    " (fim da vigência)"}
+                  {item.data_referencia
+                    ? fmtData(item.data_referencia)
+                    : "Não informada"}
+                  {item.data_final_vigencia && (
+                    <>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · Fim da vigência:{" "}
+                      </span>
+                      {fmtData(item.data_final_vigencia)}
+                    </>
+                  )}
                 </p>
                 {item.pendencia && (
                   <p className="mt-1 break-words text-xs text-muted-foreground">

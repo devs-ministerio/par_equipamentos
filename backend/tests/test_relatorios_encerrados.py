@@ -165,13 +165,16 @@ def test_data_de_referencia_prefere_a_conclusao_do_monitoramento_e_cai_no_fim_da
     # When
     extracao = classificar_encerrados([com_monitoramento, so_vigencia, sem_data], FiltroEncerramento())
     por_numero = {i.numero: i for i in extracao.itens}
-    # Then: a conclusão real vence; o fim da vigência vem identificado; sem nenhuma, fica vazio
+    # Then: só a conclusão real ocupa a data de conclusão; o fim da vigência nunca a substitui (D07)
     assert (por_numero["1"].data_referencia, por_numero["1"].origem_data) == (
         date(2025, 10, 5),
         "Conclusão no monitoramento",
     )
-    assert (por_numero["2"].data_referencia, por_numero["2"].origem_data) == (date(2024, 6, 30), "Fim da vigência")
+    assert por_numero["1"].data_final_vigencia == date(2026, 12, 3)
+    assert (por_numero["2"].data_referencia, por_numero["2"].origem_data) == (None, None)
+    assert por_numero["2"].data_final_vigencia == date(2024, 6, 30)
     assert (por_numero["3"].data_referencia, por_numero["3"].origem_data) == (None, None)
+    assert por_numero["3"].data_final_vigencia is None
 
 
 def test_texto_de_equipamentos_mostra_a_contagem_so_quando_ha_mais_de_um():
