@@ -13,7 +13,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.db.models import MarcoCatalogo, MarcoGrupo
+from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
 from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.schemas_monitoramento import (
@@ -23,6 +23,7 @@ from app.schemas_monitoramento import (
     EquipamentoInstrumentoResumo,
     InauguracaoResumo,
     IndicadoresInstrumentoRead,
+    LacunaConclusaoResumo,
     LicencaVencendoResumo,
     ResumoMonitoramentoRead,
 )
@@ -37,6 +38,49 @@ def _fase_atual_id(fases_gerais_desc: list[MarcoCatalogo], marco_ids_com_evento:
         if f.id in marco_ids_com_evento:
             return f.id
     return None
+
+
+def _acumular_lacunas_conclusao(
+    *,
+    instrumento: InstrumentoEquipamento,
+    fase_atual: MarcoCatalogo | None,
+    eventos_instrumento: list[EventoMarco],
+    marco_inauguracao_id: int | None,
+    lacunas: list[LacunaConclusaoResumo],
+) -> None:
+    """Lacunas de cadastro ou evidência (D42), distintas de atraso e de divergência administrativa.
+
+    Nada é inferido: sem data, sem inauguração real ou sem previsão o instrumento só entra na lista de saneamento."""
+    if fase_atual is None:  # "Não iniciado" não tem o que concluir nem prever
+        return
+    inauguracoes = [e for e in eventos_instrumento if marco_inauguracao_id and e.marco_id == marco_inauguracao_id]
+    if fase_atual.codigo == "fase_concluido":
+        conclusoes = [e for e in eventos_instrumento if e.marco_id == fase_atual.id]
+        if conclusoes and not any(e.data_ocorrencia for e in conclusoes):
+            lacunas.append(
+                LacunaConclusaoResumo(
+                    nr_convenio=instrumento.nr_convenio,
+                    nome_convenente=instrumento.nome_convenente,
+                    tipo="concluido_sem_data_conclusao",
+                )
+            )
+        if not any(e.data_ocorrencia for e in inauguracoes):
+            lacunas.append(
+                LacunaConclusaoResumo(
+                    nr_convenio=instrumento.nr_convenio,
+                    nome_convenente=instrumento.nome_convenente,
+                    tipo="concluido_sem_inauguracao_real",
+                )
+            )
+        return
+    if not any(e.data_prevista or e.data_ocorrencia for e in inauguracoes):
+        lacunas.append(
+            LacunaConclusaoResumo(
+                nr_convenio=instrumento.nr_convenio,
+                nome_convenente=instrumento.nome_convenente,
+                tipo="andamento_sem_previsao",
+            )
+        )
 
 
 def _acumular_divergencia_conclusao(
@@ -110,6 +154,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     divergencias_conclusao: list[DivergenciaConclusaoRead] = []
     divergencias_por_fonte: Counter[str] = Counter()
     indicadores_por_instrumento: list[IndicadoresInstrumentoRead] = []
+    lacunas_conclusao: list[LacunaConclusaoResumo] = []
 
     for inst in instrumentos:
         eventos_inst = eventos_por_instrumento.get(inst.id, [])
@@ -196,6 +241,14 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                         )
                     )
 
+        _acumular_lacunas_conclusao(
+            instrumento=inst,
+            fase_atual=fase_atual,
+            eventos_instrumento=eventos_inst,
+            marco_inauguracao_id=marco_inauguracao.id if marco_inauguracao else None,
+            lacunas=lacunas_conclusao,
+        )
+
         acoes_pendentes_inst, acoes_atrasadas_inst = dados.acoes_por_instrumento.get(inst.id, (0, 0))
         indicadores_por_instrumento.append(
             IndicadoresInstrumentoRead(
@@ -253,5 +306,6 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         acoes_em_aberto=acoes_em_aberto,
         fila_acoes_truncada=dados.acoes_pendentes > len(acoes_em_aberto),
         equipamentos_por_instrumento=equipamentos_por_instrumento,
+        lacunas_conclusao=lacunas_conclusao,
         gerado_em=datetime.now(timezone.utc),
     )

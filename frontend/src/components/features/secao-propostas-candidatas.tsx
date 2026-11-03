@@ -339,6 +339,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
           minWidth={160}
         />
         <AnoIntervaloFilter
+          rotuloBase="Ano da proposta"
           options={anoOptions}
           inicio={anoInicio}
           fim={anoFim}

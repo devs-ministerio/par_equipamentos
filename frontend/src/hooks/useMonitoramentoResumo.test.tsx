@@ -26,6 +26,7 @@ const RESUMO_EXEMPLO: ResumoMonitoramento = {
   acoes_em_aberto: [],
   fila_acoes_truncada: false,
   equipamentos_por_instrumento: [],
+  lacunas_conclusao: [],
   gerado_em: "2026-09-29T12:00:00Z",
   nr_convenios: [],
   divergencias_conclusao: [],

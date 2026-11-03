@@ -59,6 +59,7 @@ export function prepararMesa() {
     acoes_em_aberto: [],
     fila_acoes_truncada: false,
     equipamentos_por_instrumento: [],
+    lacunas_conclusao: [],
     gerado_em: "2026-10-20T10:00:00Z",
   };
   const marcadores = [

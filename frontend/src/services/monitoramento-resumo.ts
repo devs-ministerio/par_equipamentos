@@ -77,6 +77,17 @@ export type EquipamentoInstrumentoResumo = z.infer<
   typeof equipamentoInstrumentoSchema
 >;
 
+const lacunaConclusaoSchema = z.object({
+  nr_convenio: z.string(),
+  nome_convenente: z.string(),
+  tipo: z.enum([
+    "concluido_sem_data_conclusao",
+    "concluido_sem_inauguracao_real",
+    "andamento_sem_previsao",
+  ]),
+});
+export type LacunaConclusao = z.infer<typeof lacunaConclusaoSchema>;
+
 const resumoMonitoramentoSchema = z.object({
   total_instrumentos: z.number(),
   pct_execucao_fisica_medio: z.number().nullable(),
@@ -94,6 +105,7 @@ const resumoMonitoramentoSchema = z.object({
   acoes_em_aberto: z.array(acaoAbertaResumoSchema),
   fila_acoes_truncada: z.boolean(),
   equipamentos_por_instrumento: z.array(equipamentoInstrumentoSchema),
+  lacunas_conclusao: z.array(lacunaConclusaoSchema).default([]),
   gerado_em: z.string(),
 });
 export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;

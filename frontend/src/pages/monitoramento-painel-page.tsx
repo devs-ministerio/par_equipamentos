@@ -17,6 +17,7 @@ import {
   PainelSecao,
 } from "@/components/features/monitoramento-painel-visuals";
 import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
+import { MonitoramentoPainelLacunas } from "@/components/features/monitoramento-painel-lacunas";
 import { MonitoramentoPainelGeografia } from "@/components/features/monitoramento-painel-geografia";
 import { MonitoramentoPainelAnalises } from "@/components/features/monitoramento-painel-analises";
 import { MonitoramentoPainelEntregues } from "@/components/features/monitoramento-painel-entregues";
@@ -215,6 +216,8 @@ export function MonitoramentoPainelPage() {
         cargasManuais={dados.cargasManuais}
         viewerRole={sessao.usuarioAtual?.role}
       />
+
+      <MonitoramentoPainelLacunas lacunas={dados.lacunas} />
 
       <MonitoramentoPainelPendencias
         vigencias={dados.vigenciasProximas}

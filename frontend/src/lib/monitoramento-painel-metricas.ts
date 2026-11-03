@@ -49,6 +49,9 @@ export function montarMetricasPainel(
   const inauguracoes = resumo.inauguracoes.filter((item) =>
     numeros.has(item.nr_convenio),
   );
+  const lacunas = resumo.lacunas_conclusao.filter((item) =>
+    numeros.has(item.nr_convenio),
+  );
   const divergencias = resumo.divergencias_conclusao.filter((item) =>
     numeros.has(item.nr_convenio),
   );
@@ -188,6 +191,7 @@ export function montarMetricasPainel(
     licencas,
     inauguracoes,
     divergencias,
+    lacunas,
     acoes,
     acoesPendentes,
     acoesAtrasadas,

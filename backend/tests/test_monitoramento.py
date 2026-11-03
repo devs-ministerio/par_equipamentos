@@ -1787,3 +1787,55 @@ def test_excluir_a_conclusao_so_anula_a_inauguracao_quando_pedido():
         db.query(User).filter_by(id=usuario.id).delete()
         db.commit()
         db.close()
+
+
+def test_resumo_aponta_lacunas_de_conclusao_sem_confundir_com_atraso():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    try:
+        marcos = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
+
+        def evento(instrumento, codigo, **campos):
+            db.add(
+                EventoMarco(
+                    instrumento_id=instrumento.id,
+                    marco_id=marcos[codigo].id,
+                    autor_id=usuario.id,
+                    **campos,
+                )
+            )
+
+        # Concluído sem data de conclusão e sem inauguração real (o caso do TED do diagnóstico).
+        sem_data = _instrumento_efemero(db, "PYTEST-LAC-SEMDATA")
+        evento(sem_data, "fase_concluido")
+        # Concluído com data, mas só com previsão de inauguração.
+        sem_inaug = _instrumento_efemero(db, "PYTEST-LAC-SEMINAUG")
+        evento(sem_inaug, "fase_concluido", data_ocorrencia=date(2026, 10, 1))
+        evento(sem_inaug, "cronograma_previsao_inauguracao", data_prevista=date(2026, 12, 1))
+        # Concluído completo: não aparece.
+        completo = _instrumento_efemero(db, "PYTEST-LAC-OK")
+        evento(completo, "fase_concluido", data_ocorrencia=date(2026, 10, 1))
+        evento(completo, "cronograma_previsao_inauguracao", data_ocorrencia=date(2026, 10, 1))
+        # Em andamento sem previsão, e em andamento com previsão.
+        andamento = _instrumento_efemero(db, "PYTEST-LAC-ANDAMENTO")
+        evento(andamento, "fase_em_licitacao", data_ocorrencia=date(2026, 9, 1))
+        com_previsao = _instrumento_efemero(db, "PYTEST-LAC-PREVISTO")
+        evento(com_previsao, "fase_em_licitacao", data_ocorrencia=date(2026, 9, 1))
+        evento(com_previsao, "cronograma_previsao_inauguracao", data_prevista=date(2027, 1, 1))
+        # Sem nenhum evento ("Não iniciado"): não há o que concluir nem prever.
+        nao_iniciado = _instrumento_efemero(db, "PYTEST-LAC-NI")
+        db.flush()
+
+        lacunas = {(item.nr_convenio, item.tipo) for item in obter_resumo(db).lacunas_conclusao}
+
+        assert (sem_data.nr_convenio, "concluido_sem_data_conclusao") in lacunas
+        assert (sem_data.nr_convenio, "concluido_sem_inauguracao_real") in lacunas
+        assert (sem_inaug.nr_convenio, "concluido_sem_inauguracao_real") in lacunas
+        assert (sem_inaug.nr_convenio, "concluido_sem_data_conclusao") not in lacunas
+        assert (andamento.nr_convenio, "andamento_sem_previsao") in lacunas
+        assert not {n for n, _ in lacunas} & {completo.nr_convenio, com_previsao.nr_convenio, nao_iniciado.nr_convenio}
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
+        db.close()
