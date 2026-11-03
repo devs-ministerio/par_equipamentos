@@ -274,7 +274,7 @@ describe("interação da timeline de eventos", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Confirmar exclusão" }),
     );
-    expect(props.onExcluir).toHaveBeenLastCalledWith(21, "Duplicidade");
+    expect(props.onExcluir).toHaveBeenLastCalledWith(21, "Duplicidade", false);
     await waitFor(() =>
       expect(
         screen.queryByRole("button", { name: "Confirmar exclusão" }),

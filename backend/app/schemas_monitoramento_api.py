@@ -100,6 +100,8 @@ class EventoMarcoUpdate(BaseModel):
 
 class MotivoExclusao(BaseModel):
     motivo: str = Field(min_length=3, max_length=500)
+    # Só vale para o evento de conclusão: anula também a inauguração gerada junto com ele (mesma data).
+    anular_inauguracao_vinculada: bool = False
 
 
 class InstrumentoEquipamentoRead(BaseModel):

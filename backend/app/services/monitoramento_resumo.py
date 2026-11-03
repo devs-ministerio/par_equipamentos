@@ -149,7 +149,9 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
             # convênio 947527) -- carga em lote grava vários eventos do
             # mesmo marco com o MESMO created_at (timestamp do processo).
             ev_validade = max(
-                (e for e in evs_licenca if e.data_validade),
+                # Só licença deferida entra no alerta de vencimento (D26): validade de processo
+                # indeferido ou em análise não é licença vigente.
+                (e for e in evs_licenca if e.data_validade and e.status_regulatorio == "Deferido"),
                 key=lambda e: (e.created_at, e.id),
                 default=None,
             )

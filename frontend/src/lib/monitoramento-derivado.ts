@@ -44,14 +44,17 @@ export function derivarMonitoramentoInterno(
   const marcoLicenca = regulatorio.find(
     (m) => m.codigo === "regulatorio_licenca_operacao",
   );
-  // Documento/data exibidos não exigem validade; o alerta mantém sua seleção.
+  // Documento/data exibidos não exigem validade. O alerta de vencimento só considera licença DEFERIDA:
+  // validade de processo indeferido ou em análise não é licença vigente (D26).
   const registroLicenca = marcoLicenca
     ? eventoMaisRecente(eventosPorMarco.get(marcoLicenca.id) ?? [])
     : null;
   const eventoLicenca = marcoLicenca
     ? eventoMaisRecente(
-        (eventosPorMarco.get(marcoLicenca.id) ?? []).filter((evento) =>
-          Boolean(evento.data_validade),
+        (eventosPorMarco.get(marcoLicenca.id) ?? []).filter(
+          (evento) =>
+            Boolean(evento.data_validade) &&
+            evento.status_regulatorio === "Deferido",
         ),
       )
     : null;

@@ -53,7 +53,13 @@ def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int
     return fase_geral_id
 
 
+def _validar_validade_nao_anterior(dados: NovoEventoMonitorado) -> None:
+    if dados.data_ocorrencia and dados.data_validade and dados.data_validade < dados.data_ocorrencia:
+        raise ValidationError("A validade não pode ser anterior à data da licença.")
+
+
 def _validar_dados_novo_evento(marco: MarcoCatalogo, dados: NovoEventoMonitorado) -> None:
+    _validar_validade_nao_anterior(dados)
     if marco.grupo == MarcoGrupo.fase_geral and dados.data_prevista is not None:
         raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
@@ -230,6 +236,32 @@ def _resumo_evento(evento: EventoMarco) -> dict[str, object | None]:
     }
 
 
+def _inauguracao_vinculada_a_conclusao(
+    db: Session, *, instrumento_id: int, marco_conclusao: MarcoCatalogo, data_conclusao: date | None
+) -> EventoMarco | None:
+    """Inauguração gerada junto da conclusão: ativa, ligada à fase "concluído" e com a mesma data.
+
+    Se a data diverge, a inauguração tem outra evidência e é tratada como independente (D27): nunca é alterada
+    nem anulada por tabela."""
+    if marco_conclusao.codigo != "fase_concluido" or data_conclusao is None:
+        return None
+    marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, "cronograma_previsao_inauguracao")
+    if marco_inauguracao is None:
+        return None
+    evento = monitoramento_repo.obter_evento_mais_recente_do_marco(
+        db, instrumento_id=instrumento_id, marco_id=marco_inauguracao.id
+    )
+    if (
+        evento is not None
+        and evento.fase_geral_id == marco_conclusao.id
+        and evento.data_ocorrencia == data_conclusao
+        and evento.deletado_em is None
+        and evento.substituido_por_id is None
+    ):
+        return evento
+    return None
+
+
 def editar_evento_monitorado(
     *,
     evento_id: int,
@@ -259,9 +291,18 @@ def editar_evento_monitorado(
         raise ValidationError("Marco de fase geral não aceita data prevista; informe somente a data de ocorrência.")
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
         raise ValidationError("A data realizada não pode estar no futuro.")
+    _validar_validade_nao_anterior(dados)
     if marco.codigo == "fase_concluido" and dados.data_ocorrencia is None:
         # Mesma invariante da criação (achado D27): a correção não pode deixar a conclusão sem data.
         raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
+
+    inauguracao_vinculada = (
+        _inauguracao_vinculada_a_conclusao(
+            db, instrumento_id=antigo.instrumento_id, marco_conclusao=marco, data_conclusao=antigo.data_ocorrencia
+        )
+        if dados.data_ocorrencia != antigo.data_ocorrencia
+        else None
+    )
 
     novo = EventoMarco(
         instrumento_id=antigo.instrumento_id,
@@ -277,6 +318,32 @@ def editar_evento_monitorado(
     )
     monitoramento_repo.substituir_evento(db, antigo, novo)
     antigo.atualizado_em = _agora_utc()
+    if inauguracao_vinculada is not None:
+        # A data da conclusão mudou: a inauguração gerada com ela acompanha, por correção append-only (D27).
+        inauguracao_corrigida = EventoMarco(
+            instrumento_id=inauguracao_vinculada.instrumento_id,
+            marco_id=inauguracao_vinculada.marco_id,
+            fase_geral_id=inauguracao_vinculada.fase_geral_id,
+            data_ocorrencia=dados.data_ocorrencia,
+            observacao=_compor_observacao(usuario.name, "Data ajustada junto com a correção da conclusão."),
+            autor_id=usuario.id,
+        )
+        monitoramento_repo.substituir_evento(db, inauguracao_vinculada, inauguracao_corrigida)
+        inauguracao_vinculada.atualizado_em = _agora_utc()
+        log_action(
+            db,
+            user_id=usuario.id,
+            entity_name="evento_marco",
+            entity_id=inauguracao_corrigida.id,
+            action="updated",
+            details={
+                "evento_original_id": inauguracao_vinculada.id,
+                "sincronizada_com_conclusao": True,
+                "conclusao_original_id": evento_id,
+                "old": _resumo_evento(inauguracao_vinculada),
+                "new": _resumo_evento(inauguracao_corrigida),
+            },
+        )
     log_action(
         db,
         user_id=usuario.id,
@@ -296,7 +363,9 @@ def editar_evento_monitorado(
     return novo
 
 
-def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuario: User) -> EventoMarco:
+def excluir_evento_monitorado(
+    *, evento_id: int, motivo: str, db: Session, usuario: User, anular_inauguracao_vinculada: bool = False
+) -> EventoMarco:
     """Exclusão lógica -- `deletado_em`/`deletado_por_id`/`motivo_exclusao`,
     nunca DELETE físico (ver docstring de EventoMarco). Evento excluído sai
     do cálculo de fase/timeline mas continua recuperável/auditável."""
@@ -312,6 +381,13 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
     # marco_id/instrumento_id de um evento já persistido são FK obrigatórias -- sempre existem.
     marco = cast(MarcoCatalogo, monitoramento_repo.obter_marco_por_id(db, evento.marco_id))
     instrumento = cast(InstrumentoEquipamento, monitoramento_repo.obter_instrumento_por_id(db, evento.instrumento_id))
+    inauguracao_vinculada = (
+        _inauguracao_vinculada_a_conclusao(
+            db, instrumento_id=evento.instrumento_id, marco_conclusao=marco, data_conclusao=evento.data_ocorrencia
+        )
+        if anular_inauguracao_vinculada
+        else None
+    )
     evento.deletado_em = _agora_utc()
     evento.deletado_por_id = usuario.id
     evento.motivo_exclusao = motivo
@@ -321,8 +397,21 @@ def excluir_evento_monitorado(*, evento_id: int, motivo: str, db: Session, usuar
         entity_name="evento_marco",
         entity_id=evento.id,
         action="deleted",
-        details={"motivo": motivo},
+        details={"motivo": motivo, "anulou_inauguracao_vinculada": inauguracao_vinculada is not None},
     )
+    if inauguracao_vinculada is not None:
+        # Anulação conjunta pedida pelo usuário (D27): a inauguração gerada com a conclusão sai junto, com trilha.
+        inauguracao_vinculada.deletado_em = _agora_utc()
+        inauguracao_vinculada.deletado_por_id = usuario.id
+        inauguracao_vinculada.motivo_exclusao = f"Anulada junto com a conclusão. {motivo}"
+        log_action(
+            db,
+            user_id=usuario.id,
+            entity_name="evento_marco",
+            entity_id=inauguracao_vinculada.id,
+            action="deleted",
+            details={"motivo": inauguracao_vinculada.motivo_exclusao, "conclusao_excluida_id": evento.id},
+        )
     _notificar_edicao_manual(
         db,
         instrumento_id=instrumento.id,

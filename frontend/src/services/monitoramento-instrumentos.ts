@@ -258,11 +258,14 @@ export function editarEvento(
 export function excluirEvento(
   eventoId: number,
   motivo: string,
+  anularInauguracaoVinculada = false,
 ): Promise<EventoMarco> {
   return apiAuthed(
     `/monitoramento/eventos/${eventoId}`,
     eventoMarcoSchema,
     "DELETE",
-    { motivo },
+    anularInauguracaoVinculada
+      ? { motivo, anular_inauguracao_vinculada: true }
+      : { motivo },
   );
 }

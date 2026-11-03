@@ -39,6 +39,7 @@ export function MonitoramentoInternoCabecalho({
   const documentoLicenca = numeroScra
     ? `SCRA ${numeroScra}`
     : "SCRA não informado";
+  const licencaDeferida = registroLicenca?.status_regulatorio === "Deferido";
   const emissaoLicenca = registroLicenca?.data_ocorrencia
     ? fmtData(registroLicenca.data_ocorrencia)
     : "Data de emissão não informada";
@@ -56,12 +57,21 @@ export function MonitoramentoInternoCabecalho({
   const indicadores = [
     {
       rotulo: "Licença CNEN",
+      // Só licença deferida tem "emissão"; processo indeferido ou em análise mostra o andamento (D26).
       valor: registroLicenca
-        ? `${documentoLicenca} — ${emissaoLicenca}`
+        ? `${documentoLicenca} — ${
+            licencaDeferida
+              ? emissaoLicenca
+              : (registroLicenca.status_regulatorio ?? "Sem desfecho informado")
+          }`
         : origemAlternativa
           ? "Não informada na fonte"
           : "Sem registro",
-      detalhe: registroLicenca?.status_regulatorio ?? undefined,
+      detalhe: licencaDeferida
+        ? "Deferido"
+        : registroLicenca
+          ? "Licença ainda não emitida"
+          : undefined,
       alerta: alertaLicenca,
     },
     {

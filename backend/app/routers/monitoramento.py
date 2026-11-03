@@ -298,7 +298,13 @@ def excluir_evento(
     usuario: User = Depends(require_monitoramento_editor),
 ):
     """Exclusão lógica (ver docstring do model) -- nunca DELETE físico."""
-    evento = excluir_evento_monitorado(evento_id=evento_id, motivo=corpo.motivo, db=db, usuario=usuario)
+    evento = excluir_evento_monitorado(
+        evento_id=evento_id,
+        motivo=corpo.motivo,
+        db=db,
+        usuario=usuario,
+        anular_inauguracao_vinculada=corpo.anular_inauguracao_vinculada,
+    )
     return _evento_read(evento, {usuario.id: usuario.name})
 
 

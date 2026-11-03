@@ -120,7 +120,9 @@ export function MonitoramentoInternoCronograma({
           {regulatorioComRegistro.flatMap((m) =>
             visiveis(m).map((ev) => {
               const ehLicenca = m.codigo === "regulatorio_licenca_operacao";
-              const dias = ehLicenca ? diasAte(ev.data_validade) : null;
+              const deferida = ev.status_regulatorio === "Deferido";
+              const dias =
+                ehLicenca && deferida ? diasAte(ev.data_validade) : null;
               return (
                 <li key={ev.id} className="flex gap-2.5 text-[12.5px]">
                   <Ponto realizado={Boolean(ev.data_ocorrencia)} previsto />
@@ -138,7 +140,15 @@ export function MonitoramentoInternoCronograma({
                     </div>
                     {ehLicenca && ev.data_ocorrencia && (
                       <div className="text-[11px] text-muted-foreground">
-                        Emitida em {fmtData(ev.data_ocorrencia)}
+                        {deferida
+                          ? `Emitida em ${fmtData(ev.data_ocorrencia)}`
+                          : `Data do processo: ${fmtData(ev.data_ocorrencia)}`}
+                      </div>
+                    )}
+                    {ehLicenca && !deferida && ev.data_validade && (
+                      <div className="text-[11px] text-muted-foreground">
+                        Validade informada: {fmtData(ev.data_validade)} (licença
+                        não deferida)
                       </div>
                     )}
                     {dias !== null && (

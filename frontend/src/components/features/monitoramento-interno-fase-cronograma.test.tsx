@@ -130,7 +130,7 @@ describe("fase e cronograma do monitoramento", () => {
       const ev = criarEventoTeste({
         marco_id: 3,
         numero_documento: null,
-        status_regulatorio: null,
+        status_regulatorio: "Deferido",
         data_ocorrencia: null,
         data_validade: validade,
       });
