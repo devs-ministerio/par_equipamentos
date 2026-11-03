@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { FamiliaEquipamentoProvider } from "../../context/familia-equipamento-context";
+import { TerritorioProvider } from "../../context/territorio-context";
 import { CONTAINER_CLASS } from "@/lib/layout";
 import { AppHeader } from "./app-header";
 import { AppFooter } from "./app-footer";
@@ -18,20 +19,22 @@ export function AppLayout() {
   const location = useLocation();
   return (
     <FamiliaEquipamentoProvider>
-      <div className="flex min-h-screen flex-col text-sm text-foreground">
-        <AppHeader
-          navItems={NAV_ITEMS_MONITORAMENTO}
-          leftExtra={<SeletorEquipamento />}
-        />
-        {/* `key` por rota: a animação de entrada roda a cada troca de página. */}
-        <main
-          key={location.pathname}
-          className={`${CONTAINER_CLASS} animar-entrada w-full flex-1 py-8`}
-        >
-          <Outlet />
-        </main>
-        <AppFooter />
-      </div>
+      <TerritorioProvider>
+        <div className="flex min-h-screen flex-col text-sm text-foreground">
+          <AppHeader
+            navItems={NAV_ITEMS_MONITORAMENTO}
+            leftExtra={<SeletorEquipamento />}
+          />
+          {/* `key` por rota: a animação de entrada roda a cada troca de página. */}
+          <main
+            key={location.pathname}
+            className={`${CONTAINER_CLASS} animar-entrada w-full flex-1 py-8`}
+          >
+            <Outlet />
+          </main>
+          <AppFooter />
+        </div>
+      </TerritorioProvider>
     </FamiliaEquipamentoProvider>
   );
 }
