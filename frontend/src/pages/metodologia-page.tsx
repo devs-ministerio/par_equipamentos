@@ -65,7 +65,10 @@ const PARAMETROS_POR_FAMILIA: Record<string, ParametrosFamilia> = {
     notaCriterio: (
       <>
         Critério de acesso: raio ≤ 75 km <em>ou</em> ≤ 100 mil hab. (o que for
-        atingido primeiro), com foco em urgência/emergência.
+        atingido primeiro), com foco em urgência/emergência.{" "}
+        <strong>
+          A distância exibida é informativa e não altera o status populacional.
+        </strong>
       </>
     ),
     codigoElasticnes: "Cód. 11 (e 26 a 30, por nº de canais)",
@@ -90,6 +93,30 @@ const PARAMETROS_POR_FAMILIA: Record<string, ParametrosFamilia> = {
     ),
     codigoElasticnes: "Cód. 12 (e 32 a 35, por campo em Tesla)",
   },
+  PET_CT: {
+    nomeSingular: "1 PET-CT",
+    nomePlural: "equipamentos PET-CT",
+    parametroTitulo: "1 PET-CT",
+    parametroDescricao: (
+      <>
+        por <strong>1,5 milhão de habitantes</strong>
+        <span className="text-[11px] text-muted-foreground/70">
+          {" "}
+          Portaria de Consolidação GM/MS n. 1/2017, art. 102-106
+        </span>
+      </>
+    ),
+    produtividade: getEquipamento("PET_CT").produtividade,
+    formulaDenominador: <>Pop. SUS-dep. / 1.500.000</>,
+    notaCriterio: (
+      <>
+        O acesso ao radiofármaco (FDG-18F, em até 2 horas) é calculado e
+        exibido, <strong>mas não altera o status populacional</strong>. Não
+        herda o raio de 75 km do tomógrafo.
+      </>
+    ),
+    codigoElasticnes: "Cód. 18",
+  },
 };
 
 function formatarProdutividade(produtividade: number): string {
@@ -101,8 +128,16 @@ export function MetodologiaPage({
 }: {
   equipmentFamily?: string;
 }) {
-  const p =
-    PARAMETROS_POR_FAMILIA[equipmentFamily] ?? PARAMETROS_POR_FAMILIA.TOMOGRAFO;
+  const p = PARAMETROS_POR_FAMILIA[equipmentFamily];
+
+  if (!p) {
+    return (
+      <div className="rounded-[10px] bg-white px-5 py-6 text-[13px] text-muted-foreground sm:px-8 sm:py-7">
+        A metodologia desta família de equipamento ainda não está documentada
+        nesta página.
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
