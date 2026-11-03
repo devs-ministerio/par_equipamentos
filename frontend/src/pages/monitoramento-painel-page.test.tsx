@@ -99,7 +99,7 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     );
     expect(
       metrica("Valor global informado").getByText(
-        "Pagamento ao fornecedor sem base comparável",
+        /Pagamento ao fornecedor sem base comparável/,
       ),
     ).toBeInTheDocument();
   });
@@ -255,13 +255,21 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     h.resumo.indicadores_por_instrumento[0]!.acoes_pendentes = 2;
     const user = montar(h);
     await pronto();
-    expect(metrica("Pontos de atenção").getByText("2")).toBeInTheDocument();
+    // Duas ações atrasadas do mesmo instrumento: 1 instrumento, 2 ocorrências.
+    expect(
+      metrica("Instrumentos com atenção").getByText("1"),
+    ).toBeInTheDocument();
+    expect(
+      metrica("Instrumentos com atenção").getByText(/2 ocorrências/),
+    ).toBeInTheDocument();
     // When
     await user.click(screen.getByRole("button", { name: /^UF/ }));
     await user.click(screen.getByRole("option", { name: "BA" }));
     // Then
     expect(screen.getByText("1 de 2 instrumentos")).toBeInTheDocument();
-    expect(metrica("Pontos de atenção").getByText("0")).toBeInTheDocument();
+    expect(
+      metrica("Instrumentos com atenção").getByText("0"),
+    ).toBeInTheDocument();
     expect(
       metrica("Progresso de fase · referência").getByText("20%"),
     ).toBeInTheDocument();

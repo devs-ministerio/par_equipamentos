@@ -146,16 +146,25 @@ export function MonitoramentoPainelPage() {
             value: dados.instrumentosComValor
               ? fmtMoeda(dados.valorGlobal)
               : "—",
-            detail:
-              dados.percentualPagoComRegra == null
-                ? "Pagamento ao fornecedor sem base comparável"
-                : `${Math.round(dados.percentualPagoComRegra * 100)}% pago ao fornecedor`,
+            detail: (
+              <>
+                {dados.percentualPagoComRegra == null
+                  ? "Pagamento ao fornecedor sem base comparável"
+                  : `${Math.round(dados.percentualPagoComRegra * 100)}% pago ao fornecedor`}
+                <br />
+                {`Valor de ${dados.instrumentosComValor} de ${instrumentosFiltrados.length} instrumentos`}
+                {dados.pagamentosManuaisConcluidos > 0 &&
+                  ` · ${dados.pagamentosManuaisConcluidos} com quitação assumida pela regra da carga concluída (não é pagamento registrado)`}
+              </>
+            ),
           },
           {
             key: "atencao",
-            label: "Pontos de atenção",
-            value: dados.pontosAtencao,
-            variant: dados.pontosAtencao > 0 ? "destructive" : "success",
+            label: "Instrumentos com atenção",
+            value: dados.instrumentosEmAtencao,
+            variant:
+              dados.instrumentosEmAtencao > 0 ? "destructive" : "success",
+            detail: `${dados.pontosAtencao} ocorrências: ${dados.acoesAtrasadas} ações atrasadas, ${dados.inauguracoesAtrasadas} inaugurações atrasadas, ${dados.licencasCriticas} licenças críticas, ${dados.divergencias.length} divergências externas`,
           },
         ]}
       />
