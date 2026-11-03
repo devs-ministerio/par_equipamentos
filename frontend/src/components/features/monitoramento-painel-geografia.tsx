@@ -57,6 +57,29 @@ export function MonitoramentoPainelGeografia({
     () => agruparInstrumentosPorLocal(distribuicao?.pontos ?? []),
     [distribuicao],
   );
+  // Reconcilia a seleção local com o recorte: se uma troca de filtro deixar a
+  // macro escolhida sem nenhum instrumento, volta à visão nacional e avisa
+  // (zero só vale quando a pessoa escolhe a macro dentro do recorte atual).
+  const assinaturaRecorte = instrumentos.map((item) => item.id).join(",");
+  const [assinaturaAnterior, setAssinaturaAnterior] =
+    useState(assinaturaRecorte);
+  const [avisoMacro, setAvisoMacro] = useState<string | null>(null);
+  if (assinaturaRecorte !== assinaturaAnterior) {
+    setAssinaturaAnterior(assinaturaRecorte);
+    setAvisoMacro(null);
+    if (
+      distribuicao &&
+      (macroSelecionada || localSelecionado) &&
+      !(macroSelecionada && distribuicao.contagemPorMacro.get(macroSelecionada))
+    ) {
+      if (macroSelecionada)
+        setAvisoMacro(
+          `A macrorregião ${nomeMacro(macroSelecionada)} não tem instrumentos no recorte atual; o mapa voltou à visão nacional.`,
+        );
+      setMacroSelecionada(null);
+      setLocalSelecionado(null);
+    }
+  }
   const localAtivo = locais.find((local) => local.chave === localSelecionado);
   const ranking = [...(distribuicao?.contagemPorMacro.entries() ?? [])]
     .sort((a, b) => b[1] - a[1])
@@ -66,6 +89,7 @@ export function MonitoramentoPainelGeografia({
     : 0;
 
   function selecionarMacro(macroId: string | null) {
+    setAvisoMacro(null);
     setMacroSelecionada(macroId);
     setLocalSelecionado(null);
   }
@@ -341,6 +365,11 @@ export function MonitoramentoPainelGeografia({
               )}
             </div>
           </div>
+          {avisoMacro && (
+            <p role="status" className="mt-3 text-xs text-muted-foreground">
+              {avisoMacro}
+            </p>
+          )}
           {distribuicao.semCoordenadas > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
               {distribuicao.semCoordenadas} sem coordenadas no CNES.
