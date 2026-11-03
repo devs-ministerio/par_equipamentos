@@ -1119,10 +1119,9 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
 - **Regra de escopo** (`resolver_destinatarios`): `atualizacao_api`/`edicao_manual` (`entidade_id` =
   `InstrumentoEquipamento.id`) vão pra titular + suplente (`InstrumentoResponsavel`, já existente
   desde antes deste plan-mode) **união** todo `gestor`/`admin` ativo — `gestor`/`admin` recebem
-  TUDO, independente de estarem designados. Sem titular/suplente cadastrado, cai no broadcast (todo
-  `colaborador`/`gestor`/`admin` ativo) — mas na prática esse fallback quase nunca dispara, porque
-  gestor/admin já tornam o conjunto não-vazio (só dispara se não houver NENHUM gestor/admin ativo no
-  sistema). `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
+  TUDO, independente de estarem designados. Sem titular/suplente cadastrado, **só `gestor`/`admin`** recebem
+  (decisão do usuário, 03/11/2026; antes caía no broadcast para todo colaborador, o que espalhou 154 avisos de
+  instrumentos sem dono em outubro). Aviso já enviado não foi alterado. `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
   `leitor` nunca entra em nenhum branch, mesmo sendo titular/suplente hipoteticamente.
 - **Tipo novo `alerta_vigencia`**: fim de vigência do convênio a 3 meses (`Convenio.
   data_final_vigencia`, `entidade_id` = `Convenio.id`) — job novo `backend/scripts/

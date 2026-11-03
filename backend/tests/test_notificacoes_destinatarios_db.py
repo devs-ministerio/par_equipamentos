@@ -75,12 +75,10 @@ def matriz():
 )
 @pytest.mark.parametrize("dono", [None, "titular", "inativo", "suspenso", "leitor", "excluido"])
 def test_matriz_de_responsabilidade_materializa_apenas_destinatarios_autorizados(matriz, tipo, dono):
-    # Arrange: vínculo cadastrado não é removido por inatividade/exclusão.
+    # Arrange: vínculo cadastrado não é removido por inatividade/exclusão. Sem dono (`None`), só gestor/admin.
     db, usuarios, instrumento, convenio = matriz
     esperados = {usuarios["admin"].id, usuarios["gestor"].id}
-    if dono is None:
-        esperados.update(usuarios[n].id for n in ("titular", "suplente", "outro"))
-    else:
+    if dono is not None:
         db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=usuarios[dono].id, papel="titular"))
         if dono == "titular":
             db.add(
@@ -94,7 +92,7 @@ def test_matriz_de_responsabilidade_materializa_apenas_destinatarios_autorizados
     # Act: Repository e persistência reais; não substitui domínio por mocks.
     aviso = criar_notificacao(db, Notificacao(tipo=tipo, titulo="Mudança sintética agrupada", entidade_id=entidade_id))
     db.commit()
-    # Assert: conjunto exato, sem leitor/inativo/excluído ou colaborador alheio.
+    # Assert: conjunto exato, sem leitor/inativo/excluído ou colaborador alheio (inclusive sem dono).
     destinatarios = list(
         db.scalars(select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == aviso.id))
     )

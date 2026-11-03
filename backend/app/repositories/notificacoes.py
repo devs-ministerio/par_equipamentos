@@ -71,7 +71,9 @@ def obter_ids_responsaveis_do_instrumento(db: Session, instrumento_id: int) -> s
 def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[int]:
     ids_designados = obter_ids_responsaveis_do_instrumento(db, instrumento_id)
     if not ids_designados:
-        return _ids_broadcast(db)
+        # Sem titular/suplente, só a gestão acompanha o instrumento (decisão do usuário, 2026-11-03):
+        # o broadcast anterior espalhava o aviso de instrumentos sem dono para todo colaborador.
+        return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
     # Filtra por ativo E role != leitor -- titular/suplente designado que foi
     # inativado (módulo de gestão de usuários) ou é leitor (decisão do
     # usuário 2026-09-25: leitor nunca recebe notificação, mesmo sendo
@@ -123,7 +125,7 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
         return _ids_titular_suplente_e_gestores(db, instrumento_id)
 
     # atualizacao_api / edicao_manual -- entidade_id é InstrumentoEquipamento.id.
-    # Sem titular/suplente cadastrado, cai no broadcast (nunca fica órfã).
+    # Sem titular/suplente cadastrado, vai só para gestor/admin (nunca fica órfã).
     return _ids_titular_suplente_e_gestores(db, entidade_id)
 
 
