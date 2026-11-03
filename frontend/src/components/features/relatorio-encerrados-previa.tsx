@@ -86,6 +86,11 @@ export function RelatorioEncerradosPrevia({
                     </>
                   )}
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Conclusão física: {item.conclusao_fisica}
+                  {item.situacao_administrativa &&
+                    ` · Administrativo: ${item.situacao_administrativa}`}
+                </p>
                 {item.pendencia && (
                   <p className="mt-1 break-words text-xs text-muted-foreground">
                     {item.evidencia}

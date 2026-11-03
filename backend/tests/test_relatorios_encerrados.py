@@ -24,12 +24,12 @@ def fato(**campos) -> FatoEncerramento:
         ({"conclusao_ativa": True}, "Conclusão interna sem data", True),
         (
             {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1)},
-            "Concluído internamente — prestação de contas sem informação",
+            "Concluído no monitoramento interno",
             False,
         ),
         (
             {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1), "situacao_carteira": "Em execução"},
-            "Concluído internamente — prestação de contas pendente",
+            "Concluído no monitoramento interno",
             False,
         ),
         (
@@ -51,6 +51,59 @@ def test_precedencia_e_pendencias(campos, motivo, pendente):
     assert len(resultado.pendencias) == int(pendente)
     assert len(resultado.itens) == int(not pendente)
     assert (resultado.pendencias or resultado.itens)[0].motivo == motivo
+
+
+def test_conclusao_fisica_datada_prevalece_sobre_prestacao_divergente_e_mantem_a_ressalva():
+    # D06: divergência administrativa não tira dos concluídos quem tem conclusão física registrada.
+    resultado = classificar_encerrados(
+        [
+            fato(
+                conclusao_ativa=True,
+                data_conclusao=date(2026, 1, 1),
+                situacao_carteira=FECHADA,
+                situacao_monitoramento="Em execução",
+            )
+        ],
+        FiltroEncerramento(),
+    )
+    assert resultado.pendencias == []
+    registro = resultado.itens[0]
+    assert registro.motivo == "Concluído no monitoramento interno"
+    assert registro.conclusao_fisica == "Registrada"
+    assert registro.situacao_administrativa == "Divergência entre fontes"
+
+
+@pytest.mark.parametrize(
+    "campos,fisica,administrativa",
+    [
+        (
+            {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1), "situacao_carteira": FECHADA},
+            "Registrada",
+            "Prestação de contas concluída",
+        ),
+        (
+            {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1), "situacao_carteira": "Em execução"},
+            "Registrada",
+            "Prestação de contas pendente",
+        ),
+        (
+            {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1)},
+            "Registrada",
+            "Prestação de contas sem informação",
+        ),
+        # encerramento administrativo sem conclusão física: a limitação fica explícita, sem presumir obra pronta
+        ({"situacao_carteira": FECHADA}, "Não registrada", "Prestação de contas concluída"),
+        (
+            {"situacao_carteira": FECHADA, "conclusao_ativa": True},
+            "Registrada sem data",
+            "Prestação de contas concluída",
+        ),
+    ],
+)
+def test_duas_dimensoes_sao_informadas_separadamente(campos, fisica, administrativa):
+    resultado = classificar_encerrados([fato(**campos)], FiltroEncerramento())
+    registro = (resultado.itens or resultado.pendencias)[0]
+    assert (registro.conclusao_fisica, registro.situacao_administrativa) == (fisica, administrativa)
 
 
 @pytest.mark.parametrize(

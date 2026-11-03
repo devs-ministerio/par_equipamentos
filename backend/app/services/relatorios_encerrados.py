@@ -44,12 +44,39 @@ def _corresponde(fato: FatoEncerramento, filtro: FiltroEncerramento) -> bool:
     )
 
 
+def _conclusao_fisica(fato: FatoEncerramento) -> str:
+    if not fato.conclusao_ativa:
+        return "Não registrada"
+    return "Registrada" if fato.data_conclusao is not None else "Registrada sem data"
+
+
+def _situacao_administrativa(fato: FatoEncerramento) -> str | None:
+    """Prestação de contas do convênio, comparando carteira, monitoramento e SICONV (D06)."""
+    if fato.tipo != "Convênio":
+        return None
+    estados = [
+        s for s in (fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial) if s and s.strip()
+    ]
+    if not estados:
+        return "Prestação de contas sem informação"
+    conclusivos = [normalizar_texto(s) in _CONCLUSIVOS for s in estados]
+    if all(conclusivos):
+        return "Prestação de contas concluída"
+    return "Divergência entre fontes" if any(conclusivos) else "Prestação de contas pendente"
+
+
 def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncerrado] | None:
     motivos = []
     evidencia = ""
     pendencia = False
     prioridade = 9
-    if fato.tipo == "Convênio":
+    if fato.conclusao_ativa and fato.data_conclusao is not None:
+        # Conclusão física registrada e datada tem precedência editorial: prestação de contas aberta ou
+        # divergente continua visível na dimensão administrativa, mas não tira o instrumento dos concluídos.
+        prioridade = 1
+        motivos.append("Concluído no monitoramento interno")
+        evidencia = f"Evento fase_concluido ativo em {fato.data_conclusao:%d/%m/%Y}"
+    if not motivos and fato.tipo == "Convênio":
         estados = [
             s for s in (fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial) if s and s.strip()
         ]
@@ -72,21 +99,9 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
             )
     if not motivos and fato.conclusao_ativa:
         prioridade = 2
-        if fato.data_conclusao is None:
-            motivos.append("Conclusão interna sem data")
-            pendencia = True
-        elif fato.tipo == "Convênio":
-            conhecida = any((fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial))
-            motivos.append(
-                "Concluído internamente — prestação de contas pendente"
-                if conhecida
-                else "Concluído internamente — prestação de contas sem informação"
-            )
-        else:
-            motivos.append("Concluído no monitoramento interno")
-        evidencia = "Evento fase_concluido ativo" + (
-            f" em {fato.data_conclusao:%d/%m/%Y}" if fato.data_conclusao else " sem data de ocorrência"
-        )
+        motivos.append("Conclusão interna sem data")
+        pendencia = True
+        evidencia = "Evento fase_concluido ativo sem data de ocorrência"
     pagas = [
         o for o in fato.ordens if normalizar_texto(o.in_situacao_op) == "PAGA" and o.id_ordem_pagamento is not None
     ]
@@ -126,6 +141,10 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         data_referencia=data_referencia,
         origem_data=origem_data,
         data_final_vigencia=fato.data_final_vigencia,
+        conclusao_fisica=_conclusao_fisica(fato),
+        situacao_administrativa=(
+            "Parceria paga (ordem de pagamento)" if prioridade == 3 else _situacao_administrativa(fato)
+        ),
         convenio_id=fato.convenio_id,
         instrumento_id=fato.instrumento_id,
         proposta_id=fato.proposta_pk,

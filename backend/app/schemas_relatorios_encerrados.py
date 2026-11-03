@@ -26,6 +26,10 @@ class RegistroEncerrado(BaseModel):
     data_referencia: date | None = None
     origem_data: str | None = None
     data_final_vigencia: date | None = None
+    # D06: duas dimensões distintas. Conclusão física = o que o monitoramento interno registra; situação
+    # administrativa = prestação de contas e pagamento. Uma não apaga a outra.
+    conclusao_fisica: str = "Não registrada"
+    situacao_administrativa: str | None = None
     equipamentos: str = ""
     quantidade: int | None = None
     # Unidades entregues (controle por unidade); None quando o instrumento ainda não tem esse controle.

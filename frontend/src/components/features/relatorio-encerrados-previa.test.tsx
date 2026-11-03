@@ -19,6 +19,8 @@ const registro: RegistroEncerrado = {
   data_referencia: null,
   origem_data: null,
   data_final_vigencia: null,
+  conclusao_fisica: "Não registrada",
+  situacao_administrativa: null,
   equipamentos: "",
   quantidade: null,
   situacao_carteira: null,
@@ -120,4 +122,32 @@ it("apresenta equipamento, valor e data de conclusão, com o fim da vigência se
   expect(screen.getAllByText(/Fim da vigência:/)).toHaveLength(1);
   // a evidência técnica fica só nas pendências
   expect(screen.queryByText(registro.evidencia)).toBeNull();
+});
+
+it("mostra conclusão física e situação administrativa como informações separadas (D06)", () => {
+  render(
+    <RelatorioEncerradosPrevia
+      titulo="Concluídos"
+      itens={[
+        {
+          ...registro,
+          chave: "Convênio:1",
+          numero: "1",
+          pendencia: false,
+          motivo: "Concluído no monitoramento interno",
+          conclusao_fisica: "Registrada",
+          situacao_administrativa: "Divergência entre fontes",
+        },
+      ]}
+      total={1}
+      pagina={1}
+      onPaginaChange={vi.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(
+      /Conclusão física: Registrada · Administrativo: Divergência entre fontes/,
+    ),
+  ).toBeInTheDocument();
 });

@@ -103,10 +103,14 @@ def test_reconcilia_escopo_eventos_ativos_e_novos_convenios_sem_monitoramento(ca
     # Given / When
     resultado = extrair_encerrados(db=carteira_encerrada, filtro=FiltroEncerramento(busca=PREFIXO))
     # Then
-    assert [i.numero for i in resultado.itens] == ["9908101", "9908102", "9908103", "20259908190"]
-    assert {i.numero for i in resultado.pendencias} == {"9908104", "9908105"}
+    assert [i.numero for i in resultado.itens] == ["9908101", "9908102", "9908103", "9908105", "20259908190"]
+    assert {i.numero for i in resultado.pendencias} == {"9908104"}
+    # D06: conclusão física datada prevalece sobre a divergência de prestação de contas, que fica visível.
+    divergente = next(i for i in resultado.itens if i.numero == "9908105")
+    assert (divergente.conclusao_fisica, divergente.situacao_administrativa) == ("Registrada", "Divergência entre fontes")
     assert resultado.itens[0].valor_global == 0
-    assert resultado.itens[2].motivo == "Concluído internamente — prestação de contas pendente"
+    assert resultado.itens[2].motivo == "Concluído no monitoramento interno"
+    assert resultado.itens[2].situacao_administrativa == "Prestação de contas pendente"
 
 
 def test_instrumento_sem_tipo_contratacao_nao_derruba_a_extracao(carteira_encerrada):
@@ -155,7 +159,7 @@ def test_previa_http_e_arquivos_tem_mesmas_identidades_e_motivos(carteira_encerr
     assert documento.tables[0].rows[0].cells[3].text == "Nº do convênio"
     assert numeros == [r.cells[3].text for r in documento.tables[0].rows[1:]]
     assert [i["motivo"] for i in resposta["itens"]] == [r[colunas.index("Critério")] for r in linhas_xlsx]
-    assert resposta["total_pendencias"] == planilha["Pendências"].max_row - 1 == 2
+    assert resposta["total_pendencias"] == planilha["Pendências"].max_row - 1 == 1
     assert [r.cells[0].text for r in documento.tables[1].rows[1:]] == [i["numero"] for i in resposta["pendencias"]]
 
 
@@ -173,7 +177,7 @@ def test_contrato_exige_sessao_e_valida_paginacao(carteira_encerrada, headers_au
     )
     assert resposta.status_code == 200, resposta.text
     pagina = resposta.json()
-    assert pagina["total"] == 4 and pagina["itens"][0]["numero"] == "9908102"
+    assert pagina["total"] == 5 and pagina["itens"][0]["numero"] == "9908102"
     assert (
         client.get(
             "/relatorios", params={"formato": "xlsx", "encerramento": "outro"}, headers=headers_autenticados

@@ -23,6 +23,8 @@ COLUNAS = [
     "Data de conclusão",
     "Fim da vigência",
     "Critério",
+    "Conclusão física",
+    "Situação administrativa",
     "Evidência",
     "Situação carteira/proposta",
     "Situação monitoramento",
@@ -49,6 +51,12 @@ _NOTA_DATA = (
     'Data de conclusão: somente a registrada no monitoramento interno; sem ela, "Não informada". '
     "Fim da vigência: informação contratual em coluna própria, que não substitui a conclusão. "
     "O SICONV não informa a data em que a prestação de contas foi concluída."
+)
+_NOTA_DIMENSOES = (
+    "Conclusão física: o que o monitoramento interno registra (com ou sem data). Situação administrativa: prestação de "
+    "contas e pagamento. São informações distintas: a conclusão física registrada e datada prevalece, e uma prestação "
+    "de contas aberta ou divergente continua indicada sem retirar o instrumento dos concluídos. Prestação de contas "
+    "encerrada sem conclusão física registrada não comprova obra pronta."
 )
 _NOTA_QUANTIDADE = (
     "Quantidade planejada: unidades dos equipamentos do instrumento, pela soma da quantidade dos itens do plano "
@@ -77,6 +85,8 @@ def _linha(item: RegistroEncerrado) -> list[object]:
         item.data_referencia or _NAO_INFORMADA,
         item.data_final_vigencia,
         item.motivo,
+        item.conclusao_fisica,
+        item.situacao_administrativa or "—",
         item.evidencia,
         item.situacao_carteira,
         item.situacao_monitoramento,
@@ -108,7 +118,8 @@ def _linha_concluido_word(item: RegistroEncerrado) -> list[str]:
         formatar_moeda(float(item.valor_global)) if item.valor_global is not None else "—",
         _data_word(item),
         _vigencia_word(item),
-        item.motivo,
+        f"{item.motivo}\nConclusão física: {item.conclusao_fisica}"
+        f"\nAdministrativo: {item.situacao_administrativa or '—'}",
     ]
 
 
@@ -135,6 +146,7 @@ def gerar_extracao(extracao: ExtracaoEncerrados, *, formato: Literal["xlsx", "do
                 ["Pendências excluídas", len(extracao.pendencias)],
                 ["Precedência", _PRECEDENCIA],
                 ["Data de conclusão", _NOTA_DATA],
+                ["Conclusão física e administrativa", _NOTA_DIMENSOES],
                 ["Quantidade", _NOTA_QUANTIDADE],
                 ["Limite", _LIMITE],
             ],
