@@ -272,8 +272,8 @@ def _bloco_instrumento_narrativo(
     # PERSUS I/II (que não são convênio nenhum). Usa o `tipo_contratacao`
     # real do registro.
     tipo_rotulo = convenio.tipo_contratacao or "Convênio"
-    docx_builder.adicionar_titulo(documento, f"{convenio.convenente_nome} -- {tipo_rotulo} {convenio.numero}", nivel=3)
-    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Convenente", convenio.convenente_nome)
+    docx_builder.adicionar_titulo(documento, f"{convenio.convenente_nome or 'Instituição não informada'} -- {tipo_rotulo} {convenio.numero}", nivel=3)
+    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Convenente", convenio.convenente_nome or "Instituição não informada")
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNPJ", convenio.convenente_cnpj or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNES", convenio.cnes or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Objeto", convenio.objeto or "—")
@@ -401,11 +401,11 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
     ]
     if filtros_exclusivos:
         docx_builder.adicionar_paragrafo_rotulo_valor(
-            documento, "Filtros exclusivos de convênios", "; ".join(filtros_exclusivos)
+            documento, "Filtros aplicados", "; ".join(filtros_exclusivos)
         )
     if filtro.tipo_contratacao:
         docx_builder.adicionar_paragrafo_rotulo_valor(
-            documento, "Tipo de contratação (convênios e monitoramento)", filtro.tipo_contratacao
+            documento, "Tipo de contratação", filtro.tipo_contratacao
         )
     docx_builder.adicionar_paragrafo(
         documento, "No que compete ao Departamento de Atenção ao Câncer – DECAN, informa-se:"
@@ -417,13 +417,19 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
 
     docx_builder.adicionar_titulo(documento, "Resumo executivo")
     legenda_instrumentos, legenda_propostas, legenda_equipamentos = _legendas_resumo(filtro)
-    for colunas_resumo, linhas_resumo, legenda in (
-        (*_resumo_instrumentos_programas(convenios, instrumentos), legenda_instrumentos),
-        (*_resumo_propostas(propostas), legenda_propostas),
-        (*_resumo_equipamentos(equipamentos_por_convenio, entregues_por_convenio), legenda_equipamentos),
+    for colunas_resumo, linhas_resumo, legenda, vazio in (
+        (*_resumo_instrumentos_programas(convenios, instrumentos), legenda_instrumentos, None),
+        (*_resumo_propostas(propostas), legenda_propostas, None),
+        (
+            *_resumo_equipamentos(equipamentos_por_convenio, entregues_por_convenio),
+            legenda_equipamentos,
+            "Nenhum equipamento identificado neste recorte.",
+        ),
     ):
         if not linhas_resumo:
-            docx_builder.adicionar_paragrafo(documento, "Nenhum equipamento identificado neste recorte.")
+            # Propostas e instrumentos vazios simplesmente não geram tabela: o aviso de equipamento não se aplica.
+            if vazio:
+                docx_builder.adicionar_paragrafo(documento, vazio)
             continue
         docx_builder.adicionar_tabela(
             documento,

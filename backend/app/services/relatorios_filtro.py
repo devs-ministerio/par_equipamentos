@@ -223,8 +223,8 @@ def _assunto(db: Session | None, filtro: FiltroRelatorio) -> str:
 
 
 def _descricao_recorte(filtro: FiltroRelatorio) -> str:
-    """Geografia e período compartilhados pelas fontes, sem atribuir a elas
-    os filtros exclusivos de convênios."""
+    """Geografia e período compartilhados pelas fontes; os demais filtros
+    (situação, programa, tipo, equipamento, busca) são descritos à parte."""
     if filtro.escopo == "brasil":
         lugar = "no Brasil"
     elif filtro.escopo == "regiao":

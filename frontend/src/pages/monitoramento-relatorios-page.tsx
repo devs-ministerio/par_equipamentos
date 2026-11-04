@@ -897,6 +897,7 @@ export function MonitoramentoRelatoriosPage() {
       )}
 
       <RelatorioBotoesGerar
+        formatoUnico={somenteEncerrados || somenteEntregues || somentePrevisoes}
         nivel={nivel}
         onNivelChange={setNivel}
         podeGerar={

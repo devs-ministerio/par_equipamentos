@@ -95,10 +95,13 @@ def _linhas_leitura(
                     "Geografia e CNES; período por ano do instrumento/proposta. Monitoramento inclui fase aberta no ano corrente.",
                 ],
                 [
-                    "Filtros exclusivos de convênios",
-                    "Situação, programa, equipamento e busca não filtram propostas nem monitoramento.",
+                    "Situação",
+                    "Vale só para a origem escolhida (instrumento, monitoramento ou proposta); as seções de outras origens ficam fora do arquivo.",
                 ],
-                ["Tipo de contratação", "Filtra convênios e monitoramento; não filtra propostas."],
+                [
+                    "Programa, tipo de contratação, equipamento e busca",
+                    "Filtram convênios, propostas e monitoramento.",
+                ],
                 ["Valor", f"Soma apenas valores informados; não estima registros sem valor. {_NOTA_VALOR_PERSUS_I}"],
                 ["Contagem de convênios", contagens.get("convenios", 0)],
                 ["Contagem de propostas", contagens.get("propostas", 0)],

@@ -157,9 +157,9 @@ def test_previa_http_e_arquivos_tem_mesmas_identidades_e_motivos(carteira_encerr
     numeros = [i["numero"] for i in resposta["itens"]]
     colunas = [c.value for c in planilha["Concluídos"][1]]
     linhas_xlsx = list(planilha["Concluídos"].iter_rows(min_row=2, values_only=True))
-    assert numeros == [r[colunas.index("Nº do convênio")] for r in linhas_xlsx]
+    assert numeros == [r[colunas.index("Identificador do instrumento")] for r in linhas_xlsx]
     # No Word o número tem coluna própria, ao lado do CNES.
-    assert documento.tables[0].rows[0].cells[3].text == "Nº do convênio"
+    assert documento.tables[0].rows[0].cells[3].text == "Identificador do instrumento"
     assert numeros == [r.cells[3].text for r in documento.tables[0].rows[1:]]
     assert [i["motivo"] for i in resposta["itens"]] == [r[colunas.index("Critério")] for r in linhas_xlsx]
     assert resposta["total_pendencias"] == planilha["Pendências"].max_row - 1 == 1
@@ -236,7 +236,7 @@ def test_equipamento_do_convenio_aparece_na_relacao_de_concluidos(carteira_encer
     )
     cabecalho = [c.value for c in planilha["Concluídos"][1]]
     na_planilha = {
-        r[cabecalho.index("Nº do convênio")]: r[cabecalho.index("Equipamento(s)")]
+        r[cabecalho.index("Identificador do instrumento")]: r[cabecalho.index("Equipamento(s)")]
         for r in planilha["Concluídos"].iter_rows(min_row=2, values_only=True)
     }
     # Then: tipos de equipamento do instrumento (a evidência é deduplicada por tipo); sem marcador, vazio
@@ -272,7 +272,7 @@ def test_word_de_concluidos_fica_deitado_e_separa_cnes_numero_e_quantidade(carte
         "Instituição",
         "Município/UF",
         "CNES",
-        "Nº do convênio",
+        "Identificador do instrumento",
         "Equipamento(s)",
         "Qtd. plan.",
         "Qtd. entr.",
