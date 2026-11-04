@@ -9,9 +9,8 @@ from app.db.base import SessionLocal
 from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
 from app.equipamentos import EvidenciaEquipamento
 from app.repositories.auditoria_marcadores import listar_evidencias_automaticas
-from app.repositories.convenios import listar_convenios_filtrados
+from app.repositories.convenios import aplicar_filtros_convenio, listar_convenios_filtrados
 from app.repositories.equipamento_marcadores import OrigemMarcador, listar_por_origens
-from app.routers.convenios import _aplicar_filtros_convenio
 from app.services.equipamento_marcadores import DadosMarcador, chave_da_evidencia, registrar_marcadores
 
 
@@ -166,7 +165,7 @@ def test_filtro_visual_e_relatorio_respeitam_relacao_sem_apagar_marcador(relacao
         db.add(marcador)
         db.flush()
         # Act: três consumidores executam queries reais com o mesmo contrato.
-        query = _aplicar_filtros_convenio(
+        query = aplicar_filtros_convenio(
             select(Convenio).where(Convenio.id == convenio.id),
             busca=None,
             uf=None,

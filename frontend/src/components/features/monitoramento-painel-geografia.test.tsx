@@ -160,14 +160,30 @@ describe("Mapas do painel com Leaflet real e fontes sintéticas", () => {
     expect(
       screen.queryByTitle("2 instrumentos nesta localização"),
     ).not.toBeInTheDocument();
+    // A macro aberta ficou sem instrumentos: volta ao mapa nacional e avisa.
     expect(
-      screen.getByText("Nenhum estabelecimento geocodificado neste recorte."),
+      screen.queryByRole("region", { name: /Mapa rodoviário/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: /Mapa de 2 macrorregiões/ }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Macro sintética 1 não tem instrumentos no recorte atual/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("mantém a macro aberta quando o novo recorte ainda tem instrumentos nela", async () => {
+    const { user, rerender, Tela, instrumentos } = prepararMapa();
+    await abrirMacro(user);
+    rerender(<Tela itens={[instrumentos[0]!]} />);
     expect(
       screen.getByRole("region", {
         name: "Mapa rodoviário da macrorregião Q1",
       }),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/não tem instrumentos no recorte/)).toBeNull();
   });
 
   it("seleciona local agrupado, preserva links e fecha somente o painel de detalhe", async () => {

@@ -9,11 +9,13 @@ import { useFiltrosMacro } from "@/hooks/useFiltrosMacro";
 import { useDashboardCobertura } from "@/hooks/useDashboardCobertura";
 import { useDashboardTotais } from "@/hooks/useDashboardTotais";
 import { useDashboardHipo } from "@/hooks/useDashboardHipo";
+import { useTerritorio } from "@/hooks/use-territorio";
 import { useFamiliaEquipamento } from "@/hooks/use-familia-equipamento";
 import type { StatusCobertura } from "@/types/domain";
 
 export function DashboardPage() {
   const { familia: FAMILIA } = useFamiliaEquipamento();
+  const { territorio, setTerritorio } = useTerritorio();
   const { macros, coberturaRows, facilities, isLoading, isError, error } =
     useDashboardCobertura(FAMILIA);
 
@@ -55,7 +57,36 @@ export function DashboardPage() {
     cnesFiltro,
     hasAnyFilter,
     limparFiltros,
-  } = useFiltrosMacro({ macros, coberturaRows, facilities });
+  } = useFiltrosMacro({
+    macros,
+    coberturaRows,
+    facilities,
+    inicial: {
+      ufs: territorio.ufs,
+      macros: territorio.macros,
+      regioesSaude: territorio.regioesSaude,
+      municipios: territorio.municipios,
+      cnes: territorio.cnes,
+    },
+  });
+
+  // Compartilha o recorte com Mapa e Relatórios; voltar a esta aba o restaura.
+  useEffect(() => {
+    setTerritorio({
+      ufs: filtroUfs,
+      macros: filtroMacros,
+      regioesSaude: filtroRegioesSaude,
+      municipios: filtroMunicipios,
+      cnes: filtroCnes,
+    });
+  }, [
+    setTerritorio,
+    filtroUfs,
+    filtroMacros,
+    filtroRegioesSaude,
+    filtroMunicipios,
+    filtroCnes,
+  ]);
 
   const estadosKey = estadosFiltro?.join(",") ?? "";
   const macrosKey = macrosFiltro?.join(",") ?? "";

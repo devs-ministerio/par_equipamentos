@@ -39,7 +39,7 @@ def test_convênio_com_prestacao_concluida_nao_gera_divergencia():
 def test_proposta_paga_nao_gera_divergencia():
     proposta = SimpleNamespace(situacao_proposta="Pago", created_at=datetime(2026, 9, 21))
     resultado = divergencia_conclusao(
-        instrumento(tipo_contratacao="Parceria TransfereGov", situacao_prestacao_contas=None),
+        instrumento(tipo_contratacao="FAF", situacao_prestacao_contas=None),
         fase_concluida=True,
         proposta=cast(PropostaCandidata, proposta),
     )
@@ -49,7 +49,7 @@ def test_proposta_paga_nao_gera_divergencia():
 def test_proposta_aberta_gera_divergencia():
     proposta = SimpleNamespace(situacao_proposta="Em análise", created_at=datetime(2026, 9, 21))
     resultado = divergencia_conclusao(
-        instrumento(tipo_contratacao="Parceria TransfereGov", situacao_prestacao_contas=None),
+        instrumento(tipo_contratacao="FAF", situacao_prestacao_contas=None),
         fase_concluida=True,
         proposta=cast(PropostaCandidata, proposta),
     )

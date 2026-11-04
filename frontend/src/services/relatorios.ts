@@ -43,7 +43,16 @@ export interface FiltroRelatorio {
    * ignorava. Só filtra Convênios (mesmo mecanismo de `/convenios`). */
   equipamento?: string;
   busca?: string;
-  encerramento?: "todos" | "encerrados";
+  encerramento?: "todos" | "encerrados" | "entregues" | "previsoes";
+  /** Situação de conclusão da visão "previsoes" (código estável do backend). */
+  situacaoConclusao?: string;
+  /** Origem do valor de `situacao` (filtro único): as demais seções ficam fora do relatório. */
+  situacaoOrigem?: "instrumento" | "monitoramento" | "proposta";
+  /** Referência do período: ano de origem do instrumento (padrão) ou data do evento (conclusão em Concluídos,
+   * entrega em Equipamento entregue), com datas completas em ISO (aaaa-mm-dd). */
+  periodoPor?: "ano_instrumento" | "data_do_evento";
+  dataInicio?: string;
+  dataFim?: string;
 }
 
 export interface ArquivoRelatorio {
@@ -85,6 +94,13 @@ export async function gerarRelatorio(
   if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
   if (filtro.busca) params.set("busca", filtro.busca);
   if (filtro.encerramento) params.set("encerramento", filtro.encerramento);
+  if (filtro.situacaoConclusao)
+    params.set("situacao_conclusao", filtro.situacaoConclusao);
+  if (filtro.situacaoOrigem)
+    params.set("situacao_origem", filtro.situacaoOrigem);
+  if (filtro.periodoPor) params.set("periodo_por", filtro.periodoPor);
+  if (filtro.dataInicio) params.set("data_inicio", filtro.dataInicio);
+  if (filtro.dataFim) params.set("data_fim", filtro.dataFim);
 
   try {
     // O prazo inclui refresh e leitura do corpo, não apenas os cabeçalhos.

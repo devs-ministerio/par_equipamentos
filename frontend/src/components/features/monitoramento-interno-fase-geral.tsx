@@ -25,8 +25,9 @@ export function MonitoramentoInternoFaseGeral({
       </p>
       <ol className="m-0 flex list-none p-0">
         {fasesGerais.map((f, i) => {
-          const feita = i < indiceAtual;
           const atual = i === indiceAtual;
+          const feita =
+            i < indiceAtual || (atual && f.codigo === "fase_concluido");
           return (
             <li
               key={f.id}
@@ -46,7 +47,9 @@ export function MonitoramentoInternoFaseGeral({
                 aria-hidden="true"
                 className={cn(
                   "relative z-10 grid size-5 place-items-center rounded-full border-2 text-[10px] font-bold",
-                  atual && "border-primary bg-primary text-primary-foreground",
+                  atual &&
+                    !feita &&
+                    "border-primary bg-primary text-primary-foreground",
                   feita && "border-success bg-success text-success-foreground",
                   !atual && !feita && "border-border bg-card",
                 )}

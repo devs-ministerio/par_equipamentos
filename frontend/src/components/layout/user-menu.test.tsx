@@ -72,7 +72,7 @@ describe("UserMenu", () => {
     tempo.expirada = true;
     renderMenu(true);
     expect(
-      screen.getByText("Expirada — será renovada na próxima ação"),
+      screen.getByText("Expirada — tentaremos renovar na próxima ação"),
     ).toBeInTheDocument();
   });
 

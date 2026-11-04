@@ -315,11 +315,13 @@ def listar_eventos_do_instrumento(db: Session, instrumento_id: int, *, apenas_at
 
 
 def listar_eventos_por_instrumentos(
-    db: Session, instrumento_ids: Sequence[int], *, apenas_ativos: bool = True
+    db: Session, instrumento_ids: Sequence[int], *, apenas_ativos: bool = True, marco_ids: Sequence[int] | None = None
 ) -> dict[int, list[EventoMarco]]:
     if not instrumento_ids:
         return {}
     stmt = select(EventoMarco).where(EventoMarco.instrumento_id.in_(instrumento_ids))
+    if marco_ids is not None:
+        stmt = stmt.where(EventoMarco.marco_id.in_(marco_ids))
     if apenas_ativos:
         stmt = stmt.where(_EVENTO_ATIVO)
     resultado: dict[int, list[EventoMarco]] = defaultdict(list)
@@ -436,6 +438,18 @@ def adicionar_evento(db: Session, evento: EventoMarco) -> None:
     """Persiste lançamento append-only e materializa sua chave primária."""
     db.add(evento)
     db.flush()
+
+
+def substituir_evento(db: Session, antigo: EventoMarco, novo: EventoMarco) -> None:
+    """Persiste `novo` no lugar de `antigo` (correção append-only).
+
+    O índice único de fase geral não admite dois ativos do mesmo marco nem por um instante, e o
+    `novo.id` só existe depois do INSERT. Por isso o antigo sai de cena apontando para si mesmo, o
+    novo entra e só então o antigo passa a apontar para o novo."""
+    antigo.substituido_por_id = antigo.id
+    db.flush()
+    adicionar_evento(db, novo)
+    antigo.substituido_por_id = novo.id
 
 
 def adicionar_acao(db: Session, acao: AcaoMonitoramento) -> None:

@@ -8,6 +8,7 @@ import { LinhaDoTempoProposta } from "./proposta-linha-do-tempo";
 import type { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 import { formatarCnpj } from "@/utils/texto";
+import { ChipIdentificador, ChipTipo } from "./chip-identificador";
 import { DetalhesAnimados } from "@/components/common/detalhes-animados";
 import { AdicionarMonitoramentoButton } from "./adicionar-monitoramento-button";
 
@@ -37,9 +38,11 @@ function CnesDestaque({
 export function CardProposta({
   p,
   instrumentoMonitorado,
+  candidatos = [],
 }: {
   p: ReturnType<typeof usePropostasCandidatas>["propostas"][number];
   instrumentoMonitorado?: InstrumentoEquipamento;
+  candidatos?: InstrumentoEquipamento[];
 }) {
   const [detalheAberto, setDetalheAberto] = useState(false);
   const principal =
@@ -53,9 +56,15 @@ export function CardProposta({
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
-              Proposta #{p.id_proposta}
-            </span>
+            {p.tem_parceria && <ChipTipo>{p.tipo_contratacao}</ChipTipo>}
+            {p.cd_parceria && (
+              <ChipIdentificador rotulo="Parceria">
+                {p.cd_parceria}
+              </ChipIdentificador>
+            )}
+            <ChipIdentificador rotulo="Proposta">
+              #{p.id_proposta}
+            </ChipIdentificador>
             {ano && (
               <span className="font-mono text-[11.5px] text-muted-foreground">
                 {ano}
@@ -141,11 +150,12 @@ export function CardProposta({
             </p>
           ) : estagioDeFato(p) === "confirmada" ? (
             <AdicionarMonitoramentoButton
+              candidatos={candidatos}
               dados={{
                 nr_convenio: p.cd_parceria ?? "",
                 cnpj_convenente: p.cnpj_ente_recebedor,
                 nome_convenente: p.nm_proponente,
-                tipo_contratacao: "Parceria TransfereGov",
+                tipo_contratacao: "FAF",
                 municipio: p.municipio,
                 uf: p.uf,
                 cnes: p.cnes,

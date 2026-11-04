@@ -20,7 +20,11 @@ export function RelatorioBotoesGerar({
   erro,
   onGerar,
   contexto,
+  formatoUnico = false,
 }: {
+  /** Visões como Concluídos, Entregues e Previsões têm um só formato:
+   * o nível de detalhamento não se aplica. */
+  formatoUnico?: boolean;
   nivel: NivelRelatorio;
   onNivelChange: (nivel: NivelRelatorio) => void;
   podeGerar: boolean;
@@ -57,17 +61,24 @@ export function RelatorioBotoesGerar({
           </p>
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className={rotuloCampo}>Nível de detalhamento</span>
-          <select
-            className={cn(estiloInput, "bg-background")}
-            value={nivel}
-            onChange={(e) => onNivelChange(e.target.value as NivelRelatorio)}
-          >
-            <option value="simplificado">Simplificado</option>
-            <option value="completo">Completo</option>
-          </select>
-        </label>
+        {formatoUnico ? (
+          <div className="flex flex-col gap-1">
+            <span className={rotuloCampo}>Nível de detalhamento</span>
+            <p className="py-2 text-sm text-muted-foreground">Formato único</p>
+          </div>
+        ) : (
+          <label className="flex flex-col gap-1">
+            <span className={rotuloCampo}>Nível de detalhamento</span>
+            <select
+              className={cn(estiloInput, "bg-background")}
+              value={nivel}
+              onChange={(e) => onNivelChange(e.target.value as NivelRelatorio)}
+            >
+              <option value="simplificado">Simplificado</option>
+              <option value="completo">Completo</option>
+            </select>
+          </label>
+        )}
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:min-w-[380px]">
           <Button

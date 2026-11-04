@@ -21,10 +21,15 @@ class RegistroEncerrado(BaseModel):
     motivo: str
     evidencia: str
     data_conclusao: date | None = None
-    # Data para apontar a conclusão: a registrada no monitoramento interno ou, na
-    # falta dela, o fim da vigência do instrumento (`origem_data` diz qual).
+    # Data da conclusão: SÓ a registrada no monitoramento interno; sem ela fica vazia (D07, 29/10/2026). O fim da
+    # vigência é informação contratual, vem em campo próprio e nunca substitui a conclusão.
     data_referencia: date | None = None
     origem_data: str | None = None
+    data_final_vigencia: date | None = None
+    # D06: duas dimensões distintas. Conclusão física = o que o monitoramento interno registra; situação
+    # administrativa = prestação de contas e pagamento. Uma não apaga a outra.
+    conclusao_fisica: str = "Não registrada"
+    situacao_administrativa: str | None = None
     equipamentos: str = ""
     quantidade: int | None = None
     # Unidades entregues (controle por unidade); None quando o instrumento ainda não tem esse controle.
@@ -64,6 +69,9 @@ class FiltroEncerramento(BaseModel):
     cnes: str | None = None
     ano_inicio: int | None = None
     ano_fim: int | None = None
+    # Período por data do evento (D02): conclusão em Concluídos, entrega em Equipamento entregue.
+    data_inicio: date | None = None
+    data_fim: date | None = None
     situacao: str | None = None
     programa: str | None = None
     tipo_contratacao: str | None = None
@@ -78,6 +86,9 @@ class FatoEncerramento(BaseModel):
     numero: str
     nome: str
     tipo: str
+    # Tipo resolvido da proposta (FAF, PRONON...) só para o filtro; `tipo` segue a chave de conciliação com o
+    # instrumento monitorado, que nasce como FAF.
+    tipo_filtro: str | None = None
     uf: str | None = None
     municipio: str | None = None
     cnes: str | None = None

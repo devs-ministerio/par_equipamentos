@@ -67,7 +67,9 @@ export function ConvenioCardDetalhes({
                 {fmtData(c.datas.inicioVigencia)}
               </Campo>
               <Campo label="Fim vigência">{fmtData(c.datas.fimVigencia)}</Campo>
-              <Campo label="Conclusão">{fmtData(c.datas.conclusao)}</Campo>
+              <Campo label="Conclusão administrativa (SICONV)">
+                {fmtData(c.datas.conclusao)}
+              </Campo>
             </div>
           </Secao>
         </div>

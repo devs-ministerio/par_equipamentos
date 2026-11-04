@@ -14,15 +14,17 @@ COLUNAS = [
     "Município",
     "Instituição",
     "CNES",
-    "Nº do convênio",
+    "Identificador do instrumento",
     "Equipamento(s)",
     "Quantidade planejada",
     "Quantidade entregue",
     "Tipo de contratação",
     "Valor global",
     "Data de conclusão",
-    "Origem da data",
+    "Fim da vigência",
     "Critério",
+    "Conclusão física",
+    "Situação administrativa",
     "Evidência",
     "Situação carteira/proposta",
     "Situação monitoramento",
@@ -33,20 +35,28 @@ _COLUNAS_WORD = [
     "Instituição",
     "Município/UF",
     "CNES",
-    "Nº do convênio",
+    "Identificador do instrumento",
     "Equipamento(s)",
     "Qtd. plan.",
     "Qtd. entr.",
     "Tipo",
     "Valor global",
     "Data de conclusão",
+    "Fim da vigência",
     "Critério",
 ]
-_PESOS_WORD = [3.0, 2.0, 1.2, 1.5, 2.4, 0.8, 0.8, 1.4, 1.9, 2.1, 2.0]
+_PESOS_WORD = [2.8, 1.9, 1.1, 1.4, 2.2, 0.8, 0.8, 1.3, 1.7, 1.5, 1.5, 1.8]
 
 _NOTA_DATA = (
-    "Data de conclusão: a registrada no monitoramento interno; na falta dela, o fim da vigência do "
-    "instrumento, indicado como tal. O SICONV não informa a data em que a prestação de contas foi concluída."
+    'Data de conclusão: somente a registrada no monitoramento interno; sem ela, "Não informada". '
+    "Fim da vigência: informação contratual em coluna própria, que não substitui a conclusão. "
+    "O SICONV não informa a data em que a prestação de contas foi concluída."
+)
+_NOTA_DIMENSOES = (
+    "Conclusão física: o que o monitoramento interno registra (com ou sem data). Situação administrativa: prestação de "
+    "contas e pagamento. São informações distintas: a conclusão física registrada e datada prevalece, e uma prestação "
+    "de contas aberta ou divergente continua indicada sem retirar o instrumento dos concluídos. Prestação de contas "
+    "encerrada sem conclusão física registrada não comprova obra pronta."
 )
 _NOTA_QUANTIDADE = (
     "Quantidade planejada: unidades dos equipamentos do instrumento, pela soma da quantidade dos itens do plano "
@@ -72,9 +82,11 @@ def _linha(item: RegistroEncerrado) -> list[object]:
         item.quantidade_entregue,
         item.tipo,
         item.valor_global,
-        item.data_referencia,
-        item.origem_data,
+        item.data_referencia or _NAO_INFORMADA,
+        item.data_final_vigencia,
         item.motivo,
+        item.conclusao_fisica,
+        item.situacao_administrativa or "—",
         item.evidencia,
         item.situacao_carteira,
         item.situacao_monitoramento,
@@ -82,11 +94,15 @@ def _linha(item: RegistroEncerrado) -> list[object]:
     ]
 
 
+_NAO_INFORMADA = "Não informada"
+
+
 def _data_word(item: RegistroEncerrado) -> str:
-    if item.data_referencia is None:
-        return "—"
-    texto = formatar_data(item.data_referencia)
-    return texto if item.origem_data != "Fim da vigência" else f"{texto}\n(fim da vigência)"
+    return formatar_data(item.data_referencia) if item.data_referencia else _NAO_INFORMADA
+
+
+def _vigencia_word(item: RegistroEncerrado) -> str:
+    return formatar_data(item.data_final_vigencia) if item.data_final_vigencia else "—"
 
 
 def _linha_concluido_word(item: RegistroEncerrado) -> list[str]:
@@ -101,7 +117,9 @@ def _linha_concluido_word(item: RegistroEncerrado) -> list[str]:
         item.tipo,
         formatar_moeda(float(item.valor_global)) if item.valor_global is not None else "—",
         _data_word(item),
-        item.motivo,
+        _vigencia_word(item),
+        f"{item.motivo}\nConclusão física: {item.conclusao_fisica}"
+        f"\nAdministrativo: {item.situacao_administrativa or '—'}",
     ]
 
 
@@ -128,6 +146,7 @@ def gerar_extracao(extracao: ExtracaoEncerrados, *, formato: Literal["xlsx", "do
                 ["Pendências excluídas", len(extracao.pendencias)],
                 ["Precedência", _PRECEDENCIA],
                 ["Data de conclusão", _NOTA_DATA],
+                ["Conclusão física e administrativa", _NOTA_DIMENSOES],
                 ["Quantidade", _NOTA_QUANTIDADE],
                 ["Limite", _LIMITE],
             ],
@@ -139,7 +158,7 @@ def gerar_extracao(extracao: ExtracaoEncerrados, *, formato: Literal["xlsx", "do
                 COLUNAS,
                 [_linha(i) for i in itens],
                 colunas_moeda=["Valor global"],
-                colunas_data=["Data de conclusão"],
+                colunas_data=["Data de conclusão", "Fim da vigência"],
             )
         return xlsx_builder.gerar_bytes(pasta)
     # Muitas colunas: página deitada.

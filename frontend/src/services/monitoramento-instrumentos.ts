@@ -86,6 +86,16 @@ const instrumentoEquipamentoSchema = z.object({
   // Default true cobre POST/PATCH, que já provaram a permissão pra chegar
   // ali -- só a listagem/timeline recalculam de verdade.
   pode_editar: z.boolean().optional().default(true),
+  // Só na listagem: inauguração e entrega em leitura para os Dados oficiais (D17).
+  acompanhamento: z
+    .object({
+      inauguracao_data: z.string().nullable(),
+      inauguracao_realizada: z.boolean(),
+      entrega_data: z.string().nullable(),
+      conferencia: z.string().nullable(),
+    })
+    .nullable()
+    .optional(),
 });
 export type InstrumentoEquipamento = z.infer<
   typeof instrumentoEquipamentoSchema
@@ -258,11 +268,14 @@ export function editarEvento(
 export function excluirEvento(
   eventoId: number,
   motivo: string,
+  anularInauguracaoVinculada = false,
 ): Promise<EventoMarco> {
   return apiAuthed(
     `/monitoramento/eventos/${eventoId}`,
     eventoMarcoSchema,
     "DELETE",
-    { motivo },
+    anularInauguracaoVinculada
+      ? { motivo, anular_inauguracao_vinculada: true }
+      : { motivo },
   );
 }

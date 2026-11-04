@@ -34,6 +34,7 @@ from app.routers import (
 from app.routers import (
     health as health_router,
 )
+from app.schemas import HealthRead
 
 app = FastAPI(title="SISGEO — Sistema de Gestão de Equipamentos em Oncologia")
 register_exception_handlers(app)
@@ -177,7 +178,7 @@ async def security_headers_middleware(request: Request, call_next):
     return response
 
 
-@app.get("/health")
+@app.get("/health", response_model=HealthRead)
 def health(db: Session = Depends(get_db)):
     """Prova de vida real -- confirma que a API consegue falar com o banco,
     nao so que o processo subiu."""

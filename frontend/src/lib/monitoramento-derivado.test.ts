@@ -94,6 +94,7 @@ describe("derivação do monitoramento sem I/O", () => {
         data_ocorrencia: null,
         data_prevista: "2026-10-21",
         data_validade: "2026-10-21",
+        status_regulatorio: "Deferido",
       });
       const atual = criarEventoTeste({
         ...antigo,
@@ -153,6 +154,7 @@ describe("derivação do monitoramento sem I/O", () => {
       id: 9,
       marco_id: 3,
       data_validade: "2026-10-21",
+      status_regulatorio: "Deferido",
     });
     const semData = criarEventoTeste({
       id: 10,
@@ -167,7 +169,26 @@ describe("derivação do monitoramento sem I/O", () => {
     );
     // Assert: esta seleção específica já é a regra do resumo no backend.
     expect(d.eventoLicenca?.id).toBe(9);
+    expect(d.registroLicenca?.id).toBe(10);
     expect(d.validadeLicenca).toBe(1);
+  });
+
+  it("validade de licença indeferida ou em análise não gera alerta de vencimento (D26)", () => {
+    const indeferida = criarEventoTeste({
+      id: 9,
+      marco_id: 3,
+      data_ocorrencia: "2026-10-28",
+      data_validade: "2026-10-27",
+      status_regulatorio: "Indeferido",
+    });
+    const d = derivarMonitoramentoInterno(
+      criarMarcosInteracao(),
+      timeline([indeferida]),
+      [],
+    );
+    expect(d.eventoLicenca).toBeNull();
+    expect(d.validadeLicenca).toBeNull();
+    expect(d.registroLicenca?.id).toBe(9);
   });
 
   it("usa ocorrência real antes da previsão no registro vigente e não conta atraso de fato realizado", () => {

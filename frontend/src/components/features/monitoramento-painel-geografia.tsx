@@ -22,8 +22,11 @@ const MonitoramentoPainelMapaRodoviario = lazy(() =>
 
 export function MonitoramentoPainelGeografia({
   instrumentos,
+  equipamentosPorNumero,
 }: {
   instrumentos: InstrumentoEquipamento[];
+  /** Rótulos canônicos por instrumento (marcadores); sem eles, cai na descrição planejada. */
+  equipamentosPorNumero?: ReadonlyMap<string, string[]>;
 }) {
   const geoQuery = useMacroGeojson();
   // Usa a nomenclatura já exibida no Mapa de Cobertura, sem usar nenhum
@@ -40,7 +43,17 @@ export function MonitoramentoPainelGeografia({
       ),
     [nomesQuery.data],
   );
+  const ufPorMacro = useMemo(
+    () =>
+      new Map(
+        nomesQuery.data?.macros.map((macro) => [macro.id, macro.uf]) ?? [],
+      ),
+    [nomesQuery.data],
+  );
   const nomeMacro = (id: string) => rotuloMacrorregiao(id, nomesPorMacro);
+  // No ranking, UF e código distinguem denominações repetidas (ex.: "Metropolitana").
+  const nomeMacroRanking = (id: string) =>
+    `${nomeMacro(id)}${ufPorMacro.get(id) ? ` (${ufPorMacro.get(id)})` : ""} · ${id}`;
   const [macroSelecionada, setMacroSelecionada] = useState<string | null>(null);
   const [localSelecionado, setLocalSelecionado] = useState<string | null>(null);
   const distribuicao = useMemo(
@@ -54,6 +67,29 @@ export function MonitoramentoPainelGeografia({
     () => agruparInstrumentosPorLocal(distribuicao?.pontos ?? []),
     [distribuicao],
   );
+  // Reconcilia a seleção local com o recorte: se uma troca de filtro deixar a
+  // macro escolhida sem nenhum instrumento, volta à visão nacional e avisa
+  // (zero só vale quando a pessoa escolhe a macro dentro do recorte atual).
+  const assinaturaRecorte = instrumentos.map((item) => item.id).join(",");
+  const [assinaturaAnterior, setAssinaturaAnterior] =
+    useState(assinaturaRecorte);
+  const [avisoMacro, setAvisoMacro] = useState<string | null>(null);
+  if (assinaturaRecorte !== assinaturaAnterior) {
+    setAssinaturaAnterior(assinaturaRecorte);
+    setAvisoMacro(null);
+    if (
+      distribuicao &&
+      (macroSelecionada || localSelecionado) &&
+      !(macroSelecionada && distribuicao.contagemPorMacro.get(macroSelecionada))
+    ) {
+      if (macroSelecionada)
+        setAvisoMacro(
+          `A macrorregião ${nomeMacro(macroSelecionada)} não tem instrumentos no recorte atual; o mapa voltou à visão nacional.`,
+        );
+      setMacroSelecionada(null);
+      setLocalSelecionado(null);
+    }
+  }
   const localAtivo = locais.find((local) => local.chave === localSelecionado);
   const ranking = [...(distribuicao?.contagemPorMacro.entries() ?? [])]
     .sort((a, b) => b[1] - a[1])
@@ -63,6 +99,7 @@ export function MonitoramentoPainelGeografia({
     : 0;
 
   function selecionarMacro(macroId: string | null) {
+    setAvisoMacro(null);
     setMacroSelecionada(macroId);
     setLocalSelecionado(null);
   }
@@ -172,6 +209,7 @@ export function MonitoramentoPainelGeografia({
                       geo={geoQuery.data}
                       macroId={macroSelecionada}
                       locais={locais}
+                      equipamentosPorNumero={equipamentosPorNumero}
                     />
                   </Suspense>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -251,8 +289,13 @@ export function MonitoramentoPainelGeografia({
                           {instrumento.nome_convenente}
                         </LinkDetalheInstrumento>
                         <p className="mt-1 text-xs text-foreground">
-                          {instrumento.equipamento_descricao ??
-                            "Equipamento não informado"}
+                          {equipamentosPorNumero?.get(instrumento.nr_convenio)
+                            ?.length
+                            ? equipamentosPorNumero
+                                .get(instrumento.nr_convenio)
+                                ?.join(", ")
+                            : (instrumento.equipamento_descricao ??
+                              "Equipamento não informado")}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {instrumento.nr_convenio} · CNES{" "}
@@ -295,7 +338,7 @@ export function MonitoramentoPainelGeografia({
                               <span className="mr-3 font-data text-xs text-muted-foreground">
                                 {String(indice + 1).padStart(2, "0")}
                               </span>
-                              {nomeMacro(macroId)}
+                              {nomeMacroRanking(macroId)}
                             </span>
                             <strong className="font-data tabular-nums">
                               {quantidade}
@@ -332,9 +375,17 @@ export function MonitoramentoPainelGeografia({
               )}
             </div>
           </div>
-          {distribuicao.semCoordenadas > 0 && (
+          {avisoMacro && (
+            <p role="status" className="mt-3 text-xs text-muted-foreground">
+              {avisoMacro}
+            </p>
+          )}
+          {(distribuicao.semCoordenadas > 0 ||
+            distribuicao.foraDasMacros > 0) && (
             <p className="mt-3 text-xs text-muted-foreground">
-              {distribuicao.semCoordenadas} sem coordenadas no CNES.
+              Fora do mapa: {distribuicao.semCoordenadas} sem coordenadas no
+              CNES · {distribuicao.foraDasMacros} com coordenadas que não caem
+              em nenhuma macrorregião da geometria.
             </p>
           )}
         </>

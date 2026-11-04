@@ -391,3 +391,24 @@ def test_nome_exibido_e_o_da_renem_e_nunca_a_especificacao_da_api(db):
     assert por_id[c.dois.id].nome == "Simulador/ Tomógrafo para Radioterapia"
     assert por_id[c.dois.id].descricao.startswith("SIMULADOR DE TRATAMENTO")
     assert por_id[c.um.id].nome == "Colposcópio digital"
+
+
+def test_entregas_em_datas_diferentes_ficam_cada_uma_com_o_proprio_registro(db):
+    # Item de 2 unidades entregue em dois momentos e, depois, um item diferente: cada entrega tem o seu
+    # evento ativo e a sua data (o índice único vale só para fase geral).
+    from app.db.models import EventoMarco
+
+    c = Cenario(db)
+    primeira = svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 1), data=date(2026, 3, 10)), db=db, usuario=c.titular
+    )
+    segunda = svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 1), data=date(2026, 3, 20)), db=db, usuario=c.titular
+    )
+    terceira = svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um, 1), data=date(2026, 3, 25)), db=db, usuario=c.titular
+    )
+    eventos = [db.get(EventoMarco, e.evento_id) for e in (primeira, segunda, terceira)]
+    assert len({e.id for e in eventos}) == 3
+    assert all(e.substituido_por_id is None and e.deletado_em is None for e in eventos)
+    assert [e.data_ocorrencia for e in eventos] == [date(2026, 3, 10), date(2026, 3, 20), date(2026, 3, 25)]

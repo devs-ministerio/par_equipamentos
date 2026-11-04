@@ -25,5 +25,7 @@ describe("catálogo de equipamento", () => {
       SITUACOES_INSTRUMENTO_CONCLUIDO.has("Prestação de Contas Concluída"),
     ).toBe(true);
     expect(SITUACOES_INSTRUMENTO_CONCLUIDO.has("Em operação")).toBe(true);
+    // Fase interna do monitoramento: o cartão mostra "Concluído" e o indicador precisa contá-lo (D15).
+    expect(SITUACOES_INSTRUMENTO_CONCLUIDO.has("Concluído")).toBe(true);
   });
 });

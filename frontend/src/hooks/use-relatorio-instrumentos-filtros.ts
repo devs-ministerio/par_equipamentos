@@ -21,8 +21,14 @@ import { useState } from "react";
  * `ano` único -- 2 seletores em vez de 1, mesmas opções (`anoOptions`). */
 export function useRelatorioInstrumentosFiltros() {
   const [encerramento, setEncerramento] = useState<string | null>(null);
+  const [situacaoConclusao, setSituacaoConclusao] = useState<string | null>(
+    null,
+  );
   const [uf, setUf] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<string | null>(null);
+  const [periodoPor, setPeriodoPor] = useState<string | null>(null);
+  const [dataInicio, setDataInicio] = useState<string | null>(null);
+  const [dataFim, setDataFim] = useState<string | null>(null);
   const [anoInicio, setAnoInicio] = useState<string | null>(null);
   const [anoFim, setAnoFim] = useState<string | null>(null);
   const [programa, setPrograma] = useState<string | null>(null);
@@ -36,8 +42,12 @@ export function useRelatorioInstrumentosFiltros() {
 
   const limparFiltros = () => {
     setEncerramento(null);
+    setSituacaoConclusao(null);
     setUf(null);
     setSituacao(null);
+    setPeriodoPor(null);
+    setDataInicio(null);
+    setDataFim(null);
     setAnoInicio(null);
     setAnoFim(null);
     setPrograma(null);
@@ -50,10 +60,14 @@ export function useRelatorioInstrumentosFiltros() {
 
   const hasFiltros = Boolean(
     encerramento ||
+    situacaoConclusao ||
     uf ||
     situacao ||
     anoInicio ||
     anoFim ||
+    periodoPor ||
+    dataInicio ||
+    dataFim ||
     programa ||
     tipoContratacao ||
     equipamento ||
@@ -65,10 +79,18 @@ export function useRelatorioInstrumentosFiltros() {
   return {
     encerramento,
     setEncerramento,
+    situacaoConclusao,
+    setSituacaoConclusao,
     uf,
     setUf,
     situacao,
     setSituacao,
+    periodoPor,
+    setPeriodoPor,
+    dataInicio,
+    setDataInicio,
+    dataFim,
+    setDataFim,
     anoInicio,
     setAnoInicio,
     anoFim,

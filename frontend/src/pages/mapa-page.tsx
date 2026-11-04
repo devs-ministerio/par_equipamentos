@@ -30,6 +30,7 @@ export function MapaPage() {
     error,
     selectedMacroId,
     setSelectedMacroId,
+    ajusteTerritorial,
     macroSelecionada,
     coberturaSelecionada,
     regioesSaude,
@@ -124,6 +125,14 @@ export function MapaPage() {
   return (
     <div>
       {header}
+      {ajusteTerritorial && (
+        <p
+          role="status"
+          className="mb-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
+        >
+          {ajusteTerritorial}
+        </p>
+      )}
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="rounded-lg bg-card px-4.5 py-4">
           <div className="mb-2.5 text-sm font-semibold">

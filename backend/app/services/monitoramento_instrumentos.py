@@ -72,13 +72,10 @@ def _valores_confiaveis_da_parceria(
     """
     valores = asdict(dados)
     proposta_id = valores.pop("proposta_candidata_id")
-    if dados.tipo_contratacao != "Parceria TransfereGov":
-        if proposta_id is not None:
-            raise ValidationError("A referência de proposta só é aceita para Parceria TransfereGov.")
-        return valores
-
     if proposta_id is None:
-        raise ValidationError("Informe a proposta confirmada para adicionar a parceria ao monitoramento.")
+        return valores
+    if dados.tipo_contratacao != "FAF":
+        raise ValidationError("A referência de proposta só é aceita para FAF.")
     proposta = propostas_repo.obter_proposta_por_id(db, proposta_id)
     if proposta is None:
         raise NotFoundError("Proposta de financiamento não encontrada.")

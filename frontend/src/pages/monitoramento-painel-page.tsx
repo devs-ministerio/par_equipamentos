@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,6 +9,7 @@ import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useMonitoramentoInternoFiltros } from "@/hooks/use-monitoramento-interno-filtros";
 import { fmtMoeda } from "@/lib/monitoramento-format";
+import { rotulosEquipamentoDoInstrumento } from "@/lib/monitoramento-filtro-equipamentos";
 import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
 import { MetricStrip } from "@/components/common/metric-strip";
 import {
@@ -15,6 +17,7 @@ import {
   PainelSecao,
 } from "@/components/features/monitoramento-painel-visuals";
 import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
+import { MonitoramentoPainelLacunas } from "@/components/features/monitoramento-painel-lacunas";
 import { MonitoramentoPainelGeografia } from "@/components/features/monitoramento-painel-geografia";
 import { MonitoramentoPainelAnalises } from "@/components/features/monitoramento-painel-analises";
 import { MonitoramentoPainelEntregues } from "@/components/features/monitoramento-painel-entregues";
@@ -41,9 +44,20 @@ export function MonitoramentoPainelPage() {
   const filtros = useMonitoramentoInternoFiltros(
     instrumentos ?? [],
     conveniosQuery.data?.itens ?? [],
+    resumo?.inauguracoes ?? null,
   );
   const marcos = marcosQuery.data;
   const convenios = conveniosQuery.data?.itens;
+  const equipamentosPorNumero = useMemo(
+    () =>
+      new Map(
+        (convenios ?? []).map((item) => [
+          item.numero,
+          rotulosEquipamentoDoInstrumento(item.equipamentos),
+        ]),
+      ),
+    [convenios],
+  );
 
   if (
     resumoQuery.isError ||
@@ -132,21 +146,68 @@ export function MonitoramentoPainelPage() {
             value: dados.instrumentosComValor
               ? fmtMoeda(dados.valorGlobal)
               : "—",
-            detail:
-              dados.percentualPagoComRegra == null
-                ? "Pagamento ao fornecedor sem base comparável"
-                : `${Math.round(dados.percentualPagoComRegra * 100)}% pago ao fornecedor`,
+            detail: (
+              <>
+                {dados.percentualPagoComRegra == null
+                  ? "Pagamento ao fornecedor sem base comparável"
+                  : `${Math.round(dados.percentualPagoComRegra * 100)}% pago ao fornecedor`}
+                <br />
+                {`Valor de ${dados.instrumentosComValor} de ${instrumentosFiltrados.length} instrumentos`}
+                {dados.pagamentosManuaisConcluidos > 0 &&
+                  ` · ${dados.pagamentosManuaisConcluidos} com quitação assumida pela regra da carga concluída (não é pagamento registrado)`}
+              </>
+            ),
           },
           {
             key: "atencao",
-            label: "Pontos de atenção",
-            value: dados.pontosAtencao,
-            variant: dados.pontosAtencao > 0 ? "destructive" : "success",
+            label: "Instrumentos com atenção",
+            value: dados.instrumentosEmAtencao,
+            variant:
+              dados.instrumentosEmAtencao > 0 ? "destructive" : "success",
+            detail: `${dados.pontosAtencao} ocorrências: ${dados.acoesAtrasadas} ações atrasadas, ${dados.inauguracoesAtrasadas} inaugurações atrasadas, ${dados.licencasCriticas} licenças críticas, ${dados.divergencias.length} divergências externas`,
           },
         ]}
       />
 
-      <MonitoramentoPainelGeografia instrumentos={instrumentosFiltrados} />
+      <MonitoramentoPainelEvolucao
+        inauguracoesPorAno={dados.inauguracoesPorAno}
+        previsoesVencidas={dados.previsoesVencidasForaDaSerie}
+        porTipo={dados.porTipo}
+        total={instrumentosFiltrados.length}
+        semCnes={dados.semCnes}
+        semCoordenadas={dados.semCoordenadas}
+        semTecnico={dados.semTecnico}
+        semAno={dados.semAno}
+        comPagamentoDeterminado={
+          dados.instrumentosComPagamento + dados.pagamentosManuaisConcluidos
+        }
+        cargasManuais={dados.cargasManuais}
+        viewerRole={sessao.usuarioAtual?.role}
+      />
+
+      <MonitoramentoPainelLacunas lacunas={dados.lacunas} />
+
+      <MonitoramentoPainelPendencias
+        vigencias={dados.vigenciasProximas}
+        licencas={dados.licencas}
+        inauguracoes={dados.inauguracoes}
+        divergencias={dados.divergencias}
+        divergenciasPorFonte={divergenciasPorFonte}
+        semTecnico={dados.semTecnico}
+        acoesAtrasadas={dados.acoesAtrasadas}
+        acoesPendentes={dados.acoesPendentes}
+        licencasCnenDeferidas={{
+          quantidade: dados.licencasDeferidas,
+          total: instrumentosFiltrados.length,
+        }}
+        acoes={dados.acoes}
+        filaTruncada={resumo.fila_acoes_truncada}
+      />
+
+      <MonitoramentoPainelGeografia
+        instrumentos={instrumentosFiltrados}
+        equipamentosPorNumero={equipamentosPorNumero}
+      />
 
       <MonitoramentoPainelAnalises
         instrumentos={instrumentosFiltrados}
@@ -184,39 +245,6 @@ export function MonitoramentoPainelPage() {
           </div>
         </div>
       </PainelSecao>
-
-      <MonitoramentoPainelEvolucao
-        inauguracoesPorAno={dados.inauguracoesPorAno}
-        previsoesVencidas={dados.previsoesVencidasForaDaSerie}
-        porTipo={dados.porTipo}
-        total={instrumentosFiltrados.length}
-        semCnes={dados.semCnes}
-        semCoordenadas={dados.semCoordenadas}
-        semTecnico={dados.semTecnico}
-        semAno={dados.semAno}
-        comPagamentoDeterminado={
-          dados.instrumentosComPagamento + dados.pagamentosManuaisConcluidos
-        }
-        cargasManuais={dados.cargasManuais}
-        viewerRole={sessao.usuarioAtual?.role}
-      />
-
-      <MonitoramentoPainelPendencias
-        vigencias={dados.vigenciasProximas}
-        licencas={dados.licencas}
-        inauguracoes={dados.inauguracoes}
-        divergencias={dados.divergencias}
-        divergenciasPorFonte={divergenciasPorFonte}
-        semTecnico={dados.semTecnico}
-        acoesAtrasadas={dados.acoesAtrasadas}
-        acoesPendentes={dados.acoesPendentes}
-        licencasCnenDeferidas={{
-          quantidade: dados.licencasDeferidas,
-          total: instrumentosFiltrados.length,
-        }}
-        acoes={dados.acoes}
-        filaTruncada={resumo.fila_acoes_truncada}
-      />
     </div>
   );
 }

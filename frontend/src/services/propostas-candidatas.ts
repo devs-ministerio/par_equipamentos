@@ -36,6 +36,7 @@ const propostaCandidataSchema = z.object({
   cnes_nome_estabelecimento: z.string().nullable(),
   tem_parceria: z.boolean(),
   cd_parceria: z.string().nullable(),
+  tipo_contratacao: z.string(),
   created_at: z.string(),
 });
 export type PropostaCandidata = z.infer<typeof propostaCandidataSchema>;

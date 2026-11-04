@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { colors } from "@/styles/tokens";
-import { PALETA_CATEGORICA } from "./monitoramento-painel-palette";
+import {
+  corDaContratacao,
+  corDaFase,
+  PALETA_CATEGORICA,
+} from "./monitoramento-painel-palette";
 
 function lab(hex: string): [number, number, number] {
   const [r, g, b] = [1, 3, 5].map((i) => {
@@ -34,5 +38,45 @@ describe("paleta categórica do painel", () => {
         expect(distancia, `${hex[i]} x ${hex[j]}`).toBeGreaterThanOrEqual(25);
       }
     }
+  });
+});
+
+describe("cores estáveis por dimensão", () => {
+  const fases = [
+    "Não iniciado",
+    "Planejamento",
+    "Contratação",
+    "Execução",
+    "Entrega",
+    "Comissionamento",
+    "Licenciamento",
+    "Operação",
+    "Concluído",
+  ];
+
+  it("Não iniciado e Concluído nunca coincidem, mesmo com nove fases", () => {
+    const cores = fases.map((f) => corDaFase(f, fases));
+    expect(cores[0]).not.toBe(cores[8]);
+    expect(new Set(cores).size).toBe(fases.length);
+  });
+
+  it("a cor de uma fase não muda quando um filtro remove outras fases extremas", () => {
+    expect(corDaFase("Execução", fases)).toBe(corDaFase("Execução", fases));
+    expect(corDaFase("Concluído", fases)).toBe(
+      corDaFase("Concluído", ["Concluído"]),
+    );
+    expect(corDaFase("Não iniciado", fases)).toBe(
+      corDaFase("Não iniciado", ["Não iniciado", "Concluído"]),
+    );
+  });
+
+  it("contratação tem cor fixa por tipo e nunca usa azul/âmbar de realizadas/previstas", () => {
+    expect(corDaContratacao("FAF")).toBe(corDaContratacao("FAF"));
+    const cores = ["Convênio", "FAF", "TED", "PERSUS I", "PERSUS II"].map(
+      corDaContratacao,
+    );
+    expect(new Set(cores).size).toBe(5);
+    expect(cores).not.toContain("var(--painel-chart-azul)");
+    expect(cores).not.toContain("var(--painel-chart-ambar)");
   });
 });

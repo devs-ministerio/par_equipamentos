@@ -160,9 +160,15 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
   await dialog.getByRole("button", { name: "Restaurar" }).click();
   await dialog.getByRole("button", { name: "Recebidas", exact: true }).click();
   await expect(dialog.getByText(aviso.titulo)).toBeVisible();
-  await dialog.getByRole("button", { name: "Marcar todas como lidas" }).click();
+  await dialog
+    .getByRole("button", {
+      name: /Marcar todas as minhas recebidas como lidas/,
+    })
+    .click();
   await expect(
-    dialog.getByRole("button", { name: "Marcar todas como lidas" }),
+    dialog.getByRole("button", {
+      name: /Marcar todas as minhas recebidas como lidas/,
+    }),
   ).toBeDisabled();
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();

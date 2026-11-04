@@ -158,6 +158,8 @@ export type ConvenioUnificado = {
   numeroProcesso: string;
   cnes: string | null;
   cnesNomeEstabelecimento: string | null;
+  /** Município do estabelecimento (CNES): onde o equipamento fica. */
+  cnesMunicipio: string | null;
   // Achado 2026-09-16 ("parar de usar json estático, coloque tudo no
   // banco"): os 4 campos abaixo eram computados no cliente a partir do
   // payload cru (`siconv`/`transferegov`) -- agora vêm pré-computados da

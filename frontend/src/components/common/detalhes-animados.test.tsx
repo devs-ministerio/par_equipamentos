@@ -29,6 +29,20 @@ describe("DetalhesAnimados", () => {
     const { container } = render(<Exemplo />);
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it("acompanha alternâncias rápidas sem prender o estado aberto ou fechado", () => {
+    // Arrange
+    render(<Exemplo />);
+    const alternar = screen.getByRole("button", { name: /Mais detalhes/ });
+    // Act
+    for (let i = 0; i < 6; i++) fireEvent.click(alternar);
+    // Assert
+    expect(alternar).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Conteúdo técnico")).not.toBeInTheDocument();
+    fireEvent.click(alternar);
+    expect(alternar).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Conteúdo técnico")).toBeInTheDocument();
+  });
 });
 
 describe("Logo", () => {

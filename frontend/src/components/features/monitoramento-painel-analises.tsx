@@ -1,5 +1,8 @@
 import { resumirCarteiraPainel } from "@/lib/monitoramento-painel-analise";
-import { PALETA_CATEGORICA } from "@/lib/monitoramento-painel-palette";
+import {
+  corDaContratacao,
+  corDaFase,
+} from "@/lib/monitoramento-painel-palette";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 
 export function MonitoramentoPainelAnalises({
@@ -11,6 +14,7 @@ export function MonitoramentoPainelAnalises({
 }) {
   const dados = resumirCarteiraPainel(instrumentos, fases);
   const total = instrumentos.length;
+  const rotulosFases = dados.fases.map((fase) => fase.rotulo);
   const maiorAno = Math.max(1, ...dados.anos.map((item) => item.quantidade));
   const maiorUf = Math.max(1, ...dados.ufs.map((item) => item.quantidade));
   const contratacoesVisiveis = dados.contratacoes.slice(0, 5);
@@ -57,17 +61,14 @@ export function MonitoramentoPainelAnalises({
                   .join("; ")}
               >
                 {dados.fases.map(
-                  (item, indice) =>
+                  (item) =>
                     item.quantidade > 0 && (
                       <div
                         key={item.rotulo}
                         title={`${item.rotulo}: ${item.quantidade}`}
                         style={{
                           width: `${(item.quantidade / total) * 100}%`,
-                          backgroundColor:
-                            PALETA_CATEGORICA[
-                              indice % PALETA_CATEGORICA.length
-                            ],
+                          backgroundColor: corDaFase(item.rotulo, rotulosFases),
                         }}
                         className="h-full border-r border-card/80 last:border-r-0"
                       />
@@ -75,7 +76,7 @@ export function MonitoramentoPainelAnalises({
                 )}
               </div>
               <div className="mt-4 grid gap-x-5 gap-y-2 sm:grid-cols-2">
-                {dados.fases.map((item, indice) => (
+                {dados.fases.map((item) => (
                   <div
                     key={item.rotulo}
                     className="flex items-center justify-between gap-3 border-b border-border/70 py-1 text-xs"
@@ -85,10 +86,7 @@ export function MonitoramentoPainelAnalises({
                         aria-hidden="true"
                         className="size-2.5 shrink-0"
                         style={{
-                          backgroundColor:
-                            PALETA_CATEGORICA[
-                              indice % PALETA_CATEGORICA.length
-                            ],
+                          backgroundColor: corDaFase(item.rotulo, rotulosFases),
                         }}
                       />
                       <span className="truncate" title={item.rotulo}>
@@ -168,21 +166,20 @@ export function MonitoramentoPainelAnalises({
                   .map((item) => `${item.rotulo}: ${item.quantidade}`)
                   .join("; ")}
               >
-                {contratacoesVisiveis.map((item, indice) => (
+                {contratacoesVisiveis.map((item) => (
                   <div
                     key={item.rotulo}
                     title={`${item.rotulo}: ${item.quantidade}`}
                     style={{
                       width: `${(item.quantidade / total) * 100}%`,
-                      backgroundColor:
-                        PALETA_CATEGORICA[indice % PALETA_CATEGORICA.length],
+                      backgroundColor: corDaContratacao(item.rotulo),
                     }}
                     className="border-r border-card/80 last:border-r-0"
                   />
                 ))}
               </div>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {contratacoesVisiveis.map((item, indice) => (
+                {contratacoesVisiveis.map((item) => (
                   <div
                     key={item.rotulo}
                     className="flex items-center justify-between gap-3 text-xs"
@@ -192,10 +189,7 @@ export function MonitoramentoPainelAnalises({
                         aria-hidden="true"
                         className="size-2.5 shrink-0"
                         style={{
-                          backgroundColor:
-                            PALETA_CATEGORICA[
-                              indice % PALETA_CATEGORICA.length
-                            ],
+                          backgroundColor: corDaContratacao(item.rotulo),
                         }}
                       />
                       <span className="truncate" title={item.rotulo}>

@@ -5,6 +5,7 @@ import {
   fetchMacroCoverage,
   fetchMunicipalityCoverage,
 } from "../services/api";
+import { useTerritorio } from "./use-territorio";
 
 /**
  * Estado + fetch da navegação Macro -> Região de Saúde -> Município do Mapa
@@ -16,6 +17,10 @@ import {
  * precisar da guarda manual `cancelado` que existia aqui antes).
  */
 export function useMapaFiltros(familia: string) {
+  const { territorio } = useTerritorio();
+  const [ajusteTerritorial, setAjusteTerritorial] = useState<string | null>(
+    null,
+  );
   const [selectedMacroId, setSelectedMacroId] = useState<string | null>(null);
   const [selectedMunicipioId, setSelectedMunicipioId] = useState<string | null>(
     null,
@@ -28,16 +33,43 @@ export function useMapaFiltros(familia: string) {
   const macros = coberturaQuery.data?.macros ?? [];
   const coberturaRows = coberturaQuery.data?.coberturaRows ?? [];
 
-  // Pre-seleciona a primeira macro (ordenada por UF/nome) assim que a lista
-  // carrega, se o usuario ainda nao escolheu nenhuma -- a secao "Recorte da
-  // macrorregiao" sempre tem algo pra mostrar, em vez de comecar vazia
-  // esperando um clique no mapa nacional (decisao 2026-08-23).
+  // Pre-seleciona uma macro assim que a lista carrega, se o usuario ainda
+  // nao escolheu nenhuma. Prioriza o recorte territorial da Visao geral
+  // (macro escolhida, ou a primeira macro da UF escolhida, explicando a
+  // adaptacao); sem recorte, a primeira macro ordenada por UF/nome.
   useEffect(() => {
     if (selectedMacroId || macros.length === 0) return;
     const ordenadas = [...macros].sort(
       (a, b) => a.uf.localeCompare(b.uf) || a.nome.localeCompare(b.nome),
     );
+    const daVisaoGeral = ordenadas.find((m) =>
+      territorio.macros.includes(m.id),
+    );
+    if (daVisaoGeral) {
+      setSelectedMacroId(daVisaoGeral.id);
+      setAjusteTerritorial(
+        territorio.macros.length > 1
+          ? `O mapa mostra uma macrorregião por vez; abrimos ${daVisaoGeral.nome} (${daVisaoGeral.uf}), uma das selecionadas na Visão geral.`
+          : null,
+      );
+      return;
+    }
+    const daUf = ordenadas.find((m) => territorio.ufs.includes(m.uf));
+    if (daUf) {
+      setSelectedMacroId(daUf.id);
+      setAjusteTerritorial(
+        `Recorte da Visão geral: ${territorio.ufs.join(", ")}. O mapa mostra uma macrorregião por vez; abrimos ${daUf.nome} (${daUf.uf}) — escolha outra no mapa se preferir.`,
+      );
+      return;
+    }
     setSelectedMacroId(ordenadas[0].id);
+    setAjusteTerritorial(
+      territorio.regioesSaude.length ||
+        territorio.municipios.length ||
+        territorio.cnes.length
+        ? "O recorte da Visão geral não tem macrorregião definida; abrimos a primeira da lista."
+        : null,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [macros]);
 
@@ -90,7 +122,11 @@ export function useMapaFiltros(familia: string) {
     error: coberturaQuery.error as Error | null,
 
     selectedMacroId,
-    setSelectedMacroId,
+    setSelectedMacroId: (id: string | null) => {
+      setAjusteTerritorial(null);
+      setSelectedMacroId(id);
+    },
+    ajusteTerritorial,
     macroSelecionada,
     coberturaSelecionada,
 

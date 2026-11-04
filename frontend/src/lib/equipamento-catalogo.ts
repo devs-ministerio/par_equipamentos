@@ -1,6 +1,10 @@
 import { normalizarTexto } from "@/utils/texto";
 
+/** Situações que o indicador "Concluídos" reconhece: a conclusão registrada no monitoramento interno ("Concluído",
+ * que a situação exibida usa quando o instrumento é monitorado) e os encerramentos do SICONV. Cartão, filtro e
+ * indicador usam a mesma situação exibida, então o conjunto precisa cobrir as duas origens (D15). */
 export const SITUACOES_INSTRUMENTO_CONCLUIDO = new Set([
+  "Concluído",
   "Prestação de Contas Concluída",
   "Em operação",
 ]);

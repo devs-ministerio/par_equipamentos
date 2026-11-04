@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Usuario } from "@/services/usuarios";
+import { UsuarioUltimoAcesso } from "./usuario-ultimo-acesso";
 
 const PERFIL: Record<Usuario["role"], string> = {
   admin: "Administrador",
@@ -87,7 +88,10 @@ export function UsuariosLista({
               <TableHead>Perfil</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Ativação</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead>Último acesso</TableHead>
+              <TableHead className="text-right">
+                <span className="sr-only">Gerenciamento</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -111,12 +115,19 @@ export function UsuariosLista({
                   {formatarData(usuario.activated_at)}
                 </TableCell>
                 <TableCell className="text-right">
+                  <UsuarioUltimoAcesso
+                    ultimoLoginEm={usuario.ultimo_login_em}
+                  />
+                </TableCell>
+                <TableCell className="text-right">
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
+                    aria-label={`Gerenciar ${usuario.name}`}
+                    title={`Gerenciar ${usuario.name}`}
                     onClick={() => onGerenciar(usuario)}
                   >
-                    <Settings2 aria-hidden="true" /> Gerenciar
+                    <Settings2 aria-hidden="true" />
                   </Button>
                 </TableCell>
               </TableRow>
@@ -144,13 +155,19 @@ export function UsuariosLista({
                 {PERFIL[usuario.role]}
               </p>
               <Button
-                size="sm"
+                size="icon"
                 variant="outline"
+                aria-label={`Gerenciar ${usuario.name}`}
+                title={`Gerenciar ${usuario.name}`}
                 onClick={() => onGerenciar(usuario)}
               >
-                Gerenciar
+                <Settings2 aria-hidden="true" />
               </Button>
             </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Último acesso:{" "}
+              <UsuarioUltimoAcesso ultimoLoginEm={usuario.ultimo_login_em} />
+            </p>
           </article>
         ))}
       </div>

@@ -135,7 +135,7 @@ function MonitoramentoInternoConteudo({
     pctAtual,
     cronogramaFisico,
     regulatorio,
-    eventoLicenca,
+    registroLicenca,
     dataInauguracao,
     inaugurado,
     diasInauguracao,
@@ -167,7 +167,7 @@ function MonitoramentoInternoConteudo({
         dataInauguracao={dataInauguracao}
         inaugurado={inaugurado}
         diasInauguracao={diasInauguracao}
-        statusLicenca={eventoLicenca?.status_regulatorio ?? "Sem registro"}
+        registroLicenca={registroLicenca}
         alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
         acoesAbertasCount={acoesAbertas.length}
         acoesAtrasadasCount={acoesAtrasadas.length}
@@ -317,9 +317,13 @@ function MonitoramentoInternoConteudo({
                 }),
               )
             }
-            onExcluir={(eventoId, motivo) =>
+            onExcluir={(eventoId, motivo, anularInauguracao) =>
               executarEscrita(() =>
-                excluirEventoMutation.mutateAsync({ eventoId, motivo }),
+                excluirEventoMutation.mutateAsync({
+                  eventoId,
+                  motivo,
+                  anularInauguracao,
+                }),
               )
             }
           />

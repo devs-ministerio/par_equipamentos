@@ -1,9 +1,11 @@
 """Precedência e evidência testadas sem mock do classificador."""
 
 from datetime import date
+from typing import Any
 
 import pytest
 
+from app.domain_errors import ValidationError
 from app.schemas_relatorios_encerrados import FatoEncerramento, FiltroEncerramento, OrdemEncerramento
 from app.services.relatorios_encerrados import classificar_encerrados
 
@@ -24,12 +26,12 @@ def fato(**campos) -> FatoEncerramento:
         ({"conclusao_ativa": True}, "Conclusão interna sem data", True),
         (
             {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1)},
-            "Concluído internamente — prestação de contas sem informação",
+            "Concluído no monitoramento interno",
             False,
         ),
         (
             {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1), "situacao_carteira": "Em execução"},
-            "Concluído internamente — prestação de contas pendente",
+            "Concluído no monitoramento interno",
             False,
         ),
         (
@@ -53,6 +55,59 @@ def test_precedencia_e_pendencias(campos, motivo, pendente):
     assert (resultado.pendencias or resultado.itens)[0].motivo == motivo
 
 
+def test_conclusao_fisica_datada_prevalece_sobre_prestacao_divergente_e_mantem_a_ressalva():
+    # D06: divergência administrativa não tira dos concluídos quem tem conclusão física registrada.
+    resultado = classificar_encerrados(
+        [
+            fato(
+                conclusao_ativa=True,
+                data_conclusao=date(2026, 1, 1),
+                situacao_carteira=FECHADA,
+                situacao_monitoramento="Em execução",
+            )
+        ],
+        FiltroEncerramento(),
+    )
+    assert resultado.pendencias == []
+    registro = resultado.itens[0]
+    assert registro.motivo == "Concluído no monitoramento interno"
+    assert registro.conclusao_fisica == "Registrada"
+    assert registro.situacao_administrativa == "Divergência entre fontes"
+
+
+@pytest.mark.parametrize(
+    "campos,fisica,administrativa",
+    [
+        (
+            {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1), "situacao_carteira": FECHADA},
+            "Registrada",
+            "Prestação de contas concluída",
+        ),
+        (
+            {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1), "situacao_carteira": "Em execução"},
+            "Registrada",
+            "Prestação de contas pendente",
+        ),
+        (
+            {"conclusao_ativa": True, "data_conclusao": date(2026, 1, 1)},
+            "Registrada",
+            "Prestação de contas sem informação",
+        ),
+        # encerramento administrativo sem conclusão física: a limitação fica explícita, sem presumir obra pronta
+        ({"situacao_carteira": FECHADA}, "Não registrada", "Prestação de contas concluída"),
+        (
+            {"situacao_carteira": FECHADA, "conclusao_ativa": True},
+            "Registrada sem data",
+            "Prestação de contas concluída",
+        ),
+    ],
+)
+def test_duas_dimensoes_sao_informadas_separadamente(campos, fisica, administrativa):
+    resultado = classificar_encerrados([fato(**campos)], FiltroEncerramento())
+    registro = (resultado.itens or resultado.pendencias)[0]
+    assert (registro.conclusao_fisica, registro.situacao_administrativa) == (fisica, administrativa)
+
+
 @pytest.mark.parametrize(
     "status,identificador,codigo,quantidade",
     [
@@ -68,7 +123,7 @@ def test_parceria_exige_codigo_e_evidencia_de_ordem_paga(status, identificador, 
     # Arrange
     parceria = fato(
         origem="parceria",
-        tipo="Parceria TransfereGov",
+        tipo="FAF",
         numero="2026001",
         parceria_confirmada=True,
         codigo_confirmado=codigo,
@@ -88,14 +143,14 @@ def test_deduplica_parceria_antes_monitorada_pelo_id_da_proposta():
     # Arrange
     parceria = fato(
         origem="parceria",
-        tipo="Parceria TransfereGov",
+        tipo="FAF",
         numero="2026001",
         proposta_id=991,
         parceria_confirmada=True,
         codigo_confirmado="2026001",
         ordens=[OrdemEncerramento(id_ordem_pagamento=1, in_situacao_op="Paga")],
     )
-    interno = fato(numero="991", tipo="Parceria TransfereGov", conclusao_ativa=True, data_conclusao=date(2026, 1, 1))
+    interno = fato(numero="991", tipo="FAF", conclusao_ativa=True, data_conclusao=date(2026, 1, 1))
     # Act
     resultado = classificar_encerrados([parceria, interno, parceria], FiltroEncerramento())
     # Assert
@@ -108,13 +163,13 @@ def test_sem_data_nao_exclui_encerramento_financeiro_independente():
     # Arrange
     parceria = fato(
         origem="parceria",
-        tipo="Parceria TransfereGov",
+        tipo="FAF",
         numero="2026001",
         parceria_confirmada=True,
         codigo_confirmado="2026001",
         ordens=[OrdemEncerramento(id_ordem_pagamento=1, in_situacao_op="Paga")],
     )
-    interno = fato(numero="2026001", tipo="Parceria TransfereGov", conclusao_ativa=True)
+    interno = fato(numero="2026001", tipo="FAF", conclusao_ativa=True)
     # Act
     resultado = classificar_encerrados([interno, parceria], FiltroEncerramento())
     # Assert
@@ -165,13 +220,16 @@ def test_data_de_referencia_prefere_a_conclusao_do_monitoramento_e_cai_no_fim_da
     # When
     extracao = classificar_encerrados([com_monitoramento, so_vigencia, sem_data], FiltroEncerramento())
     por_numero = {i.numero: i for i in extracao.itens}
-    # Then: a conclusão real vence; o fim da vigência vem identificado; sem nenhuma, fica vazio
+    # Then: só a conclusão real ocupa a data de conclusão; o fim da vigência nunca a substitui (D07)
     assert (por_numero["1"].data_referencia, por_numero["1"].origem_data) == (
         date(2025, 10, 5),
         "Conclusão no monitoramento",
     )
-    assert (por_numero["2"].data_referencia, por_numero["2"].origem_data) == (date(2024, 6, 30), "Fim da vigência")
+    assert por_numero["1"].data_final_vigencia == date(2026, 12, 3)
+    assert (por_numero["2"].data_referencia, por_numero["2"].origem_data) == (None, None)
+    assert por_numero["2"].data_final_vigencia == date(2024, 6, 30)
     assert (por_numero["3"].data_referencia, por_numero["3"].origem_data) == (None, None)
+    assert por_numero["3"].data_final_vigencia is None
 
 
 def test_texto_de_equipamentos_mostra_a_contagem_so_quando_ha_mais_de_um():
@@ -213,3 +271,67 @@ def test_rendimento_e_acessorio_nao_somam_unidade_na_quantidade():
         {"DESCRICAO_ITEM": "Utilização de rendimento de aplicação para complementar o mamógrafo", "QTD_ITEM": "1"},
     ]
     assert _quantidade_de_equipamentos(itens, ["mamografo"]) == 2
+
+
+def test_periodo_por_data_da_conclusao_pega_instrumento_antigo_concluido_no_periodo():
+    # D02: "o que concluímos em 2026" não depende do ano de origem do instrumento.
+    antigo_concluido_em_2026 = fato(
+        numero="1", ano=2023, conclusao_ativa=True, data_conclusao=date(2026, 5, 1), situacao_carteira="Em execução"
+    )
+    concluido_em_2025 = fato(numero="2", ano=2026, conclusao_ativa=True, data_conclusao=date(2025, 5, 1))
+    so_prestacao = fato(numero="3", ano=2026, situacao_carteira=FECHADA)
+    sem_data = fato(numero="4", ano=2026, conclusao_ativa=True)
+    filtro = FiltroEncerramento(data_inicio=date(2026, 1, 1), data_fim=date(2026, 12, 31))
+
+    resultado = classificar_encerrados([antigo_concluido_em_2026, concluido_em_2025, so_prestacao, sem_data], filtro)
+
+    assert [i.numero for i in resultado.itens] == ["1"]
+    # conclusão registrada sem data não some do recorte: aparece como pendência de saneamento
+    assert [p.numero for p in resultado.pendencias] == ["4"]
+
+
+def test_filtro_relatorio_valida_a_referencia_do_periodo():
+    from app.services.relatorios import FiltroRelatorio
+
+    base: dict[str, Any] = {"escopo": "brasil", "periodo_por": "data_do_evento"}
+    with pytest.raises(ValidationError, match="vale só em Concluídos"):
+        FiltroRelatorio(**base, data_inicio=date(2026, 1, 1)).validar_referencia_do_periodo()
+    with pytest.raises(ValidationError, match="periodo_por"):
+        FiltroRelatorio(escopo="brasil", encerramento="encerrados", data_inicio=date(2026, 1, 1))
+    with pytest.raises(ValidationError, match="data_inicio"):
+        FiltroRelatorio(**base, encerramento="encerrados", data_inicio=date(2026, 2, 1), data_fim=date(2026, 1, 1))
+
+    valido = FiltroRelatorio(
+        **base, encerramento="encerrados", ano_inicio=2020, data_inicio=date(2026, 1, 1), data_fim=date(2026, 12, 31)
+    )
+    encerrados = valido.filtro_encerrados()
+    # por data do evento o ano de origem não é aplicado em paralelo
+    assert (encerrados.ano_inicio, encerrados.data_inicio, encerrados.data_fim) == (
+        None,
+        date(2026, 1, 1),
+        date(2026, 12, 31),
+    )
+
+
+def test_periodo_por_data_da_entrega_considera_so_entregas_com_data_no_intervalo():
+    from app.services.relatorios_entregues import _corresponde
+
+    def linha(entrega):
+        return {
+            "uf": "SP",
+            "municipio": "Campinas",
+            "cnes": "1",
+            "programa": None,
+            "tipo": "Convênio",
+            "familia": "Mamógrafo",
+            "ano": 2020,
+            "instrumento": "1",
+            "convenente": "Hospital",
+            "numero_serie": "S1",
+            "data_entrega": entrega,
+        }
+
+    filtro = FiltroEncerramento(data_inicio=date(2026, 1, 1), data_fim=date(2026, 12, 31))
+    assert _corresponde(linha(date(2026, 3, 1)), filtro)  # instrumento de 2020, entregue em 2026
+    assert not _corresponde(linha(date(2025, 3, 1)), filtro)
+    assert not _corresponde(linha(None), filtro)

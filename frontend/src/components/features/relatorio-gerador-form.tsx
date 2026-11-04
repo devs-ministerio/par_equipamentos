@@ -6,6 +6,7 @@ import {
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { REGIOES } from "@/data/constants";
 import { UF_INFO } from "@/data/geo-reference";
+import { useTerritorio } from "@/hooks/use-territorio";
 import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
 import { cn } from "@/lib/utils";
 import {
@@ -35,9 +36,15 @@ const ESCOPOS: { valor: EscopoRelatorio; rotulo: string }[] = [
  * (Bloco 7) -- filtros dos dois relatórios divergiram demais pra caber
  * neste mesmo formulário. */
 export function RelatorioGeradorForm() {
-  const [escopo, setEscopo] = useState<EscopoRelatorio>("brasil");
+  // Recorte da Visão geral: com uma única UF escolhida, já abre nesse escopo.
+  const { territorio } = useTerritorio();
+  const ufDaVisaoGeral =
+    territorio.ufs.length === 1 ? (territorio.ufs[0] ?? "") : "";
+  const [escopo, setEscopo] = useState<EscopoRelatorio>(
+    ufDaVisaoGeral ? "uf" : "brasil",
+  );
   const [regiao, setRegiao] = useState("");
-  const [uf, setUf] = useState("");
+  const [uf, setUf] = useState(ufDaVisaoGeral);
   const [municipio, setMunicipio] = useState("");
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
   const { gerando, erro, gerar } = useGerarRelatorio("analise_merito");

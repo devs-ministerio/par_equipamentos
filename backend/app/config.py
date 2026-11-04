@@ -172,6 +172,16 @@ class Settings(BaseSettings):
             url = self.database_url_normalizada
         return url.replace("%", "%%")
 
+    @field_validator("mail_api_url")
+    @classmethod
+    def _validar_mail_api_url(cls, v: str) -> str:
+        """O gateway recebe o link de ativação e redefinição: só HTTPS.
+        `http://` fica aceito apenas para localhost (desenvolvimento)."""
+        v = v.strip()
+        if v and not v.startswith("https://") and not v.startswith(("http://localhost", "http://127.0.0.1")):
+            raise ValueError("MAIL_API_URL precisa usar https:// (http:// só em localhost).")
+        return v
+
     @field_validator("cors_origins")
     @classmethod
     def _validar_cors_origins(cls, v: str) -> str:

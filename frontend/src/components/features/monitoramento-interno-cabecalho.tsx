@@ -3,7 +3,10 @@
  * migração). */
 import { nupDoInstrumento } from "@/lib/nup";
 import { cn } from "@/lib/utils";
-import type { InstrumentoTimeline } from "@/services/monitoramento-instrumentos";
+import type {
+  EventoMarco,
+  InstrumentoTimeline,
+} from "@/services/monitoramento-instrumentos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import { estiloCard, StatusPill } from "./monitoramento-ui";
 
@@ -13,7 +16,7 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao,
   inaugurado,
   diasInauguracao,
-  statusLicenca,
+  registroLicenca,
   alertaLicenca,
   acoesAbertasCount,
   acoesAtrasadasCount,
@@ -23,7 +26,7 @@ export function MonitoramentoInternoCabecalho({
   dataInauguracao: string | null;
   inaugurado: boolean;
   diasInauguracao: number | null;
-  statusLicenca: string;
+  registroLicenca: EventoMarco | null;
   alertaLicenca: boolean;
   acoesAbertasCount: number;
   acoesAtrasadasCount: number;
@@ -32,6 +35,14 @@ export function MonitoramentoInternoCabecalho({
   const aoVivo = timeline.ao_vivo;
   const nup = nupDoInstrumento(inst.tipo_contratacao, inst.nr_convenio);
   const origemAlternativa = Boolean(inst.origem_dado);
+  const numeroScra = registroLicenca?.numero_documento?.trim();
+  const documentoLicenca = numeroScra
+    ? `SCRA ${numeroScra}`
+    : "SCRA não informado";
+  const licencaDeferida = registroLicenca?.status_regulatorio === "Deferido";
+  const emissaoLicenca = registroLicenca?.data_ocorrencia
+    ? fmtData(registroLicenca.data_ocorrencia)
+    : "Data de emissão não informada";
   const prestacaoConcluida =
     inst.situacao_prestacao_contas
       ?.toLocaleLowerCase("pt-BR")
@@ -46,12 +57,21 @@ export function MonitoramentoInternoCabecalho({
   const indicadores = [
     {
       rotulo: "Licença CNEN",
-      valor:
-        !statusLicenca || statusLicenca === "Sem registro"
-          ? origemAlternativa
-            ? "Não informada na fonte"
-            : "Sem registro"
-          : statusLicenca,
+      // Só licença deferida tem "emissão"; processo indeferido ou em análise mostra o andamento (D26).
+      valor: registroLicenca
+        ? `${documentoLicenca} — ${
+            licencaDeferida
+              ? emissaoLicenca
+              : (registroLicenca.status_regulatorio ?? "Sem desfecho informado")
+          }`
+        : origemAlternativa
+          ? "Não informada na fonte"
+          : "Sem registro",
+      detalhe: licencaDeferida
+        ? "Deferido"
+        : registroLicenca
+          ? "Licença ainda não emitida"
+          : undefined,
       alerta: alertaLicenca,
     },
     {
@@ -90,7 +110,9 @@ export function MonitoramentoInternoCabecalho({
           },
         ]
       : []),
-    ...(inst.situacao_programa
+    // Só PERSUS I tem "Situação do programa" (regra do produto, 29/10/2026); nos demais tipos o dado fica
+    // guardado, mas não é exibido como indicador.
+    ...(inst.situacao_programa && inst.tipo_contratacao === "PERSUS I"
       ? [
           {
             rotulo: "Situação do programa",
@@ -106,7 +128,7 @@ export function MonitoramentoInternoCabecalho({
     // nesta API (testado ao vivo) -- por isso mostra a ordem de
     // pagamento (sinal real de dinheiro executado) como detalhe, não
     // como "concluído"/"pendente" binário.
-    ...(inst.tipo_contratacao === "Parceria TransfereGov"
+    ...(inst.tipo_contratacao === "FAF"
       ? [
           {
             rotulo: "Situação (TransfereGov)",
@@ -269,7 +291,7 @@ export function MonitoramentoInternoCabecalho({
             <div className="mb-1.5 text-[10.5px] font-extrabold tracking-[0.05em] text-muted-foreground uppercase">
               {item.rotulo}
             </div>
-            <strong className="block text-[15px] leading-tight text-foreground">
+            <strong className="block break-words text-[15px] leading-tight text-foreground">
               {item.valor}
             </strong>
             {item.detalhe && (

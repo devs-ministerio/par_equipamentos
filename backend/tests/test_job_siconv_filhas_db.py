@@ -201,7 +201,7 @@ def test_termos_da_mesma_solicitacao_nao_colidem_e_replay_nao_duplica(cenario, m
     avisos = _avisos(db, instrumento_id)
     assert len(avisos) == 1
     assert "Termos aditivos: 1 novo(s), 1 alterado(s)" in avisos[0].corpo
-    assert "VL_GLOBAL_TA: 100,00 → 150,00" in avisos[0].corpo
+    assert "Valor global do termo aditivo: 100,00 → 150,00" in avisos[0].corpo
 
 
 def test_termo_sem_solicitacao_usa_numero_oficial_e_preserva_evidencia_antiga(cenario, monkeypatch):
@@ -347,8 +347,8 @@ def test_mudancas_depois_da_baseline_geram_um_aviso_agrupado_e_sao_idempotentes(
     assert len(avisos) == 1
     assert "Pagamentos: 1 novo(s)" in (avisos[0].corpo or "")
     assert "Empenhos: 1 alterado(s)" in (avisos[0].corpo or "")
-    assert "VALOR_EMPENHO: 5,00 → 6,00" in (avisos[0].corpo or "")
-    assert "SIT_CONVENIO" in (avisos[0].corpo or "")
+    assert "Valor do empenho: 5,00 → 6,00" in (avisos[0].corpo or "")
+    assert "Situação do convênio" in (avisos[0].corpo or "")
     convenio = db.query(Convenio).filter_by(numero=numero).one()
     assert float(convenio.valor_pago_fornecedor) == 30 and convenio.pagamentos_count == 2
 
@@ -449,7 +449,7 @@ def test_cada_tabela_filha_notifica_campos_alterados_e_preserva_omitidos(cenario
     avisos = _avisos(db, instrumento_id)
     assert len(avisos) == 1
     assert rotulo in avisos[0].corpo
-    assert "DESCRICAO: Anterior → Atualizada" in avisos[0].corpo
+    assert "Descrição: Anterior → Atualizada" in avisos[0].corpo
     assert db.query(Convenio).filter_by(numero=numero).one().siconv_raw[chave][0]["CAMPO_OMITIDO"] == "Preservado"
     job.run()
     db.expire_all()

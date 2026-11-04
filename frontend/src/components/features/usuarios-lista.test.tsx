@@ -37,16 +37,43 @@ describe("UsuariosLista", () => {
       />,
     );
 
-    expect(screen.getAllByRole("button", { name: "Gerenciar" })).toHaveLength(
-      2,
-    );
+    expect(
+      screen.getAllByRole("button", { name: "Gerenciar Rafael Lima" }),
+    ).toHaveLength(2);
     expect(
       screen.queryByRole("button", { name: "Editar" }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getAllByRole("button", { name: "Gerenciar" })[0]);
+    expect(
+      screen.queryByText("Gerenciar", { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ações", { exact: true }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getAllByRole("button", { name: "Gerenciar Rafael Lima" })[0],
+    );
     expect(onGerenciar).toHaveBeenCalledWith(USUARIO);
   });
+
+  it.each([
+    ["2026-10-27T02:30:00Z", "26/10/2026, 23:30"],
+    [null, "Sem registro"],
+    [undefined, "Indisponível"],
+  ])(
+    "mostra último login %s no horário de Brasília",
+    (ultimo_login_em, esperado) => {
+      // Arrange / Act
+      render(
+        <UsuariosLista
+          {...PROPS}
+          usuarios={[{ ...USUARIO, ultimo_login_em }]}
+        />,
+      );
+      // Assert: tabela e card mobile recebem o mesmo dado.
+      expect(screen.getAllByText(esperado)).toHaveLength(2);
+    },
+  );
 
   it("oferece CTA no estado vazio", () => {
     render(<UsuariosLista {...PROPS} usuarios={[]} total={0} />);

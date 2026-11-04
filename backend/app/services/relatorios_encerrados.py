@@ -30,7 +30,7 @@ def _corresponde(fato: FatoEncerramento, filtro: FiltroEncerramento) -> bool:
         return False
     for campo in ("municipio", "cnes", "programa", "tipo_contratacao", "situacao"):
         valor = getattr(filtro, campo)
-        origem = {"tipo_contratacao": fato.tipo, "situacao": fato.situacao_carteira}.get(
+        origem = {"tipo_contratacao": fato.tipo_filtro or fato.tipo, "situacao": fato.situacao_carteira}.get(
             campo, getattr(fato, campo, None)
         )
         if valor and normalizar_texto(valor) != normalizar_texto(origem):
@@ -39,9 +39,39 @@ def _corresponde(fato: FatoEncerramento, filtro: FiltroEncerramento) -> bool:
         return False
     if filtro.ano_fim is not None and (fato.ano is None or fato.ano > filtro.ano_fim):
         return False
+    if filtro.data_inicio or filtro.data_fim:
+        if fato.data_conclusao is None:
+            # Sem data não há como situar no período; a conclusão registrada sem data segue visível como
+            # pendência de saneamento, e o resto (sem conclusão datada) fica de fora do recorte por data.
+            return fato.conclusao_ativa
+        if filtro.data_inicio and fato.data_conclusao < filtro.data_inicio:
+            return False
+        if filtro.data_fim and fato.data_conclusao > filtro.data_fim:
+            return False
     return not filtro.busca or normalizar_texto(filtro.busca) in normalizar_texto(
         f"{fato.numero} {fato.nome} {fato.municipio or ''}"
     )
+
+
+def _conclusao_fisica(fato: FatoEncerramento) -> str:
+    if not fato.conclusao_ativa:
+        return "Não registrada"
+    return "Registrada" if fato.data_conclusao is not None else "Registrada sem data"
+
+
+def _situacao_administrativa(fato: FatoEncerramento) -> str | None:
+    """Prestação de contas do convênio, comparando carteira, monitoramento e SICONV (D06)."""
+    if fato.tipo != "Convênio":
+        return None
+    estados = [
+        s for s in (fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial) if s and s.strip()
+    ]
+    if not estados:
+        return "Prestação de contas sem informação"
+    conclusivos = [normalizar_texto(s) in _CONCLUSIVOS for s in estados]
+    if all(conclusivos):
+        return "Prestação de contas concluída"
+    return "Divergência entre fontes" if any(conclusivos) else "Prestação de contas pendente"
 
 
 def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncerrado] | None:
@@ -49,7 +79,13 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
     evidencia = ""
     pendencia = False
     prioridade = 9
-    if fato.tipo == "Convênio":
+    if fato.conclusao_ativa and fato.data_conclusao is not None:
+        # Conclusão física registrada e datada tem precedência editorial: prestação de contas aberta ou
+        # divergente continua visível na dimensão administrativa, mas não tira o instrumento dos concluídos.
+        prioridade = 1
+        motivos.append("Concluído no monitoramento interno")
+        evidencia = f"Evento fase_concluido ativo em {fato.data_conclusao:%d/%m/%Y}"
+    if not motivos and fato.tipo == "Convênio":
         estados = [
             s for s in (fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial) if s and s.strip()
         ]
@@ -72,21 +108,9 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
             )
     if not motivos and fato.conclusao_ativa:
         prioridade = 2
-        if fato.data_conclusao is None:
-            motivos.append("Conclusão interna sem data")
-            pendencia = True
-        elif fato.tipo == "Convênio":
-            conhecida = any((fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial))
-            motivos.append(
-                "Concluído internamente — prestação de contas pendente"
-                if conhecida
-                else "Concluído internamente — prestação de contas sem informação"
-            )
-        else:
-            motivos.append("Concluído no monitoramento interno")
-        evidencia = "Evento fase_concluido ativo" + (
-            f" em {fato.data_conclusao:%d/%m/%Y}" if fato.data_conclusao else " sem data de ocorrência"
-        )
+        motivos.append("Conclusão interna sem data")
+        pendencia = True
+        evidencia = "Evento fase_concluido ativo sem data de ocorrência"
     pagas = [
         o for o in fato.ordens if normalizar_texto(o.in_situacao_op) == "PAGA" and o.id_ordem_pagamento is not None
     ]
@@ -105,12 +129,10 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         pendencia = True
     if not motivos:
         return None
-    # A conclusão registrada no monitoramento é a data real; sem ela, o fim da
-    # vigência é só uma referência do instrumento e vem identificado como tal.
+    # Só a conclusão registrada no monitoramento é data de conclusão. O fim da vigência é contratual e segue em
+    # campo próprio: nunca ocupa a coluna de conclusão, nem recorta ou ordena conclusões (D07).
     if fato.data_conclusao is not None:
         data_referencia, origem_data = fato.data_conclusao, "Conclusão no monitoramento"
-    elif fato.data_final_vigencia is not None:
-        data_referencia, origem_data = fato.data_final_vigencia, "Fim da vigência"
     else:
         data_referencia, origem_data = None, None
     return prioridade, RegistroEncerrado(
@@ -127,6 +149,11 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         data_conclusao=fato.data_conclusao,
         data_referencia=data_referencia,
         origem_data=origem_data,
+        data_final_vigencia=fato.data_final_vigencia,
+        conclusao_fisica=_conclusao_fisica(fato),
+        situacao_administrativa=(
+            "Parceria paga (ordem de pagamento)" if prioridade == 3 else _situacao_administrativa(fato)
+        ),
         convenio_id=fato.convenio_id,
         instrumento_id=fato.instrumento_id,
         proposta_id=fato.proposta_pk,
@@ -144,7 +171,7 @@ def classificar_encerrados(fatos: list[FatoEncerramento], filtro: FiltroEncerram
     for fato in fatos:
         if not _corresponde(fato, filtro):
             continue
-        numero = aliases.get(fato.numero, fato.numero) if fato.tipo == "Parceria TransfereGov" else fato.numero
+        numero = aliases.get(fato.numero, fato.numero) if fato.tipo == "FAF" else fato.numero
         chave = f"{fato.tipo}:{numero}"
         candidato = _classificar(fato.model_copy(update={"numero": numero}), chave)
         if candidato is not None:

@@ -48,6 +48,7 @@ export function MonitoramentoInternoFormEvento({
   marcoFixo,
   rotuloSubmit = "Registrar evento",
   previsaoInauguracao,
+  onCancelar,
 }: {
   marcos: MarcoCatalogo[];
   onRegistrar: (valores: EnviarEventoFormValues) => Promise<void>;
@@ -61,6 +62,8 @@ export function MonitoramentoInternoFormEvento({
   marcoFixo?: MarcoCatalogo;
   rotuloSubmit?: string;
   previsaoInauguracao?: string | null;
+  /** Descarta a edição aberta sem enviar nada. */
+  onCancelar?: () => void;
 }) {
   const formId = useId();
   const campoId = (nome: string) => `${formId}-${nome}`;
@@ -294,7 +297,7 @@ export function MonitoramentoInternoFormEvento({
                 htmlFor={campoId("evento-numero-documento")}
                 className="text-[11px] text-muted-foreground block mb-1"
               >
-                Nº matrícula/licença/processo
+                Nº matrícula/licença/processo/SCRA
               </label>
               <input
                 id={campoId("evento-numero-documento")}
@@ -410,6 +413,19 @@ export function MonitoramentoInternoFormEvento({
         >
           {isSubmitting ? "Enviando..." : rotuloSubmit}
         </button>
+        {onCancelar && (
+          <button
+            type="button"
+            onClick={onCancelar}
+            disabled={isSubmitting}
+            className={cn(
+              estiloInput,
+              "cursor-pointer border border-border bg-transparent font-semibold justify-self-start",
+            )}
+          >
+            Cancelar
+          </button>
+        )}
       </form>
       <Dialog
         open={Boolean(conclusaoPendente)}

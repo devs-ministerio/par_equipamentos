@@ -266,6 +266,8 @@ def test_instrumentos_repasse_xlsx_simplificado_tem_resumo_convenios_propostas_m
         pasta = load_workbook(BytesIO(conteudo))
         assert pasta.sheetnames == [
             "Leitura",
+            "Síntese de conclusão",
+            "Conclusão e agenda",
             "Resumo",
             "Resumo (Propostas)",
             "Resumo (Equipamentos)",
@@ -614,9 +616,9 @@ def test_instrumentos_repasse_docx_assunto_varia_por_escopo():
 
 @pytest.mark.db
 def test_analise_merito_sem_familia_publicada_gera_arquivo_com_aviso_em_vez_de_quebrar(monkeypatch):
-    import app.services.relatorios as relatorios_mod
+    from app.repositories import execucoes as execucoes_repo
 
-    monkeypatch.setattr(relatorios_mod.execucoes_repo, "listar_familias_publicadas", lambda db: [])
+    monkeypatch.setattr(execucoes_repo, "listar_familias_publicadas", lambda db: [])
     db = SessionLocal()
     try:
         conteudo = montar_relatorio(

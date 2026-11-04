@@ -50,6 +50,10 @@ import { estagioDeFato, type EstagioProposta } from "@/lib/proposta-status";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
+import {
+  instrumentosManuaisFinanciamento,
+  TIPOS_LINHA_FINANCIAMENTO,
+} from "@/lib/financiamento-manual";
 
 // "Radar nacional" (snapshot estático) e "Incorporadas" saíram (pedido do
 // usuário 2026-09-15). "Novas propostas"/"Propostas" (critério de
@@ -148,6 +152,17 @@ export function MonitoramentoEquipamentosPage() {
       ),
     [instrumentosQuery.data],
   );
+  const acompanhamentos = useMemo(
+    () =>
+      new Map(
+        (instrumentosQuery.data ?? []).flatMap((instrumento) =>
+          instrumento.acompanhamento
+            ? [[instrumento.nr_convenio, instrumento.acompanhamento] as const]
+            : [],
+        ),
+      ),
+    [instrumentosQuery.data],
+  );
   const monitorados = useMemo(
     () => new Set(fasesMonitoramento.keys()),
     [fasesMonitoramento],
@@ -159,7 +174,15 @@ export function MonitoramentoEquipamentosPage() {
   // é bem mais leve que antes (sem siconv_raw/transferegov_raw na
   // listagem, ver services/convenios.ts) mesmo carregando tudo de uma vez.
   const conveniosQuery = useConveniosLista();
-  const convenios = conveniosQuery.data?.itens ?? null;
+  // FAF e TED são linhas de financiamento: aparecem em "Linhas de
+  // financiamento", não em Instrumentos/Programas.
+  const convenios = useMemo(
+    () =>
+      conveniosQuery.data?.itens.filter(
+        (c) => !TIPOS_LINHA_FINANCIAMENTO.has(c.tipoContratacao ?? ""),
+      ) ?? null,
+    [conveniosQuery.data],
+  );
   const situacaoExibida = useCallback(
     (convenio: NonNullable<typeof convenios>[number]) =>
       fasesMonitoramento.get(convenio.numero) ?? convenio.situacao,
@@ -248,10 +271,15 @@ export function MonitoramentoEquipamentosPage() {
   // leve e independente do resto do estado (mesma queryKey sem status do
   // SecaoPropostasCandidatas, já cacheada quando a aba abrir de verdade).
   const { propostas: todasPropostas } = usePropostasCandidatas();
-  const totalConfirmadas = todasPropostas.filter(
-    (p) => estagioDeFato(p) === "confirmada",
+  const totalConfirmadas =
+    todasPropostas.filter((p) => estagioDeFato(p) === "confirmada").length +
+    instrumentosManuaisFinanciamento(
+      instrumentosQuery.data ?? [],
+      todasPropostas,
+    ).length;
+  const totalEmTramitacao = todasPropostas.filter(
+    (p) => estagioDeFato(p) !== "confirmada",
   ).length;
-  const totalEmTramitacao = todasPropostas.length - totalConfirmadas;
 
   return (
     <div>
@@ -272,7 +300,7 @@ export function MonitoramentoEquipamentosPage() {
       <AbasDadosOficiais
         aba={aba}
         totalInstrumentos={convenios?.length ?? 0}
-        totalPropostas={todasPropostas.length}
+        totalPropostas={totalConfirmadas + totalEmTramitacao}
         onChange={setAba}
       />
 
@@ -424,6 +452,7 @@ export function MonitoramentoEquipamentosPage() {
                   itens={paginados}
                   monitorados={monitorados}
                   fases={fasesMonitoramento}
+                  acompanhamentos={acompanhamentos}
                   pagina={pagina}
                   total={filtrados.length}
                   onPagina={setPagina}

@@ -53,7 +53,40 @@ describe("ConfirmarExclusaoComMotivo", () => {
       screen.getByRole("button", { name: "Confirmar exclusão" }),
     );
 
-    expect(onExcluir).toHaveBeenCalledWith("lançamento de teste");
+    expect(onExcluir).toHaveBeenCalledWith("lançamento de teste", false);
+  });
+
+  it("opção extra começa desmarcada e vai junto da exclusão quando marcada", async () => {
+    const onExcluir = vi.fn().mockResolvedValue(undefined);
+    render(
+      <ConfirmarExclusaoComMotivo
+        onExcluir={onExcluir}
+        onCancelar={() => {}}
+        opcaoExtra="Anular também a inauguração"
+      />,
+    );
+    const caixa = screen.getByRole("checkbox", {
+      name: /Anular também a inauguração/,
+    });
+    expect(caixa).not.toBeChecked();
+
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Motivo da exclusão" }),
+      "lançada por engano",
+    );
+    await userEvent.click(caixa);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirmar exclusão" }),
+    );
+
+    expect(onExcluir).toHaveBeenCalledWith("lançada por engano", true);
+  });
+
+  it("sem opção extra não mostra caixa de seleção", () => {
+    render(
+      <ConfirmarExclusaoComMotivo onExcluir={vi.fn()} onCancelar={() => {}} />,
+    );
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   });
 
   it("chama onCancelar ao clicar em Cancelar", async () => {

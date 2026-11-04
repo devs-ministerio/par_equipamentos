@@ -152,8 +152,10 @@ def marcar_notificacao_lida(*, db: Session, notificacao_id: int, usuario_id: int
     )
 
 
-def marcar_todas_lidas(*, db: Session, usuario_id: int) -> int:
-    quantidade = marcar_todas_destinatario_lidas(db, usuario_id)
+def marcar_todas_lidas(
+    *, db: Session, usuario_id: int, busca: str | None = None, tipo: NotificacaoTipo | None = None
+) -> int:
+    quantidade = marcar_todas_destinatario_lidas(db, usuario_id, busca=busca, tipo=tipo)
     db.commit()
     return quantidade
 

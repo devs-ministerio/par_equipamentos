@@ -5,12 +5,17 @@ import { fmtData, fmtMoeda, pct } from "@/lib/monitoramento-format";
 import { TIPOLOGIA_PERSUS } from "@/data/constants";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import { formatarCnpj } from "@/utils/texto";
+import {
+  rotuloInauguracao,
+  type Acompanhamento,
+} from "@/lib/acompanhamento-instrumento";
 import { Campo, StatusPill } from "./monitoramento-ui";
 
 export function ConvenioCardHeader({
   c,
   monitorado,
   faseMonitoramento,
+  acompanhamento = null,
   equipamentos,
   programaSiconv,
   valorPagoFornecedor,
@@ -19,6 +24,7 @@ export function ConvenioCardHeader({
   c: ConvenioUnificado;
   monitorado: boolean;
   faseMonitoramento: string | null;
+  acompanhamento?: Acompanhamento | null;
   equipamentos: string[];
   programaSiconv: string | null;
   valorPagoFornecedor: number | null;
@@ -86,6 +92,21 @@ export function ConvenioCardHeader({
               monitorado ? (faseMonitoramento ?? "Não iniciado") : c.situacao
             }
           />
+          {monitorado && (
+            <div className="min-w-0 text-xs sm:text-right">
+              <span className="text-muted-foreground">
+                {rotuloInauguracao(acompanhamento)}
+              </span>
+              {acompanhamento?.conferencia && (
+                <p
+                  className="m-0 mt-0.5 text-[11px] font-semibold text-warning-foreground"
+                  title={acompanhamento.conferencia}
+                >
+                  ⚠ Conferir datas da carga
+                </p>
+              )}
+            </div>
+          )}
           <div className="min-w-0 sm:text-right">
             <div className="text-[10px] text-muted-foreground uppercase">
               Valor global

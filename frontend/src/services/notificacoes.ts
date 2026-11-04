@@ -74,9 +74,17 @@ export function arquivarNotificacao(
   });
 }
 
-export function marcarTodasNotificacoesLidas(): Promise<{ alteradas: number }> {
+/** Sem recorte: todas as recebidas não arquivadas. Com `busca`/`tipo`: só o recorte. */
+export function marcarTodasNotificacoesLidas(recorte?: {
+  busca?: string;
+  tipo?: NotificacaoTipo;
+}): Promise<{ alteradas: number }> {
+  const params = new URLSearchParams();
+  if (recorte?.busca?.trim()) params.set("busca", recorte.busca.trim());
+  if (recorte?.tipo) params.set("tipo", recorte.tipo);
+  const query = params.toString() ? `?${params.toString()}` : "";
   return apiAuthed(
-    "/notificacoes/lidas",
+    `/notificacoes/lidas${query}`,
     z.object({ alteradas: z.number().int().nonnegative() }),
     "PATCH",
   );

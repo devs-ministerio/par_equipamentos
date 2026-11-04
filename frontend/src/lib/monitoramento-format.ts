@@ -30,6 +30,26 @@ export function fmtData(s: string | null | undefined): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+/** Data e hora no fuso de Brasília ("29/10/2026 14:32"). Sem hora no valor,
+ * devolve só a data. */
+export function fmtDataHora(s: string | null | undefined): string {
+  if (!s) return "—";
+  if (!s.includes("T")) return fmtData(s);
+  const data = new Date(s);
+  if (Number.isNaN(data.getTime())) return fmtData(s);
+  const partes = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(data);
+  const v = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
+  return `${v("day")}/${v("month")}/${v("year")} ${v("hour")}:${v("minute")}`;
+}
+
 /** O dump SICONV (public/monitoramento-equipamentos/siconv.json) tem texto
  * com acento corrompido em ~430 pontos -- byte perdido na geração do
  * arquivo (upstream, fora do nosso controle), virou "?" literal (ex.

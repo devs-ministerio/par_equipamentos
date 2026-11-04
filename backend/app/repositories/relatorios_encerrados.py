@@ -13,6 +13,7 @@ from app.db.models import (
     MarcoCatalogo,
     PropostaCandidata,
 )
+from app.pipeline.tipo_proposta import tipo_da_proposta
 from app.repositories.equipamento_marcadores import marcador_de_financiamento
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.schemas_relatorios_encerrados import FatoEncerramento, OrdemEncerramento
@@ -149,7 +150,8 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
                     [i for i in itens_plano if isinstance(i, dict)] if isinstance(itens_plano, list) else []
                 )
             if origem == "parceria":
-                campos["tipo"] = "Parceria TransfereGov"
+                campos["tipo"] = "FAF"
+                campos["tipo_filtro"] = tipo_da_proposta(campos["programa"])
                 raw = campos.pop("ordens_raw")
                 try:
                     campos["ordens"] = _ORDENS.validate_python(raw if raw is not None else [])

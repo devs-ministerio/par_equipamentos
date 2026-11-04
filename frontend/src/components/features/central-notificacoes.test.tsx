@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "sonner";
@@ -12,6 +18,7 @@ import {
 import { CentralNotificacoes } from "./central-notificacoes";
 
 afterEach(() => {
+  sessionStorage.clear();
   vi.unstubAllGlobals();
   limparCsrfToken();
 });
@@ -151,11 +158,15 @@ describe("Central de notificações integrada à API", () => {
     montar();
     await screen.findByText("1 não lida");
     fireEvent.click(
-      screen.getByRole("button", { name: "Marcar todas como lidas" }),
+      screen.getByRole("button", {
+        name: /Marcar todas as minhas recebidas como lidas/,
+      }),
     );
     await screen.findByText("0 não lidas");
     expect(
-      screen.getByRole("button", { name: "Marcar todas como lidas" }),
+      screen.getByRole("button", {
+        name: /Marcar todas as minhas recebidas como lidas/,
+      }),
     ).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Não lidas" }));
     expect(
@@ -163,16 +174,61 @@ describe("Central de notificações integrada à API", () => {
     ).toBeVisible();
   });
 
+  it("busca sem resultado: ação do recorte não toca avisos fora dele e a global informa o universo", async () => {
+    const { controle } = montar();
+    await screen.findByText("1 não lida");
+    fireEvent.change(screen.getByLabelText("Buscar notificações"), {
+      target: { value: "QA-SEM-RESULTADO" },
+    });
+    await screen.findByText(/Nenhuma notificação neste recorte/);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Marcar resultados deste recorte como lidos",
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText("0 notificações marcadas como lidas."),
+      ).toBeVisible(),
+    );
+    expect(controle.itens.every((item) => !item.lida)).toBe(true);
+    expect(
+      screen.getByRole("button", {
+        name: "Marcar todas as minhas recebidas como lidas (1)",
+      }),
+    ).toBeEnabled();
+  });
+
+  it("reabrir a Central recupera caixa e busca de onde a pessoa estava", async () => {
+    const primeira = montar();
+    await screen.findByText("1 não lida");
+    fireEvent.click(screen.getByRole("button", { name: "Não lidas" }));
+    fireEvent.change(screen.getByLabelText("Buscar notificações"), {
+      target: { value: "sintético" },
+    });
+    await screen.findByText("Convênio sintético 1");
+    cleanup();
+    expect(primeira.fechar).not.toHaveBeenCalled();
+    montar();
+    expect(await screen.findByLabelText("Buscar notificações")).toHaveValue(
+      "sintético",
+    );
+  });
+
   it("preserva não lidas quando a leitura em lote falha", async () => {
     const { controle } = montar();
     controle.erroEscrita = true;
     await screen.findByText("1 não lida");
     fireEvent.click(
-      screen.getByRole("button", { name: "Marcar todas como lidas" }),
+      screen.getByRole("button", {
+        name: /Marcar todas as minhas recebidas como lidas/,
+      }),
     );
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Marcar todas como lidas" }),
+        screen.getByRole("button", {
+          name: /Marcar todas as minhas recebidas como lidas/,
+        }),
       ).toBeEnabled(),
     );
     expect(screen.getByText("1 não lida")).toBeVisible();

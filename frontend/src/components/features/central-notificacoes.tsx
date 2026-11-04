@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,60 @@ import { cn } from "@/lib/utils";
 const TAMANHO_PAGINA = 10;
 type Caixa = "recebidas" | "nao-lidas" | "arquivadas";
 
+const CHAVE_ESTADO = "sigeo:central-notificacoes";
+const CAIXAS: Caixa[] = ["recebidas", "nao-lidas", "arquivadas"];
+
+interface EstadoCentral {
+  busca: string;
+  tipo?: NotificacaoTipo;
+  caixa: Caixa;
+  pagina: number;
+}
+
+/** Lembra caixa, busca, tipo e página enquanto a aba está aberta, para que
+ * voltar de "Abrir registro" encontre a Central onde a pessoa estava. */
+function estadoInicial(): EstadoCentral {
+  const padrao: EstadoCentral = { busca: "", caixa: "recebidas", pagina: 1 };
+  try {
+    const bruto = sessionStorage.getItem(CHAVE_ESTADO);
+    if (!bruto) return padrao;
+    const salvo = JSON.parse(bruto) as Partial<EstadoCentral>;
+    return {
+      busca: typeof salvo.busca === "string" ? salvo.busca.slice(0, 200) : "",
+      tipo:
+        salvo.tipo && salvo.tipo in ROTULOS_NOTIFICACAO
+          ? salvo.tipo
+          : undefined,
+      caixa: CAIXAS.includes(salvo.caixa as Caixa)
+        ? (salvo.caixa as Caixa)
+        : "recebidas",
+      pagina:
+        Number.isInteger(salvo.pagina) && (salvo.pagina as number) > 0
+          ? (salvo.pagina as number)
+          : 1,
+    };
+  } catch {
+    return padrao;
+  }
+}
+
 export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
-  const [busca, setBusca] = useState("");
-  const [tipo, setTipo] = useState<NotificacaoTipo | undefined>();
-  const [caixa, setCaixa] = useState<Caixa>("recebidas");
-  const [pagina, setPagina] = useState(1);
+  const [inicial] = useState(estadoInicial);
+  const [busca, setBusca] = useState(inicial.busca);
+  const [tipo, setTipo] = useState<NotificacaoTipo | undefined>(inicial.tipo);
+  const [caixa, setCaixa] = useState<Caixa>(inicial.caixa);
+  const [pagina, setPagina] = useState(inicial.pagina);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        CHAVE_ESTADO,
+        JSON.stringify({ busca, tipo, caixa, pagina }),
+      );
+    } catch {
+      /* Sem armazenamento, a Central só recomeça do início. */
+    }
+  }, [busca, tipo, caixa, pagina]);
+  const temRecorte = busca.trim() !== "" || tipo !== undefined;
   const avisos = useNotificacoes({
     limit: TAMANHO_PAGINA,
     offset: (pagina - 1) * TAMANHO_PAGINA,
@@ -136,19 +185,39 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
           <span>
             {avisos.naoLidas} não lida{avisos.naoLidas !== 1 ? "s" : ""}
           </span>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={avisos.ocupada || avisos.naoLidas === 0}
-            onClick={() =>
-              void avisos
-                .marcarTodas()
-                .then(() => setPagina(1))
-                .catch(() => undefined)
-            }
-          >
-            Marcar todas como lidas
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            {temRecorte && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-auto max-w-full whitespace-normal py-1.5 text-left"
+                disabled={avisos.ocupada || caixa === "arquivadas"}
+                onClick={() =>
+                  void avisos
+                    .marcarTodas({ busca, tipo })
+                    .then(() => setPagina(1))
+                    .catch(() => undefined)
+                }
+              >
+                Marcar resultados deste recorte como lidos
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-auto max-w-full whitespace-normal py-1.5 text-left"
+              disabled={avisos.ocupada || avisos.naoLidas === 0}
+              title="Inclui avisos fora da busca e do tipo selecionados; não inclui arquivados"
+              onClick={() =>
+                void avisos
+                  .marcarTodas(undefined)
+                  .then(() => setPagina(1))
+                  .catch(() => undefined)
+              }
+            >
+              Marcar todas as minhas recebidas como lidas ({avisos.naoLidas})
+            </Button>
+          </div>
         </div>
       </div>
       <div
