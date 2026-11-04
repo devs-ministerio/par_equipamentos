@@ -1,6 +1,6 @@
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 
-const TIPOS_MANUAIS = new Set(["FAF", "TED"]);
+export const TIPOS_LINHA_FINANCIAMENTO = new Set(["FAF", "TED"]);
 
 type PropostaChave = { cd_parceria: string | null; id_proposta: number };
 
@@ -16,7 +16,7 @@ export function instrumentosManuaisFinanciamento(
   );
   return instrumentos.filter(
     (i) =>
-      TIPOS_MANUAIS.has(i.tipo_contratacao ?? "") &&
+      TIPOS_LINHA_FINANCIAMENTO.has(i.tipo_contratacao ?? "") &&
       !numeros.has(i.nr_convenio),
   );
 }

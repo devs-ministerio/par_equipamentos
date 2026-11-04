@@ -50,7 +50,10 @@ import { estagioDeFato, type EstagioProposta } from "@/lib/proposta-status";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
-import { instrumentosManuaisFinanciamento } from "@/lib/financiamento-manual";
+import {
+  instrumentosManuaisFinanciamento,
+  TIPOS_LINHA_FINANCIAMENTO,
+} from "@/lib/financiamento-manual";
 
 // "Radar nacional" (snapshot estático) e "Incorporadas" saíram (pedido do
 // usuário 2026-09-15). "Novas propostas"/"Propostas" (critério de
@@ -171,7 +174,15 @@ export function MonitoramentoEquipamentosPage() {
   // é bem mais leve que antes (sem siconv_raw/transferegov_raw na
   // listagem, ver services/convenios.ts) mesmo carregando tudo de uma vez.
   const conveniosQuery = useConveniosLista();
-  const convenios = conveniosQuery.data?.itens ?? null;
+  // FAF e TED são linhas de financiamento: aparecem em "Linhas de
+  // financiamento", não em Instrumentos/Programas.
+  const convenios = useMemo(
+    () =>
+      conveniosQuery.data?.itens.filter(
+        (c) => !TIPOS_LINHA_FINANCIAMENTO.has(c.tipoContratacao ?? ""),
+      ) ?? null,
+    [conveniosQuery.data],
+  );
   const situacaoExibida = useCallback(
     (convenio: NonNullable<typeof convenios>[number]) =>
       fasesMonitoramento.get(convenio.numero) ?? convenio.situacao,
