@@ -50,6 +50,7 @@ import { estagioDeFato, type EstagioProposta } from "@/lib/proposta-status";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
+import { instrumentosManuaisFinanciamento } from "@/lib/financiamento-manual";
 
 // "Radar nacional" (snapshot estático) e "Incorporadas" saíram (pedido do
 // usuário 2026-09-15). "Novas propostas"/"Propostas" (critério de
@@ -259,10 +260,15 @@ export function MonitoramentoEquipamentosPage() {
   // leve e independente do resto do estado (mesma queryKey sem status do
   // SecaoPropostasCandidatas, já cacheada quando a aba abrir de verdade).
   const { propostas: todasPropostas } = usePropostasCandidatas();
-  const totalConfirmadas = todasPropostas.filter(
-    (p) => estagioDeFato(p) === "confirmada",
+  const totalConfirmadas =
+    todasPropostas.filter((p) => estagioDeFato(p) === "confirmada").length +
+    instrumentosManuaisFinanciamento(
+      instrumentosQuery.data ?? [],
+      todasPropostas,
+    ).length;
+  const totalEmTramitacao = todasPropostas.filter(
+    (p) => estagioDeFato(p) !== "confirmada",
   ).length;
-  const totalEmTramitacao = todasPropostas.length - totalConfirmadas;
 
   return (
     <div>
@@ -283,7 +289,7 @@ export function MonitoramentoEquipamentosPage() {
       <AbasDadosOficiais
         aba={aba}
         totalInstrumentos={convenios?.length ?? 0}
-        totalPropostas={todasPropostas.length}
+        totalPropostas={totalConfirmadas + totalEmTramitacao}
         onChange={setAba}
       />
 

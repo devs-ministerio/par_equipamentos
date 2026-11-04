@@ -30,6 +30,11 @@ import { SearchInput } from "@/components/common/search-input";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
 import { CardProposta } from "./proposta-card";
+import { CardInstrumentoManual } from "./card-instrumento-manual";
+import {
+  candidatosConciliacao,
+  instrumentosManuaisFinanciamento,
+} from "@/lib/financiamento-manual";
 import { correspondeBuscaLivre } from "@/lib/busca-livre";
 
 /** `modo`: as 2 abas de "Linhas de financiamento" -- "Confirmada
@@ -61,6 +66,13 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         ]),
       ),
     [instrumentos],
+  );
+  const manuais = useMemo(
+    () =>
+      modo === "confirmada"
+        ? instrumentosManuaisFinanciamento(instrumentos, todas)
+        : [],
+    [instrumentos, todas, modo],
   );
   const [uf, setUf] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
@@ -98,33 +110,37 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
 
   const ufOptions = useMemo(() => {
     const set = new Set(
-      propostas.map((p) => p.uf).filter((u): u is string => Boolean(u)),
+      [...propostas, ...manuais]
+        .map((p) => p.uf)
+        .filter((u): u is string => Boolean(u)),
     );
     return [...set].sort().map((u) => ({ value: u, label: u }));
-  }, [propostas]);
+  }, [propostas, manuais]);
   const cnesOptions = useMemo(
     () =>
       [
         ...new Set(
-          propostas.map((p) => p.cnes).filter((v): v is string => Boolean(v)),
+          [...propostas, ...manuais]
+            .map((p) => p.cnes)
+            .filter((v): v is string => Boolean(v)),
         ),
       ]
         .sort()
         .map((value) => ({ value, label: value })),
-    [propostas],
+    [propostas, manuais],
   );
   const municipioOptions = useMemo(
     () =>
       [
         ...new Set(
-          propostas
+          [...propostas, ...manuais]
             .map((p) => p.municipio)
             .filter((v): v is string => Boolean(v)),
         ),
       ]
         .sort()
         .map((value) => ({ value, label: value })),
-    [propostas],
+    [propostas, manuais],
   );
 
   const equipamentosPorProposta = useMemo(() => {
@@ -239,6 +255,40 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
     equipamentosPorProposta,
   ]);
 
+  // Os cadastros manuais só têm os campos comuns; qualquer filtro que
+  // dependa de dado da proposta os deixa de fora.
+  const manuaisFiltrados = useMemo(() => {
+    if (equipamento || situacao || anoInicio || anoFim || programa) return [];
+    return manuais.filter((i) => {
+      if (
+        !correspondeBuscaLivre(busca, [
+          i.nr_convenio,
+          i.nome_convenente,
+          i.cnes,
+          i.municipio,
+          i.uf,
+          i.tipo_contratacao,
+        ])
+      )
+        return false;
+      if (uf && i.uf !== uf) return false;
+      if (cnes && i.cnes !== cnes) return false;
+      if (municipio && i.municipio !== municipio) return false;
+      return true;
+    });
+  }, [
+    manuais,
+    busca,
+    uf,
+    cnes,
+    municipio,
+    equipamento,
+    situacao,
+    anoInicio,
+    anoFim,
+    programa,
+  ]);
+
   // Sub-agrupado por situação de fato numa ordem fixa de funil do estágio
   // atual (mais avançado primeiro, ver ORDEM_SITUACAO_POR_ESTAGIO em
   // lib/proposta-status.ts); situação fora da ordem conhecida (vocabulário
@@ -265,7 +315,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
 
   if (carregando) return <p className="text-muted-foreground">Carregando...</p>;
 
-  if (propostas.length === 0) {
+  if (propostas.length === 0 && manuais.length === 0) {
     return (
       <p className="py-5 text-sm italic text-muted-foreground">
         {modo === "tramitacao"
@@ -280,7 +330,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
       <FilterWorkspace
         hasAnyFilter={hasFiltros}
         onClear={limparFiltros}
-        contagem={`${filtradas.length} de ${propostas.length} propostas`}
+        contagem={`${filtradas.length + manuaisFiltrados.length} de ${propostas.length + manuais.length} registros`}
       >
         <SearchInput
           value={busca}
@@ -348,7 +398,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         />
       </FilterWorkspace>
 
-      {filtradas.length === 0 ? (
+      {filtradas.length === 0 && manuaisFiltrados.length === 0 ? (
         <p className="py-5 text-sm italic text-muted-foreground">
           Nenhuma proposta encontrada com esses filtros.
         </p>
@@ -362,11 +412,19 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
                 instrumentoMonitorado={instrumentosPorNumero.get(
                   p.cd_parceria || String(p.id_proposta),
                 )}
+                candidatos={candidatosConciliacao(
+                  instrumentos,
+                  p.cnes,
+                  p.cd_parceria ?? "",
+                )}
               />
             ))}
           </div>
         ))
       )}
+      {manuaisFiltrados.map((i) => (
+        <CardInstrumentoManual key={i.id} i={i} />
+      ))}
     </div>
   );
 }

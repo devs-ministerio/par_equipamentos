@@ -37,9 +37,11 @@ function CnesDestaque({
 export function CardProposta({
   p,
   instrumentoMonitorado,
+  candidatos = [],
 }: {
   p: ReturnType<typeof usePropostasCandidatas>["propostas"][number];
   instrumentoMonitorado?: InstrumentoEquipamento;
+  candidatos?: InstrumentoEquipamento[];
 }) {
   const [detalheAberto, setDetalheAberto] = useState(false);
   const principal =
@@ -56,6 +58,11 @@ export function CardProposta({
             <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
               Proposta #{p.id_proposta}
             </span>
+            {p.cd_parceria && (
+              <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
+                Parceria {p.cd_parceria}
+              </span>
+            )}
             {ano && (
               <span className="font-mono text-[11.5px] text-muted-foreground">
                 {ano}
@@ -141,6 +148,7 @@ export function CardProposta({
             </p>
           ) : estagioDeFato(p) === "confirmada" ? (
             <AdicionarMonitoramentoButton
+              candidatos={candidatos}
               dados={{
                 nr_convenio: p.cd_parceria ?? "",
                 cnpj_convenente: p.cnpj_ente_recebedor,
