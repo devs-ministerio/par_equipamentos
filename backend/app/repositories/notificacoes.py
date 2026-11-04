@@ -121,8 +121,9 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
 
     if tipo == NotificacaoTipo.alerta_vigencia:
         instrumento_id = _instrumento_id_por_convenio_id(db, entidade_id)
+        # Sem instrumento monitorado não há responsável: só gestor/admin.
         if instrumento_id is None:
-            return _ids_broadcast(db)
+            return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
         return _ids_titular_suplente_e_gestores(db, instrumento_id)
 
     # atualizacao_api / edicao_manual -- entidade_id é InstrumentoEquipamento.id.

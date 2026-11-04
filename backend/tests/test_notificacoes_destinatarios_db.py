@@ -139,3 +139,21 @@ def test_responsavel_inativo_sem_gestores_nao_amplia_escopo(matriz, tipo):
         list(db.scalars(select(NotificacaoDestinatario.id).where(NotificacaoDestinatario.notificacao_id == aviso.id)))
         == []
     )
+
+
+def test_alerta_de_vigencia_sem_instrumento_monitorado_vai_so_a_gestor_e_admin(matriz):
+    # Arrange: convênio sem InstrumentoEquipamento correspondente.
+    db, usuarios, _, _ = matriz
+    sem_monitoramento = Convenio(numero="999", convenente_nome="Sem monitoramento")
+    db.add(sem_monitoramento)
+    db.commit()
+    # Act
+    aviso = criar_notificacao(
+        db, Notificacao(tipo=NotificacaoTipo.alerta_vigencia, titulo="Vigência", entidade_id=sem_monitoramento.id)
+    )
+    db.commit()
+    # Assert: colaborador não recebe.
+    ids = set(
+        db.scalars(select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == aviso.id))
+    )
+    assert ids == {usuarios["admin"].id, usuarios["gestor"].id}
