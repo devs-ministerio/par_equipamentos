@@ -36,7 +36,6 @@ _ROTULO_GRUPO_MARCO = {
 }
 
 
-
 @dataclass(frozen=True)
 class FiltroRelatorio:
     escopo: Escopo

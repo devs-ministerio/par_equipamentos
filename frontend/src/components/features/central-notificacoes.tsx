@@ -190,6 +190,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
               <Button
                 size="sm"
                 variant="outline"
+                className="h-auto max-w-full whitespace-normal py-1.5 text-left"
                 disabled={avisos.ocupada || caixa === "arquivadas"}
                 onClick={() =>
                   void avisos
@@ -204,6 +205,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
             <Button
               size="sm"
               variant="outline"
+              className="h-auto max-w-full whitespace-normal py-1.5 text-left"
               disabled={avisos.ocupada || avisos.naoLidas === 0}
               title="Inclui avisos fora da busca e do tipo selecionados; não inclui arquivados"
               onClick={() =>

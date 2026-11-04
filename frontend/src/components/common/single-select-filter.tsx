@@ -179,20 +179,20 @@ export function SingleSelectFilter({
                     {opt.group}
                   </div>
                 )}
-              <button
-                type="button"
-                role="option"
-                aria-selected={opt.value === value}
-                onClick={() => escolher(opt.value)}
-                className={cn(
-                  "block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]",
-                  opt.value === value
-                    ? "bg-secondary font-semibold text-primary"
-                    : "font-normal text-foreground",
-                )}
-              >
-                {opt.label}
-              </button>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={opt.value === value}
+                  onClick={() => escolher(opt.value)}
+                  className={cn(
+                    "block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]",
+                    opt.value === value
+                      ? "bg-secondary font-semibold text-primary"
+                      : "font-normal text-foreground",
+                  )}
+                >
+                  {opt.label}
+                </button>
               </Fragment>
             ))}
             {filtered.length === 0 && (

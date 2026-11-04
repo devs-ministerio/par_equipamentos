@@ -43,7 +43,9 @@ export function ProtectedRoute() {
   }
 
   if (!sessao.autenticado) {
-    return <Navigate to="/login" replace state={{ from: destinoDe(location) }} />;
+    return (
+      <Navigate to="/login" replace state={{ from: destinoDe(location) }} />
+    );
   }
 
   return <Outlet />;

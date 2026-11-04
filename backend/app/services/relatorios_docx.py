@@ -272,8 +272,14 @@ def _bloco_instrumento_narrativo(
     # PERSUS I/II (que não são convênio nenhum). Usa o `tipo_contratacao`
     # real do registro.
     tipo_rotulo = convenio.tipo_contratacao or "Convênio"
-    docx_builder.adicionar_titulo(documento, f"{convenio.convenente_nome or 'Instituição não informada'} -- {tipo_rotulo} {convenio.numero}", nivel=3)
-    docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Convenente", convenio.convenente_nome or "Instituição não informada")
+    docx_builder.adicionar_titulo(
+        documento,
+        f"{convenio.convenente_nome or 'Instituição não informada'} -- {tipo_rotulo} {convenio.numero}",
+        nivel=3,
+    )
+    docx_builder.adicionar_paragrafo_rotulo_valor(
+        documento, "Convenente", convenio.convenente_nome or "Instituição não informada"
+    )
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNPJ", convenio.convenente_cnpj or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "CNES", convenio.cnes or "—")
     docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Objeto", convenio.objeto or "—")
@@ -400,13 +406,9 @@ def _montar_instrumentos_repasse_docx(db: Session, nivel: Nivel, filtro: FiltroR
         if valor
     ]
     if filtros_exclusivos:
-        docx_builder.adicionar_paragrafo_rotulo_valor(
-            documento, "Filtros aplicados", "; ".join(filtros_exclusivos)
-        )
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Filtros aplicados", "; ".join(filtros_exclusivos))
     if filtro.tipo_contratacao:
-        docx_builder.adicionar_paragrafo_rotulo_valor(
-            documento, "Tipo de contratação", filtro.tipo_contratacao
-        )
+        docx_builder.adicionar_paragrafo_rotulo_valor(documento, "Tipo de contratação", filtro.tipo_contratacao)
     docx_builder.adicionar_paragrafo(
         documento, "No que compete ao Departamento de Atenção ao Câncer – DECAN, informa-se:"
     )
