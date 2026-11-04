@@ -12,7 +12,7 @@ from app.db.models import (
     PropostaCandidata,
 )
 from app.pipeline.texto import normalizar_texto
-from app.pipeline.tipo_proposta import evidencia_fundo_a_fundo, tipo_da_proposta
+from app.pipeline.tipo_proposta import tipo_da_proposta
 from app.repositories import convenios as convenios_repo
 from app.repositories import equipamento_marcadores as equipamento_marcadores_repo
 from app.repositories import propostas_candidatas_relatorio as propostas_repo
@@ -57,15 +57,10 @@ def _propostas(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
     if filtro.situacao_origem == "proposta" and filtro.situacao:
         alvo = normalizar_texto(filtro.situacao)
         propostas = [p for p in propostas if normalizar_texto(p.situacao_proposta) == alvo]
-    # Os demais filtros valem para todas as seções; proposta é sempre "Parceria TransfereGov".
+    # Os demais filtros valem para todas as seções; proposta é FAF ou PRONON.
     if filtro.tipo_contratacao:
         alvo = normalizar_texto(filtro.tipo_contratacao)
-        propostas = [
-            p
-            for p in propostas
-            if normalizar_texto(tipo_da_proposta(p.nm_programa, fundo_a_fundo=evidencia_fundo_a_fundo(p.metas_resumo)))
-            == alvo
-        ]
+        propostas = [p for p in propostas if normalizar_texto(tipo_da_proposta(p.nm_programa)) == alvo]
     if filtro.programa:
         alvo = normalizar_texto(filtro.programa)
         propostas = [p for p in propostas if normalizar_texto(p.nm_programa) == alvo]

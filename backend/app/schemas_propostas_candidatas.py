@@ -44,7 +44,7 @@ class PropostaCandidataRead(BaseModel):
     tem_parceria: bool
     cd_parceria: str | None
     # Resolvido no backend (`app/pipeline/tipo_proposta.py`); o front não interpreta o JSON cru.
-    tipo_contratacao: str = "Parceria TransfereGov"
+    tipo_contratacao: str = "FAF"
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

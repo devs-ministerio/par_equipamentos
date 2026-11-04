@@ -122,7 +122,7 @@ def test_parceria_exige_codigo_e_evidencia_de_ordem_paga(status, identificador, 
     # Arrange
     parceria = fato(
         origem="parceria",
-        tipo="Parceria TransfereGov",
+        tipo="FAF",
         numero="2026001",
         parceria_confirmada=True,
         codigo_confirmado=codigo,
@@ -142,14 +142,14 @@ def test_deduplica_parceria_antes_monitorada_pelo_id_da_proposta():
     # Arrange
     parceria = fato(
         origem="parceria",
-        tipo="Parceria TransfereGov",
+        tipo="FAF",
         numero="2026001",
         proposta_id=991,
         parceria_confirmada=True,
         codigo_confirmado="2026001",
         ordens=[OrdemEncerramento(id_ordem_pagamento=1, in_situacao_op="Paga")],
     )
-    interno = fato(numero="991", tipo="Parceria TransfereGov", conclusao_ativa=True, data_conclusao=date(2026, 1, 1))
+    interno = fato(numero="991", tipo="FAF", conclusao_ativa=True, data_conclusao=date(2026, 1, 1))
     # Act
     resultado = classificar_encerrados([parceria, interno, parceria], FiltroEncerramento())
     # Assert
@@ -162,13 +162,13 @@ def test_sem_data_nao_exclui_encerramento_financeiro_independente():
     # Arrange
     parceria = fato(
         origem="parceria",
-        tipo="Parceria TransfereGov",
+        tipo="FAF",
         numero="2026001",
         parceria_confirmada=True,
         codigo_confirmado="2026001",
         ordens=[OrdemEncerramento(id_ordem_pagamento=1, in_situacao_op="Paga")],
     )
-    interno = fato(numero="2026001", tipo="Parceria TransfereGov", conclusao_ativa=True)
+    interno = fato(numero="2026001", tipo="FAF", conclusao_ativa=True)
     # Act
     resultado = classificar_encerrados([interno, parceria], FiltroEncerramento())
     # Assert

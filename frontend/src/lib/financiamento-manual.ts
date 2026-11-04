@@ -2,12 +2,6 @@ import type { InstrumentoEquipamento } from "@/services/monitoramento-instrument
 
 export const TIPOS_LINHA_FINANCIAMENTO = new Set(["FAF", "TED"]);
 
-/** Parceria confirmada no TransfereGov novo é FAF. O valor gravado continua
- * "Parceria TransfereGov" (chave técnica dos jobs); a tela mostra FAF. */
-export function rotuloTipoContratacao(tipo: string | null | undefined) {
-  return tipo === "Parceria TransfereGov" ? "FAF" : tipo;
-}
-
 type PropostaChave = { cd_parceria: string | null; id_proposta: number };
 
 /** FAF e TED vêm de carga manual, sem proposta no TransfereGov. Entram na

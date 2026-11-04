@@ -1,7 +1,7 @@
 """Projeções limitadas do espelho, sem chamadas oficiais ou escritas."""
 
 from pydantic import TypeAdapter, ValidationError
-from sqlalchemy import Text, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
@@ -13,7 +13,7 @@ from app.db.models import (
     MarcoCatalogo,
     PropostaCandidata,
 )
-from app.pipeline.tipo_proposta import PADRAO_SQL_FUNDO_A_FUNDO, tipo_da_proposta
+from app.pipeline.tipo_proposta import tipo_da_proposta
 from app.repositories.equipamento_marcadores import marcador_de_financiamento
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.schemas_relatorios_encerrados import FatoEncerramento, OrdemEncerramento
@@ -134,7 +134,6 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
         PropostaCandidata.tem_parceria.label("parceria_confirmada"),
         PropostaCandidata.metas_resumo["parceria"]["cd_parceria"].astext.label("codigo_confirmado"),
         PropostaCandidata.metas_resumo["timeline_financeira"]["ordens_pagamento"].label("ordens_raw"),
-        PropostaCandidata.metas_resumo.cast(Text).ilike(PADRAO_SQL_FUNDO_A_FUNDO).label("fundo_a_fundo"),
     ).where(
         PropostaCandidata.tem_parceria.is_(True),
         PropostaCandidata.cd_parceria.is_not(None),
@@ -151,10 +150,8 @@ def listar_fatos(db: Session, *, equipamento: str | None) -> list[FatoEncerramen
                     [i for i in itens_plano if isinstance(i, dict)] if isinstance(itens_plano, list) else []
                 )
             if origem == "parceria":
-                campos["tipo"] = "Parceria TransfereGov"
-                campos["tipo_filtro"] = tipo_da_proposta(
-                    campos["programa"], fundo_a_fundo=bool(campos.pop("fundo_a_fundo"))
-                )
+                campos["tipo"] = "FAF"
+                campos["tipo_filtro"] = tipo_da_proposta(campos["programa"])
                 raw = campos.pop("ordens_raw")
                 try:
                     campos["ordens"] = _ORDENS.validate_python(raw if raw is not None else [])

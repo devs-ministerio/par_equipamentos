@@ -171,7 +171,7 @@ def classificar_encerrados(fatos: list[FatoEncerramento], filtro: FiltroEncerram
     for fato in fatos:
         if not _corresponde(fato, filtro):
             continue
-        numero = aliases.get(fato.numero, fato.numero) if fato.tipo == "Parceria TransfereGov" else fato.numero
+        numero = aliases.get(fato.numero, fato.numero) if fato.tipo == "FAF" else fato.numero
         chave = f"{fato.tipo}:{numero}"
         candidato = _classificar(fato.model_copy(update={"numero": numero}), chave)
         if candidato is not None:

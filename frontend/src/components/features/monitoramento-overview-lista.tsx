@@ -1,4 +1,3 @@
-import { rotuloTipoContratacao } from "@/lib/financiamento-manual";
 import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { Pagination } from "@/components/common/pagination";
 import { estiloCard } from "@/components/features/monitoramento-ui";
@@ -66,8 +65,7 @@ export function MonitoramentoOverviewLista({
                       {item.nr_convenio}
                     </LinkDetalheInstrumento>
                     <span className="ml-1.5 rounded-full bg-warning-bg px-1.5 py-px text-[9.5px] font-bold text-warning">
-                      {rotuloTipoContratacao(item.tipo_contratacao) ??
-                        "Convênio"}
+                      {item.tipo_contratacao ?? "Convênio"}
                     </span>
                   </td>
                   <td className="px-2 py-1.5">{item.nome_convenente}</td>
@@ -120,7 +118,7 @@ export function MonitoramentoOverviewLista({
                   {item.nr_convenio}
                 </LinkDetalheInstrumento>
                 <span className="rounded-full bg-warning-bg px-2 py-1 text-[11px] font-semibold text-warning">
-                  {rotuloTipoContratacao(item.tipo_contratacao) ?? "Convênio"}
+                  {item.tipo_contratacao ?? "Convênio"}
                 </span>
               </div>
               <p className="mt-1 break-words text-sm font-semibold leading-snug text-foreground">

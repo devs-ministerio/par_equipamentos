@@ -122,7 +122,6 @@ def test_filtro_de_contratacao_reconhece_faf_e_pronon_nas_propostas(db):
         filtro = FiltroRelatorio(escopo="brasil", tipo_contratacao=tipo, busca=f"D03 {marca}")
         return sorted(p.id_proposta - marca for p in _propostas(db, filtro))
 
-    assert ids("FAF") == [0]
+    assert ids("FAF") == [0, 2]
     assert ids("PRONON") == [1]
-    assert ids("Parceria TransfereGov") == [2]
     assert ids("TED") == []

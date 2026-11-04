@@ -175,7 +175,8 @@ def test_programa_e_busca_valem_tambem_para_propostas(entregas):
 
     assert len(_propostas(db, por_programa)) == 1
     assert _propostas(db, outro_programa) == []
-    assert _propostas(db, FiltroRelatorio(**base, tipo_contratacao="FAF", busca=marca)) == []
+    assert len(_propostas(db, FiltroRelatorio(**base, tipo_contratacao="FAF", busca=marca))) == 1
+    assert _propostas(db, FiltroRelatorio(**base, tipo_contratacao="PRONON", busca=marca)) == []
 
 
 def test_situacao_de_monitoramento_restringe_convenios_a_fase_e_esconde_propostas(entregas):

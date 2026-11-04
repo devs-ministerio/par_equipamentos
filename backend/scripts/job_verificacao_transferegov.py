@@ -22,7 +22,7 @@ recente (sinal real de "dinheiro executado") -- podem divergir, e
 divergem na prática (proposta já paga que continua "Aprovada" na
 parceria).
 
-Escopo: só tipo_contratacao="Parceria TransfereGov" (nr_convenio =
+Escopo: só tipo_contratacao="FAF" (parceria do TransfereGov) (nr_convenio =
 cd_parceria ou str(id_proposta), ver PropostaCandidata). O
 id_proposta/id_parceria não têm coluna própria em InstrumentoEquipamento
 (decisão deliberada, sem FK física) -- resolvidos aqui por convenção,
@@ -140,15 +140,9 @@ def _executar(cap: CapturaEmAndamento) -> None:
     atualizados = 0
     sem_id_proposta = 0
     try:
-        instrumentos = (
-            db.query(InstrumentoEquipamento)
-            .filter(InstrumentoEquipamento.tipo_contratacao == "Parceria TransfereGov")
-            .all()
-        )
+        instrumentos = db.query(InstrumentoEquipamento).filter(InstrumentoEquipamento.tipo_contratacao == "FAF").all()
         if not instrumentos:
-            print(
-                "Nenhum InstrumentoEquipamento com tipo_contratacao='Parceria TransfereGov' cadastrado -- nada pra verificar."
-            )
+            print("Nenhum InstrumentoEquipamento com tipo_contratacao='FAF' cadastrado -- nada pra verificar.")
         for inst in instrumentos:
             id_proposta = _resolver_id_proposta(db, inst.nr_convenio)
             if id_proposta is None:

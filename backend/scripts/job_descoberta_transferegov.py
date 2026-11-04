@@ -299,7 +299,7 @@ def _atualizar_captura_existente(db, existente: PropostaCandidata, detalhe: dict
     instrumento = obter_instrumento_por_nr_convenio(db, existente.cd_parceria or str(existente.id_proposta))
     if instrumento is None and existente.cd_parceria:
         instrumento = obter_instrumento_por_nr_convenio(db, str(existente.id_proposta))
-    if instrumento is not None and instrumento.tipo_contratacao != "Parceria TransfereGov":
+    if instrumento is not None and instrumento.tipo_contratacao != "FAF":
         instrumento = None
     if instrumento is not None:
         timeline = confirmado.get("timeline_financeira") or {}

@@ -127,7 +127,7 @@ def test_monitorado_recebe_um_aviso_e_verificacao_seguinte_nao_duplica(cenario, 
     instrumento = InstrumentoEquipamento(
         nr_convenio=str(proposta.id_proposta),
         nome_convenente="Hospital sintético",
-        tipo_contratacao="Parceria TransfereGov",
+        tipo_contratacao="FAF",
         situacao_parceria_transferegov="Aprovada",
         situacao_ordem_pagamento_transferegov="Emitida",
     )
