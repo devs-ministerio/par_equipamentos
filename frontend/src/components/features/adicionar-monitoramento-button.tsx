@@ -1,3 +1,4 @@
+import { rotuloTipoContratacao } from "@/lib/financiamento-manual";
 /** Inclusão explícita de um item já conhecido no monitoramento interno.
  * O técnico é informado antes da confirmação final e a criação fica em
  * AuditLog no backend. */
@@ -60,8 +61,10 @@ function AvisoCandidatos({ candidatos }: { candidatos: Candidato[] }) {
         {candidatos.map((c) => (
           <li key={c.nr_convenio}>
             <span className="font-mono">{c.nr_convenio}</span>
-            {c.tipo_contratacao ? ` · ${c.tipo_contratacao}` : ""} ·{" "}
-            {c.nome_convenente} · {fmtMoeda(c.investimento_aquisicao)}
+            {c.tipo_contratacao
+              ? ` · ${rotuloTipoContratacao(c.tipo_contratacao)}`
+              : ""}{" "}
+            · {c.nome_convenente} · {fmtMoeda(c.investimento_aquisicao)}
           </li>
         ))}
       </ul>

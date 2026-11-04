@@ -1,3 +1,4 @@
+import { rotuloTipoContratacao } from "@/lib/financiamento-manual";
 import { fmtMoeda } from "@/lib/monitoramento-format";
 import { cn } from "@/lib/utils";
 import { estiloCard, StatusPill } from "./monitoramento-ui";
@@ -12,7 +13,7 @@ export function CardInstrumentoManual({ i }: { i: InstrumentoEquipamento }) {
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
-              {i.tipo_contratacao}
+              {rotuloTipoContratacao(i.tipo_contratacao)}
             </span>
             <LinkDetalheInstrumento
               nrConvenio={i.nr_convenio}

@@ -1,3 +1,4 @@
+import { rotuloTipoContratacao } from "@/lib/financiamento-manual";
 import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { Pagination } from "@/components/common/pagination";
 import { useListaPaginada } from "@/hooks/useListaPaginada";
@@ -36,8 +37,9 @@ export function DivergenciasConclusao({
               </div>
               <div className="mt-0.5 text-xs text-muted-foreground">
                 {item.nr_convenio} ·{" "}
-                {item.tipo_contratacao ?? "Fonte não informada"} ·{" "}
-                {item.fase_interna}
+                {rotuloTipoContratacao(item.tipo_contratacao) ??
+                  "Fonte não informada"}{" "}
+                · {item.fase_interna}
               </div>
             </div>
             <div className="text-left text-xs sm:text-right">

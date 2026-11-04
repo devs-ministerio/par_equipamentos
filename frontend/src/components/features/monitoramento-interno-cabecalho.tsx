@@ -1,3 +1,4 @@
+import { rotuloTipoContratacao } from "@/lib/financiamento-manual";
 /** Cabeçalho de MonitoramentoInterno -- card de identificação/valor global +
  * grid de indicadores rápidos. Extraído do arquivo original (Seção 6 da
  * migração). */
@@ -159,7 +160,7 @@ export function MonitoramentoInternoCabecalho({
               {inst.tipo_contratacao &&
                 inst.tipo_contratacao !== "Convênio" && (
                   <span className="text-[10.5px] font-bold py-0.5 px-2 rounded-full bg-warning-bg text-warning">
-                    {inst.tipo_contratacao}
+                    {rotuloTipoContratacao(inst.tipo_contratacao)}
                   </span>
                 )}
               {nup && (

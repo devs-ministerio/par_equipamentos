@@ -58,6 +58,11 @@ export function CardProposta({
             <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
               Proposta #{p.id_proposta}
             </span>
+            {p.tem_parceria && (
+              <span className="rounded-[5px] bg-primary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary-foreground">
+                FAF
+              </span>
+            )}
             {p.cd_parceria && (
               <span className="rounded-[5px] bg-secondary px-[9px] py-0.5 font-mono text-[11.5px] font-bold text-primary">
                 Parceria {p.cd_parceria}
