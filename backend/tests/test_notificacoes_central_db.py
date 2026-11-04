@@ -65,6 +65,14 @@ def test_busca_literal_tipo_e_total_filtrado_sem_alterar_badge(caixa):
     assert listar(db, usuarios[0], busca="%qualquer").total == 0
 
 
+def test_busca_ignora_acento_e_caixa(caixa):
+    db, usuarios, _ = caixa
+    # "indisponível" no título; a busca sem acento e em maiúsculas encontra.
+    assert listar(db, usuarios[0], busca="indisponivel").total == 1
+    assert listar(db, usuarios[0], busca="INDISPONÍVEL").total == 1
+    assert listar(db, usuarios[0], busca="  indisponivel  ").total == 1
+
+
 def test_arquivo_e_restauracao_so_afetam_destinatario_atual(caixa):
     db, usuarios, avisos = caixa
     resultado = arquivar_notificacao(db=db, usuario_id=usuarios[0].id, notificacao_id=avisos[0].id, arquivada=True)

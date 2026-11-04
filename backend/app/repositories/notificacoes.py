@@ -6,6 +6,7 @@ completa de escopo por destinatário.
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -229,9 +230,28 @@ def listar_notificacoes_paginadas(
     return PaginaNotificacoes(itens=itens, total=total, nao_lidas=nao_lidas)
 
 
+_COM_ACENTO = "áàâãäåéèêëíìîïóòôõöúùûüçñ"
+_SEM_ACENTO = "aaaaaaeeeeiiiiooooouuuucn"
+
+
+def _sem_acento(texto: str) -> str:
+    decomposto = unicodedata.normalize("NFKD", texto.lower())
+    return "".join(c for c in decomposto if unicodedata.category(c) != "Mn")
+
+
+def _coluna_sem_acento(coluna):
+    return func.translate(func.lower(coluna), _COM_ACENTO, _SEM_ACENTO)
+
+
 def _filtro_busca(busca: str):
-    termo = busca.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-    return Notificacao.titulo.ilike(f"%{termo}%", escape="\\") | Notificacao.corpo.ilike(f"%{termo}%", escape="\\")
+    """Busca de texto sem distinguir maiúsculas nem acentos ("licenca" encontra
+    "licença"). `%` e `_` do termo continuam sendo texto literal."""
+    termo = " ".join(_sem_acento(busca).split())
+    termo = termo.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    padrao = f"%{termo}%"
+    return _coluna_sem_acento(Notificacao.titulo).like(padrao, escape="\\") | _coluna_sem_acento(
+        Notificacao.corpo
+    ).like(padrao, escape="\\")
 
 
 def obter_destinatario(db: Session, *, notificacao_id: int, usuario_id: int) -> NotificacaoDestinatario | None:
