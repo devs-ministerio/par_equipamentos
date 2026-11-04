@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Toaster } from "sonner";
@@ -12,6 +18,7 @@ import {
 import { CentralNotificacoes } from "./central-notificacoes";
 
 afterEach(() => {
+  sessionStorage.clear();
   vi.unstubAllGlobals();
   limparCsrfToken();
 });
@@ -190,6 +197,22 @@ describe("Central de notificações integrada à API", () => {
         name: "Marcar todas as minhas recebidas como lidas (1)",
       }),
     ).toBeEnabled();
+  });
+
+  it("reabrir a Central recupera caixa e busca de onde a pessoa estava", async () => {
+    const primeira = montar();
+    await screen.findByText("1 não lida");
+    fireEvent.click(screen.getByRole("button", { name: "Não lidas" }));
+    fireEvent.change(screen.getByLabelText("Buscar notificações"), {
+      target: { value: "sintético" },
+    });
+    await screen.findByText("Convênio sintético 1");
+    cleanup();
+    expect(primeira.fechar).not.toHaveBeenCalled();
+    montar();
+    expect(await screen.findByLabelText("Buscar notificações")).toHaveValue(
+      "sintético",
+    );
   });
 
   it("preserva não lidas quando a leitura em lote falha", async () => {
