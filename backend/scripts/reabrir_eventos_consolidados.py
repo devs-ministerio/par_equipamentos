@@ -62,7 +62,7 @@ def _escondidos_pela_consolidacao(db: Session) -> dict[int, tuple[int, int]]:
     escondidos: dict[int, tuple[int, int]] = {}
     for registro in db.execute(select(AuditLog).where(AuditLog.action == ACAO_CONSOLIDACAO)).scalars():
         for par in (registro.details or {}).get("substituidos", []):
-            escondidos[int(par["evento_id"])] = (int(registro.entity_id), int(par["sobrevivente_id"]))
+            escondidos[int(par["evento_id"])] = (int(str(registro.entity_id)), int(par["sobrevivente_id"]))
     return escondidos
 
 

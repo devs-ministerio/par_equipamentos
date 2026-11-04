@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from io import BytesIO
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -168,7 +169,7 @@ def test_situacao_de_instrumento_esconde_propostas(entregas):
 
 def test_programa_e_busca_valem_tambem_para_propostas(entregas):
     db, _, marca = entregas
-    base = {"escopo": "brasil", "situacao_origem": "proposta", "situacao": "Em análise"}
+    base: dict[str, Any] = {"escopo": "brasil", "situacao_origem": "proposta", "situacao": "Em análise"}
     por_programa = FiltroRelatorio(**base, programa="Programa sintético", busca=marca)
     outro_programa = FiltroRelatorio(**base, programa="Outro programa", busca=marca)
     from app.services.relatorios import _propostas

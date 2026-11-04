@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from starlette.requests import Request
 
 from app.config import Settings
 from app.rate_limit import chave_por_sessao, limiter
 
-_BASE = {"database_url": "postgresql://u@localhost/x", "jwt_secret": "x" * 40}
+_BASE: dict[str, Any] = {"database_url": "postgresql://u@localhost/x", "jwt_secret": "x" * 40}
 
 
 def _requisicao(cookie: str | None = None) -> Request:

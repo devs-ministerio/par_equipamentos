@@ -17,6 +17,7 @@ from datetime import UTC, date, datetime
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.db.base import engine
@@ -74,7 +75,7 @@ def _evento(db, inst, marco, *, data_ocorrencia=None, data_prevista=None, criado
     db.flush()
     if criado_em is not None:
         momento = datetime(criado_em.year, criado_em.month, criado_em.day, tzinfo=UTC)
-        db.execute(EventoMarco.__table__.update().where(EventoMarco.id == ev.id).values(created_at=momento))
+        db.execute(update(EventoMarco).where(EventoMarco.id == ev.id).values(created_at=momento))
         db.flush()
         db.refresh(ev)
     return ev

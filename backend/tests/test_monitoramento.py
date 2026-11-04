@@ -1737,6 +1737,7 @@ def test_inauguracao_independente_com_outra_data_nao_e_alterada_pela_correcao():
         inaug = monitoramento_repo.obter_evento_mais_recente_do_marco(
             db, instrumento_id=instrumento.id, marco_id=marco_inaug.id
         )
+        assert inaug is not None
         inaug.data_ocorrencia = date(2026, 10, 20)
         db.flush()
 
@@ -1750,7 +1751,7 @@ def test_inauguracao_independente_com_outra_data_nao_e_alterada_pela_correcao():
         vigente = monitoramento_repo.obter_evento_mais_recente_do_marco(
             db, instrumento_id=instrumento.id, marco_id=marco_inaug.id
         )
-        assert vigente.id == inaug.id and vigente.data_ocorrencia == date(2026, 10, 20)
+        assert vigente is not None and vigente.id == inaug.id and vigente.data_ocorrencia == date(2026, 10, 20)
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()

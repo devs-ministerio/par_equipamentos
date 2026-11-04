@@ -13,7 +13,7 @@ def test_toda_rota_json_declara_response_model():
     for rota in app.routes:
         if not isinstance(rota, APIRoute) or rota.status_code == 204:
             continue
-        for metodo in rota.methods - {"HEAD", "OPTIONS"}:
+        for metodo in (rota.methods or set()) - {"HEAD", "OPTIONS"}:
             if (rota.path, metodo) in ROTAS_DE_ARQUIVO:
                 continue
             if rota.response_model is None:

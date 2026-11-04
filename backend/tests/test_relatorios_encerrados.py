@@ -1,6 +1,7 @@
 """Precedência e evidência testadas sem mock do classificador."""
 
 from datetime import date
+from typing import Any
 
 import pytest
 
@@ -292,7 +293,7 @@ def test_periodo_por_data_da_conclusao_pega_instrumento_antigo_concluido_no_peri
 def test_filtro_relatorio_valida_a_referencia_do_periodo():
     from app.services.relatorios import FiltroRelatorio
 
-    base = {"escopo": "brasil", "periodo_por": "data_do_evento"}
+    base: dict[str, Any] = {"escopo": "brasil", "periodo_por": "data_do_evento"}
     with pytest.raises(ValidationError, match="vale só em Concluídos"):
         FiltroRelatorio(**base, data_inicio=date(2026, 1, 1)).validar_referencia_do_periodo()
     with pytest.raises(ValidationError, match="periodo_por"):

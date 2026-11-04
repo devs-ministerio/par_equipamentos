@@ -95,7 +95,7 @@ def test_proximas_previsoes_separa_vigentes_de_vencidas_e_ordena_por_data():
     assert [linha[0] for linha in vigentes] == ["I3"]
     assert vigentes[0][4] == 33  # dias até 01/12/2026
     assert [linha[0] for linha in vencidas] == ["I4"]
-    assert vencidas[0][4] < 0
+    assert isinstance(vencidas[0][4], int) and vencidas[0][4] < 0
 
 
 def test_linhas_da_agenda_trazem_as_tres_datas_sem_preencher_o_que_falta():
