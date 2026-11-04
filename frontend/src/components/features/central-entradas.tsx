@@ -20,7 +20,7 @@ export function CentralEntradas() {
           Radar de instrumentos
         </DialogTitle>
         <DialogDescription className="mt-1">
-          Convênios para revisão e propostas em tramitação
+          Triagem de convênios novos. O radar de propostas ainda não está ativo.
         </DialogDescription>
       </header>
       <Tabs.Root defaultValue="legados" className="flex min-h-0 flex-col">
@@ -47,6 +47,11 @@ export function CentralEntradas() {
             </Tabs.Trigger>
           ))}
         </Tabs.List>
+        <p className="shrink-0 border-b border-border px-5 py-2 text-xs text-muted-foreground sm:px-6">
+          Propostas em tramitação aguardam a definição do critério de proposta
+          nova. Para consultar as propostas existentes, use Linhas de
+          financiamento; essa carteira não é uma fila de entradas novas.
+        </p>
         <div className="min-h-0 min-w-0 overflow-y-auto overscroll-contain px-5 sm:px-6">
           <Tabs.Content value="legados" className="outline-none">
             <MonitorDescobertaLegado fonte="siconv_descoberta" />

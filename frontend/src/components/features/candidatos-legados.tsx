@@ -62,9 +62,25 @@ export function CandidatosLegados() {
           </Button>
         </div>
       ) : consulta.data?.total === 0 ? (
-        <p className="py-4 text-sm text-muted-foreground">
-          Nenhum convênio neste recorte. Consulte o estado da coleta acima.
-        </p>
+        busca.trim() || situacao ? (
+          <p className="py-4 text-sm text-muted-foreground">
+            Nenhum candidato com esses filtros. Limpe a busca ou a situação para
+            ver a fila inteira.
+          </p>
+        ) : (
+          <div className="space-y-1 py-4 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">
+              Sem candidatos elegíveis no momento.
+            </p>
+            <p>
+              A fila reúne convênios do Ministério da Saúde no recorte
+              prioritário e celebrado, com confirmação oficial e ainda fora da
+              carteira. Registros históricos de capturas anteriores não entram
+              aqui enquanto não atendem a esse critério. Consulte o estado da
+              coleta acima.
+            </p>
+          </div>
+        )
       ) : (
         <>
           <ul className="space-y-3 pb-4">
