@@ -269,7 +269,7 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
     return (
       <p className="py-5 text-sm italic text-muted-foreground">
         {modo === "tramitacao"
-          ? "Nenhuma proposta em tramitação no momento — o job de descoberta roda diariamente."
+          ? "Nenhuma proposta ou solicitação no momento — o job de descoberta roda diariamente."
           : "Nenhuma parceria confirmada ainda."}
       </p>
     );
