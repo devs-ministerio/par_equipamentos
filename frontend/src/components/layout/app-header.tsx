@@ -234,7 +234,12 @@ export function AppHeader({
             to="/monitoramento-equipamentos"
             className="flex shrink-0 items-center text-foreground"
           >
-            <Logo variante="completo" className="hidden h-10 lg:block" />
+            <span className="hidden flex-col items-start gap-1 lg:flex">
+              <Logo variante="marca" className="h-8" />
+              <span className="text-[12px] leading-none font-medium tracking-[0.03em] text-[#1F2A4D] xl:text-[14px] 2xl:text-[15px]">
+                Gestão de Equipamentos em Oncologia
+              </span>
+            </span>
             <Logo variante="reduzido" className="h-9 lg:hidden" />
           </Link>
           <div className="hidden lg:block">{leftExtra}</div>
