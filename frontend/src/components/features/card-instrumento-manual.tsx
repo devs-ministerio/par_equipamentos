@@ -34,7 +34,10 @@ export function CardInstrumentoManual({ i }: { i: InstrumentoEquipamento }) {
             )}
             {i.equipamento_descricao && (
               <span className="rounded-full border border-border bg-background px-[11px] py-1 text-[13px] font-extrabold text-foreground">
-                {i.equipamento_descricao}
+                {i.equipamento_descricao
+                  .split(" + ")
+                  .map((parte) => parte.replace(/^\d{4,}\s*-\s*/, ""))
+                  .join(" + ")}
               </span>
             )}
           </div>
