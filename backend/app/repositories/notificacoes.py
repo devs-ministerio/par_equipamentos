@@ -6,6 +6,7 @@ completa de escopo por destinatário.
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
@@ -71,7 +72,9 @@ def obter_ids_responsaveis_do_instrumento(db: Session, instrumento_id: int) -> s
 def _ids_titular_suplente_e_gestores(db: Session, instrumento_id: int) -> set[int]:
     ids_designados = obter_ids_responsaveis_do_instrumento(db, instrumento_id)
     if not ids_designados:
-        return _ids_broadcast(db)
+        # Sem titular/suplente, só a gestão acompanha o instrumento (decisão do usuário, 2026-11-03):
+        # o broadcast anterior espalhava o aviso de instrumentos sem dono para todo colaborador.
+        return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
     # Filtra por ativo E role != leitor -- titular/suplente designado que foi
     # inativado (módulo de gestão de usuários) ou é leitor (decisão do
     # usuário 2026-09-25: leitor nunca recebe notificação, mesmo sendo
@@ -118,12 +121,13 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
 
     if tipo == NotificacaoTipo.alerta_vigencia:
         instrumento_id = _instrumento_id_por_convenio_id(db, entidade_id)
+        # Sem instrumento monitorado não há responsável: só gestor/admin.
         if instrumento_id is None:
-            return _ids_broadcast(db)
+            return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
         return _ids_titular_suplente_e_gestores(db, instrumento_id)
 
     # atualizacao_api / edicao_manual -- entidade_id é InstrumentoEquipamento.id.
-    # Sem titular/suplente cadastrado, cai no broadcast (nunca fica órfã).
+    # Sem titular/suplente cadastrado, vai só para gestor/admin (nunca fica órfã).
     return _ids_titular_suplente_e_gestores(db, entidade_id)
 
 
@@ -203,10 +207,7 @@ def listar_notificacoes_paginadas(
     if tipo is not None:
         base = base.where(Notificacao.tipo == tipo)
     if busca:
-        termo = busca.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        base = base.where(
-            Notificacao.titulo.ilike(f"%{termo}%", escape="\\") | Notificacao.corpo.ilike(f"%{termo}%", escape="\\")
-        )
+        base = base.where(_filtro_busca(busca))
 
     linhas = db.execute(
         base.order_by(Notificacao.created_at.desc(), Notificacao.id.desc()).limit(limit).offset(offset)
@@ -230,6 +231,30 @@ def listar_notificacoes_paginadas(
     return PaginaNotificacoes(itens=itens, total=total, nao_lidas=nao_lidas)
 
 
+_COM_ACENTO = "áàâãäåéèêëíìîïóòôõöúùûüçñ"
+_SEM_ACENTO = "aaaaaaeeeeiiiiooooouuuucn"
+
+
+def _sem_acento(texto: str) -> str:
+    decomposto = unicodedata.normalize("NFKD", texto.lower())
+    return "".join(c for c in decomposto if unicodedata.category(c) != "Mn")
+
+
+def _coluna_sem_acento(coluna):
+    return func.translate(func.lower(coluna), _COM_ACENTO, _SEM_ACENTO)
+
+
+def _filtro_busca(busca: str):
+    """Busca de texto sem distinguir maiúsculas nem acentos ("licenca" encontra
+    "licença"). `%` e `_` do termo continuam sendo texto literal."""
+    termo = " ".join(_sem_acento(busca).split())
+    termo = termo.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    padrao = f"%{termo}%"
+    return _coluna_sem_acento(Notificacao.titulo).like(padrao, escape="\\") | _coluna_sem_acento(
+        Notificacao.corpo
+    ).like(padrao, escape="\\")
+
+
 def obter_destinatario(db: Session, *, notificacao_id: int, usuario_id: int) -> NotificacaoDestinatario | None:
     return db.execute(
         select(NotificacaoDestinatario).where(
@@ -250,14 +275,28 @@ def marcar_destinatario_lido(db: Session, destinatario: NotificacaoDestinatario)
     return destinatario
 
 
-def marcar_todas_destinatario_lidas(db: Session, usuario_id: int) -> int:
-    alteradas = (
-        update(NotificacaoDestinatario)
+def marcar_todas_destinatario_lidas(
+    db: Session, usuario_id: int, *, busca: str | None = None, tipo: NotificacaoTipo | None = None
+) -> int:
+    """Marca como lidas as recebidas não arquivadas do usuário. Com `busca`/`tipo`,
+    só as que combinam com esse recorte; sem eles, todas."""
+    alvo = (
+        select(NotificacaoDestinatario.id)
+        .join(Notificacao, Notificacao.id == NotificacaoDestinatario.notificacao_id)
         .where(
             NotificacaoDestinatario.usuario_id == usuario_id,
             NotificacaoDestinatario.lida.is_(False),
             NotificacaoDestinatario.arquivada.is_(False),
+            notificacao_no_escopo(),
         )
+    )
+    if tipo is not None:
+        alvo = alvo.where(Notificacao.tipo == tipo)
+    if busca and busca.strip():
+        alvo = alvo.where(_filtro_busca(busca))
+    alteradas = (
+        update(NotificacaoDestinatario)
+        .where(NotificacaoDestinatario.id.in_(alvo))
         .values(lida=True, lida_em=datetime.now(UTC))
         .returning(NotificacaoDestinatario.id)
         .cte("lidas")

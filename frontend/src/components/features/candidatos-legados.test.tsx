@@ -192,6 +192,26 @@ describe("Radar legado", () => {
     );
   });
 
+  it("explica o escopo da fila vazia e distingue filtro sem resultado", async () => {
+    prepararApi({ total: 0, novos: 0, itens: [] });
+    await waitFor(() =>
+      expect(
+        screen.getByText("Sem candidatos elegíveis no momento."),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByText(/recorte\s+prioritário e celebrado/),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Buscar candidato legado"), {
+      target: { value: "999" },
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Nenhum candidato com esses filtros/),
+      ).toBeInTheDocument(),
+    );
+  });
+
   it("exibe erro e tentativa novamente", async () => {
     prepararApi({}, 503);
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument(), {

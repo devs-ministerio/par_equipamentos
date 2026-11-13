@@ -48,11 +48,19 @@ export function prepararApiNotificacoes(itens = [criarAviso()]) {
       if (controle.erroEscrita)
         return json({ detail: "Falha temporária" }, 503);
       if (url.pathname.endsWith("/lidas")) {
-        controle.itens = controle.itens.map((item) => ({
-          ...item,
-          lida: true,
-        }));
-        return json({ alteradas: controle.itens.length });
+        const busca = url.searchParams.get("busca");
+        const tipo = url.searchParams.get("tipo");
+        let alteradas = 0;
+        controle.itens = controle.itens.map((item) => {
+          const noRecorte =
+            !item.lida &&
+            !item.arquivada &&
+            (!busca || item.titulo.includes(busca)) &&
+            (!tipo || item.tipo === tipo);
+          if (noRecorte) alteradas += 1;
+          return noRecorte ? { ...item, lida: true } : item;
+        });
+        return json({ alteradas });
       }
       const partes = url.pathname.split("/");
       const arquivo = partes.at(-1) === "arquivo";

@@ -242,6 +242,21 @@ describe("interação da timeline de eventos", () => {
     );
   });
 
+  it("Cancelar descarta a correção do evento sem enviar nada", async () => {
+    // Arrange
+    const props = criarProps();
+    props.eventos = [criarEventoTeste({ marco_id: 3 })];
+    render(<MonitoramentoInternoEventos {...props} />);
+    await userEvent.click(screen.getByRole("button", { name: "Editar" }));
+    // Act
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    // Assert
+    expect(
+      screen.queryByRole("button", { name: "Salvar correção" }),
+    ).not.toBeInTheDocument();
+    expect(props.onEditar).not.toHaveBeenCalled();
+  });
+
   it("exclusão mantém erro seguro, permite cancelar e encaminha ID/motivo no sucesso", async () => {
     // Arrange
     const props = criarProps();
@@ -274,7 +289,7 @@ describe("interação da timeline de eventos", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Confirmar exclusão" }),
     );
-    expect(props.onExcluir).toHaveBeenLastCalledWith(21, "Duplicidade");
+    expect(props.onExcluir).toHaveBeenLastCalledWith(21, "Duplicidade", false);
     await waitFor(() =>
       expect(
         screen.queryByRole("button", { name: "Confirmar exclusão" }),

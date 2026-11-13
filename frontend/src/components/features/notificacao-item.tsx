@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { fmtData } from "@/lib/monitoramento-format";
+import { fmtDataHora } from "@/lib/monitoramento-format";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
 import { cn } from "@/lib/utils";
 import type { Notificacao } from "@/services/notificacoes";
@@ -47,7 +47,9 @@ export function NotificacaoItem({
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span>{ROTULOS_NOTIFICACAO[aviso.tipo]}</span>
-        <time dateTime={aviso.created_at}>{fmtData(aviso.created_at)}</time>
+        <time dateTime={aviso.created_at}>
+          {fmtDataHora(aviso.created_at)} (Brasília)
+        </time>
       </div>
       {aviso.corpo && (
         <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">

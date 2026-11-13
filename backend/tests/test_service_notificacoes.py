@@ -109,9 +109,8 @@ def test_marcar_notificacao_lida_usuario_sem_ser_destinatario_levanta_not_found_
         db.commit()
         notificacao_id = n.id
 
-        # Instrumento sem titular/suplente cadastrado cai no broadcast
-        # (resolver_destinatarios) -- nosso usuário de teste É destinatário
-        # aqui. Simula "outro usuário" usando um id que nunca foi
+        # Instrumento sem titular/suplente só avisa gestor/admin (resolver_destinatarios)
+        # -- nosso colaborador de teste NÃO é destinatário. Usa um id que nunca foi
         # materializado como destinatário: 0 não é um id de User válido.
         with pytest.raises(NotFoundError):
             marcar_notificacao_lida(db=db, notificacao_id=notificacao_id, usuario_id=0)

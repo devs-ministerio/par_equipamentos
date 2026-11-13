@@ -206,8 +206,11 @@ describe("interação das ações de monitoramento", () => {
     await userEvent.click(screen.getByRole("button", { name: "Editar" }));
     // Assert
     expect(screen.getAllByRole("textbox", { name: "Nova ação" })).toHaveLength(
-      2,
+      1,
     );
+    expect(
+      screen.getAllByRole("textbox", { name: "Corrigir ação" }),
+    ).toHaveLength(1);
     expect(
       screen.getAllByRole("combobox", { name: "Responsável" }),
     ).toHaveLength(2);
@@ -237,9 +240,9 @@ describe("interação das ações de monitoramento", () => {
       .getByRole("button", { name: "Salvar correção" })
       .closest("form")!;
     // Act / Assert
-    await userEvent.clear(within(form).getByLabelText("Nova ação"));
+    await userEvent.clear(within(form).getByLabelText("Corrigir ação"));
     await userEvent.type(
-      within(form).getByLabelText("Nova ação"),
+      within(form).getByLabelText("Corrigir ação"),
       "Descrição corrigida",
     );
     await userEvent.click(
@@ -250,7 +253,7 @@ describe("interação das ações de monitoramento", () => {
         screen.getByRole("button", { name: "Salvar correção" }),
       ).toBeEnabled(),
     );
-    expect(within(form).getByLabelText("Nova ação")).toHaveValue(
+    expect(within(form).getByLabelText("Corrigir ação")).toHaveValue(
       "Descrição corrigida",
     );
     await userEvent.click(
@@ -302,5 +305,19 @@ describe("interação das ações de monitoramento", () => {
         screen.queryByRole("button", { name: "Confirmar exclusão" }),
       ).not.toBeInTheDocument(),
     );
+  });
+
+  it("Cancelar descarta a correção sem enviar nada", async () => {
+    // Arrange
+    const props = criarProps();
+    render(<MonitoramentoInternoAcoes {...props} />);
+    await userEvent.click(screen.getByRole("button", { name: "Editar" }));
+    // Act
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    // Assert
+    expect(
+      screen.queryByRole("button", { name: "Salvar correção" }),
+    ).not.toBeInTheDocument();
+    expect(props.onEditar).not.toHaveBeenCalled();
   });
 });

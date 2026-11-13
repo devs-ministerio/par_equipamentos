@@ -33,7 +33,16 @@ from app.db.base import get_db
 from app.db.models import User, UserStatus
 from app.email import enviar_link
 from app.rate_limit import limiter
-from app.schemas import LoginRequest, PasswordRecoveryRequest, PasswordResetRequest, UserActivationRequest, UserRead
+from app.schemas import (
+    CsrfRead,
+    LoginRequest,
+    PasswordRecoveryRequest,
+    PasswordResetRequest,
+    SessaoIniciada,
+    StatusOk,
+    UserActivationRequest,
+    UserRead,
+)
 
 
 def _detalhes_requisicao(request: Request) -> dict:
@@ -47,7 +56,7 @@ def _detalhes_requisicao(request: Request) -> dict:
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login")
+@router.post("/login", response_model=SessaoIniciada)
 @limiter.limit("5/minute")
 def login(request: Request, corpo: LoginRequest, response: Response, db: Session = Depends(get_db)):
     """Seta cookies de sessao (access + refresh + csrf, Bloco 2 + Bloco 1
@@ -108,7 +117,7 @@ def login(request: Request, corpo: LoginRequest, response: Response, db: Session
     return {"status": "ok", "csrf_token": csrf_token}
 
 
-@router.post("/ativar")
+@router.post("/ativar", response_model=SessaoIniciada)
 @limiter.limit("5/minute")
 def ativar(request: Request, corpo: UserActivationRequest, response: Response, db: Session = Depends(get_db)):
     user = db.execute(
@@ -136,7 +145,7 @@ def ativar(request: Request, corpo: UserActivationRequest, response: Response, d
     return {"status": "ok", "csrf_token": csrf_token}
 
 
-@router.post("/esqueci-senha")
+@router.post("/esqueci-senha", response_model=StatusOk)
 @limiter.limit("3/minute")
 def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session = Depends(get_db)):
     user = db.execute(
@@ -166,7 +175,7 @@ def esqueci_senha(request: Request, corpo: PasswordRecoveryRequest, db: Session 
     return {"status": "ok"}
 
 
-@router.post("/redefinir-senha")
+@router.post("/redefinir-senha", response_model=SessaoIniciada)
 @limiter.limit("5/minute")
 def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Response, db: Session = Depends(get_db)):
     user = db.execute(
@@ -189,7 +198,7 @@ def redefinir_senha(request: Request, corpo: PasswordResetRequest, response: Res
     return {"status": "ok", "csrf_token": csrf_token}
 
 
-@router.post("/refresh")
+@router.post("/refresh", response_model=SessaoIniciada)
 @limiter.limit("30/minute")
 def refresh(request: Request, response: Response, db: Session = Depends(get_db)):
     """Rotaciona a sessao a partir do cookie de refresh -- reuso de um
@@ -204,7 +213,7 @@ def refresh(request: Request, response: Response, db: Session = Depends(get_db))
     return {"status": "ok", "csrf_token": csrf_token}
 
 
-@router.get("/csrf")
+@router.get("/csrf", response_model=CsrfRead)
 def fornecer_csrf(request: Request, response: Response):
     """Entrega a cópia CSRF à origem autorizada após um reload do frontend.
 
@@ -221,7 +230,7 @@ def fornecer_csrf(request: Request, response: Response):
     return {"csrf_token": csrf_token}
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=StatusOk)
 def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     """Revoga a sessao no servidor (Bloco 2) -- diferente do comportamento
     antigo (so removia o token do navegador, JWT continuava valido ate

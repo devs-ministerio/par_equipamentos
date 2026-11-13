@@ -129,3 +129,21 @@ def obter_existente(
             EquipamentoMarcador.chave_evidencia == chave_evidencia,
         )
     ).scalar_one_or_none()
+
+
+def ids_com_equipamento(db: Session, origem: OrigemMarcador, ids: set[int], nome: str) -> set[int]:
+    """Entre `ids`, os que financiam o equipamento `nome` (mesma regra do filtro de convênios)."""
+    if not ids:
+        return set()
+    coluna = {
+        "convenio": EquipamentoMarcador.convenio_id,
+        "proposta_candidata": EquipamentoMarcador.proposta_candidata_id,
+        "instrumento_equipamento": EquipamentoMarcador.instrumento_equipamento_id,
+    }[origem]
+    return set(
+        db.scalars(
+            select(coluna)
+            .join(EquipamentoCatalogo)
+            .where(coluna.in_(ids), EquipamentoCatalogo.nome == nome, marcador_de_financiamento())
+        )
+    )

@@ -21,6 +21,7 @@ from __future__ import annotations
 from datetime import date
 
 from app.db.base import SessionLocal
+from app.db.indices import garantir_indice_unico_fase_geral
 from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
 from app.db.seed_guard import recusar_se_producao
 
@@ -197,6 +198,7 @@ def run() -> None:
         db.flush()
         marcos_por_codigo = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
         print(f"Catálogo: {len(marcos_por_codigo)} marco(s).")
+        garantir_indice_unico_fase_geral(db.connection())
 
         cnes = db.get(CnesEstabelecimento, CNES_948686["cnes"])
         if cnes is None:

@@ -90,8 +90,15 @@ export function useEditarEvento(nrConvenio: string) {
 export function useExcluirEvento(nrConvenio: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ eventoId, motivo }: { eventoId: number; motivo: string }) =>
-      excluirEvento(eventoId, motivo),
+    mutationFn: ({
+      eventoId,
+      motivo,
+      anularInauguracao,
+    }: {
+      eventoId: number;
+      motivo: string;
+      anularInauguracao?: boolean;
+    }) => excluirEvento(eventoId, motivo, anularInauguracao),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: monitoramentoKeys.instrumento(nrConvenio),

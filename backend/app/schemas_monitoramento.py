@@ -7,6 +7,7 @@ depender um do outro."""
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -89,6 +90,14 @@ class EquipamentoInstrumentoResumo(BaseModel):
     entregue: int
 
 
+class LacunaConclusaoResumo(BaseModel):
+    """Lacuna de cadastro ou evidência na conclusão; não é atraso nem divergência administrativa (D42)."""
+
+    nr_convenio: str
+    nome_convenente: str
+    tipo: Literal["concluido_sem_data_conclusao", "concluido_sem_inauguracao_real", "andamento_sem_previsao"]
+
+
 class ResumoMonitoramentoRead(BaseModel):
     """1 chamada so pra pagina de overview (achado 2026-09-09, pedido do
     usuario: pagina INDEPENDENTE, nao so o detalhe de 1 convenio) -- tudo
@@ -119,4 +128,5 @@ class ResumoMonitoramentoRead(BaseModel):
     acoes_em_aberto: list[AcaoAbertaResumoRead]
     fila_acoes_truncada: bool
     equipamentos_por_instrumento: list[EquipamentoInstrumentoResumo]
+    lacunas_conclusao: list[LacunaConclusaoResumo] = []
     gerado_em: datetime

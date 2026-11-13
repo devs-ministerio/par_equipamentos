@@ -11,6 +11,10 @@ import { RelatorioPropostasTabela } from "@/components/features/relatorio-propos
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-carteira";
 import { RelatorioEncerradosPrevia } from "@/components/features/relatorio-encerrados-previa";
+import { RelatorioEntreguesPrevia } from "@/components/features/relatorio-entregues-previa";
+import { useRelatorioEntregues } from "@/hooks/use-relatorio-entregues";
+import { RelatorioPrevisoesPrevia } from "@/components/features/relatorio-previsoes-previa";
+import { useRelatorioPrevisoes } from "@/hooks/use-relatorio-previsoes";
 import { useRelatorioEncerrados } from "@/hooks/use-relatorio-encerrados";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
@@ -20,8 +24,17 @@ import { useRelatorioInstrumentosFiltros } from "@/hooks/use-relatorio-instrumen
 import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
 import { UF_INFO } from "@/data/geo-reference";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
+import { municipiosDoInstrumento } from "@/lib/municipio-filtro";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { decodificarSituacao, opcoesSituacao } from "@/lib/situacao-relatorio";
 import { estagioDeFato } from "@/lib/proposta-status";
+import {
+  equipamentosFinanciados,
+  mesclarOpcoes,
+  opcoesSituacaoDaVisao,
+  propostaCombina,
+  situacaoVale,
+} from "@/lib/recorte-relatorio";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
@@ -40,16 +53,20 @@ type IgnorarExtra = "municipio" | "cnes" | "estabelecimento";
  * tiver. */
 function opcoesAgrupadas(
   itens: ConvenioUnificado[],
-  valor: (item: ConvenioUnificado) => string | null | undefined,
+  valor: (
+    item: ConvenioUnificado,
+  ) => string | null | undefined | (string | null | undefined)[],
 ): { value: string; label: string }[] {
   const grupos = new Map<string, string[]>();
   for (const item of itens) {
-    const bruto = valor(item);
-    if (!bruto) continue;
-    const chave = normalizarTexto(bruto);
-    const lista = grupos.get(chave);
-    if (lista) lista.push(bruto);
-    else grupos.set(chave, [bruto]);
+    const encontrado = valor(item);
+    for (const bruto of Array.isArray(encontrado) ? encontrado : [encontrado]) {
+      if (!bruto) continue;
+      const chave = normalizarTexto(bruto);
+      const lista = grupos.get(chave);
+      if (lista) lista.push(bruto);
+      else grupos.set(chave, [bruto]);
+    }
   }
   return [...grupos.entries()]
     .map(([chave, brutos]) => ({
@@ -101,12 +118,31 @@ function opcoesUnicas(
  * junto), depois UF; `Estabelecimento`/`Equipamento` não têm campo próprio
  * ali, ficam só na prévia.
  */
+// Mesmos códigos de `CATEGORIAS_CONCLUSAO` no backend; as contagens reais chegam com a prévia.
+const SITUACOES_CONCLUSAO = [
+  { codigo: "concluido", rotulo: "Concluído" },
+  { codigo: "concluido_sem_data", rotulo: "Concluído sem data de conclusão" },
+  { codigo: "inaugurado", rotulo: "Em andamento, inaugurado" },
+  { codigo: "previsao_vigente", rotulo: "Em andamento, previsão vigente" },
+  { codigo: "previsao_vencida", rotulo: "Em andamento, previsão vencida" },
+  { codigo: "sem_previsao", rotulo: "Em andamento, sem previsão" },
+  { codigo: "nao_iniciado", rotulo: "Não iniciado" },
+];
+
 export function MonitoramentoRelatoriosPage() {
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
 
   const {
     encerramento,
     setEncerramento,
+    situacaoConclusao,
+    setSituacaoConclusao,
+    periodoPor,
+    setPeriodoPor,
+    dataInicio,
+    setDataInicio,
+    dataFim,
+    setDataFim,
     uf,
     setUf,
     situacao,
@@ -129,6 +165,11 @@ export function MonitoramentoRelatoriosPage() {
     hasFiltros,
     limparFiltros,
   } = useRelatorioInstrumentosFiltros();
+
+  const situacaoEscolhida = decodificarSituacao(situacao);
+  const origemSituacao = situacaoEscolhida?.origem ?? null;
+  const situacaoInstrumento =
+    origemSituacao === "instrumento" ? situacaoEscolhida!.valor : null;
 
   const conveniosQuery = useConveniosLista();
   const convenios = useMemo(
@@ -167,7 +208,7 @@ export function MonitoramentoRelatoriosPage() {
           municipio: null,
           cnes: null,
           equipamento,
-          situacao,
+          situacao: situacaoInstrumento,
           anoInicio: null,
           anoFim: null,
           programa,
@@ -183,7 +224,9 @@ export function MonitoramentoRelatoriosPage() {
           dentroDoPeriodo(item.anoInstrumento) &&
           (ignorarExtra === "municipio" ||
             !municipio ||
-            normalizarTexto(item.municipio) === municipio) &&
+            municipiosDoInstrumento(item).some(
+              (nome) => normalizarTexto(nome) === municipio,
+            )) &&
           (ignorarExtra === "cnes" || !cnes || item.cnes === cnes) &&
           (ignorarExtra === "estabelecimento" ||
             !nomeEstabelecimento ||
@@ -194,7 +237,7 @@ export function MonitoramentoRelatoriosPage() {
     [
       convenios,
       uf,
-      situacao,
+      situacaoInstrumento,
       dentroDoPeriodo,
       programa,
       tipoContratacao,
@@ -214,7 +257,7 @@ export function MonitoramentoRelatoriosPage() {
     ufs,
     equipamentoOptions,
     anoOptions,
-    situacaoOptions,
+    situacaoOptions: situacaoInstrumentoOptions,
     tipoContratacaoOptions,
     programaOptions,
   } = useDadosOficiaisOpcoes({
@@ -225,9 +268,8 @@ export function MonitoramentoRelatoriosPage() {
 
   const municipioOptions = useMemo(
     () =>
-      opcoesAgrupadas(
-        filtrarTudo(undefined, "municipio"),
-        (item) => item.municipio,
+      opcoesAgrupadas(filtrarTudo(undefined, "municipio"), (item) =>
+        municipiosDoInstrumento(item),
       ),
     [filtrarTudo],
   );
@@ -235,8 +277,6 @@ export function MonitoramentoRelatoriosPage() {
     () => opcoesUnicas(filtrarTudo(undefined, "cnes"), (item) => item.cnes),
     [filtrarTudo],
   );
-
-  const conveniosFiltrados = useMemo(() => filtrarTudo(), [filtrarTudo]);
 
   const instrumentosQuery = useMonitoramentoInstrumentos();
   const faseMonitoramento = useMemo(
@@ -250,6 +290,17 @@ export function MonitoramentoRelatoriosPage() {
     [instrumentosQuery.data],
   );
 
+  const conveniosFiltrados = useMemo(() => {
+    if (origemSituacao === "proposta") return [];
+    const base = filtrarTudo();
+    if (origemSituacao !== "monitoramento") return base;
+    const alvo = normalizarTexto(situacaoEscolhida!.valor);
+    return base.filter(
+      (item) =>
+        normalizarTexto(faseMonitoramento.get(item.numero) ?? "") === alvo,
+    );
+  }, [filtrarTudo, origemSituacao, situacaoEscolhida, faseMonitoramento]);
+
   const {
     propostas,
     total: totalPropostasFonte,
@@ -257,9 +308,68 @@ export function MonitoramentoRelatoriosPage() {
     erro: erroPropostas,
   } = usePropostasCandidatas();
 
+  const situacaoOptions = useMemo(
+    () =>
+      opcoesSituacao({
+        instrumento: situacaoInstrumentoOptions.map((o) => o.value),
+        monitoramento: [...new Set(faseMonitoramento.values())],
+        proposta: propostas
+          .map((p) => p.situacao_proposta)
+          .filter((v): v is string => Boolean(v)),
+      }),
+    [situacaoInstrumentoOptions, faseMonitoramento, propostas],
+  );
+
+  const situacaoDaVisaoOptions = useMemo(
+    () => opcoesSituacaoDaVisao(situacaoOptions, encerramento),
+    [situacaoOptions, encerramento],
+  );
+  // Programas e equipamentos que só existem nas propostas também entram nas opções (D04).
+  const programaTodasOptions = useMemo(
+    () =>
+      mesclarOpcoes(
+        programaOptions,
+        propostas.map((p) => p.nm_programa),
+      ),
+    [programaOptions, propostas],
+  );
+  const equipamentoTodasOptions = useMemo(
+    () =>
+      mesclarOpcoes(
+        equipamentoOptions,
+        propostas.flatMap(equipamentosFinanciados),
+      ),
+    [equipamentoOptions, propostas],
+  );
+
+  // Os tipos das propostas (ex.: FAF, PRONON) também são opções, mesmo sem instrumento do tipo.
+  const tipoOptions = useMemo(() => {
+    const existentes = new Set(tipoContratacaoOptions.map((o) => o.value));
+    const extras = [
+      ...new Set(propostas.map((p) => p.tipo_contratacao)),
+    ].filter((tipo) => !existentes.has(tipo));
+    return [
+      ...tipoContratacaoOptions,
+      ...extras.map((value) => ({ value, label: value })),
+    ];
+  }, [tipoContratacaoOptions, propostas]);
+
   const propostasFiltradas = useMemo(
     () =>
       propostas.filter((p) => {
+        if (
+          origemSituacao === "instrumento" ||
+          origemSituacao === "monitoramento"
+        )
+          return false;
+        if (tipoContratacao && tipoContratacao !== p.tipo_contratacao)
+          return false;
+        if (
+          situacaoEscolhida &&
+          normalizarTexto(p.situacao_proposta ?? "") !==
+            normalizarTexto(situacaoEscolhida.valor)
+        )
+          return false;
         if (uf && p.uf !== uf) return false;
         if (anoInicio || anoFim) {
           const anoProposta = Number(p.data_proposta?.slice(0, 4));
@@ -270,6 +380,7 @@ export function MonitoramentoRelatoriosPage() {
         if (municipio && normalizarTexto(p.municipio ?? "") !== municipio)
           return false;
         if (cnes && p.cnes !== cnes) return false;
+        if (!propostaCombina(p, { programa, equipamento })) return false;
         if (
           nomeEstabelecimento &&
           normalizarTexto(p.cnes_nome_estabelecimento ?? "") !==
@@ -278,7 +389,20 @@ export function MonitoramentoRelatoriosPage() {
           return false;
         return true;
       }),
-    [propostas, uf, anoInicio, anoFim, municipio, cnes, nomeEstabelecimento],
+    [
+      propostas,
+      uf,
+      anoInicio,
+      anoFim,
+      municipio,
+      cnes,
+      nomeEstabelecimento,
+      origemSituacao,
+      situacaoEscolhida,
+      tipoContratacao,
+      programa,
+      equipamento,
+    ],
   );
   const propostasConfirmadas = useMemo(
     () => propostasFiltradas.filter((p) => estagioDeFato(p) === "confirmada"),
@@ -316,7 +440,11 @@ export function MonitoramentoRelatoriosPage() {
   //    pro CNES correspondente (1:1 na prática, mesmo dado de origem do
   //    dropdown) quando CNES não foi selecionado à parte.
   const municipioItens = municipio
-    ? convenios.filter((item) => normalizarTexto(item.municipio) === municipio)
+    ? convenios.filter((item) =>
+        municipiosDoInstrumento(item).some(
+          (nome) => normalizarTexto(nome) === municipio,
+        ),
+      )
     : [];
   const ufsDoMunicipio = new Set(municipioItens.map((item) => item.uf));
   const municipioAmbiguo = Boolean(municipio && !uf && ufsDoMunicipio.size > 1);
@@ -355,6 +483,12 @@ export function MonitoramentoRelatoriosPage() {
           ? (UF_INFO[ufEfetiva ?? ""]?.nome ?? ufEfetiva ?? "")
           : "Brasil";
   const somenteEncerrados = encerramento === "encerrados";
+  const somenteEntregues = encerramento === "entregues";
+  const somentePrevisoes = encerramento === "previsoes";
+  // Período por data do evento (D02): conclusão em Concluídos, entrega em Equipamento entregue. Nas demais visões
+  // o período continua sendo o ano do instrumento.
+  const visaoPorEvento = somenteEncerrados || somenteEntregues;
+  const porDataDoEvento = visaoPorEvento && periodoPor === "data_do_evento";
   const filtroGeracao: FiltroRelatorio = {
     escopo: escopoGeracao,
     uf:
@@ -364,20 +498,45 @@ export function MonitoramentoRelatoriosPage() {
     municipio:
       escopoGeracao === "municipio" ? (municipio ?? undefined) : undefined,
     cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
-    anoInicio: anoInicio ? Number(anoInicio) : undefined,
-    anoFim: anoFim ? Number(anoFim) : undefined,
-    situacao: situacao ?? undefined,
+    anoInicio: anoInicio && !porDataDoEvento ? Number(anoInicio) : undefined,
+    anoFim: anoFim && !porDataDoEvento ? Number(anoFim) : undefined,
+    ...(porDataDoEvento
+      ? {
+          periodoPor: "data_do_evento" as const,
+          dataInicio: dataInicio ?? undefined,
+          dataFim: dataFim ?? undefined,
+        }
+      : {}),
+    situacao: situacaoEscolhida?.valor,
+    situacaoOrigem: situacaoEscolhida?.origem,
     programa: programa ?? undefined,
     tipoContratacao: tipoContratacao ?? undefined,
     equipamento: equipamento ?? undefined,
-    encerramento: somenteEncerrados ? "encerrados" : "todos",
+    encerramento: somenteEncerrados
+      ? "encerrados"
+      : somenteEntregues
+        ? "entregues"
+        : somentePrevisoes
+          ? "previsoes"
+          : "todos",
+    situacaoConclusao: somentePrevisoes
+      ? (situacaoConclusao ?? undefined)
+      : undefined,
   };
   const encerrados = useRelatorioEncerrados(filtroGeracao, somenteEncerrados);
+  const entregues = useRelatorioEntregues(filtroGeracao, somenteEntregues);
+  const previsoes = useRelatorioPrevisoes(filtroGeracao, somentePrevisoes);
+  // Cada visão conta uma entidade diferente: instrumentos na carteira e na conclusão, unidades físicas nas entregas.
+  const unidadeContagem = somenteEntregues ? "unidade" : "registro";
   const totalRegistros = somenteEncerrados
     ? (encerrados.data?.total ?? 0)
-    : conveniosFiltrados.length +
-      propostasConfirmadas.length +
-      propostasEmTramitacao.length;
+    : somenteEntregues
+      ? (entregues.data?.total ?? 0)
+      : somentePrevisoes
+        ? (previsoes.data?.total ?? 0)
+        : conveniosFiltrados.length +
+          propostasConfirmadas.length +
+          propostasEmTramitacao.length;
 
   return (
     <div className="flex flex-col gap-7 pb-8">
@@ -398,7 +557,7 @@ export function MonitoramentoRelatoriosPage() {
             </div>
             <div>
               <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
-                Registros
+                {somenteEntregues ? "Unidades" : "Registros"}
               </p>
               <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                 {totalRegistros.toLocaleString("pt-BR")}
@@ -414,7 +573,7 @@ export function MonitoramentoRelatoriosPage() {
       <FilterWorkspace
         hasAnyFilter={hasFiltros}
         onClear={limparFiltros}
-        contagem={`${totalRegistros} ${totalRegistros === 1 ? "registro" : "registros"} na prévia`}
+        contagem={`${totalRegistros} ${totalRegistros === 1 ? unidadeContagem : `${unidadeContagem}s`} na prévia`}
         className="mb-0 rounded-sm border border-border bg-card p-4 sm:p-5"
       >
         <div className="flex w-full flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
@@ -432,16 +591,58 @@ export function MonitoramentoRelatoriosPage() {
           </div>
         </div>
         <SingleSelectFilter
-          placeholder="Conclusão"
-          options={[{ value: "encerrados", label: "Concluídos" }]}
+          placeholder="Visão"
+          options={[
+            { value: "previsoes", label: "Conclusão e previsões" },
+            { value: "encerrados", label: "Concluídos (detalhe)" },
+            { value: "entregues", label: "Entregas (unidades)" },
+          ]}
           value={encerramento}
-          onChange={setEncerramento}
-          clearLabel="Todos"
-          minWidth={150}
+          onChange={(valor) => {
+            setEncerramento(valor);
+            setSituacaoConclusao(null);
+            if (!situacaoVale(situacao, valor)) setSituacao(null);
+            if (!valor || valor === "previsoes") {
+              setPeriodoPor(null);
+              setDataInicio(null);
+              setDataFim(null);
+            }
+          }}
+          clearLabel="Carteira e financiamento"
+          minWidth={190}
         />
+        {somentePrevisoes && (
+          <SingleSelectFilter
+            placeholder="Situação da conclusão"
+            options={(previsoes.data?.contagens ?? SITUACOES_CONCLUSAO).map(
+              (c) => ({ value: c.codigo, label: c.rotulo }),
+            )}
+            value={situacaoConclusao}
+            onChange={setSituacaoConclusao}
+            clearLabel="Todas as situações"
+            minWidth={200}
+          />
+        )}
+        {visaoPorEvento && (
+          <SingleSelectFilter
+            placeholder="Período por"
+            options={[
+              {
+                value: "data_do_evento",
+                label: somenteEntregues
+                  ? "Data da entrega"
+                  : "Data da conclusão",
+              },
+            ]}
+            value={periodoPor}
+            onChange={setPeriodoPor}
+            clearLabel="Ano do instrumento"
+            minWidth={170}
+          />
+        )}
         <SingleSelectFilter
           placeholder="Contratação"
-          options={tipoContratacaoOptions}
+          options={tipoOptions}
           value={tipoContratacao}
           onChange={setTipoContratacao}
           clearLabel="Contratação"
@@ -473,38 +674,65 @@ export function MonitoramentoRelatoriosPage() {
         />
         <SingleSelectFilter
           placeholder="Equipamento"
-          options={equipamentoOptions}
+          options={equipamentoTodasOptions}
           value={equipamento}
           onChange={setEquipamento}
           clearLabel="Equipamento"
           minWidth={160}
         />
-        <SingleSelectFilter
-          placeholder="Situação"
-          options={situacaoOptions}
-          value={situacao}
-          onChange={setSituacao}
-          clearLabel="Situação"
-          minWidth={150}
-        />
+        {!somenteEntregues && (
+          <SingleSelectFilter
+            placeholder="Situação"
+            options={situacaoDaVisaoOptions}
+            value={situacao}
+            onChange={setSituacao}
+            clearLabel="Situação"
+            minWidth={150}
+          />
+        )}
         <SingleSelectFilter
           placeholder="Programas"
-          options={programaOptions}
+          options={programaTodasOptions}
           value={programa}
           onChange={setPrograma}
           clearLabel="Programas"
           minWidth={160}
         />
-        <AnoIntervaloFilter
-          options={anoOptions}
-          inicio={anoInicio}
-          fim={anoFim}
-          onInicioChange={setAnoInicio}
-          onFimChange={setAnoFim}
-        />
+        {porDataDoEvento ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <label className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">De</span>
+              <input
+                type="date"
+                value={dataInicio ?? ""}
+                max={dataFim ?? undefined}
+                onChange={(e) => setDataInicio(e.target.value || null)}
+                className="h-9 rounded-md border border-border bg-background px-2"
+              />
+            </label>
+            <label className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Até</span>
+              <input
+                type="date"
+                value={dataFim ?? ""}
+                min={dataInicio ?? undefined}
+                onChange={(e) => setDataFim(e.target.value || null)}
+                className="h-9 rounded-md border border-border bg-background px-2"
+              />
+            </label>
+          </div>
+        ) : (
+          <AnoIntervaloFilter
+            options={anoOptions}
+            inicio={anoInicio}
+            fim={anoFim}
+            onInicioChange={setAnoInicio}
+            onFimChange={setAnoFim}
+          />
+        )}
       </FilterWorkspace>
 
-      {!somenteEncerrados && (
+      {!somenteEncerrados && !somenteEntregues && (
         <>
           <p className="text-xs leading-relaxed text-muted-foreground">
             Indicadores e tabelas abaixo descrevem somente a prévia carregada.
@@ -544,7 +772,48 @@ export function MonitoramentoRelatoriosPage() {
         </div>
       </div>
 
-      {somenteEncerrados ? (
+      {somentePrevisoes ? (
+        previsoes.isLoading ? (
+          <Skeleton
+            className="h-64 w-full"
+            role="status"
+            aria-label="Carregando previsões"
+          />
+        ) : previsoes.isError ? (
+          <ErrorAlert
+            mensagem={mensagemSeguraDoErro(previsoes.error)}
+            onRetry={() => previsoes.refetch()}
+          />
+        ) : previsoes.data ? (
+          <RelatorioPrevisoesPrevia
+            itens={previsoes.data.itens}
+            total={previsoes.data.total}
+            contagens={previsoes.data.contagens}
+            pagina={previsoes.pagina}
+            onPaginaChange={previsoes.setPagina}
+          />
+        ) : null
+      ) : somenteEntregues ? (
+        entregues.isLoading ? (
+          <Skeleton
+            className="h-64 w-full"
+            role="status"
+            aria-label="Carregando entregues"
+          />
+        ) : entregues.isError ? (
+          <ErrorAlert
+            mensagem={mensagemSeguraDoErro(entregues.error)}
+            onRetry={() => entregues.refetch()}
+          />
+        ) : entregues.data ? (
+          <RelatorioEntreguesPrevia
+            itens={entregues.data.itens}
+            total={entregues.data.total}
+            pagina={entregues.pagina}
+            onPaginaChange={entregues.setPagina}
+          />
+        ) : null
+      ) : somenteEncerrados ? (
         encerrados.isLoading ? (
           <Skeleton
             className="h-64 w-full"
@@ -580,7 +849,7 @@ export function MonitoramentoRelatoriosPage() {
         ) : null
       ) : (
         <>
-          {conveniosQuery.isLoading ? (
+          {origemSituacao === "proposta" ? null : conveniosQuery.isLoading ? (
             <Skeleton
               className="h-64 w-full"
               role="status"
@@ -607,7 +876,8 @@ export function MonitoramentoRelatoriosPage() {
             />
           ) : erroPropostas ? (
             <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
-          ) : (
+          ) : origemSituacao === "instrumento" ||
+            origemSituacao === "monitoramento" ? null : (
             <>
               <RelatorioPropostasTabela
                 titulo="Parcerias confirmadas"
@@ -627,6 +897,7 @@ export function MonitoramentoRelatoriosPage() {
       )}
 
       <RelatorioBotoesGerar
+        formatoUnico={somenteEncerrados || somenteEntregues || somentePrevisoes}
         nivel={nivel}
         onNivelChange={setNivel}
         podeGerar={
@@ -635,6 +906,14 @@ export function MonitoramentoRelatoriosPage() {
           (!somenteEncerrados ||
             Boolean(
               encerrados.data && !encerrados.isFetching && !encerrados.isError,
+            )) &&
+          (!somenteEntregues ||
+            Boolean(
+              entregues.data && !entregues.isFetching && !entregues.isError,
+            )) &&
+          (!somentePrevisoes ||
+            Boolean(
+              previsoes.data && !previsoes.isFetching && !previsoes.isError,
             ))
         }
         gerando={gerando}

@@ -62,6 +62,12 @@
   --painel-chart-ardosia: #667385;
   --painel-chart-terra: #8a5a3c;
   --painel-chart-celeste: #5aa9e6;
+  /* Fases: extremos fixos (cinza = não iniciado, verde = concluído) e rampa azul
+     clara -> escura para as intermediárias, na ordem do catálogo. */
+  --painel-fase-nao-iniciado: #8b95a5;
+  --painel-fase-concluido: #2e7d32;
+  --painel-fase-inicio: #bcd0f2;
+  --painel-fase-fim: #1f3a7a;
   /* Faixa de assinatura: as quatro cores do laço do logotipo (identidade SISGEO). */
   --laco-azul: #2a4d9b;
   --laco-roxo: #6d3fa0;

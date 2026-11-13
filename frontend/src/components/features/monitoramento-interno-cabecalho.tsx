@@ -39,6 +39,7 @@ export function MonitoramentoInternoCabecalho({
   const documentoLicenca = numeroScra
     ? `SCRA ${numeroScra}`
     : "SCRA não informado";
+  const licencaDeferida = registroLicenca?.status_regulatorio === "Deferido";
   const emissaoLicenca = registroLicenca?.data_ocorrencia
     ? fmtData(registroLicenca.data_ocorrencia)
     : "Data de emissão não informada";
@@ -56,12 +57,21 @@ export function MonitoramentoInternoCabecalho({
   const indicadores = [
     {
       rotulo: "Licença CNEN",
+      // Só licença deferida tem "emissão"; processo indeferido ou em análise mostra o andamento (D26).
       valor: registroLicenca
-        ? `${documentoLicenca} — ${emissaoLicenca}`
+        ? `${documentoLicenca} — ${
+            licencaDeferida
+              ? emissaoLicenca
+              : (registroLicenca.status_regulatorio ?? "Sem desfecho informado")
+          }`
         : origemAlternativa
           ? "Não informada na fonte"
           : "Sem registro",
-      detalhe: registroLicenca?.status_regulatorio ?? undefined,
+      detalhe: licencaDeferida
+        ? "Deferido"
+        : registroLicenca
+          ? "Licença ainda não emitida"
+          : undefined,
       alerta: alertaLicenca,
     },
     {
@@ -100,7 +110,9 @@ export function MonitoramentoInternoCabecalho({
           },
         ]
       : []),
-    ...(inst.situacao_programa
+    // Só PERSUS I tem "Situação do programa" (regra do produto, 29/10/2026); nos demais tipos o dado fica
+    // guardado, mas não é exibido como indicador.
+    ...(inst.situacao_programa && inst.tipo_contratacao === "PERSUS I"
       ? [
           {
             rotulo: "Situação do programa",
@@ -116,7 +128,7 @@ export function MonitoramentoInternoCabecalho({
     // nesta API (testado ao vivo) -- por isso mostra a ordem de
     // pagamento (sinal real de dinheiro executado) como detalhe, não
     // como "concluído"/"pendente" binário.
-    ...(inst.tipo_contratacao === "Parceria TransfereGov"
+    ...(inst.tipo_contratacao === "FAF"
       ? [
           {
             rotulo: "Situação (TransfereGov)",

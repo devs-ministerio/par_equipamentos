@@ -29,7 +29,7 @@ export function RelatorioResumoCarteira({
       icon: FileCheck2,
     },
     {
-      label: "Propostas em tramitação",
+      label: "Propostas e solicitações",
       value: propostas,
       detalhe: "linhas de financiamento",
       icon: FileClock,

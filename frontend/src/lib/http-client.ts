@@ -251,7 +251,9 @@ export async function httpFetch(
       typeof window !== "undefined" &&
       window.location.pathname !== "/login"
     ) {
-      window.location.assign("/login");
+      // Guarda página, filtros e fragmento para voltar ao mesmo contexto após o login.
+      const retorno = `${window.location.pathname}${window.location.search ?? ""}${window.location.hash ?? ""}`;
+      window.location.assign(`/login?retorno=${encodeURIComponent(retorno)}`);
     }
   }
   return res;

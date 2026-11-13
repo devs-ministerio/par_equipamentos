@@ -54,7 +54,11 @@ export function MonitoramentoInternoEventos({
     eventoId: number,
     valores: EnviarEventoFormValues,
   ) => Promise<void>;
-  onExcluir: (eventoId: number, motivo: string) => Promise<void>;
+  onExcluir: (
+    eventoId: number,
+    motivo: string,
+    anularInauguracao?: boolean,
+  ) => Promise<void>;
 }) {
   const [formAberto, setFormAberto] = useState(false);
   const [eventoEmEdicao, setEventoEmEdicao] = useState<number | null>(null);
@@ -223,6 +227,7 @@ export function MonitoramentoInternoEventos({
                     marcoFixo={marco}
                     valoresIniciais={valoresIniciaisDoEvento(ev)}
                     rotuloSubmit="Salvar correção"
+                    onCancelar={() => setEventoEmEdicao(null)}
                     onRegistrar={async (valores) => {
                       await onEditar(ev.id, valores);
                       setEventoEmEdicao(null);
@@ -232,8 +237,13 @@ export function MonitoramentoInternoEventos({
 
                 {emExclusao && (
                   <ConfirmarExclusaoComMotivo
-                    onExcluir={async (motivo) => {
-                      await onExcluir(ev.id, motivo);
+                    opcaoExtra={
+                      marco?.codigo === "fase_concluido"
+                        ? "Anular também a inauguração gerada com esta conclusão (mesma data). Sem marcar, a inauguração continua válida."
+                        : undefined
+                    }
+                    onExcluir={async (motivo, anularInauguracao) => {
+                      await onExcluir(ev.id, motivo, anularInauguracao);
                       setEventoEmExclusao(null);
                     }}
                     onCancelar={() => setEventoEmExclusao(null)}

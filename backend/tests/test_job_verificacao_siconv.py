@@ -67,7 +67,7 @@ def test_diff_agrupa_todos_os_campos_do_registro_principal():
     mudancas = comparar_campos_oficiais(anterior, novo)
 
     assert len(mudancas) == 3
-    assert "VL_GLOBAL_CONV: 100,00 → 150,00" in resumo_campos(mudancas)
+    assert "Valor global: 100,00 → 150,00" in resumo_campos(mudancas)
     assert comparar_campos_oficiais(novo, novo) == {}
 
 
@@ -95,3 +95,11 @@ def test_vigencia_ausente_preserva_coluna_confirmada():
     reconciliar_registro(convenio, None, {"DIA_FIM_VIGENC_CONV": ""})
     # Assert
     assert convenio.data_final_vigencia == date(2026, 10, 31)
+
+
+def test_campo_do_convenio_so_com_zeros_a_esquerda_nao_vira_mudanca():
+    from scripts.job_verificacao_siconv import comparar_campos_oficiais
+
+    anterior = {"UG_RESPONSAVEL": "000000", "NR_PROCESSO_LICITACAO": "000002", "VL_GLOBAL_CONV": "100,00"}
+    novo = {"UG_RESPONSAVEL": "0", "NR_PROCESSO_LICITACAO": "002", "VL_GLOBAL_CONV": "150,00"}
+    assert comparar_campos_oficiais(anterior, novo) == {"VL_GLOBAL_CONV": ("100,00", "150,00")}

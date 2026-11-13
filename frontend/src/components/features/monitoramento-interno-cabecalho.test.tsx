@@ -9,6 +9,7 @@ function renderizar(
     nr_convenio: "825374",
     tipo_contratacao: "Convênio",
   },
+  extra: Record<string, unknown> = {},
 ) {
   const timeline = {
     instrumento: {
@@ -17,6 +18,7 @@ function renderizar(
       municipio: "Urussanga",
       uf: "SC",
       situacao_prestacao_contas: situacao,
+      ...extra,
     },
     ao_vivo: { disponivel: false },
   } as unknown as InstrumentoTimeline;
@@ -68,5 +70,29 @@ describe("MonitoramentoInternoCabecalho", () => {
   it("não mostra NUP em convênio", () => {
     renderizar(null);
     expect(screen.queryByText(/^NUP /)).not.toBeInTheDocument();
+  });
+
+  it("mostra a situação do programa só em PERSUS I", () => {
+    renderizar(
+      null,
+      { nr_convenio: "PS1-1", tipo_contratacao: "PERSUS I" },
+      { situacao_programa: "Em operação" },
+    );
+
+    expect(screen.getByText("Situação do programa")).toBeInTheDocument();
+    expect(screen.getByText("Em operação")).toBeInTheDocument();
+  });
+
+  it("não mostra a situação do programa em convênio, mesmo preenchida", () => {
+    renderizar(
+      "Prestação de Contas Concluída",
+      { nr_convenio: "825374", tipo_contratacao: "Convênio" },
+      { situacao_programa: "Prestação de Contas Concluída" },
+    );
+
+    expect(screen.queryByText("Situação do programa")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Prestação de contas (SICONV)"),
+    ).toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { ContagemRotulo } from "@/services/monitoramento-resumo";
-import { PALETA_CATEGORICA } from "@/lib/monitoramento-painel-palette";
+import { COR_RANKING } from "@/lib/monitoramento-painel-palette";
 
 export function PainelSecao({
   titulo,
@@ -36,11 +36,15 @@ export function DistribuicaoHorizontal({
   total?: number;
   limite?: number;
 }) {
-  const visiveis = limite ? itens.slice(0, limite) : itens;
+  const [expandido, setExpandido] = useState(false);
+  const cortado = Boolean(limite) && !expandido && itens.length > (limite ?? 0);
+  const visiveis = cortado ? itens.slice(0, limite) : itens;
+  const restantes = cortado ? itens.slice(limite) : [];
+  const somaRestantes = restantes.reduce((s, i) => s + i.quantidade, 0);
   const maior = Math.max(1, ...visiveis.map((item) => item.quantidade));
   return (
     <div className="divide-y divide-border">
-      {visiveis.map((item, indice) => (
+      {visiveis.map((item) => (
         <div
           key={item.rotulo}
           className="grid grid-cols-[minmax(0,1.5fr)_minmax(3rem,3fr)_auto] items-center gap-3 py-3 transition-colors duration-150 hover:bg-muted/30"
@@ -59,8 +63,7 @@ export function DistribuicaoHorizontal({
               className="h-full rounded-sm"
               style={{
                 width: `${(item.quantidade / maior) * 100}%`,
-                backgroundColor:
-                  PALETA_CATEGORICA[indice % PALETA_CATEGORICA.length],
+                backgroundColor: COR_RANKING,
               }}
             />
           </div>
@@ -74,6 +77,31 @@ export function DistribuicaoHorizontal({
           </span>
         </div>
       ))}
+      {cortado && (
+        <div className="flex flex-wrap items-center justify-between gap-2 py-3 text-xs text-muted-foreground">
+          <span>
+            + {restantes.length} outras categorias ({somaRestantes} no total)
+          </span>
+          <button
+            type="button"
+            onClick={() => setExpandido(true)}
+            className="cursor-pointer font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            Ver todos
+          </button>
+        </div>
+      )}
+      {limite && expandido && itens.length > limite && (
+        <div className="py-3 text-right text-xs">
+          <button
+            type="button"
+            onClick={() => setExpandido(false)}
+            className="cursor-pointer font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            Mostrar menos
+          </button>
+        </div>
+      )}
     </div>
   );
 }

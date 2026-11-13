@@ -75,12 +75,10 @@ def matriz():
 )
 @pytest.mark.parametrize("dono", [None, "titular", "inativo", "suspenso", "leitor", "excluido"])
 def test_matriz_de_responsabilidade_materializa_apenas_destinatarios_autorizados(matriz, tipo, dono):
-    # Arrange: vínculo cadastrado não é removido por inatividade/exclusão.
+    # Arrange: vínculo cadastrado não é removido por inatividade/exclusão. Sem dono (`None`), só gestor/admin.
     db, usuarios, instrumento, convenio = matriz
     esperados = {usuarios["admin"].id, usuarios["gestor"].id}
-    if dono is None:
-        esperados.update(usuarios[n].id for n in ("titular", "suplente", "outro"))
-    else:
+    if dono is not None:
         db.add(InstrumentoResponsavel(instrumento_id=instrumento.id, usuario_id=usuarios[dono].id, papel="titular"))
         if dono == "titular":
             db.add(
@@ -94,7 +92,7 @@ def test_matriz_de_responsabilidade_materializa_apenas_destinatarios_autorizados
     # Act: Repository e persistência reais; não substitui domínio por mocks.
     aviso = criar_notificacao(db, Notificacao(tipo=tipo, titulo="Mudança sintética agrupada", entidade_id=entidade_id))
     db.commit()
-    # Assert: conjunto exato, sem leitor/inativo/excluído ou colaborador alheio.
+    # Assert: conjunto exato, sem leitor/inativo/excluído ou colaborador alheio (inclusive sem dono).
     destinatarios = list(
         db.scalars(select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == aviso.id))
     )
@@ -141,3 +139,21 @@ def test_responsavel_inativo_sem_gestores_nao_amplia_escopo(matriz, tipo):
         list(db.scalars(select(NotificacaoDestinatario.id).where(NotificacaoDestinatario.notificacao_id == aviso.id)))
         == []
     )
+
+
+def test_alerta_de_vigencia_sem_instrumento_monitorado_vai_so_a_gestor_e_admin(matriz):
+    # Arrange: convênio sem InstrumentoEquipamento correspondente.
+    db, usuarios, _, _ = matriz
+    sem_monitoramento = Convenio(numero="999", convenente_nome="Sem monitoramento")
+    db.add(sem_monitoramento)
+    db.commit()
+    # Act
+    aviso = criar_notificacao(
+        db, Notificacao(tipo=NotificacaoTipo.alerta_vigencia, titulo="Vigência", entidade_id=sem_monitoramento.id)
+    )
+    db.commit()
+    # Assert: colaborador não recebe.
+    ids = set(
+        db.scalars(select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == aviso.id))
+    )
+    assert ids == {usuarios["admin"].id, usuarios["gestor"].id}

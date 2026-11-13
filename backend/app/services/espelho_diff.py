@@ -4,7 +4,9 @@ Regras do espelho oficial:
 - sem baseline (primeira captura) não há diferença a anunciar;
 - campo ou item ausente da nova resposta nunca é tratado como remoção, só
   sinalizado como ``ausentes``; o valor anterior é preservado;
-- valores são comparados como texto, como a fonte os publica.
+- valores são comparados como texto, como a fonte os publica; só números inteiros em texto
+  (apenas dígitos) ignoram zeros à esquerda, porque a fonte alterna `15`, `015` e `0015` sem que nada tenha
+  mudado. O valor guardado segue sendo o publicado; só o aviso deixa de ser gerado.
 """
 
 from __future__ import annotations
@@ -16,6 +18,16 @@ from typing import Any
 Registro = dict[str, Any]
 
 
+def mesmo_valor(antigo: Any, novo: Any) -> bool:
+    """Igualdade de texto, tolerando zeros à esquerda quando os dois lados são só dígitos."""
+    a, b = str(antigo), str(novo)
+    if a == b:
+        return True
+    if a.isascii() and b.isascii() and a.isdigit() and b.isdigit():
+        return a.lstrip("0") == b.lstrip("0")
+    return False
+
+
 def diff_campos(antigo: Registro | None, novo: Registro) -> dict[str, tuple[str, str]]:
     """Campos escalares presentes nos dois lados e com valor diferente."""
     if not antigo:
@@ -23,7 +35,7 @@ def diff_campos(antigo: Registro | None, novo: Registro) -> dict[str, tuple[str,
     return {
         campo: (str(antigo[campo]), str(valor))
         for campo, valor in novo.items()
-        if campo in antigo and not isinstance(valor, (dict, list)) and str(antigo[campo]) != str(valor)
+        if campo in antigo and not isinstance(valor, (dict, list)) and not mesmo_valor(antigo[campo], valor)
     }
 
 

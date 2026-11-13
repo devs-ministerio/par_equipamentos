@@ -66,6 +66,7 @@ const convenioApiSchema = z.object({
   equipamentos: z.array(equipamentoMarcadorApiSchema),
   cnes: z.string().nullable(),
   cnes_nome_estabelecimento: z.string().nullable(),
+  cnes_municipio: z.string().nullable(),
 });
 
 const convenioDetalheApiSchema = convenioApiSchema.extend({
@@ -113,6 +114,7 @@ function toConvenioUnificado(c: ConvenioApi): ConvenioUnificado {
     numeroProcesso: c.numero_processo ?? "",
     cnes: c.cnes,
     cnesNomeEstabelecimento: c.cnes_nome_estabelecimento,
+    cnesMunicipio: c.cnes_municipio,
     programa: c.programa,
     equipamentos: c.equipamentos.map((equipamento) => ({
       codigo: equipamento.codigo,

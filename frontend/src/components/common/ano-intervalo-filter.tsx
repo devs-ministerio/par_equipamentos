@@ -17,6 +17,7 @@ export function AnoIntervaloFilter({
   onInicioChange,
   onFimChange,
   onIntervaloChange,
+  rotuloBase = "Ano do instrumento",
 }: {
   options: SingleSelectOption[];
   inicio: string | null;
@@ -25,8 +26,11 @@ export function AnoIntervaloFilter({
   onFimChange: (value: string | null) => void;
   /** Atualização atômica para consumidores cujo estado vive na URL. */
   onIntervaloChange?: (inicio: string | null, fim: string | null) => void;
+  /** Diz o que o intervalo seleciona: é o ano de origem do registro, não a data de um evento (D41). */
+  rotuloBase?: string;
 }) {
-  const rotulo = inicio || fim ? `${inicio ?? "…"} — ${fim ?? "…"}` : "Período";
+  const rotulo =
+    inicio || fim ? `${inicio ?? "…"} — ${fim ?? "…"}` : rotuloBase;
   const atualizarInicio = (value: string | null) => {
     if (onIntervaloChange) {
       onIntervaloChange(
@@ -68,7 +72,9 @@ export function AnoIntervaloFilter({
         align="start"
         className="z-[2000] w-[min(320px,calc(100vw-2rem))] space-y-3"
       >
-        <p className="text-xs font-semibold text-muted-foreground">Período</p>
+        <p className="text-xs font-semibold text-muted-foreground">
+          {rotuloBase}
+        </p>
         <SingleSelectFilter
           placeholder="Ano início"
           options={options}

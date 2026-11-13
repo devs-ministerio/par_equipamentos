@@ -173,12 +173,16 @@ export function AjudaCampo({ id, texto }: { id: string; texto?: string }) {
 export function ConfirmarExclusaoComMotivo({
   onExcluir,
   onCancelar,
+  opcaoExtra,
 }: {
-  onExcluir: (motivo: string) => Promise<void>;
+  onExcluir: (motivo: string, opcaoExtraMarcada: boolean) => Promise<void>;
   onCancelar: () => void;
+  /** Escolha explícita que acompanha a exclusão (ex.: anular o fato vinculado); começa desmarcada. */
+  opcaoExtra?: string;
 }) {
   const motivoId = useId();
   const [motivo, setMotivo] = useState("");
+  const [extraMarcada, setExtraMarcada] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -200,6 +204,17 @@ export function ConfirmarExclusaoComMotivo({
         placeholder="Explique por que este lançamento está sendo excluído..."
       />
       <ErroCampo id={`${motivoId}-error`} mensagem={erro ?? undefined} />
+      {opcaoExtra && (
+        <label className="mt-2 flex items-start gap-2 text-[11.5px] text-foreground">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={extraMarcada}
+            onChange={(e) => setExtraMarcada(e.target.checked)}
+          />
+          <span>{opcaoExtra}</span>
+        </label>
+      )}
       <div className="flex gap-2 mt-2">
         <button
           type="button"
@@ -212,7 +227,7 @@ export function ConfirmarExclusaoComMotivo({
             setErro(null);
             setEnviando(true);
             try {
-              await onExcluir(motivo.trim());
+              await onExcluir(motivo.trim(), extraMarcada);
             } catch (e) {
               setErro(mensagemSeguraDoErro(e));
             } finally {

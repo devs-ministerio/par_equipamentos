@@ -317,9 +317,13 @@ function MonitoramentoInternoConteudo({
                 }),
               )
             }
-            onExcluir={(eventoId, motivo) =>
+            onExcluir={(eventoId, motivo, anularInauguracao) =>
               executarEscrita(() =>
-                excluirEventoMutation.mutateAsync({ eventoId, motivo }),
+                excluirEventoMutation.mutateAsync({
+                  eventoId,
+                  motivo,
+                  anularInauguracao,
+                }),
               )
             }
           />

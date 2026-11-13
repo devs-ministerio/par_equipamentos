@@ -314,6 +314,14 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   monitoramento a mostra como rótulo (a fila de classificação a mostra de propósito, para revisão). O front não
   tem mais `nomeSemCodigo`: usar sempre `item.nome`.
 
+- **Filtro por município vale para o convenente e para o estabelecimento (CNES)** (2026-10-26): o 968527
+  (convenente FUNDES, sede em São Paulo; CNES do HC da Unicamp, em Campinas) não aparecia em "Campinas" nos
+  relatórios. Agora `Convenio.municipio` OU o município do CNES do instrumento (`repositories/cnes_municipio.py`,
+  usado em `listar_convenios_filtrados` e `listar_propostas_filtradas`); a API de convênios expõe
+  `cnes_municipio` e o front usa `municipiosDoInstrumento` (Dados oficiais e Relatórios) para filtro e opções.
+  Monitoramento interno continua pelo município do próprio instrumento. Propostas candidatas no front seguem
+  pelo município da proposta (a API de propostas não traz o município do CNES).
+
 ## Limitações conhecidas
 
 - **Cobertura/déficit/distância sem granularidade por equipamento
@@ -1111,10 +1119,9 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
 - **Regra de escopo** (`resolver_destinatarios`): `atualizacao_api`/`edicao_manual` (`entidade_id` =
   `InstrumentoEquipamento.id`) vão pra titular + suplente (`InstrumentoResponsavel`, já existente
   desde antes deste plan-mode) **união** todo `gestor`/`admin` ativo — `gestor`/`admin` recebem
-  TUDO, independente de estarem designados. Sem titular/suplente cadastrado, cai no broadcast (todo
-  `colaborador`/`gestor`/`admin` ativo) — mas na prática esse fallback quase nunca dispara, porque
-  gestor/admin já tornam o conjunto não-vazio (só dispara se não houver NENHUM gestor/admin ativo no
-  sistema). `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
+  TUDO, independente de estarem designados. Sem titular/suplente cadastrado, **só `gestor`/`admin`** recebem
+  (decisão do usuário, 03/11/2026; antes caía no broadcast para todo colaborador, o que espalhou 154 avisos de
+  instrumentos sem dono em outubro). Aviso já enviado não foi alterado. `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
   `leitor` nunca entra em nenhum branch, mesmo sendo titular/suplente hipoteticamente.
 - **Tipo novo `alerta_vigencia`**: fim de vigência do convênio a 3 meses (`Convenio.
   data_final_vigencia`, `entidade_id` = `Convenio.id`) — job novo `backend/scripts/
@@ -1425,6 +1432,11 @@ revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimento
   seção seguido de tabela longa (mais de 6 linhas) usa o estilo "Titulo 1 solto", sem `keepNext`: com o título preso à
   tabela, o Word/Pages empurrava a tabela inteira para a página seguinte. O Excel mantém as abas "Critérios" e "Leitura".
 - **Pendente (pedido do usuário):** levar a organização da visão "Concluídos" para a visão "Todos".
+- **Situação única e "Equipamento entregue" (28/10/2026):** o filtro Situação é uma lista agrupada (Instrumento,
+  Monitoramento, Proposta); o valor leva a origem (`situacao_origem`) e as seções de outras origens somem da prévia e
+  do arquivo. O filtro Conclusão ganhou "Equipamento entregue" (`GET /relatorios/entregues`, uma linha por unidade
+  entregue). Programa, tipo e equipamento também filtram propostas e monitoramento no backend; a prévia de propostas
+  aplica origem, situação, tipo, UF, período e local (programa/equipamento só no arquivo).
 
 ## Comandos úteis
 

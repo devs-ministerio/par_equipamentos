@@ -18,7 +18,7 @@ describe("RelatorioResumoCarteira", () => {
     ).toBeVisible();
     expect(screen.getByText("Instrumentos e programas")).toBeVisible();
     expect(screen.getByText("Parcerias confirmadas")).toBeVisible();
-    expect(screen.getByText("Propostas em tramitação")).toBeVisible();
+    expect(screen.getByText("Propostas e solicitações")).toBeVisible();
     expect(screen.getByText(/R\$\s*1\.250\.000/)).toBeVisible();
   });
 });

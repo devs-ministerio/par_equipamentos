@@ -96,6 +96,7 @@ describe("service de instrumentos monitorados", () => {
     });
     await editarEvento(10, { observacao: "Correção" });
     await excluirEvento(10, "Registro duplicado");
+    await excluirEvento(11, "Conclusão por engano", true);
 
     expect(apiAuthed).toHaveBeenNthCalledWith(
       1,
@@ -131,6 +132,12 @@ describe("service de instrumentos monitorados", () => {
       expect.anything(),
       "DELETE",
       { motivo: "Registro duplicado" },
+    );
+    expect(apiAuthed).toHaveBeenLastCalledWith(
+      "/monitoramento/eventos/11",
+      expect.anything(),
+      "DELETE",
+      { motivo: "Conclusão por engano", anular_inauguracao_vinculada: true },
     );
   });
 

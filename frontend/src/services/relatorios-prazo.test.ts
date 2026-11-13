@@ -228,5 +228,7 @@ it("401 definitivo não gera arquivo nem faz loop de refresh", async () => {
   // When / Then
   await expect(gerar()).rejects.toMatchObject({ status: 401 });
   expect(fetchHttp).toHaveBeenCalledTimes(2);
-  expect(window.location.assign).toHaveBeenCalledWith("/login");
+  expect(window.location.assign).toHaveBeenCalledWith(
+    `/login?retorno=${encodeURIComponent("/relatorios")}`,
+  );
 });

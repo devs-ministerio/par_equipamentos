@@ -4,7 +4,9 @@ from types import SimpleNamespace
 from typing import cast
 
 from app.db.models import Convenio
-from app.routers.convenios import CONVENIO_LIST_LOAD_ONLY, ConvenioRead, _projecao_disponibilidade_dados
+from app.repositories.convenios import CONVENIO_LIST_LOAD_ONLY
+from app.schemas_convenios import ConvenioRead
+from app.services.convenios import projecao_disponibilidade_dados
 
 
 def test_listagem_convenios_nao_carrega_payload_cru():
@@ -20,6 +22,7 @@ def test_listagem_convenios_projeta_todos_os_campos_do_schema_resumo():
     # convenio; o restante do resumo precisa continuar no load_only.
     campos_schema = set(ConvenioRead.model_fields) - {
         "cnes_nome_estabelecimento",
+        "cnes_municipio",
         "equipamentos",
         "dados_oficiais_disponiveis",
         "desembolso_integral_da_carga",
@@ -36,7 +39,7 @@ def test_detalhe_convenio_continua_tendo_payload_cru_no_model():
 def test_carga_manual_projeta_desembolso_integral_sem_dados_oficiais():
     convenio = SimpleNamespace(tipo_contratacao="FAF", valor_global=125_000.0, valor_desembolsado=None)
 
-    resultado = _projecao_disponibilidade_dados(cast(Convenio, convenio))
+    resultado = projecao_disponibilidade_dados(cast(Convenio, convenio))
 
     assert resultado == {
         "dados_oficiais_disponiveis": False,
@@ -48,7 +51,7 @@ def test_carga_manual_projeta_desembolso_integral_sem_dados_oficiais():
 def test_convenio_oficial_preserva_desembolso_extraido_da_fonte():
     convenio = SimpleNamespace(tipo_contratacao="Convênio", valor_global=125_000.0, valor_desembolsado=60_000.0)
 
-    resultado = _projecao_disponibilidade_dados(cast(Convenio, convenio))
+    resultado = projecao_disponibilidade_dados(cast(Convenio, convenio))
 
     assert resultado == {
         "dados_oficiais_disponiveis": True,

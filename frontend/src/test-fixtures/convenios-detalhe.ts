@@ -30,6 +30,7 @@ export function criarResumoConvenio(
     numeroProcesso: "QA-PROCESSO-001",
     cnes: null,
     cnesNomeEstabelecimento: null,
+    cnesMunicipio: null,
     programa: "Programa sintético",
     equipamentos: [],
     dadosOficiaisDisponiveis: true,
@@ -106,6 +107,7 @@ export function criarDetalheConvenioResposta(
     equipamentos: [],
     cnes: null,
     cnes_nome_estabelecimento: null,
+    cnes_municipio: null,
     siconv_raw: {
       convenio: {},
       programa: null,

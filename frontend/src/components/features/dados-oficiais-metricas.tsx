@@ -1,5 +1,18 @@
 import { MetricStrip } from "@/components/common/metric-strip";
 import { fmtMoeda } from "@/lib/monitoramento-format";
+import type { TotalFinanceiro } from "@/hooks/use-dados-oficiais-resumo";
+
+function totalFinanceiro(total: TotalFinanceiro) {
+  if (total.valor === null)
+    return { value: "Sem valor informado", detail: undefined };
+  return {
+    value: fmtMoeda(total.valor),
+    detail:
+      total.informados < total.total
+        ? `valor conhecido de ${total.informados} de ${total.total} instrumentos`
+        : undefined,
+  };
+}
 
 export function DadosOficiaisMetricas({
   instrumentos,
@@ -12,8 +25,8 @@ export function DadosOficiaisMetricas({
   instrumentos: number;
   monitorados: number;
   concluidos: number;
-  valorGlobal: number;
-  desembolsado: number;
+  valorGlobal: TotalFinanceiro;
+  desembolsado: TotalFinanceiro;
   equipamentos: number;
 }) {
   return (
@@ -43,14 +56,14 @@ export function DadosOficiaisMetricas({
           {
             key: "global",
             label: "Valor global",
-            value: fmtMoeda(valorGlobal),
+            ...totalFinanceiro(valorGlobal),
             mobileFullWidth: true,
             wideValue: true,
           },
           {
             key: "desembolsado",
             label: "Desembolsado",
-            value: fmtMoeda(desembolsado),
+            ...totalFinanceiro(desembolsado),
             variant: "success",
             mobileFullWidth: true,
             wideValue: true,

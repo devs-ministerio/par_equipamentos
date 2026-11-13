@@ -1,10 +1,19 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import {
+  Fragment,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { normalizarTexto } from "@/utils/texto";
 import { cn } from "@/lib/utils";
 
 export interface SingleSelectOption {
   value: string;
   label: string;
+  /** Título do grupo; opções seguidas com o mesmo grupo aparecem sob um único cabeçalho. */
+  group?: string;
 }
 
 interface SingleSelectFilterProps {
@@ -64,6 +73,12 @@ export function SingleSelectFilter({
     normalizarTexto(o.label).includes(normalizarTexto(search)),
   );
   const selecionado = options.find((o) => o.value === value);
+  // Filtro ativo sem opção correspondente (a cascata a removeu): continua
+  // visível, para o usuário saber que ele ainda restringe a consulta.
+  const semCorrespondencia = !!value && !selecionado;
+  const rotulo = semCorrespondencia
+    ? `${value} (sem correspondência)`
+    : (selecionado?.label ?? placeholder);
 
   function escolher(v: string | null) {
     onChange(v);
@@ -103,7 +118,7 @@ export function SingleSelectFilter({
         )}
       >
         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-          {selecionado?.label ?? placeholder}
+          {rotulo}
         </span>
         <span className="shrink-0">▾</span>
       </button>
@@ -154,22 +169,31 @@ export function SingleSelectFilter({
                 {clearLabel}
               </button>
             )}
-            {filtered.map((opt) => (
-              <button
-                type="button"
-                role="option"
-                aria-selected={opt.value === value}
-                key={opt.value}
-                onClick={() => escolher(opt.value)}
-                className={cn(
-                  "block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]",
-                  opt.value === value
-                    ? "bg-secondary font-semibold text-primary"
-                    : "font-normal text-foreground",
+            {filtered.map((opt, indice) => (
+              <Fragment key={opt.value}>
+                {opt.group && opt.group !== filtered[indice - 1]?.group && (
+                  <div
+                    role="presentation"
+                    className="px-3 pt-2 pb-1 text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase"
+                  >
+                    {opt.group}
+                  </div>
                 )}
-              >
-                {opt.label}
-              </button>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={opt.value === value}
+                  onClick={() => escolher(opt.value)}
+                  className={cn(
+                    "block w-full cursor-pointer px-3 py-1.5 text-left text-[13px]",
+                    opt.value === value
+                      ? "bg-secondary font-semibold text-primary"
+                      : "font-normal text-foreground",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              </Fragment>
             ))}
             {filtered.length === 0 && (
               <div className="px-3 py-2.5 text-xs text-muted-foreground">

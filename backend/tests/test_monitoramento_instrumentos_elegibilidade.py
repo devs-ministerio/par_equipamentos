@@ -1,5 +1,5 @@
 """`_valores_confiaveis_da_parceria` (app/services/monitoramento_instrumentos.py)
--- fronteira autoritativa da elegibilidade de Parceria TransfereGov (Plan
+-- fronteira autoritativa da elegibilidade de FAF (Plan
 Mode filtros-painel 2026-09-28): browser nunca prova `tem_parceria`/
 `cd_parceria`, o Service sempre resolve no banco. Achado ao vivo: essa
 função nasceu sem nenhum teste, incluindo os 4 branches de rejeição que são
@@ -29,13 +29,13 @@ def _dados(*, tipo_contratacao: str, proposta_candidata_id: int | None) -> NovoI
     )
 
 
-def test_referencia_de_proposta_rejeitada_fora_de_parceria_transferegov():
-    dados = _dados(tipo_contratacao="FAF", proposta_candidata_id=123)
+def test_referencia_de_proposta_rejeitada_fora_de_faf():
+    dados = _dados(tipo_contratacao="Convênio", proposta_candidata_id=123)
     try:
         _valores_confiaveis_da_parceria(dados, db=_DB_NAO_USADO)
         assert False, "deveria ter levantado ValidationError"
     except ValidationError as exc:
-        assert "só é aceita para Parceria TransfereGov" in str(exc)
+        assert "só é aceita para FAF" in str(exc)
 
 
 def test_faf_sem_proposta_id_devolve_valores_sem_alteracao():
@@ -45,19 +45,10 @@ def test_faf_sem_proposta_id_devolve_valores_sem_alteracao():
     assert "proposta_candidata_id" not in valores
 
 
-def test_parceria_transferegov_sem_proposta_id_rejeitada():
-    dados = _dados(tipo_contratacao="Parceria TransfereGov", proposta_candidata_id=None)
-    try:
-        _valores_confiaveis_da_parceria(dados, db=_DB_NAO_USADO)
-        assert False, "deveria ter levantado ValidationError"
-    except ValidationError as exc:
-        assert "Informe a proposta confirmada" in str(exc)
-
-
 def test_parceria_transferegov_com_proposta_inexistente_rejeitada():
     db = SessionLocal()
     try:
-        dados = _dados(tipo_contratacao="Parceria TransfereGov", proposta_candidata_id=-1)
+        dados = _dados(tipo_contratacao="FAF", proposta_candidata_id=-1)
         try:
             _valores_confiaveis_da_parceria(dados, db=db)
             assert False, "deveria ter levantado NotFoundError"
@@ -87,7 +78,7 @@ def test_parceria_transferegov_com_proposta_em_tramitacao_rejeitada():
         db.commit()
         db.refresh(proposta)
 
-        dados = _dados(tipo_contratacao="Parceria TransfereGov", proposta_candidata_id=proposta.id)
+        dados = _dados(tipo_contratacao="FAF", proposta_candidata_id=proposta.id)
         try:
             _valores_confiaveis_da_parceria(dados, db=db)
             assert False, "deveria ter levantado ValidationError"
@@ -123,7 +114,7 @@ def test_parceria_transferegov_confirmada_substitui_valores_pela_proposta():
         db.commit()
         db.refresh(proposta)
 
-        dados = _dados(tipo_contratacao="Parceria TransfereGov", proposta_candidata_id=proposta.id)
+        dados = _dados(tipo_contratacao="FAF", proposta_candidata_id=proposta.id)
         valores = _valores_confiaveis_da_parceria(dados, db=db)
 
         assert valores["nr_convenio"] == "202500099999"

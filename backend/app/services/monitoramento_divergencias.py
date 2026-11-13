@@ -52,7 +52,7 @@ def divergencia_conclusao(
         fonte = "Proposta TransfereGov"
         original = proposta.situacao_proposta
         conclusivo = {"pago"}
-    elif instrumento.tipo_contratacao == "Parceria TransfereGov":
+    elif instrumento.tipo_contratacao == "FAF":
         fonte = "Ordem de pagamento TransfereGov"
         original = instrumento.situacao_ordem_pagamento_transferegov
         conclusivo = {"pago", "paga"}

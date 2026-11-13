@@ -126,11 +126,12 @@ CHECKS: tuple[IntegrityCheck, ...] = (
     ),
     IntegrityCheck(
         name="instrumento_transferegov_sem_proposta_correspondente",
-        description="instrumento Parceria TransfereGov sem proposta correspondente",
+        description="instrumento FAF de parceria sem proposta correspondente",
         count_sql="""
             SELECT count(*)
             FROM instrumento_equipamento i
-            WHERE i.tipo_contratacao = 'Parceria TransfereGov'
+            WHERE i.tipo_contratacao = 'FAF'
+              AND i.nr_convenio !~ '^[0-9]{17}$'
               AND NOT EXISTS (
                 SELECT 1
                 FROM proposta_candidata p
@@ -143,7 +144,8 @@ CHECKS: tuple[IntegrityCheck, ...] = (
         sample_sql="""
             SELECT i.id, i.nr_convenio, i.nome_convenente
             FROM instrumento_equipamento i
-            WHERE i.tipo_contratacao = 'Parceria TransfereGov'
+            WHERE i.tipo_contratacao = 'FAF'
+              AND i.nr_convenio !~ '^[0-9]{17}$'
               AND NOT EXISTS (
                 SELECT 1
                 FROM proposta_candidata p

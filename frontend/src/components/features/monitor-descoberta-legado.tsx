@@ -75,6 +75,19 @@ export function MonitorDescobertaLegado({
             <p className="mt-2">
               Último sucesso: {dataHora(fonte.ultimo_sucesso_em)}
             </p>
+            <p className="mt-1 text-muted-foreground">
+              {fonte.itens_verificados === 0
+                ? "Nenhum item verificado nesta execução: o resultado não comprova que a fonte não tem entradas novas."
+                : "Itens verificados e alterados são os da última execução."}
+              {fonte.defasada
+                ? " A coleta está defasada: a fila vazia não indica vigilância atual."
+                : ""}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              A coleta roda por agendamento ou por execução manual de quem
+              administra o sistema; atualizar o histórico apenas relê este
+              registro.
+            </p>
             {fonte.erro && (
               <p className="mt-1 text-muted-foreground">{fonte.erro}</p>
             )}
