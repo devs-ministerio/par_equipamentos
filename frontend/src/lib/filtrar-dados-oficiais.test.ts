@@ -56,15 +56,15 @@ const CONVENIO_COM_CNES: ConvenioUnificado = {
 
 describe("filtrarDadosOficiais", () => {
   const estadoVazio: Parameters<typeof filtrarDadosOficiais>[1] = {
-    uf: null,
-    municipio: null,
-    cnes: null,
-    equipamento: null,
-    situacao: null,
+    uf: [],
+    municipio: [],
+    cnes: [],
+    equipamento: [],
+    situacao: [],
     anoInicio: null,
     anoFim: null,
-    programa: null,
-    tipoContratacao: null,
+    programa: [],
+    tipoContratacao: [],
     monitorado: null,
   };
 
@@ -104,7 +104,7 @@ describe("filtrarDadosOficiais", () => {
     (monitorado) => {
       const resultado = filtrarDadosOficiais(
         carteira,
-        { ...estadoVazio, monitorado, uf: "BA", busca: "aquisicao" },
+        { ...estadoVazio, monitorado, uf: ["BA"], busca: "aquisicao" },
         monitorados,
         (item) => item.situacao,
       );
@@ -144,15 +144,15 @@ describe("filtrarDadosOficiais", () => {
   it("encontra por texto livre sem acento e combina com o tipo", () => {
     const filtros = {
       busca: "  brasilia ",
-      uf: null,
-      municipio: null,
-      cnes: null,
-      equipamento: null,
-      situacao: null,
+      uf: [],
+      municipio: [],
+      cnes: [],
+      equipamento: [],
+      situacao: [],
       anoInicio: null,
       anoFim: null,
-      programa: null,
-      tipoContratacao: "Convênio",
+      programa: [],
+      tipoContratacao: ["Convênio"],
       monitorado: null,
     };
     expect(
@@ -177,15 +177,15 @@ describe("filtrarDadosOficiais", () => {
     const resultado = filtrarDadosOficiais(
       [CONVENIO_COM_CNES],
       {
-        uf: null,
-        municipio: null,
-        cnes: "1234567",
-        equipamento: null,
-        situacao: null,
+        uf: [],
+        municipio: [],
+        cnes: ["1234567"],
+        equipamento: [],
+        situacao: [],
         anoInicio: null,
         anoFim: null,
-        programa: null,
-        tipoContratacao: null,
+        programa: [],
+        tipoContratacao: [],
         monitorado: null,
       },
       new Set(),
@@ -205,7 +205,7 @@ describe("filtrarDadosOficiais", () => {
     const filtrar = (municipio: string) =>
       filtrarDadosOficiais(
         [fundoEstadual],
-        { ...estadoVazio, municipio },
+        { ...estadoVazio, municipio: [municipio] },
         new Set(),
         (item) => item.situacao,
       );
@@ -213,5 +213,43 @@ describe("filtrarDadosOficiais", () => {
     expect(filtrar("campinas")).toEqual([fundoEstadual]);
     expect(filtrar("São Paulo")).toEqual([fundoEstadual]);
     expect(filtrar("Santos")).toEqual([]);
+  });
+});
+
+describe("filtrarDadosOficiais com várias opções", () => {
+  const vazio: Parameters<typeof filtrarDadosOficiais>[1] = {
+    uf: [],
+    municipio: [],
+    cnes: [],
+    equipamento: [],
+    situacao: [],
+    anoInicio: null,
+    anoFim: null,
+    programa: [],
+    tipoContratacao: [],
+    monitorado: null,
+  };
+  const item = (numero: string, uf: string) =>
+    ({
+      ...CONVENIO_COM_CNES,
+      numero,
+      uf,
+      tipoContratacao: "Convênio",
+    }) as typeof CONVENIO_COM_CNES;
+  const itens = [item("1", "SP"), item("2", "RJ"), item("3", "MG")];
+  const numeros = (uf: string[]) =>
+    filtrarDadosOficiais(
+      itens,
+      { ...vazio, uf },
+      new Set(),
+      (i) => i.situacao,
+    ).map((i) => i.numero);
+
+  it("união das opções marcadas dentro do mesmo filtro", () => {
+    expect(numeros(["SP", "RJ"])).toEqual(["1", "2"]);
+  });
+
+  it("lista vazia não restringe", () => {
+    expect(numeros([])).toEqual(["1", "2", "3"]);
   });
 });

@@ -14,6 +14,16 @@ function montar(consulta = "?pagina=4&aba=componentes") {
   );
 }
 
+const MULTIPLOS: ReadonlySet<string> = new Set([
+  "uf",
+  "municipio",
+  "cnes",
+  "equipamento",
+  "situacao",
+  "programa",
+  "tipoContratacao",
+]);
+
 const recortes = [
   ["uf", "setUf", "uf", "BA"],
   ["municipio", "setMunicipio", "municipio", "SALVADOR"],
@@ -60,9 +70,9 @@ describe("recorte de Dados Oficiais refletido na URL", () => {
       const consulta = `?municipio=${encodeURIComponent(municipio)}&uf=GO`;
       const { result } = montar(consulta);
       // Then
-      expect(result.current.filtros.municipio).toBe("anapolis");
+      expect(result.current.filtros.municipio).toEqual(["anapolis"]);
       expect(result.current.local.search).toBe(consulta);
-      expect(result.current.filtros.uf).toBe("GO");
+      expect(result.current.filtros.uf).toEqual(["GO"]);
     },
   );
 
@@ -73,17 +83,26 @@ describe("recorte de Dados Oficiais refletido na URL", () => {
       const { result } = montar();
       expect(result.current.filtros.pagina).toBe(4);
       // Act
-      act(() => result.current.filtros[setter](valor));
+      const lista = MULTIPLOS.has(campo);
+      act(() =>
+        (result.current.filtros[setter] as (v: unknown) => void)(
+          lista ? [valor] : valor,
+        ),
+      );
       // Assert
-      expect(result.current.filtros[campo]).toBe(
-        campo === "municipio" ? "salvador" : valor,
+      expect(result.current.filtros[campo]).toEqual(
+        lista ? [campo === "municipio" ? "salvador" : valor] : valor,
       );
       expect(result.current.filtros.hasFiltros).toBe(true);
       expect(result.current.filtros.pagina).toBe(1);
       const params = new URLSearchParams(result.current.local.search);
       expect(params.get(parametro)).toBe(valor);
       expect(params.get("aba")).toBe("componentes");
-      act(() => result.current.filtros[setter](null));
+      act(() =>
+        (result.current.filtros[setter] as (v: unknown) => void)(
+          lista ? [] : null,
+        ),
+      );
       expect(
         new URLSearchParams(result.current.local.search).has(parametro),
       ).toBe(false);
@@ -121,7 +140,7 @@ describe("recorte de Dados Oficiais refletido na URL", () => {
     );
     act(() => result.current.filtros.setClasseEquipamento("outro"));
     expect(result.current.filtros.classeEquipamento).toBe("outro");
-    expect(result.current.filtros.equipamento).toBeNull();
+    expect(result.current.filtros.equipamento).toEqual([]);
     expect(result.current.filtros.pagina).toBe(1);
     act(() => result.current.filtros.setClasseEquipamento("prioritario"));
     expect(new URLSearchParams(result.current.local.search).has("classe")).toBe(
@@ -130,5 +149,19 @@ describe("recorte de Dados Oficiais refletido na URL", () => {
     act(() => result.current.filtros.limparFiltros());
     expect(result.current.local.search).toBe("?aba=componentes");
     expect(result.current.filtros.hasFiltros).toBe(false);
+  });
+});
+
+describe("seleção múltipla na URL", () => {
+  it("guarda várias opções como parâmetro repetido e restaura a lista", () => {
+    const { result } = montar(
+      "?uf=SP&uf=RJ&situacao=Em%20execu%C3%A7%C3%A3o%2C%20atrasado",
+    );
+    expect(result.current.filtros.uf).toEqual(["SP", "RJ"]);
+    expect(result.current.filtros.situacao).toEqual(["Em execução, atrasado"]);
+    act(() => result.current.filtros.setUf(["MG", "BA", "MG"]));
+    expect(
+      new URLSearchParams(result.current.local.search).getAll("uf"),
+    ).toEqual(["MG", "BA"]);
   });
 });

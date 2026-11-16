@@ -52,8 +52,20 @@ export function MultiSelectFilter({
     normalizarTexto(o.label).includes(normalizarTexto(search)),
   );
   const active = selected.length > 0 || open;
+  const padrao = appearance === "standard";
+  // No visual padrão, um valor mostra o próprio rótulo (igual ao filtro de escolha única).
+  const unico =
+    padrao && selected.length === 1
+      ? options.find((o) => o.value === selected[0])
+      : undefined;
   const label =
-    selected.length === 0 ? placeholder : `${selected.length} selecionado(s)`;
+    selected.length === 0
+      ? placeholder
+      : unico
+        ? unico.label
+        : padrao
+          ? `${placeholder}: ${selected.length} selecionados`
+          : `${selected.length} selecionado(s)`;
 
   function toggle(value: string) {
     onChange(
@@ -138,6 +150,15 @@ export function MultiSelectFilter({
               className="box-border w-full rounded-md border border-border px-2 py-1.5 text-xs outline-none"
             />
           </div>
+          {padrao && selected.length > 0 && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="block w-full cursor-pointer border-b border-border px-3 py-1.5 text-left text-[13px] text-muted-foreground"
+            >
+              Limpar seleção
+            </button>
+          )}
           <div
             id={listboxId}
             role="group"
