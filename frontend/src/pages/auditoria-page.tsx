@@ -13,6 +13,7 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { Pagination } from "@/components/common/pagination";
 import { AuditoriaDialogDetalhes } from "@/components/features/auditoria-dialog-detalhes";
 import { AuditoriaTabela } from "@/components/features/auditoria-tabela";
+import { MultiSelectFilter } from "@/components/common/multi-select-filter";
 import { useAuditoria } from "@/hooks/useAuditoria";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import type { AuditoriaItem } from "@/services/auditoria";
@@ -20,7 +21,6 @@ import type { AuditoriaItem } from "@/services/auditoria";
 const PAGE_SIZE = 50;
 
 const CATEGORIAS = [
-  { valor: "", rotulo: "Todas as categorias" },
   { valor: "auth", rotulo: "Segurança / sessão" },
   { valor: "user", rotulo: "Usuários" },
   { valor: "instrumento_equipamento", rotulo: "Monitoramento — cadastro" },
@@ -32,7 +32,7 @@ export function AuditoriaPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const usuarioIdInicial = searchParams.get("usuario_id");
-  const [entityName, setEntityName] = useState("");
+  const [entityName, setEntityName] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [detalheAberto, setDetalheAberto] = useState<AuditoriaItem | null>(
     null,
@@ -41,7 +41,7 @@ export function AuditoriaPage() {
   const { itens, total, carregando, erro, refetch } = useAuditoria({
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
-    entity_name: entityName || undefined,
+    entity_name: entityName.length ? entityName : undefined,
     user_id: usuarioIdInicial ? Number(usuarioIdInicial) : undefined,
   });
 
@@ -64,20 +64,16 @@ export function AuditoriaPage() {
       />
 
       <div className="mb-4 flex flex-wrap gap-2.5">
-        <select
-          value={entityName}
-          onChange={(e) => {
-            setEntityName(e.target.value);
+        <MultiSelectFilter
+          appearance="standard"
+          placeholder="Categoria"
+          options={CATEGORIAS.map((c) => ({ value: c.valor, label: c.rotulo }))}
+          selected={entityName}
+          onChange={(valores) => {
+            setEntityName(valores);
             setPage(1);
           }}
-          className="h-8 w-full rounded-md border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:ring-1 focus-visible:ring-primary sm:w-auto"
-        >
-          {CATEGORIAS.map((categoria) => (
-            <option key={categoria.valor} value={categoria.valor}>
-              {categoria.rotulo}
-            </option>
-          ))}
-        </select>
+        />
         {usuarioIdInicial && (
           <Input
             disabled

@@ -59,3 +59,21 @@ describe("contrato do último login administrativo", () => {
     await expect(fetchUsuarios()).rejects.toBeInstanceOf(ApiError);
   });
 });
+
+describe("filtros com várias opções", () => {
+  it("repete role e status na consulta", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(respostaUsuarios(null)), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchUsuarios({
+      role: ["admin", "gestor"],
+      status: ["active", "inactive"],
+    });
+    const url = decodeURIComponent(String(fetchMock.mock.calls[0][0]));
+    expect(url).toContain("role=admin&role=gestor");
+    expect(url).toContain("status=active&status=inactive");
+  });
+});

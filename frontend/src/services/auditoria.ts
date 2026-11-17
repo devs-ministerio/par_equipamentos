@@ -38,7 +38,7 @@ export const ACOES_SEGURANCA = new Set([
 export interface FiltroAuditoria {
   limit?: number;
   offset?: number;
-  entity_name?: string;
+  entity_name?: string[];
   action?: string;
   user_id?: number;
   desde?: string;
@@ -51,7 +51,7 @@ export function fetchAuditoria(
   const params = new URLSearchParams();
   if (filtro.limit) params.set("limit", String(filtro.limit));
   if (filtro.offset) params.set("offset", String(filtro.offset));
-  if (filtro.entity_name) params.set("entity_name", filtro.entity_name);
+  for (const e of filtro.entity_name ?? []) params.append("entity_name", e);
   if (filtro.action) params.set("action", filtro.action);
   if (filtro.user_id) params.set("user_id", String(filtro.user_id));
   if (filtro.desde) params.set("desde", filtro.desde);

@@ -37,7 +37,7 @@ def listar_auditoria_paginada(
     *,
     limit: int,
     offset: int,
-    entity_name: str | None,
+    entity_name: list[str] | None,
     action: str | None,
     user_id: int | None,
     desde: datetime | None,
@@ -47,8 +47,8 @@ def listar_auditoria_paginada(
     pra ação de sistema (pipeline automático), que continua devendo aparecer
     na listagem com `usuario_nome=None` (a UI mostra "Sistema")."""
     base = select(AuditLog, User.name, User.email).outerjoin(User, User.id == AuditLog.user_id)
-    if entity_name is not None:
-        base = base.where(AuditLog.entity_name == entity_name)
+    if entity_name:
+        base = base.where(AuditLog.entity_name.in_(entity_name))
     if action is not None:
         base = base.where(AuditLog.action == action)
     if user_id is not None:
@@ -75,8 +75,8 @@ def listar_auditoria_paginada(
     ]
 
     contagem = select(func.count()).select_from(AuditLog)
-    if entity_name is not None:
-        contagem = contagem.where(AuditLog.entity_name == entity_name)
+    if entity_name:
+        contagem = contagem.where(AuditLog.entity_name.in_(entity_name))
     if action is not None:
         contagem = contagem.where(AuditLog.action == action)
     if user_id is not None:

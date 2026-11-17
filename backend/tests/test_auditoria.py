@@ -99,6 +99,23 @@ def test_criar_usuario_gera_linha_de_auditoria_visivel_na_listagem():
         db.close()
 
 
+def test_listar_auditoria_aceita_varias_categorias():
+    db = SessionLocal()
+    try:
+        admin, senha_admin = _criar_usuario(db, role=UserRole.admin)
+        c = _cliente_logado(admin, senha_admin)
+
+        resp = c.get("/auditoria", params={"entity_name": ["auth", "user"], "user_id": admin.id, "limit": 200})
+        assert resp.status_code == 200
+        corpo = resp.json()
+        assert corpo["total"] >= 1
+        assert {i["entity_name"] for i in corpo["itens"]} <= {"auth", "user"}
+        so_user = c.get("/auditoria", params={"entity_name": ["user"], "user_id": admin.id}).json()
+        assert so_user["total"] <= corpo["total"]
+    finally:
+        db.close()
+
+
 def test_listar_auditoria_respeita_limit():
     db = SessionLocal()
     try:

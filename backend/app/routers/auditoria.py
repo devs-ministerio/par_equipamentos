@@ -7,6 +7,7 @@ módulo de gestão de usuários."""
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -24,7 +25,7 @@ router = APIRouter(prefix="/auditoria", tags=["auditoria"])
 def listar(
     limit: int = Query(default=50, le=200, gt=0),
     offset: int = 0,
-    entity_name: str | None = None,
+    entity_name: Annotated[list[str] | None, Query()] = None,
     action: str | None = None,
     user_id: int | None = None,
     desde: datetime | None = None,

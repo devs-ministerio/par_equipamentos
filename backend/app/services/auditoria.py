@@ -20,7 +20,7 @@ def listar_auditoria(
     admin_atual: User,
     limit: int,
     offset: int,
-    entity_name: str | None,
+    entity_name: list[str] | None,
     action: str | None,
     user_id: int | None,
     desde: datetime | None,
