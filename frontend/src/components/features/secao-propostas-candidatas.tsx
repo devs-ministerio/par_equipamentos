@@ -25,7 +25,7 @@ import {
   situacaoDeFato,
   type EstagioProposta,
 } from "@/lib/proposta-status";
-import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { MultiSelectFilter } from "@/components/common/multi-select-filter";
 import { SearchInput } from "@/components/common/search-input";
 import { FilterWorkspace } from "@/components/common/filter-workspace";
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
@@ -74,38 +74,38 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         : [],
     [instrumentos, todas, modo],
   );
-  const [uf, setUf] = useState<string | null>(null);
+  const [uf, setUf] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
-  const [cnes, setCnes] = useState<string | null>(null);
-  const [municipio, setMunicipio] = useState<string | null>(null);
-  const [equipamento, setEquipamento] = useState<string | null>(null);
-  const [situacao, setSituacao] = useState<string | null>(null);
+  const [cnes, setCnes] = useState<string[]>([]);
+  const [municipio, setMunicipio] = useState<string[]>([]);
+  const [equipamento, setEquipamento] = useState<string[]>([]);
+  const [situacao, setSituacao] = useState<string[]>([]);
   const [anoInicio, setAnoInicio] = useState<string | null>(null);
   const [anoFim, setAnoFim] = useState<string | null>(null);
-  const [programa, setPrograma] = useState<string | null>(null);
+  const [programa, setPrograma] = useState<string[]>([]);
 
   const limparFiltros = () => {
     setBusca("");
-    setUf(null);
-    setCnes(null);
-    setMunicipio(null);
-    setEquipamento(null);
-    setSituacao(null);
+    setUf([]);
+    setCnes([]);
+    setMunicipio([]);
+    setEquipamento([]);
+    setSituacao([]);
     setAnoInicio(null);
     setAnoFim(null);
-    setPrograma(null);
+    setPrograma([]);
   };
 
   const hasFiltros = Boolean(
     busca.trim() ||
-    uf ||
-    cnes ||
-    municipio ||
-    equipamento ||
-    situacao ||
+    uf.length > 0 ||
+    cnes.length > 0 ||
+    municipio.length > 0 ||
+    equipamento.length > 0 ||
+    situacao.length > 0 ||
     anoInicio ||
     anoFim ||
-    programa,
+    programa.length > 0,
   );
 
   const ufOptions = useMemo(() => {
@@ -224,21 +224,26 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         ])
       )
         return false;
-      if (uf && p.uf !== uf) return false;
-      if (cnes && p.cnes !== cnes) return false;
-      if (municipio && p.municipio !== municipio) return false;
+      if (uf.length > 0 && !uf.includes(p.uf ?? "")) return false;
+      if (cnes.length > 0 && !cnes.includes(p.cnes ?? "")) return false;
+      if (municipio.length > 0 && !municipio.includes(p.municipio ?? ""))
+        return false;
       if (
-        equipamento &&
-        !equipamentosPorProposta.get(p.id)?.includes(equipamento)
+        equipamento.length > 0 &&
+        !equipamentosPorProposta
+          .get(p.id)
+          ?.some((nome) => equipamento.includes(nome))
       )
         return false;
-      if (situacao && situacaoDeFato(p) !== situacao) return false;
+      if (situacao.length > 0 && !situacao.includes(situacaoDeFato(p) ?? ""))
+        return false;
       const anoDaProposta = Number(p.data_proposta?.slice(0, 4));
       if (anoInicio && (!anoDaProposta || anoDaProposta < Number(anoInicio)))
         return false;
       if (anoFim && (!anoDaProposta || anoDaProposta > Number(anoFim)))
         return false;
-      if (programa && String(p.id_programa) !== programa) return false;
+      if (programa.length > 0 && !programa.includes(String(p.id_programa)))
+        return false;
       return true;
     });
   }, [
@@ -258,7 +263,14 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
   // Os cadastros manuais só têm os campos comuns; qualquer filtro que
   // dependa de dado da proposta os deixa de fora.
   const manuaisFiltrados = useMemo(() => {
-    if (equipamento || situacao || anoInicio || anoFim || programa) return [];
+    if (
+      equipamento.length > 0 ||
+      situacao.length > 0 ||
+      anoInicio ||
+      anoFim ||
+      programa.length > 0
+    )
+      return [];
     return manuais.filter((i) => {
       if (
         !correspondeBuscaLivre(busca, [
@@ -271,9 +283,10 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
         ])
       )
         return false;
-      if (uf && i.uf !== uf) return false;
-      if (cnes && i.cnes !== cnes) return false;
-      if (municipio && i.municipio !== municipio) return false;
+      if (uf.length > 0 && !uf.includes(i.uf ?? "")) return false;
+      if (cnes.length > 0 && !cnes.includes(i.cnes ?? "")) return false;
+      if (municipio.length > 0 && !municipio.includes(i.municipio ?? ""))
+        return false;
       return true;
     });
   }, [
@@ -339,54 +352,48 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
           width={162}
         />
         {modo !== "tramitacao" && (
-          <SingleSelectFilter
+          <MultiSelectFilter
+            appearance="standard"
             placeholder="CNES"
             options={cnesOptions}
-            value={cnes}
+            selected={cnes}
             onChange={setCnes}
-            clearLabel="CNES"
-            minWidth={120}
           />
         )}
-        <SingleSelectFilter
+        <MultiSelectFilter
+          appearance="standard"
           placeholder="UF"
           options={ufOptions}
-          value={uf}
+          selected={uf}
           onChange={setUf}
-          clearLabel="UF"
-          minWidth={100}
         />
-        <SingleSelectFilter
+        <MultiSelectFilter
+          appearance="standard"
           placeholder="Município"
           options={municipioOptions}
-          value={municipio}
+          selected={municipio}
           onChange={setMunicipio}
-          clearLabel="Município"
-          minWidth={150}
         />
-        <SingleSelectFilter
+        <MultiSelectFilter
+          appearance="standard"
           placeholder="Equipamento"
           options={equipamentoOptions}
-          value={equipamento}
+          selected={equipamento}
           onChange={setEquipamento}
-          clearLabel="Equipamento"
-          minWidth={150}
         />
-        <SingleSelectFilter
+        <MultiSelectFilter
+          appearance="standard"
           placeholder="Situação"
           options={situacaoOptions}
-          value={situacao}
+          selected={situacao}
           onChange={setSituacao}
-          clearLabel="Situação"
-          minWidth={150}
         />
-        <SingleSelectFilter
+        <MultiSelectFilter
+          appearance="standard"
           placeholder="Programas"
           options={programaOptions}
-          value={programa}
+          selected={programa}
           onChange={setPrograma}
-          clearLabel="Programas"
-          minWidth={160}
         />
         <AnoIntervaloFilter
           rotuloBase="Ano da proposta"

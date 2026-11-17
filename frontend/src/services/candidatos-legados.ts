@@ -55,14 +55,14 @@ export type CandidatoLegado = z.infer<typeof candidatoSchema>;
 export function fetchCandidatosLegados(
   pagina: number,
   busca: string,
-  situacao: SituacaoLegado | undefined,
+  situacao: SituacaoLegado[] | undefined,
 ) {
   const params = new URLSearchParams({
     pagina: String(pagina),
     tamanho_pagina: "10",
   });
   if (busca) params.set("busca", busca);
-  if (situacao) params.set("situacao", situacao);
+  for (const s of situacao ?? []) params.append("situacao", s);
   return requisitar(`/candidatos-legados?${params}`, paginaSchema);
 }
 

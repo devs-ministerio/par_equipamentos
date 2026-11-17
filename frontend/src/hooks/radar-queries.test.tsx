@@ -20,7 +20,7 @@ describe("consultas do Radar e fontes — transporte e Zod reais", () => {
     const api = prepararHooksRadar();
     const { result, rerender } = renderHook(
       ({ pagina, busca }) =>
-        useCandidatosLegados(true, pagina, busca, "em_analise"),
+        useCandidatosLegados(true, pagina, busca, ["em_analise"]),
       {
         wrapper: api.wrapper,
         initialProps: { pagina: 2, busca: "999001" },

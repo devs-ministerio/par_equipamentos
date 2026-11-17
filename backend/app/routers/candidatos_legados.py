@@ -50,7 +50,7 @@ def listar(
     tamanho_pagina: Annotated[int, Query(ge=1, le=50)] = 10,
     busca: Annotated[str | None, Query(max_length=100)] = None,
     confirmacao: ConfirmacaoPortal | None = None,
-    situacao: SituacaoLegado | None = None,
+    situacao: Annotated[list[SituacaoLegado] | None, Query()] = None,
     db: Session = Depends(get_db),
     _usuario: User = Depends(require_current_user),
 ):
