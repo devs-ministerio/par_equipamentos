@@ -72,6 +72,30 @@ def test_listar_usuarios_admin_busca_e_filtro():
         db.close()
 
 
+def test_listar_usuarios_aceita_varios_perfis_e_status():
+    db = SessionLocal()
+    try:
+        admin, senha_admin = _criar_usuario(db, role=UserRole.admin)
+        colab, _ = _criar_usuario(db, role=UserRole.colaborador)
+        leitor, _ = _criar_usuario(db, role=UserRole.leitor)
+        c = _cliente_logado(admin, senha_admin)
+
+        perfis = ["colaborador", "leitor"]
+        for alvo in (colab, leitor):
+            resp = c.get("/usuarios", params={"role": perfis, "busca": alvo.email})
+            assert resp.status_code == 200 and resp.json()["total"] == 1
+        # perfil fora da lista exclui o usuário
+        resp = c.get("/usuarios", params={"role": ["admin", "gestor"], "busca": colab.email})
+        assert resp.json()["total"] == 0
+
+        resp = c.get("/usuarios", params={"status": ["active", "inactive"], "busca": colab.email})
+        assert resp.status_code == 200 and resp.json()["total"] == 1
+        resp = c.get("/usuarios", params={"status": ["inactive", "suspended"], "busca": colab.email})
+        assert resp.json()["total"] == 0
+    finally:
+        db.close()
+
+
 def test_listar_usuarios_403_para_colaborador_e_leitor():
     db = SessionLocal()
     try:

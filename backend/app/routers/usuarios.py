@@ -7,7 +7,9 @@ leitor/resto), aqui so `role=admin` passa (ver `app/auth.py`)."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.auth import require_admin_user
@@ -38,8 +40,8 @@ def listar(
     limit: int = 20,
     offset: int = 0,
     busca: str | None = None,
-    role: UserRole | None = None,
-    status: UserStatus | None = None,
+    role: Annotated[list[UserRole] | None, Query()] = None,
+    status: Annotated[list[UserStatus] | None, Query()] = None,
     db: Session = Depends(get_db),
     admin_atual: User = Depends(require_admin_user),
 ):

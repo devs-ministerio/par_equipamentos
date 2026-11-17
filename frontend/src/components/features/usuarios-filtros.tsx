@@ -1,6 +1,7 @@
 import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MultiSelectFilter } from "@/components/common/multi-select-filter";
 import type { UserRole, UserStatus } from "@/services/usuarios";
 
 const PERFIS: Array<{ value: UserRole; label: string }> = [
@@ -26,14 +27,14 @@ export function UsuariosFiltros({
   onLimpar,
 }: {
   busca: string;
-  perfil: UserRole | "";
-  status: UserStatus | "";
+  perfil: UserRole[];
+  status: UserStatus[];
   onBuscaChange: (value: string) => void;
-  onPerfilChange: (value: UserRole | "") => void;
-  onStatusChange: (value: UserStatus | "") => void;
+  onPerfilChange: (value: UserRole[]) => void;
+  onStatusChange: (value: UserStatus[]) => void;
   onLimpar: () => void;
 }) {
-  const temFiltro = Boolean(busca || perfil || status);
+  const temFiltro = Boolean(busca || perfil.length > 0 || status.length > 0);
 
   return (
     <section
@@ -54,42 +55,32 @@ export function UsuariosFiltros({
             className="h-9 bg-background pl-9"
           />
         </div>
-        <label className="sr-only" htmlFor="filtro-perfil-usuario">
-          Filtrar por perfil
-        </label>
-        <select
-          id="filtro-perfil-usuario"
-          value={perfil}
-          onChange={(event) =>
-            onPerfilChange(event.target.value as UserRole | "")
+        <MultiSelectFilter
+          appearance="standard"
+          placeholder="Perfil"
+          options={PERFIS}
+          selected={perfil}
+          onChange={(valores) =>
+            onPerfilChange(
+              valores.filter((v): v is UserRole =>
+                PERFIS.some((p) => p.value === v),
+              ),
+            )
           }
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary"
-        >
-          <option value="">Todos os perfis</option>
-          {PERFIS.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-        <label className="sr-only" htmlFor="filtro-status-usuario">
-          Filtrar por status
-        </label>
-        <select
-          id="filtro-status-usuario"
-          value={status}
-          onChange={(event) =>
-            onStatusChange(event.target.value as UserStatus | "")
+        />
+        <MultiSelectFilter
+          appearance="standard"
+          placeholder="Status"
+          options={STATUS}
+          selected={status}
+          onChange={(valores) =>
+            onStatusChange(
+              valores.filter((v): v is UserStatus =>
+                STATUS.some((st) => st.value === v),
+              ),
+            )
           }
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none transition-colors focus-visible:ring-1 focus-visible:ring-primary"
-        >
-          <option value="">Todos os status</option>
-          {STATUS.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
+        />
         {temFiltro && (
           <Button
             type="button"

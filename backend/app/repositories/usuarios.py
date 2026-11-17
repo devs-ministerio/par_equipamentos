@@ -23,8 +23,8 @@ def listar_usuarios_paginados(
     limit: int,
     offset: int,
     busca: str | None,
-    role: UserRole | None,
-    status: UserStatus | None,
+    role: list[UserRole] | None,
+    status: list[UserStatus] | None,
 ) -> PaginaUsuarios:
     """Soft-deleted (`deleted_at` preenchido) nunca aparece na listagem
     padrao -- mesmo principio de `InstrumentoEquipamento`."""
@@ -32,10 +32,10 @@ def listar_usuarios_paginados(
     if busca:
         termo = f"%{busca.strip()}%"
         base = base.where((User.name.ilike(termo)) | (User.email.ilike(termo)))
-    if role is not None:
-        base = base.where(User.role == role)
-    if status is not None:
-        base = base.where(User.status == status)
+    if role:
+        base = base.where(User.role.in_(role))
+    if status:
+        base = base.where(User.status.in_(status))
 
     itens = db.execute(base.order_by(User.name.asc()).limit(limit).offset(offset)).scalars().all()
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()

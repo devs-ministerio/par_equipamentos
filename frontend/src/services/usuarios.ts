@@ -40,8 +40,8 @@ export interface FiltroUsuarios {
   limit?: number;
   offset?: number;
   busca?: string;
-  role?: UserRole;
-  status?: UserStatus;
+  role?: UserRole[];
+  status?: UserStatus[];
 }
 
 export function fetchUsuarios(
@@ -51,8 +51,8 @@ export function fetchUsuarios(
   if (filtro.limit) params.set("limit", String(filtro.limit));
   if (filtro.offset) params.set("offset", String(filtro.offset));
   if (filtro.busca) params.set("busca", filtro.busca);
-  if (filtro.role) params.set("role", filtro.role);
-  if (filtro.status) params.set("status", filtro.status);
+  for (const r of filtro.role ?? []) params.append("role", r);
+  for (const s of filtro.status ?? []) params.append("status", s);
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiGetAuthed(`/usuarios${query}`, userListSchema);
 }
