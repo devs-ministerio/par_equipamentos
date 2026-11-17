@@ -886,7 +886,7 @@ export function MonitoramentoRelatoriosPage() {
                 onLimparFiltros={hasFiltros ? limparFiltros : undefined}
               />
               <RelatorioPropostasTabela
-                titulo="Propostas em tramitação"
+                titulo="Propostas e solicitações"
                 descricao="Linhas de financiamento ainda em análise"
                 itens={propostasEmTramitacao}
                 onLimparFiltros={hasFiltros ? limparFiltros : undefined}
