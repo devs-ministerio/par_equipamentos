@@ -58,11 +58,19 @@ def listar(db, usuario, **filtros):
 
 def test_busca_literal_tipo_e_total_filtrado_sem_alterar_badge(caixa):
     db, usuarios, _ = caixa
-    resultado = listar(db, usuarios[0], busca="100%", tipo=NotificacaoTipo.proposta_candidata)
+    resultado = listar(db, usuarios[0], busca="100%", tipo=[NotificacaoTipo.proposta_candidata])
     assert resultado.total == 1
     assert resultado.nao_lidas == 2
     assert resultado.itens[0].notificacao.titulo == "Proposta 100% equipamento"
     assert listar(db, usuarios[0], busca="%qualquer").total == 0
+
+
+def test_varios_tipos_somam_o_recorte(caixa):
+    db, usuarios, _ = caixa
+    dois = [NotificacaoTipo.proposta_candidata, NotificacaoTipo.fonte_indisponivel]
+    assert listar(db, usuarios[0], tipo=dois).total == 2
+    assert listar(db, usuarios[0], tipo=[NotificacaoTipo.fonte_indisponivel]).total == 1
+    assert listar(db, usuarios[0], tipo=[]).total == 2  # lista vazia não restringe
 
 
 def test_busca_ignora_acento_e_caixa(caixa):
@@ -103,7 +111,7 @@ def test_ler_recorte_nao_toca_avisos_fora_da_busca_ou_do_tipo(caixa):
     assert marcar_todas_lidas(db=db, usuario_id=usuarios[0].id, busca="sem-resultado-qa") == 0
     assert listar(db, usuarios[0]).nao_lidas == 2
     # por tipo: só o tipo escolhido
-    assert marcar_todas_lidas(db=db, usuario_id=usuarios[0].id, tipo=NotificacaoTipo.fonte_indisponivel) == 1
+    assert marcar_todas_lidas(db=db, usuario_id=usuarios[0].id, tipo=[NotificacaoTipo.fonte_indisponivel]) == 1
     assert listar(db, usuarios[0]).nao_lidas == 1
     # por busca literal (sem curinga): só o aviso que contém o texto
     assert marcar_todas_lidas(db=db, usuario_id=usuarios[0].id, busca="%") == 1

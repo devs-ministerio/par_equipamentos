@@ -65,7 +65,7 @@ def triagem():
 
 def listar(db, numero, situacao=None):
     return listar_candidatos(
-        db=db, pagina=1, tamanho=10, busca=numero, confirmacao=None, situacao=situacao, somente_oficiais=True
+        db=db, pagina=1, tamanho=10, busca=numero, confirmacao=None, situacao=[situacao] if situacao else None, somente_oficiais=True
     )
 
 
@@ -222,7 +222,7 @@ def test_banco_rejeita_captura_de_outro_candidato(triagem):
                 usuario_id=usuario.id,
                 chave=uuid4(),
                 situacao_anterior="novo",
-                situacao="rejeitado",
+                situacao=["rejeitado"],
                 justificativa="Razão sintética",
             )
         )

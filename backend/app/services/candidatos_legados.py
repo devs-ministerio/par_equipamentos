@@ -160,7 +160,7 @@ def listar_candidatos(
     tamanho: int,
     busca: str | None,
     confirmacao: ConfirmacaoPortal | None,
-    situacao: SituacaoLegado | None = None,
+    situacao: list[SituacaoLegado] | None = None,
     somente_oficiais: bool = False,
 ) -> CandidatosLegadosRead:
     total, itens = repositorio.listar_pagina(

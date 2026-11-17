@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/common/pagination";
-import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { MultiSelectFilter } from "@/components/common/multi-select-filter";
 import { useCandidatosLegados } from "@/hooks/use-candidatos-legados";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
@@ -14,7 +14,7 @@ import { CandidatoLegadoTriagem } from "./candidato-legado-triagem";
 export function CandidatosLegados() {
   const [pagina, setPagina] = useState(1);
   const [busca, setBusca] = useState("");
-  const [situacao, setSituacao] = useState<SituacaoLegado>();
+  const [situacao, setSituacao] = useState<SituacaoLegado[]>([]);
   const consulta = useCandidatosLegados(true, pagina, busca, situacao);
   return (
     <section aria-label="Candidatos à entrada" className="min-w-0 pb-4">
@@ -30,19 +30,17 @@ export function CandidatosLegados() {
             setPagina(1);
           }}
         />
-        <SingleSelectFilter
+        <MultiSelectFilter
+          appearance="standard"
           placeholder="Situação"
-          clearLabel="Todas as situações"
-          value={situacao ?? null}
+          selected={situacao}
           options={Object.entries(ROTULOS_SITUACAO).map(([value, label]) => ({
             value,
             label,
           }))}
-          onChange={(valor) => {
+          onChange={(valores) => {
             setSituacao(
-              Object.keys(ROTULOS_SITUACAO).find(
-                (chave): chave is SituacaoLegado => chave === valor,
-              ),
+              valores.filter((v): v is SituacaoLegado => v in ROTULOS_SITUACAO),
             );
             setPagina(1);
           }}
@@ -62,7 +60,7 @@ export function CandidatosLegados() {
           </Button>
         </div>
       ) : consulta.data?.total === 0 ? (
-        busca.trim() || situacao ? (
+        busca.trim() || situacao.length > 0 ? (
           <p className="py-4 text-sm text-muted-foreground">
             Nenhum candidato com esses filtros. Limpe a busca ou a situação para
             ver a fila inteira.

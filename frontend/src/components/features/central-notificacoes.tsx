@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Pagination } from "@/components/common/pagination";
-import { SingleSelectFilter } from "@/components/common/single-select-filter";
+import { MultiSelectFilter } from "@/components/common/multi-select-filter";
 import { useNotificacoes } from "@/hooks/use-notificacoes";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
@@ -22,7 +22,7 @@ const CAIXAS: Caixa[] = ["recebidas", "nao-lidas", "arquivadas"];
 
 interface EstadoCentral {
   busca: string;
-  tipo?: NotificacaoTipo;
+  tipo: NotificacaoTipo[];
   caixa: Caixa;
   pagina: number;
 }
@@ -30,17 +30,25 @@ interface EstadoCentral {
 /** Lembra caixa, busca, tipo e página enquanto a aba está aberta, para que
  * voltar de "Abrir registro" encontre a Central onde a pessoa estava. */
 function estadoInicial(): EstadoCentral {
-  const padrao: EstadoCentral = { busca: "", caixa: "recebidas", pagina: 1 };
+  const padrao: EstadoCentral = {
+    busca: "",
+    tipo: [],
+    caixa: "recebidas",
+    pagina: 1,
+  };
   try {
     const bruto = sessionStorage.getItem(CHAVE_ESTADO);
     if (!bruto) return padrao;
     const salvo = JSON.parse(bruto) as Partial<EstadoCentral>;
     return {
       busca: typeof salvo.busca === "string" ? salvo.busca.slice(0, 200) : "",
-      tipo:
-        salvo.tipo && salvo.tipo in ROTULOS_NOTIFICACAO
-          ? salvo.tipo
-          : undefined,
+      // Estado salvo por versão anterior guardava um único tipo (texto).
+      tipo: (Array.isArray(salvo.tipo)
+        ? salvo.tipo
+        : salvo.tipo
+          ? [salvo.tipo]
+          : []
+      ).filter((t): t is NotificacaoTipo => t in ROTULOS_NOTIFICACAO),
       caixa: CAIXAS.includes(salvo.caixa as Caixa)
         ? (salvo.caixa as Caixa)
         : "recebidas",
@@ -57,7 +65,7 @@ function estadoInicial(): EstadoCentral {
 export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
   const [inicial] = useState(estadoInicial);
   const [busca, setBusca] = useState(inicial.busca);
-  const [tipo, setTipo] = useState<NotificacaoTipo | undefined>(inicial.tipo);
+  const [tipo, setTipo] = useState<NotificacaoTipo[]>(inicial.tipo);
   const [caixa, setCaixa] = useState<Caixa>(inicial.caixa);
   const [pagina, setPagina] = useState(inicial.pagina);
   useEffect(() => {
@@ -70,7 +78,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
       /* Sem armazenamento, a Central só recomeça do início. */
     }
   }, [busca, tipo, caixa, pagina]);
-  const temRecorte = busca.trim() !== "" || tipo !== undefined;
+  const temRecorte = busca.trim() !== "" || tipo.length > 0;
   const avisos = useNotificacoes({
     limit: TAMANHO_PAGINA,
     offset: (pagina - 1) * TAMANHO_PAGINA,
@@ -162,20 +170,18 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
               setPagina(1);
             }}
           />
-          <SingleSelectFilter
+          <MultiSelectFilter
+            appearance="standard"
             placeholder="Tipo de notificação"
-            clearLabel="Todos os tipos"
-            value={tipo ?? null}
+            selected={tipo}
             options={Object.entries(ROTULOS_NOTIFICACAO).map(
               ([value, label]) => ({ value, label }),
             )}
-            onChange={(valor) => {
+            onChange={(valores) => {
               setTipo(
-                valor
-                  ? Object.keys(ROTULOS_NOTIFICACAO).find(
-                      (chave): chave is NotificacaoTipo => chave === valor,
-                    )
-                  : undefined,
+                valores.filter(
+                  (v): v is NotificacaoTipo => v in ROTULOS_NOTIFICACAO,
+                ),
               );
               setPagina(1);
             }}

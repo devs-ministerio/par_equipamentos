@@ -49,7 +49,7 @@ def listar_notificacoes(
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
     busca: Annotated[str | None, Query(max_length=200)] = None,
-    tipo: NotificacaoTipo | None = None,
+    tipo: Annotated[list[NotificacaoTipo] | None, Query()] = None,
     arquivadas: bool = False,
 ):
     pagina = listar_notificacoes_service(
@@ -79,11 +79,11 @@ def listar_notificacoes(
 @router.patch("/lidas", response_model=NotificacoesLeituraRead)
 def marcar_todas(
     busca: Annotated[str | None, Query(max_length=200)] = None,
-    tipo: NotificacaoTipo | None = None,
+    tipo: Annotated[list[NotificacaoTipo] | None, Query()] = None,
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
 ):
-    """Sem `busca`/`tipo`: todas as recebidas não arquivadas. Com eles: só o recorte."""
+    """`tipo` aceita repetição (`tipo=a&tipo=b`). Sem `busca`/`tipo`: todas as recebidas não arquivadas. Com eles: só o recorte."""
     return NotificacoesLeituraRead(alteradas=marcar_todas_lidas(db=db, usuario_id=usuario.id, busca=busca, tipo=tipo))
 
 

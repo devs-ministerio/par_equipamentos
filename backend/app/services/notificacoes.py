@@ -54,7 +54,7 @@ def listar_notificacoes(
     offset: int,
     apenas_nao_lidas: bool,
     busca: str | None = None,
-    tipo: NotificacaoTipo | None = None,
+    tipo: list[NotificacaoTipo] | None = None,
     arquivadas: bool = False,
 ) -> PaginaNotificacoesComDestino:
     """Escopada por destinatário (Plan Mode notificacoes-escopo 2026-09-25) --
@@ -153,7 +153,7 @@ def marcar_notificacao_lida(*, db: Session, notificacao_id: int, usuario_id: int
 
 
 def marcar_todas_lidas(
-    *, db: Session, usuario_id: int, busca: str | None = None, tipo: NotificacaoTipo | None = None
+    *, db: Session, usuario_id: int, busca: str | None = None, tipo: list[NotificacaoTipo] | None = None
 ) -> int:
     quantidade = marcar_todas_destinatario_lidas(db, usuario_id, busca=busca, tipo=tipo)
     db.commit()

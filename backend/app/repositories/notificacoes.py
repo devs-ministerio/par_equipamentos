@@ -190,7 +190,7 @@ def listar_notificacoes_paginadas(
     offset: int,
     apenas_nao_lidas: bool,
     busca: str | None = None,
-    tipo: NotificacaoTipo | None = None,
+    tipo: list[NotificacaoTipo] | None = None,
     arquivadas: bool = False,
 ) -> PaginaNotificacoes:
     base = (
@@ -204,8 +204,8 @@ def listar_notificacoes_paginadas(
     )
     if apenas_nao_lidas:
         base = base.where(NotificacaoDestinatario.lida.is_(False))
-    if tipo is not None:
-        base = base.where(Notificacao.tipo == tipo)
+    if tipo:
+        base = base.where(Notificacao.tipo.in_(tipo))
     if busca:
         base = base.where(_filtro_busca(busca))
 
@@ -276,7 +276,7 @@ def marcar_destinatario_lido(db: Session, destinatario: NotificacaoDestinatario)
 
 
 def marcar_todas_destinatario_lidas(
-    db: Session, usuario_id: int, *, busca: str | None = None, tipo: NotificacaoTipo | None = None
+    db: Session, usuario_id: int, *, busca: str | None = None, tipo: list[NotificacaoTipo] | None = None
 ) -> int:
     """Marca como lidas as recebidas não arquivadas do usuário. Com `busca`/`tipo`,
     só as que combinam com esse recorte; sem eles, todas."""
@@ -290,8 +290,8 @@ def marcar_todas_destinatario_lidas(
             notificacao_no_escopo(),
         )
     )
-    if tipo is not None:
-        alvo = alvo.where(Notificacao.tipo == tipo)
+    if tipo:
+        alvo = alvo.where(Notificacao.tipo.in_(tipo))
     if busca and busca.strip():
         alvo = alvo.where(_filtro_busca(busca))
     alteradas = (
