@@ -65,7 +65,13 @@ def triagem():
 
 def listar(db, numero, situacao=None):
     return listar_candidatos(
-        db=db, pagina=1, tamanho=10, busca=numero, confirmacao=None, situacao=[situacao] if situacao else None, somente_oficiais=True
+        db=db,
+        pagina=1,
+        tamanho=10,
+        busca=numero,
+        confirmacao=None,
+        situacao=[situacao] if situacao else None,
+        somente_oficiais=True,
     )
 
 
