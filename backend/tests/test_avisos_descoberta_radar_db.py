@@ -26,7 +26,7 @@ def test_descoberta_so_materializa_destinatarios_gerenciais_ativos(matriz, perfi
         limit=20,
         offset=0,
         apenas_nao_lidas=False,
-        tipo=NotificacaoTipo.convenio_descoberto,
+        tipo=[NotificacaoTipo.convenio_descoberto],
     )
     assert pagina.total == pagina.nao_lidas == (1 if perfil in ("admin", "gestor") else 0)
     if pagina.itens:

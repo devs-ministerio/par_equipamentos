@@ -1,6 +1,7 @@
 """SQL do Radar legado; commit e decisões ficam no Service."""
 
 from collections import defaultdict
+from collections.abc import Sequence
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -215,7 +216,7 @@ def listar_pagina(
     tamanho: int,
     busca: str | None,
     confirmacao: str | None,
-    situacao: list[str] | None = None,
+    situacao: Sequence[str] | None = None,
     somente_oficiais: bool = False,
 ) -> tuple[int, list[CandidatoLegadoRead]]:
     candidato, captura, decisao = CandidatoLegadoRegistro, CandidatoLegadoCaptura, CandidatoLegadoDecisao
