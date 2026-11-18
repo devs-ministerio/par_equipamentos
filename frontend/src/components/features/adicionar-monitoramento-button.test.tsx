@@ -47,6 +47,23 @@ describe("AdicionarMonitoramentoButton", () => {
     ]);
   });
 
+  it("deixa o botão desabilitado para PERSUS II", () => {
+    const { wrapper } = criarWrapper();
+
+    render(
+      <AdicionarMonitoramentoButton
+        dados={{ ...DADOS, tipo_contratacao: "PERSUS II" }}
+      />,
+      { wrapper },
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "+ Adicionar ao monitoramento interno",
+      }),
+    ).toBeDisabled();
+  });
+
   it("explica que é preciso login quando a pessoa não pode editar", async () => {
     const { useAuthSession } = await import("@/hooks/useAuthSession");
     vi.mocked(useAuthSession).mockReturnValue({

@@ -103,17 +103,11 @@ def criar_instrumento_monitorado(
     usuario: User,
 ) -> InstrumentoEquipamento:
     assert_pode_editar_monitoramento(usuario)
+    # PERSUS II fica fora do monitoramento interno por decisão da equipe
+    # (18/11/2026); reabrir só junto do novo fluxo de acompanhamento.
+    if dados.tipo_contratacao == "PERSUS II":
+        raise ValidationError("PERSUS II não entra no monitoramento interno por enquanto.")
     valores = _valores_confiaveis_da_parceria(dados, db=db)
-    # PERSUS II só passa a integrar o recorte anual quando a equipe decide
-    # incluí-lo no monitoramento. A própria inclusão é a fonte desse ano.
-    if dados.tipo_contratacao == "PERSUS II" and valores["ano_instrumento"] is None:
-        valores["ano_instrumento"] = date.today().year
-        monitoramento_repo.preencher_ano_convenio_se_ausente(
-            db,
-            numero=str(valores["nr_convenio"]),
-            tipo_contratacao="PERSUS II",
-            ano=date.today().year,
-        )
     nr_convenio = str(valores["nr_convenio"])
     ja_existe = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if ja_existe is not None:
