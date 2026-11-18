@@ -62,7 +62,11 @@ Inauguração: campo do instrumento com histórico de revisões e data real pree
 
 Fluxo completo nas três origens (SICONV, TransfereGov/FAF, manual), com: repasse parcial e integral, entrada tardia, entrega parcelada, cancelamento antes do repasse, conclusão parcial, encerramento sem entregas, proposta que vira convênio, PERSUS I (entrega = inauguração), atualização externa que não regride fase, reabertura.
 
-## 8. Em aberto
+## 8. Ajuste de identidade: logotipo do cabeçalho
+
+O ajuste de 13/11 (`1f0c285`) trocou o logotipo completo por marca + legenda em texto e ficou desproporcional. O pedido era só aumentar um pouco a legenda "Gestão de Equipamentos em Oncologia". Correção: voltar ao logotipo completo no cabeçalho (como em `5d0e711`) e subir a altura de `h-10` para `h-11`, sem texto separado. Validar no localhost em 1024, 1440 e 1920 px.
+
+## 9. Em aberto
 
 - Forma da previsão de inauguração (campo do instrumento recomendado).
 - Fase "Em aquisição" e o mapeamento do comissionamento.
