@@ -33,7 +33,8 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.classificacao_itens import LIMITE_VALOR_UNITARIO_MONITORADO, chave_do_item, classificar
+from app.classificacao_itens import chave_do_item, classificar, limite_valor_unitario_monitorado
+from app.config import settings
 from app.db.base import SessionLocal, engine
 from app.db.models import (
     CodigoItemLegado,
@@ -91,6 +92,8 @@ class Resultado:
     pendentes: int = 0
     rendimentos_ligados: int = 0
     por_valor: int = 0
+    por_excecao_instrumento: int = 0
+    instrumentos_excecao: int = 0
     rendimentos_sem_principal: int = 0
     codigo_a_definir: int = 0
     manual_por_codigo_fonte: Counter[str] = field(default_factory=Counter)
@@ -167,7 +170,7 @@ def alvo_item_api(ctx: Contexto, convenio_numero: str, item: dict) -> Alvo:
     explicito = decisao is not None and decisao.conta_unidade is not None
     por_valor = False
     if not controla and not explicito and tipo == "aquisicao" and not pendente:
-        por_valor = controla = valor_unitario(item) >= LIMITE_VALOR_UNITARIO_MONITORADO
+        por_valor = controla = valor_unitario(item) >= limite_valor_unitario_monitorado()
     return Alvo(codigo, fonte, catalogo_id, controla, familia, tipo, pendente, motivo, por_valor)
 
 
@@ -323,6 +326,30 @@ def resolver_principais(
     return resultado
 
 
+def _aplicar_excecao_instrumento(lote: list[tuple[tuple[str, str], dict]], resultado: Resultado) -> None:
+    """Instrumento monitorado sem nenhum item controlado entrou pelo componente: o item de aquisição cuja
+    unidade vale ao menos o limite da exceção (R$ 100 mil) passa a ter unidade, para a entrega poder ser lançada."""
+    if not lote or all(n["instrumento_id"] is None for _, n in lote):
+        return
+    if any(n["controla_unidade"] for _, n in lote):
+        return
+    limite = float(settings.limite_valor_unitario_excecao)
+    elegiveis = [
+        n
+        for _, n in lote
+        if n["tipo_lancamento"] == "aquisicao"
+        and n["situacao_classificacao"] == "aplicada"
+        and n["valor_total"] is not None
+        and float(n["valor_total"]) / max(n["quantidade_planejada"] or 1, 1) >= limite
+    ]
+    if not elegiveis:
+        return
+    for n in elegiveis:
+        n["controla_unidade"] = True
+    resultado.instrumentos_excecao += 1
+    resultado.por_excecao_instrumento += len(elegiveis)
+
+
 def projetar(db: Session, *, aplicar: bool) -> Resultado:
     resultado = Resultado()
     ctx = carregar_contexto(db)
@@ -332,6 +359,7 @@ def projetar(db: Session, *, aplicar: bool) -> Resultado:
     for convenio in db.execute(select(Convenio).order_by(Convenio.id)).scalars():
         itens = (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []
         ordem_manual = 0
+        lote: list[tuple[tuple[str, str], dict]] = []
         itens_api = [
             i for i in itens if isinstance(i, dict) and i.get("ID_ITEM_PAD") and item_conta_como_equipamento(i)
         ]
@@ -390,6 +418,9 @@ def projetar(db: Session, *, aplicar: bool) -> Resultado:
                 valor_total=_moeda(item.get("VALOR_TOTAL_ITEM")),
                 hash_conteudo=_hash(item),
             )
+            lote.append((chave, novo))
+        _aplicar_excecao_instrumento(lote, resultado)
+        for chave, novo in lote:
             _sincronizar(db, existentes.get(chave), novo, resultado, aplicar)
     principais = resolver_principais(ligacao)
     resultado.rendimentos_ligados = sum(1 for v in principais.values() if v is not None)
@@ -448,7 +479,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"  manuais por fonte do código: {dict(r.manual_por_codigo_fonte)}")
     print(
-        f"  controlados por valor (unidade a partir de R$ {int(LIMITE_VALOR_UNITARIO_MONITORADO) // 1000} mil): {r.por_valor}"
+        f"  exceção de instrumento sem item controlado: {r.instrumentos_excecao} instrumentos, {r.por_excecao_instrumento} itens\n"
+        f"  controlados por valor (unidade a partir de R$ {int(limite_valor_unitario_monitorado()) // 1000} mil): {r.por_valor}"
     )
     print("  controlados por unidade, por família:")
     for familia, n in r.por_familia.most_common():

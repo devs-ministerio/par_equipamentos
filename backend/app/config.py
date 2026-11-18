@@ -74,6 +74,11 @@ class Settings(BaseSettings):
     # sessao falha com 401 silencioso (achado ao vivo 2026-09-28, ver
     # CLAUDE.md "Segurança e sessão").
     refresh_cookie_path: str = "/auth"
+    # Valor mínimo (R$) de uma unidade para monitorar equipamento fora das 16 famílias.
+    # Trocar por env var e rodar projetar_itens_plano.py para reclassificar.
+    limite_valor_unitario_monitorado: float = 300_000.0
+    # Mesmo critério, menor, para instrumento sem nenhum item controlado (entrou pelo componente).
+    limite_valor_unitario_excecao: float = 100_000.0
 
     # Chave gratuita de autoatendimento (login gov.br, sem aprovacao manual)
     # gerada em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email
