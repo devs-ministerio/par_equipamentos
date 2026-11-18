@@ -70,6 +70,12 @@ export function prepararOrquestracao() {
         controle.acoesStatus === 200 ? controle.acoes : {},
         controle.acoesStatus,
       );
+    if (path.endsWith("/repasse") && metodo === "GET")
+      return h.json({
+        repasse: null,
+        repasse_previsto: false,
+        fase_calculada: "Acompanhamento iniciado",
+      });
     if (path === "/monitoramento/colaboradores")
       return h.json([{ id: 1, name: "Gestor sintético" }]);
     if (path.startsWith("/convenios/"))

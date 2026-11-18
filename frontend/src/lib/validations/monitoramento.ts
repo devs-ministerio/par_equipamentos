@@ -63,3 +63,15 @@ export const motivoExclusaoSchema = z.object({
     .max(500),
 });
 export type MotivoExclusaoFormValues = z.infer<typeof motivoExclusaoSchema>;
+
+export const confirmarRepasseSchema = z.object({
+  tipo: z.enum(["integral", "parcial"], {
+    message: "Informe se o repasse foi integral ou parcial.",
+  }),
+  justificativa: z
+    .string()
+    .trim()
+    .max(1000, "Máximo de 1000 caracteres.")
+    .optional(),
+});
+export type ConfirmarRepasseFormValues = z.infer<typeof confirmarRepasseSchema>;

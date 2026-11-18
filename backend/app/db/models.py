@@ -1685,6 +1685,50 @@ class EntregaEquipamento(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class RepasseInstrumento(Base):
+    """Confirmação de repasse do instrumento, integral ou parcial (append-only).
+
+    `origem=fonte` vem do desembolso do SICONV; `origem=manual` é confirmação do técnico
+    (PERSUS, FAF e TED não têm fonte de desembolso). Ativo = sem substituição nem exclusão.
+    """
+
+    __tablename__ = "repasse_instrumento"
+    __table_args__ = (
+        CheckConstraint("tipo IN ('integral','parcial')", name="ck_repasse_instrumento_tipo"),
+        CheckConstraint("origem IN ('fonte','manual')", name="ck_repasse_instrumento_origem"),
+        CheckConstraint("origem <> 'manual' OR autor_id IS NOT NULL", name="ck_repasse_instrumento_manual_autor"),
+        Index("idx_repasse_instrumento_instrumento", "instrumento_id"),
+        Index(
+            "uq_repasse_instrumento_fonte_ativo",
+            "instrumento_id",
+            unique=True,
+            postgresql_where=text("origem = 'fonte' AND deletado_em IS NULL AND substituido_por_id IS NULL"),
+        ),
+        Index(
+            "uq_repasse_instrumento_manual_ativo",
+            "instrumento_id",
+            unique=True,
+            postgresql_where=text("origem = 'manual' AND deletado_em IS NULL AND substituido_por_id IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String, nullable=False)
+    origem: Mapped[str] = mapped_column(String, nullable=False)
+    justificativa: Mapped[str | None] = mapped_column(Text)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    substituido_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("repasse_instrumento.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class UnidadeEquipamento(Base):
     """Unidade física entregue: marca, modelo, número de série e vida útil. Nasce na entrega."""
 
