@@ -22,7 +22,7 @@ def listar(db, usuario):
         limit=20,
         offset=0,
         apenas_nao_lidas=False,
-        tipo=NotificacaoTipo.aprovacao_carteira,
+        tipo=[NotificacaoTipo.aprovacao_carteira],
     )
 
 

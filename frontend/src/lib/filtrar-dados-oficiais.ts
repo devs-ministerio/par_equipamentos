@@ -9,15 +9,15 @@ import type {
 
 type EstadoFiltros = {
   busca?: string;
-  uf: string | null;
-  municipio: string | null;
-  cnes: string | null;
-  equipamento: string | null;
-  situacao: string | null;
+  uf: string[];
+  municipio: string[];
+  cnes: string[];
+  equipamento: string[];
+  situacao: string[];
   anoInicio: string | null;
   anoFim: string | null;
-  programa: string | null;
-  tipoContratacao: string | null;
+  programa: string[];
+  tipoContratacao: string[];
   monitorado: FiltroMonitorado | null;
 };
 export function filtrarDadosOficiais(
@@ -30,33 +30,44 @@ export function filtrarDadosOficiais(
   return itens.filter((item) => {
     if (
       ignorar !== "tipo" &&
-      estado.tipoContratacao &&
-      (item.tipoContratacao ?? "Convênio") !== estado.tipoContratacao
+      estado.tipoContratacao.length > 0 &&
+      !estado.tipoContratacao.includes(item.tipoContratacao ?? "Convênio")
     )
       return false;
-    if (ignorar !== "uf" && estado.uf && item.uf !== estado.uf) return false;
+    if (
+      ignorar !== "uf" &&
+      estado.uf.length > 0 &&
+      !estado.uf.includes(item.uf)
+    )
+      return false;
     if (
       ignorar !== "municipio" &&
-      estado.municipio &&
-      !instrumentoEstaNoMunicipio(item, chaveMunicipio(estado.municipio))
+      estado.municipio.length > 0 &&
+      !estado.municipio.some((m) =>
+        instrumentoEstaNoMunicipio(item, chaveMunicipio(m)),
+      )
     )
       return false;
-    if (ignorar !== "cnes" && estado.cnes && item.cnes !== estado.cnes)
+    if (
+      ignorar !== "cnes" &&
+      estado.cnes.length > 0 &&
+      !(item.cnes && estado.cnes.includes(item.cnes))
+    )
       return false;
     if (
       ignorar !== "equipamento" &&
-      estado.equipamento &&
-      !item.equipamentos.some(
-        (equipamento) =>
-          (nomePrioritarioCanonico(equipamento.nome) ?? equipamento.nome) ===
-          estado.equipamento,
+      estado.equipamento.length > 0 &&
+      !item.equipamentos.some((equipamento) =>
+        estado.equipamento.includes(
+          nomePrioritarioCanonico(equipamento.nome) ?? equipamento.nome,
+        ),
       )
     )
       return false;
     if (
       ignorar !== "situacao" &&
-      estado.situacao &&
-      situacaoExibida(item) !== estado.situacao
+      estado.situacao.length > 0 &&
+      !estado.situacao.includes(situacaoExibida(item) ?? "")
     )
       return false;
     if (
@@ -75,8 +86,8 @@ export function filtrarDadosOficiais(
       return false;
     if (
       ignorar !== "programa" &&
-      estado.programa &&
-      item.programa !== estado.programa
+      estado.programa.length > 0 &&
+      !estado.programa.includes(item.programa ?? "")
     )
       return false;
     if (

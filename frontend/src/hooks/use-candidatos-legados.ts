@@ -9,7 +9,7 @@ export function useCandidatosLegados(
   aberta: boolean,
   pagina: number,
   busca: string,
-  situacao?: SituacaoLegado,
+  situacao?: SituacaoLegado[],
   atualizarPeriodicamente = false,
 ) {
   const { autenticado, usuarioAtual } = useAuthSession();

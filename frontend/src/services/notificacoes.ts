@@ -47,7 +47,7 @@ export interface FiltrosNotificacoes {
   offset?: number;
   apenasNaoLidas?: boolean;
   busca?: string;
-  tipo?: NotificacaoTipo;
+  tipo?: NotificacaoTipo[];
   arquivadas?: boolean;
 }
 
@@ -59,7 +59,7 @@ export function fetchNotificacoes(
   if (opts?.apenasNaoLidas) params.set("apenas_nao_lidas", "true");
   if (opts?.offset) params.set("offset", String(opts.offset));
   if (opts?.busca) params.set("busca", opts.busca);
-  if (opts?.tipo) params.set("tipo", opts.tipo);
+  for (const t of opts?.tipo ?? []) params.append("tipo", t);
   if (opts?.arquivadas) params.set("arquivadas", "true");
   const query = params.toString() ? `?${params.toString()}` : "";
   return requisitar(`/notificacoes${query}`, notificacoesListSchema, undefined);
@@ -77,11 +77,11 @@ export function arquivarNotificacao(
 /** Sem recorte: todas as recebidas não arquivadas. Com `busca`/`tipo`: só o recorte. */
 export function marcarTodasNotificacoesLidas(recorte?: {
   busca?: string;
-  tipo?: NotificacaoTipo;
+  tipo?: NotificacaoTipo[];
 }): Promise<{ alteradas: number }> {
   const params = new URLSearchParams();
   if (recorte?.busca?.trim()) params.set("busca", recorte.busca.trim());
-  if (recorte?.tipo) params.set("tipo", recorte.tipo);
+  for (const t of recorte?.tipo ?? []) params.append("tipo", t);
   const query = params.toString() ? `?${params.toString()}` : "";
   return apiAuthed(
     `/notificacoes/lidas${query}`,

@@ -169,3 +169,71 @@ def test_valor_sem_quantidade_vale_como_uma_unidade_e_manual_nunca_entra_por_val
     assert valor_unitario({"VALOR_TOTAL_ITEM": "500000"}) == 500000
     assert valor_unitario({"VALOR_TOTAL_ITEM": "500000", "QTD_ITEM": "2"}) == 250000
     assert alvo_item_manual(_ctx(), "FAF", {"DESCRICAO_ITEM": "Cadeira de rodas"}).por_valor is False
+
+
+def _item(id_: str, descricao: str, valor: str, natureza: str, despesa: str = "BEM") -> dict:
+    return {
+        "ID_ITEM_PAD": id_,
+        "DESCRICAO_ITEM": descricao,
+        "VALOR_TOTAL_ITEM": valor,
+        "NATUREZA_AQUISICAO": natureza,
+        "TIPO_DESPESA_ITEM": despesa,
+        "QTD_ITEM": "1",
+    }
+
+
+def _alvos(itens: list[dict], decisoes: dict | None = None):
+    from scripts.projetar_itens_plano import ajustar_por_natureza_siconv
+
+    ctx = _ctx(decisoes)
+    alvos = {str(i["ID_ITEM_PAD"]): alvo_item_api(ctx, "1", i) for i in itens}
+    ajustar_por_natureza_siconv(ctx, "1", itens, alvos)
+    return alvos
+
+
+def test_natureza_3_menor_que_o_principal_do_mesmo_codigo_e_complemento() -> None:
+    alvos = _alvos(
+        [
+            _item("1", "010933-Acelerador Linear", "2550000,00", "1"),
+            _item("2", "Acelerador Linear -6 MV Feixes Fótons", "253146,53", "3", "OUTROS"),
+        ]
+    )
+    assert alvos["1"].tipo_lancamento == "aquisicao" and alvos["1"].controla_unidade
+    assert alvos["2"].tipo_lancamento == "rendimento_aplicacao" and not alvos["2"].controla_unidade
+
+
+def test_natureza_3_sem_principal_do_mesmo_codigo_nao_vira_complemento() -> None:
+    alvos = _alvos([_item("1", "Mamógrafo", "702790,00", "3", "BEM")])
+    assert alvos["1"].tipo_lancamento == "aquisicao"
+
+
+def test_natureza_3_outros_sem_principal_vai_para_a_fila() -> None:
+    alvos = _alvos([_item("1", "Mamógrafo", "702790,00", "3", "OUTROS")])
+    assert alvos["1"].pendente and not alvos["1"].controla_unidade
+
+
+def test_decisao_da_equipe_nao_e_sobrescrita() -> None:
+    decisao = SimpleNamespace(
+        tipo_lancamento="aquisicao",
+        conta_unidade=True,
+        status="aplicada",
+        codigo_item=None,
+        origem="tecnico",
+        observacao=None,
+    )
+    itens = [
+        _item("1", "Acelerador Linear", "2550000,00", "1"),
+        _item("2", "Acelerador Linear", "253146,53", "3", "OUTROS"),
+    ]
+    from app.classificacao_itens import chave_do_item
+
+    alvos = _alvos(itens, {("1", chave_do_item(itens[1])): decisao})
+    assert alvos["2"].tipo_lancamento == "aquisicao"
+
+
+def test_texto_de_utilizacao_dos_rendimentos_e_complemento_de_valores() -> None:
+    for texto in ("Utilização dos rendimentos conforme extrato", "Complemento de valores"):
+        assert (
+            alvo_item_api(_ctx(), "1", _item("1", texto, "1000,00", "3", "OUTROS")).tipo_lancamento
+            == "rendimento_aplicacao"
+        )

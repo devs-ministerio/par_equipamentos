@@ -127,14 +127,13 @@ describe("Radar legado", () => {
       expect(screen.getByText(/Captura do SICONV/)).toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole("button", { name: /^Situação/ }));
-    fireEvent.click(screen.getByRole("option", { name: "Em análise" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Em análise" }));
     await waitFor(() =>
       expect(
         fetch.mock.calls.some(([url]) => url.includes("situacao=em_analise")),
       ).toBe(true),
     );
-    fireEvent.click(screen.getByRole("button", { name: /Em análise/ }));
-    fireEvent.click(screen.getByRole("option", { name: "Todas as situações" }));
+    fireEvent.click(screen.getByRole("button", { name: "Limpar seleção" }));
     const detalhes = await screen.findByText(/Mais detalhes|Menos detalhes/);
     if (detalhes.textContent?.includes("Mais")) fireEvent.click(detalhes);
     expect(

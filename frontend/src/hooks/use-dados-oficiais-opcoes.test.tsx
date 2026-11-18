@@ -11,15 +11,15 @@ import { useDadosOficiaisOpcoes } from "./use-dados-oficiais-opcoes";
 
 type Estado = Parameters<typeof filtrarDadosOficiais>[1];
 const vazio: Estado = {
-  uf: null,
-  municipio: null,
-  cnes: null,
-  equipamento: null,
-  situacao: null,
+  uf: [],
+  municipio: [],
+  cnes: [],
+  equipamento: [],
+  situacao: [],
   anoInicio: null,
   anoFim: null,
-  programa: null,
-  tipoContratacao: null,
+  programa: [],
+  tipoContratacao: [],
   monitorado: null,
 };
 const situacaoExibida = (item: ConvenioUnificado) => item.situacao || null;
@@ -106,7 +106,7 @@ describe("opções em cascata com o filtro de domínio real", () => {
       expect(
         filtrarDadosOficiais(
           itens,
-          { ...vazio, municipio },
+          { ...vazio, municipio: [municipio] },
           new Set(),
           situacaoExibida,
         ).map((item) => item.numero),
@@ -141,7 +141,7 @@ describe("opções em cascata com o filtro de domínio real", () => {
       // Arrange / Act
       const { result } = montar(criarCarteiraOpcoes(), {
         ...vazio,
-        [campo]: valor,
+        [campo]: campo === "anoInicio" ? valor : [valor],
       });
       // Assert
       expect(result.current[opcoes]).toEqual(opcoesEsperadas[opcoes]);
@@ -151,7 +151,7 @@ describe("opções em cascata com o filtro de domínio real", () => {
   it("restringe os outros seletores e recalcula quando o recorte muda", () => {
     // Arrange
     const itens = criarCarteiraOpcoes();
-    const { result, rerender } = montar(itens, { ...vazio, uf: "SP" });
+    const { result, rerender } = montar(itens, { ...vazio, uf: ["SP"] });
     expect(result.current.equipamentoOptions).toEqual([
       { value: "Mamógrafo", label: "Mamógrafo (1)" },
     ]);
@@ -161,7 +161,7 @@ describe("opções em cascata com o filtro de domínio real", () => {
     // Act
     rerender({
       itens,
-      estado: { ...vazio, uf: "BA" },
+      estado: { ...vazio, uf: ["BA"] },
       classeEquipamento: "prioritario",
     });
     // Assert

@@ -23,6 +23,7 @@ import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
 import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
+import { MultiSelectFilter } from "@/components/common/multi-select-filter";
 import { SingleSelectFilter } from "@/components/common/single-select-filter";
 import { SearchInput } from "@/components/common/search-input";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
@@ -340,13 +341,12 @@ export function MonitoramentoEquipamentosPage() {
                   placeholder="Buscar número, convenente, CNES ou município"
                   width={90}
                 />
-                <SingleSelectFilter
+                <MultiSelectFilter
+                  appearance="standard"
                   placeholder="Contratação"
                   options={tipoContratacaoOptions}
-                  value={tipoContratacao}
+                  selected={tipoContratacao}
                   onChange={setTipoContratacao}
-                  clearLabel="Contratação"
-                  minWidth={120}
                 />
                 <SingleSelectFilter
                   placeholder="Monitorado"
@@ -359,29 +359,26 @@ export function MonitoramentoEquipamentosPage() {
                   clearLabel="Todos"
                   minWidth={120}
                 />
-                <SingleSelectFilter
+                <MultiSelectFilter
+                  appearance="standard"
                   placeholder="UF"
                   options={ufs}
-                  value={uf}
+                  selected={uf}
                   onChange={setUf}
-                  clearLabel="UF"
-                  minWidth={100}
                 />
-                <SingleSelectFilter
+                <MultiSelectFilter
+                  appearance="standard"
                   placeholder="CNES"
                   options={cnesOptions}
-                  value={cnes}
+                  selected={cnes}
                   onChange={setCnes}
-                  clearLabel="CNES"
-                  minWidth={120}
                 />
-                <SingleSelectFilter
+                <MultiSelectFilter
+                  appearance="standard"
                   placeholder="Município"
                   options={municipioOptions}
-                  value={municipio}
+                  selected={municipio}
                   onChange={setMunicipio}
-                  clearLabel="Município"
-                  minWidth={150}
                 />
                 <div
                   role="group"
@@ -403,30 +400,27 @@ export function MonitoramentoEquipamentosPage() {
                     clearLabel="Prioritários"
                     minWidth={125}
                   />
-                  <SingleSelectFilter
+                  <MultiSelectFilter
+                    appearance="standard"
                     placeholder="Equipamento"
                     options={equipamentoOptions}
-                    value={equipamento}
+                    selected={equipamento}
                     onChange={setEquipamento}
-                    clearLabel="Equipamento"
-                    minWidth={150}
                   />
                 </div>
-                <SingleSelectFilter
+                <MultiSelectFilter
+                  appearance="standard"
                   placeholder="Situação"
                   options={situacaoOptions}
-                  value={situacao}
+                  selected={situacao}
                   onChange={setSituacao}
-                  clearLabel="Situação"
-                  minWidth={150}
                 />
-                <SingleSelectFilter
+                <MultiSelectFilter
+                  appearance="standard"
                   placeholder="Programas"
                   options={programaOptions}
-                  value={programa}
+                  selected={programa}
                   onChange={setPrograma}
-                  clearLabel="Programas"
-                  minWidth={160}
                 />
                 <AnoIntervaloFilter
                   options={anoOptions}

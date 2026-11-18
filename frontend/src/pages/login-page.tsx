@@ -45,7 +45,7 @@ export function LoginPage() {
             to="/monitoramento-equipamentos"
             className="mb-8 flex justify-center text-foreground"
           >
-            <Logo variante="completo" className="h-14" />
+            <Logo variante="completo" className="h-[88px]" />
           </Link>
           <h1 className="sr-only">Entrar no SISGEO</h1>
           <MonitoramentoInternoFormLogin

@@ -36,7 +36,7 @@ function responderAviso(tipo: string) {
 describe("contrato de notificações das fontes", () => {
   it("aceita convênio descoberto sem confundir com aprovação", async () => {
     responderAviso("convenio_descoberto");
-    const pagina = await fetchNotificacoes({ tipo: "convenio_descoberto" });
+    const pagina = await fetchNotificacoes({ tipo: ["convenio_descoberto"] });
     expect(pagina.itens[0].tipo).toBe("convenio_descoberto");
     expect(pagina.itens[0].destino).toBeNull();
     expect(vi.mocked(fetch).mock.calls[0][0]).toContain(
@@ -44,9 +44,18 @@ describe("contrato de notificações das fontes", () => {
     );
   });
 
+  it("repete o parâmetro quando há mais de um tipo", async () => {
+    responderAviso("convenio_descoberto");
+    await fetchNotificacoes({
+      tipo: ["convenio_descoberto", "aprovacao_carteira"],
+    });
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("tipo=convenio_descoberto&tipo=aprovacao_carteira");
+  });
+
   it("aceita aprovação da carteira e envia o filtro específico", async () => {
     responderAviso("aprovacao_carteira");
-    const pagina = await fetchNotificacoes({ tipo: "aprovacao_carteira" });
+    const pagina = await fetchNotificacoes({ tipo: ["aprovacao_carteira"] });
     expect(pagina.itens[0].tipo).toBe("aprovacao_carteira");
     expect(vi.mocked(fetch).mock.calls[0][0]).toContain(
       "tipo=aprovacao_carteira",

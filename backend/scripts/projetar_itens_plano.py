@@ -171,6 +171,58 @@ def alvo_item_api(ctx: Contexto, convenio_numero: str, item: dict) -> Alvo:
     return Alvo(codigo, fonte, catalogo_id, controla, familia, tipo, pendente, motivo, por_valor)
 
 
+def ajustar_por_natureza_siconv(ctx: Contexto, convenio_numero: str, itens: list[dict], alvos: dict[str, Alvo]) -> None:
+    """Usa a natureza de aquisição do SICONV, que a descrição sozinha não revela. Só mexe em item sem decisão da equipe.
+
+    - Natureza 3 com valor menor que outro item do mesmo código no convênio: complemento pago com rendimento
+      do equipamento principal, não um equipamento a mais (vira rendimento, sem unidade).
+    - Natureza 3 e tipo de despesa OUTROS que não é complemento: vai para a fila de revisão.
+    - Item lido como rendimento pelo texto, mas natureza 1 (aquisição), tipo BEM, o maior do seu código e com
+      complemento de natureza 3 no convênio: é o item principal; vai para a fila de revisão.
+    """
+    por_id = {str(i["ID_ITEM_PAD"]): i for i in itens if i.get("ID_ITEM_PAD")}
+
+    def valor_de(item_id: str) -> float:
+        return _decimal(por_id[item_id].get("VALOR_TOTAL_ITEM")) or 0.0
+
+    for item_id, item in por_id.items():
+        if (convenio_numero, chave_do_item(item)) in ctx.decisoes:
+            continue
+        alvo, natureza, tipo_despesa = (
+            alvos[item_id],
+            str(item.get("NATUREZA_AQUISICAO") or ""),
+            item.get("TIPO_DESPESA_ITEM"),
+        )
+        irmaos = [
+            o for o in por_id if o != item_id and alvos[o].codigo_item and alvos[o].codigo_item == alvo.codigo_item
+        ]
+        if natureza == "3" and alvo.tipo_lancamento == "aquisicao":
+            if any(valor_de(o) > valor_de(item_id) for o in irmaos):
+                alvo.tipo_lancamento, alvo.controla_unidade, alvo.pendente, alvo.por_valor = (
+                    "rendimento_aplicacao",
+                    False,
+                    False,
+                    False,
+                )
+                alvo.motivo = "SICONV: natureza 3 (rendimento) com valor menor que o item principal do mesmo código"
+            elif tipo_despesa == "OUTROS" and not alvo.pendente:
+                alvo.controla_unidade, alvo.pendente, alvo.por_valor = False, True, False
+                alvo.motivo = "SICONV: natureza 3 e despesa OUTROS sem item principal correspondente: verificar"
+        elif (
+            natureza == "1"
+            and tipo_despesa == "BEM"
+            and alvo.tipo_lancamento == "rendimento_aplicacao"
+            and alvo.codigo_item
+        ):
+            if (
+                irmaos
+                and all(valor_de(o) < valor_de(item_id) for o in irmaos)
+                and any(str(por_id[o].get("NATUREZA_AQUISICAO") or "") == "3" for o in irmaos)
+            ):
+                alvo.tipo_lancamento, alvo.controla_unidade, alvo.pendente = "aquisicao", False, True
+                alvo.motivo = "SICONV: natureza 1, maior valor do código e com complemento de natureza 3: item principal, verificar"
+
+
 def valor_unitario(item: dict) -> float:
     """Valor de uma unidade: valor do item no plano dividido pela quantidade (0 quando não há valor)."""
     total = _decimal(item.get("VALOR_TOTAL_ITEM"))
@@ -280,6 +332,11 @@ def projetar(db: Session, *, aplicar: bool) -> Resultado:
     for convenio in db.execute(select(Convenio).order_by(Convenio.id)).scalars():
         itens = (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []
         ordem_manual = 0
+        itens_api = [
+            i for i in itens if isinstance(i, dict) and i.get("ID_ITEM_PAD") and item_conta_como_equipamento(i)
+        ]
+        alvos_api = {str(i["ID_ITEM_PAD"]): alvo_item_api(ctx, convenio.numero, i) for i in itens_api}
+        ajustar_por_natureza_siconv(ctx, convenio.numero, itens_api, alvos_api)
         for item in itens:
             if not isinstance(item, dict):
                 continue
@@ -297,7 +354,7 @@ def projetar(db: Session, *, aplicar: bool) -> Resultado:
                 quantidade: int | None = 1
             else:
                 origem, id_origem = "siconv", str(item["ID_ITEM_PAD"])
-                alvo = alvo_item_api(ctx, convenio.numero, item)
+                alvo = alvos_api[id_origem]
                 quantidade = _quantidade(item.get("QTD_ITEM"))
             chave = (origem, id_origem)
             if chave in vistos:

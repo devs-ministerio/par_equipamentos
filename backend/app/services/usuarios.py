@@ -38,8 +38,8 @@ def listar_usuarios(
     limit: int,
     offset: int,
     busca: str | None,
-    role: UserRole | None,
-    status: UserStatus | None,
+    role: list[UserRole] | None,
+    status: list[UserStatus] | None,
 ) -> UserListResponse:
     assert_e_admin(admin_atual)
     pagina = listar_usuarios_paginados(db, limit=limit, offset=offset, busca=busca, role=role, status=status)

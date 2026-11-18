@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import type {
   ClasseEquipamento,
@@ -7,6 +7,17 @@ import type {
 import { chaveMunicipio } from "@/lib/municipio-filtro";
 
 export const TAMANHO_PAGINA_DADOS_OFICIAIS = 20;
+
+/** Filtros que aceitam mais de uma opção (parâmetro repetido na URL: `uf=SP&uf=RJ`). */
+const MULTIPLOS = [
+  "uf",
+  "municipio",
+  "cnes",
+  "equipamento",
+  "situacao",
+  "programa",
+  "tipo_contratacao",
+] as const;
 
 const PARAMETROS = [
   "busca",
@@ -23,6 +34,16 @@ const PARAMETROS = [
   "monitorado",
 ] as const;
 
+/** Lista estável: só troca de identidade quando o conteúdo muda (evita refazer memos a cada render). */
+function useListaEstavel(valores: string[]): string[] {
+  const anterior = useRef<string[]>(valores);
+  const igual =
+    anterior.current.length === valores.length &&
+    anterior.current.every((v, i) => v === valores[i]);
+  if (!igual) anterior.current = valores;
+  return anterior.current;
+}
+
 function paginaValida(valor: string | null): number {
   const pagina = Number(valor);
   return Number.isInteger(pagina) && pagina > 0 ? pagina : 1;
@@ -36,20 +57,24 @@ function paginaValida(valor: string | null): number {
 export function useDadosOficiaisFiltros() {
   const [searchParams, setSearchParams] = useSearchParams();
   const busca = searchParams.get("busca") ?? "";
-  const uf = searchParams.get("uf");
-  const municipioNaUrl = searchParams.get("municipio");
-  const municipio = municipioNaUrl
-    ? chaveMunicipio(municipioNaUrl) || null
-    : null;
-  const cnes = searchParams.get("cnes");
-  const equipamento = searchParams.get("equipamento");
+  const uf = useListaEstavel(searchParams.getAll("uf"));
+  const municipio = useListaEstavel(
+    searchParams
+      .getAll("municipio")
+      .map((nome) => chaveMunicipio(nome))
+      .filter(Boolean),
+  );
+  const cnes = useListaEstavel(searchParams.getAll("cnes"));
+  const equipamento = useListaEstavel(searchParams.getAll("equipamento"));
   const classeEquipamento: ClasseEquipamento =
     searchParams.get("classe") === "outro" ? "outro" : "prioritario";
-  const situacao = searchParams.get("situacao");
+  const situacao = useListaEstavel(searchParams.getAll("situacao"));
   const anoInicio = searchParams.get("ano_inicio");
   const anoFim = searchParams.get("ano_fim");
-  const programa = searchParams.get("programa");
-  const tipoContratacao = searchParams.get("tipo_contratacao");
+  const programa = useListaEstavel(searchParams.getAll("programa"));
+  const tipoContratacao = useListaEstavel(
+    searchParams.getAll("tipo_contratacao"),
+  );
   const monitoradoNaUrl = searchParams.get("monitorado");
   const monitorado: FiltroMonitorado | null =
     monitoradoNaUrl === "sim" || monitoradoNaUrl === "nao"
@@ -66,6 +91,22 @@ export function useDadosOficiaisFiltros() {
           else proximos.delete(chave);
           proximos.delete("pagina");
           if (chave === "classe") proximos.delete("equipamento");
+          return proximos;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  const definirLista = useCallback(
+    (chave: (typeof MULTIPLOS)[number], valores: string[]) => {
+      setSearchParams(
+        (anteriores) => {
+          const proximos = new URLSearchParams(anteriores);
+          proximos.delete(chave);
+          for (const valor of new Set(valores)) proximos.append(chave, valor);
+          proximos.delete("pagina");
           return proximos;
         },
         { replace: true },
@@ -105,28 +146,27 @@ export function useDadosOficiaisFiltros() {
     busca,
     setBusca: (valor: string) => definirFiltro("busca", valor.trim() || null),
     uf,
-    setUf: (valor: string | null) => definirFiltro("uf", valor),
+    setUf: (valores: string[]) => definirLista("uf", valores),
     municipio,
-    setMunicipio: (valor: string | null) => definirFiltro("municipio", valor),
+    setMunicipio: (valores: string[]) => definirLista("municipio", valores),
     cnes,
-    setCnes: (valor: string | null) => definirFiltro("cnes", valor),
+    setCnes: (valores: string[]) => definirLista("cnes", valores),
     equipamento,
-    setEquipamento: (valor: string | null) =>
-      definirFiltro("equipamento", valor),
+    setEquipamento: (valores: string[]) => definirLista("equipamento", valores),
     classeEquipamento,
     setClasseEquipamento: (valor: ClasseEquipamento) =>
       definirFiltro("classe", valor === "prioritario" ? null : valor),
     situacao,
-    setSituacao: (valor: string | null) => definirFiltro("situacao", valor),
+    setSituacao: (valores: string[]) => definirLista("situacao", valores),
     anoInicio,
     setAnoInicio: (valor: string | null) => definirFiltro("ano_inicio", valor),
     anoFim,
     setAnoFim: (valor: string | null) => definirFiltro("ano_fim", valor),
     programa,
-    setPrograma: (valor: string | null) => definirFiltro("programa", valor),
+    setPrograma: (valores: string[]) => definirLista("programa", valores),
     tipoContratacao,
-    setTipoContratacao: (valor: string | null) =>
-      definirFiltro("tipo_contratacao", valor),
+    setTipoContratacao: (valores: string[]) =>
+      definirLista("tipo_contratacao", valores),
     monitorado,
     setMonitorado: (valor: string | null) =>
       definirFiltro(

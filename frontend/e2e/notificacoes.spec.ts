@@ -142,20 +142,20 @@ test("central individual: arquivo, restauração, leitura e responsividade", asy
   }
   await dialog.getByRole("button", { name: "Arquivar", exact: true }).click();
   await expect(dialog.getByText(aviso.titulo)).not.toBeVisible();
+  // Seletor múltiplo: abre, a opção cabe na tela e o mesmo botão fecha a lista.
   await dialog.getByRole("button", { name: /Tipo de notificação/ }).click();
-  await expect(
-    dialog.getByRole("option", { name: "Fonte indisponível", exact: true }),
-  ).toBeInViewport();
-  await dialog
-    .getByRole("option", { name: "Todos os tipos", exact: true })
-    .click();
+  const opcaoFonte = dialog.getByRole("checkbox", {
+    name: "Fonte indisponível",
+    exact: true,
+  });
+  await opcaoFonte.scrollIntoViewIfNeeded();
+  await expect(opcaoFonte).toBeInViewport();
   await dialog.getByRole("button", { name: /Tipo de notificação/ }).click();
-  await expect(
-    dialog.getByRole("option", { name: "Fonte indisponível", exact: true }),
-  ).toBeInViewport();
-  await dialog
-    .getByRole("option", { name: "Todos os tipos", exact: true })
-    .click();
+  // Seletor múltiplo: abre, a opção cabe na tela e o mesmo botão fecha a lista.
+  await dialog.getByRole("button", { name: /Tipo de notificação/ }).click();
+  await opcaoFonte.scrollIntoViewIfNeeded();
+  await expect(opcaoFonte).toBeInViewport();
+  await dialog.getByRole("button", { name: /Tipo de notificação/ }).click();
   await dialog.getByRole("button", { name: "Arquivadas", exact: true }).click();
   await dialog.getByRole("button", { name: "Restaurar" }).click();
   await dialog.getByRole("button", { name: "Recebidas", exact: true }).click();

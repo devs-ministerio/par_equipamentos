@@ -66,3 +66,39 @@ describe("filtros de seleção", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 });
+
+describe("MultiSelectFilter no visual padrão", () => {
+  it("mostra o rótulo com um valor, a contagem com vários e limpa a seleção", async () => {
+    const onChange = vi.fn();
+    const opcoes = [
+      { value: "SP", label: "SP (3)" },
+      { value: "RJ", label: "RJ (2)" },
+    ];
+    const { rerender } = render(
+      <MultiSelectFilter
+        appearance="standard"
+        placeholder="UF"
+        options={opcoes}
+        selected={["SP"]}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /SP \(3\)/ })).toBeTruthy();
+    rerender(
+      <MultiSelectFilter
+        appearance="standard"
+        placeholder="UF"
+        options={opcoes}
+        selected={["SP", "RJ"]}
+        onChange={onChange}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /UF: 2 selecionados/ }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Limpar seleção" }),
+    );
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+});

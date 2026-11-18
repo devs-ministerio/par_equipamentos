@@ -20,8 +20,8 @@ const PAGE_SIZE = 20;
 export function UsuariosPage() {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
-  const [role, setRole] = useState<UserRole | "">("");
-  const [status, setStatus] = useState<UserStatus | "">("");
+  const [role, setRole] = useState<UserRole[]>([]);
+  const [status, setStatus] = useState<UserStatus[]>([]);
   const [page, setPage] = useState(1);
   const [criarAberto, setCriarAberto] = useState(false);
   const [usuarioGerenciando, setUsuarioGerenciando] = useState<Usuario | null>(
@@ -51,8 +51,8 @@ export function UsuariosPage() {
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
     busca: busca || undefined,
-    role: role || undefined,
-    status: status || undefined,
+    role: role.length ? role : undefined,
+    status: status.length ? status : undefined,
   });
 
   function redefinirPagina() {
@@ -61,8 +61,8 @@ export function UsuariosPage() {
 
   function limparFiltros() {
     setBusca("");
-    setRole("");
-    setStatus("");
+    setRole([]);
+    setStatus([]);
     redefinirPagina();
   }
 

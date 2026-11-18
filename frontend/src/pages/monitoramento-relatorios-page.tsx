@@ -204,15 +204,15 @@ export function MonitoramentoRelatoriosPage() {
       const base = filtrarDadosOficiais(
         convenios,
         {
-          uf,
-          municipio: null,
-          cnes: null,
-          equipamento,
-          situacao: situacaoInstrumento,
+          uf: uf ? [uf] : [],
+          municipio: [],
+          cnes: [],
+          equipamento: equipamento ? [equipamento] : [],
+          situacao: situacaoInstrumento ? [situacaoInstrumento] : [],
           anoInicio: null,
           anoFim: null,
-          programa,
-          tipoContratacao,
+          programa: programa ? [programa] : [],
+          tipoContratacao: tipoContratacao ? [tipoContratacao] : [],
           monitorado: null,
         },
         SEM_MONITORADOS,
@@ -886,7 +886,7 @@ export function MonitoramentoRelatoriosPage() {
                 onLimparFiltros={hasFiltros ? limparFiltros : undefined}
               />
               <RelatorioPropostasTabela
-                titulo="Propostas em tramitação"
+                titulo="Propostas e solicitações"
                 descricao="Linhas de financiamento ainda em análise"
                 itens={propostasEmTramitacao}
                 onLimparFiltros={hasFiltros ? limparFiltros : undefined}
