@@ -70,6 +70,19 @@ Instrumento monitorado sem nenhum item controlado entrou pelo componente. Para e
 
 O ajuste de 13/11 (`1f0c285`) trocou o logotipo completo por marca + legenda em texto e ficou desproporcional. O pedido era só aumentar um pouco a legenda "Gestão de Equipamentos em Oncologia". Correção: voltar ao logotipo completo no cabeçalho (como em `5d0e711`) e subir a altura de `h-10` para `h-11`, sem texto separado. Validar no localhost em 1024, 1440 e 1920 px.
 
+## 8b. Enxugar informação excessiva na tela do instrumento
+
+Pedido do usuário em 19/11/2026: tirar texto que só explica a tela, seguindo a regra de rótulos curtos. Exemplo dado: instrumento 780603, linha "Rendimento da aplicação: R$ 617.878,43 · não soma unidade" abaixo do equipamento. Entra como passo transversal, junto da Entrega 5, com revisão tela a tela e validação do usuário antes de remover.
+
+Candidatos levantados (a validar):
+
+- `equipamentos-instrumento-lista.tsx`: linha de rendimento da aplicação (o valor não soma unidade nem valor, então não precisa aparecer).
+- `equipamentos-instrumento.tsx`: "+ N outro(s) item(ns) do plano sem controle por unidade" e "Este instrumento não tem itens do plano controlados por unidade".
+- `equipamentos-instrumento.tsx`: aviso "Entrega registrada antes do controle por unidade" (manter só o essencial: vincular).
+- Cabeçalho do instrumento e cartões: legendas secundárias em 11 px que repetem o dado principal.
+
+Critério: o dado fica se a equipe age sobre ele; texto que só explica regra interna sai.
+
 ## 9. Em aberto
 
 - Forma da previsão de inauguração (campo do instrumento recomendado).
