@@ -121,3 +121,17 @@ def test_fonte_prevalece_so_sem_confirmacao_manual_e_a_fase_acompanha(db, instru
     )
     assert servico.obter_situacao_repasse(nr_convenio=instrumento.nr_convenio, db=db).repasse.origem == "manual"
     assert servico.derivar_repasse_da_fonte(instrumento=instrumento, db=db).tipo == "parcial"
+
+
+def test_fase_em_lote_bate_com_o_calculo_por_instrumento(db):
+    """O cálculo em lote e o individual têm de concordar em todo instrumento do banco de teste."""
+    from sqlalchemy import select
+
+    from app.db.models import InstrumentoEquipamento
+    from app.services.fase_acompanhamento import calcular_fase_acompanhamento
+    from app.services.repasses import fases_calculadas_em_lote, fatos_do_instrumento
+
+    instrumentos = list(db.scalars(select(InstrumentoEquipamento).limit(200)))
+    em_lote = fases_calculadas_em_lote(db, instrumentos)
+    for instrumento in instrumentos:
+        assert em_lote[instrumento.id] == calcular_fase_acompanhamento(fatos_do_instrumento(db, instrumento))

@@ -55,3 +55,15 @@ def contar_itens_em_revisao(db: Session, instrumento_id: int) -> int:
             )
         ).scalar_one()
     )
+
+
+def ids_com_conclusao_ativa(db: Session, instrumento_ids: list[int]) -> set[int]:
+    if not instrumento_ids:
+        return set()
+    return set(
+        db.scalars(
+            select(ConclusaoInstrumento.instrumento_id).where(
+                ConclusaoInstrumento.instrumento_id.in_(instrumento_ids), ConclusaoInstrumento.deletado_em.is_(None)
+            )
+        )
+    )

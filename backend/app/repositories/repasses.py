@@ -117,3 +117,64 @@ def existe_evento_realizado_de_marcos(db: Session, instrumento_id: int, codigos:
             )
         ).scalar()
     )
+
+
+# --- Versões em lote (um round-trip por fato) para listas e painéis -----------------------------------------------
+
+
+def repasses_ativos_por_instrumento(db: Session, instrumento_ids: list[int]) -> dict[int, list[RepasseInstrumento]]:
+    resultado: dict[int, list[RepasseInstrumento]] = {}
+    if not instrumento_ids:
+        return resultado
+    linhas = db.execute(
+        select(RepasseInstrumento)
+        .where(RepasseInstrumento.instrumento_id.in_(instrumento_ids), *_REPASSE_ATIVO)
+        .order_by(RepasseInstrumento.id)
+    ).scalars()
+    for repasse in linhas:
+        resultado.setdefault(repasse.instrumento_id, []).append(repasse)
+    return resultado
+
+
+def valores_repasse_previsto(db: Session, nr_convenios: list[str]) -> dict[str, float]:
+    if not nr_convenios:
+        return {}
+    return {
+        numero: float(valor)
+        for numero, valor in db.execute(
+            select(Convenio.numero, Convenio.valor_repasse).where(
+                Convenio.numero.in_(nr_convenios), Convenio.valor_repasse.is_not(None)
+            )
+        ).all()
+    }
+
+
+def ids_com_entrega_ativa(db: Session, instrumento_ids: list[int]) -> set[int]:
+    if not instrumento_ids:
+        return set()
+    return set(
+        db.execute(
+            select(EntregaEquipamento.instrumento_id).where(
+                EntregaEquipamento.instrumento_id.in_(instrumento_ids),
+                EntregaEquipamento.deletado_em.is_(None),
+                EntregaEquipamento.substituido_por_id.is_(None),
+            )
+        ).scalars()
+    )
+
+
+def ids_com_evento_de_marcos(
+    db: Session, instrumento_ids: list[int], codigos: tuple[str, ...], *, realizado: bool = False
+) -> set[int]:
+    """Instrumentos com evento ativo de algum dos marcos; com `realizado`, só se aconteceu (tem data de ocorrência)."""
+    if not instrumento_ids:
+        return set()
+    consulta = select(EventoMarco.instrumento_id).where(
+        EventoMarco.instrumento_id.in_(instrumento_ids),
+        EventoMarco.substituido_por_id.is_(None),
+        EventoMarco.deletado_em.is_(None),
+        EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo.in_(codigos))),
+    )
+    if realizado:
+        consulta = consulta.where(EventoMarco.data_ocorrencia.is_not(None))
+    return set(db.execute(consulta).scalars())

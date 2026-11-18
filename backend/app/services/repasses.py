@@ -19,7 +19,7 @@ from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import repasses as repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_repasses import RepasseCreate, RepasseRead, SituacaoRepasseRead
-from app.services.fase_acompanhamento import FatosAcompanhamento, calcular_fase_acompanhamento
+from app.services.fase_acompanhamento import FaseAcompanhamento, FatosAcompanhamento, calcular_fase_acompanhamento
 
 _TOLERANCIA_REAIS = 1.0
 
@@ -149,3 +149,32 @@ def obter_situacao_repasse(*, nr_convenio: str, db: Session) -> SituacaoRepasseR
         repasse_previsto=fatos.repasse_previsto,
         fase_calculada=calcular_fase_acompanhamento(fatos).value,
     )
+
+
+def fases_calculadas_em_lote(db: Session, instrumentos: list[InstrumentoEquipamento]) -> dict[int, FaseAcompanhamento]:
+    """Fase calculada de vários instrumentos com uma consulta por fato (mesma regra de `fatos_do_instrumento`)."""
+    ids = [i.id for i in instrumentos]
+    repasses = repo.repasses_ativos_por_instrumento(db, ids)
+    previstos = repo.valores_repasse_previsto(db, [i.nr_convenio for i in instrumentos])
+    aguardando = repo.ids_com_evento_de_marcos(db, ids, (repo.CODIGO_AGUARDANDO_REPASSE,))
+    aquisicao = repo.ids_com_evento_de_marcos(db, ids, repo.CODIGOS_AQUISICAO)
+    entregas = repo.ids_com_entrega_ativa(db, ids)
+    pos_entrega = repo.ids_com_evento_de_marcos(db, ids, repo.CODIGOS_POS_ENTREGA, realizado=True)
+    concluidos = repo.ids_com_evento_de_marcos(
+        db, ids, (repo.CODIGO_CONCLUIDO,)
+    ) | conclusoes_repo.ids_com_conclusao_ativa(db, ids)
+    resultado: dict[int, FaseAcompanhamento] = {}
+    for instrumento in instrumentos:
+        vigente = _repasse_vigente(repasses.get(instrumento.id, []))
+        previsto = previstos.get(instrumento.nr_convenio)
+        resultado[instrumento.id] = calcular_fase_acompanhamento(
+            FatosAcompanhamento(
+                repasse_previsto=bool(previsto and previsto > 0) or instrumento.id in aguardando,
+                repasse_tipo=vigente.tipo if vigente else None,
+                aquisicao_iniciada=instrumento.id in aquisicao,
+                entrega_lancada=instrumento.id in entregas,
+                pos_entrega_iniciada=instrumento.id in pos_entrega,
+                concluido=instrumento.id in concluidos,
+            )
+        )
+    return resultado
