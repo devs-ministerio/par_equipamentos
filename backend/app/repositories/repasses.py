@@ -24,6 +24,12 @@ CODIGOS_AQUISICAO = (
 )
 CODIGO_AGUARDANDO_REPASSE = "fase_aguardando_repasse"
 CODIGO_CONCLUIDO = "fase_concluido"
+# Eventos de cronograma que, uma vez realizados (com data de ocorrência), iniciam o pós-entrega.
+CODIGOS_POS_ENTREGA = (
+    "cronograma_instalacao_inicio",
+    "cronograma_instalacao_fim",
+    "cronograma_comissionamento",
+)
 
 _REPASSE_ATIVO = (RepasseInstrumento.deletado_em.is_(None), RepasseInstrumento.substituido_por_id.is_(None))
 
@@ -89,6 +95,23 @@ def existe_evento_ativo_de_marcos(db: Session, instrumento_id: int, codigos: tup
                     EventoMarco.instrumento_id == instrumento_id,
                     EventoMarco.substituido_por_id.is_(None),
                     EventoMarco.deletado_em.is_(None),
+                    EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo.in_(codigos))),
+                )
+            )
+        ).scalar()
+    )
+
+
+def existe_evento_realizado_de_marcos(db: Session, instrumento_id: int, codigos: tuple[str, ...]) -> bool:
+    """Como `existe_evento_ativo_de_marcos`, mas só conta evento com data de ocorrência (aconteceu)."""
+    return bool(
+        db.execute(
+            select(
+                exists().where(
+                    EventoMarco.instrumento_id == instrumento_id,
+                    EventoMarco.substituido_por_id.is_(None),
+                    EventoMarco.deletado_em.is_(None),
+                    EventoMarco.data_ocorrencia.is_not(None),
                     EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo.in_(codigos))),
                 )
             )

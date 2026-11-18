@@ -1,4 +1,5 @@
 /** Seção "Fase geral": passos da fase atual do instrumento. */
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { SecaoOperacional } from "./monitoramento-ui";
@@ -7,14 +8,17 @@ export function MonitoramentoInternoFaseGeral({
   fasesGerais,
   faseAtual,
   pctAtual,
+  acao,
 }: {
   fasesGerais: MarcoCatalogo[];
   faseAtual: MarcoCatalogo | undefined;
   pctAtual: number;
+  /** Ação do cabeçalho do cartão (concluir ou reabrir o acompanhamento). */
+  acao?: ReactNode;
 }) {
   const indiceAtual = fasesGerais.findIndex((f) => f.id === faseAtual?.id);
   return (
-    <SecaoOperacional titulo="Fase geral" cartao>
+    <SecaoOperacional titulo="Fase geral" cartao acao={acao}>
       <p className="m-0 mb-3 text-sm">
         <strong>{faseAtual?.rotulo ?? "Não iniciado"}</strong>
         <span className="text-muted-foreground">

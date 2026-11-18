@@ -18,6 +18,7 @@ from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import itens_equipamento as repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_entregas import CancelamentoUnidadeCreate, CancelamentoUnidadeRead, ReativacaoUnidadeCreate
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 
 
 def _ler(cancelamento: CancelamentoUnidadePlanejada) -> CancelamentoUnidadeRead:
@@ -47,6 +48,7 @@ def cancelar_unidade_planejada(
         raise NotFoundError("Item não encontrado.")
     instrumento = _instrumento_do_item(db, item)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     if not item.controla_unidade or item.quantidade_planejada is None:
         raise ValidationError("O item não tem quantidade planejada controlada por unidade.")
     pendentes = (
@@ -77,6 +79,7 @@ def reativar_unidade_cancelada(
     item = repo.travar_itens(db, [cancelamento.item_id])[cancelamento.item_id]
     instrumento = _instrumento_do_item(db, item)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     if cancelamento.deletado_em is not None:
         raise ConflictError("Este cancelamento já foi desfeito.")
     cancelamento.deletado_em = datetime.now(timezone.utc)

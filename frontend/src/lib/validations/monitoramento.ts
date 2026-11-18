@@ -133,3 +133,29 @@ export const documentoSchema = z
     }
   });
 export type DocumentoFormValues = z.infer<typeof documentoSchema>;
+
+/** A justificativa passa a ser obrigatória quando a conclusão não é integral. */
+export function criarConclusaoSchema(exigeJustificativa: boolean) {
+  return z
+    .object({
+      dataConclusao: z.string().min(1, "Informe a data da conclusão."),
+      dataInauguracao: z.string().optional(),
+      justificativa: z
+        .string()
+        .trim()
+        .max(1000, "Máximo de 1000 caracteres.")
+        .optional(),
+    })
+    .superRefine((v, ctx) => {
+      if (exigeJustificativa && !v.justificativa) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["justificativa"],
+          message: "Informe a justificativa: a conclusão não é integral.",
+        });
+      }
+    });
+}
+export type ConclusaoFormValues = z.infer<
+  ReturnType<typeof criarConclusaoSchema>
+>;

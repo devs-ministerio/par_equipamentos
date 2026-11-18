@@ -28,6 +28,7 @@ import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho
 import { MonitoramentoInternoCadastro } from "./monitoramento-interno-cadastro";
 import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
 import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
+import { ConclusaoAcompanhamento } from "./conclusao-acompanhamento";
 import { DocumentosInstrumento } from "./documentos-instrumento";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
@@ -213,6 +214,14 @@ function MonitoramentoInternoConteudo({
             fasesGerais={fasesGerais}
             faseAtual={faseAtual}
             pctAtual={pctAtual}
+            acao={
+              <ConclusaoAcompanhamento
+                numeroConvenio={numeroConvenio}
+                podeEditarInstrumento={podeEditar}
+                aoSessaoInvalida={sessao.tratarSessaoInvalida}
+                aoErro={setErroEscrita}
+              />
+            }
           />
           <MonitoramentoInternoCronograma
             cronogramaFisico={cronogramaFisico}

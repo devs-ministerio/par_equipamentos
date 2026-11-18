@@ -76,6 +76,17 @@ export function prepararOrquestracao() {
         repasse_previsto: false,
         fase_calculada: "Acompanhamento iniciado",
       });
+    if (path.endsWith("/conclusao") && metodo === "GET")
+      return h.json({
+        nr_convenio: "x",
+        pode_editar: true,
+        conclusao: null,
+        resultado: "sem_entregas",
+        exige_justificativa: true,
+        itens_exigidos: 0,
+        itens_completos: 0,
+        impedimentos: [],
+      });
     if (path.endsWith("/documentos") && metodo === "GET")
       return h.json({ nr_convenio: "x", pode_editar: true, documentos: [] });
     if (path === "/monitoramento/colaboradores")

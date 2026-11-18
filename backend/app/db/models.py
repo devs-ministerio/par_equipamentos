@@ -1755,6 +1755,46 @@ class CancelamentoUnidadePlanejada(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class ConclusaoInstrumento(Base):
+    """Conclusão do acompanhamento confirmada pela equipe (append-only, uma ativa por instrumento).
+
+    `resultado` é calculado pelo Service a partir das entregas e gravado no ato (integral, parcial ou
+    sem_entregas). Reabrir é soft delete com motivo, e uma nova conclusão pode ser registrada depois.
+    As datas de inauguração e de previsão são opcionais em todos os casos.
+    """
+
+    __tablename__ = "conclusao_instrumento"
+    __table_args__ = (
+        CheckConstraint(
+            "resultado IN ('integral', 'parcial', 'sem_entregas')", name="ck_conclusao_instrumento_resultado"
+        ),
+        CheckConstraint(
+            "resultado = 'integral' OR length(btrim(coalesce(justificativa, ''))) > 0",
+            name="ck_conclusao_instrumento_justificativa",
+        ),
+        Index(
+            "uq_conclusao_instrumento_ativa",
+            "instrumento_id",
+            unique=True,
+            postgresql_where=text("deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    resultado: Mapped[str] = mapped_column(String, nullable=False)
+    data_conclusao: Mapped[date] = mapped_column(Date, nullable=False)
+    justificativa: Mapped[str | None] = mapped_column(Text)
+    data_inauguracao: Mapped[date | None] = mapped_column(Date)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 TIPOS_DOCUMENTO = ("nota_fiscal", "ordem_servico", "trp", "trd", "cnen_scra", "cnen_licenca")
 
 

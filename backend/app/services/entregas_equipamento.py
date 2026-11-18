@@ -45,6 +45,7 @@ from app.schemas_entregas import (
     UnidadeRead,
     UnidadeUpdate,
 )
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 
 MARCO_ENTREGA = "cronograma_entrega"
 MARCO_FASE_ENTREGUE = "fase_equipamento_entregue"
@@ -262,6 +263,7 @@ def registrar_entrega(*, nr_convenio: str, dados: EntregaCreate, db: Session, us
     existente = repo.obter_entrega_por_chave(db, dados.chave_idempotencia)
     if existente is not None:
         return _reenvio(db, existente, instrumento)
+    assert_nao_concluido(db, instrumento.id)
     if dados.data_ocorrencia > date.today():
         raise ValidationError("A data da entrega não pode estar no futuro.")
     validados = _validar_itens(db, instrumento, dados.itens)
@@ -362,6 +364,7 @@ def excluir_entrega(*, entrega_id: int, motivo: str, db: Session, usuario: User)
     if entrega is None:
         raise NotFoundError(f"Entrega {entrega_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, entrega.instrumento_id))
+    assert_nao_concluido(db, entrega.instrumento_id)
     if entrega.deletado_em is not None:
         raise ValidationError(f"Entrega {entrega_id} já está excluída.")
     if not motivo.strip():
@@ -406,6 +409,7 @@ def vincular_entrega_legada(
     if revisao is None:
         raise NotFoundError(f"Revisão {revisao_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, revisao.instrumento_id))
+    assert_nao_concluido(db, revisao.instrumento_id)
     if revisao.situacao != "pendente":
         raise ConflictError("Esta entrega já foi vinculada.")
     instrumento = monitoramento_repo.obter_instrumento_por_id(db, revisao.instrumento_id)

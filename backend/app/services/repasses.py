@@ -14,6 +14,7 @@ from app.audit import log_action
 from app.authz import assert_pode_editar_instrumento
 from app.db.models import InstrumentoEquipamento, RepasseInstrumento, User
 from app.domain_errors import NotFoundError
+from app.repositories import conclusoes as conclusoes_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import repasses as repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
@@ -133,7 +134,9 @@ def fatos_do_instrumento(db: Session, instrumento: InstrumentoEquipamento) -> Fa
         repasse_tipo=repasse.tipo if repasse else None,
         aquisicao_iniciada=repo.existe_evento_ativo_de_marcos(db, instrumento.id, repo.CODIGOS_AQUISICAO),
         entrega_lancada=repo.existe_entrega_ativa(db, instrumento.id),
-        concluido=repo.existe_evento_ativo_de_marcos(db, instrumento.id, (repo.CODIGO_CONCLUIDO,)),
+        pos_entrega_iniciada=repo.existe_evento_realizado_de_marcos(db, instrumento.id, repo.CODIGOS_POS_ENTREGA),
+        concluido=repo.existe_evento_ativo_de_marcos(db, instrumento.id, (repo.CODIGO_CONCLUIDO,))
+        or conclusoes_repo.existe_ativa(db, instrumento.id),
     )
 
 
