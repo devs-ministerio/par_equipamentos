@@ -76,6 +76,8 @@ export function prepararOrquestracao() {
         repasse_previsto: false,
         fase_calculada: "Acompanhamento iniciado",
       });
+    if (path.endsWith("/documentos") && metodo === "GET")
+      return h.json({ nr_convenio: "x", pode_editar: true, documentos: [] });
     if (path === "/monitoramento/colaboradores")
       return h.json([{ id: 1, name: "Gestor sintético" }]);
     if (path.startsWith("/convenios/"))

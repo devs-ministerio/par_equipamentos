@@ -89,6 +89,7 @@ class ItemEquipamentoRead(BaseModel):
     quantidade_planejada: int | None
     quantidade_cancelada: int = 0
     cancelamentos: list[CancelamentoUnidadeRead] = []
+    previsao_entrega: date | None = None
     quantidade_entregue: int
     situacao: SituacaoItem
     ultima_entrega: date | None
@@ -128,3 +129,18 @@ class CancelamentoUnidadeCreate(BaseModel):
 
 class ReativacaoUnidadeCreate(BaseModel):
     motivo: str = Field(min_length=5, max_length=1000)
+
+
+class PrevisaoEntregaCreate(BaseModel):
+    data_prevista: date
+
+
+class PrevisaoEntregaRemocao(BaseModel):
+    motivo: str = Field(min_length=5, max_length=1000)
+
+
+class PrevisaoEntregaRead(BaseModel):
+    id: int
+    item_id: int
+    data_prevista: date
+    ativo: bool

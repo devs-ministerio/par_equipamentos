@@ -84,3 +84,52 @@ export const motivoUnidadeSchema = z.object({
     .max(1000, "Máximo de 1000 caracteres."),
 });
 export type MotivoUnidadeFormValues = z.infer<typeof motivoUnidadeSchema>;
+
+export const previsaoEntregaSchema = z.object({
+  dataPrevista: z.string().min(1, "Informe a data prevista."),
+  motivo: z.string().trim().max(1000, "Máximo de 1000 caracteres.").optional(),
+});
+export type PrevisaoEntregaFormValues = z.infer<typeof previsaoEntregaSchema>;
+
+const TIPOS_CNEN = ["cnen_scra", "cnen_licenca"];
+
+export const documentoSchema = z
+  .object({
+    tipo: z.enum(
+      [
+        "nota_fiscal",
+        "ordem_servico",
+        "trp",
+        "trd",
+        "cnen_scra",
+        "cnen_licenca",
+      ],
+      { message: "Escolha o tipo do documento." },
+    ),
+    numero: z.string().trim().max(100, "Máximo de 100 caracteres.").optional(),
+    dataDocumento: z.string().min(1, "Informe a data do documento."),
+    status: z.string().optional(),
+    dataValidade: z.string().optional(),
+    observacao: z
+      .string()
+      .trim()
+      .max(1000, "Máximo de 1000 caracteres.")
+      .optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.status && !TIPOS_CNEN.includes(v.tipo)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["status"],
+        message: "O status só vale para documentos da CNEN.",
+      });
+    }
+    if (v.dataValidade && v.tipo !== "cnen_licenca") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dataValidade"],
+        message: "A validade só vale para a licença de operação.",
+      });
+    }
+  });
+export type DocumentoFormValues = z.infer<typeof documentoSchema>;

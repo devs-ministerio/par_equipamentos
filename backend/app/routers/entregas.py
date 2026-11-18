@@ -20,6 +20,9 @@ from app.schemas_entregas import (
     EntregaRead,
     EquipamentosInstrumentoRead,
     ExclusaoEntrega,
+    PrevisaoEntregaCreate,
+    PrevisaoEntregaRead,
+    PrevisaoEntregaRemocao,
     ReativacaoUnidadeCreate,
     UnidadeRead,
     UnidadeUpdate,
@@ -27,6 +30,7 @@ from app.schemas_entregas import (
 )
 from app.services import cancelamento_unidade as servico_cancelamento
 from app.services import entregas_equipamento as servico
+from app.services import previsoes_entrega as servico_previsao
 
 router = APIRouter(prefix="/monitoramento", tags=["entregas"])
 
@@ -101,3 +105,23 @@ def reativar_unidade_cancelada(
     return servico_cancelamento.reativar_unidade_cancelada(
         cancelamento_id=cancelamento_id, dados=corpo, db=db, usuario=usuario
     )
+
+
+@router.put("/itens/{item_id}/previsao-entrega", response_model=PrevisaoEntregaRead)
+def definir_previsao_entrega(
+    item_id: int,
+    corpo: PrevisaoEntregaCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico_previsao.definir_previsao_entrega(item_id=item_id, dados=corpo, db=db, usuario=usuario)
+
+
+@router.delete("/itens/{item_id}/previsao-entrega", response_model=PrevisaoEntregaRead)
+def remover_previsao_entrega(
+    item_id: int,
+    corpo: PrevisaoEntregaRemocao,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico_previsao.remover_previsao_entrega(item_id=item_id, dados=corpo, db=db, usuario=usuario)

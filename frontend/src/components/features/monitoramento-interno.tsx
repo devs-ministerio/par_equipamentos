@@ -28,6 +28,7 @@ import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho
 import { MonitoramentoInternoCadastro } from "./monitoramento-interno-cadastro";
 import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
 import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
+import { DocumentosInstrumento } from "./documentos-instrumento";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
@@ -134,7 +135,6 @@ function MonitoramentoInternoConteudo({
     faseAtual,
     pctAtual,
     cronogramaFisico,
-    regulatorio,
     registroLicenca,
     dataInauguracao,
     inaugurado,
@@ -216,7 +216,13 @@ function MonitoramentoInternoConteudo({
           />
           <MonitoramentoInternoCronograma
             cronogramaFisico={cronogramaFisico}
-            regulatorio={regulatorio}
+            documentos={
+              <DocumentosInstrumento
+                numeroConvenio={numeroConvenio}
+                podeEditarInstrumento={podeEditar}
+                aoSessaoInvalida={sessao.tratarSessaoInvalida}
+              />
+            }
             eventosPorMarco={eventosPorMarco}
             multiploEquipamento={multiploEquipamento}
           />

@@ -18,6 +18,7 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
     quantidade_planejada: 2,
     quantidade_cancelada: 0,
     cancelamentos: [],
+    previsao_entrega: null,
     quantidade_entregue: 1,
     situacao: "parcial",
     ultima_entrega: "2026-10-01",
@@ -46,6 +47,8 @@ describe("lista de equipamentos do instrumento", () => {
     onExcluirEntrega: vi.fn().mockResolvedValue(undefined),
     onCancelarUnidade: vi.fn().mockResolvedValue(undefined),
     onDesfazerCancelamento: vi.fn().mockResolvedValue(undefined),
+    onDefinirPrevisao: vi.fn().mockResolvedValue(undefined),
+    onRemoverPrevisao: vi.fn().mockResolvedValue(undefined),
   };
 
   it("mostra o nome da RENEM e nunca a descrição informada na API", () => {
@@ -130,6 +133,8 @@ describe("cancelamento de unidade planejada", () => {
     onExcluirEntrega: vi.fn(),
     onCancelarUnidade: vi.fn().mockResolvedValue(undefined),
     onDesfazerCancelamento: vi.fn().mockResolvedValue(undefined),
+    onDefinirPrevisao: vi.fn().mockResolvedValue(undefined),
+    onRemoverPrevisao: vi.fn().mockResolvedValue(undefined),
   };
 
   it("exige motivo e cancela a unidade pendente", async () => {
@@ -217,6 +222,81 @@ describe("cancelamento de unidade planejada", () => {
     );
     expect(
       screen.queryByRole("button", { name: /Cancelar unidade/ }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("previsão de entrega do item", () => {
+  const props = {
+    onRegistrar: vi.fn(),
+    onCorrigir: vi.fn(),
+    onExcluirEntrega: vi.fn(),
+    onCancelarUnidade: vi.fn(),
+    onDesfazerCancelamento: vi.fn(),
+    onDefinirPrevisao: vi.fn().mockResolvedValue(undefined),
+    onRemoverPrevisao: vi.fn().mockResolvedValue(undefined),
+  };
+
+  it("exige a data e salva a previsão", async () => {
+    render(
+      <EquipamentosInstrumentoLista {...props} itens={[item()]} podeEditar />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Previsão de entrega de Mamógrafo" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Salvar previsão" }),
+    );
+    expect(
+      await screen.findByText("Informe a data prevista."),
+    ).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Data prevista"), "2026-12-10");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Salvar previsão" }),
+    );
+    await waitFor(() =>
+      expect(props.onDefinirPrevisao).toHaveBeenCalledWith(1, "2026-12-10"),
+    );
+  });
+
+  it("mostra a previsão e remove com motivo", async () => {
+    render(
+      <EquipamentosInstrumentoLista
+        {...props}
+        podeEditar
+        itens={[item({ previsao_entrega: "2026-12-10" })]}
+      />,
+    );
+    expect(screen.getByText(/Prevista 10\/12\/2026/)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Previsão de entrega de Mamógrafo" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Remover" }));
+    await userEvent.type(
+      screen.getByLabelText("Motivo da remoção"),
+      "Prazo deixou de valer",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Remover previsão" }),
+    );
+    await waitFor(() =>
+      expect(props.onRemoverPrevisao).toHaveBeenCalledWith(
+        1,
+        "Prazo deixou de valer",
+      ),
+    );
+  });
+
+  it("leitor não vê o botão de previsão", () => {
+    render(
+      <EquipamentosInstrumentoLista
+        {...props}
+        itens={[item()]}
+        podeEditar={false}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /Previsão de entrega/ }),
     ).not.toBeInTheDocument();
   });
 });

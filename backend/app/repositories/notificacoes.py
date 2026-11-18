@@ -169,6 +169,7 @@ _TIPOS_DE_INSTRUMENTO = (
     NotificacaoTipo.entrega_legada_revisao,
     NotificacaoTipo.prazo_acao,
     NotificacaoTipo.prazo_inauguracao,
+    NotificacaoTipo.prazo_previsao_entrega,
 )
 
 

@@ -8,6 +8,8 @@ import {
   useEntregasLegadas,
   useEquipamentosInstrumento,
   useCancelarUnidade,
+  useDefinirPrevisaoEntrega,
+  useRemoverPrevisaoEntrega,
   useExcluirEntrega,
   useReativarUnidade,
   useRegistrarEntrega,
@@ -47,6 +49,8 @@ export function EquipamentosInstrumento({
   const excluir = useExcluirEntrega(numeroConvenio);
   const cancelar = useCancelarUnidade(numeroConvenio);
   const reativar = useReativarUnidade(numeroConvenio);
+  const definirPrevisao = useDefinirPrevisaoEntrega(numeroConvenio);
+  const removerPrevisao = useRemoverPrevisaoEntrega(numeroConvenio);
   const repasse = useSituacaoRepasse(numeroConvenio);
   const confirmarRepasse = useConfirmarRepasse(numeroConvenio);
   const [pedidoRepasse, setPedidoRepasse] = useState<
@@ -134,6 +138,16 @@ export function EquipamentosInstrumento({
           podeEditar={podeEditar}
           onRegistrar={(itemId) => setPainel({ tipo: "entrega", itemId })}
           onCorrigir={setUnidade}
+          onDefinirPrevisao={(itemId, dataPrevista) =>
+            escrever(() =>
+              definirPrevisao.mutateAsync({ itemId, dataPrevista }),
+            ).then(() => undefined)
+          }
+          onRemoverPrevisao={(itemId, motivo) =>
+            escrever(() =>
+              removerPrevisao.mutateAsync({ itemId, motivo }),
+            ).then(() => undefined)
+          }
           onCancelarUnidade={(itemId, motivo) =>
             escrever(() => cancelar.mutateAsync({ itemId, motivo })).then(
               () => undefined,

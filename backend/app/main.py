@@ -20,6 +20,7 @@ from app.routers import (
     candidatos_legados,
     classificacao_itens,
     convenios,
+    documentos,
     entregas,
     equipment_offer,
     fontes,
@@ -73,6 +74,8 @@ app.include_router(convenios.router)
 app.include_router(monitoramento.router)
 # Itens, entregas e unidades de equipamento do instrumento (controle por unidade).
 app.include_router(entregas.router)
+# Documentos do instrumento (NF, OS, TRP, TRD, SCRA, licença), independentes da fase.
+app.include_router(documentos.router)
 app.include_router(repasses.router)
 app.include_router(classificacao_itens.router)
 # Radar de Convenios -- notificacao de proposta candidata/atualizacao de

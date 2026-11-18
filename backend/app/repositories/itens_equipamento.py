@@ -17,6 +17,7 @@ from app.db.models import (
     InstrumentoEquipamento,
     InstrumentoResponsavel,
     ItemPlano,
+    PrevisaoEntregaItem,
     RenemItem,
     UnidadeEquipamento,
 )
@@ -67,6 +68,20 @@ def listar_unidades_ativas(db: Session, item_ids: list[int]) -> list[tuple[Unida
             .order_by(UnidadeEquipamento.item_id, UnidadeEquipamento.ordem)
         ).all()
     ]
+
+
+def quantidades_entregues_por_item(db: Session, item_ids: list[int]) -> dict[int, int]:
+    if not item_ids:
+        return {}
+    return {
+        int(i): int(q)
+        for i, q in db.execute(
+            select(UnidadeEquipamento.item_id, func.count())
+            .join(EntregaEquipamento, EntregaEquipamento.id == UnidadeEquipamento.entrega_id)
+            .where(UnidadeEquipamento.item_id.in_(item_ids), *_ENTREGA_ATIVA)
+            .group_by(UnidadeEquipamento.item_id)
+        ).all()
+    }
 
 
 def quantidade_entregue(db: Session, item_id: int) -> int:
@@ -295,3 +310,25 @@ def listar_cancelamentos_ativos(db: Session, item_ids: list[int]) -> list[Cancel
 
 def obter_cancelamento(db: Session, cancelamento_id: int) -> CancelamentoUnidadePlanejada | None:
     return db.get(CancelamentoUnidadePlanejada, cancelamento_id)
+
+
+_PREVISAO_ATIVA = (PrevisaoEntregaItem.substituido_por_id.is_(None), PrevisaoEntregaItem.deletado_em.is_(None))
+
+
+def obter_previsao_ativa(db: Session, item_id: int) -> PrevisaoEntregaItem | None:
+    return db.scalars(
+        select(PrevisaoEntregaItem).where(PrevisaoEntregaItem.item_id == item_id, *_PREVISAO_ATIVA)
+    ).first()
+
+
+def previsoes_ativas_por_item(db: Session, item_ids: list[int]) -> dict[int, date]:
+    if not item_ids:
+        return {}
+    return {
+        int(i): d
+        for i, d in db.execute(
+            select(PrevisaoEntregaItem.item_id, PrevisaoEntregaItem.data_prevista).where(
+                PrevisaoEntregaItem.item_id.in_(item_ids), *_PREVISAO_ATIVA
+            )
+        ).all()
+    }

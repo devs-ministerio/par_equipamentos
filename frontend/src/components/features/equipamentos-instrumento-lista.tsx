@@ -1,6 +1,6 @@
 /** Tabela de itens controlados: planejado x entregue, situação e unidades.
  * Grade que vira lista empilhada em tela estreita. */
-import { Ban, Check, Menu } from "lucide-react";
+import { Ban, CalendarClock, Check, Menu } from "lucide-react";
 import { useState } from "react";
 import { fmtData } from "@/lib/monitoramento-format";
 import { posicaoEntreIguais } from "@/lib/equipamento-rotulos";
@@ -14,6 +14,7 @@ import {
   botaoIcone,
 } from "./equipamentos-instrumento-unidades";
 import { EquipamentosInstrumentoCancelar } from "./equipamentos-instrumento-cancelar";
+import { EquipamentosInstrumentoPrevisao } from "./equipamentos-instrumento-previsao";
 
 const SITUACAO: Record<ItemEquipamento["situacao"], [string, string]> = {
   pendente: ["Pendente", "bg-warning-bg text-warning border-warning/20"],
@@ -42,6 +43,8 @@ export function EquipamentosInstrumentoLista({
   onExcluirEntrega,
   onCancelarUnidade,
   onDesfazerCancelamento,
+  onDefinirPrevisao,
+  onRemoverPrevisao,
 }: {
   itens: ItemEquipamento[];
   podeEditar: boolean;
@@ -53,11 +56,15 @@ export function EquipamentosInstrumentoLista({
     cancelamentoId: number,
     motivo: string,
   ) => Promise<void>;
+  onDefinirPrevisao: (itemId: number, dataPrevista: string) => Promise<void>;
+  onRemoverPrevisao: (itemId: number, motivo: string) => Promise<void>;
 }) {
+  const [previsaoItem, setPrevisaoItem] = useState<number | null>(null);
   const [cancelando, setCancelando] = useState<number | null>(null);
   const [verUnidades, setVerUnidades] = useState<number | null>(null);
   const posicoes = posicaoEntreIguais(itens);
   const itemAberto = itens.find((i) => i.id === verUnidades);
+  const itemPrevisao = itens.find((i) => i.id === previsaoItem);
   const itemCancelando = itens.find((i) => i.id === cancelando);
   return (
     <div>
@@ -128,6 +135,13 @@ export function EquipamentosInstrumentoLista({
               </div>
               <div className="text-[12px] text-muted-foreground">
                 {item.ultima_entrega ? fmtData(item.ultima_entrega) : "—"}
+                {item.previsao_entrega &&
+                  item.situacao !== "entregue" &&
+                  item.situacao !== "cancelado" && (
+                    <span className="block text-[11px]">
+                      Prevista {fmtData(item.previsao_entrega)}
+                    </span>
+                  )}
               </div>
               <div className="flex justify-end gap-1.5 md:justify-self-end">
                 {item.unidades.length > 0 && (
@@ -141,6 +155,19 @@ export function EquipamentosInstrumentoLista({
                     <Menu className="size-4" aria-hidden="true" />
                   </button>
                 )}
+                {podeEditar &&
+                  item.situacao !== "entregue" &&
+                  item.situacao !== "cancelado" && (
+                    <button
+                      type="button"
+                      className={botaoIcone}
+                      aria-label={`Previsão de entrega de ${nome}`}
+                      title="Previsão de entrega"
+                      onClick={() => setPrevisaoItem(item.id)}
+                    >
+                      <CalendarClock className="size-4" aria-hidden="true" />
+                    </button>
+                  )}
                 {podeEditar &&
                   item.quantidade_planejada != null &&
                   (item.quantidade_cancelada > 0 ||
@@ -184,6 +211,14 @@ export function EquipamentosInstrumentoLista({
           </div>
         );
       })}
+      {itemPrevisao && (
+        <EquipamentosInstrumentoPrevisao
+          item={itemPrevisao}
+          onFechar={() => setPrevisaoItem(null)}
+          onDefinir={onDefinirPrevisao}
+          onRemover={onRemoverPrevisao}
+        />
+      )}
       {itemCancelando && (
         <EquipamentosInstrumentoCancelar
           item={itemCancelando}

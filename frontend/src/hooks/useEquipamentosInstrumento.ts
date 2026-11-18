@@ -5,10 +5,12 @@ import {
   type RegistrarEntregaInput,
   cancelarUnidadePlanejada,
   corrigirUnidade,
+  definirPrevisaoEntrega,
   excluirEntrega,
   fetchEntregasLegadas,
   fetchEquipamentos,
   reativarUnidadeCancelada,
+  removerPrevisaoEntrega,
   registrarEntrega,
   vincularEntregaLegada,
 } from "@/services/entregas-equipamento";
@@ -98,6 +100,24 @@ export function useReativarUnidade(nr: string) {
   return useMutation({
     mutationFn: (v: { cancelamentoId: number; motivo: string }) =>
       reativarUnidadeCancelada(v.cancelamentoId, v.motivo),
+    onSuccess: invalidar,
+  });
+}
+
+export function useDefinirPrevisaoEntrega(nr: string) {
+  const invalidar = useInvalidarEntrega(nr);
+  return useMutation({
+    mutationFn: (v: { itemId: number; dataPrevista: string }) =>
+      definirPrevisaoEntrega(v.itemId, v.dataPrevista),
+    onSuccess: invalidar,
+  });
+}
+
+export function useRemoverPrevisaoEntrega(nr: string) {
+  const invalidar = useInvalidarEntrega(nr);
+  return useMutation({
+    mutationFn: (v: { itemId: number; motivo: string }) =>
+      removerPrevisaoEntrega(v.itemId, v.motivo),
     onSuccess: invalidar,
   });
 }

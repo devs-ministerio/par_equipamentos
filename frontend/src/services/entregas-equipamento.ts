@@ -44,6 +44,7 @@ const itemSchema = z.object({
   quantidade_planejada: z.number().nullable(),
   quantidade_cancelada: z.number().default(0),
   cancelamentos: z.array(cancelamentoSchema).default([]),
+  previsao_entrega: z.string().nullable().default(null),
   quantidade_entregue: z.number(),
   situacao: z.enum([
     "pendente",
@@ -197,6 +198,38 @@ export function reativarUnidadeCancelada(
   return apiAuthed(
     `/monitoramento/cancelamentos/${cancelamentoId}`,
     cancelamentoSchema,
+    "DELETE",
+    { motivo },
+  );
+}
+
+const previsaoEntregaSchema = z.object({
+  id: z.number(),
+  item_id: z.number(),
+  data_prevista: z.string(),
+  ativo: z.boolean(),
+});
+export type PrevisaoEntrega = z.infer<typeof previsaoEntregaSchema>;
+
+export function definirPrevisaoEntrega(
+  itemId: number,
+  dataPrevista: string,
+): Promise<PrevisaoEntrega> {
+  return apiAuthed(
+    `/monitoramento/itens/${itemId}/previsao-entrega`,
+    previsaoEntregaSchema,
+    "PUT",
+    { data_prevista: dataPrevista },
+  );
+}
+
+export function removerPrevisaoEntrega(
+  itemId: number,
+  motivo: string,
+): Promise<PrevisaoEntrega> {
+  return apiAuthed(
+    `/monitoramento/itens/${itemId}/previsao-entrega`,
+    previsaoEntregaSchema,
     "DELETE",
     { motivo },
   );

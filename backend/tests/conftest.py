@@ -23,6 +23,8 @@ os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 
 _DB_TEST_MODULES = {
     "test_cancelamento_unidade_db.py",
+    "test_documentos_instrumento_db.py",
+    "test_previsoes_entrega_db.py",
     "test_repasses_db.py",
     "test_reabrir_eventos_consolidados_db.py",
     "test_relatorios_previsoes_db.py",

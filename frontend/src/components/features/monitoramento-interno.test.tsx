@@ -111,7 +111,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     expect(within(cronograma).queryByText(/2030/)).not.toBeInTheDocument();
   });
 
-  it("cabeçalho e cronograma usam licença vigente, não o ID textual maior", async () => {
+  it("cabeçalho usa licença vigente, não o ID textual maior, e o cartão é Documentos", async () => {
     // Arrange
     const h = prepararOrquestracao();
     h.controle.timeline.eventos = [
@@ -141,11 +141,12 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     expect(
       within(rotulo.parentElement!).getByText("Deferido"),
     ).toBeInTheDocument();
-    const regulatorio = screen
-      .getByRole("heading", { name: "Regulatório (CNEN)" })
-      .closest("section")!;
-    expect(within(regulatorio).getByText(/ATUAL/)).toBeInTheDocument();
-    expect(within(regulatorio).queryByText(/ANTIGO/)).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Documentos" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Regulatório (CNEN)" }),
+    ).not.toBeInTheDocument();
   });
 
   it.each(["ação", "evento"])(

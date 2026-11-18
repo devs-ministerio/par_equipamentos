@@ -118,6 +118,7 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
         cancelamentos.setdefault(c.item_id, []).append(
             CancelamentoUnidadeRead(id=c.id, item_id=c.item_id, motivo=c.motivo, criado_em=c.criado_em, ativo=True)
         )
+    previsoes = repo.previsoes_ativas_por_item(db, [item.id for item, _, _ in controlados])
     canceladas = {item_id: len(lista) for item_id, lista in cancelamentos.items()}
     rendimentos: dict[int, list[RendimentoRead]] = {}
     for filho in itens:
@@ -144,6 +145,7 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                 quantidade_planejada=item.quantidade_planejada,
                 quantidade_cancelada=canceladas.get(item.id, 0),
                 cancelamentos=cancelamentos.get(item.id, []),
+                previsao_entrega=previsoes.get(item.id),
                 quantidade_entregue=len(unidades),
                 situacao=_situacao(item.quantidade_planejada, len(unidades), revisoes > 0, canceladas.get(item.id, 0)),
                 ultima_entrega=max((u.data_entrega for u in unidades), default=None),

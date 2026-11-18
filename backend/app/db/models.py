@@ -106,6 +106,8 @@ class NotificacaoTipo(str, enum.Enum):
     # específica vai em `Notificacao.chave_dedup` (scripts/job_prazos_monitoramento.py).
     prazo_acao = "prazo_acao"
     prazo_inauguracao = "prazo_inauguracao"
+    # Previsão de entrega por item: entidade_id é InstrumentoEquipamento.id; o item vai em `chave_dedup`.
+    prazo_previsao_entrega = "prazo_previsao_entrega"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -1747,6 +1749,91 @@ class CancelamentoUnidadePlanejada(Base):
     )
     motivo: Mapped[str] = mapped_column(Text, nullable=False)
     autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+TIPOS_DOCUMENTO = ("nota_fiscal", "ordem_servico", "trp", "trd", "cnen_scra", "cnen_licenca")
+
+
+class DocumentoInstrumento(Base):
+    """Documento do instrumento (NF, OS, TRP, TRD, SCRA e licença de operação da CNEN), append-only.
+
+    Independente da fase: registrar um documento nunca muda a fase. Pode haver vários do mesmo tipo.
+    "Editar" cria linha nova e aponta a antiga por `substituido_por_id`; "excluir" é soft delete com motivo.
+    Ativo = `substituido_por_id IS NULL AND deletado_em IS NULL`. `origem_evento_id` marca o evento de marco
+    antigo do qual o documento foi migrado (idempotência do script de migração).
+    """
+
+    __tablename__ = "documento_instrumento"
+    __table_args__ = (
+        CheckConstraint(
+            "tipo IN ('nota_fiscal', 'ordem_servico', 'trp', 'trd', 'cnen_scra', 'cnen_licenca')",
+            name="ck_documento_instrumento_tipo",
+        ),
+        Index("idx_documento_instrumento_instrumento", "instrumento_id", "tipo"),
+        Index(
+            "uq_documento_instrumento_origem_evento",
+            "origem_evento_id",
+            unique=True,
+            postgresql_where=text("origem_evento_id IS NOT NULL AND deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String, nullable=False)
+    numero: Mapped[str | None] = mapped_column(String)
+    data_documento: Mapped[date] = mapped_column(Date, nullable=False)
+    # Só nos documentos da CNEN: vocabulário externo (Em análise, Em diligência, Deferido, Indeferido).
+    status: Mapped[str | None] = mapped_column(String)
+    # Só na licença de operação.
+    data_validade: Mapped[date | None] = mapped_column(Date)
+    observacao: Mapped[str | None] = mapped_column(String)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    origem_evento_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evento_marco.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
+    substituido_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("documento_instrumento.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(String)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PrevisaoEntregaItem(Base):
+    """Previsão de entrega de um item do plano (append-only, uma ativa por item).
+
+    Alterar cria nova linha e aponta a antiga por `substituido_por_id`; remover é soft delete com motivo.
+    Ativa = `substituido_por_id IS NULL AND deletado_em IS NULL`.
+    """
+
+    __tablename__ = "previsao_entrega_item"
+    __table_args__ = (
+        Index("idx_previsao_entrega_item", "item_id"),
+        Index(
+            "uq_previsao_entrega_item_ativa",
+            "item_id",
+            unique=True,
+            postgresql_where=text("substituido_por_id IS NULL AND deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    item_id: Mapped[int] = mapped_column(
+        ForeignKey("item_plano.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    data_prevista: Mapped[date] = mapped_column(Date, nullable=False)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    substituido_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("previsao_entrega_item.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
     deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
     motivo_exclusao: Mapped[str | None] = mapped_column(Text)
