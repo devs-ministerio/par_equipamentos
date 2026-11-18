@@ -21,7 +21,7 @@ import { RepasseConfirmarDialog } from "./repasse-confirmar-dialog";
 import { EquipamentosInstrumentoEditarUnidade } from "./equipamentos-instrumento-editar-unidade";
 import { EquipamentosInstrumentoFormEntrega } from "./equipamentos-instrumento-form-entrega";
 import { EquipamentosInstrumentoLista } from "./equipamentos-instrumento-lista";
-import { estiloInput, SecaoOperacional } from "./monitoramento-ui";
+import { SecaoOperacional } from "./monitoramento-ui";
 
 type Painel =
   | { tipo: "entrega"; itemId?: number }
@@ -91,22 +91,7 @@ export function EquipamentosInstrumento({
   const revisao = legadas.data?.find((r) => r.nr_convenio === numeroConvenio);
 
   return (
-    <SecaoOperacional
-      titulo="Equipamentos do instrumento"
-      cartao
-      acao={
-        podeEditar ? (
-          <button
-            type="button"
-            className={`${estiloInput} cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5`}
-            onClick={() => setPainel({ tipo: "entrega" })}
-            disabled={dados.itens.length === 0}
-          >
-            Registrar entrega
-          </button>
-        ) : undefined
-      }
-    >
+    <SecaoOperacional titulo="Equipamentos do instrumento" cartao>
       {erro && <ErrorAlert mensagem={erro} />}
       {revisao && (
         <div
