@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    Convenio,
     EntregaEquipamento,
     EntregaLegadaRevisao,
     EquipamentoCatalogo,
@@ -225,3 +226,14 @@ def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> 
     return [
         (i, f, planejado.get((i, f), 0), entregue.get((i, f), 0)) for i, f in sorted(set(planejado) | set(entregue))
     ]
+
+
+def vincular_itens_soltos_do_convenio(db: Session, *, instrumento_id: int, nr_convenio: str) -> int:
+    """Liga ao instrumento os itens do convênio de mesmo número ainda sem vínculo."""
+    convenio_ids = select(Convenio.id).where(Convenio.numero == nr_convenio)
+    resultado = db.execute(
+        update(ItemPlano)
+        .where(ItemPlano.convenio_id.in_(convenio_ids), ItemPlano.instrumento_id.is_(None))
+        .values(instrumento_id=instrumento_id)
+    )
+    return int(resultado.rowcount or 0)

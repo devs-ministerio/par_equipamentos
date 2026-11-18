@@ -22,6 +22,7 @@ from app.db.models import (
 )
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import convenios as convenios_repo
+from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas as propostas_repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
@@ -117,6 +118,8 @@ def criar_instrumento_monitorado(
     suplente_id = valores.pop("tecnico_suplente_id")
     instrumento = InstrumentoEquipamento(**valores)
     monitoramento_repo.adicionar_instrumento(db, instrumento)
+    # Itens do plano nascem soltos; sem este vínculo a tela diz que não há itens controlados.
+    itens_repo.vincular_itens_soltos_do_convenio(db, instrumento_id=instrumento.id, nr_convenio=nr_convenio)
     # A relação é a fonte de verdade; os nomes são apenas o espelho legado
     # preenchido pela função, nunca aceitos como entrada livre.
     titular, suplente = substituir_responsaveis_instrumento(
