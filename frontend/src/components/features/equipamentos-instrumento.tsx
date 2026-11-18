@@ -7,7 +7,9 @@ import {
   useCorrigirUnidade,
   useEntregasLegadas,
   useEquipamentosInstrumento,
+  useCancelarUnidade,
   useExcluirEntrega,
+  useReativarUnidade,
   useRegistrarEntrega,
   useVincularEntregaLegada,
 } from "@/hooks/useEquipamentosInstrumento";
@@ -43,6 +45,8 @@ export function EquipamentosInstrumento({
   const vincular = useVincularEntregaLegada(numeroConvenio);
   const corrigir = useCorrigirUnidade(numeroConvenio);
   const excluir = useExcluirEntrega(numeroConvenio);
+  const cancelar = useCancelarUnidade(numeroConvenio);
+  const reativar = useReativarUnidade(numeroConvenio);
   const repasse = useSituacaoRepasse(numeroConvenio);
   const confirmarRepasse = useConfirmarRepasse(numeroConvenio);
   const [pedidoRepasse, setPedidoRepasse] = useState<
@@ -130,6 +134,16 @@ export function EquipamentosInstrumento({
           podeEditar={podeEditar}
           onRegistrar={(itemId) => setPainel({ tipo: "entrega", itemId })}
           onCorrigir={setUnidade}
+          onCancelarUnidade={(itemId, motivo) =>
+            escrever(() => cancelar.mutateAsync({ itemId, motivo })).then(
+              () => undefined,
+            )
+          }
+          onDesfazerCancelamento={(cancelamentoId, motivo) =>
+            escrever(() =>
+              reativar.mutateAsync({ cancelamentoId, motivo }),
+            ).then(() => undefined)
+          }
           onExcluirEntrega={(entregaId, motivo) =>
             escrever(() => excluir.mutateAsync({ entregaId, motivo })).then(
               () => undefined,

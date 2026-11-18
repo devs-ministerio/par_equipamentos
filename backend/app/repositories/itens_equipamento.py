@@ -8,6 +8,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    CancelamentoUnidadePlanejada,
     Convenio,
     EntregaEquipamento,
     EntregaLegadaRevisao,
@@ -192,6 +193,16 @@ def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -
 ROTULO_FAMILIA_POR_VALOR = "Outros equipamentos (a partir de R$ 300 mil)"
 
 
+def _cancelamentos_ativos_do_item():
+    """Unidades planejadas canceladas do item da linha externa (subconsulta correlacionada)."""
+    return (
+        select(func.count())
+        .where(CancelamentoUnidadePlanejada.item_id == ItemPlano.id, CancelamentoUnidadePlanejada.deletado_em.is_(None))
+        .correlate(ItemPlano)
+        .scalar_subquery()
+    )
+
+
 def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> list[tuple[int, str, int, int]]:
     """(instrumento, família, planejado, entregue) dos itens controlados; planejado desconhecido não soma.
 
@@ -202,7 +213,12 @@ def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> 
     planejado = {
         (int(i), str(f)): int(q)
         for i, f, q in db.execute(
-            select(ItemPlano.instrumento_id, familia, func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0))
+            select(
+                ItemPlano.instrumento_id,
+                familia,
+                func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0)
+                - func.coalesce(func.sum(_cancelamentos_ativos_do_item()), 0),
+            )
             .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
             .where(
                 ItemPlano.instrumento_id.in_(instrumento_ids),
@@ -236,4 +252,46 @@ def vincular_itens_soltos_do_convenio(db: Session, *, instrumento_id: int, nr_co
         .where(ItemPlano.convenio_id.in_(convenio_ids), ItemPlano.instrumento_id.is_(None))
         .values(instrumento_id=instrumento_id)
     )
-    return int(resultado.rowcount or 0)
+    return int(getattr(resultado, "rowcount", 0) or 0)
+
+
+_CANCELAMENTO_ATIVO = CancelamentoUnidadePlanejada.deletado_em.is_(None)
+
+
+def quantidade_cancelada(db: Session, item_id: int) -> int:
+    return int(
+        db.execute(
+            select(func.count())
+            .select_from(CancelamentoUnidadePlanejada)
+            .where(CancelamentoUnidadePlanejada.item_id == item_id, _CANCELAMENTO_ATIVO)
+        ).scalar_one()
+    )
+
+
+def quantidades_canceladas_por_item(db: Session, item_ids: list[int]) -> dict[int, int]:
+    if not item_ids:
+        return {}
+    return {
+        int(i): int(q)
+        for i, q in db.execute(
+            select(CancelamentoUnidadePlanejada.item_id, func.count())
+            .where(CancelamentoUnidadePlanejada.item_id.in_(item_ids), _CANCELAMENTO_ATIVO)
+            .group_by(CancelamentoUnidadePlanejada.item_id)
+        ).all()
+    }
+
+
+def listar_cancelamentos_ativos(db: Session, item_ids: list[int]) -> list[CancelamentoUnidadePlanejada]:
+    if not item_ids:
+        return []
+    return list(
+        db.scalars(
+            select(CancelamentoUnidadePlanejada)
+            .where(CancelamentoUnidadePlanejada.item_id.in_(item_ids), _CANCELAMENTO_ATIVO)
+            .order_by(CancelamentoUnidadePlanejada.criado_em, CancelamentoUnidadePlanejada.id)
+        )
+    )
+
+
+def obter_cancelamento(db: Session, cancelamento_id: int) -> CancelamentoUnidadePlanejada | None:
+    return db.get(CancelamentoUnidadePlanejada, cancelamento_id)

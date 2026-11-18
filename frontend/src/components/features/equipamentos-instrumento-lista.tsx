@@ -1,6 +1,6 @@
 /** Tabela de itens controlados: planejado x entregue, situação e unidades.
  * Grade que vira lista empilhada em tela estreita. */
-import { Check, Menu } from "lucide-react";
+import { Ban, Check, Menu } from "lucide-react";
 import { useState } from "react";
 import { fmtData } from "@/lib/monitoramento-format";
 import { posicaoEntreIguais } from "@/lib/equipamento-rotulos";
@@ -13,11 +13,13 @@ import {
   EquipamentosInstrumentoUnidades,
   botaoIcone,
 } from "./equipamentos-instrumento-unidades";
+import { EquipamentosInstrumentoCancelar } from "./equipamentos-instrumento-cancelar";
 
 const SITUACAO: Record<ItemEquipamento["situacao"], [string, string]> = {
   pendente: ["Pendente", "bg-warning-bg text-warning border-warning/20"],
   parcial: ["Parcial", "bg-warning-bg text-warning border-warning/20"],
   entregue: ["Entregue", "bg-success-bg text-success border-success/20"],
+  cancelado: ["Cancelado", "bg-muted text-muted-foreground border-border"],
   legado_a_revisar: [
     "A vincular",
     "bg-destructive-bg text-destructive border-destructive/20",
@@ -38,16 +40,25 @@ export function EquipamentosInstrumentoLista({
   onRegistrar,
   onCorrigir,
   onExcluirEntrega,
+  onCancelarUnidade,
+  onDesfazerCancelamento,
 }: {
   itens: ItemEquipamento[];
   podeEditar: boolean;
   onRegistrar: (itemId: number) => void;
   onCorrigir: (unidade: UnidadeEquipamento) => void;
   onExcluirEntrega: (entregaId: number, motivo: string) => Promise<void>;
+  onCancelarUnidade: (itemId: number, motivo: string) => Promise<void>;
+  onDesfazerCancelamento: (
+    cancelamentoId: number,
+    motivo: string,
+  ) => Promise<void>;
 }) {
+  const [cancelando, setCancelando] = useState<number | null>(null);
   const [verUnidades, setVerUnidades] = useState<number | null>(null);
   const posicoes = posicaoEntreIguais(itens);
   const itemAberto = itens.find((i) => i.id === verUnidades);
+  const itemCancelando = itens.find((i) => i.id === cancelando);
   return (
     <div>
       <div
@@ -99,6 +110,11 @@ export function EquipamentosInstrumentoLista({
                   {" "}
                   / {planejado ?? "?"}
                 </span>
+                {item.quantidade_cancelada > 0 && (
+                  <span className="block text-[11px] text-muted-foreground">
+                    {item.quantidade_cancelada} cancelada(s)
+                  </span>
+                )}
               </div>
               <div>
                 <span
@@ -125,17 +141,33 @@ export function EquipamentosInstrumentoLista({
                     <Menu className="size-4" aria-hidden="true" />
                   </button>
                 )}
-                {podeEditar && item.situacao !== "entregue" && (
-                  <button
-                    type="button"
-                    className={botaoIcone}
-                    aria-label={`Registrar entrega de ${nome}`}
-                    title="Registrar entrega"
-                    onClick={() => onRegistrar(item.id)}
-                  >
-                    <Check className="size-4" aria-hidden="true" />
-                  </button>
-                )}
+                {podeEditar &&
+                  item.quantidade_planejada != null &&
+                  (item.quantidade_cancelada > 0 ||
+                    item.quantidade_planejada > item.quantidade_entregue) && (
+                    <button
+                      type="button"
+                      className={botaoIcone}
+                      aria-label={`Cancelar unidade de ${nome}`}
+                      title="Cancelar unidade"
+                      onClick={() => setCancelando(item.id)}
+                    >
+                      <Ban className="size-4" aria-hidden="true" />
+                    </button>
+                  )}
+                {podeEditar &&
+                  item.situacao !== "entregue" &&
+                  item.situacao !== "cancelado" && (
+                    <button
+                      type="button"
+                      className={botaoIcone}
+                      aria-label={`Registrar entrega de ${nome}`}
+                      title="Registrar entrega"
+                      onClick={() => onRegistrar(item.id)}
+                    >
+                      <Check className="size-4" aria-hidden="true" />
+                    </button>
+                  )}
               </div>
             </div>
             {item.rendimentos.map((r) => (
@@ -152,6 +184,14 @@ export function EquipamentosInstrumentoLista({
           </div>
         );
       })}
+      {itemCancelando && (
+        <EquipamentosInstrumentoCancelar
+          item={itemCancelando}
+          onFechar={() => setCancelando(null)}
+          onCancelar={onCancelarUnidade}
+          onDesfazer={onDesfazerCancelamento}
+        />
+      )}
       {itemAberto && (
         <EquipamentosInstrumentoUnidades
           nome={itemAberto.nome}

@@ -75,3 +75,12 @@ export const confirmarRepasseSchema = z.object({
     .optional(),
 });
 export type ConfirmarRepasseFormValues = z.infer<typeof confirmarRepasseSchema>;
+
+export const motivoUnidadeSchema = z.object({
+  motivo: z
+    .string()
+    .trim()
+    .min(5, "Informe o motivo (mínimo 5 caracteres).")
+    .max(1000, "Máximo de 1000 caracteres."),
+});
+export type MotivoUnidadeFormValues = z.infer<typeof motivoUnidadeSchema>;

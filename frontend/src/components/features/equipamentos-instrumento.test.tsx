@@ -16,6 +16,8 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
     familia: "mamografo",
     controla_unidade: true,
     quantidade_planejada: 2,
+    quantidade_cancelada: 0,
+    cancelamentos: [],
     quantidade_entregue: 1,
     situacao: "parcial",
     ultima_entrega: "2026-10-01",
@@ -42,6 +44,8 @@ describe("lista de equipamentos do instrumento", () => {
     onRegistrar: vi.fn(),
     onCorrigir: vi.fn(),
     onExcluirEntrega: vi.fn().mockResolvedValue(undefined),
+    onCancelarUnidade: vi.fn().mockResolvedValue(undefined),
+    onDesfazerCancelamento: vi.fn().mockResolvedValue(undefined),
   };
 
   it("mostra o nome da RENEM e nunca a descrição informada na API", () => {
@@ -115,6 +119,104 @@ describe("lista de equipamentos do instrumento", () => {
     );
     expect(
       screen.queryByRole("button", { name: /Registrar entrega/ }),
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe("cancelamento de unidade planejada", () => {
+  const props = {
+    onRegistrar: vi.fn(),
+    onCorrigir: vi.fn(),
+    onExcluirEntrega: vi.fn(),
+    onCancelarUnidade: vi.fn().mockResolvedValue(undefined),
+    onDesfazerCancelamento: vi.fn().mockResolvedValue(undefined),
+  };
+
+  it("exige motivo e cancela a unidade pendente", async () => {
+    render(
+      <EquipamentosInstrumentoLista {...props} itens={[item()]} podeEditar />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Cancelar unidade de Mamógrafo" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Cancelar unidade" }),
+    );
+    expect(await screen.findByText(/Informe o motivo/)).toBeInTheDocument();
+    expect(props.onCancelarUnidade).not.toHaveBeenCalled();
+    await userEvent.type(
+      screen.getByLabelText("Motivo do cancelamento"),
+      "Convenente desistiu da unidade",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Cancelar unidade" }),
+    );
+    await waitFor(() =>
+      expect(props.onCancelarUnidade).toHaveBeenCalledWith(
+        1,
+        "Convenente desistiu da unidade",
+      ),
+    );
+  });
+
+  it("mostra item cancelado e permite desfazer com motivo", async () => {
+    render(
+      <EquipamentosInstrumentoLista
+        {...props}
+        podeEditar
+        itens={[
+          item({
+            situacao: "cancelado",
+            quantidade_entregue: 0,
+            quantidade_planejada: 1,
+            quantidade_cancelada: 1,
+            unidades: [],
+            cancelamentos: [
+              {
+                id: 7,
+                item_id: 1,
+                motivo: "Convenente desistiu",
+                criado_em: "2026-11-18T10:00:00Z",
+                ativo: true,
+              },
+            ],
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Cancelado")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Registrar entrega/ }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Cancelar unidade de Mamógrafo" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Desfazer" }));
+    await userEvent.type(
+      screen.getByLabelText("Motivo para desfazer"),
+      "Lançado por engano",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Desfazer cancelamento" }),
+    );
+    await waitFor(() =>
+      expect(props.onDesfazerCancelamento).toHaveBeenCalledWith(
+        7,
+        "Lançado por engano",
+      ),
+    );
+  });
+
+  it("leitor não vê o botão de cancelar", () => {
+    render(
+      <EquipamentosInstrumentoLista
+        {...props}
+        itens={[item()]}
+        podeEditar={false}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: /Cancelar unidade/ }),
     ).not.toBeInTheDocument();
   });
 });

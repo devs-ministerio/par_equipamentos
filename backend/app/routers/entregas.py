@@ -13,15 +13,19 @@ from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import User
 from app.schemas_entregas import (
+    CancelamentoUnidadeCreate,
+    CancelamentoUnidadeRead,
     EntregaCreate,
     EntregaLegadaRead,
     EntregaRead,
     EquipamentosInstrumentoRead,
     ExclusaoEntrega,
+    ReativacaoUnidadeCreate,
     UnidadeRead,
     UnidadeUpdate,
     VincularLegadaCreate,
 )
+from app.services import cancelamento_unidade as servico_cancelamento
 from app.services import entregas_equipamento as servico
 
 router = APIRouter(prefix="/monitoramento", tags=["entregas"])
@@ -75,3 +79,25 @@ def vincular_entrega_legada(
     usuario: User = Depends(require_monitoramento_editor),
 ):
     return servico.vincular_entrega_legada(revisao_id=revisao_id, itens=corpo.itens, db=db, usuario=usuario)
+
+
+@router.post("/itens/{item_id}/cancelamentos", response_model=CancelamentoUnidadeRead, status_code=201)
+def cancelar_unidade_planejada(
+    item_id: int,
+    corpo: CancelamentoUnidadeCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico_cancelamento.cancelar_unidade_planejada(item_id=item_id, dados=corpo, db=db, usuario=usuario)
+
+
+@router.delete("/cancelamentos/{cancelamento_id}", response_model=CancelamentoUnidadeRead)
+def reativar_unidade_cancelada(
+    cancelamento_id: int,
+    corpo: ReativacaoUnidadeCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico_cancelamento.reativar_unidade_cancelada(
+        cancelamento_id=cancelamento_id, dados=corpo, db=db, usuario=usuario
+    )

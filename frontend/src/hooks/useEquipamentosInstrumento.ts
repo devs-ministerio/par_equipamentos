@@ -3,10 +3,12 @@ import {
   type CorrigirUnidadeInput,
   type ItemEntregaInput,
   type RegistrarEntregaInput,
+  cancelarUnidadePlanejada,
   corrigirUnidade,
   excluirEntrega,
   fetchEntregasLegadas,
   fetchEquipamentos,
+  reativarUnidadeCancelada,
   registrarEntrega,
   vincularEntregaLegada,
 } from "@/services/entregas-equipamento";
@@ -78,6 +80,24 @@ export function useExcluirEntrega(nr: string) {
   return useMutation({
     mutationFn: (v: { entregaId: number; motivo: string }) =>
       excluirEntrega(v.entregaId, v.motivo),
+    onSuccess: invalidar,
+  });
+}
+
+export function useCancelarUnidade(nr: string) {
+  const invalidar = useInvalidarEntrega(nr);
+  return useMutation({
+    mutationFn: (v: { itemId: number; motivo: string }) =>
+      cancelarUnidadePlanejada(v.itemId, v.motivo),
+    onSuccess: invalidar,
+  });
+}
+
+export function useReativarUnidade(nr: string) {
+  const invalidar = useInvalidarEntrega(nr);
+  return useMutation({
+    mutationFn: (v: { cancelamentoId: number; motivo: string }) =>
+      reativarUnidadeCancelada(v.cancelamentoId, v.motivo),
     onSuccess: invalidar,
   });
 }

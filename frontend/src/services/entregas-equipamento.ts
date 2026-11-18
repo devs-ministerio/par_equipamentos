@@ -25,6 +25,15 @@ const rendimentoSchema = z.object({
 });
 export type RendimentoItem = z.infer<typeof rendimentoSchema>;
 
+const cancelamentoSchema = z.object({
+  id: z.number(),
+  item_id: z.number(),
+  motivo: z.string(),
+  criado_em: z.string(),
+  ativo: z.boolean(),
+});
+export type CancelamentoUnidade = z.infer<typeof cancelamentoSchema>;
+
 const itemSchema = z.object({
   id: z.number(),
   codigo_item: z.string().nullable(),
@@ -33,8 +42,16 @@ const itemSchema = z.object({
   familia: z.string().nullable(),
   controla_unidade: z.boolean(),
   quantidade_planejada: z.number().nullable(),
+  quantidade_cancelada: z.number().default(0),
+  cancelamentos: z.array(cancelamentoSchema).default([]),
   quantidade_entregue: z.number(),
-  situacao: z.enum(["pendente", "parcial", "entregue", "legado_a_revisar"]),
+  situacao: z.enum([
+    "pendente",
+    "parcial",
+    "entregue",
+    "cancelado",
+    "legado_a_revisar",
+  ]),
   ultima_entrega: z.string().nullable(),
   unidades: z.array(unidadeSchema),
   rendimentos: z.array(rendimentoSchema).default([]),
@@ -156,6 +173,30 @@ export function excluirEntrega(
   return apiAuthed(
     `/monitoramento/entregas/${entregaId}`,
     entregaSchema,
+    "DELETE",
+    { motivo },
+  );
+}
+
+export function cancelarUnidadePlanejada(
+  itemId: number,
+  motivo: string,
+): Promise<CancelamentoUnidade> {
+  return apiAuthed(
+    `/monitoramento/itens/${itemId}/cancelamentos`,
+    cancelamentoSchema,
+    "POST",
+    { motivo },
+  );
+}
+
+export function reativarUnidadeCancelada(
+  cancelamentoId: number,
+  motivo: string,
+): Promise<CancelamentoUnidade> {
+  return apiAuthed(
+    `/monitoramento/cancelamentos/${cancelamentoId}`,
+    cancelamentoSchema,
     "DELETE",
     { motivo },
   );

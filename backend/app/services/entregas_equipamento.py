@@ -33,6 +33,7 @@ from app.repositories import itens_equipamento as repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_entregas import (
+    CancelamentoUnidadeRead,
     EntregaCreate,
     EntregaLegadaRead,
     EntregaRead,
@@ -92,10 +93,14 @@ def _instrumento_ou_404(db: Session, nr_convenio: str) -> InstrumentoEquipamento
     return instrumento
 
 
-def _situacao(planejado: int | None, entregue: int, revisao_pendente: bool) -> SituacaoItem:
+def _situacao(planejado: int | None, entregue: int, revisao_pendente: bool, cancelado: int = 0) -> SituacaoItem:
+    """A quantidade a entregar é o planejado menos as unidades canceladas."""
+    a_entregar = None if planejado is None else planejado - cancelado
     if entregue == 0:
+        if a_entregar is not None and a_entregar <= 0:
+            return "cancelado"
         return "legado_a_revisar" if revisao_pendente else "pendente"
-    if planejado is not None and entregue >= planejado:
+    if a_entregar is not None and entregue >= a_entregar:
         return "entregue"
     return "parcial"
 
@@ -108,6 +113,12 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
     for unidade, data in repo.listar_unidades_ativas(db, [item.id for item, _, _ in controlados]):
         unidades_por_item.setdefault(unidade.item_id, []).append(_unidade_read(unidade, data))
     revisoes = repo.contar_revisoes_pendentes(db, instrumento.id)
+    cancelamentos: dict[int, list[CancelamentoUnidadeRead]] = {}
+    for c in repo.listar_cancelamentos_ativos(db, [item.id for item, _, _ in controlados]):
+        cancelamentos.setdefault(c.item_id, []).append(
+            CancelamentoUnidadeRead(id=c.id, item_id=c.item_id, motivo=c.motivo, criado_em=c.criado_em, ativo=True)
+        )
+    canceladas = {item_id: len(lista) for item_id, lista in cancelamentos.items()}
     rendimentos: dict[int, list[RendimentoRead]] = {}
     for filho in itens:
         item_filho = filho[0]
@@ -131,8 +142,10 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                 familia=familia,
                 controla_unidade=True,
                 quantidade_planejada=item.quantidade_planejada,
+                quantidade_cancelada=canceladas.get(item.id, 0),
+                cancelamentos=cancelamentos.get(item.id, []),
                 quantidade_entregue=len(unidades),
-                situacao=_situacao(item.quantidade_planejada, len(unidades), revisoes > 0),
+                situacao=_situacao(item.quantidade_planejada, len(unidades), revisoes > 0, canceladas.get(item.id, 0)),
                 ultima_entrega=max((u.data_entrega for u in unidades), default=None),
                 unidades=unidades,
                 rendimentos=rendimentos.get(item.id, []),
@@ -176,7 +189,11 @@ def _validar_itens(
             if not dados.confirmar_quantidade_desconhecida:
                 raise ValidationError(f"O item {item.id} não tem quantidade planejada; confirme a quantidade entregue.")
         else:
-            falta = item.quantidade_planejada - repo.quantidade_entregue(db, item.id)
+            falta = (
+                item.quantidade_planejada
+                - repo.quantidade_cancelada(db, item.id)
+                - repo.quantidade_entregue(db, item.id)
+            )
             if len(dados.unidades) > falta:
                 raise ValidationError(
                     f"Quantidade acima do planejado para o item {item.id}: faltam {max(falta, 0)} unidade(s)."

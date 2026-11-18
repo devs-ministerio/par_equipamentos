@@ -1729,6 +1729,30 @@ class RepasseInstrumento(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class CancelamentoUnidadePlanejada(Base):
+    """Cancelamento de uma unidade planejada de item ainda não entregue (append-only).
+
+    Cada linha ativa tira uma unidade da quantidade a entregar do item; desfazer é soft delete com motivo.
+    """
+
+    __tablename__ = "cancelamento_unidade_planejada"
+    __table_args__ = (
+        CheckConstraint("length(btrim(motivo)) > 0", name="ck_cancelamento_unidade_motivo"),
+        Index("idx_cancelamento_unidade_item", "item_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    item_id: Mapped[int] = mapped_column(
+        ForeignKey("item_plano.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    motivo: Mapped[str] = mapped_column(Text, nullable=False)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class UnidadeEquipamento(Base):
     """Unidade física entregue: marca, modelo, número de série e vida útil. Nasce na entrega."""
 
