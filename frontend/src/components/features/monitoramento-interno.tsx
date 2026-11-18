@@ -29,7 +29,6 @@ import { MonitoramentoInternoCadastro } from "./monitoramento-interno-cadastro";
 import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
 import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
-import { RepasseInstrumento } from "./repasse-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
 
@@ -172,12 +171,6 @@ function MonitoramentoInternoConteudo({
         alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
         acoesAbertasCount={acoesAbertas.length}
         acoesAtrasadasCount={acoesAtrasadas.length}
-      />
-
-      <RepasseInstrumento
-        numeroConvenio={numeroConvenio}
-        podeEditar={podeEditar}
-        aoSessaoInvalida={sessao.tratarSessaoInvalida}
       />
 
       <EquipamentosInstrumento

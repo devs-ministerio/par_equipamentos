@@ -11,8 +11,13 @@ import {
   useRegistrarEntrega,
   useVincularEntregaLegada,
 } from "@/hooks/useEquipamentosInstrumento";
+import {
+  useConfirmarRepasse,
+  useSituacaoRepasse,
+} from "@/hooks/useRepasseInstrumento";
 import { ApiError, mensagemSeguraDoErro } from "@/lib/api-error";
 import type { UnidadeEquipamento } from "@/services/entregas-equipamento";
+import { RepasseConfirmarDialog } from "./repasse-confirmar-dialog";
 import { EquipamentosInstrumentoEditarUnidade } from "./equipamentos-instrumento-editar-unidade";
 import { EquipamentosInstrumentoFormEntrega } from "./equipamentos-instrumento-form-entrega";
 import { EquipamentosInstrumentoLista } from "./equipamentos-instrumento-lista";
@@ -38,6 +43,11 @@ export function EquipamentosInstrumento({
   const vincular = useVincularEntregaLegada(numeroConvenio);
   const corrigir = useCorrigirUnidade(numeroConvenio);
   const excluir = useExcluirEntrega(numeroConvenio);
+  const repasse = useSituacaoRepasse(numeroConvenio);
+  const confirmarRepasse = useConfirmarRepasse(numeroConvenio);
+  const [pedidoRepasse, setPedidoRepasse] = useState<
+    ((confirmado: boolean) => void) | null
+  >(null);
   const [painel, setPainel] = useState<Painel>(null);
   const [unidade, setUnidade] = useState<UnidadeEquipamento | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -52,6 +62,11 @@ export function EquipamentosInstrumento({
       setErro(mensagemSeguraDoErro(e));
       throw e;
     }
+  }
+
+  /** Sem repasse confirmado, a entrega só segue depois da confirmação (integral ou parcial). */
+  function pedirRepasse(): Promise<boolean> {
+    return new Promise((resolver) => setPedidoRepasse(() => resolver));
   }
 
   if (consulta.error) {
@@ -160,6 +175,10 @@ export function EquipamentosInstrumento({
                 }),
               );
             } else {
+              if (repasse.data && repasse.data.repasse === null) {
+                const confirmado = await pedirRepasse();
+                if (!confirmado) throw new Error("Repasse não confirmado.");
+              }
               await escrever(() =>
                 registrar.mutateAsync({
                   chave_idempotencia: envio.chave,
@@ -168,6 +187,31 @@ export function EquipamentosInstrumento({
                   itens: envio.itens,
                 }),
               );
+            }
+          }}
+        />
+      )}
+      {pedidoRepasse && (
+        <RepasseConfirmarDialog
+          onFechar={() => {
+            pedidoRepasse(false);
+            setPedidoRepasse(null);
+          }}
+          onConfirmar={async (valores) => {
+            try {
+              await confirmarRepasse.mutateAsync({
+                tipo: valores.tipo,
+                justificativa: valores.justificativa || null,
+              });
+              pedidoRepasse(true);
+              setPedidoRepasse(null);
+            } catch (e) {
+              if (
+                e instanceof ApiError &&
+                (e.status === 401 || e.status === 403)
+              )
+                aoSessaoInvalida();
+              setErro(mensagemSeguraDoErro(e));
             }
           }}
         />
