@@ -83,6 +83,8 @@ Candidatos levantados (a validar):
 - `equipamentos-instrumento.tsx`: aviso "Entrega registrada antes do controle por unidade" (manter só o essencial: vincular).
 - Cabeçalho do instrumento e cartões: legendas secundárias em 11 px que repetem o dado principal.
 
+Ajuste de botão (pedido em 19/11/2026): o "Editar cadastro" do cartão Cadastro interno passa a usar o mesmo botão do "Concluir acompanhamento" (`Button` pequeno, no cabeçalho do cartão), no lugar do botão artesanal com borda azul que hoje alterna o formulário no próprio cartão. A forma de abrir o formulário (janela, como as demais ações, ou inline) está em validação.
+
 Critério: o dado fica se a equipe age sobre ele; texto que só explica regra interna sai.
 
 ## 9. Em aberto
