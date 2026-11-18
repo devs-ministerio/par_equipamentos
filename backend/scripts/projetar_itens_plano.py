@@ -334,14 +334,21 @@ def _aplicar_excecao_instrumento(lote: list[tuple[tuple[str, str], dict]], resul
     if any(n["controla_unidade"] for _, n in lote):
         return
     limite = float(settings.limite_valor_unitario_excecao)
-    elegiveis = [
+
+    def unitario(n: dict) -> float:
+        return float(n["valor_total"]) / max(n["quantidade_planejada"] or 1, 1)
+
+    candidatos = [
         n
         for _, n in lote
         if n["tipo_lancamento"] == "aquisicao"
         and n["situacao_classificacao"] == "aplicada"
         and n["valor_total"] is not None
-        and float(n["valor_total"]) / max(n["quantidade_planejada"] or 1, 1) >= limite
     ]
+    elegiveis = [n for n in candidatos if unitario(n) >= limite]
+    if not elegiveis:
+        # Exceção da exceção: nenhum item chega ao limite, então valem os de maior valor unitário.
+        elegiveis = sorted(candidatos, key=unitario, reverse=True)[: settings.itens_excecao_da_excecao]
     if not elegiveis:
         return
     for n in elegiveis:

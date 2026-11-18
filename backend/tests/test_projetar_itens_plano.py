@@ -272,3 +272,12 @@ def test_excecao_nao_vale_com_item_ja_controlado_ou_sem_instrumento():
     sem_instrumento = [_linha(200_000, 1, instrumento=None)]
     _aplicar_excecao_instrumento(sem_instrumento, Resultado())
     assert sem_instrumento[0][1]["controla_unidade"] is False
+
+
+def test_excecao_da_excecao_usa_os_tres_itens_de_maior_valor_unitario():
+    from scripts.projetar_itens_plano import Resultado, _aplicar_excecao_instrumento
+
+    lote = [_linha(90_000, 1), _linha(50_000, 1), _linha(40_000, 2), _linha(1_000, 1), _linha(30_000, 1)]
+    _aplicar_excecao_instrumento(lote, Resultado())
+    # unitários: 90k, 50k, 20k, 1k, 30k -> os três maiores são 90k, 50k e 30k
+    assert [n["controla_unidade"] for _, n in lote] == [True, True, False, False, True]

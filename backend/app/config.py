@@ -79,6 +79,8 @@ class Settings(BaseSettings):
     limite_valor_unitario_monitorado: float = 300_000.0
     # Mesmo critério, menor, para instrumento sem nenhum item controlado (entrou pelo componente).
     limite_valor_unitario_excecao: float = 100_000.0
+    # Se nem assim houver item, os N de maior valor unitário do instrumento viram unidade.
+    itens_excecao_da_excecao: int = 3
 
     # Chave gratuita de autoatendimento (login gov.br, sem aprovacao manual)
     # gerada em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email
