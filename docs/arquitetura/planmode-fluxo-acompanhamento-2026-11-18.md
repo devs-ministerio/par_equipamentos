@@ -1,0 +1,70 @@
+# Plan Mode: fluxo comum de acompanhamento (18/11/2026)
+
+Estado: **plano, sem código do fluxo novo**. Nasce de `docs/arquitetura/` + diagnóstico de leitura em produção de 18/11/2026 e das decisões do usuário abaixo. Nada vai ao remoto sem autorização; gravação em produção só com "pode gravar" e backup.
+
+## 1. Decisões já tomadas
+
+- Fluxo: Acompanhamento iniciado → Aguardando repasse → Valor repassado → Equipamento entregue → Pós-entrega → Concluído. Validado pela equipe técnica.
+- Repasse não bloqueia a entrega. No check, se o repasse não estiver confirmado, pede a confirmação **Integral ou Parcial** (automática, sem data; a data do registro é só histórico). "Pago" do TransfereGov conta como repasse confirmado.
+- Cancelamento por unidade. Conclusão calculada (integral, parcial, sem entregas) e confirmada pela equipe.
+- Itens fora das 16 famílias e abaixo de R$ 300 mil não exigem check nem validação na conclusão, exceto instrumento sem item prioritário, relacionado pelo componente.
+- **Previsão de inauguração ≠ previsão de entrega.** Inauguração é do instrumento/programa e se liga à conclusão; previsão de entrega é por item (calendário). Previsões ambíguas (vários equipamentos) são descartadas. O relatório de Previsões deixa de existir (revisão geral dos relatórios fica para depois).
+- **PERSUS I:** a data de entrega de todo item é a data de inauguração (só no PERSUS I).
+- **PERSUS II:** os 24 instrumentos hoje monitorados saem do monitoramento interno e a inclusão fica desabilitada por enquanto (código já travado: `criar_instrumento_monitorado` e o botão).
+- Ingestão manual (PERSUS, FAF, TED): o técnico precisa poder confirmar repasse, entrega, pós-entrega e conclusão pelas mesmas ações do fluxo, com autor, justificativa e histórico.
+- Concluídos atuais passam por revisão: sem pendência continuam concluídos; com pendência saem. Ações abertas dos concluídos corretos são concluídas.
+- NF e documentos (CNEN, OS, TRP, TRD) independentes, sem alterar fase.
+
+## 2. Diagnóstico (produção, 18/11/2026)
+
+- 404 instrumentos monitorados (4 fora de escopo): 295 "Convênio" (24 são PERSUS II tipados errado), 92 PERSUS I, 14 FAF, 3 TED.
+- Fase hoje: 124 sem fase, 4 em licitação, 12 aguardando repasse, 11 em aquisição, 2 contratados, 18 em andamento, 15 em comissionamento, 11 entregues, 203 concluídos.
+- Repasse (267 convênios SICONV): 223 com desembolso (115 parciais, 108 integrais); 44 só com repasse previsto. PERSUS, FAF e TED não têm fonte de desembolso.
+- Concluídos (204): 153 com entrega igual ao planejado (124 sem pendência, 28 com ação aberta, 1 com item na fila de revisão), 46 sem entrega (41 PERSUS I), 3 parciais, 2 só com itens sem controle.
+- Itens: 1.747 de aquisição sem controle de unidade (95 instrumentos também têm item controlado; 15 não têm nenhum, a exceção). 36 instrumentos criados após 28/10 têm itens sem vínculo (`item_plano.instrumento_id` nulo), por isso a tela diz que não há itens controlados (ex.: 985638).
+- Inauguração: 170 registros (149 reais, 13 futuras, 4 vencidas, 6 sem data); 87 PERSUS I concluídos têm inauguração real, mas só 9 das 52 entregas lançadas coincidem com ela.
+- 234 de 245 unidades lançadas não têm marca, modelo nem série (legado vinculado).
+- Propostas: 31, 16 aprovadas; 2 viraram FAF monitorado (código da parceria = `nr_convenio`); 14 aguardam inclusão.
+
+## 3. Modelo alvo
+
+**A fase é calculada a partir de fatos append-only**, nunca escolhida de uma lista: repasse confirmado (tipo integral/parcial, origem fonte ou manual), primeira entrega, início do pós-entrega e conclusão confirmada. Assim atualização externa não regride a fase e correção incompatível gera revisão explícita.
+
+Proposta (a validar): nova fase **Em aquisição** entre Valor repassado e Equipamento entregue, absorvendo licitação, aquisição, contratado e em andamento. Mapeamento da carga: Comissionamento vira Pós-entrega só com entrega lançada e confirmação do técnico; sem entrega, Em aquisição.
+
+Inauguração: campo do instrumento com histórico de revisões e data real preenchida na conclusão (proposta; alternativas: manter como marco renomeado ou só na conclusão). Alertas D-1/D0/D+1 migram para a previsão de entrega por item.
+
+## 4. Entregas
+
+0. **Pré-requisitos (antes de qualquer código):** Manual Deploy do Render com o motor de complementos (#61/#66); projeção de itens (`projetar_itens_plano.py --aplicar`) para ligar os itens soltos; vínculo definitivo (tela busca itens pelo convênio, ou criar instrumento projeta os itens).
+1. **Unificar o acompanhamento:** vínculo proposta → instrumento sem duplicar (FAF já usa o código da parceria; falta a origem SICONV antiga); regra de identidade.
+2. **Fases e repasse:** fatos, cálculo da fase, confirmação Integral/Parcial no check, ações do técnico para cargas manuais, "registrar situação já existente".
+3. **Equipamentos e documentos:** previsão de entrega por item (calendário), cancelamento por unidade com motivo, NF e documentos opcionais, migração dos marcos CNEN/TRP/TRD/OS para "Documentos".
+4. **Pós-entrega e conclusão:** botão visível, validação no backend, impedimentos listados, três resultados calculados, reabertura para alterar entregas ou cancelamentos após concluir.
+5. **Migrar e homologar:** regras abaixo, painel e relatórios, teste em clone local.
+
+## 5. Regras de migração
+
+1. Remover os 24 PERSUS II do monitoramento (sem eventos, ações nem entregas; cada um tem 1 responsável e 1 item vinculado). `AuditLog` antes do delete, como no precedente do 877881.
+2. PERSUS I: corrigir as datas de entrega para a data de inauguração (43 divergem hoje) e criar a entrega com a data de inauguração nos 41 concluídos sem entrega. Não há "corrigir data" no código: o caminho é excluir a entrega (motivo) e registrar de novo pelo serviço, idempotente.
+3. Concluídos: 124 sem pendência continuam; 28 com ação aberta têm a ação concluída pelo serviço (arquiva avisos) e continuam concluídos; o 777446 (item na fila) sai de concluído. Os demais concluídos (46 sem entrega, 3 parciais, 2 da exceção) vão à fila de revisão. Das 28 ações, **311 (parecer de descomissionamento, prazo 26/12) e 948684 (SCRA aguardando deferimento da CNEN)** parecem pendências reais, o resto são notas ("Relatório fotográfico OK"): confirmar antes.
+4. Convênios SICONV: repasse automático pelo desembolso (parcial se menor que o repasse previsto). 44 só com previsão ficam em Aguardando repasse.
+5. Inauguração: 139 reais vinculáveis viram entrega com a data quando não existir; 12 futuras e 4 vencidas viram previsão de entrega do item; ambíguas e sem data são descartadas; histórico preservado.
+
+## 6. Riscos
+
+- Dados de produção mudam durante o trabalho (126 entregas criadas em 24 h em 18/11): refazer as contagens na véspera da migração.
+- Scripts de migração com simulação por padrão e `--aplicar --confirmo-host`; backup antes (`backup_banco.yml`); nenhuma gravação via SQL cru em tabelas append-only.
+- Relatório de Concluídos passa a depender só da confirmação da equipe: esvazia até a revisão terminar, por isso a ordem da carga importa.
+- Neon de homologação tem histórico de `alembic_version` atrasada: conferir antes de assumir migration aplicada.
+
+## 7. Homologação
+
+Fluxo completo nas três origens (SICONV, TransfereGov/FAF, manual), com: repasse parcial e integral, entrada tardia, entrega parcelada, cancelamento antes do repasse, conclusão parcial, encerramento sem entregas, proposta que vira convênio, PERSUS I (entrega = inauguração), atualização externa que não regride fase, reabertura.
+
+## 8. Em aberto
+
+- Forma da previsão de inauguração (campo do instrumento recomendado).
+- Fase "Em aquisição" e o mapeamento do comissionamento.
+- Pós-entrega dos concluídos corretos: automático na carga ou confirmação da equipe.
+- Regra de conclusão para os instrumentos sem itens cadastrados (4 FAF) e para os 31 só com itens sem controle.
