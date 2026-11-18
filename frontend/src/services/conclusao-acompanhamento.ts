@@ -27,7 +27,13 @@ const avaliacaoSchema = z.object({
   itens_completos: z.number(),
   impedimentos: z.array(
     z.object({
-      tipo: z.enum(["entrega_legada", "item_em_revisao", "acao_aberta"]),
+      tipo: z.enum([
+        "item_pendente",
+        "sem_item_controlado",
+        "entrega_legada",
+        "item_em_revisao",
+        "acao_aberta",
+      ]),
       descricao: z.string(),
     }),
   ),

@@ -17,6 +17,7 @@ from app.audit import log_action
 from app.authz import assert_pode_editar_instrumento, usuario_pode_editar_instrumento
 from app.db.models import ConclusaoInstrumento, InstrumentoEquipamento, User
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
+from app.equipamentos import nome_curto_do_item
 from app.repositories import conclusoes as repo
 from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
@@ -38,19 +39,25 @@ class ItemParaConclusao:
     planejado: int | None
     entregue: int
     cancelado: int
+    nome: str = ""
 
 
-def _item_completo(item: ItemParaConclusao) -> bool:
+def unidades_pendentes(item: ItemParaConclusao) -> int:
+    """Unidades que ainda não foram entregues nem canceladas. Sem quantidade planejada, qualquer entrega
+    lançada fecha o item (não há total para cobrar); sem entrega, ele segue pendente."""
     if item.planejado is None:
-        return False  # sem quantidade planejada não há como provar que tudo foi entregue
-    return item.entregue >= item.planejado - item.cancelado
+        return 0 if item.entregue > 0 else 1
+    return max(item.planejado - item.cancelado - item.entregue, 0)
 
 
 def calcular_resultado(itens: list[ItemParaConclusao]) -> ResultadoConclusao:
-    """sem_entregas: nada entregue (ou sem item controlado); integral: todo item completo; senão parcial."""
+    """Só se conclui com todo item entregue ou cancelado.
+
+    sem_entregas: nada foi entregue (tudo cancelado); parcial: há entrega e há unidade cancelada;
+    integral: tudo entregue, nada cancelado."""
     if sum(i.entregue for i in itens) == 0:
         return "sem_entregas"
-    return "integral" if all(_item_completo(i) for i in itens) else "parcial"
+    return "parcial" if any(i.cancelado > 0 for i in itens) else "integral"
 
 
 def _ler(conclusao: ConclusaoInstrumento) -> ConclusaoRead:
@@ -76,15 +83,36 @@ def assert_nao_concluido(db: Session, instrumento_id: int) -> None:
 
 
 def _itens_controlados(db: Session, instrumento_id: int) -> list[ItemParaConclusao]:
-    itens = [item for item, _, _ in itens_repo.listar_itens_do_instrumento(db, instrumento_id) if item.controla_unidade]
+    linhas = [
+        (item, nome_renem or nome_curto_do_item(item.descricao))
+        for item, _, nome_renem in itens_repo.listar_itens_do_instrumento(db, instrumento_id)
+        if item.controla_unidade
+    ]
+    itens = [item for item, _ in linhas]
+    nomes = [nome for _, nome in linhas]
     ids = [item.id for item in itens]
     entregues = itens_repo.quantidades_entregues_por_item(db, ids)
     canceladas = itens_repo.quantidades_canceladas_por_item(db, ids)
-    return [ItemParaConclusao(i.quantidade_planejada, entregues.get(i.id, 0), canceladas.get(i.id, 0)) for i in itens]
+    return [
+        ItemParaConclusao(i.quantidade_planejada, entregues.get(i.id, 0), canceladas.get(i.id, 0), nome)
+        for i, nome in zip(itens, nomes, strict=True)
+    ]
 
 
-def _impedimentos(db: Session, instrumento_id: int) -> list[ImpedimentoRead]:
+def _impedimentos(db: Session, instrumento_id: int, itens: list[ItemParaConclusao]) -> list[ImpedimentoRead]:
     impedimentos: list[ImpedimentoRead] = []
+    if not itens:
+        impedimentos.append(
+            ImpedimentoRead(tipo="sem_item_controlado", descricao="O instrumento não tem item controlado por unidade.")
+        )
+    for item in itens:
+        pendentes = unidades_pendentes(item)
+        if pendentes:
+            impedimentos.append(
+                ImpedimentoRead(
+                    tipo="item_pendente", descricao=f"{item.nome}: {pendentes} unidade(s) sem entrega nem cancelamento."
+                )
+            )
     revisoes = itens_repo.contar_revisoes_pendentes(db, instrumento_id)
     if revisoes:
         impedimentos.append(
@@ -112,8 +140,8 @@ def avaliar_conclusao(*, nr_convenio: str, db: Session, usuario: User) -> Avalia
         resultado=resultado,
         exige_justificativa=resultado != "integral",
         itens_exigidos=len(itens),
-        itens_completos=sum(1 for i in itens if _item_completo(i)),
-        impedimentos=_impedimentos(db, instrumento.id),
+        itens_completos=sum(1 for i in itens if unidades_pendentes(i) == 0),
+        impedimentos=_impedimentos(db, instrumento.id, itens),
     )
 
 
@@ -122,10 +150,11 @@ def concluir_acompanhamento(*, nr_convenio: str, dados: ConclusaoCreate, db: Ses
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     if repo.existe_ativa(db, instrumento.id):
         raise ConflictError("O acompanhamento já está concluído.")
-    impedimentos = _impedimentos(db, instrumento.id)
+    itens = _itens_controlados(db, instrumento.id)
+    impedimentos = _impedimentos(db, instrumento.id, itens)
     if impedimentos:
         raise ValidationError("Há pendências que impedem a conclusão: " + " ".join(i.descricao for i in impedimentos))
-    resultado = calcular_resultado(_itens_controlados(db, instrumento.id))
+    resultado = calcular_resultado(itens)
     if dados.resultado_confirmado != resultado:
         raise ConflictError("O resultado das entregas mudou. Recarregue a conclusão e confirme de novo.")
     if dados.data_conclusao > date.today():

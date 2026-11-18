@@ -66,6 +66,8 @@ Fluxo completo nas três origens (SICONV, TransfereGov/FAF, manual), com: repass
 
 Instrumento monitorado sem nenhum item controlado entrou pelo componente. Para ele: itens com unidade a partir de R$ 100 mil viram unidade; se nenhum chega, os 3 de maior valor unitário viram unidade (limites por variável de ambiente, projeção `projetar_itens_plano.py`). **Regra de conclusão (Entrega 4):** nesses instrumentos só os itens com unidade exigem entrega; os demais itens de aquisição não bloqueiam a conclusão. Em produção são 30 instrumentos (21 itens pela regra de R$ 100 mil e 36 pela exceção da exceção, nos 12 restantes).
 
+**Regra de conclusão (decidida em 19/11/2026):** só conclui quando todo item controlado está entregue ou cancelado, sem unidade pendente. Resultado: `integral` (tudo entregue, nada cancelado), `parcial` (há entrega e há unidade cancelada) e `sem_entregas` (tudo cancelado). Parcial e sem entregas exigem justificativa. Sem item controlado, não conclui. Ação aberta, entrega antiga a vincular e item na fila de revisão também impedem. Datas de inauguração e de previsão são opcionais em todos os casos.
+
 ## 8. Ajuste de identidade: logotipo do cabeçalho
 
 O ajuste de 13/11 (`1f0c285`) trocou o logotipo completo por marca + legenda em texto e ficou desproporcional. O pedido era só aumentar um pouco a legenda "Gestão de Equipamentos em Oncologia". Correção: voltar ao logotipo completo no cabeçalho (como em `5d0e711`) e subir a altura de `h-10` para `h-11`, sem texto separado. Validar no localhost em 1024, 1440 e 1920 px.

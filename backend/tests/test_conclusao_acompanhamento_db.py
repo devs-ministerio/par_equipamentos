@@ -26,17 +26,24 @@ pytestmark = pytest.mark.db
     "itens,esperado",
     [
         ([], "sem_entregas"),
-        ([I(2, 0, 0)], "sem_entregas"),
+        ([I(2, 0, 2)], "sem_entregas"),
         ([I(2, 2, 0)], "integral"),
-        ([I(2, 1, 1)], "integral"),
-        ([I(2, 1, 0)], "parcial"),
-        ([I(2, 2, 0), I(1, 0, 0)], "parcial"),
-        ([I(2, 2, 0), I(1, 0, 1)], "integral"),
-        ([I(None, 1, 0)], "parcial"),
+        ([I(2, 2, 0), I(1, 1, 0)], "integral"),
+        ([I(2, 1, 1)], "parcial"),
+        ([I(2, 2, 0), I(1, 0, 1)], "parcial"),
+        ([I(None, 1, 0)], "integral"),
     ],
 )
 def test_calcula_o_resultado(itens, esperado):
     assert svc.calcular_resultado(itens) == esperado
+
+
+@pytest.mark.parametrize(
+    "item,pendentes",
+    [(I(2, 0, 0), 2), (I(2, 1, 0), 1), (I(2, 1, 1), 0), (I(2, 0, 2), 0), (I(None, 0, 0), 1), (I(None, 1, 0), 0)],
+)
+def test_unidades_pendentes(item, pendentes):
+    assert svc.unidades_pendentes(item) == pendentes
 
 
 def _preparar(sessao) -> Cenario:
@@ -66,19 +73,80 @@ def test_conclui_integral_sem_justificativa_e_a_fase_vira_concluido(db):  # noqa
     assert fase == FaseAcompanhamento.concluido
 
 
-def test_parcial_e_sem_entregas_exigem_justificativa(db):  # noqa: F811
+def _cancelar_tudo(sessao, c):
+    for item, quantidade in ((c.dois, 2), (c.um, 1)):
+        for _ in range(quantidade):
+            cancelamento_unidade.cancelar_unidade_planejada(
+                item_id=item.id,
+                dados=CancelamentoUnidadeCreate(motivo="Convenente desistiu"),
+                db=sessao,
+                usuario=c.titular,
+            )
+
+
+def test_item_pendente_impede_concluir_mesmo_sem_nenhuma_entrega(db):  # noqa: F811
     c = _preparar(db)
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert {i.tipo for i in avaliacao.impedimentos} == {"item_pendente"}
+    assert len(avaliacao.impedimentos) == 2 and avaliacao.itens_completos == 0
+    with pytest.raises(ValidationError, match="sem entrega nem cancelamento"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=_confirmar("sem_entregas", justificativa="Encerrado"),
+            db=db,
+            usuario=c.titular,
+        )
+
+
+def test_entrega_parcial_com_unidade_pendente_nao_conclui(db):  # noqa: F811
+    c = _preparar(db)
+    entregas.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um), _item(c.dois, 1)), db=db, usuario=c.titular
+    )
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert [i.tipo for i in avaliacao.impedimentos] == ["item_pendente"]
+
+
+def test_sem_entregas_so_quando_tudo_foi_cancelado_e_exige_justificativa(db):  # noqa: F811
+    c = _preparar(db)
+    _cancelar_tudo(db, c)
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.resultado == "sem_entregas" and avaliacao.impedimentos == [] and avaliacao.exige_justificativa
     with pytest.raises(ValidationError, match="justificativa"):
         svc.concluir_acompanhamento(
             nr_convenio=c.inst.nr_convenio, dados=_confirmar("sem_entregas"), db=db, usuario=c.titular
         )
-    c.titular_ok = svc.concluir_acompanhamento(
+    feito = svc.concluir_acompanhamento(
         nr_convenio=c.inst.nr_convenio,
         dados=_confirmar("sem_entregas", justificativa="Convênio encerrado sem entregas"),
         db=db,
         usuario=c.titular,
     )
-    assert c.titular_ok.resultado == "sem_entregas"
+    assert feito.resultado == "sem_entregas"
+
+
+def test_parcial_entrega_mais_cancelamento_exige_justificativa(db):  # noqa: F811
+    c = _preparar(db)
+    entregas.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
+    for _ in range(2):
+        cancelamento_unidade.cancelar_unidade_planejada(
+            item_id=c.dois.id, dados=CancelamentoUnidadeCreate(motivo="Convenente desistiu"), db=db, usuario=c.titular
+        )
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.resultado == "parcial" and avaliacao.impedimentos == []
+    with pytest.raises(ValidationError, match="justificativa"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio, dados=_confirmar("parcial"), db=db, usuario=c.titular
+        )
+
+
+def test_instrumento_sem_item_controlado_nao_conclui(db):  # noqa: F811
+    c = _preparar(db)
+    for item in (c.dois, c.um):
+        item.ativo = False
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert [i.tipo for i in avaliacao.impedimentos] == ["sem_item_controlado"]
 
 
 def test_resultado_desatualizado_e_recusado(db):  # noqa: F811
@@ -108,13 +176,19 @@ def test_acao_aberta_impede_a_conclusao(db):  # noqa: F811
 
 def test_concluido_bloqueia_entrega_e_cancelamento_ate_reabrir(db):  # noqa: F811
     c = _preparar(db)
-    entregas.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
+    entregas.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um), _item(c.dois, 1)), db=db, usuario=c.titular
+    )
+    cancelamento_unidade.cancelar_unidade_planejada(
+        item_id=c.dois.id, dados=CancelamentoUnidadeCreate(motivo="Convenente desistiu"), db=db, usuario=c.titular
+    )
     svc.concluir_acompanhamento(
         nr_convenio=c.inst.nr_convenio,
-        dados=_confirmar("parcial", justificativa="Mamógrafo não será entregue"),
+        dados=_confirmar("parcial", justificativa="Uma unidade do mamógrafo foi cancelada"),
         db=db,
         usuario=c.titular,
     )
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) == FaseAcompanhamento.concluido
     with pytest.raises(ConflictError, match="concluído"):
         entregas.registrar_entrega(
             nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois)), db=db, usuario=c.titular
@@ -125,11 +199,10 @@ def test_concluido_bloqueia_entrega_e_cancelamento_ate_reabrir(db):  # noqa: F81
         )
     svc.reabrir_acompanhamento(
         nr_convenio=c.inst.nr_convenio,
-        dados=ReaberturaCreate(motivo="Entrega do mamógrafo confirmada"),
+        dados=ReaberturaCreate(motivo="Cancelamento lançado por engano"),
         db=db,
         usuario=c.titular,
     )
-    entregas.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2)), db=db, usuario=c.titular)
     assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
 
 
@@ -142,6 +215,7 @@ def test_nao_conclui_duas_vezes_nem_reabre_o_que_nao_esta_concluido(db):  # noqa
             db=db,
             usuario=c.titular,
         )
+    _cancelar_tudo(db, c)
     dados = _confirmar("sem_entregas", justificativa="Encerrado sem entregas")
     svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
     with pytest.raises(ConflictError, match="já está concluído"):
@@ -150,6 +224,7 @@ def test_nao_conclui_duas_vezes_nem_reabre_o_que_nao_esta_concluido(db):  # noqa
 
 def test_data_futura_e_permissao(db):  # noqa: F811
     c = _preparar(db)
+    _cancelar_tudo(db, c)
     amanha = ConclusaoCreate(
         resultado_confirmado="sem_entregas",
         data_conclusao=date.today() + timedelta(days=1),

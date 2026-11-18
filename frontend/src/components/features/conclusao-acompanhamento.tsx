@@ -94,8 +94,8 @@ function JanelaConcluir({
           {avaliacao.resultado !== "integral" && (
             <p className="m-0 text-[12.5px] text-warning">
               {avaliacao.resultado === "sem_entregas"
-                ? "Nenhuma unidade foi entregue. Concluir encerra o acompanhamento sem entregas."
-                : "Há unidades pendentes. Concluir encerra o acompanhamento com entrega parcial."}
+                ? "Todas as unidades foram canceladas. Concluir encerra o acompanhamento sem entregas."
+                : "Parte das unidades foi cancelada. Concluir encerra o acompanhamento com entrega parcial."}
             </p>
           )}
           {bloqueado && (
