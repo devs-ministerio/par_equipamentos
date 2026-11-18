@@ -62,6 +62,10 @@ Inauguração: campo do instrumento com histórico de revisões e data real pree
 
 Fluxo completo nas três origens (SICONV, TransfereGov/FAF, manual), com: repasse parcial e integral, entrada tardia, entrega parcelada, cancelamento antes do repasse, conclusão parcial, encerramento sem entregas, proposta que vira convênio, PERSUS I (entrega = inauguração), atualização externa que não regride fase, reabertura.
 
+## 7b. Itens de exceção e regra de conclusão
+
+Instrumento monitorado sem nenhum item controlado entrou pelo componente. Para ele: itens com unidade a partir de R$ 100 mil viram unidade; se nenhum chega, os 3 de maior valor unitário viram unidade (limites por variável de ambiente, projeção `projetar_itens_plano.py`). **Regra de conclusão (Entrega 4):** nesses instrumentos só os itens com unidade exigem entrega; os demais itens de aquisição não bloqueiam a conclusão. Em produção são 30 instrumentos (21 itens pela regra de R$ 100 mil e 36 pela exceção da exceção, nos 12 restantes).
+
 ## 8. Ajuste de identidade: logotipo do cabeçalho
 
 O ajuste de 13/11 (`1f0c285`) trocou o logotipo completo por marca + legenda em texto e ficou desproporcional. O pedido era só aumentar um pouco a legenda "Gestão de Equipamentos em Oncologia". Correção: voltar ao logotipo completo no cabeçalho (como em `5d0e711`) e subir a altura de `h-10` para `h-11`, sem texto separado. Validar no localhost em 1024, 1440 e 1920 px.
