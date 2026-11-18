@@ -81,7 +81,7 @@ function JanelaConcluir({
           })}
         >
           <p className="m-0 text-[12.5px]">
-            Entrega{" "}
+            Resultado:{" "}
             <strong>
               {ROTULO_RESULTADO[avaliacao.resultado].toLowerCase()}
             </strong>
@@ -91,6 +91,13 @@ function JanelaConcluir({
               item(ns) completo(s)
             </span>
           </p>
+          {avaliacao.resultado !== "integral" && (
+            <p className="m-0 text-[12.5px] text-warning">
+              {avaliacao.resultado === "sem_entregas"
+                ? "Nenhuma unidade foi entregue. Concluir encerra o acompanhamento sem entregas."
+                : "Há unidades pendentes. Concluir encerra o acompanhamento com entrega parcial."}
+            </p>
+          )}
           {bloqueado && (
             <div
               role="alert"

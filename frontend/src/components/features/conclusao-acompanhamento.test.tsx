@@ -70,7 +70,9 @@ describe("conclusão do acompanhamento", () => {
     await userEvent.click(
       await screen.findByRole("button", { name: "Concluir acompanhamento" }),
     );
-    expect(screen.getByText(/parcial/)).toBeInTheDocument();
+    expect(
+      screen.getByText("parcial", { selector: "strong" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/1 de 3 item\(ns\) completo/)).toBeInTheDocument();
     await userEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", {
