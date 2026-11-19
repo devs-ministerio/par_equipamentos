@@ -160,6 +160,9 @@ function MonitoramentoInternoConteudo({
   // A permissão do instrumento em cache não sobrepõe a sessão atual.
   const podeEditar =
     inst.pode_editar && sessao.podeEditar && !sessao.erroSessao;
+  // Concluído trava todas as edições; só "Reabrir" (podeEditar) segue liberado.
+  const concluido = inst.fase_atual === "Concluído";
+  const podeEditarConteudo = podeEditar && !concluido;
 
   const {
     eventosPorMarco,
@@ -234,7 +237,7 @@ function MonitoramentoInternoConteudo({
 
       <EquipamentosInstrumento
         numeroConvenio={numeroConvenio}
-        podeEditarInstrumento={podeEditar}
+        podeEditarInstrumento={podeEditarConteudo}
         aoSessaoInvalida={sessao.tratarSessaoInvalida}
         previsaoInauguracao={
           inaugurado ? null : (eventoInauguracao?.data_prevista ?? null)
@@ -246,7 +249,7 @@ function MonitoramentoInternoConteudo({
 
       <MonitoramentoInternoCadastro
         instrumento={inst}
-        podeEditar={podeEditar}
+        podeEditar={podeEditarConteudo}
         aberto={cadastroAberto}
         onAbrir={() => setCadastroAberto(true)}
         onFechar={() => setCadastroAberto(false)}
@@ -293,7 +296,7 @@ function MonitoramentoInternoConteudo({
             documentos={
               <DocumentosInstrumento
                 numeroConvenio={numeroConvenio}
-                podeEditarInstrumento={podeEditar}
+                podeEditarInstrumento={podeEditarConteudo}
                 aoSessaoInvalida={sessao.tratarSessaoInvalida}
               />
             }
@@ -301,7 +304,7 @@ function MonitoramentoInternoConteudo({
               <MonitoramentoInternoLancamentos
                 marcos={marcos}
                 fase={inst.fase_atual}
-                podeEditar={podeEditar}
+                podeEditar={podeEditarConteudo}
                 onRegistrarEvento={registrarEvento}
                 onCriarAcao={criarAcao}
               />
@@ -317,7 +320,7 @@ function MonitoramentoInternoConteudo({
         >
           <MonitoramentoInternoAcoes
             acoes={acoes}
-            podeEditar={podeEditar}
+            podeEditar={podeEditarConteudo}
             concluindoAcaoId={concluindoAcaoId}
             onConcluir={(acaoId) => {
               setErroEscrita(null);
@@ -351,7 +354,7 @@ function MonitoramentoInternoConteudo({
           <MonitoramentoInternoEventos
             marcos={marcos}
             eventos={timeline.eventos}
-            podeEditar={podeEditar}
+            podeEditar={podeEditarConteudo}
             onEditar={(eventoId, valores) =>
               executarEscrita(() =>
                 editarEventoMutation.mutateAsync({

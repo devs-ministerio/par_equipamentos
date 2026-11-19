@@ -292,6 +292,14 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   `instrumento_no_escopo()` (`repositories/convenios.py`) esconde o instrumento monitorado ligado a ele (o detalhe dá 404).
   Universo medido em 26/10: 560 firmados (403 Convênio, 92 PERSUS I, 50 PERSUS II, 12 FAF, 3 TED; PRONON saiu em 21/09),
   542 depois da marcação; 292 monitorados, 288 depois.
+- **Radar e conclusão (19/11/2026, `docs/arquitetura/mapa-monitoramento-interno-2026-11-19.md`)**: o Radar de instrumentos é só de `gestor`/`admin`
+  (API recusa com 403 a lista, o histórico e a prova para os demais; o botão some). Card enxuto: componente, item, valor, UF, município, data da coleta e
+  do instrumento. **Aprovar** pode indicar o técnico titular (`tecnico_titular_id` opcional em `AprovacaoLegadoCreate`); com técnico, a mesma transação cria o
+  instrumento monitorado (`origem_dado="radar_aprovacao"`) e emite `inclusao_monitoramento`, que agora vai a titular+suplente+gestor/admin; o técnico indicado
+  recebe pop-up (`use-aviso-novo-instrumento`) além do sino. Sem técnico a aprovação só inclui na carteira (comportamento anterior).
+  **Instrumento concluído trava todas as edições** (cadastro, eventos, ações, documentos, previsão, repasse, entregas, unidades, cancelamentos) com 409
+  "Reabra-o para alterar o instrumento" (`assert_nao_concluido`); só Reabrir segue livre. No front, `monitoramento-interno.tsx` usa `podeEditarConteudo`.
+
 - NUP só em FAF/TED, formatado `25000.198305/2024-59`; eventos e ações ordenados por lançamento mais recente.
 
 - **Marcador vale para o que o item é, não para o que ele menciona** (2026-10-26): "Monitor
