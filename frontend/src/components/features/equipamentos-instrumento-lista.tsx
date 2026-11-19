@@ -156,20 +156,22 @@ export function EquipamentosInstrumentoLista({
           >
             <div className={cn("grid grid-cols-2 gap-x-3 gap-y-2", COLUNAS)}>
               <div className="col-span-2 min-w-0 md:col-span-1">
-                <div className="break-words text-[13px] font-semibold">
-                  {nome}
-                  {posicao && (
-                    <span className="ml-1.5 font-normal text-muted-foreground">
-                      · item {posicao}
+                <div className="flex flex-wrap items-baseline gap-x-2 break-words text-[13px] font-semibold">
+                  {item.codigo_item && (
+                    <span className="inline-block rounded bg-muted px-1.5 py-px font-mono text-[10.5px] font-normal text-muted-foreground">
+                      {item.codigo_item}
                     </span>
                   )}
+                  <span>
+                    {nome}
+                    {posicao && (
+                      <span className="ml-1.5 font-normal text-muted-foreground">
+                        · item {posicao}
+                      </span>
+                    )}
+                  </span>
                 </div>
                 {item.exige_licenca && <LicencaDoItem item={item} />}
-                {item.codigo_item && (
-                  <span className="mt-0.5 inline-block rounded bg-muted px-1.5 py-px font-mono text-[10.5px] text-muted-foreground">
-                    {item.codigo_item}
-                  </span>
-                )}
               </div>
               <div className="text-center text-[12.5px] tabular-nums">
                 {item.valor_total != null
