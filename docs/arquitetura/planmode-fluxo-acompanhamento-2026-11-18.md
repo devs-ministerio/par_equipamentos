@@ -133,6 +133,8 @@ Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup
 Rodada local de 19/11 (clone): 51 entregas criadas e 36 datas corrigidas no PERSUS I; 96 conclusões migradas e 15
 instrumentos enviados à revisão (8 por entrega, 7 sem data de conclusão); 23 grupos de inauguração consolidados.
 
+Passo 8 no ensaio (19/11): `c8d9` aplicada; documento de licença do 825374 excluído (id 277, TRP e TRD intactos).
+
 Ensaio 5d (19/11, restauração `pg_dump` da produção em `sigeo_ensaio_5d`): 7+3 migrations limpas; repasses 189/130/103;
 documentos migrados (licença 96, SCRA 1, OS 5, TRD 39, TRP 29); 24 instrumentos PERSUS II removidos; PERSUS I: 59 datas
 corrigidas e 17 entregas criadas; 173 conclusões e 15 à revisão; 0 duplicados de inauguração; `b9c0` aplicada.
@@ -159,4 +161,4 @@ Em Concluído não se lança nada (reabrir antes). Fora da janela, a tela mostra
 - Fase "Em aquisição" e o mapeamento do comissionamento.
 - Pós-entrega dos concluídos corretos: automático na carga ou confirmação da equipe.
 - Regra de conclusão para os instrumentos sem itens cadastrados (4 FAF) e para os 31 só com itens sem controle.
-- **Painel de Gestão (`/monitoramento-equipamentos/painel`)** (19/11/2026): fica para outro momento (o usuário fará várias alterações). Autorizado ocultar a página no release (rota em `App.tsx` e item em `components/layout/monitoramento-nav-items.ts`); ocultar só no commit do release, sem apagar código. Validação da agenda de licenças no Painel adiada junto.
+- **Painel de Gestão (`/monitoramento-equipamentos/painel`)** (19/11/2026): fica para outro momento (o usuário fará várias alterações). Autorizado ocultar a página no release (rota em `App.tsx` e item em `components/layout/monitoramento-nav-items.ts`); ocultado por `PAINEL_GESTAO_VISIVEL = false` em `monitoramento-nav-items.ts` (menu some e a rota redireciona para a Mesa de trabalho); basta virar a flag para voltar. Validação da agenda de licenças no Painel adiada junto.

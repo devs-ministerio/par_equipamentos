@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import type { HeaderNavItem } from "./app-header";
 
+// Painel de Gestão oculto no release de 11/2026 (em revisão); o código segue no repositório.
+export const PAINEL_GESTAO_VISIVEL = false;
+
 // Rota-mae do Monitoramento Interno (exata OU detalhe de instrumento).
 export const EH_MONITORAMENTO_INTERNO = (pathname: string) =>
   pathname === "/monitoramento-equipamentos/instrumentos" ||
@@ -28,11 +31,15 @@ export const NAV_ITEMS_MONITORAMENTO: HeaderNavItem[] = [
     icon: Activity,
     isActive: EH_MONITORAMENTO_INTERNO,
   },
-  {
-    path: "/monitoramento-equipamentos/painel",
-    label: "Painel de gestão",
-    icon: LayoutDashboard,
-  },
+  ...(PAINEL_GESTAO_VISIVEL
+    ? [
+        {
+          path: "/monitoramento-equipamentos/painel",
+          label: "Painel de gestão",
+          icon: LayoutDashboard,
+        },
+      ]
+    : []),
   // Relatório de Instrumentos e Repasse (Plan Mode relatorios 2026-09-25,
   // Bloco 6) -- separado do relatório de Análise de Mérito (que fica em
   // /relatorios, fora do Monitoramento Interno).
