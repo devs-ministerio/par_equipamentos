@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SituacaoItem = Literal["pendente", "parcial", "entregue", "legado_a_revisar", "cancelado"]
 
@@ -25,11 +25,25 @@ class ItemEntregaCreate(BaseModel):
     confirmar_quantidade_desconhecida: bool = False
 
 
+class InauguracaoEntrega(BaseModel):
+    """Resposta à pergunta "precisa de inauguração?" feita junto da entrega."""
+
+    necessaria: bool
+    data_prevista: date | None = None
+
+    @model_validator(mode="after")
+    def _previsao_quando_necessaria(self) -> "InauguracaoEntrega":
+        if self.necessaria and self.data_prevista is None:
+            raise ValueError("Informe a previsão de inauguração.")
+        return self
+
+
 class EntregaCreate(BaseModel):
     chave_idempotencia: str = Field(min_length=8, max_length=64)
     data_ocorrencia: date
     observacao: str | None = Field(default=None, max_length=1000)
     itens: list[ItemEntregaCreate] = Field(min_length=1, max_length=50)
+    inauguracao: InauguracaoEntrega | None = None
 
 
 class VincularLegadaCreate(BaseModel):

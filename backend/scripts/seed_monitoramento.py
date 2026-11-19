@@ -92,6 +92,7 @@ CATALOGO = [
     ("cronograma_obra_ponto_critico", MarcoGrupo.cronograma_fisico, None, None, "Ponto crítico da obra", None),
     ("cronograma_obra_fim", MarcoGrupo.cronograma_fisico, None, None, "Fim da reforma/obra", None),
     ("cronograma_previsao_inauguracao", MarcoGrupo.cronograma_fisico, None, None, "Previsão de inauguração", None),
+    ("cronograma_inauguracao_dispensada", MarcoGrupo.cronograma_fisico, None, None, "Inauguração dispensada", None),
     ("cronograma_ordem_servico", MarcoGrupo.cronograma_fisico, None, None, "Ordem de serviço", None),
     ("cronograma_trp", MarcoGrupo.cronograma_fisico, None, None, "TRP — recebimento provisório", None),
     ("cronograma_trd", MarcoGrupo.cronograma_fisico, None, None, "TRD — recebimento definitivo", None),

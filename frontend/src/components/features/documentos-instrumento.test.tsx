@@ -137,6 +137,6 @@ describe("documentos do instrumento", () => {
       "cnen_licenca",
     );
     expect(screen.getByLabelText("Validade")).toBeInTheDocument();
-    expect(screen.getByLabelText("Situação na CNEN")).toBeInTheDocument();
+    expect(screen.getByLabelText("Situação na ANSN")).toBeInTheDocument();
   });
 });

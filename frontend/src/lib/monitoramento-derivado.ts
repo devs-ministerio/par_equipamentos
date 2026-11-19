@@ -67,6 +67,14 @@ export function derivarMonitoramentoInterno(
     null;
   const diasInauguracao = !inaugurado ? diasAte(dataInauguracao) : null;
 
+  const marcoDispensada = cronogramaFisico.find(
+    (m) => m.codigo === "cronograma_inauguracao_dispensada",
+  );
+  const inauguracaoDispensada =
+    !inaugurado &&
+    !dataInauguracao &&
+    Boolean(marcoDispensada && eventosPorMarco.has(marcoDispensada.id));
+
   const acoesAbertas = (acoes ?? []).filter((a) => !a.data_conclusao);
   const acoesAtrasadas = acoesAbertas.filter((a) => {
     const dias = diasAte(a.data_prevista);
@@ -92,6 +100,7 @@ export function derivarMonitoramentoInterno(
     marcoInauguracao,
     eventoInauguracao,
     inaugurado,
+    inauguracaoDispensada,
     dataInauguracao,
     diasInauguracao,
     acoesAbertas,

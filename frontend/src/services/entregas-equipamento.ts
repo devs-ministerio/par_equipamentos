@@ -102,11 +102,17 @@ export interface ItemEntregaInput {
   confirmar_quantidade_desconhecida?: boolean;
 }
 
+export interface InauguracaoEntregaInput {
+  necessaria: boolean;
+  data_prevista?: string | null;
+}
+
 export interface RegistrarEntregaInput {
   chave_idempotencia: string;
   data_ocorrencia: string;
   observacao?: string | null;
   itens: ItemEntregaInput[];
+  inauguracao?: InauguracaoEntregaInput | null;
 }
 
 export interface CorrigirUnidadeInput {

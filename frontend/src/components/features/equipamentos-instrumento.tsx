@@ -36,7 +36,11 @@ export function EquipamentosInstrumento({
   numeroConvenio,
   podeEditarInstrumento,
   aoSessaoInvalida,
+  previsaoInauguracao,
+  inauguracaoRealizada = false,
 }: {
+  previsaoInauguracao?: string | null;
+  inauguracaoRealizada?: boolean;
   numeroConvenio: string;
   podeEditarInstrumento: boolean;
   aoSessaoInvalida: () => void;
@@ -178,6 +182,8 @@ export function EquipamentosInstrumento({
           dataLegada={
             painel.tipo === "legado" ? (painel.data ?? "") : undefined
           }
+          previsaoInauguracao={previsaoInauguracao}
+          perguntarInauguracao={!inauguracaoRealizada}
           onFechar={() => setPainel(null)}
           onEnviar={async (envio) => {
             if (painel.tipo === "legado") {
@@ -198,6 +204,12 @@ export function EquipamentosInstrumento({
                   data_ocorrencia: envio.dataOcorrencia,
                   observacao: envio.observacao,
                   itens: envio.itens,
+                  inauguracao: envio.inauguracao
+                    ? {
+                        necessaria: envio.inauguracao.necessaria,
+                        data_prevista: envio.inauguracao.dataPrevista,
+                      }
+                    : null,
                 }),
               );
             }

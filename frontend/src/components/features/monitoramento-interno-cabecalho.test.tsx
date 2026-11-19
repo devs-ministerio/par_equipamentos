@@ -29,9 +29,8 @@ function renderizar(
       componenteViaSiconv={null}
       dataInauguracao={null}
       inaugurado
+      inauguracaoDispensada={false}
       diasInauguracao={null}
-      registroLicenca={null}
-      alertaLicenca={false}
       acoesAbertasCount={0}
       acoesAtrasadasCount={0}
     />,

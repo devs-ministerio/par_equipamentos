@@ -93,6 +93,20 @@ Depois do check de entrega, o sistema pergunta se o equipamento precisa de inaug
 se já houver data registrada antes (evento `cronograma_previsao_inauguracao` ou data migrada), pede só a confirmação
 dela. Se não, nada é registrado. Desenho e persistência da resposta ("precisa de inauguração") ainda a aprovar.
 
+## 8d. Licença ANSN por item (decisão de 19/11/2026, a implementar)
+
+"Licença CNEN" passa a "Licença ANSN" nos textos (identificadores `cnen_*` ficam). A licença é da unidade, e só estas
+famílias a exigem (catálogo `equipamento_catalogo`): Acelerador Linear (inclui "Básico - Intermediário"), Braquiterapia
+(com fonte radioativa), Cobalto (cobaltoterapia), Radioterapia (genérico: detalhar pela tecnologia), PET/CT e
+Gama-câmara/SPECT. Marca "exige licença" por família; documento ligado ao item (a licença sai antes da unidade existir)
+e, opcionalmente, à unidade. Pendente: detalhar "Radioterapia" e "Braquiterapia" (fonte radioativa) por item.
+
+## 8e. Uma inauguração por instrumento (19/11/2026)
+
+Previsão/realizada e "Inauguração dispensada" são excludentes: no máximo um evento ativo no conjunto. Regra no serviço
+(409) e seletor sem a opção quando já existe. Duplicados existentes: `consolidar_eventos_marco_duplicados --inauguracao`
+(simulação por padrão), a rodar na 5b; depois disso, índice único parcial.
+
 ## 9. Em aberto
 
 - Forma da previsão de inauguração (campo do instrumento recomendado).

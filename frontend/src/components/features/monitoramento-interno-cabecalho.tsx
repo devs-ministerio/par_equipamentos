@@ -3,10 +3,7 @@
  * migração). */
 import { nupDoInstrumento } from "@/lib/nup";
 import { cn } from "@/lib/utils";
-import type {
-  EventoMarco,
-  InstrumentoTimeline,
-} from "@/services/monitoramento-instrumentos";
+import type { InstrumentoTimeline } from "@/services/monitoramento-instrumentos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import { estiloCard, StatusPill } from "./monitoramento-ui";
 
@@ -15,34 +12,31 @@ export function MonitoramentoInternoCabecalho({
   componenteViaSiconv,
   dataInauguracao,
   inaugurado,
+  inauguracaoDispensada,
   diasInauguracao,
-  registroLicenca,
-  alertaLicenca,
   acoesAbertasCount,
   acoesAtrasadasCount,
+  equipamentos,
 }: {
   timeline: InstrumentoTimeline;
   componenteViaSiconv: string | null;
   dataInauguracao: string | null;
   inaugurado: boolean;
+  inauguracaoDispensada: boolean;
   diasInauguracao: number | null;
-  registroLicenca: EventoMarco | null;
-  alertaLicenca: boolean;
   acoesAbertasCount: number;
   acoesAtrasadasCount: number;
+  /** Totais dos itens controlados; nulo quando não há item controlado. */
+  equipamentos?: {
+    entregues: number;
+    planejadas: number;
+    canceladas: number;
+  } | null;
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
   const nup = nupDoInstrumento(inst.tipo_contratacao, inst.nr_convenio);
   const origemAlternativa = Boolean(inst.origem_dado);
-  const numeroScra = registroLicenca?.numero_documento?.trim();
-  const documentoLicenca = numeroScra
-    ? `SCRA ${numeroScra}`
-    : "SCRA não informado";
-  const licencaDeferida = registroLicenca?.status_regulatorio === "Deferido";
-  const emissaoLicenca = registroLicenca?.data_ocorrencia
-    ? fmtData(registroLicenca.data_ocorrencia)
-    : "Data de emissão não informada";
   const prestacaoConcluida =
     inst.situacao_prestacao_contas
       ?.toLocaleLowerCase("pt-BR")
@@ -56,23 +50,14 @@ export function MonitoramentoInternoCabecalho({
 
   const indicadores = [
     {
-      rotulo: "Licença CNEN",
-      // Só licença deferida tem "emissão"; processo indeferido ou em análise mostra o andamento (D26).
-      valor: registroLicenca
-        ? `${documentoLicenca} — ${
-            licencaDeferida
-              ? emissaoLicenca
-              : (registroLicenca.status_regulatorio ?? "Sem desfecho informado")
-          }`
-        : origemAlternativa
-          ? "Não informada na fonte"
-          : "Sem registro",
-      detalhe: licencaDeferida
-        ? "Deferido"
-        : registroLicenca
-          ? "Licença ainda não emitida"
+      rotulo: "Equipamentos",
+      valor: equipamentos
+        ? `${equipamentos.entregues} de ${equipamentos.planejadas} entregues`
+        : "Sem item controlado",
+      detalhe:
+        equipamentos && equipamentos.canceladas > 0
+          ? `${equipamentos.canceladas} cancelada(s)`
           : undefined,
-      alerta: alertaLicenca,
     },
     {
       rotulo: "Inauguração",
@@ -80,9 +65,11 @@ export function MonitoramentoInternoCabecalho({
         ? "Realizada"
         : dataInauguracao
           ? "Prevista"
-          : origemAlternativa
-            ? "Não informada na fonte"
-            : "Sem previsão",
+          : inauguracaoDispensada
+            ? "Dispensada"
+            : origemAlternativa
+              ? "Não informada na fonte"
+              : "Sem previsão",
       alerta: diasInauguracao !== null && diasInauguracao < 0,
     },
     {

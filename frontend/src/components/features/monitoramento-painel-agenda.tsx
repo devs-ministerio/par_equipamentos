@@ -23,7 +23,7 @@ export function AgendaExecutiva({
       chave: `licenca-${item.nr_convenio}`,
       nr: item.nr_convenio,
       titulo: item.nome_convenente,
-      meta: "Licença CNEN",
+      meta: "Licença ANSN",
       prazo:
         item.dias < 0
           ? `Vencida há ${Math.abs(item.dias)} dias`

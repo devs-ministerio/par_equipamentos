@@ -30,6 +30,7 @@ import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cro
 import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
 import { ConclusaoAcompanhamento } from "./conclusao-acompanhamento";
 import { DocumentosInstrumento } from "./documentos-instrumento";
+import { useEquipamentosInstrumento } from "@/hooks/useEquipamentosInstrumento";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
@@ -58,6 +59,7 @@ function MonitoramentoInternoConteudo({
   // Fallback de leitura SICONV; nunca escreve componente no banco.
   const programaQuery = useConvenioPrograma(numeroConvenio);
   const marcosQuery = useMonitoramentoMarcos();
+  const equipamentosQuery = useEquipamentosInstrumento(numeroConvenio);
   const timelineQuery = useInstrumentoTimeline(numeroConvenio);
   const acoesQuery = useAcoesDoInstrumento(numeroConvenio);
   const sessao = useAuthSession();
@@ -122,6 +124,29 @@ function MonitoramentoInternoConteudo({
     );
   }
 
+  const itensControlados = equipamentosQuery.data?.itens ?? [];
+  const totaisEquipamentos = itensControlados.length
+    ? {
+        entregues: itensControlados.reduce(
+          (t, i) => t + i.quantidade_entregue,
+          0,
+        ),
+        planejadas: itensControlados.reduce(
+          (t, i) =>
+            t +
+            Math.max(
+              (i.quantidade_planejada ?? i.quantidade_entregue) -
+                i.quantidade_cancelada,
+              0,
+            ),
+          0,
+        ),
+        canceladas: itensControlados.reduce(
+          (t, i) => t + i.quantidade_cancelada,
+          0,
+        ),
+      }
+    : null;
   const marcos = marcosQuery.data;
   const timeline = timelineQuery.data;
   const acoes = acoesQuery.data;
@@ -133,13 +158,13 @@ function MonitoramentoInternoConteudo({
   const {
     eventosPorMarco,
     cronogramaFisico,
-    registroLicenca,
     dataInauguracao,
+    eventoInauguracao,
     inaugurado,
+    inauguracaoDispensada,
     diasInauguracao,
     acoesAbertas,
     acoesAtrasadas,
-    validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
   const componenteViaSiconv = !inst.componente
@@ -164,17 +189,21 @@ function MonitoramentoInternoConteudo({
         componenteViaSiconv={componenteViaSiconv}
         dataInauguracao={dataInauguracao}
         inaugurado={inaugurado}
+        inauguracaoDispensada={inauguracaoDispensada}
         diasInauguracao={diasInauguracao}
-        registroLicenca={registroLicenca}
-        alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
         acoesAbertasCount={acoesAbertas.length}
         acoesAtrasadasCount={acoesAtrasadas.length}
+        equipamentos={totaisEquipamentos}
       />
 
       <EquipamentosInstrumento
         numeroConvenio={numeroConvenio}
         podeEditarInstrumento={podeEditar}
         aoSessaoInvalida={sessao.tratarSessaoInvalida}
+        previsaoInauguracao={
+          inaugurado ? null : (eventoInauguracao?.data_prevista ?? null)
+        }
+        inauguracaoRealizada={inaugurado}
       />
 
       <MonitoramentoInternoCadastro

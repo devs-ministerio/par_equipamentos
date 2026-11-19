@@ -340,4 +340,19 @@ describe("interação da timeline de eventos", () => {
     );
     expect(screen.getAllByLabelText("Data de ocorrência")).toHaveLength(2);
   });
+
+  it("com inauguração já registrada, o lançamento não oferece outra", async () => {
+    const props = criarProps();
+    props.eventos = [
+      criarEventoTeste({ marco_id: 2, data_prevista: "2027-01-01" }),
+    ];
+    render(<MonitoramentoInternoEventos {...props} />);
+    await userEvent.click(
+      screen.getByRole("button", { name: "+ Lançar evento" }),
+    );
+    const marco = screen.getByLabelText("Marco");
+    expect(
+      within(marco).queryByRole("option", { name: "Previsão de inauguração" }),
+    ).not.toBeInTheDocument();
+  });
 });

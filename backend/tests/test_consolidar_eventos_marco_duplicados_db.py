@@ -185,3 +185,19 @@ def test_cronograma_e_regulatorio_nao_sao_consolidados(db):
         db.refresh(segundo)
         assert inst.id not in resultado.por_instrumento
         assert primeiro.substituido_por_id is None and segundo.substituido_por_id is None
+
+
+def test_inauguracao_unica_mantem_so_um_entre_previsao_e_dispensada(db):
+    inst = _instrumento(db)
+    previsao = _marco(db, "cronograma_previsao_inauguracao")
+    dispensada = _marco(db, "cronograma_inauguracao_dispensada")
+    a = EventoMarco(instrumento_id=inst.id, marco_id=previsao.id, data_prevista=date(2027, 1, 1))
+    b = EventoMarco(instrumento_id=inst.id, marco_id=previsao.id, data_ocorrencia=date(2026, 10, 1))
+    c = EventoMarco(instrumento_id=inst.id, marco_id=dispensada.id)
+    db.add_all([a, b, c])
+    db.flush()
+    resultado = executar(db, aplicar=True, inauguracao=True)
+    assert resultado.eventos_substituidos == 2
+    assert b.substituido_por_id is None  # ocorrência real vence
+    assert a.substituido_por_id == b.id and c.substituido_por_id == b.id
+    assert executar(db, aplicar=True, inauguracao=True).eventos_substituidos == 0  # idempotente

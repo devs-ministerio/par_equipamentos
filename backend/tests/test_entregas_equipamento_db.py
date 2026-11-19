@@ -22,12 +22,19 @@ from app.db.models import (
     InstrumentoEquipamento,
     InstrumentoResponsavel,
     ItemPlano,
+    MarcoCatalogo,
     RenemItem,
     User,
     UserRole,
 )
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
-from app.schemas_entregas import EntregaCreate, ItemEntregaCreate, UnidadeEntregaCreate, UnidadeUpdate
+from app.schemas_entregas import (
+    EntregaCreate,
+    InauguracaoEntrega,
+    ItemEntregaCreate,
+    UnidadeEntregaCreate,
+    UnidadeUpdate,
+)
 from app.services import entregas_equipamento as svc
 
 pytestmark = pytest.mark.db
@@ -412,3 +419,80 @@ def test_entregas_em_datas_diferentes_ficam_cada_uma_com_o_proprio_registro(db):
     assert len({e.id for e in eventos}) == 3
     assert all(e.substituido_por_id is None and e.deletado_em is None for e in eventos)
     assert [e.data_ocorrencia for e in eventos] == [date(2026, 3, 10), date(2026, 3, 20), date(2026, 3, 25)]
+
+
+def _eventos_inauguracao(db, inst, codigo):
+    marco = db.query(MarcoCatalogo).filter_by(codigo=codigo).one()
+    return db.query(EventoMarco).filter_by(instrumento_id=inst.id, marco_id=marco.id).order_by(EventoMarco.id).all()
+
+
+def test_entrega_sem_resposta_de_inauguracao_nao_cria_evento(db):
+    c = Cenario(db)
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
+    assert _eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao") == []
+    assert _eventos_inauguracao(db, c.inst, "cronograma_inauguracao_dispensada") == []
+
+
+def test_inauguracao_necessaria_exige_previsao():
+    with pytest.raises(PydanticValidationError):
+        InauguracaoEntrega(necessaria=True)
+
+
+def test_inauguracao_sim_registra_previsao_e_confirma_a_existente_sem_duplicar(db):
+    c = Cenario(db)
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=True, data_prevista=date(2027, 3, 1))
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    eventos = _eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao")
+    assert [e.data_prevista for e in eventos] == [date(2027, 3, 1)]
+    # Mesma data em outra entrega: confirmada, sem novo evento.
+    dados2 = _dados(_item(c.dois, 2))
+    dados2.inauguracao = InauguracaoEntrega(necessaria=True, data_prevista=date(2027, 3, 1))
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados2, db=db, usuario=c.titular)
+    assert len(_eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao")) == 1
+
+
+def test_inauguracao_sim_com_data_nova_substitui_a_previsao_anterior(db):
+    c = Cenario(db)
+    marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+    original = EventoMarco(
+        instrumento_id=c.inst.id, marco_id=marco.id, data_prevista=date(2027, 1, 1), autor_id=c.titular.id
+    )
+    db.add(original)
+    db.flush()
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=True, data_prevista=date(2027, 6, 1))
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    eventos = _eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao")
+    assert len(eventos) == 2 and original.substituido_por_id == eventos[1].id
+    assert eventos[1].data_prevista == date(2027, 6, 1)
+
+
+def test_inauguracao_nao_registra_dispensada_e_encerra_a_previsao(db):
+    c = Cenario(db)
+    marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+    original = EventoMarco(
+        instrumento_id=c.inst.id, marco_id=marco.id, data_prevista=date(2027, 1, 1), autor_id=c.titular.id
+    )
+    db.add(original)
+    db.flush()
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=False)
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    dispensada = _eventos_inauguracao(db, c.inst, "cronograma_inauguracao_dispensada")
+    assert len(dispensada) == 1 and original.substituido_por_id == dispensada[0].id
+
+
+def test_inauguracao_ja_realizada_nao_e_alterada(db):
+    c = Cenario(db)
+    marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+    real = EventoMarco(
+        instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=date(2026, 10, 1), autor_id=c.titular.id
+    )
+    db.add(real)
+    db.flush()
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=False)
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    assert real.substituido_por_id is None
+    assert _eventos_inauguracao(db, c.inst, "cronograma_inauguracao_dispensada") == []

@@ -46,6 +46,7 @@ from app.schemas_entregas import (
     UnidadeUpdate,
 )
 from app.services.conclusao_acompanhamento import assert_nao_concluido
+from app.services.inauguracao_entrega import registrar_resposta_inauguracao
 
 MARCO_ENTREGA = "cronograma_entrega"
 MARCO_FASE_ENTREGUE = "fase_equipamento_entregue"
@@ -292,6 +293,8 @@ def registrar_entrega(*, nr_convenio: str, dados: EntregaCreate, db: Session, us
             evento_id=evento.id,
             usuario=usuario,
         )
+        if dados.inauguracao is not None:
+            registrar_resposta_inauguracao(db, instrumento, dados.inauguracao, usuario)
         log_action(
             db,
             user_id=usuario.id,

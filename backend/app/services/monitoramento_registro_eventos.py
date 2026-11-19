@@ -53,6 +53,23 @@ def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int
     return fase_geral_id
 
 
+MARCOS_DE_INAUGURACAO = ("cronograma_previsao_inauguracao", "cronograma_inauguracao_dispensada")
+
+
+def _inauguracao_vigente(db: Session, instrumento_id: int) -> EventoMarco | None:
+    """Uma inauguração por instrumento: previsão (ou realizada) e "dispensada" são excludentes."""
+    for codigo in MARCOS_DE_INAUGURACAO:
+        marco = monitoramento_repo.obter_marco_por_codigo(db, codigo)
+        if marco is None:
+            continue
+        evento = monitoramento_repo.obter_evento_mais_recente_do_marco(
+            db, instrumento_id=instrumento_id, marco_id=marco.id
+        )
+        if evento is not None:
+            return evento
+    return None
+
+
 def _validar_validade_nao_anterior(dados: NovoEventoMonitorado) -> None:
     if dados.data_ocorrencia and dados.data_validade and dados.data_validade < dados.data_ocorrencia:
         raise ValidationError("A validade não pode ser anterior à data da licença.")
@@ -168,6 +185,12 @@ def registrar_evento_monitorado(
         raise ConflictError(
             f'A fase "{marco.rotulo}" já está registrada para {nr_convenio}. Edite o lançamento existente.'
         )
+    if marco.codigo in MARCOS_DE_INAUGURACAO:
+        existente = _inauguracao_vigente(db, instrumento.id)
+        if existente is not None:
+            raise ConflictError(
+                f"{nr_convenio} já tem uma inauguração registrada. Há apenas uma por instrumento: edite o lançamento existente."
+            )
     reprogramou = bool(
         dados.data_prevista
         and evento_anterior
@@ -292,6 +315,13 @@ def editar_evento_monitorado(
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
         raise ValidationError("A data realizada não pode estar no futuro.")
     _validar_validade_nao_anterior(dados)
+    if (
+        dados.data_prevista
+        and antigo.data_prevista
+        and dados.data_prevista != antigo.data_prevista
+        and not (dados.observacao or "").strip()
+    ):
+        raise ValidationError("Informe a justificativa para alterar a data prevista.")
     if marco.codigo == "fase_concluido" and dados.data_ocorrencia is None:
         # Mesma invariante da criação (achado D27): a correção não pode deixar a conclusão sem data.
         raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")

@@ -37,6 +37,11 @@ function valoresIniciaisDoEvento(
   };
 }
 
+const MARCOS_DE_INAUGURACAO = [
+  "cronograma_previsao_inauguracao",
+  "cronograma_inauguracao_dispensada",
+];
+
 export function MonitoramentoInternoEventos({
   marcos,
   eventos,
@@ -63,6 +68,16 @@ export function MonitoramentoInternoEventos({
   const [eventoEmEdicao, setEventoEmEdicao] = useState<number | null>(null);
   const [eventoEmExclusao, setEventoEmExclusao] = useState<number | null>(null);
   const marcoPorId = new Map(marcos.map((m) => [m.id, m]));
+  // Há apenas uma inauguração por instrumento: com previsão (ou dispensa) registrada, só se corrige.
+  const idsInauguracao = marcos
+    .filter((m) => MARCOS_DE_INAUGURACAO.includes(m.codigo))
+    .map((m) => m.id);
+  const inauguracaoRegistrada = eventos.some((e) =>
+    idsInauguracao.includes(e.marco_id),
+  );
+  const marcosParaLancar = inauguracaoRegistrada
+    ? marcos.filter((m) => !idsInauguracao.includes(m.id))
+    : marcos;
 
   // Mais recente lançado primeiro (created_at, depois id), como no backend.
   const eventosOrdenados = [...eventos].sort(
@@ -88,7 +103,7 @@ export function MonitoramentoInternoEventos({
     >
       {podeEditar && formAberto && (
         <MonitoramentoInternoFormEvento
-          marcos={marcos}
+          marcos={marcosParaLancar}
           onRegistrar={async (valores) => {
             await onRegistrar(valores);
             setFormAberto(false);

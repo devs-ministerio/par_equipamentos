@@ -36,82 +36,7 @@ async function editarCadastro() {
 }
 
 describe("monitoramento interno com orquestração e filhos reais", () => {
-  it.each([
-    ["2026SCRA001", "2026-10-19", null, "SCRA 2026SCRA001 — 19/10/2026"],
-    [null, "2026-10-19", null, "SCRA não informado — 19/10/2026"],
-    [
-      "2026SCRA001",
-      null,
-      "2030-12-01",
-      "SCRA 2026SCRA001 — Data de emissão não informada",
-    ],
-  ])(
-    "card CNEN usa documento %s e emissão %s, com validade %s",
-    async (numero, emissao, validade, esperado) => {
-      // Arrange
-      const h = prepararOrquestracao();
-      h.controle.timeline.eventos = [
-        criarEventoTeste({
-          marco_id: 3,
-          numero_documento: numero,
-          data_ocorrencia: emissao,
-          data_validade: validade,
-          status_regulatorio: "Deferido",
-        }),
-      ];
-      // Act
-      montar(h);
-      // Assert
-      const card = (await screen.findByText("Licença CNEN")).parentElement!;
-      expect(within(card).getByText(esperado)).toBeInTheDocument();
-      expect(within(card).getByText("Deferido")).toBeInTheDocument();
-      expect(within(card).queryByText("01/12/2030")).not.toBeInTheDocument();
-    },
-  );
-
-  it("card CNEN sem licença não usa documento de outro marco", async () => {
-    // Arrange
-    const h = prepararOrquestracao();
-    h.controle.timeline.eventos = [
-      criarEventoTeste({ marco_id: 2, numero_documento: "OUTRO-MARCO" }),
-    ];
-    // Act
-    montar(h);
-    // Assert
-    const card = (await screen.findByText("Licença CNEN")).parentElement!;
-    expect(within(card).getByText("Sem registro")).toBeInTheDocument();
-    expect(within(card).queryByText(/OUTRO-MARCO/)).not.toBeInTheDocument();
-  });
-
-  it("cabeçalho e cronograma reconhecem inauguração registrada após previsão com criação empatada", async () => {
-    // Arrange
-    const h = prepararOrquestracao();
-    h.controle.timeline.eventos = [
-      criarEventoTeste({
-        id: 9,
-        marco_id: 2,
-        data_ocorrencia: null,
-        data_prevista: "2030-01-01",
-      }),
-      criarEventoTeste({
-        id: 10,
-        marco_id: 2,
-        data_ocorrencia: "2026-10-19",
-        data_prevista: null,
-      }),
-    ];
-    // Act
-    montar(h);
-    // Assert
-    expect(await screen.findByText("Realizada")).toBeInTheDocument();
-    const cronograma = screen
-      .getByRole("heading", { name: "Cronograma físico" })
-      .closest("section")!;
-    expect(within(cronograma).getByText("19/10/2026")).toBeInTheDocument();
-    expect(within(cronograma).queryByText(/2030/)).not.toBeInTheDocument();
-  });
-
-  it("cabeçalho usa licença vigente, não o ID textual maior, e o cartão é Documentos", async () => {
+  it("o cartão de licença saiu do cabeçalho e o cartão é Documentos", async () => {
     // Arrange
     const h = prepararOrquestracao();
     h.controle.timeline.eventos = [
@@ -134,13 +59,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     // Act
     montar(h);
     // Assert
-    const rotulo = await screen.findByText("Licença CNEN");
-    expect(
-      within(rotulo.parentElement!).getByText("SCRA ATUAL — 19/10/2026"),
-    ).toBeInTheDocument();
-    expect(
-      within(rotulo.parentElement!).getByText("Deferido"),
-    ).toBeInTheDocument();
+    expect(screen.queryByText("Licença ANSN")).not.toBeInTheDocument();
     expect(
       await screen.findByRole("heading", { name: "Documentos" }),
     ).toBeInTheDocument();

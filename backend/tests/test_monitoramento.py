@@ -768,27 +768,30 @@ def test_reprogramacao_de_data_prevista_exige_justificativa():
     try:
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
         marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
-        marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        db.add(
-            EventoMarco(
-                instrumento_id=instrumento.id,
-                marco_id=marco.id,
-                data_prevista=date.today() + timedelta(days=10),
-                autor_id=usuario.id,
-            )
+        original = EventoMarco(
+            instrumento_id=instrumento.id,
+            marco_id=marco.id,
+            data_prevista=date.today() + timedelta(days=10),
+            autor_id=usuario.id,
         )
+        db.add(original)
         db.flush()
         with pytest.raises(ValidationError, match="justificativa"):
-            registrar_evento_monitorado(
-                nr_convenio=NR_CONVENIO_SEED,
-                dados=NovoEventoMonitorado(
-                    marco_id=marco.id,
-                    data_prevista=date.today() + timedelta(days=20),
-                    fase_geral_id=marco_fase.id,
-                ),
+            editar_evento_monitorado(
+                evento_id=original.id,
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_prevista=date.today() + timedelta(days=20)),
                 db=db,
                 usuario=usuario,
             )
+        corrigido = editar_evento_monitorado(
+            evento_id=original.id,
+            dados=NovoEventoMonitorado(
+                marco_id=marco.id, data_prevista=date.today() + timedelta(days=20), observacao="Atraso do fornecedor"
+            ),
+            db=db,
+            usuario=usuario,
+        )
+        assert original.substituido_por_id == corrigido.id
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1824,6 +1827,34 @@ def test_listagem_traz_acompanhamento_de_inauguracao_e_entrega_para_os_dados_ofi
         assert itens[previsto.nr_convenio].inauguracao_data == date(2027, 1, 1)
         assert itens[previsto.nr_convenio].conferencia is None
         assert itens[vazio.nr_convenio].inauguracao_data is None
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
+        db.close()
+
+
+def test_so_uma_inauguracao_por_instrumento():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    instrumento = _instrumento_efemero(db, "PYTEST-INAUG-UNICA")
+    try:
+        previsao = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+        dispensada = db.query(MarcoCatalogo).filter_by(codigo="cronograma_inauguracao_dispensada").one()
+        registrar_evento_monitorado(
+            nr_convenio=instrumento.nr_convenio,
+            dados=NovoEventoMonitorado(marco_id=previsao.id, data_prevista=date(2027, 1, 1)),
+            db=db,
+            usuario=usuario,
+        )
+        for marco in (previsao, dispensada):
+            with pytest.raises(ConflictError, match="apenas uma"):
+                registrar_evento_monitorado(
+                    nr_convenio=instrumento.nr_convenio,
+                    dados=NovoEventoMonitorado(marco_id=marco.id, data_prevista=date(2027, 2, 1)),
+                    db=db,
+                    usuario=usuario,
+                )
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()

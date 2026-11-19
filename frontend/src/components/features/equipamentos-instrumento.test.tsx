@@ -357,6 +357,7 @@ describe("form de registrar entrega", () => {
     await userEvent.type(series[0], "S1");
     await userEvent.type(marcas[1], "B");
     await userEvent.type(series[1], "S2");
+    await userEvent.click(screen.getByRole("radio", { name: "Não" }));
     await userEvent.click(
       screen.getByRole("button", { name: "Confirmar entrega" }),
     );
@@ -368,6 +369,64 @@ describe("form de registrar entrega", () => {
       expect.objectContaining({ marca: "B", numero_serie: "S2" }),
     ]);
     expect(onFechar).toHaveBeenCalled();
+  });
+
+  it("pergunta se precisa de inauguração e exige a resposta", async () => {
+    const onEnviar = vi.fn();
+    render(
+      <EquipamentosInstrumentoFormEntrega
+        itens={[item()]}
+        apenasItemId={1}
+        onEnviar={onEnviar}
+        onFechar={vi.fn()}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirmar entrega" }),
+    );
+    expect(
+      await screen.findByText("Responda esta pergunta."),
+    ).toBeInTheDocument();
+    expect(onEnviar).not.toHaveBeenCalled();
+  });
+
+  it("com Sim pede a previsão, já preenchida quando existe, e envia", async () => {
+    const onEnviar = vi.fn().mockResolvedValue(undefined);
+    render(
+      <EquipamentosInstrumentoFormEntrega
+        itens={[item()]}
+        apenasItemId={1}
+        previsaoInauguracao="2027-03-01"
+        onEnviar={onEnviar}
+        onFechar={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByLabelText("Confirme a previsão de inauguração"),
+    ).toHaveValue("2027-03-01");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirmar entrega" }),
+    );
+    await waitFor(() => expect(onEnviar).toHaveBeenCalledTimes(1));
+    expect(onEnviar.mock.calls[0][0].inauguracao).toEqual({
+      necessaria: true,
+      dataPrevista: "2027-03-01",
+    });
+  });
+
+  it("não pergunta quando a inauguração já aconteceu", () => {
+    render(
+      <EquipamentosInstrumentoFormEntrega
+        itens={[item()]}
+        apenasItemId={1}
+        perguntarInauguracao={false}
+        onEnviar={vi.fn()}
+        onFechar={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByText("O equipamento precisa de inauguração?"),
+    ).not.toBeInTheDocument();
   });
 
   it("recusa número de série repetido entre as unidades", async () => {

@@ -36,12 +36,15 @@ export interface EnvioEntrega {
   dataOcorrencia: string;
   observacao: string | null;
   itens: ItemEntregaInput[];
+  inauguracao: { necessaria: boolean; dataPrevista: string | null } | null;
 }
 
 export function EquipamentosInstrumentoFormEntrega({
   itens,
   apenasItemId,
   dataLegada,
+  previsaoInauguracao,
+  perguntarInauguracao = true,
   onEnviar,
   onFechar,
 }: {
@@ -50,6 +53,10 @@ export function EquipamentosInstrumentoFormEntrega({
   apenasItemId?: number;
   /** Presente no vínculo de entrega antiga: data fixa do evento original. */
   dataLegada?: string | null;
+  /** Previsão de inauguração já registrada: vem preenchida para confirmação. */
+  previsaoInauguracao?: string | null;
+  /** Falso quando a inauguração já aconteceu: a pergunta não faz sentido. */
+  perguntarInauguracao?: boolean;
   onEnviar: (envio: EnvioEntrega) => Promise<void>;
   onFechar: () => void;
 }) {
@@ -64,12 +71,15 @@ export function EquipamentosInstrumentoFormEntrega({
     control,
     handleSubmit,
     watch,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<RegistrarEntregaFormValues>({
     resolver: zodResolver(registrarEntregaSchema),
     defaultValues: {
       dataOcorrencia: dataLegada ?? new Date().toISOString().slice(0, 10),
       observacao: "",
+      precisaInauguracao: previsaoInauguracao ? "sim" : undefined,
+      dataInauguracao: previsaoInauguracao ?? "",
       itens: pendentes.map((i) => ({
         itemId: i.id,
         selecionado: apenasItemId !== undefined,
@@ -81,13 +91,35 @@ export function EquipamentosInstrumentoFormEntrega({
   const { fields } = useFieldArray({ control, name: "itens" });
   const marcados = watch("itens");
 
+  const perguntar = !dataLegada && perguntarInauguracao;
+  const precisa = watch("precisaInauguracao");
+
   async function aoSubmeter(v: RegistrarEntregaFormValues) {
+    if (perguntar) {
+      if (!v.precisaInauguracao) {
+        setError("precisaInauguracao", { message: "Responda esta pergunta." });
+        return;
+      }
+      if (v.precisaInauguracao === "sim" && !v.dataInauguracao) {
+        setError("dataInauguracao", { message: "Informe a previsão." });
+        return;
+      }
+    }
     try {
       await onEnviar({
         chave: chave.current,
         dataOcorrencia: v.dataOcorrencia,
         observacao: v.observacao?.trim() || null,
         itens: itensParaApi(v.itens),
+        inauguracao: perguntar
+          ? {
+              necessaria: v.precisaInauguracao === "sim",
+              dataPrevista:
+                v.precisaInauguracao === "sim"
+                  ? v.dataInauguracao || null
+                  : null,
+            }
+          : null,
       });
       onFechar();
     } catch {
@@ -174,6 +206,55 @@ export function EquipamentosInstrumentoFormEntrega({
               mensagem={errors.itens?.message ?? errors.itens?.root?.message}
             />
           </fieldset>
+          {perguntar && (
+            <fieldset className="grid gap-2">
+              <legend className="mb-1 text-[11px]">
+                O equipamento precisa de inauguração?
+              </legend>
+              <div className="flex gap-4 text-[12.5px]">
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    value="sim"
+                    {...register("precisaInauguracao")}
+                  />
+                  Sim
+                </label>
+                <label className="flex items-center gap-1.5">
+                  <input
+                    type="radio"
+                    value="nao"
+                    {...register("precisaInauguracao")}
+                  />
+                  Não
+                </label>
+              </div>
+              <ErroCampo
+                id={`${formId}-inaug-erro`}
+                mensagem={errors.precisaInauguracao?.message}
+              />
+              {precisa === "sim" && (
+                <div>
+                  <label htmlFor={`${formId}-inaug`} className="text-[11px]">
+                    {previsaoInauguracao
+                      ? "Confirme a previsão de inauguração"
+                      : "Previsão de inauguração"}
+                  </label>
+                  <input
+                    id={`${formId}-inaug`}
+                    type="date"
+                    className={cn(estiloInput, "w-full sm:w-48")}
+                    aria-invalid={Boolean(errors.dataInauguracao)}
+                    {...register("dataInauguracao")}
+                  />
+                  <ErroCampo
+                    id={`${formId}-inaug-data-erro`}
+                    mensagem={errors.dataInauguracao?.message}
+                  />
+                </div>
+              )}
+            </fieldset>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onFechar}>
               Cancelar

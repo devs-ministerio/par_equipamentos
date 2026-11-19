@@ -140,7 +140,7 @@ export function DocumentosInstrumentoForm({
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor={`${id}-status`} className="text-[11px]">
-                  Situação na CNEN
+                  Situação na ANSN
                 </label>
                 <select
                   id={`${id}-status`}
