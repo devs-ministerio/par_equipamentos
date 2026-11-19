@@ -163,10 +163,6 @@ export function MonitoramentoInternoCabecalho({
             </div>
             <div className="relative break-words text-xs text-muted-foreground">
               {inst.municipio}/{inst.uf} · CNES {inst.cnes ?? "—"}
-              {" · "}
-              <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">
-                {inst.equipamento_descricao}
-              </span>
             </div>
             {/* Componente/Programa mesclados num único rótulo (Plan Mode
                 monitoramento-evolucao 2026-09-19, decisão do usuário: "serve
