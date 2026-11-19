@@ -118,7 +118,7 @@ Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup
 5. `vincular_entregas_legadas --aplicar`, depois `corrigir_entregas_persus_i --aplicar`: a data de entrega vira a da
    inauguração por correção auditada (não por exclusão e novo lançamento, porque a série da unidade é única no item,
    inclusive entre entregas excluídas) e cria a entrega dos que não têm.
-6. `migrar_concluidos_para_conclusao --pendencia-real 311 --pendencia-real 948684 --aplicar`: sem pendência vira conclusão
+6. `migrar_concluidos_para_conclusao --pendencia-real 948684 --pendencia-real 25000185040202348 --aplicar`: sem pendência vira conclusão
    integral; só ação aberta fecha a ação e conclui; o resto tem o evento antigo excluído (sai de Concluído) e é listado.
 7. `consolidar_eventos_marco_duplicados --inauguracao --aplicar`, depois a migration `b9c0d1e2f3a4` (índice único da
    inauguração; para com mensagem se ainda houver duplicado).
@@ -127,7 +127,7 @@ Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup
    deploy e o passo 6).
 
 Rodada local de 19/11 (clone): 51 entregas criadas e 36 datas corrigidas no PERSUS I; 96 conclusões migradas e 15
-instrumentos enviados à revisão (11 sem entrega, 4 sem data); 23 grupos de inauguração consolidados.
+instrumentos enviados à revisão (8 por entrega, 7 sem data de conclusão); 23 grupos de inauguração consolidados.
 
 ## 9. Em aberto
 
