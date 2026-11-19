@@ -131,10 +131,7 @@ function MonitoramentoInternoConteudo({
     inst.pode_editar && sessao.podeEditar && !sessao.erroSessao;
 
   const {
-    fasesGerais,
     eventosPorMarco,
-    faseAtual,
-    pctAtual,
     cronogramaFisico,
     registroLicenca,
     dataInauguracao,
@@ -211,9 +208,7 @@ function MonitoramentoInternoConteudo({
       <div className="grid gap-4">
         <OperationalDetailSection titulo="Fase e cronograma">
           <MonitoramentoInternoFaseGeral
-            fasesGerais={fasesGerais}
-            faseAtual={faseAtual}
-            pctAtual={pctAtual}
+            faseAtual={inst.fase_atual}
             acao={
               <ConclusaoAcompanhamento
                 numeroConvenio={numeroConvenio}

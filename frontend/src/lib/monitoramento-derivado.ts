@@ -17,20 +17,11 @@ export function derivarMonitoramentoInterno(
   timeline: InstrumentoTimeline,
   acoes: AcaoMonitoramento[] | undefined,
 ) {
-  const fasesGerais = marcos
-    .filter((m) => m.grupo === "fase_geral")
-    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
-
-  // Fase atual = marco de fase_geral de maior ordem com evento lancado.
   const eventosPorMarco = new Map<number, EventoMarco[]>();
   for (const ev of timeline.eventos) {
     if (!eventosPorMarco.has(ev.marco_id)) eventosPorMarco.set(ev.marco_id, []);
     eventosPorMarco.get(ev.marco_id)!.push(ev);
   }
-  const faseAtual = [...fasesGerais]
-    .reverse()
-    .find((m) => eventosPorMarco.has(m.id));
-  const pctAtual = faseAtual?.execucao_fisica_pct_referencia ?? 0;
 
   const cronogramaFisico = marcos.filter(
     (m) => m.grupo === "cronograma_fisico",
@@ -92,10 +83,7 @@ export function derivarMonitoramentoInterno(
     : null;
 
   return {
-    fasesGerais,
     eventosPorMarco,
-    faseAtual,
-    pctAtual,
     cronogramaFisico,
     regulatorio,
     marcoLicenca,

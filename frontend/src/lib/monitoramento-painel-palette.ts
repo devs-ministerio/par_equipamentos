@@ -14,7 +14,7 @@ export const PALETA_CATEGORICA = [
 export const COR_REALIZADA = PALETA_CATEGORICA[0];
 export const COR_PREVISTA = PALETA_CATEGORICA[1];
 
-const FASE_NAO_INICIADO = "Não iniciado";
+const FASE_NAO_INICIADO = "Acompanhamento iniciado";
 const FASE_CONCLUIDO = "Concluído";
 
 /** Cor estável por fase: depende só do rótulo e da posição no catálogo, nunca

@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { criarMarcosInteracao } from "@/test-fixtures/monitoramento-interacoes";
 import { criarEventoTeste } from "@/test-fixtures/monitoramento-hooks";
 import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
-import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -16,38 +15,6 @@ afterEach(() => {
 const marcos = criarMarcosInteracao();
 
 describe("fase e cronograma do monitoramento", () => {
-  it("mostra fase e percentual de referência recebidos, sem inventar medição física", () => {
-    // Arrange / Act
-    render(
-      <MonitoramentoInternoFaseGeral
-        fasesGerais={[marcos[0], marcos[3]]}
-        faseAtual={marcos[0]}
-        pctAtual={0.5}
-      />,
-    );
-    // Assert
-    expect(
-      screen.getByText("Contratado", { selector: "strong" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/etapa 1 de 2 · 50%/)).toBeInTheDocument();
-  });
-
-  it("mantém não iniciado sem evento de fase geral", () => {
-    // Arrange / Act
-    render(
-      <MonitoramentoInternoFaseGeral
-        fasesGerais={[marcos[0], marcos[3]]}
-        faseAtual={undefined}
-        pctAtual={0}
-      />,
-    );
-    // Assert
-    expect(
-      screen.getByText("Não iniciado", { selector: "strong" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/etapa 0 de 2 · 0%/)).toBeInTheDocument();
-  });
-
   it("escolhe o evento vigente do cronograma mesmo com entrada antiga primeiro", () => {
     {
       const marcoId = 2;

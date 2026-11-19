@@ -67,6 +67,7 @@ from app.services.monitoramento_instrumentos import (
     obter_timeline_instrumento,
 )
 from app.services.monitoramento_resumo import montar_resumo_monitoramento
+from app.services.repasses import fases_calculadas_em_lote
 
 router = APIRouter(prefix="/monitoramento", tags=["monitoramento"])
 
@@ -177,6 +178,7 @@ def obter_timeline(
     return InstrumentoTimelineRead(
         instrumento=InstrumentoEquipamentoRead.model_validate(timeline.instrumento).model_copy(
             update={
+                "fase_atual": fases_calculadas_em_lote(db, [timeline.instrumento])[timeline.instrumento.id].value,
                 "pode_editar": usuario_pode_editar_instrumento(usuario, ids_responsaveis),
                 "tecnico_titular_id": responsaveis_com_papel.get(timeline.instrumento.id, {}).get("titular"),
                 "tecnico_suplente_id": responsaveis_com_papel.get(timeline.instrumento.id, {}).get("suplente"),

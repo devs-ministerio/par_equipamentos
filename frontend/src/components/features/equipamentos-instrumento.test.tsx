@@ -267,7 +267,8 @@ describe("previsão de entrega do item", () => {
         itens={[item({ previsao_entrega: "2026-12-10" })]}
       />,
     );
-    expect(screen.getByText(/Prevista 10\/12\/2026/)).toBeInTheDocument();
+    expect(screen.getByText("10/12/2026")).toBeInTheDocument();
+    expect(screen.getByText("Previsão")).toBeInTheDocument();
     await userEvent.click(
       screen.getByRole("button", { name: "Previsão de entrega de Mamógrafo" }),
     );

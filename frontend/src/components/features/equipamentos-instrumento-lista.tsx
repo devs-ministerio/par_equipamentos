@@ -33,7 +33,39 @@ const formatarMoeda = new Intl.NumberFormat("pt-BR", {
 });
 
 const COLUNAS =
-  "md:grid-cols-[minmax(0,1fr)_7.5rem_6.5rem_6.5rem_5rem] md:items-center";
+  "md:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_10rem_11rem] md:items-center";
+
+function DataDoItem({ item }: { item: ItemEquipamento }) {
+  const concluido =
+    item.situacao === "entregue" || item.situacao === "cancelado";
+  const data = concluido ? item.ultima_entrega : item.previsao_entrega;
+  if (!data)
+    return (
+      <div className="text-center text-[12px] text-muted-foreground">—</div>
+    );
+  const rotulo = concluido ? "Entregue" : "Previsão";
+  const vencida = !concluido && data < new Date().toISOString().slice(0, 10);
+  return (
+    <div className="text-center leading-snug">
+      <div
+        className={cn(
+          "text-[13px] font-semibold tabular-nums",
+          vencida && "text-destructive",
+        )}
+      >
+        {fmtData(data)}
+      </div>
+      <div
+        className={cn(
+          "text-[11px] text-muted-foreground",
+          vencida && "text-destructive",
+        )}
+      >
+        {vencida ? "Previsão vencida" : rotulo}
+      </div>
+    </div>
+  );
+}
 
 export function EquipamentosInstrumentoLista({
   itens,
@@ -76,9 +108,11 @@ export function EquipamentosInstrumentoLista({
         )}
       >
         <span>Equipamento</span>
-        <span>Entregue</span>
-        <span>Situação</span>
-        <span>Última</span>
+        <span className="text-center">Entregue</span>
+        <span className="text-center">Situação</span>
+        <span className="whitespace-nowrap text-center">
+          Conclusão / previsão
+        </span>
         <span />
       </div>
       {itens.map((item) => {
@@ -109,7 +143,7 @@ export function EquipamentosInstrumentoLista({
                   </span>
                 )}
               </div>
-              <div className="text-[12.5px] tabular-nums">
+              <div className="text-center text-[12.5px] tabular-nums">
                 <span className="font-semibold">
                   {item.quantidade_entregue}
                 </span>
@@ -123,7 +157,7 @@ export function EquipamentosInstrumentoLista({
                   </span>
                 )}
               </div>
-              <div>
+              <div className="text-center">
                 <span
                   className={cn(
                     "inline-block rounded-full border px-2.5 py-[3px] text-[10.5px] font-bold",
@@ -133,16 +167,7 @@ export function EquipamentosInstrumentoLista({
                   {rotulo}
                 </span>
               </div>
-              <div className="text-[12px] text-muted-foreground">
-                {item.ultima_entrega ? fmtData(item.ultima_entrega) : "—"}
-                {item.previsao_entrega &&
-                  item.situacao !== "entregue" &&
-                  item.situacao !== "cancelado" && (
-                    <span className="block text-[11px]">
-                      Prevista {fmtData(item.previsao_entrega)}
-                    </span>
-                  )}
-              </div>
+              <DataDoItem item={item} />
               <div className="flex justify-end gap-1.5 md:justify-self-end">
                 {item.unidades.length > 0 && (
                   <button
