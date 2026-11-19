@@ -34,6 +34,7 @@ def db():
     # O índice único (migration c7d8e9f0a1b2) impede criar o duplicado que este script existe para
     # consolidar; sai dentro da transação de teste e volta com o rollback.
     conexao.exec_driver_sql("DROP INDEX IF EXISTS uq_evento_marco_fase_geral_ativo")
+    conexao.exec_driver_sql("DROP INDEX IF EXISTS uq_evento_marco_inauguracao_ativa")
     sessao = Session(bind=conexao, join_transaction_mode="create_savepoint")
     try:
         yield sessao

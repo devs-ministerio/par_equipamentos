@@ -107,6 +107,28 @@ Previsão/realizada e "Inauguração dispensada" são excludentes: no máximo um
 (409) e seletor sem a opção quando já existe. Duplicados existentes: `consolidar_eventos_marco_duplicados --inauguracao`
 (simulação por padrão), a rodar na 5b; depois disso, índice único parcial.
 
+## 8f. Scripts da 5b e ordem de execução (19/11/2026)
+
+Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup_banco.yml`) antes.
+
+1. Migrations até `a8b9c0d1e2f3` (catálogo Cronograma e ANSN) e deploy do backend.
+2. `projetar_itens_plano --aplicar` (liga itens soltos) e `derivar_repasses_siconv --aplicar` (repasse integral/parcial).
+3. `migrar_marcos_para_documentos --aplicar` (OS, TRP, TRD, SCRA e licença viram documentos).
+4. `remover_persus_ii_do_monitoramento --aplicar`: só remove instrumento sem lançamento; `AuditLog` antes; itens perdem o vínculo.
+5. `vincular_entregas_legadas --aplicar`, depois `corrigir_entregas_persus_i --aplicar`: a data de entrega vira a da
+   inauguração por correção auditada (não por exclusão e novo lançamento, porque a série da unidade é única no item,
+   inclusive entre entregas excluídas) e cria a entrega dos que não têm.
+6. `migrar_concluidos_para_conclusao --pendencia-real 311 --pendencia-real 948684 --aplicar`: sem pendência vira conclusão
+   integral; só ação aberta fecha a ação e conclui; o resto tem o evento antigo excluído (sai de Concluído) e é listado.
+7. `consolidar_eventos_marco_duplicados --inauguracao --aplicar`, depois a migration `b9c0d1e2f3a4` (índice único da
+   inauguração; para com mensagem se ainda houver duplicado).
+8. **Depois** de conferir a produção: remover a leitura do evento `fase_concluido` em `fatos_do_instrumento` e
+   `fases_calculadas_em_lote` (hoje soma o evento antigo e a conclusão confirmada, o que protege o intervalo entre o
+   deploy e o passo 6).
+
+Rodada local de 19/11 (clone): 51 entregas criadas e 36 datas corrigidas no PERSUS I; 96 conclusões migradas e 15
+instrumentos enviados à revisão (11 sem entrega, 4 sem data); 23 grupos de inauguração consolidados.
+
 ## 9. Em aberto
 
 - Forma da previsão de inauguração (campo do instrumento recomendado).

@@ -21,7 +21,7 @@ from __future__ import annotations
 from datetime import date
 
 from app.db.base import SessionLocal
-from app.db.indices import garantir_indice_unico_fase_geral
+from app.db.indices import garantir_indice_unico_fase_geral, garantir_indice_unico_inauguracao
 from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
 from app.db.seed_guard import recusar_se_producao
 
@@ -83,16 +83,44 @@ CATALOGO = [
     ),
     # --- cronograma_fisico ("Cronograma", opcional): datas pontuais; `ordem` so organiza a exibicao ---
     ("cronograma_inicio_fabricacao", MarcoGrupo.cronograma_fisico, 10, None, "Início da fabricação", None),
-    ("cronograma_fabricacao_concluida", MarcoGrupo.cronograma_fisico, 20, None, "Fabricação concluída / disponível para expedição", None),
+    (
+        "cronograma_fabricacao_concluida",
+        MarcoGrupo.cronograma_fisico,
+        20,
+        None,
+        "Fabricação concluída / disponível para expedição",
+        None,
+    ),
     ("cronograma_chegada_porto", MarcoGrupo.cronograma_fisico, 30, None, "Chegada ao Brasil", None),
-    ("cronograma_desembaraco_aduaneiro", MarcoGrupo.cronograma_fisico, 40, None, "Desembaraço aduaneiro concluído", None),
+    (
+        "cronograma_desembaraco_aduaneiro",
+        MarcoGrupo.cronograma_fisico,
+        40,
+        None,
+        "Desembaraço aduaneiro concluído",
+        None,
+    ),
     ("cronograma_obra_inicio", MarcoGrupo.cronograma_fisico, 50, None, "Início da reforma/obra", None),
-    ("cronograma_infraestrutura_pronta", MarcoGrupo.cronograma_fisico, 60, None, "Infraestrutura pronta para receber o equipamento", None),
+    (
+        "cronograma_infraestrutura_pronta",
+        MarcoGrupo.cronograma_fisico,
+        60,
+        None,
+        "Infraestrutura pronta para receber o equipamento",
+        None,
+    ),
     ("cronograma_obra_fim", MarcoGrupo.cronograma_fisico, 70, None, "Conclusão da reforma/obra", None),
     ("cronograma_entrega", MarcoGrupo.cronograma_fisico, 80, None, "Entrega no estabelecimento", None),
     ("cronograma_instalacao_inicio", MarcoGrupo.cronograma_fisico, 90, None, "Início da instalação", None),
     ("cronograma_instalacao_fim", MarcoGrupo.cronograma_fisico, 100, None, "Conclusão da instalação", None),
-    ("cronograma_comissionamento", MarcoGrupo.cronograma_fisico, 110, None, "Testes de aceitação / comissionamento", None),
+    (
+        "cronograma_comissionamento",
+        MarcoGrupo.cronograma_fisico,
+        110,
+        None,
+        "Testes de aceitação / comissionamento",
+        None,
+    ),
     ("cronograma_treinamento", MarcoGrupo.cronograma_fisico, 120, None, "Treinamento da equipe concluído", None),
     ("cronograma_inicio_operacao", MarcoGrupo.cronograma_fisico, 130, None, "Início da operação assistencial", None),
     ("cronograma_obra_ponto_critico", MarcoGrupo.cronograma_fisico, None, None, "Ponto crítico da obra", None),
@@ -205,6 +233,7 @@ def run() -> None:
         marcos_por_codigo = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
         print(f"Catálogo: {len(marcos_por_codigo)} marco(s).")
         garantir_indice_unico_fase_geral(db.connection())
+        garantir_indice_unico_inauguracao(db.connection(), exigir=False)
 
         cnes = db.get(CnesEstabelecimento, CNES_948686["cnes"])
         if cnes is None:

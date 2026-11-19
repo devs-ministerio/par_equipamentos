@@ -90,3 +90,20 @@ def test_garantir_indice_e_idempotente_e_recria_quando_a_lista_muda(db):
         text("SELECT indexdef FROM pg_indexes WHERE indexname = :n"), {"n": INDICE_FASE_GERAL}
     ).scalar()
     assert "UNIQUE" in definicao
+
+
+def test_so_uma_inauguracao_ativa_por_instrumento(db):
+    from app.db.indices import garantir_indice_unico_inauguracao
+
+    conexao = db.connection()
+    garantir_indice_unico_inauguracao(conexao, exigir=False)
+    previsao = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+    dispensada = db.query(MarcoCatalogo).filter_by(codigo="cronograma_inauguracao_dispensada").one()
+    inst = _instrumento(db)
+    db.add(EventoMarco(instrumento_id=inst.id, marco_id=previsao.id, data_prevista=date(2027, 1, 1)))
+    db.flush()
+    # Previsão e dispensada são excludentes entre si.
+    with pytest.raises(IntegrityError):
+        with db.begin_nested():
+            db.add(EventoMarco(instrumento_id=inst.id, marco_id=dispensada.id))
+            db.flush()
