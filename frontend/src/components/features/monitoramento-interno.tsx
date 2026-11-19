@@ -284,6 +284,9 @@ function MonitoramentoInternoConteudo({
           />
           <MonitoramentoInternoCronograma
             cronogramaFisico={cronogramaFisico}
+            entregaPorItem={itensControlados.some(
+              (i) => i.quantidade_entregue > 0,
+            )}
             documentos={
               <DocumentosInstrumento
                 numeroConvenio={numeroConvenio}

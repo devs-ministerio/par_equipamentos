@@ -62,6 +62,7 @@ export function MonitoramentoInternoCronograma({
   acao,
   eventosPorMarco,
   multiploEquipamento,
+  entregaPorItem = false,
 }: {
   cronogramaFisico: MarcoCatalogo[];
   /** Cartão de documentos exibido ao lado do cronograma. */
@@ -77,10 +78,15 @@ export function MonitoramentoInternoCronograma({
    * marco continuam sendo tratados como histórico -- só o mais recente
    * importa. */
   multiploEquipamento: boolean;
+  /** Já há entrega registrada por item: o marco antigo de entrega some (duas datas confundiriam). */
+  entregaPorItem?: boolean;
 }) {
   const visiveis = (m: MarcoCatalogo) =>
     eventosVisiveis(eventosPorMarco.get(m.id) ?? [], multiploEquipamento);
-  const fisicoComRegistro = cronogramaFisico.filter((m) => visiveis(m).length);
+  const marcosVigentes = entregaPorItem
+    ? cronogramaFisico.filter((m) => m.codigo !== "cronograma_entrega")
+    : cronogramaFisico;
+  const fisicoComRegistro = marcosVigentes.filter((m) => visiveis(m).length);
 
   return (
     <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4">
@@ -120,7 +126,7 @@ export function MonitoramentoInternoCronograma({
         )}
         <MarcosSemRegistro
           // Só o cronograma vigente (com ordem): marcos antigos e a inauguração (tratada à parte) não entram.
-          marcos={cronogramaFisico.filter(
+          marcos={marcosVigentes.filter(
             (m) => m.ordem !== null && !visiveis(m).length,
           )}
         />
