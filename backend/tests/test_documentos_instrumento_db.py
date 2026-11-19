@@ -8,11 +8,10 @@ import pytest
 from pydantic import ValidationError as PydanticError
 from sqlalchemy import select
 
-from app.db.models import DocumentoInstrumento, EquipamentoCatalogo, EventoMarco, MarcoCatalogo
-from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
+from app.db.models import DocumentoInstrumento, EventoMarco, MarcoCatalogo
+from app.domain_errors import AuthorizationError, ConflictError, NotFoundError
 from app.schemas_documentos import DocumentoCreate, DocumentoExclusao
 from app.services import documentos_instrumento as svc
-from app.services import entregas_equipamento as entregas_svc
 from app.services.migracao_documentos import migrar
 from tests.test_entregas_equipamento_db import Cenario, db  # noqa: F401
 
@@ -142,75 +141,15 @@ def test_migracao_em_simulacao_nao_grava(db):  # noqa: F811
     )
 
 
-def _licenca(item_id, **kw) -> DocumentoCreate:
-    return DocumentoCreate(
-        tipo="cnen_licenca", item_id=item_id, data_documento=date(2026, 11, 1), status="Deferido", **kw
-    )
-
-
-def test_licenca_liga_ao_item_que_exige_e_aparece_no_cartao(db):  # noqa: F811
-    c = Cenario(db)
-    familia = db.scalars(select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == "acelerador_linear")).one()
-    assert familia.exige_licenca is True
-    c.dois.catalogo_id = familia.id
-    db.flush()
-    svc.registrar_documento(
-        nr_convenio=c.inst.nr_convenio,
-        dados=_licenca(c.dois.id, numero="L-1", data_validade=date(2030, 1, 1)),
-        db=db,
-        usuario=c.titular,
-    )
-    itens = {
-        i.id: i
-        for i in entregas_svc.listar_equipamentos_do_instrumento(
-            nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular
-        ).itens
-    }
-    assert itens[c.dois.id].exige_licenca is True
-    licenca = itens[c.dois.id].licenca
-    assert (licenca.numero, licenca.status, licenca.data_validade) == ("L-1", "Deferido", date(2030, 1, 1))
-    assert itens[c.um.id].exige_licenca is False and itens[c.um.id].licenca is None
-    assert _lista(db, c).documentos[0].item_id == c.dois.id
-
-
-def test_licenca_recusa_item_sem_exigencia_ou_de_outro_instrumento(db):  # noqa: F811
-    c = Cenario(db)
-    familia = db.scalars(select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == "acelerador_linear")).one()
-    c.alheio.catalogo_id = familia.id
-    db.flush()
-    for item in (c.um, c.alheio):  # `um` sem família que exige; `alheio` é de outro instrumento
-        with pytest.raises(ValidationError, match="não exige licença"):
-            svc.registrar_documento(nr_convenio=c.inst.nr_convenio, dados=_licenca(item.id), db=db, usuario=c.titular)
-
-
-def test_equipamento_so_vale_para_documento_da_ansn():
-    with pytest.raises(PydanticError):
-        _nf(item_id=1)
-
-
-def test_alerta_de_vencimento_e_por_equipamento(db):  # noqa: F811
+def test_alerta_sem_vinculo_oficial_usa_o_registro_interno_rotulado(db):  # noqa: F811
     from app.services.monitoramento_resumo import montar_resumo_monitoramento
 
     c = Cenario(db)
-    c.dois.descricao = "Acelerador Linear sintético"
-    c.um.descricao = "PET/CT sintético"
-    for item, codigo in ((c.dois, "acelerador_linear"), (c.um, "pet_ct")):
-        item.catalogo_id = db.scalars(select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == codigo)).one().id
-    db.flush()
     nr = c.inst.nr_convenio
-    for item_id, validade in ((c.dois.id, date(2027, 3, 1)), (c.um.id, date(2028, 5, 1))):
-        svc.registrar_documento(
-            nr_convenio=nr, dados=_licenca(item_id, data_validade=validade), db=db, usuario=c.titular
-        )
-    # Mais recente do mesmo equipamento prevalece; indeferida não alerta.
     svc.registrar_documento(
         nr_convenio=nr,
         dados=DocumentoCreate(
-            tipo="cnen_licenca",
-            item_id=c.dois.id,
-            data_documento=date(2026, 12, 1),
-            status="Deferido",
-            data_validade=date(2029, 1, 1),
+            tipo="cnen_licenca", data_documento=date(2026, 12, 1), status="Deferido", data_validade=date(2029, 1, 1)
         ),
         db=db,
         usuario=c.titular,
@@ -218,29 +157,10 @@ def test_alerta_de_vencimento_e_por_equipamento(db):  # noqa: F811
     svc.registrar_documento(
         nr_convenio=nr,
         dados=DocumentoCreate(
-            tipo="cnen_licenca",
-            item_id=c.um.id,
-            data_documento=date(2027, 1, 1),
-            status="Indeferido",
-            data_validade=date(2030, 1, 1),
+            tipo="cnen_licenca", data_documento=date(2027, 1, 1), status="Indeferido", data_validade=date(2030, 1, 1)
         ),
         db=db,
         usuario=c.titular,
     )
     alertas = [a for a in montar_resumo_monitoramento(db).licencas_vencendo if a.nr_convenio == nr]
-    assert sorted((a.equipamento, a.data_validade) for a in alertas) == [
-        ("Acelerador Linear sintético", date(2029, 1, 1)),
-        ("PET/CT sintético", date(2028, 5, 1)),
-    ]
-
-
-def test_migracao_liga_licenca_ao_unico_item_que_exige(db):  # noqa: F811
-    c = Cenario(db)
-    familia = db.scalars(select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == "acelerador_linear")).one()
-    c.dois.catalogo_id = familia.id
-    db.flush()
-    lic = _evento(db, c, "regulatorio_licenca_operacao", data_ocorrencia=date(2026, 10, 5), status_regulatorio="Deferido")
-    resultado = migrar(db, aplicar=True)
-    doc = db.scalars(select(DocumentoInstrumento).where(DocumentoInstrumento.origem_evento_id == lic.id)).one()
-    assert doc.item_plano_id == c.dois.id
-    assert resultado["cnen_licenca: ligada ao item"] >= 1
+    assert [(a.fonte, a.data_validade) for a in alertas] == [("interna", date(2029, 1, 1))]

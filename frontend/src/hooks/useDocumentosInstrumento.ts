@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { equipamentosKeys } from "@/hooks/useEquipamentosInstrumento";
+import { licencaOperacaoKeys } from "@/hooks/useLicencaOperacao";
 import {
   type DocumentoInput,
   corrigirDocumento,
@@ -26,9 +26,8 @@ function useInvalidarDocumentos(nr: string) {
       queryClient.invalidateQueries({
         queryKey: documentosKeys.instrumento(nr),
       }),
-      // A licença aparece no cartão do equipamento.
       queryClient.invalidateQueries({
-        queryKey: equipamentosKeys.instrumento(nr),
+        queryKey: licencaOperacaoKeys.instrumento(nr),
       }),
     ]);
 }

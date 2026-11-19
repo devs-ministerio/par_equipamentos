@@ -67,32 +67,6 @@ function DataDoItem({ item }: { item: ItemEquipamento }) {
   );
 }
 
-/** Licença da ANSN do equipamento: sem registro, situação ou validade. */
-function LicencaDoItem({ item }: { item: ItemEquipamento }) {
-  const l = item.licenca;
-  const vencida =
-    l?.status === "Deferido" &&
-    l.data_validade !== null &&
-    l.data_validade < new Date().toISOString().slice(0, 10);
-  const texto = !l
-    ? "sem registro"
-    : vencida
-      ? `vencida em ${fmtData(l.data_validade)}`
-      : l.status === "Deferido" && l.data_validade
-        ? `deferida, validade ${fmtData(l.data_validade)}`
-        : (l.status ?? "registrada");
-  return (
-    <div
-      className={cn(
-        "mt-0.5 text-[12px]",
-        !l || vencida ? "text-destructive" : "text-muted-foreground",
-      )}
-    >
-      Licença ANSN: {texto}
-    </div>
-  );
-}
-
 export function EquipamentosInstrumentoLista({
   itens,
   podeEditar,
@@ -171,7 +145,6 @@ export function EquipamentosInstrumentoLista({
                     )}
                   </span>
                 </div>
-                {item.exige_licenca && <LicencaDoItem item={item} />}
               </div>
               <div className="text-center text-[12.5px] tabular-nums">
                 {item.valor_total != null

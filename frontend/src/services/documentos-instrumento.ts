@@ -25,7 +25,6 @@ export const STATUS_CNEN = [
 const documentoSchema = z.object({
   id: z.number(),
   tipo: z.enum(TIPOS_DOCUMENTO),
-  item_id: z.number().nullable().default(null),
   numero: z.string().nullable(),
   data_documento: z.string(),
   status: z.string().nullable(),
@@ -44,7 +43,6 @@ export type DocumentosInstrumento = z.infer<typeof documentosSchema>;
 export interface DocumentoInput {
   tipo: TipoDocumento;
   /** Equipamento (item do plano) a que a licença/SCRA se refere. */
-  item_id?: number | null;
   numero: string | null;
   data_documento: string;
   status: string | null;

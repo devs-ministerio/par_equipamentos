@@ -163,7 +163,7 @@ describe("Agenda executiva e atualização do recorte", () => {
     ).toBeInTheDocument();
   });
 
-  it("licença por equipamento mostra o equipamento e não repete a chave", () => {
+  it("licença por área mostra a área e não repete a chave", () => {
     render(
       <MemoryRouter>
         <AgendaExecutiva
@@ -171,14 +171,14 @@ describe("Agenda executiva e atualização do recorte", () => {
             {
               nr_convenio: "QA-X",
               nome_convenente: "Unidade X",
-              equipamento: "Acelerador Linear",
+              area: "RADIOTERAPIA",
               data_validade: "2026-11-01",
               dias: 5,
             },
             {
               nr_convenio: "QA-X",
               nome_convenente: "Unidade X",
-              equipamento: "PET/CT",
+              area: "MEDICINA NUCLEAR",
               data_validade: "2027-01-01",
               dias: 70,
             },
@@ -188,8 +188,10 @@ describe("Agenda executiva e atualização do recorte", () => {
       </MemoryRouter>,
     );
     expect(
-      screen.getByText(/Licença ANSN · Acelerador Linear/),
+      screen.getByText(/Licença de operação · RADIOTERAPIA/),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Licença ANSN · PET\/CT/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Licença de operação · MEDICINA NUCLEAR/),
+    ).toBeInTheDocument();
   });
 });

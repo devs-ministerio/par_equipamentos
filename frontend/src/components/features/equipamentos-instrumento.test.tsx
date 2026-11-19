@@ -14,8 +14,6 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
     descricao:
       "Mamógrafo digital com estereotaxia, detector de 24x30 cm - especificação técnica longa informada na API",
     familia: "mamografo",
-    exige_licenca: false,
-    licenca: null,
     controla_unidade: true,
     quantidade_planejada: 2,
     valor_total: 1200000,
@@ -42,63 +40,6 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
     ...sobrescrita,
   };
 }
-
-describe("licença da ANSN no cartão do equipamento", () => {
-  const exige = { familia: "acelerador_linear", exige_licenca: true };
-  const nao = (d: number) =>
-    new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
-  const montar = (i: ItemEquipamento) =>
-    render(
-      <EquipamentosInstrumentoLista
-        itens={[i]}
-        podeEditar={false}
-        onRegistrar={vi.fn()}
-        onCorrigir={vi.fn()}
-        onExcluirEntrega={vi.fn()}
-        onCancelarUnidade={vi.fn()}
-        onDesfazerCancelamento={vi.fn()}
-        onDefinirPrevisao={vi.fn()}
-        onRemoverPrevisao={vi.fn()}
-      />,
-    );
-
-  it("família sem exigência não mostra a linha", () => {
-    montar(item());
-    expect(screen.queryByText(/Licença ANSN/)).not.toBeInTheDocument();
-  });
-
-  it("sem documento mostra 'sem registro'", () => {
-    montar(item(exige));
-    expect(screen.getByText("Licença ANSN: sem registro")).toBeInTheDocument();
-  });
-
-  it("deferida mostra a validade; vencida e em análise mudam o texto", () => {
-    const base = { documento_id: 1, numero: "L-1" };
-    const { unmount } = montar(
-      item({
-        ...exige,
-        licenca: { ...base, status: "Deferido", data_validade: nao(400) },
-      }),
-    );
-    expect(screen.getByText(/deferida, validade/)).toBeInTheDocument();
-    unmount();
-    const outra = montar(
-      item({
-        ...exige,
-        licenca: { ...base, status: "Deferido", data_validade: nao(-5) },
-      }),
-    );
-    expect(screen.getByText(/vencida em/)).toBeInTheDocument();
-    outra.unmount();
-    montar(
-      item({
-        ...exige,
-        licenca: { ...base, status: "Em análise", data_validade: null },
-      }),
-    );
-    expect(screen.getByText("Licença ANSN: Em análise")).toBeInTheDocument();
-  });
-});
 
 describe("lista de equipamentos do instrumento", () => {
   const props = {

@@ -1,7 +1,7 @@
-"""licenca_ansn_por_item
+"""exige_licenca_familia
 
-Marca as famílias que exigem licença da ANSN (`equipamento_catalogo.exige_licenca`) e liga o documento da ANSN ao
-item do plano (`documento_instrumento.item_plano_id`, opcional: documentos antigos ficam só no instrumento).
+Marca as famílias que exigem licença da ANSN (`equipamento_catalogo.exige_licenca`). A licença vale para o
+estabelecimento (CNES), não para o equipamento: não há vínculo com o item do plano.
 
 Revision ID: a3b4c5d6e7f8
 Revises: a8b9c0d1e2f3
@@ -39,21 +39,7 @@ def upgrade() -> None:
             codigos=list(FAMILIAS_COM_LICENCA)
         )
     )
-    op.add_column("documento_instrumento", sa.Column("item_plano_id", sa.BigInteger(), nullable=True))
-    op.create_foreign_key(
-        "fk_documento_instrumento_item_plano",
-        "documento_instrumento",
-        "item_plano",
-        ["item_plano_id"],
-        ["id"],
-        onupdate="RESTRICT",
-        ondelete="SET NULL",
-    )
-    op.create_index("idx_documento_instrumento_item", "documento_instrumento", ["item_plano_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("idx_documento_instrumento_item", table_name="documento_instrumento")
-    op.drop_constraint("fk_documento_instrumento_item_plano", "documento_instrumento", type_="foreignkey")
-    op.drop_column("documento_instrumento", "item_plano_id")
     op.drop_column("equipamento_catalogo", "exige_licenca")

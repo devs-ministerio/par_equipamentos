@@ -93,7 +93,7 @@ Depois do check de entrega, o sistema pergunta se o equipamento precisa de inaug
 se já houver data registrada antes (evento `cronograma_previsao_inauguracao` ou data migrada), pede só a confirmação
 dela. Se não, nada é registrado. Desenho e persistência da resposta ("precisa de inauguração") ainda a aprovar.
 
-## 8d. Licença ANSN por item (decisão de 19/11/2026, implementada)
+## 8d. Licença ANSN por item (decisão de 19/11/2026, **substituída** pela licença por estabelecimento: `planmode-licenca-ansn-2026-11-19.md`)
 
 "Licença CNEN" passa a "Licença ANSN" nos textos (identificadores `cnen_*` ficam). A licença é da unidade, e só estas
 famílias a exigem (catálogo `equipamento_catalogo`): Acelerador Linear (inclui "Básico - Intermediário"), Braquiterapia
@@ -124,7 +124,9 @@ Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup
    integral; só ação aberta fecha a ação e conclui; o resto tem o evento antigo excluído (sai de Concluído) e é listado.
 7. `consolidar_eventos_marco_duplicados --inauguracao --aplicar`, depois a migration `b9c0d1e2f3a4` (índice único da
    inauguração; para com mensagem se ainda houver duplicado).
-8. **Depois** de conferir a produção: remover a leitura do evento `fase_concluido` em `fatos_do_instrumento` e
+8. Licença de operação (`planmode-licenca-ansn-2026-11-19.md`): migration `c8d9e0f1a2b3` depois da `b9c0d1e2f3a4`; exclusão dos documentos
+   de licença do 825374 com `excluir_documentos_instrumento`; carga da ANSN só quando a equipe entregar os dados validados.
+9. **Depois** de conferir a produção: remover a leitura do evento `fase_concluido` em `fatos_do_instrumento` e
    `fases_calculadas_em_lote` (hoje soma o evento antigo e a conclusão confirmada, o que protege o intervalo entre o
    deploy e o passo 6).
 

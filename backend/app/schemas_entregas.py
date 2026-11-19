@@ -93,23 +93,12 @@ class CancelamentoUnidadeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class LicencaItemRead(BaseModel):
-    """Licença de operação da ANSN mais recente ligada ao item."""
-
-    documento_id: int
-    numero: str | None
-    status: str | None
-    data_validade: date | None
-
-
 class ItemEquipamentoRead(BaseModel):
     id: int
     codigo_item: str | None
     nome: str
     descricao: str
     familia: str | None
-    exige_licenca: bool = False
-    licenca: LicencaItemRead | None = None
     controla_unidade: bool
     quantidade_planejada: int | None
     valor_total: float | None = None

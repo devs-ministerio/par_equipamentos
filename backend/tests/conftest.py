@@ -25,6 +25,7 @@ _DB_TEST_MODULES = {
     "test_cancelamento_unidade_db.py",
     "test_conclusao_acompanhamento_db.py",
     "test_documentos_instrumento_db.py",
+    "test_licenca_ansn_db.py",
     "test_previsoes_entrega_db.py",
     "test_repasses_db.py",
     "test_reabrir_eventos_consolidados_db.py",

@@ -14,8 +14,6 @@ TIPOS_CNEN = ("cnen_scra", "cnen_licenca")
 
 class DocumentoCreate(BaseModel):
     tipo: TipoDocumento
-    # Só nos documentos da ANSN: equipamento (item do plano) a que se refere.
-    item_id: int | None = None
     numero: str | None = Field(default=None, max_length=100)
     data_documento: date
     status: StatusCnen | None = None
@@ -24,8 +22,6 @@ class DocumentoCreate(BaseModel):
 
     @model_validator(mode="after")
     def _coerencia(self) -> "DocumentoCreate":
-        if self.item_id is not None and self.tipo not in TIPOS_CNEN:
-            raise ValueError("O equipamento só vale para documentos da ANSN.")
         if self.status is not None and self.tipo not in TIPOS_CNEN:
             raise ValueError("O status só vale para documentos da ANSN.")
         if self.data_validade is not None and self.tipo != "cnen_licenca":
@@ -40,7 +36,6 @@ class DocumentoExclusao(BaseModel):
 class DocumentoRead(BaseModel):
     id: int
     tipo: TipoDocumento
-    item_id: int | None = None
     numero: str | None
     data_documento: date
     status: str | None

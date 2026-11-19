@@ -11,7 +11,7 @@ from collections import Counter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import DocumentoInstrumento, EquipamentoCatalogo, EventoMarco, ItemPlano, MarcoCatalogo
+from app.db.models import DocumentoInstrumento, EventoMarco, MarcoCatalogo
 
 TIPO_POR_MARCO = {
     "cronograma_ordem_servico": "ordem_servico",
@@ -54,22 +54,6 @@ def documento_a_partir_do_evento(evento: EventoMarco, codigo_marco: str) -> Docu
     )
 
 
-def _item_unico_com_licenca(db: Session) -> dict[int, int]:
-    """Instrumento -> item ativo cuja família exige licença, só quando for um único (senão a licença fica sem item)."""
-    por_instrumento: dict[int, list[int]] = {}
-    for instrumento_id, item_id in db.execute(
-        select(ItemPlano.instrumento_id, ItemPlano.id)
-        .join(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
-        .where(
-            EquipamentoCatalogo.exige_licenca.is_(True),
-            ItemPlano.ativo.is_(True),
-            ItemPlano.instrumento_id.is_not(None),
-        )
-    ):
-        por_instrumento.setdefault(instrumento_id, []).append(item_id)
-    return {i: ids[0] for i, ids in por_instrumento.items() if len(ids) == 1}
-
-
 def migrar(db: Session, *, aplicar: bool) -> Counter[str]:
     """Cria os documentos faltantes e devolve a contagem por resultado. Sem `aplicar`, só conta."""
     contagem: Counter[str] = Counter()
@@ -80,7 +64,6 @@ def migrar(db: Session, *, aplicar: bool) -> Counter[str]:
             )
         )
     )
-    item_da_licenca = _item_unico_com_licenca(db)
     linhas = db.execute(
         select(EventoMarco, MarcoCatalogo.codigo)
         .join(MarcoCatalogo, MarcoCatalogo.id == EventoMarco.marco_id)
@@ -101,9 +84,6 @@ def migrar(db: Session, *, aplicar: bool) -> Counter[str]:
             contagem[f"{tipo}: descartado (sem data realizada)"] += 1
             continue
         contagem[f"{tipo}: migrado"] += 1
-        if tipo == "cnen_licenca":
-            documento.item_plano_id = item_da_licenca.get(evento.instrumento_id)
-            contagem["cnen_licenca: ligada ao item" if documento.item_plano_id else "cnen_licenca: sem item único"] += 1
         if aplicar:
             db.add(documento)
     if aplicar:

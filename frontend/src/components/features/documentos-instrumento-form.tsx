@@ -16,7 +16,6 @@ import {
   type DocumentoFormValues,
   documentoSchema,
 } from "@/lib/validations/monitoramento";
-import type { ItemEquipamento } from "@/services/entregas-equipamento";
 import {
   type DocumentoInput,
   type DocumentoInstrumento,
@@ -29,14 +28,12 @@ const NAO_CNEN = new Set(["nota_fiscal", "ordem_servico", "trp", "trd"]);
 
 export function DocumentosInstrumentoForm({
   documento,
-  itensComLicenca = [],
   onSalvar,
   onFechar,
 }: {
   /** Presente na correção; ausente no cadastro. */
   documento?: DocumentoInstrumento;
   /** Equipamentos do instrumento cuja família exige licença da ANSN. */
-  itensComLicenca?: ItemEquipamento[];
   onSalvar: (corpo: DocumentoInput) => Promise<void>;
   onFechar: () => void;
 }) {
@@ -50,7 +47,6 @@ export function DocumentosInstrumentoForm({
     resolver: zodResolver(documentoSchema),
     defaultValues: {
       tipo: documento?.tipo,
-      itemId: documento?.item_id ? String(documento.item_id) : "",
       numero: documento?.numero ?? "",
       dataDocumento: documento?.data_documento ?? "",
       status: documento?.status ?? "",
@@ -77,7 +73,6 @@ export function DocumentosInstrumentoForm({
             try {
               await onSalvar({
                 tipo: v.tipo,
-                item_id: ehCnen && v.itemId ? Number(v.itemId) : null,
                 numero: v.numero?.trim() || null,
                 data_documento: v.dataDocumento,
                 status: ehCnen ? v.status || null : null,
@@ -110,25 +105,6 @@ export function DocumentosInstrumentoForm({
             </select>
             <ErroCampo id={`${id}-tipo-erro`} mensagem={errors.tipo?.message} />
           </div>
-          {ehCnen && itensComLicenca.length > 0 && (
-            <div>
-              <label htmlFor={`${id}-item`} className="text-[11px]">
-                Equipamento
-              </label>
-              <select
-                id={`${id}-item`}
-                className={cn(estiloInput, "w-full")}
-                {...register("itemId")}
-              >
-                <option value="">Não informado</option>
-                {itensComLicenca.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label htmlFor={`${id}-numero`} className="text-[11px]">

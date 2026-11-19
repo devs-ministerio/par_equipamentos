@@ -106,7 +106,6 @@ export const documentoSchema = z
       ],
       { message: "Escolha o tipo do documento." },
     ),
-    itemId: z.string().optional(),
     numero: z.string().trim().max(100, "Máximo de 100 caracteres.").optional(),
     dataDocumento: z.string().min(1, "Informe a data do documento."),
     status: z.string().optional(),

@@ -32,6 +32,7 @@ import { ConclusaoAcompanhamento } from "./conclusao-acompanhamento";
 import { DocumentosInstrumento } from "./documentos-instrumento";
 import { useEquipamentosInstrumento } from "@/hooks/useEquipamentosInstrumento";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
+import { LicencaOperacaoCard } from "./licenca-operacao-card";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
 import type {
   CriarAcaoFormValues,
@@ -240,6 +241,8 @@ function MonitoramentoInternoConteudo({
         }
         inauguracaoRealizada={inaugurado}
       />
+
+      <LicencaOperacaoCard numeroConvenio={numeroConvenio} />
 
       <MonitoramentoInternoCadastro
         instrumento={inst}

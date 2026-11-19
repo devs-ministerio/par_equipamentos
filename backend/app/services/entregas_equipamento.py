@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.authz import assert_pode_editar_instrumento, usuario_pode_editar_instrumento
 from app.db.models import (
-    DocumentoInstrumento,
     EntregaEquipamento,
     EventoMarco,
     InstrumentoEquipamento,
@@ -30,7 +29,6 @@ from app.db.models import (
 )
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.equipamentos import nome_curto_do_item
-from app.repositories import documentos as documentos_repo
 from app.repositories import itens_equipamento as repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
@@ -42,7 +40,6 @@ from app.schemas_entregas import (
     EquipamentosInstrumentoRead,
     ItemEntregaCreate,
     ItemEquipamentoRead,
-    LicencaItemRead,
     RendimentoRead,
     SituacaoItem,
     UnidadeRead,
@@ -110,17 +107,6 @@ def _situacao(planejado: int | None, entregue: int, revisao_pendente: bool, canc
     return "parcial"
 
 
-def _licenca_read(documento: DocumentoInstrumento | None) -> LicencaItemRead | None:
-    if documento is None:
-        return None
-    return LicencaItemRead(
-        documento_id=documento.id,
-        numero=documento.numero,
-        status=documento.status,
-        data_validade=documento.data_validade,
-    )
-
-
 def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario: User) -> EquipamentosInstrumentoRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     itens = repo.listar_itens_do_instrumento(db, instrumento.id)
@@ -147,8 +133,6 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                     valor_total=float(item_filho.valor_total) if item_filho.valor_total is not None else None,
                 )
             )
-    familias_com_licenca = documentos_repo.codigos_familias_com_licenca(db)
-    licencas = documentos_repo.licencas_ativas_por_item(db, instrumento.id)
     resultado = []
     for item, familia, nome_renem in controlados:
         unidades = unidades_por_item.get(item.id, [])
@@ -159,8 +143,6 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                 nome=nome_renem or nome_curto_do_item(item.descricao),
                 descricao=item.descricao,
                 familia=familia,
-                exige_licenca=familia in familias_com_licenca,
-                licenca=_licenca_read(licencas.get(item.id)),
                 controla_unidade=True,
                 quantidade_planejada=item.quantidade_planejada,
                 valor_total=float(item.valor_total) if item.valor_total is not None else None,

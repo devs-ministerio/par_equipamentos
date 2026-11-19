@@ -25,6 +25,7 @@ from app.routers import (
     entregas,
     equipment_offer,
     fontes,
+    licenca_operacao,
     macro_coverage,
     monitoramento,
     municipality_coverage,
@@ -77,6 +78,8 @@ app.include_router(monitoramento.router)
 app.include_router(entregas.router)
 # Documentos do instrumento (NF, OS, TRP, TRD, SCRA, licença), independentes da fase.
 app.include_router(documentos.router)
+# Licença de operação do instrumento pela fonte oficial da ANSN, por estabelecimento.
+app.include_router(licenca_operacao.router)
 # Conclusão do acompanhamento (resultado calculado, impedimentos, reabertura).
 app.include_router(conclusao.router)
 app.include_router(repasses.router)

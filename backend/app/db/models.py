@@ -1816,7 +1816,6 @@ class DocumentoInstrumento(Base):
             name="ck_documento_instrumento_tipo",
         ),
         Index("idx_documento_instrumento_instrumento", "instrumento_id", "tipo"),
-        Index("idx_documento_instrumento_item", "item_plano_id"),
         Index(
             "uq_documento_instrumento_origem_evento",
             "origem_evento_id",
@@ -1830,12 +1829,6 @@ class DocumentoInstrumento(Base):
         ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
     )
     tipo: Mapped[str] = mapped_column(String, nullable=False)
-    # Só nos documentos da ANSN: item do plano a que a licença/SCRA se refere (opcional; antigos ficam sem).
-    item_plano_id: Mapped[int | None] = mapped_column(
-        ForeignKey(
-            "item_plano.id", ondelete="SET NULL", onupdate="RESTRICT", name="fk_documento_instrumento_item_plano"
-        )
-    )
     numero: Mapped[str | None] = mapped_column(String)
     data_documento: Mapped[date] = mapped_column(Date, nullable=False)
     # Só nos documentos da ANSN: vocabulário externo (Em análise, Em diligência, Deferido, Indeferido).
@@ -1850,6 +1843,65 @@ class DocumentoInstrumento(Base):
     substituido_por_id: Mapped[int | None] = mapped_column(
         ForeignKey("documento_instrumento.id", ondelete="SET NULL", onupdate="RESTRICT")
     )
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(String)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class InstalacaoAnsn(Base):
+    """Instalação radiativa da base aberta da ANSN/CNEN (matrícula). Fonte oficial da validade da licença de operação.
+
+    A fonte não traz CNPJ, CNES, ato nem equipamento: o vínculo com o estabelecimento é decisão da equipe
+    (`VinculoLicencaEstabelecimento`). Suspensa não informa validade. `consultado_em` é a data da última carga em que a
+    matrícula apareceu; matrícula que some da carga seguinte não é dada como vencida (não há base pública de vencidas).
+    """
+
+    __tablename__ = "instalacao_ansn"
+    __table_args__ = (
+        CheckConstraint("status IN ('valida', 'suspensa')", name="ck_instalacao_ansn_status"),
+        Index("idx_instalacao_ansn_area", "area_atuacao"),
+    )
+
+    matricula: Mapped[str] = mapped_column(String, primary_key=True)
+    designacao: Mapped[str] = mapped_column(String, nullable=False)
+    cidade: Mapped[str | None] = mapped_column(String)
+    uf: Mapped[str | None] = mapped_column(String(2))
+    area_atuacao: Mapped[str | None] = mapped_column(String)
+    setor_atuacao: Mapped[str | None] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    validade: Mapped[date | None] = mapped_column(Date)
+    consultado_em: Mapped[date] = mapped_column(Date, nullable=False)
+    primeira_consulta_em: Mapped[date] = mapped_column(Date, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class VinculoLicencaEstabelecimento(Base):
+    """Vínculo entre um estabelecimento (CNES) e uma matrícula da ANSN (append-only, soft delete com motivo).
+
+    `matricula` é texto sem FK de propósito: a matrícula informada pela equipe pode não constar na carga (licença vencida).
+    Ativo = `deletado_em IS NULL`; único por (cnes, matrícula) entre os ativos.
+    """
+
+    __tablename__ = "vinculo_licenca_estabelecimento"
+    __table_args__ = (
+        Index("idx_vinculo_licenca_cnes", "cnes"),
+        Index(
+            "uq_vinculo_licenca_ativo",
+            "cnes",
+            "matricula",
+            unique=True,
+            postgresql_where=text("deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    cnes: Mapped[str] = mapped_column(
+        ForeignKey("cnes_estabelecimento.cnes", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    matricula: Mapped[str] = mapped_column(String, nullable=False)
+    origem: Mapped[str] = mapped_column(String, nullable=False, server_default=text("'carga'"))
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
     motivo_exclusao: Mapped[str | None] = mapped_column(String)

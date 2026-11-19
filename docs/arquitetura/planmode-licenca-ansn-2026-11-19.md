@@ -1,6 +1,11 @@
 # Licença de operação pela fonte oficial da ANSN (19/11/2026)
 
-Substitui a §8d do plano do fluxo de acompanhamento (licença por item). Estado: **proposto, aguardando aprovação**.
+Substitui a §8d do plano do fluxo de acompanhamento (licença por item). Estado: **em implementação** (aprovado em 19/11/2026).
+
+Decisões finais do usuário: (1) a equipe entrega os vínculos **já validados**; não há fila de revisão nem sugestão automática na
+aplicação (a análise de candidatas ficou em planilha avulsa); (2) a carga real da ANSN e dos vínculos é feita **depois, direto no banco**,
+nada é carregado agora; (3) 825374: excluir só o documento de licença (TRP e TRD ficam); (4) instrumento sem CNES fica sem card até o
+CNES existir.
 
 ## 1. Decisões já tomadas
 
@@ -66,15 +71,16 @@ Rejeitado também é guardado, para a sugestão não voltar.
 - Fila `/monitoramento-equipamentos/revisao-licencas` (gestor/admin), no desenho da revisão de itens: um cartão por CNES com candidatas, confirmar, trocar, rejeitar, em lote para os fortes.
 - Some o "Licença ANSN: …" do item e `LicencaItemRead` (`licenca` por item) e o seletor de equipamento no documento de licença.
 
-## 7. Ordem de entrega
+## 7. Entregue
 
-1. Revisar `a3b4` (sem `item_plano_id`), remover a licença por item (backend, front, testes).
-2. Migration nova + modelos + repositórios + serviços (Router → Service → Repository).
-3. `importar_ansn` (JSON/CSV, simulação por padrão, `--aplicar --confirmo-host`, idempotente por matrícula, registra a carga).
-4. `sugerir_vinculos_ansn` e confirmação automática das matrículas informadas.
-5. Card, fila de revisão, alerta por estabelecimento, relatórios que leiam licença.
-6. Exclusão dos documentos de licença do 825374 (script, motivo, `AuditLog`); ajuste do §8f com os passos novos.
-7. Ensaio no clone (`sigeo_ensaio_5d`) antes do release.
+1. `a3b4` sem `item_plano_id`; licença por item removida (backend, front, testes).
+2. Migration `c8d9e0f1a2b3` (`instalacao_ansn`, `vinculo_licenca_estabelecimento`), repositório, serviço e `GET /monitoramento/instrumentos/{nr}/licenca-operacao`.
+3. Card "Licença de operação" no instrumento (só com item que exige licença); alerta do resumo por vínculo oficial, com o registro interno como
+   reserva rotulada ("interna") enquanto não houver vínculo.
+4. `scripts/importar_licencas_ansn.py` (carga de instalações e vínculos, simulação por padrão): **não rodado em nenhum banco**.
+5. `scripts/excluir_documentos_instrumento.py` (soft delete com motivo e `AuditLog`); uso previsto:
+   `--instrumento 825374 --tipo cnen_licenca`.
+6. No release: migration `c8d9e0f1a2b3` depois da `b9c0d1e2f3a4`; a carga da ANSN só quando os dados validados chegarem.
 
 ## 8. Fora de escopo
 
@@ -82,6 +88,5 @@ Vínculo por equipamento; vencimento inferido por ausência; qualquer uso na met
 
 ## 9. Em aberto
 
-- 825374: excluir só `cnen_licenca` (recomendado; TRP e TRD do mamógrafo são válidos) ou os três documentos?
-- Fonte das cargas: a equipe baixa o arquivo e entrega ao script, ou o script baixa da ANSN?
-- Instrumentos sem CNES (9): ficam sem card até o CNES existir?
+- Formato do arquivo de vínculos validado (o script aceita CSV/XLSX com colunas `CNES` e `Matrícula`) e como a carga será feita no banco.
+- Se a equipe quer, depois, vincular e trocar matrícula pela tela (hoje só leitura).

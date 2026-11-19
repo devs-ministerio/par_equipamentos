@@ -13,7 +13,6 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.equipamentos import nome_curto_do_item
 from app.repositories import documentos as documentos_repo
 from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
@@ -27,6 +26,7 @@ from app.schemas_monitoramento import (
     LicencaVencendoResumo,
     ResumoMonitoramentoRead,
 )
+from app.services import licenca_operacao
 from app.services.fase_acompanhamento import FaseAcompanhamento
 from app.services.monitoramento_divergencias import divergencia_conclusao
 from app.services.repasses import fases_calculadas_em_lote
@@ -85,6 +85,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
 
     eventos_por_instrumento = dados.eventos_por_instrumento
     licencas_por_instrumento = documentos_repo.licencas_deferidas_por_instrumento(db, [i.id for i in instrumentos])
+    vinculos_licenca = licenca_operacao.vinculos_por_instrumento(db, instrumentos, hoje)
     contagem_fase: Counter[str] = Counter()
     contagem_tecnico: Counter[str] = Counter()
     licencas_deferidas = 0
@@ -114,22 +115,36 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         # fora da distribuicao silenciosamente).
         contagem_tecnico[inst.tecnico_titular or "Sem técnico definido"] += 1
 
-        # Fonte nova: documento da ANSN, um alerta por equipamento. Sem documento deferido, vale o evento
-        # antigo de licença (instrumento sem a migração dos documentos).
-        docs_licenca = licencas_por_instrumento.get(inst.id, [])
-        licenca_deferida = bool(docs_licenca)
-        for documento, descricao in docs_licenca:
-            if documento.data_validade:
+        # Fonte oficial: vinculo do estabelecimento (CNES) com a matricula da ANSN, um alerta por vinculo. Sem vinculo,
+        # vale o registro interno (documento deferido ou evento legado), rotulado como tal.
+        vinculos_ansn = vinculos_licenca.get(inst.id, [])
+        licenca_deferida = any(v.situacao == "valida" for v in vinculos_ansn)
+        for v in vinculos_ansn:
+            if v.validade is not None:
                 licencas_vencendo.append(
                     LicencaVencendoResumo(
                         nr_convenio=inst.nr_convenio,
                         nome_convenente=inst.nome_convenente,
-                        equipamento=nome_curto_do_item(descricao) if descricao else None,
-                        data_validade=documento.data_validade,
-                        dias=(documento.data_validade - hoje).days,
+                        area=v.area,
+                        matricula=v.matricula,
+                        fonte="ansn",
+                        data_validade=v.validade,
+                        dias=(v.validade - hoje).days,
                     )
                 )
-        if marco_licenca and not docs_licenca:
+        doc_licenca = licencas_por_instrumento.get(inst.id)
+        if not vinculos_ansn and doc_licenca is not None:
+            licenca_deferida = True
+            if doc_licenca.data_validade:
+                licencas_vencendo.append(
+                    LicencaVencendoResumo(
+                        nr_convenio=inst.nr_convenio,
+                        nome_convenente=inst.nome_convenente,
+                        data_validade=doc_licenca.data_validade,
+                        dias=(doc_licenca.data_validade - hoje).days,
+                    )
+                )
+        if marco_licenca and not vinculos_ansn and doc_licenca is None:
             evs_licenca = [e for e in eventos_inst if e.marco_id == marco_licenca.id]
             licenca_deferida = any(e.status_regulatorio == "Deferido" for e in evs_licenca)
             # Evento mais recente com data_validade preenchida; desempate por id (carga em lote repete created_at).

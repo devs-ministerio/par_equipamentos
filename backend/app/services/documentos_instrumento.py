@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.authz import assert_pode_editar_instrumento, usuario_pode_editar_instrumento
 from app.db.models import DocumentoInstrumento, InstrumentoEquipamento, User
-from app.domain_errors import ConflictError, NotFoundError, ValidationError
+from app.domain_errors import ConflictError, NotFoundError
 from app.repositories import documentos as repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
@@ -29,7 +29,6 @@ def _ler(documento: DocumentoInstrumento) -> DocumentoRead:
     return DocumentoRead(
         id=documento.id,
         tipo=documento.tipo,  # type: ignore[arg-type]
-        item_id=documento.item_plano_id,
         numero=documento.numero,
         data_documento=documento.data_documento,
         status=documento.status,
@@ -54,16 +53,10 @@ def _ativo_ou_erro(db: Session, documento_id: int) -> DocumentoInstrumento:
     return documento
 
 
-def _validar_item(db: Session, instrumento_id: int, dados: DocumentoCreate) -> None:
-    if dados.item_id is not None and not repo.item_exige_licenca(db, instrumento_id, dados.item_id):
-        raise ValidationError("O equipamento escolhido não é deste instrumento ou não exige licença da ANSN.")
-
-
 def _novo(instrumento_id: int, dados: DocumentoCreate, usuario: User) -> DocumentoInstrumento:
     return DocumentoInstrumento(
         instrumento_id=instrumento_id,
         tipo=dados.tipo,
-        item_plano_id=dados.item_id,
         numero=(dados.numero or "").strip() or None,
         data_documento=dados.data_documento,
         status=dados.status,
@@ -85,7 +78,6 @@ def listar_documentos(*, nr_convenio: str, db: Session, usuario: User) -> Docume
 def registrar_documento(*, nr_convenio: str, dados: DocumentoCreate, db: Session, usuario: User) -> DocumentoRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
-    _validar_item(db, instrumento.id, dados)
     documento = _novo(instrumento.id, dados, usuario)
     repo.adicionar(db, documento)
     log_action(
@@ -106,7 +98,6 @@ def corrigir_documento(*, documento_id: int, dados: DocumentoCreate, db: Session
     if instrumento is None:
         raise NotFoundError("Documento não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
-    _validar_item(db, instrumento.id, dados)
     novo = _novo(instrumento.id, dados, usuario)
     repo.adicionar(db, novo)
     antigo.substituido_por_id = novo.id
