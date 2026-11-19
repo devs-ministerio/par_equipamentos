@@ -228,17 +228,6 @@ export function EquipamentosInstrumentoLista({
                   )}
               </div>
             </div>
-            {item.rendimentos.map((r) => (
-              <p
-                key={r.id}
-                className="m-0 mt-2 border-l-2 border-border pl-3 text-[12px] text-muted-foreground"
-              >
-                Rendimento da aplicação
-                {r.valor_total != null &&
-                  `: ${formatarMoeda.format(r.valor_total)}`}{" "}
-                · não soma unidade
-              </p>
-            ))}
           </div>
         );
       })}

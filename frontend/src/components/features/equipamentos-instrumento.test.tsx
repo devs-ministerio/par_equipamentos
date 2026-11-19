@@ -84,7 +84,7 @@ describe("lista de equipamentos do instrumento", () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it("mostra o rendimento como linha filha, sem somar unidade", () => {
+  it("não exibe o rendimento da aplicação sob o equipamento", () => {
     render(
       <EquipamentosInstrumentoLista
         {...props}
@@ -99,9 +99,9 @@ describe("lista de equipamentos do instrumento", () => {
       />,
     );
     expect(
-      screen.getByText(/Rendimento da aplicação: R\$\s?1\.500,00/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/não soma unidade/)).toBeInTheDocument();
+      screen.queryByText(/Rendimento da aplicação/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/não soma unidade/)).not.toBeInTheDocument();
   });
 
   it("leitor não vê nenhuma ação e item entregue não oferece nova entrega", () => {
