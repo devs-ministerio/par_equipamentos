@@ -211,61 +211,60 @@ export function EquipamentosInstrumentoFormEntrega({
               <legend className="px-1 text-[12px] font-medium">
                 Inauguração
               </legend>
-              <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-                <div className="grid gap-1">
-                  <span className="text-[11px]">
-                    O equipamento precisa de inauguração?
-                  </span>
-                  <div className="grid w-44 grid-cols-2 gap-2">
-                    {[
-                      { valor: "sim", rotulo: "Sim" },
-                      { valor: "nao", rotulo: "Não" },
-                    ].map((o) => (
-                      <label
-                        key={o.valor}
-                        className={cn(
-                          "flex min-h-11 cursor-pointer items-center justify-center rounded-lg border text-[12.5px] transition-colors focus-within:ring-2 focus-within:ring-primary",
-                          precisa === o.valor
-                            ? "border-primary bg-primary/10 font-medium text-primary"
-                            : "border-border bg-background hover:bg-muted",
-                        )}
-                      >
-                        <input
-                          type="radio"
-                          value={o.valor}
-                          className="sr-only"
-                          {...register("precisaInauguracao")}
-                        />
-                        {o.rotulo}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                {precisa === "sim" && (
-                  <div className="grid gap-1">
-                    <label htmlFor={`${formId}-inaug`} className="text-[11px]">
-                      {previsaoInauguracao
-                        ? "Confirme a previsão de inauguração"
-                        : "Previsão de inauguração"}
-                    </label>
+              <p className="text-center text-[12.5px]">
+                O equipamento precisa de inauguração?
+              </p>
+              <div className="mx-auto grid w-full grid-cols-2 gap-2 sm:max-w-xs">
+                {[
+                  { valor: "sim", rotulo: "Sim" },
+                  { valor: "nao", rotulo: "Não" },
+                ].map((o) => (
+                  <label
+                    key={o.valor}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-center rounded-md border px-3 py-1.5 text-[12.5px] transition-colors",
+                      precisa === o.valor
+                        ? "border-primary bg-primary/10 font-medium text-primary"
+                        : "border-border bg-background hover:bg-muted",
+                    )}
+                  >
                     <input
-                      id={`${formId}-inaug`}
-                      type="date"
-                      className={cn(estiloInput, "w-48 bg-background")}
-                      aria-invalid={Boolean(errors.dataInauguracao)}
-                      {...register("dataInauguracao")}
+                      type="radio"
+                      value={o.valor}
+                      className="sr-only"
+                      {...register("precisaInauguracao")}
                     />
-                    <ErroCampo
-                      id={`${formId}-inaug-data-erro`}
-                      mensagem={errors.dataInauguracao?.message}
-                    />
-                  </div>
-                )}
+                    {o.rotulo}
+                  </label>
+                ))}
               </div>
               <ErroCampo
                 id={`${formId}-inaug-erro`}
                 mensagem={errors.precisaInauguracao?.message}
               />
+              {precisa === "sim" && (
+                <div className="mx-auto grid w-full gap-1 sm:max-w-xs">
+                  <label
+                    htmlFor={`${formId}-inaug`}
+                    className="text-center text-[11px]"
+                  >
+                    {previsaoInauguracao
+                      ? "Confirme a previsão de inauguração"
+                      : "Previsão de inauguração"}
+                  </label>
+                  <input
+                    id={`${formId}-inaug`}
+                    type="date"
+                    className={cn(estiloInput, "w-full")}
+                    aria-invalid={Boolean(errors.dataInauguracao)}
+                    {...register("dataInauguracao")}
+                  />
+                  <ErroCampo
+                    id={`${formId}-inaug-data-erro`}
+                    mensagem={errors.dataInauguracao?.message}
+                  />
+                </div>
+              )}
             </fieldset>
           )}
           <DialogFooter>
