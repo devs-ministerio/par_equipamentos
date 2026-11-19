@@ -1039,18 +1039,18 @@ def test_listar_instrumentos_expoe_coordenadas_do_cnes():
 # ---------------------------------------------------------------------
 
 
-def test_evento_fisico_sem_fase_geral_id_rejeitado():
+def test_evento_fisico_sem_fase_geral_id_e_aceito():
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fisico = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
-        with pytest.raises(ValidationError, match="fase geral"):
-            registrar_evento_monitorado(
-                nr_convenio=NR_CONVENIO_SEED,
-                dados=NovoEventoMonitorado(marco_id=marco_fisico.id, data_ocorrencia=date(2026, 1, 1)),
-                db=db,
-                usuario=usuario,
-            )
+        evento = registrar_evento_monitorado(
+            nr_convenio=NR_CONVENIO_SEED,
+            dados=NovoEventoMonitorado(marco_id=marco_fisico.id, data_ocorrencia=date(2026, 1, 1)),
+            db=db,
+            usuario=usuario,
+        )
+        assert evento.fase_geral_id is None
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()

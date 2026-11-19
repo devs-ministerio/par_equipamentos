@@ -133,7 +133,7 @@ describe("interação da timeline de eventos", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "+ Lançar evento" }),
     );
-    await userEvent.selectOptions(screen.getByLabelText("Marco"), "1");
+    await userEvent.selectOptions(screen.getByLabelText("Marco"), "2");
     await userEvent.type(
       screen.getByLabelText("Observação"),
       "Registro sintético",
@@ -159,7 +159,7 @@ describe("interação da timeline de eventos", () => {
     );
     expect(props.onRegistrar).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        marcoId: "1",
+        marcoId: "2",
         observacao: "Registro sintético",
       }),
     );
@@ -188,9 +188,6 @@ describe("interação da timeline de eventos", () => {
     expect(
       within(form).queryByRole("combobox", { name: "Marco" }),
     ).not.toBeInTheDocument();
-    expect(
-      within(form).getByLabelText("Fase geral correspondente"),
-    ).toHaveValue("1");
     expect(within(form).getByLabelText("Data da licença")).toHaveValue(
       "2026-10-19",
     );
@@ -234,7 +231,6 @@ describe("interação da timeline de eventos", () => {
       21,
       expect.objectContaining({
         marcoId: "3",
-        faseGeralId: "1",
         observacao: "Texto corrigido",
         numeroDocumento: "0000123",
         dataValidade: "2027-12-31",
@@ -343,42 +339,5 @@ describe("interação da timeline de eventos", () => {
       2,
     );
     expect(screen.getAllByLabelText("Data de ocorrência")).toHaveLength(2);
-  });
-
-  it("desempata a previsão mais recente por ID numérico, não por ordem textual", async () => {
-    // Arrange
-    const props = criarProps();
-    props.eventos = [
-      criarEventoTeste({
-        id: 9,
-        marco_id: 2,
-        data_ocorrencia: null,
-        data_prevista: "2026-11-01",
-      }),
-      criarEventoTeste({
-        id: 10,
-        marco_id: 2,
-        data_ocorrencia: null,
-        data_prevista: "2026-12-01",
-      }),
-    ];
-    render(<MonitoramentoInternoEventos {...props} />);
-    // Act
-    await userEvent.click(
-      screen.getByRole("button", { name: "+ Lançar evento" }),
-    );
-    await userEvent.selectOptions(screen.getByLabelText("Marco"), "4");
-    await userEvent.type(
-      screen.getByLabelText("Data de ocorrência"),
-      "2026-12-01",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Registrar evento" }),
-    );
-    // Assert
-    expect(screen.getByRole("dialog")).toHaveTextContent(
-      "A previsão registrada (2026-12-01) é igual à data de conclusão.",
-    );
-    expect(props.onRegistrar).not.toHaveBeenCalled();
   });
 });

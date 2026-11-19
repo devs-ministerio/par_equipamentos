@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import type { EventoMarco } from "@/services/monitoramento-instrumentos";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { fmtData } from "@/lib/monitoramento-format";
-import { eventoMaisRecente } from "@/lib/monitoramento-eventos";
 import type { EnviarEventoFormValues } from "@/lib/validations/monitoramento";
 import { MonitoramentoInternoFormEvento } from "./monitoramento-interno-form-evento";
 import {
@@ -64,14 +63,6 @@ export function MonitoramentoInternoEventos({
   const [eventoEmEdicao, setEventoEmEdicao] = useState<number | null>(null);
   const [eventoEmExclusao, setEventoEmExclusao] = useState<number | null>(null);
   const marcoPorId = new Map(marcos.map((m) => [m.id, m]));
-  const marcoInauguracao = marcos.find(
-    (marco) => marco.codigo === "cronograma_previsao_inauguracao",
-  );
-  const eventoInauguracao = marcoInauguracao
-    ? eventoMaisRecente(
-        eventos.filter((evento) => evento.marco_id === marcoInauguracao.id),
-      )
-    : null;
 
   // Mais recente lançado primeiro (created_at, depois id), como no backend.
   const eventosOrdenados = [...eventos].sort(
@@ -98,11 +89,6 @@ export function MonitoramentoInternoEventos({
       {podeEditar && formAberto && (
         <MonitoramentoInternoFormEvento
           marcos={marcos}
-          previsaoInauguracao={
-            eventoInauguracao?.data_ocorrencia
-              ? null
-              : (eventoInauguracao?.data_prevista ?? null)
-          }
           onRegistrar={async (valores) => {
             await onRegistrar(valores);
             setFormAberto(false);

@@ -45,8 +45,8 @@ class NovoEventoMonitorado:
 def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int | None) -> int | None:
     if marco.grupo == MarcoGrupo.fase_geral:
         return None
-    if fase_geral_id is None:
-        raise ValidationError("Indique a fase geral correspondente a este marco de cronograma físico/regulatório.")
+    if fase_geral_id is None:  # a fase é calculada: o vínculo só existe em registros históricos
+        return None
     fase = monitoramento_repo.obter_marco_por_id(db, fase_geral_id)
     if fase is None or fase.grupo != MarcoGrupo.fase_geral:
         raise ValidationError(f"fase_geral_id {fase_geral_id} não corresponde a um marco de fase geral válido.")
