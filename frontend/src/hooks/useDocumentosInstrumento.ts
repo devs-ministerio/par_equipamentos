@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { equipamentosKeys } from "@/hooks/useEquipamentosInstrumento";
 import {
   type DocumentoInput,
   corrigirDocumento,
@@ -21,7 +22,15 @@ export function useDocumentosInstrumento(nr: string) {
 function useInvalidarDocumentos(nr: string) {
   const queryClient = useQueryClient();
   return () =>
-    queryClient.invalidateQueries({ queryKey: documentosKeys.instrumento(nr) });
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: documentosKeys.instrumento(nr),
+      }),
+      // A licença aparece no cartão do equipamento.
+      queryClient.invalidateQueries({
+        queryKey: equipamentosKeys.instrumento(nr),
+      }),
+    ]);
 }
 
 export function useRegistrarDocumento(nr: string) {

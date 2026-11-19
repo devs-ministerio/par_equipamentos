@@ -162,4 +162,34 @@ describe("Agenda executiva e atualização do recorte", () => {
       screen.getByText("Nenhum prazo crítico registrado."),
     ).toBeInTheDocument();
   });
+
+  it("licença por equipamento mostra o equipamento e não repete a chave", () => {
+    render(
+      <MemoryRouter>
+        <AgendaExecutiva
+          licencas={[
+            {
+              nr_convenio: "QA-X",
+              nome_convenente: "Unidade X",
+              equipamento: "Acelerador Linear",
+              data_validade: "2026-11-01",
+              dias: 5,
+            },
+            {
+              nr_convenio: "QA-X",
+              nome_convenente: "Unidade X",
+              equipamento: "PET/CT",
+              data_validade: "2027-01-01",
+              dias: 70,
+            },
+          ]}
+          inauguracoes={[]}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(/Licença ANSN · Acelerador Linear/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Licença ANSN · PET\/CT/)).toBeInTheDocument();
+  });
 });

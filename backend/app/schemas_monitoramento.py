@@ -40,12 +40,13 @@ class ContagemRotulo(BaseModel):
 
 
 class LicencaVencendoResumo(BaseModel):
-    """1 por instrumento com licenca de operacao/alteracao emitida E
-    data_validade preenchida -- achado 2026-09-09, alimenta o painel de
-    gestao (semaforo de licenca por vencer). `dias` negativo = ja vencida."""
+    """1 por equipamento (item do plano) com licenca de operacao deferida E data_validade preenchida --
+    alimenta o painel de gestao (semaforo de licenca por vencer). Licenca sem equipamento ligado (documento
+    antigo ou evento legado) conta 1 por instrumento, com `equipamento` vazio. `dias` negativo = ja vencida."""
 
     nr_convenio: str
     nome_convenente: str
+    equipamento: str | None = None
     data_validade: date
     dias: int
 

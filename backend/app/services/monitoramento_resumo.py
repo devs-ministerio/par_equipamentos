@@ -13,6 +13,8 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from app.equipamentos import nome_curto_do_item
+from app.repositories import documentos as documentos_repo
 from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.schemas_monitoramento import (
@@ -82,6 +84,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     marco_inauguracao = next((m for m in marcos if m.codigo == "cronograma_previsao_inauguracao"), None)
 
     eventos_por_instrumento = dados.eventos_por_instrumento
+    licencas_por_instrumento = documentos_repo.licencas_deferidas_por_instrumento(db, [i.id for i in instrumentos])
     contagem_fase: Counter[str] = Counter()
     contagem_tecnico: Counter[str] = Counter()
     licencas_deferidas = 0
@@ -111,21 +114,27 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         # fora da distribuicao silenciosamente).
         contagem_tecnico[inst.tecnico_titular or "Sem técnico definido"] += 1
 
-        licenca_deferida = False
-        if marco_licenca:
+        # Fonte nova: documento da ANSN, um alerta por equipamento. Sem documento deferido, vale o evento
+        # antigo de licença (instrumento sem a migração dos documentos).
+        docs_licenca = licencas_por_instrumento.get(inst.id, [])
+        licenca_deferida = bool(docs_licenca)
+        for documento, descricao in docs_licenca:
+            if documento.data_validade:
+                licencas_vencendo.append(
+                    LicencaVencendoResumo(
+                        nr_convenio=inst.nr_convenio,
+                        nome_convenente=inst.nome_convenente,
+                        equipamento=nome_curto_do_item(descricao) if descricao else None,
+                        data_validade=documento.data_validade,
+                        dias=(documento.data_validade - hoje).days,
+                    )
+                )
+        if marco_licenca and not docs_licenca:
             evs_licenca = [e for e in eventos_inst if e.marco_id == marco_licenca.id]
             licenca_deferida = any(e.status_regulatorio == "Deferido" for e in evs_licenca)
-            if licenca_deferida:
-                licencas_deferidas += 1
-            # Evento mais recente com data_validade preenchida -- mesma
-            # regra ja usada no front (MonitoramentoInterno.tsx) pro
-            # contador de vencimento no detalhe do instrumento.
-            # Desempate por id além de created_at (achado ao vivo,
-            # convênio 947527) -- carga em lote grava vários eventos do
-            # mesmo marco com o MESMO created_at (timestamp do processo).
+            # Evento mais recente com data_validade preenchida; desempate por id (carga em lote repete created_at).
+            # Só licença deferida entra no alerta (D26): validade de processo indeferido ou em análise não vale.
             ev_validade = max(
-                # Só licença deferida entra no alerta de vencimento (D26): validade de processo
-                # indeferido ou em análise não é licença vigente.
                 (e for e in evs_licenca if e.data_validade and e.status_regulatorio == "Deferido"),
                 key=lambda e: (e.created_at, e.id),
                 default=None,
@@ -140,6 +149,8 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                         dias=(ev_validade.data_validade - hoje).days,
                     )
                 )
+        if licenca_deferida:
+            licencas_deferidas += 1
 
         if marco_inauguracao:
             evs_inaug = [e for e in eventos_inst if e.marco_id == marco_inauguracao.id]

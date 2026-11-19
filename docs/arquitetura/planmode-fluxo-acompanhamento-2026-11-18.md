@@ -93,13 +93,15 @@ Depois do check de entrega, o sistema pergunta se o equipamento precisa de inaug
 se já houver data registrada antes (evento `cronograma_previsao_inauguracao` ou data migrada), pede só a confirmação
 dela. Se não, nada é registrado. Desenho e persistência da resposta ("precisa de inauguração") ainda a aprovar.
 
-## 8d. Licença ANSN por item (decisão de 19/11/2026, a implementar)
+## 8d. Licença ANSN por item (decisão de 19/11/2026, implementada)
 
 "Licença CNEN" passa a "Licença ANSN" nos textos (identificadores `cnen_*` ficam). A licença é da unidade, e só estas
 famílias a exigem (catálogo `equipamento_catalogo`): Acelerador Linear (inclui "Básico - Intermediário"), Braquiterapia
 (com fonte radioativa), Cobalto (cobaltoterapia), Radioterapia (genérico: detalhar pela tecnologia), PET/CT e
 Gama-câmara/SPECT. Marca "exige licença" por família; documento ligado ao item (a licença sai antes da unidade existir)
 e, opcionalmente, à unidade. Pendente: detalhar "Radioterapia" e "Braquiterapia" (fonte radioativa) por item.
+
+**Implementado** (migration `a3b4c5d6e7f8`): `equipamento_catalogo.exige_licenca` (ligada em acelerador_linear, braquiterapia, cobalto, radioterapia, pet_ct, gama_camera_spect) e `documento_instrumento.item_plano_id` (opcional, só licença e SCRA; o serviço recusa item de outro instrumento ou de família sem exigência, 422). O cartão do equipamento mostra "Licença ANSN: sem registro / em análise / deferida, validade… / vencida em…". O formulário de Documento pergunta o "Equipamento" nos tipos da ANSN. Limites: o cartão só existe para itens controlados (Radioterapia e Cobalto não são `controle_por_unidade` hoje); documentos antigos ficam sem item; ainda não há alerta de vencimento por item (o contador do cabeçalho segue o evento antigo de licença).
 
 ## 8e. Uma inauguração por instrumento (19/11/2026)
 

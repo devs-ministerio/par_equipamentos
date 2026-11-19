@@ -40,6 +40,16 @@ const itemSchema = z.object({
   nome: z.string(),
   descricao: z.string(),
   familia: z.string().nullable(),
+  exige_licenca: z.boolean().default(false),
+  licenca: z
+    .object({
+      documento_id: z.number(),
+      numero: z.string().nullable(),
+      status: z.string().nullable(),
+      data_validade: z.string().nullable(),
+    })
+    .nullable()
+    .default(null),
   controla_unidade: z.boolean(),
   quantidade_planejada: z.number().nullable(),
   valor_total: z.number().nullable(),

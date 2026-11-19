@@ -1484,6 +1484,8 @@ class EquipamentoCatalogo(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     # Famílias cujo item é acompanhado por unidade física (marca, modelo, série) na entrega.
     controle_por_unidade: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    # Famílias cujo equipamento precisa de licença da ANSN (radioterapia, medicina nuclear).
+    exige_licenca: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     nome_oficial: Mapped[str | None] = mapped_column(String)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     atualizado_em: Mapped[datetime] = mapped_column(
@@ -1814,6 +1816,7 @@ class DocumentoInstrumento(Base):
             name="ck_documento_instrumento_tipo",
         ),
         Index("idx_documento_instrumento_instrumento", "instrumento_id", "tipo"),
+        Index("idx_documento_instrumento_item", "item_plano_id"),
         Index(
             "uq_documento_instrumento_origem_evento",
             "origem_evento_id",
@@ -1827,6 +1830,12 @@ class DocumentoInstrumento(Base):
         ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
     )
     tipo: Mapped[str] = mapped_column(String, nullable=False)
+    # Só nos documentos da ANSN: item do plano a que a licença/SCRA se refere (opcional; antigos ficam sem).
+    item_plano_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "item_plano.id", ondelete="SET NULL", onupdate="RESTRICT", name="fk_documento_instrumento_item_plano"
+        )
+    )
     numero: Mapped[str | None] = mapped_column(String)
     data_documento: Mapped[date] = mapped_column(Date, nullable=False)
     # Só nos documentos da ANSN: vocabulário externo (Em análise, Em diligência, Deferido, Indeferido).

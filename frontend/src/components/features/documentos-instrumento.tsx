@@ -10,6 +10,7 @@ import {
   useExcluirDocumento,
   useRegistrarDocumento,
 } from "@/hooks/useDocumentosInstrumento";
+import { useEquipamentosInstrumento } from "@/hooks/useEquipamentosInstrumento";
 import { ApiError, mensagemSeguraDoErro } from "@/lib/api-error";
 import { ROTULOS_DOCUMENTO } from "@/lib/documento-rotulos";
 import { diasAte, fmtData } from "@/lib/monitoramento-format";
@@ -57,6 +58,9 @@ export function DocumentosInstrumento({
   const registrar = useRegistrarDocumento(numeroConvenio);
   const corrigir = useCorrigirDocumento(numeroConvenio);
   const excluir = useExcluirDocumento(numeroConvenio);
+  const equipamentos = useEquipamentosInstrumento(numeroConvenio);
+  const itens = equipamentos.data?.itens ?? [];
+  const itensComLicenca = itens.filter((i) => i.exige_licenca);
   const [form, setForm] = useState<{ documento?: DocumentoInstrumento } | null>(
     null,
   );
@@ -122,6 +126,9 @@ export function DocumentosInstrumento({
             >
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <strong>{ROTULOS_DOCUMENTO[d.tipo]}</strong>
+                {d.item_id && (
+                  <span>{itens.find((i) => i.id === d.item_id)?.nome}</span>
+                )}
                 {d.numero && <span>Nº {d.numero}</span>}
                 <span className="text-muted-foreground">
                   {fmtData(d.data_documento)}
@@ -172,6 +179,7 @@ export function DocumentosInstrumento({
       {form && (
         <DocumentosInstrumentoForm
           documento={form.documento}
+          itensComLicenca={itensComLicenca}
           onFechar={() => setForm(null)}
           onSalvar={async (corpo) => {
             const documento = form.documento;
