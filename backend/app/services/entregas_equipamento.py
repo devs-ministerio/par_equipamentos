@@ -333,6 +333,7 @@ def corrigir_unidade(*, unidade_id: int, dados: UnidadeUpdate, db: Session, usua
         raise NotFoundError(f"Unidade {unidade_id} não encontrada.")
     instrumento = monitoramento_repo.obter_instrumento_por_id(db, entrega.instrumento_id)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, entrega.instrumento_id))
+    assert_nao_concluido(db, entrega.instrumento_id)
     if entrega.deletado_em is not None:
         raise ValidationError("A entrega desta unidade foi excluída.")
     campos = {c: getattr(dados, c) for c in dados.model_fields_set}

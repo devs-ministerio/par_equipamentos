@@ -28,9 +28,7 @@ def areas_exigidas(codigos: set[str]) -> list[str]:
     return sorted({AREA_POR_FAMILIA[c] for c in codigos if c in AREA_POR_FAMILIA})
 
 
-def montar_vinculos(
-    pares: list, ultima_carga: date | None, hoje: date
-) -> list[LicencaVinculoRead]:
+def montar_vinculos(pares: list, ultima_carga: date | None, hoje: date) -> list[LicencaVinculoRead]:
     resultado = []
     for vinculo, instalacao in pares:
         situacao = situacao_da_instalacao(instalacao, ultima_carga)
@@ -58,16 +56,28 @@ def obter_licenca_operacao(*, nr_convenio: str, db: Session, usuario: User) -> L
     exigidas = areas_exigidas(codigos)
     if not exigidas:
         return LicencaOperacaoRead(
-            exige=False, cnes=instrumento.cnes, sem_cnes=False, areas_exigidas=[], areas_sem_vinculo=[], vinculos=[],
+            exige=False,
+            cnes=instrumento.cnes,
+            sem_cnes=False,
+            areas_exigidas=[],
+            areas_sem_vinculo=[],
+            vinculos=[],
             ultima_carga=None,
         )
     if not instrumento.cnes:
         return LicencaOperacaoRead(
-            exige=True, cnes=None, sem_cnes=True, areas_exigidas=exigidas, areas_sem_vinculo=exigidas, vinculos=[],
+            exige=True,
+            cnes=None,
+            sem_cnes=True,
+            areas_exigidas=exigidas,
+            areas_sem_vinculo=exigidas,
+            vinculos=[],
             ultima_carga=None,
         )
     carga = repo.ultima_carga(db)
-    vinculos = montar_vinculos(repo.vinculos_por_cnes(db, [instrumento.cnes]).get(instrumento.cnes, []), carga, date.today())
+    vinculos = montar_vinculos(
+        repo.vinculos_por_cnes(db, [instrumento.cnes]).get(instrumento.cnes, []), carga, date.today()
+    )
     cobertas = {v.area for v in vinculos if v.area}
     return LicencaOperacaoRead(
         exige=True,

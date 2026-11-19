@@ -79,7 +79,7 @@ def _instrumento_ou_404(db: Session, nr_convenio: str) -> InstrumentoEquipamento
 
 def assert_nao_concluido(db: Session, instrumento_id: int) -> None:
     if repo.existe_ativa(db, instrumento_id):
-        raise ConflictError("O acompanhamento está concluído. Reabra-o para alterar entregas ou cancelamentos.")
+        raise ConflictError("O acompanhamento está concluído. Reabra-o para alterar o instrumento.")
 
 
 def _itens_controlados(db: Session, instrumento_id: int) -> list[ItemParaConclusao]:

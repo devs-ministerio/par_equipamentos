@@ -19,6 +19,7 @@ from app.db.models import (
 from app.domain_errors import NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 from app.services.monitoramento_comum import _MODALIDADES_ONCO_VALIDAS, _TIPOLOGIAS_VALIDAS, _notificar_edicao_manual
 
 
@@ -106,6 +107,7 @@ def atualizar_cadastro_instrumento(
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
 
     cnes_novo = alteracoes_brutas.get("cnes")
     if cnes_novo is not None and (

@@ -20,6 +20,7 @@ from app.db.models import (
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 from app.services.fase_acompanhamento import calcular_fase_acompanhamento
 from app.services.marcos_por_fase import JANELAS, marco_disponivel_na_fase, motivo_indisponivel
 from app.services.monitoramento_cadastro import DadosEquipamentoEntregue, _resumo_equipamento_entregue
@@ -184,6 +185,7 @@ def registrar_evento_monitorado(
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     marco = monitoramento_repo.obter_marco_por_id(db, dados.marco_id)
     if marco is None:
         raise ValidationError(f"Marco {dados.marco_id} não existe no catálogo.")
@@ -315,6 +317,7 @@ def editar_evento_monitorado(
     if antigo is None:
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antigo.instrumento_id))
+    assert_nao_concluido(db, antigo.instrumento_id)
     if antigo.deletado_em is not None or antigo.substituido_por_id is not None:
         raise ValidationError(f"Evento {evento_id} já foi excluído ou corrigido -- não pode editar de novo.")
 
@@ -417,6 +420,7 @@ def excluir_evento_monitorado(
     if evento is None:
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, evento.instrumento_id))
+    assert_nao_concluido(db, evento.instrumento_id)
     if evento.deletado_em is not None:
         raise ValidationError(f"Evento {evento_id} já está excluído.")
     if not motivo.strip():

@@ -250,3 +250,58 @@ def test_evento_realizado_de_instalacao_inicia_o_pos_entrega(db):  # noqa: F811
     previsto.data_ocorrencia = date.today()
     db.flush()
     assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) == FaseAcompanhamento.pos_entrega
+
+
+def test_concluido_trava_todas_as_edicoes_ate_reabrir(db):  # noqa: F811
+    from app.schemas_documentos import DocumentoCreate
+    from app.schemas_entregas import PrevisaoEntregaCreate
+    from app.schemas_repasses import RepasseCreate
+    from app.services import documentos_instrumento, monitoramento_acoes, monitoramento_cadastro, previsoes_entrega
+    from app.services.repasses import registrar_repasse_manual
+
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+    nr = c.inst.nr_convenio
+    tentativas = [
+        lambda: monitoramento_acoes.registrar_acao_monitorada(
+            nr_convenio=nr,
+            descricao="Ligar para o convenente",
+            data_prevista=None,
+            responsavel=None,
+            db=db,
+            usuario=c.titular,
+        ),
+        lambda: documentos_instrumento.registrar_documento(
+            nr_convenio=nr,
+            dados=DocumentoCreate(tipo="nota_fiscal", numero="1", data_documento=date.today()),
+            db=db,
+            usuario=c.titular,
+        ),
+        lambda: monitoramento_cadastro.atualizar_cadastro_instrumento(
+            nr_convenio=nr, alteracoes_brutas={"nivel": "Alto"}, db=db, usuario=c.titular
+        ),
+        lambda: previsoes_entrega.definir_previsao_entrega(
+            item_id=c.um.id,
+            dados=PrevisaoEntregaCreate(data_prevista=date.today() + timedelta(days=30)),
+            db=db,
+            usuario=c.titular,
+        ),
+        lambda: registrar_repasse_manual(
+            nr_convenio=nr, dados=RepasseCreate(tipo="integral"), db=db, usuario=c.titular
+        ),
+    ]
+    for tentar in tentativas:
+        with pytest.raises(ConflictError, match="Reabra"):
+            tentar()
+    svc.reabrir_acompanhamento(
+        nr_convenio=nr, dados=ReaberturaCreate(motivo="Correção de lançamento"), db=db, usuario=c.titular
+    )
+    monitoramento_acoes.registrar_acao_monitorada(
+        nr_convenio=nr,
+        descricao="Ligar para o convenente",
+        data_prevista=None,
+        responsavel=None,
+        db=db,
+        usuario=c.titular,
+    )

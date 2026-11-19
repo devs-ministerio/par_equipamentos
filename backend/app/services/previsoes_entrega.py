@@ -18,6 +18,7 @@ from app.domain_errors import NotFoundError, ValidationError
 from app.repositories import itens_equipamento as repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_entregas import PrevisaoEntregaCreate, PrevisaoEntregaRead, PrevisaoEntregaRemocao
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 
 
 def _ler(previsao: PrevisaoEntregaItem) -> PrevisaoEntregaRead:
@@ -37,6 +38,7 @@ def _item_e_instrumento(db: Session, item_id: int, usuario: User) -> tuple[ItemP
     if instrumento is None:
         raise NotFoundError("Item não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     return item, instrumento
 
 

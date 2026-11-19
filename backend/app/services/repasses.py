@@ -19,6 +19,7 @@ from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import repasses as repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_repasses import RepasseCreate, RepasseRead, SituacaoRepasseRead
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 from app.services.fase_acompanhamento import FaseAcompanhamento, FatosAcompanhamento, calcular_fase_acompanhamento
 
 _TOLERANCIA_REAIS = 1.0
@@ -102,6 +103,7 @@ def _gravar_repasse(
 def registrar_repasse_manual(*, nr_convenio: str, dados: RepasseCreate, db: Session, usuario: User) -> RepasseRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     repasse = _gravar_repasse(
         db,
         instrumento=instrumento,

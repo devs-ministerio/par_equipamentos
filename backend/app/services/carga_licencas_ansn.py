@@ -29,7 +29,9 @@ def _texto(valor: Any) -> str | None:
     return texto or None
 
 
-def importar_instalacoes(db: Session, registros: list[dict[str, Any]], consultado_em: date, *, aplicar: bool) -> Counter[str]:
+def importar_instalacoes(
+    db: Session, registros: list[dict[str, Any]], consultado_em: date, *, aplicar: bool
+) -> Counter[str]:
     contagem: Counter[str] = Counter()
     matriculas = [str(r.get("matricula", "")).strip() for r in registros]
     if any(not m for m in matriculas):

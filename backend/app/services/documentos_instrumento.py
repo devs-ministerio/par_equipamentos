@@ -23,6 +23,7 @@ from app.schemas_documentos import (
     DocumentoRead,
     DocumentosInstrumentoRead,
 )
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 
 
 def _ler(documento: DocumentoInstrumento) -> DocumentoRead:
@@ -78,6 +79,7 @@ def listar_documentos(*, nr_convenio: str, db: Session, usuario: User) -> Docume
 def registrar_documento(*, nr_convenio: str, dados: DocumentoCreate, db: Session, usuario: User) -> DocumentoRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     documento = _novo(instrumento.id, dados, usuario)
     repo.adicionar(db, documento)
     log_action(
@@ -98,6 +100,7 @@ def corrigir_documento(*, documento_id: int, dados: DocumentoCreate, db: Session
     if instrumento is None:
         raise NotFoundError("Documento não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     novo = _novo(instrumento.id, dados, usuario)
     repo.adicionar(db, novo)
     antigo.substituido_por_id = novo.id
@@ -119,6 +122,7 @@ def excluir_documento(*, documento_id: int, dados: DocumentoExclusao, db: Sessio
     if instrumento is None:
         raise NotFoundError("Documento não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     documento.deletado_em = datetime.now(timezone.utc)
     documento.deletado_por_id = usuario.id
     documento.motivo_exclusao = dados.motivo.strip()
