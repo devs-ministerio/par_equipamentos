@@ -62,7 +62,7 @@ export function MonitoramentoInternoCabecalho({
     {
       rotulo: "Inauguração",
       valor: inaugurado
-        ? "Realizada"
+        ? `Realizada em ${fmtData(dataInauguracao)}`
         : dataInauguracao
           ? "Prevista"
           : inauguracaoDispensada
@@ -70,7 +70,6 @@ export function MonitoramentoInternoCabecalho({
             : origemAlternativa
               ? "Não informada na fonte"
               : "Sem previsão",
-      detalhe: inaugurado ? fmtData(dataInauguracao) : undefined,
       alerta: diasInauguracao !== null && diasInauguracao < 0,
     },
     {
