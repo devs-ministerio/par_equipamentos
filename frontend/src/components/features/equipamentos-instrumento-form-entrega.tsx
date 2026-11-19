@@ -211,32 +211,34 @@ export function EquipamentosInstrumentoFormEntrega({
               <legend className="px-1 text-[12px] font-medium">
                 Inauguração
               </legend>
-              <p className="text-center text-[12.5px]">
-                O equipamento precisa de inauguração?
-              </p>
-              <div className="mx-auto grid w-full grid-cols-2 gap-2 sm:max-w-xs">
-                {[
-                  { valor: "sim", rotulo: "Sim" },
-                  { valor: "nao", rotulo: "Não" },
-                ].map((o) => (
-                  <label
-                    key={o.valor}
-                    className={cn(
-                      "flex cursor-pointer items-center justify-center rounded-md border px-3 py-1.5 text-[12.5px] transition-colors",
-                      precisa === o.valor
-                        ? "border-primary bg-primary/10 font-medium text-primary"
-                        : "border-border bg-background hover:bg-muted",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      value={o.valor}
-                      className="sr-only"
-                      {...register("precisaInauguracao")}
-                    />
-                    {o.rotulo}
-                  </label>
-                ))}
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <p className="text-[12.5px]">
+                  O equipamento precisa de inauguração?
+                </p>
+                <div className="grid w-44 grid-cols-2 gap-2">
+                  {[
+                    { valor: "sim", rotulo: "Sim" },
+                    { valor: "nao", rotulo: "Não" },
+                  ].map((o) => (
+                    <label
+                      key={o.valor}
+                      className={cn(
+                        "flex cursor-pointer items-center justify-center rounded-md border px-3 py-1.5 text-[12.5px] transition-colors",
+                        precisa === o.valor
+                          ? "border-primary bg-primary/10 font-medium text-primary"
+                          : "border-border bg-background hover:bg-muted",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        value={o.valor}
+                        className="sr-only"
+                        {...register("precisaInauguracao")}
+                      />
+                      {o.rotulo}
+                    </label>
+                  ))}
+                </div>
               </div>
               <ErroCampo
                 id={`${formId}-inaug-erro`}
