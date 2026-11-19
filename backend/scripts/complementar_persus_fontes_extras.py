@@ -64,6 +64,7 @@ from sqlalchemy.orm import Session
 from app.db.base import SessionLocal
 from app.db.models import Convenio, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, PagamentoObraPersus
 from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
+from app.situacao_programa import normalizar_situacao_programa
 from scripts.complementar_persus_monitoramento import _cnes, _texto
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -232,7 +233,7 @@ def _criar_instrumento_a_partir_do_convenio(
         origem_dado=origem,
         tipologia=convenio.tipologia,
         investimento_aquisicao=convenio.valor_global,
-        situacao_programa=situacao or convenio.situacao,
+        situacao_programa=normalizar_situacao_programa(situacao or convenio.situacao),
         natureza_servico=convenio.objeto,
         equipamento_descricao="Acelerador linear",
     )

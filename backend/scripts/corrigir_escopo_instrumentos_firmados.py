@@ -5,7 +5,7 @@ PRONON só em `instrumento_equipamento` (monitoramento interno). O universo
 correto pra todos eles é `convenio` ("Instrumentos firmados") -- só
 permanecem TAMBÉM no monitoramento interno o que a equipe já cadastrava
 (Convênio/FAF/TED, decisão do usuário) e PERSUS I ainda não concluído
-(`situacao_programa != 'Inaugurada'`).
+(situação do programa diferente de "Em operação").
 
 Escopo desta correção:
   - Convênio (71): intocado.
@@ -34,6 +34,7 @@ from sqlalchemy import delete, select
 
 from app.db.base import SessionLocal
 from app.db.models import AcaoMonitoramento, Convenio, EventoMarco, InstrumentoEquipamento
+from app.situacao_programa import EM_OPERACAO, normalizar_situacao_programa
 from scripts.lib_identificadores import gerar_identificador_aleatorio
 from scripts.lib_monitoramento_convenio import espelhar_convenio
 
@@ -92,7 +93,7 @@ def executar(*, dry_run: bool) -> dict[str, int]:
             if tipo_contratacao not in PREFIXOS:
                 continue
             fica_no_monitoramento = tipo_contratacao in ("FAF", "TED") or (
-                tipo_contratacao == "PERSUS I" and inst.situacao_programa != "Inaugurada"
+                tipo_contratacao == "PERSUS I" and normalizar_situacao_programa(inst.situacao_programa) != EM_OPERACAO
             )
 
             if inst.chave_origem is not None:
