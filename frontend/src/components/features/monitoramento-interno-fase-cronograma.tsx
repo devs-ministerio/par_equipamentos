@@ -92,7 +92,12 @@ export function MonitoramentoInternoCronograma({
                 realizado={visiveis(m).some((e) => e.data_ocorrencia)}
                 previsto
               />
-              <span className="min-w-0 flex-1">{m.rotulo}</span>
+              <span className="min-w-0 flex-1">
+                {m.codigo === "cronograma_previsao_inauguracao" &&
+                visiveis(m).some((e) => e.data_ocorrencia)
+                  ? "Inauguração"
+                  : m.rotulo}
+              </span>
               <span className="text-right text-[12px] tabular-nums text-muted-foreground">
                 {visiveis(m).map((ev) => (
                   <span key={ev.id} className="block">

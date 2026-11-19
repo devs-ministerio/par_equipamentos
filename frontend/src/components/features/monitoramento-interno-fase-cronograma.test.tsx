@@ -109,4 +109,25 @@ describe("fase e cronograma do monitoramento", () => {
     expect(screen.getByText("Nenhum marco registrado.")).toBeInTheDocument();
     expect(screen.queryByText("—")).not.toBeInTheDocument();
   });
+
+  it("inauguração realizada aparece como 'Inauguração', não como previsão", () => {
+    const previsao = { ...marcos[1], ordem: 10 };
+    const evento = {
+      id: 1,
+      marco_id: previsao.id,
+      data_ocorrencia: "2026-11-17",
+      data_prevista: null,
+    } as never;
+    render(
+      <MonitoramentoInternoCronograma
+        cronogramaFisico={[previsao]}
+        eventosPorMarco={new Map([[previsao.id, [evento]]])}
+        multiploEquipamento={false}
+      />,
+    );
+    expect(screen.getByText("Inauguração")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Previsão de inauguração"),
+    ).not.toBeInTheDocument();
+  });
 });
