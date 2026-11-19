@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import date
 from uuid import uuid4
 
 import pytest
 from sqlalchemy.orm import Session
 
 from app.db.base import engine
-from app.db.models import Convenio, InstrumentoEquipamento, RepasseInstrumento, User, UserRole
-from app.domain_errors import AuthorizationError, NotFoundError
+from app.db.models import Convenio, InstrumentoEquipamento, MarcoCatalogo, RepasseInstrumento, User, UserRole
+from app.domain_errors import AuthorizationError, NotFoundError, ValidationError
 from app.schemas_repasses import RepasseCreate
+from app.services import monitoramento_registro_eventos as eventos_servico
 from app.services import repasses as servico
 
 pytestmark = pytest.mark.db
@@ -135,3 +137,39 @@ def test_fase_em_lote_bate_com_o_calculo_por_instrumento(db):
     em_lote = fases_calculadas_em_lote(db, instrumentos)
     for instrumento in instrumentos:
         assert em_lote[instrumento.id] == calcular_fase_acompanhamento(fatos_do_instrumento(db, instrumento))
+
+
+def _lancar(db, instrumento, codigo, usuario, *, data=date(2026, 1, 10)):
+    from sqlalchemy import select
+
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == codigo)).scalar_one()
+    return eventos_servico.registrar_evento_monitorado(
+        nr_convenio=instrumento.nr_convenio,
+        dados=eventos_servico.NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=data),
+        db=db,
+        usuario=usuario,
+    )
+
+
+def test_marco_do_cronograma_segue_a_fase_e_fabricacao_inicia_a_aquisicao(db, instrumento):
+    admin = _usuario(db, UserRole.admin)
+    fase = lambda: servico.obter_situacao_repasse(nr_convenio=instrumento.nr_convenio, db=db).fase_calculada  # noqa: E731
+
+    # Antes do repasse: fabricação e pós-entrega recusadas; obra liberada.
+    assert fase() == "Aguardando repasse"
+    with pytest.raises(ValidationError, match="após o repasse"):
+        _lancar(db, instrumento, "cronograma_inicio_fabricacao", admin)
+    with pytest.raises(ValidationError, match="após a entrega"):
+        _lancar(db, instrumento, "cronograma_instalacao_inicio", admin)
+    _lancar(db, instrumento, "cronograma_obra_inicio", admin)
+
+    # Com repasse, a fabricação realizada leva a "Em aquisição".
+    servico.registrar_repasse_manual(
+        nr_convenio=instrumento.nr_convenio, dados=RepasseCreate(tipo="integral"), db=db, usuario=admin
+    )
+    assert fase() == "Valor repassado"
+    _lancar(db, instrumento, "cronograma_inicio_fabricacao", admin)
+    assert fase() == "Em aquisição"
+    assert servico.fases_calculadas_em_lote(db, [instrumento])[instrumento.id].value == "Em aquisição"
+    with pytest.raises(ValidationError, match="após a entrega"):
+        _lancar(db, instrumento, "cronograma_treinamento", admin)

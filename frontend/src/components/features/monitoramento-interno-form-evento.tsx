@@ -5,6 +5,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
+import { avisoMarcoIndisponivel } from "@/lib/marcos-por-fase";
 import { cn } from "@/lib/utils";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import {
@@ -51,6 +52,7 @@ export function MonitoramentoInternoFormEvento({
   onRegistrar,
   valoresIniciais,
   marcoFixo,
+  fase,
   rotuloSubmit = "Registrar evento",
   onCancelar,
 }: {
@@ -64,6 +66,8 @@ export function MonitoramentoInternoFormEvento({
    * (ver docstring do backend) -- mostra o marco como texto fixo em vez de
    * select editável. */
   marcoFixo?: MarcoCatalogo;
+  /** Fase calculada do instrumento: marcos fora da janela aparecem desabilitados com o motivo. */
+  fase?: string | null;
   rotuloSubmit?: string;
   /** Descarta a edição aberta sem enviar nada. */
   onCancelar?: () => void;
@@ -160,8 +164,17 @@ export function MonitoramentoInternoFormEvento({
                           !MARCOS_DE_DOCUMENTO.includes(m.codigo),
                       )
                       .map((m) => (
-                        <option key={m.id} value={m.id}>
+                        <option
+                          key={m.id}
+                          value={m.id}
+                          disabled={Boolean(
+                            avisoMarcoIndisponivel(m.codigo, fase),
+                          )}
+                        >
                           {m.rotulo}
+                          {avisoMarcoIndisponivel(m.codigo, fase)
+                            ? ` — ${avisoMarcoIndisponivel(m.codigo, fase)}`
+                            : ""}
                         </option>
                       ))}
                   </optgroup>

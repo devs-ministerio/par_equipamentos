@@ -20,6 +20,8 @@ from app.db.models import (
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
+from app.services.fase_acompanhamento import calcular_fase_acompanhamento
+from app.services.marcos_por_fase import JANELAS, marco_disponivel_na_fase, motivo_indisponivel
 from app.services.monitoramento_cadastro import DadosEquipamentoEntregue, _resumo_equipamento_entregue
 from app.services.monitoramento_comum import _agora_utc, _compor_observacao, _notificar_edicao_manual
 
@@ -51,6 +53,16 @@ def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int
     if fase is None or fase.grupo != MarcoGrupo.fase_geral:
         raise ValidationError(f"fase_geral_id {fase_geral_id} não corresponde a um marco de fase geral válido.")
     return fase_geral_id
+
+
+def _validar_marco_na_fase(db: Session, instrumento: InstrumentoEquipamento, marco: MarcoCatalogo) -> None:
+    if marco.codigo not in JANELAS:
+        return
+    from app.services.repasses import fatos_do_instrumento  # evita import circular
+
+    fase = calcular_fase_acompanhamento(fatos_do_instrumento(db, instrumento))
+    if not marco_disponivel_na_fase(marco.codigo, fase):
+        raise ValidationError(motivo_indisponivel(marco.codigo, fase))
 
 
 MARCOS_DE_INAUGURACAO = ("cronograma_previsao_inauguracao", "cronograma_inauguracao_dispensada")
@@ -178,6 +190,7 @@ def registrar_evento_monitorado(
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
 
     _validar_dados_novo_evento(marco, dados)
+    _validar_marco_na_fase(db, instrumento, marco)
 
     evento_anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
         db, instrumento_id=instrumento.id, marco_id=dados.marco_id

@@ -22,6 +22,13 @@ CODIGOS_AQUISICAO = (
     "fase_em_andamento",
     "fase_comissionamento",
 )
+# Fabricação e importação realizadas (com data) também indicam aquisição em curso.
+CODIGOS_AQUISICAO_REALIZADA = (
+    "cronograma_inicio_fabricacao",
+    "cronograma_fabricacao_concluida",
+    "cronograma_chegada_porto",
+    "cronograma_desembaraco_aduaneiro",
+)
 CODIGO_AGUARDANDO_REPASSE = "fase_aguardando_repasse"
 CODIGO_CONCLUIDO = "fase_concluido"
 # Eventos de cronograma que, uma vez realizados (com data de ocorrência), iniciam o pós-entrega.

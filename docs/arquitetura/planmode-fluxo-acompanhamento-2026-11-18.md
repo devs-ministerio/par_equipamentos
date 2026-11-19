@@ -129,6 +129,20 @@ Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup
 Rodada local de 19/11 (clone): 51 entregas criadas e 36 datas corrigidas no PERSUS I; 96 conclusões migradas e 15
 instrumentos enviados à revisão (8 por entrega, 7 sem data de conclusão); 23 grupos de inauguração consolidados.
 
+## 8g. Marcos do cronograma por fase (19/11/2026)
+
+O lançamento de evento oferece só o cronograma, sem previsão nem dispensa de inauguração (estas ficam na entrega). A disponibilidade de cada marco depende da **fase calculada** (`backend/app/services/marcos_por_fase.py`, espelhada em `frontend/src/lib/marcos-por-fase.ts`):
+
+| Marco | Disponível de | Até |
+|---|---|---|
+| Início da fabricação, Fabricação concluída, Chegada ao Brasil, Desembaraço aduaneiro | Valor repassado | Em aquisição |
+| Início/Infraestrutura/Conclusão da reforma-obra | Acompanhamento iniciado | Equipamento entregue |
+| Instalação (início e fim), Comissionamento, Treinamento, Início da operação | Equipamento entregue | Pós-entrega |
+
+Em Concluído não se lança nada (reabrir antes). Fora da janela, a tela mostra a opção desabilitada com o motivo e o backend recusa com 422; a regra vale só para lançamento novo, não para correção de evento existente. Marcos fora da tabela (entrega, inauguração, documentos, legados) não são afetados.
+
+**Gatilho de Em aquisição:** além dos eventos antigos de fase, o primeiro marco de fabricação/porto/desembaraço **realizado** (com data) passa a indicar aquisição em curso (`CODIGOS_AQUISICAO_REALIZADA` em `repositories/repasses.py`). Custo: +1 consulta em `fases_calculadas_em_lote`.
+
 ## 9. Em aberto
 
 - Forma da previsão de inauguração (campo do instrumento recomendado).

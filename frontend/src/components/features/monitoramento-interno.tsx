@@ -294,6 +294,7 @@ function MonitoramentoInternoConteudo({
             acao={
               <MonitoramentoInternoLancamentos
                 marcos={marcos}
+                fase={inst.fase_atual}
                 podeEditar={podeEditar}
                 onRegistrarEvento={registrarEvento}
                 onCriarAcao={criarAcao}

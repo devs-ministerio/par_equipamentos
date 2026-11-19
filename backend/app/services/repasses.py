@@ -132,7 +132,8 @@ def fatos_do_instrumento(db: Session, instrumento: InstrumentoEquipamento) -> Fa
         repasse_previsto=bool(previsto and previsto > 0)
         or repo.existe_evento_ativo_de_marcos(db, instrumento.id, (repo.CODIGO_AGUARDANDO_REPASSE,)),
         repasse_tipo=repasse.tipo if repasse else None,
-        aquisicao_iniciada=repo.existe_evento_ativo_de_marcos(db, instrumento.id, repo.CODIGOS_AQUISICAO),
+        aquisicao_iniciada=repo.existe_evento_ativo_de_marcos(db, instrumento.id, repo.CODIGOS_AQUISICAO)
+        or repo.existe_evento_realizado_de_marcos(db, instrumento.id, repo.CODIGOS_AQUISICAO_REALIZADA),
         entrega_lancada=repo.existe_entrega_ativa(db, instrumento.id),
         pos_entrega_iniciada=repo.existe_evento_realizado_de_marcos(db, instrumento.id, repo.CODIGOS_POS_ENTREGA),
         concluido=repo.existe_evento_ativo_de_marcos(db, instrumento.id, (repo.CODIGO_CONCLUIDO,))
@@ -157,7 +158,9 @@ def fases_calculadas_em_lote(db: Session, instrumentos: list[InstrumentoEquipame
     repasses = repo.repasses_ativos_por_instrumento(db, ids)
     previstos = repo.valores_repasse_previsto(db, [i.nr_convenio for i in instrumentos])
     aguardando = repo.ids_com_evento_de_marcos(db, ids, (repo.CODIGO_AGUARDANDO_REPASSE,))
-    aquisicao = repo.ids_com_evento_de_marcos(db, ids, repo.CODIGOS_AQUISICAO)
+    aquisicao = repo.ids_com_evento_de_marcos(db, ids, repo.CODIGOS_AQUISICAO) | repo.ids_com_evento_de_marcos(
+        db, ids, repo.CODIGOS_AQUISICAO_REALIZADA, realizado=True
+    )
     entregas = repo.ids_com_entrega_ativa(db, ids)
     pos_entrega = repo.ids_com_evento_de_marcos(db, ids, repo.CODIGOS_POS_ENTREGA, realizado=True)
     concluidos = repo.ids_com_evento_de_marcos(

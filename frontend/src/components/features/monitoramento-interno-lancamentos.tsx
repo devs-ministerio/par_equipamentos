@@ -19,11 +19,13 @@ import { MonitoramentoInternoFormEvento } from "./monitoramento-interno-form-eve
 
 export function MonitoramentoInternoLancamentos({
   marcos,
+  fase,
   podeEditar,
   onRegistrarEvento,
   onCriarAcao,
 }: {
   marcos: MarcoCatalogo[];
+  fase?: string | null;
   podeEditar: boolean;
   onRegistrarEvento: (valores: EnviarEventoFormValues) => Promise<void>;
   onCriarAcao: (valores: CriarAcaoFormValues) => Promise<void>;
@@ -58,6 +60,7 @@ export function MonitoramentoInternoLancamentos({
           {janela === "evento" && (
             <MonitoramentoInternoFormEvento
               marcos={marcos}
+              fase={fase}
               onRegistrar={async (valores) => {
                 await onRegistrarEvento(valores);
                 setJanela(null);
