@@ -281,7 +281,8 @@ def test_criar_instrumento_via_post_cadastro_manual():
             .one()
         )
         destinatarios = db.query(NotificacaoDestinatario).filter_by(notificacao_id=notificacao.id).all()
-        assert all(destinatario.usuario_id != usuario_teste.id for destinatario in destinatarios)
+        # O técnico titular indicado na inclusão recebe o aviso (junto de gestor/admin).
+        assert usuario_teste.id in {destinatario.usuario_id for destinatario in destinatarios}
         assert f"{nr_convenio_teste}" in notificacao.titulo
 
         # Segunda tentativa com o mesmo nr_convenio -- checagem de

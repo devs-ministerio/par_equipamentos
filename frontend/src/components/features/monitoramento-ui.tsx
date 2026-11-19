@@ -155,17 +155,6 @@ export function ErroCampo({ id, mensagem }: { id: string; mensagem?: string }) {
   );
 }
 
-/** Texto de ajuda de campo de form (ex. formato esperado) -- mesmo esquema
- * de id do erro acima. */
-export function AjudaCampo({ id, texto }: { id: string; texto?: string }) {
-  if (!texto) return null;
-  return (
-    <p id={id} className="text-[10.5px] text-muted-foreground mt-1 mb-0">
-      {texto}
-    </p>
-  );
-}
-
 /** Confirmação de exclusão lógica com motivo obrigatório (Plan Mode
  * monitoramento-evolucao 2026-09-19) -- compartilhado entre eventos e
  * ações, já que os dois seguem a mesma disciplina append-only (nunca

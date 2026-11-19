@@ -5,7 +5,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import DocumentoInstrumento, EquipamentoCatalogo
+from app.db.models import DocumentoInstrumento
 
 _ATIVO = (DocumentoInstrumento.substituido_por_id.is_(None), DocumentoInstrumento.deletado_em.is_(None))
 LIMITE_LISTAGEM = 500
@@ -29,10 +29,6 @@ def obter(db: Session, documento_id: int) -> DocumentoInstrumento | None:
 def adicionar(db: Session, documento: DocumentoInstrumento) -> None:
     db.add(documento)
     db.flush()
-
-
-def codigos_familias_com_licenca(db: Session) -> set[str]:
-    return set(db.scalars(select(EquipamentoCatalogo.codigo).where(EquipamentoCatalogo.exige_licenca.is_(True))))
 
 
 def licencas_deferidas_por_instrumento(db: Session, instrumento_ids: list[int]) -> dict[int, DocumentoInstrumento]:

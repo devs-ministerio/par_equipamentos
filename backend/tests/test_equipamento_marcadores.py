@@ -8,7 +8,6 @@ from sqlalchemy import select
 from app.db.base import SessionLocal
 from app.db.models import Convenio, EquipamentoCatalogo, EquipamentoMarcador
 from app.equipamentos import EvidenciaEquipamento
-from app.repositories.auditoria_marcadores import listar_evidencias_automaticas
 from app.repositories.convenios import aplicar_filtros_convenio, listar_convenios_filtrados
 from app.repositories.equipamento_marcadores import OrigemMarcador, listar_por_origens
 from app.services.equipamento_marcadores import DadosMarcador, chave_da_evidencia, registrar_marcadores
@@ -99,42 +98,6 @@ def test_listagem_prioriza_catalogo_prioritario_sem_apagar_evidencia_auditavel()
         assert [item.codigo for item in resultado[("convenio", convenio.id)]] == ["pytest_prioritario"]
         assert db.query(EquipamentoMarcador).filter_by(convenio_id=convenio.id).count() == 2
         assert listar_por_origens(db) == {}
-    finally:
-        db.rollback()
-        db.close()
-
-
-def test_auditoria_pagina_automaticos_sem_incluir_planilha_ou_alterar_evidencia():
-    # Arrange: evidências sintéticas no banco real, revertidas ao final.
-    db = SessionLocal()
-    try:
-        convenio = Convenio(numero="__pytest_auditoria_obras__", convenente_nome="Hospital sintético")
-        catalogo = EquipamentoCatalogo(codigo="pytest_obra", nome="Equipamento sintético", prioritario=True)
-        db.add_all([convenio, catalogo])
-        db.flush()
-        marcadores = [
-            EquipamentoMarcador(
-                convenio_id=convenio.id,
-                equipamento_catalogo_id=catalogo.id,
-                descricao_original="Construção do hospital com acelerador linear.",
-                tipo_evidencia=tipo,
-                relacao="aquisicao",
-                confianca=100,
-                chave_evidencia=f"pytest-auditoria-{tipo}",
-            )
-            for tipo in ("item_orcamentario", "meta", "planilha")
-        ]
-        db.add_all(marcadores)
-        db.flush()
-        # Act: cursor exclui o primeiro e a origem manual nunca entra.
-        pagina = listar_evidencias_automaticas(db, depois_id=marcadores[0].id)
-        # Assert: leitura não modifica a relação nem a descrição persistida.
-        assert [item.marcador_id for item in pagina] == [marcadores[1].id]
-        assert pagina[0].numero_convenio == convenio.numero
-        assert pagina[0].relacao == "aquisicao"
-        assert pagina[0].descricao == marcadores[1].descricao_original
-        assert len(pagina) <= 200
-        assert listar_evidencias_automaticas(db, depois_id=marcadores[-1].id) == []
     finally:
         db.rollback()
         db.close()

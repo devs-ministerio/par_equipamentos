@@ -9,18 +9,6 @@
  * `_nome_padronizado` em scripts/importar_planilha_monitoramento.py) e
  * excluindo placeholder ("NA"/"NI"). */
 
-/** Técnicos da equipe já usados como titular OU suplente em pelo menos 1
- * instrumento real -- mesma lista serve pros 2 campos (qualquer um pode
- * ser titular de 1 instrumento e suplente de outro). */
-export const TECNICOS_EQUIPE = [
-  "BRUNA",
-  "BRUNA MACHADO",
-  "LEONARDO BARSANTE",
-  "PRISCILA",
-  "SAMUEL",
-  "THIAGO RODRIGUES",
-];
-
 /** Os 3 níveis literais do nome da coluna na planilha fonte -- "SIMPLIFICADO"
  * ainda não apareceu em nenhuma linha real, mas é 1 dos 3 valores válidos
  * definidos pela própria equipe (nome da coluna: "NÍVEL DE MONITORAMENTO

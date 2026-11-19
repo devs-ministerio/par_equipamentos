@@ -43,16 +43,6 @@ export const VARIANT_DOT_CLASSES: Record<SituacaoVariant, string> = {
   muted: "bg-muted-foreground",
 };
 
-/** Legenda das 4 familias -- usada no topo da lista principal
- * (MonitoramentoEquipamentosPage.tsx) pra deixar o vocabulario de cor
- * explicito antes do usuario escanear ~300 badges. */
-export const LEGENDA_STATUS: { variant: SituacaoVariant; rotulo: string }[] = [
-  { variant: "success", rotulo: "Em execução / Normal / aprovada" },
-  { variant: "warning", rotulo: "Prestação de contas em curso" },
-  { variant: "destructive", rotulo: "Anulado / rejeitado / indeferido" },
-  { variant: "muted", rotulo: "Demais situações" },
-];
-
 /** Cor por urgencia de vencimento (licenca ANSN, mas generico) -- achado
  * 2026-09-09, movido pra ca de MonitoramentoInterno.tsx pra reaproveitar
  * tambem no Painel de Gestao. `dias` negativo = ja venceu. */

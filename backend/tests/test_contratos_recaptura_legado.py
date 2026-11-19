@@ -115,7 +115,9 @@ def pedido():
 def test_pedido_aprovacao_contem_so_referencias_e_justificativa(pedido):
     aprovado = AprovacaoLegadoCreate.model_validate(pedido)
     assert aprovado.justificativa == "Evidência revisada pela equipe"
-    assert set(aprovado.model_dump()) == set(pedido)
+    assert set(aprovado.model_dump(exclude_none=True)) == set(pedido)
+    assert aprovado.tecnico_titular_id is None
+    assert AprovacaoLegadoCreate.model_validate({**pedido, "tecnico_titular_id": 5}).tecnico_titular_id == 5
 
 
 @pytest.mark.parametrize(

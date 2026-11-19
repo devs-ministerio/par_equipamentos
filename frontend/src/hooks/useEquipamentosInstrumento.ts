@@ -7,7 +7,6 @@ import {
   corrigirUnidade,
   definirPrevisaoEntrega,
   excluirEntrega,
-  fetchEntregasLegadas,
   fetchEquipamentos,
   reativarUnidadeCancelada,
   removerPrevisaoEntrega,
@@ -18,20 +17,12 @@ import { monitoramentoKeys } from "./monitoramento-query-keys";
 
 export const equipamentosKeys = {
   instrumento: (nr: string) => ["monitoramento", "equipamentos", nr] as const,
-  legadas: ["monitoramento", "entregas-legadas"] as const,
 };
 
 export function useEquipamentosInstrumento(nr: string) {
   return useQuery({
     queryKey: equipamentosKeys.instrumento(nr),
     queryFn: () => fetchEquipamentos(nr),
-  });
-}
-
-export function useEntregasLegadas() {
-  return useQuery({
-    queryKey: equipamentosKeys.legadas,
-    queryFn: fetchEntregasLegadas,
   });
 }
 
@@ -42,7 +33,6 @@ function useInvalidarEntrega(nr: string) {
     queryClient.invalidateQueries({
       queryKey: equipamentosKeys.instrumento(nr),
     });
-    queryClient.invalidateQueries({ queryKey: equipamentosKeys.legadas });
     queryClient.invalidateQueries({
       queryKey: monitoramentoKeys.instrumento(nr),
     });

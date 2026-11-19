@@ -20,7 +20,6 @@ from sqlalchemy.orm import Session
 from app.db.models import (
     AcaoMonitoramento,
     CnesEstabelecimento,
-    Convenio,
     EventoMarco,
     InstrumentoEquipamento,
     InstrumentoResponsavel,
@@ -228,20 +227,6 @@ def mapear_coordenadas_cnes(db: Session, cnes_codes: set[str]) -> dict[str, tupl
     }
 
 
-def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:
-    """Ordem decrescente -- o chamador percorre do marco mais avançado pro
-    menos avançado até achar o primeiro com evento registrado (fase atual)."""
-    return list(
-        db.execute(
-            select(MarcoCatalogo)
-            .where(MarcoCatalogo.grupo == MarcoGrupo.fase_geral)
-            .order_by(MarcoCatalogo.ordem.desc())
-        )
-        .scalars()
-        .all()
-    )
-
-
 def listar_marcos_catalogo(db: Session, *, limit: int) -> list[MarcoCatalogo]:
     return list(
         db.execute(select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem).limit(limit)).scalars()
@@ -413,25 +398,6 @@ def adicionar_instrumento(db: Session, instrumento: InstrumentoEquipamento) -> N
     """Persiste e materializa o id para o caso de uso registrar sua auditoria."""
     db.add(instrumento)
     db.flush()
-
-
-def preencher_ano_convenio_se_ausente(
-    db: Session,
-    *,
-    numero: str,
-    tipo_contratacao: str,
-    ano: int,
-) -> None:
-    """Espelha no universo de instrumentos firmados o ano definido pela gestão."""
-    convenio = db.execute(
-        select(Convenio).where(
-            Convenio.numero == numero,
-            Convenio.tipo_contratacao == tipo_contratacao,
-            Convenio.ano_instrumento.is_(None),
-        )
-    ).scalar_one_or_none()
-    if convenio is not None:
-        convenio.ano_instrumento = ano
 
 
 def adicionar_evento(db: Session, evento: EventoMarco) -> None:

@@ -79,16 +79,6 @@ const entregaSchema = z.object({
 });
 export type EntregaEquipamento = z.infer<typeof entregaSchema>;
 
-const entregaLegadaSchema = z.object({
-  id: z.number(),
-  nr_convenio: z.string(),
-  evento_id: z.number(),
-  data_ocorrencia: z.string().nullable(),
-  motivo: z.string(),
-  criado_em: z.string(),
-});
-export type EntregaLegada = z.infer<typeof entregaLegadaSchema>;
-
 export interface UnidadeEntregaInput {
   marca: string | null;
   modelo: string | null;
@@ -128,13 +118,6 @@ export function fetchEquipamentos(
   return apiGetAuthed(
     `/monitoramento/instrumentos/${encodeURIComponent(nr)}/equipamentos`,
     equipamentosSchema,
-  );
-}
-
-export function fetchEntregasLegadas(): Promise<EntregaLegada[]> {
-  return apiGetAuthed(
-    "/monitoramento/entregas-legadas",
-    z.array(entregaLegadaSchema),
   );
 }
 
