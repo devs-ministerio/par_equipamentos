@@ -30,7 +30,10 @@ def criar_monitoramento_longo(db):
     catalogo = list(db.scalars(select(MarcoCatalogo).order_by(MarcoCatalogo.ordem, MarcoCatalogo.id)))
     fase = next(m for m in catalogo if m.grupo == MarcoGrupo.fase_geral)
     db.add(EventoMarco(instrumento_id=instrumento.id, marco_id=fase.id, data_ocorrencia=date(2026, 1, 1)))
-    marcos = [m for m in catalogo if m.grupo != MarcoGrupo.fase_geral]
+    # Previsão e dispensada de inauguração são excludentes (índice único): só a previsão entra.
+    marcos = [
+        m for m in catalogo if m.grupo != MarcoGrupo.fase_geral and m.codigo != "cronograma_inauguracao_dispensada"
+    ]
     for n, marco in enumerate(marcos):
         regulatorio = marco.grupo == MarcoGrupo.regulatorio
         db.add(

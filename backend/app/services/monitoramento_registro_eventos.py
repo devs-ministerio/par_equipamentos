@@ -136,10 +136,11 @@ def _registrar_inauguracao_confirmada(
         observacao=_compor_observacao(usuario.name, "Inauguração confirmada ao concluir o instrumento."),
         autor_id=usuario.id,
     )
-    monitoramento_repo.adicionar_evento(db, inauguracao)
     if anterior is not None:
-        anterior.substituido_por_id = inauguracao.id
         anterior.atualizado_em = _agora_utc()
+        monitoramento_repo.substituir_evento(db, anterior, inauguracao)
+    else:
+        monitoramento_repo.adicionar_evento(db, inauguracao)
     log_action(
         db,
         user_id=usuario.id,

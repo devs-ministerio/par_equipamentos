@@ -30,7 +30,7 @@ def alembic_config() -> Config:
 
 
 # Criado só pela migration/seed (predicado depende do catálogo); ver app/db/indices.py.
-INDICES_FORA_DO_MODELO = {"uq_evento_marco_fase_geral_ativo"}
+INDICES_FORA_DO_MODELO = {"uq_evento_marco_fase_geral_ativo", "uq_evento_marco_inauguracao_ativa"}
 
 
 def _incluir_objeto(objeto: Any, nome: str | None, tipo: str, *_: Any) -> bool:

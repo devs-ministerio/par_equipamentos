@@ -25,6 +25,7 @@ from sqlalchemy import select
 from app.audit import log_action
 from app.db.base import SessionLocal
 from app.db.models import EventoMarco, MarcoCatalogo
+from app.repositories.monitoramento import substituir_evento
 
 CODIGO_MARCO_INAUGURACAO = "cronograma_previsao_inauguracao"
 
@@ -61,10 +62,9 @@ def executar(*, dry_run: bool = True, backup_reference: str | None = None) -> di
                 observacao=anterior.observacao,
                 autor_id=anterior.autor_id,
             )
-            db.add(nova)
-            db.flush()
-            anterior.substituido_por_id = nova.id
             anterior.atualizado_em = datetime.now(timezone.utc)
+            # O índice único da inauguração não admite dois ativos nem por um instante.
+            substituir_evento(db, anterior, nova)
             log_action(
                 db,
                 user_id=None,

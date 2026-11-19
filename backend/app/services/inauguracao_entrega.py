@@ -34,21 +34,16 @@ def registrar_resposta_inauguracao(
         if resposta.data_prevista is None:
             raise ValidationError("Informe a previsão de inauguração.")
         if vigente_previsao is not None and vigente_previsao.data_prevista == resposta.data_prevista:
-            novo = None
+            if vigente_dispensada is not None:
+                _substituir(vigente_dispensada, vigente_previsao)
         else:
             novo = _novo_evento(instrumento, previsao.id, usuario, data_prevista=resposta.data_prevista)
-            monitoramento_repo.adicionar_evento(db, novo)
-            _substituir(vigente_previsao, novo)
-        if vigente_dispensada is not None:
-            _substituir(vigente_dispensada, novo or vigente_previsao)
-    else:
-        if vigente_dispensada is None:
-            novo = _novo_evento(instrumento, dispensada.id, usuario, observacao="Dispensada na entrega")
-            monitoramento_repo.adicionar_evento(db, novo)
-        else:
-            novo = vigente_dispensada
-        if vigente_previsao is not None:
-            _substituir(vigente_previsao, novo)
+            _gravar(db, novo, vigente_previsao or vigente_dispensada)
+    elif vigente_dispensada is None:
+        novo = _novo_evento(instrumento, dispensada.id, usuario, observacao="Dispensada na entrega")
+        _gravar(db, novo, vigente_previsao)
+    elif vigente_previsao is not None:
+        _substituir(vigente_previsao, vigente_dispensada)
     log_action(
         db,
         user_id=usuario.id,
@@ -65,6 +60,14 @@ def registrar_resposta_inauguracao(
 
 def _novo_evento(instrumento, marco_id: int, usuario: User, **campos) -> EventoMarco:
     return EventoMarco(instrumento_id=instrumento.id, marco_id=marco_id, autor_id=usuario.id, **campos)
+
+
+def _gravar(db, novo: EventoMarco, antigo: EventoMarco | None) -> None:
+    """Há no máximo uma inauguração ativa por instrumento (índice único): o antigo sai antes de o novo entrar."""
+    if antigo is None:
+        monitoramento_repo.adicionar_evento(db, novo)
+    else:
+        monitoramento_repo.substituir_evento(db, antigo, novo)
 
 
 def _substituir(antigo: EventoMarco | None, novo: EventoMarco | None) -> None:
