@@ -110,7 +110,7 @@ app.add_middleware(
     # DELETE adicionado no Plan Mode monitoramento-evolucao 2026-09-19
     # (PATCH/DELETE de eventos/ações) -- achado ao vivo: preflight OPTIONS
     # falhava com a lista antiga (GET/POST/PATCH), sem DELETE.
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Content-Type", CSRF_HEADER_NAME, "X-Trace-Id"],
     # Sem isso o JS de uma origem cross-site (dev local/E2E, onde front e
     # back ficam em portas diferentes) nunca enxerga o header via
