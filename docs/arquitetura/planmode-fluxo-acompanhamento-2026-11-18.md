@@ -159,3 +159,4 @@ Em Concluído não se lança nada (reabrir antes). Fora da janela, a tela mostra
 - Fase "Em aquisição" e o mapeamento do comissionamento.
 - Pós-entrega dos concluídos corretos: automático na carga ou confirmação da equipe.
 - Regra de conclusão para os instrumentos sem itens cadastrados (4 FAF) e para os 31 só com itens sem controle.
+- **Painel de Gestão (`/monitoramento-equipamentos/painel`)** (19/11/2026): fica para outro momento (o usuário fará várias alterações). Autorizado ocultar a página no release (rota em `App.tsx` e item em `components/layout/monitoramento-nav-items.ts`); ocultar só no commit do release, sem apagar código. Validação da agenda de licenças no Painel adiada junto.
