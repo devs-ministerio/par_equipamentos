@@ -191,6 +191,9 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
   `DELETE` físico. "Ativo"/vigente = `substituido_por_id IS NULL AND deletado_em IS NULL` — só
   isso entra no cálculo de fase e nas listagens padrão (`app/repositories/monitoramento.py`);
   exclusão/correção nunca some de verdade, só sai da timeline visível.
+- **[ATUALIZADO em 19/11/2026, fluxo de acompanhamento]** `fase_geral_id` deixou de ser exigido em evento de cronograma (a fase é calculada
+  dos fatos, não escolhida); o catálogo "Cronograma" é opcional. O relatório "Conclusão e previsões" foi removido; Concluídos lê
+  `conclusao_instrumento` (conclusão confirmada pela equipe), não mais o evento `fase_concluido`.
 - **`EventoMarco.fase_geral_id`** (novo, obrigatório no service — `_validar_fase_geral_id` em
   `app/services/monitoramento_eventos.py` — pra marco de grupo físico/regulatório; nulo quando o
   próprio evento já é de grupo=fase_geral) fecha um bug real confirmado ao vivo: evento de

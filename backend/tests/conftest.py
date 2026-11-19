@@ -28,7 +28,6 @@ _DB_TEST_MODULES = {
     "test_previsoes_entrega_db.py",
     "test_repasses_db.py",
     "test_reabrir_eventos_consolidados_db.py",
-    "test_relatorios_previsoes_db.py",
     "test_indice_unico_evento_marco_db.py",
     "test_consolidar_eventos_marco_duplicados_db.py",
     "test_preencher_cnes_ano_descricao_instrumento_db.py",

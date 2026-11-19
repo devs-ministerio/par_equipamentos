@@ -12,12 +12,11 @@ from sqlalchemy import select
 
 from app.db.base import SessionLocal, get_db
 from app.db.models import (
+    ConclusaoInstrumento,
     Convenio,
     EquipamentoCatalogo,
     EquipamentoMarcador,
-    EventoMarco,
     InstrumentoEquipamento,
-    MarcoCatalogo,
     PropostaCandidata,
 )
 from app.main import app
@@ -32,8 +31,6 @@ FECHADA = "Prestação de Contas Concluída"
 @pytest.fixture
 def carteira_encerrada(monkeypatch):
     with SessionLocal() as db:
-        marco = db.scalar(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido"))
-        assert marco is not None
         for indice in range(1, 8):
             numero = f"990810{indice}"
             db.add(
@@ -45,7 +42,7 @@ def carteira_encerrada(monkeypatch):
                     municipio="Anápolis",
                     ano_instrumento=2025,
                     valor_global=0 if indice == 1 else 100,
-                    situacao=FECHADA if indice in (1, 2, 5) else "Em execução",
+                    situacao=FECHADA if indice in (1, 2, 4, 5) else "Em execução",
                     fora_escopo_equipamentos=indice == 7,
                 )
             )
@@ -58,19 +55,20 @@ def carteira_encerrada(monkeypatch):
                 uf="BA",
                 municipio="Anápolis",
                 ano_instrumento=2025,
-                situacao_prestacao_contas="Em execução" if indice == 5 else None,
+                situacao_prestacao_contas="Em execução" if indice in (4, 5) else None,
             )
             db.add(inst)
             db.flush()
-            db.add(
-                EventoMarco(
-                    instrumento_id=inst.id,
-                    marco_id=marco.id,
-                    data_ocorrencia=None if indice in (2, 4) else date(2025, 1, 1),
-                    deletado_em=datetime.now(timezone.utc) if indice == 6 else None,
-                    motivo_exclusao="Fixture histórica excluída" if indice == 6 else None,
+            if indice in (3, 5, 6, 7):
+                db.add(
+                    ConclusaoInstrumento(
+                        instrumento_id=inst.id,
+                        resultado="integral",
+                        data_conclusao=date(2025, 1, 1),
+                        deletado_em=datetime.now(timezone.utc) if indice == 6 else None,
+                        motivo_exclusao="Fixture histórica excluída" if indice == 6 else None,
+                    )
                 )
-            )
         db.add(
             PropostaCandidata(
                 id_proposta=9908190,

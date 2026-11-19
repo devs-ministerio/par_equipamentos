@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from datetime import date
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -16,6 +19,18 @@ def obter_ativa(db: Session, instrumento_id: int) -> ConclusaoInstrumento | None
             ConclusaoInstrumento.instrumento_id == instrumento_id, ConclusaoInstrumento.deletado_em.is_(None)
         )
     ).first()
+
+
+def datas_conclusao_ativas(db: Session, instrumento_ids: Sequence[int]) -> dict[int, date]:
+    """Data da conclusão confirmada vigente de cada instrumento (os sem conclusão ficam de fora)."""
+    if not instrumento_ids:
+        return {}
+    linhas = db.execute(
+        select(ConclusaoInstrumento.instrumento_id, ConclusaoInstrumento.data_conclusao).where(
+            ConclusaoInstrumento.instrumento_id.in_(instrumento_ids), ConclusaoInstrumento.deletado_em.is_(None)
+        )
+    )
+    return {instrumento_id: data for instrumento_id, data in linhas}
 
 
 def existe_ativa(db: Session, instrumento_id: int) -> bool:

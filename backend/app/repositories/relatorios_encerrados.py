@@ -5,12 +5,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    ConclusaoInstrumento,
     Convenio,
     EquipamentoCatalogo,
     EquipamentoMarcador,
-    EventoMarco,
     InstrumentoEquipamento,
-    MarcoCatalogo,
     PropostaCandidata,
 )
 from app.pipeline.tipo_proposta import tipo_da_proposta
@@ -23,19 +22,15 @@ _ORDENS = TypeAdapter(list[OrdemEncerramento])
 
 
 def _conclusoes():
+    """Conclusão confirmada pela equipe (`conclusao_instrumento`): uma ativa por instrumento."""
     return (
         select(
-            EventoMarco.instrumento_id,
+            ConclusaoInstrumento.instrumento_id,
             func.count().label("quantidade"),
-            func.max(EventoMarco.data_ocorrencia).label("data"),
+            func.max(ConclusaoInstrumento.data_conclusao).label("data"),
         )
-        .join(MarcoCatalogo, MarcoCatalogo.id == EventoMarco.marco_id)
-        .where(
-            MarcoCatalogo.codigo == "fase_concluido",
-            EventoMarco.substituido_por_id.is_(None),
-            EventoMarco.deletado_em.is_(None),
-        )
-        .group_by(EventoMarco.instrumento_id)
+        .where(ConclusaoInstrumento.deletado_em.is_(None))
+        .group_by(ConclusaoInstrumento.instrumento_id)
         .subquery()
     )
 

@@ -35,8 +35,12 @@ def evento(marco_id):
     return SimpleNamespace(marco_id=marco_id, data_ocorrencia=None, data_prevista=None)
 
 
-def dados(**eventos_por_id):
-    return SimpleNamespace(marcos=MARCOS, eventos_por_instrumento={int(k[1:]): v for k, v in eventos_por_id.items()})
+def dados(conclusoes=None, **eventos_por_id):
+    return SimpleNamespace(
+        marcos=MARCOS,
+        eventos_por_instrumento={int(k[1:]): v for k, v in eventos_por_id.items()},
+        conclusoes=conclusoes or {},
+    )
 
 
 def montar():
@@ -49,11 +53,9 @@ def montar():
         instrumento(6, "Acompanhamento iniciado"),
     ]
     d = dados(
-        e1=[
-            SimpleNamespace(marco_id=1, data_ocorrencia=date(2026, 5, 1), data_prevista=None),
-            SimpleNamespace(marco_id=2, data_ocorrencia=date(2026, 5, 1), data_prevista=None),
-        ],
-        e2=[evento(1)],
+        conclusoes={1: date(2026, 5, 1)},
+        e1=[SimpleNamespace(marco_id=2, data_ocorrencia=date(2026, 5, 1), data_prevista=None)],
+        e2=[],
         e3=[SimpleNamespace(marco_id=2, data_ocorrencia=None, data_prevista=date(2026, 12, 1))],
         e4=[SimpleNamespace(marco_id=2, data_ocorrencia=None, data_prevista=date(2026, 9, 1))],
     )

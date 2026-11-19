@@ -53,16 +53,13 @@ def _evento_mais_recente(eventos, marco_id: int | None):
 def agenda_dos_instrumentos(
     instrumentos: Sequence[InstrumentoComFase], dados: DadosMonitoramentoRelatorio, hoje: date
 ) -> list[AgendaInstrumento]:
-    marco_conclusao = next((m.id for m in dados.marcos.values() if m.codigo == "fase_concluido"), None)
     marco_inauguracao = next(
         (m.id for m in dados.marcos.values() if m.codigo == "cronograma_previsao_inauguracao"), None
     )
     agenda: list[AgendaInstrumento] = []
     for item in instrumentos:
         eventos = dados.eventos_por_instrumento.get(item.instrumento.id, [])
-        conclusao = next(
-            (e.data_ocorrencia for e in eventos if e.marco_id == marco_conclusao and e.data_ocorrencia), None
-        )
+        conclusao = dados.conclusoes.get(item.instrumento.id)
         inauguracao = _evento_mais_recente(eventos, marco_inauguracao)
         real = inauguracao.data_ocorrencia if inauguracao else None
         previsao = inauguracao.data_prevista if inauguracao else None
