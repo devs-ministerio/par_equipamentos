@@ -180,7 +180,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     await waitFor(() => expect(abrir).toBeEnabled());
     fireEvent.click(abrir);
     fireEvent.change(screen.getByLabelText("Marco"), {
-      target: { value: "2" },
+      target: { value: "5" },
     });
     fireEvent.change(screen.getByLabelText("Data de ocorrência"), {
       target: { value: "2026-10-20" },
@@ -197,7 +197,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
         String(input).endsWith("/eventos") && init?.method === "POST",
     );
     expect(JSON.parse(String(pedido?.[1]?.body))).toMatchObject({
-      marco_id: 2,
+      marco_id: 5,
       data_ocorrencia: "2026-10-20",
       data_prevista: null,
       confirmar_inauguracao: false,

@@ -13,42 +13,23 @@ import type {
   CriarAcaoFormValues,
   EnviarEventoFormValues,
 } from "@/lib/validations/monitoramento";
-import type { EventoMarco } from "@/services/monitoramento-instrumentos";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { MonitoramentoInternoFormAcao } from "./monitoramento-interno-form-acao";
 import { MonitoramentoInternoFormEvento } from "./monitoramento-interno-form-evento";
 
-const MARCOS_DE_INAUGURACAO = [
-  "cronograma_previsao_inauguracao",
-  "cronograma_inauguracao_dispensada",
-];
-
 export function MonitoramentoInternoLancamentos({
   marcos,
-  eventos,
   podeEditar,
   onRegistrarEvento,
   onCriarAcao,
 }: {
   marcos: MarcoCatalogo[];
-  eventos: EventoMarco[];
   podeEditar: boolean;
   onRegistrarEvento: (valores: EnviarEventoFormValues) => Promise<void>;
   onCriarAcao: (valores: CriarAcaoFormValues) => Promise<void>;
 }) {
   const [janela, setJanela] = useState<"evento" | "acao" | null>(null);
   if (!podeEditar) return null;
-  // Há apenas uma inauguração por instrumento: com previsão (ou dispensa) registrada, só se corrige.
-  const idsInauguracao = marcos
-    .filter((m) => MARCOS_DE_INAUGURACAO.includes(m.codigo))
-    .map((m) => m.id);
-  const inauguracaoRegistrada = eventos.some((e) =>
-    idsInauguracao.includes(e.marco_id),
-  );
-  const marcosParaLancar = inauguracaoRegistrada
-    ? marcos.filter((m) => !idsInauguracao.includes(m.id))
-    : marcos;
-
   return (
     <>
       <div className="flex flex-wrap gap-2">
@@ -76,7 +57,7 @@ export function MonitoramentoInternoLancamentos({
           </DialogHeader>
           {janela === "evento" && (
             <MonitoramentoInternoFormEvento
-              marcos={marcosParaLancar}
+              marcos={marcos}
               onRegistrar={async (valores) => {
                 await onRegistrarEvento(valores);
                 setJanela(null);

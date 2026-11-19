@@ -294,7 +294,6 @@ function MonitoramentoInternoConteudo({
             acao={
               <MonitoramentoInternoLancamentos
                 marcos={marcos}
-                eventos={timeline.eventos}
                 podeEditar={podeEditar}
                 onRegistrarEvento={registrarEvento}
                 onCriarAcao={criarAcao}

@@ -38,6 +38,9 @@ const MARCOS_DE_DOCUMENTO = [
   "regulatorio_licenca_operacao",
   "regulatorio_modificacao_casamata",
   "regulatorio_descomissionamento",
+  // A inauguração é registrada na entrega do equipamento, não aqui.
+  "cronograma_previsao_inauguracao",
+  "cronograma_inauguracao_dispensada",
   // Sem uso no fluxo novo; ficam só no histórico.
   "cronograma_obra_ponto_critico",
   "cronograma_chegada_obra",

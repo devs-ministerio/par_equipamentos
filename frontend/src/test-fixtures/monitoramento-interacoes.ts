@@ -38,5 +38,14 @@ export function criarMarcosInteracao(): MarcoCatalogo[] {
       rotulo: "Concluído",
       descricao_referencia: null,
     },
+    {
+      id: 5,
+      codigo: "cronograma_inicio_fabricacao",
+      grupo: "cronograma_fisico",
+      ordem: 10,
+      execucao_fisica_pct_referencia: null,
+      rotulo: "Início da fabricação",
+      descricao_referencia: null,
+    },
   ];
 }

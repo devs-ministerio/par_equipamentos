@@ -2,14 +2,12 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api-error";
-import { criarEventoTeste } from "@/test-fixtures/monitoramento-hooks";
 import { criarMarcosInteracao } from "@/test-fixtures/monitoramento-interacoes";
 import { MonitoramentoInternoLancamentos } from "./monitoramento-interno-lancamentos";
 
 function criarProps() {
   return {
     marcos: criarMarcosInteracao(),
-    eventos: [],
     podeEditar: true,
     onRegistrarEvento: vi.fn().mockResolvedValue(undefined),
     onCriarAcao: vi.fn().mockResolvedValue(undefined),
@@ -36,7 +34,7 @@ describe("lançamentos do cartão Cronograma", () => {
     );
     render(<MonitoramentoInternoLancamentos {...props} />);
     await userEvent.click(screen.getByRole("button", { name: "Evento" }));
-    await userEvent.selectOptions(screen.getByLabelText("Marco"), "2");
+    await userEvent.selectOptions(screen.getByLabelText("Marco"), "5");
     await userEvent.type(
       screen.getByLabelText("Observação"),
       "Registro sintético",
@@ -59,24 +57,20 @@ describe("lançamentos do cartão Cronograma", () => {
     );
     expect(props.onRegistrarEvento).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        marcoId: "2",
+        marcoId: "5",
         observacao: "Registro sintético",
       }),
     );
   });
 
-  it("com inauguração já registrada, o lançamento não oferece outra", async () => {
-    const props = criarProps();
-    props.eventos = [
-      criarEventoTeste({ marco_id: 2, data_prevista: "2027-01-01" }),
-    ] as never;
-    render(<MonitoramentoInternoLancamentos {...props} />);
+  it("não oferece previsão nem dispensa de inauguração", async () => {
+    render(<MonitoramentoInternoLancamentos {...criarProps()} />);
     await userEvent.click(screen.getByRole("button", { name: "Evento" }));
-    expect(
-      within(screen.getByLabelText("Marco")).queryByRole("option", {
-        name: "Previsão de inauguração",
-      }),
-    ).not.toBeInTheDocument();
+    const marco = screen.getByLabelText("Marco");
+    for (const nome of ["Previsão de inauguração", "Inauguração dispensada"])
+      expect(
+        within(marco).queryByRole("option", { name: nome }),
+      ).not.toBeInTheDocument();
   });
 
   it("registra ação pela janela e valida a descrição", async () => {
