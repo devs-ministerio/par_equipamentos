@@ -211,11 +211,11 @@ export function EquipamentosInstrumentoFormEntrega({
               <legend className="px-1 text-[12px] font-medium">
                 Inauguração
               </legend>
-              <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="grid grid-cols-[auto_11rem] items-center gap-x-4 gap-y-3">
                 <p className="text-[12.5px]">
                   O equipamento precisa de inauguração?
                 </p>
-                <div className="grid w-44 grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     { valor: "sim", rotulo: "Sim" },
                     { valor: "nao", rotulo: "Não" },
@@ -223,7 +223,7 @@ export function EquipamentosInstrumentoFormEntrega({
                     <label
                       key={o.valor}
                       className={cn(
-                        "flex cursor-pointer items-center justify-center rounded-md border px-3 py-1.5 text-[12.5px] transition-colors",
+                        "flex min-h-11 cursor-pointer items-center justify-center rounded-lg border text-[12.5px] transition-colors focus-within:ring-2 focus-within:ring-primary",
                         precisa === o.valor
                           ? "border-primary bg-primary/10 font-medium text-primary"
                           : "border-border bg-background hover:bg-muted",
@@ -239,14 +239,14 @@ export function EquipamentosInstrumentoFormEntrega({
                     </label>
                   ))}
                 </div>
-              </div>
-              <ErroCampo
-                id={`${formId}-inaug-erro`}
-                mensagem={errors.precisaInauguracao?.message}
-              />
-              {precisa === "sim" && (
-                <div className="grid justify-center gap-1">
-                  <div className="flex flex-wrap items-center justify-center gap-3">
+                <div className="col-span-2">
+                  <ErroCampo
+                    id={`${formId}-inaug-erro`}
+                    mensagem={errors.precisaInauguracao?.message}
+                  />
+                </div>
+                {precisa === "sim" && (
+                  <>
                     <label
                       htmlFor={`${formId}-inaug`}
                       className="text-[12.5px]"
@@ -258,17 +258,19 @@ export function EquipamentosInstrumentoFormEntrega({
                     <input
                       id={`${formId}-inaug`}
                       type="date"
-                      className={cn(estiloInput, "w-44")}
+                      className={cn(estiloInput, "w-full")}
                       aria-invalid={Boolean(errors.dataInauguracao)}
                       {...register("dataInauguracao")}
                     />
-                  </div>
-                  <ErroCampo
-                    id={`${formId}-inaug-data-erro`}
-                    mensagem={errors.dataInauguracao?.message}
-                  />
-                </div>
-              )}
+                    <div className="col-span-2">
+                      <ErroCampo
+                        id={`${formId}-inaug-data-erro`}
+                        mensagem={errors.dataInauguracao?.message}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
             </fieldset>
           )}
           <DialogFooter>
