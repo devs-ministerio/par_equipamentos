@@ -223,7 +223,7 @@ export function EquipamentosInstrumentoFormEntrega({
                     <label
                       key={o.valor}
                       className={cn(
-                        "flex min-h-9 cursor-pointer items-center justify-center rounded-lg border text-[12.5px] transition-colors focus-within:ring-2 focus-within:ring-primary",
+                        "flex h-8 cursor-pointer items-center justify-center rounded-lg border text-[12.5px] transition-colors focus-within:ring-2 focus-within:ring-primary",
                         precisa === o.valor
                           ? "border-primary bg-primary/10 font-medium text-primary"
                           : "border-border bg-background hover:bg-muted",
@@ -258,7 +258,7 @@ export function EquipamentosInstrumentoFormEntrega({
                     <input
                       id={`${formId}-inaug`}
                       type="date"
-                      className={cn(estiloInput, "w-full")}
+                      className={cn(estiloInput, "h-8 min-h-8 w-full py-0")}
                       aria-invalid={Boolean(errors.dataInauguracao)}
                       {...register("dataInauguracao")}
                     />
