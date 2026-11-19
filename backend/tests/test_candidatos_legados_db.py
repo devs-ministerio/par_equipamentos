@@ -460,7 +460,7 @@ def test_banco_rejeita_estado_ou_publicacao_inconsistentes(candidatos, estado, d
             db.flush()
 
 
-def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, headers_autenticados):
+def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, headers_autenticados, headers_gestor):
     with SessionLocal() as db:
         registrar_descoberta(
             db=db,
@@ -469,9 +469,12 @@ def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, he
         )
     cliente = TestClient(app)
     assert cliente.get("/candidatos-legados").status_code == 401
+    # Radar é só de gestor e admin: colaborador logado não lê a fila nem o histórico.
+    assert cliente.get("/candidatos-legados", headers=headers_autenticados).status_code == 403
+    assert cliente.get("/candidatos-legados/1/historico", headers=headers_autenticados).status_code == 403
     for params in ({"pagina": 0}, {"tamanho_pagina": 51}, {"confirmacao": "inventado"}):
-        assert cliente.get("/candidatos-legados", params=params, headers=headers_autenticados).status_code == 422
-    resposta = cliente.get("/candidatos-legados", params={"busca": candidatos[0].numero}, headers=headers_autenticados)
+        assert cliente.get("/candidatos-legados", params=params, headers=headers_gestor).status_code == 422
+    resposta = cliente.get("/candidatos-legados", params={"busca": candidatos[0].numero}, headers=headers_gestor)
     assert resposta.status_code == 200 and resposta.json()["total"] == 1
     item = resposta.json()["itens"][0]
     assert item["confirmacao_portal"] == "confirmado" and "hash_conteudo" not in item

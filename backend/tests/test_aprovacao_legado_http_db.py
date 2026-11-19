@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from itertools import count
 from uuid import uuid4
 
@@ -17,6 +18,7 @@ from app.db.models import (
     InstrumentoEquipamento,
     Notificacao,
     NotificacaoDestinatario,
+    NotificacaoTipo,
     User,
     UserRole,
     UserStatus,
@@ -94,6 +96,49 @@ def test_aprova_e_replay_retornam_mesmos_vinculos_sem_monitoramento_automatico(f
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
     assert db.scalar(select(func.count()).select_from(Notificacao)) == 1
     assert set(db.scalars(select(NotificacaoDestinatario.usuario_id))) == {usuarios["admin"], usuarios["gestor"]}
+
+
+def test_aprova_com_tecnico_inclui_no_monitoramento_e_avisa_o_titular(fluxo_aprovacao):
+    db, usuarios, ref, _, pedido, cliente = fluxo_aprovacao
+    corpo = {**pedido.model_dump(mode="json"), "tecnico_titular_id": usuarios["titular"]}
+    with cliente("gestor") as http:
+        resposta = postar(http, ref.candidato_id, corpo)
+        assert resposta.status_code == 200
+    instrumento = db.scalar(select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == "999001"))
+    assert instrumento is not None and instrumento.tipo_contratacao == "Convênio"
+    assert instrumento.tecnico_titular == db.get(User, usuarios["titular"]).name
+    avisos = {n.tipo: n for n in db.scalars(select(Notificacao))}
+    assert set(avisos) == {NotificacaoTipo.aprovacao_carteira, NotificacaoTipo.inclusao_monitoramento}
+    inclusao = avisos[NotificacaoTipo.inclusao_monitoramento]
+    destinatarios = set(
+        db.scalars(
+            select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == inclusao.id)
+        )
+    )
+    assert destinatarios == {usuarios["titular"], usuarios["admin"], usuarios["gestor"]}
+    carteira = avisos[NotificacaoTipo.aprovacao_carteira]
+    assert usuarios["titular"] not in set(
+        db.scalars(
+            select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == carteira.id)
+        )
+    )
+
+
+def test_lista_do_radar_traz_valor_municipio_uf_e_data_da_ultima_recaptura(fluxo_aprovacao):
+    db, _, ref, prova, _, cliente = fluxo_aprovacao
+    with cliente("gestor") as http:
+        itens = http.get("/candidatos-legados").json()["itens"]
+    item = next(i for i in itens if i["id"] == ref.candidato_id)
+    assert Decimal(item["valor_global"]) == db.get(CandidatoLegadoRecaptura, prova.id).valor_global
+    assert item["municipio"] and item["uf"] and item["data_instrumento"]
+
+
+def test_tecnico_invalido_recusa_a_aprovacao_inteira(fluxo_aprovacao):
+    db, usuarios, ref, _, pedido, cliente = fluxo_aprovacao
+    corpo = {**pedido.model_dump(mode="json"), "tecnico_titular_id": usuarios["leitor"]}
+    with cliente("gestor") as http:
+        assert postar(http, ref.candidato_id, corpo).status_code == 422
+    sem_inclusao(db)
 
 
 @pytest.mark.parametrize("perfil", [None, "titular", "leitor"])

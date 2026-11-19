@@ -23,6 +23,9 @@ class ReferenciaProvaLegado(BaseModel):
 class AprovacaoLegadoCreate(ReferenciaProvaLegado):
     chave: UUID
     justificativa: str = Field(min_length=3, max_length=1000)
+    # Opcional: com técnico, a aprovação já inclui o instrumento no monitoramento
+    # interno com ele como titular. Sem técnico, só entra na carteira.
+    tecnico_titular_id: int | None = Field(default=None, gt=0, strict=True)
 
 
 class ProvaLegadoRead(ReferenciaProvaLegado):

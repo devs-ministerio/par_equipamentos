@@ -98,12 +98,13 @@ def _valores_confiaveis_da_parceria(
     return valores
 
 
-def criar_instrumento_monitorado(
+def criar_instrumento_monitorado_sem_commit(
     *,
     dados: NovoInstrumentoMonitorado,
     db: Session,
     usuario: User,
 ) -> InstrumentoEquipamento:
+    """Mesma regra de `criar_instrumento_monitorado`, sem commit: o chamador fecha a transação."""
     assert_pode_editar_monitoramento(usuario)
     # PERSUS II fica fora do monitoramento interno por decisão da equipe
     # (18/11/2026); reabrir só junto do novo fluxo de acompanhamento.
@@ -151,6 +152,17 @@ def criar_instrumento_monitorado(
             entidade_id=instrumento.id,
         ),
     )
+    db.flush()
+    return instrumento
+
+
+def criar_instrumento_monitorado(
+    *,
+    dados: NovoInstrumentoMonitorado,
+    db: Session,
+    usuario: User,
+) -> InstrumentoEquipamento:
+    instrumento = criar_instrumento_monitorado_sem_commit(dados=dados, db=db, usuario=usuario)
     db.commit()
     db.refresh(instrumento)
     return instrumento

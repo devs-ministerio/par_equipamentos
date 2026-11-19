@@ -1,6 +1,7 @@
 """Contratos explícitos do Radar legado; sem payload federal cru na API."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -41,6 +42,11 @@ class CandidatoLegadoRead(BaseModel):
     captura_id: int
     situacao: SituacaoLegado
     versao: int
+    # Vêm da última recaptura oficial; nulos enquanto ela não existe.
+    valor_global: Decimal | None = None
+    municipio: str | None = None
+    uf: str | None = None
+    data_instrumento: date | None = None
 
 
 class CandidatosLegadosRead(BaseModel):

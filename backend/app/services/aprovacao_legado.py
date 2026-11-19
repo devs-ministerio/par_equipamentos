@@ -19,6 +19,7 @@ from app.repositories.notificacoes import criar_notificacao
 from app.schemas_aprovacao_legado import AprovacaoLegadoCreate, AprovacaoLegadoRead
 from app.schemas_captura_legado import ItemRecapturado
 from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
+from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado_sem_commit
 from app.services.prova_recaptura_legado import validar_frescor_recaptura
 from app.services.revisao_legado import preparar_revisao
 
@@ -104,6 +105,25 @@ def aprovar_entrada(
             justificativa=dados.justificativa,
         )
         decisoes.adicionar(db, decisao)
+        if dados.tecnico_titular_id is not None:
+            # Aprovar com técnico já abre o acompanhamento: o titular recebe o aviso de inclusão.
+            projecao = revisao.projecao
+            criar_instrumento_monitorado_sem_commit(
+                db=db,
+                usuario=usuario,
+                dados=NovoInstrumentoMonitorado(
+                    nr_convenio=projecao.numero,
+                    cnpj_convenente=projecao.convenente_cnpj,
+                    nome_convenente=projecao.convenente_nome,
+                    tipo_contratacao="Convênio",
+                    tecnico_titular_id=dados.tecnico_titular_id,
+                    municipio=projecao.municipio,
+                    uf=projecao.uf,
+                    programa=projecao.programa,
+                    ano_instrumento=projecao.ano_instrumento,
+                    origem_dado="radar_aprovacao",
+                ),
+            )
         criar_notificacao(
             db,
             Notificacao(

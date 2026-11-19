@@ -112,7 +112,6 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
         return _ids_broadcast(db)
 
     if tipo in (
-        NotificacaoTipo.inclusao_monitoramento,
         NotificacaoTipo.fonte_indisponivel,
         NotificacaoTipo.aprovacao_carteira,
         NotificacaoTipo.convenio_descoberto,

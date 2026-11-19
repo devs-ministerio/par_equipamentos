@@ -14,6 +14,7 @@ from app.db.models_legado import (
     CandidatoLegadoEvidencia,
     CandidatoLegadoRegistro,
 )
+from app.db.models_recaptura_legado import CandidatoLegadoRecaptura
 from app.schemas_coleta_recaptura_legado import AlvoRecapturaLegado
 from app.schemas_escopo_descoberta import ComponenteDescoberto
 from app.schemas_legado import CandidatoLegadoRead, EvidenciaLegadoRead
@@ -209,6 +210,22 @@ def contar_novos(db: Session) -> int:
     return db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
 
 
+def _resumo_recaptura(db: Session, ids: set[int]) -> dict[int, tuple[object, str | None, str | None]]:
+    """Valor, município e UF da última recaptura oficial de cada candidato."""
+    if not ids:
+        return {}
+    r = CandidatoLegadoRecaptura
+    ultima = select(func.max(r.id)).where(r.candidato_id.in_(ids)).group_by(r.candidato_id)
+    municipio = r.payload_oficial["portal"]["municipioConvenente"]["nomeIBGE"].astext
+    uf = r.payload_oficial["portal"]["municipioConvenente"]["uf"]["nome"].astext
+    return {
+        candidato_id: (valor, mun, sigla)
+        for candidato_id, valor, mun, sigla in db.execute(
+            select(r.candidato_id, r.valor_global, municipio, uf).where(r.id.in_(ultima))
+        )
+    }
+
+
 def listar_pagina(
     db: Session,
     *,
@@ -240,6 +257,7 @@ def listar_pagina(
     ).all()
     evidencias = evidencias_por_captura(db, {captura.id for _, captura, _ in registros})
     componentes = componentes_por_captura(db, {captura.id for _, captura, _ in registros})
+    recapturas = _resumo_recaptura(db, {candidato.id for candidato, _, _ in registros})
     itens = [
         CandidatoLegadoRead.model_validate(
             {
@@ -256,6 +274,10 @@ def listar_pagina(
                 "captura_id": captura.id,
                 "situacao": decisao.situacao if decisao else "novo",
                 "versao": decisao.id if decisao else 0,
+                "valor_global": recapturas.get(candidato.id, (None, None, None))[0],
+                "municipio": recapturas.get(candidato.id, (None, None, None))[1],
+                "uf": recapturas.get(candidato.id, (None, None, None))[2],
+                "data_instrumento": captura.data_assinatura_siconv or captura.data_publicacao,
             }
         )
         for candidato, captura, decisao in registros

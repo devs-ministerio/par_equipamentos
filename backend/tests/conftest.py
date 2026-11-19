@@ -229,6 +229,45 @@ def headers_autenticados():
     db.close()
 
 
+def _sessao_de_teste(papel, rotulo: str):
+    from uuid import uuid4
+
+    from app.auth import ACCESS_COOKIE_NAME, create_access_token, create_refresh_token, hash_password
+    from app.db.base import SessionLocal
+    from app.db.models import User
+
+    db = SessionLocal()
+    user = User(
+        name="Pytest Sessão",
+        email=f"pytest-{rotulo}-{uuid4()}@example.com",
+        password_hash=hash_password("senha-pytest"),
+        role=papel,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    _, refresh_token_id = create_refresh_token(db, user)
+    db.commit()
+    token = create_access_token(user, refresh_token_id)
+    user_id = user.id
+    db.close()
+
+    yield {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
+
+    db = SessionLocal()
+    db.query(User).filter_by(id=user_id).delete()
+    db.commit()
+    db.close()
+
+
+@pytest.fixture(scope="session")
+def headers_gestor():
+    """Mesma ideia de `headers_autenticados`, com perfil gestor (Radar de instrumentos)."""
+    from app.db.models import UserRole
+
+    yield from _sessao_de_teste(UserRole.gestor, "headers-gestor")
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     db_marker = pytest.mark.db
     if _TEST_DATABASE_URL:
