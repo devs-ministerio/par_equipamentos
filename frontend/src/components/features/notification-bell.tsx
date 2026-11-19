@@ -1,5 +1,5 @@
 import { Bell } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CentralNotificacoes } from "./central-notificacoes";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
@@ -14,6 +14,8 @@ import {
 import { cn } from "@/lib/utils";
 import { fmtData } from "@/lib/monitoramento-format";
 import { useNotificacoes } from "@/hooks/use-notificacoes";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useAvisoNovoInstrumento } from "@/hooks/use-aviso-novo-instrumento";
 import type { Notificacao } from "@/services/notificacoes";
 
 /** Sino de notificação (docs/arquitetura/
@@ -33,6 +35,9 @@ export function NotificationBell() {
   const { notificacoes, naoLidas, carregando, marcarLida, habilitado, erro } =
     useNotificacoes();
   const navigate = useNavigate();
+  const { usuarioAtual } = useAuthSession();
+  const abrirDestino = useCallback((d: string) => navigate(d), [navigate]);
+  useAvisoNovoInstrumento(notificacoes, usuarioAtual, abrirDestino);
 
   async function abrirNotificacao(notificacao: Notificacao) {
     try {

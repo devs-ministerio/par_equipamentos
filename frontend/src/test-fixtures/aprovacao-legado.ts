@@ -16,6 +16,10 @@ export function criarCandidato(
     data_publicacao: "2026-10-02",
     descoberto_em: "2026-10-18T10:00:00Z",
     verificado_em: "2026-10-18T10:00:00Z",
+    valor_global: null,
+    municipio: null,
+    uf: null,
+    data_instrumento: null,
     componentes: [],
     evidencias: [
       {

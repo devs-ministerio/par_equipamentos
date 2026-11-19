@@ -1,17 +1,20 @@
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { DetalhesAnimados } from "@/components/common/detalhes-animados";
-import {
-  CLASSES_SITUACAO,
-  ROTULOS_SITUACAO,
-  ROTULOS_CONFIRMACAO,
-  ROTULOS_RELACAO,
-} from "@/lib/legado-rotulos";
+import { CLASSES_SITUACAO, ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
+import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
 import { estiloCard } from "./monitoramento-ui";
 import type { ReactNode } from "react";
 
-/** Texto original e proveniência permanecem acessíveis sem alongar a fila. */
+function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{rotulo}</dt>
+      <dd className="text-sm">{valor}</dd>
+    </div>
+  );
+}
+
+/** Só o que a equipe precisa para decidir: componente, item, valor, local e datas. */
 export function CandidatoLegadoItem({
   candidato,
   children,
@@ -19,7 +22,6 @@ export function CandidatoLegadoItem({
   candidato: CandidatoLegado;
   children?: ReactNode;
 }) {
-  const [detalheAberto, setDetalheAberto] = useState(false);
   const equipamentos = [...new Set(candidato.evidencias.map((e) => e.nome))];
   const componentes = [
     ...new Set(candidato.componentes.map((c) => c.componente)),
@@ -39,51 +41,21 @@ export function CandidatoLegadoItem({
           {ROTULOS_SITUACAO[candidato.situacao]}
         </Badge>
       </div>
-      <p className="mt-2 text-sm font-medium">{equipamentos.join(" · ")}</p>
-      {componentes.length > 0 && (
-        <div className="mt-2 min-w-0 text-sm leading-relaxed">
-          <span className="text-xs text-muted-foreground">Componente</span>
-          <p className="mt-1">{componentes.join(" · ")}</p>
-        </div>
-      )}
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        {candidato.origem === "snapshot_local" && (
-          <span>Snapshot local · frescor não confirmado</span>
-        )}
-      </div>
-      <DetalhesAnimados
-        className="mt-3"
-        aberto={detalheAberto}
-        onAbertoChange={setDetalheAberto}
-      >
-        <div className="mt-3 border-l-2 border-border pl-4">
-          <p className="mb-3 text-xs text-muted-foreground">
-            Proposta {candidato.id_proposta}
-          </p>
-          <p className="mb-3 text-xs text-muted-foreground">
-            {ROTULOS_CONFIRMACAO[candidato.confirmacao_portal]}
-          </p>
-          <ul className="space-y-4">
-            {candidato.evidencias.map((e) => (
-              <li key={`${e.id_item}-${e.codigo}`}>
-                <p className="text-xs font-medium">
-                  {ROTULOS_RELACAO[e.relacao]} · Item {e.id_item}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  {e.descricao}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs text-muted-foreground">
-            {candidato.origem === "snapshot_local"
-              ? "Snapshot local"
-              : "Captura do SICONV"}{" "}
-            · Verificado em{" "}
-            {new Date(candidato.verificado_em).toLocaleString("pt-BR")}
-          </p>
-        </div>
-      </DetalhesAnimados>
+      <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+        <Campo rotulo="Componente" valor={componentes.join(" · ") || "—"} />
+        <Campo rotulo="Item" valor={equipamentos.join(" · ") || "—"} />
+        <Campo rotulo="Valor" valor={fmtMoeda(candidato.valor_global)} />
+        <Campo rotulo="UF" valor={candidato.uf ?? "—"} />
+        <Campo rotulo="Município" valor={candidato.municipio ?? "—"} />
+        <Campo
+          rotulo="Data do instrumento"
+          valor={fmtData(candidato.data_instrumento)}
+        />
+        <Campo
+          rotulo="Data da coleta"
+          valor={fmtData(candidato.verificado_em)}
+        />
+      </dl>
       {children}
     </li>
   );

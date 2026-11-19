@@ -26,6 +26,10 @@ const candidatoSchema = z.object({
   origem: z.enum(["snapshot_local", "siconv_oficial"]),
   descoberto_em: z.string().datetime({ offset: true }),
   verificado_em: z.string().datetime({ offset: true }),
+  valor_global: z.string().nullable().default(null),
+  municipio: z.string().nullable().default(null),
+  uf: z.string().nullable().default(null),
+  data_instrumento: z.string().nullable().default(null),
   componentes: z
     .array(
       z.object({

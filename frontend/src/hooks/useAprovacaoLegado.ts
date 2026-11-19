@@ -35,7 +35,7 @@ export function useAprovacaoLegado(
     mutationFn: (dados: AprovacaoLegadoInput) =>
       enviarAprovacaoLegado(candidato.id, dados),
     retry: false,
-    onSuccess: async () => {
+    onSuccess: async (_resposta, dados) => {
       await Promise.all([
         client.invalidateQueries({
           queryKey: ["candidatos-legados", usuarioAtual?.id],
@@ -47,9 +47,14 @@ export function useAprovacaoLegado(
           queryKey: ["prova-legado", usuarioAtual?.id, candidato.id],
         }),
         client.invalidateQueries({ queryKey: ["convenios-lista"] }),
+        client.invalidateQueries({ queryKey: ["monitoramento"] }),
         client.invalidateQueries({ queryKey: ["notificacoes"] }),
       ]);
-      toast.success("Convênio aprovado e incluído em Instrumentos/programas.");
+      toast.success(
+        dados.tecnico_titular_id
+          ? "Convênio aprovado e incluído no monitoramento."
+          : "Convênio aprovado e incluído em Instrumentos/programas.",
+      );
     },
     onError: (erro) => {
       if (erro instanceof ApiError && erro.status === 401)
