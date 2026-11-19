@@ -5,6 +5,6 @@ export const ROTULOS_DOCUMENTO: Record<TipoDocumento, string> = {
   ordem_servico: "Ordem de serviço",
   trp: "TRP",
   trd: "TRD",
-  cnen_scra: "SCRA (CNEN)",
+  cnen_scra: "SCRA (ANSN)",
   cnen_licenca: "Licença de operação (ANSN)",
 };

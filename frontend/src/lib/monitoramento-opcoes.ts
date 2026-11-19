@@ -45,10 +45,10 @@ export const MODALIDADES_ONCO = [
  * colocar na lista". Além dos 2 citados, os 2 outros atores que já
  * aparecem em algum ponto do domínio (não inventados pra esta lista):
  * Fornecedor (rastreado em siconv_pagamento/"valor pago ao fornecedor" no
- * card do convênio) e CNEN (já é 1 dos 3 grupos de marco regulatório em
+ * card do convênio) e ANSN (já é 1 dos 3 grupos de marco regulatório em
  * marco_catalogo). Ajustável -- é só uma lista de string, sem enum no
  * banco. */
-export const RESPONSAVEIS_ACAO = ["Convenente", "CGPCAN", "Fornecedor", "CNEN"];
+export const RESPONSAVEIS_ACAO = ["Convenente", "CGPCAN", "Fornecedor", "ANSN"];
 
 /** `<select>` sempre precisa conter o valor atual como opção, mesmo que
  * ele não esteja na lista fixa (dado histórico com texto livre antigo,

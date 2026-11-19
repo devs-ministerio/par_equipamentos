@@ -1,4 +1,4 @@
-"""Migração dos marcos antigos (OS, TRP, TRD, SCRA e licença da CNEN) para `documento_instrumento`.
+"""Migração dos marcos antigos (OS, TRP, TRD, SCRA e licença da ANSN) para `documento_instrumento`.
 
 Só vira documento o evento ativo com data de ocorrência: previsão sem data realizada é descartada (não há
 documento ainda). O evento antigo nunca é alterado. Idempotente por `origem_evento_id`.
@@ -29,7 +29,7 @@ _STATUS_CNEN = ("Em análise", "Em diligência", "Deferido", "Indeferido")
 
 
 def _status_cnen(valor: str | None) -> str | None:
-    """Normaliza o vocabulário da CNEN ("Deferido (da fonte braqui)" vira "Deferido"); o que não bate fica nulo."""
+    """Normaliza o vocabulário da ANSN ("Deferido (da fonte braqui)" vira "Deferido"); o que não bate fica nulo."""
     for status in _STATUS_CNEN:
         if (valor or "").strip().lower().startswith(status.lower()):
             return status

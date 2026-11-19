@@ -24,8 +24,8 @@ const STATUS_REGULATORIO_OPCOES = [
 ];
 
 const GRUPOS: { chave: MarcoCatalogo["grupo"]; rotulo: string }[] = [
-  { chave: "cronograma_fisico", rotulo: "Cronograma físico" },
-  { chave: "regulatorio", rotulo: "Regulatório (CNEN)" },
+  { chave: "cronograma_fisico", rotulo: "Cronograma" },
+  { chave: "regulatorio", rotulo: "Regulatório (ANSN)" },
 ];
 
 /** A entrega passou a ser lançada em "Equipamentos do instrumento". */
@@ -38,6 +38,9 @@ const MARCOS_DE_DOCUMENTO = [
   "regulatorio_licenca_operacao",
   "regulatorio_modificacao_casamata",
   "regulatorio_descomissionamento",
+  // Sem uso no fluxo novo; ficam só no histórico.
+  "cronograma_obra_ponto_critico",
+  "cronograma_chegada_obra",
 ];
 
 export function MonitoramentoInternoFormEvento({

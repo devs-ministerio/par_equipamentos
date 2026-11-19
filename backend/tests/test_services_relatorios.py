@@ -369,7 +369,7 @@ def test_instrumentos_repasse_docx_simplificado_mostra_estado_atual_sem_timeline
         assert any(t.startswith("Último Evento:") for t in textos)
         assert any(t.startswith("Última Ação:") for t in textos)
         celulas_tabelas = ["".join(c.text for c in row.cells) for tabela in documento.tables for row in tabela.rows]
-        assert not any("Matrícula CNEN" in linha for linha in celulas_tabelas)
+        assert not any("Matrícula ANSN" in linha for linha in celulas_tabelas)
         db.rollback()  # nunca commita dado de teste
     finally:
         db.close()
@@ -386,7 +386,7 @@ def test_instrumentos_repasse_docx_completo_mostra_timeline_inteira_e_acoes():
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio="948686").one()
         acao = AcaoMonitoramento(
             instrumento_id=instrumento.id,
-            descricao="Cobrar retorno da CNEN sobre o RPAS",
+            descricao="Cobrar retorno da ANSN sobre o RPAS",
             data_prevista=date(2026, 10, 1),
             responsavel="PRISCILA",
         )
@@ -409,15 +409,15 @@ def test_instrumentos_repasse_docx_completo_mostra_timeline_inteira_e_acoes():
         assert not any(t.startswith("Última Ação:") for t in textos)
 
         # Timeline inteira: os 3 eventos reais do seed aparecem como linhas
-        # de tabela (marco "Matrícula CNEN" é só 1 dos 3, prova que não é
+        # de tabela (marco "Matrícula ANSN" é só 1 dos 3, prova que não é
         # só "o mais recente").
         celulas_tabelas = ["".join(c.text for c in row.cells) for tabela in documento.tables for row in tabela.rows]
-        assert any("Matrícula CNEN" in linha for linha in celulas_tabelas)
+        assert any("Matrícula ANSN" in linha for linha in celulas_tabelas)
         assert any("SCRA modificação/casamata" in linha for linha in celulas_tabelas)
 
         # Lista completa de ações -- a ação recém-criada aparece com
         # descrição e responsável.
-        assert any("Cobrar retorno da CNEN sobre o RPAS" in linha for linha in celulas_tabelas)
+        assert any("Cobrar retorno da ANSN sobre o RPAS" in linha for linha in celulas_tabelas)
         assert any("PRISCILA" in linha for linha in celulas_tabelas)
         db.rollback()  # nunca commita dado de teste
     finally:

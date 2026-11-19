@@ -1,4 +1,4 @@
-/** Seções "Fase geral" (stepper) + "Cronograma físico" e o cartão "Documentos"
+/** Seções "Fase geral" (stepper) + "Cronograma" e o cartão "Documentos"
  * recebido por `documentos` -- extraído de MonitoramentoInterno.tsx. */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ export function MonitoramentoInternoCronograma({
 
   return (
     <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4">
-      <SecaoOperacional titulo="Cronograma físico" cartao>
+      <SecaoOperacional titulo="Cronograma" cartao>
         <ul className="m-0 grid list-none gap-2.5 p-0">
           {fisicoComRegistro.map((m) => (
             <li key={m.id} className="flex gap-2.5 text-[12.5px]">

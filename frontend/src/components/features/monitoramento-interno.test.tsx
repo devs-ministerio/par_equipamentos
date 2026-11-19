@@ -64,7 +64,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       await screen.findByRole("heading", { name: "Documentos" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Regulatório (CNEN)" }),
+      screen.queryByRole("heading", { name: "Regulatório (ANSN)" }),
     ).not.toBeInTheDocument();
   });
 

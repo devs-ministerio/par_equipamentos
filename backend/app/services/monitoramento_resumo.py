@@ -70,7 +70,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     proposito).
 
     Eventos sao filtrados no banco pelos marcos necessarios (fase_geral +
-    licenca CNEN + inauguracao) -- nao carrega o historico inteiro de
+    licenca ANSN + inauguracao) -- nao carrega o historico inteiro de
     EventoMarco. Contagens de acao tambem sao agregadas no SQL."""
     hoje = date.today()
     dados = monitoramento_repo.carregar_dados_resumo_monitoramento(db, hoje=hoje)

@@ -29,6 +29,8 @@ CODIGOS_POS_ENTREGA = (
     "cronograma_instalacao_inicio",
     "cronograma_instalacao_fim",
     "cronograma_comissionamento",
+    "cronograma_treinamento",
+    "cronograma_inicio_operacao",
 )
 
 _REPASSE_ATIVO = (RepasseInstrumento.deletado_em.is_(None), RepasseInstrumento.substituido_por_id.is_(None))

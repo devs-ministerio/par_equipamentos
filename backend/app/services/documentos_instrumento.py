@@ -1,4 +1,4 @@
-"""Documentos do instrumento (NF, OS, TRP, TRD, SCRA e licença de operação da CNEN).
+"""Documentos do instrumento (NF, OS, TRP, TRD, SCRA e licença de operação da ANSN).
 
 Independentes da fase. Append-only: corrigir cria linha nova e aponta a antiga; excluir é soft delete com motivo.
 Autorização por titularidade do instrumento e `AuditLog` em toda escrita.

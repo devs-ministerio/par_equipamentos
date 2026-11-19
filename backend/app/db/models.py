@@ -139,7 +139,7 @@ class MarcoGrupo(str, enum.Enum):
     "Execucao Fisica %" da planilha cobrem), o cronograma fisico do
     equipamento em si (fabricacao/porto/entrega/instalacao/obra -- nao
     existe em NENHUM sistema federal, so acompanhamento manual) e os
-    processos regulatorios (CNEN -- matricula, licenca de operacao,
+    processos regulatorios (ANSN -- matricula, licenca de operacao,
     descomissionamento/casamata -- so relevante pra equipamento que emite
     radiacao: Acelerador Linear, Braquiterapia, PET-CT, Gama Camara)."""
 
@@ -1244,19 +1244,19 @@ class EventoMarco(Base):
     )
     data_ocorrencia: Mapped[date | None] = mapped_column(Date)
     data_prevista: Mapped[date | None] = mapped_column(Date)
-    # So usado em marco de grupo=regulatorio -- vocabulario da propria CNEN/
+    # So usado em marco de grupo=regulatorio -- vocabulario da propria ANSN/
     # planilha (NI, NA, Em analise, Em diligencia, Deferido, Indeferido), sem
     # enum de proposito: e terminologia externa, pode ganhar variante nova
     # sem exigir migration (mesmo raciocinio do `legal_nature` em
     # EquipmentOfferRow).
     status_regulatorio: Mapped[str | None] = mapped_column(String)
-    # Numero de matricula/licenca/processo (ex. matricula CNEN "16981") --
+    # Numero de matricula/licenca/processo (ex. matricula ANSN "16981") --
     # achado 2026-09-09: esse numero estava sendo gravado dentro de
     # `status_regulatorio` no seed (gambiarra, ver seed_monitoramento.py e a
     # migration que corrige o dado ja gravado). `status_regulatorio` fica so
     # pro vocabulario de status; numero de documento tem coluna propria.
     numero_documento: Mapped[str | None] = mapped_column(String)
-    # Validade da licenca/matricula (licenca de operacao CNEN normalmente
+    # Validade da licenca/matricula (licenca de operacao ANSN normalmente
     # tem prazo e precisa renovacao) -- usada pro alerta de vencimento na
     # pagina de monitoramento, nao so registro passivo.
     data_validade: Mapped[date | None] = mapped_column(Date)
@@ -1799,7 +1799,7 @@ TIPOS_DOCUMENTO = ("nota_fiscal", "ordem_servico", "trp", "trd", "cnen_scra", "c
 
 
 class DocumentoInstrumento(Base):
-    """Documento do instrumento (NF, OS, TRP, TRD, SCRA e licença de operação da CNEN), append-only.
+    """Documento do instrumento (NF, OS, TRP, TRD, SCRA e licença de operação da ANSN), append-only.
 
     Independente da fase: registrar um documento nunca muda a fase. Pode haver vários do mesmo tipo.
     "Editar" cria linha nova e aponta a antiga por `substituido_por_id`; "excluir" é soft delete com motivo.
@@ -1829,7 +1829,7 @@ class DocumentoInstrumento(Base):
     tipo: Mapped[str] = mapped_column(String, nullable=False)
     numero: Mapped[str | None] = mapped_column(String)
     data_documento: Mapped[date] = mapped_column(Date, nullable=False)
-    # Só nos documentos da CNEN: vocabulário externo (Em análise, Em diligência, Deferido, Indeferido).
+    # Só nos documentos da ANSN: vocabulário externo (Em análise, Em diligência, Deferido, Indeferido).
     status: Mapped[str | None] = mapped_column(String)
     # Só na licença de operação.
     data_validade: Mapped[date | None] = mapped_column(Date)

@@ -1,4 +1,4 @@
-/** Seção "Documentos": NF, OS, TRP, TRD, SCRA e licença da CNEN. Não altera a fase. */
+/** Seção "Documentos": NF, OS, TRP, TRD, SCRA e licença da ANSN. Não altera a fase. */
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ErrorAlert } from "@/components/common/error-alert";

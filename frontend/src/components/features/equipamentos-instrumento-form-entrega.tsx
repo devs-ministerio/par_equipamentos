@@ -207,34 +207,43 @@ export function EquipamentosInstrumentoFormEntrega({
             />
           </fieldset>
           {perguntar && (
-            <fieldset className="grid gap-2">
-              <legend className="mb-1 text-[11px]">
-                O equipamento precisa de inauguração?
+            <fieldset className="grid gap-3 rounded-md border border-border bg-muted/30 p-3">
+              <legend className="px-1 text-[12px] font-medium">
+                Inauguração
               </legend>
-              <div className="flex gap-4 text-[12.5px]">
-                <label className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    value="sim"
-                    {...register("precisaInauguracao")}
-                  />
-                  Sim
-                </label>
-                <label className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    value="nao"
-                    {...register("precisaInauguracao")}
-                  />
-                  Não
-                </label>
+              <p className="text-[12.5px]">
+                O equipamento precisa de inauguração?
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:max-w-xs">
+                {[
+                  { valor: "sim", rotulo: "Sim" },
+                  { valor: "nao", rotulo: "Não" },
+                ].map((o) => (
+                  <label
+                    key={o.valor}
+                    className={cn(
+                      "flex cursor-pointer items-center justify-center rounded-md border px-3 py-1.5 text-[12.5px] transition-colors",
+                      precisa === o.valor
+                        ? "border-primary bg-primary/10 font-medium text-primary"
+                        : "border-border bg-background hover:bg-muted",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      value={o.valor}
+                      className="sr-only"
+                      {...register("precisaInauguracao")}
+                    />
+                    {o.rotulo}
+                  </label>
+                ))}
               </div>
               <ErroCampo
                 id={`${formId}-inaug-erro`}
                 mensagem={errors.precisaInauguracao?.message}
               />
               {precisa === "sim" && (
-                <div>
+                <div className="grid gap-1 sm:max-w-xs">
                   <label htmlFor={`${formId}-inaug`} className="text-[11px]">
                     {previsaoInauguracao
                       ? "Confirme a previsão de inauguração"
@@ -243,7 +252,7 @@ export function EquipamentosInstrumentoFormEntrega({
                   <input
                     id={`${formId}-inaug`}
                     type="date"
-                    className={cn(estiloInput, "w-full sm:w-48")}
+                    className={cn(estiloInput, "w-full")}
                     aria-invalid={Boolean(errors.dataInauguracao)}
                     {...register("dataInauguracao")}
                   />

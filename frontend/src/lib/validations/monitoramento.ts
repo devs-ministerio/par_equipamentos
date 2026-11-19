@@ -121,7 +121,7 @@ export const documentoSchema = z
       ctx.addIssue({
         code: "custom",
         path: ["status"],
-        message: "O status só vale para documentos da CNEN.",
+        message: "O status só vale para documentos da ANSN.",
       });
     }
     if (v.dataValidade && v.tipo !== "cnen_licenca") {

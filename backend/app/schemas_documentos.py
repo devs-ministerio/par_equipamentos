@@ -1,4 +1,4 @@
-"""Schemas dos documentos do instrumento (NF, OS, TRP, TRD, SCRA e licença da CNEN)."""
+"""Schemas dos documentos do instrumento (NF, OS, TRP, TRD, SCRA e licença da ANSN)."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ class DocumentoCreate(BaseModel):
     @model_validator(mode="after")
     def _coerencia(self) -> "DocumentoCreate":
         if self.status is not None and self.tipo not in TIPOS_CNEN:
-            raise ValueError("O status só vale para documentos da CNEN.")
+            raise ValueError("O status só vale para documentos da ANSN.")
         if self.data_validade is not None and self.tipo != "cnen_licenca":
             raise ValueError("A validade só vale para a licença de operação.")
         return self

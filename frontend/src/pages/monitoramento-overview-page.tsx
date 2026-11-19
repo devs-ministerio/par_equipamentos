@@ -44,7 +44,7 @@ export function MonitoramentoOverviewPage() {
     <PageHeader
       eyebrow="Monitoramento interno"
       title="Mesa de trabalho"
-      description="Entrega, instalação, licenciamento CNEN e inauguração."
+      description="Entrega, instalação, licenciamento ANSN e inauguração."
       actions={
         <Button asChild variant="outline" size="sm" className="group">
           <Link to="/dashboard">

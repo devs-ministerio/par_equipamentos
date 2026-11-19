@@ -33,7 +33,7 @@ class EventoMarcoRead(BaseModel):
     data_ocorrencia: date | None
     data_prevista: date | None
     status_regulatorio: str | None
-    # Numero de matricula/licenca/processo (ex. matricula CNEN) -- achado
+    # Numero de matricula/licenca/processo (ex. matricula ANSN) -- achado
     # 2026-09-09, coluna propria pra nao misturar com o vocabulario de
     # status (ver comentario em app/db/models.py::EventoMarco).
     numero_documento: str | None

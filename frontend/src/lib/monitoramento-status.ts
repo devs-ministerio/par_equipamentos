@@ -53,7 +53,7 @@ export const LEGENDA_STATUS: { variant: SituacaoVariant; rotulo: string }[] = [
   { variant: "muted", rotulo: "Demais situações" },
 ];
 
-/** Cor por urgencia de vencimento (licenca CNEN, mas generico) -- achado
+/** Cor por urgencia de vencimento (licenca ANSN, mas generico) -- achado
  * 2026-09-09, movido pra ca de MonitoramentoInterno.tsx pra reaproveitar
  * tambem no Painel de Gestao. `dias` negativo = ja venceu. */
 export function classeValidade(dias: number): string {
