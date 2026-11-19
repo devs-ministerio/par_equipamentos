@@ -23,9 +23,9 @@ const STATUS_REGULATORIO_OPCOES = [
   "Indeferido",
 ];
 
+/** Só o cronograma é lançado aqui; o regulatório (licença, SCRA, matrícula) tem registro próprio em Documentos. */
 const GRUPOS: { chave: MarcoCatalogo["grupo"]; rotulo: string }[] = [
   { chave: "cronograma_fisico", rotulo: "Cronograma" },
-  { chave: "regulatorio", rotulo: "Regulatório (ANSN)" },
 ];
 
 /** A entrega passou a ser lançada em "Equipamentos do instrumento". */
