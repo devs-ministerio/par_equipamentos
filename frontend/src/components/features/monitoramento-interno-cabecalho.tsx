@@ -70,6 +70,7 @@ export function MonitoramentoInternoCabecalho({
             : origemAlternativa
               ? "Não informada na fonte"
               : "Sem previsão",
+      detalhe: inaugurado ? fmtData(dataInauguracao) : undefined,
       alerta: diasInauguracao !== null && diasInauguracao < 0,
     },
     {
@@ -107,7 +108,6 @@ export function MonitoramentoInternoCabecalho({
           {
             rotulo: "Situação do programa",
             valor: inst.situacao_programa,
-            detalhe: inst.origem_dado ?? "Fonte de ingestão",
             alerta: false,
           },
         ]
@@ -247,13 +247,12 @@ export function MonitoramentoInternoCabecalho({
 
         {/* Previsao de inauguracao em destaque -- so aparece quando ha
             data (evento lançado pro marco). */}
-        {dataInauguracao && (
+        {dataInauguracao && !inaugurado && (
           <div className="mt-3 pt-2.5 border-t border-border flex justify-between items-center flex-wrap gap-2">
             <span className="text-[12.5px] font-semibold">
-              {inaugurado ? "Inaugurado em" : "Previsão de inauguração:"}{" "}
-              {fmtData(dataInauguracao)}
+              Previsão de inauguração: {fmtData(dataInauguracao)}
             </span>
-            {!inaugurado && diasInauguracao !== null && (
+            {diasInauguracao !== null && (
               <span
                 className={cn(
                   "text-[11.5px] font-bold",
