@@ -245,22 +245,24 @@ export function EquipamentosInstrumentoFormEntrega({
                 mensagem={errors.precisaInauguracao?.message}
               />
               {precisa === "sim" && (
-                <div className="mx-auto grid w-full gap-1 sm:max-w-xs">
-                  <label
-                    htmlFor={`${formId}-inaug`}
-                    className="text-center text-[11px]"
-                  >
-                    {previsaoInauguracao
-                      ? "Confirme a previsão de inauguração"
-                      : "Previsão de inauguração"}
-                  </label>
-                  <input
-                    id={`${formId}-inaug`}
-                    type="date"
-                    className={cn(estiloInput, "w-full")}
-                    aria-invalid={Boolean(errors.dataInauguracao)}
-                    {...register("dataInauguracao")}
-                  />
+                <div className="grid justify-center gap-1">
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <label
+                      htmlFor={`${formId}-inaug`}
+                      className="text-[12.5px]"
+                    >
+                      {previsaoInauguracao
+                        ? "Confirme a previsão de inauguração"
+                        : "Previsão de inauguração"}
+                    </label>
+                    <input
+                      id={`${formId}-inaug`}
+                      type="date"
+                      className={cn(estiloInput, "w-44")}
+                      aria-invalid={Boolean(errors.dataInauguracao)}
+                      {...register("dataInauguracao")}
+                    />
+                  </div>
                   <ErroCampo
                     id={`${formId}-inaug-data-erro`}
                     mensagem={errors.dataInauguracao?.message}
