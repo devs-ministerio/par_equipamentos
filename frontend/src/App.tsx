@@ -8,7 +8,7 @@ import { ProtectedRoute } from "./components/layout/protected-route";
 import { AdminRoute } from "./components/layout/admin-route";
 import { GestaoRoute } from "./components/layout/gestao-route";
 import { Toaster } from "./components/ui/sonner";
-import { PAINEL_GESTAO_VISIVEL } from "./components/layout/monitoramento-nav-items";
+import { PAINEL_GESTAO_HABILITADO } from "./components/layout/monitoramento-nav-items";
 import { AppErrorBoundary } from "./components/common/app-error-boundary";
 
 // Code-splitting por rota (2026-08-24) -- antes as 4 paginas eram import
@@ -197,7 +197,7 @@ function App() {
                   <Route
                     path="/monitoramento-equipamentos/painel"
                     element={
-                      PAINEL_GESTAO_VISIVEL ? (
+                      PAINEL_GESTAO_HABILITADO ? (
                         <MonitoramentoPainelPage />
                       ) : (
                         <Navigate

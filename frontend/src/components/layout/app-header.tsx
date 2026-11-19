@@ -32,6 +32,8 @@ export interface HeaderNavItem {
   isActive?: (pathname: string) => boolean;
   /** Ícone decorativo à esquerda do rótulo (lucide). */
   icon?: LucideIcon;
+  /** Visível, mas sem clique (ex.: página fora do ar temporariamente). */
+  disabled?: boolean;
 }
 
 /** Item de navegação com ícone + animação no hover/foco:
@@ -58,16 +60,20 @@ function NavButton({
     <button
       type="button"
       onClick={onNavigate}
+      disabled={item.disabled}
       aria-current={active ? "page" : undefined}
       className={cn(
         NAV_ITEM_CLASS,
         "whitespace-nowrap",
-        active
-          ? cn("font-semibold text-primary", mobile && "bg-secondary")
-          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+        item.disabled
+          ? "cursor-not-allowed text-muted-foreground/50"
+          : active
+            ? cn("font-semibold text-primary", mobile && "bg-secondary")
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
         // Linha que se abre do centro sob o rótulo (desktop, item inativo).
         !mobile &&
           !active &&
+          !item.disabled &&
           "after:absolute after:inset-x-3.5 after:bottom-0.5 after:h-0.5 after:origin-center after:scale-x-0 after:rounded-full after:bg-primary after:transition-transform after:duration-300 after:ease-out hover:after:scale-x-100 focus-visible:after:scale-x-100",
         className,
       )}
@@ -82,7 +88,9 @@ function NavButton({
               : "motion-safe:group-hover:-translate-y-0.5 motion-safe:group-hover:scale-110 motion-safe:group-focus-visible:-translate-y-0.5 motion-safe:group-focus-visible:scale-110",
             active
               ? "text-primary"
-              : "text-muted-foreground group-hover:text-primary",
+              : item.disabled
+                ? "text-muted-foreground/50"
+                : "text-muted-foreground group-hover:text-primary",
           )}
         />
       )}
