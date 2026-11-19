@@ -114,7 +114,10 @@ export function MonitoramentoInternoCronograma({
           </p>
         )}
         <MarcosSemRegistro
-          marcos={cronogramaFisico.filter((m) => !visiveis(m).length)}
+          // Só o cronograma vigente (com ordem): marcos antigos e a inauguração (tratada à parte) não entram.
+          marcos={cronogramaFisico.filter(
+            (m) => m.ordem !== null && !visiveis(m).length,
+          )}
         />
       </SecaoOperacional>
 

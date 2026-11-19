@@ -97,13 +97,14 @@ describe("fase e cronograma do monitoramento", () => {
     // Arrange / Act
     render(
       <MonitoramentoInternoCronograma
-        cronogramaFisico={[marcos[1]]}
+        cronogramaFisico={[{ ...marcos[1], ordem: 10 }, marcos[2]]}
         eventosPorMarco={new Map()}
         multiploEquipamento={false}
       />,
     );
     // Assert
     expect(screen.getByText("Previsão de inauguração")).toBeInTheDocument();
+    expect(screen.queryByText(marcos[2].rotulo)).not.toBeInTheDocument();
     expect(screen.getByText(/Sem registro \(1\)/)).toBeInTheDocument();
     expect(screen.getByText("Nenhum marco registrado.")).toBeInTheDocument();
     expect(screen.queryByText("—")).not.toBeInTheDocument();

@@ -5,7 +5,6 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useCorrigirUnidade,
-  useEntregasLegadas,
   useEquipamentosInstrumento,
   useCancelarUnidade,
   useDefinirPrevisaoEntrega,
@@ -46,7 +45,6 @@ export function EquipamentosInstrumento({
   aoSessaoInvalida: () => void;
 }) {
   const consulta = useEquipamentosInstrumento(numeroConvenio);
-  const legadas = useEntregasLegadas();
   const registrar = useRegistrarEntrega(numeroConvenio);
   const vincular = useVincularEntregaLegada(numeroConvenio);
   const corrigir = useCorrigirUnidade(numeroConvenio);
@@ -100,41 +98,13 @@ export function EquipamentosInstrumento({
   }
   const dados = consulta.data;
   const podeEditar = podeEditarInstrumento && dados.pode_editar;
-  const revisao = legadas.data?.find((r) => r.nr_convenio === numeroConvenio);
 
   return (
     <SecaoOperacional titulo="Equipamentos do instrumento" cartao>
       {erro && <ErrorAlert mensagem={erro} />}
-      {revisao && (
-        <div
-          role="status"
-          className="mb-3 rounded-md border border-destructive/30 bg-destructive-bg/40 p-2.5 text-[12.5px]"
-        >
-          Entrega registrada antes do controle por unidade
-          {revisao.data_ocorrencia
-            ? ` (em ${revisao.data_ocorrencia.split("-").reverse().join("/")})`
-            : ""}
-          : vincule aos itens.{" "}
-          {podeEditar && (
-            <button
-              type="button"
-              className="font-semibold underline"
-              onClick={() =>
-                setPainel({
-                  tipo: "legado",
-                  revisaoId: revisao.id,
-                  data: revisao.data_ocorrencia,
-                })
-              }
-            >
-              Vincular agora
-            </button>
-          )}
-        </div>
-      )}
       {dados.itens.length === 0 ? (
         <p className="m-0 text-[12.5px] text-muted-foreground">
-          Este instrumento não tem itens do plano controlados por unidade.
+          Sem itens controlados.
         </p>
       ) : (
         <EquipamentosInstrumentoLista
