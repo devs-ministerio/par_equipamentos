@@ -232,3 +232,15 @@ def test_alerta_de_vencimento_e_por_equipamento(db):  # noqa: F811
         ("Acelerador Linear sintético", date(2029, 1, 1)),
         ("PET/CT sintético", date(2028, 5, 1)),
     ]
+
+
+def test_migracao_liga_licenca_ao_unico_item_que_exige(db):  # noqa: F811
+    c = Cenario(db)
+    familia = db.scalars(select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == "acelerador_linear")).one()
+    c.dois.catalogo_id = familia.id
+    db.flush()
+    lic = _evento(db, c, "regulatorio_licenca_operacao", data_ocorrencia=date(2026, 10, 5), status_regulatorio="Deferido")
+    resultado = migrar(db, aplicar=True)
+    doc = db.scalars(select(DocumentoInstrumento).where(DocumentoInstrumento.origem_evento_id == lic.id)).one()
+    assert doc.item_plano_id == c.dois.id
+    assert resultado["cnen_licenca: ligada ao item"] >= 1
