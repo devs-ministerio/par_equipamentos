@@ -61,7 +61,7 @@ describe("documentos do instrumento", () => {
     expect(await screen.findByText("TRP")).toBeInTheDocument();
     expect(screen.getByText("Nº 77")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Registrar documento" }),
+      screen.queryByRole("button", { name: "Documento" }),
     ).not.toBeInTheDocument();
     expect(screen.queryByTitle("Corrigir")).not.toBeInTheDocument();
   });
@@ -95,7 +95,7 @@ describe("documentos do instrumento", () => {
     const chamadas = responder(true, []);
     montar();
     await userEvent.click(
-      await screen.findByRole("button", { name: "Registrar documento" }),
+      await screen.findByRole("button", { name: "Documento" }),
     );
     await userEvent.click(
       screen.getByRole("button", { name: "Salvar documento" }),
@@ -129,7 +129,7 @@ describe("documentos do instrumento", () => {
     responder(true, []);
     montar();
     await userEvent.click(
-      await screen.findByRole("button", { name: "Registrar documento" }),
+      await screen.findByRole("button", { name: "Documento" }),
     );
     expect(screen.queryByLabelText("Validade")).not.toBeInTheDocument();
     await userEvent.selectOptions(

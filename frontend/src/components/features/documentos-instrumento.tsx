@@ -103,7 +103,7 @@ export function DocumentosInstrumento({
         podeEditar ? (
           <Button size="sm" variant="outline" onClick={() => setForm({})}>
             <Plus className="size-4" aria-hidden="true" />
-            Registrar documento
+            Documento
           </Button>
         ) : undefined
       }

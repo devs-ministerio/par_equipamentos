@@ -1,5 +1,4 @@
-/** Seção "Linha do tempo de eventos" -- toggle do form de lançamento +
- * histórico. Extraído de MonitoramentoInterno.tsx.
+/** Seção "Eventos" -- só o histórico, com correção e exclusão (o lançamento mora no cartão Cronograma). Extraído de MonitoramentoInterno.tsx.
  *
  * Editar/excluir (Plan Mode monitoramento-evolucao 2026-09-19) seguem a
  * mesma disciplina append-only do backend: "editar" reabre o form
@@ -37,23 +36,16 @@ function valoresIniciaisDoEvento(
   };
 }
 
-const MARCOS_DE_INAUGURACAO = [
-  "cronograma_previsao_inauguracao",
-  "cronograma_inauguracao_dispensada",
-];
-
 export function MonitoramentoInternoEventos({
   marcos,
   eventos,
   podeEditar,
-  onRegistrar,
   onEditar,
   onExcluir,
 }: {
   marcos: MarcoCatalogo[];
   eventos: EventoMarco[];
   podeEditar: boolean;
-  onRegistrar: (valores: EnviarEventoFormValues) => Promise<void>;
   onEditar: (
     eventoId: number,
     valores: EnviarEventoFormValues,
@@ -64,53 +56,16 @@ export function MonitoramentoInternoEventos({
     anularInauguracao?: boolean,
   ) => Promise<void>;
 }) {
-  const [formAberto, setFormAberto] = useState(false);
   const [eventoEmEdicao, setEventoEmEdicao] = useState<number | null>(null);
   const [eventoEmExclusao, setEventoEmExclusao] = useState<number | null>(null);
   const marcoPorId = new Map(marcos.map((m) => [m.id, m]));
-  // Há apenas uma inauguração por instrumento: com previsão (ou dispensa) registrada, só se corrige.
-  const idsInauguracao = marcos
-    .filter((m) => MARCOS_DE_INAUGURACAO.includes(m.codigo))
-    .map((m) => m.id);
-  const inauguracaoRegistrada = eventos.some((e) =>
-    idsInauguracao.includes(e.marco_id),
-  );
-  const marcosParaLancar = inauguracaoRegistrada
-    ? marcos.filter((m) => !idsInauguracao.includes(m.id))
-    : marcos;
-
   // Mais recente lançado primeiro (created_at, depois id), como no backend.
   const eventosOrdenados = [...eventos].sort(
     (a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id,
   );
 
   return (
-    <SecaoOperacional
-      titulo="Linha do tempo de eventos"
-      acao={
-        <button
-          disabled={!podeEditar}
-          onClick={() => setFormAberto((v) => !v)}
-          aria-expanded={formAberto}
-          className={cn(
-            estiloInput,
-            "cursor-pointer bg-primary text-primary-foreground border-none font-semibold",
-          )}
-        >
-          {formAberto ? "Cancelar" : "+ Lançar evento"}
-        </button>
-      }
-    >
-      {podeEditar && formAberto && (
-        <MonitoramentoInternoFormEvento
-          marcos={marcosParaLancar}
-          onRegistrar={async (valores) => {
-            await onRegistrar(valores);
-            setFormAberto(false);
-          }}
-        />
-      )}
-
+    <SecaoOperacional titulo="Eventos">
       {eventosOrdenados.length === 0 ? (
         <p className="text-muted-foreground italic text-sm">
           Nenhum evento lançado ainda.

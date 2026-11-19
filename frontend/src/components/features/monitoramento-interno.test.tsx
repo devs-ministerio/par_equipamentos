@@ -81,7 +81,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       await waitFor(() => expect(h.client.isFetching()).toBe(0));
       let alvo: HTMLElement;
       if (tipo === "evento") {
-        const resumo = screen.getByText(/Linha do tempo de eventos/, {
+        const resumo = screen.getByText(/^Eventos/, {
           selector: "summary",
         });
         fireEvent.click(resumo);
@@ -137,7 +137,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       await waitFor(() => expect(h.client.isFetching()).toBe(0));
       let alvo: HTMLElement;
       if (tipo === "evento") {
-        const resumo = screen.getByText(/Linha do tempo de eventos/, {
+        const resumo = screen.getByText(/^Eventos/, {
           selector: "summary",
         });
         fireEvent.click(resumo);
@@ -176,9 +176,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
   it("registra evento pelo transporte real e atualiza fase/timeline após confirmação", async () => {
     // Arrange
     const h = montar();
-    const abrir = await screen.findByRole("button", {
-      name: "+ Lançar evento",
-    });
+    const abrir = await screen.findByRole("button", { name: "Evento" });
     await waitFor(() => expect(abrir).toBeEnabled());
     fireEvent.click(abrir);
     fireEvent.change(screen.getByLabelText("Marco"), {
@@ -382,14 +380,12 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     // Arrange
     const h = montar();
     await screen.findByText("Cadastro interno");
-    fireEvent.change(screen.getByLabelText("Nova ação"), {
+    fireEvent.click(await screen.findByRole("button", { name: "Ação" }));
+    fireEvent.change(screen.getByLabelText("Descrição"), {
       target: { value: "Nova ação sintética" },
     });
     // Act
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "+ Adicionar" })).toBeEnabled(),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "+ Adicionar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
     // Assert
     expect(await screen.findByText("Nova ação sintética")).toBeInTheDocument();
     const pedido = h.fetch.mock.calls.find(
@@ -400,7 +396,9 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       data_prevista: null,
       responsavel: null,
     });
-    expect(screen.getByLabelText("Nova ação")).toHaveValue("");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("conclui ação e atualiza os indicadores sem nova ação automática", async () => {

@@ -33,6 +33,11 @@ import { DocumentosInstrumento } from "./documentos-instrumento";
 import { useEquipamentosInstrumento } from "@/hooks/useEquipamentosInstrumento";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
+import type {
+  CriarAcaoFormValues,
+  EnviarEventoFormValues,
+} from "@/lib/validations/monitoramento";
+import { MonitoramentoInternoLancamentos } from "./monitoramento-interno-lancamentos";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
 
 export function MonitoramentoInterno({
@@ -167,6 +172,36 @@ function MonitoramentoInternoConteudo({
     acoesAtrasadas,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
 
+  const registrarEvento = (valores: EnviarEventoFormValues) =>
+    executarEscrita(() =>
+      registrarEventoMutation.mutateAsync({
+        marco_id: Number(valores.marcoId),
+        fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
+        confirmar_inauguracao: valores.confirmarInauguracao ?? false,
+        data_ocorrencia: valores.dataOcorrencia || null,
+        data_prevista: valores.dataPrevista || null,
+        status_regulatorio: valores.statusRegulatorio || null,
+        numero_documento: valores.numeroDocumento || null,
+        data_validade: valores.dataValidade || null,
+        observacao: valores.observacao || null,
+        equipamento_marca: valores.equipamentoMarca || null,
+        equipamento_modelo: valores.equipamentoModelo || null,
+        equipamento_numero_serie: valores.equipamentoNumeroSerie || null,
+        equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos
+          ? Number(valores.equipamentoVidaUtilAnos)
+          : null,
+      }),
+    );
+
+  const criarAcao = (valores: CriarAcaoFormValues) =>
+    executarEscrita(() =>
+      criarAcaoMutation.mutateAsync({
+        descricao: valores.descricao,
+        data_prevista: valores.dataPrevista || null,
+        responsavel: valores.responsavel || null,
+      }),
+    );
+
   const componenteViaSiconv = !inst.componente
     ? componenteDoProgramaSiconv(programaQuery.data)
     : null;
@@ -256,6 +291,15 @@ function MonitoramentoInternoConteudo({
                 aoSessaoInvalida={sessao.tratarSessaoInvalida}
               />
             }
+            acao={
+              <MonitoramentoInternoLancamentos
+                marcos={marcos}
+                eventos={timeline.eventos}
+                podeEditar={podeEditar}
+                onRegistrarEvento={registrarEvento}
+                onCriarAcao={criarAcao}
+              />
+            }
             eventosPorMarco={eventosPorMarco}
             multiploEquipamento={multiploEquipamento}
           />
@@ -269,15 +313,6 @@ function MonitoramentoInternoConteudo({
             acoes={acoes}
             podeEditar={podeEditar}
             concluindoAcaoId={concluindoAcaoId}
-            onCriar={(valores) =>
-              executarEscrita(() =>
-                criarAcaoMutation.mutateAsync({
-                  descricao: valores.descricao,
-                  data_prevista: valores.dataPrevista || null,
-                  responsavel: valores.responsavel || null,
-                }),
-              )
-            }
             onConcluir={(acaoId) => {
               setErroEscrita(null);
               setConcluindoAcaoId(acaoId);
@@ -306,38 +341,11 @@ function MonitoramentoInternoConteudo({
           />
         </OperationalDetailSection>
 
-        <OperationalDetailSection
-          titulo="Linha do tempo de eventos"
-          abertoPorPadrao={false}
-        >
+        <OperationalDetailSection titulo="Eventos" abertoPorPadrao={false}>
           <MonitoramentoInternoEventos
             marcos={marcos}
             eventos={timeline.eventos}
             podeEditar={podeEditar}
-            onRegistrar={(valores) =>
-              executarEscrita(() =>
-                registrarEventoMutation.mutateAsync({
-                  marco_id: Number(valores.marcoId),
-                  fase_geral_id: valores.faseGeralId
-                    ? Number(valores.faseGeralId)
-                    : null,
-                  confirmar_inauguracao: valores.confirmarInauguracao ?? false,
-                  data_ocorrencia: valores.dataOcorrencia || null,
-                  data_prevista: valores.dataPrevista || null,
-                  status_regulatorio: valores.statusRegulatorio || null,
-                  numero_documento: valores.numeroDocumento || null,
-                  data_validade: valores.dataValidade || null,
-                  observacao: valores.observacao || null,
-                  equipamento_marca: valores.equipamentoMarca || null,
-                  equipamento_modelo: valores.equipamentoModelo || null,
-                  equipamento_numero_serie:
-                    valores.equipamentoNumeroSerie || null,
-                  equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos
-                    ? Number(valores.equipamentoVidaUtilAnos)
-                    : null,
-                }),
-              )
-            }
             onEditar={(eventoId, valores) =>
               executarEscrita(() =>
                 editarEventoMutation.mutateAsync({

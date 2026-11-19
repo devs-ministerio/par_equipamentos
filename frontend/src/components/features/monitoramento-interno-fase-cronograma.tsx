@@ -59,12 +59,15 @@ function MarcosSemRegistro({ marcos }: { marcos: MarcoCatalogo[] }) {
 export function MonitoramentoInternoCronograma({
   cronogramaFisico,
   documentos,
+  acao,
   eventosPorMarco,
   multiploEquipamento,
 }: {
   cronogramaFisico: MarcoCatalogo[];
   /** Cartão de documentos exibido ao lado do cronograma. */
   documentos?: ReactNode;
+  /** Botões de lançamento (evento e ação) no cabeçalho do cartão. */
+  acao?: ReactNode;
   eventosPorMarco: Map<number, EventoMarco[]>;
   /** Mostra TODOS os eventos ativos do marco em vez de só o mais recente
    * (Plan Mode monitoramento-evolucao 2026-09-19, decisão do usuário) --
@@ -81,7 +84,7 @@ export function MonitoramentoInternoCronograma({
 
   return (
     <div className="grid [grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4">
-      <SecaoOperacional titulo="Cronograma" cartao>
+      <SecaoOperacional titulo="Cronograma" cartao acao={acao}>
         <ul className="m-0 grid list-none gap-2.5 p-0">
           {fisicoComRegistro.map((m) => (
             <li key={m.id} className="flex gap-2.5 text-[12.5px]">

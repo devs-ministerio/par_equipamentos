@@ -15,7 +15,6 @@ function criarProps() {
     ],
     podeEditar: true,
     concluindoAcaoId: null as number | null,
-    onCriar: vi.fn().mockResolvedValue(undefined),
     onConcluir: vi.fn(),
     onEditar: vi.fn().mockResolvedValue(undefined),
     onExcluir: vi.fn().mockResolvedValue(undefined),
@@ -23,21 +22,17 @@ function criarProps() {
 }
 
 describe("interação das ações de monitoramento", () => {
-  it.each([undefined, []])(
-    "lista %s mostra vazio e permite preparar nova ação",
-    (acoes) => {
-      // Arrange / Act
-      const props = criarProps();
-      render(<MonitoramentoInternoAcoes {...props} acoes={acoes} />);
-      // Assert
-      expect(
-        screen.getByText("Nenhuma ação registrada ainda."),
-      ).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "+ Adicionar" })).toBeEnabled();
-    },
-  );
+  it.each([undefined, []])("lista %s mostra vazio", (acoes) => {
+    // Arrange / Act
+    const props = criarProps();
+    render(<MonitoramentoInternoAcoes {...props} acoes={acoes} />);
+    // Assert
+    expect(
+      screen.getByText("Nenhuma ação registrada ainda."),
+    ).toBeInTheDocument();
+  });
 
-  it("leitura sem permissão não oferece edição/exclusão e bloqueia conclusão/criação", async () => {
+  it("leitura sem permissão não oferece edição/exclusão e bloqueia conclusão", async () => {
     // Arrange
     const props = criarProps();
     render(<MonitoramentoInternoAcoes {...props} podeEditar={false} />);
@@ -48,7 +43,6 @@ describe("interação das ações de monitoramento", () => {
     expect(
       screen.queryByRole("button", { name: "Excluir" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "+ Adicionar" })).toBeDisabled();
     const concluir = screen.getByRole("button", { name: /Concluir ação:/ });
     expect(concluir).toBeDisabled();
     await userEvent.click(concluir);
@@ -117,64 +111,6 @@ describe("interação das ações de monitoramento", () => {
     ).toBeDisabled();
   });
 
-  it("valida descrição e bloqueia reenvio enquanto cria; limpa no sucesso", async () => {
-    // Arrange
-    const props = criarProps();
-    let terminar!: () => void;
-    props.onCriar.mockImplementationOnce(
-      () =>
-        new Promise<void>((resolve) => {
-          terminar = resolve;
-        }),
-    );
-    render(<MonitoramentoInternoAcoes {...props} acoes={[]} />);
-    // Act / Assert
-    await userEvent.click(screen.getByRole("button", { name: "+ Adicionar" }));
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Descreva o que precisa ser feito.",
-    );
-    expect(props.onCriar).not.toHaveBeenCalled();
-    await userEvent.type(
-      screen.getByLabelText("Nova ação"),
-      "  Conferir entrega  ",
-    );
-    await userEvent.type(screen.getByLabelText("Prazo"), "2026-11-01");
-    await userEvent.selectOptions(
-      screen.getByLabelText("Responsável"),
-      "Convenente",
-    );
-    await userEvent.click(screen.getByRole("button", { name: "+ Adicionar" }));
-    expect(
-      screen.getByRole("button", { name: "Adicionando..." }),
-    ).toBeDisabled();
-    expect(props.onCriar).toHaveBeenCalledExactlyOnceWith({
-      descricao: "Conferir entrega",
-      dataPrevista: "2026-11-01",
-      responsavel: "Convenente",
-    });
-    terminar();
-    await waitFor(() =>
-      expect(screen.getByLabelText("Nova ação")).toHaveValue(""),
-    );
-  });
-
-  it("falha ao criar mantém os campos para tentar novamente", async () => {
-    // Arrange
-    const props = criarProps();
-    props.onCriar.mockRejectedValueOnce(new ApiError("Sem conexão", 503));
-    render(<MonitoramentoInternoAcoes {...props} acoes={[]} />);
-    // Act
-    await userEvent.type(
-      screen.getByLabelText("Nova ação"),
-      "Conferir entrega",
-    );
-    await userEvent.click(screen.getByRole("button", { name: "+ Adicionar" }));
-    // Assert
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "+ Adicionar" })).toBeEnabled(),
-    );
-    expect(screen.getByLabelText("Nova ação")).toHaveValue("Conferir entrega");
-  });
   it("edição preserva responsável histórico fora das opções atuais", async () => {
     // Arrange
     const props = criarProps();
@@ -198,22 +134,19 @@ describe("interação das ações de monitoramento", () => {
     );
   });
 
-  it("criação e edição têm labels ligados aos seus próprios controles", async () => {
+  it("a edição tem labels ligados aos seus próprios controles", async () => {
     // Arrange
     const props = criarProps();
     render(<MonitoramentoInternoAcoes {...props} />);
     // Act
     await userEvent.click(screen.getByRole("button", { name: "Editar" }));
     // Assert
-    expect(screen.getAllByRole("textbox", { name: "Nova ação" })).toHaveLength(
-      1,
-    );
     expect(
       screen.getAllByRole("textbox", { name: "Corrigir ação" }),
     ).toHaveLength(1);
     expect(
       screen.getAllByRole("combobox", { name: "Responsável" }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
   });
 
   it("retirar permissão fecha a confirmação de exclusão aberta", async () => {
@@ -271,9 +204,6 @@ describe("interação das ações de monitoramento", () => {
         dataPrevista: "2099-11-01",
       }),
     );
-    expect(
-      screen.getByRole("button", { name: "+ Adicionar" }),
-    ).toBeInTheDocument();
   });
 
   it("exclusão exige motivo, pode ser cancelada e só fecha após sucesso", async () => {
