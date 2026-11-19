@@ -16,6 +16,7 @@ function item(sobrescrita: Partial<ItemEquipamento> = {}): ItemEquipamento {
     familia: "mamografo",
     controla_unidade: true,
     quantidade_planejada: 2,
+    valor_total: 1200000,
     quantidade_cancelada: 0,
     cancelamentos: [],
     previsao_entrega: null,
@@ -70,6 +71,7 @@ describe("lista de equipamentos do instrumento", () => {
     );
     expect(screen.getByText("Parcial")).toBeInTheDocument();
     expect(screen.getByText("010925")).toBeInTheDocument();
+    expect(screen.getByText(/1\.200\.000,00/)).toBeInTheDocument();
     await userEvent.click(
       screen.getByRole("button", { name: "Ver unidades de Mamógrafo" }),
     );

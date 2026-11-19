@@ -87,6 +87,7 @@ class ItemEquipamentoRead(BaseModel):
     familia: str | None
     controla_unidade: bool
     quantidade_planejada: int | None
+    valor_total: float | None = None
     quantidade_cancelada: int = 0
     cancelamentos: list[CancelamentoUnidadeRead] = []
     previsao_entrega: date | None = None

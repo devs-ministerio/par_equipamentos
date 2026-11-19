@@ -33,7 +33,7 @@ const formatarMoeda = new Intl.NumberFormat("pt-BR", {
 });
 
 const COLUNAS =
-  "md:grid-cols-[minmax(0,1fr)_6.5rem_6.5rem_10rem_11rem] md:items-center";
+  "md:grid-cols-[minmax(0,1fr)_8rem_6.5rem_6.5rem_10rem_11rem] md:items-center";
 
 function DataDoItem({ item }: { item: ItemEquipamento }) {
   const concluido =
@@ -108,6 +108,7 @@ export function EquipamentosInstrumentoLista({
         )}
       >
         <span>Equipamento</span>
+        <span className="text-center">Valor</span>
         <span className="text-center">Entregue</span>
         <span className="text-center">Situação</span>
         <span className="whitespace-nowrap text-center">
@@ -142,6 +143,11 @@ export function EquipamentosInstrumentoLista({
                     {item.codigo_item}
                   </span>
                 )}
+              </div>
+              <div className="text-center text-[12.5px] tabular-nums">
+                {item.valor_total != null
+                  ? formatarMoeda.format(item.valor_total)
+                  : "—"}
               </div>
               <div className="text-center text-[12.5px] tabular-nums">
                 <span className="font-semibold">

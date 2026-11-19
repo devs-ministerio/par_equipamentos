@@ -144,6 +144,7 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                 familia=familia,
                 controla_unidade=True,
                 quantidade_planejada=item.quantidade_planejada,
+                valor_total=float(item.valor_total) if item.valor_total is not None else None,
                 quantidade_cancelada=canceladas.get(item.id, 0),
                 cancelamentos=cancelamentos.get(item.id, []),
                 previsao_entrega=previsoes.get(item.id),

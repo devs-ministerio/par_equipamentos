@@ -42,6 +42,7 @@ const itemSchema = z.object({
   familia: z.string().nullable(),
   controla_unidade: z.boolean(),
   quantidade_planejada: z.number().nullable(),
+  valor_total: z.number().nullable(),
   quantidade_cancelada: z.number().default(0),
   cancelamentos: z.array(cancelamentoSchema).default([]),
   previsao_entrega: z.string().nullable().default(null),
