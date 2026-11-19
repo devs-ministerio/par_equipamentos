@@ -21,10 +21,6 @@ export function MonitoramentoInternoFaseGeral({
     <SecaoOperacional titulo="Fase geral" cartao acao={acao}>
       <p className="m-0 mb-3 text-sm">
         <strong>{FASES_ACOMPANHAMENTO[indiceAtual]}</strong>
-        <span className="text-muted-foreground">
-          {" "}
-          · etapa {indiceAtual + 1} de {FASES_ACOMPANHAMENTO.length}
-        </span>
       </p>
       <ol className="m-0 flex list-none p-0">
         {FASES_ACOMPANHAMENTO.map((rotulo, i) => {

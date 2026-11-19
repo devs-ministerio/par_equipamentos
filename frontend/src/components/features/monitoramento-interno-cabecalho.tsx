@@ -75,7 +75,10 @@ export function MonitoramentoInternoCabecalho({
     {
       rotulo: "Ações abertas",
       valor: acoesAbertasCount,
-      detalhe: `${acoesAtrasadasCount} atrasada(s)`,
+      detalhe:
+        acoesAtrasadasCount > 0
+          ? `${acoesAtrasadasCount} atrasada(s)`
+          : undefined,
       alerta: acoesAtrasadasCount > 0,
     },
     // Situação da prestação de contas no SICONV legado -- sincronizada por
@@ -87,7 +90,7 @@ export function MonitoramentoInternoCabecalho({
             rotulo: "Prestação de contas (SICONV)",
             valor: inst.situacao_prestacao_contas ?? "Sem dado",
             detalhe: !prestacaoVerificada
-              ? "Situação externa ainda não verificada"
+              ? undefined
               : divergenciaInauguracao
                 ? "Atenção: conclusão interna ainda não confirmada na fonte externa"
                 : prestacaoConcluida

@@ -49,7 +49,6 @@ export function MonitoramentoInstrumentoPage() {
         }
         eyebrow="Monitoramento interno"
         title={nrConvenio}
-        description="Eventos, prazos e pendências do instrumento."
         className="[&_h1]:break-all"
         actions={
           <Button asChild variant="outline" size="sm" className="group">

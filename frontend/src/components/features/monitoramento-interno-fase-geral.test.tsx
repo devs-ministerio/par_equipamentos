@@ -11,7 +11,9 @@ describe("indicador da fase geral", () => {
     expect(
       screen.getByText("Em aquisição", { selector: "strong" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/etapa 4 de 7/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Em aquisição", { selector: "strong" }),
+    ).toBeInTheDocument();
     const atual = screen
       .getAllByRole("listitem")
       .find((li) => li.getAttribute("aria-current") === "step")!;

@@ -188,7 +188,9 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     // Act
     fireEvent.click(screen.getByRole("button", { name: "Registrar evento" }));
     // Assert
-    expect(await screen.findByText(/etapa \d+ de 7/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(
       screen.queryByRole("button", { name: "Registrar evento" }),
     ).not.toBeInTheDocument();

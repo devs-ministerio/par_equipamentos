@@ -41,9 +41,8 @@ describe("MonitoramentoInternoCabecalho", () => {
   it("não interpreta situação externa ausente como prestação de contas pendente", () => {
     renderizar(null);
 
-    expect(
-      screen.getByText("Situação externa ainda não verificada"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Sem dado")).toBeInTheDocument();
+    expect(screen.queryByText("Ainda não concluída")).not.toBeInTheDocument();
     expect(
       screen.queryByText(/pendente de conclusão/i),
     ).not.toBeInTheDocument();
