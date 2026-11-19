@@ -15,7 +15,7 @@ from app.services.monitoramento_instrumentos import InstrumentoComFase
 from app.services.relatorios_monitoramento import DadosMonitoramentoRelatorio
 
 CONCLUIDO = "Concluído"
-NAO_INICIADO = "Não iniciado"
+NAO_INICIADO = "Acompanhamento iniciado"
 
 COLUNAS_SINTESE = ["Indicador", "Quantidade"]
 COLUNAS_AGENDA = [
@@ -71,7 +71,7 @@ def agenda_dos_instrumentos(
             if real is None:
                 situacao += " e sem inauguração confirmada"
         elif item.fase_atual == NAO_INICIADO:
-            situacao = "Não iniciado"
+            situacao = NAO_INICIADO
         elif real is not None:
             situacao = "Em andamento, inaugurado"
         elif previsao is None:
@@ -90,7 +90,7 @@ CATEGORIAS_CONCLUSAO = {
     "previsao_vigente": "Em andamento, previsão vigente",
     "previsao_vencida": "Em andamento, previsão vencida",
     "sem_previsao": "Em andamento, sem previsão",
-    "nao_iniciado": "Não iniciado",
+    "nao_iniciado": NAO_INICIADO,
 }
 
 
@@ -117,7 +117,7 @@ def sintese(agenda: Sequence[AgendaInstrumento]) -> list[list[object]]:
         ["Em andamento com previsão vigente", contar("Em andamento, previsão vigente")],
         ["Em andamento com previsão vencida", contar("Em andamento, previsão vencida")],
         ["Em andamento sem previsão (lacuna de cadastro)", contar("Em andamento, sem previsão")],
-        ["Não iniciados", contar("Não iniciado")],
+        ["Acompanhamento iniciado (sem avanço)", contar(NAO_INICIADO)],
     ]
 
 

@@ -87,6 +87,12 @@ Ajuste de botão (pedido em 19/11/2026): o "Editar cadastro" do cartão Cadastro
 
 Critério: o dado fica se a equipe age sobre ele; texto que só explica regra interna sai.
 
+## 8c. Pergunta de inauguração ao confirmar a entrega (pedido de 19/11/2026)
+
+Depois do check de entrega, o sistema pergunta se o equipamento precisa de inauguração. Se sim, pede a previsão;
+se já houver data registrada antes (evento `cronograma_previsao_inauguracao` ou data migrada), pede só a confirmação
+dela. Se não, nada é registrado. Desenho e persistência da resposta ("precisa de inauguração") ainda a aprovar.
+
 ## 9. Em aberto
 
 - Forma da previsão de inauguração (campo do instrumento recomendado).

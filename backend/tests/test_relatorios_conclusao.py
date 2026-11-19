@@ -46,7 +46,7 @@ def montar():
         instrumento(3, "Em licitação"),  # previsão vigente
         instrumento(4, "Em licitação"),  # previsão vencida
         instrumento(5, "Em licitação"),  # sem previsão
-        instrumento(6, "Não iniciado"),
+        instrumento(6, "Acompanhamento iniciado"),
     ]
     d = dados(
         e1=[
@@ -69,7 +69,7 @@ def test_cada_instrumento_recebe_a_situacao_correta_sem_inferir_datas():
         "Em andamento, previsão vigente",
         "Em andamento, previsão vencida",
         "Em andamento, sem previsão",
-        "Não iniciado",
+        "Acompanhamento iniciado",
     ]
 
 
@@ -84,7 +84,7 @@ def test_sintese_conta_lacunas_separadas_de_atraso():
     assert valores["Em andamento com previsão vigente"] == 1
     assert valores["Em andamento com previsão vencida"] == 1
     assert valores["Em andamento sem previsão (lacuna de cadastro)"] == 1
-    assert valores["Não iniciados"] == 1
+    assert valores["Acompanhamento iniciado (sem avanço)"] == 1
 
 
 def test_proximas_previsoes_separa_vigentes_de_vencidas_e_ordena_por_data():

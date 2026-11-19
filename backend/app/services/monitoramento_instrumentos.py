@@ -28,6 +28,7 @@ from app.repositories import propostas_candidatas as propostas_repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.repositories.notificacoes import criar_notificacao
 from app.services.monitoramento_eventos import substituir_responsaveis_instrumento
+from app.services.repasses import fases_calculadas_em_lote
 
 LIMITE_MONITORAMENTO_RELATORIO = 500
 
@@ -161,16 +162,6 @@ class InstrumentoComFase:
     fase_atual: str
 
 
-def _fase_atual_id(fases_gerais_desc: list[MarcoCatalogo], marco_ids_com_evento: set[int]) -> int | None:
-    """Percorre os marcos de fase_geral do mais avançado (`ordem` desc) pro
-    menos avançado -- o primeiro com evento registrado É a fase atual.
-    Nenhum encontrado -> instrumento ainda não iniciou nenhuma fase."""
-    for marco in fases_gerais_desc:
-        if marco.id in marco_ids_com_evento:
-            return marco.id
-    return None
-
-
 def listar_instrumentos_monitorados(
     *,
     db: Session,
@@ -206,30 +197,15 @@ def listar_instrumentos_monitorados(
         cnes=cnes,
         tipo_contratacao=tipo_contratacao,
     )
-    fases_gerais_desc = monitoramento_repo.listar_marcos_fase_geral_desc(db)
-    return _filtrar_periodo(
-        _instrumentos_com_fase(db=db, instrumentos=instrumentos, fases_gerais_desc=fases_gerais_desc),
-        ano_inicio,
-        ano_fim,
-    )
+    return _filtrar_periodo(_instrumentos_com_fase(db=db, instrumentos=instrumentos), ano_inicio, ano_fim)
 
 
-def _instrumentos_com_fase(
-    *, db: Session, instrumentos: list[InstrumentoEquipamento], fases_gerais_desc: list[MarcoCatalogo]
-) -> list[InstrumentoComFase]:
+def _instrumentos_com_fase(*, db: Session, instrumentos: list[InstrumentoEquipamento]) -> list[InstrumentoComFase]:
+    """Fase oficial = fase calculada pelos fatos do instrumento (`services/repasses.py::fases_calculadas_em_lote`)."""
     if not instrumentos:
         return []
-    fase_ids = [m.id for m in fases_gerais_desc]
-    eventos_por_instrumento = monitoramento_repo.mapa_eventos_por_instrumento(
-        db, fase_ids, instrumento_ids=[i.id for i in instrumentos]
-    )
-
-    resultado = []
-    for inst in instrumentos:
-        fase_atual_id = _fase_atual_id(fases_gerais_desc, eventos_por_instrumento.get(inst.id, set()))
-        fase_atual = next((f.rotulo for f in fases_gerais_desc if f.id == fase_atual_id), "Não iniciado")
-        resultado.append(InstrumentoComFase(instrumento=inst, fase_atual=fase_atual))
-    return resultado
+    fases = fases_calculadas_em_lote(db, instrumentos)
+    return [InstrumentoComFase(instrumento=i, fase_atual=fases[i.id].value) for i in instrumentos]
 
 
 def _filtrar_periodo(
@@ -265,7 +241,6 @@ def listar_monitorados_para_relatorio(
     ano_fim: int | None = None,
 ) -> list[InstrumentoComFase]:
     """Recorte completo até 500; não reutiliza o corte anterior à fase da UI."""
-    fases = monitoramento_repo.listar_marcos_fase_geral_desc(db)
     resultado: list[InstrumentoComFase] = []
     with closing(
         monitoramento_repo.iterar_instrumentos_relatorio(
@@ -276,9 +251,7 @@ def listar_monitorados_para_relatorio(
             excluidos = convenios_repo.listar_numeros_fora_escopo(db, {i.nr_convenio for i in lote})
             visiveis = [i for i in lote if i.nr_convenio not in excluidos]
             resultado.extend(
-                _filtrar_periodo(
-                    _instrumentos_com_fase(db=db, instrumentos=visiveis, fases_gerais_desc=fases), ano_inicio, ano_fim
-                )
+                _filtrar_periodo(_instrumentos_com_fase(db=db, instrumentos=visiveis), ano_inicio, ano_fim)
             )
             if len(resultado) > LIMITE_MONITORAMENTO_RELATORIO:
                 raise LimiteConsultaExcedido

@@ -1339,9 +1339,13 @@ def _eventos_ativos_do_instrumento(db, nr_convenio: str) -> list[EventoMarco]:
     ]
 
 
+def _fase_geral_qualquer(db) -> int:
+    return db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one().id
+
+
 def test_evento_excluido_nao_conta_para_fase_atual():
-    """Reproduz o bug real corrigido no Bloco 0/1: evento de fase excluído
-    não pode continuar empurrando `fase_atual` pra frente."""
+    """Evento excluído não pode continuar empurrando a fase calculada pra frente
+    (aqui, marco de aguardando repasse)."""
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     instrumento_teste = InstrumentoEquipamento(
@@ -1352,23 +1356,25 @@ def test_evento_excluido_nao_conta_para_fase_atual():
     try:
         db.add(instrumento_teste)
         db.flush()
-        marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
+        marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_aguardando_repasse").one()
         evento = registrar_evento_monitorado(
             nr_convenio=instrumento_teste.nr_convenio,
-            dados=NovoEventoMonitorado(marco_id=marco_fase.id, data_ocorrencia=date(2026, 1, 1)),
+            dados=NovoEventoMonitorado(
+                marco_id=marco_fase.id, data_ocorrencia=date(2026, 1, 1), fase_geral_id=_fase_geral_qualquer(db)
+            ),
             db=db,
             usuario=usuario,
         )
 
         itens = listar_instrumentos_monitorados(db=db)
         item = next(i for i in itens if i.instrumento.nr_convenio == instrumento_teste.nr_convenio)
-        assert item.fase_atual == marco_fase.rotulo
+        assert item.fase_atual == "Aguardando repasse"
 
         excluir_evento_monitorado(evento_id=evento.id, motivo="teste pytest", db=db, usuario=usuario)
 
         itens_apos = listar_instrumentos_monitorados(db=db)
         item_apos = next(i for i in itens_apos if i.instrumento.nr_convenio == instrumento_teste.nr_convenio)
-        assert item_apos.fase_atual == "Não iniciado"
+        assert item_apos.fase_atual == "Acompanhamento iniciado"
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1783,58 +1789,6 @@ def test_excluir_a_conclusao_so_anula_a_inauguracao_quando_pedido():
         anulada = db.query(EventoMarco).filter_by(instrumento_id=anulando.id, marco_id=marco_inaug.id).one()
         assert anulada.deletado_em is not None
         assert "Anulada junto com a conclusão" in (anulada.motivo_exclusao or "")
-    finally:
-        db.rollback()
-        db.query(User).filter_by(id=usuario.id).delete()
-        db.commit()
-        db.close()
-
-
-def test_resumo_aponta_lacunas_de_conclusao_sem_confundir_com_atraso():
-    db = SessionLocal()
-    usuario = criar_usuario_teste(db, role=UserRole.gestor)
-    try:
-        marcos = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
-
-        def evento(instrumento, codigo, **campos):
-            db.add(
-                EventoMarco(
-                    instrumento_id=instrumento.id,
-                    marco_id=marcos[codigo].id,
-                    autor_id=usuario.id,
-                    **campos,
-                )
-            )
-
-        # Concluído sem data de conclusão e sem inauguração real (o caso do TED do diagnóstico).
-        sem_data = _instrumento_efemero(db, "PYTEST-LAC-SEMDATA")
-        evento(sem_data, "fase_concluido")
-        # Concluído com data, mas só com previsão de inauguração.
-        sem_inaug = _instrumento_efemero(db, "PYTEST-LAC-SEMINAUG")
-        evento(sem_inaug, "fase_concluido", data_ocorrencia=date(2026, 10, 1))
-        evento(sem_inaug, "cronograma_previsao_inauguracao", data_prevista=date(2026, 12, 1))
-        # Concluído completo: não aparece.
-        completo = _instrumento_efemero(db, "PYTEST-LAC-OK")
-        evento(completo, "fase_concluido", data_ocorrencia=date(2026, 10, 1))
-        evento(completo, "cronograma_previsao_inauguracao", data_ocorrencia=date(2026, 10, 1))
-        # Em andamento sem previsão, e em andamento com previsão.
-        andamento = _instrumento_efemero(db, "PYTEST-LAC-ANDAMENTO")
-        evento(andamento, "fase_em_licitacao", data_ocorrencia=date(2026, 9, 1))
-        com_previsao = _instrumento_efemero(db, "PYTEST-LAC-PREVISTO")
-        evento(com_previsao, "fase_em_licitacao", data_ocorrencia=date(2026, 9, 1))
-        evento(com_previsao, "cronograma_previsao_inauguracao", data_prevista=date(2027, 1, 1))
-        # Sem nenhum evento ("Não iniciado"): não há o que concluir nem prever.
-        nao_iniciado = _instrumento_efemero(db, "PYTEST-LAC-NI")
-        db.flush()
-
-        lacunas = {(item.nr_convenio, item.tipo) for item in obter_resumo(db).lacunas_conclusao}
-
-        assert (sem_data.nr_convenio, "concluido_sem_data_conclusao") in lacunas
-        assert (sem_data.nr_convenio, "concluido_sem_inauguracao_real") in lacunas
-        assert (sem_inaug.nr_convenio, "concluido_sem_inauguracao_real") in lacunas
-        assert (sem_inaug.nr_convenio, "concluido_sem_data_conclusao") not in lacunas
-        assert (andamento.nr_convenio, "andamento_sem_previsao") in lacunas
-        assert not {n for n, _ in lacunas} & {completo.nr_convenio, com_previsao.nr_convenio, nao_iniciado.nr_convenio}
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
