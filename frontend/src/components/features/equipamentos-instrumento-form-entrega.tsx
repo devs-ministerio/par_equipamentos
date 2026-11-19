@@ -211,7 +211,7 @@ export function EquipamentosInstrumentoFormEntrega({
               <legend className="px-1 text-[12px] font-medium">
                 Inauguração
               </legend>
-              <div className="mx-auto grid w-fit grid-cols-[auto_10rem] items-center gap-x-4 gap-y-3">
+              <div className="mx-auto grid w-fit grid-cols-[auto_10rem] items-center gap-x-4 gap-y-1.5">
                 <p className="text-[12.5px]">
                   O equipamento precisa de inauguração?
                 </p>
