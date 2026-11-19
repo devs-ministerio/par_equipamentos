@@ -4,7 +4,7 @@ Marca as famílias que exigem licença da ANSN (`equipamento_catalogo.exige_lice
 item do plano (`documento_instrumento.item_plano_id`, opcional: documentos antigos ficam só no instrumento).
 
 Revision ID: a3b4c5d6e7f8
-Revises: b9c0d1e2f3a4
+Revises: a8b9c0d1e2f3
 Create Date: 2026-11-19 18:00:00.000000
 
 """
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "a3b4c5d6e7f8"
-down_revision: Union[str, Sequence[str], None] = "b9c0d1e2f3a4"
+down_revision: Union[str, Sequence[str], None] = "a8b9c0d1e2f3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

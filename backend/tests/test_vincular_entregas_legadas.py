@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from scripts.vincular_entregas_legadas import decidir
+from scripts.vincular_entregas_legadas import decidir, expandir_pela_cadeia_de_correcao
 
 
 def _item(qtd: int | None = 1):
@@ -28,3 +28,8 @@ def test_varios_itens_nao_escolhe_o_primeiro() -> None:
 
 def test_quantidade_desconhecida_vai_para_revisao() -> None:
     assert decidir(1, [_item(None)]) == (None, "quantidade_desconhecida")
+
+
+def test_correcao_de_evento_tratado_continua_tratada() -> None:
+    sucessor = {1: 2, 2: 3, 3: None, 9: None}
+    assert expandir_pela_cadeia_de_correcao({1, None}, sucessor) == {1, 2, 3}

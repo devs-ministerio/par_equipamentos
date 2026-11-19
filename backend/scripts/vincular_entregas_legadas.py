@@ -99,6 +99,18 @@ def _avisar(
             )
 
 
+def expandir_pela_cadeia_de_correcao(tratados: set, sucessor: dict) -> set:
+    """Evento corrigido depois de tratado continua tratado: a entrega nasceu do original e o
+    ativo atual é só a correção dele (senão a unidade ordem 1 do item colide)."""
+    resultado = {t for t in tratados if t is not None}
+    for origem in list(resultado):
+        atual = sucessor.get(origem)
+        while atual is not None and atual not in resultado:
+            resultado.add(atual)
+            atual = sucessor.get(atual)
+    return resultado
+
+
 def vincular(db: Session, *, aplicar: bool, avisar: bool = False) -> Resultado:
     resultado = Resultado()
     eventos = list(
@@ -117,8 +129,10 @@ def vincular(db: Session, *, aplicar: bool, avisar: bool = False) -> Resultado:
     por_instrumento: dict[int, list[EventoMarco]] = defaultdict(list)
     for e in eventos:
         por_instrumento[e.instrumento_id].append(e)
-    tratados = set(db.execute(select(EntregaEquipamento.evento_id)).scalars()) | set(
-        db.execute(select(EntregaLegadaRevisao.evento_id)).scalars()
+    tratados = expandir_pela_cadeia_de_correcao(
+        set(db.execute(select(EntregaEquipamento.evento_id)).scalars())
+        | set(db.execute(select(EntregaLegadaRevisao.evento_id)).scalars()),
+        dict(db.execute(select(EventoMarco.id, EventoMarco.substituido_por_id)).all()),
     )
     itens_por_instrumento: dict[int, list[ItemPlano]] = defaultdict(list)
     for item in db.execute(

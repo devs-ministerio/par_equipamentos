@@ -113,7 +113,7 @@ Previsão/realizada e "Inauguração dispensada" são excludentes: no máximo um
 
 Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup_banco.yml`) antes.
 
-1. Migrations até `a8b9c0d1e2f3` (catálogo Cronograma e ANSN) e deploy do backend.
+1. Migrations até `b4c5d6e7f8a9` (catálogo Cronograma, ANSN, licença por item e situação "Em operação"; o ORM dos scripts já lê `exige_licenca`) e deploy do backend. A `b9c0d1e2f3a4` fica para o passo 7.
 2. `projetar_itens_plano --aplicar` (liga itens soltos) e `derivar_repasses_siconv --aplicar` (repasse integral/parcial).
 3. `migrar_marcos_para_documentos --aplicar` (OS, TRP, TRD, SCRA e licença viram documentos).
 4. `remover_persus_ii_do_monitoramento --aplicar`: só remove instrumento sem lançamento; `AuditLog` antes; itens perdem o vínculo.
@@ -130,6 +130,12 @@ Todos com simulação por padrão e `--aplicar --confirmo-host`; backup (`backup
 
 Rodada local de 19/11 (clone): 51 entregas criadas e 36 datas corrigidas no PERSUS I; 96 conclusões migradas e 15
 instrumentos enviados à revisão (8 por entrega, 7 sem data de conclusão); 23 grupos de inauguração consolidados.
+
+Ensaio 5d (19/11, restauração `pg_dump` da produção em `sigeo_ensaio_5d`): 7+3 migrations limpas; repasses 189/130/103;
+documentos migrados (licença 96, SCRA 1, OS 5, TRD 39, TRP 29); 24 instrumentos PERSUS II removidos; PERSUS I: 59 datas
+corrigidas e 17 entregas criadas; 173 conclusões e 15 à revisão; 0 duplicados de inauguração; `b9c0` aplicada.
+Achado: `vincular_entregas_legadas` quebrava em instrumento cuja entrega foi criada pela tela e cujo evento foi corrigido depois
+(unidade ordem 1 duplicada); corrigido para tratar a cadeia de correção como já tratada.
 
 ## 8g. Marcos do cronograma por fase (19/11/2026)
 
