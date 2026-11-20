@@ -80,16 +80,14 @@ function preparar({ role = "gestor", item = candidato, falha = false } = {}) {
 
 it("valida justificativa, envia captura e versão com CSRF e fecha após sucesso", async () => {
   const fetch = preparar();
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Iniciar análise" }),
-  );
+  fireEvent.click(await screen.findByRole("button", { name: "Rejeitar" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirmar decisão" }));
   expect(await screen.findByText(/pelo menos 3 caracteres/)).toBeVisible();
   expect(
     fetch.mock.calls.filter(([, init]) => init?.method === "POST"),
   ).toHaveLength(0);
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Justificativa da análise" }),
+    screen.getByRole("textbox", { name: "Motivo da rejeição" }),
     { target: { value: "Conferência sintética" } },
   );
   fireEvent.click(screen.getByRole("button", { name: "Confirmar decisão" }));
@@ -100,7 +98,7 @@ it("valida justificativa, envia captura e versão com CSRF e fecha após sucesso
   );
   const chamada = fetch.mock.calls.find(([, init]) => init?.method === "POST");
   expect(JSON.parse(String(chamada?.[1]?.body))).toMatchObject({
-    acao: "iniciar_analise",
+    acao: "rejeitar",
     captura_id: 2,
     versao: 0,
     justificativa: "Conferência sintética",
@@ -150,9 +148,7 @@ it.each(["colaborador", "leitor"])(
 
 it("cancelar não grava uma decisão", async () => {
   const fetch = preparar();
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Iniciar análise" }),
-  );
+  fireEvent.click(await screen.findByRole("button", { name: "Rejeitar" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   expect(

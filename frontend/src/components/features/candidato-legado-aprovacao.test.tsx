@@ -36,7 +36,7 @@ async function escolherTecnico(nome = "Técnica Sintética") {
   });
 }
 const enviar = () =>
-  fireEvent.click(screen.getByRole("button", { name: "Aprovar e incluir" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
 
 describe("conferência e aprovação no Radar", () => {
   it.each(["admin", "gestor"])(
@@ -52,9 +52,7 @@ describe("conferência e aprovação no Radar", () => {
       await abrir();
       // Assert
       expect(await screen.findByLabelText("Técnico titular")).toBeVisible();
-      expect(
-        screen.getByRole("button", { name: "Aprovar e incluir" }),
-      ).toBeVisible();
+      expect(screen.getByRole("button", { name: "Confirmar" })).toBeVisible();
       expect(fetch.mock.calls.some(([, init]) => init?.method === "POST")).toBe(
         false,
       );
@@ -92,7 +90,7 @@ describe("conferência e aprovação no Radar", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("aprova sem técnico: só envia a referência da prova, sem técnico", async () => {
+  it("não aprova sem escolher o técnico", async () => {
     // Arrange
     const { fetch } = montar();
     await abrir();
@@ -100,17 +98,12 @@ describe("conferência e aprovação no Radar", () => {
     // Act
     enviar();
     // Assert
-    await waitFor(() =>
-      expect(fetch.mock.calls.some(([, init]) => init?.method === "POST")).toBe(
-        true,
-      ),
+    expect(
+      await screen.findByText("Informe o técnico titular responsável."),
+    ).toBeVisible();
+    expect(fetch.mock.calls.some(([, init]) => init?.method === "POST")).toBe(
+      false,
     );
-    const corpo = JSON.parse(
-      String(
-        fetch.mock.calls.find(([, init]) => init?.method === "POST")?.[1]?.body,
-      ),
-    );
-    expect(corpo).not.toHaveProperty("tecnico_titular_id");
   });
 
   it("aprova com técnico e envia o titular escolhido", async () => {
@@ -140,7 +133,7 @@ describe("conferência e aprovação no Radar", () => {
     client.setQueryData(["notificacoes", 1], { total: 0 });
     client.setQueryData(["convenios-lista"], []);
     await abrir();
-    await screen.findByLabelText("Técnico titular");
+    await escolherTecnico();
     // Act
     enviar();
     // Assert
@@ -174,7 +167,7 @@ describe("conferência e aprovação no Radar", () => {
     controle.aprovar = async () =>
       json({ error: "Falha temporária. Tente novamente." }, 503);
     await abrir();
-    await screen.findByLabelText("Técnico titular");
+    await escolherTecnico();
     // Act
     enviar();
     expect(
@@ -189,9 +182,7 @@ describe("conferência e aprovação no Radar", () => {
       screen.queryByText("Falha temporária. Tente novamente."),
     ).not.toBeInTheDocument();
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Aprovar e incluir" }),
-      ).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled(),
     );
     enviar();
     // Assert
@@ -212,7 +203,7 @@ describe("conferência e aprovação no Radar", () => {
     controle.aprovar = async () =>
       json({ error: "Prova vencida. Consulte novamente." }, 409);
     await abrir();
-    await screen.findByLabelText("Técnico titular");
+    await escolherTecnico();
     // Act
     enviar();
     // Assert
@@ -221,9 +212,7 @@ describe("conferência e aprovação no Radar", () => {
         selector: "p",
       }),
     ).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Aprovar e incluir" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeDisabled();
   });
 
   it("exibe erro de consulta sem habilitar aprovação", async () => {
@@ -238,7 +227,7 @@ describe("conferência e aprovação no Radar", () => {
       await screen.findByText("Aguarde nova consulta oficial."),
     ).toBeVisible();
     expect(
-      screen.queryByRole("button", { name: "Aprovar e incluir" }),
+      screen.queryByRole("button", { name: "Confirmar" }),
     ).not.toBeInTheDocument();
   });
 
@@ -255,7 +244,7 @@ describe("conferência e aprovação no Radar", () => {
       ),
     ).toBeVisible();
     expect(
-      screen.queryByRole("button", { name: "Aprovar e incluir" }),
+      screen.queryByRole("button", { name: "Confirmar" }),
     ).not.toBeInTheDocument();
   });
 });

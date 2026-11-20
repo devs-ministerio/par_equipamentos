@@ -31,18 +31,9 @@ export function CandidatoLegadoTriagem({
           fechar={() => setAcao(undefined)}
         />
       ) : (
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>button]:h-11 [&>button]:min-w-0 [&>button]:px-4 [&>button:first-child]:col-span-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>button]:h-11 [&>button]:min-w-0 [&>button]:px-4 ">
           {podeDecidir && aberta && candidato.origem === "siconv_oficial" && (
             <>
-              {candidato.situacao === "novo" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAcao("iniciar_analise")}
-                >
-                  Iniciar análise
-                </Button>
-              )}
               <Button
                 size="sm"
                 variant="ghost"

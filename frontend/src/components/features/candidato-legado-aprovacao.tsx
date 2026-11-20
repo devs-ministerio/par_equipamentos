@@ -1,13 +1,25 @@
+/** Aprovação no Radar: um pop-up só, igual ao de adicionar ao monitoramento
+ * interno. Escolher o técnico titular e confirmar já leva o instrumento ao
+ * monitoramento interno. */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAprovacaoLegado } from "@/hooks/useAprovacaoLegado";
 import { ApiError, mensagemSeguraDoErro } from "@/lib/api-error";
+import { fmtMoeda } from "@/lib/monitoramento-format";
 import type { ProvaLegado } from "@/services/aprovacao-legado";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
 import { fetchColaboradoresMonitoramento } from "@/services/monitoramento-instrumentos";
-import { estiloInput } from "./monitoramento-ui";
+import { Campo, estiloInput } from "./monitoramento-ui";
 
 const JUSTIFICATIVA = "Aprovado no Radar de instrumentos.";
 
@@ -16,38 +28,41 @@ export function CandidatoLegadoAprovacao({
 }: {
   candidato: CandidatoLegado;
 }) {
-  const [aberta, setAberta] = useState(false);
+  const [aberto, setAberto] = useState(false);
   const { podeAprovar, prova, mutation } = useAprovacaoLegado(
     candidato,
-    aberta,
+    aberto,
   );
-  const painelId = `aprovacao-legado-${candidato.id}`;
   if (!podeAprovar) return null;
   const atual =
     prova.data?.captura_id === candidato.captura_id &&
     prova.data?.versao === candidato.versao;
+  function fechar() {
+    setAberto(false);
+    mutation.reset();
+  }
   return (
     <div className="mt-3 min-w-0">
       <Button
         type="button"
-        variant="outline"
         className="min-h-11 w-full sm:w-auto"
-        disabled={mutation.isPending}
-        aria-expanded={aberta}
-        aria-controls={painelId}
-        onClick={() => {
-          setAberta(!aberta);
-          mutation.reset();
-        }}
+        onClick={() => setAberto(true)}
       >
-        {aberta ? "Fechar" : "Aprovar"}
+        Aprovar
       </Button>
-      {aberta && (
-        <section
-          id={painelId}
-          aria-label={`Aprovação do convênio ${candidato.numero}`}
-          className="mt-4 space-y-3 border-l-2 border-primary pl-4"
-        >
+      <Dialog
+        open={aberto}
+        onOpenChange={(v) => (v ? setAberto(true) : fechar())}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Adicionar {candidato.numero} ao monitoramento interno
+            </DialogTitle>
+            <DialogDescription>
+              Escolha o técnico que vai acompanhar o instrumento.
+            </DialogDescription>
+          </DialogHeader>
           {prova.isFetching ? (
             <div role="status" aria-label="Consultando fonte oficial">
               <Skeleton className="h-16 w-full" />
@@ -59,40 +74,41 @@ export function CandidatoLegadoAprovacao({
           ) : prova.data && atual ? (
             <AprovacaoForm
               key={`${prova.data.recaptura_id}-${prova.dataUpdatedAt}`}
-              candidatoId={candidato.id}
+              candidato={candidato}
               prova={prova.data}
               mutation={mutation}
-              fechar={() => setAberta(false)}
+              fechar={fechar}
             />
           ) : (
             <p role="alert" className="text-sm text-destructive">
               O Radar mudou. Atualize a lista antes de aprovar.
             </p>
           )}
-        </section>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function AprovacaoForm({
-  candidatoId,
+  candidato,
   prova,
   mutation,
   fechar,
 }: {
-  candidatoId: number;
+  candidato: CandidatoLegado;
   prova: ProvaLegado;
   mutation: ReturnType<typeof useAprovacaoLegado>["mutation"];
   fechar: () => void;
 }) {
   const [chave] = useState(() => crypto.randomUUID());
   const [tecnico, setTecnico] = useState("");
+  const [erroLocal, setErroLocal] = useState<string | null>(null);
   const colaboradores = useQuery({
     queryKey: ["monitoramento", "colaboradores"],
     queryFn: fetchColaboradoresMonitoramento,
   });
-  const campoId = `tecnico-legado-${candidatoId}`;
+  const campoId = `tecnico-legado-${candidato.id}`;
   const conflito =
     mutation.error instanceof ApiError && mutation.error.status === 409;
   return (
@@ -100,6 +116,11 @@ function AprovacaoForm({
       className="space-y-3"
       onSubmit={async (evento) => {
         evento.preventDefault();
+        if (!tecnico) {
+          setErroLocal("Informe o técnico titular responsável.");
+          return;
+        }
+        setErroLocal(null);
         try {
           await mutation.mutateAsync({
             chave,
@@ -108,7 +129,7 @@ function AprovacaoForm({
             hash_revisado: prova.hash_revisado,
             versao: prova.versao,
             justificativa: JUSTIFICATIVA,
-            ...(tecnico ? { tecnico_titular_id: Number(tecnico) } : {}),
+            tecnico_titular_id: Number(tecnico),
           });
           fechar();
         } catch {
@@ -116,6 +137,13 @@ function AprovacaoForm({
         }
       }}
     >
+      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-background p-3">
+        <Campo label="Instrumento">{candidato.numero}</Campo>
+        <Campo label="Valor">{fmtMoeda(candidato.valor_global)}</Campo>
+        <Campo label="Município/UF">
+          {candidato.municipio ?? "—"}/{candidato.uf ?? "—"}
+        </Campo>
+      </div>
       <div>
         <label htmlFor={campoId} className="mb-1 block text-xs font-semibold">
           Técnico titular
@@ -126,8 +154,9 @@ function AprovacaoForm({
           value={tecnico}
           onChange={(e) => setTecnico(e.target.value)}
           disabled={mutation.isPending || colaboradores.isLoading}
+          autoFocus
         >
-          <option value="">— Sem técnico —</option>
+          <option value="">— Selecione o colaborador —</option>
           {(colaboradores.data ?? []).map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -135,18 +164,24 @@ function AprovacaoForm({
           ))}
         </select>
       </div>
-      {mutation.error && (
+      {(erroLocal || mutation.error) && (
         <p role="alert" className="text-xs text-destructive">
-          {mensagemSeguraDoErro(mutation.error)}
+          {erroLocal ?? mensagemSeguraDoErro(mutation.error)}
         </p>
       )}
-      <Button
-        type="submit"
-        className="min-h-11 w-full sm:w-auto"
-        disabled={mutation.isPending || conflito}
-      >
-        {mutation.isPending ? "Aprovando…" : "Aprovar e incluir"}
-      </Button>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={fechar}
+          disabled={mutation.isPending}
+        >
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={mutation.isPending || conflito}>
+          {mutation.isPending ? "Adicionando…" : "Confirmar"}
+        </Button>
+      </DialogFooter>
     </form>
   );
 }
