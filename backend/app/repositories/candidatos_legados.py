@@ -18,7 +18,7 @@ from app.db.models_recaptura_legado import CandidatoLegadoRecaptura
 from app.equipamentos import nome_curto_do_item
 from app.schemas_coleta_recaptura_legado import AlvoRecapturaLegado
 from app.schemas_escopo_descoberta import ComponenteDescoberto
-from app.schemas_legado import CandidatoLegadoRead, EvidenciaLegadoRead
+from app.schemas_legado import CandidatoLegadoRead, EvidenciaLegadoRead, ItemPlanoLegadoRead
 
 
 def bloquear_lote(db: Session) -> None:
@@ -211,21 +211,35 @@ def contar_novos(db: Session) -> int:
     return db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
 
 
-def _nomes_dos_itens(itens: object) -> list[str]:
-    """Nomes (só o título) dos bens do plano de aplicação, sem repetir, na ordem da fonte."""
+def _texto_ou_none(valor: object) -> str | None:
+    texto = str(valor).strip() if valor is not None else ""
+    return texto or None
+
+
+def _itens_do_plano(itens: object) -> list[ItemPlanoLegadoRead]:
+    """Bens do plano de aplicação (nome só com o título, quantidade e valores), na ordem da fonte."""
     if not isinstance(itens, list):
         return []
-    nomes: list[str] = []
+    bens: list[ItemPlanoLegadoRead] = []
     for item in itens:
         if not isinstance(item, dict) or str(item.get("TIPO_DESPESA_ITEM") or "BEM").upper() != "BEM":
             continue
         nome = nome_curto_do_item(str(item.get("DESCRICAO_ITEM") or ""))
-        if nome and nome not in nomes:
-            nomes.append(nome)
-    return nomes
+        if nome:
+            bens.append(
+                ItemPlanoLegadoRead(
+                    nome=nome,
+                    quantidade=_texto_ou_none(item.get("QTD_ITEM")),
+                    valor_unitario=_texto_ou_none(item.get("VALOR_UNITARIO_ITEM")),
+                    valor_total=_texto_ou_none(item.get("VALOR_TOTAL_ITEM")),
+                )
+            )
+    return bens
 
 
-def _resumo_recaptura(db: Session, ids: set[int]) -> dict[int, tuple[object, str | None, str | None, list[str]]]:
+def _resumo_recaptura(
+    db: Session, ids: set[int]
+) -> dict[int, tuple[object, str | None, str | None, list[ItemPlanoLegadoRead]]]:
     """Valor, município, UF e itens da última recaptura oficial de cada candidato."""
     if not ids:
         return {}
@@ -234,7 +248,7 @@ def _resumo_recaptura(db: Session, ids: set[int]) -> dict[int, tuple[object, str
     municipio = r.payload_oficial["portal"]["municipioConvenente"]["nomeIBGE"].astext
     uf = r.payload_oficial["portal"]["municipioConvenente"]["uf"]["nome"].astext
     return {
-        candidato_id: (valor, mun, sigla, _nomes_dos_itens(itens))
+        candidato_id: (valor, mun, sigla, _itens_do_plano(itens))
         for candidato_id, valor, mun, sigla, itens in db.execute(
             select(r.candidato_id, r.valor_global, municipio, uf, r.payload_oficial["itens"]).where(r.id.in_(ultima))
         )
@@ -293,7 +307,10 @@ def listar_pagina(
                 "municipio": recapturas.get(candidato.id, (None, None, None, []))[1],
                 "uf": recapturas.get(candidato.id, (None, None, None, []))[2],
                 "itens": recapturas.get(candidato.id, (None, None, None, []))[3]
-                or list(dict.fromkeys(e.nome for e in evidencias.get(captura.id, []))),
+                or [
+                    ItemPlanoLegadoRead(nome=nome)
+                    for nome in dict.fromkeys(e.nome for e in evidencias.get(captura.id, []))
+                ],
                 "data_instrumento": captura.data_assinatura_siconv or captura.data_publicacao,
             }
         )

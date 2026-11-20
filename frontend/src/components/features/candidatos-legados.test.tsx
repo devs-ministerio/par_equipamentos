@@ -25,7 +25,20 @@ const candidato: CandidatoLegado = {
   uf: null,
   data_instrumento: null,
   componentes: [],
-  itens: ["Acelerador Linear", "Mesa Cirúrgica"],
+  itens: [
+    {
+      nome: "Acelerador Linear",
+      quantidade: "1",
+      valor_unitario: "2500000.50",
+      valor_total: "2500000.50",
+    },
+    {
+      nome: "Mesa Cirúrgica",
+      quantidade: "3",
+      valor_unitario: "10000",
+      valor_total: "30000",
+    },
+  ],
   evidencias: [
     {
       id_item: "1",
@@ -98,9 +111,13 @@ describe("Radar legado", () => {
     expect(screen.getByText("SP")).toBeVisible();
     expect(screen.getByText("30/09/2026")).toBeVisible();
     expect(screen.queryByText("Item")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Ver itens \(2\)/ }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Ver itens do convênio 123456/ }),
+    );
     expect(await screen.findByText("Acelerador Linear")).toBeVisible();
     expect(screen.getByText("Mesa Cirúrgica")).toBeVisible();
+    expect(screen.getByText("R$ 30.000,00")).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: "Qtd." })).toBeVisible();
     fireEvent.keyDown(document.activeElement ?? document.body, {
       key: "Escape",
     });

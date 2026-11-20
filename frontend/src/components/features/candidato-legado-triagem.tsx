@@ -11,7 +11,6 @@ import {
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
 import { CandidatoLegadoHistorico } from "./candidato-legado-historico";
-import { CandidatoLegadoItensDialog } from "./candidato-legado-itens-dialog";
 import { CandidatoLegadoAprovacao } from "./candidato-legado-aprovacao";
 
 export function CandidatoLegadoTriagem({
@@ -33,7 +32,6 @@ export function CandidatoLegadoTriagem({
         />
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <CandidatoLegadoItensDialog candidato={candidato} />
           {podeDecidir &&
             aberta &&
             candidato.origem === "siconv_oficial" &&

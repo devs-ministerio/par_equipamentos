@@ -28,6 +28,15 @@ class EvidenciaLegadoRead(BaseModel):
     relacao: Literal["aquisicao", "modernizacao", "existente", "mencao"]
 
 
+class ItemPlanoLegadoRead(BaseModel):
+    """Bem do plano de aplicação, como veio na última recaptura oficial."""
+
+    nome: str
+    quantidade: str | None = None
+    valor_unitario: str | None = None
+    valor_total: str | None = None
+
+
 class CandidatoLegadoRead(BaseModel):
     id: int
     numero: str
@@ -48,7 +57,7 @@ class CandidatoLegadoRead(BaseModel):
     uf: str | None = None
     data_instrumento: date | None = None
     # Nomes dos bens do plano (recaptura) ou, sem ela, dos equipamentos reconhecidos na descoberta.
-    itens: list[str] = Field(default_factory=list)
+    itens: list[ItemPlanoLegadoRead] = Field(default_factory=list)
 
 
 class CandidatosLegadosRead(BaseModel):

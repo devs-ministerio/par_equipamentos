@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { CLASSES_SITUACAO, ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
+import { CandidatoLegadoItensDialog } from "./candidato-legado-itens-dialog";
 import { estiloCard } from "./monitoramento-ui";
 import type { ReactNode } from "react";
 
@@ -30,9 +31,12 @@ export function CandidatoLegadoItem({
       className={`${estiloCard} min-w-0 border-l-[3px] border-l-primary [overflow-wrap:anywhere]`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-display text-base font-semibold tracking-tight">
-          Convênio {candidato.numero}
-        </h3>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h3 className="font-display text-base font-semibold tracking-tight">
+            Convênio {candidato.numero}
+          </h3>
+          <CandidatoLegadoItensDialog candidato={candidato} />
+        </div>
         <Badge
           variant="outline"
           className={`max-w-full whitespace-normal text-xs ${CLASSES_SITUACAO[candidato.situacao]}`}

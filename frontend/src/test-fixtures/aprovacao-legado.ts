@@ -21,7 +21,14 @@ export function criarCandidato(
     uf: null,
     data_instrumento: null,
     componentes: [],
-    itens: ["Mamógrafo"],
+    itens: [
+      {
+        nome: "Mamógrafo",
+        quantidade: "1",
+        valor_unitario: "1500000",
+        valor_total: "1500000",
+      },
+    ],
     evidencias: [
       {
         id_item: "1",
