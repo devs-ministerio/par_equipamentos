@@ -299,11 +299,13 @@ flowchart TB
     classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
     classDef aviso fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
 
-    J["job descoberta-siconv<br/>e recaptura oficial"]:::job --> CARD["Card do candidato<br/>Componente · Item · Valor · UF · Município<br/>Data da coleta · Data do instrumento"]:::tela
+    J["job descoberta-siconv<br/>e recaptura oficial"]:::job --> CARD["Card do candidato, aba Aguardando<br/>Componente em linha própria<br/>Valor · UF · Município · Datas em uma linha<br/>Botão Itens · n ao lado do número"]:::tela
+    CARD -. "Itens · n" .-> TAB["Pop-up em tabela:<br/>item · quantidade · valor unitário · valor total"]:::tela
     CARD --> D{"Decisão"}:::regra
-    D -->|"rejeitar, com motivo"| REJ["Rejeitado"]:::regra
+    D -->|"rejeitar, com motivo"| REJ["Rejeitado<br/>vai para a aba Arquivados"]:::regra
     D -->|"aprovar"| DLG["Pop-up único: escolher o técnico titular<br/>(obrigatório) e confirmar"]:::tela
     DLG --> MON["Entra na carteira e já vai para o<br/>monitoramento interno com o técnico"]:::regra
+    MON --> ARQ["Aprovado<br/>vai para a aba Arquivados"]:::regra
     MON --> N1["Notificação de inclusão<br/>titular, suplente, gestor e admin"]:::aviso
     N1 --> POP["Pop-up na tela do técnico<br/>e item na central de notificações"]:::aviso
     MON --> N2["Notificação de aprovação<br/>só gestor e admin"]:::aviso
@@ -313,6 +315,7 @@ Detalhes do aprovar com técnico:
 
 - O botão **Aprovar** abre o mesmo pop-up de "Adicionar ao monitoramento interno": o técnico titular é obrigatório e **Confirmar** já leva o instrumento ao monitoramento. Não há mais "Iniciar análise"; sobra Aprovar e Rejeitar.
 - A lista tem duas abas: **Aguardando** (novo e em análise) e **Arquivados** (aprovado e rejeitado). O card não mostra o campo Item; o botão **Itens · n**, ao lado do número do convênio, abre um pop-up em tabela (item, quantidade, valor unitário e total) com todos os bens da última recaptura.
+- O monitor da coleta (status, defasagem, contagens e detalhes) aparece completo só para o admin. Os demais perfis veem apenas a data e hora da última coleta com sucesso.
 - Com técnico, a mesma transação cria o instrumento monitorado (tipo Convênio, origem `radar_aprovacao`), grava o titular e emite o aviso de inclusão. Se qualquer passo falhar, nada é gravado.
 - O pop-up aparece na tela do técnico indicado, no próximo ciclo do sino (até 60 segundos), uma vez por aviso, com atalho para o instrumento. Quem apenas incluiu não recebe o pop-up, só o aviso no sino.
 - O resumo oficial (valor, município e UF) vem da última recaptura. Sem recaptura, a lista mostra traço em vez de inventar valor.
