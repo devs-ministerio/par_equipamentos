@@ -1,6 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useFontes } from "@/hooks/use-fontes";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 
@@ -15,7 +16,33 @@ export function MonitorDescobertaLegado({
   fonte: "siconv_descoberta" | "transferegov_descoberta";
 }) {
   const consulta = useFontes();
+  const { usuarioAtual } = useAuthSession();
   const fonte = consulta.data?.find((item) => item.fonte === codigo);
+  if (usuarioAtual?.role !== "admin") {
+    return (
+      <section
+        aria-label="Última coleta com sucesso"
+        className="my-4 border-l-2 border-primary bg-muted/40 px-4 py-3 text-xs"
+      >
+        {consulta.isPending || !usuarioAtual ? (
+          <Skeleton className="h-4 w-56" />
+        ) : (
+          <p>
+            {fonte?.ultimo_sucesso_em ? (
+              <>
+                Última coleta com sucesso:{" "}
+                <span className="font-medium">
+                  {dataHora(fonte.ultimo_sucesso_em)}
+                </span>
+              </>
+            ) : (
+              "Nenhuma coleta com sucesso registrada."
+            )}
+          </p>
+        )}
+      </section>
+    );
+  }
   return (
     <section
       aria-label="Monitor de consultas"
