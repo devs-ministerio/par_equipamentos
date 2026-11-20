@@ -2,7 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { CLASSES_SITUACAO, ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
-import { CandidatoLegadoItensDialog } from "./candidato-legado-itens-dialog";
 import { estiloCard } from "./monitoramento-ui";
 import type { ReactNode } from "react";
 
@@ -57,7 +56,6 @@ export function CandidatoLegadoItem({
           />
         </div>
       </dl>
-      <CandidatoLegadoItensDialog candidato={candidato} />
       {children}
     </li>
   );

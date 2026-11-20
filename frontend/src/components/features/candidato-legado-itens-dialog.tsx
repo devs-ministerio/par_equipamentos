@@ -19,7 +19,7 @@ export function CandidatoLegadoItensDialog({
       <Button
         type="button"
         variant="outline"
-        className="mt-3 min-h-11 sm:min-h-8"
+        className="min-h-11 sm:min-h-8"
         onClick={() => setAberto(true)}
       >
         Ver itens{candidato.itens.length ? ` (${candidato.itens.length})` : ""}
