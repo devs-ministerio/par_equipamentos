@@ -42,10 +42,10 @@ export function CandidatoLegadoAprovacao({
     mutation.reset();
   }
   return (
-    <div className="mt-3 min-w-0">
+    <>
       <Button
         type="button"
-        className="min-h-11 w-full sm:w-auto"
+        className="min-h-11 sm:min-h-8"
         onClick={() => setAberto(true)}
       >
         Aprovar
@@ -86,7 +86,7 @@ export function CandidatoLegadoAprovacao({
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 

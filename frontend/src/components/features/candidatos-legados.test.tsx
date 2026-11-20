@@ -25,6 +25,7 @@ const candidato: CandidatoLegado = {
   uf: null,
   data_instrumento: null,
   componentes: [],
+  itens: ["Acelerador Linear", "Mesa Cirúrgica"],
   evidencias: [
     {
       id_item: "1",
@@ -68,7 +69,7 @@ function prepararApi(payload: unknown, status = 200) {
 }
 
 describe("Radar legado", () => {
-  it("mostra só componente, item, valor, local e datas, sem detalhes ocultos", async () => {
+  it("mostra só componente, valor, local e datas, sem detalhes ocultos", async () => {
     const fetch = prepararApi({
       total: 1,
       novos: 1,
@@ -86,7 +87,6 @@ describe("Radar legado", () => {
     await screen.findByText("Convênio 123456");
     for (const rotulo of [
       "Componente",
-      "Item",
       "Valor",
       "UF",
       "Município",
@@ -97,7 +97,13 @@ describe("Radar legado", () => {
     expect(screen.getByText("Campinas")).toBeVisible();
     expect(screen.getByText("SP")).toBeVisible();
     expect(screen.getByText("30/09/2026")).toBeVisible();
-    expect(screen.getByText("Acelerador Linear")).toBeVisible();
+    expect(screen.queryByText("Item")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Ver itens \(2\)/ }));
+    expect(await screen.findByText("Acelerador Linear")).toBeVisible();
+    expect(screen.getByText("Mesa Cirúrgica")).toBeVisible();
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: "Escape",
+    });
     expect(screen.getByText("Novo")).toBeVisible();
     expect(screen.queryByText("Mais detalhes")).not.toBeInTheDocument();
     expect(
@@ -114,25 +120,25 @@ describe("Radar legado", () => {
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
   });
 
-  it("filtra situação humana no servidor sem confundir com confirmação oficial", async () => {
+  it("separa ativos de arquivados no servidor", async () => {
     const fetch = prepararApi({
       total: 1,
       novos: 1,
       itens: [{ ...candidato, origem: "siconv_oficial" }],
     });
     await screen.findByText("Convênio 123456");
-    fireEvent.click(screen.getByRole("button", { name: /^Situação/ }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Em análise" }));
+    expect(
+      fetch.mock.calls.some(([url]) => url.includes("situacao=novo")),
+    ).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: "Arquivados" }));
     await waitFor(() =>
       expect(
-        fetch.mock.calls.some(([url]) => url.includes("situacao=em_analise")),
+        fetch.mock.calls.some(([url]) => url.includes("situacao=aprovado")),
       ).toBe(true),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Limpar seleção" }));
-    expect(await screen.findByText("Convênio 123456")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /^Situação/ }),
-    ).toBeInTheDocument();
+      fetch.mock.calls.some(([url]) => url.includes("situacao=rejeitado")),
+    ).toBe(true);
   });
 
   it("envia busca e página ao servidor, sem filtrar lista parcial na UI", async () => {
@@ -183,7 +189,7 @@ describe("Radar legado", () => {
     });
     await waitFor(() =>
       expect(
-        screen.getByText(/Nenhum candidato com esses filtros/),
+        screen.getByText(/Nenhum candidato com essa busca/),
       ).toBeInTheDocument(),
     );
   });

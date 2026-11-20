@@ -39,6 +39,7 @@ const candidatoSchema = z.object({
       }),
     )
     .default([]),
+  itens: z.array(z.string()).default([]),
   evidencias: z.array(
     z.object({
       id_item: z.string(),

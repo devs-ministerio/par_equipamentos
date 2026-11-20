@@ -31,27 +31,25 @@ export function CandidatoLegadoTriagem({
           fechar={() => setAcao(undefined)}
         />
       ) : (
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>button]:h-11 [&>button]:min-w-0 [&>button]:px-4 ">
+        <div className="flex flex-wrap items-center gap-2">
+          {podeDecidir &&
+            aberta &&
+            candidato.origem === "siconv_oficial" &&
+            candidato.confirmacao_portal === "confirmado" && (
+              <CandidatoLegadoAprovacao candidato={candidato} />
+            )}
           {podeDecidir && aberta && candidato.origem === "siconv_oficial" && (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setAcao("rejeitar")}
-              >
-                Rejeitar
-              </Button>
-            </>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 sm:min-h-8"
+              onClick={() => setAcao("rejeitar")}
+            >
+              Rejeitar
+            </Button>
           )}
         </div>
       )}
-      {!acao &&
-        podeDecidir &&
-        aberta &&
-        candidato.origem === "siconv_oficial" &&
-        candidato.confirmacao_portal === "confirmado" && (
-          <CandidatoLegadoAprovacao candidato={candidato} />
-        )}
       {candidato.versao > 0 && (
         <CandidatoLegadoHistorico candidatoId={candidato.id} />
       )}

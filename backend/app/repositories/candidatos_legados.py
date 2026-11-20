@@ -15,6 +15,7 @@ from app.db.models_legado import (
     CandidatoLegadoRegistro,
 )
 from app.db.models_recaptura_legado import CandidatoLegadoRecaptura
+from app.equipamentos import nome_curto_do_item
 from app.schemas_coleta_recaptura_legado import AlvoRecapturaLegado
 from app.schemas_escopo_descoberta import ComponenteDescoberto
 from app.schemas_legado import CandidatoLegadoRead, EvidenciaLegadoRead
@@ -210,8 +211,22 @@ def contar_novos(db: Session) -> int:
     return db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
 
 
-def _resumo_recaptura(db: Session, ids: set[int]) -> dict[int, tuple[object, str | None, str | None]]:
-    """Valor, município e UF da última recaptura oficial de cada candidato."""
+def _nomes_dos_itens(itens: object) -> list[str]:
+    """Nomes (só o título) dos bens do plano de aplicação, sem repetir, na ordem da fonte."""
+    if not isinstance(itens, list):
+        return []
+    nomes: list[str] = []
+    for item in itens:
+        if not isinstance(item, dict) or str(item.get("TIPO_DESPESA_ITEM") or "BEM").upper() != "BEM":
+            continue
+        nome = nome_curto_do_item(str(item.get("DESCRICAO_ITEM") or ""))
+        if nome and nome not in nomes:
+            nomes.append(nome)
+    return nomes
+
+
+def _resumo_recaptura(db: Session, ids: set[int]) -> dict[int, tuple[object, str | None, str | None, list[str]]]:
+    """Valor, município, UF e itens da última recaptura oficial de cada candidato."""
     if not ids:
         return {}
     r = CandidatoLegadoRecaptura
@@ -219,9 +234,9 @@ def _resumo_recaptura(db: Session, ids: set[int]) -> dict[int, tuple[object, str
     municipio = r.payload_oficial["portal"]["municipioConvenente"]["nomeIBGE"].astext
     uf = r.payload_oficial["portal"]["municipioConvenente"]["uf"]["nome"].astext
     return {
-        candidato_id: (valor, mun, sigla)
-        for candidato_id, valor, mun, sigla in db.execute(
-            select(r.candidato_id, r.valor_global, municipio, uf).where(r.id.in_(ultima))
+        candidato_id: (valor, mun, sigla, _nomes_dos_itens(itens))
+        for candidato_id, valor, mun, sigla, itens in db.execute(
+            select(r.candidato_id, r.valor_global, municipio, uf, r.payload_oficial["itens"]).where(r.id.in_(ultima))
         )
     }
 
@@ -274,9 +289,11 @@ def listar_pagina(
                 "captura_id": captura.id,
                 "situacao": decisao.situacao if decisao else "novo",
                 "versao": decisao.id if decisao else 0,
-                "valor_global": recapturas.get(candidato.id, (None, None, None))[0],
-                "municipio": recapturas.get(candidato.id, (None, None, None))[1],
-                "uf": recapturas.get(candidato.id, (None, None, None))[2],
+                "valor_global": recapturas.get(candidato.id, (None, None, None, []))[0],
+                "municipio": recapturas.get(candidato.id, (None, None, None, []))[1],
+                "uf": recapturas.get(candidato.id, (None, None, None, []))[2],
+                "itens": recapturas.get(candidato.id, (None, None, None, []))[3]
+                or list(dict.fromkeys(e.nome for e in evidencias.get(captura.id, []))),
                 "data_instrumento": captura.data_assinatura_siconv or captura.data_publicacao,
             }
         )

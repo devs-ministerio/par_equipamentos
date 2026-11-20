@@ -2,19 +2,28 @@ import { Badge } from "@/components/ui/badge";
 import { CLASSES_SITUACAO, ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
+import { CandidatoLegadoItensDialog } from "./candidato-legado-itens-dialog";
 import { estiloCard } from "./monitoramento-ui";
 import type { ReactNode } from "react";
 
-function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
+function Campo({
+  rotulo,
+  valor,
+  linhaInteira = false,
+}: {
+  rotulo: string;
+  valor: string;
+  linhaInteira?: boolean;
+}) {
   return (
-    <div className="min-w-0">
+    <div className={linhaInteira ? "min-w-0 sm:col-span-2" : "min-w-0"}>
       <dt className="text-xs text-muted-foreground">{rotulo}</dt>
       <dd className="text-sm">{valor}</dd>
     </div>
   );
 }
 
-/** Só o que a equipe precisa para decidir: componente, item, valor, local e datas. */
+/** Só o que a equipe precisa para decidir: componente, valor, local e datas. */
 export function CandidatoLegadoItem({
   candidato,
   children,
@@ -22,7 +31,6 @@ export function CandidatoLegadoItem({
   candidato: CandidatoLegado;
   children?: ReactNode;
 }) {
-  const equipamentos = [...new Set(candidato.evidencias.map((e) => e.nome))];
   const componentes = [
     ...new Set(candidato.componentes.map((c) => c.componente)),
   ];
@@ -42,8 +50,11 @@ export function CandidatoLegadoItem({
         </Badge>
       </div>
       <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
-        <Campo rotulo="Componente" valor={componentes.join(" · ") || "—"} />
-        <Campo rotulo="Item" valor={equipamentos.join(" · ") || "—"} />
+        <Campo
+          rotulo="Componente"
+          valor={componentes.join(" · ") || "—"}
+          linhaInteira
+        />
         <Campo rotulo="Valor" valor={fmtMoeda(candidato.valor_global)} />
         <Campo rotulo="UF" valor={candidato.uf ?? "—"} />
         <Campo rotulo="Município" valor={candidato.municipio ?? "—"} />
@@ -56,6 +67,7 @@ export function CandidatoLegadoItem({
           valor={fmtData(candidato.verificado_em)}
         />
       </dl>
+      <CandidatoLegadoItensDialog candidato={candidato} />
       {children}
     </li>
   );

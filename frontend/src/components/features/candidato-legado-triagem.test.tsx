@@ -18,6 +18,7 @@ const candidato: CandidatoLegado = {
   id_proposta: "1001",
   captura_id: 2,
   versao: 0,
+  itens: [],
   situacao: "novo",
   confirmacao_portal: "nao_consultado",
   data_publicacao: null,
