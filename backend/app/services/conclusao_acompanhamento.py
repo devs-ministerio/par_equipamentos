@@ -11,12 +11,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_instrumento, usuario_pode_editar_instrumento
-from sqlalchemy import select
-
 from app.db.models import ConclusaoInstrumento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.equipamentos import nome_curto_do_item
@@ -93,6 +92,17 @@ def _eventos_concluido_legado(db: Session, instrumento_id: int) -> list[EventoMa
     )
 
 
+def _ler_legado(evento: EventoMarco) -> ConclusaoRead:
+    """Conclusão antiga (evento `fase_concluido`) apresentada como conclusão, para a tela oferecer Reabrir."""
+    return ConclusaoRead(
+        id=evento.id,
+        resultado="integral",
+        data_conclusao=evento.data_ocorrencia or date.today(),
+        justificativa=None,
+        data_inauguracao=None,
+    )
+
+
 def assert_nao_concluido(db: Session, instrumento_id: int) -> None:
     """Concluído = a mesma condição da fase: conclusão confirmada ou o evento antigo `fase_concluido`."""
     if repo.existe_ativa(db, instrumento_id) or _eventos_concluido_legado(db, instrumento_id):
@@ -150,10 +160,11 @@ def avaliar_conclusao(*, nr_convenio: str, db: Session, usuario: User) -> Avalia
     itens = _itens_controlados(db, instrumento.id)
     resultado = calcular_resultado(itens)
     ativa = repo.obter_ativa(db, instrumento.id)
+    legados = [] if ativa else _eventos_concluido_legado(db, instrumento.id)
     return AvaliacaoConclusaoRead(
         nr_convenio=nr_convenio,
         pode_editar=usuario_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id)),
-        conclusao=_ler(ativa) if ativa else None,
+        conclusao=_ler(ativa) if ativa else _ler_legado(legados[0]) if legados else None,
         resultado=resultado,
         exige_justificativa=resultado != "integral",
         itens_exigidos=len(itens),
@@ -227,13 +238,7 @@ def reabrir_acompanhamento(*, nr_convenio: str, dados: ReaberturaCreate, db: Ses
         )
         db.commit()
         primeiro = legados[0]
-        return ConclusaoRead(
-            id=primeiro.id,
-            resultado="integral",
-            data_conclusao=primeiro.data_ocorrencia or date.today(),
-            justificativa=None,
-            data_inauguracao=None,
-        )
+        return _ler_legado(primeiro)
     conclusao.deletado_em = datetime.now(timezone.utc)
     conclusao.deletado_por_id = usuario.id
     conclusao.motivo_exclusao = dados.motivo.strip()

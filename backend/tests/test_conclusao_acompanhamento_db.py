@@ -319,6 +319,9 @@ def test_evento_antigo_fase_concluido_tambem_trava_e_pode_ser_reaberto(db):  # n
         )
     )
     db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.conclusao is not None
+    assert avaliacao.conclusao.data_conclusao == date.today()
     with pytest.raises(ConflictError, match="Reabra"):
         entregas.registrar_entrega(
             nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois)), db=db, usuario=c.titular
@@ -330,3 +333,4 @@ def test_evento_antigo_fase_concluido_tambem_trava_e_pode_ser_reaberto(db):  # n
         usuario=c.titular,
     )
     assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
