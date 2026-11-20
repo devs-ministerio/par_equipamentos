@@ -164,7 +164,7 @@ flowchart TB
     LIM -->|"sim"| BLOQ["Bloqueado, 422"]:::regra
     LIM -->|"não"| UNI["Unidade nasce na entrega<br/>série única dentro do item"]:::dado
     UNI --> CORR["Corrigir unidade, com AuditLog"]:::acao
-    UNI --> EXC["Excluir entrega, com motivo"]:::acao
+    UNI --> EXCL["Excluir entrega, com motivo"]:::acao
     SIM --> CANC["Cancelar unidade, com motivo"]:::acao
     CANC --> DESF["Desfazer cancelamento"]:::acao
     LEG["Entrega antiga sem item definido"]:::dado --> VINC["Equipe vincula ao item"]:::acao --> ENT
@@ -377,7 +377,7 @@ Marque a coluna final com **usa**, **não usa** ou **não conheço**.
 | 2 | Indicadores no topo da Mesa e lista de instrumentos | Mesa de trabalho | |
 | 3 | Adicionar instrumento ao monitoramento | Dados oficiais | |
 | 4 | Cadastro interno (técnico titular e suplente, nível, tipologia, modalidade, responsável da execução, CNES) | Detalhe | |
-| 5 | Editar só o CNES | Detalhe, cabeçalho | |
+| 5 | Editar o CNES (dentro de Editar cadastro, junto com os demais campos) | Detalhe, Cadastro interno | |
 | 6 | Registrar entrega com várias unidades por item | Detalhe, Equipamentos | |
 | 7 | Corrigir unidade (marca, modelo, série, vida útil) | Detalhe, Equipamentos | |
 | 8 | Excluir entrega com motivo | Detalhe, Equipamentos | |
