@@ -6,17 +6,9 @@ import { CandidatoLegadoItensDialog } from "./candidato-legado-itens-dialog";
 import { estiloCard } from "./monitoramento-ui";
 import type { ReactNode } from "react";
 
-function Campo({
-  rotulo,
-  valor,
-  linhaInteira = false,
-}: {
-  rotulo: string;
-  valor: string;
-  linhaInteira?: boolean;
-}) {
+function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <div className={linhaInteira ? "min-w-0 sm:col-span-2" : "min-w-0"}>
+    <div className="min-w-0">
       <dt className="text-xs text-muted-foreground">{rotulo}</dt>
       <dd className="text-sm">{valor}</dd>
     </div>
@@ -49,23 +41,21 @@ export function CandidatoLegadoItem({
           {ROTULOS_SITUACAO[candidato.situacao]}
         </Badge>
       </div>
-      <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
-        <Campo
-          rotulo="Componente"
-          valor={componentes.join(" · ") || "—"}
-          linhaInteira
-        />
-        <Campo rotulo="Valor" valor={fmtMoeda(candidato.valor_global)} />
-        <Campo rotulo="UF" valor={candidato.uf ?? "—"} />
-        <Campo rotulo="Município" valor={candidato.municipio ?? "—"} />
-        <Campo
-          rotulo="Data do instrumento"
-          valor={fmtData(candidato.data_instrumento)}
-        />
-        <Campo
-          rotulo="Data da coleta"
-          valor={fmtData(candidato.verificado_em)}
-        />
+      <dl className="mt-3 space-y-2">
+        <Campo rotulo="Componente" valor={componentes.join(" · ") || "—"} />
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-5">
+          <Campo rotulo="Valor" valor={fmtMoeda(candidato.valor_global)} />
+          <Campo rotulo="UF" valor={candidato.uf ?? "—"} />
+          <Campo rotulo="Município" valor={candidato.municipio ?? "—"} />
+          <Campo
+            rotulo="Data do instrumento"
+            valor={fmtData(candidato.data_instrumento)}
+          />
+          <Campo
+            rotulo="Data da coleta"
+            valor={fmtData(candidato.verificado_em)}
+          />
+        </div>
       </dl>
       <CandidatoLegadoItensDialog candidato={candidato} />
       {children}
