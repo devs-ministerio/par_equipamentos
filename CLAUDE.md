@@ -294,9 +294,11 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   542 depois da marcação; 292 monitorados, 288 depois.
 - **Radar e conclusão (19/11/2026, `docs/arquitetura/mapa-monitoramento-interno-2026-11-19.md`)**: o Radar de instrumentos é só de `gestor`/`admin`
   (API recusa com 403 a lista, o histórico e a prova para os demais; o botão some). Card enxuto: componente, item, valor, UF, município, data da coleta e
-  do instrumento. **Aprovar** pode indicar o técnico titular (`tecnico_titular_id` opcional em `AprovacaoLegadoCreate`); com técnico, a mesma transação cria o
+  do instrumento. **Aprovar** abre um pop-up único (igual ao de adicionar ao monitoramento interno) com técnico titular obrigatório na tela (`tecnico_titular_id` segue opcional na API); sem "Iniciar análise" (sobra Aprovar e Rejeitar). Com técnico, a mesma transação cria o
   instrumento monitorado (`origem_dado="radar_aprovacao"`) e emite `inclusao_monitoramento`, que agora vai a titular+suplente+gestor/admin; o técnico indicado
-  recebe pop-up (`use-aviso-novo-instrumento`) além do sino. Sem técnico a aprovação só inclui na carteira (comportamento anterior).
+  recebe pop-up (`use-aviso-novo-instrumento`) além do sino. Sem técnico (só via API) a aprovação só inclui na carteira.
+  **"Concluído" = "Concluir acompanhamento"**: a trava vale pela mesma condição da fase (conclusão confirmada ou evento antigo `fase_concluido`), e Reabrir desfaz os dois; `migrar_concluidos_para_conclusao` unifica os dados antigos (não rodado em produção).
+  **Itens, exceções de unidade**: instrumento monitorado sem item controlado usa o limite de R$ 100 mil por unidade (`limite_valor_unitario_excecao`) e, sem nenhum, os 3 de maior valor unitário (`itens_excecao_da_excecao`), em `projetar_itens_plano.py`.
   **Instrumento concluído trava todas as edições** (cadastro, eventos, ações, documentos, previsão, repasse, entregas, unidades, cancelamentos) com 409
   "Reabra-o para alterar o instrumento" (`assert_nao_concluido`); só Reabrir segue livre. No front, `monitoramento-interno.tsx` usa `podeEditarConteudo`.
 

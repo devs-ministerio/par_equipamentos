@@ -151,6 +151,12 @@ flowchart TB
     MON -->|"uma das 16 famílias"| SIM["Controle por unidade"]:::dado
     MON -->|"valor de uma unidade a partir de R$ 300 mil"| SIM
     MON -->|"nenhum dos dois"| NAO["Sem controle por unidade"]:::dado
+    NAO --> INST{"Instrumento monitorado e<br/>nenhum item dele controla unidade?"}:::regra
+    INST -->|"não"| FIM0["Segue sem controle"]:::dado
+    INST -->|"sim"| EXC{"Há item de aquisição com<br/>unidade a partir de R$ 100 mil?"}:::regra
+    EXC -->|"sim"| SIM
+    EXC -->|"não: exceção da exceção"| TOP["Os 3 itens de maior valor unitário<br/>passam a ter controle por unidade"]:::regra
+    TOP --> SIM
 
     SIM --> PREV["Previsão de entrega por item<br/>PUT e DELETE"]:::acao
     SIM --> ENT["Registrar entrega<br/>marca, modelo, série, vida útil"]:::acao
@@ -171,6 +177,9 @@ flowchart TB
 |---|---|---|
 | Entrega passa do planejado | Compara **quantidade**, não data: unidades novas maiores que `planejado − já entregue − canceladas` dão 422 | `entregas_equipamento._validar_itens` |
 | Data da entrega no futuro | 422 | `registrar_entrega` |
+| Instrumento monitorado sem nenhum item controlado | Entrou pelo componente: o item de aquisição classificado cuja unidade vale **R$ 100 mil ou mais** passa a ter controle por unidade, para a entrega poder ser lançada (`limite_valor_unitario_excecao`) | `projetar_itens_plano._aplicar_excecao_instrumento` |
+| Nenhum item chega a R$ 100 mil (exceção da exceção) | Os **3 itens de maior valor unitário** do instrumento viram controle por unidade (`itens_excecao_da_excecao`) | `projetar_itens_plano._aplicar_excecao_instrumento` |
+| Equipamento fora das 16 famílias | Monitorado por item só se a unidade vale **R$ 300 mil ou mais** (`limite_valor_unitario_monitorado`); valor da unidade = valor do item no plano ÷ quantidade | `classificacao_itens`, `projetar_itens_plano` |
 | Item sem quantidade planejada | Exige confirmar a quantidade entregue; não permite cancelar unidade | `_validar_itens`, `cancelamento_unidade` |
 | Item não controlado por unidade | Entrega recusada (item fora das 16 famílias e abaixo de R$ 300 mil) | `_validar_itens` |
 | Item de outro instrumento ou inativo | Tratado como inexistente, sem vazar que existe | `_validar_itens` |
@@ -195,6 +204,8 @@ flowchart TB
 **Finalidade.** Não perder o histórico, não adivinhar a qual equipamento a entrega pertence e não contar a mesma entrega duas vezes. Enquanto o pedido está pendente, o item aparece como "A vincular" e a conclusão do acompanhamento fica impedida. A equipe resolve pelo botão de vincular no próprio item; não existe tela separada de fila.
 
 ## 5. Concluir e reabrir o acompanhamento
+
+"Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz.
 
 Regra: com o acompanhamento **concluído**, o instrumento inteiro fica travado para edição. A única ação liberada é **reabrir** (com motivo). Isso vale para cadastro, entregas, unidades, cancelamentos, previsões, repasse, eventos, ações e documentos.
 
@@ -291,19 +302,16 @@ flowchart TB
     J["job descoberta-siconv<br/>e recaptura oficial"]:::job --> CARD["Card do candidato<br/>Componente · Item · Valor · UF · Município<br/>Data da coleta · Data do instrumento"]:::tela
     CARD --> D{"Decisão"}:::regra
     D -->|"rejeitar, com motivo"| REJ["Rejeitado"]:::regra
-    D -->|"iniciar análise"| AN["Em análise"]:::regra
-    D -->|"aprovar"| TEC{"Indicou técnico titular?"}:::regra
-    TEC -->|"não"| CART["Entra na carteira<br/>sem monitoramento"]:::regra
-    TEC -->|"sim"| MON["Entra na carteira e abre o<br/>monitoramento interno com o técnico"]:::regra
+    D -->|"aprovar"| DLG["Pop-up único: escolher o técnico titular<br/>(obrigatório) e confirmar"]:::tela
+    DLG --> MON["Entra na carteira e já vai para o<br/>monitoramento interno com o técnico"]:::regra
     MON --> N1["Notificação de inclusão<br/>titular, suplente, gestor e admin"]:::aviso
     N1 --> POP["Pop-up na tela do técnico<br/>e item na central de notificações"]:::aviso
-    CART --> N2["Notificação de aprovação<br/>só gestor e admin"]:::aviso
-    MON --> N2
+    MON --> N2["Notificação de aprovação<br/>só gestor e admin"]:::aviso
 ```
 
 Detalhes do aprovar com técnico:
 
-- O botão **Aprovar** abre um seletor "Técnico titular" (colaboradores ativos). Sem escolher, a aprovação só inclui o convênio na carteira, como antes.
+- O botão **Aprovar** abre o mesmo pop-up de "Adicionar ao monitoramento interno": o técnico titular é obrigatório e **Confirmar** já leva o instrumento ao monitoramento. Não há mais "Iniciar análise"; sobra Aprovar e Rejeitar.
 - Com técnico, a mesma transação cria o instrumento monitorado (tipo Convênio, origem `radar_aprovacao`), grava o titular e emite o aviso de inclusão. Se qualquer passo falhar, nada é gravado.
 - O pop-up aparece na tela do técnico indicado, no próximo ciclo do sino (até 60 segundos), uma vez por aviso, com atalho para o instrumento. Quem apenas incluiu não recebe o pop-up, só o aviso no sino.
 - O resumo oficial (valor, município e UF) vem da última recaptura. Sem recaptura, a lista mostra traço em vez de inventar valor.
@@ -382,7 +390,7 @@ Marque a coluna final com **usa**, **não usa** ou **não conheço**.
 | 19 | Fila de revisão de itens (confirmar, corrigir, não é equipamento) | Revisão de itens | |
 | 20 | Notificações por edição, prazo e vigência, com pop-up de instrumento novo | Sino | |
 | 21 | Relatórios de instrumentos e repasse (Excel e Word) | Relatórios | |
-| 22 | Radar: ver candidatos, rejeitar, iniciar análise e aprovar com técnico | Radar (gestor e admin) | |
+| 22 | Radar: ver candidatos, rejeitar e aprovar com técnico (vai direto ao monitoramento) | Radar (gestor e admin) | |
 
 ## 12. Código sem uso
 
