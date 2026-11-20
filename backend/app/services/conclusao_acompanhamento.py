@@ -15,7 +15,9 @@ from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_instrumento, usuario_pode_editar_instrumento
-from app.db.models import ConclusaoInstrumento, InstrumentoEquipamento, User
+from sqlalchemy import select
+
+from app.db.models import ConclusaoInstrumento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.equipamentos import nome_curto_do_item
 from app.repositories import conclusoes as repo
@@ -77,8 +79,23 @@ def _instrumento_ou_404(db: Session, nr_convenio: str) -> InstrumentoEquipamento
     return instrumento
 
 
+def _eventos_concluido_legado(db: Session, instrumento_id: int) -> list[EventoMarco]:
+    """Evento antigo `fase_concluido` ainda ativo: conta como concluído até a migração para a conclusão confirmada."""
+    return list(
+        db.execute(
+            select(EventoMarco).where(
+                EventoMarco.instrumento_id == instrumento_id,
+                EventoMarco.substituido_por_id.is_(None),
+                EventoMarco.deletado_em.is_(None),
+                EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo == "fase_concluido")),
+            )
+        ).scalars()
+    )
+
+
 def assert_nao_concluido(db: Session, instrumento_id: int) -> None:
-    if repo.existe_ativa(db, instrumento_id):
+    """Concluído = a mesma condição da fase: conclusão confirmada ou o evento antigo `fase_concluido`."""
+    if repo.existe_ativa(db, instrumento_id) or _eventos_concluido_legado(db, instrumento_id):
         raise ConflictError("O acompanhamento está concluído. Reabra-o para alterar o instrumento.")
 
 
@@ -192,7 +209,31 @@ def reabrir_acompanhamento(*, nr_convenio: str, dados: ReaberturaCreate, db: Ses
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     conclusao = repo.obter_ativa(db, instrumento.id)
     if conclusao is None:
-        raise NotFoundError("O acompanhamento não está concluído.")
+        legados = _eventos_concluido_legado(db, instrumento.id)
+        if not legados:
+            raise NotFoundError("O acompanhamento não está concluído.")
+        agora = datetime.now(timezone.utc)
+        for evento in legados:
+            evento.deletado_em = agora
+            evento.deletado_por_id = usuario.id
+            evento.motivo_exclusao = dados.motivo.strip()
+        log_action(
+            db,
+            user_id=usuario.id,
+            entity_name="instrumento_equipamento",
+            entity_id=instrumento.id,
+            action="reopened_legacy_conclusion",
+            details={"nr_convenio": nr_convenio, "motivo": dados.motivo.strip()},
+        )
+        db.commit()
+        primeiro = legados[0]
+        return ConclusaoRead(
+            id=primeiro.id,
+            resultado="integral",
+            data_conclusao=primeiro.data_ocorrencia or date.today(),
+            justificativa=None,
+            data_inauguracao=None,
+        )
     conclusao.deletado_em = datetime.now(timezone.utc)
     conclusao.deletado_por_id = usuario.id
     conclusao.motivo_exclusao = dados.motivo.strip()

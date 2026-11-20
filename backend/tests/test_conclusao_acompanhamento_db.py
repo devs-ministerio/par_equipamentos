@@ -305,3 +305,28 @@ def test_concluido_trava_todas_as_edicoes_ate_reabrir(db):  # noqa: F811
         db=db,
         usuario=c.titular,
     )
+
+
+def test_evento_antigo_fase_concluido_tambem_trava_e_pode_ser_reaberto(db):  # noqa: F811
+    c = _preparar(db)
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    db.add(
+        EventoMarco(
+            instrumento_id=c.inst.id,
+            marco_id=marco.id,
+            data_ocorrencia=date.today(),
+            autor_id=c.titular.id,
+        )
+    )
+    db.flush()
+    with pytest.raises(ConflictError, match="Reabra"):
+        entregas.registrar_entrega(
+            nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois)), db=db, usuario=c.titular
+        )
+    svc.reabrir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=ReaberturaCreate(motivo="Conclusão antiga lançada por engano"),
+        db=db,
+        usuario=c.titular,
+    )
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
