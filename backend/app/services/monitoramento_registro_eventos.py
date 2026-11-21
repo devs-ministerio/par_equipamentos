@@ -18,6 +18,7 @@ from app.db.models import (
     User,
 )
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
+from app.repositories import itens_equipamento as entregas_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.services.conclusao_acompanhamento import assert_nao_concluido
@@ -274,6 +275,12 @@ def _inauguracao_vinculada_a_conclusao(
     return None
 
 
+def _recusar_se_nasceu_de_entrega(db: Session, evento_id: int) -> None:
+    """O evento gerado por uma entrega ativa acompanha a entrega: a entrega é a fonte da data e das unidades."""
+    if entregas_repo.entregas_ativas_por_evento(db, [evento_id]):
+        raise ConflictError("Este evento vem de uma entrega de equipamento. Altere pela entrega.")
+
+
 def editar_evento_monitorado(
     *,
     evento_id: int,
@@ -291,6 +298,7 @@ def editar_evento_monitorado(
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antigo.instrumento_id))
     assert_nao_concluido(db, antigo.instrumento_id)
+    _recusar_se_nasceu_de_entrega(db, antigo.id)
     if antigo.deletado_em is not None or antigo.substituido_por_id is not None:
         raise ValidationError(f"Evento {evento_id} já foi excluído ou corrigido -- não pode editar de novo.")
 
@@ -394,6 +402,7 @@ def excluir_evento_monitorado(
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, evento.instrumento_id))
     assert_nao_concluido(db, evento.instrumento_id)
+    _recusar_se_nasceu_de_entrega(db, evento.id)
     if evento.deletado_em is not None:
         raise ValidationError(f"Evento {evento_id} já está excluído.")
     if not motivo.strip():

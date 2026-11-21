@@ -123,6 +123,18 @@ def obter_entrega(db: Session, entrega_id: int) -> EntregaEquipamento | None:
     return db.get(EntregaEquipamento, entrega_id)
 
 
+def entregas_ativas_por_evento(db: Session, evento_ids: list[int]) -> dict[int, int]:
+    """`{evento_id: entrega_id}` das entregas ativas que geraram esses eventos."""
+    if not evento_ids:
+        return {}
+    linhas = db.execute(
+        select(EntregaEquipamento.evento_id, EntregaEquipamento.id).where(
+            EntregaEquipamento.evento_id.in_(evento_ids), EntregaEquipamento.deletado_em.is_(None)
+        )
+    )
+    return {evento_id: entrega_id for evento_id, entrega_id in linhas}
+
+
 def obter_unidade(db: Session, unidade_id: int) -> UnidadeEquipamento | None:
     return db.get(UnidadeEquipamento, unidade_id)
 

@@ -52,6 +52,8 @@ class EventoMarcoRead(BaseModel):
     deletado_por_nome: str | None = None
     motivo_exclusao: str | None = None
     ativo: bool = True
+    # Evento nascido de uma entrega de equipamento: só se altera pela entrega.
+    gerado_por_entrega_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

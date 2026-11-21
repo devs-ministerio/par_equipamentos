@@ -22,6 +22,7 @@ from app.db.models import (
     User,
 )
 from app.pipeline import portal_transparencia
+from app.repositories import itens_equipamento as entregas_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas import PageMeta
@@ -173,6 +174,7 @@ def obter_timeline(
         e.deletado_por_id for e in timeline.eventos if e.deletado_por_id
     }
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
+    entregas_por_evento = entregas_repo.entregas_ativas_por_evento(db, [e.id for e in timeline.eventos])
     ids_responsaveis = obter_ids_responsaveis_do_instrumento(db, timeline.instrumento.id)
     responsaveis_com_papel = monitoramento_repo.mapear_responsaveis_com_papel_por_instrumentos(
         db, {timeline.instrumento.id}
@@ -188,7 +190,7 @@ def obter_timeline(
             }
         ),
         ao_vivo=ao_vivo,
-        eventos=[_evento_read(e, nomes) for e in timeline.eventos],
+        eventos=[_evento_read(e, nomes, entregas_por_evento.get(e.id)) for e in timeline.eventos],
     )
 
 

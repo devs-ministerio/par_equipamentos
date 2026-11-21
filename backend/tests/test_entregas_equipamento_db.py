@@ -28,6 +28,7 @@ from app.db.models import (
 )
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
 from app.schemas_entregas import (
+    CorrecaoDataEntrega,
     EntregaCreate,
     InauguracaoEntrega,
     ItemEntregaCreate,
@@ -475,3 +476,108 @@ def test_inauguracao_ja_realizada_nao_e_alterada(db):
     svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
     assert real.substituido_por_id is None
     assert _eventos_inauguracao(db, c.inst, "cronograma_inauguracao_dispensada") == []
+
+
+def _entrega_simples(db, c, data=None):
+    return svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um), data=data), db=db, usuario=c.titular
+    )
+
+
+def test_evento_de_entrega_nao_se_edita_nem_se_exclui_pelos_eventos(db):
+    from app.schemas_monitoramento_api import EventoMarcoCreate  # noqa: F401
+    from app.services import monitoramento_registro_eventos as eventos
+
+    c = Cenario(db)
+    entrega = _entrega_simples(db, c)
+    with pytest.raises(ConflictError, match="vem de uma entrega"):
+        eventos.excluir_evento_monitorado(evento_id=entrega.evento_id, motivo="x", db=db, usuario=c.titular)
+    evento = db.get(EventoMarco, entrega.evento_id)
+    assert evento.deletado_em is None
+    with pytest.raises(ConflictError, match="vem de uma entrega"):
+        eventos.editar_evento_monitorado(
+            evento_id=entrega.evento_id,
+            dados=eventos.NovoEventoMonitorado(marco_id=evento.marco_id, data_ocorrencia=date.today()),
+            db=db,
+            usuario=c.titular,
+        )
+    # Excluída a entrega, o evento (também excluído) deixa de ser protegido.
+    svc.excluir_entrega(entrega_id=entrega.id, motivo="lançada por engano", db=db, usuario=c.titular)
+    assert svc.repo.entregas_ativas_por_evento(db, [entrega.evento_id]) == {}
+
+
+def test_corrigir_data_da_entrega_move_entrega_e_evento_juntos(db):
+    c = Cenario(db)
+    entrega = _entrega_simples(db, c)
+    antigo_id = entrega.evento_id
+    nova = date.today() - timedelta(days=10)
+    atualizada = svc.corrigir_data_entrega(
+        entrega_id=entrega.id,
+        dados=CorrecaoDataEntrega(data_ocorrencia=nova, motivo="data lançada errada"),
+        db=db,
+        usuario=c.titular,
+    )
+    assert atualizada.data_ocorrencia == nova and atualizada.evento_id != antigo_id
+    antigo, novo = db.get(EventoMarco, antigo_id), db.get(EventoMarco, atualizada.evento_id)
+    assert antigo.substituido_por_id == novo.id and novo.data_ocorrencia == nova
+    leitura = svc.listar_equipamentos_do_instrumento(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    colposcopio = next(i for i in leitura.itens if i.descricao == "Colposcópio")
+    assert all(u.data_entrega == nova for u in colposcopio.unidades)
+
+
+def test_corrigir_data_da_entrega_recusas(db):
+    c = Cenario(db)
+    entrega = _entrega_simples(db, c)
+    ontem = date.today() - timedelta(days=1)
+
+    def tentar(**kw):
+        corpo = {"data_ocorrencia": ontem, "motivo": "ajuste"} | kw
+        return svc.corrigir_data_entrega(
+            entrega_id=entrega.id,
+            dados=CorrecaoDataEntrega(**{k: v for k, v in corpo.items() if k != "usuario"}),
+            db=db,
+            usuario=kw.get("usuario", c.titular),
+        )
+
+    with pytest.raises(ValidationError, match="futuro"):
+        tentar(data_ocorrencia=date.today() + timedelta(days=1))
+    with pytest.raises(ValidationError, match="já está com esta data"):
+        tentar(data_ocorrencia=date.today())
+    with pytest.raises(ValidationError, match="motivo"):
+        tentar(motivo="   ")
+    with pytest.raises(AuthorizationError):
+        svc.corrigir_data_entrega(
+            entrega_id=entrega.id,
+            dados=CorrecaoDataEntrega(data_ocorrencia=ontem, motivo="ajuste"),
+            db=db,
+            usuario=c.leitor,
+        )
+    with pytest.raises(NotFoundError):
+        svc.corrigir_data_entrega(
+            entrega_id=0, dados=CorrecaoDataEntrega(data_ocorrencia=ontem, motivo="ajuste"), db=db, usuario=c.titular
+        )
+
+
+def test_alinhar_evento_cobre_excluido_corrigido_e_data_diferente(db):
+    from scripts.alinhar_eventos_das_entregas import executar
+
+    c = Cenario(db)
+    excluida = _entrega_simples(db, c)
+    db.get(EventoMarco, excluida.evento_id).deletado_em = svc._agora()
+    divergente = svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_dados(_item(c.dois), data=date.today() - timedelta(days=3)),
+        db=db,
+        usuario=c.titular,
+    )
+    db.get(EventoMarco, divergente.evento_id).data_ocorrencia = date.today() - timedelta(days=30)
+    db.flush()
+    simulacao = executar(db, aplicar=False)
+    assert simulacao["evento excluído: recriar"] >= 1 and simulacao["data diferente: corrigir evento"] >= 1
+    assert db.get(EventoMarco, excluida.evento_id).substituido_por_id is None  # simulação não mexe
+    executar(db, aplicar=True)
+    for entrega_id in (excluida.id, divergente.id):
+        entrega = svc.repo.obter_entrega(db, entrega_id)
+        ativo = svc.evento_ativo_da_entrega(db, entrega)
+        assert ativo is not None and ativo.id == entrega.evento_id and ativo.data_ocorrencia == entrega.data_ocorrencia
+    assert executar(db, aplicar=False)["já alinhada"] >= 2  # idempotente

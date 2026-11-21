@@ -33,6 +33,7 @@ from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_entregas import (
     CancelamentoUnidadeRead,
+    CorrecaoDataEntrega,
     EntregaCreate,
     EntregaRead,
     EquipamentosInstrumentoRead,
@@ -358,6 +359,110 @@ def corrigir_unidade(*, unidade_id: int, dados: UnidadeUpdate, db: Session, usua
         )
     db.commit()
     return _unidade_read(unidade, entrega.data_ocorrencia)
+
+
+def evento_ativo_da_entrega(db: Session, entrega: EntregaEquipamento) -> EventoMarco | None:
+    """Evento ativo ligado à entrega, seguindo a cadeia de correções; `None` se foi excluído."""
+    evento = db.get(EventoMarco, entrega.evento_id) if entrega.evento_id else None
+    vistos: set[int] = set()
+    while evento is not None and evento.id not in vistos:
+        vistos.add(evento.id)
+        if evento.deletado_em is not None:
+            return None
+        if evento.substituido_por_id is None:
+            return evento
+        evento = db.get(EventoMarco, evento.substituido_por_id)
+    return None
+
+
+def alinhar_evento_da_entrega(
+    db: Session, entrega: EntregaEquipamento, *, autor: User | None, observacao: str
+) -> EventoMarco | None:
+    """A entrega manda: deixa um evento ativo `cronograma_entrega` com a data dela e o reaponta.
+
+    Evento já correto só é reapontado; evento com outra data é corrigido (append-only); evento excluído é
+    recriado. Devolve o evento novo ou `None` quando nada mudou. Não commita."""
+    ativo = evento_ativo_da_entrega(db, entrega)
+    if ativo is not None and ativo.data_ocorrencia == entrega.data_ocorrencia:
+        if entrega.evento_id != ativo.id:
+            entrega.evento_id = ativo.id
+            return ativo
+        return None
+    autor_nome = autor.name if autor is not None else "Sistema"
+    texto = f"[{autor_nome}] {observacao}"
+    if ativo is not None:
+        novo = EventoMarco(
+            instrumento_id=ativo.instrumento_id,
+            marco_id=ativo.marco_id,
+            fase_geral_id=ativo.fase_geral_id,
+            data_ocorrencia=entrega.data_ocorrencia,
+            observacao=texto,
+            autor_id=autor.id if autor is not None else None,
+        )
+        monitoramento_repo.substituir_evento(db, ativo, novo)
+        ativo.atualizado_em = _agora()
+    else:
+        marco = monitoramento_repo.obter_marco_por_codigo(db, MARCO_ENTREGA)
+        fase = monitoramento_repo.obter_marco_por_codigo(db, MARCO_FASE_ENTREGUE)
+        if marco is None or fase is None:
+            raise ValidationError("Marco de entrega não encontrado no catálogo.")
+        novo = EventoMarco(
+            instrumento_id=entrega.instrumento_id,
+            marco_id=marco.id,
+            fase_geral_id=fase.id,
+            data_ocorrencia=entrega.data_ocorrencia,
+            observacao=texto,
+            autor_id=autor.id if autor is not None else None,
+        )
+        monitoramento_repo.adicionar_evento(db, novo)
+    entrega.evento_id = novo.id
+    return novo
+
+
+def corrigir_data_entrega(*, entrega_id: int, dados: CorrecaoDataEntrega, db: Session, usuario: User) -> EntregaRead:
+    entrega = repo.obter_entrega(db, entrega_id)
+    if entrega is None:
+        raise NotFoundError(f"Entrega {entrega_id} não encontrada.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, entrega.instrumento_id))
+    assert_nao_concluido(db, entrega.instrumento_id)
+    if entrega.deletado_em is not None:
+        raise ValidationError("A entrega foi excluída.")
+    motivo = dados.motivo.strip()
+    if not motivo:
+        raise ValidationError("Informe o motivo da correção.")
+    if dados.data_ocorrencia > date.today():
+        raise ValidationError("A data da entrega não pode estar no futuro.")
+    if dados.data_ocorrencia == entrega.data_ocorrencia:
+        raise ValidationError("A entrega já está com esta data.")
+    antes = entrega.data_ocorrencia
+    entrega.data_ocorrencia = dados.data_ocorrencia
+    evento = alinhar_evento_da_entrega(
+        db, entrega, autor=usuario, observacao=f"Data da entrega corrigida de {antes:%d/%m/%Y}. {motivo}"
+    )
+    log_action(
+        db,
+        user_id=usuario.id,
+        entity_name="entrega_equipamento",
+        entity_id=entrega.id,
+        action="updated",
+        details={
+            "antes": antes.isoformat(),
+            "depois": dados.data_ocorrencia.isoformat(),
+            "motivo": motivo,
+            "evento_id": evento.id if evento is not None else entrega.evento_id,
+        },
+    )
+    instrumento = monitoramento_repo.obter_instrumento_por_id(db, entrega.instrumento_id)
+    if instrumento is not None:
+        _notificar(
+            db,
+            instrumento,
+            f"{usuario.name} corrigiu a data de uma entrega em {instrumento.nr_convenio}",
+            motivo,
+        )
+    monitoramento_repo.sincronizar(db)
+    db.commit()
+    return _entrega_read(db, entrega)
 
 
 def excluir_entrega(*, entrega_id: int, motivo: str, db: Session, usuario: User) -> EntregaRead:

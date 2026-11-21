@@ -5,6 +5,7 @@ import {
   cancelarUnidadePlanejada,
   corrigirUnidade,
   definirPrevisaoEntrega,
+  corrigirDataEntrega,
   excluirEntrega,
   fetchEquipamentos,
   reativarUnidadeCancelada,
@@ -61,6 +62,15 @@ export function useExcluirEntrega(nr: string) {
   return useMutation({
     mutationFn: (v: { entregaId: number; motivo: string }) =>
       excluirEntrega(v.entregaId, v.motivo),
+    onSuccess: invalidar,
+  });
+}
+
+export function useCorrigirDataEntrega(nr: string) {
+  const invalidar = useInvalidarEntrega(nr);
+  return useMutation({
+    mutationFn: (v: { entregaId: number; data: string; motivo: string }) =>
+      corrigirDataEntrega(v.entregaId, v.data, v.motivo),
     onSuccess: invalidar,
   });
 }

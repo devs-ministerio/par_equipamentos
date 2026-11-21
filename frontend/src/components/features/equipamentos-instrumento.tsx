@@ -9,6 +9,7 @@ import {
   useCancelarUnidade,
   useDefinirPrevisaoEntrega,
   useRemoverPrevisaoEntrega,
+  useCorrigirDataEntrega,
   useExcluirEntrega,
   useReativarUnidade,
   useRegistrarEntrega,
@@ -44,6 +45,7 @@ export function EquipamentosInstrumento({
   const registrar = useRegistrarEntrega(numeroConvenio);
   const corrigir = useCorrigirUnidade(numeroConvenio);
   const excluir = useExcluirEntrega(numeroConvenio);
+  const corrigirData = useCorrigirDataEntrega(numeroConvenio);
   const cancelar = useCancelarUnidade(numeroConvenio);
   const reativar = useReativarUnidade(numeroConvenio);
   const definirPrevisao = useDefinirPrevisaoEntrega(numeroConvenio);
@@ -125,6 +127,11 @@ export function EquipamentosInstrumento({
           onDesfazerCancelamento={(cancelamentoId, motivo) =>
             escrever(() =>
               reativar.mutateAsync({ cancelamentoId, motivo }),
+            ).then(() => undefined)
+          }
+          onCorrigirData={(entregaId, data, motivo) =>
+            escrever(() =>
+              corrigirData.mutateAsync({ entregaId, data, motivo }),
             ).then(() => undefined)
           }
           onExcluirEntrega={(entregaId, motivo) =>

@@ -46,6 +46,11 @@ class EntregaCreate(BaseModel):
     inauguracao: InauguracaoEntrega | None = None
 
 
+class CorrecaoDataEntrega(BaseModel):
+    data_ocorrencia: date
+    motivo: str = Field(min_length=3, max_length=500)
+
+
 class ExclusaoEntrega(BaseModel):
     motivo: str = Field(min_length=3, max_length=500)
 

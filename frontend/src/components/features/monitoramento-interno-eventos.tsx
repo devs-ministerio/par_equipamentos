@@ -146,36 +146,47 @@ export function MonitoramentoInternoEventos({
                     </div>
                   </div>
                 </div>
-                {podeEditar && !emEdicao && !emExclusao && (
-                  <div className="flex flex-row justify-end gap-1.5 border-t border-border pt-2 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 sm:border-0 sm:pt-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEventoEmEdicao(ev.id);
-                        setEventoEmExclusao(null);
-                      }}
-                      className={cn(
-                        estiloInput,
-                        "min-h-11 cursor-pointer border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary sm:min-h-0 sm:px-2 sm:text-[11px]",
-                      )}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEventoEmExclusao(ev.id);
-                        setEventoEmEdicao(null);
-                      }}
-                      className={cn(
-                        estiloInput,
-                        "min-h-11 cursor-pointer border border-destructive bg-transparent px-3 py-1 text-xs font-semibold text-destructive sm:min-h-0 sm:px-2 sm:text-[11px]",
-                      )}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                )}
+                {podeEditar &&
+                  !emEdicao &&
+                  !emExclusao &&
+                  ev.gerado_por_entrega_id != null && (
+                    <div className="text-[11px] font-medium text-muted-foreground sm:absolute sm:right-3 sm:top-1/2 sm:-translate-y-1/2">
+                      Vem da entrega
+                    </div>
+                  )}
+                {podeEditar &&
+                  !emEdicao &&
+                  !emExclusao &&
+                  ev.gerado_por_entrega_id == null && (
+                    <div className="flex flex-row justify-end gap-1.5 border-t border-border pt-2 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 sm:border-0 sm:pt-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEventoEmEdicao(ev.id);
+                          setEventoEmExclusao(null);
+                        }}
+                        className={cn(
+                          estiloInput,
+                          "min-h-11 cursor-pointer border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary sm:min-h-0 sm:px-2 sm:text-[11px]",
+                        )}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEventoEmExclusao(ev.id);
+                          setEventoEmEdicao(null);
+                        }}
+                        className={cn(
+                          estiloInput,
+                          "min-h-11 cursor-pointer border border-destructive bg-transparent px-3 py-1 text-xs font-semibold text-destructive sm:min-h-0 sm:px-2 sm:text-[11px]",
+                        )}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  )}
 
                 {emEdicao && marco && (
                   <MonitoramentoInternoFormEvento

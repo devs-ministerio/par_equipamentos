@@ -150,6 +150,19 @@ export function excluirEntrega(
   );
 }
 
+export function corrigirDataEntrega(
+  entregaId: number,
+  dataOcorrencia: string,
+  motivo: string,
+): Promise<EntregaEquipamento> {
+  return apiAuthed(
+    `/monitoramento/entregas/${entregaId}/data`,
+    entregaSchema,
+    "PATCH",
+    { data_ocorrencia: dataOcorrencia, motivo },
+  );
+}
+
 export function cancelarUnidadePlanejada(
   itemId: number,
   motivo: string,

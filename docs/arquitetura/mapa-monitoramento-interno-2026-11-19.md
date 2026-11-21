@@ -315,6 +315,9 @@ flowchart TB
     classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
     classDef aviso fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
 
+    ENTREGA["Entrega de equipamento<br/>(fonte da data e das unidades)"]:::regra --> EVENTOENT["Evento cronograma_entrega gerado<br/>mostra Vem da entrega, sem Editar/Excluir"]:::tela
+    ENTREGA --> CORRDATA["Corrigir data da entrega (motivo)<br/>PATCH /entregas/{id}/data"]:::acao --> ALINHA["Entrega e evento mudam juntos<br/>evento corrigido append-only e reapontado"]:::regra
+    ENTREGA --> EXCENT["Excluir entrega<br/>apaga entrega e evento juntos"]:::acao
     ACOESDET["Detalhe do instrumento"]:::tela --> ACOESAPI["GET .../instrumentos/{nr}/acoes<br/>só deste instrumento, até 200 + total"]:::regra --> ACOESTELA["Contador e lista vêm daqui<br/>excesso: Mostrando N de M ações"]:::tela
     ERRO["Consulta falha sem dado em cache<br/>licença, conclusão, técnicos do Radar"]:::regra --> RETRY["Alerta com mensagem segura<br/>e Tentar novamente; nunca some em silêncio"]:::tela
     FONTES["GET /fontes/capturas"]:::tela --> PAPEL{"Papel?"}:::regra

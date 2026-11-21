@@ -15,6 +15,7 @@ from app.db.models import User
 from app.schemas_entregas import (
     CancelamentoUnidadeCreate,
     CancelamentoUnidadeRead,
+    CorrecaoDataEntrega,
     EntregaCreate,
     EntregaRead,
     EquipamentosInstrumentoRead,
@@ -56,6 +57,16 @@ def corrigir_unidade(
     usuario: User = Depends(require_monitoramento_editor),
 ):
     return servico.corrigir_unidade(unidade_id=unidade_id, dados=corpo, db=db, usuario=usuario)
+
+
+@router.patch("/entregas/{entrega_id}/data", response_model=EntregaRead)
+def corrigir_data_entrega(
+    entrega_id: int,
+    corpo: CorrecaoDataEntrega,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico.corrigir_data_entrega(entrega_id=entrega_id, dados=corpo, db=db, usuario=usuario)
 
 
 @router.delete("/entregas/{entrega_id}", response_model=EntregaRead)

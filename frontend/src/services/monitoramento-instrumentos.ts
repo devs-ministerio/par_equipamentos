@@ -29,6 +29,8 @@ const eventoMarcoSchema = z.object({
   deletado_por_nome: z.string().nullable().optional(),
   motivo_exclusao: z.string().nullable().optional(),
   ativo: z.boolean().optional().default(true),
+  // Evento nascido de uma entrega de equipamento: só se altera pela entrega.
+  gerado_por_entrega_id: z.number().nullable().optional(),
 });
 export type EventoMarco = z.infer<typeof eventoMarcoSchema>;
 

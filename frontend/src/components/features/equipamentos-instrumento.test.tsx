@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { axe } from "jest-axe";
 import { describe, expect, it, vi } from "vitest";
@@ -46,6 +46,7 @@ describe("lista de equipamentos do instrumento", () => {
     onRegistrar: vi.fn(),
     onCorrigir: vi.fn(),
     onExcluirEntrega: vi.fn().mockResolvedValue(undefined),
+    onCorrigirData: vi.fn().mockResolvedValue(undefined),
     onCancelarUnidade: vi.fn().mockResolvedValue(undefined),
     onDesfazerCancelamento: vi.fn().mockResolvedValue(undefined),
     onDefinirPrevisao: vi.fn().mockResolvedValue(undefined),
@@ -128,11 +129,76 @@ describe("lista de equipamentos do instrumento", () => {
   });
 });
 
+describe("correção da data da entrega", () => {
+  const props = {
+    onRegistrar: vi.fn(),
+    onCorrigir: vi.fn(),
+    onExcluirEntrega: vi.fn(),
+    onCorrigirData: vi.fn().mockResolvedValue(undefined),
+    onCancelarUnidade: vi.fn(),
+    onDesfazerCancelamento: vi.fn(),
+    onDefinirPrevisao: vi.fn(),
+    onRemoverPrevisao: vi.fn(),
+  };
+
+  async function abrirCorrecao() {
+    props.onCorrigirData.mockClear();
+    render(
+      <EquipamentosInstrumentoLista {...props} itens={[item()]} podeEditar />,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ver unidades de Mamógrafo" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Corrigir data da entrega da unidade 1 de Mamógrafo",
+      }),
+    );
+  }
+
+  it("exige data nova e motivo, e envia a correção da entrega", async () => {
+    await abrirCorrecao();
+    await userEvent.click(screen.getByRole("button", { name: "Salvar data" }));
+    expect(
+      await screen.findByText("A entrega já está com esta data."),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Data da entrega"), {
+      target: { value: "2026-09-20" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Salvar data" }));
+    expect(
+      await screen.findByText("Explique o motivo (mínimo 3 caracteres)."),
+    ).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Motivo"), "data errada");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar data" }));
+    await waitFor(() =>
+      expect(props.onCorrigirData).toHaveBeenCalledWith(
+        5,
+        "2026-09-20",
+        "data errada",
+      ),
+    );
+  });
+
+  it("recusa data no futuro sem chamar a API", async () => {
+    await abrirCorrecao();
+    fireEvent.change(screen.getByLabelText("Data da entrega"), {
+      target: { value: "2999-01-01" },
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Salvar data" }));
+    expect(
+      await screen.findByText("Informe uma data que não esteja no futuro."),
+    ).toBeInTheDocument();
+    expect(props.onCorrigirData).not.toHaveBeenCalled();
+  });
+});
+
 describe("cancelamento de unidade planejada", () => {
   const props = {
     onRegistrar: vi.fn(),
     onCorrigir: vi.fn(),
     onExcluirEntrega: vi.fn(),
+    onCorrigirData: vi.fn(),
     onCancelarUnidade: vi.fn().mockResolvedValue(undefined),
     onDesfazerCancelamento: vi.fn().mockResolvedValue(undefined),
     onDefinirPrevisao: vi.fn().mockResolvedValue(undefined),
@@ -233,6 +299,7 @@ describe("previsão de entrega do item", () => {
     onRegistrar: vi.fn(),
     onCorrigir: vi.fn(),
     onExcluirEntrega: vi.fn(),
+    onCorrigirData: vi.fn(),
     onCancelarUnidade: vi.fn(),
     onDesfazerCancelamento: vi.fn(),
     onDefinirPrevisao: vi.fn().mockResolvedValue(undefined),

@@ -69,6 +69,7 @@ export function EquipamentosInstrumentoLista({
   onRegistrar,
   onCorrigir,
   onExcluirEntrega,
+  onCorrigirData,
   onCancelarUnidade,
   onDesfazerCancelamento,
   onDefinirPrevisao,
@@ -79,6 +80,11 @@ export function EquipamentosInstrumentoLista({
   onRegistrar: (itemId: number) => void;
   onCorrigir: (unidade: UnidadeEquipamento) => void;
   onExcluirEntrega: (entregaId: number, motivo: string) => Promise<void>;
+  onCorrigirData: (
+    entregaId: number,
+    data: string,
+    motivo: string,
+  ) => Promise<void>;
   onCancelarUnidade: (itemId: number, motivo: string) => Promise<void>;
   onDesfazerCancelamento: (
     cancelamentoId: number,
@@ -253,6 +259,7 @@ export function EquipamentosInstrumentoLista({
           onFechar={() => setVerUnidades(null)}
           onCorrigir={onCorrigir}
           onExcluirEntrega={onExcluirEntrega}
+          onCorrigirData={onCorrigirData}
         />
       )}
     </div>

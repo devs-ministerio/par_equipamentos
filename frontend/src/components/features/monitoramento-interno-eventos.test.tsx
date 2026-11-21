@@ -42,6 +42,30 @@ describe("interação da timeline de eventos", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("evento que vem de uma entrega não oferece Editar nem Excluir", () => {
+    const props = criarProps();
+    render(
+      <MonitoramentoInternoEventos
+        {...props}
+        eventos={[
+          criarEventoTeste({
+            marco_id: 1,
+            fase_geral_id: null,
+            observacao: "Da entrega",
+            gerado_por_entrega_id: 7,
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Vem da entrega")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Editar" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Excluir" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("ordena pelo lançamento mais recente e mostra ocorrência e previsão separadas", () => {
     // Arrange
     const props = criarProps();
