@@ -7,7 +7,7 @@ from datetime import date, timedelta
 import pytest
 from sqlalchemy import select
 
-from app.db.models import AcaoMonitoramento, EventoMarco, MarcoCatalogo
+from app.db.models import AcaoMonitoramento, EntregaLegadaRevisao, EventoMarco, MarcoCatalogo
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
 from app.schemas_conclusao import ConclusaoCreate, ReaberturaCreate
 from app.schemas_entregas import CancelamentoUnidadeCreate
@@ -61,6 +61,17 @@ def _entregar_tudo(sessao, c):
     entregas.registrar_entrega(
         nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2), _item(c.um)), db=sessao, usuario=c.titular
     )
+
+
+def test_revisao_de_entrega_antiga_guardada_so_como_historico_nao_impede_concluir(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    evento = db.scalars(select(EventoMarco).where(EventoMarco.instrumento_id == c.inst.id)).first()
+    db.add(EntregaLegadaRevisao(instrumento_id=c.inst.id, evento_id=evento.id, motivo="varios_itens"))
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.impedimentos == []
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
 
 
 def test_conclui_integral_sem_justificativa_e_a_fase_vira_concluido(db):  # noqa: F811

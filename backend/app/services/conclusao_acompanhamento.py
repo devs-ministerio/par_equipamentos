@@ -2,7 +2,7 @@
 
 Só os itens controlados por unidade entram no cálculo e bloqueiam a conclusão; nos instrumentos de exceção, os
 demais itens de aquisição não bloqueiam. O resultado é calculado pelo sistema e confirmado pela equipe. Ação
-aberta, entrega antiga a vincular e item na fila de revisão impedem concluir. Depois de concluído, as entregas e
+aberta e item na fila de revisão impedem concluir. Depois de concluído, as entregas e
 os cancelamentos ficam bloqueados até a reabertura (`assert_nao_concluido`).
 """
 
@@ -140,11 +140,6 @@ def _impedimentos(db: Session, instrumento_id: int, itens: list[ItemParaConclusa
                     tipo="item_pendente", descricao=f"{item.nome}: {pendentes} unidade(s) sem entrega nem cancelamento."
                 )
             )
-    revisoes = itens_repo.contar_revisoes_pendentes(db, instrumento_id)
-    if revisoes:
-        impedimentos.append(
-            ImpedimentoRead(tipo="entrega_legada", descricao=f"{revisoes} entrega(s) antiga(s) a vincular aos itens.")
-        )
     itens_em_revisao = repo.contar_itens_em_revisao(db, instrumento_id)
     if itens_em_revisao:
         impedimentos.append(

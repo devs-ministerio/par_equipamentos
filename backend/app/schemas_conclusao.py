@@ -11,7 +11,7 @@ ResultadoConclusao = Literal["integral", "parcial", "sem_entregas"]
 
 
 class ImpedimentoRead(BaseModel):
-    tipo: Literal["item_pendente", "sem_item_controlado", "entrega_legada", "item_em_revisao", "acao_aberta"]
+    tipo: Literal["item_pendente", "sem_item_controlado", "item_em_revisao", "acao_aberta"]
     descricao: str
 
 

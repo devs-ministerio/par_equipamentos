@@ -12,7 +12,6 @@ import {
   useExcluirEntrega,
   useReativarUnidade,
   useRegistrarEntrega,
-  useVincularEntregaLegada,
 } from "@/hooks/useEquipamentosInstrumento";
 import {
   useConfirmarRepasse,
@@ -26,10 +25,7 @@ import { EquipamentosInstrumentoFormEntrega } from "./equipamentos-instrumento-f
 import { EquipamentosInstrumentoLista } from "./equipamentos-instrumento-lista";
 import { SecaoOperacional } from "./monitoramento-ui";
 
-type Painel =
-  | { tipo: "entrega"; itemId?: number }
-  | { tipo: "legado"; revisaoId: number; data: string | null }
-  | null;
+type Painel = { tipo: "entrega"; itemId?: number } | null;
 
 export function EquipamentosInstrumento({
   numeroConvenio,
@@ -46,7 +42,6 @@ export function EquipamentosInstrumento({
 }) {
   const consulta = useEquipamentosInstrumento(numeroConvenio);
   const registrar = useRegistrarEntrega(numeroConvenio);
-  const vincular = useVincularEntregaLegada(numeroConvenio);
   const corrigir = useCorrigirUnidade(numeroConvenio);
   const excluir = useExcluirEntrega(numeroConvenio);
   const cancelar = useCancelarUnidade(numeroConvenio);
@@ -149,40 +144,28 @@ export function EquipamentosInstrumento({
         <EquipamentosInstrumentoFormEntrega
           itens={dados.itens}
           apenasItemId={painel.tipo === "entrega" ? painel.itemId : undefined}
-          dataLegada={
-            painel.tipo === "legado" ? (painel.data ?? "") : undefined
-          }
           previsaoInauguracao={previsaoInauguracao}
           perguntarInauguracao={!inauguracaoRealizada}
           onFechar={() => setPainel(null)}
           onEnviar={async (envio) => {
-            if (painel.tipo === "legado") {
-              await escrever(() =>
-                vincular.mutateAsync({
-                  revisaoId: painel.revisaoId,
-                  itens: envio.itens,
-                }),
-              );
-            } else {
-              if (repasse.data && repasse.data.repasse === null) {
-                const confirmado = await pedirRepasse();
-                if (!confirmado) throw new Error("Repasse não confirmado.");
-              }
-              await escrever(() =>
-                registrar.mutateAsync({
-                  chave_idempotencia: envio.chave,
-                  data_ocorrencia: envio.dataOcorrencia,
-                  observacao: envio.observacao,
-                  itens: envio.itens,
-                  inauguracao: envio.inauguracao
-                    ? {
-                        necessaria: envio.inauguracao.necessaria,
-                        data_prevista: envio.inauguracao.dataPrevista,
-                      }
-                    : null,
-                }),
-              );
+            if (repasse.data && repasse.data.repasse === null) {
+              const confirmado = await pedirRepasse();
+              if (!confirmado) throw new Error("Repasse não confirmado.");
             }
+            await escrever(() =>
+              registrar.mutateAsync({
+                chave_idempotencia: envio.chave,
+                data_ocorrencia: envio.dataOcorrencia,
+                observacao: envio.observacao,
+                itens: envio.itens,
+                inauguracao: envio.inauguracao
+                  ? {
+                      necessaria: envio.inauguracao.necessaria,
+                      data_prevista: envio.inauguracao.dataPrevista,
+                    }
+                  : null,
+              }),
+            );
           }}
         />
       )}

@@ -30,7 +30,6 @@ const avaliacaoSchema = z.object({
       tipo: z.enum([
         "item_pendente",
         "sem_item_controlado",
-        "entrega_legada",
         "item_em_revisao",
         "acao_aberta",
       ]),

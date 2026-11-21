@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-SituacaoItem = Literal["pendente", "parcial", "entregue", "legado_a_revisar", "cancelado"]
+SituacaoItem = Literal["pendente", "parcial", "entregue", "cancelado"]
 
 
 class UnidadeEntregaCreate(BaseModel):
@@ -44,10 +44,6 @@ class EntregaCreate(BaseModel):
     observacao: str | None = Field(default=None, max_length=1000)
     itens: list[ItemEntregaCreate] = Field(min_length=1, max_length=50)
     inauguracao: InauguracaoEntrega | None = None
-
-
-class VincularLegadaCreate(BaseModel):
-    itens: list[ItemEntregaCreate] = Field(min_length=1, max_length=50)
 
 
 class ExclusaoEntrega(BaseModel):
@@ -117,7 +113,6 @@ class EquipamentosInstrumentoRead(BaseModel):
     pode_editar: bool
     itens: list[ItemEquipamentoRead]
     outros_itens: int
-    revisoes_pendentes: int
 
 
 class EntregaRead(BaseModel):
@@ -127,15 +122,6 @@ class EntregaRead(BaseModel):
     data_ocorrencia: date
     observacao: str | None
     unidades: list[UnidadeRead]
-
-
-class EntregaLegadaRead(BaseModel):
-    id: int
-    nr_convenio: str
-    evento_id: int
-    data_ocorrencia: date | None
-    motivo: str
-    criado_em: datetime
 
 
 class CancelamentoUnidadeCreate(BaseModel):

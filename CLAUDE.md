@@ -255,8 +255,10 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
 
 - **Modelo**: `item_plano` (projeção dos itens do SICONV por `ID_ITEM_PAD`, ou `manual:{numero}:{ordem}` nas
   cargas manuais; `OBRA`/`SERVICO` ficam de fora), `entrega_equipamento` (append-only, soft delete com motivo),
-  `unidade_equipamento` (nasce na entrega: marca, modelo, série única dentro do item, vida útil) e
-  `entrega_legada_revisao` (fila das entregas antigas sem vínculo inequívoco). Cada `item_plano` é um equipamento
+  `unidade_equipamento` (nasce na entrega: marca, modelo, série única dentro do item, vida útil). A fila
+  `entrega_legada_revisao` (entregas antigas sem vínculo) ficou só como histórico no banco: **a função de vincular foi
+  removida em 21/11/2026** (sem endpoint, tela, situação "A vincular" nem script); instrumentos com pedido antigo seguem o
+  fluxo normal (registrar a entrega e concluir), e o pedido não impede a conclusão. Cada `item_plano` é um equipamento
   distinto: dois itens com o mesmo código e nome são duas linhas.
 - **16 famílias** controlam unidade (`equipamento_catalogo.controle_por_unidade`) e definem "Prioritário". **Regra de
   valor (26/10/2026):** equipamento fora das 16 famílias também entra no monitoramento por item quando o valor de uma
@@ -265,10 +267,10 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   Pela linha inteira entrariam lotes baratos (293 computadores, 120 camas), por isso o critério é por unidade.
   Na tela o item aparece sem família; no painel, em "Outros equipamentos (a partir de R$ 300 mil)".
   Aceleradores manuais de PERSUS I/II usam o código 011806 (`codigo_fonte = regra_da_equipe`).
-- **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`,
-  `vincular_entregas_legadas.py` (conservador; avisa os técnicos pelo tipo `entrega_legada_revisao`).
+- **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`
+  (a lógica por convênio está em `app/services/projecao_itens_plano.py` e roda também na aprovação do Radar).
 - **API** (`routers/entregas.py`): leitura dos itens do instrumento, entrega com várias unidades por item e
-  idempotência, correção de unidade (AuditLog antes/depois), exclusão com motivo, fila e vínculo de legado.
+  idempotência, correção de unidade (AuditLog antes/depois), exclusão com motivo.
   Entrega acima do planejado é bloqueada; toda entrega vincula pelo menos um item.
 - **Tela**: seção "Equipamentos do instrumento" acima do Cadastro interno. A entrega no estabelecimento não é mais
   lançada pelo seletor de marcos da linha do tempo (o backend ainda aceita o marco).

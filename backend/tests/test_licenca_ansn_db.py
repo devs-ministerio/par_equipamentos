@@ -86,7 +86,10 @@ def test_vinculos_rejeitam_cnes_desconhecido_e_sao_idempotentes(db):  # noqa: F8
     assert contagem["vínculo novo"] == 1 and len(rejeitadas) == 1
     contagem2, _ = importar_vinculos(db, [(cnes, m)], aplicar=True)
     assert contagem2["já vinculada"] == 1 and "vínculo novo" not in contagem2
-    assert len(db.scalars(select(VinculoLicencaEstabelecimento).where(VinculoLicencaEstabelecimento.cnes == cnes)).all()) == 1
+    assert (
+        len(db.scalars(select(VinculoLicencaEstabelecimento).where(VinculoLicencaEstabelecimento.cnes == cnes)).all())
+        == 1
+    )
 
 
 def test_matricula_informada_fora_da_carga_e_aceita_e_marcada(db):  # noqa: F811

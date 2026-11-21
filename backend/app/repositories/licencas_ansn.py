@@ -63,9 +63,7 @@ def vinculos_por_cnes(
 def instalacoes_por_matricula(db: Session, matriculas: list[str]) -> dict[str, InstalacaoAnsn]:
     if not matriculas:
         return {}
-    return {
-        i.matricula: i for i in db.scalars(select(InstalacaoAnsn).where(InstalacaoAnsn.matricula.in_(matriculas)))
-    }
+    return {i.matricula: i for i in db.scalars(select(InstalacaoAnsn).where(InstalacaoAnsn.matricula.in_(matriculas)))}
 
 
 def cnes_existentes(db: Session, cnes: list[str]) -> set[str]:

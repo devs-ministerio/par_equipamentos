@@ -16,7 +16,6 @@ from app.schemas_entregas import (
     CancelamentoUnidadeCreate,
     CancelamentoUnidadeRead,
     EntregaCreate,
-    EntregaLegadaRead,
     EntregaRead,
     EquipamentosInstrumentoRead,
     ExclusaoEntrega,
@@ -26,7 +25,6 @@ from app.schemas_entregas import (
     ReativacaoUnidadeCreate,
     UnidadeRead,
     UnidadeUpdate,
-    VincularLegadaCreate,
 )
 from app.services import cancelamento_unidade as servico_cancelamento
 from app.services import entregas_equipamento as servico
@@ -68,21 +66,6 @@ def excluir_entrega(
     usuario: User = Depends(require_monitoramento_editor),
 ):
     return servico.excluir_entrega(entrega_id=entrega_id, motivo=corpo.motivo, db=db, usuario=usuario)
-
-
-@router.get("/entregas-legadas", response_model=list[EntregaLegadaRead])
-def listar_entregas_legadas(db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
-    return servico.listar_entregas_legadas(db=db, usuario=usuario)
-
-
-@router.post("/entregas-legadas/{revisao_id}/vincular", response_model=EntregaRead, status_code=201)
-def vincular_entrega_legada(
-    revisao_id: int,
-    corpo: VincularLegadaCreate,
-    db: Session = Depends(get_db),
-    usuario: User = Depends(require_monitoramento_editor),
-):
-    return servico.vincular_entrega_legada(revisao_id=revisao_id, itens=corpo.itens, db=db, usuario=usuario)
 
 
 @router.post("/itens/{item_id}/cancelamentos", response_model=CancelamentoUnidadeRead, status_code=201)

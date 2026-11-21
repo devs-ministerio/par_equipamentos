@@ -1,6 +1,5 @@
 /** Painel "Registrar entrega": data, observação e um ou mais itens pendentes
- * (multisseleção). No modo legado a data vem do evento antigo e só os itens
- * são escolhidos. */
+ * (multisseleção). */
 import { useId, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -42,7 +41,6 @@ export interface EnvioEntrega {
 export function EquipamentosInstrumentoFormEntrega({
   itens,
   apenasItemId,
-  dataLegada,
   previsaoInauguracao,
   perguntarInauguracao = true,
   onEnviar,
@@ -51,8 +49,6 @@ export function EquipamentosInstrumentoFormEntrega({
   itens: ItemEquipamento[];
   /** Aberto pelo ícone de um item: mostra só ele. Sem isso, lista os pendentes. */
   apenasItemId?: number;
-  /** Presente no vínculo de entrega antiga: data fixa do evento original. */
-  dataLegada?: string | null;
   /** Previsão de inauguração já registrada: vem preenchida para confirmação. */
   previsaoInauguracao?: string | null;
   /** Falso quando a inauguração já aconteceu: a pergunta não faz sentido. */
@@ -76,7 +72,7 @@ export function EquipamentosInstrumentoFormEntrega({
   } = useForm<RegistrarEntregaFormValues>({
     resolver: zodResolver(registrarEntregaSchema),
     defaultValues: {
-      dataOcorrencia: dataLegada ?? new Date().toISOString().slice(0, 10),
+      dataOcorrencia: new Date().toISOString().slice(0, 10),
       observacao: "",
       precisaInauguracao: previsaoInauguracao ? "sim" : undefined,
       dataInauguracao: previsaoInauguracao ?? "",
@@ -91,7 +87,7 @@ export function EquipamentosInstrumentoFormEntrega({
   const { fields } = useFieldArray({ control, name: "itens" });
   const marcados = watch("itens");
 
-  const perguntar = !dataLegada && perguntarInauguracao;
+  const perguntar = perguntarInauguracao;
   const precisa = watch("precisaInauguracao");
 
   async function aoSubmeter(v: RegistrarEntregaFormValues) {
@@ -134,42 +130,38 @@ export function EquipamentosInstrumentoFormEntrega({
         className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
       >
         <DialogHeader>
-          <DialogTitle>
-            {dataLegada ? "Vincular entrega registrada" : "Registrar entrega"}
-          </DialogTitle>
+          <DialogTitle>Registrar entrega</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(aoSubmeter)} className="grid gap-3">
-          {!dataLegada && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor={`${formId}-data`} className="text-[11px]">
-                  Data da entrega
-                </label>
-                <input
-                  id={`${formId}-data`}
-                  type="date"
-                  max={new Date().toISOString().slice(0, 10)}
-                  className={cn(estiloInput, "w-full")}
-                  aria-invalid={Boolean(errors.dataOcorrencia)}
-                  {...register("dataOcorrencia")}
-                />
-                <ErroCampo
-                  id={`${formId}-data-erro`}
-                  mensagem={errors.dataOcorrencia?.message}
-                />
-              </div>
-              <div>
-                <label htmlFor={`${formId}-obs`} className="text-[11px]">
-                  Observação
-                </label>
-                <input
-                  id={`${formId}-obs`}
-                  className={cn(estiloInput, "w-full")}
-                  {...register("observacao")}
-                />
-              </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor={`${formId}-data`} className="text-[11px]">
+                Data da entrega
+              </label>
+              <input
+                id={`${formId}-data`}
+                type="date"
+                max={new Date().toISOString().slice(0, 10)}
+                className={cn(estiloInput, "w-full")}
+                aria-invalid={Boolean(errors.dataOcorrencia)}
+                {...register("dataOcorrencia")}
+              />
+              <ErroCampo
+                id={`${formId}-data-erro`}
+                mensagem={errors.dataOcorrencia?.message}
+              />
             </div>
-          )}
+            <div>
+              <label htmlFor={`${formId}-obs`} className="text-[11px]">
+                Observação
+              </label>
+              <input
+                id={`${formId}-obs`}
+                className={cn(estiloInput, "w-full")}
+                {...register("observacao")}
+              />
+            </div>
+          </div>
           <fieldset className="grid gap-2">
             <legend className="text-[11px] mb-1">Equipamentos entregues</legend>
             {fields.length === 0 && (

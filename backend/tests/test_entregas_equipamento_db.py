@@ -16,7 +16,6 @@ from app.auth import hash_password
 from app.db.base import engine
 from app.db.models import (
     Convenio,
-    EntregaLegadaRevisao,
     EquipamentoCatalogo,
     EventoMarco,
     InstrumentoEquipamento,
@@ -260,26 +259,6 @@ def test_excluir_entrega_libera_a_quantidade_e_exige_motivo(db):
         svc.excluir_entrega(entrega_id=entrega.id, motivo="de novo", db=db, usuario=c.titular)
 
 
-def test_vincular_entrega_legada_resolve_a_revisao(db):
-    c = Cenario(db)
-    evento = svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
-    svc.excluir_entrega(entrega_id=evento.id, motivo="simula legado", db=db, usuario=c.titular)
-    ev = db.get(EventoMarco, evento.evento_id)
-    ev.deletado_em = ev.deletado_por_id = ev.motivo_exclusao = None
-    revisao = EntregaLegadaRevisao(instrumento_id=c.inst.id, evento_id=ev.id, motivo="varios_itens")
-    db.add(revisao)
-    db.flush()
-    pendentes = svc.listar_entregas_legadas(db=db, usuario=c.titular)
-    assert [p.id for p in pendentes] == [revisao.id]
-    assert svc.listar_entregas_legadas(db=db, usuario=c.outro) == []
-    assert svc.listar_entregas_legadas(db=db, usuario=c.leitor) == []
-    resolvida = svc.vincular_entrega_legada(revisao_id=revisao.id, itens=[_item(c.dois)], db=db, usuario=c.titular)
-    assert resolvida.data_ocorrencia == ev.data_ocorrencia
-    assert db.get(EntregaLegadaRevisao, revisao.id).situacao == "resolvida"
-    with pytest.raises(ConflictError):
-        svc.vincular_entrega_legada(revisao_id=revisao.id, itens=[_item(c.dois)], db=db, usuario=c.titular)
-
-
 def test_http_leitura_exige_sessao_e_devolve_contrato(headers_autenticados):
     from fastapi.testclient import TestClient
 
@@ -289,7 +268,7 @@ def test_http_leitura_exige_sessao_e_devolve_contrato(headers_autenticados):
     assert cliente.get("/monitoramento/instrumentos/948686/equipamentos").status_code == 401
     resposta = cliente.get("/monitoramento/instrumentos/948686/equipamentos", headers=headers_autenticados)
     assert resposta.status_code == 200
-    assert set(resposta.json()) == {"nr_convenio", "pode_editar", "itens", "outros_itens", "revisoes_pendentes"}
+    assert set(resposta.json()) == {"nr_convenio", "pode_editar", "itens", "outros_itens"}
     assert (
         cliente.get("/monitoramento/instrumentos/NAO-EXISTE/equipamentos", headers=headers_autenticados).status_code
         == 404

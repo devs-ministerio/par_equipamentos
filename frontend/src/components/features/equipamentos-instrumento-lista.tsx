@@ -21,10 +21,6 @@ const SITUACAO: Record<ItemEquipamento["situacao"], [string, string]> = {
   parcial: ["Parcial", "bg-warning-bg text-warning border-warning/20"],
   entregue: ["Entregue", "bg-success-bg text-success border-success/20"],
   cancelado: ["Cancelado", "bg-muted text-muted-foreground border-border"],
-  legado_a_revisar: [
-    "A vincular",
-    "bg-destructive-bg text-destructive border-destructive/20",
-  ],
 };
 
 const formatarMoeda = new Intl.NumberFormat("pt-BR", {

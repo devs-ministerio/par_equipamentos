@@ -47,13 +47,7 @@ const itemSchema = z.object({
   cancelamentos: z.array(cancelamentoSchema).default([]),
   previsao_entrega: z.string().nullable().default(null),
   quantidade_entregue: z.number(),
-  situacao: z.enum([
-    "pendente",
-    "parcial",
-    "entregue",
-    "cancelado",
-    "legado_a_revisar",
-  ]),
+  situacao: z.enum(["pendente", "parcial", "entregue", "cancelado"]),
   ultima_entrega: z.string().nullable(),
   unidades: z.array(unidadeSchema),
   rendimentos: z.array(rendimentoSchema).default([]),
@@ -65,7 +59,6 @@ const equipamentosSchema = z.object({
   pode_editar: z.boolean(),
   itens: z.array(itemSchema),
   outros_itens: z.number(),
-  revisoes_pendentes: z.number(),
 });
 export type EquipamentosInstrumento = z.infer<typeof equipamentosSchema>;
 
@@ -130,18 +123,6 @@ export function registrarEntrega(
     entregaSchema,
     "POST",
     corpo,
-  );
-}
-
-export function vincularEntregaLegada(
-  revisaoId: number,
-  itens: ItemEntregaInput[],
-): Promise<EntregaEquipamento> {
-  return apiAuthed(
-    `/monitoramento/entregas-legadas/${revisaoId}/vincular`,
-    entregaSchema,
-    "POST",
-    { itens },
   );
 }
 

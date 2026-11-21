@@ -11,11 +11,7 @@ from app.db.models import (
     CancelamentoUnidadePlanejada,
     Convenio,
     EntregaEquipamento,
-    EntregaLegadaRevisao,
     EquipamentoCatalogo,
-    EventoMarco,
-    InstrumentoEquipamento,
-    InstrumentoResponsavel,
     ItemPlano,
     PrevisaoEntregaItem,
     RenemItem,
@@ -144,40 +140,6 @@ def unidades_da_entrega(db: Session, entrega: EntregaEquipamento) -> list[Unidad
 def adicionar(db: Session, *objetos: object) -> None:
     db.add_all(objetos)
     db.flush()
-
-
-def contar_revisoes_pendentes(db: Session, instrumento_id: int) -> int:
-    return int(
-        db.execute(
-            select(func.count())
-            .select_from(EntregaLegadaRevisao)
-            .where(EntregaLegadaRevisao.instrumento_id == instrumento_id, EntregaLegadaRevisao.situacao == "pendente")
-        ).scalar_one()
-    )
-
-
-def listar_revisoes_pendentes(
-    db: Session, *, usuario_id: int | None
-) -> list[tuple[EntregaLegadaRevisao, str, date | None]]:
-    """`usuario_id=None` devolve todas (gestor/admin); com id, só dos instrumentos em que é titular/suplente."""
-    consulta = (
-        select(EntregaLegadaRevisao, InstrumentoEquipamento.nr_convenio, EventoMarco.data_ocorrencia)
-        .join(InstrumentoEquipamento, InstrumentoEquipamento.id == EntregaLegadaRevisao.instrumento_id)
-        .join(EventoMarco, EventoMarco.id == EntregaLegadaRevisao.evento_id)
-        .where(EntregaLegadaRevisao.situacao == "pendente")
-        .order_by(EntregaLegadaRevisao.id)
-    )
-    if usuario_id is not None:
-        consulta = consulta.where(
-            EntregaLegadaRevisao.instrumento_id.in_(
-                select(InstrumentoResponsavel.instrumento_id).where(InstrumentoResponsavel.usuario_id == usuario_id)
-            )
-        )
-    return [(r, nr, data) for r, nr, data in db.execute(consulta).all()]
-
-
-def obter_revisao(db: Session, revisao_id: int) -> EntregaLegadaRevisao | None:
-    return db.get(EntregaLegadaRevisao, revisao_id, with_for_update=True)
 
 
 def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -> dict[int, int]:

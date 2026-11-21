@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type CorrigirUnidadeInput,
-  type ItemEntregaInput,
   type RegistrarEntregaInput,
   cancelarUnidadePlanejada,
   corrigirUnidade,
@@ -11,7 +10,6 @@ import {
   reativarUnidadeCancelada,
   removerPrevisaoEntrega,
   registrarEntrega,
-  vincularEntregaLegada,
 } from "@/services/entregas-equipamento";
 import { monitoramentoKeys } from "./monitoramento-query-keys";
 
@@ -45,15 +43,6 @@ export function useRegistrarEntrega(nr: string) {
   const invalidar = useInvalidarEntrega(nr);
   return useMutation({
     mutationFn: (corpo: RegistrarEntregaInput) => registrarEntrega(nr, corpo),
-    onSuccess: invalidar,
-  });
-}
-
-export function useVincularEntregaLegada(nr: string) {
-  const invalidar = useInvalidarEntrega(nr);
-  return useMutation({
-    mutationFn: (v: { revisaoId: number; itens: ItemEntregaInput[] }) =>
-      vincularEntregaLegada(v.revisaoId, v.itens),
     onSuccess: invalidar,
   });
 }

@@ -72,7 +72,9 @@ def test_carteira_preenchida_de_500_preserva_todos_os_instrumentos(formato, tmp_
                 assert itens.count(("Equipamento QA auxiliar", "1", "—")) == 500
                 assert itens.count(("Equipamento QA carga", "500", "R$ 0,00")) == 1
                 assert itens.count(("Equipamento QA auxiliar", "500", "—")) == 1
-                assert len(consultas) == 23  # +3 das unidades entregues, +1 da data de conclusão, +1 da aquisição realizada
+                assert (
+                    len(consultas) == 23
+                )  # +3 das unidades entregues, +1 da data de conclusão, +1 da aquisição realizada
             else:
                 pasta = load_workbook(BytesIO(conteudo))
                 try:

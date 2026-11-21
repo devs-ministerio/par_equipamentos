@@ -10,7 +10,7 @@ regras da tela de conclusão:
 - **qualquer outro caso** (sem entrega, parcial, item na fila de revisão, sem data, pendência real): o evento antigo
   é excluído (soft delete com motivo) e o instrumento sai de "Concluído" até a equipe revisar. A lista sai no fim.
 
-Rodar depois de `corrigir_entregas_persus_i` e `vincular_entregas_legadas`. Idempotente. Sem ``--aplicar`` apenas
+Rodar depois de `corrigir_entregas_persus_i`. Idempotente. Sem ``--aplicar`` apenas
 simula; avisos de prazo das ações concluídas são arquivados na próxima rodada de `job_prazos_monitoramento`.
 
 Uso:

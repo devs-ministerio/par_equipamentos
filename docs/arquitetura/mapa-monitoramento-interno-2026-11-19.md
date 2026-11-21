@@ -167,7 +167,7 @@ flowchart TB
     UNI --> EXCL["Excluir entrega, com motivo"]:::acao
     SIM --> CANC["Cancelar unidade, com motivo"]:::acao
     CANC --> DESF["Desfazer cancelamento"]:::acao
-    LEG["Entrega antiga sem item definido"]:::dado --> VINC["Equipe vincula ao item"]:::acao --> ENT
+    LEG["Entrega antiga sem item definido<br/>(vínculo removido)"]:::dado -. "registrar pelo fluxo normal" .-> ENT
     CONC{"Acompanhamento concluído?"}:::regra -->|"sim"| TRAVA["Nenhuma edição do instrumento<br/>até reabrir"]:::regra
 ```
 
@@ -197,15 +197,17 @@ flowchart TB
 | PERSUS II | Fora do monitoramento interno | `criar_instrumento_monitorado` |
 | Acompanhamento concluído | Nada pode ser alterado até reabrir (seção 5) | `assert_nao_concluido` |
 
-### 4.4 Entrega antiga sem item definido
+### 4.4 Entrega antiga sem item definido (função removida)
 
-**O que é.** Antes do controle por unidade, a entrega era um evento do cronograma (marco `cronograma_entrega`), sem dizer qual item foi entregue. Ao migrar, o script `vincular_entregas_legadas` liga a entrega ao item só quando há exatamente um item controlado e ativo no instrumento. Nos demais casos ele **não escolhe**: grava um pedido de revisão (`entrega_legada_revisao`) com o motivo (`varias_entregas`, `sem_item_controlado`, `varios_itens`, `quantidade_desconhecida`).
+**O que mudou.** A função de vincular entrega antiga a um item foi removida do SISGEO: não há mais endpoint, botão, situação "A vincular" nem script `vincular_entregas_legadas`. Eram poucos casos (no dump de 20/11/2026, 3 pedidos em 2 instrumentos: 953739 e 949415).
 
-**Finalidade.** Não perder o histórico, não adivinhar a qual equipamento a entrega pertence e não contar a mesma entrega duas vezes. Enquanto o pedido está pendente, o item aparece como "A vincular" e a conclusão do acompanhamento fica impedida. A equipe resolve pelo botão de vincular no próprio item; não existe tela separada de fila.
+**Como esses instrumentos concluem.** Eles seguem o fluxo normal: registrar a entrega pelos itens (marca, modelo, série, vida útil) e concluir o acompanhamento. O pedido antigo deixa de ser impedimento da conclusão. Os eventos de entrega antigos continuam no histórico de eventos.
+
+**O que fica no banco.** A tabela `entrega_legada_revisao` e o tipo de aviso `entrega_legada_revisao` ficam só como histórico, sem uso pela aplicação. Apagá-los é uma migration em produção, a fazer depois, com backup e autorização.
 
 ## 5. Concluir e reabrir o acompanhamento
 
-"Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz.
+"Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz. Nesse caso a tela já mostra "Reabrir" (a avaliação da conclusão reconhece o evento antigo).
 
 Regra: com o acompanhamento **concluído**, o instrumento inteiro fica travado para edição. A única ação liberada é **reabrir** (com motivo). Isso vale para cadastro, entregas, unidades, cancelamentos, previsões, repasse, eventos, ações e documentos.
 
@@ -216,7 +218,6 @@ flowchart TB
     A["Botão Concluir"]:::acao --> AV["GET .../conclusao<br/>avalia o resultado"]:::acao
     AV --> IMP{"Impedimentos?"}:::regra
     IMP -->|"ação aberta"| X["Não conclui"]:::regra
-    IMP -->|"entrega antiga a vincular"| X
     IMP -->|"item na fila de revisão"| X
     IMP -->|"nenhum"| RES["Resultado calculado pelo sistema<br/>só itens por unidade contam"]:::regra
     RES --> CONF["Equipe confirma<br/>POST .../conclusao"]:::acao
@@ -304,7 +305,7 @@ flowchart TB
     CARD --> D{"Decisão"}:::regra
     D -->|"rejeitar, com motivo"| REJ["Rejeitado<br/>vai para a aba Arquivados"]:::regra
     D -->|"aprovar"| DLG["Pop-up único: escolher o técnico titular<br/>(obrigatório) e confirmar"]:::tela
-    DLG --> MON["Entra na carteira e já vai para o<br/>monitoramento interno com o técnico"]:::regra
+    DLG --> MON["Entra na carteira e já vai para o<br/>monitoramento interno com o técnico<br/>itens do plano criados na mesma transação"]:::regra
     MON --> ARQ["Aprovado<br/>vai para a aba Arquivados"]:::regra
     MON --> N1["Notificação de inclusão<br/>titular, suplente, gestor e admin"]:::aviso
     N1 --> POP["Pop-up na tela do técnico<br/>e item na central de notificações"]:::aviso
@@ -335,14 +336,13 @@ flowchart LR
     J2["job_alerta_vigencia"]:::job --> N3["alerta_vigencia"]:::aviso
     J3["job_verificacao_siconv<br/>job_verificacao_transferegov"]:::job --> N4["atualizacao_api"]:::aviso
     J4["job_descoberta_siconv<br/>job_descoberta_transferegov"]:::job --> N7["convenio_descoberto,<br/>proposta_candidata,<br/>fonte_indisponivel"]:::aviso
-    J5["vincular_entregas_legadas --avisar"]:::job --> N8["entrega_legada_revisao"]:::aviso
 ```
 
 ### 10.2 Quem recebe cada aviso
 
 | Aviso | Destinatários |
 |---|---|
-| `edicao_manual`, `atualizacao_api`, `prazo_*`, `entrega_legada_revisao`, `inclusao_monitoramento` | Titular, suplente, gestor e admin ativos; sem técnico, só gestor e admin |
+| `edicao_manual`, `atualizacao_api`, `prazo_*`, `inclusao_monitoramento` | Titular, suplente, gestor e admin ativos; sem técnico, só gestor e admin |
 | `alerta_vigencia` | Igual ao anterior quando há instrumento monitorado; sem instrumento, só gestor e admin |
 | `aprovacao_carteira`, `convenio_descoberto`, `fonte_indisponivel` | Só gestor e admin |
 | `proposta_candidata` | Todos, exceto leitor (broadcast) |
@@ -384,7 +384,7 @@ Marque a coluna final com **usa**, **não usa** ou **não conheço**.
 | 9 | Cancelar e desfazer cancelamento de unidade | Detalhe, Equipamentos | |
 | 10 | Previsão de entrega por item (definir e remover) | Detalhe, Equipamentos | |
 | 11 | Confirmar repasse integral ou parcial | Detalhe, Equipamentos | |
-| 12 | Vincular entrega antiga (legado) | Detalhe, Equipamentos | |
+| 12 | Vincular entrega antiga (legado): removido; registrar a entrega pelo fluxo normal | Detalhe, Equipamentos | |
 | 13 | Card de licença de operação (somente leitura) | Detalhe | |
 | 14 | Documentos (6 tipos), incluindo corrigir e excluir | Detalhe, Cronograma | |
 | 15 | Lançar evento de cronograma e regulatório | Detalhe, Cronograma | |
@@ -409,7 +409,7 @@ Método: busca por nome em todo o `frontend/src` e `backend` (incluindo testes).
 | `preencher_ano_convenio_se_ausente` | `repositories/monitoramento.py` |
 | `repositories/auditoria_marcadores.py` e seu teste | só um teste importava |
 | `AjudaCampo` | `monitoramento-ui.tsx` |
-| `useEntregasLegadas`, `fetchEntregasLegadas`, schema e tipo `EntregaLegada` | hook e serviço da fila de legado, sem tela |
+| `useEntregasLegadas`, `fetchEntregasLegadas`, `vincularEntregaLegada`, hook de vínculo, `GET /monitoramento/entregas-legadas`, `POST .../vincular`, `vincular_entregas_legadas` e a situação "A vincular" | função de vincular entrega antiga removida (21/11/2026) |
 | `TECNICOS_EQUIPE` | `lib/monitoramento-opcoes.ts` (o cadastro usa `GET /monitoramento/colaboradores`) |
 | `LEGENDA_STATUS` | `lib/monitoramento-status.ts` |
 | `getMapThemeColors` | `lib/theme-colors.ts` |
@@ -422,7 +422,6 @@ Método: busca por nome em todo o `frontend/src` e `backend` (incluindo testes).
 | Item | Motivo |
 |---|---|
 | Rota `/monitoramento-equipamentos/entradas` | Só redireciona; mantida por links antigos |
-| `GET /monitoramento/entregas-legadas` (backend) | Sem consumidor de tela depois da remoção do hook; o vínculo é feito item a item |
 | Exports só usados em testes (`mediaReferenciaFase`, `formatarNup`, `codificarSituacao`) | Têm teste próprio; remover só se a funcionalidade sair |
 | Exports usados só no próprio arquivo (`motivoExclusaoSchema`, `unidadeEntregaSchema`, `itemEntregaSchema`, `conclusaoKeys`, `documentosKeys`) | Só o `export` está sobrando |
 | `EtapaExpandida`, `PropostaExpandida` | Ainda referenciados por outros tipos do mesmo arquivo |
@@ -430,7 +429,7 @@ Método: busca por nome em todo o `frontend/src` e `backend` (incluindo testes).
 
 ### Scripts de uma só execução (arquivar depois do release)
 
-`migrar_marcos_para_documentos`, `migrar_concluidos_para_conclusao`, `migrar_eventos_inauguracao_prevista`, `remover_persus_ii_do_monitoramento`, `corrigir_entregas_persus_i`, `consolidar_eventos_marco_duplicados`, `vincular_entregas_legadas`, `derivar_repasses_siconv`, `projetar_itens_plano` (este também serve de rotina recorrente), `preencher_*`, `importar_planilha_monitoramento`, `importar_programas_monitoramento`. Depois do release e da conferência em produção, mover para `scripts/arquivo/` ou remover, mantendo o histórico no git.
+`migrar_marcos_para_documentos`, `migrar_concluidos_para_conclusao`, `migrar_eventos_inauguracao_prevista`, `remover_persus_ii_do_monitoramento`, `corrigir_entregas_persus_i`, `consolidar_eventos_marco_duplicados`, `derivar_repasses_siconv`, `projetar_itens_plano` (este também serve de rotina recorrente), `preencher_*`, `importar_planilha_monitoramento`, `importar_programas_monitoramento`. Depois do release e da conferência em produção, mover para `scripts/arquivo/` ou remover, mantendo o histórico no git.
 
 Pendente já registrado no plano do fluxo: remover a leitura do evento antigo `fase_concluido` em `fatos_do_instrumento` e `fases_calculadas_em_lote` depois de conferir a produção.
 
