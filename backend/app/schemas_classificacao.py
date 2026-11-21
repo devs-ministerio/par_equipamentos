@@ -23,6 +23,8 @@ class ItemParaRevisaoRead(BaseModel):
 
 class DecisaoItemCreate(BaseModel):
     acao: Literal["confirmar", "corrigir", "nao_equipamento"]
+    # Situação do item quando a pessoa o viu. A fila só mostra pendentes; decidir sobre item que mudou desde então é 409.
+    situacao_esperada: Literal["pendente", "aplicada"] = "pendente"
     # Só em "corrigir": o tipo e, para aquisição, o código RENEM (6 dígitos) escolhidos pela equipe.
     tipo_lancamento: TipoLancamento | None = None
     codigo_item: str | None = Field(default=None, pattern=r"^\d{6}$")

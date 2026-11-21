@@ -23,9 +23,10 @@ from app.db.models import (
     User,
     UserRole,
 )
-from app.domain_errors import AuthorizationError, NotFoundError, ValidationError
+from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
 from app.equipamentos import normalizar_texto
 from app.schemas_classificacao import DecisaoItemCreate, ItemParaRevisaoRead
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 
 
 def _assert_gestao(usuario: User) -> None:
@@ -94,9 +95,17 @@ def _gravar_decisao(db: Session, *, convenio_numero: str, chave: str, **campos: 
 
 def decidir(*, item_id: int, dados: DecisaoItemCreate, db: Session, usuario: User) -> ItemParaRevisaoRead:
     _assert_gestao(usuario)
-    item = db.get(ItemPlano, item_id, with_for_update=True)
+    item = db.get(ItemPlano, item_id)
     if item is None or not item.ativo:
         raise NotFoundError(f"Item {item_id} não encontrado.")
+    # Mesma ordem de quem entrega (instrumento, depois item): decidir muda `controla_unidade`, que alimenta a conclusão.
+    if item.instrumento_id is not None:
+        assert_nao_concluido(db, item.instrumento_id)
+    db.refresh(item, with_for_update=True)
+    if not item.ativo:
+        raise NotFoundError(f"Item {item_id} não encontrado.")
+    if item.situacao_classificacao != dados.situacao_esperada:
+        raise ConflictError("A classificação deste item mudou desde que você o abriu. Atualize a fila.")
     convenio = db.get(Convenio, item.convenio_id)
     assert convenio is not None
     tipo = item.tipo_lancamento
