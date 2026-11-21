@@ -261,6 +261,13 @@ def _sessao_de_teste(papel, rotulo: str):
 
 
 @pytest.fixture(scope="session")
+def headers_admin():
+    from app.db.models import UserRole
+
+    yield from _sessao_de_teste(UserRole.admin, "headers-admin")
+
+
+@pytest.fixture(scope="session")
 def headers_gestor():
     """Mesma ideia de `headers_autenticados`, com perfil gestor (Radar de instrumentos)."""
     from app.db.models import UserRole

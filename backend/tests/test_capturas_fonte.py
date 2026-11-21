@@ -130,7 +130,7 @@ def test_situacao_marca_defasada_e_preserva_ultimo_sucesso():
         db.close()
 
 
-def test_endpoint_exige_sessao_e_lista_fontes(headers_autenticados):
+def test_endpoint_exige_sessao_e_lista_fontes(headers_admin):
     from fastapi.testclient import TestClient
 
     from app.main import app
@@ -143,7 +143,7 @@ def test_endpoint_exige_sessao_e_lista_fontes(headers_autenticados):
         db.commit()
         cliente = TestClient(app)
         assert cliente.get("/fontes/capturas").status_code == 401
-        resposta = cliente.get("/fontes/capturas", headers=headers_autenticados)
+        resposta = cliente.get("/fontes/capturas", headers=headers_admin)
         assert resposta.status_code == 200
         linha = next(f for f in resposta.json() if f["fonte"] == fonte)
         assert linha["status"] == "ok" and linha["defasada"] is False and linha["itens_verificados"] == 3
@@ -152,7 +152,41 @@ def test_endpoint_exige_sessao_e_lista_fontes(headers_autenticados):
         db.close()
 
 
-def test_excecao_com_segredo_nao_vaza_em_captura_aviso_ou_endpoint(headers_autenticados):
+@pytest.mark.parametrize("papel", ["gestor", "colaborador", "leitor"])
+def test_nao_admin_recebe_so_o_resumo_da_fonte(papel):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    from tests.conftest import _sessao_de_teste
+
+    fonte = f"teste_{uuid4().hex}"
+    db = SessionLocal()
+    sessao = _sessao_de_teste(UserRole(papel), f"fontes-{papel}")
+    try:
+        headers = next(sessao)
+        agora = datetime.now(UTC)
+        db.add(
+            FonteCaptura(
+                fonte=fonte,
+                iniciado_em=agora,
+                finalizado_em=agora,
+                status="erro",
+                erro="falha interna",
+                itens_verificados=7,
+            )
+        )
+        db.commit()
+        resposta = TestClient(app).get("/fontes/capturas", headers=headers)
+        assert resposta.status_code == 200
+        linha = next(f for f in resposta.json() if f["fonte"] == fonte)
+        assert set(linha) == {"fonte", "rotulo", "ultimo_sucesso_em"}
+    finally:
+        _limpar(db, fonte, [])
+        db.close()
+        next(sessao, None)
+
+
+def test_excecao_com_segredo_nao_vaza_em_captura_aviso_ou_endpoint(headers_admin):
     from fastapi.testclient import TestClient
 
     from app.main import app
@@ -176,7 +210,7 @@ def test_excecao_com_segredo_nao_vaza_em_captura_aviso_ou_endpoint(headers_auten
         # Registro anterior à correção também não pode vazar na consulta pública.
         registro.erro = segredo
         db.commit()
-        resposta = TestClient(app).get("/fontes/capturas", headers=headers_autenticados)
+        resposta = TestClient(app).get("/fontes/capturas", headers=headers_admin)
         assert resposta.status_code == 200
         assert "SENHA_PRIVADA" not in resposta.text
         linha = next(f for f in resposta.json() if f["fonte"] == fonte)

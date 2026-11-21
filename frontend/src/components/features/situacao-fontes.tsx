@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFontes } from "@/hooks/use-fontes";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
+import { temDetalhe } from "@/services/fontes";
 
 function dataHora(valor: string | null) {
   return valor
@@ -42,7 +43,7 @@ export function SituacaoFontes() {
         </p>
       ) : (
         <ul className="mt-3 divide-y divide-border">
-          {fontes.data?.map((fonte) => (
+          {fontes.data?.filter(temDetalhe).map((fonte) => (
             <li
               key={fonte.fonte}
               className="min-w-0 space-y-2 py-3 text-xs [overflow-wrap:anywhere]"
