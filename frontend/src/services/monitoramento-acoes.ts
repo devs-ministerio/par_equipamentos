@@ -36,6 +36,22 @@ export function fetchAcoes(pendentes?: boolean): Promise<AcaoMonitoramento[]> {
   );
 }
 
+const acoesDoInstrumentoSchema = z.object({
+  data: z.array(acaoMonitoramentoSchema),
+  meta: z.object({ total: z.number().int().nonnegative() }),
+});
+export type AcoesDoInstrumento = z.infer<typeof acoesDoInstrumentoSchema>;
+
+/** Ações de UM instrumento; `meta.total` conta além do teto da resposta. */
+export function fetchAcoesDoInstrumento(
+  nrConvenio: string,
+): Promise<AcoesDoInstrumento> {
+  return apiGetAuthed(
+    `/monitoramento/instrumentos/${encodeURIComponent(nrConvenio)}/acoes`,
+    acoesDoInstrumentoSchema,
+  );
+}
+
 export interface CriarAcaoInput {
   descricao: string;
   data_prevista?: string | null;

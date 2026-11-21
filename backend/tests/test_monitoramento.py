@@ -1849,3 +1849,18 @@ def test_so_uma_inauguracao_por_instrumento():
         db.query(User).filter_by(id=usuario.id).delete()
         db.commit()
         db.close()
+
+
+def test_rota_de_acoes_do_instrumento_devolve_envelope_e_404(headers_autenticados):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    cliente = TestClient(app)
+    assert cliente.get(f"/monitoramento/instrumentos/{NR_CONVENIO_SEED}/acoes").status_code == 401
+    resposta = cliente.get(f"/monitoramento/instrumentos/{NR_CONVENIO_SEED}/acoes", headers=headers_autenticados)
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert set(corpo) == {"data", "meta"} and corpo["meta"]["total"] >= len(corpo["data"])
+    assert all(a["nr_convenio"] == NR_CONVENIO_SEED for a in corpo["data"])
+    assert cliente.get("/monitoramento/instrumentos/NAO-EXISTE/acoes", headers=headers_autenticados).status_code == 404

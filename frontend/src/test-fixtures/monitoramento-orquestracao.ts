@@ -65,6 +65,19 @@ export function prepararOrquestracao() {
         controle.marcosStatus === 200 ? criarMarcosInteracao() : {},
         controle.marcosStatus,
       );
+    const daLeitura = path.match(
+      /^\/monitoramento\/instrumentos\/([^/]+)\/acoes$/,
+    );
+    if (daLeitura && metodo === "GET") {
+      const nr = decodeURIComponent(daLeitura[1]);
+      const doInstrumento = controle.acoes.filter((a) => a.nr_convenio === nr);
+      return h.json(
+        controle.acoesStatus === 200
+          ? { data: doInstrumento, meta: { total: doInstrumento.length } }
+          : {},
+        controle.acoesStatus,
+      );
+    }
     if (path === "/monitoramento/acoes")
       return h.json(
         controle.acoesStatus === 200 ? controle.acoes : {},
@@ -86,6 +99,13 @@ export function prepararOrquestracao() {
         itens_exigidos: 0,
         itens_completos: 0,
         impedimentos: [],
+      });
+    if (path.endsWith("/equipamentos") && metodo === "GET")
+      return h.json({
+        nr_convenio: "x",
+        pode_editar: true,
+        itens: [],
+        outros_itens: 0,
       });
     if (path.endsWith("/licenca-operacao") && metodo === "GET")
       return h.json({

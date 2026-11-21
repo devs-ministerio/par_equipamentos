@@ -561,3 +561,36 @@ def test_avaliacao_informa_a_situacao_da_inauguracao(db):  # noqa: F811
     db.flush()
     inaug = svc.avaliar_conclusao(nr_convenio=nr, db=db, usuario=c.titular).inauguracao
     assert (inaug.situacao, inaug.data_realizada) == ("realizada", previsao.data_ocorrencia)
+
+
+def test_acoes_do_instrumento_ignora_outros_instrumentos_e_o_teto_da_carteira(db):  # noqa: F811
+    from app.services.monitoramento_acoes import listar_acoes_do_instrumento
+
+    c = _preparar(db)
+    outro = Cenario(db)
+    db.add_all(
+        AcaoMonitoramento(instrumento_id=outro.inst.id, descricao=f"De outro {n}", data_prevista=date(2020, 1, 1))
+        for n in range(5)
+    )
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Sem data"))
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Feita", data_conclusao=date(2026, 1, 1)))
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Excluída", deletado_em=datetime.now(timezone.utc)))
+    db.flush()
+    acoes, total = listar_acoes_do_instrumento(nr_convenio=c.inst.nr_convenio, pendentes=False, limit=10, db=db)
+    assert sorted(a.descricao for a in acoes) == ["Feita", "Sem data"] and total == 2
+    pendentes, total_pendentes = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=True, limit=10, db=db
+    )
+    assert [a.descricao for a in pendentes] == ["Sem data"] and total_pendentes == 1
+    # Teto: devolve só o que cabe, mas o total conta tudo.
+    cortadas, total_cortado = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=False, limit=1, db=db
+    )
+    assert len(cortadas) == 1 and total_cortado == 2
+
+
+def test_acoes_do_instrumento_inexistente_da_404(db):  # noqa: F811
+    from app.services.monitoramento_acoes import listar_acoes_do_instrumento
+
+    with pytest.raises(NotFoundError):
+        listar_acoes_do_instrumento(nr_convenio="NAO-EXISTE", pendentes=False, limit=10, db=db)

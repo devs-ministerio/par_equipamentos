@@ -7,6 +7,7 @@ import {
   editarAcao,
   excluirAcao,
   fetchAcoes,
+  fetchAcoesDoInstrumento,
 } from "@/services/monitoramento-acoes";
 import { monitoramentoKeys } from "./monitoramento-query-keys";
 
@@ -19,15 +20,18 @@ export function useMonitoramentoAcoes(pendentes?: boolean) {
   });
 }
 
-/** Ações de UM instrumento -- filtra client-side a partir da lista
- * completa (mesmo padrão já usado antes, GET /monitoramento/acoes não
- * aceita filtro por convênio). Reaproveita o cache de `useMonitoramentoAcoes()`
- * (chave igual, sem `pendentes`). */
+/** Ações de UM instrumento, lidas por instrumento no backend (não dependem do teto da carteira).
+ * `total` pode superar `data.length` quando o teto da resposta é atingido. A chave começa por
+ * `["monitoramento","acoes"]`, então as mutações já a invalidam. */
 export function useAcoesDoInstrumento(nrConvenio: string) {
-  const query = useMonitoramentoAcoes();
+  const query = useQuery({
+    queryKey: monitoramentoKeys.acoesDoInstrumento(nrConvenio),
+    queryFn: () => fetchAcoesDoInstrumento(nrConvenio),
+  });
   return {
     ...query,
-    data: query.data?.filter((a) => a.nr_convenio === nrConvenio),
+    data: query.data?.data,
+    total: query.data?.meta.total,
   };
 }
 

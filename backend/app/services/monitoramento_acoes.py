@@ -220,3 +220,15 @@ def obter_nr_convenio_da_acao_monitorada(*, acao: AcaoMonitoramento, db: Session
 def listar_acoes_monitoradas(*, pendentes: bool, limit: int, db: Session) -> list[tuple[AcaoMonitoramento, str]]:
     """Leitura operacional: filtro e query permanecem fora da camada HTTP."""
     return monitoramento_repo.listar_acoes_monitoradas(db, pendentes=pendentes, limit=limit)
+
+
+def listar_acoes_do_instrumento(
+    *, nr_convenio: str, pendentes: bool, limit: int, db: Session
+) -> tuple[list[AcaoMonitoramento], int]:
+    """Ações ativas de um instrumento e o total (para avisar quando passa do teto)."""
+    instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
+    if instrumento is None:
+        raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
+    return monitoramento_repo.listar_acoes_do_instrumento_com_total(
+        db, instrumento.id, pendentes=pendentes, limit=limit
+    )

@@ -315,9 +315,14 @@ function MonitoramentoInternoConteudo({
         </OperationalDetailSection>
 
         <OperationalDetailSection
-          titulo={`Ações (${acoes?.length ?? 0})`}
+          titulo={`Ações (${acoesQuery.total ?? acoes?.length ?? 0})`}
           abertoPorPadrao={acoesAbertas.length > 0}
         >
+          {acoes && (acoesQuery.total ?? 0) > acoes.length && (
+            <p className="m-0 mb-2 text-[12.5px] text-muted-foreground">
+              Mostrando {acoes.length} de {acoesQuery.total} ações.
+            </p>
+          )}
           <MonitoramentoInternoAcoes
             acoes={acoes}
             podeEditar={podeEditarConteudo}

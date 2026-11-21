@@ -24,9 +24,11 @@ from app.db.models import (
 from app.pipeline import portal_transparencia
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
+from app.schemas import PageMeta
 from app.schemas_monitoramento import ResumoMonitoramentoRead
 from app.schemas_monitoramento_api import (
     AcaoMonitoramentoCreate,
+    AcaoMonitoramentoPage,
     AcaoMonitoramentoRead,
     AcaoMonitoramentoUpdate,
     CnesEstabelecimentoRead,
@@ -53,6 +55,7 @@ from app.services.monitoramento_eventos import (
     editar_evento_monitorado,
     excluir_acao_monitorada,
     excluir_evento_monitorado,
+    listar_acoes_do_instrumento,
     listar_acoes_monitoradas,
     obter_nr_convenio_da_acao_monitorada,
     registrar_acao_monitorada,
@@ -328,9 +331,8 @@ def obter_resumo(db: Session = Depends(get_db), usuario: User = Depends(require_
 @router.get("/acoes", response_model=list[AcaoMonitoramentoRead])
 def listar_acoes(
     pendentes: bool = Query(False),
-    # Teto de seguranca, nao paginacao de UI (Bloco 4 do Plan Mode
-    # consolidacao 2026-09-17) -- volume atual e pequeno (universo de 91
-    # instrumentos monitorados), sem necessidade de paginacao real ainda.
+    # Teto de seguranca, nao paginacao de UI. A tela de detalhe NAO usa esta
+    # rota: ela le `/instrumentos/{nr_convenio}/acoes`, sem depender do teto.
     limit: int = Query(default=500, le=500, gt=0),
     db: Session = Depends(get_db),
     usuario: User = Depends(require_current_user),
@@ -345,6 +347,23 @@ def listar_acoes(
     }
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
     return [_acao_read(a, nr, nomes) for a, nr in linhas]
+
+
+@router.get("/instrumentos/{nr_convenio}/acoes", response_model=AcaoMonitoramentoPage)
+def listar_acoes_instrumento(
+    nr_convenio: str,
+    pendentes: bool = Query(False),
+    limit: int = Query(default=200, le=200, gt=0),
+    db: Session = Depends(get_db),
+    _usuario: User = Depends(require_current_user),
+):
+    """Ações ativas de UM instrumento; `meta.total` conta além do teto `limit`."""
+    acoes, total = listar_acoes_do_instrumento(nr_convenio=nr_convenio, pendentes=pendentes, limit=limit, db=db)
+    ids_usuarios = {a.responsavel_id for a in acoes if a.responsavel_id} | {
+        a.criado_por_id for a in acoes if a.criado_por_id
+    }
+    nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
+    return AcaoMonitoramentoPage(data=[_acao_read(a, nr_convenio, nomes) for a in acoes], meta=PageMeta(total=total))
 
 
 @router.post("/instrumentos/{nr_convenio}/acoes", response_model=AcaoMonitoramentoRead, status_code=201)

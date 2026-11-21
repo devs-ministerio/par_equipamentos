@@ -11,6 +11,7 @@ from app.services.monitoramento_acoes import (  # noqa: F401
     concluir_acao_monitorada,
     editar_acao_monitorada,
     excluir_acao_monitorada,
+    listar_acoes_do_instrumento,
     listar_acoes_monitoradas,
     obter_nr_convenio_da_acao_monitorada,
     registrar_acao_monitorada,

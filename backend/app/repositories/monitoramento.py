@@ -383,6 +383,25 @@ def listar_acoes_monitoradas(db: Session, *, pendentes: bool, limit: int) -> lis
     return [(acao, nr_convenio) for acao, nr_convenio in db.execute(stmt).all()]
 
 
+def listar_acoes_do_instrumento_com_total(
+    db: Session, instrumento_id: int, *, pendentes: bool, limit: int
+) -> tuple[list[AcaoMonitoramento], int]:
+    """Ações ativas de UM instrumento, na ordem estável (data prevista, id), e o total sem o teto."""
+    filtros = [AcaoMonitoramento.instrumento_id == instrumento_id, _ACAO_ATIVA]
+    if pendentes:
+        filtros.append(AcaoMonitoramento.data_conclusao.is_(None))
+    acoes = list(
+        db.scalars(
+            select(AcaoMonitoramento)
+            .where(*filtros)
+            .order_by(AcaoMonitoramento.data_prevista.asc().nulls_last(), AcaoMonitoramento.id)
+            .limit(limit)
+        )
+    )
+    total = int(db.execute(select(func.count()).select_from(AcaoMonitoramento).where(*filtros)).scalar_one())
+    return acoes, total
+
+
 def resolver_nomes_usuarios(db: Session, ids: Iterable[int | None]) -> dict[int, str]:
     """`{user_id: name}` pros ids pedidos -- usado pra montar `autor_nome`/
     `atualizado_por_nome`/`deletado_por_nome` sem N+1 query por evento/ação.

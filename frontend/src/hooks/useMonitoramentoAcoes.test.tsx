@@ -22,30 +22,32 @@ afterEach(() => {
 });
 
 describe("ações com hook, service e contrato HTTP reais", () => {
-  it("compartilha a leitura geral sem misturar as ações de instrumentos distintos", async () => {
+  it("lê as ações de cada instrumento na rota própria, sem depender da carteira", async () => {
     // Arrange
     const { fetch, wrapper, json } = prepararMonitoramentoHttp();
     const a = criarAcaoTeste();
     const b = criarAcaoTeste({ id: 12, nr_convenio: "QA002" });
-    fetch.mockResolvedValueOnce(json([a, b]));
+    fetch.mockImplementation(async (url) =>
+      String(url).includes("/QA002/")
+        ? json({ data: [b], meta: { total: 3 } })
+        : json({ data: [a], meta: { total: 1 } }),
+    );
     // Act
     const { result, rerender } = renderHook(
-      ({ numero }) => ({
-        todas: useMonitoramentoAcoes(),
-        instrumento: useAcoesDoInstrumento(numero),
-      }),
+      ({ numero }) => useAcoesDoInstrumento(numero),
       { wrapper, initialProps: { numero: "QA001" } },
     );
-    expect(result.current.instrumento.data).toBeUndefined();
-    await waitFor(() => expect(result.current.todas.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
     // Assert
-    expect(result.current.todas.data).toEqual([a, b]);
-    expect(result.current.instrumento.data).toEqual([a]);
+    expect(result.current.data).toEqual([a]);
     rerender({ numero: "QA002" });
-    expect(result.current.instrumento.data).toEqual([b]);
-    rerender({ numero: "QA003" });
-    expect(result.current.instrumento.data).toEqual([]);
-    expect(fetch).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.data).toEqual([b]));
+    expect(result.current.total).toBe(3);
+    const urls = fetch.mock.calls.map(([u]) => String(u));
+    expect(urls.some((u) => u.endsWith("/monitoramento/acoes"))).toBe(false);
+    expect(urls.some((u) => u.includes("/instrumentos/QA002/acoes"))).toBe(
+      true,
+    );
   });
 
   it("mantém as consultas todas e pendentes em caches distintos", async () => {

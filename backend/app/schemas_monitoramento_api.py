@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.db.models import (
     MarcoGrupo,
 )
+from app.schemas import PageMeta
 
 
 class MarcoCatalogoRead(BaseModel):
@@ -332,6 +333,11 @@ class AcaoMonitoramentoRead(BaseModel):
     ativo: bool = True
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AcaoMonitoramentoPage(BaseModel):
+    data: list[AcaoMonitoramentoRead]
+    meta: PageMeta
 
 
 class AcaoMonitoramentoCreate(BaseModel):
