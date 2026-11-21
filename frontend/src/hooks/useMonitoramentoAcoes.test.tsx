@@ -29,8 +29,8 @@ describe("ações com hook, service e contrato HTTP reais", () => {
     const b = criarAcaoTeste({ id: 12, nr_convenio: "QA002" });
     fetch.mockImplementation(async (url) =>
       String(url).includes("/QA002/")
-        ? json({ data: [b], meta: { total: 3 } })
-        : json({ data: [a], meta: { total: 1 } }),
+        ? json({ data: [b], meta: { total: 3, abertas: 2, atrasadas: 1 } })
+        : json({ data: [a], meta: { total: 1, abertas: 1, atrasadas: 0 } }),
     );
     // Act
     const { result, rerender } = renderHook(
@@ -43,6 +43,8 @@ describe("ações com hook, service e contrato HTTP reais", () => {
     rerender({ numero: "QA002" });
     await waitFor(() => expect(result.current.data).toEqual([b]));
     expect(result.current.total).toBe(3);
+    expect(result.current.abertas).toBe(2);
+    expect(result.current.atrasadas).toBe(1);
     const urls = fetch.mock.calls.map(([u]) => String(u));
     expect(urls.some((u) => u.endsWith("/monitoramento/acoes"))).toBe(false);
     expect(urls.some((u) => u.includes("/instrumentos/QA002/acoes"))).toBe(

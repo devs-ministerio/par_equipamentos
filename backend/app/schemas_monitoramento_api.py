@@ -337,9 +337,16 @@ class AcaoMonitoramentoRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AcoesInstrumentoMeta(PageMeta):
+    """`total` é do conjunto filtrado; `abertas` e `atrasadas` contam o instrumento inteiro."""
+
+    abertas: int
+    atrasadas: int
+
+
 class AcaoMonitoramentoPage(BaseModel):
     data: list[AcaoMonitoramentoRead]
-    meta: PageMeta
+    meta: AcoesInstrumentoMeta
 
 
 class AcaoMonitoramentoCreate(BaseModel):

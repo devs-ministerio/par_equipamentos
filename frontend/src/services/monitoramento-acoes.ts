@@ -38,16 +38,23 @@ export function fetchAcoes(pendentes?: boolean): Promise<AcaoMonitoramento[]> {
 
 const acoesDoInstrumentoSchema = z.object({
   data: z.array(acaoMonitoramentoSchema),
-  meta: z.object({ total: z.number().int().nonnegative() }),
+  meta: z.object({
+    total: z.number().int().nonnegative(),
+    abertas: z.number().int().nonnegative(),
+    atrasadas: z.number().int().nonnegative(),
+  }),
 });
 export type AcoesDoInstrumento = z.infer<typeof acoesDoInstrumentoSchema>;
 
-/** Ações de UM instrumento; `meta.total` conta além do teto da resposta. */
+/** Ações de UM instrumento, pendentes primeiro. `meta.total` conta além do teto da resposta; `abertas` e
+ * `atrasadas` valem para o instrumento inteiro, com ou sem o filtro. */
 export function fetchAcoesDoInstrumento(
   nrConvenio: string,
+  pendentes = false,
 ): Promise<AcoesDoInstrumento> {
+  const query = pendentes ? "?pendentes=true" : "";
   return apiGetAuthed(
-    `/monitoramento/instrumentos/${encodeURIComponent(nrConvenio)}/acoes`,
+    `/monitoramento/instrumentos/${encodeURIComponent(nrConvenio)}/acoes${query}`,
     acoesDoInstrumentoSchema,
   );
 }

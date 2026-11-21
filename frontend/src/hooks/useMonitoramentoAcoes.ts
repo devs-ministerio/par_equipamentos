@@ -23,16 +23,21 @@ export function useMonitoramentoAcoes(pendentes?: boolean) {
 /** Ações de UM instrumento, lidas por instrumento no backend (não dependem do teto da carteira).
  * `total` pode superar `data.length` quando o teto da resposta é atingido. A chave começa por
  * `["monitoramento","acoes"]`, então as mutações já a invalidam. */
-export function useAcoesDoInstrumento(nrConvenio: string, enabled = true) {
+export function useAcoesDoInstrumento(
+  nrConvenio: string,
+  { enabled = true, pendentes = false } = {},
+) {
   const query = useQuery({
-    queryKey: monitoramentoKeys.acoesDoInstrumento(nrConvenio),
-    queryFn: () => fetchAcoesDoInstrumento(nrConvenio),
+    queryKey: monitoramentoKeys.acoesDoInstrumento(nrConvenio, pendentes),
+    queryFn: () => fetchAcoesDoInstrumento(nrConvenio, pendentes),
     enabled,
   });
   return {
     ...query,
     data: query.data?.data,
     total: query.data?.meta.total,
+    abertas: query.data?.meta.abertas,
+    atrasadas: query.data?.meta.atrasadas,
   };
 }
 

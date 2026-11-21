@@ -7,8 +7,8 @@ export const monitoramentoKeys = {
   instrumentos: ["monitoramento", "instrumentos"] as const,
   instrumento: (nrConvenio: string) =>
     ["monitoramento", "instrumento", nrConvenio] as const,
-  acoesDoInstrumento: (nr: string) =>
-    ["monitoramento", "acoes", "instrumento", nr] as const,
+  acoesDoInstrumento: (nr: string, pendentes = false) =>
+    ["monitoramento", "acoes", "instrumento", nr, pendentes] as const,
   acoes: (pendentes?: boolean) =>
     ["monitoramento", "acoes", pendentes ?? "todas"] as const,
   resumo: ["monitoramento", "resumo"] as const,

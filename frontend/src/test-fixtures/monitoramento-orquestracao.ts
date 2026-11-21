@@ -71,9 +71,20 @@ export function prepararOrquestracao() {
     if (daLeitura && metodo === "GET") {
       const nr = decodeURIComponent(daLeitura[1]);
       const doInstrumento = controle.acoes.filter((a) => a.nr_convenio === nr);
+      const abertas = doInstrumento.filter((a) => !a.data_conclusao);
+      const lista = url.searchParams.get("pendentes") ? abertas : doInstrumento;
       return h.json(
         controle.acoesStatus === 200
-          ? { data: doInstrumento, meta: { total: doInstrumento.length } }
+          ? {
+              data: lista,
+              meta: {
+                total: lista.length,
+                abertas: abertas.length,
+                atrasadas: abertas.filter(
+                  (a) => a.data_prevista && a.data_prevista < "2026-01-01",
+                ).length,
+              },
+            }
           : {},
         controle.acoesStatus,
       );

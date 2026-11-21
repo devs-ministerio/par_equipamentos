@@ -262,6 +262,20 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("filtra as ações por pendentes na origem", async () => {
+    const h = prepararOrquestracao();
+    montar(h);
+    await screen.findByText("Conferir documento sintético");
+    fireEvent.click(screen.getByLabelText("Só pendentes"));
+    await waitFor(() =>
+      expect(
+        h.fetch.mock.calls.some(([input]) =>
+          String(input).includes("/acoes?pendentes=true"),
+        ),
+      ).toBe(true),
+    );
+  });
+
   it("instrumento sem acompanhamento (timeline e ações em 404) mostra o vazio, sem alerta", async () => {
     const h = prepararOrquestracao();
     h.controle.timelineStatus = 404;

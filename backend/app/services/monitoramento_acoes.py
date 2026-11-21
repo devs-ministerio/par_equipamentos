@@ -227,8 +227,8 @@ def listar_acoes_monitoradas(*, pendentes: bool, limit: int, db: Session) -> lis
 
 def listar_acoes_do_instrumento(
     *, nr_convenio: str, pendentes: bool, limit: int, db: Session
-) -> tuple[list[AcaoMonitoramento], int]:
-    """Ações ativas de um instrumento e o total (para avisar quando passa do teto)."""
+) -> monitoramento_repo.AcoesDoInstrumento:
+    """Ações ativas de um instrumento, o total e as contagens de abertas e atrasadas do instrumento inteiro."""
     instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")

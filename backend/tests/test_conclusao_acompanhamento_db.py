@@ -588,17 +588,39 @@ def test_acoes_do_instrumento_ignora_outros_instrumentos_e_o_teto_da_carteira(db
     db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Feita", data_conclusao=date(2026, 1, 1)))
     db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Excluída", deletado_em=datetime.now(timezone.utc)))
     db.flush()
-    acoes, total = listar_acoes_do_instrumento(nr_convenio=c.inst.nr_convenio, pendentes=False, limit=10, db=db)
-    assert sorted(a.descricao for a in acoes) == ["Feita", "Sem data"] and total == 2
-    pendentes, total_pendentes = listar_acoes_do_instrumento(
+    acoes, total, abertas, atrasadas = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=False, limit=10, db=db
+    )
+    # Pendente primeiro, depois a concluída.
+    assert [a.descricao for a in acoes] == ["Sem data", "Feita"] and total == 2
+    assert (abertas, atrasadas) == (1, 0)
+    pendentes, total_pendentes, abertas_filtro, _ = listar_acoes_do_instrumento(
         nr_convenio=c.inst.nr_convenio, pendentes=True, limit=10, db=db
     )
-    assert [a.descricao for a in pendentes] == ["Sem data"] and total_pendentes == 1
-    # Teto: devolve só o que cabe, mas o total conta tudo.
-    cortadas, total_cortado = listar_acoes_do_instrumento(
+    assert [a.descricao for a in pendentes] == ["Sem data"] and total_pendentes == 1 and abertas_filtro == 1
+    # Teto: devolve só o que cabe, mas o total conta tudo e a pendência não fica de fora.
+    cortadas, total_cortado, abertas_cortado, _ = listar_acoes_do_instrumento(
         nr_convenio=c.inst.nr_convenio, pendentes=False, limit=1, db=db
     )
-    assert len(cortadas) == 1 and total_cortado == 2
+    assert [a.descricao for a in cortadas] == ["Sem data"] and total_cortado == 2 and abertas_cortado == 1
+
+
+def test_acoes_do_instrumento_contam_abertas_e_atrasadas_do_instrumento_inteiro_alem_do_teto(db):  # noqa: F811
+    from app.services.monitoramento_acoes import listar_acoes_do_instrumento
+
+    c = _preparar(db)
+    db.add_all(
+        AcaoMonitoramento(instrumento_id=c.inst.id, descricao=f"Feita {n}", data_conclusao=date(2026, 1, 1))
+        for n in range(3)
+    )
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Atrasada", data_prevista=date(2020, 1, 1)))
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="No prazo", data_prevista=date(2999, 1, 1)))
+    db.flush()
+    acoes, total, abertas, atrasadas = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=False, limit=2, db=db
+    )
+    assert [a.descricao for a in acoes] == ["Atrasada", "No prazo"]  # as abertas entram antes das concluídas
+    assert (total, abertas, atrasadas) == (5, 2, 1)
 
 
 def test_acoes_do_instrumento_inexistente_da_404(db):  # noqa: F811

@@ -151,19 +151,22 @@ def test_corrigir_data_de_entrega_excluida_enquanto_esperava_a_trava_e_recusado(
         s.commit()
         entrega_id = entrega.id
 
-    excluir = lambda db, usuario: entregas.excluir_entrega(
-        entrega_id=entrega_id, motivo="duplicada", db=db, usuario=usuario
-    )  # noqa: E731
-    corrigir = lambda db, usuario: entregas.corrigir_data_entrega(  # noqa: E731
-        entrega_id=entrega_id,
-        dados=CorrecaoDataEntrega(data_ocorrencia=date(2026, 1, 12), motivo="ajuste"),
-        db=db,
-        usuario=usuario,
-    )
+    def excluir(db, usuario):
+        return entregas.excluir_entrega(entrega_id=entrega_id, motivo="duplicada", db=db, usuario=usuario)
+
+    def corrigir(db, usuario):
+        return entregas.corrigir_data_entrega(
+            entrega_id=entrega_id,
+            dados=CorrecaoDataEntrega(data_ocorrencia=date(2026, 1, 12), motivo="ajuste"),
+            db=db,
+            usuario=usuario,
+        )
+
     erro = _disputar(instrumento_gravado, admin_gravado, excluir, corrigir)
     assert isinstance(erro, ValidationError) and "excluída" in str(erro)
     with Session(engine) as s:
         salva = s.get(EntregaEquipamento, entrega_id)
+        assert salva is not None
         assert salva.deletado_em is not None and salva.data_ocorrencia == date(2026, 1, 10)
         s.query(EntregaEquipamento).filter_by(instrumento_id=instrumento_gravado).delete()
         s.commit()

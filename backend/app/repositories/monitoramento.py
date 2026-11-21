@@ -13,6 +13,7 @@ from collections import defaultdict
 from collections.abc import Generator, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import NamedTuple
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
@@ -363,23 +364,43 @@ def listar_acoes_monitoradas(db: Session, *, pendentes: bool, limit: int) -> lis
     return [(acao, nr_convenio) for acao, nr_convenio in db.execute(stmt).all()]
 
 
+class AcoesDoInstrumento(NamedTuple):
+    acoes: list[AcaoMonitoramento]
+    total: int  # do conjunto filtrado, além do teto
+    abertas: int  # do instrumento inteiro, independente do filtro
+    atrasadas: int  # abertas com prazo antes de hoje, do instrumento inteiro
+
+
 def listar_acoes_do_instrumento_com_total(
     db: Session, instrumento_id: int, *, pendentes: bool, limit: int
-) -> tuple[list[AcaoMonitoramento], int]:
-    """Ações ativas de UM instrumento, na ordem estável (data prevista, id), e o total sem o teto."""
-    filtros = [AcaoMonitoramento.instrumento_id == instrumento_id, _ACAO_ATIVA]
-    if pendentes:
-        filtros.append(AcaoMonitoramento.data_conclusao.is_(None))
+) -> AcoesDoInstrumento:
+    """Ações ativas de UM instrumento, pendentes primeiro e depois por prazo (id desempata), com o total sem o teto.
+
+    Pendentes vêm antes das concluídas: a pendência que bloqueia a conclusão nunca fica fora do lote enquanto
+    houver menos de `limit` pendentes. `abertas` e `atrasadas` contam o instrumento inteiro."""
+    base = [AcaoMonitoramento.instrumento_id == instrumento_id, _ACAO_ATIVA]
+    filtros = [*base, AcaoMonitoramento.data_conclusao.is_(None)] if pendentes else base
     acoes = list(
         db.scalars(
             select(AcaoMonitoramento)
             .where(*filtros)
-            .order_by(AcaoMonitoramento.data_prevista.asc().nulls_last(), AcaoMonitoramento.id)
+            .order_by(
+                AcaoMonitoramento.data_conclusao.is_not(None),
+                AcaoMonitoramento.data_prevista.asc().nulls_last(),
+                AcaoMonitoramento.id,
+            )
             .limit(limit)
         )
     )
     total = int(db.execute(select(func.count()).select_from(AcaoMonitoramento).where(*filtros)).scalar_one())
-    return acoes, total
+    aberta = AcaoMonitoramento.data_conclusao.is_(None)
+    abertas, atrasadas = db.execute(
+        select(
+            func.count().filter(aberta),
+            func.count().filter(aberta, AcaoMonitoramento.data_prevista < func.current_date()),
+        ).where(*base)
+    ).one()
+    return AcoesDoInstrumento(acoes, total, int(abertas), int(atrasadas))
 
 
 def resolver_nomes_usuarios(db: Session, ids: Iterable[int | None]) -> dict[int, str]:

@@ -25,13 +25,13 @@ from app.pipeline import portal_transparencia
 from app.repositories import itens_equipamento as entregas_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
-from app.schemas import PageMeta
 from app.schemas_monitoramento import ResumoMonitoramentoRead
 from app.schemas_monitoramento_api import (
     AcaoMonitoramentoCreate,
     AcaoMonitoramentoPage,
     AcaoMonitoramentoRead,
     AcaoMonitoramentoUpdate,
+    AcoesInstrumentoMeta,
     CnesEstabelecimentoRead,
     ColaboradorMonitoramentoRead,
     EventoMarcoCreate,
@@ -360,12 +360,16 @@ def listar_acoes_instrumento(
     _usuario: User = Depends(require_current_user),
 ):
     """Ações ativas de UM instrumento; `meta.total` conta além do teto `limit`."""
-    acoes, total = listar_acoes_do_instrumento(nr_convenio=nr_convenio, pendentes=pendentes, limit=limit, db=db)
+    resultado = listar_acoes_do_instrumento(nr_convenio=nr_convenio, pendentes=pendentes, limit=limit, db=db)
+    acoes = resultado.acoes
     ids_usuarios = {a.responsavel_id for a in acoes if a.responsavel_id} | {
         a.criado_por_id for a in acoes if a.criado_por_id
     }
     nomes = monitoramento_repo.resolver_nomes_usuarios(db, ids_usuarios)
-    return AcaoMonitoramentoPage(data=[_acao_read(a, nr_convenio, nomes) for a in acoes], meta=PageMeta(total=total))
+    return AcaoMonitoramentoPage(
+        data=[_acao_read(a, nr_convenio, nomes) for a in acoes],
+        meta=AcoesInstrumentoMeta(total=resultado.total, abertas=resultado.abertas, atrasadas=resultado.atrasadas),
+    )
 
 
 @router.post("/instrumentos/{nr_convenio}/acoes", response_model=AcaoMonitoramentoRead, status_code=201)

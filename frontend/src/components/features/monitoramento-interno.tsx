@@ -68,10 +68,11 @@ function MonitoramentoInternoConteudo({
   const equipamentosQuery = useEquipamentosInstrumento(numeroConvenio);
   const timelineQuery = useInstrumentoTimeline(numeroConvenio);
   // Instrumento sem acompanhamento (timeline vazia) também dá 404 nas ações: só consulta depois de a timeline confirmar.
-  const acoesQuery = useAcoesDoInstrumento(
-    numeroConvenio,
-    timelineQuery.isSuccess && timelineQuery.data !== null,
-  );
+  const [somentePendentes, setSomentePendentes] = useState(false);
+  const acoesQuery = useAcoesDoInstrumento(numeroConvenio, {
+    enabled: timelineQuery.isSuccess && timelineQuery.data !== null,
+    pendentes: somentePendentes,
+  });
   const sessao = useAuthSession();
 
   const salvarCadastro = useSalvarCadastroInstrumento(numeroConvenio);
@@ -234,8 +235,8 @@ function MonitoramentoInternoConteudo({
         inaugurado={inaugurado}
         inauguracaoDispensada={inauguracaoDispensada}
         diasInauguracao={diasInauguracao}
-        acoesAbertasCount={acoesAbertas.length}
-        acoesAtrasadasCount={acoesAtrasadas.length}
+        acoesAbertasCount={acoesQuery.abertas ?? acoesAbertas.length}
+        acoesAtrasadasCount={acoesQuery.atrasadas ?? acoesAtrasadas.length}
         equipamentos={totaisEquipamentos}
       />
 
@@ -320,8 +321,16 @@ function MonitoramentoInternoConteudo({
 
         <OperationalDetailSection
           titulo={`Ações (${acoesQuery.total ?? acoes?.length ?? 0})`}
-          abertoPorPadrao={acoesAbertas.length > 0}
+          abertoPorPadrao={(acoesQuery.abertas ?? acoesAbertas.length) > 0}
         >
+          <label className="mb-2 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={somentePendentes}
+              onChange={(e) => setSomentePendentes(e.target.checked)}
+            />
+            Só pendentes
+          </label>
           {acoes && (acoesQuery.total ?? 0) > acoes.length && (
             <p className="m-0 mb-2 text-[12.5px] text-muted-foreground">
               Mostrando {acoes.length} de {acoesQuery.total} ações.
