@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LicencaOperacaoCard } from "./licenca-operacao-card";
 
@@ -52,6 +52,36 @@ describe("card Licença de operação", () => {
     });
     await new Promise((r) => setTimeout(r, 20));
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("falha na consulta mostra o erro com nova tentativa, sem sumir o cartão", async () => {
+    let falhar = true;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        falhar
+          ? new Response(JSON.stringify({ error: "Falha." }), { status: 500 })
+          : new Response(JSON.stringify({ ...base, vinculos: [vinculo] }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+      ),
+    );
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <LicencaOperacaoCard numeroConvenio="1" />
+      </QueryClientProvider>,
+    );
+    const tentar = await screen.findByRole("button", {
+      name: "Tentar novamente",
+    });
+    falhar = false;
+    fireEvent.click(tentar);
+    expect(await screen.findByText("Matrícula 16221")).toBeInTheDocument();
   });
 
   it("mostra matrícula, área e validade oficial", async () => {

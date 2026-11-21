@@ -315,6 +315,7 @@ flowchart TB
     classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
     classDef aviso fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
 
+    ERRO["Consulta falha sem dado em cache<br/>licença, conclusão, técnicos do Radar"]:::regra --> RETRY["Alerta com mensagem segura<br/>e Tentar novamente; nunca some em silêncio"]:::tela
     FONTES["GET /fontes/capturas"]:::tela --> PAPEL{"Papel?"}:::regra
     PAPEL -->|"admin"| DET["Detalhe da coleta<br/>status, contadores, defasagem"]:::tela
     PAPEL -->|"demais papéis"| RESUMO["Só a data do último sucesso<br/>(a API não envia o resto)"]:::tela

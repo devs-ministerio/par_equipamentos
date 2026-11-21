@@ -87,6 +87,16 @@ export function prepararOrquestracao() {
         itens_completos: 0,
         impedimentos: [],
       });
+    if (path.endsWith("/licenca-operacao") && metodo === "GET")
+      return h.json({
+        exige: false,
+        cnes: null,
+        sem_cnes: true,
+        areas_exigidas: [],
+        areas_sem_vinculo: [],
+        ultima_carga: null,
+        vinculos: [],
+      });
     if (path.endsWith("/documentos") && metodo === "GET")
       return h.json({ nr_convenio: "x", pode_editar: true, documentos: [] });
     if (path === "/monitoramento/colaboradores")

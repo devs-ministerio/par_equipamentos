@@ -3,6 +3,8 @@
 import { useId, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorAlert } from "@/components/common/error-alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -280,7 +282,15 @@ export function ConclusaoAcompanhamento({
   }
 
   const avaliacao = consulta.data;
-  if (!avaliacao) return null;
+  if (!avaliacao && consulta.isError)
+    return (
+      <ErrorAlert
+        mensagem={mensagemSeguraDoErro(consulta.error)}
+        onRetry={() => void consulta.refetch()}
+      />
+    );
+  if (!avaliacao)
+    return consulta.isPending ? <Skeleton className="h-8 w-40" /> : null;
   const podeEditar = podeEditarInstrumento && avaliacao.pode_editar;
   const concluida = avaliacao.conclusao;
   return (

@@ -231,6 +231,26 @@ describe("conferência e aprovação no Radar", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("falha na lista de técnicos mostra o erro, trava o seletor e permite tentar de novo", async () => {
+    // Arrange
+    const { controle, json } = montar();
+    controle.colaboradores = () => json({ error: "Falha ao listar." }, 500);
+    // Act
+    await abrir();
+    // Assert
+    const campo = await screen.findByLabelText("Técnico titular");
+    expect(
+      await screen.findByRole("button", { name: "Tentar novamente" }),
+    ).toBeVisible();
+    expect(campo).toBeDisabled();
+    // Act: a lista volta e a nova tentativa libera o seletor
+    controle.colaboradores = undefined;
+    fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" }));
+    // Assert
+    await screen.findByRole("option", { name: "Técnica Sintética" });
+    expect(screen.getByLabelText("Técnico titular")).toBeEnabled();
+  });
+
   it("não confere prova de versão diferente da lista", async () => {
     // Arrange
     const { controle } = montar();

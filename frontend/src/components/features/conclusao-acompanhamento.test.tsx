@@ -244,6 +244,30 @@ describe("conclusão do acompanhamento", () => {
     });
   });
 
+  it("falha na avaliação mostra o erro e o botão volta com a nova tentativa", async () => {
+    let falhar = true;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        falhar
+          ? new Response(JSON.stringify({ error: "Falha." }), { status: 500 })
+          : new Response(JSON.stringify(base), {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
+            }),
+      ),
+    );
+    montar();
+    const tentar = await screen.findByRole("button", {
+      name: "Tentar novamente",
+    });
+    falhar = false;
+    await userEvent.click(tentar);
+    expect(
+      await screen.findByRole("button", { name: "Concluir acompanhamento" }),
+    ).toBeInTheDocument();
+  });
+
   it("quem não edita não vê o botão", async () => {
     responder({ ...base, pode_editar: false });
     montar();

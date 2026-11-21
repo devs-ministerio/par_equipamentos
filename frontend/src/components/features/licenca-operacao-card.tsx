@@ -1,6 +1,8 @@
 /** Card "Licença de operação": fonte oficial da ANSN por estabelecimento (CNES). Só aparece quando o instrumento
  * tem item que exige licença. Sem vínculo confirmado não afirma licença nem vencimento. */
+import { ErrorAlert } from "@/components/common/error-alert";
 import { useLicencaOperacao } from "@/hooks/useLicencaOperacao";
+import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { fmtData } from "@/lib/monitoramento-format";
 import { cn } from "@/lib/utils";
 import type { LicencaVinculo } from "@/services/licenca-operacao";
@@ -30,6 +32,15 @@ export function LicencaOperacaoCard({
 }) {
   const consulta = useLicencaOperacao(numeroConvenio);
   const licenca = consulta.data;
+  if (!licenca && consulta.isError)
+    return (
+      <SecaoOperacional titulo="Licença de operação" cartao>
+        <ErrorAlert
+          mensagem={mensagemSeguraDoErro(consulta.error)}
+          onRetry={() => void consulta.refetch()}
+        />
+      </SecaoOperacional>
+    );
   if (!licenca?.exige) return null;
 
   return (

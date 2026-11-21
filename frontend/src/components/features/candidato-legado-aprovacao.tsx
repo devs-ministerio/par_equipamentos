@@ -3,6 +3,7 @@
  * monitoramento interno. */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ErrorAlert } from "@/components/common/error-alert";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -153,7 +154,11 @@ function AprovacaoForm({
           className={`${estiloInput} w-full bg-background`}
           value={tecnico}
           onChange={(e) => setTecnico(e.target.value)}
-          disabled={mutation.isPending || colaboradores.isLoading}
+          disabled={
+            mutation.isPending ||
+            colaboradores.isLoading ||
+            colaboradores.isError
+          }
           autoFocus
         >
           <option value="">— Selecione o colaborador —</option>
@@ -163,6 +168,14 @@ function AprovacaoForm({
             </option>
           ))}
         </select>
+        {colaboradores.isError && (
+          <div className="mt-2">
+            <ErrorAlert
+              mensagem={mensagemSeguraDoErro(colaboradores.error)}
+              onRetry={() => void colaboradores.refetch()}
+            />
+          </div>
+        )}
       </div>
       {(erroLocal || mutation.error) && (
         <p role="alert" className="text-xs text-destructive">
