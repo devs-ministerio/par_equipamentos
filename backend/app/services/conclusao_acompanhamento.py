@@ -147,8 +147,12 @@ def _impedimentos(db: Session, instrumento_id: int, itens: list[ItemParaConclusa
         impedimentos.append(
             ImpedimentoRead(tipo="item_em_revisao", descricao=f"{itens_em_revisao} item(ns) na fila de revisão.")
         )
-    for acao in repo.listar_acoes_abertas(db, instrumento_id):
+    exibidas = repo.listar_acoes_abertas(db, instrumento_id)
+    for acao in exibidas:
         impedimentos.append(ImpedimentoRead(tipo="acao_aberta", descricao=f"Ação aberta: {acao.descricao[:120]}"))
+    restantes = repo.contar_acoes_abertas(db, instrumento_id) - len(exibidas)
+    if restantes > 0:
+        impedimentos.append(ImpedimentoRead(tipo="acao_aberta", descricao=f"E mais {restantes} ação(ões) aberta(s)."))
     return impedimentos
 
 

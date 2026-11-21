@@ -1490,3 +1490,4 @@ que valem isolamento de contexto:
   normativa ou antes de assumir que um parâmetro citado em `docs/` continua
   válido.
 - **Inauguração ao concluir (21/11/2026)**: opcional. A pergunta "precisa de inauguração?" é da entrega (previsão ou dispensada). O campo de data da conclusão só aparece com previsão pendente ou sem resposta; informado, registra a inauguração realizada no cronograma (`app/services/inauguracao_realizada.py`) na mesma transação. Dispensada ou já realizada em outra data: a API recusa. Evento de inauguração não se cria pelo seletor de eventos, só se edita.
+- **Ação aberta na conclusão**: a avaliação lista até `LIMITE_ACOES` (50) e acrescenta "E mais N ação(ões) aberta(s)." (`repositories/conclusoes.py::contar_acoes_abertas`). Qualquer ação aberta bloqueia, o teto é só de exibição.

@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from app.db.models import AcaoMonitoramento, EntregaLegadaRevisao, EventoMarco, MarcoCatalogo
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
+from app.repositories.conclusoes import LIMITE_ACOES
 from app.schemas_conclusao import ConclusaoCreate, ReaberturaCreate
 from app.schemas_entregas import CancelamentoUnidadeCreate
 from app.services import cancelamento_unidade
@@ -183,6 +184,29 @@ def test_acao_aberta_impede_a_conclusao(db):  # noqa: F811
         svc.concluir_acompanhamento(
             nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular
         )
+
+
+def test_acoes_alem_do_teto_de_exibicao_continuam_impedindo_e_sao_resumidas(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    db.add_all(AcaoMonitoramento(instrumento_id=c.inst.id, descricao=f"Ação {n}") for n in range(LIMITE_ACOES))
+    db.flush()
+    exatas = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert len(exatas.impedimentos) == LIMITE_ACOES
+    assert not any(i.descricao.startswith("E mais") for i in exatas.impedimentos)
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Uma a mais"))
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert len(avaliacao.impedimentos) == LIMITE_ACOES + 1
+    assert avaliacao.impedimentos[-1].descricao == "E mais 1 ação(ões) aberta(s)."
+    with pytest.raises(ValidationError, match="pendências"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular
+        )
+    for acao in db.scalars(select(AcaoMonitoramento).where(AcaoMonitoramento.instrumento_id == c.inst.id)):
+        acao.data_conclusao = date.today()
+    db.flush()
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).impedimentos == []
 
 
 def test_concluido_bloqueia_entrega_e_cancelamento_ate_reabrir(db):  # noqa: F811

@@ -224,7 +224,7 @@ flowchart TB
     classDef acao fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
     A["Botão Concluir"]:::acao --> AV["GET .../conclusao<br/>avalia o resultado"]:::acao
     AV --> IMP{"Impedimentos?"}:::regra
-    IMP -->|"ação aberta"| X["Não conclui"]:::regra
+    IMP -->|"ação aberta<br/>(lista até 50 e resume o resto)"| X["Não conclui"]:::regra
     IMP -->|"item na fila de revisão"| X
     IMP -->|"nenhum"| RES["Resultado calculado pelo sistema<br/>só itens por unidade contam"]:::regra
     RES --> INA{"Inauguração do instrumento?<br/>(opcional)"}:::regra

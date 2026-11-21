@@ -58,6 +58,21 @@ def listar_acoes_abertas(db: Session, instrumento_id: int) -> list[AcaoMonitoram
     )
 
 
+def contar_acoes_abertas(db: Session, instrumento_id: int) -> int:
+    return int(
+        db.execute(
+            select(func.count())
+            .select_from(AcaoMonitoramento)
+            .where(
+                AcaoMonitoramento.instrumento_id == instrumento_id,
+                AcaoMonitoramento.data_conclusao.is_(None),
+                AcaoMonitoramento.deletado_em.is_(None),
+                AcaoMonitoramento.substituido_por_id.is_(None),
+            )
+        ).scalar_one()
+    )
+
+
 def contar_itens_em_revisao(db: Session, instrumento_id: int) -> int:
     return int(
         db.execute(
