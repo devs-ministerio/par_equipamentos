@@ -110,6 +110,7 @@ def test_fonte_prevalece_so_sem_confirmacao_manual_e_a_fase_acompanha(db, instru
     )
     servico.derivar_repasse_da_fonte(instrumento=instrumento, db=db)
     situacao = servico.obter_situacao_repasse(nr_convenio=instrumento.nr_convenio, db=db)
+    assert situacao.repasse is not None
     assert (situacao.repasse.origem, situacao.repasse.tipo, situacao.fase_calculada) == (
         "fonte",
         "parcial",
@@ -121,8 +122,10 @@ def test_fonte_prevalece_so_sem_confirmacao_manual_e_a_fase_acompanha(db, instru
         db=db,
         usuario=_usuario(db, UserRole.admin),
     )
-    assert servico.obter_situacao_repasse(nr_convenio=instrumento.nr_convenio, db=db).repasse.origem == "manual"
-    assert servico.derivar_repasse_da_fonte(instrumento=instrumento, db=db).tipo == "parcial"
+    atual = servico.obter_situacao_repasse(nr_convenio=instrumento.nr_convenio, db=db).repasse
+    assert atual is not None and atual.origem == "manual"
+    derivado = servico.derivar_repasse_da_fonte(instrumento=instrumento, db=db)
+    assert derivado is not None and derivado.tipo == "parcial"
 
 
 def test_fase_em_lote_bate_com_o_calculo_por_instrumento(db):

@@ -531,10 +531,11 @@ def test_corrigir_data_da_entrega_recusas(db):
     ontem = date.today() - timedelta(days=1)
 
     def tentar(**kw):
-        corpo = {"data_ocorrencia": ontem, "motivo": "ajuste"} | kw
+        data = kw.get("data_ocorrencia", ontem)
+        motivo = kw.get("motivo", "ajuste")
         return svc.corrigir_data_entrega(
             entrega_id=entrega.id,
-            dados=CorrecaoDataEntrega(**{k: v for k, v in corpo.items() if k != "usuario"}),
+            dados=CorrecaoDataEntrega(data_ocorrencia=data, motivo=motivo),
             db=db,
             usuario=kw.get("usuario", c.titular),
         )
@@ -578,6 +579,7 @@ def test_alinhar_evento_cobre_excluido_corrigido_e_data_diferente(db):
     executar(db, aplicar=True)
     for entrega_id in (excluida.id, divergente.id):
         entrega = svc.repo.obter_entrega(db, entrega_id)
+        assert entrega is not None
         ativo = svc.evento_ativo_da_entrega(db, entrega)
         assert ativo is not None and ativo.id == entrega.evento_id and ativo.data_ocorrencia == entrega.data_ocorrencia
     assert executar(db, aplicar=False)["já alinhada"] >= 2  # idempotente

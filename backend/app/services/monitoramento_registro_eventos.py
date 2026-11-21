@@ -134,6 +134,8 @@ def _registrar_inauguracao_confirmada(
 ) -> tuple[int | None, date | None]:
     if marco.codigo != "fase_concluido":
         return None, None
+    if dados.data_ocorrencia is None:
+        raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
     inauguracao, previsao_anterior = registrar_inauguracao_realizada(
         db,
         instrumento=instrumento,
