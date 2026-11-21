@@ -207,9 +207,12 @@ flowchart TB
 
 ## 5. Concluir e reabrir o acompanhamento
 
-"Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz. Nesse caso a tela já mostra "Reabrir" (a avaliação da conclusão reconhece o evento antigo).
+"Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz. Nesse caso a tela já mostra "Reabrir" (a avaliação da conclusão reconhece o evento antigo). Reabrir desfaz a conclusão confirmada **e** o evento antigo, mesmo quando os dois coexistem (caso dos instrumentos migrados).
 
 Regra: com o acompanhamento **concluído**, o instrumento inteiro fica travado para edição. A única ação liberada é **reabrir** (com motivo). Isso vale para cadastro, entregas, unidades, cancelamentos, previsões, repasse, eventos, ações e documentos.
+
+
+Ordem para os PERSUS I que tinham conclusão antiga: `corrigir_entregas_persus_i` lança a entrega com a data da inauguração e depois `concluir_persus_i_pela_inauguracao` conclui o acompanhamento com `data_conclusao` e `data_inauguracao` iguais a essa data, só quando não sobra impedimento e o resultado é integral. No clone de 20/11/2026 isso concluiu 17 instrumentos; ficam fora os sem inauguração realizada (3) e o que nunca foi concluído (PS1-248225). Em produção só com autorização, após backup.
 
 ```mermaid
 flowchart TB
@@ -429,7 +432,7 @@ Método: busca por nome em todo o `frontend/src` e `backend` (incluindo testes).
 
 ### Scripts de uma só execução (arquivar depois do release)
 
-`migrar_marcos_para_documentos`, `migrar_concluidos_para_conclusao`, `migrar_eventos_inauguracao_prevista`, `remover_persus_ii_do_monitoramento`, `corrigir_entregas_persus_i`, `consolidar_eventos_marco_duplicados`, `derivar_repasses_siconv`, `projetar_itens_plano` (este também serve de rotina recorrente), `preencher_*`, `importar_planilha_monitoramento`, `importar_programas_monitoramento`. Depois do release e da conferência em produção, mover para `scripts/arquivo/` ou remover, mantendo o histórico no git.
+`migrar_marcos_para_documentos`, `migrar_concluidos_para_conclusao`, `migrar_eventos_inauguracao_prevista`, `remover_persus_ii_do_monitoramento`, `corrigir_entregas_persus_i`, `concluir_persus_i_pela_inauguracao`, `consolidar_eventos_marco_duplicados`, `derivar_repasses_siconv`, `projetar_itens_plano` (este também serve de rotina recorrente), `preencher_*`, `importar_planilha_monitoramento`, `importar_programas_monitoramento`. Depois do release e da conferência em produção, mover para `scripts/arquivo/` ou remover, mantendo o histórico no git.
 
 Pendente já registrado no plano do fluxo: remover a leitura do evento antigo `fase_concluido` em `fatos_do_instrumento` e `fases_calculadas_em_lote` depois de conferir a produção.
 

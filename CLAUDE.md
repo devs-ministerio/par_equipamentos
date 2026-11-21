@@ -268,7 +268,7 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   Na tela o item aparece sem família; no painel, em "Outros equipamentos (a partir de R$ 300 mil)".
   Aceleradores manuais de PERSUS I/II usam o código 011806 (`codigo_fonte = regra_da_equipe`).
 - **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`
-  (a lógica por convênio está em `app/services/projecao_itens_plano.py` e roda também na aprovação do Radar).
+  (a lógica por convênio está em `app/services/projecao_itens_plano.py` e roda também na aprovação do Radar). PERSUS I com conclusão antiga: `corrigir_entregas_persus_i.py` e depois `concluir_persus_i_pela_inauguracao.py` (conclui na data da inauguração, só sem impedimento).
 - **API** (`routers/entregas.py`): leitura dos itens do instrumento, entrega com várias unidades por item e
   idempotência, correção de unidade (AuditLog antes/depois), exclusão com motivo.
   Entrega acima do planejado é bloqueada; toda entrega vincula pelo menos um item.

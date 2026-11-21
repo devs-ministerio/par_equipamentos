@@ -214,36 +214,38 @@ def reabrir_acompanhamento(*, nr_convenio: str, dados: ReaberturaCreate, db: Ses
     instrumento = _instrumento_ou_404(db, nr_convenio)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     conclusao = repo.obter_ativa(db, instrumento.id)
-    if conclusao is None:
-        legados = _eventos_concluido_legado(db, instrumento.id)
-        if not legados:
-            raise NotFoundError("O acompanhamento não está concluído.")
-        agora = datetime.now(timezone.utc)
-        for evento in legados:
-            evento.deletado_em = agora
-            evento.deletado_por_id = usuario.id
-            evento.motivo_exclusao = dados.motivo.strip()
+    legados = _eventos_concluido_legado(db, instrumento.id)
+    if conclusao is None and not legados:
+        raise NotFoundError("O acompanhamento não está concluído.")
+    motivo = dados.motivo.strip()
+    agora = datetime.now(timezone.utc)
+    # O evento antigo `fase_concluido` pode coexistir com a conclusão confirmada (migração): reabrir desfaz os dois.
+    for evento in legados:
+        evento.deletado_em = agora
+        evento.deletado_por_id = usuario.id
+        evento.motivo_exclusao = motivo
+    if legados:
         log_action(
             db,
             user_id=usuario.id,
             entity_name="instrumento_equipamento",
             entity_id=instrumento.id,
             action="reopened_legacy_conclusion",
-            details={"nr_convenio": nr_convenio, "motivo": dados.motivo.strip()},
+            details={"nr_convenio": nr_convenio, "motivo": motivo},
         )
+    if conclusao is None:
         db.commit()
-        primeiro = legados[0]
-        return _ler_legado(primeiro)
-    conclusao.deletado_em = datetime.now(timezone.utc)
+        return _ler_legado(legados[0])
+    conclusao.deletado_em = agora
     conclusao.deletado_por_id = usuario.id
-    conclusao.motivo_exclusao = dados.motivo.strip()
+    conclusao.motivo_exclusao = motivo
     log_action(
         db,
         user_id=usuario.id,
         entity_name="conclusao_instrumento",
         entity_id=conclusao.id,
         action="deleted",
-        details={"nr_convenio": nr_convenio, "motivo": dados.motivo.strip()},
+        details={"nr_convenio": nr_convenio, "motivo": motivo},
     )
     db.commit()
     return _ler(conclusao)

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import select
@@ -345,3 +345,57 @@ def test_evento_antigo_fase_concluido_tambem_trava_e_pode_ser_reaberto(db):  # n
     )
     assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
     assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
+
+
+def test_reabrir_desfaz_tambem_o_evento_antigo_que_coexiste_com_a_conclusao_confirmada(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    db.add(
+        EventoMarco(instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=date.today(), autor_id=c.titular.id)
+    )
+    db.flush()
+    svc.reabrir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio, dados=ReaberturaCreate(motivo="Reabertura de teste"), db=db, usuario=c.titular
+    )
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
+    svc.assert_nao_concluido(db, c.inst.id)
+
+
+def test_script_conclui_persus_i_na_data_da_inauguracao_so_sem_pendencia(db):  # noqa: F811
+    from scripts import concluir_persus_i_pela_inauguracao as script
+
+    c = _preparar(db)
+    c.inst.tipo_contratacao = "PERSUS I"
+    marco = db.execute(
+        select(MarcoCatalogo).where(MarcoCatalogo.codigo == "cronograma_previsao_inauguracao")
+    ).scalar_one()
+    inauguracao = date.today() - timedelta(days=40)
+    db.add(EventoMarco(instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=inauguracao, autor_id=c.titular.id))
+    db.flush()
+    contagem, ficam = script.executar(db, aplicar=True)
+    assert contagem["fora do escopo: nunca concluído"] >= 1  # sem conclusão antiga, o script não conclui
+    antigo = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    # conclusão antiga já desfeita pela migração (instrumento aguardando revisão da equipe)
+    db.add(
+        EventoMarco(
+            instrumento_id=c.inst.id,
+            marco_id=antigo.id,
+            data_ocorrencia=inauguracao,
+            autor_id=c.titular.id,
+            deletado_em=datetime.now(timezone.utc),
+            motivo_exclusao="Conclusão antiga sem entrega conferida",
+        )
+    )
+    db.flush()
+    contagem, ficam = script.executar(db, aplicar=True)
+    assert (c.inst.nr_convenio, "item_pendente") in ficam  # sem entrega ainda: nada conclui
+    _entregar_tudo(db, c)
+    contagem, ficam = script.executar(db, aplicar=True)
+    assert contagem["concluído"] >= 1
+    conclusao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao
+    assert conclusao is not None
+    assert conclusao.data_conclusao == inauguracao and conclusao.data_inauguracao == inauguracao
+    assert script.executar(db, aplicar=True)[0]["concluído"] == 0  # idempotente
