@@ -30,7 +30,15 @@ def upgrade() -> None:
     )
     for tabela in ("convenio", "instrumento_equipamento", "pagamento_obra_persus"):
         op.add_column(tabela, sa.Column("fonte_dado_id", sa.BigInteger(), nullable=True))
-        op.create_foreign_key(f"fk_{tabela}_fonte_dado", tabela, "fonte_dado", ["fonte_dado_id"], ["id"], ondelete="SET NULL", onupdate="RESTRICT")
+        op.create_foreign_key(
+            f"fk_{tabela}_fonte_dado",
+            tabela,
+            "fonte_dado",
+            ["fonte_dado_id"],
+            ["id"],
+            ondelete="SET NULL",
+            onupdate="RESTRICT",
+        )
         op.create_index(f"idx_{tabela}_fonte_dado", tabela, ["fonte_dado_id"])
 
 

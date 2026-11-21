@@ -208,4 +208,8 @@ class CandidatoLegadoDecisao(Base):
     situacao_anterior: Mapped[str] = mapped_column(String, nullable=False)
     situacao: Mapped[str] = mapped_column(String, nullable=False)
     justificativa: Mapped[str] = mapped_column(String(1000), nullable=False)
+    # Titular aceito na aprovação (nulo nas decisões anteriores à exigência): o reenvio idempotente compara com ele.
+    tecnico_titular_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user.id", name="fk_legado_decisao_tecnico_titular", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

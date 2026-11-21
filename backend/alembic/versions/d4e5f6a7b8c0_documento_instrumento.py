@@ -40,7 +40,9 @@ def upgrade() -> None:
             "tipo IN ('nota_fiscal', 'ordem_servico', 'trp', 'trd', 'cnen_scra', 'cnen_licenca')",
             name="ck_documento_instrumento_tipo",
         ),
-        sa.ForeignKeyConstraint(["instrumento_id"], ["instrumento_equipamento.id"], onupdate="RESTRICT", ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["instrumento_id"], ["instrumento_equipamento.id"], onupdate="RESTRICT", ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["autor_id"], ["user.id"], onupdate="RESTRICT", ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["origem_evento_id"], ["evento_marco.id"], onupdate="RESTRICT", ondelete="SET NULL"),
         sa.ForeignKeyConstraint(

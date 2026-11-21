@@ -63,6 +63,7 @@ def aprovar_entrada(
                     replay.justificativa,
                     decisoes.versao_antes_de(db, candidato_id, replay.id),
                     prova.hash_conteudo,
+                    replay.tecnico_titular_id or dados.tecnico_titular_id,  # decisão antiga não guardou o titular
                 )
                 != (
                     usuario.id,
@@ -71,6 +72,7 @@ def aprovar_entrada(
                     dados.justificativa,
                     dados.versao,
                     dados.hash_revisado,
+                    dados.tecnico_titular_id,
                 )
             ):
                 raise ConflictError("Chave de aprovação já utilizada com outros dados.")
@@ -104,6 +106,7 @@ def aprovar_entrada(
             situacao_anterior=revisao.situacao_anterior,
             situacao="aprovado",
             justificativa=dados.justificativa,
+            tecnico_titular_id=dados.tecnico_titular_id,
         )
         decisoes.adicionar(db, decisao)
         # Aprovar com técnico já abre o acompanhamento: o titular recebe o aviso de inclusão.

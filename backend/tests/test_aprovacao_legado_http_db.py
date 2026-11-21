@@ -261,6 +261,16 @@ def test_replay_alterado_outro_ator_e_nova_chave_nao_duplicam_aprovacao(fluxo_ap
         alterado = {**corpo, "justificativa": "Outra justificativa para a mesma chave"}
         assert postar(admin, ref.candidato_id, alterado).status_code == 409
         assert postar(admin, ref.candidato_id, {**corpo, "chave": str(uuid4())}).status_code == 409
+        outro = db.scalar(
+            select(User.id).where(
+                User.role == UserRole.colaborador,
+                User.status == UserStatus.active,
+                User.id != corpo["tecnico_titular_id"],
+            )
+        )
+        assert outro is not None
+        # Reenvio com a mesma chave e outro titular não pode ser confirmado pelo registro anterior.
+        assert postar(admin, ref.candidato_id, {**corpo, "tecnico_titular_id": outro}).status_code == 409
     assert db.scalar(select(func.count()).select_from(Convenio)) == 2
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
     assert db.scalar(select(func.count()).select_from(Notificacao)) == 2

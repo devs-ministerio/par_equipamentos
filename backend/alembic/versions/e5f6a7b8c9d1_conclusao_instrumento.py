@@ -32,12 +32,16 @@ def upgrade() -> None:
         sa.Column("deletado_por_id", sa.BigInteger(), nullable=True),
         sa.Column("motivo_exclusao", sa.Text(), nullable=True),
         sa.Column("criado_em", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.CheckConstraint("resultado IN ('integral', 'parcial', 'sem_entregas')", name="ck_conclusao_instrumento_resultado"),
+        sa.CheckConstraint(
+            "resultado IN ('integral', 'parcial', 'sem_entregas')", name="ck_conclusao_instrumento_resultado"
+        ),
         sa.CheckConstraint(
             "resultado = 'integral' OR length(btrim(coalesce(justificativa, ''))) > 0",
             name="ck_conclusao_instrumento_justificativa",
         ),
-        sa.ForeignKeyConstraint(["instrumento_id"], ["instrumento_equipamento.id"], onupdate="RESTRICT", ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["instrumento_id"], ["instrumento_equipamento.id"], onupdate="RESTRICT", ondelete="CASCADE"
+        ),
         sa.ForeignKeyConstraint(["autor_id"], ["user.id"], onupdate="RESTRICT", ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["deletado_por_id"], ["user.id"], onupdate="RESTRICT", ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
