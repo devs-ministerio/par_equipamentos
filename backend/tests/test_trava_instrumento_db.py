@@ -53,3 +53,117 @@ def test_assert_nao_concluido_trava_o_instrumento(instrumento_gravado, monkeypat
             svc.assert_nao_concluido(b, instrumento_gravado)
         a.rollback()
         b.rollback()
+
+
+# --- Corrida depois da trava: quem esperou precisa reler o registro, não usar a versão carregada antes ---
+
+import threading  # noqa: E402
+import time  # noqa: E402
+from datetime import date  # noqa: E402
+
+from app.db.models import AcaoMonitoramento, EntregaEquipamento, User, UserRole  # noqa: E402
+from app.domain_errors import ValidationError  # noqa: E402
+from app.schemas_entregas import CorrecaoDataEntrega  # noqa: E402
+from app.services import entregas_equipamento as entregas  # noqa: E402
+from app.services import monitoramento_acoes as acoes  # noqa: E402
+
+
+@pytest.fixture
+def admin_gravado():
+    sufixo = uuid4().hex[:8]
+    with Session(engine) as s:
+        usuario = User(
+            name=f"Corrida {sufixo}", email=f"corrida-{sufixo}@exemplo.local", password_hash="x", role=UserRole.admin
+        )
+        s.add(usuario)
+        s.commit()
+        usuario_id = usuario.id
+    try:
+        yield usuario_id
+    finally:
+        with Session(engine) as s:
+            s.query(User).filter_by(id=usuario_id).delete()
+            s.commit()
+
+
+def _disputar(instrumento_id, admin_id, operacao_a, operacao_b):
+    """A segura a trava, B (em outra thread) carrega o registro e espera; A termina e libera. Devolve a exceção de B."""
+    resultado: dict[str, BaseException | None] = {"erro": None}
+
+    def rodar_b():
+        with Session(engine) as b:
+            try:
+                operacao_b(b, b.get(User, admin_id))
+            except BaseException as exc:  # noqa: BLE001
+                resultado["erro"] = exc
+            finally:
+                b.rollback()
+
+    with Session(engine) as a:
+        usuario_a = a.get(User, admin_id)
+        svc.assert_nao_concluido(a, instrumento_id)
+        thread = threading.Thread(target=rodar_b)
+        thread.start()
+        time.sleep(0.6)  # B já carregou o registro e está esperando a trava
+        operacao_a(a, usuario_a)
+        thread.join(10)
+    return resultado["erro"]
+
+
+def test_duas_correcoes_da_mesma_acao_nao_criam_duas_sucessoras(instrumento_gravado, admin_gravado):
+    with Session(engine) as s:
+        acao = AcaoMonitoramento(instrumento_id=instrumento_gravado, descricao="original")
+        s.add(acao)
+        s.commit()
+        acao_id = acao.id
+
+    def corrigir(texto):
+        return lambda db, usuario: acoes.editar_acao_monitorada(
+            acao_id=acao_id,
+            descricao=texto,
+            data_prevista=None,
+            responsavel=None,
+            responsavel_id=None,
+            db=db,
+            usuario=usuario,
+        )
+
+    erro = _disputar(instrumento_gravado, admin_gravado, corrigir("A"), corrigir("B"))
+    assert isinstance(erro, ValidationError) and "já foi excluída ou corrigida" in str(erro)
+    with Session(engine) as s:
+        ativas = (
+            s.query(AcaoMonitoramento)
+            .filter_by(instrumento_id=instrumento_gravado, substituido_por_id=None, deletado_em=None)
+            .all()
+        )
+        assert [a.descricao for a in ativas] == ["A"]
+        s.query(AcaoMonitoramento).filter_by(instrumento_id=instrumento_gravado).update({"substituido_por_id": None})
+        s.query(AcaoMonitoramento).filter_by(instrumento_id=instrumento_gravado).delete()
+        s.commit()
+
+
+def test_corrigir_data_de_entrega_excluida_enquanto_esperava_a_trava_e_recusado(instrumento_gravado, admin_gravado):
+    with Session(engine) as s:
+        entrega = EntregaEquipamento(
+            instrumento_id=instrumento_gravado, data_ocorrencia=date(2026, 1, 10), chave_idempotencia=uuid4().hex
+        )
+        s.add(entrega)
+        s.commit()
+        entrega_id = entrega.id
+
+    excluir = lambda db, usuario: entregas.excluir_entrega(
+        entrega_id=entrega_id, motivo="duplicada", db=db, usuario=usuario
+    )  # noqa: E731
+    corrigir = lambda db, usuario: entregas.corrigir_data_entrega(  # noqa: E731
+        entrega_id=entrega_id,
+        dados=CorrecaoDataEntrega(data_ocorrencia=date(2026, 1, 12), motivo="ajuste"),
+        db=db,
+        usuario=usuario,
+    )
+    erro = _disputar(instrumento_gravado, admin_gravado, excluir, corrigir)
+    assert isinstance(erro, ValidationError) and "excluída" in str(erro)
+    with Session(engine) as s:
+        salva = s.get(EntregaEquipamento, entrega_id)
+        assert salva.deletado_em is not None and salva.data_ocorrencia == date(2026, 1, 10)
+        s.query(EntregaEquipamento).filter_by(instrumento_id=instrumento_gravado).delete()
+        s.commit()

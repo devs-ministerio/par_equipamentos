@@ -49,9 +49,13 @@ def _ativo_ou_erro(db: Session, documento_id: int) -> DocumentoInstrumento:
     documento = repo.obter(db, documento_id)
     if documento is None:
         raise NotFoundError("Documento não encontrado.")
+    _exigir_ativo(documento)
+    return documento
+
+
+def _exigir_ativo(documento: DocumentoInstrumento) -> None:
     if documento.deletado_em is not None or documento.substituido_por_id is not None:
         raise ConflictError("Este documento já foi corrigido ou excluído.")
-    return documento
 
 
 def _novo(instrumento_id: int, dados: DocumentoCreate, usuario: User) -> DocumentoInstrumento:
@@ -101,6 +105,8 @@ def corrigir_documento(*, documento_id: int, dados: DocumentoCreate, db: Session
         raise NotFoundError("Documento não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     assert_nao_concluido(db, instrumento.id)
+    db.refresh(antigo)  # relê depois da trava
+    _exigir_ativo(antigo)
     novo = _novo(instrumento.id, dados, usuario)
     repo.adicionar(db, novo)
     antigo.substituido_por_id = novo.id
@@ -123,6 +129,8 @@ def excluir_documento(*, documento_id: int, dados: DocumentoExclusao, db: Sessio
         raise NotFoundError("Documento não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     assert_nao_concluido(db, instrumento.id)
+    db.refresh(documento)  # relê depois da trava
+    _exigir_ativo(documento)
     documento.deletado_em = datetime.now(timezone.utc)
     documento.deletado_por_id = usuario.id
     documento.motivo_exclusao = dados.motivo.strip()

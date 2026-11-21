@@ -102,6 +102,7 @@ def editar_acao_monitorada(
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antiga.instrumento_id))
     assert_nao_concluido(db, antiga.instrumento_id)
+    db.refresh(antiga)  # relê depois da trava: outra correção pode ter vencido a disputa
     if antiga.deletado_em is not None or antiga.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode editar de novo.")
     # instrumento_id de uma ação já persistida é FK obrigatória -- sempre existe.
@@ -146,6 +147,7 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, acao.instrumento_id))
     assert_nao_concluido(db, acao.instrumento_id)
+    db.refresh(acao)  # relê depois da trava
     if acao.deletado_em is not None:
         raise ValidationError(f"Ação {acao_id} já está excluída.")
     if not motivo.strip():
@@ -184,6 +186,7 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, acao.instrumento_id))
     assert_nao_concluido(db, acao.instrumento_id)
+    db.refresh(acao)  # relê depois da trava
     if acao.deletado_em is not None or acao.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode concluir.")
     if acao.data_conclusao is None:

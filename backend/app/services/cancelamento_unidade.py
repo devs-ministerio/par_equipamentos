@@ -80,6 +80,7 @@ def reativar_unidade_cancelada(
     instrumento = _instrumento_do_item(db, item)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     assert_nao_concluido(db, instrumento.id)
+    db.refresh(cancelamento)  # relê depois da trava
     if cancelamento.deletado_em is not None:
         raise ConflictError("Este cancelamento já foi desfeito.")
     cancelamento.deletado_em = datetime.now(timezone.utc)

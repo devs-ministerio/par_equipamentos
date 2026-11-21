@@ -300,6 +300,7 @@ def editar_evento_monitorado(
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antigo.instrumento_id))
     assert_nao_concluido(db, antigo.instrumento_id)
+    db.refresh(antigo)  # relê depois da trava
     _recusar_se_nasceu_de_entrega(db, antigo.id)
     if antigo.deletado_em is not None or antigo.substituido_por_id is not None:
         raise ValidationError(f"Evento {evento_id} já foi excluído ou corrigido -- não pode editar de novo.")
@@ -404,6 +405,7 @@ def excluir_evento_monitorado(
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, evento.instrumento_id))
     assert_nao_concluido(db, evento.instrumento_id)
+    db.refresh(evento)  # relê depois da trava
     _recusar_se_nasceu_de_entrega(db, evento.id)
     if evento.deletado_em is not None:
         raise ValidationError(f"Evento {evento_id} já está excluído.")
