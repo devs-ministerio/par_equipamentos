@@ -28,9 +28,11 @@ from app.schemas_conclusao import (
     ConclusaoCreate,
     ConclusaoRead,
     ImpedimentoRead,
+    InauguracaoConclusaoRead,
     ReaberturaCreate,
     ResultadoConclusao,
 )
+from app.services.inauguracao_realizada import MARCO_DISPENSADA, inauguracao_vigente, registrar_inauguracao_realizada
 
 
 @dataclass(frozen=True)
@@ -150,6 +152,17 @@ def _impedimentos(db: Session, instrumento_id: int, itens: list[ItemParaConclusa
     return impedimentos
 
 
+def _situacao_inauguracao(db: Session, instrumento_id: int) -> InauguracaoConclusaoRead:
+    if inauguracao_vigente(db, instrumento_id, MARCO_DISPENSADA) is not None:
+        return InauguracaoConclusaoRead(situacao="dispensada")
+    previsao = inauguracao_vigente(db, instrumento_id)
+    if previsao is None:
+        return InauguracaoConclusaoRead(situacao="sem_resposta")
+    if previsao.data_ocorrencia is not None:
+        return InauguracaoConclusaoRead(situacao="realizada", data_realizada=previsao.data_ocorrencia)
+    return InauguracaoConclusaoRead(situacao="prevista", data_prevista=previsao.data_prevista)
+
+
 def avaliar_conclusao(*, nr_convenio: str, db: Session, usuario: User) -> AvaliacaoConclusaoRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     itens = _itens_controlados(db, instrumento.id)
@@ -165,6 +178,39 @@ def avaliar_conclusao(*, nr_convenio: str, db: Session, usuario: User) -> Avalia
         itens_exigidos=len(itens),
         itens_completos=sum(1 for i in itens if unidades_pendentes(i) == 0),
         impedimentos=_impedimentos(db, instrumento.id, itens),
+        inauguracao=_situacao_inauguracao(db, instrumento.id),
+    )
+
+
+def _registrar_inauguracao_informada(
+    db: Session, instrumento: InstrumentoEquipamento, dados: ConclusaoCreate, usuario: User
+) -> None:
+    """Inauguração é opcional: sem data, nada acontece. Com data, ela vira a inauguração realizada do cronograma."""
+    data = dados.data_inauguracao
+    if data is None:
+        return
+    if data > date.today():
+        raise ValidationError("A data de inauguração não pode estar no futuro.")
+    if data > dados.data_conclusao:
+        raise ValidationError("A inauguração não pode ser depois da data de conclusão.")
+    if inauguracao_vigente(db, instrumento.id, MARCO_DISPENSADA) is not None:
+        raise ValidationError("A inauguração foi dispensada para este instrumento.")
+    existente = inauguracao_vigente(db, instrumento.id)
+    if existente is not None and existente.data_ocorrencia is not None:
+        if existente.data_ocorrencia != data:
+            raise ValidationError(
+                f"Já existe inauguração realizada em {existente.data_ocorrencia.strftime('%d/%m/%Y')}. "
+                "Deixe o campo em branco ou corrija o evento na seção de eventos."
+            )
+        return
+    fase = monitoramento_repo.obter_marco_por_codigo(db, "fase_concluido")
+    registrar_inauguracao_realizada(
+        db,
+        instrumento=instrumento,
+        data_ocorrencia=data,
+        usuario=usuario,
+        fase_geral_id=fase.id if fase else None,
+        observacao="Inauguração confirmada ao concluir o acompanhamento.",
     )
 
 
@@ -185,6 +231,7 @@ def concluir_acompanhamento(*, nr_convenio: str, dados: ConclusaoCreate, db: Ses
     justificativa = (dados.justificativa or "").strip() or None
     if resultado != "integral" and justificativa is None:
         raise ValidationError("Informe a justificativa: a conclusão não é integral.")
+    _registrar_inauguracao_informada(db, instrumento, dados, usuario)
     conclusao = ConclusaoInstrumento(
         instrumento_id=instrumento.id,
         resultado=resultado,

@@ -36,6 +36,17 @@ const avaliacaoSchema = z.object({
       descricao: z.string(),
     }),
   ),
+  inauguracao: z
+    .object({
+      situacao: z.enum(["dispensada", "realizada", "prevista", "sem_resposta"]),
+      data_realizada: z.string().nullable().default(null),
+      data_prevista: z.string().nullable().default(null),
+    })
+    .default({
+      situacao: "sem_resposta",
+      data_realizada: null,
+      data_prevista: null,
+    }),
 });
 export type AvaliacaoConclusao = z.infer<typeof avaliacaoSchema>;
 

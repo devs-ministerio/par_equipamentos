@@ -147,6 +147,21 @@ export function criarConclusaoSchema(exigeJustificativa: boolean) {
         .optional(),
     })
     .superRefine((v, ctx) => {
+      if (v.dataInauguracao && v.dataConclusao) {
+        if (v.dataInauguracao > new Date().toISOString().slice(0, 10)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["dataInauguracao"],
+            message: "A inauguração não pode estar no futuro.",
+          });
+        } else if (v.dataInauguracao > v.dataConclusao) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["dataInauguracao"],
+            message: "A inauguração não pode ser depois da conclusão.",
+          });
+        }
+      }
       if (exigeJustificativa && !v.justificativa) {
         ctx.addIssue({
           code: "custom",

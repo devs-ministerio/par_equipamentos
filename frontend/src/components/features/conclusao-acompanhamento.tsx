@@ -29,6 +29,10 @@ import {
 import type { AvaliacaoConclusao } from "@/services/conclusao-acompanhamento";
 import { ErroCampo, estiloInput } from "./monitoramento-ui";
 
+function pedeInauguracaoDe(avaliacao: AvaliacaoConclusao): boolean {
+  return ["prevista", "sem_resposta"].includes(avaliacao.inauguracao.situacao);
+}
+
 function hoje(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -60,6 +64,8 @@ function JanelaConcluir({
     },
   });
   const bloqueado = avaliacao.impedimentos.length > 0;
+  // Inauguração é opcional e só se informa quando ainda não aconteceu nem foi dispensada.
+  const pedeInauguracao = pedeInauguracaoDe(avaliacao);
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && onFechar()}>
       <DialogContent
@@ -129,17 +135,30 @@ function JanelaConcluir({
                 mensagem={errors.dataConclusao?.message}
               />
             </div>
-            <div>
-              <label htmlFor={`${id}-inaug`} className="text-[11px]">
-                Data de inauguração
-              </label>
-              <input
-                id={`${id}-inaug`}
-                type="date"
-                className={cn(estiloInput, "w-full")}
-                {...register("dataInauguracao")}
-              />
-            </div>
+            {pedeInauguracao && (
+              <div>
+                <label htmlFor={`${id}-inaug`} className="text-[11px]">
+                  Data de inauguração (opcional)
+                </label>
+                <input
+                  id={`${id}-inaug`}
+                  type="date"
+                  max={hoje()}
+                  className={cn(estiloInput, "w-full")}
+                  aria-invalid={Boolean(errors.dataInauguracao)}
+                  {...register("dataInauguracao")}
+                />
+                <ErroCampo
+                  id={`${id}-inaug-erro`}
+                  mensagem={errors.dataInauguracao?.message}
+                />
+                {avaliacao.inauguracao.data_prevista && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Previsão: {fmtData(avaliacao.inauguracao.data_prevista)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <label htmlFor={`${id}-just`} className="text-[11px]">
@@ -291,7 +310,9 @@ export function ConclusaoAcompanhamento({
                 resultado_confirmado: avaliacao.resultado,
                 data_conclusao: v.dataConclusao,
                 justificativa: v.justificativa?.trim() || null,
-                data_inauguracao: v.dataInauguracao || null,
+                data_inauguracao: pedeInauguracaoDe(avaliacao)
+                  ? v.dataInauguracao || null
+                  : avaliacao.inauguracao.data_realizada,
               }),
             )
           }

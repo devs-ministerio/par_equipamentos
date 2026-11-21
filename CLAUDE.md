@@ -1489,3 +1489,4 @@ que valem isolamento de contexto:
   citada na metodologia ainda está vigente. Invocar quando surgir dúvida
   normativa ou antes de assumir que um parâmetro citado em `docs/` continua
   válido.
+- **Inauguração ao concluir (21/11/2026)**: opcional. A pergunta "precisa de inauguração?" é da entrega (previsão ou dispensada). O campo de data da conclusão só aparece com previsão pendente ou sem resposta; informado, registra a inauguração realizada no cronograma (`app/services/inauguracao_realizada.py`) na mesma transação. Dispensada ou já realizada em outra data: a API recusa. Evento de inauguração não se cria pelo seletor de eventos, só se edita.

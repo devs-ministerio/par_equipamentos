@@ -1,4 +1,10 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +19,11 @@ const base = {
   itens_exigidos: 3,
   itens_completos: 1,
   impedimentos: [],
+  inauguracao: {
+    situacao: "sem_resposta",
+    data_realizada: null,
+    data_prevista: null,
+  },
 };
 
 function responder(avaliacao: Record<string, unknown>) {
@@ -101,6 +112,84 @@ describe("conclusão do acompanhamento", () => {
       });
     });
   });
+
+  it("com previsão pendente, a inauguração é opcional e é enviada quando informada", async () => {
+    const chamadas = responder({
+      ...base,
+      resultado: "integral",
+      exige_justificativa: false,
+      inauguracao: {
+        situacao: "prevista",
+        data_realizada: null,
+        data_prevista: "2026-12-10",
+      },
+    });
+    montar();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Concluir acompanhamento" }),
+    );
+    expect(screen.getByText(/Previsão: 10\/12\/2026/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Data de inauguração/), {
+      target: { value: "2026-11-10" },
+    });
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Concluir acompanhamento",
+      }),
+    );
+    await waitFor(() => {
+      const post = chamadas.find((c) => c.method === "POST");
+      expect(JSON.parse(post!.body!)).toMatchObject({
+        data_inauguracao: "2026-11-10",
+      });
+    });
+  });
+
+  it("inauguração depois da conclusão é recusada na tela", async () => {
+    const chamadas = responder({
+      ...base,
+      resultado: "integral",
+      exige_justificativa: false,
+    });
+    montar();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Concluir acompanhamento" }),
+    );
+    fireEvent.change(screen.getByLabelText(/Data da conclusão/), {
+      target: { value: "2026-01-10" },
+    });
+    fireEvent.change(screen.getByLabelText(/Data de inauguração/), {
+      target: { value: "2026-01-15" },
+    });
+    await userEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Concluir acompanhamento",
+      }),
+    );
+    expect(
+      await screen.findByText(/não pode ser depois da conclusão/),
+    ).toBeInTheDocument();
+    expect(chamadas.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it.each(["dispensada", "realizada"] as const)(
+    "com inauguração %s o campo de data não aparece",
+    async (situacao) => {
+      responder({
+        ...base,
+        inauguracao: {
+          situacao,
+          data_realizada: situacao === "realizada" ? "2026-10-01" : null,
+          data_prevista: null,
+        },
+      });
+      montar();
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Concluir acompanhamento" }),
+      );
+      expect(screen.queryByLabelText(/Data de inauguração/)).toBeNull();
+    },
+  );
 
   it("lista as pendências e bloqueia o envio", async () => {
     responder({

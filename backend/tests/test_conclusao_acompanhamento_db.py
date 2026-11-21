@@ -399,3 +399,141 @@ def test_script_conclui_persus_i_na_data_da_inauguracao_so_sem_pendencia(db):  #
     assert conclusao is not None
     assert conclusao.data_conclusao == inauguracao and conclusao.data_inauguracao == inauguracao
     assert script.executar(db, aplicar=True)[0]["concluído"] == 0  # idempotente
+
+
+def _marco(db, codigo):  # noqa: F811
+    return db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == codigo)).scalar_one()
+
+
+def _inauguracao_ativa(db, c):  # noqa: F811
+    marco = _marco(db, "cronograma_previsao_inauguracao")
+    return db.execute(
+        select(EventoMarco).where(
+            EventoMarco.instrumento_id == c.inst.id,
+            EventoMarco.marco_id == marco.id,
+            EventoMarco.substituido_por_id.is_(None),
+            EventoMarco.deletado_em.is_(None),
+        )
+    ).scalar_one_or_none()
+
+
+def test_inauguracao_informada_ao_concluir_vira_realizada_no_lugar_da_previsao(db):  # noqa: F811
+    c = _preparar(db)
+    previsao = EventoMarco(
+        instrumento_id=c.inst.id,
+        marco_id=_marco(db, "cronograma_previsao_inauguracao").id,
+        data_prevista=date.today() + timedelta(days=30),
+        autor_id=c.titular.id,
+    )
+    db.add(previsao)
+    db.flush()
+    _entregar_tudo(db, c)
+    data = date.today() - timedelta(days=3)
+    svc.concluir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_confirmar("integral", data_inauguracao=data),
+        db=db,
+        usuario=c.titular,
+    )
+    vigente = _inauguracao_ativa(db, c)
+    assert vigente is not None and vigente.data_ocorrencia == data and vigente.id != previsao.id
+    assert previsao.substituido_por_id == vigente.id
+
+
+def test_inauguracao_em_branco_ao_concluir_nao_cria_evento(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+    assert _inauguracao_ativa(db, c) is None
+
+
+def test_inauguracao_futura_ou_depois_da_conclusao_e_recusada_sem_gravar(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    futura = date.today() + timedelta(days=1)
+    with pytest.raises(ValidationError, match="futuro"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=ConclusaoCreate(
+                resultado_confirmado="integral", data_conclusao=date.today(), data_inauguracao=futura
+            ),
+            db=db,
+            usuario=c.titular,
+        )
+    with pytest.raises(ValidationError, match="depois da data de conclusão"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=ConclusaoCreate(
+                resultado_confirmado="integral",
+                data_conclusao=date.today() - timedelta(days=5),
+                data_inauguracao=date.today() - timedelta(days=2),
+            ),
+            db=db,
+            usuario=c.titular,
+        )
+    assert _inauguracao_ativa(db, c) is None
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
+
+
+def test_inauguracao_dispensada_ou_ja_realizada_nao_aceita_outra_data(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    dispensada = EventoMarco(
+        instrumento_id=c.inst.id,
+        marco_id=_marco(db, "cronograma_inauguracao_dispensada").id,
+        observacao="Dispensada na entrega",
+        autor_id=c.titular.id,
+    )
+    db.add(dispensada)
+    db.flush()
+    with pytest.raises(ValidationError, match="dispensada"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=_confirmar("integral", data_inauguracao=date.today()),
+            db=db,
+            usuario=c.titular,
+        )
+    dispensada.deletado_em = datetime.now(timezone.utc)
+    realizada_em = date.today() - timedelta(days=10)
+    db.add(
+        EventoMarco(
+            instrumento_id=c.inst.id,
+            marco_id=_marco(db, "cronograma_previsao_inauguracao").id,
+            data_ocorrencia=realizada_em,
+            autor_id=c.titular.id,
+        )
+    )
+    db.flush()
+    with pytest.raises(ValidationError, match="Já existe inauguração realizada"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=_confirmar("integral", data_inauguracao=date.today()),
+            db=db,
+            usuario=c.titular,
+        )
+    svc.concluir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_confirmar("integral", data_inauguracao=realizada_em),
+        db=db,
+        usuario=c.titular,
+    )
+
+
+def test_avaliacao_informa_a_situacao_da_inauguracao(db):  # noqa: F811
+    c = _preparar(db)
+    nr = c.inst.nr_convenio
+    assert svc.avaliar_conclusao(nr_convenio=nr, db=db, usuario=c.titular).inauguracao.situacao == "sem_resposta"
+    previsao = EventoMarco(
+        instrumento_id=c.inst.id,
+        marco_id=_marco(db, "cronograma_previsao_inauguracao").id,
+        data_prevista=date.today() + timedelta(days=20),
+        autor_id=c.titular.id,
+    )
+    db.add(previsao)
+    db.flush()
+    inaug = svc.avaliar_conclusao(nr_convenio=nr, db=db, usuario=c.titular).inauguracao
+    assert (inaug.situacao, inaug.data_prevista) == ("prevista", previsao.data_prevista)
+    previsao.data_ocorrencia = date.today() - timedelta(days=1)
+    db.flush()
+    inaug = svc.avaliar_conclusao(nr_convenio=nr, db=db, usuario=c.titular).inauguracao
+    assert (inaug.situacao, inaug.data_realizada) == ("realizada", previsao.data_ocorrencia)

@@ -23,6 +23,17 @@ class ConclusaoRead(BaseModel):
     data_inauguracao: date | None
 
 
+SituacaoInauguracao = Literal["dispensada", "realizada", "prevista", "sem_resposta"]
+
+
+class InauguracaoConclusaoRead(BaseModel):
+    """Situação da inauguração no cronograma: a data só pode ser informada ao concluir quando ainda não aconteceu."""
+
+    situacao: SituacaoInauguracao
+    data_realizada: date | None = None
+    data_prevista: date | None = None
+
+
 class AvaliacaoConclusaoRead(BaseModel):
     nr_convenio: str
     pode_editar: bool
@@ -32,6 +43,7 @@ class AvaliacaoConclusaoRead(BaseModel):
     itens_exigidos: int
     itens_completos: int
     impedimentos: list[ImpedimentoRead]
+    inauguracao: InauguracaoConclusaoRead
 
 
 class ConclusaoCreate(BaseModel):

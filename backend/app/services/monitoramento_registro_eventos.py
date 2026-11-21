@@ -22,6 +22,7 @@ from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.services.conclusao_acompanhamento import assert_nao_concluido
 from app.services.fase_acompanhamento import calcular_fase_acompanhamento
+from app.services.inauguracao_realizada import registrar_inauguracao_realizada
 from app.services.marcos_por_fase import JANELAS, marco_disponivel_na_fase, motivo_indisponivel
 from app.services.monitoramento_cadastro import DadosEquipamentoEntregue, _resumo_equipamento_entregue
 from app.services.monitoramento_comum import _agora_utc, _compor_observacao, _notificar_edicao_manual
@@ -132,41 +133,13 @@ def _registrar_inauguracao_confirmada(
 ) -> tuple[int | None, date | None]:
     if marco.codigo != "fase_concluido":
         return None, None
-    marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, "cronograma_previsao_inauguracao")
-    if marco_inauguracao is None:
-        raise ValidationError("Marco de previsão de inauguração não encontrado no catálogo.")
-    anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
-        db, instrumento_id=instrumento.id, marco_id=marco_inauguracao.id
-    )
-    if anterior and anterior.data_ocorrencia is not None:
-        raise ValidationError("Já existe uma inauguração realizada para este instrumento.")
-    previsao_anterior = anterior.data_prevista if anterior else None
-    inauguracao = EventoMarco(
-        instrumento_id=instrumento.id,
-        marco_id=marco_inauguracao.id,
-        fase_geral_id=marco.id,
-        data_ocorrencia=dados.data_ocorrencia,
-        observacao=_compor_observacao(usuario.name, "Inauguração confirmada ao concluir o instrumento."),
-        autor_id=usuario.id,
-    )
-    if anterior is not None:
-        anterior.atualizado_em = _agora_utc()
-        monitoramento_repo.substituir_evento(db, anterior, inauguracao)
-    else:
-        monitoramento_repo.adicionar_evento(db, inauguracao)
-    log_action(
+    inauguracao, previsao_anterior = registrar_inauguracao_realizada(
         db,
-        user_id=usuario.id,
-        entity_name="evento_marco",
-        entity_id=inauguracao.id,
-        action="created",
-        details={
-            "nr_convenio": nr_convenio,
-            "marco_id": marco_inauguracao.id,
-            "data_prevista_anterior": previsao_anterior.isoformat() if previsao_anterior else None,
-            "data_ocorrencia": dados.data_ocorrencia.isoformat() if dados.data_ocorrencia else None,
-            "confirmada_com_conclusao": True,
-        },
+        instrumento=instrumento,
+        data_ocorrencia=dados.data_ocorrencia,
+        usuario=usuario,
+        fase_geral_id=marco.id,
+        observacao="Inauguração confirmada ao concluir o instrumento.",
     )
     return inauguracao.id, previsao_anterior
 

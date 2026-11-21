@@ -212,6 +212,10 @@ flowchart TB
 Regra: com o acompanhamento **concluído**, o instrumento inteiro fica travado para edição. A única ação liberada é **reabrir** (com motivo). Isso vale para cadastro, entregas, unidades, cancelamentos, previsões, repasse, eventos, ações e documentos.
 
 
+**Inauguração na conclusão (opcional).** Ela não é obrigatória. A pergunta "precisa de inauguração?" é feita ao registrar a entrega (sim grava a previsão, não grava "dispensada"). Ao concluir, o campo de data só aparece quando a inauguração ainda não aconteceu nem foi dispensada; em branco, nada é criado. Informada, a data vira a inauguração realizada do cronograma (substitui a previsão, na mesma transação) e o cabeçalho passa a mostrar "Inaugurado". Não pode estar no futuro nem depois da conclusão; com inauguração dispensada ou já realizada em outra data, a API recusa. Reabrir não apaga a inauguração. Depois de concluído o instrumento fica travado, então a data só se corrige reabrindo.
+
+Formas de confirmar a inauguração: (1) editar o evento de inauguração existente na seção Eventos, preenchendo a data de ocorrência; (2) informar a data ao concluir. A pergunta da entrega só registra previsão ou dispensa.
+
 Ordem para os PERSUS I que tinham conclusão antiga: `corrigir_entregas_persus_i` lança a entrega com a data da inauguração e depois `concluir_persus_i_pela_inauguracao` conclui o acompanhamento com `data_conclusao` e `data_inauguracao` iguais a essa data, só quando não sobra impedimento e o resultado é integral. No clone de 20/11/2026 isso concluiu 17 instrumentos; ficam fora os sem inauguração realizada (3) e o que nunca foi concluído (PS1-248225). Em produção só com autorização, após backup.
 
 ```mermaid
@@ -223,7 +227,14 @@ flowchart TB
     IMP -->|"ação aberta"| X["Não conclui"]:::regra
     IMP -->|"item na fila de revisão"| X
     IMP -->|"nenhum"| RES["Resultado calculado pelo sistema<br/>só itens por unidade contam"]:::regra
-    RES --> CONF["Equipe confirma<br/>POST .../conclusao"]:::acao
+    RES --> INA{"Inauguração do instrumento?<br/>(opcional)"}:::regra
+    INA -->|"dispensada ou já realizada"| SEMCAMPO["Campo de data não aparece"]:::regra
+    INA -->|"previsão pendente ou sem resposta"| CAMPO["Data de inauguração opcional<br/>até hoje e até a data da conclusão"]:::acao
+    CAMPO -->|"em branco"| CONF
+    CAMPO -->|"informada"| REAL["Registra a inauguração realizada no cronograma<br/>no lugar da previsão, na mesma transação"]:::regra
+    SEMCAMPO --> CONF
+    REAL --> CONF
+    CONF["Equipe confirma<br/>POST .../conclusao"]:::acao
     CONF --> FIM["Fase Concluído<br/>instrumento inteiro travado"]:::regra
     FIM --> REAB["Reabrir com motivo<br/>DELETE .../conclusao"]:::acao
     REAB --> VOLTA["Volta à fase calculada dos fatos<br/>edição liberada"]:::regra
