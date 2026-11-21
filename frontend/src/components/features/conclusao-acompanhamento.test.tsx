@@ -277,4 +277,39 @@ describe("conclusão do acompanhamento", () => {
       ).not.toBeInTheDocument(),
     );
   });
+  it("relê a avaliação ao abrir o diálogo e libera o botão quando a pendência foi resolvida", async () => {
+    const bloqueada = {
+      ...base,
+      impedimentos: [
+        { tipo: "acao_aberta", descricao: "Ação aberta: Cobrar relatório" },
+      ],
+    };
+    const respostas = [bloqueada, { ...base, resultado: "integral" }];
+    let leituras = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        const corpo = respostas[Math.min(leituras, respostas.length - 1)];
+        leituras += 1;
+        return new Response(JSON.stringify(corpo), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }),
+    );
+    montar();
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Concluir acompanhamento" }),
+    );
+    const dialogo = screen.getByRole("dialog");
+    await waitFor(() =>
+      expect(
+        within(dialogo).getByRole("button", {
+          name: "Concluir acompanhamento",
+        }),
+      ).toBeEnabled(),
+    );
+    expect(screen.queryByText(/Cobrar relatório/)).not.toBeInTheDocument();
+    expect(leituras).toBe(2);
+  });
 });

@@ -41,10 +41,12 @@ function hoje(): string {
 
 function JanelaConcluir({
   avaliacao,
+  atualizando,
   onEnviar,
   onFechar,
 }: {
   avaliacao: AvaliacaoConclusao;
+  atualizando: boolean;
   onEnviar: (v: ConclusaoFormValues) => Promise<void>;
   onFechar: () => void;
 }) {
@@ -183,7 +185,10 @@ function JanelaConcluir({
             <Button type="button" variant="outline" onClick={onFechar}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || bloqueado}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || bloqueado || atualizando}
+            >
               {isSubmitting ? "Concluindo..." : "Concluir acompanhamento"}
             </Button>
           </DialogFooter>
@@ -305,7 +310,10 @@ export function ConclusaoAcompanhamento({
         <Button
           size="sm"
           variant={concluida ? "outline" : "default"}
-          onClick={() => setJanela(concluida ? "reabrir" : "concluir")}
+          onClick={() => {
+            void consulta.refetch(); // a avaliação pode ter mudado desde a última leitura
+            setJanela(concluida ? "reabrir" : "concluir");
+          }}
         >
           {concluida ? "Reabrir" : "Concluir acompanhamento"}
         </Button>
@@ -313,6 +321,7 @@ export function ConclusaoAcompanhamento({
       {janela === "concluir" && (
         <JanelaConcluir
           avaliacao={avaliacao}
+          atualizando={consulta.isFetching}
           onFechar={() => setJanela(null)}
           onEnviar={(v) =>
             escrever(() =>

@@ -38,6 +38,7 @@ export function useAcoesDoInstrumento(nrConvenio: string) {
 function invalidarAcoes(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["monitoramento", "acoes"] });
   queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
+  queryClient.invalidateQueries({ queryKey: monitoramentoKeys.conclusao });
 }
 
 export function useCriarAcao(nrConvenio: string) {

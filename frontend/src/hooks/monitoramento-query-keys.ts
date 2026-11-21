@@ -12,6 +12,8 @@ export const monitoramentoKeys = {
   acoes: (pendentes?: boolean) =>
     ["monitoramento", "acoes", pendentes ?? "todas"] as const,
   resumo: ["monitoramento", "resumo"] as const,
+  /** Avaliação de conclusão de todos os instrumentos (prefixo): muda com ações, entregas, unidades e eventos. */
+  conclusao: ["monitoramento", "conclusao"] as const,
   currentUser: ["auth", "me"] as const,
   notificacoesBase: ["notificacoes"] as const,
   notificacoes: (apenasNaoLidas?: boolean) =>

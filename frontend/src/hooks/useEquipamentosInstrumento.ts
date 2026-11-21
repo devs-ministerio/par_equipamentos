@@ -36,6 +36,7 @@ function useInvalidarEntrega(nr: string) {
       queryKey: monitoramentoKeys.instrumento(nr),
     });
     queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
+    queryClient.invalidateQueries({ queryKey: monitoramentoKeys.conclusao });
     queryClient.invalidateQueries({ queryKey: monitoramentoKeys.instrumentos });
   };
 }

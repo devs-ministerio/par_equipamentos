@@ -10,7 +10,7 @@ import { monitoramentoKeys } from "./monitoramento-query-keys";
 import { repasseKeys } from "./useRepasseInstrumento";
 
 export const conclusaoKeys = {
-  instrumento: (nr: string) => ["monitoramento", "conclusao", nr] as const,
+  instrumento: (nr: string) => [...monitoramentoKeys.conclusao, nr] as const,
 };
 
 export function useAvaliacaoConclusao(nr: string) {
