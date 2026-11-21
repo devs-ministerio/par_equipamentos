@@ -16,6 +16,7 @@ from app.db.models import (
     Convenio,
     FonteCaptura,
     InstrumentoEquipamento,
+    ItemPlano,
     Notificacao,
     NotificacaoDestinatario,
     NotificacaoTipo,
@@ -25,6 +26,7 @@ from app.db.models import (
 )
 from app.db.models_legado import CandidatoLegadoDecisao, CandidatoLegadoRecaptura
 from app.main import app
+from app.services.projecao_itens_plano import projetar as projetar_itens_plano
 from app.services.recapturas_legado import registrar_recaptura
 from tests.test_notificacoes_destinatarios_db import matriz as matriz
 from tests.test_prova_recaptura_legado import dados as dados
@@ -90,12 +92,18 @@ def test_aprova_e_replay_retornam_mesmos_vinculos_sem_monitoramento_automatico(f
         assert db.get(Convenio, decisao["convenio_id"]).numero == "999001"
         replay = postar(http, ref.candidato_id, pedido.model_dump(mode="json"))
         assert replay.status_code == 200 and replay.json() == decisao
+        assert projetar_itens_plano(db, aplicar=True, convenio_numero="999001").criados == 0
         assert not {"payload_oficial", "siconv_raw", "password_hash", "token_hash"} & decisao.keys()
     assert db.scalar(select(func.count()).select_from(Convenio)) == 2
     assert db.scalar(select(func.count()).select_from(InstrumentoEquipamento)) == 1
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
     assert db.scalar(select(func.count()).select_from(Notificacao)) == 1
     assert set(db.scalars(select(NotificacaoDestinatario.usuario_id))) == {usuarios["admin"], usuarios["gestor"]}
+    itens = list(db.scalars(select(ItemPlano).where(ItemPlano.convenio_id == decisao["convenio_id"])))
+    assert itens and {i.instrumento_id for i in itens} == {None}
+    assert db.scalar(
+        select(func.count()).select_from(ItemPlano).where(ItemPlano.convenio_id == decisao["convenio_id"])
+    ) == len(itens)
 
 
 def test_aprova_com_tecnico_inclui_no_monitoramento_e_avisa_o_titular(fluxo_aprovacao):
@@ -107,6 +115,13 @@ def test_aprova_com_tecnico_inclui_no_monitoramento_e_avisa_o_titular(fluxo_apro
     instrumento = db.scalar(select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == "999001"))
     assert instrumento is not None and instrumento.tipo_contratacao == "Convênio"
     assert instrumento.tecnico_titular == db.get(User, usuarios["titular"]).name
+    itens = list(
+        db.scalars(
+            select(ItemPlano).join(Convenio, Convenio.id == ItemPlano.convenio_id).where(Convenio.numero == "999001")
+        )
+    )
+    assert itens, "a aprovação com técnico precisa deixar os itens prontos para a entrega"
+    assert {i.instrumento_id for i in itens} == {instrumento.id}
     avisos = {n.tipo: n for n in db.scalars(select(Notificacao))}
     assert set(avisos) == {NotificacaoTipo.aprovacao_carteira, NotificacaoTipo.inclusao_monitoramento}
     inclusao = avisos[NotificacaoTipo.inclusao_monitoramento]

@@ -20,6 +20,7 @@ from app.schemas_aprovacao_legado import AprovacaoLegadoCreate, AprovacaoLegadoR
 from app.schemas_captura_legado import ItemRecapturado
 from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
 from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado_sem_commit
+from app.services.projecao_itens_plano import projetar as projetar_itens_plano
 from app.services.prova_recaptura_legado import validar_frescor_recaptura
 from app.services.revisao_legado import preparar_revisao
 
@@ -124,12 +125,20 @@ def aprovar_entrada(
                     origem_dado="radar_aprovacao",
                 ),
             )
+        # Depois do instrumento: a projeção liga os itens a ele e aplica a exceção de quem entra sem item controlado.
+        db.flush()
+        projetar_itens_plano(db, aplicar=True, convenio_numero=convenio.numero)
+        monitorado = dados.tecnico_titular_id is not None
         criar_notificacao(
             db,
             Notificacao(
                 tipo=NotificacaoTipo.aprovacao_carteira,
                 titulo=f"Entrada aprovada: convênio {convenio.numero}",
-                corpo="Convênio aprovado para a carteira de Instrumentos firmados. O monitoramento interno não foi iniciado.",
+                corpo=(
+                    "Convênio aprovado para a carteira de Instrumentos firmados e já em monitoramento interno."
+                    if monitorado
+                    else "Convênio aprovado para a carteira de Instrumentos firmados. O monitoramento interno não foi iniciado."
+                ),
                 entidade_id=convenio.id,
             ),
         )
