@@ -65,25 +65,28 @@ def test_login_real_leitura_arquivo_restauracao_e_badge_por_destinatario(fluxo, 
     outro = "gestor" if perfil == "admin" else "admin"
     with cliente(perfil) as http, cliente(outro) as outra_sessao:
         pagina = http.get("/notificacoes").json()
-        assert pagina["total"] == pagina["nao_lidas"] == 2
-        assert {a["tipo"] for a in pagina["itens"]} == {"convenio_descoberto", "aprovacao_carteira"}
-        destinos = {a["tipo"]: a["destino"] for a in pagina["itens"]}
-        assert destinos == {
-            "convenio_descoberto": None,
-            "aprovacao_carteira": "/monitoramento-equipamentos?busca=999001",
+        assert pagina["total"] == pagina["nao_lidas"] == 3
+        assert {a["tipo"] for a in pagina["itens"]} == {
+            "convenio_descoberto",
+            "aprovacao_carteira",
+            "inclusao_monitoramento",
         }
+        destinos = {a["tipo"]: a["destino"] for a in pagina["itens"]}
+        assert destinos["convenio_descoberto"] is None
+        assert destinos["aprovacao_carteira"] == "/monitoramento-equipamentos?busca=999001"
+        assert destinos["inclusao_monitoramento"]
         leitura = http.patch(f"/notificacoes/{avisos['convenio_descoberto']}", headers=csrf(http))
         assert leitura.status_code == 200 and leitura.json()["lida"] is True
-        assert http.get("/notificacoes").json()["nao_lidas"] == 1
+        assert http.get("/notificacoes").json()["nao_lidas"] == 2
         caminho = f"/notificacoes/{avisos['aprovacao_carteira']}/arquivo"
         assert http.patch(caminho, json={"arquivada": True}, headers=csrf(http)).status_code == 200
-        assert http.get("/notificacoes").json()["nao_lidas"] == 0
+        assert http.get("/notificacoes").json()["nao_lidas"] == 1
         arquivadas = http.get("/notificacoes?arquivadas=true").json()
         assert arquivadas["total"] == 1 and arquivadas["itens"][0]["lida"] is False
         assert http.patch(caminho, json={"arquivada": False}, headers=csrf(http)).status_code == 200
-        assert http.get("/notificacoes").json()["nao_lidas"] == 1
-        assert outra_sessao.get("/notificacoes").json()["nao_lidas"] == 2
-        assert http.patch("/notificacoes/lidas", headers=csrf(http)).json() == {"alteradas": 1}
+        assert http.get("/notificacoes").json()["nao_lidas"] == 2
+        assert outra_sessao.get("/notificacoes").json()["nao_lidas"] == 3
+        assert http.patch("/notificacoes/lidas", headers=csrf(http)).json() == {"alteradas": 2}
         assert http.patch("/notificacoes/lidas", headers=csrf(http)).json() == {"alteradas": 0}
 
 
@@ -91,8 +94,12 @@ def test_login_real_leitura_arquivo_restauracao_e_badge_por_destinatario(fluxo, 
 def test_login_valido_nao_autoriza_aviso_de_outro_destinatario(fluxo, perfil):
     _, _, avisos, cliente = fluxo
     with cliente(perfil) as http:
-        assert http.get("/notificacoes").json()["total"] == 0
-        for ident in avisos.values():
+        # O titular recebe apenas o aviso de inclusão no monitoramento; o resto não é dele.
+        propria = 1 if perfil == "titular" else 0
+        assert http.get("/notificacoes").json()["total"] == propria
+        for tipo, ident in avisos.items():
+            if perfil == "titular" and tipo == "inclusao_monitoramento":
+                continue
             assert http.patch(f"/notificacoes/{ident}", headers=csrf(http)).status_code == 404
             assert (
                 http.patch(f"/notificacoes/{ident}/arquivo", json={"arquivada": True}, headers=csrf(http)).status_code
@@ -106,7 +113,7 @@ def test_csrf_ausente_ou_divergente_nao_muta_aviso(fluxo):
         caminho = f"/notificacoes/{avisos['convenio_descoberto']}"
         assert http.patch(caminho).status_code == 403
         assert http.patch(caminho, headers={"X-CSRF-Token": "divergente"}).status_code == 403
-        assert http.get("/notificacoes").json()["nao_lidas"] == 2
+        assert http.get("/notificacoes").json()["nao_lidas"] == 3
 
 
 def test_sem_cookie_ou_token_invalido_nao_le_notificacoes(fluxo):

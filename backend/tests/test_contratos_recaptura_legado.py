@@ -109,6 +109,7 @@ def pedido():
         "hash_revisado": "a" * 64,
         "versao": 0,
         "justificativa": "  Evidência revisada pela equipe  ",
+        "tecnico_titular_id": 5,
     }
 
 
@@ -116,8 +117,16 @@ def test_pedido_aprovacao_contem_so_referencias_e_justificativa(pedido):
     aprovado = AprovacaoLegadoCreate.model_validate(pedido)
     assert aprovado.justificativa == "Evidência revisada pela equipe"
     assert set(aprovado.model_dump(exclude_none=True)) == set(pedido)
-    assert aprovado.tecnico_titular_id is None
-    assert AprovacaoLegadoCreate.model_validate({**pedido, "tecnico_titular_id": 5}).tecnico_titular_id == 5
+    assert aprovado.tecnico_titular_id == 5
+
+
+@pytest.mark.parametrize("valor", [None, 0, -1, "5", True])
+def test_pedido_aprovacao_exige_tecnico_titular_valido(pedido, valor):
+    sem = {k: v for k, v in pedido.items() if k != "tecnico_titular_id"}
+    with pytest.raises(ValidationError):
+        AprovacaoLegadoCreate.model_validate(sem)
+    with pytest.raises(ValidationError):
+        AprovacaoLegadoCreate.model_validate({**sem, "tecnico_titular_id": valor})
 
 
 @pytest.mark.parametrize(

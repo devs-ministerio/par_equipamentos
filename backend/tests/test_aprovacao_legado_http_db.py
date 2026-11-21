@@ -79,7 +79,7 @@ def sem_inclusao(db):
 
 
 @pytest.mark.parametrize("perfil", ["admin", "gestor"])
-def test_aprova_e_replay_retornam_mesmos_vinculos_sem_monitoramento_automatico(fluxo_aprovacao, perfil):
+def test_aprova_e_replay_retornam_mesmos_vinculos_e_incluem_no_monitoramento(fluxo_aprovacao, perfil):
     db, usuarios, ref, prova, pedido, cliente = fluxo_aprovacao
     with cliente(perfil) as http:
         resposta = postar(http, ref.candidato_id, pedido.model_dump(mode="json"))
@@ -95,12 +95,17 @@ def test_aprova_e_replay_retornam_mesmos_vinculos_sem_monitoramento_automatico(f
         assert projetar_itens_plano(db, aplicar=True, convenio_numero="999001").criados == 0
         assert not {"payload_oficial", "siconv_raw", "password_hash", "token_hash"} & decisao.keys()
     assert db.scalar(select(func.count()).select_from(Convenio)) == 2
-    assert db.scalar(select(func.count()).select_from(InstrumentoEquipamento)) == 1
+    assert db.scalar(select(func.count()).select_from(InstrumentoEquipamento)) == 2
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
-    assert db.scalar(select(func.count()).select_from(Notificacao)) == 1
-    assert set(db.scalars(select(NotificacaoDestinatario.usuario_id))) == {usuarios["admin"], usuarios["gestor"]}
+    # Dois avisos: entrada aprovada (gestão) e inclusão no monitoramento (gestão e titular).
+    assert db.scalar(select(func.count()).select_from(Notificacao)) == 2
+    assert set(db.scalars(select(NotificacaoDestinatario.usuario_id))) == {
+        usuarios["admin"],
+        usuarios["gestor"],
+        usuarios["titular"],
+    }
     itens = list(db.scalars(select(ItemPlano).where(ItemPlano.convenio_id == decisao["convenio_id"])))
-    assert itens and {i.instrumento_id for i in itens} == {None}
+    assert itens and None not in {i.instrumento_id for i in itens}
     assert db.scalar(
         select(func.count()).select_from(ItemPlano).where(ItemPlano.convenio_id == decisao["convenio_id"])
     ) == len(itens)
@@ -258,7 +263,7 @@ def test_replay_alterado_outro_ator_e_nova_chave_nao_duplicam_aprovacao(fluxo_ap
         assert postar(admin, ref.candidato_id, {**corpo, "chave": str(uuid4())}).status_code == 409
     assert db.scalar(select(func.count()).select_from(Convenio)) == 2
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
-    assert db.scalar(select(func.count()).select_from(Notificacao)) == 1
+    assert db.scalar(select(func.count()).select_from(Notificacao)) == 2
 
 
 def test_recaptura_posterior_exige_revisar_novamente_antes_de_aprovar(fluxo_aprovacao):

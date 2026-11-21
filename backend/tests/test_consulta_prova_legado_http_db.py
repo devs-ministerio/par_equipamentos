@@ -84,7 +84,11 @@ def test_referencia_consultada_funciona_no_post_sem_upload_de_payload(fluxo_apro
     with cliente("gestor") as http:
         resumo = http.get(f"/candidatos-legados/{ref.candidato_id}/prova").json()
         corpo = {chave: resumo[chave] for chave in ("captura_id", "recaptura_id", "hash_revisado", "versao")}
-        corpo.update(chave=str(pedido.chave), justificativa="Conferência humana do resumo oficial")
+        corpo.update(
+            chave=str(pedido.chave),
+            justificativa="Conferência humana do resumo oficial",
+            tecnico_titular_id=pedido.tecnico_titular_id,
+        )
         resposta = postar(http, ref.candidato_id, corpo)
         assert resposta.status_code == 200 and resposta.json()["situacao"] == "aprovado"
         assert http.get(f"/candidatos-legados/{ref.candidato_id}/prova").status_code == 409

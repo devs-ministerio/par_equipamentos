@@ -335,7 +335,7 @@ def test_aprovacao_concorrente_real_nao_e_desfeita_pela_revalidacao(matriz, dado
     with pytest.raises(ConflictError, match="encerrada"):
         registrar_inelegibilidade(db=db, alvo=alvo, escopo=prova(dados))
     assert db.get(CandidatoLegadoDecisao, decisao_id).situacao == "aprovado"
-    assert contar(db, Convenio) == 2 and contar(db, InstrumentoEquipamento) == 1
+    assert contar(db, Convenio) == 2 and contar(db, InstrumentoEquipamento) == 2
     assert contar(db, CandidatoLegadoCaptura) == 1
 
 

@@ -30,23 +30,32 @@ def quantidade(db, modelo):
     return db.scalar(select(func.count()).select_from(modelo))
 
 
+def avisos_carteira(db):
+    """Avisos de entrada aprovada (a inclusão no monitoramento gera outro aviso, separado)."""
+    return db.scalar(
+        select(func.count()).select_from(Notificacao).where(Notificacao.tipo == NotificacaoTipo.aprovacao_carteira)
+    )
+
+
 def executar(db, usuario_id, ref, pedido):
     return aprovar_entrada(db=db, usuario_id=usuario_id, candidato_id=ref.candidato_id, dados=pedido)
 
 
 @pytest.mark.parametrize("perfil", ["admin", "gestor"])
-def test_aprova_replay_e_aviso_exclusivo_gerencial_sem_monitoramento(matriz, dados, perfil):
+def test_aprova_replay_e_aviso_de_entrada_exclusivo_gerencial(matriz, dados, perfil):
     db, usuarios, *_ = matriz
     ref, _, _, prova, pedido = preparar_prova(db, dados)
     decisao = executar(db, usuarios[perfil].id, ref, pedido)
     assert executar(db, usuarios[perfil].id, ref, pedido) == decisao
     salvo = db.get(CandidatoLegadoDecisao, decisao.id)
     assert salvo.recaptura_id == prova.id and salvo.convenio_id is not None and salvo.situacao == "aprovado"
-    assert quantidade(db, Convenio) == 2 and quantidade(db, InstrumentoEquipamento) == 1
-    assert quantidade(db, CandidatoLegadoDecisao) == quantidade(db, Notificacao) == 1
-    aviso = db.scalar(select(Notificacao))
-    assert aviso.tipo == NotificacaoTipo.aprovacao_carteira and aviso.entidade_id == salvo.convenio_id
-    ids = set(db.scalars(select(NotificacaoDestinatario.usuario_id)))
+    assert quantidade(db, Convenio) == 2 and quantidade(db, InstrumentoEquipamento) == 2
+    assert quantidade(db, CandidatoLegadoDecisao) == avisos_carteira(db) == 1
+    aviso = db.scalar(select(Notificacao).where(Notificacao.tipo == NotificacaoTipo.aprovacao_carteira))
+    assert aviso.entidade_id == salvo.convenio_id
+    ids = set(
+        db.scalars(select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == aviso.id))
+    )
     assert ids == {usuarios["admin"].id, usuarios["gestor"].id}
     marcadores = list(db.scalars(select(EquipamentoMarcador)))
     assert len(marcadores) == 1 and marcadores[0].relacao == "aquisicao"
@@ -70,7 +79,7 @@ def test_chave_repetida_com_dados_diferentes_conflita(matriz, dados, campo):
         pedido = pedido.model_copy(update={campo: valores[campo]})
     with pytest.raises(ConflictError):
         executar(db, usuario_id, ref, pedido)
-    assert quantidade(db, Convenio) == 2 and quantidade(db, Notificacao) == 1
+    assert quantidade(db, Convenio) == 2 and avisos_carteira(db) == 1
 
 
 def test_nova_chave_nao_reabre_aprovacao_terminal(matriz, dados):
@@ -133,7 +142,7 @@ def test_duas_sessoes_mesma_chave_criam_uma_aprovacao(matriz, dados):
         ids = [t.result(timeout=20) for t in tarefas]
     assert ids[0] == ids[1]
     assert quantidade(db, Convenio) == 2
-    assert quantidade(db, CandidatoLegadoDecisao) == quantidade(db, Notificacao) == 1
+    assert quantidade(db, CandidatoLegadoDecisao) == avisos_carteira(db) == 1
 
 
 def test_aprovacao_apos_analise_replay_confere_versao_anterior(matriz, dados):
@@ -160,7 +169,7 @@ def test_aprovacao_apos_analise_replay_confere_versao_anterior(matriz, dados):
     assert executar(db, usuarios["admin"].id, ref, pedido) == aprovada
     with pytest.raises(ConflictError):
         executar(db, usuarios["admin"].id, ref, pedido.model_copy(update={"versao": 0}))
-    assert quantidade(db, CandidatoLegadoDecisao) == 2 and quantidade(db, Notificacao) == 1
+    assert quantidade(db, CandidatoLegadoDecisao) == 2 and avisos_carteira(db) == 1
 
 
 @pytest.mark.parametrize("defeito", ["sem_recaptura", "sem_convenio", "recaptura_alheia"])

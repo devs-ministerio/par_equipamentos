@@ -106,39 +106,33 @@ def aprovar_entrada(
             justificativa=dados.justificativa,
         )
         decisoes.adicionar(db, decisao)
-        if dados.tecnico_titular_id is not None:
-            # Aprovar com técnico já abre o acompanhamento: o titular recebe o aviso de inclusão.
-            projecao = revisao.projecao
-            criar_instrumento_monitorado_sem_commit(
-                db=db,
-                usuario=usuario,
-                dados=NovoInstrumentoMonitorado(
-                    nr_convenio=projecao.numero,
-                    cnpj_convenente=projecao.convenente_cnpj,
-                    nome_convenente=projecao.convenente_nome,
-                    tipo_contratacao="Convênio",
-                    tecnico_titular_id=dados.tecnico_titular_id,
-                    municipio=projecao.municipio,
-                    uf=projecao.uf,
-                    programa=projecao.programa,
-                    ano_instrumento=projecao.ano_instrumento,
-                    origem_dado="radar_aprovacao",
-                ),
-            )
+        # Aprovar com técnico já abre o acompanhamento: o titular recebe o aviso de inclusão.
+        projecao = revisao.projecao
+        criar_instrumento_monitorado_sem_commit(
+            db=db,
+            usuario=usuario,
+            dados=NovoInstrumentoMonitorado(
+                nr_convenio=projecao.numero,
+                cnpj_convenente=projecao.convenente_cnpj,
+                nome_convenente=projecao.convenente_nome,
+                tipo_contratacao="Convênio",
+                tecnico_titular_id=dados.tecnico_titular_id,
+                municipio=projecao.municipio,
+                uf=projecao.uf,
+                programa=projecao.programa,
+                ano_instrumento=projecao.ano_instrumento,
+                origem_dado="radar_aprovacao",
+            ),
+        )
         # Depois do instrumento: a projeção liga os itens a ele e aplica a exceção de quem entra sem item controlado.
         db.flush()
         projetar_itens_plano(db, aplicar=True, convenio_numero=convenio.numero)
-        monitorado = dados.tecnico_titular_id is not None
         criar_notificacao(
             db,
             Notificacao(
                 tipo=NotificacaoTipo.aprovacao_carteira,
                 titulo=f"Entrada aprovada: convênio {convenio.numero}",
-                corpo=(
-                    "Convênio aprovado para a carteira de Instrumentos firmados e já em monitoramento interno."
-                    if monitorado
-                    else "Convênio aprovado para a carteira de Instrumentos firmados. O monitoramento interno não foi iniciado."
-                ),
+                corpo="Convênio aprovado para a carteira de Instrumentos firmados e já em monitoramento interno.",
                 entidade_id=convenio.id,
             ),
         )

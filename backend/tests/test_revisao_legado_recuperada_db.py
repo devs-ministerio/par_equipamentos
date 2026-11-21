@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Convenio, FonteCaptura, InstrumentoEquipamento, User, UserRole
+from app.db.models import Convenio, FonteCaptura, InstrumentoEquipamento, User, UserRole, UserStatus
 from app.db.models_legado import CandidatoLegadoDecisao, CandidatoLegadoRecaptura
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError
 from app.schemas_aprovacao_legado import AprovacaoLegadoCreate
@@ -17,6 +17,15 @@ from app.services.revisao_legado import preparar_revisao
 from tests.test_notificacoes_destinatarios_db import matriz as matriz
 from tests.test_prova_recaptura_legado import dados as dados
 from tests.test_recapturas_legado_service_db import preparar
+
+
+def tecnico_de_teste(db) -> int:
+    """Colaborador ativo do banco de teste: a aprovação exige um técnico titular."""
+    return db.scalar(
+        select(User.id)
+        .where(User.role == UserRole.colaborador, User.status == UserStatus.active, User.deleted_at.is_(None))
+        .order_by(User.id)
+    )
 
 
 def preparar_prova(db, dados, *, notificar_novos=False):
@@ -29,6 +38,7 @@ def preparar_prova(db, dados, *, notificar_novos=False):
         hash_revisado=prova.hash_conteudo,
         versao=0,
         justificativa="Evidência revisada pela gestão",
+        tecnico_titular_id=tecnico_de_teste(db),
     )
     return referencia, captura, origem, prova, pedido
 
