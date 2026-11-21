@@ -262,7 +262,7 @@ flowchart TB
     VA --> AL
 ```
 
-A carga da ANSN e dos vínculos é feita pela equipe direto no banco (`scripts/importar_licencas_ansn.py`). Ainda não há tela para vincular ou trocar matrícula.
+A fase do instrumento não depende da licença: o card só informa, e o estado nunca é escolhido por usuário (vem da última carga da ANSN). A carga da ANSN e dos vínculos é feita pela equipe direto no banco (`scripts/importar_licencas_ansn.py`). Ainda não há tela para vincular ou trocar matrícula.
 
 ## 7. Registros append-only (eventos, ações, documentos)
 
@@ -283,6 +283,38 @@ stateDiagram-v2
 Tipos de documento: nota fiscal, ordem de serviço, TRP, TRD, CNEN SCRA e CNEN licença. Validade só vale na licença.
 
 Inauguração: previsão, realizada e "dispensada" são excludentes, no máximo um evento ativo no conjunto (409 se repetir). Entrega por item não passa mais pelo seletor de marcos da linha do tempo.
+
+### 7.1 Ações (tarefas livres)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pendente: criar (descrição, data prevista, responsável)
+    Pendente --> Concluida: concluir, grava data_conclusao = hoje
+    Pendente --> Corrigida: editar cria ação nova e aponta a antiga
+    Pendente --> Excluida: excluir com motivo
+    Concluida --> Excluida: excluir com motivo
+    Corrigida --> [*]: só histórico
+    Excluida --> [*]: só histórico
+    note right of Pendente
+        Concluir é o único UPDATE permitido.
+        Ação já excluída ou corrigida não edita
+        nem conclui de novo (422).
+        Instrumento concluído recusa criar,
+        editar, concluir e excluir.
+    end note
+```
+
+Ação não tem tipo nem catálogo: é texto livre com vencimento. Quem edita segue a titularidade do instrumento (seção 8). O responsável da ação (`responsavel_id`) é quem executa; quem criou fica em `criado_por_id`, sempre vindo da sessão. A lista do detalhe vem de `GET /monitoramento/instrumentos/{nr}/acoes` (até 200 e o total).
+
+### 7.2 Eventos: manuais, gerados por entrega e gerados pela conclusão
+
+| Origem | Como nasce | Edita ou exclui na linha do tempo? |
+|---|---|---|
+| Manual | Usuário lança marco do catálogo | Sim (editar corrige append-only; excluir é soft delete com motivo) |
+| `cronograma_entrega` | Gerado ao registrar entrega de equipamento | Não: 409 "vem de uma entrega". A data muda por `PATCH /entregas/{id}/data` (com motivo) e entrega e evento mudam juntos |
+| Inauguração realizada ou dispensada | Gerada ao concluir o acompanhamento | Segue a regra de inauguração (um só ativo no conjunto, 409 se repetir) |
+
+Instrumento concluído recusa qualquer escrita de evento até ser reaberto.
 
 ## 8. Quem pode fazer o quê
 
@@ -334,6 +366,14 @@ flowchart TB
     N1 --> POP["Pop-up na tela do técnico<br/>e item na central de notificações"]:::aviso
     MON --> N2["Notificação de aprovação<br/>só gestor e admin"]:::aviso
 ```
+
+Busca, paginação e bloqueios do Radar:
+
+- A lista aceita `busca` (até 100 caracteres), `situacao` (novo, em análise, aprovado, rejeitado; várias), `confirmacao` do portal (não consultado, não encontrado, sem publicação, confirmado) e paginação de 1 a 50 por página (padrão 10). Só entram descobertas da fonte oficial.
+- Só gestor e admin ativos listam, veem histórico e prova, decidem e aprovam; os demais recebem 403.
+- Rejeitar exige a versão atual do candidato (409 "o candidato mudou" se alguém decidiu antes) e uma situação que permita a decisão.
+- Aprovar exige a prova da última recaptura: hash conferido, rodada de até 24 horas e completa (rodada parcial, expirada ou com horário futuro dá 409). A chave de aprovação é idempotente: repetir com os mesmos dados devolve o mesmo resultado; com dados diferentes, 409.
+- Concorrência: a aprovação trava o lote e o candidato; se a carteira ou o histórico conflitarem, 409 e nada é gravado.
 
 Detalhes do aprovar com técnico:
 
