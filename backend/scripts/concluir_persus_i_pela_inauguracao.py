@@ -2,7 +2,8 @@
 
 Rodar depois de `corrigir_entregas_persus_i` (que lança a entrega com a data da inauguração). Para cada instrumento
 PERSUS I **que já tiveram conclusão antiga** (evento `fase_concluido`, ativo ou desfeito pela migração), sem conclusão
-ativa e com inauguração **realizada** (marco `cronograma_previsao_inauguracao` ativo com
+ativa, que a equipe não tenha reaberto (conclusão desfeita por Reabrir é decisão dela) e com inauguração **realizada**
+(marco `cronograma_previsao_inauguracao` ativo com
 `data_ocorrencia`):
 
 - sem impedimento e com resultado integral: grava a conclusão com `data_conclusao` e `data_inauguracao` iguais à
@@ -24,7 +25,7 @@ import argparse
 from collections import Counter
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
@@ -34,6 +35,7 @@ from app.db.models import ConclusaoInstrumento, EventoMarco, InstrumentoEquipame
 from app.repositories import conclusoes as conclusoes_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.services.conclusao_acompanhamento import _impedimentos, _itens_controlados, calcular_resultado
+from scripts.migrar_concluidos_para_conclusao import MOTIVO_REVISAO
 
 MARCO_INAUGURACAO = "cronograma_previsao_inauguracao"
 MARCO_CONCLUIDO = "fase_concluido"
@@ -55,10 +57,22 @@ def executar(db: Session, *, aplicar: bool) -> tuple[Counter[str], list[tuple[st
         db.scalars(
             select(EventoMarco.instrumento_id)
             .join(MarcoCatalogo, MarcoCatalogo.id == EventoMarco.marco_id)
-            .where(MarcoCatalogo.codigo == MARCO_CONCLUIDO, EventoMarco.substituido_por_id.is_(None))
+            .where(
+                MarcoCatalogo.codigo == MARCO_CONCLUIDO,
+                EventoMarco.substituido_por_id.is_(None),
+                # Ativo, ou desfeito pela migração. Excluído por Reabrir é decisão da equipe e não volta a concluir.
+                or_(EventoMarco.deletado_em.is_(None), EventoMarco.motivo_exclusao == MOTIVO_REVISAO),
+            )
         )
     )
+    # Conclusão desfeita por Reabrir: decisão da equipe, a rotina não conclui de novo.
+    reabertos = set(
+        db.scalars(select(ConclusaoInstrumento.instrumento_id).where(ConclusaoInstrumento.deletado_em.is_not(None)))
+    )
     for instrumento in instrumentos:
+        if instrumento.id in reabertos and not conclusoes_repo.existe_ativa(db, instrumento.id):
+            contagem["fora do escopo: reaberto pela equipe"] += 1
+            continue
         if instrumento.id not in com_conclusao_antiga and not conclusoes_repo.existe_ativa(db, instrumento.id):
             contagem["fora do escopo: nunca concluído"] += 1
             continue

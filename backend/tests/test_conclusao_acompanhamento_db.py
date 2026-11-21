@@ -390,6 +390,7 @@ def test_reabrir_desfaz_tambem_o_evento_antigo_que_coexiste_com_a_conclusao_conf
 
 def test_script_conclui_persus_i_na_data_da_inauguracao_so_sem_pendencia(db):  # noqa: F811
     from scripts import concluir_persus_i_pela_inauguracao as script
+    from scripts.migrar_concluidos_para_conclusao import MOTIVO_REVISAO
 
     c = _preparar(db)
     c.inst.tipo_contratacao = "PERSUS I"
@@ -410,7 +411,7 @@ def test_script_conclui_persus_i_na_data_da_inauguracao_so_sem_pendencia(db):  #
             data_ocorrencia=inauguracao,
             autor_id=c.titular.id,
             deletado_em=datetime.now(timezone.utc),
-            motivo_exclusao="Conclusão antiga sem entrega conferida",
+            motivo_exclusao=MOTIVO_REVISAO,
         )
     )
     db.flush()
@@ -423,6 +424,17 @@ def test_script_conclui_persus_i_na_data_da_inauguracao_so_sem_pendencia(db):  #
     assert conclusao is not None
     assert conclusao.data_conclusao == inauguracao and conclusao.data_inauguracao == inauguracao
     assert script.executar(db, aplicar=True)[0]["concluído"] == 0  # idempotente
+    # A equipe reabre de propósito: nova execução não conclui de novo.
+    svc.reabrir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=ReaberturaCreate(motivo="Reaberto pela equipe para conferência"),
+        db=db,
+        usuario=c.titular,
+    )
+    db.flush()
+    contagem, _ = script.executar(db, aplicar=True)
+    assert contagem["concluído"] == 0
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
 
 
 def _marco(db, codigo):  # noqa: F811
