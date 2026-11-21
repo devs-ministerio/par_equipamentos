@@ -223,6 +223,7 @@ flowchart TB
     classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
     classDef acao fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
     A["Botão Concluir"]:::acao --> AV["GET .../conclusao<br/>avalia o resultado"]:::acao
+    A --> TRAVA["Ao confirmar: trava a linha do instrumento<br/>quem grava ao mesmo tempo espera (até 5 s) e vê o resultado"]:::regra
     AV --> IMP{"Impedimentos?"}:::regra
     IMP -->|"ação aberta<br/>(lista até 50 e resume o resto)"| X["Não conclui"]:::regra
     IMP -->|"item na fila de revisão"| X

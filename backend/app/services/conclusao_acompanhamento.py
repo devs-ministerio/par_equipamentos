@@ -105,8 +105,19 @@ def _ler_legado(evento: EventoMarco) -> ConclusaoRead:
     )
 
 
+def travar_instrumento(db: Session, instrumento_id: int) -> None:
+    try:
+        repo.bloquear_instrumento(db, instrumento_id)
+    except repo.InstrumentoEmUso:
+        raise ConflictError("O instrumento está sendo alterado por outra pessoa. Tente de novo em instantes.") from None
+
+
 def assert_nao_concluido(db: Session, instrumento_id: int) -> None:
-    """Concluído = a mesma condição da fase: conclusão confirmada ou o evento antigo `fase_concluido`."""
+    """Concluído = a mesma condição da fase: conclusão confirmada ou o evento antigo `fase_concluido`.
+
+    Trava o instrumento antes de checar: quem grava espera a conclusão terminar (e a vê), e a conclusão
+    espera quem grava (e vê a pendência nova)."""
+    travar_instrumento(db, instrumento_id)
     if repo.existe_ativa(db, instrumento_id) or _eventos_concluido_legado(db, instrumento_id):
         raise ConflictError("O acompanhamento está concluído. Reabra-o para alterar o instrumento.")
 
@@ -221,6 +232,7 @@ def _registrar_inauguracao_informada(
 def concluir_acompanhamento(*, nr_convenio: str, dados: ConclusaoCreate, db: Session, usuario: User) -> ConclusaoRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    travar_instrumento(db, instrumento.id)
     if repo.existe_ativa(db, instrumento.id):
         raise ConflictError("O acompanhamento já está concluído.")
     itens = _itens_controlados(db, instrumento.id)
@@ -264,6 +276,7 @@ def concluir_acompanhamento(*, nr_convenio: str, dados: ConclusaoCreate, db: Ses
 def reabrir_acompanhamento(*, nr_convenio: str, dados: ReaberturaCreate, db: Session, usuario: User) -> ConclusaoRead:
     instrumento = _instrumento_ou_404(db, nr_convenio)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    travar_instrumento(db, instrumento.id)
     conclusao = repo.obter_ativa(db, instrumento.id)
     legados = _eventos_concluido_legado(db, instrumento.id)
     if conclusao is None and not legados:

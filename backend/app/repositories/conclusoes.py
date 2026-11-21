@@ -5,12 +5,31 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from app.db.models import AcaoMonitoramento, ConclusaoInstrumento, ItemPlano
+from app.db.models import AcaoMonitoramento, ConclusaoInstrumento, InstrumentoEquipamento, ItemPlano
 
 LIMITE_ACOES = 50
+ESPERA_TRAVA_INSTRUMENTO = "5s"
+
+
+class InstrumentoEmUso(Exception):
+    """Outra transação segura a trava do instrumento além do tempo de espera."""
+
+
+def bloquear_instrumento(db: Session, instrumento_id: int) -> None:
+    """Trava a linha do instrumento até o fim da transação: serializa a conclusão com quem grava no instrumento."""
+    db.execute(text(f"SET LOCAL lock_timeout = '{ESPERA_TRAVA_INSTRUMENTO}'"))
+    try:
+        db.execute(
+            select(InstrumentoEquipamento.id).where(InstrumentoEquipamento.id == instrumento_id).with_for_update()
+        ).all()
+    except OperationalError as exc:
+        if getattr(exc.orig, "sqlstate", None) == "55P03":
+            raise InstrumentoEmUso from exc
+        raise
 
 
 def obter_ativa(db: Session, instrumento_id: int) -> ConclusaoInstrumento | None:
