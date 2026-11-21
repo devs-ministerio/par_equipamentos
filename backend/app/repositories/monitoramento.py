@@ -233,26 +233,6 @@ def listar_marcos_catalogo(db: Session, *, limit: int) -> list[MarcoCatalogo]:
     )
 
 
-def mapa_eventos_por_instrumento(
-    db: Session, marco_ids: list[int], *, instrumento_ids: list[int] | None = None
-) -> dict[int, set[int]]:
-    """`{instrumento_id: {marco_id, ...}}` -- só os pares relevantes pros
-    `marco_ids` pedidos (fase_geral), não todo `EventoMarco` da tabela
-    (universo monitorado é pequeno hoje, mas a query já nasce restrita).
-    Só considera evento ATIVO -- um evento corrigido/excluído não pode mais
-    empurrar a fase pra frente."""
-    eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
-    if marco_ids:
-        stmt = select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(
-            EventoMarco.marco_id.in_(marco_ids), _EVENTO_ATIVO
-        )
-        if instrumento_ids is not None:
-            stmt = stmt.where(EventoMarco.instrumento_id.in_(instrumento_ids))
-        for instrumento_id, marco_id in db.execute(stmt):
-            eventos_por_instrumento[instrumento_id].add(marco_id)
-    return eventos_por_instrumento
-
-
 def obter_instrumento_por_nr_convenio(db: Session, nr_convenio: str) -> InstrumentoEquipamento | None:
     return db.execute(
         select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == nr_convenio, instrumento_no_escopo())

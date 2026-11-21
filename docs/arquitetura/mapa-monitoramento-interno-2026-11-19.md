@@ -311,7 +311,7 @@ Ação não tem tipo nem catálogo: é texto livre com vencimento. Quem edita se
 | Origem | Como nasce | Edita ou exclui na linha do tempo? |
 |---|---|---|
 | Manual | Usuário lança marco do catálogo | Sim (editar corrige append-only; excluir é soft delete com motivo) |
-| `cronograma_entrega` | Gerado ao registrar entrega de equipamento | Não: 409 "vem de uma entrega". A data muda por `PATCH /entregas/{id}/data` (com motivo) e entrega e evento mudam juntos |
+| `cronograma_entrega` | Gerado ao registrar entrega de equipamento | Não: 409 "vem de uma entrega". A data muda por `PATCH /monitoramento/entregas/{id}/data` (com motivo) e entrega e evento mudam juntos |
 | Inauguração realizada ou dispensada | Gerada ao concluir o acompanhamento | Segue a regra de inauguração (um só ativo no conjunto, 409 se repetir) |
 
 Instrumento concluído recusa qualquer escrita de evento até ser reaberto.
@@ -348,7 +348,7 @@ flowchart TB
     classDef aviso fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
 
     ENTREGA["Entrega de equipamento<br/>(fonte da data e das unidades)"]:::regra --> EVENTOENT["Evento cronograma_entrega gerado<br/>mostra Vem da entrega, sem Editar/Excluir"]:::tela
-    ENTREGA --> CORRDATA["Corrigir data da entrega (motivo)<br/>PATCH /entregas/{id}/data"]:::acao --> ALINHA["Entrega e evento mudam juntos<br/>evento corrigido append-only e reapontado"]:::regra
+    ENTREGA --> CORRDATA["Corrigir data da entrega (motivo)<br/>PATCH /monitoramento/entregas/{id}/data"]:::acao --> ALINHA["Entrega e evento mudam juntos<br/>evento corrigido append-only e reapontado"]:::regra
     ENTREGA --> EXCENT["Excluir entrega<br/>apaga entrega e evento juntos"]:::acao
     ACOESDET["Detalhe do instrumento"]:::tela --> ACOESAPI["GET .../instrumentos/{nr}/acoes<br/>só deste instrumento, até 200 + total"]:::regra --> ACOESTELA["Contador e lista vêm daqui<br/>excesso: Mostrando N de M ações"]:::tela
     ERRO["Consulta falha sem dado em cache<br/>licença, conclusão, técnicos do Radar"]:::regra --> RETRY["Alerta com mensagem segura<br/>e Tentar novamente; nunca some em silêncio"]:::tela
@@ -478,6 +478,10 @@ Método: busca por nome em todo o `frontend/src` e `backend` (incluindo testes).
 | `getMapThemeColors` | `lib/theme-colors.ts` |
 | `equipamentosDaProposta` | `lib/proposta-metas-resumo.ts` |
 | Tipos `ProgramaTransfereGov`, `ConvenioPortal`, `ComponentePropostaApi`, `ComponenteOncologia` | `types/monitoramento.ts` |
+| `mapa_eventos_por_instrumento` | `repositories/monitoramento.py` (fase é calculada; só um comentário de script citava) |
+| `obter_por_rodada` | `repositories/recapturas_legado.py` (só um teste usava) |
+| `situacao-fontes.tsx` e seu teste | componente sem importador; a tela usa o resumo por papel |
+| `ROTULOS_CONFIRMACAO`, `ROTULOS_RELACAO` | `lib/legado-rotulos.ts` |
 | `CandidatoLegadoProvaResumo` e a conferência com checkbox e justificativa | Radar, substituídos pela aprovação com técnico |
 
 ### Mantidos, para a equipe decidir

@@ -610,7 +610,7 @@ backend inteiro de uma vez** — só a fundação + uma feature-piloto:
   `GET /monitoramento/instrumentos` e `GET /monitoramento/instrumentos/{nr_convenio}` seguem o
   mesmo contrato de `notificacoes` — `backend/app/repositories/monitoramento.py` (novo, primeira
   extração de query real deste domínio: `listar_instrumentos`/`listar_marcos_fase_geral_desc`/
-  `mapa_eventos_por_instrumento`/`obter_instrumento_por_nr_convenio`/
+  `obter_instrumento_por_nr_convenio`/
   `listar_eventos_do_instrumento`) + `backend/app/services/monitoramento_instrumentos.py`
   (`listar_instrumentos_monitorados`/`obter_timeline_instrumento`, já existia pra
   `criar_instrumento_monitorado`). `obter_timeline_instrumento` levanta `NotFoundError` (não mais

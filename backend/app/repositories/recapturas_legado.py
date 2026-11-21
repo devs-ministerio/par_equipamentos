@@ -47,13 +47,6 @@ def obter_fonte(db: Session, fonte_id: int) -> FonteCaptura | None:
     return db.scalar(select(FonteCaptura).where(FonteCaptura.id == fonte_id).execution_options(populate_existing=True))
 
 
-def obter_por_rodada(db: Session, candidato_id: int, fonte_captura_id: int) -> CandidatoLegadoRecaptura | None:
-    prova = CandidatoLegadoRecaptura
-    return db.scalar(
-        select(prova).where(prova.candidato_id == candidato_id, prova.fonte_captura_id == fonte_captura_id)
-    )
-
-
 def obter_por_identidade(
     db: Session,
     recaptura_id: int,

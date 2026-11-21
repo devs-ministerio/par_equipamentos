@@ -157,8 +157,7 @@ def _materializar_fase_geral(db: Session, instrumento_id: int, marcos: dict[str,
     qualquer marco mapeado em `_MAPA_MARCO_FASE`. Necessário porque um
     evento físico com `fase_geral_id` de CONTEXTO nunca promove a fase
     sozinho -- só um evento cujo `marco_id` é ele mesmo do grupo
-    `fase_geral` conta pro cálculo (`app/repositories/monitoramento.py::
-    mapa_eventos_por_instrumento`). Idempotente: só insere transição que
+    `fase_geral` conta pro cálculo da fase. Idempotente: só insere transição que
     ainda não existe (mesmo marco + mesma data)."""
     marcos_por_id = {m.id: m for m in marcos.values()}
     eventos = db.query(EventoMarco).filter(EventoMarco.instrumento_id == instrumento_id).all()
