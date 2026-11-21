@@ -262,6 +262,22 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("instrumento sem acompanhamento (timeline e ações em 404) mostra o vazio, sem alerta", async () => {
+    const h = prepararOrquestracao();
+    h.controle.timelineStatus = 404;
+    h.controle.acoesStatus = 404;
+    montar(h);
+    expect(
+      await screen.findByText(/Ainda não monitorado internamente/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Tentar novamente" }),
+    ).not.toBeInTheDocument();
+    expect(
+      h.fetch.mock.calls.some(([input]) => String(input).endsWith("/acoes")),
+    ).toBe(false);
+  });
+
   it.each(["timelineStatus", "marcosStatus", "acoesStatus"] as const)(
     "recupera falha de %s com retry das consultas essenciais",
     async (campo) => {
@@ -297,7 +313,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       await screen.findByRole("button", { name: "Editar cadastro" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: /Concluir ação/ }),
+      await screen.findByRole("button", { name: /Concluir ação/ }),
     ).toBeDisabled();
   });
 

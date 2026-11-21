@@ -67,7 +67,11 @@ function MonitoramentoInternoConteudo({
   const marcosQuery = useMonitoramentoMarcos();
   const equipamentosQuery = useEquipamentosInstrumento(numeroConvenio);
   const timelineQuery = useInstrumentoTimeline(numeroConvenio);
-  const acoesQuery = useAcoesDoInstrumento(numeroConvenio);
+  // Instrumento sem acompanhamento (timeline vazia) também dá 404 nas ações: só consulta depois de a timeline confirmar.
+  const acoesQuery = useAcoesDoInstrumento(
+    numeroConvenio,
+    timelineQuery.isSuccess && timelineQuery.data !== null,
+  );
   const sessao = useAuthSession();
 
   const salvarCadastro = useSalvarCadastroInstrumento(numeroConvenio);
