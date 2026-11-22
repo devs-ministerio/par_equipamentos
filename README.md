@@ -139,7 +139,12 @@ data/raw/            # fontes de dado brutas (CNES/ElastiCNES, IBGE, INCA, ANS..
 docs/
   metodologia-parametros.md              # regras de cálculo — fonte da verdade
   design/decan-equipamentos-contexto.md  # histórico de produto/decisões (protótipo)
-  arquitetura/                           # diagnósticos, plan-modes, runbooks, contratos HTTP
+  arquitetura/                           # referência viva: fluxo do Radar, contratos HTTP, inventários, políticas
+  planos/                                # plan-modes (histórico de decisões)
+  diagnosticos/                          # diagnósticos, incidentes, revisões
+  runbooks/                              # procedimentos operacionais e roteiros de release
+  mermaid/                               # mapas de fluxo (monitoramento interno, Radar)
+  assets/                                # imagens e GeoJSON de apoio
   prototipo/decan-prototipo_1.html       # protótipo HTML standalone, anterior à app real
   referencias/                           # documentos/imagens de referência normativa
 ```
@@ -168,7 +173,7 @@ docs/
 - **Operação DevOps**: workflow de migration e jobs usam o environment GitHub
   `production`; o procedimento de deploy, rollback, containerização local e
   recuperação está em
-  [`docs/arquitetura/runbook-devops.md`](docs/arquitetura/runbook-devops.md).
+  [`docs/runbooks/runbook-devops.md`](docs/runbooks/runbook-devops.md).
 
 ## Estado atual (o que é real vs. placeholder)
 

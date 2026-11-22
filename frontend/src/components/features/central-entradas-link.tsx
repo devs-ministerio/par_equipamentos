@@ -5,16 +5,21 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useCandidatosLegados } from "@/hooks/use-candidatos-legados";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 const CentralEntradas = lazy(() =>
   import("./central-entradas").then((m) => ({ default: m.CentralEntradas })),
 );
 
-/** Acesso independente das linhas de financiamento, também em celular. */
+/** Radar de instrumentos: só gestor e admin (colaborador e leitor não veem o botão). */
 export function CentralEntradasLink() {
   const [aberta, setAberta] = useState(false);
-  const consulta = useCandidatosLegados(true, 1, "", undefined, true);
+  const { usuarioAtual } = useAuthSession();
+  const permitido =
+    usuarioAtual?.role === "admin" || usuarioAtual?.role === "gestor";
+  const consulta = useCandidatosLegados(permitido, 1, "", undefined, true);
   const quantidade = consulta.data?.novos ?? 0;
+  if (!permitido) return null;
   return (
     <Dialog open={aberta} onOpenChange={setAberta}>
       <DialogTrigger asChild>

@@ -3,55 +3,6 @@
  * em si roda no backend (`scripts/importar_convenios_banco.py`, achado
  * 2026-09-16) e chega pro front já pronto via `services/convenios.ts`. */
 
-/** Lookup id_programa -> nome, gerado por
- * backend/scripts/levantamento_convenios_oncologia.py a partir dos 176
- * `programa` do TransfereGov -- usado pra resolver o `id_programa` (so o
- * numero) que cada proposta de TransfereGovEnte.propostas_expandidas
- * carrega, pro nome legivel do programa aparecer no card do convenio. */
-export type ProgramaTransfereGov = {
-  id_programa: number;
-  nm_programa: string;
-  ano_programa: number | null;
-};
-
-export type ConvenioPortal = {
-  numero: string;
-  numero_instrumento: string | null;
-  objeto: string;
-  situacao: string;
-  data_publicacao: string | null;
-  data_inicio_vigencia: string | null;
-  data_final_vigencia: string | null;
-  data_conclusao: string | null;
-  data_ultima_liberacao: string | null;
-  convenente_nome: string;
-  convenente_cnpj: string;
-  convenente_tipo: string;
-  municipio: string;
-  codigo_ibge: string;
-  uf: string;
-  regiao: string;
-  orgao: string;
-  unidade_gestora: string;
-  subfuncao: string;
-  funcao: string;
-  tipo_instrumento: string;
-  valor: number;
-  valor_liberado: number;
-  valor_contrapartida: number;
-  valor_ultima_liberacao: number;
-  numero_processo: string;
-  // CNES -- achado 2026-09-16, pedido do usuário: "coloca o cnes em
-  // destaque nos convênios". Não vem da API do Portal da Transparência
-  // (nenhuma das 3 fontes traz CNES) -- injetado no convenios.json depois
-  // da carga pela mesma metodologia validada usada pra tabela `Convenio`
-  // no banco (ver backend/scripts/importar_convenios_banco.py::resolver_cnes),
-  // 357 dos 403 resolvidos hoje. null nos outros 46 (Secretaria/Fundo sem
-  // 1 CNES único por natureza) -- nunca inventado.
-  cnes: string | null;
-  cnes_nome_estabelecimento: string | null;
-};
-
 export type SiconvEntrada = {
   convenio: Record<string, string>;
   /** Programa do convenio, resolvido de forma EXATA via
@@ -204,31 +155,4 @@ export type ConvenioUnificado = {
    * pode estar relacionado a OUTROS convenios legados do mesmo CNPJ alem
    * deste (ver `convenios_legados_relacionados` dentro do proprio objeto). */
   transferegov: TransfereGovEnte | null;
-};
-
-/** Propostas do TransfereGov achadas por `programa` (nao por numero de
- * convenio -- FAF SAUDE e um instrumento novo, sem numero legado) que
- * batem com um dos 8 "componente" de financiamento oncologico pedidos
- * (REDE DE ATENCAO.../Politica Nacional de Prevencao e Controle do
- * Cancer...). Casamento por nome normalizado, nao por id_programa fixo --
- * ver backend/scripts/levantamento_convenios_oncologia.py::_componente_alvo_de
- * (o id_programa muda todo ano que a categoria e recriada). */
-export type ComponentePropostaApi = {
-  id_proposta: number;
-  ente_recebedor: string | null;
-  cnpj: string | null;
-  municipio: string | null;
-  uf: string | null;
-  situacao_proposta: string | null;
-  valor_planejamento: number | null;
-  ds_objeto: string | null;
-};
-
-export type ComponenteOncologia = {
-  componente: string;
-  ano_programa: number;
-  id_programa: number;
-  nm_programa_api: string;
-  total_propostas: number;
-  propostas: ComponentePropostaApi[];
 };

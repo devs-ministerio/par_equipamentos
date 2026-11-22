@@ -18,11 +18,33 @@ from typing import Any
 Registro = dict[str, Any]
 
 
-def mesmo_valor(antigo: Any, novo: Any) -> bool:
-    """Igualdade de texto, tolerando zeros à esquerda quando os dois lados são só dígitos."""
+SEPARADORES_IDENTIFICADOR = str.maketrans("", "", "./- ")
+
+
+def campo_identificador(campo: str | None) -> bool:
+    """Campos que identificam (número de documento, licitação, processo, UG), não medem nada."""
+    return campo is not None and (campo.startswith("NR_") or campo == "UG_RESPONSAVEL")
+
+
+def canonico_identificador(valor: str) -> str:
+    """Sem separadores (`.`, `/`, `-`, espaço) e, se sobrar só dígito, sem zeros à esquerda."""
+    texto = valor.translate(SEPARADORES_IDENTIFICADOR)
+    if texto.isascii() and texto.isdigit():
+        return texto.lstrip("0") or "0"
+    return texto
+
+
+def mesmo_valor(antigo: Any, novo: Any, campo: str | None = None) -> bool:
+    """Igualdade de texto, tolerando zeros à esquerda quando os dois lados são só dígitos.
+
+    Em campo identificador (``NR_*``, ``UG_RESPONSAVEL``) a fonte também alterna a pontuação
+    (`000.969` e `969`): ali a comparação é feita na forma canônica.
+    """
     a, b = str(antigo), str(novo)
     if a == b:
         return True
+    if campo_identificador(campo):
+        return canonico_identificador(a) == canonico_identificador(b)
     if a.isascii() and b.isascii() and a.isdigit() and b.isdigit():
         return a.lstrip("0") == b.lstrip("0")
     return False
@@ -35,7 +57,7 @@ def diff_campos(antigo: Registro | None, novo: Registro) -> dict[str, tuple[str,
     return {
         campo: (str(antigo[campo]), str(valor))
         for campo, valor in novo.items()
-        if campo in antigo and not isinstance(valor, (dict, list)) and not mesmo_valor(antigo[campo], valor)
+        if campo in antigo and not isinstance(valor, (dict, list)) and not mesmo_valor(antigo[campo], valor, campo)
     }
 
 

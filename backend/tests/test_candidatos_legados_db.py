@@ -30,7 +30,7 @@ from app.schemas_legado import ReferenciaDescoberta
 from app.services.candidatos_legados import listar_candidatos, registrar_descoberta
 from app.services.descoberta_legado import CandidatoLegado, EvidenciaLegado
 
-REFERENCIA = ReferenciaDescoberta(origem="snapshot_local", hash_snapshot="a" * 64)
+REFERENCIA = ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="a" * 64)
 
 
 @pytest.fixture
@@ -147,7 +147,8 @@ def test_job_portal_ausente_nao_inclui_carteira(coleta_legado, candidatos):
     estados[candidatos[0].numero] = 404
     job.run()
     with SessionLocal() as db:
-        assert listar(db, busca=candidatos[0].numero).total == 0
+        # O Portal não esconde o candidato: aparece, mas sem confirmação e fora da carteira.
+        assert listar(db, busca=candidatos[0].numero).total == 1
         registro = db.scalar(
             select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero == candidatos[0].numero)
         )
@@ -218,7 +219,7 @@ def test_job_falha_http_aborta_lote_e_preserva_baseline(coleta_legado, candidato
     with pytest.raises(requests.HTTPError):
         job.run()
     with SessionLocal() as db:
-        assert listar(db, busca=candidatos[0].numero).itens[0].origem == "snapshot_local"
+        assert listar(db, busca=candidatos[0].numero).itens[0].origem == "siconv_oficial"
         assert listar(db, busca=candidatos[1].numero).total == 0
         captura = db.scalars(select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta")).one()
         assert captura.status == "erro" and "500" not in (captura.erro or "")
@@ -284,7 +285,7 @@ def listar(db, busca=None, confirmacao=None, pagina=1, tamanho=10):
 
 
 @pytest.mark.parametrize("defeito", ["sem_escopo", "escopo_v1", "sem_confirmacao", "valido"])
-def test_fila_oficial_e_contador_exigem_escopo_atual_confirmado(candidatos, defeito):
+def test_fila_oficial_e_contador_exigem_escopo_atual_sem_exigir_o_portal(candidatos, defeito):
     # Arrange: registros históricos são preservados, mas não são descobertas validadas.
     alteracoes = {
         "criterio_escopo": "prioritarios_ms_celebrados_v2",
@@ -300,7 +301,7 @@ def test_fila_oficial_e_contador_exigem_escopo_atual_confirmado(candidatos, defe
         alteracoes.update(confirmacao_portal="nao_consultado", data_publicacao=None)
     registro = candidatos[0].model_copy(update=alteracoes)
     with SessionLocal() as db:
-        antes = listar_candidatos(db=db, pagina=1, tamanho=10, busca=None, confirmacao=None, somente_oficiais=True)
+        antes = listar_candidatos(db=db, pagina=1, tamanho=10, busca=None, confirmacao=None)
         registrar_descoberta(
             db=db,
             candidatos=[registro],
@@ -314,28 +315,29 @@ def test_fila_oficial_e_contador_exigem_escopo_atual_confirmado(candidatos, defe
             tamanho=1,
             busca=registro.numero,
             confirmacao=None,
-            somente_oficiais=True,
         )
         # Assert: fila e badge usam a mesma elegibilidade; não apagam evidências.
-        esperado = int(defeito == "valido")
+        # O Portal não esconde o candidato: o SICONV já traz assinatura e publicação.
+        esperado = int(defeito in ("valido", "sem_confirmacao"))
         assert resultado.total == len(resultado.itens) == esperado
         assert resultado.novos == antes.novos + esperado
         assert db.scalar(select(CandidatoLegadoRegistro.id).where(CandidatoLegadoRegistro.numero == registro.numero))
 
 
-def test_replay_silencioso_sem_carteira_monitoramento_ou_aviso(candidatos):
+def test_replay_nao_cria_carteira_monitoramento_nem_aviso_repetido(candidatos):
+    def contar(db):
+        return [db.scalar(select(func.count()).select_from(t)) for t in (Convenio, InstrumentoEquipamento, Notificacao)]
+
     with SessionLocal() as db:
-        antes = [
-            db.scalar(select(func.count()).select_from(t)) for t in (Convenio, InstrumentoEquipamento, Notificacao)
-        ]
+        antes = contar(db)
         assert registrar_descoberta(db=db, candidatos=candidatos, referencia=REFERENCIA) == 3
+        primeira = contar(db)
+        # Carteira e monitoramento intactos; só o aviso de primeira descoberta é criado.
+        assert primeira[:2] == antes[:2] and primeira[2] >= antes[2]
         assert registrar_descoberta(db=db, candidatos=list(reversed(candidatos)), referencia=REFERENCIA) == 0
-        depois = [
-            db.scalar(select(func.count()).select_from(t)) for t in (Convenio, InstrumentoEquipamento, Notificacao)
-        ]
-        assert antes == depois
+        assert contar(db) == primeira
         item = listar(db, busca=candidatos[0].numero).itens[0]
-        assert item.numero == candidatos[0].numero and item.origem == "snapshot_local"
+        assert item.numero == candidatos[0].numero and item.origem == "siconv_oficial"
         assert item.evidencias[0].nome == "Acelerador Linear"
         capturas = db.scalars(
             select(CandidatoLegadoCaptura).where(CandidatoLegadoCaptura.candidato_id == item.id)
@@ -371,14 +373,6 @@ def test_confirmacao_e_evidencia_antigas_preservadas_em_resposta_parcial(candida
             )
             == 2
         )
-
-
-def test_origem_oficial_nao_e_confundida_com_demo(candidatos):
-    with SessionLocal() as db:
-        registrar_descoberta(db=db, candidatos=[candidatos[0]], referencia=REFERENCIA)
-        oficial = ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="b" * 64)
-        assert registrar_descoberta(db=db, candidatos=[candidatos[0]], referencia=oficial) == 1
-        assert listar(db, busca=candidatos[0].numero).itens[0].origem == "siconv_oficial"
 
 
 def test_lote_invalido_reverte_primeiro_candidato(candidatos):
@@ -460,7 +454,7 @@ def test_banco_rejeita_estado_ou_publicacao_inconsistentes(candidatos, estado, d
             db.flush()
 
 
-def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, headers_autenticados):
+def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, headers_autenticados, headers_gestor):
     with SessionLocal() as db:
         registrar_descoberta(
             db=db,
@@ -469,9 +463,12 @@ def test_rota_exige_sessao_valida_filtros_e_nao_expoe_payload_cru(candidatos, he
         )
     cliente = TestClient(app)
     assert cliente.get("/candidatos-legados").status_code == 401
+    # Radar é só de gestor e admin: colaborador logado não lê a fila nem o histórico.
+    assert cliente.get("/candidatos-legados", headers=headers_autenticados).status_code == 403
+    assert cliente.get("/candidatos-legados/1/historico", headers=headers_autenticados).status_code == 403
     for params in ({"pagina": 0}, {"tamanho_pagina": 51}, {"confirmacao": "inventado"}):
-        assert cliente.get("/candidatos-legados", params=params, headers=headers_autenticados).status_code == 422
-    resposta = cliente.get("/candidatos-legados", params={"busca": candidatos[0].numero}, headers=headers_autenticados)
+        assert cliente.get("/candidatos-legados", params=params, headers=headers_gestor).status_code == 422
+    resposta = cliente.get("/candidatos-legados", params={"busca": candidatos[0].numero}, headers=headers_gestor)
     assert resposta.status_code == 200 and resposta.json()["total"] == 1
     item = resposta.json()["itens"][0]
     assert item["confirmacao_portal"] == "confirmado" and "hash_conteudo" not in item

@@ -31,7 +31,6 @@ export function MonitoramentoInternoAcoes({
   acoes,
   podeEditar,
   concluindoAcaoId,
-  onCriar,
   onConcluir,
   onEditar,
   onExcluir,
@@ -39,7 +38,6 @@ export function MonitoramentoInternoAcoes({
   acoes: AcaoMonitoramento[] | undefined;
   podeEditar: boolean;
   concluindoAcaoId: number | null;
-  onCriar: (valores: CriarAcaoFormValues) => Promise<void>;
   onConcluir: (acaoId: number) => void;
   onEditar: (acaoId: number, valores: CriarAcaoFormValues) => Promise<void>;
   onExcluir: (acaoId: number, motivo: string) => Promise<void>;
@@ -49,8 +47,6 @@ export function MonitoramentoInternoAcoes({
 
   return (
     <SecaoOperacional titulo="Ações de monitoramento" destaque>
-      <MonitoramentoInternoFormAcao podeEditar={podeEditar} onCriar={onCriar} />
-
       {!acoes || acoes.length === 0 ? (
         <p className="text-muted-foreground italic text-[12.5px] m-0">
           Nenhuma ação registrada ainda.

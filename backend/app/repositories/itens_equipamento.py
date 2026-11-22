@@ -4,17 +4,16 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    CancelamentoUnidadePlanejada,
+    Convenio,
     EntregaEquipamento,
-    EntregaLegadaRevisao,
     EquipamentoCatalogo,
-    EventoMarco,
-    InstrumentoEquipamento,
-    InstrumentoResponsavel,
     ItemPlano,
+    PrevisaoEntregaItem,
     RenemItem,
     UnidadeEquipamento,
 )
@@ -67,6 +66,20 @@ def listar_unidades_ativas(db: Session, item_ids: list[int]) -> list[tuple[Unida
     ]
 
 
+def quantidades_entregues_por_item(db: Session, item_ids: list[int]) -> dict[int, int]:
+    if not item_ids:
+        return {}
+    return {
+        int(i): int(q)
+        for i, q in db.execute(
+            select(UnidadeEquipamento.item_id, func.count())
+            .join(EntregaEquipamento, EntregaEquipamento.id == UnidadeEquipamento.entrega_id)
+            .where(UnidadeEquipamento.item_id.in_(item_ids), *_ENTREGA_ATIVA)
+            .group_by(UnidadeEquipamento.item_id)
+        ).all()
+    }
+
+
 def quantidade_entregue(db: Session, item_id: int) -> int:
     return int(
         db.execute(
@@ -110,6 +123,18 @@ def obter_entrega(db: Session, entrega_id: int) -> EntregaEquipamento | None:
     return db.get(EntregaEquipamento, entrega_id)
 
 
+def entregas_ativas_por_evento(db: Session, evento_ids: list[int]) -> dict[int, int]:
+    """`{evento_id: entrega_id}` das entregas ativas que geraram esses eventos."""
+    if not evento_ids:
+        return {}
+    linhas = db.execute(
+        select(EntregaEquipamento.evento_id, EntregaEquipamento.id).where(
+            EntregaEquipamento.evento_id.in_(evento_ids), EntregaEquipamento.deletado_em.is_(None)
+        )
+    )
+    return {evento_id: entrega_id for evento_id, entrega_id in linhas}
+
+
 def obter_unidade(db: Session, unidade_id: int) -> UnidadeEquipamento | None:
     return db.get(UnidadeEquipamento, unidade_id)
 
@@ -127,40 +152,6 @@ def unidades_da_entrega(db: Session, entrega: EntregaEquipamento) -> list[Unidad
 def adicionar(db: Session, *objetos: object) -> None:
     db.add_all(objetos)
     db.flush()
-
-
-def contar_revisoes_pendentes(db: Session, instrumento_id: int) -> int:
-    return int(
-        db.execute(
-            select(func.count())
-            .select_from(EntregaLegadaRevisao)
-            .where(EntregaLegadaRevisao.instrumento_id == instrumento_id, EntregaLegadaRevisao.situacao == "pendente")
-        ).scalar_one()
-    )
-
-
-def listar_revisoes_pendentes(
-    db: Session, *, usuario_id: int | None
-) -> list[tuple[EntregaLegadaRevisao, str, date | None]]:
-    """`usuario_id=None` devolve todas (gestor/admin); com id, só dos instrumentos em que é titular/suplente."""
-    consulta = (
-        select(EntregaLegadaRevisao, InstrumentoEquipamento.nr_convenio, EventoMarco.data_ocorrencia)
-        .join(InstrumentoEquipamento, InstrumentoEquipamento.id == EntregaLegadaRevisao.instrumento_id)
-        .join(EventoMarco, EventoMarco.id == EntregaLegadaRevisao.evento_id)
-        .where(EntregaLegadaRevisao.situacao == "pendente")
-        .order_by(EntregaLegadaRevisao.id)
-    )
-    if usuario_id is not None:
-        consulta = consulta.where(
-            EntregaLegadaRevisao.instrumento_id.in_(
-                select(InstrumentoResponsavel.instrumento_id).where(InstrumentoResponsavel.usuario_id == usuario_id)
-            )
-        )
-    return [(r, nr, data) for r, nr, data in db.execute(consulta).all()]
-
-
-def obter_revisao(db: Session, revisao_id: int) -> EntregaLegadaRevisao | None:
-    return db.get(EntregaLegadaRevisao, revisao_id, with_for_update=True)
 
 
 def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -> dict[int, int]:
@@ -191,6 +182,16 @@ def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -
 ROTULO_FAMILIA_POR_VALOR = "Outros equipamentos (a partir de R$ 300 mil)"
 
 
+def _cancelamentos_ativos_do_item():
+    """Unidades planejadas canceladas do item da linha externa (subconsulta correlacionada)."""
+    return (
+        select(func.count())
+        .where(CancelamentoUnidadePlanejada.item_id == ItemPlano.id, CancelamentoUnidadePlanejada.deletado_em.is_(None))
+        .correlate(ItemPlano)
+        .scalar_subquery()
+    )
+
+
 def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> list[tuple[int, str, int, int]]:
     """(instrumento, família, planejado, entregue) dos itens controlados; planejado desconhecido não soma.
 
@@ -201,7 +202,12 @@ def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> 
     planejado = {
         (int(i), str(f)): int(q)
         for i, f, q in db.execute(
-            select(ItemPlano.instrumento_id, familia, func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0))
+            select(
+                ItemPlano.instrumento_id,
+                familia,
+                func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0)
+                - func.coalesce(func.sum(_cancelamentos_ativos_do_item()), 0),
+            )
             .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
             .where(
                 ItemPlano.instrumento_id.in_(instrumento_ids),
@@ -225,3 +231,78 @@ def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> 
     return [
         (i, f, planejado.get((i, f), 0), entregue.get((i, f), 0)) for i, f in sorted(set(planejado) | set(entregue))
     ]
+
+
+def vincular_itens_soltos_do_convenio(db: Session, *, instrumento_id: int, nr_convenio: str) -> int:
+    """Liga ao instrumento os itens do convênio de mesmo número ainda sem vínculo."""
+    convenio_ids = select(Convenio.id).where(Convenio.numero == nr_convenio)
+    resultado = db.execute(
+        update(ItemPlano)
+        .where(ItemPlano.convenio_id.in_(convenio_ids), ItemPlano.instrumento_id.is_(None))
+        .values(instrumento_id=instrumento_id)
+    )
+    return int(getattr(resultado, "rowcount", 0) or 0)
+
+
+_CANCELAMENTO_ATIVO = CancelamentoUnidadePlanejada.deletado_em.is_(None)
+
+
+def quantidade_cancelada(db: Session, item_id: int) -> int:
+    return int(
+        db.execute(
+            select(func.count())
+            .select_from(CancelamentoUnidadePlanejada)
+            .where(CancelamentoUnidadePlanejada.item_id == item_id, _CANCELAMENTO_ATIVO)
+        ).scalar_one()
+    )
+
+
+def quantidades_canceladas_por_item(db: Session, item_ids: list[int]) -> dict[int, int]:
+    if not item_ids:
+        return {}
+    return {
+        int(i): int(q)
+        for i, q in db.execute(
+            select(CancelamentoUnidadePlanejada.item_id, func.count())
+            .where(CancelamentoUnidadePlanejada.item_id.in_(item_ids), _CANCELAMENTO_ATIVO)
+            .group_by(CancelamentoUnidadePlanejada.item_id)
+        ).all()
+    }
+
+
+def listar_cancelamentos_ativos(db: Session, item_ids: list[int]) -> list[CancelamentoUnidadePlanejada]:
+    if not item_ids:
+        return []
+    return list(
+        db.scalars(
+            select(CancelamentoUnidadePlanejada)
+            .where(CancelamentoUnidadePlanejada.item_id.in_(item_ids), _CANCELAMENTO_ATIVO)
+            .order_by(CancelamentoUnidadePlanejada.criado_em, CancelamentoUnidadePlanejada.id)
+        )
+    )
+
+
+def obter_cancelamento(db: Session, cancelamento_id: int) -> CancelamentoUnidadePlanejada | None:
+    return db.get(CancelamentoUnidadePlanejada, cancelamento_id)
+
+
+_PREVISAO_ATIVA = (PrevisaoEntregaItem.substituido_por_id.is_(None), PrevisaoEntregaItem.deletado_em.is_(None))
+
+
+def obter_previsao_ativa(db: Session, item_id: int) -> PrevisaoEntregaItem | None:
+    return db.scalars(
+        select(PrevisaoEntregaItem).where(PrevisaoEntregaItem.item_id == item_id, *_PREVISAO_ATIVA)
+    ).first()
+
+
+def previsoes_ativas_por_item(db: Session, item_ids: list[int]) -> dict[int, date]:
+    if not item_ids:
+        return {}
+    return {
+        int(i): d
+        for i, d in db.execute(
+            select(PrevisaoEntregaItem.item_id, PrevisaoEntregaItem.data_prevista).where(
+                PrevisaoEntregaItem.item_id.in_(item_ids), *_PREVISAO_ATIVA
+            )
+        ).all()
+    }

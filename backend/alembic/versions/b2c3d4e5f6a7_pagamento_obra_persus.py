@@ -54,8 +54,7 @@ def upgrade() -> None:
         """
     )
     op.execute(
-        "CREATE INDEX IF NOT EXISTS idx_pagamento_obra_persus_instrumento "
-        "ON pagamento_obra_persus (instrumento_id)"
+        "CREATE INDEX IF NOT EXISTS idx_pagamento_obra_persus_instrumento ON pagamento_obra_persus (instrumento_id)"
     )
 
 

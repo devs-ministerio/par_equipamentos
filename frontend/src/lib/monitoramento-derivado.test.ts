@@ -31,8 +31,6 @@ describe("derivação do monitoramento sem I/O", () => {
     const d = derivarMonitoramentoInterno([], timeline(), undefined);
     // Assert
     expect(d).toMatchObject({
-      faseAtual: undefined,
-      pctAtual: 0,
       dataInauguracao: null,
       inaugurado: false,
       diasInauguracao: null,
@@ -44,44 +42,6 @@ describe("derivação do monitoramento sem I/O", () => {
     });
     expect(d.eventosPorMarco.size).toBe(0);
   });
-
-  it("usa a fase de maior ordem, não o último evento de qualquer grupo", () => {
-    // Arrange
-    const eventos = [
-      criarEventoTeste({ marco_id: 4 }),
-      criarEventoTeste({
-        id: 30,
-        marco_id: 1,
-        created_at: "2026-10-20T12:00:00Z",
-      }),
-      criarEventoTeste({ id: 31, marco_id: 999 }),
-    ];
-    // Act
-    const d = derivarMonitoramentoInterno(
-      criarMarcosInteracao().reverse(),
-      timeline(eventos),
-      [],
-    );
-    // Assert
-    expect(d.fasesGerais.map((m) => m.id)).toEqual([1, 4]);
-    expect(d.faseAtual?.id).toBe(4);
-    expect(d.pctAtual).toBe(1);
-  });
-
-  it.each([2, 3])(
-    "evento do grupo %s não muda a fase geral sozinho",
-    (marcoId) => {
-      // Arrange / Act
-      const d = derivarMonitoramentoInterno(
-        criarMarcosInteracao(),
-        timeline([criarEventoTeste({ marco_id: marcoId })]),
-        [],
-      );
-      // Assert
-      expect(d.faseAtual).toBeUndefined();
-      expect(d.pctAtual).toBe(0);
-    },
-  );
 
   it.each([2, 3])(
     "desempata marco %s pelo ID numérico independentemente da ordem",

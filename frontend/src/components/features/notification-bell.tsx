@@ -1,7 +1,9 @@
 import { Bell } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CentralNotificacoes } from "./central-notificacoes";
+import { NotificacaoDetalheDialog } from "./notificacao-detalhe-dialog";
+import { abreDetalhe } from "@/lib/notificacao-detalhe";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +16,11 @@ import {
 import { cn } from "@/lib/utils";
 import { fmtData } from "@/lib/monitoramento-format";
 import { useNotificacoes } from "@/hooks/use-notificacoes";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useAvisoNovoInstrumento } from "@/hooks/use-aviso-novo-instrumento";
 import type { Notificacao } from "@/services/notificacoes";
 
-/** Sino de notificação (docs/arquitetura/
+/** Sino de notificação (docs/planos/
  * planmode-notificacoes-escopo-2026-09-25.md) -- 4 tipos misturados na mesma
  * lista (proposta_candidata/atualizacao_api/edicao_manual/alerta_vigencia).
  * Escopo por destinatário resolvido no backend (titular/suplente do
@@ -30,13 +34,22 @@ const RÓTULO_TIPO = ROTULOS_NOTIFICACAO;
 export function NotificationBell() {
   const [centralAberta, setCentralAberta] = useState(false);
   const [resumoAberto, setResumoAberto] = useState(false);
+  const [detalhe, setDetalhe] = useState<Notificacao | null>(null);
   const { notificacoes, naoLidas, carregando, marcarLida, habilitado, erro } =
     useNotificacoes();
   const navigate = useNavigate();
+  const { usuarioAtual } = useAuthSession();
+  const abrirDestino = useCallback((d: string) => navigate(d), [navigate]);
+  useAvisoNovoInstrumento(notificacoes, usuarioAtual, abrirDestino);
 
   async function abrirNotificacao(notificacao: Notificacao) {
     try {
       if (!notificacao.lida) await marcarLida(notificacao.id);
+      if (abreDetalhe(notificacao)) {
+        setResumoAberto(false);
+        setDetalhe(notificacao);
+        return;
+      }
       if (notificacao.destino) {
         setResumoAberto(false);
         navigate(notificacao.destino);
@@ -154,6 +167,14 @@ export function NotificationBell() {
           <CentralNotificacoes fechar={() => setCentralAberta(false)} />
         </DialogContent>
       </Dialog>
+      <NotificacaoDetalheDialog
+        aviso={detalhe}
+        fechar={() => setDetalhe(null)}
+        irParaRegistro={(destino) => {
+          setDetalhe(null);
+          navigate(destino);
+        }}
+      />
     </>
   );
 }

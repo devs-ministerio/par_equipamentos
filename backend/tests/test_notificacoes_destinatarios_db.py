@@ -71,7 +71,13 @@ def matriz():
 
 
 @pytest.mark.parametrize(
-    "tipo", [NotificacaoTipo.atualizacao_api, NotificacaoTipo.edicao_manual, NotificacaoTipo.alerta_vigencia]
+    "tipo",
+    [
+        NotificacaoTipo.atualizacao_api,
+        NotificacaoTipo.edicao_manual,
+        NotificacaoTipo.alerta_vigencia,
+        NotificacaoTipo.inclusao_monitoramento,
+    ],
 )
 @pytest.mark.parametrize("dono", [None, "titular", "inativo", "suspenso", "leitor", "excluido"])
 def test_matriz_de_responsabilidade_materializa_apenas_destinatarios_autorizados(matriz, tipo, dono):
@@ -102,7 +108,7 @@ def test_matriz_de_responsabilidade_materializa_apenas_destinatarios_autorizados
 
 @pytest.mark.parametrize(
     "tipo",
-    [NotificacaoTipo.inclusao_monitoramento, NotificacaoTipo.fonte_indisponivel, NotificacaoTipo.proposta_candidata],
+    [NotificacaoTipo.fonte_indisponivel, NotificacaoTipo.proposta_candidata],
 )
 def test_matriz_de_avisos_gerenciais_e_propostas_exclui_contas_inaptas(matriz, tipo):
     # Arrange
@@ -121,7 +127,13 @@ def test_matriz_de_avisos_gerenciais_e_propostas_exclui_contas_inaptas(matriz, t
 
 
 @pytest.mark.parametrize(
-    "tipo", [NotificacaoTipo.atualizacao_api, NotificacaoTipo.edicao_manual, NotificacaoTipo.alerta_vigencia]
+    "tipo",
+    [
+        NotificacaoTipo.atualizacao_api,
+        NotificacaoTipo.edicao_manual,
+        NotificacaoTipo.alerta_vigencia,
+        NotificacaoTipo.inclusao_monitoramento,
+    ],
 )
 def test_responsavel_inativo_sem_gestores_nao_amplia_escopo(matriz, tipo):
     # Arrange: existe um responsável, mesmo sem destinatário elegível.

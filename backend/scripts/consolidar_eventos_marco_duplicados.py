@@ -1,5 +1,8 @@
 """Consolida EventoMarco de FASE GERAL com mais de 1 evento ativo pro mesmo (instrumento, marco).
 
+Com `--inauguracao`, aplica a regra "uma inauguração por instrumento" (19/11/2026): entre os eventos ativos
+de previsão de inauguração e de inauguração dispensada do instrumento, sobrevive um só (mesmo critério abaixo).
+
 Cronograma físico e regulatório ficam de fora de propósito: ali o mesmo marco repete de verdade
 (convênio com mais de um equipamento, entrega por item e unidade, licença por equipamento). A
 primeira rodada em produção (28/10/2026) tratou todos os grupos e escondeu 98 registros desses;
@@ -44,6 +47,7 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.db.base import SessionLocal, engine
 from app.db.models import EventoMarco, MarcoCatalogo, MarcoGrupo
+from app.services.monitoramento_registro_eventos import MARCOS_DE_INAUGURACAO
 
 
 @dataclass
@@ -57,7 +61,7 @@ def _chave_prioridade(evento: EventoMarco) -> tuple[bool, datetime, int]:
     return (evento.data_ocorrencia is not None, evento.created_at, evento.id)
 
 
-def executar(db: Session, *, aplicar: bool) -> Resultado:
+def executar(db: Session, *, aplicar: bool, inauguracao: bool = False) -> Resultado:
     resultado = Resultado()
     ativos = (
         db.execute(
@@ -66,7 +70,9 @@ def executar(db: Session, *, aplicar: bool) -> Resultado:
             .where(
                 EventoMarco.substituido_por_id.is_(None),
                 EventoMarco.deletado_em.is_(None),
-                MarcoCatalogo.grupo == MarcoGrupo.fase_geral,
+                MarcoCatalogo.codigo.in_(MARCOS_DE_INAUGURACAO)
+                if inauguracao
+                else MarcoCatalogo.grupo == MarcoGrupo.fase_geral,
             )
         )
         .scalars()
@@ -75,7 +81,9 @@ def executar(db: Session, *, aplicar: bool) -> Resultado:
 
     grupos: dict[tuple[int, int], list[EventoMarco]] = defaultdict(list)
     for evento in ativos:
-        grupos[(evento.instrumento_id, evento.marco_id)].append(evento)
+        # Inauguração: previsão e dispensada competem entre si, então o grupo é só o instrumento.
+        chave = (evento.instrumento_id, 0 if inauguracao else evento.marco_id)
+        grupos[chave].append(evento)
 
     for (instrumento_id, _marco_id), eventos in grupos.items():
         if len(eventos) < 2:
@@ -108,6 +116,9 @@ def executar(db: Session, *, aplicar: bool) -> Resultado:
 def main(argv: list[str] | None = None) -> int:
     analisador = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     analisador.add_argument("--aplicar", action="store_true", help="grava; sem isso só simula")
+    analisador.add_argument(
+        "--inauguracao", action="store_true", help="aplica a regra de uma inauguração por instrumento"
+    )
     analisador.add_argument("--confirmo-host", default="", help="host do banco, exigido com --aplicar")
     args = analisador.parse_args(argv)
 
@@ -117,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     with SessionLocal() as db:
-        resultado = executar(db, aplicar=args.aplicar)
+        resultado = executar(db, aplicar=args.aplicar, inauguracao=args.inauguracao)
         if args.aplicar:
             db.commit()
         else:

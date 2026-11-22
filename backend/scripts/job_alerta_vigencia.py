@@ -1,6 +1,6 @@
 """Job de alerta -- fim de vigência do convênio a 3 meses (Plan Mode
 notificacoes-escopo 2026-09-25, ver
-docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md).
+docs/planos/planmode-notificacoes-escopo-2026-09-25.md).
 
 Varre `Convenio.data_final_vigencia` entre hoje e hoje+JANELA_DIAS; a equipe
 precisa atuar junto do convenente pra prorrogar a vigência antes que ela

@@ -10,7 +10,7 @@ const PRAZO_EXPORTACAO_MS = 90_000;
 
 // ---------------------------------------------------------------------
 // Relatórios Excel/Word (backend/app/routers/relatorios.py) -- Plan Mode
-// docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 3, 6 e 7.
+// docs/planos/planmode-relatorios-2026-09-25.md, Blocos 3, 6 e 7.
 // ---------------------------------------------------------------------
 
 export type EscopoRelatorio = "brasil" | "regiao" | "uf" | "municipio" | "cnes";
@@ -43,9 +43,7 @@ export interface FiltroRelatorio {
    * ignorava. Só filtra Convênios (mesmo mecanismo de `/convenios`). */
   equipamento?: string;
   busca?: string;
-  encerramento?: "todos" | "encerrados" | "entregues" | "previsoes";
-  /** Situação de conclusão da visão "previsoes" (código estável do backend). */
-  situacaoConclusao?: string;
+  encerramento?: "todos" | "encerrados" | "entregues";
   /** Origem do valor de `situacao` (filtro único): as demais seções ficam fora do relatório. */
   situacaoOrigem?: "instrumento" | "monitoramento" | "proposta";
   /** Referência do período: ano de origem do instrumento (padrão) ou data do evento (conclusão em Concluídos,
@@ -94,8 +92,6 @@ export async function gerarRelatorio(
   if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
   if (filtro.busca) params.set("busca", filtro.busca);
   if (filtro.encerramento) params.set("encerramento", filtro.encerramento);
-  if (filtro.situacaoConclusao)
-    params.set("situacao_conclusao", filtro.situacaoConclusao);
   if (filtro.situacaoOrigem)
     params.set("situacao_origem", filtro.situacaoOrigem);
   if (filtro.periodoPor) params.set("periodo_por", filtro.periodoPor);

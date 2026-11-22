@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { criarMarcosInteracao } from "@/test-fixtures/monitoramento-interacoes";
 import { criarEventoTeste } from "@/test-fixtures/monitoramento-hooks";
 import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
-import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -16,41 +15,9 @@ afterEach(() => {
 const marcos = criarMarcosInteracao();
 
 describe("fase e cronograma do monitoramento", () => {
-  it("mostra fase e percentual de referência recebidos, sem inventar medição física", () => {
-    // Arrange / Act
-    render(
-      <MonitoramentoInternoFaseGeral
-        fasesGerais={[marcos[0], marcos[3]]}
-        faseAtual={marcos[0]}
-        pctAtual={0.5}
-      />,
-    );
-    // Assert
-    expect(
-      screen.getByText("Contratado", { selector: "strong" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/etapa 1 de 2 · 50%/)).toBeInTheDocument();
-  });
-
-  it("mantém não iniciado sem evento de fase geral", () => {
-    // Arrange / Act
-    render(
-      <MonitoramentoInternoFaseGeral
-        fasesGerais={[marcos[0], marcos[3]]}
-        faseAtual={undefined}
-        pctAtual={0}
-      />,
-    );
-    // Assert
-    expect(
-      screen.getByText("Não iniciado", { selector: "strong" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/etapa 0 de 2 · 0%/)).toBeInTheDocument();
-  });
-
-  it.each([2, 3])(
-    "escolhe evento vigente do marco %s mesmo com entrada antiga primeiro",
-    (marcoId) => {
+  it("escolhe o evento vigente do cronograma mesmo com entrada antiga primeiro", () => {
+    {
+      const marcoId = 2;
       // Arrange
       const antigo = criarEventoTeste({
         id: 9,
@@ -73,23 +40,15 @@ describe("fase e cronograma do monitoramento", () => {
       render(
         <MonitoramentoInternoCronograma
           cronogramaFisico={[marcos[1]]}
-          regulatorio={[marcos[2]]}
           eventosPorMarco={new Map([[marcoId, [antigo, novo]]])}
           multiploEquipamento={false}
         />,
       );
       // Assert
-      if (marcoId === 2) {
-        expect(screen.getByText("20/10/2026")).toBeInTheDocument();
-        expect(screen.queryByText("01/10/2026")).not.toBeInTheDocument();
-      } else {
-        expect(screen.getByText(/ATUAL/)).toBeInTheDocument();
-        expect(screen.getByText("Deferido")).toBeInTheDocument();
-        expect(screen.getByText(/Vence em 1 dia/)).toBeInTheDocument();
-        expect(screen.queryByText(/ANTIGO/)).not.toBeInTheDocument();
-      }
-    },
-  );
+      expect(screen.getByText("20/10/2026")).toBeInTheDocument();
+      expect(screen.queryByText("01/10/2026")).not.toBeInTheDocument();
+    }
+  });
 
   it("mostra todos os eventos ativos quando há múltiplos equipamentos", () => {
     // Arrange
@@ -112,7 +71,6 @@ describe("fase e cronograma do monitoramento", () => {
     render(
       <MonitoramentoInternoCronograma
         cronogramaFisico={[marcos[1]]}
-        regulatorio={[]}
         eventosPorMarco={new Map([[2, evs]])}
         multiploEquipamento
       />,
@@ -123,51 +81,53 @@ describe("fase e cronograma do monitoramento", () => {
     expect(screen.getByText(/prev. 21\/10\/2026/)).toBeInTheDocument();
   });
 
-  it.each(["2026-10-19", "2026-10-20", null])(
-    "licença com validade %s mostra prazo ou ausência sem inventar documento",
-    (validade) => {
-      // Arrange
-      const ev = criarEventoTeste({
-        marco_id: 3,
-        numero_documento: null,
-        status_regulatorio: "Deferido",
-        data_ocorrencia: null,
-        data_validade: validade,
-      });
-      // Act
-      render(
-        <MonitoramentoInternoCronograma
-          cronogramaFisico={[]}
-          regulatorio={[marcos[2]]}
-          eventosPorMarco={new Map([[3, [ev]]])}
-          multiploEquipamento={false}
-        />,
-      );
-      // Assert
-      if (validade === "2026-10-19")
-        expect(screen.getByText(/Vencida há 1 dia/)).toBeInTheDocument();
-      else if (validade)
-        expect(screen.getByText(/Vence em 0 dia/)).toBeInTheDocument();
-      else expect(screen.queryByText(/Vence|Vencida/)).not.toBeInTheDocument();
-      expect(screen.queryByText(/nº|Emitida em/)).not.toBeInTheDocument();
-    },
-  );
+  it("mostra o cartão de documentos recebido ao lado do cronograma", () => {
+    render(
+      <MonitoramentoInternoCronograma
+        cronogramaFisico={[]}
+        documentos={<div>Cartão de documentos</div>}
+        eventosPorMarco={new Map()}
+        multiploEquipamento={false}
+      />,
+    );
+    expect(screen.getByText("Cartão de documentos")).toBeInTheDocument();
+  });
 
   it("marcos sem evento ficam recolhidos em 'Sem registro', sem linha vazia", () => {
     // Arrange / Act
     render(
       <MonitoramentoInternoCronograma
-        cronogramaFisico={[marcos[1]]}
-        regulatorio={[marcos[2]]}
+        cronogramaFisico={[{ ...marcos[1], ordem: 10 }, marcos[2]]}
         eventosPorMarco={new Map()}
         multiploEquipamento={false}
       />,
     );
     // Assert
     expect(screen.getByText("Previsão de inauguração")).toBeInTheDocument();
-    expect(screen.getByText("Licença de operação")).toBeInTheDocument();
-    expect(screen.getAllByText(/Sem registro \(1\)/)).toHaveLength(2);
+    expect(screen.queryByText(marcos[2].rotulo)).not.toBeInTheDocument();
+    expect(screen.getByText(/Sem registro \(1\)/)).toBeInTheDocument();
     expect(screen.getByText("Nenhum marco registrado.")).toBeInTheDocument();
     expect(screen.queryByText("—")).not.toBeInTheDocument();
+  });
+
+  it("inauguração realizada aparece como 'Inauguração', não como previsão", () => {
+    const previsao = { ...marcos[1], ordem: 10 };
+    const evento = {
+      id: 1,
+      marco_id: previsao.id,
+      data_ocorrencia: "2026-11-17",
+      data_prevista: null,
+    } as never;
+    render(
+      <MonitoramentoInternoCronograma
+        cronogramaFisico={[previsao]}
+        eventosPorMarco={new Map([[previsao.id, [evento]]])}
+        multiploEquipamento={false}
+      />,
+    );
+    expect(screen.getByText("Inauguração")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Previsão de inauguração"),
+    ).not.toBeInTheDocument();
   });
 });

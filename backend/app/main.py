@@ -19,16 +19,20 @@ from app.routers import (
     auth,
     candidatos_legados,
     classificacao_itens,
+    conclusao,
     convenios,
+    documentos,
     entregas,
     equipment_offer,
     fontes,
+    licenca_operacao,
     macro_coverage,
     monitoramento,
     municipality_coverage,
     notificacoes,
     propostas_candidatas,
     relatorios,
+    repasses,
     usuarios,
 )
 from app.routers import (
@@ -72,6 +76,13 @@ app.include_router(convenios.router)
 app.include_router(monitoramento.router)
 # Itens, entregas e unidades de equipamento do instrumento (controle por unidade).
 app.include_router(entregas.router)
+# Documentos do instrumento (NF, OS, TRP, TRD, SCRA, licença), independentes da fase.
+app.include_router(documentos.router)
+# Licença de operação do instrumento pela fonte oficial da ANSN, por estabelecimento.
+app.include_router(licenca_operacao.router)
+# Conclusão do acompanhamento (resultado calculado, impedimentos, reabertura).
+app.include_router(conclusao.router)
+app.include_router(repasses.router)
 app.include_router(classificacao_itens.router)
 # Radar de Convenios -- notificacao de proposta candidata/atualizacao de
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
@@ -79,7 +90,7 @@ app.include_router(notificacoes.router)
 app.include_router(fontes.router)
 app.include_router(propostas_candidatas.router)
 app.include_router(candidatos_legados.router)
-# Relatorios Excel/Word -- ver docs/arquitetura/planmode-relatorios-2026-09-25.md.
+# Relatorios Excel/Word -- ver docs/planos/planmode-relatorios-2026-09-25.md.
 app.include_router(relatorios.router)
 # Gestao de usuarios (Modulo Admin) -- so role=admin acessa
 # (require_admin_user, app/auth.py), diferente do gate binario
@@ -102,7 +113,7 @@ app.add_middleware(
     # DELETE adicionado no Plan Mode monitoramento-evolucao 2026-09-19
     # (PATCH/DELETE de eventos/ações) -- achado ao vivo: preflight OPTIONS
     # falhava com a lista antiga (GET/POST/PATCH), sem DELETE.
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["Content-Type", CSRF_HEADER_NAME, "X-Trace-Id"],
     # Sem isso o JS de uma origem cross-site (dev local/E2E, onde front e
     # back ficam em portas diferentes) nunca enxerga o header via

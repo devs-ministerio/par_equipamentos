@@ -1,0 +1,436 @@
+"""Projeção dos itens do plano de aplicação dos convênios em `item_plano`.
+
+Regras em `scripts/projetar_itens_plano.py` (docstring) e usadas também pela aprovação do Radar.
+Nunca commita: quem chama decide.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from collections import Counter
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from decimal import Decimal
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.classificacao_itens import chave_do_item, classificar, limite_valor_unitario_monitorado
+from app.config import settings
+from app.db.models import (
+    CodigoItemLegado,
+    Convenio,
+    DecisaoClassificacaoItem,
+    EquipamentoCatalogo,
+    InstrumentoEquipamento,
+    ItemPlano,
+    RenemItem,
+)
+from app.equipamentos import normalizar_texto
+from app.equipamentos_renem import classificar_item, extrair_codigo
+from app.pipeline.itens_plano import item_conta_como_equipamento
+
+CODIGO_ACELERADOR_PERSUS = "011806"
+TIPOS_PERSUS = frozenset({"PERSUS I", "PERSUS II"})
+
+
+@dataclass
+class Contexto:
+    catalogo_por_codigo: dict[str, EquipamentoCatalogo]
+    catalogo_por_id: dict[int, EquipamentoCatalogo]
+    catalogo_do_codigo: dict[str, int | None]  # código RENEM/legado -> catalogo_id
+    codigos_validos: set[str]
+    codigo_por_nome: dict[str, str | None]  # nome normalizado -> código único (None = ambíguo)
+    decisoes: dict[tuple[str, str], DecisaoClassificacaoItem]
+    instrumentos: dict[str, int]
+
+
+@dataclass
+class Alvo:
+    codigo_item: str | None
+    codigo_fonte: str | None
+    catalogo_id: int | None
+    controla_unidade: bool
+    familia: str | None
+    tipo_lancamento: str = "aquisicao"
+    pendente: bool = False
+    motivo: str | None = None
+    por_valor: bool = False
+
+
+@dataclass
+class Resultado:
+    criados: int = 0
+    atualizados: int = 0
+    inalterados: int = 0
+    desativados: int = 0
+    ignorados_obra_servico: int = 0
+    ignorados_manual_repetido: int = 0
+    por_origem: Counter[str] = field(default_factory=Counter)
+    por_familia: Counter[str] = field(default_factory=Counter)
+    sem_familia: int = 0
+    por_tipo: Counter[str] = field(default_factory=Counter)
+    pendentes: int = 0
+    rendimentos_ligados: int = 0
+    por_valor: int = 0
+    por_excecao_instrumento: int = 0
+    instrumentos_excecao: int = 0
+    rendimentos_sem_principal: int = 0
+    codigo_a_definir: int = 0
+    manual_por_codigo_fonte: Counter[str] = field(default_factory=Counter)
+
+
+def carregar_contexto(db: Session) -> Contexto:
+    catalogo = list(db.execute(select(EquipamentoCatalogo)).scalars())
+    renem = list(db.execute(select(RenemItem)).scalars())
+    legados = list(db.execute(select(CodigoItemLegado)).scalars())
+    nomes: dict[str, str | None] = {}
+    for r in renem:
+        chave = normalizar_texto(r.nome)
+        nomes[chave] = r.codigo_item if nomes.get(chave, r.codigo_item) == r.codigo_item else None
+    decisoes = {
+        (d.convenio_numero, d.chave_item): d
+        for d in db.execute(
+            select(DecisaoClassificacaoItem).where(DecisaoClassificacaoItem.substituida_por_id.is_(None))
+        ).scalars()
+    }
+    return Contexto(
+        catalogo_por_codigo={c.codigo: c for c in catalogo},
+        catalogo_por_id={c.id: c for c in catalogo},
+        catalogo_do_codigo={
+            **{r.codigo_item: r.catalogo_id for r in renem},
+            **{legado.codigo_item: legado.catalogo_id for legado in legados},
+        },
+        codigos_validos={r.codigo_item for r in renem} | {legado.codigo_item for legado in legados},
+        codigo_por_nome=nomes,
+        decisoes=decisoes,
+        instrumentos={
+            nr: id_ for nr, id_ in db.execute(select(InstrumentoEquipamento.nr_convenio, InstrumentoEquipamento.id))
+        },
+    )
+
+
+def _controla(ctx: Contexto, catalogo_id: int | None, *, conta: bool | None, pendente: bool = False) -> bool:
+    if not conta or pendente or catalogo_id is None:
+        return False
+    return ctx.catalogo_por_id[catalogo_id].controle_por_unidade
+
+
+def _precisa_revisar(motor, tipo: str) -> bool:
+    """Só vai para a fila o que a regra suspeita ser equipamento controlado e não decide com segurança."""
+    if tipo == "multiplo":
+        return True
+    if motor.confianca == "alta":
+        return False
+    # Sem família reconhecida e sem pista de equipamento controlado: é outro equipamento, não é dúvida.
+    return "sem família reconhecida" not in motor.motivo
+
+
+def alvo_item_api(ctx: Contexto, convenio_numero: str, item: dict) -> Alvo:
+    descricao = str(item.get("DESCRICAO_ITEM") or "")
+    valor = _decimal(item.get("VALOR_TOTAL_ITEM"))
+    motor = classificar(descricao, valor_total=valor)
+    decisao = ctx.decisoes.get((convenio_numero, chave_do_item(item)))
+    tipo: str = motor.tipo
+    codigo, conta, familia = motor.codigo_item, motor.conta_unidade, motor.familia
+    fonte = "descricao" if codigo else None
+    pendente = _precisa_revisar(motor, tipo)
+    motivo: str | None = motor.motivo
+    if decisao is not None:
+        tipo, conta, pendente = decisao.tipo_lancamento, decisao.conta_unidade, decisao.status == "pendente"
+        motivo = decisao.observacao or ("Decisão da equipe" if decisao.origem != "motor" else motivo)
+        if decisao.codigo_item:
+            codigo = decisao.codigo_item
+            fonte = "definido_pela_equipe" if decisao.origem != "motor" else "descricao"
+        familia = _familia_do_codigo(ctx, codigo) or familia
+    catalogo = ctx.catalogo_por_codigo.get(familia or "")
+    catalogo_id = catalogo.id if catalogo else ctx.catalogo_do_codigo.get(codigo or "")
+    if tipo != "aquisicao":
+        conta = False
+    controla = _controla(ctx, catalogo_id, conta=conta, pendente=pendente)
+    explicito = decisao is not None and decisao.conta_unidade is not None
+    por_valor = False
+    if not controla and not explicito and tipo == "aquisicao" and not pendente:
+        por_valor = controla = valor_unitario(item) >= limite_valor_unitario_monitorado()
+    return Alvo(codigo, fonte, catalogo_id, controla, familia, tipo, pendente, motivo, por_valor)
+
+
+def ajustar_por_natureza_siconv(ctx: Contexto, convenio_numero: str, itens: list[dict], alvos: dict[str, Alvo]) -> None:
+    """Usa a natureza de aquisição do SICONV, que a descrição sozinha não revela. Só mexe em item sem decisão da equipe.
+
+    - Natureza 3 com valor menor que outro item do mesmo código no convênio: complemento pago com rendimento
+      do equipamento principal, não um equipamento a mais (vira rendimento, sem unidade).
+    - Natureza 3 e tipo de despesa OUTROS que não é complemento: vai para a fila de revisão.
+    - Item lido como rendimento pelo texto, mas natureza 1 (aquisição), tipo BEM, o maior do seu código e com
+      complemento de natureza 3 no convênio: é o item principal; vai para a fila de revisão.
+    """
+    por_id = {str(i["ID_ITEM_PAD"]): i for i in itens if i.get("ID_ITEM_PAD")}
+
+    def valor_de(item_id: str) -> float:
+        return _decimal(por_id[item_id].get("VALOR_TOTAL_ITEM")) or 0.0
+
+    for item_id, item in por_id.items():
+        if (convenio_numero, chave_do_item(item)) in ctx.decisoes:
+            continue
+        alvo, natureza, tipo_despesa = (
+            alvos[item_id],
+            str(item.get("NATUREZA_AQUISICAO") or ""),
+            item.get("TIPO_DESPESA_ITEM"),
+        )
+        irmaos = [
+            o for o in por_id if o != item_id and alvos[o].codigo_item and alvos[o].codigo_item == alvo.codigo_item
+        ]
+        if natureza == "3" and alvo.tipo_lancamento == "aquisicao":
+            if any(valor_de(o) > valor_de(item_id) for o in irmaos):
+                alvo.tipo_lancamento, alvo.controla_unidade, alvo.pendente, alvo.por_valor = (
+                    "rendimento_aplicacao",
+                    False,
+                    False,
+                    False,
+                )
+                alvo.motivo = "SICONV: natureza 3 (rendimento) com valor menor que o item principal do mesmo código"
+            elif tipo_despesa == "OUTROS" and not alvo.pendente:
+                alvo.controla_unidade, alvo.pendente, alvo.por_valor = False, True, False
+                alvo.motivo = "SICONV: natureza 3 e despesa OUTROS sem item principal correspondente: verificar"
+        elif (
+            natureza == "1"
+            and tipo_despesa == "BEM"
+            and alvo.tipo_lancamento == "rendimento_aplicacao"
+            and alvo.codigo_item
+        ):
+            if (
+                irmaos
+                and all(valor_de(o) < valor_de(item_id) for o in irmaos)
+                and any(str(por_id[o].get("NATUREZA_AQUISICAO") or "") == "3" for o in irmaos)
+            ):
+                alvo.tipo_lancamento, alvo.controla_unidade, alvo.pendente = "aquisicao", False, True
+                alvo.motivo = "SICONV: natureza 1, maior valor do código e com complemento de natureza 3: item principal, verificar"
+
+
+def valor_unitario(item: dict) -> float:
+    """Valor de uma unidade: valor do item no plano dividido pela quantidade (0 quando não há valor)."""
+    total = _decimal(item.get("VALOR_TOTAL_ITEM"))
+    quantidade = _quantidade(item.get("QTD_ITEM")) or 1
+    return (total or 0.0) / quantidade
+
+
+def _familia_do_codigo(ctx: Contexto, codigo: str | None) -> str | None:
+    catalogo_id = ctx.catalogo_do_codigo.get(codigo or "")
+    return ctx.catalogo_por_id[catalogo_id].codigo if catalogo_id else None
+
+
+def alvo_item_manual(ctx: Contexto, tipo_contratacao: str | None, item: dict) -> Alvo:
+    descricao = str(item.get("DESCRICAO_ITEM") or "")
+    texto = normalizar_texto(descricao)
+    base = classificar_item(descricao)
+    codigo = extrair_codigo(descricao)
+    fonte: str | None = None
+    if codigo is not None and codigo in ctx.codigos_validos:
+        fonte = "descricao"
+    else:
+        codigo = None
+        por_nome = ctx.codigo_por_nome.get(texto)
+        if por_nome:
+            codigo, fonte = por_nome, "nome_renem"
+        elif tipo_contratacao in TIPOS_PERSUS and texto == "ACELERADOR LINEAR":
+            codigo, fonte = CODIGO_ACELERADOR_PERSUS, "regra_da_equipe"
+    familia = _familia_do_codigo(ctx, codigo) or base.familia
+    catalogo = ctx.catalogo_por_codigo.get(familia or "")
+    catalogo_id = catalogo.id if catalogo else ctx.catalogo_do_codigo.get(codigo or "")
+    if base.fonte == "multiplo":
+        return Alvo(None, None, None, False, None, "multiplo", True, "Texto descreve mais de um equipamento")
+    return Alvo(codigo, fonte, catalogo_id, _controla(ctx, catalogo_id, conta=bool(familia)), familia)
+
+
+def _decimal(valor: object) -> float | None:
+    try:
+        return float(str(valor).replace(",", ".")) if valor not in (None, "") else None
+    except ValueError:
+        return None
+
+
+def _moeda(valor: object) -> Decimal | None:
+    numero = _decimal(valor)
+    return None if numero is None else Decimal(str(numero)).quantize(Decimal("0.01"))
+
+
+def _quantidade(valor: object) -> int | None:
+    n = _decimal(valor)
+    return max(1, round(n)) if n else None
+
+
+def _hash(item: dict) -> str:
+    base = "|".join(str(item.get(k) or "") for k in ("DESCRICAO_ITEM", "QTD_ITEM", "VALOR_TOTAL_ITEM"))
+    return hashlib.sha256(base.encode()).hexdigest()[:32]
+
+
+def _sincronizar(db: Session, existente: ItemPlano | None, novo: dict, resultado: Resultado, aplicar: bool) -> None:
+    if existente is None:
+        resultado.criados += 1
+        if aplicar:
+            db.add(ItemPlano(**novo))
+        return
+    mudancas = {}
+    for campo, valor in novo.items():
+        if campo in ("codigo_item", "codigo_fonte") and existente.codigo_fonte == "definido_pela_equipe":
+            continue
+        if getattr(existente, campo) != valor:
+            mudancas[campo] = valor
+    if not existente.ativo:
+        mudancas.update(ativo=True, removido_na_fonte_em=None)
+    if not mudancas:
+        resultado.inalterados += 1
+        return
+    resultado.atualizados += 1
+    if aplicar:
+        for campo, valor in mudancas.items():
+            setattr(existente, campo, valor)
+        existente.atualizado_em = datetime.now(UTC)
+
+
+def resolver_principais(
+    registros: list[tuple[int, tuple[str, str], str, int | None]],
+) -> dict[tuple[str, str], tuple[str, str] | None]:
+    """Rendimento herda o item principal do mesmo convênio quando ele é único; senão fica sem principal
+    ("rateio a definir"). Com a família do rendimento conhecida, só conta o principal da mesma família."""
+    por_convenio: dict[int, list[tuple[tuple[str, str], str, int | None]]] = {}
+    for convenio_id, chave, tipo, catalogo_id in registros:
+        por_convenio.setdefault(convenio_id, []).append((chave, tipo, catalogo_id))
+    resultado: dict[tuple[str, str], tuple[str, str] | None] = {}
+    for itens in por_convenio.values():
+        principais = [(c, cat) for c, tipo, cat in itens if tipo == "aquisicao" and cat is not None]
+        for chave, tipo, cat in itens:
+            if tipo != "rendimento_aplicacao":
+                continue
+            candidatos = [c for c, c_cat in principais if cat is None or c_cat == cat]
+            resultado[chave] = candidatos[0] if len(candidatos) == 1 else None
+    return resultado
+
+
+def _aplicar_excecao_instrumento(lote: list[tuple[tuple[str, str], dict]], resultado: Resultado) -> None:
+    """Instrumento monitorado sem nenhum item controlado entrou pelo componente: o item de aquisição cuja
+    unidade vale ao menos o limite da exceção (R$ 100 mil) passa a ter unidade, para a entrega poder ser lançada."""
+    if not lote or all(n["instrumento_id"] is None for _, n in lote):
+        return
+    if any(n["controla_unidade"] for _, n in lote):
+        return
+    limite = float(settings.limite_valor_unitario_excecao)
+
+    def unitario(n: dict) -> float:
+        return float(n["valor_total"]) / max(n["quantidade_planejada"] or 1, 1)
+
+    candidatos = [
+        n
+        for _, n in lote
+        if n["tipo_lancamento"] == "aquisicao"
+        and n["situacao_classificacao"] == "aplicada"
+        and n["valor_total"] is not None
+    ]
+    elegiveis = [n for n in candidatos if unitario(n) >= limite]
+    if not elegiveis:
+        # Exceção da exceção: nenhum item chega ao limite, então valem os de maior valor unitário.
+        elegiveis = sorted(candidatos, key=unitario, reverse=True)[: settings.itens_excecao_da_excecao]
+    if not elegiveis:
+        return
+    for n in elegiveis:
+        n["controla_unidade"] = True
+    resultado.instrumentos_excecao += 1
+    resultado.por_excecao_instrumento += len(elegiveis)
+
+
+def projetar(db: Session, *, aplicar: bool, convenio_numero: str | None = None) -> Resultado:
+    """Projeta todos os convênios ou, com `convenio_numero`, só os itens daquele convênio (sem tocar nos demais)."""
+    resultado = Resultado()
+    ctx = carregar_contexto(db)
+    convenios = select(Convenio).order_by(Convenio.id)
+    itens_existentes = select(ItemPlano)
+    if convenio_numero is not None:
+        convenios = convenios.where(Convenio.numero == convenio_numero)
+        itens_existentes = itens_existentes.where(
+            ItemPlano.convenio_id.in_(select(Convenio.id).where(Convenio.numero == convenio_numero))
+        )
+    existentes = {(i.origem, i.id_origem): i for i in db.execute(itens_existentes).scalars()}
+    vistos: set[tuple[str, str]] = set()
+    ligacao: list[tuple[int, tuple[str, str], str, int | None]] = []  # convênio, chave, tipo, catálogo
+    for convenio in db.execute(convenios).scalars():
+        itens = (convenio.siconv_raw or {}).get("itens_plano_aplicacao") or []
+        ordem_manual = 0
+        lote: list[tuple[tuple[str, str], dict]] = []
+        itens_api = [
+            i for i in itens if isinstance(i, dict) and i.get("ID_ITEM_PAD") and item_conta_como_equipamento(i)
+        ]
+        alvos_api = {str(i["ID_ITEM_PAD"]): alvo_item_api(ctx, convenio.numero, i) for i in itens_api}
+        ajustar_por_natureza_siconv(ctx, convenio.numero, itens_api, alvos_api)
+        for item in itens:
+            if not isinstance(item, dict):
+                continue
+            if not item_conta_como_equipamento(item):
+                resultado.ignorados_obra_servico += 1
+                continue
+            manual = not item.get("ID_ITEM_PAD")
+            if manual:
+                ordem_manual += 1
+                if convenio.tipo_contratacao == "Convênio":
+                    resultado.ignorados_manual_repetido += 1
+                    continue
+                origem, id_origem = "manual", f"manual:{convenio.numero}:{ordem_manual}"
+                alvo = alvo_item_manual(ctx, convenio.tipo_contratacao, item)
+                quantidade: int | None = 1
+            else:
+                origem, id_origem = "siconv", str(item["ID_ITEM_PAD"])
+                alvo = alvos_api[id_origem]
+                quantidade = _quantidade(item.get("QTD_ITEM"))
+            chave = (origem, id_origem)
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            resultado.por_origem[origem] += 1
+            resultado.por_tipo[alvo.tipo_lancamento] += 1
+            resultado.pendentes += int(alvo.pendente)
+            resultado.por_valor += int(alvo.por_valor)
+            ligacao.append((convenio.id, chave, alvo.tipo_lancamento, alvo.catalogo_id))
+            if alvo.controla_unidade and alvo.familia:
+                resultado.por_familia[alvo.familia] += 1
+            if alvo.familia is None:
+                resultado.sem_familia += 1
+            elif alvo.codigo_item is None:
+                resultado.codigo_a_definir += 1
+            if manual:
+                resultado.manual_por_codigo_fonte[alvo.codigo_fonte or "a definir"] += 1
+            novo = dict(
+                convenio_id=convenio.id,
+                instrumento_id=ctx.instrumentos.get(convenio.numero),
+                origem=origem,
+                id_origem=id_origem,
+                codigo_item=alvo.codigo_item,
+                codigo_fonte=alvo.codigo_fonte,
+                descricao=str(item.get("DESCRICAO_ITEM") or "").strip(),
+                catalogo_id=alvo.catalogo_id,
+                controla_unidade=alvo.controla_unidade,
+                quantidade_planejada=quantidade,
+                tipo_lancamento=alvo.tipo_lancamento,
+                situacao_classificacao="pendente" if alvo.pendente else "aplicada",
+                motivo_classificacao=alvo.motivo,
+                valor_total=_moeda(item.get("VALOR_TOTAL_ITEM")),
+                hash_conteudo=_hash(item),
+            )
+            lote.append((chave, novo))
+        _aplicar_excecao_instrumento(lote, resultado)
+        for chave, novo in lote:
+            _sincronizar(db, existentes.get(chave), novo, resultado, aplicar)
+    principais = resolver_principais(ligacao)
+    resultado.rendimentos_ligados = sum(1 for v in principais.values() if v is not None)
+    resultado.rendimentos_sem_principal = sum(1 for v in principais.values() if v is None)
+    if aplicar:
+        db.flush()
+        por_chave = {(i.origem, i.id_origem): i for i in db.execute(itens_existentes).scalars()}
+        for chave_rend, chave_princ in principais.items():
+            por_chave[chave_rend].item_principal_id = por_chave[chave_princ].id if chave_princ else None
+    agora = datetime.now(UTC)
+    for chave, existente in existentes.items():
+        if chave not in vistos and existente.ativo and existente.origem == "siconv":
+            resultado.desativados += 1
+            if aplicar:
+                existente.ativo = False
+                existente.removido_na_fonte_em = agora
+    return resultado

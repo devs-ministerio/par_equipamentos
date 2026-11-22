@@ -300,7 +300,7 @@ export function MonitoramentoPainelGeografia({
                         <p className="mt-1 text-xs text-muted-foreground">
                           {instrumento.nr_convenio} · CNES{" "}
                           {instrumento.cnes ?? "não informado"} ·{" "}
-                          {instrumento.fase_atual ?? "Não iniciado"}
+                          {instrumento.fase_atual ?? "Acompanhamento iniciado"}
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Técnico:{" "}

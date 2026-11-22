@@ -36,7 +36,7 @@ def test_recaptura_aprovacao_replay_sob_role_runtime(runtime, dados, perfil):
     assert aprovar_entrada(**parametros) == decisao
     assert db.scalar(text("SELECT current_user")) == nome_runtime_sintetico(schema)
     assert db.get(CandidatoLegadoDecisao, decisao.id).recaptura_id == prova.id
-    for modelo, esperado in ((Convenio, 2), (InstrumentoEquipamento, 1), (Notificacao, 1), (CandidatoLegadoDecisao, 1)):
+    for modelo, esperado in ((Convenio, 2), (InstrumentoEquipamento, 2), (Notificacao, 2), (CandidatoLegadoDecisao, 1)):
         assert db.scalar(select(func.count()).select_from(modelo)) == esperado
 
 

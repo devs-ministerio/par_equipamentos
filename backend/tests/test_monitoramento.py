@@ -281,7 +281,8 @@ def test_criar_instrumento_via_post_cadastro_manual():
             .one()
         )
         destinatarios = db.query(NotificacaoDestinatario).filter_by(notificacao_id=notificacao.id).all()
-        assert all(destinatario.usuario_id != usuario_teste.id for destinatario in destinatarios)
+        # O técnico titular indicado na inclusão recebe o aviso (junto de gestor/admin).
+        assert usuario_teste.id in {destinatario.usuario_id for destinatario in destinatarios}
         assert f"{nr_convenio_teste}" in notificacao.titulo
 
         # Segunda tentativa com o mesmo nr_convenio -- checagem de
@@ -670,7 +671,7 @@ def test_atualizar_cadastro_nao_sincroniza_mais_responsavel_por_texto():
     texto->relacional (`_EMAIL_RESPONSAVEL_POR_TEXTO`/
     `_sincronizar_responsaveis_relacionais`) foi removido de propósito --
     "não é aceitável inferir qual colaborador corresponde a cada nome"
-    (docs/arquitetura/planmode-governanca-dados-2026-09-28.md). PATCH em
+    (docs/planos/planmode-governanca-dados-2026-09-28.md). PATCH em
     `tecnico_titular` só atualiza o texto legado agora; vínculo relacional
     exige atribuição explícita de um gestor."""
     db = SessionLocal()
@@ -768,27 +769,30 @@ def test_reprogramacao_de_data_prevista_exige_justificativa():
     try:
         instrumento = db.query(InstrumentoEquipamento).filter_by(nr_convenio=NR_CONVENIO_SEED).one()
         marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
-        marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
-        db.add(
-            EventoMarco(
-                instrumento_id=instrumento.id,
-                marco_id=marco.id,
-                data_prevista=date.today() + timedelta(days=10),
-                autor_id=usuario.id,
-            )
+        original = EventoMarco(
+            instrumento_id=instrumento.id,
+            marco_id=marco.id,
+            data_prevista=date.today() + timedelta(days=10),
+            autor_id=usuario.id,
         )
+        db.add(original)
         db.flush()
         with pytest.raises(ValidationError, match="justificativa"):
-            registrar_evento_monitorado(
-                nr_convenio=NR_CONVENIO_SEED,
-                dados=NovoEventoMonitorado(
-                    marco_id=marco.id,
-                    data_prevista=date.today() + timedelta(days=20),
-                    fase_geral_id=marco_fase.id,
-                ),
+            editar_evento_monitorado(
+                evento_id=original.id,
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_prevista=date.today() + timedelta(days=20)),
                 db=db,
                 usuario=usuario,
             )
+        corrigido = editar_evento_monitorado(
+            evento_id=original.id,
+            dados=NovoEventoMonitorado(
+                marco_id=marco.id, data_prevista=date.today() + timedelta(days=20), observacao="Atraso do fornecedor"
+            ),
+            db=db,
+            usuario=usuario,
+        )
+        assert original.substituido_por_id == corrigido.id
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1039,18 +1043,18 @@ def test_listar_instrumentos_expoe_coordenadas_do_cnes():
 # ---------------------------------------------------------------------
 
 
-def test_evento_fisico_sem_fase_geral_id_rejeitado():
+def test_evento_fisico_sem_fase_geral_id_e_aceito():
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         marco_fisico = db.query(MarcoCatalogo).filter_by(codigo="cronograma_entrega").one()
-        with pytest.raises(ValidationError, match="fase geral"):
-            registrar_evento_monitorado(
-                nr_convenio=NR_CONVENIO_SEED,
-                dados=NovoEventoMonitorado(marco_id=marco_fisico.id, data_ocorrencia=date(2026, 1, 1)),
-                db=db,
-                usuario=usuario,
-            )
+        evento = registrar_evento_monitorado(
+            nr_convenio=NR_CONVENIO_SEED,
+            dados=NovoEventoMonitorado(marco_id=marco_fisico.id, data_ocorrencia=date(2026, 1, 1)),
+            db=db,
+            usuario=usuario,
+        )
+        assert evento.fase_geral_id is None
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1237,7 +1241,7 @@ def test_fase_geral_rejeita_data_prevista_e_conclusao_sem_confirmacao():
         db.close()
 
 
-def test_corrigir_conclusao_sem_data_e_recusado_e_com_data_passa():
+def test_corrigir_evento_de_conclusao_exige_reabrir_antes():
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     instrumento = InstrumentoEquipamento(
@@ -1256,23 +1260,16 @@ def test_corrigir_conclusao_sem_data_e_recusado_e_com_data_passa():
             usuario=usuario,
         )
 
-        with pytest.raises(ValidationError, match="Informe a data de ocorrência"):
+        # Concluído trava as edições, inclusive a correção do evento antigo: é preciso reabrir antes.
+        with pytest.raises(ConflictError, match="Reabra"):
             editar_evento_monitorado(
                 evento_id=concluido.id,
-                dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=None),
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2025, 9, 3)),
                 db=db,
                 usuario=usuario,
             )
         db.refresh(concluido)
         assert concluido.substituido_por_id is None  # recusa não grava nada
-
-        corrigido = editar_evento_monitorado(
-            evento_id=concluido.id,
-            dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2025, 9, 3)),
-            db=db,
-            usuario=usuario,
-        )
-        assert corrigido.data_ocorrencia == date(2025, 9, 3)
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1339,9 +1336,13 @@ def _eventos_ativos_do_instrumento(db, nr_convenio: str) -> list[EventoMarco]:
     ]
 
 
+def _fase_geral_qualquer(db) -> int:
+    return db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one().id
+
+
 def test_evento_excluido_nao_conta_para_fase_atual():
-    """Reproduz o bug real corrigido no Bloco 0/1: evento de fase excluído
-    não pode continuar empurrando `fase_atual` pra frente."""
+    """Evento excluído não pode continuar empurrando a fase calculada pra frente
+    (aqui, marco de aguardando repasse)."""
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     instrumento_teste = InstrumentoEquipamento(
@@ -1352,23 +1353,25 @@ def test_evento_excluido_nao_conta_para_fase_atual():
     try:
         db.add(instrumento_teste)
         db.flush()
-        marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_contratado").one()
+        marco_fase = db.query(MarcoCatalogo).filter_by(codigo="fase_aguardando_repasse").one()
         evento = registrar_evento_monitorado(
             nr_convenio=instrumento_teste.nr_convenio,
-            dados=NovoEventoMonitorado(marco_id=marco_fase.id, data_ocorrencia=date(2026, 1, 1)),
+            dados=NovoEventoMonitorado(
+                marco_id=marco_fase.id, data_ocorrencia=date(2026, 1, 1), fase_geral_id=_fase_geral_qualquer(db)
+            ),
             db=db,
             usuario=usuario,
         )
 
         itens = listar_instrumentos_monitorados(db=db)
         item = next(i for i in itens if i.instrumento.nr_convenio == instrumento_teste.nr_convenio)
-        assert item.fase_atual == marco_fase.rotulo
+        assert item.fase_atual == "Aguardando repasse"
 
         excluir_evento_monitorado(evento_id=evento.id, motivo="teste pytest", db=db, usuario=usuario)
 
         itens_apos = listar_instrumentos_monitorados(db=db)
         item_apos = next(i for i in itens_apos if i.instrumento.nr_convenio == instrumento_teste.nr_convenio)
-        assert item_apos.fase_atual == "Não iniciado"
+        assert item_apos.fase_atual == "Acompanhamento iniciado"
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1701,25 +1704,25 @@ def _concluir(db, instrumento, usuario, data):
     return marco, concluido, marco_inaug
 
 
-def test_corrigir_a_data_da_conclusao_acompanha_a_inauguracao_vinculada():
+def test_corrigir_a_data_da_conclusao_exige_reabrir_e_nao_mexe_na_inauguracao():
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
         instrumento = _instrumento_efemero(db, "PYTEST-SYNC")
         marco, concluido, marco_inaug = _concluir(db, instrumento, usuario, date(2026, 10, 28))
 
-        editar_evento_monitorado(
-            evento_id=concluido.id,
-            dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2026, 10, 27)),
-            db=db,
-            usuario=usuario,
-        )
+        with pytest.raises(ConflictError, match="Reabra"):
+            editar_evento_monitorado(
+                evento_id=concluido.id,
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2026, 10, 27)),
+                db=db,
+                usuario=usuario,
+            )
 
         vigente = monitoramento_repo.obter_evento_mais_recente_do_marco(
             db, instrumento_id=instrumento.id, marco_id=marco_inaug.id
         )
-        assert vigente is not None and vigente.data_ocorrencia == date(2026, 10, 27)
-        assert vigente.fase_geral_id == marco.id
+        assert vigente is not None and vigente.data_ocorrencia == date(2026, 10, 28)
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1727,7 +1730,7 @@ def test_corrigir_a_data_da_conclusao_acompanha_a_inauguracao_vinculada():
         db.close()
 
 
-def test_inauguracao_independente_com_outra_data_nao_e_alterada_pela_correcao():
+def test_correcao_da_conclusao_recusada_preserva_inauguracao_independente():
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
@@ -1741,12 +1744,13 @@ def test_inauguracao_independente_com_outra_data_nao_e_alterada_pela_correcao():
         inaug.data_ocorrencia = date(2026, 10, 20)
         db.flush()
 
-        editar_evento_monitorado(
-            evento_id=concluido.id,
-            dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2026, 10, 27)),
-            db=db,
-            usuario=usuario,
-        )
+        with pytest.raises(ConflictError, match="Reabra"):
+            editar_evento_monitorado(
+                evento_id=concluido.id,
+                dados=NovoEventoMonitorado(marco_id=marco.id, data_ocorrencia=date(2026, 10, 27)),
+                db=db,
+                usuario=usuario,
+            )
 
         vigente = monitoramento_repo.obter_evento_mais_recente_do_marco(
             db, instrumento_id=instrumento.id, marco_id=marco_inaug.id
@@ -1759,82 +1763,24 @@ def test_inauguracao_independente_com_outra_data_nao_e_alterada_pela_correcao():
         db.close()
 
 
-def test_excluir_a_conclusao_so_anula_a_inauguracao_quando_pedido():
+def test_excluir_o_evento_de_conclusao_exige_reabrir_e_nao_anula_a_inauguracao():
     db = SessionLocal()
     usuario = criar_usuario_teste(db, role=UserRole.gestor)
     try:
-        sem_anular = _instrumento_efemero(db, "PYTEST-DEL-MANTEM")
-        _, concl_a, marco_inaug = _concluir(db, sem_anular, usuario, date(2026, 10, 28))
-        excluir_evento_monitorado(evento_id=concl_a.id, motivo="conclusão lançada por engano", db=db, usuario=usuario)
-        mantida = monitoramento_repo.obter_evento_mais_recente_do_marco(
-            db, instrumento_id=sem_anular.id, marco_id=marco_inaug.id
-        )
-        assert mantida is not None and mantida.deletado_em is None
-
-        anulando = _instrumento_efemero(db, "PYTEST-DEL-ANULA")
-        _, concl_b, _ = _concluir(db, anulando, usuario, date(2026, 10, 28))
-        excluir_evento_monitorado(
-            evento_id=concl_b.id,
-            motivo="conclusão lançada por engano",
-            db=db,
-            usuario=usuario,
-            anular_inauguracao_vinculada=True,
-        )
-        anulada = db.query(EventoMarco).filter_by(instrumento_id=anulando.id, marco_id=marco_inaug.id).one()
-        assert anulada.deletado_em is not None
-        assert "Anulada junto com a conclusão" in (anulada.motivo_exclusao or "")
-    finally:
-        db.rollback()
-        db.query(User).filter_by(id=usuario.id).delete()
-        db.commit()
-        db.close()
-
-
-def test_resumo_aponta_lacunas_de_conclusao_sem_confundir_com_atraso():
-    db = SessionLocal()
-    usuario = criar_usuario_teste(db, role=UserRole.gestor)
-    try:
-        marcos = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
-
-        def evento(instrumento, codigo, **campos):
-            db.add(
-                EventoMarco(
-                    instrumento_id=instrumento.id,
-                    marco_id=marcos[codigo].id,
-                    autor_id=usuario.id,
-                    **campos,
-                )
+        instrumento = _instrumento_efemero(db, "PYTEST-DEL-TRAVA")
+        _, conclusao, marco_inaug = _concluir(db, instrumento, usuario, date(2026, 10, 28))
+        with pytest.raises(ConflictError, match="Reabra"):
+            excluir_evento_monitorado(
+                evento_id=conclusao.id,
+                motivo="conclusão lançada por engano",
+                db=db,
+                usuario=usuario,
+                anular_inauguracao_vinculada=True,
             )
-
-        # Concluído sem data de conclusão e sem inauguração real (o caso do TED do diagnóstico).
-        sem_data = _instrumento_efemero(db, "PYTEST-LAC-SEMDATA")
-        evento(sem_data, "fase_concluido")
-        # Concluído com data, mas só com previsão de inauguração.
-        sem_inaug = _instrumento_efemero(db, "PYTEST-LAC-SEMINAUG")
-        evento(sem_inaug, "fase_concluido", data_ocorrencia=date(2026, 10, 1))
-        evento(sem_inaug, "cronograma_previsao_inauguracao", data_prevista=date(2026, 12, 1))
-        # Concluído completo: não aparece.
-        completo = _instrumento_efemero(db, "PYTEST-LAC-OK")
-        evento(completo, "fase_concluido", data_ocorrencia=date(2026, 10, 1))
-        evento(completo, "cronograma_previsao_inauguracao", data_ocorrencia=date(2026, 10, 1))
-        # Em andamento sem previsão, e em andamento com previsão.
-        andamento = _instrumento_efemero(db, "PYTEST-LAC-ANDAMENTO")
-        evento(andamento, "fase_em_licitacao", data_ocorrencia=date(2026, 9, 1))
-        com_previsao = _instrumento_efemero(db, "PYTEST-LAC-PREVISTO")
-        evento(com_previsao, "fase_em_licitacao", data_ocorrencia=date(2026, 9, 1))
-        evento(com_previsao, "cronograma_previsao_inauguracao", data_prevista=date(2027, 1, 1))
-        # Sem nenhum evento ("Não iniciado"): não há o que concluir nem prever.
-        nao_iniciado = _instrumento_efemero(db, "PYTEST-LAC-NI")
-        db.flush()
-
-        lacunas = {(item.nr_convenio, item.tipo) for item in obter_resumo(db).lacunas_conclusao}
-
-        assert (sem_data.nr_convenio, "concluido_sem_data_conclusao") in lacunas
-        assert (sem_data.nr_convenio, "concluido_sem_inauguracao_real") in lacunas
-        assert (sem_inaug.nr_convenio, "concluido_sem_inauguracao_real") in lacunas
-        assert (sem_inaug.nr_convenio, "concluido_sem_data_conclusao") not in lacunas
-        assert (andamento.nr_convenio, "andamento_sem_previsao") in lacunas
-        assert not {n for n, _ in lacunas} & {completo.nr_convenio, com_previsao.nr_convenio, nao_iniciado.nr_convenio}
+        db.refresh(conclusao)
+        assert conclusao.deletado_em is None
+        inauguracao = db.query(EventoMarco).filter_by(instrumento_id=instrumento.id, marco_id=marco_inaug.id).one()
+        assert inauguracao.deletado_em is None
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()
@@ -1875,3 +1821,46 @@ def test_listagem_traz_acompanhamento_de_inauguracao_e_entrega_para_os_dados_ofi
         db.query(User).filter_by(id=usuario.id).delete()
         db.commit()
         db.close()
+
+
+def test_so_uma_inauguracao_por_instrumento():
+    db = SessionLocal()
+    usuario = criar_usuario_teste(db, role=UserRole.gestor)
+    instrumento = _instrumento_efemero(db, "PYTEST-INAUG-UNICA")
+    try:
+        previsao = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+        dispensada = db.query(MarcoCatalogo).filter_by(codigo="cronograma_inauguracao_dispensada").one()
+        registrar_evento_monitorado(
+            nr_convenio=instrumento.nr_convenio,
+            dados=NovoEventoMonitorado(marco_id=previsao.id, data_prevista=date(2027, 1, 1)),
+            db=db,
+            usuario=usuario,
+        )
+        for marco in (previsao, dispensada):
+            with pytest.raises(ConflictError, match="apenas uma"):
+                registrar_evento_monitorado(
+                    nr_convenio=instrumento.nr_convenio,
+                    dados=NovoEventoMonitorado(marco_id=marco.id, data_prevista=date(2027, 2, 1)),
+                    db=db,
+                    usuario=usuario,
+                )
+    finally:
+        db.rollback()
+        db.query(User).filter_by(id=usuario.id).delete()
+        db.commit()
+        db.close()
+
+
+def test_rota_de_acoes_do_instrumento_devolve_envelope_e_404(headers_autenticados):
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    cliente = TestClient(app)
+    assert cliente.get(f"/monitoramento/instrumentos/{NR_CONVENIO_SEED}/acoes").status_code == 401
+    resposta = cliente.get(f"/monitoramento/instrumentos/{NR_CONVENIO_SEED}/acoes", headers=headers_autenticados)
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert set(corpo) == {"data", "meta"} and corpo["meta"]["total"] >= len(corpo["data"])
+    assert all(a["nr_convenio"] == NR_CONVENIO_SEED for a in corpo["data"])
+    assert cliente.get("/monitoramento/instrumentos/NAO-EXISTE/acoes", headers=headers_autenticados).status_code == 404

@@ -147,8 +147,23 @@ describe("consultas do Radar e fontes — transporte e Zod reais", () => {
     const { result } = renderHook(useFontes, { wrapper: api.wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data).toEqual([fonteSintetica]);
-    expect(result.current.data?.[0].status).toBe("parcial");
-    expect(result.current.data?.[0].defasada).toBe(true);
+    expect(result.current.data?.[0]).toMatchObject({
+      status: "parcial",
+      defasada: true,
+    });
+  });
+
+  it("aceita o resumo que os papéis não admin recebem", async () => {
+    const api = prepararHooksRadar();
+    const resumo = {
+      fonte: fonteSintetica.fonte,
+      rotulo: fonteSintetica.rotulo,
+      ultimo_sucesso_em: fonteSintetica.ultimo_sucesso_em,
+    };
+    api.controle.fontes = [resumo];
+    const { result } = renderHook(useFontes, { wrapper: api.wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([resumo]);
   });
 
   it("não consulta fontes sem sessão", async () => {

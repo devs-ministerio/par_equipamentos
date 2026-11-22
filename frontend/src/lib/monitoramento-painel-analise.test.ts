@@ -24,11 +24,11 @@ describe("resumirCarteiraPainel", () => {
         instrumento(null, 2024, "FAF", "SP"),
         instrumento("Fase extra", null, null, null),
       ],
-      ["Não iniciado", "Em execução", "Concluído"],
+      ["Acompanhamento iniciado", "Em execução", "Concluído"],
     );
 
     expect(resumo.fases.map((item) => [item.rotulo, item.quantidade])).toEqual([
-      ["Não iniciado", 1],
+      ["Acompanhamento iniciado", 1],
       ["Em execução", 0],
       ["Concluído", 1],
       ["Fase extra", 1],
@@ -46,8 +46,10 @@ describe("resumirCarteiraPainel", () => {
   });
 
   it("retorna séries vazias e concentração zero sem instrumentos", () => {
-    const resumo = resumirCarteiraPainel([], ["Não iniciado"]);
-    expect(resumo.fases).toEqual([{ rotulo: "Não iniciado", quantidade: 0 }]);
+    const resumo = resumirCarteiraPainel([], ["Acompanhamento iniciado"]);
+    expect(resumo.fases).toEqual([
+      { rotulo: "Acompanhamento iniciado", quantidade: 0 },
+    ]);
     expect(resumo.anos).toEqual([]);
     expect(resumo.contratacoes).toEqual([]);
     expect(resumo.concentracaoTop5Uf).toBe(0);

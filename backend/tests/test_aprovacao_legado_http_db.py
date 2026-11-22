@@ -2,6 +2,7 @@
 
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from itertools import count
 from uuid import uuid4
 
@@ -15,14 +16,17 @@ from app.db.models import (
     Convenio,
     FonteCaptura,
     InstrumentoEquipamento,
+    ItemPlano,
     Notificacao,
     NotificacaoDestinatario,
+    NotificacaoTipo,
     User,
     UserRole,
     UserStatus,
 )
 from app.db.models_legado import CandidatoLegadoDecisao, CandidatoLegadoRecaptura
 from app.main import app
+from app.services.projecao_itens_plano import projetar as projetar_itens_plano
 from app.services.recapturas_legado import registrar_recaptura
 from tests.test_notificacoes_destinatarios_db import matriz as matriz
 from tests.test_prova_recaptura_legado import dados as dados
@@ -75,7 +79,7 @@ def sem_inclusao(db):
 
 
 @pytest.mark.parametrize("perfil", ["admin", "gestor"])
-def test_aprova_e_replay_retornam_mesmos_vinculos_sem_monitoramento_automatico(fluxo_aprovacao, perfil):
+def test_aprova_e_replay_retornam_mesmos_vinculos_e_incluem_no_monitoramento(fluxo_aprovacao, perfil):
     db, usuarios, ref, prova, pedido, cliente = fluxo_aprovacao
     with cliente(perfil) as http:
         resposta = postar(http, ref.candidato_id, pedido.model_dump(mode="json"))
@@ -88,12 +92,73 @@ def test_aprova_e_replay_retornam_mesmos_vinculos_sem_monitoramento_automatico(f
         assert db.get(Convenio, decisao["convenio_id"]).numero == "999001"
         replay = postar(http, ref.candidato_id, pedido.model_dump(mode="json"))
         assert replay.status_code == 200 and replay.json() == decisao
+        assert projetar_itens_plano(db, aplicar=True, convenio_numero="999001").criados == 0
         assert not {"payload_oficial", "siconv_raw", "password_hash", "token_hash"} & decisao.keys()
     assert db.scalar(select(func.count()).select_from(Convenio)) == 2
-    assert db.scalar(select(func.count()).select_from(InstrumentoEquipamento)) == 1
+    assert db.scalar(select(func.count()).select_from(InstrumentoEquipamento)) == 2
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
-    assert db.scalar(select(func.count()).select_from(Notificacao)) == 1
-    assert set(db.scalars(select(NotificacaoDestinatario.usuario_id))) == {usuarios["admin"], usuarios["gestor"]}
+    # Dois avisos: entrada aprovada (gestão) e inclusão no monitoramento (gestão e titular).
+    assert db.scalar(select(func.count()).select_from(Notificacao)) == 2
+    assert set(db.scalars(select(NotificacaoDestinatario.usuario_id))) == {
+        usuarios["admin"],
+        usuarios["gestor"],
+        usuarios["titular"],
+    }
+    itens = list(db.scalars(select(ItemPlano).where(ItemPlano.convenio_id == decisao["convenio_id"])))
+    assert itens and None not in {i.instrumento_id for i in itens}
+    assert db.scalar(
+        select(func.count()).select_from(ItemPlano).where(ItemPlano.convenio_id == decisao["convenio_id"])
+    ) == len(itens)
+
+
+def test_aprova_com_tecnico_inclui_no_monitoramento_e_avisa_o_titular(fluxo_aprovacao):
+    db, usuarios, ref, _, pedido, cliente = fluxo_aprovacao
+    corpo = {**pedido.model_dump(mode="json"), "tecnico_titular_id": usuarios["titular"]}
+    with cliente("gestor") as http:
+        resposta = postar(http, ref.candidato_id, corpo)
+        assert resposta.status_code == 200
+    instrumento = db.scalar(select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == "999001"))
+    assert instrumento is not None and instrumento.tipo_contratacao == "Convênio"
+    assert instrumento.tecnico_titular == db.get(User, usuarios["titular"]).name
+    itens = list(
+        db.scalars(
+            select(ItemPlano).join(Convenio, Convenio.id == ItemPlano.convenio_id).where(Convenio.numero == "999001")
+        )
+    )
+    assert itens, "a aprovação com técnico precisa deixar os itens prontos para a entrega"
+    assert {i.instrumento_id for i in itens} == {instrumento.id}
+    avisos = {n.tipo: n for n in db.scalars(select(Notificacao))}
+    assert set(avisos) == {NotificacaoTipo.aprovacao_carteira, NotificacaoTipo.inclusao_monitoramento}
+    inclusao = avisos[NotificacaoTipo.inclusao_monitoramento]
+    destinatarios = set(
+        db.scalars(
+            select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == inclusao.id)
+        )
+    )
+    assert destinatarios == {usuarios["titular"], usuarios["admin"], usuarios["gestor"]}
+    carteira = avisos[NotificacaoTipo.aprovacao_carteira]
+    assert usuarios["titular"] not in set(
+        db.scalars(
+            select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == carteira.id)
+        )
+    )
+
+
+def test_lista_do_radar_traz_valor_municipio_uf_e_data_da_ultima_recaptura(fluxo_aprovacao):
+    db, _, ref, prova, _, cliente = fluxo_aprovacao
+    with cliente("gestor") as http:
+        itens = http.get("/candidatos-legados").json()["itens"]
+    item = next(i for i in itens if i["id"] == ref.candidato_id)
+    assert Decimal(item["valor_global"]) == db.get(CandidatoLegadoRecaptura, prova.id).valor_global
+    assert item["municipio"] and item["uf"] and item["data_instrumento"]
+
+
+def test_tecnico_invalido_recusa_a_aprovacao_inteira(fluxo_aprovacao):
+    db, usuarios, ref, _, pedido, cliente = fluxo_aprovacao
+    corpo = {**pedido.model_dump(mode="json"), "tecnico_titular_id": usuarios["leitor"]}
+    with cliente("gestor") as http:
+        assert postar(http, ref.candidato_id, corpo).status_code == 422
+    sem_inclusao(db)
 
 
 @pytest.mark.parametrize("perfil", [None, "titular", "leitor"])
@@ -164,6 +229,22 @@ def test_rodada_nao_confiavel_bloqueia_aprovacao_http(fluxo_aprovacao, defeito):
     sem_inclusao(db)
 
 
+def test_sem_confirmacao_no_portal_bloqueia_aprovacao_http(fluxo_aprovacao):
+    # O candidato é visível na fila sem o Portal, mas aprovar exige a confirmação.
+    from app.db.models_legado import CandidatoLegadoCaptura
+
+    db, _, ref, _, pedido, cliente = fluxo_aprovacao
+    captura = db.get(CandidatoLegadoCaptura, ref.captura_id)
+    captura.confirmacao_portal = "nao_encontrado"
+    captura.data_publicacao = None
+    db.commit()
+    with cliente("admin") as http:
+        resposta = postar(http, ref.candidato_id, pedido.model_dump(mode="json"))
+    assert resposta.status_code == 409
+    assert "Portal da Transparência" in resposta.text
+    sem_inclusao(db)
+
+
 def test_candidato_inexistente_retorna_404(fluxo_aprovacao):
     db, _, _, _, pedido, cliente = fluxo_aprovacao
     with cliente("admin") as http:
@@ -196,9 +277,19 @@ def test_replay_alterado_outro_ator_e_nova_chave_nao_duplicam_aprovacao(fluxo_ap
         alterado = {**corpo, "justificativa": "Outra justificativa para a mesma chave"}
         assert postar(admin, ref.candidato_id, alterado).status_code == 409
         assert postar(admin, ref.candidato_id, {**corpo, "chave": str(uuid4())}).status_code == 409
+        outro = db.scalar(
+            select(User.id).where(
+                User.role == UserRole.colaborador,
+                User.status == UserStatus.active,
+                User.id != corpo["tecnico_titular_id"],
+            )
+        )
+        assert outro is not None
+        # Reenvio com a mesma chave e outro titular não pode ser confirmado pelo registro anterior.
+        assert postar(admin, ref.candidato_id, {**corpo, "tecnico_titular_id": outro}).status_code == 409
     assert db.scalar(select(func.count()).select_from(Convenio)) == 2
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
-    assert db.scalar(select(func.count()).select_from(Notificacao)) == 1
+    assert db.scalar(select(func.count()).select_from(Notificacao)) == 2
 
 
 def test_recaptura_posterior_exige_revisar_novamente_antes_de_aprovar(fluxo_aprovacao):

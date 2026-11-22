@@ -1,5 +1,4 @@
-/** Seção "Linha do tempo de eventos" -- toggle do form de lançamento +
- * histórico. Extraído de MonitoramentoInterno.tsx.
+/** Seção "Eventos" -- só o histórico, com correção e exclusão (o lançamento mora no cartão Cronograma). Extraído de MonitoramentoInterno.tsx.
  *
  * Editar/excluir (Plan Mode monitoramento-evolucao 2026-09-19) seguem a
  * mesma disciplina append-only do backend: "editar" reabre o form
@@ -11,7 +10,6 @@ import { cn } from "@/lib/utils";
 import type { EventoMarco } from "@/services/monitoramento-instrumentos";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { fmtData } from "@/lib/monitoramento-format";
-import { eventoMaisRecente } from "@/lib/monitoramento-eventos";
 import type { EnviarEventoFormValues } from "@/lib/validations/monitoramento";
 import { MonitoramentoInternoFormEvento } from "./monitoramento-interno-form-evento";
 import {
@@ -42,14 +40,12 @@ export function MonitoramentoInternoEventos({
   marcos,
   eventos,
   podeEditar,
-  onRegistrar,
   onEditar,
   onExcluir,
 }: {
   marcos: MarcoCatalogo[];
   eventos: EventoMarco[];
   podeEditar: boolean;
-  onRegistrar: (valores: EnviarEventoFormValues) => Promise<void>;
   onEditar: (
     eventoId: number,
     valores: EnviarEventoFormValues,
@@ -60,56 +56,16 @@ export function MonitoramentoInternoEventos({
     anularInauguracao?: boolean,
   ) => Promise<void>;
 }) {
-  const [formAberto, setFormAberto] = useState(false);
   const [eventoEmEdicao, setEventoEmEdicao] = useState<number | null>(null);
   const [eventoEmExclusao, setEventoEmExclusao] = useState<number | null>(null);
   const marcoPorId = new Map(marcos.map((m) => [m.id, m]));
-  const marcoInauguracao = marcos.find(
-    (marco) => marco.codigo === "cronograma_previsao_inauguracao",
-  );
-  const eventoInauguracao = marcoInauguracao
-    ? eventoMaisRecente(
-        eventos.filter((evento) => evento.marco_id === marcoInauguracao.id),
-      )
-    : null;
-
   // Mais recente lançado primeiro (created_at, depois id), como no backend.
   const eventosOrdenados = [...eventos].sort(
     (a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id,
   );
 
   return (
-    <SecaoOperacional
-      titulo="Linha do tempo de eventos"
-      acao={
-        <button
-          disabled={!podeEditar}
-          onClick={() => setFormAberto((v) => !v)}
-          aria-expanded={formAberto}
-          className={cn(
-            estiloInput,
-            "cursor-pointer bg-primary text-primary-foreground border-none font-semibold",
-          )}
-        >
-          {formAberto ? "Cancelar" : "+ Lançar evento"}
-        </button>
-      }
-    >
-      {podeEditar && formAberto && (
-        <MonitoramentoInternoFormEvento
-          marcos={marcos}
-          previsaoInauguracao={
-            eventoInauguracao?.data_ocorrencia
-              ? null
-              : (eventoInauguracao?.data_prevista ?? null)
-          }
-          onRegistrar={async (valores) => {
-            await onRegistrar(valores);
-            setFormAberto(false);
-          }}
-        />
-      )}
-
+    <SecaoOperacional titulo="Eventos">
       {eventosOrdenados.length === 0 ? (
         <p className="text-muted-foreground italic text-sm">
           Nenhum evento lançado ainda.
@@ -190,36 +146,47 @@ export function MonitoramentoInternoEventos({
                     </div>
                   </div>
                 </div>
-                {podeEditar && !emEdicao && !emExclusao && (
-                  <div className="flex flex-row justify-end gap-1.5 border-t border-border pt-2 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 sm:border-0 sm:pt-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEventoEmEdicao(ev.id);
-                        setEventoEmExclusao(null);
-                      }}
-                      className={cn(
-                        estiloInput,
-                        "min-h-11 cursor-pointer border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary sm:min-h-0 sm:px-2 sm:text-[11px]",
-                      )}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEventoEmExclusao(ev.id);
-                        setEventoEmEdicao(null);
-                      }}
-                      className={cn(
-                        estiloInput,
-                        "min-h-11 cursor-pointer border border-destructive bg-transparent px-3 py-1 text-xs font-semibold text-destructive sm:min-h-0 sm:px-2 sm:text-[11px]",
-                      )}
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                )}
+                {podeEditar &&
+                  !emEdicao &&
+                  !emExclusao &&
+                  ev.gerado_por_entrega_id != null && (
+                    <div className="text-[11px] font-medium text-muted-foreground sm:absolute sm:right-3 sm:top-1/2 sm:-translate-y-1/2">
+                      Vem da entrega
+                    </div>
+                  )}
+                {podeEditar &&
+                  !emEdicao &&
+                  !emExclusao &&
+                  ev.gerado_por_entrega_id == null && (
+                    <div className="flex flex-row justify-end gap-1.5 border-t border-border pt-2 sm:absolute sm:right-2 sm:top-1/2 sm:-translate-y-1/2 sm:border-0 sm:pt-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEventoEmEdicao(ev.id);
+                          setEventoEmExclusao(null);
+                        }}
+                        className={cn(
+                          estiloInput,
+                          "min-h-11 cursor-pointer border border-primary bg-transparent px-3 py-1 text-xs font-semibold text-primary sm:min-h-0 sm:px-2 sm:text-[11px]",
+                        )}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEventoEmExclusao(ev.id);
+                          setEventoEmEdicao(null);
+                        }}
+                        className={cn(
+                          estiloInput,
+                          "min-h-11 cursor-pointer border border-destructive bg-transparent px-3 py-1 text-xs font-semibold text-destructive sm:min-h-0 sm:px-2 sm:text-[11px]",
+                        )}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  )}
 
                 {emEdicao && marco && (
                   <MonitoramentoInternoFormEvento

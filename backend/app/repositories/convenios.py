@@ -1,4 +1,4 @@
-"""Acesso a dados de Convenio para os relatorios (Plan Mode docs/arquitetura/
+"""Acesso a dados de Convenio para os relatorios (Plan Mode docs/planos/
 planmode-relatorios-2026-09-25.md, Blocos 2 e 7).
 
 Separado da query paginada `aplicar_filtros_convenio` (mais abaixo)

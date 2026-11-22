@@ -27,7 +27,7 @@ export function apiGetAuthed<T>(
 export function apiAuthed<T>(
   path: string,
   schema: z.ZodType<T>,
-  method: "POST" | "PATCH" | "DELETE",
+  method: "POST" | "PUT" | "PATCH" | "DELETE",
   body?: unknown,
 ): Promise<T> {
   return requisitar(path, schema, {

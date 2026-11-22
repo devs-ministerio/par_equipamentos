@@ -1,36 +1,34 @@
-/** Seção "Fase geral": passos da fase atual do instrumento. */
+/** Seção "Fase geral": passos da fase oficial (calculada) do instrumento. */
+import type { ReactNode } from "react";
+import { FASES_ACOMPANHAMENTO } from "@/lib/fases-acompanhamento";
 import { cn } from "@/lib/utils";
-import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import { SecaoOperacional } from "./monitoramento-ui";
 
 export function MonitoramentoInternoFaseGeral({
-  fasesGerais,
   faseAtual,
-  pctAtual,
+  acao,
 }: {
-  fasesGerais: MarcoCatalogo[];
-  faseAtual: MarcoCatalogo | undefined;
-  pctAtual: number;
+  faseAtual: string | null | undefined;
+  /** Ação do cabeçalho do cartão (concluir ou reabrir o acompanhamento). */
+  acao?: ReactNode;
 }) {
-  const indiceAtual = fasesGerais.findIndex((f) => f.id === faseAtual?.id);
+  const indiceAtual = Math.max(
+    FASES_ACOMPANHAMENTO.findIndex((f) => f === faseAtual),
+    0,
+  );
+  const concluido = FASES_ACOMPANHAMENTO[indiceAtual] === "Concluído";
   return (
-    <SecaoOperacional titulo="Fase geral" cartao>
+    <SecaoOperacional titulo="Fase geral" cartao acao={acao}>
       <p className="m-0 mb-3 text-sm">
-        <strong>{faseAtual?.rotulo ?? "Não iniciado"}</strong>
-        <span className="text-muted-foreground">
-          {" "}
-          · etapa {Math.max(indiceAtual + 1, 0)} de {fasesGerais.length} ·{" "}
-          {Math.round(pctAtual * 100)}%
-        </span>
+        <strong>{FASES_ACOMPANHAMENTO[indiceAtual]}</strong>
       </p>
       <ol className="m-0 flex list-none p-0">
-        {fasesGerais.map((f, i) => {
+        {FASES_ACOMPANHAMENTO.map((rotulo, i) => {
           const atual = i === indiceAtual;
-          const feita =
-            i < indiceAtual || (atual && f.codigo === "fase_concluido");
+          const feita = i < indiceAtual || (atual && concluido);
           return (
             <li
-              key={f.id}
+              key={rotulo}
               aria-current={atual ? "step" : undefined}
               className="relative flex min-w-0 flex-1 flex-col items-center"
             >
@@ -64,7 +62,7 @@ export function MonitoramentoInternoFaseGeral({
                     : "hidden text-muted-foreground lg:block",
                 )}
               >
-                {f.rotulo}
+                {rotulo}
               </span>
             </li>
           );

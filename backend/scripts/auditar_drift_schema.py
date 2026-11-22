@@ -2,7 +2,7 @@
 docs/database/modelo_er.mermaid.
 
 Item 4 do Plan Mode database 2026-09-16
-(docs/arquitetura/planmode-database-2026-09-16.md): "relatorio, nao gate" --
+(docs/planos/planmode-database-2026-09-16.md): "relatorio, nao gate" --
 por padrao sempre sai com codigo 0, so imprime o que encontrou. A mesma
 logica de comparacao ja e o GATE de `tests/test_schema_migrations.py`
 (pytest -m db); este script reaproveita as mesmas funcoes

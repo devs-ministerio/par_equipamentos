@@ -5,39 +5,56 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useCorrigirUnidade,
-  useEntregasLegadas,
   useEquipamentosInstrumento,
+  useCancelarUnidade,
+  useDefinirPrevisaoEntrega,
+  useRemoverPrevisaoEntrega,
+  useCorrigirDataEntrega,
   useExcluirEntrega,
+  useReativarUnidade,
   useRegistrarEntrega,
-  useVincularEntregaLegada,
 } from "@/hooks/useEquipamentosInstrumento";
+import {
+  useConfirmarRepasse,
+  useSituacaoRepasse,
+} from "@/hooks/useRepasseInstrumento";
 import { ApiError, mensagemSeguraDoErro } from "@/lib/api-error";
 import type { UnidadeEquipamento } from "@/services/entregas-equipamento";
+import { RepasseConfirmarDialog } from "./repasse-confirmar-dialog";
 import { EquipamentosInstrumentoEditarUnidade } from "./equipamentos-instrumento-editar-unidade";
 import { EquipamentosInstrumentoFormEntrega } from "./equipamentos-instrumento-form-entrega";
 import { EquipamentosInstrumentoLista } from "./equipamentos-instrumento-lista";
-import { estiloInput, SecaoOperacional } from "./monitoramento-ui";
+import { SecaoOperacional } from "./monitoramento-ui";
 
-type Painel =
-  | { tipo: "entrega"; itemId?: number }
-  | { tipo: "legado"; revisaoId: number; data: string | null }
-  | null;
+type Painel = { tipo: "entrega"; itemId?: number } | null;
 
 export function EquipamentosInstrumento({
   numeroConvenio,
   podeEditarInstrumento,
   aoSessaoInvalida,
+  previsaoInauguracao,
+  inauguracaoRealizada = false,
 }: {
+  previsaoInauguracao?: string | null;
+  inauguracaoRealizada?: boolean;
   numeroConvenio: string;
   podeEditarInstrumento: boolean;
   aoSessaoInvalida: () => void;
 }) {
   const consulta = useEquipamentosInstrumento(numeroConvenio);
-  const legadas = useEntregasLegadas();
   const registrar = useRegistrarEntrega(numeroConvenio);
-  const vincular = useVincularEntregaLegada(numeroConvenio);
   const corrigir = useCorrigirUnidade(numeroConvenio);
   const excluir = useExcluirEntrega(numeroConvenio);
+  const corrigirData = useCorrigirDataEntrega(numeroConvenio);
+  const cancelar = useCancelarUnidade(numeroConvenio);
+  const reativar = useReativarUnidade(numeroConvenio);
+  const definirPrevisao = useDefinirPrevisaoEntrega(numeroConvenio);
+  const removerPrevisao = useRemoverPrevisaoEntrega(numeroConvenio);
+  const repasse = useSituacaoRepasse(numeroConvenio);
+  const confirmarRepasse = useConfirmarRepasse(numeroConvenio);
+  const [pedidoRepasse, setPedidoRepasse] = useState<
+    ((confirmado: boolean) => void) | null
+  >(null);
   const [painel, setPainel] = useState<Painel>(null);
   const [unidade, setUnidade] = useState<UnidadeEquipamento | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -52,6 +69,11 @@ export function EquipamentosInstrumento({
       setErro(mensagemSeguraDoErro(e));
       throw e;
     }
+  }
+
+  /** Sem repasse confirmado, a entrega só segue depois da confirmação (integral ou parcial). */
+  function pedirRepasse(): Promise<boolean> {
+    return new Promise((resolver) => setPedidoRepasse(() => resolver));
   }
 
   if (consulta.error) {
@@ -73,56 +95,13 @@ export function EquipamentosInstrumento({
   }
   const dados = consulta.data;
   const podeEditar = podeEditarInstrumento && dados.pode_editar;
-  const revisao = legadas.data?.find((r) => r.nr_convenio === numeroConvenio);
 
   return (
-    <SecaoOperacional
-      titulo="Equipamentos do instrumento"
-      cartao
-      acao={
-        podeEditar ? (
-          <button
-            type="button"
-            className={`${estiloInput} cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5`}
-            onClick={() => setPainel({ tipo: "entrega" })}
-            disabled={dados.itens.length === 0}
-          >
-            Registrar entrega
-          </button>
-        ) : undefined
-      }
-    >
+    <SecaoOperacional titulo="Equipamentos do instrumento" cartao>
       {erro && <ErrorAlert mensagem={erro} />}
-      {revisao && (
-        <div
-          role="status"
-          className="mb-3 rounded-md border border-destructive/30 bg-destructive-bg/40 p-2.5 text-[12.5px]"
-        >
-          Entrega registrada antes do controle por unidade
-          {revisao.data_ocorrencia
-            ? ` (em ${revisao.data_ocorrencia.split("-").reverse().join("/")})`
-            : ""}
-          : vincule aos itens.{" "}
-          {podeEditar && (
-            <button
-              type="button"
-              className="font-semibold underline"
-              onClick={() =>
-                setPainel({
-                  tipo: "legado",
-                  revisaoId: revisao.id,
-                  data: revisao.data_ocorrencia,
-                })
-              }
-            >
-              Vincular agora
-            </button>
-          )}
-        </div>
-      )}
       {dados.itens.length === 0 ? (
         <p className="m-0 text-[12.5px] text-muted-foreground">
-          Este instrumento não tem itens do plano controlados por unidade.
+          Sem itens controlados.
         </p>
       ) : (
         <EquipamentosInstrumentoLista
@@ -130,6 +109,31 @@ export function EquipamentosInstrumento({
           podeEditar={podeEditar}
           onRegistrar={(itemId) => setPainel({ tipo: "entrega", itemId })}
           onCorrigir={setUnidade}
+          onDefinirPrevisao={(itemId, dataPrevista) =>
+            escrever(() =>
+              definirPrevisao.mutateAsync({ itemId, dataPrevista }),
+            ).then(() => undefined)
+          }
+          onRemoverPrevisao={(itemId, motivo) =>
+            escrever(() =>
+              removerPrevisao.mutateAsync({ itemId, motivo }),
+            ).then(() => undefined)
+          }
+          onCancelarUnidade={(itemId, motivo) =>
+            escrever(() => cancelar.mutateAsync({ itemId, motivo })).then(
+              () => undefined,
+            )
+          }
+          onDesfazerCancelamento={(cancelamentoId, motivo) =>
+            escrever(() =>
+              reativar.mutateAsync({ cancelamentoId, motivo }),
+            ).then(() => undefined)
+          }
+          onCorrigirData={(entregaId, data, motivo) =>
+            escrever(() =>
+              corrigirData.mutateAsync({ entregaId, data, motivo }),
+            ).then(() => undefined)
+          }
           onExcluirEntrega={(entregaId, motivo) =>
             escrever(() => excluir.mutateAsync({ entregaId, motivo })).then(
               () => undefined,
@@ -147,27 +151,52 @@ export function EquipamentosInstrumento({
         <EquipamentosInstrumentoFormEntrega
           itens={dados.itens}
           apenasItemId={painel.tipo === "entrega" ? painel.itemId : undefined}
-          dataLegada={
-            painel.tipo === "legado" ? (painel.data ?? "") : undefined
-          }
+          previsaoInauguracao={previsaoInauguracao}
+          perguntarInauguracao={!inauguracaoRealizada}
           onFechar={() => setPainel(null)}
           onEnviar={async (envio) => {
-            if (painel.tipo === "legado") {
-              await escrever(() =>
-                vincular.mutateAsync({
-                  revisaoId: painel.revisaoId,
-                  itens: envio.itens,
-                }),
-              );
-            } else {
-              await escrever(() =>
-                registrar.mutateAsync({
-                  chave_idempotencia: envio.chave,
-                  data_ocorrencia: envio.dataOcorrencia,
-                  observacao: envio.observacao,
-                  itens: envio.itens,
-                }),
-              );
+            if (repasse.data && repasse.data.repasse === null) {
+              const confirmado = await pedirRepasse();
+              if (!confirmado) throw new Error("Repasse não confirmado.");
+            }
+            await escrever(() =>
+              registrar.mutateAsync({
+                chave_idempotencia: envio.chave,
+                data_ocorrencia: envio.dataOcorrencia,
+                observacao: envio.observacao,
+                itens: envio.itens,
+                inauguracao: envio.inauguracao
+                  ? {
+                      necessaria: envio.inauguracao.necessaria,
+                      data_prevista: envio.inauguracao.dataPrevista,
+                    }
+                  : null,
+              }),
+            );
+          }}
+        />
+      )}
+      {pedidoRepasse && (
+        <RepasseConfirmarDialog
+          onFechar={() => {
+            pedidoRepasse(false);
+            setPedidoRepasse(null);
+          }}
+          onConfirmar={async (valores) => {
+            try {
+              await confirmarRepasse.mutateAsync({
+                tipo: valores.tipo,
+                justificativa: valores.justificativa || null,
+              });
+              pedidoRepasse(true);
+              setPedidoRepasse(null);
+            } catch (e) {
+              if (
+                e instanceof ApiError &&
+                (e.status === 401 || e.status === 403)
+              )
+                aoSessaoInvalida();
+              setErro(mensagemSeguraDoErro(e));
             }
           }}
         />

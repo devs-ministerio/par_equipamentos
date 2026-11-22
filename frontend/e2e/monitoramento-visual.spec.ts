@@ -57,6 +57,7 @@ function timelineVisual(): InstrumentoTimeline {
       situacao_parceria_transferegov: null,
       situacao_ordem_pagamento_transferegov: null,
       pode_editar: true,
+      fase_atual: "Concluído",
     },
     eventos: [eventoVisual(3), eventoVisual(4)],
     ao_vivo: { disponivel: false, valor_suspeito: false },
@@ -109,6 +110,61 @@ for (const width of [400, 768]) {
         });
       if (path.endsWith("/convenios/QA001"))
         return route.fulfill({ json: criarDetalheConvenioResposta() });
+      if (path.endsWith("/conclusao"))
+        return route.fulfill({
+          json: {
+            nr_convenio: "QA001",
+            pode_editar: false,
+            conclusao: null,
+            resultado: "sem_entregas",
+            exige_justificativa: false,
+            itens_exigidos: 0,
+            itens_completos: 0,
+            impedimentos: [],
+          },
+        });
+      if (path.endsWith("/documentos"))
+        return route.fulfill({
+          json: {
+            nr_convenio: "QA001",
+            pode_editar: false,
+            documentos: [
+              {
+                id: 1,
+                tipo: "cnen_scra",
+                numero: "2026SCRA0123456789",
+                data_documento: "2026-10-19",
+                status: "Deferido",
+                data_validade: null,
+                observacao: null,
+              },
+            ],
+          },
+        });
+      if (path.endsWith("/repasse"))
+        return route.fulfill({
+          json: {
+            repasse: null,
+            repasse_previsto: false,
+            fase_calculada: "aguardando_repasse",
+          },
+        });
+      if (path.endsWith("/licenca-operacao"))
+        return route.fulfill({
+          json: {
+            exige: false,
+            cnes: null,
+            sem_cnes: false,
+            areas_exigidas: [],
+            areas_sem_vinculo: [],
+            vinculos: [],
+            ultima_carga: null,
+          },
+        });
+      if (path.endsWith("/acoes"))
+        return route.fulfill({
+          json: { data: [], meta: { total: 0, abertas: 0, atrasadas: 0 } },
+        });
       if (path.endsWith("/notificacoes"))
         return route.fulfill({ json: { total: 0, itens: [], nao_lidas: 0 } });
       if (path.endsWith("/candidatos-legados"))
@@ -118,7 +174,7 @@ for (const width of [400, 768]) {
     // Act / Assert
     await page.goto("/monitoramento-equipamentos/instrumentos/QA001");
     await expect(
-      page.getByText("SCRA 2026SCRA0123456789 — 19/10/2026", { exact: true }),
+      page.getByText("Nº 2026SCRA0123456789", { exact: true }),
     ).toBeVisible();
     const fase = page.locator('li[aria-current="step"]');
     await expect(fase).toContainText("Concluído");

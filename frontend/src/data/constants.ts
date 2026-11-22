@@ -20,10 +20,10 @@ export const TIPOLOGIA_PERSUS: Record<string, string> = {
 // Geometria das 121 macrorregioes de saude, vendorizada localmente em
 // public/geo/macrorregioes.geojson (resolve o TODO antigo de depender de
 // CDN de terceiro sem fallback -- ver comentario em MacroMap.tsx). Gerada a
-// partir de docs/macroregiao.geojson (fonte fornecida pelo usuario,
+// partir de docs/assets/macroregiao.geojson (fonte fornecida pelo usuario,
 // 2026-08-22) com:
 //
-//   mapshaper docs/macroregiao.geojson \
+//   mapshaper docs/assets/macroregiao.geojson \
 //     -simplify 15% visvalingam keep-shapes \
 //     -o precision=0.0001 format=geojson reverse-winding \
 //     frontend/public/geo/macrorregioes.geojson

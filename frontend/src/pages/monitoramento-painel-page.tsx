@@ -1,3 +1,4 @@
+import { FASES_ACOMPANHAMENTO } from "@/lib/fases-acompanhamento";
 import { useMemo } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
@@ -94,16 +95,7 @@ export function MonitoramentoPainelPage() {
 
   const instrumentosFiltrados = filtros.filtrados;
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
-  const fases = [
-    "Não iniciado",
-    ...marcos
-      .filter(
-        (marco) =>
-          marco.grupo === "fase_geral" && marco.rotulo !== "Não iniciado",
-      )
-      .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
-      .map((marco) => marco.rotulo),
-  ];
+  const fases = [...FASES_ACOMPANHAMENTO];
   const divergenciasPorFonte = [
     ...dados.divergencias
       .reduce((contagem, item) => {
@@ -131,14 +123,6 @@ export function MonitoramentoPainelPage() {
             label: "Instrumentos",
             value: instrumentosFiltrados.length,
             detail: `${dados.fases.find((fase) => fase.rotulo === "Concluído")?.quantidade ?? 0} em fase concluída`,
-          },
-          {
-            key: "fase",
-            label: "Progresso de fase · referência",
-            value:
-              dados.pctReferenciaMedio == null
-                ? "—"
-                : `${Math.round(dados.pctReferenciaMedio * 100)}%`,
           },
           {
             key: "valor-global",

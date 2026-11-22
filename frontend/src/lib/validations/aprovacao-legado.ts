@@ -15,16 +15,8 @@ export const aprovacaoLegadoSchema = referenciaProvaLegadoSchema
       .trim()
       .min(3, "Informe a justificativa com pelo menos 3 caracteres.")
       .max(1000),
+    tecnico_titular_id: z.number().int().positive().optional(),
   })
   .strict();
 
-export const confirmacaoAprovacaoSchema = aprovacaoLegadoSchema.extend({
-  confirmado: z
-    .boolean()
-    .refine(Boolean, "Confirme a conferência dos dados oficiais."),
-});
-
 export type AprovacaoLegadoInput = z.infer<typeof aprovacaoLegadoSchema>;
-export type ConfirmacaoAprovacaoInput = z.infer<
-  typeof confirmacaoAprovacaoSchema
->;

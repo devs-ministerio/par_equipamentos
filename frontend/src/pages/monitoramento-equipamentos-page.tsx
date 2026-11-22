@@ -148,7 +148,7 @@ export function MonitoramentoEquipamentosPage() {
       new Map(
         (instrumentosQuery.data ?? []).map((instrumento) => [
           instrumento.nr_convenio,
-          instrumento.fase_atual ?? "Não iniciado",
+          instrumento.fase_atual ?? "Acompanhamento iniciado",
         ]),
       ),
     [instrumentosQuery.data],

@@ -1,5 +1,5 @@
 """app/reports/formatacao.py -- formatação pt-BR pro Word (Plan Mode
-docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 5)."""
+docs/planos/planmode-relatorios-2026-09-25.md, Bloco 5)."""
 
 from __future__ import annotations
 

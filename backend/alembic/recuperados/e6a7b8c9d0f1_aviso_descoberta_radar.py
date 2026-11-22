@@ -15,7 +15,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    if op.get_bind().scalar(sa.text("SELECT EXISTS (SELECT 1 FROM notificacao WHERE tipo::text = 'convenio_descoberto')")):
+    if op.get_bind().scalar(
+        sa.text("SELECT EXISTS (SELECT 1 FROM notificacao WHERE tipo::text = 'convenio_descoberto')")
+    ):
         raise RuntimeError("Preserve os avisos de descoberta antes de reverter a aplicação.")
     # Expansão mantida, conforme migrations anteriores. Contrair o enum exige
     # recriar o tipo e bloquear a tabela; não faz parte deste rollback seguro.

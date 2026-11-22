@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.auth import create_access_token, create_refresh_token, hash_password
 from app.db.base import engine, get_db
 from app.db.models import Convenio, InstrumentoEquipamento, User, UserRole, UserStatus
-from app.db.models_legado import CandidatoLegadoDecisao
+from app.db.models_legado import CandidatoLegadoCaptura, CandidatoLegadoDecisao
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError
 from app.main import app
 from app.schemas_legado import DecisaoLegadoCreate, ReferenciaDescoberta
@@ -71,11 +71,10 @@ def listar(db, numero, situacao=None):
         busca=numero,
         confirmacao=None,
         situacao=[situacao] if situacao else None,
-        somente_oficiais=True,
     )
 
 
-def comando(item, acao="iniciar_analise", **alteracoes):
+def comando(item, acao="rejeitar", **alteracoes):
     return DecisaoLegadoCreate.model_validate(
         {
             "acao": acao,
@@ -92,20 +91,17 @@ def decidir(db, usuario, item, dados):
     return registrar_decisao(db=db, usuario=usuario, candidato_id=item.id, dados=dados)
 
 
-def test_analise_rejeicao_historico_e_badge_sem_inclusao(triagem):
+def test_rejeicao_historico_e_badge_sem_inclusao(triagem):
     db, usuario, _, item = triagem
     contagens = [db.scalar(select(func.count()).select_from(t)) for t in (Convenio, InstrumentoEquipamento)]
     novos = listar(db, item.numero).novos
     assert item.situacao == "novo" and item.versao == 0
-    analise = decidir(db, usuario, item, comando(item))
-    atualizado = listar(db, item.numero, "em_analise").itens[0]
-    assert atualizado.versao == analise.id and listar(db, item.numero).novos == novos - 1
-    rejeicao = decidir(db, usuario, atualizado, comando(atualizado, "rejeitar"))
+    rejeicao = decidir(db, usuario, item, comando(item))
+    assert listar(db, item.numero).novos == novos - 1
     historico = consultar_historico(db=db, candidato_id=item.id, pagina=1, tamanho=1)
-    assert historico.total == 2 and historico.itens[0].id == rejeicao.id
+    assert historico.total == 1 and historico.itens[0].id == rejeicao.id
     assert historico.itens[0].usuario_nome == usuario.name
-    assert consultar_historico(db=db, candidato_id=item.id, pagina=2, tamanho=1).itens[0].id == analise.id
-    assert consultar_historico(db=db, candidato_id=item.id, pagina=3, tamanho=1).itens == []
+    assert consultar_historico(db=db, candidato_id=item.id, pagina=2, tamanho=1).itens == []
     assert listar(db, item.numero, "novo").total == 0
     assert listar(db, item.numero, "rejeitado").total == 1
     assert [db.scalar(select(func.count()).select_from(t)) for t in (Convenio, InstrumentoEquipamento)] == contagens
@@ -114,9 +110,7 @@ def test_analise_rejeicao_historico_e_badge_sem_inclusao(triagem):
 def test_rejeicao_permanece_consultavel_apos_captura_sem_confirmacao(triagem):
     # Arrange
     db, usuario, candidato, item = triagem
-    decidir(db, usuario, item, comando(item))
-    em_analise = listar(db, item.numero).itens[0]
-    rejeicao = decidir(db, usuario, em_analise, comando(em_analise, "rejeitar"))
+    rejeicao = decidir(db, usuario, item, comando(item))
     nova_captura = candidato.model_copy(update={"confirmacao_portal": "nao_encontrado", "data_publicacao": None})
     registrar_descoberta(
         db=db,
@@ -130,7 +124,7 @@ def test_rejeicao_permanece_consultavel_apos_captura_sem_confirmacao(triagem):
     assert resultado.total == 1 and resultado.itens[0].situacao == "rejeitado"
     assert resultado.itens[0].confirmacao_portal == "nao_encontrado"
     assert resultado.itens[0].captura_id != item.captura_id
-    assert historico.total == 2 and historico.itens[0].id == rejeicao.id
+    assert historico.total == 1 and historico.itens[0].id == rejeicao.id
     assert listar(db, item.numero, "novo").total == 0
 
 
@@ -175,23 +169,26 @@ def test_captura_nova_versao_obsoleta_e_estado_encerrado_bloqueados(triagem):
     atual = listar(db, item.numero).itens[0]
     decidir(db, usuario, atual, comando(atual))
     with pytest.raises(ConflictError, match="mudou"):
-        decidir(db, usuario, atual, comando(atual, "rejeitar"))
-    atual = listar(db, item.numero).itens[0]
+        decidir(db, usuario, atual, comando(atual))
+    atual = listar(db, item.numero, "rejeitado").itens[0]
     with pytest.raises(ConflictError, match="situação"):
         decidir(db, usuario, atual, comando(atual))
-    decidir(db, usuario, atual, comando(atual, "rejeitar"))
-    atual = listar(db, item.numero).itens[0]
-    with pytest.raises(ConflictError, match="situação"):
-        decidir(db, usuario, atual, comando(atual, "rejeitar"))
 
 
 def test_snapshot_local_nao_entra_na_fila_nem_aceita_decisao(triagem):
     db, usuario, candidato, _ = triagem
     registrar_descoberta(
-        db=db, candidatos=[candidato], referencia=ReferenciaDescoberta(origem="snapshot_local", hash_snapshot="d" * 64)
+        db=db, candidatos=[candidato], referencia=ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="d" * 64)
     )
+    item = listar(db, candidato.numero).itens[0]
+    # Linha legada (demo) que ainda existe em clones antigos: o CHECK do banco a admite.
+    db.execute(
+        update(CandidatoLegadoCaptura)
+        .where(CandidatoLegadoCaptura.id == item.captura_id)
+        .values(origem="snapshot_local")
+    )
+    db.flush()
     assert listar(db, candidato.numero).total == 0
-    item = listar_candidatos(db=db, pagina=1, tamanho=10, busca=candidato.numero, confirmacao=None).itens[0]
     with pytest.raises(ConflictError, match="fonte oficial"):
         decidir(db, usuario, item, comando(item))
 
@@ -256,11 +253,8 @@ def test_rotas_autenticacao_csrf_validacao_permissao_e_historico(triagem):
         usuario.role = UserRole.gestor
         db.commit()
         resposta = cliente.post(url, json=dados, headers=headers)
-        assert resposta.status_code == 200 and resposta.json()["situacao"] == "em_analise"
-        assert (
-            cliente.post(url, json=comando(item, "rejeitar").model_dump(mode="json"), headers=headers).status_code
-            == 409
-        )
+        assert resposta.status_code == 200 and resposta.json()["situacao"] == "rejeitado"
+        assert cliente.post(url, json=comando(item).model_dump(mode="json"), headers=headers).status_code == 409
         assert cliente.get(f"/candidatos-legados/{item.id}/historico", headers=headers).json()["total"] == 1
         assert cliente.get(f"/candidatos-legados/{item.id}/historico?pagina=0", headers=headers).status_code == 422
         assert cliente.get("/candidatos-legados/999999999999/historico", headers=headers).status_code == 404

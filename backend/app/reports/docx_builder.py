@@ -1,5 +1,5 @@
 """Builder generico de documentos .docx para os relatorios (Plan Mode
-docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 1).
+docs/planos/planmode-relatorios-2026-09-25.md, Bloco 1).
 
 Modulo puro: recebe dado ja formatado, devolve bytes. Sem FastAPI/DB.
 Porta o padrao de estilo ja provado em producao pelo projeto irmao

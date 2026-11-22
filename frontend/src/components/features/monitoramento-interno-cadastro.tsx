@@ -6,12 +6,12 @@
  * Estado de abertura controlado pelo pai. CNES mora dentro do form de
  * edição (Plan Mode monitoramento-evolucao 2026-09-19) -- "Editar
  * cadastro" edita tudo de uma vez, sem modo especial só pra CNES. */
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 import type { CadastroInternoFormValues } from "@/lib/validations/monitoramento";
 import { TIPOLOGIA_PERSUS } from "@/data/constants";
 import { MonitoramentoInternoFormCadastro } from "./monitoramento-interno-form-cadastro";
-import { SecaoOperacional, estiloInput } from "./monitoramento-ui";
+import { SecaoOperacional } from "./monitoramento-ui";
 
 const CAMPOS_VISAO: {
   rotulo: string;
@@ -51,17 +51,15 @@ export function MonitoramentoInternoCadastro({
       titulo="Cadastro interno"
       cartao
       acao={
-        <button
+        <Button
+          size="sm"
+          variant="outline"
           onClick={() => (emEdicao ? onFechar() : onAbrir())}
           disabled={!podeEditar}
           aria-expanded={emEdicao}
-          className={cn(
-            estiloInput,
-            "cursor-pointer bg-transparent text-primary border border-primary font-semibold py-1 px-2.5",
-          )}
         >
           {emEdicao ? "Cancelar" : "Editar cadastro"}
-        </button>
+        </Button>
       }
     >
       {emEdicao ? (

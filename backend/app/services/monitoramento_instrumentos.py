@@ -22,11 +22,13 @@ from app.db.models import (
 )
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.repositories import convenios as convenios_repo
+from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas as propostas_repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.repositories.notificacoes import criar_notificacao
 from app.services.monitoramento_eventos import substituir_responsaveis_instrumento
+from app.services.repasses import fases_calculadas_em_lote
 
 LIMITE_MONITORAMENTO_RELATORIO = 500
 
@@ -96,24 +98,19 @@ def _valores_confiaveis_da_parceria(
     return valores
 
 
-def criar_instrumento_monitorado(
+def criar_instrumento_monitorado_sem_commit(
     *,
     dados: NovoInstrumentoMonitorado,
     db: Session,
     usuario: User,
 ) -> InstrumentoEquipamento:
+    """Mesma regra de `criar_instrumento_monitorado`, sem commit: o chamador fecha a transação."""
     assert_pode_editar_monitoramento(usuario)
+    # PERSUS II fica fora do monitoramento interno por decisão da equipe
+    # (18/11/2026); reabrir só junto do novo fluxo de acompanhamento.
+    if dados.tipo_contratacao == "PERSUS II":
+        raise ValidationError("PERSUS II não entra no monitoramento interno por enquanto.")
     valores = _valores_confiaveis_da_parceria(dados, db=db)
-    # PERSUS II só passa a integrar o recorte anual quando a equipe decide
-    # incluí-lo no monitoramento. A própria inclusão é a fonte desse ano.
-    if dados.tipo_contratacao == "PERSUS II" and valores["ano_instrumento"] is None:
-        valores["ano_instrumento"] = date.today().year
-        monitoramento_repo.preencher_ano_convenio_se_ausente(
-            db,
-            numero=str(valores["nr_convenio"]),
-            tipo_contratacao="PERSUS II",
-            ano=date.today().year,
-        )
     nr_convenio = str(valores["nr_convenio"])
     ja_existe = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
     if ja_existe is not None:
@@ -123,6 +120,8 @@ def criar_instrumento_monitorado(
     suplente_id = valores.pop("tecnico_suplente_id")
     instrumento = InstrumentoEquipamento(**valores)
     monitoramento_repo.adicionar_instrumento(db, instrumento)
+    # Itens do plano nascem soltos; sem este vínculo a tela diz que não há itens controlados.
+    itens_repo.vincular_itens_soltos_do_convenio(db, instrumento_id=instrumento.id, nr_convenio=nr_convenio)
     # A relação é a fonte de verdade; os nomes são apenas o espelho legado
     # preenchido pela função, nunca aceitos como entrada livre.
     titular, suplente = substituir_responsaveis_instrumento(
@@ -153,6 +152,17 @@ def criar_instrumento_monitorado(
             entidade_id=instrumento.id,
         ),
     )
+    db.flush()
+    return instrumento
+
+
+def criar_instrumento_monitorado(
+    *,
+    dados: NovoInstrumentoMonitorado,
+    db: Session,
+    usuario: User,
+) -> InstrumentoEquipamento:
+    instrumento = criar_instrumento_monitorado_sem_commit(dados=dados, db=db, usuario=usuario)
     db.commit()
     db.refresh(instrumento)
     return instrumento
@@ -162,16 +172,6 @@ def criar_instrumento_monitorado(
 class InstrumentoComFase:
     instrumento: InstrumentoEquipamento
     fase_atual: str
-
-
-def _fase_atual_id(fases_gerais_desc: list[MarcoCatalogo], marco_ids_com_evento: set[int]) -> int | None:
-    """Percorre os marcos de fase_geral do mais avançado (`ordem` desc) pro
-    menos avançado -- o primeiro com evento registrado É a fase atual.
-    Nenhum encontrado -> instrumento ainda não iniciou nenhuma fase."""
-    for marco in fases_gerais_desc:
-        if marco.id in marco_ids_com_evento:
-            return marco.id
-    return None
 
 
 def listar_instrumentos_monitorados(
@@ -209,30 +209,15 @@ def listar_instrumentos_monitorados(
         cnes=cnes,
         tipo_contratacao=tipo_contratacao,
     )
-    fases_gerais_desc = monitoramento_repo.listar_marcos_fase_geral_desc(db)
-    return _filtrar_periodo(
-        _instrumentos_com_fase(db=db, instrumentos=instrumentos, fases_gerais_desc=fases_gerais_desc),
-        ano_inicio,
-        ano_fim,
-    )
+    return _filtrar_periodo(_instrumentos_com_fase(db=db, instrumentos=instrumentos), ano_inicio, ano_fim)
 
 
-def _instrumentos_com_fase(
-    *, db: Session, instrumentos: list[InstrumentoEquipamento], fases_gerais_desc: list[MarcoCatalogo]
-) -> list[InstrumentoComFase]:
+def _instrumentos_com_fase(*, db: Session, instrumentos: list[InstrumentoEquipamento]) -> list[InstrumentoComFase]:
+    """Fase oficial = fase calculada pelos fatos do instrumento (`services/repasses.py::fases_calculadas_em_lote`)."""
     if not instrumentos:
         return []
-    fase_ids = [m.id for m in fases_gerais_desc]
-    eventos_por_instrumento = monitoramento_repo.mapa_eventos_por_instrumento(
-        db, fase_ids, instrumento_ids=[i.id for i in instrumentos]
-    )
-
-    resultado = []
-    for inst in instrumentos:
-        fase_atual_id = _fase_atual_id(fases_gerais_desc, eventos_por_instrumento.get(inst.id, set()))
-        fase_atual = next((f.rotulo for f in fases_gerais_desc if f.id == fase_atual_id), "Não iniciado")
-        resultado.append(InstrumentoComFase(instrumento=inst, fase_atual=fase_atual))
-    return resultado
+    fases = fases_calculadas_em_lote(db, instrumentos)
+    return [InstrumentoComFase(instrumento=i, fase_atual=fases[i.id].value) for i in instrumentos]
 
 
 def _filtrar_periodo(
@@ -268,7 +253,6 @@ def listar_monitorados_para_relatorio(
     ano_fim: int | None = None,
 ) -> list[InstrumentoComFase]:
     """Recorte completo até 500; não reutiliza o corte anterior à fase da UI."""
-    fases = monitoramento_repo.listar_marcos_fase_geral_desc(db)
     resultado: list[InstrumentoComFase] = []
     with closing(
         monitoramento_repo.iterar_instrumentos_relatorio(
@@ -279,9 +263,7 @@ def listar_monitorados_para_relatorio(
             excluidos = convenios_repo.listar_numeros_fora_escopo(db, {i.nr_convenio for i in lote})
             visiveis = [i for i in lote if i.nr_convenio not in excluidos]
             resultado.extend(
-                _filtrar_periodo(
-                    _instrumentos_com_fase(db=db, instrumentos=visiveis, fases_gerais_desc=fases), ano_inicio, ano_fim
-                )
+                _filtrar_periodo(_instrumentos_com_fase(db=db, instrumentos=visiveis), ano_inicio, ano_fim)
             )
             if len(resultado) > LIMITE_MONITORAMENTO_RELATORIO:
                 raise LimiteConsultaExcedido

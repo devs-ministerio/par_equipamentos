@@ -10,7 +10,6 @@ const confirmacaoSchema = z.enum([
   "sem_publicacao",
   "confirmado",
 ]);
-export type ConfirmacaoLegado = z.infer<typeof confirmacaoSchema>;
 const situacaoSchema = z.enum(["novo", "em_analise", "aprovado", "rejeitado"]);
 export type SituacaoLegado = z.infer<typeof situacaoSchema>;
 
@@ -23,15 +22,30 @@ const candidatoSchema = z.object({
   situacao: situacaoSchema,
   confirmacao_portal: confirmacaoSchema,
   data_publicacao: z.string().nullable(),
-  origem: z.enum(["snapshot_local", "siconv_oficial"]),
+  origem: z.literal("siconv_oficial"),
   descoberto_em: z.string().datetime({ offset: true }),
   verificado_em: z.string().datetime({ offset: true }),
+  valor_global: z.string().nullable().default(null),
+  municipio: z.string().nullable().default(null),
+  uf: z.string().nullable().default(null),
+  data_instrumento: z.string().nullable().default(null),
+  recaptura_em: z.string().datetime({ offset: true }).nullable().default(null),
   componentes: z
     .array(
       z.object({
         id_programa: z.string().regex(/^[0-9]+$/),
         nome_programa: z.string().min(1),
         componente: z.string().min(1),
+      }),
+    )
+    .default([]),
+  itens: z
+    .array(
+      z.object({
+        nome: z.string(),
+        quantidade: z.string().nullable().default(null),
+        valor_unitario: z.string().nullable().default(null),
+        valor_total: z.string().nullable().default(null),
       }),
     )
     .default([]),

@@ -17,14 +17,13 @@ function criarProps() {
       }),
     ],
     podeEditar: true,
-    onRegistrar: vi.fn().mockResolvedValue(undefined),
     onEditar: vi.fn().mockResolvedValue(undefined),
     onExcluir: vi.fn().mockResolvedValue(undefined),
   };
 }
 
 describe("interação da timeline de eventos", () => {
-  it("vazio sem permissão mantém histórico legível e lançamento bloqueado", async () => {
+  it("vazio sem permissão mantém histórico legível", () => {
     // Arrange
     const props = criarProps();
     render(
@@ -39,15 +38,32 @@ describe("interação da timeline de eventos", () => {
       screen.getByText("Nenhum evento lançado ainda."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "+ Lançar evento" }),
-    ).toBeDisabled();
-    await userEvent.click(
-      screen.getByRole("button", { name: "+ Lançar evento" }),
-    );
-    expect(
-      screen.queryByRole("button", { name: "Registrar evento" }),
+      screen.queryByRole("button", { name: "Editar" }),
     ).not.toBeInTheDocument();
-    expect(props.onRegistrar).not.toHaveBeenCalled();
+  });
+
+  it("evento que vem de uma entrega não oferece Editar nem Excluir", () => {
+    const props = criarProps();
+    render(
+      <MonitoramentoInternoEventos
+        {...props}
+        eventos={[
+          criarEventoTeste({
+            marco_id: 1,
+            fase_geral_id: null,
+            observacao: "Da entrega",
+            gerado_por_entrega_id: 7,
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Vem da entrega")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Editar" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Excluir" }),
+    ).not.toBeInTheDocument();
   });
 
   it("ordena pelo lançamento mais recente e mostra ocorrência e previsão separadas", () => {
@@ -117,54 +133,6 @@ describe("interação da timeline de eventos", () => {
     ).toBeInTheDocument();
   });
 
-  it("pode cancelar lançamento e falha ao registrar preserva o conteúdo para tentar novamente", async () => {
-    // Arrange
-    const props = criarProps();
-    props.onRegistrar.mockRejectedValueOnce(
-      new ApiError("Fonte indisponível", 503),
-    );
-    render(<MonitoramentoInternoEventos {...props} />);
-    await userEvent.click(
-      screen.getByRole("button", { name: "+ Lançar evento" }),
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
-    expect(props.onRegistrar).not.toHaveBeenCalled();
-    // Act / Assert
-    await userEvent.click(
-      screen.getByRole("button", { name: "+ Lançar evento" }),
-    );
-    await userEvent.selectOptions(screen.getByLabelText("Marco"), "1");
-    await userEvent.type(
-      screen.getByLabelText("Observação"),
-      "Registro sintético",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Registrar evento" }),
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Registrar evento" }),
-      ).toBeEnabled(),
-    );
-    expect(screen.getByLabelText("Observação")).toHaveValue(
-      "Registro sintético",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Registrar evento" }),
-    );
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("button", { name: "Registrar evento" }),
-      ).not.toBeInTheDocument(),
-    );
-    expect(props.onRegistrar).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        marcoId: "1",
-        observacao: "Registro sintético",
-      }),
-    );
-  });
-
   it("correção regulatória mantém marco fixo e campos completos; falha mantém o form", async () => {
     // Arrange
     const props = criarProps();
@@ -188,9 +156,6 @@ describe("interação da timeline de eventos", () => {
     expect(
       within(form).queryByRole("combobox", { name: "Marco" }),
     ).not.toBeInTheDocument();
-    expect(
-      within(form).getByLabelText("Fase geral correspondente"),
-    ).toHaveValue("1");
     expect(within(form).getByLabelText("Data da licença")).toHaveValue(
       "2026-10-19",
     );
@@ -234,7 +199,6 @@ describe("interação da timeline de eventos", () => {
       21,
       expect.objectContaining({
         marcoId: "3",
-        faseGeralId: "1",
         observacao: "Texto corrigido",
         numeroDocumento: "0000123",
         dataValidade: "2027-12-31",
@@ -296,7 +260,7 @@ describe("interação da timeline de eventos", () => {
       ).not.toBeInTheDocument(),
     );
   });
-  it.each(["lançar", "editar", "excluir"])(
+  it.each(["editar", "excluir"])(
     "revogar permissão retira o formulário aberto para %s",
     async (modo) => {
       // Arrange
@@ -304,81 +268,20 @@ describe("interação da timeline de eventos", () => {
       const { rerender } = render(<MonitoramentoInternoEventos {...props} />);
       await userEvent.click(
         screen.getByRole("button", {
-          name:
-            modo === "lançar"
-              ? "+ Lançar evento"
-              : modo === "editar"
-                ? "Editar"
-                : "Excluir",
+          name: modo === "editar" ? "Editar" : "Excluir",
         }),
       );
       // Act
       rerender(<MonitoramentoInternoEventos {...props} podeEditar={false} />);
       // Assert
       expect(
-        screen.queryByRole("button", { name: "Registrar evento" }),
-      ).not.toBeInTheDocument();
-      expect(
         screen.queryByRole("button", { name: "Salvar correção" }),
       ).not.toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "Confirmar exclusão" }),
       ).not.toBeInTheDocument();
-      expect(props.onRegistrar).not.toHaveBeenCalled();
       expect(props.onEditar).not.toHaveBeenCalled();
       expect(props.onExcluir).not.toHaveBeenCalled();
     },
   );
-
-  it("lançamento e correção simultâneos mantêm controles com rótulos próprios", async () => {
-    // Arrange
-    render(<MonitoramentoInternoEventos {...criarProps()} />);
-    // Act
-    await userEvent.click(
-      screen.getByRole("button", { name: "+ Lançar evento" }),
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Editar" }));
-    // Assert
-    expect(screen.getAllByRole("textbox", { name: "Observação" })).toHaveLength(
-      2,
-    );
-    expect(screen.getAllByLabelText("Data de ocorrência")).toHaveLength(2);
-  });
-
-  it("desempata a previsão mais recente por ID numérico, não por ordem textual", async () => {
-    // Arrange
-    const props = criarProps();
-    props.eventos = [
-      criarEventoTeste({
-        id: 9,
-        marco_id: 2,
-        data_ocorrencia: null,
-        data_prevista: "2026-11-01",
-      }),
-      criarEventoTeste({
-        id: 10,
-        marco_id: 2,
-        data_ocorrencia: null,
-        data_prevista: "2026-12-01",
-      }),
-    ];
-    render(<MonitoramentoInternoEventos {...props} />);
-    // Act
-    await userEvent.click(
-      screen.getByRole("button", { name: "+ Lançar evento" }),
-    );
-    await userEvent.selectOptions(screen.getByLabelText("Marco"), "4");
-    await userEvent.type(
-      screen.getByLabelText("Data de ocorrência"),
-      "2026-12-01",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Registrar evento" }),
-    );
-    // Assert
-    expect(screen.getByRole("dialog")).toHaveTextContent(
-      "A previsão registrada (2026-12-01) é igual à data de conclusão.",
-    );
-    expect(props.onRegistrar).not.toHaveBeenCalled();
-  });
 });

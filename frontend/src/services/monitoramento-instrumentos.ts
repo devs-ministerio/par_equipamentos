@@ -29,6 +29,8 @@ const eventoMarcoSchema = z.object({
   deletado_por_nome: z.string().nullable().optional(),
   motivo_exclusao: z.string().nullable().optional(),
   ativo: z.boolean().optional().default(true),
+  // Evento nascido de uma entrega de equipamento: só se altera pela entrega.
+  gerado_por_entrega_id: z.number().nullable().optional(),
 });
 export type EventoMarco = z.infer<typeof eventoMarcoSchema>;
 
@@ -77,8 +79,7 @@ const instrumentoEquipamentoSchema = z.object({
   // com a ordem de pagamento já "Paga", por isso são 2 campos separados.
   situacao_parceria_transferegov: z.string().nullable(),
   situacao_ordem_pagamento_transferegov: z.string().nullable(),
-  // Só vem preenchido em GET /monitoramento/instrumentos (lista) -- ver
-  // docstring do backend. Ausente/null nos outros endpoints.
+  // Fase oficial calculada: vem na lista e no detalhe; ausente nos demais endpoints.
   fase_atual: z.string().nullable().optional(),
   // Autorização por titularidade (2026-09-25): calculado por request pro
   // usuário autenticado -- admin/gestor sempre true; colaborador só true se

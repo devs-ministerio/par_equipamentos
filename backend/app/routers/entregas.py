@@ -13,16 +13,23 @@ from app.auth import require_current_user, require_monitoramento_editor
 from app.db.base import get_db
 from app.db.models import User
 from app.schemas_entregas import (
+    CancelamentoUnidadeCreate,
+    CancelamentoUnidadeRead,
+    CorrecaoDataEntrega,
     EntregaCreate,
-    EntregaLegadaRead,
     EntregaRead,
     EquipamentosInstrumentoRead,
     ExclusaoEntrega,
+    PrevisaoEntregaCreate,
+    PrevisaoEntregaRead,
+    PrevisaoEntregaRemocao,
+    ReativacaoUnidadeCreate,
     UnidadeRead,
     UnidadeUpdate,
-    VincularLegadaCreate,
 )
+from app.services import cancelamento_unidade as servico_cancelamento
 from app.services import entregas_equipamento as servico
+from app.services import previsoes_entrega as servico_previsao
 
 router = APIRouter(prefix="/monitoramento", tags=["entregas"])
 
@@ -52,6 +59,16 @@ def corrigir_unidade(
     return servico.corrigir_unidade(unidade_id=unidade_id, dados=corpo, db=db, usuario=usuario)
 
 
+@router.patch("/entregas/{entrega_id}/data", response_model=EntregaRead)
+def corrigir_data_entrega(
+    entrega_id: int,
+    corpo: CorrecaoDataEntrega,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico.corrigir_data_entrega(entrega_id=entrega_id, dados=corpo, db=db, usuario=usuario)
+
+
 @router.delete("/entregas/{entrega_id}", response_model=EntregaRead)
 def excluir_entrega(
     entrega_id: int,
@@ -62,16 +79,43 @@ def excluir_entrega(
     return servico.excluir_entrega(entrega_id=entrega_id, motivo=corpo.motivo, db=db, usuario=usuario)
 
 
-@router.get("/entregas-legadas", response_model=list[EntregaLegadaRead])
-def listar_entregas_legadas(db: Session = Depends(get_db), usuario: User = Depends(require_current_user)):
-    return servico.listar_entregas_legadas(db=db, usuario=usuario)
-
-
-@router.post("/entregas-legadas/{revisao_id}/vincular", response_model=EntregaRead, status_code=201)
-def vincular_entrega_legada(
-    revisao_id: int,
-    corpo: VincularLegadaCreate,
+@router.post("/itens/{item_id}/cancelamentos", response_model=CancelamentoUnidadeRead, status_code=201)
+def cancelar_unidade_planejada(
+    item_id: int,
+    corpo: CancelamentoUnidadeCreate,
     db: Session = Depends(get_db),
     usuario: User = Depends(require_monitoramento_editor),
 ):
-    return servico.vincular_entrega_legada(revisao_id=revisao_id, itens=corpo.itens, db=db, usuario=usuario)
+    return servico_cancelamento.cancelar_unidade_planejada(item_id=item_id, dados=corpo, db=db, usuario=usuario)
+
+
+@router.delete("/cancelamentos/{cancelamento_id}", response_model=CancelamentoUnidadeRead)
+def reativar_unidade_cancelada(
+    cancelamento_id: int,
+    corpo: ReativacaoUnidadeCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico_cancelamento.reativar_unidade_cancelada(
+        cancelamento_id=cancelamento_id, dados=corpo, db=db, usuario=usuario
+    )
+
+
+@router.put("/itens/{item_id}/previsao-entrega", response_model=PrevisaoEntregaRead)
+def definir_previsao_entrega(
+    item_id: int,
+    corpo: PrevisaoEntregaCreate,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico_previsao.definir_previsao_entrega(item_id=item_id, dados=corpo, db=db, usuario=usuario)
+
+
+@router.delete("/itens/{item_id}/previsao-entrega", response_model=PrevisaoEntregaRead)
+def remover_previsao_entrega(
+    item_id: int,
+    corpo: PrevisaoEntregaRemocao,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_monitoramento_editor),
+):
+    return servico_previsao.remover_previsao_entrega(item_id=item_id, dados=corpo, db=db, usuario=usuario)

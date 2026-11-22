@@ -33,6 +33,8 @@ export const registrarEntregaSchema = z
     dataOcorrencia: z.string().min(1, "Informe a data da entrega."),
     observacao: z.string().max(1000).optional(),
     itens: z.array(itemEntregaSchema),
+    precisaInauguracao: z.string().nullable().optional(),
+    dataInauguracao: z.string().optional(),
   })
   .superRefine((valores, ctx) => {
     if (valores.dataOcorrencia > new Date().toISOString().slice(0, 10)) {

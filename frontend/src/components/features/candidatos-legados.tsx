@@ -3,22 +3,58 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pagination } from "@/components/common/pagination";
-import { MultiSelectFilter } from "@/components/common/multi-select-filter";
 import { useCandidatosLegados } from "@/hooks/use-candidatos-legados";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
-import { ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
 import { CandidatoLegadoItem } from "./candidato-legado-item";
 import type { SituacaoLegado } from "@/services/candidatos-legados";
+import { cn } from "@/lib/utils";
 import { CandidatoLegadoTriagem } from "./candidato-legado-triagem";
+
+type Aba = "ativos" | "arquivados";
+const SITUACOES_POR_ABA: Record<Aba, SituacaoLegado[]> = {
+  ativos: ["novo", "em_analise"],
+  arquivados: ["aprovado", "rejeitado"],
+};
+const ROTULOS_ABA: Record<Aba, string> = {
+  ativos: "Aguardando",
+  arquivados: "Arquivados",
+};
 
 export function CandidatosLegados() {
   const [pagina, setPagina] = useState(1);
   const [busca, setBusca] = useState("");
-  const [situacao, setSituacao] = useState<SituacaoLegado[]>([]);
+  const [aba, setAba] = useState<Aba>("ativos");
+  const situacao = SITUACOES_POR_ABA[aba];
   const consulta = useCandidatosLegados(true, pagina, busca, situacao);
   return (
     <section aria-label="Candidatos à entrada" className="min-w-0 pb-4">
-      <div className="mb-4 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 [&>div]:max-w-none">
+      <div
+        role="tablist"
+        aria-label="Situação dos candidatos"
+        className="mb-3 inline-flex rounded-md border border-border bg-muted/40 p-0.5"
+      >
+        {(Object.keys(ROTULOS_ABA) as Aba[]).map((chave) => (
+          <button
+            key={chave}
+            type="button"
+            role="tab"
+            aria-selected={aba === chave}
+            className={cn(
+              "h-8 rounded-[5px] px-4 text-sm font-medium transition-colors",
+              aba === chave
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            onClick={() => {
+              setAba(chave);
+              setPagina(1);
+            }}
+          >
+            {ROTULOS_ABA[chave]}
+          </button>
+        ))}
+      </div>
+      <div className="mb-4 grid min-w-0 grid-cols-1 gap-2 [&>div]:max-w-none">
         <Input
           className="h-11 sm:h-8"
           aria-label="Buscar candidato legado"
@@ -27,21 +63,6 @@ export function CandidatosLegados() {
           value={busca}
           onChange={(event) => {
             setBusca(event.target.value);
-            setPagina(1);
-          }}
-        />
-        <MultiSelectFilter
-          appearance="standard"
-          placeholder="Situação"
-          selected={situacao}
-          options={Object.entries(ROTULOS_SITUACAO).map(([value, label]) => ({
-            value,
-            label,
-          }))}
-          onChange={(valores) => {
-            setSituacao(
-              valores.filter((v): v is SituacaoLegado => v in ROTULOS_SITUACAO),
-            );
             setPagina(1);
           }}
         />
@@ -60,10 +81,11 @@ export function CandidatosLegados() {
           </Button>
         </div>
       ) : consulta.data?.total === 0 ? (
-        busca.trim() || situacao.length > 0 ? (
+        busca.trim() || aba === "arquivados" ? (
           <p className="py-4 text-sm text-muted-foreground">
-            Nenhum candidato com esses filtros. Limpe a busca ou a situação para
-            ver a fila inteira.
+            {busca.trim()
+              ? "Nenhum candidato com essa busca. Limpe a busca para ver a lista inteira."
+              : "Nenhum candidato arquivado. Aprovados e rejeitados aparecem aqui."}
           </p>
         ) : (
           <div className="space-y-1 py-4 text-sm text-muted-foreground">

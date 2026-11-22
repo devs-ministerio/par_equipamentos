@@ -14,7 +14,7 @@ import { monitoramentoKeys } from "./monitoramento-query-keys";
 afterEach(limparHooksRadar);
 
 const decisao = () => ({
-  acao: "iniciar_analise" as const,
+  acao: "rejeitar" as const,
   chave: crypto.randomUUID(),
   captura_id: 11,
   versao: 0,
@@ -122,7 +122,7 @@ describe("triagem e aprovação — domínio e cache reais", () => {
       expect(JSON.parse(String(escrita[0][1]?.body))).toEqual(dados);
       await waitFor(() =>
         expect(result.current.lista.data?.itens[0].situacao).toBe(
-          tipo === "triagem" ? "em_analise" : "aprovado",
+          tipo === "triagem" ? "rejeitado" : "aprovado",
         ),
       );
       await waitFor(() => expect(result.current.historico.data?.total).toBe(1));

@@ -1,5 +1,5 @@
 """Constraint fisica coberta por teste de violacao real (Item 1 do Plan Mode
-database 2026-09-16, `docs/arquitetura/planmode-database-2026-09-16.md`).
+database 2026-09-16, `docs/planos/planmode-database-2026-09-16.md`).
 
 Constituicao database Secao 9 exige "constraint... coberta por teste que
 confirma que a violacao e rejeitada pelo banco, nao so pela aplicacao" --

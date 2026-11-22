@@ -85,7 +85,7 @@ interface Props {
  * agregacao nenhuma no meio.
  *
  * Geometria vem de public/geo/macrorregioes.geojson (vendorizada localmente,
- * gerada a partir de docs/macroregiao.geojson com mapshaper -simplify 15%,
+ * gerada a partir de docs/assets/macroregiao.geojson com mapshaper -simplify 15%,
  * ver GEOJSON_MACRORREGIOES_URL em data/constants.ts) -- resolve o TODO
  * antigo de depender de CDN de terceiro sem fallback, e cai de 3,3 MB pra
  * ~240 KB no processo.

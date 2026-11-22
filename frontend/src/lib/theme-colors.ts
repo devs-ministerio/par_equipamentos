@@ -15,20 +15,3 @@ export function resolveThemeColor(cssVarName: string): string {
     .getPropertyValue(cssVarName)
     .trim();
 }
-
-/** Conveniencia: resolve de uma vez as cores mais usadas por
- * MacroMap.tsx/MacroMapReal.tsx, pra nao espalhar strings '--nome-var'
- * cruas pelos componentes de mapa. */
-export function getMapThemeColors() {
-  return {
-    primary: resolveThemeColor("--primary"),
-    foreground: resolveThemeColor("--foreground"),
-    background: resolveThemeColor("--background"),
-    muted: resolveThemeColor("--muted"),
-    mutedForeground: resolveThemeColor("--muted-foreground"),
-    destructive: resolveThemeColor("--destructive"),
-    destructiveBg: resolveThemeColor("--destructive-bg"),
-    success: resolveThemeColor("--success"),
-    successBg: resolveThemeColor("--success-bg"),
-  };
-}

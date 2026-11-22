@@ -1,0 +1,4 @@
+URL: http://localhost:5183
+E-mail: usuario-8f98993fd1@exemplo.local
+Senha: Sisgeo-ae0fe86503-Local1
+(somente banco local; não commitar)

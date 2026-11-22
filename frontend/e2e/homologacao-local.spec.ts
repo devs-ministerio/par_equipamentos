@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 import { test } from "./sessao-autenticada";
 
-test("clone local: login, dados oficiais, instrumentos e painel reais", async ({
+test("clone local: login, dados oficiais, instrumentos reais", async ({
   page,
 }) => {
   const base = process.env.E2E_BASE_URL;
@@ -25,7 +25,6 @@ test("clone local: login, dados oficiais, instrumentos e painel reais", async ({
       "/monitoramento-equipamentos/instrumentos",
       /Instrumentos|Mesa de trabalho/i,
     ],
-    ["/monitoramento-equipamentos/painel", /Painel de gestão/i],
   ] as const) {
     await page.goto(rota);
     await expect(
@@ -35,8 +34,5 @@ test("clone local: login, dados oficiais, instrumentos e painel reais", async ({
       page.getByText("Não foi possível carregar os dados", { exact: true }),
     ).toHaveCount(0);
   }
-  await expect(
-    page.getByRole("heading", { name: "Prazos e pendências" }),
-  ).toBeVisible();
   expect(falhas).toEqual([]);
 });

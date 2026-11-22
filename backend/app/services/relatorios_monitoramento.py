@@ -1,11 +1,13 @@
 """Snapshot por geração: histórico limitado aos instrumentos do recorte."""
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import date
 
 from sqlalchemy.orm import Session
 
 from app.db.models import AcaoMonitoramento, EventoMarco, MarcoCatalogo
+from app.repositories import conclusoes as conclusoes_repo
 from app.repositories import monitoramento as repo
 
 
@@ -15,6 +17,8 @@ class DadosMonitoramentoRelatorio:
     eventos_por_instrumento: dict[int, list[EventoMarco]]
     acoes_por_instrumento: dict[int, list[AcaoMonitoramento]]
     nomes_responsaveis: dict[int, str]
+    # Conclusão confirmada pela equipe (data), por instrumento.
+    conclusoes: dict[int, date] = field(default_factory=dict)
 
 
 def carregar_monitoramento_relatorio(
@@ -26,4 +30,6 @@ def carregar_monitoramento_relatorio(
     eventos = repo.listar_eventos_por_instrumentos(db, instrumento_ids)
     acoes = repo.listar_acoes_por_instrumentos(db, instrumento_ids) if com_acoes else {}
     nomes = repo.resolver_nomes_usuarios(db, (a.responsavel_id for lote in acoes.values() for a in lote))
-    return DadosMonitoramentoRelatorio(marcos, eventos, acoes, nomes)
+    return DadosMonitoramentoRelatorio(
+        marcos, eventos, acoes, nomes, conclusoes_repo.datas_conclusao_ativas(db, instrumento_ids)
+    )

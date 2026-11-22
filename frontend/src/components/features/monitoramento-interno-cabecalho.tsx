@@ -3,10 +3,7 @@
  * migração). */
 import { nupDoInstrumento } from "@/lib/nup";
 import { cn } from "@/lib/utils";
-import type {
-  EventoMarco,
-  InstrumentoTimeline,
-} from "@/services/monitoramento-instrumentos";
+import type { InstrumentoTimeline } from "@/services/monitoramento-instrumentos";
 import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import { estiloCard, StatusPill } from "./monitoramento-ui";
 
@@ -15,34 +12,31 @@ export function MonitoramentoInternoCabecalho({
   componenteViaSiconv,
   dataInauguracao,
   inaugurado,
+  inauguracaoDispensada,
   diasInauguracao,
-  registroLicenca,
-  alertaLicenca,
   acoesAbertasCount,
   acoesAtrasadasCount,
+  equipamentos,
 }: {
   timeline: InstrumentoTimeline;
   componenteViaSiconv: string | null;
   dataInauguracao: string | null;
   inaugurado: boolean;
+  inauguracaoDispensada: boolean;
   diasInauguracao: number | null;
-  registroLicenca: EventoMarco | null;
-  alertaLicenca: boolean;
   acoesAbertasCount: number;
   acoesAtrasadasCount: number;
+  /** Totais dos itens controlados; nulo quando não há item controlado. */
+  equipamentos?: {
+    entregues: number;
+    planejadas: number;
+    canceladas: number;
+  } | null;
 }) {
   const inst = timeline.instrumento;
   const aoVivo = timeline.ao_vivo;
   const nup = nupDoInstrumento(inst.tipo_contratacao, inst.nr_convenio);
   const origemAlternativa = Boolean(inst.origem_dado);
-  const numeroScra = registroLicenca?.numero_documento?.trim();
-  const documentoLicenca = numeroScra
-    ? `SCRA ${numeroScra}`
-    : "SCRA não informado";
-  const licencaDeferida = registroLicenca?.status_regulatorio === "Deferido";
-  const emissaoLicenca = registroLicenca?.data_ocorrencia
-    ? fmtData(registroLicenca.data_ocorrencia)
-    : "Data de emissão não informada";
   const prestacaoConcluida =
     inst.situacao_prestacao_contas
       ?.toLocaleLowerCase("pt-BR")
@@ -56,39 +50,35 @@ export function MonitoramentoInternoCabecalho({
 
   const indicadores = [
     {
-      rotulo: "Licença CNEN",
-      // Só licença deferida tem "emissão"; processo indeferido ou em análise mostra o andamento (D26).
-      valor: registroLicenca
-        ? `${documentoLicenca} — ${
-            licencaDeferida
-              ? emissaoLicenca
-              : (registroLicenca.status_regulatorio ?? "Sem desfecho informado")
-          }`
-        : origemAlternativa
-          ? "Não informada na fonte"
-          : "Sem registro",
-      detalhe: licencaDeferida
-        ? "Deferido"
-        : registroLicenca
-          ? "Licença ainda não emitida"
+      rotulo: "Equipamentos",
+      valor: equipamentos
+        ? `${equipamentos.entregues} de ${equipamentos.planejadas} entregues`
+        : "Sem item controlado",
+      detalhe:
+        equipamentos && equipamentos.canceladas > 0
+          ? `${equipamentos.canceladas} cancelada(s)`
           : undefined,
-      alerta: alertaLicenca,
     },
     {
       rotulo: "Inauguração",
       valor: inaugurado
-        ? "Realizada"
+        ? `Realizada em ${fmtData(dataInauguracao)}`
         : dataInauguracao
           ? "Prevista"
-          : origemAlternativa
-            ? "Não informada na fonte"
-            : "Sem previsão",
+          : inauguracaoDispensada
+            ? "Dispensada"
+            : origemAlternativa
+              ? "Não informada na fonte"
+              : "Sem previsão",
       alerta: diasInauguracao !== null && diasInauguracao < 0,
     },
     {
       rotulo: "Ações abertas",
       valor: acoesAbertasCount,
-      detalhe: `${acoesAtrasadasCount} atrasada(s)`,
+      detalhe:
+        acoesAtrasadasCount > 0
+          ? `${acoesAtrasadasCount} atrasada(s)`
+          : undefined,
       alerta: acoesAtrasadasCount > 0,
     },
     // Situação da prestação de contas no SICONV legado -- sincronizada por
@@ -100,7 +90,7 @@ export function MonitoramentoInternoCabecalho({
             rotulo: "Prestação de contas (SICONV)",
             valor: inst.situacao_prestacao_contas ?? "Sem dado",
             detalhe: !prestacaoVerificada
-              ? "Situação externa ainda não verificada"
+              ? undefined
               : divergenciaInauguracao
                 ? "Atenção: conclusão interna ainda não confirmada na fonte externa"
                 : prestacaoConcluida
@@ -110,14 +100,13 @@ export function MonitoramentoInternoCabecalho({
           },
         ]
       : []),
-    // Só PERSUS I tem "Situação do programa" (regra do produto, 29/10/2026); nos demais tipos o dado fica
-    // guardado, mas não é exibido como indicador.
-    ...(inst.situacao_programa && inst.tipo_contratacao === "PERSUS I"
+    // Só PERSUS I tem "Situação do programa" (regra do produto, 29/10/2026); mostra a fase geral calculada. O valor
+    // da fonte (`situacao_programa`) fica guardado, mas não é exibido.
+    ...(inst.fase_atual && inst.tipo_contratacao === "PERSUS I"
       ? [
           {
             rotulo: "Situação do programa",
-            valor: inst.situacao_programa,
-            detalhe: inst.origem_dado ?? "Fonte de ingestão",
+            valor: inst.fase_atual,
             alerta: false,
           },
         ]
@@ -173,10 +162,6 @@ export function MonitoramentoInternoCabecalho({
             </div>
             <div className="relative break-words text-xs text-muted-foreground">
               {inst.municipio}/{inst.uf} · CNES {inst.cnes ?? "—"}
-              {" · "}
-              <span title="Equipamento planejado (SICONV/plano de aplicação) — não editável aqui">
-                {inst.equipamento_descricao}
-              </span>
             </div>
             {/* Componente/Programa mesclados num único rótulo (Plan Mode
                 monitoramento-evolucao 2026-09-19, decisão do usuário: "serve
@@ -257,13 +242,12 @@ export function MonitoramentoInternoCabecalho({
 
         {/* Previsao de inauguracao em destaque -- so aparece quando ha
             data (evento lançado pro marco). */}
-        {dataInauguracao && (
+        {dataInauguracao && !inaugurado && (
           <div className="mt-3 pt-2.5 border-t border-border flex justify-between items-center flex-wrap gap-2">
             <span className="text-[12.5px] font-semibold">
-              {inaugurado ? "Inaugurado em" : "Previsão de inauguração:"}{" "}
-              {fmtData(dataInauguracao)}
+              Previsão de inauguração: {fmtData(dataInauguracao)}
             </span>
-            {!inaugurado && diasInauguracao !== null && (
+            {diasInauguracao !== null && (
               <span
                 className={cn(
                   "text-[11.5px] font-bold",

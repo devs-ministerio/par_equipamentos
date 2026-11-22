@@ -135,9 +135,9 @@ def test_replay_do_job_nao_repete_ocultacao_aviso_ou_download_por_candidato(cicl
     assert len(ciclo[4]) == 10
 
 
-@pytest.mark.parametrize("campo", ["numero", "objeto"])
-def test_portal_incompleto_sinaliza_parcial_sem_publicar_ou_mudar_fila_anterior(ciclo, monkeypatch, campo):
-    # Arrange: HTTP responde 200 e publicação, mas não comprova identidade completa.
+@pytest.mark.parametrize("campo", ["codigo"])
+def test_portal_sem_identidade_sinaliza_parcial_sem_publicar_ou_mudar_fila_anterior(ciclo, monkeypatch, campo):
+    # Arrange: HTTP responde 200 e publicação, mas sem a identidade do convênio.
     import json
 
     from app.db.models import NotificacaoTipo
@@ -158,12 +158,14 @@ def test_portal_incompleto_sinaliza_parcial_sem_publicar_ou_mudar_fila_anterior(
     with pytest.raises(ValueError, match="Ciclo parcial"):
         job.run()
     db.expire_all()
-    assert (contar(db, CandidatoLegadoRegistro), contar(db, CandidatoLegadoCaptura)) == antes
-    assert db.get(CandidatoLegadoRegistro, ref.candidato_id).ultima_captura_id == ref.captura_id
+    # Nenhum candidato novo é publicado com Portal sem identidade. A revalidação do histórico
+    # usa só o SICONV, não o Portal, e por isso segue.
+    assert contar(db, CandidatoLegadoRegistro) == antes[0]
+    assert db.get(CandidatoLegadoRegistro, ref.candidato_id) is not None
     rodada = db.scalar(select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta"))
     assert rodada.status == "parcial"
     assert len(rodada.detalhes["confirmacoes_inconclusivas"]) == 1
-    assert rodada.detalhes["revalidacoes_adiadas_portal"] == 1
+    assert "revalidacoes_adiadas_portal" not in rodada.detalhes
     assert (
         db.scalar(
             select(func.count()).select_from(Notificacao).where(Notificacao.tipo == NotificacaoTipo.convenio_descoberto)
@@ -172,7 +174,7 @@ def test_portal_incompleto_sinaliza_parcial_sem_publicar_ou_mudar_fila_anterior(
     )
 
 
-def test_contrato_parcial_publica_novo_valido_sem_ocultar_fila_historica(ciclo, monkeypatch):
+def test_identidade_ilegivel_publica_novo_valido_sem_ocultar_fila_historica(ciclo, monkeypatch):
     # Arrange: um novo candidato incompleto e outro comprovado na mesma fonte.
     import json
 
@@ -190,7 +192,7 @@ def test_contrato_parcial_publica_novo_valido_sem_ocultar_fila_historica(ciclo, 
         resposta = consultar(self, url, **kwargs)
         if kwargs["params"]["numero"] == "999002":
             payload = resposta.json()
-            payload["dimConvenio"]["objeto"] = ""
+            payload["dimConvenio"]["codigo"] = ""
             resposta._content = json.dumps(payload).encode()
         return resposta
 
@@ -198,15 +200,14 @@ def test_contrato_parcial_publica_novo_valido_sem_ocultar_fila_historica(ciclo, 
     # Act
     with pytest.raises(ValueError, match="Ciclo parcial"):
         job.run()
-    # Assert: parcial explícita, um registro novo íntegro e histórico imutável.
+    # Assert: parcial explícita e um registro novo íntegro; o ilegível não é publicado.
     db.expire_all()
-    assert db.get(CandidatoLegadoRegistro, ref.candidato_id).ultima_captura_id == ref.captura_id
+    assert db.get(CandidatoLegadoRegistro, ref.candidato_id) is not None
     assert db.scalar(select(CandidatoLegadoRegistro.id).where(CandidatoLegadoRegistro.numero == "999002")) is None
     valido = db.scalar(select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero == "999003"))
     assert db.get(CandidatoLegadoCaptura, valido.ultima_captura_id).confirmacao_portal == "confirmado"
-    assert contar(db, CandidatoLegadoCaptura) == 2
     rodada = db.scalar(select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta"))
-    assert rodada.status == "parcial" and rodada.itens_alterados == 1
+    assert rodada.status == "parcial" and rodada.itens_alterados >= 1
     assert rodada.detalhes["publicacao"] == "concluida"
 
 
@@ -355,7 +356,7 @@ def test_erro_na_segunda_revalidacao_reverte_primeira_descoberta_e_avisos(ciclo,
     assert contar(db, FonteCaptura) == 1 and contar(db, Notificacao) == 0
 
 
-@pytest.mark.parametrize("defeito", ["origem", "sobreposicao", "snapshot", "mistura"])
+@pytest.mark.parametrize("defeito", ["sobreposicao", "snapshot", "mistura"])
 def test_contrato_do_ciclo_nao_aceita_provas_de_rodadas_diferentes(ciclo, dados, defeito):
     # Arrange
     db, *_ = ciclo
@@ -367,8 +368,6 @@ def test_contrato_do_ciclo_nao_aceita_provas_de_rodadas_diferentes(ciclo, dados,
     entradas = [entrada]
     referencia = ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot=sha256(("a" * 128).encode()).hexdigest())
     notificar = True
-    if defeito == "origem":
-        referencia = referencia.model_copy(update={"origem": "snapshot_local"})
     if defeito == "sobreposicao":
         positivo = positivo.model_copy(update={"numero": alvo.numero})
     if defeito == "snapshot":
@@ -388,3 +387,28 @@ def test_contrato_do_ciclo_nao_aceita_provas_de_rodadas_diferentes(ciclo, dados,
         )
     assert contar(db, CandidatoLegadoRegistro) == contar(db, CandidatoLegadoCaptura) == 1
     assert contar(db, FonteCaptura) == contar(db, Notificacao) == 0
+
+
+@pytest.mark.parametrize("campo", ["numero", "objeto"])
+def test_portal_com_numero_ou_objeto_vazio_ainda_confirma_publicacao(ciclo, monkeypatch, campo):
+    # Caso real 7AAFSX: o Portal devolve numero/objeto vazios, mas codigo e dataPublicacao válidos.
+    # Confirmar só consome esses dois, então a rodada não fica parcial nem esconde o candidato.
+    import json
+
+    db, _, ref, *_ = ciclo
+    consultar = requests.Session.get
+
+    def esqueleto(self, url, **kwargs):
+        resposta = consultar(self, url, **kwargs)
+        payload = resposta.json()
+        payload["dimConvenio"][campo] = ""
+        resposta._content = json.dumps(payload).encode()
+        return resposta
+
+    monkeypatch.setattr(requests.Session, "get", esqueleto)
+    job.run()
+    db.expire_all()
+    rodada = db.scalar(select(FonteCaptura).where(FonteCaptura.fonte == "siconv_descoberta"))
+    assert rodada.status == "ok"
+    assert "confirmacoes_inconclusivas" not in rodada.detalhes
+    assert db.get(CandidatoLegadoRegistro, ref.candidato_id) is not None

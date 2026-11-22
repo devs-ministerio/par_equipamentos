@@ -342,7 +342,7 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
 ## Release de 22/10/2026 e operação de produção
 
 Resumo operacional; a versão completa, com evidências, está em `CLAUDE.md` (mesma seção) e em
-`docs/arquitetura/planmode-execucao-producao-2026-10-22.md`.
+`docs/planos/planmode-execucao-producao-2026-10-22.md`.
 
 - Ordem de release com schema novo: backup manual → pré-voo de posse (`backend/scripts/sql/normalizar_posse_aplicacao.sql`,
   como `neondb_owner`) → merge → `migrar_banco.yml` (faz checkout da `master`) → Manual Deploy no Render → verificações.

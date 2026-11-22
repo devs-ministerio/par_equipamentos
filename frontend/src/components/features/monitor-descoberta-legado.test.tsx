@@ -15,7 +15,7 @@ const coleta = {
   itens_alterados: 0,
   erro: "Últimos dados preservados.",
 };
-function apresentar(payload: unknown, status = 200) {
+function apresentar(payload: unknown, status = 200, role = "admin") {
   const fetch = vi.fn(
     async (url: string) =>
       new Response(
@@ -25,7 +25,7 @@ function apresentar(payload: unknown, status = 200) {
                 id: 1,
                 name: "Teste",
                 email: "qa@example.com",
-                role: "admin",
+                role,
                 status: "active",
                 created_at: "2026-10-06T10:00:00Z",
               }
@@ -47,6 +47,20 @@ function apresentar(payload: unknown, status = 200) {
   return fetch;
 }
 describe("Monitor de descoberta", () => {
+  it("para quem não é admin mostra só data e hora da última coleta com sucesso", async () => {
+    apresentar([coleta], 200, "gestor");
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Última coleta com sucesso:/),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/Falhou/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/verificados/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Detalhes da coleta")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Atualizar histórico/ }),
+    ).not.toBeInTheDocument();
+  });
   it("não confunde verificação da carteira com descoberta sem captura", async () => {
     apresentar([{ ...coleta, fonte: "siconv_legado" }]);
     await waitFor(() =>

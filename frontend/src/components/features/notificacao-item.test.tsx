@@ -6,7 +6,7 @@ import { NotificacaoItem } from "./notificacao-item";
 
 const aviso: Notificacao = {
   id: 1,
-  tipo: "atualizacao_api",
+  tipo: "edicao_manual",
   titulo: "Convênio 825374: atualização oficial",
   corpo: "Situação: Em execução → Concluído; Valor: 100 → 120",
   entidade_id: 1,

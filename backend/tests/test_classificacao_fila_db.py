@@ -20,7 +20,7 @@ from app.db.models import (
     User,
     UserRole,
 )
-from app.domain_errors import AuthorizationError, ValidationError
+from app.domain_errors import AuthorizationError, ConflictError, ValidationError
 from app.schemas_classificacao import DecisaoItemCreate
 from app.services import classificacao_itens_plano as svc
 
@@ -119,7 +119,9 @@ def test_segunda_decisao_substitui_a_primeira_sem_apagar(db):
     svc.decidir(item_id=item.id, dados=DecisaoItemCreate(acao="nao_equipamento"), db=db, usuario=gestor)
     svc.decidir(
         item_id=item.id,
-        dados=DecisaoItemCreate(acao="corrigir", tipo_lancamento="aquisicao", codigo_item=codigo),
+        dados=DecisaoItemCreate(
+            acao="corrigir", tipo_lancamento="aquisicao", codigo_item=codigo, situacao_esperada="aplicada"
+        ),
         db=db,
         usuario=gestor,
     )
@@ -142,6 +144,7 @@ def test_codigo_desconhecido_multiplo_sem_correcao_e_rendimento_sem_unidade(db):
             usuario=gestor,
         )
     item.tipo_lancamento = "multiplo"
+    db.flush()
     with pytest.raises(ValidationError):
         svc.decidir(item_id=item.id, dados=DecisaoItemCreate(acao="confirmar"), db=db, usuario=gestor)
     svc.decidir(
@@ -151,3 +154,31 @@ def test_codigo_desconhecido_multiplo_sem_correcao_e_rendimento_sem_unidade(db):
         usuario=gestor,
     )
     assert item.tipo_lancamento == "rendimento_aplicacao" and item.controla_unidade is False
+
+
+def test_decisao_sobre_item_que_mudou_desde_a_leitura_e_recusada(db):
+    _, item, *_ = _cenario(db)
+    gestor = _usuario(db, UserRole.gestor)
+    svc.decidir(item_id=item.id, dados=DecisaoItemCreate(acao="nao_equipamento"), db=db, usuario=gestor)
+    # Decisão atrasada de quem ainda via o item como pendente.
+    with pytest.raises(ConflictError, match="mudou"):
+        svc.decidir(item_id=item.id, dados=DecisaoItemCreate(acao="confirmar"), db=db, usuario=gestor)
+    assert db.get(type(item), item.id).tipo_lancamento == "nao_equipamento"
+
+
+def test_decisao_em_instrumento_concluido_exige_reabrir(db):
+    from datetime import date
+
+    from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo
+
+    conv, item, *_ = _cenario(db)
+    gestor = _usuario(db, UserRole.gestor)
+    instrumento = InstrumentoEquipamento(nr_convenio=conv.numero, nome_convenente="x", tipo_contratacao="Convênio")
+    db.add(instrumento)
+    db.flush()
+    item.instrumento_id = instrumento.id
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    db.add(EventoMarco(instrumento_id=instrumento.id, marco_id=marco.id, data_ocorrencia=date.today()))
+    db.flush()
+    with pytest.raises(ConflictError, match="Reabra"):
+        svc.decidir(item_id=item.id, dados=DecisaoItemCreate(acao="nao_equipamento"), db=db, usuario=gestor)

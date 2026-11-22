@@ -19,11 +19,13 @@ export function AgendaExecutiva({
   licencas: LicencaVencendoResumo[];
 }) {
   const itens = [
-    ...licencas.map((item) => ({
-      chave: `licenca-${item.nr_convenio}`,
+    ...licencas.map((item, i) => ({
+      chave: `licenca-${item.nr_convenio}-${i}`,
       nr: item.nr_convenio,
       titulo: item.nome_convenente,
-      meta: "Licença CNEN",
+      meta: item.area
+        ? `Licença de operação · ${item.area}`
+        : "Licença de operação",
       prazo:
         item.dias < 0
           ? `Vencida há ${Math.abs(item.dias)} dias`

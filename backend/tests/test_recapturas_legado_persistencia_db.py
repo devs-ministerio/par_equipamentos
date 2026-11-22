@@ -59,7 +59,7 @@ def test_persiste_sem_arredondar_ou_normalizar_situacao_oficial(matriz):
     repositorio.adicionar(db, registro)
     db.commit()
     db.expire_all()
-    salvo = repositorio.obter_por_rodada(db, candidato.id, fonte.id)
+    salvo = repositorio.obter_por_identidade(db, registro.id, captura.id, candidato.id)
     assert salvo is not None
     assert salvo.valor_global == Decimal("1000.1234567890123456789")
     assert salvo.situacao == "Prestação de Contas Concluída"
@@ -68,7 +68,6 @@ def test_persiste_sem_arredondar_ou_normalizar_situacao_oficial(matriz):
     assert identidade is not None
     assert identidade.id == registro.id
     assert repositorio.obter_por_identidade(db, registro.id, captura.id, outro.id) is None
-    assert repositorio.obter_por_rodada(db, outro.id, fonte.id) is None
 
 
 @pytest.mark.parametrize(

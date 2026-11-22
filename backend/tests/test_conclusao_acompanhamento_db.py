@@ -1,0 +1,639 @@
+"""Conclusão do acompanhamento: resultado calculado, impedimentos, bloqueios e reabertura."""
+
+from __future__ import annotations
+
+from datetime import date, datetime, timedelta, timezone
+
+import pytest
+from sqlalchemy import select
+
+from app.db.models import AcaoMonitoramento, EntregaLegadaRevisao, EventoMarco, MarcoCatalogo
+from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
+from app.repositories.conclusoes import LIMITE_ACOES
+from app.schemas_conclusao import ConclusaoCreate, ReaberturaCreate
+from app.schemas_entregas import CancelamentoUnidadeCreate
+from app.services import cancelamento_unidade
+from app.services import conclusao_acompanhamento as svc
+from app.services import entregas_equipamento as entregas
+from app.services.conclusao_acompanhamento import ItemParaConclusao as I
+from app.services.fase_acompanhamento import FaseAcompanhamento, calcular_fase_acompanhamento
+from app.services.repasses import fatos_do_instrumento
+from tests.test_entregas_equipamento_db import Cenario, _dados, _item, db  # noqa: F401
+
+pytestmark = pytest.mark.db
+
+
+@pytest.mark.parametrize(
+    "itens,esperado",
+    [
+        ([], "sem_entregas"),
+        ([I(2, 0, 2)], "sem_entregas"),
+        ([I(2, 2, 0)], "integral"),
+        ([I(2, 2, 0), I(1, 1, 0)], "integral"),
+        ([I(2, 1, 1)], "parcial"),
+        ([I(2, 2, 0), I(1, 0, 1)], "parcial"),
+        ([I(None, 1, 0)], "integral"),
+    ],
+)
+def test_calcula_o_resultado(itens, esperado):
+    assert svc.calcular_resultado(itens) == esperado
+
+
+@pytest.mark.parametrize(
+    "item,pendentes",
+    [(I(2, 0, 0), 2), (I(2, 1, 0), 1), (I(2, 1, 1), 0), (I(2, 0, 2), 0), (I(None, 0, 0), 1), (I(None, 1, 0), 0)],
+)
+def test_unidades_pendentes(item, pendentes):
+    assert svc.unidades_pendentes(item) == pendentes
+
+
+def _preparar(sessao) -> Cenario:
+    c = Cenario(sessao)
+    c.sem_qtd.ativo = False  # item sem quantidade nunca prova entrega completa
+    sessao.flush()
+    return c
+
+
+def _confirmar(resultado, **kw) -> ConclusaoCreate:
+    return ConclusaoCreate(resultado_confirmado=resultado, data_conclusao=date.today(), **kw)
+
+
+def _entregar_tudo(sessao, c):
+    entregas.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2), _item(c.um)), db=sessao, usuario=c.titular
+    )
+
+
+def test_revisao_de_entrega_antiga_guardada_so_como_historico_nao_impede_concluir(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    evento = db.scalars(select(EventoMarco).where(EventoMarco.instrumento_id == c.inst.id)).first()
+    db.add(EntregaLegadaRevisao(instrumento_id=c.inst.id, evento_id=evento.id, motivo="varios_itens"))
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.impedimentos == []
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+
+
+def test_conclui_integral_sem_justificativa_e_a_fase_vira_concluido(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.resultado == "integral" and avaliacao.impedimentos == [] and not avaliacao.exige_justificativa
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+    fase = calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst))
+    assert fase == FaseAcompanhamento.concluido
+
+
+def _cancelar_tudo(sessao, c):
+    for item, quantidade in ((c.dois, 2), (c.um, 1)):
+        for _ in range(quantidade):
+            cancelamento_unidade.cancelar_unidade_planejada(
+                item_id=item.id,
+                dados=CancelamentoUnidadeCreate(motivo="Convenente desistiu"),
+                db=sessao,
+                usuario=c.titular,
+            )
+
+
+def test_item_pendente_impede_concluir_mesmo_sem_nenhuma_entrega(db):  # noqa: F811
+    c = _preparar(db)
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert {i.tipo for i in avaliacao.impedimentos} == {"item_pendente"}
+    assert len(avaliacao.impedimentos) == 2 and avaliacao.itens_completos == 0
+    with pytest.raises(ValidationError, match="sem entrega nem cancelamento"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=_confirmar("sem_entregas", justificativa="Encerrado"),
+            db=db,
+            usuario=c.titular,
+        )
+
+
+def test_entrega_parcial_com_unidade_pendente_nao_conclui(db):  # noqa: F811
+    c = _preparar(db)
+    entregas.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um), _item(c.dois, 1)), db=db, usuario=c.titular
+    )
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert [i.tipo for i in avaliacao.impedimentos] == ["item_pendente"]
+
+
+def test_sem_entregas_so_quando_tudo_foi_cancelado_e_exige_justificativa(db):  # noqa: F811
+    c = _preparar(db)
+    _cancelar_tudo(db, c)
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.resultado == "sem_entregas" and avaliacao.impedimentos == [] and avaliacao.exige_justificativa
+    with pytest.raises(ValidationError, match="justificativa"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio, dados=_confirmar("sem_entregas"), db=db, usuario=c.titular
+        )
+    feito = svc.concluir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_confirmar("sem_entregas", justificativa="Convênio encerrado sem entregas"),
+        db=db,
+        usuario=c.titular,
+    )
+    assert feito.resultado == "sem_entregas"
+
+
+def test_parcial_entrega_mais_cancelamento_exige_justificativa(db):  # noqa: F811
+    c = _preparar(db)
+    entregas.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
+    for _ in range(2):
+        cancelamento_unidade.cancelar_unidade_planejada(
+            item_id=c.dois.id, dados=CancelamentoUnidadeCreate(motivo="Convenente desistiu"), db=db, usuario=c.titular
+        )
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.resultado == "parcial" and avaliacao.impedimentos == []
+    with pytest.raises(ValidationError, match="justificativa"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio, dados=_confirmar("parcial"), db=db, usuario=c.titular
+        )
+
+
+def test_instrumento_sem_item_controlado_nao_conclui(db):  # noqa: F811
+    c = _preparar(db)
+    for item in (c.dois, c.um):
+        item.ativo = False
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert [i.tipo for i in avaliacao.impedimentos] == ["sem_item_controlado"]
+
+
+def test_resultado_desatualizado_e_recusado(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    with pytest.raises(ConflictError, match="mudou"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=_confirmar("parcial", justificativa="x" * 10),
+            db=db,
+            usuario=c.titular,
+        )
+
+
+def test_acao_aberta_impede_a_conclusao(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Cobrar relatório fotográfico"))
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert [i.tipo for i in avaliacao.impedimentos] == ["acao_aberta"]
+    with pytest.raises(ValidationError, match="pendências"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular
+        )
+
+
+def test_acoes_alem_do_teto_de_exibicao_continuam_impedindo_e_sao_resumidas(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    db.add_all(AcaoMonitoramento(instrumento_id=c.inst.id, descricao=f"Ação {n}") for n in range(LIMITE_ACOES))
+    db.flush()
+    exatas = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert len(exatas.impedimentos) == LIMITE_ACOES
+    assert not any(i.descricao.startswith("E mais") for i in exatas.impedimentos)
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Uma a mais"))
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert len(avaliacao.impedimentos) == LIMITE_ACOES + 1
+    assert avaliacao.impedimentos[-1].descricao == "E mais 1 ação(ões) aberta(s)."
+    with pytest.raises(ValidationError, match="pendências"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular
+        )
+    for acao in db.scalars(select(AcaoMonitoramento).where(AcaoMonitoramento.instrumento_id == c.inst.id)):
+        acao.data_conclusao = date.today()
+    db.flush()
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).impedimentos == []
+
+
+def test_concluido_bloqueia_entrega_e_cancelamento_ate_reabrir(db):  # noqa: F811
+    c = _preparar(db)
+    entregas.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um), _item(c.dois, 1)), db=db, usuario=c.titular
+    )
+    cancelamento_unidade.cancelar_unidade_planejada(
+        item_id=c.dois.id, dados=CancelamentoUnidadeCreate(motivo="Convenente desistiu"), db=db, usuario=c.titular
+    )
+    svc.concluir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_confirmar("parcial", justificativa="Uma unidade do mamógrafo foi cancelada"),
+        db=db,
+        usuario=c.titular,
+    )
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) == FaseAcompanhamento.concluido
+    with pytest.raises(ConflictError, match="concluído"):
+        entregas.registrar_entrega(
+            nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois)), db=db, usuario=c.titular
+        )
+    with pytest.raises(ConflictError, match="concluído"):
+        cancelamento_unidade.cancelar_unidade_planejada(
+            item_id=c.dois.id, dados=CancelamentoUnidadeCreate(motivo="Convenente desistiu"), db=db, usuario=c.titular
+        )
+    svc.reabrir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=ReaberturaCreate(motivo="Cancelamento lançado por engano"),
+        db=db,
+        usuario=c.titular,
+    )
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
+
+
+def test_nao_conclui_duas_vezes_nem_reabre_o_que_nao_esta_concluido(db):  # noqa: F811
+    c = _preparar(db)
+    with pytest.raises(NotFoundError):
+        svc.reabrir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=ReaberturaCreate(motivo="Sem conclusão ativa"),
+            db=db,
+            usuario=c.titular,
+        )
+    _cancelar_tudo(db, c)
+    dados = _confirmar("sem_entregas", justificativa="Encerrado sem entregas")
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    with pytest.raises(ConflictError, match="já está concluído"):
+        svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+
+
+def test_data_futura_e_permissao(db):  # noqa: F811
+    c = _preparar(db)
+    _cancelar_tudo(db, c)
+    amanha = ConclusaoCreate(
+        resultado_confirmado="sem_entregas",
+        data_conclusao=date.today() + timedelta(days=1),
+        justificativa="Encerrado sem entregas",
+    )
+    with pytest.raises(ValidationError, match="futuro"):
+        svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=amanha, db=db, usuario=c.titular)
+    dados = _confirmar("sem_entregas", justificativa="Encerrado sem entregas")
+    for usuario in (c.outro, c.leitor):
+        with pytest.raises(AuthorizationError):
+            svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=usuario)
+
+
+def test_evento_realizado_de_instalacao_inicia_o_pos_entrega(db):  # noqa: F811
+    c = _preparar(db)
+    entregas.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) == FaseAcompanhamento.equipamento_entregue
+    marco = db.scalar(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "cronograma_instalacao_inicio"))
+    previsto = EventoMarco(instrumento_id=c.inst.id, marco_id=marco.id, data_prevista=date.today())
+    db.add(previsto)
+    db.flush()
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) == FaseAcompanhamento.equipamento_entregue
+    previsto.data_ocorrencia = date.today()
+    db.flush()
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) == FaseAcompanhamento.pos_entrega
+
+
+def test_concluido_trava_todas_as_edicoes_ate_reabrir(db):  # noqa: F811
+    from app.schemas_documentos import DocumentoCreate
+    from app.schemas_entregas import PrevisaoEntregaCreate
+    from app.schemas_repasses import RepasseCreate
+    from app.services import documentos_instrumento, monitoramento_acoes, monitoramento_cadastro, previsoes_entrega
+    from app.services.repasses import registrar_repasse_manual
+
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+    nr = c.inst.nr_convenio
+    tentativas = [
+        lambda: monitoramento_acoes.registrar_acao_monitorada(
+            nr_convenio=nr,
+            descricao="Ligar para o convenente",
+            data_prevista=None,
+            responsavel=None,
+            db=db,
+            usuario=c.titular,
+        ),
+        lambda: documentos_instrumento.registrar_documento(
+            nr_convenio=nr,
+            dados=DocumentoCreate(tipo="nota_fiscal", numero="1", data_documento=date.today()),
+            db=db,
+            usuario=c.titular,
+        ),
+        lambda: monitoramento_cadastro.atualizar_cadastro_instrumento(
+            nr_convenio=nr, alteracoes_brutas={"nivel": "Alto"}, db=db, usuario=c.titular
+        ),
+        lambda: previsoes_entrega.definir_previsao_entrega(
+            item_id=c.um.id,
+            dados=PrevisaoEntregaCreate(data_prevista=date.today() + timedelta(days=30)),
+            db=db,
+            usuario=c.titular,
+        ),
+        lambda: registrar_repasse_manual(
+            nr_convenio=nr, dados=RepasseCreate(tipo="integral"), db=db, usuario=c.titular
+        ),
+    ]
+    for tentar in tentativas:
+        with pytest.raises(ConflictError, match="Reabra"):
+            tentar()
+    svc.reabrir_acompanhamento(
+        nr_convenio=nr, dados=ReaberturaCreate(motivo="Correção de lançamento"), db=db, usuario=c.titular
+    )
+    monitoramento_acoes.registrar_acao_monitorada(
+        nr_convenio=nr,
+        descricao="Ligar para o convenente",
+        data_prevista=None,
+        responsavel=None,
+        db=db,
+        usuario=c.titular,
+    )
+
+
+def test_evento_antigo_fase_concluido_tambem_trava_e_pode_ser_reaberto(db):  # noqa: F811
+    c = _preparar(db)
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    db.add(
+        EventoMarco(
+            instrumento_id=c.inst.id,
+            marco_id=marco.id,
+            data_ocorrencia=date.today(),
+            autor_id=c.titular.id,
+        )
+    )
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.conclusao is not None
+    assert avaliacao.conclusao.data_conclusao == date.today()
+    with pytest.raises(ConflictError, match="Reabra"):
+        entregas.registrar_entrega(
+            nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois)), db=db, usuario=c.titular
+        )
+    svc.reabrir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=ReaberturaCreate(motivo="Conclusão antiga lançada por engano"),
+        db=db,
+        usuario=c.titular,
+    )
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
+
+
+def test_evento_antigo_sem_data_nao_inventa_a_data_do_dia(db):  # noqa: F811
+    c = _preparar(db)
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    db.add(EventoMarco(instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=None, autor_id=c.titular.id))
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.conclusao is not None and avaliacao.conclusao.data_conclusao is None
+
+
+def test_reabrir_desfaz_tambem_o_evento_antigo_que_coexiste_com_a_conclusao_confirmada(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    db.add(
+        EventoMarco(instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=date.today(), autor_id=c.titular.id)
+    )
+    db.flush()
+    svc.reabrir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio, dados=ReaberturaCreate(motivo="Reabertura de teste"), db=db, usuario=c.titular
+    )
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
+    assert calcular_fase_acompanhamento(fatos_do_instrumento(db, c.inst)) != FaseAcompanhamento.concluido
+    svc.assert_nao_concluido(db, c.inst.id)
+
+
+def test_script_conclui_persus_i_na_data_da_inauguracao_so_sem_pendencia(db):  # noqa: F811
+    from scripts import concluir_persus_i_pela_inauguracao as script
+    from scripts.migrar_concluidos_para_conclusao import MOTIVO_REVISAO
+
+    c = _preparar(db)
+    c.inst.tipo_contratacao = "PERSUS I"
+    marco = db.execute(
+        select(MarcoCatalogo).where(MarcoCatalogo.codigo == "cronograma_previsao_inauguracao")
+    ).scalar_one()
+    inauguracao = date.today() - timedelta(days=40)
+    db.add(EventoMarco(instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=inauguracao, autor_id=c.titular.id))
+    db.flush()
+    contagem, ficam = script.executar(db, aplicar=True)
+    assert contagem["fora do escopo: nunca concluído"] >= 1  # sem conclusão antiga, o script não conclui
+    antigo = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    # conclusão antiga já desfeita pela migração (instrumento aguardando revisão da equipe)
+    db.add(
+        EventoMarco(
+            instrumento_id=c.inst.id,
+            marco_id=antigo.id,
+            data_ocorrencia=inauguracao,
+            autor_id=c.titular.id,
+            deletado_em=datetime.now(timezone.utc),
+            motivo_exclusao=MOTIVO_REVISAO,
+        )
+    )
+    db.flush()
+    contagem, ficam = script.executar(db, aplicar=True)
+    assert (c.inst.nr_convenio, "item_pendente") in ficam  # sem entrega ainda: nada conclui
+    _entregar_tudo(db, c)
+    contagem, ficam = script.executar(db, aplicar=True)
+    assert contagem["concluído"] >= 1
+    conclusao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao
+    assert conclusao is not None
+    assert conclusao.data_conclusao == inauguracao and conclusao.data_inauguracao == inauguracao
+    assert script.executar(db, aplicar=True)[0]["concluído"] == 0  # idempotente
+    # A equipe reabre de propósito: nova execução não conclui de novo.
+    svc.reabrir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=ReaberturaCreate(motivo="Reaberto pela equipe para conferência"),
+        db=db,
+        usuario=c.titular,
+    )
+    db.flush()
+    contagem, _ = script.executar(db, aplicar=True)
+    assert contagem["concluído"] == 0
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
+
+
+def _marco(db, codigo):  # noqa: F811
+    return db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == codigo)).scalar_one()
+
+
+def _inauguracao_ativa(db, c):  # noqa: F811
+    marco = _marco(db, "cronograma_previsao_inauguracao")
+    return db.execute(
+        select(EventoMarco).where(
+            EventoMarco.instrumento_id == c.inst.id,
+            EventoMarco.marco_id == marco.id,
+            EventoMarco.substituido_por_id.is_(None),
+            EventoMarco.deletado_em.is_(None),
+        )
+    ).scalar_one_or_none()
+
+
+def test_inauguracao_informada_ao_concluir_vira_realizada_no_lugar_da_previsao(db):  # noqa: F811
+    c = _preparar(db)
+    previsao = EventoMarco(
+        instrumento_id=c.inst.id,
+        marco_id=_marco(db, "cronograma_previsao_inauguracao").id,
+        data_prevista=date.today() + timedelta(days=30),
+        autor_id=c.titular.id,
+    )
+    db.add(previsao)
+    db.flush()
+    _entregar_tudo(db, c)
+    data = date.today() - timedelta(days=3)
+    svc.concluir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_confirmar("integral", data_inauguracao=data),
+        db=db,
+        usuario=c.titular,
+    )
+    vigente = _inauguracao_ativa(db, c)
+    assert vigente is not None and vigente.data_ocorrencia == data and vigente.id != previsao.id
+    assert previsao.substituido_por_id == vigente.id
+
+
+def test_inauguracao_em_branco_ao_concluir_nao_cria_evento(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    svc.concluir_acompanhamento(nr_convenio=c.inst.nr_convenio, dados=_confirmar("integral"), db=db, usuario=c.titular)
+    assert _inauguracao_ativa(db, c) is None
+
+
+def test_inauguracao_futura_ou_depois_da_conclusao_e_recusada_sem_gravar(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    futura = date.today() + timedelta(days=1)
+    with pytest.raises(ValidationError, match="futuro"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=ConclusaoCreate(
+                resultado_confirmado="integral", data_conclusao=date.today(), data_inauguracao=futura
+            ),
+            db=db,
+            usuario=c.titular,
+        )
+    with pytest.raises(ValidationError, match="depois da data de conclusão"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=ConclusaoCreate(
+                resultado_confirmado="integral",
+                data_conclusao=date.today() - timedelta(days=5),
+                data_inauguracao=date.today() - timedelta(days=2),
+            ),
+            db=db,
+            usuario=c.titular,
+        )
+    assert _inauguracao_ativa(db, c) is None
+    assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
+
+
+def test_inauguracao_dispensada_ou_ja_realizada_nao_aceita_outra_data(db):  # noqa: F811
+    c = _preparar(db)
+    _entregar_tudo(db, c)
+    dispensada = EventoMarco(
+        instrumento_id=c.inst.id,
+        marco_id=_marco(db, "cronograma_inauguracao_dispensada").id,
+        observacao="Dispensada na entrega",
+        autor_id=c.titular.id,
+    )
+    db.add(dispensada)
+    db.flush()
+    with pytest.raises(ValidationError, match="dispensada"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=_confirmar("integral", data_inauguracao=date.today()),
+            db=db,
+            usuario=c.titular,
+        )
+    dispensada.deletado_em = datetime.now(timezone.utc)
+    realizada_em = date.today() - timedelta(days=10)
+    db.add(
+        EventoMarco(
+            instrumento_id=c.inst.id,
+            marco_id=_marco(db, "cronograma_previsao_inauguracao").id,
+            data_ocorrencia=realizada_em,
+            autor_id=c.titular.id,
+        )
+    )
+    db.flush()
+    with pytest.raises(ValidationError, match="Já existe inauguração realizada"):
+        svc.concluir_acompanhamento(
+            nr_convenio=c.inst.nr_convenio,
+            dados=_confirmar("integral", data_inauguracao=date.today()),
+            db=db,
+            usuario=c.titular,
+        )
+    svc.concluir_acompanhamento(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_confirmar("integral", data_inauguracao=realizada_em),
+        db=db,
+        usuario=c.titular,
+    )
+
+
+def test_avaliacao_informa_a_situacao_da_inauguracao(db):  # noqa: F811
+    c = _preparar(db)
+    nr = c.inst.nr_convenio
+    assert svc.avaliar_conclusao(nr_convenio=nr, db=db, usuario=c.titular).inauguracao.situacao == "sem_resposta"
+    previsao = EventoMarco(
+        instrumento_id=c.inst.id,
+        marco_id=_marco(db, "cronograma_previsao_inauguracao").id,
+        data_prevista=date.today() + timedelta(days=20),
+        autor_id=c.titular.id,
+    )
+    db.add(previsao)
+    db.flush()
+    inaug = svc.avaliar_conclusao(nr_convenio=nr, db=db, usuario=c.titular).inauguracao
+    assert (inaug.situacao, inaug.data_prevista) == ("prevista", previsao.data_prevista)
+    previsao.data_ocorrencia = date.today() - timedelta(days=1)
+    db.flush()
+    inaug = svc.avaliar_conclusao(nr_convenio=nr, db=db, usuario=c.titular).inauguracao
+    assert (inaug.situacao, inaug.data_realizada) == ("realizada", previsao.data_ocorrencia)
+
+
+def test_acoes_do_instrumento_ignora_outros_instrumentos_e_o_teto_da_carteira(db):  # noqa: F811
+    from app.services.monitoramento_acoes import listar_acoes_do_instrumento
+
+    c = _preparar(db)
+    outro = Cenario(db)
+    db.add_all(
+        AcaoMonitoramento(instrumento_id=outro.inst.id, descricao=f"De outro {n}", data_prevista=date(2020, 1, 1))
+        for n in range(5)
+    )
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Sem data"))
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Feita", data_conclusao=date(2026, 1, 1)))
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Excluída", deletado_em=datetime.now(timezone.utc)))
+    db.flush()
+    acoes, total, abertas, atrasadas = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=False, limit=10, db=db
+    )
+    # Pendente primeiro, depois a concluída.
+    assert [a.descricao for a in acoes] == ["Sem data", "Feita"] and total == 2
+    assert (abertas, atrasadas) == (1, 0)
+    pendentes, total_pendentes, abertas_filtro, _ = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=True, limit=10, db=db
+    )
+    assert [a.descricao for a in pendentes] == ["Sem data"] and total_pendentes == 1 and abertas_filtro == 1
+    # Teto: devolve só o que cabe, mas o total conta tudo e a pendência não fica de fora.
+    cortadas, total_cortado, abertas_cortado, _ = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=False, limit=1, db=db
+    )
+    assert [a.descricao for a in cortadas] == ["Sem data"] and total_cortado == 2 and abertas_cortado == 1
+
+
+def test_acoes_do_instrumento_contam_abertas_e_atrasadas_do_instrumento_inteiro_alem_do_teto(db):  # noqa: F811
+    from app.services.monitoramento_acoes import listar_acoes_do_instrumento
+
+    c = _preparar(db)
+    db.add_all(
+        AcaoMonitoramento(instrumento_id=c.inst.id, descricao=f"Feita {n}", data_conclusao=date(2026, 1, 1))
+        for n in range(3)
+    )
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="Atrasada", data_prevista=date(2020, 1, 1)))
+    db.add(AcaoMonitoramento(instrumento_id=c.inst.id, descricao="No prazo", data_prevista=date(2999, 1, 1)))
+    db.flush()
+    acoes, total, abertas, atrasadas = listar_acoes_do_instrumento(
+        nr_convenio=c.inst.nr_convenio, pendentes=False, limit=2, db=db
+    )
+    assert [a.descricao for a in acoes] == ["Atrasada", "No prazo"]  # as abertas entram antes das concluídas
+    assert (total, abertas, atrasadas) == (5, 2, 1)
+
+
+def test_acoes_do_instrumento_inexistente_da_404(db):  # noqa: F811
+    from app.services.monitoramento_acoes import listar_acoes_do_instrumento
+
+    with pytest.raises(NotFoundError):
+        listar_acoes_do_instrumento(nr_convenio="NAO-EXISTE", pendentes=False, limit=10, db=db)

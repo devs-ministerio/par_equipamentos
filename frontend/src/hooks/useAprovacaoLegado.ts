@@ -47,9 +47,10 @@ export function useAprovacaoLegado(
           queryKey: ["prova-legado", usuarioAtual?.id, candidato.id],
         }),
         client.invalidateQueries({ queryKey: ["convenios-lista"] }),
+        client.invalidateQueries({ queryKey: ["monitoramento"] }),
         client.invalidateQueries({ queryKey: ["notificacoes"] }),
       ]);
-      toast.success("Convênio aprovado e incluído em Instrumentos/programas.");
+      toast.success("Convênio aprovado e incluído no monitoramento.");
     },
     onError: (erro) => {
       if (erro instanceof ApiError && erro.status === 401)

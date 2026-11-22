@@ -1,17 +1,47 @@
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { DetalhesAnimados } from "@/components/common/detalhes-animados";
-import {
-  CLASSES_SITUACAO,
-  ROTULOS_SITUACAO,
-  ROTULOS_CONFIRMACAO,
-  ROTULOS_RELACAO,
-} from "@/lib/legado-rotulos";
+import { CLASSES_SITUACAO, ROTULOS_SITUACAO } from "@/lib/legado-rotulos";
+import { fmtData, fmtMoeda } from "@/lib/monitoramento-format";
 import type { CandidatoLegado } from "@/services/candidatos-legados";
+import { CandidatoLegadoItensDialog } from "./candidato-legado-itens-dialog";
 import { estiloCard } from "./monitoramento-ui";
 import type { ReactNode } from "react";
 
-/** Texto original e proveniência permanecem acessíveis sem alongar a fila. */
+const MS_DIA = 86_400_000;
+
+function diasDesde(iso: string): number {
+  return Math.max(
+    0,
+    Math.floor((Date.now() - new Date(iso).getTime()) / MS_DIA),
+  );
+}
+
+/** Pendente do Portal: o candidato já aparece, mas só aprova depois da confirmação. */
+function PortalPendente({ candidato }: { candidato: CandidatoLegado }) {
+  const aberta =
+    candidato.situacao === "novo" || candidato.situacao === "em_analise";
+  if (!aberta || candidato.confirmacao_portal === "confirmado") return null;
+  const dias = diasDesde(candidato.descoberto_em);
+  return (
+    <Badge
+      variant="outline"
+      className="max-w-full whitespace-normal border-warning/25 bg-warning/10 text-xs text-warning"
+    >
+      Portal pendente ·{" "}
+      {dias === 0 ? "hoje" : `há ${dias} ${dias === 1 ? "dia" : "dias"}`}
+    </Badge>
+  );
+}
+
+function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{rotulo}</dt>
+      <dd className="text-sm">{valor}</dd>
+    </div>
+  );
+}
+
+/** Só o que a equipe precisa para decidir: componente, valor, local e datas. */
 export function CandidatoLegadoItem({
   candidato,
   children,
@@ -19,8 +49,6 @@ export function CandidatoLegadoItem({
   candidato: CandidatoLegado;
   children?: ReactNode;
 }) {
-  const [detalheAberto, setDetalheAberto] = useState(false);
-  const equipamentos = [...new Set(candidato.evidencias.map((e) => e.nome))];
   const componentes = [
     ...new Set(candidato.componentes.map((c) => c.componente)),
   ];
@@ -29,61 +57,39 @@ export function CandidatoLegadoItem({
       className={`${estiloCard} min-w-0 border-l-[3px] border-l-primary [overflow-wrap:anywhere]`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-display text-base font-semibold tracking-tight">
-          Convênio {candidato.numero}
-        </h3>
-        <Badge
-          variant="outline"
-          className={`max-w-full whitespace-normal text-xs ${CLASSES_SITUACAO[candidato.situacao]}`}
-        >
-          {ROTULOS_SITUACAO[candidato.situacao]}
-        </Badge>
-      </div>
-      <p className="mt-2 text-sm font-medium">{equipamentos.join(" · ")}</p>
-      {componentes.length > 0 && (
-        <div className="mt-2 min-w-0 text-sm leading-relaxed">
-          <span className="text-xs text-muted-foreground">Componente</span>
-          <p className="mt-1">{componentes.join(" · ")}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h3 className="font-display text-base font-semibold tracking-tight">
+            Convênio {candidato.numero}
+          </h3>
+          <CandidatoLegadoItensDialog candidato={candidato} />
         </div>
-      )}
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        {candidato.origem === "snapshot_local" && (
-          <span>Snapshot local · frescor não confirmado</span>
-        )}
-      </div>
-      <DetalhesAnimados
-        className="mt-3"
-        aberto={detalheAberto}
-        onAbertoChange={setDetalheAberto}
-      >
-        <div className="mt-3 border-l-2 border-border pl-4">
-          <p className="mb-3 text-xs text-muted-foreground">
-            Proposta {candidato.id_proposta}
-          </p>
-          <p className="mb-3 text-xs text-muted-foreground">
-            {ROTULOS_CONFIRMACAO[candidato.confirmacao_portal]}
-          </p>
-          <ul className="space-y-4">
-            {candidato.evidencias.map((e) => (
-              <li key={`${e.id_item}-${e.codigo}`}>
-                <p className="text-xs font-medium">
-                  {ROTULOS_RELACAO[e.relacao]} · Item {e.id_item}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  {e.descricao}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs text-muted-foreground">
-            {candidato.origem === "snapshot_local"
-              ? "Snapshot local"
-              : "Captura do SICONV"}{" "}
-            · Verificado em{" "}
-            {new Date(candidato.verificado_em).toLocaleString("pt-BR")}
-          </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <PortalPendente candidato={candidato} />
+          <Badge
+            variant="outline"
+            className={`max-w-full whitespace-normal text-xs ${CLASSES_SITUACAO[candidato.situacao]}`}
+          >
+            {ROTULOS_SITUACAO[candidato.situacao]}
+          </Badge>
         </div>
-      </DetalhesAnimados>
+      </div>
+      <dl className="mt-3 space-y-2">
+        <Campo rotulo="Componente" valor={componentes.join(" · ") || "—"} />
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-6">
+          <Campo rotulo="Valor" valor={fmtMoeda(candidato.valor_global)} />
+          <Campo rotulo="UF" valor={candidato.uf ?? "—"} />
+          <Campo rotulo="Município" valor={candidato.municipio ?? "—"} />
+          <Campo
+            rotulo="Data do instrumento"
+            valor={fmtData(candidato.data_instrumento)}
+          />
+          <Campo
+            rotulo="Descoberto em"
+            valor={fmtData(candidato.descoberto_em)}
+          />
+          <Campo rotulo="Recaptura" valor={fmtData(candidato.recaptura_em)} />
+        </div>
+      </dl>
       {children}
     </li>
   );

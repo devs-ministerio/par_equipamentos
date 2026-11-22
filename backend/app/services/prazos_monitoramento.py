@@ -1,4 +1,4 @@
-"""Avisos de prazo do monitoramento: ação aberta com prazo e previsão de inauguração ativa.
+"""Avisos de prazo do monitoramento: ação aberta com prazo, previsão de entrega por item e previsão de inauguração.
 
 Janelas D-1, D0 e D+1 (um aviso por janela, nunca repetido por dia). O horário das 08:00 de São Paulo é do
 agendador; aqui só vale a data de São Paulo. Chave de deduplicação: `tipo:referência:data do prazo:janela`.
@@ -20,10 +20,13 @@ from sqlalchemy.orm import Session
 from app.db.models import (
     AcaoMonitoramento,
     InstrumentoEquipamento,
+    ItemPlano,
     Notificacao,
     NotificacaoDestinatario,
     NotificacaoTipo,
+    PrevisaoEntregaItem,
 )
+from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.convenios import instrumento_no_escopo
 from app.repositories.notificacoes import criar_notificacao
@@ -33,7 +36,8 @@ MARCO_INAUGURACAO = "cronograma_previsao_inauguracao"
 JANELAS = {1: "D-1", 0: "D0", -1: "D+1"}
 _QUANDO = {"D-1": "vence amanhã", "D0": "vence hoje", "D+1": "venceu ontem"}
 _QUANDO_INAUG = {"D-1": "é amanhã", "D0": "é hoje", "D+1": "era ontem"}
-_TIPOS = (NotificacaoTipo.prazo_acao, NotificacaoTipo.prazo_inauguracao)
+_QUANDO_ENTREGA = {"D-1": "é amanhã", "D0": "é hoje", "D+1": "era ontem"}
+_TIPOS = (NotificacaoTipo.prazo_acao, NotificacaoTipo.prazo_inauguracao, NotificacaoTipo.prazo_previsao_entrega)
 _LOCK = "job_prazos_monitoramento"
 
 
@@ -58,6 +62,45 @@ class _Prazo:
     data: date
     titulo_base: str
     detalhe: str | None
+
+
+def _prazos_de_entrega(db: Session, instrumentos: dict[int, str]) -> list[_Prazo]:
+    """Previsão ativa de item controlado que ainda tem unidade a entregar (planejada − entregue − cancelada > 0)."""
+    prazos: list[_Prazo] = []
+    linhas = db.execute(
+        select(PrevisaoEntregaItem, ItemPlano)
+        .join(ItemPlano, ItemPlano.id == PrevisaoEntregaItem.item_id)
+        .where(
+            PrevisaoEntregaItem.substituido_por_id.is_(None),
+            PrevisaoEntregaItem.deletado_em.is_(None),
+            ItemPlano.ativo.is_(True),
+            ItemPlano.controla_unidade.is_(True),
+        )
+    ).all()
+    if not linhas:
+        return prazos
+    ids = [item.id for _, item in linhas]
+    entregues = itens_repo.quantidades_entregues_por_item(db, ids)
+    canceladas = itens_repo.quantidades_canceladas_por_item(db, ids)
+    for previsao, item in linhas:
+        if item.instrumento_id not in instrumentos:
+            continue
+        if item.quantidade_planejada is not None and (
+            item.quantidade_planejada - entregues.get(item.id, 0) - canceladas.get(item.id, 0) <= 0
+        ):
+            continue
+        prazos.append(
+            _Prazo(
+                NotificacaoTipo.prazo_previsao_entrega,
+                f"previsao:{item.id}",
+                item.instrumento_id,
+                instrumentos[item.instrumento_id],
+                previsao.data_prevista,
+                "Entrega",
+                item.descricao[:200],
+            )
+        )
+    return prazos
 
 
 def _prazos_vigentes(db: Session) -> list[_Prazo]:
@@ -87,6 +130,7 @@ def _prazos_vigentes(db: Session) -> list[_Prazo]:
                 acao.descricao[:200],
             )
         )
+    prazos.extend(_prazos_de_entrega(db, instrumentos))
     marco = monitoramento_repo.obter_marco_por_codigo(db, MARCO_INAUGURACAO)
     if marco is not None:
         for instrumento_id, nr in instrumentos.items():
@@ -165,7 +209,11 @@ def executar(db: Session, *, hoje: date, aplicar: bool) -> Resultado:
         resultado.avisos[janela] += 1
         if not aplicar:
             continue
-        quando = (_QUANDO if prazo.tipo == NotificacaoTipo.prazo_acao else _QUANDO_INAUG)[janela]
+        quando = {
+            NotificacaoTipo.prazo_acao: _QUANDO,
+            NotificacaoTipo.prazo_inauguracao: _QUANDO_INAUG,
+            NotificacaoTipo.prazo_previsao_entrega: _QUANDO_ENTREGA,
+        }[prazo.tipo][janela]
         titulo = (
             f"{prazo.titulo_base} {quando} — {prazo.nr_convenio}"
             if prazo.tipo == NotificacaoTipo.prazo_acao

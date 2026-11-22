@@ -116,7 +116,7 @@ def test_service_preserva_escopo_replay_e_nao_herda_evidencia_de_outro_criterio(
     assert len(list(db.scalars(select(CandidatoLegadoCaptura)))) == 2
 
 
-def test_componente_persistido_sem_inventar_equipamento_e_portal_ausente_sai_da_fila(matriz):
+def test_componente_persistido_sem_inventar_equipamento_e_portal_ausente_so_sai_da_visao_diagnostica(matriz):
     db, *_ = matriz
     componente = ComponenteDescoberto(
         id_programa="10", nome_programa=COMPONENTES_ALVO[0], componente=COMPONENTES_ALVO[0]
@@ -143,7 +143,9 @@ def test_componente_persistido_sem_inventar_equipamento_e_portal_ausente_sai_da_
     ausente = candidato.model_copy(update={"confirmacao_portal": "nao_encontrado", "data_publicacao": None})
     assert registrar_descoberta(db=db, candidatos=[ausente], referencia=referencia) == 1
     resultado = listar_candidatos(db=db, busca="999002", pagina=1, tamanho=10, confirmacao=None)
-    assert resultado.total == 0 and resultado.novos == 0
+    # O Portal não esconde o candidato: ele aparece com a confirmação pendente.
+    assert resultado.total == 1 and resultado.novos == 1
+    assert resultado.itens[0].confirmacao_portal == "nao_encontrado"
     assert len(list(db.scalars(select(CandidatoLegadoCaptura)))) == 2
 
 
@@ -168,6 +170,9 @@ def test_captura_oficial_substitui_itens_nao_acumula_evidencia_antiga(matriz):
     atualizado = candidato.model_copy(update={"evidencias": (evidencia.model_copy(update={"id_item": "2"}),)})
     assert registrar_descoberta(db=db, candidatos=[atualizado], referencia=referencia) == 1
     assert registrar_descoberta(db=db, candidatos=[atualizado], referencia=referencia) == 0
-    resultado = listar_candidatos(db=db, busca="999003", pagina=1, tamanho=10, confirmacao=None)
-    assert [e.id_item for e in resultado.itens[0].evidencias] == ["2"]
+    # Critério v1 é legado e não entra na fila oficial; confere a evidência direto no banco.
+    registro = db.scalar(select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero == "999003"))
+    ultima = db.get(CandidatoLegadoCaptura, registro.ultima_captura_id)
+    ativas = db.scalars(select(CandidatoLegadoEvidencia).where(CandidatoLegadoEvidencia.captura_id == ultima.id)).all()
+    assert [e.id_item for e in ativas] == ["2"]
     assert len(list(db.scalars(select(CandidatoLegadoEvidencia)))) == 2

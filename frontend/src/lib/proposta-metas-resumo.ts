@@ -1,9 +1,5 @@
 import { campo, campoNum, campoObjeto, lista } from "@/lib/campo-cru";
-import {
-  equipamentoTagDe,
-  equipamentosDeDescricoes,
-  type EquipamentoAlvo,
-} from "@/lib/equipamento-tags";
+import { equipamentoTagDe } from "@/lib/equipamento-tags";
 
 /** `metas_resumo` é dado cru da API do TransfereGov, sem schema fixo de
  * propósito (ver docstring de `campo-cru.ts`) -- os helpers abaixo
@@ -43,26 +39,6 @@ export function equipamentoPrincipal(
   if (!melhor) return null;
   const tag = equipamentoTagDe(melhor.nome);
   return tag ? { nome: tag, valor: melhor.valor } : melhor;
-}
-
-/** Tags de equipamento (EQUIPAMENTOS_ALVO) pra filtro -- classifica direto
- * contra TODOS os itens de `metas_resumo` (mesmos 14 padrões de
- * equipamento-tags.ts), não só o de maior valor (`equipamentoPrincipal`
- * acima), então pega qualquer equipamento-alvo presente mesmo quando não é
- * o item mais caro. */
-export function equipamentosDaProposta(
-  metasResumo: unknown,
-): EquipamentoAlvo[] {
-  const nomes: string[] = [];
-  for (const m of lista(metasResumo, "metas")) {
-    for (const e of lista(m, "etapas_proposta")) {
-      for (const it of lista(e, "itens")) {
-        const nome = campo(it, "nm_item");
-        if (nome) nomes.push(nome);
-      }
-    }
-  }
-  return equipamentosDeDescricoes(nomes);
 }
 
 export function enderecoProposta(proposta: unknown): string | null {

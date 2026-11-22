@@ -30,7 +30,7 @@ const ESCOPOS: { valor: EscopoRelatorio; rotulo: string }[] = [
 ];
 
 /** Gerador do relatório de Análise de Mérito (cobertura/déficit) -- Plan
- * Mode docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 3 e 6.
+ * Mode docs/planos/planmode-relatorios-2026-09-25.md, Blocos 3 e 6.
  * O relatório de Instrumentos e Repasse (convênios/propostas/monitoramento)
  * ganhou filtros/prévia próprios em `monitoramento-relatorios-page.tsx`
  * (Bloco 7) -- filtros dos dois relatórios divergiram demais pra caber

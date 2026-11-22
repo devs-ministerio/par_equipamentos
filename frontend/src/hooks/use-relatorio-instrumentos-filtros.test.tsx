@@ -4,7 +4,6 @@ import { useRelatorioInstrumentosFiltros } from "./use-relatorio-instrumentos-fi
 
 const recortes = [
   ["encerramento", "setEncerramento", "encerrados"],
-  ["situacaoConclusao", "setSituacaoConclusao", "previsao_vencida"],
   ["uf", "setUf", "BA"],
   ["situacao", "setSituacao", "Em execução"],
   ["anoInicio", "setAnoInicio", "2025"],

@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-SituacaoItem = Literal["pendente", "parcial", "entregue", "legado_a_revisar"]
+SituacaoItem = Literal["pendente", "parcial", "entregue", "cancelado"]
 
 
 class UnidadeEntregaCreate(BaseModel):
@@ -25,15 +25,30 @@ class ItemEntregaCreate(BaseModel):
     confirmar_quantidade_desconhecida: bool = False
 
 
+class InauguracaoEntrega(BaseModel):
+    """Resposta à pergunta "precisa de inauguração?" feita junto da entrega."""
+
+    necessaria: bool
+    data_prevista: date | None = None
+
+    @model_validator(mode="after")
+    def _previsao_quando_necessaria(self) -> "InauguracaoEntrega":
+        if self.necessaria and self.data_prevista is None:
+            raise ValueError("Informe a previsão de inauguração.")
+        return self
+
+
 class EntregaCreate(BaseModel):
     chave_idempotencia: str = Field(min_length=8, max_length=64)
     data_ocorrencia: date
     observacao: str | None = Field(default=None, max_length=1000)
     itens: list[ItemEntregaCreate] = Field(min_length=1, max_length=50)
+    inauguracao: InauguracaoEntrega | None = None
 
 
-class VincularLegadaCreate(BaseModel):
-    itens: list[ItemEntregaCreate] = Field(min_length=1, max_length=50)
+class CorrecaoDataEntrega(BaseModel):
+    data_ocorrencia: date
+    motivo: str = Field(min_length=3, max_length=500)
 
 
 class ExclusaoEntrega(BaseModel):
@@ -69,6 +84,16 @@ class RendimentoRead(BaseModel):
     valor_total: float | None
 
 
+class CancelamentoUnidadeRead(BaseModel):
+    id: int
+    item_id: int
+    motivo: str
+    criado_em: datetime
+    ativo: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ItemEquipamentoRead(BaseModel):
     id: int
     codigo_item: str | None
@@ -77,6 +102,10 @@ class ItemEquipamentoRead(BaseModel):
     familia: str | None
     controla_unidade: bool
     quantidade_planejada: int | None
+    valor_total: float | None = None
+    quantidade_cancelada: int = 0
+    cancelamentos: list[CancelamentoUnidadeRead] = []
+    previsao_entrega: date | None = None
     quantidade_entregue: int
     situacao: SituacaoItem
     ultima_entrega: date | None
@@ -89,7 +118,6 @@ class EquipamentosInstrumentoRead(BaseModel):
     pode_editar: bool
     itens: list[ItemEquipamentoRead]
     outros_itens: int
-    revisoes_pendentes: int
 
 
 class EntregaRead(BaseModel):
@@ -101,10 +129,24 @@ class EntregaRead(BaseModel):
     unidades: list[UnidadeRead]
 
 
-class EntregaLegadaRead(BaseModel):
+class CancelamentoUnidadeCreate(BaseModel):
+    motivo: str = Field(min_length=5, max_length=1000)
+
+
+class ReativacaoUnidadeCreate(BaseModel):
+    motivo: str = Field(min_length=5, max_length=1000)
+
+
+class PrevisaoEntregaCreate(BaseModel):
+    data_prevista: date
+
+
+class PrevisaoEntregaRemocao(BaseModel):
+    motivo: str = Field(min_length=5, max_length=1000)
+
+
+class PrevisaoEntregaRead(BaseModel):
     id: int
-    nr_convenio: str
-    evento_id: int
-    data_ocorrencia: date | None
-    motivo: str
-    criado_em: datetime
+    item_id: int
+    data_prevista: date
+    ativo: bool

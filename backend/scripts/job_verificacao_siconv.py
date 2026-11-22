@@ -38,7 +38,12 @@ from app.db.base import SessionLocal
 from app.db.models import Convenio, InstrumentoEquipamento, Notificacao, NotificacaoTipo
 from app.pipeline.texto import parsear_valor_brasileiro
 from app.repositories.espelho_siconv import bloquear_escopo_atual, numeros_oficiais_conhecidos
-from app.repositories.notificacoes import criar_notificacao
+from app.repositories.notificacoes import (
+    PREFIXO_DEDUP_RESUMO_SICONV,
+    criar_notificacao,
+    ids_gestao,
+    ids_responsaveis_ativos,
+)
 from app.rotulos_siconv import rotulo_campo_siconv
 from app.schemas_filhas_legado import chave_termo_aditivo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
@@ -88,7 +93,7 @@ def comparar_campos_oficiais(antigo: dict | None, novo: dict[str, str]) -> dict[
     return {
         campo: (str(antigo[campo]), valor)
         for campo, valor in novo.items()
-        if campo in antigo and not mesmo_valor(antigo[campo], valor)
+        if campo in antigo and not mesmo_valor(antigo[campo], valor, campo)
     }
 
 
@@ -220,23 +225,91 @@ def resumo_campos(mudancas: dict[str, tuple[str, str]]) -> str:
     )
 
 
+LIMITE_AVISOS_INDIVIDUAIS = 10
+
+
+def avisar_mudancas(db, avisos: list[tuple[int, str, int, str]], *, rodada: str | None) -> int:
+    """Aviso por convênio com mudança real, para titular, suplente e gestão.
+
+    Acima de ``LIMITE_AVISOS_INDIVIDUAIS`` convênios na rodada, titular e suplente seguem
+    recebendo o aviso individual dos seus, e a gestão recebe um resumo único.
+    ``avisos`` traz (instrumento.id, número do convênio, total de mudanças, corpo).
+    """
+    if not avisos:
+        return 0
+    individuais = len(avisos) <= LIMITE_AVISOS_INDIVIDUAIS
+    criados = 0
+    for instrumento_id, numero, total, corpo in avisos:
+        destinatarios = None if individuais else ids_responsaveis_ativos(db, instrumento_id)
+        if destinatarios is not None and not destinatarios:
+            continue
+        criar_notificacao(
+            db,
+            Notificacao(
+                tipo=NotificacaoTipo.atualizacao_api,
+                titulo=f"Convênio {numero}: {total} mudança(s) no SICONV",
+                corpo=corpo,
+                entidade_id=instrumento_id,
+            ),
+            destinatarios=destinatarios,
+        )
+        criados += 1
+    if not individuais:
+        linhas = "\n".join(f"• Convênio {numero}: {total} mudança(s)" for _, numero, total, _ in avisos)
+        criar_notificacao(
+            db,
+            Notificacao(
+                tipo=NotificacaoTipo.atualizacao_api,
+                titulo=f"SICONV: {len(avisos)} convênio(s) com mudanças nesta rodada",
+                corpo=linhas,
+                entidade_id=avisos[0][0],
+                chave_dedup=f"{PREFIXO_DEDUP_RESUMO_SICONV}{rodada}" if rodada is not None else None,
+            ),
+            destinatarios=ids_gestao(db),
+        )
+        criados += 1
+    return criados
+
+
+MAX_NOVOS_DETALHADOS = 5
+MAX_CAMPOS_POR_NOVO = 6
+
+
+def _detalhe_novo(registro: dict[str, Any]) -> str:
+    campos = [
+        f"{rotulo_campo_siconv(campo)}: {valor}"
+        for campo, valor in registro.items()
+        if not isinstance(valor, (dict, list)) and str(valor).strip()
+    ]
+    return "; ".join(campos[:MAX_CAMPOS_POR_NOVO])
+
+
 def resumo_filhas(filhas: dict[str, DiffLista]) -> str:
-    partes = []
+    """Um bloco por tabela filha, uma linha por registro, para leitura no popup do aviso."""
+    blocos = []
     for chave, diff in filhas.items():
-        detalhe = []
+        cabecalho = []
         if diff.adicionados:
-            detalhe.append(f"{len(diff.adicionados)} novo(s)")
+            cabecalho.append(f"{len(diff.adicionados)} novo(s)")
         if diff.alterados:
-            detalhe.append(f"{len(diff.alterados)} alterado(s)")
-            detalhe.extend(
-                f"registro {identificador}: {resumo_campos(campos)}" for identificador, campos in diff.alterados
-            )
-        partes.append(f"{ROTULOS_FILHAS[chave]}: {', '.join(detalhe)}")
-    return "; ".join(partes)
+            cabecalho.append(f"{len(diff.alterados)} alterado(s)")
+        linhas = [f"{ROTULOS_FILHAS[chave]}: {', '.join(cabecalho)}"]
+        linhas.extend(
+            f"• Registro {identificador}: {resumo_campos(campos)}" for identificador, campos in diff.alterados
+        )
+        linhas.extend(f"• Novo registro: {_detalhe_novo(r)}" for r in diff.adicionados[:MAX_NOVOS_DETALHADOS])
+        if len(diff.adicionados) > MAX_NOVOS_DETALHADOS:
+            linhas.append(f"• e mais {len(diff.adicionados) - MAX_NOVOS_DETALHADOS} novo(s)")
+        blocos.append("\n".join(linhas))
+    return "\n\n".join(blocos)
 
 
 def resumo_convenio(resultado: ResultadoConvenio) -> str:
-    return " | ".join(p for p in (resumo_campos(resultado.mudancas), resumo_filhas(resultado.filhas)) if p)
+    campos = "\n".join(
+        f"{rotulo_campo_siconv(campo)}: {antigo or '(vazio)'} → {novo or '(vazio)'}"
+        for campo, (antigo, novo) in resultado.mudancas.items()
+    )
+    return "\n\n".join(p for p in (campos, resumo_filhas(resultado.filhas)) if p)
 
 
 def reconciliar_situacao(
@@ -316,6 +389,7 @@ def _executar(cap: CapturaEmAndamento) -> None:
     db = SessionLocal()
     atualizados = 0
     notificados = 0
+    avisos: list[tuple[int, str, int, str]] = []
     absorvidas = 0
     cargas_iniciais = 0
     try:
@@ -359,18 +433,10 @@ def _executar(cap: CapturaEmAndamento) -> None:
                 absorvidas += resultado.absorvidas
                 cargas_iniciais += int(resultado.carga_inicial)
                 if resultado.total_mudancas and instrumento is not None:
-                    criar_notificacao(
-                        db,
-                        Notificacao(
-                            tipo=NotificacaoTipo.atualizacao_api,
-                            titulo=f"Convênio {numero}: {resultado.total_mudancas} mudança(s) no SICONV",
-                            corpo=resumo_convenio(resultado),
-                            entidade_id=instrumento.id,
-                        ),
-                    )
-                    notificados += 1
+                    avisos.append((instrumento.id, numero, resultado.total_mudancas, resumo_convenio(resultado)))
                 if resultado.alterou:
                     atualizados += 1
+        notificados = avisar_mudancas(db, avisos, rodada=cap.iniciado_em.isoformat())
         db.commit()
     finally:
         db.close()

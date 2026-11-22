@@ -422,3 +422,10 @@ def require_admin_user(user: User = Depends(require_current_user)) -> User:
     if user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Apenas administradores podem acessar este recurso.")
     return user
+
+
+def require_gestor_user(user: User = Depends(require_current_user)) -> User:
+    """Radar de instrumentos: só `gestor` e `admin` veem e decidem."""
+    if user.role not in (UserRole.admin, UserRole.gestor):
+        raise HTTPException(status_code=403, detail="Apenas gestor e admin acessam o Radar de instrumentos.")
+    return user

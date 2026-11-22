@@ -1,7 +1,7 @@
 """Comparacao pura entre `app/db/models.py`, o head do Alembic e o banco.
 
 Extraido de `tests/test_schema_migrations.py` (Item 4 do Plan Mode database
-2026-09-16, docs/arquitetura/planmode-database-2026-09-16.md) pra ser
+2026-09-16, docs/planos/planmode-database-2026-09-16.md) pra ser
 reaproveitado fora do pytest -- ver `scripts/auditar_drift_schema.py` (CLI
 de relatorio) e `tests/test_schema_migrations.py` (gate de teste, que
 importa as mesmas funcoes daqui). Nenhuma funcao aqui levanta `assert` nem
@@ -30,7 +30,7 @@ def alembic_config() -> Config:
 
 
 # Criado só pela migration/seed (predicado depende do catálogo); ver app/db/indices.py.
-INDICES_FORA_DO_MODELO = {"uq_evento_marco_fase_geral_ativo"}
+INDICES_FORA_DO_MODELO = {"uq_evento_marco_fase_geral_ativo", "uq_evento_marco_inauguracao_ativa"}
 
 
 def _incluir_objeto(objeto: Any, nome: str | None, tipo: str, *_: Any) -> bool:

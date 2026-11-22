@@ -35,7 +35,7 @@ def obter_execucao_publicada_mais_recente(db: Session, equipment_family: str | N
 
 def listar_familias_publicadas(db: Session) -> list[str]:
     """Famílias de equipamento com pelo menos uma execução publicada -- usado
-    pelo relatório de cobertura (Plan Mode docs/arquitetura/
+    pelo relatório de cobertura (Plan Mode docs/planos/
     planmode-relatorios-2026-09-25.md) pra saber quais seções gerar sem
     depender de uma lista fixa hardcoded."""
     stmt = (
