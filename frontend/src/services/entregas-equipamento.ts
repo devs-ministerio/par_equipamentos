@@ -25,6 +25,15 @@ const rendimentoSchema = z.object({
 });
 export type RendimentoItem = z.infer<typeof rendimentoSchema>;
 
+const cancelamentoSchema = z.object({
+  id: z.number(),
+  item_id: z.number(),
+  motivo: z.string(),
+  criado_em: z.string(),
+  ativo: z.boolean(),
+});
+export type CancelamentoUnidade = z.infer<typeof cancelamentoSchema>;
+
 const itemSchema = z.object({
   id: z.number(),
   codigo_item: z.string().nullable(),
@@ -33,8 +42,12 @@ const itemSchema = z.object({
   familia: z.string().nullable(),
   controla_unidade: z.boolean(),
   quantidade_planejada: z.number().nullable(),
+  valor_total: z.number().nullable(),
+  quantidade_cancelada: z.number().default(0),
+  cancelamentos: z.array(cancelamentoSchema).default([]),
+  previsao_entrega: z.string().nullable().default(null),
   quantidade_entregue: z.number(),
-  situacao: z.enum(["pendente", "parcial", "entregue", "legado_a_revisar"]),
+  situacao: z.enum(["pendente", "parcial", "entregue", "cancelado"]),
   ultima_entrega: z.string().nullable(),
   unidades: z.array(unidadeSchema),
   rendimentos: z.array(rendimentoSchema).default([]),
@@ -46,7 +59,6 @@ const equipamentosSchema = z.object({
   pode_editar: z.boolean(),
   itens: z.array(itemSchema),
   outros_itens: z.number(),
-  revisoes_pendentes: z.number(),
 });
 export type EquipamentosInstrumento = z.infer<typeof equipamentosSchema>;
 
@@ -59,16 +71,6 @@ const entregaSchema = z.object({
   unidades: z.array(unidadeSchema),
 });
 export type EntregaEquipamento = z.infer<typeof entregaSchema>;
-
-const entregaLegadaSchema = z.object({
-  id: z.number(),
-  nr_convenio: z.string(),
-  evento_id: z.number(),
-  data_ocorrencia: z.string().nullable(),
-  motivo: z.string(),
-  criado_em: z.string(),
-});
-export type EntregaLegada = z.infer<typeof entregaLegadaSchema>;
 
 export interface UnidadeEntregaInput {
   marca: string | null;
@@ -83,11 +85,17 @@ export interface ItemEntregaInput {
   confirmar_quantidade_desconhecida?: boolean;
 }
 
+export interface InauguracaoEntregaInput {
+  necessaria: boolean;
+  data_prevista?: string | null;
+}
+
 export interface RegistrarEntregaInput {
   chave_idempotencia: string;
   data_ocorrencia: string;
   observacao?: string | null;
   itens: ItemEntregaInput[];
+  inauguracao?: InauguracaoEntregaInput | null;
 }
 
 export interface CorrigirUnidadeInput {
@@ -106,13 +114,6 @@ export function fetchEquipamentos(
   );
 }
 
-export function fetchEntregasLegadas(): Promise<EntregaLegada[]> {
-  return apiGetAuthed(
-    "/monitoramento/entregas-legadas",
-    z.array(entregaLegadaSchema),
-  );
-}
-
 export function registrarEntrega(
   nr: string,
   corpo: RegistrarEntregaInput,
@@ -122,18 +123,6 @@ export function registrarEntrega(
     entregaSchema,
     "POST",
     corpo,
-  );
-}
-
-export function vincularEntregaLegada(
-  revisaoId: number,
-  itens: ItemEntregaInput[],
-): Promise<EntregaEquipamento> {
-  return apiAuthed(
-    `/monitoramento/entregas-legadas/${revisaoId}/vincular`,
-    entregaSchema,
-    "POST",
-    { itens },
   );
 }
 
@@ -156,6 +145,75 @@ export function excluirEntrega(
   return apiAuthed(
     `/monitoramento/entregas/${entregaId}`,
     entregaSchema,
+    "DELETE",
+    { motivo },
+  );
+}
+
+export function corrigirDataEntrega(
+  entregaId: number,
+  dataOcorrencia: string,
+  motivo: string,
+): Promise<EntregaEquipamento> {
+  return apiAuthed(
+    `/monitoramento/entregas/${entregaId}/data`,
+    entregaSchema,
+    "PATCH",
+    { data_ocorrencia: dataOcorrencia, motivo },
+  );
+}
+
+export function cancelarUnidadePlanejada(
+  itemId: number,
+  motivo: string,
+): Promise<CancelamentoUnidade> {
+  return apiAuthed(
+    `/monitoramento/itens/${itemId}/cancelamentos`,
+    cancelamentoSchema,
+    "POST",
+    { motivo },
+  );
+}
+
+export function reativarUnidadeCancelada(
+  cancelamentoId: number,
+  motivo: string,
+): Promise<CancelamentoUnidade> {
+  return apiAuthed(
+    `/monitoramento/cancelamentos/${cancelamentoId}`,
+    cancelamentoSchema,
+    "DELETE",
+    { motivo },
+  );
+}
+
+const previsaoEntregaSchema = z.object({
+  id: z.number(),
+  item_id: z.number(),
+  data_prevista: z.string(),
+  ativo: z.boolean(),
+});
+export type PrevisaoEntrega = z.infer<typeof previsaoEntregaSchema>;
+
+export function definirPrevisaoEntrega(
+  itemId: number,
+  dataPrevista: string,
+): Promise<PrevisaoEntrega> {
+  return apiAuthed(
+    `/monitoramento/itens/${itemId}/previsao-entrega`,
+    previsaoEntregaSchema,
+    "PUT",
+    { data_prevista: dataPrevista },
+  );
+}
+
+export function removerPrevisaoEntrega(
+  itemId: number,
+  motivo: string,
+): Promise<PrevisaoEntrega> {
+  return apiAuthed(
+    `/monitoramento/itens/${itemId}/previsao-entrega`,
+    previsaoEntregaSchema,
     "DELETE",
     { motivo },
   );

@@ -65,11 +65,71 @@ export function prepararOrquestracao() {
         controle.marcosStatus === 200 ? criarMarcosInteracao() : {},
         controle.marcosStatus,
       );
+    const daLeitura = path.match(
+      /^\/monitoramento\/instrumentos\/([^/]+)\/acoes$/,
+    );
+    if (daLeitura && metodo === "GET") {
+      const nr = decodeURIComponent(daLeitura[1]);
+      const doInstrumento = controle.acoes.filter((a) => a.nr_convenio === nr);
+      const abertas = doInstrumento.filter((a) => !a.data_conclusao);
+      const lista = url.searchParams.get("pendentes") ? abertas : doInstrumento;
+      return h.json(
+        controle.acoesStatus === 200
+          ? {
+              data: lista,
+              meta: {
+                total: lista.length,
+                abertas: abertas.length,
+                atrasadas: abertas.filter(
+                  (a) => a.data_prevista && a.data_prevista < "2026-01-01",
+                ).length,
+              },
+            }
+          : {},
+        controle.acoesStatus,
+      );
+    }
     if (path === "/monitoramento/acoes")
       return h.json(
         controle.acoesStatus === 200 ? controle.acoes : {},
         controle.acoesStatus,
       );
+    if (path.endsWith("/repasse") && metodo === "GET")
+      return h.json({
+        repasse: null,
+        repasse_previsto: false,
+        fase_calculada: "Acompanhamento iniciado",
+      });
+    if (path.endsWith("/conclusao") && metodo === "GET")
+      return h.json({
+        nr_convenio: "x",
+        pode_editar: true,
+        conclusao: null,
+        resultado: "sem_entregas",
+        exige_justificativa: true,
+        itens_exigidos: 0,
+        itens_completos: 0,
+        impedimentos: [],
+      });
+    if (path.endsWith("/equipamentos") && metodo === "GET")
+      return h.json({
+        nr_convenio: "x",
+        pode_editar: true,
+        itens: [],
+        outros_itens: 0,
+      });
+    if (path.endsWith("/licenca-operacao") && metodo === "GET")
+      return h.json({
+        exige: false,
+        cnes: null,
+        sem_cnes: true,
+        areas_exigidas: [],
+        areas_sem_vinculo: [],
+        ultima_carga: null,
+        vinculos: [],
+      });
+    if (path.endsWith("/documentos") && metodo === "GET")
+      return h.json({ nr_convenio: "x", pode_editar: true, documentos: [] });
     if (path === "/monitoramento/colaboradores")
       return h.json([{ id: 1, name: "Gestor sintético" }]);
     if (path.startsWith("/convenios/"))

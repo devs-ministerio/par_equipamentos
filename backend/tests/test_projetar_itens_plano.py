@@ -237,3 +237,47 @@ def test_texto_de_utilizacao_dos_rendimentos_e_complemento_de_valores() -> None:
             alvo_item_api(_ctx(), "1", _item("1", texto, "1000,00", "3", "OUTROS")).tipo_lancamento
             == "rendimento_aplicacao"
         )
+
+
+def _linha(valor, qtd, *, controla=False, instrumento=1):
+    return (
+        ("siconv", str(valor)),
+        {
+            "instrumento_id": instrumento,
+            "controla_unidade": controla,
+            "tipo_lancamento": "aquisicao",
+            "situacao_classificacao": "aplicada",
+            "valor_total": valor,
+            "quantidade_planejada": qtd,
+        },
+    )
+
+
+def test_excecao_instrumento_controla_so_unidade_a_partir_de_100_mil():
+    from scripts.projetar_itens_plano import Resultado, _aplicar_excecao_instrumento
+
+    lote = [_linha(200_000, 2), _linha(150_000, 1), _linha(5_000, 1)]
+    r = Resultado()
+    _aplicar_excecao_instrumento(lote, r)
+    assert [n["controla_unidade"] for _, n in lote] == [True, True, False]
+    assert r.instrumentos_excecao == 1
+
+
+def test_excecao_nao_vale_com_item_ja_controlado_ou_sem_instrumento():
+    from scripts.projetar_itens_plano import Resultado, _aplicar_excecao_instrumento
+
+    com_controlado = [_linha(200_000, 1), _linha(1_000, 1, controla=True)]
+    _aplicar_excecao_instrumento(com_controlado, Resultado())
+    assert com_controlado[0][1]["controla_unidade"] is False
+    sem_instrumento = [_linha(200_000, 1, instrumento=None)]
+    _aplicar_excecao_instrumento(sem_instrumento, Resultado())
+    assert sem_instrumento[0][1]["controla_unidade"] is False
+
+
+def test_excecao_da_excecao_usa_os_tres_itens_de_maior_valor_unitario():
+    from scripts.projetar_itens_plano import Resultado, _aplicar_excecao_instrumento
+
+    lote = [_linha(90_000, 1), _linha(50_000, 1), _linha(40_000, 2), _linha(1_000, 1), _linha(30_000, 1)]
+    _aplicar_excecao_instrumento(lote, Resultado())
+    # unitários: 90k, 50k, 20k, 1k, 30k -> os três maiores são 90k, 50k e 30k
+    assert [n["controla_unidade"] for _, n in lote] == [True, True, False, False, True]

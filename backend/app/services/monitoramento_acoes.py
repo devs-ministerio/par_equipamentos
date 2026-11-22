@@ -17,6 +17,7 @@ from app.db.models import (
 from app.domain_errors import NotFoundError, ValidationError
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
+from app.services.conclusao_acompanhamento import assert_nao_concluido
 from app.services.monitoramento_comum import _agora_utc, _notificar_edicao_manual
 
 
@@ -40,6 +41,7 @@ def registrar_acao_monitorada(
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
 
     acao = AcaoMonitoramento(
         instrumento_id=instrumento.id,
@@ -99,6 +101,8 @@ def editar_acao_monitorada(
     if antiga is None:
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antiga.instrumento_id))
+    assert_nao_concluido(db, antiga.instrumento_id)
+    db.refresh(antiga)  # relê depois da trava: outra correção pode ter vencido a disputa
     if antiga.deletado_em is not None or antiga.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode editar de novo.")
     # instrumento_id de uma ação já persistida é FK obrigatória -- sempre existe.
@@ -142,6 +146,8 @@ def excluir_acao_monitorada(*, acao_id: int, motivo: str, db: Session, usuario: 
     if acao is None:
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, acao.instrumento_id))
+    assert_nao_concluido(db, acao.instrumento_id)
+    db.refresh(acao)  # relê depois da trava
     if acao.deletado_em is not None:
         raise ValidationError(f"Ação {acao_id} já está excluída.")
     if not motivo.strip():
@@ -179,6 +185,8 @@ def concluir_acao_monitorada(*, acao_id: int, db: Session, usuario: User) -> Aca
     if acao is None:
         raise NotFoundError(f"Ação {acao_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, acao.instrumento_id))
+    assert_nao_concluido(db, acao.instrumento_id)
+    db.refresh(acao)  # relê depois da trava
     if acao.deletado_em is not None or acao.substituido_por_id is not None:
         raise ValidationError(f"Ação {acao_id} já foi excluída ou corrigida -- não pode concluir.")
     if acao.data_conclusao is None:
@@ -215,3 +223,15 @@ def obter_nr_convenio_da_acao_monitorada(*, acao: AcaoMonitoramento, db: Session
 def listar_acoes_monitoradas(*, pendentes: bool, limit: int, db: Session) -> list[tuple[AcaoMonitoramento, str]]:
     """Leitura operacional: filtro e query permanecem fora da camada HTTP."""
     return monitoramento_repo.listar_acoes_monitoradas(db, pendentes=pendentes, limit=limit)
+
+
+def listar_acoes_do_instrumento(
+    *, nr_convenio: str, pendentes: bool, limit: int, db: Session
+) -> monitoramento_repo.AcoesDoInstrumento:
+    """Ações ativas de um instrumento, o total e as contagens de abertas e atrasadas do instrumento inteiro."""
+    instrumento = monitoramento_repo.obter_instrumento_por_nr_convenio(db, nr_convenio)
+    if instrumento is None:
+        raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
+    return monitoramento_repo.listar_acoes_do_instrumento_com_total(
+        db, instrumento.id, pendentes=pendentes, limit=limit
+    )

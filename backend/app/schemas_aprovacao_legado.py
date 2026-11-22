@@ -23,6 +23,8 @@ class ReferenciaProvaLegado(BaseModel):
 class AprovacaoLegadoCreate(ReferenciaProvaLegado):
     chave: UUID
     justificativa: str = Field(min_length=3, max_length=1000)
+    # Obrigatório: aprovar no Radar já inclui o instrumento no monitoramento interno com ele como titular.
+    tecnico_titular_id: int = Field(gt=0, strict=True)
 
 
 class ProvaLegadoRead(ReferenciaProvaLegado):

@@ -16,7 +16,6 @@ from app.domain_errors import ConflictError
 from app.pipeline.portal_transparencia import _headers, _sessao_com_retry, buscar_convenio_por_numero_dto
 from app.repositories.descoberta_legado import ler_snapshot_csv, numeros_legados_conhecidos
 from app.schemas_legado import ReferenciaDescoberta
-from app.schemas_revalidacao_legado import RevalidacoesCiclo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.ciclo_descoberta_legado import publicar_ciclo, selecionar_revalidacoes
 from app.services.descoberta_legado import CandidatoLegado, confirmar_no_portal
@@ -114,11 +113,6 @@ def run(*, limite: int = 1000, baseline_silenciosa: bool = False) -> None:
             confirmados = confirmar_candidatos(candidatos, sessao=sessao, rodada=rodada)
         rodada.itens_verificados = len(candidatos) + len(revalidacoes.entradas)
         contratos_inconclusivos = len(rodada.detalhes.get("confirmacoes_inconclusivas", []))
-        if contratos_inconclusivos and revalidacoes.entradas:
-            # Contrato incompleto não pode ocultar ou mudar a fila histórica.
-            adiadas = tuple(entrada.alvo.candidato_id for entrada in revalidacoes.entradas)
-            rodada.detalhes["revalidacoes_adiadas_portal"] = len(adiadas)
-            revalidacoes = RevalidacoesCiclo(entradas=(), inconclusivos=(*revalidacoes.inconclusivos, *adiadas))
         rodada.detalhes["hashes_escopo"] = hashes_escopo
         rodada.detalhes["candidatos_sem_confirmacao"] = (
             sum(c.confirmacao_portal != "confirmado" for c in confirmados) + contratos_inconclusivos

@@ -12,4 +12,5 @@ export const ROTULOS_NOTIFICACAO: Record<NotificacaoTipo, string> = {
   entrega_legada_revisao: "Entrega a vincular",
   prazo_acao: "Prazo de ação",
   prazo_inauguracao: "Previsão de inauguração",
+  prazo_previsao_entrega: "Previsão de entrega",
 };

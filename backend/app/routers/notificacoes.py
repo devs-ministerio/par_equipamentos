@@ -1,6 +1,6 @@
 """Notificacoes -- 4 origens, escopadas por destinatario (ver
 app/db/models.py::Notificacao/NotificacaoDestinatario e
-docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md). Quem CRIA
+docs/planos/planmode-notificacoes-escopo-2026-09-25.md). Quem CRIA
 notificacao sao os jobs de descoberta/verificacao/alerta de vigencia e o
 PATCH de instrumento/evento (via app.repositories.notificacoes::
 criar_notificacao, camada "edicao_manual") -- este router so LE e marca

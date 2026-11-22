@@ -57,7 +57,7 @@ jobs:
         # cosmética junto de uma mudança de produto.
         run: |
           if ! uv run ruff check --select C901 app scripts; then
-            echo "::warning::Há funções acima da complexidade C901; ver docs/arquitetura/diagnostico-constituicao-qualidade-2026-09-24.md."
+            echo "::warning::Há funções acima da complexidade C901; ver docs/diagnosticos/diagnostico-constituicao-qualidade-2026-09-24.md."
           fi
       - name: Tipos
         run: uv run mypy .

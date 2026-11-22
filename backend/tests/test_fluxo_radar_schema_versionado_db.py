@@ -37,6 +37,7 @@ from app.services.revisao_legado import preparar_revisao
 from tests.test_cadeia_migrations_recuperacao_db import banco_migrations as banco_migrations
 from tests.test_prova_recaptura_legado import candidato
 from tests.test_prova_recaptura_legado import dados as dados
+from tests.test_revisao_legado_recuperada_db import tecnico_de_teste
 
 
 @pytest.fixture
@@ -98,6 +99,7 @@ def preparar_fluxo(db, dados):
         hash_revisado=prova.hash_conteudo,
         versao=0,
         justificativa="Evidência sintética revisada pela gestão",
+        tecnico_titular_id=tecnico_de_teste(db),
     )
     return ref, prova, pedido
 
@@ -116,17 +118,21 @@ def test_fluxo_real_aprova_replay_preserva_fonte_e_notifica_gestao(radar_version
     assert (
         aprovar_entrada(db=db, usuario_id=usuarios[perfil].id, candidato_id=ref.candidato_id, dados=pedido) == decisao
     )
-    # Assert: somente carteira; monitoramento pós-repasse não nasce automaticamente.
+    # Assert: carteira e inclusão no monitoramento interno, com o técnico informado como titular.
     convenio = db.scalar(select(Convenio))
     assert convenio.numero == "999001" and convenio.situacao == "Prestação de Contas Concluída"
     assert convenio.valor_global == Decimal("1000.123456789")
-    assert db.scalar(select(func.count()).select_from(InstrumentoEquipamento)) == 0
+    assert db.scalar(select(func.count()).select_from(InstrumentoEquipamento)) == 1
     assert db.scalar(select(func.count()).select_from(EquipamentoMarcador)) == 1
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoDecisao)) == 1
     assert db.scalar(select(func.count()).select_from(CandidatoLegadoRecaptura)) == 1
     avisos = list(db.scalars(select(Notificacao).order_by(Notificacao.id)))
-    assert [a.tipo for a in avisos] == [NotificacaoTipo.convenio_descoberto, NotificacaoTipo.aprovacao_carteira]
-    for aviso in avisos:
+    assert {a.tipo for a in avisos} == {
+        NotificacaoTipo.convenio_descoberto,
+        NotificacaoTipo.aprovacao_carteira,
+        NotificacaoTipo.inclusao_monitoramento,
+    }
+    for aviso in (a for a in avisos if a.tipo != NotificacaoTipo.inclusao_monitoramento):
         ids = set(
             db.scalars(
                 select(NotificacaoDestinatario.usuario_id).where(NotificacaoDestinatario.notificacao_id == aviso.id)

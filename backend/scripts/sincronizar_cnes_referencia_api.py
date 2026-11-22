@@ -31,7 +31,7 @@ def _cnes_referenciados(db) -> set[str]:
     """Une os CNES em uso nas 3 tabelas que têm FK física pra
     cnes_estabelecimento -- só os que batem no formato de 7 dígitos (os
     demais não vão resolver em FK nenhuma, ver
-    docs/arquitetura/planmode-database-2026-09-16.md)."""
+    docs/planos/planmode-database-2026-09-16.md)."""
     codigos: set[str] = set()
     for tabela in ("instrumento_equipamento", "convenio", "proposta_candidata"):
         existe = db.execute(text("select to_regclass(:t) is not null"), {"t": tabela}).scalar()

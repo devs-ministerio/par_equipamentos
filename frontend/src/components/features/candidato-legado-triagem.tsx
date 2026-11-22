@@ -13,6 +13,23 @@ import type { CandidatoLegado } from "@/services/candidatos-legados";
 import { CandidatoLegadoHistorico } from "./candidato-legado-historico";
 import { CandidatoLegadoAprovacao } from "./candidato-legado-aprovacao";
 
+const VALIDADE_PROVA_MS = 24 * 60 * 60 * 1000; // espelha VALIDADE_RECAPTURA no backend
+
+/** Por que o Aprovar está travado (null = liberado). A decisão final continua no backend. */
+function motivoSemAprovacaoDe(
+  candidato: CandidatoLegado,
+  agora = Date.now(),
+): string | null {
+  if (candidato.confirmacao_portal !== "confirmado")
+    return "Libera quando o Portal da Transparência confirmar";
+  if (!candidato.recaptura_em)
+    return "Prova ausente: falta a recaptura oficial";
+  const idade = agora - new Date(candidato.recaptura_em).getTime();
+  if (idade < 0 || idade > VALIDADE_PROVA_MS)
+    return "Prova vencida: refazer a recaptura oficial";
+  return null;
+}
+
 export function CandidatoLegadoTriagem({
   candidato,
 }: {
@@ -22,6 +39,7 @@ export function CandidatoLegadoTriagem({
   const { podeDecidir } = useTriagemLegado(candidato.id);
   const aberta =
     candidato.situacao === "novo" || candidato.situacao === "em_analise";
+  const motivoSemAprovacao = motivoSemAprovacaoDe(candidato);
   return (
     <div className="mt-4 border-t border-border pt-3">
       {acao ? (
@@ -31,36 +49,33 @@ export function CandidatoLegadoTriagem({
           fechar={() => setAcao(undefined)}
         />
       ) : (
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center [&>button]:h-11 [&>button]:min-w-0 [&>button]:px-4 [&>button:first-child]:col-span-2">
-          {podeDecidir && aberta && candidato.origem === "siconv_oficial" && (
-            <>
-              {candidato.situacao === "novo" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setAcao("iniciar_analise")}
-                >
-                  Iniciar análise
-                </Button>
-              )}
+        <div className="flex flex-wrap items-center gap-2">
+          {podeDecidir &&
+            aberta &&
+            (motivoSemAprovacao ? (
               <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setAcao("rejeitar")}
+                type="button"
+                className="min-h-11 sm:min-h-8"
+                disabled
+                title={motivoSemAprovacao}
               >
-                Rejeitar
+                Aprovar
               </Button>
-            </>
+            ) : (
+              <CandidatoLegadoAprovacao candidato={candidato} />
+            ))}
+          {podeDecidir && aberta && (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 sm:min-h-8"
+              onClick={() => setAcao("rejeitar")}
+            >
+              Rejeitar
+            </Button>
           )}
         </div>
       )}
-      {!acao &&
-        podeDecidir &&
-        aberta &&
-        candidato.origem === "siconv_oficial" &&
-        candidato.confirmacao_portal === "confirmado" && (
-          <CandidatoLegadoAprovacao candidato={candidato} />
-        )}
       {candidato.versao > 0 && (
         <CandidatoLegadoHistorico candidatoId={candidato.id} />
       )}
@@ -103,9 +118,7 @@ function DecisaoForm({
       })}
     >
       <label htmlFor={campoId} className="text-xs font-semibold">
-        {acao === "rejeitar"
-          ? "Motivo da rejeição"
-          : "Justificativa da análise"}
+        Motivo da rejeição
       </label>
       <Input
         id={campoId}

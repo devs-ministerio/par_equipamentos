@@ -128,6 +128,18 @@ export function AdicionarMonitoramentoButton({
     );
   }
 
+  if (dados.tipo_contratacao === "PERSUS II") {
+    return (
+      <Button
+        size="sm"
+        disabled
+        title="PERSUS II não entra no monitoramento interno por enquanto."
+      >
+        + Adicionar ao monitoramento interno
+      </Button>
+    );
+  }
+
   return (
     <Dialog
       open={aberto}

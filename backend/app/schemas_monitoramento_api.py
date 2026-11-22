@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.db.models import (
     MarcoGrupo,
 )
+from app.schemas import PageMeta
 
 
 class MarcoCatalogoRead(BaseModel):
@@ -33,7 +34,7 @@ class EventoMarcoRead(BaseModel):
     data_ocorrencia: date | None
     data_prevista: date | None
     status_regulatorio: str | None
-    # Numero de matricula/licenca/processo (ex. matricula CNEN) -- achado
+    # Numero de matricula/licenca/processo (ex. matricula ANSN) -- achado
     # 2026-09-09, coluna propria pra nao misturar com o vocabulario de
     # status (ver comentario em app/db/models.py::EventoMarco).
     numero_documento: str | None
@@ -51,6 +52,8 @@ class EventoMarcoRead(BaseModel):
     deletado_por_nome: str | None = None
     motivo_exclusao: str | None = None
     ativo: bool = True
+    # Evento nascido de uma entrega de equipamento: só se altera pela entrega.
+    gerado_por_entrega_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -332,6 +335,18 @@ class AcaoMonitoramentoRead(BaseModel):
     ativo: bool = True
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AcoesInstrumentoMeta(PageMeta):
+    """`total` é do conjunto filtrado; `abertas` e `atrasadas` contam o instrumento inteiro."""
+
+    abertas: int
+    atrasadas: int
+
+
+class AcaoMonitoramentoPage(BaseModel):
+    data: list[AcaoMonitoramentoRead]
+    meta: AcoesInstrumentoMeta
 
 
 class AcaoMonitoramentoCreate(BaseModel):

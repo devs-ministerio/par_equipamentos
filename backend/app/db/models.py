@@ -106,6 +106,8 @@ class NotificacaoTipo(str, enum.Enum):
     # específica vai em `Notificacao.chave_dedup` (scripts/job_prazos_monitoramento.py).
     prazo_acao = "prazo_acao"
     prazo_inauguracao = "prazo_inauguracao"
+    # Previsão de entrega por item: entidade_id é InstrumentoEquipamento.id; o item vai em `chave_dedup`.
+    prazo_previsao_entrega = "prazo_previsao_entrega"
 
 
 class IncaEstimateLevel(str, enum.Enum):
@@ -137,7 +139,7 @@ class MarcoGrupo(str, enum.Enum):
     "Execucao Fisica %" da planilha cobrem), o cronograma fisico do
     equipamento em si (fabricacao/porto/entrega/instalacao/obra -- nao
     existe em NENHUM sistema federal, so acompanhamento manual) e os
-    processos regulatorios (CNEN -- matricula, licenca de operacao,
+    processos regulatorios (ANSN -- matricula, licenca de operacao,
     descomissionamento/casamata -- so relevante pra equipamento que emite
     radiacao: Acelerador Linear, Braquiterapia, PET-CT, Gama Camara)."""
 
@@ -1242,19 +1244,19 @@ class EventoMarco(Base):
     )
     data_ocorrencia: Mapped[date | None] = mapped_column(Date)
     data_prevista: Mapped[date | None] = mapped_column(Date)
-    # So usado em marco de grupo=regulatorio -- vocabulario da propria CNEN/
+    # So usado em marco de grupo=regulatorio -- vocabulario da propria ANSN/
     # planilha (NI, NA, Em analise, Em diligencia, Deferido, Indeferido), sem
     # enum de proposito: e terminologia externa, pode ganhar variante nova
     # sem exigir migration (mesmo raciocinio do `legal_nature` em
     # EquipmentOfferRow).
     status_regulatorio: Mapped[str | None] = mapped_column(String)
-    # Numero de matricula/licenca/processo (ex. matricula CNEN "16981") --
+    # Numero de matricula/licenca/processo (ex. matricula ANSN "16981") --
     # achado 2026-09-09: esse numero estava sendo gravado dentro de
     # `status_regulatorio` no seed (gambiarra, ver seed_monitoramento.py e a
     # migration que corrige o dado ja gravado). `status_regulatorio` fica so
     # pro vocabulario de status; numero de documento tem coluna propria.
     numero_documento: Mapped[str | None] = mapped_column(String)
-    # Validade da licenca/matricula (licenca de operacao CNEN normalmente
+    # Validade da licenca/matricula (licenca de operacao ANSN normalmente
     # tem prazo e precisa renovacao) -- usada pro alerta de vencimento na
     # pagina de monitoramento, nao so registro passivo.
     data_validade: Mapped[date | None] = mapped_column(Date)
@@ -1482,6 +1484,8 @@ class EquipamentoCatalogo(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
     # Famílias cujo item é acompanhado por unidade física (marca, modelo, série) na entrega.
     controle_por_unidade: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
+    # Famílias cujo equipamento precisa de licença da ANSN (radioterapia, medicina nuclear).
+    exige_licenca: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     nome_oficial: Mapped[str | None] = mapped_column(String)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     atualizado_em: Mapped[datetime] = mapped_column(
@@ -1685,6 +1689,258 @@ class EntregaEquipamento(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 
+class RepasseInstrumento(Base):
+    """Confirmação de repasse do instrumento, integral ou parcial (append-only).
+
+    `origem=fonte` vem do desembolso do SICONV; `origem=manual` é confirmação do técnico
+    (PERSUS, FAF e TED não têm fonte de desembolso). Ativo = sem substituição nem exclusão.
+    """
+
+    __tablename__ = "repasse_instrumento"
+    __table_args__ = (
+        CheckConstraint("tipo IN ('integral','parcial')", name="ck_repasse_instrumento_tipo"),
+        CheckConstraint("origem IN ('fonte','manual')", name="ck_repasse_instrumento_origem"),
+        CheckConstraint("origem <> 'manual' OR autor_id IS NOT NULL", name="ck_repasse_instrumento_manual_autor"),
+        Index("idx_repasse_instrumento_instrumento", "instrumento_id"),
+        Index(
+            "uq_repasse_instrumento_fonte_ativo",
+            "instrumento_id",
+            unique=True,
+            postgresql_where=text("origem = 'fonte' AND deletado_em IS NULL AND substituido_por_id IS NULL"),
+        ),
+        Index(
+            "uq_repasse_instrumento_manual_ativo",
+            "instrumento_id",
+            unique=True,
+            postgresql_where=text("origem = 'manual' AND deletado_em IS NULL AND substituido_por_id IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String, nullable=False)
+    origem: Mapped[str] = mapped_column(String, nullable=False)
+    justificativa: Mapped[str | None] = mapped_column(Text)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    substituido_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("repasse_instrumento.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class CancelamentoUnidadePlanejada(Base):
+    """Cancelamento de uma unidade planejada de item ainda não entregue (append-only).
+
+    Cada linha ativa tira uma unidade da quantidade a entregar do item; desfazer é soft delete com motivo.
+    """
+
+    __tablename__ = "cancelamento_unidade_planejada"
+    __table_args__ = (
+        CheckConstraint("length(btrim(motivo)) > 0", name="ck_cancelamento_unidade_motivo"),
+        Index("idx_cancelamento_unidade_item", "item_id"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    item_id: Mapped[int] = mapped_column(
+        ForeignKey("item_plano.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    motivo: Mapped[str] = mapped_column(Text, nullable=False)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class ConclusaoInstrumento(Base):
+    """Conclusão do acompanhamento confirmada pela equipe (append-only, uma ativa por instrumento).
+
+    `resultado` é calculado pelo Service a partir das entregas e gravado no ato (integral, parcial ou
+    sem_entregas). Reabrir é soft delete com motivo, e uma nova conclusão pode ser registrada depois.
+    As datas de inauguração e de previsão são opcionais em todos os casos.
+    """
+
+    __tablename__ = "conclusao_instrumento"
+    __table_args__ = (
+        CheckConstraint(
+            "resultado IN ('integral', 'parcial', 'sem_entregas')", name="ck_conclusao_instrumento_resultado"
+        ),
+        CheckConstraint(
+            "resultado = 'integral' OR length(btrim(coalesce(justificativa, ''))) > 0",
+            name="ck_conclusao_instrumento_justificativa",
+        ),
+        Index(
+            "uq_conclusao_instrumento_ativa",
+            "instrumento_id",
+            unique=True,
+            postgresql_where=text("deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    resultado: Mapped[str] = mapped_column(String, nullable=False)
+    data_conclusao: Mapped[date] = mapped_column(Date, nullable=False)
+    justificativa: Mapped[str | None] = mapped_column(Text)
+    data_inauguracao: Mapped[date | None] = mapped_column(Date)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+TIPOS_DOCUMENTO = ("nota_fiscal", "ordem_servico", "trp", "trd", "cnen_scra", "cnen_licenca")
+
+
+class DocumentoInstrumento(Base):
+    """Documento do instrumento (NF, OS, TRP, TRD, SCRA e licença de operação da ANSN), append-only.
+
+    Independente da fase: registrar um documento nunca muda a fase. Pode haver vários do mesmo tipo.
+    "Editar" cria linha nova e aponta a antiga por `substituido_por_id`; "excluir" é soft delete com motivo.
+    Ativo = `substituido_por_id IS NULL AND deletado_em IS NULL`. `origem_evento_id` marca o evento de marco
+    antigo do qual o documento foi migrado (idempotência do script de migração).
+    """
+
+    __tablename__ = "documento_instrumento"
+    __table_args__ = (
+        CheckConstraint(
+            "tipo IN ('nota_fiscal', 'ordem_servico', 'trp', 'trd', 'cnen_scra', 'cnen_licenca')",
+            name="ck_documento_instrumento_tipo",
+        ),
+        Index("idx_documento_instrumento_instrumento", "instrumento_id", "tipo"),
+        Index(
+            "uq_documento_instrumento_origem_evento",
+            "origem_evento_id",
+            unique=True,
+            postgresql_where=text("origem_evento_id IS NOT NULL AND deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    instrumento_id: Mapped[int] = mapped_column(
+        ForeignKey("instrumento_equipamento.id", ondelete="CASCADE", onupdate="RESTRICT"), nullable=False
+    )
+    tipo: Mapped[str] = mapped_column(String, nullable=False)
+    numero: Mapped[str | None] = mapped_column(String)
+    data_documento: Mapped[date] = mapped_column(Date, nullable=False)
+    # Só nos documentos da ANSN: vocabulário externo (Em análise, Em diligência, Deferido, Indeferido).
+    status: Mapped[str | None] = mapped_column(String)
+    # Só na licença de operação.
+    data_validade: Mapped[date | None] = mapped_column(Date)
+    observacao: Mapped[str | None] = mapped_column(String)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    origem_evento_id: Mapped[int | None] = mapped_column(
+        ForeignKey("evento_marco.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
+    substituido_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("documento_instrumento.id", ondelete="SET NULL", onupdate="RESTRICT")
+    )
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(String)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class InstalacaoAnsn(Base):
+    """Instalação radiativa da base aberta da ANSN/CNEN (matrícula). Fonte oficial da validade da licença de operação.
+
+    A fonte não traz CNPJ, CNES, ato nem equipamento: o vínculo com o estabelecimento é decisão da equipe
+    (`VinculoLicencaEstabelecimento`). Suspensa não informa validade. `consultado_em` é a data da última carga em que a
+    matrícula apareceu; matrícula que some da carga seguinte não é dada como vencida (não há base pública de vencidas).
+    """
+
+    __tablename__ = "instalacao_ansn"
+    __table_args__ = (
+        CheckConstraint("status IN ('valida', 'suspensa')", name="ck_instalacao_ansn_status"),
+        Index("idx_instalacao_ansn_area", "area_atuacao"),
+    )
+
+    matricula: Mapped[str] = mapped_column(String, primary_key=True)
+    designacao: Mapped[str] = mapped_column(String, nullable=False)
+    cidade: Mapped[str | None] = mapped_column(String)
+    uf: Mapped[str | None] = mapped_column(String(2))
+    area_atuacao: Mapped[str | None] = mapped_column(String)
+    setor_atuacao: Mapped[str | None] = mapped_column(String)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    validade: Mapped[date | None] = mapped_column(Date)
+    consultado_em: Mapped[date] = mapped_column(Date, nullable=False)
+    primeira_consulta_em: Mapped[date] = mapped_column(Date, nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class VinculoLicencaEstabelecimento(Base):
+    """Vínculo entre um estabelecimento (CNES) e uma matrícula da ANSN (append-only, soft delete com motivo).
+
+    `matricula` é texto sem FK de propósito: a matrícula informada pela equipe pode não constar na carga (licença vencida).
+    Ativo = `deletado_em IS NULL`; único por (cnes, matrícula) entre os ativos.
+    """
+
+    __tablename__ = "vinculo_licenca_estabelecimento"
+    __table_args__ = (
+        Index("idx_vinculo_licenca_cnes", "cnes"),
+        Index(
+            "uq_vinculo_licenca_ativo",
+            "cnes",
+            "matricula",
+            unique=True,
+            postgresql_where=text("deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    cnes: Mapped[str] = mapped_column(
+        ForeignKey("cnes_estabelecimento.cnes", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    matricula: Mapped[str] = mapped_column(String, nullable=False)
+    origem: Mapped[str] = mapped_column(String, nullable=False, server_default=text("'carga'"))
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(String)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PrevisaoEntregaItem(Base):
+    """Previsão de entrega de um item do plano (append-only, uma ativa por item).
+
+    Alterar cria nova linha e aponta a antiga por `substituido_por_id`; remover é soft delete com motivo.
+    Ativa = `substituido_por_id IS NULL AND deletado_em IS NULL`.
+    """
+
+    __tablename__ = "previsao_entrega_item"
+    __table_args__ = (
+        Index("idx_previsao_entrega_item", "item_id"),
+        Index(
+            "uq_previsao_entrega_item_ativa",
+            "item_id",
+            unique=True,
+            postgresql_where=text("substituido_por_id IS NULL AND deletado_em IS NULL"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    item_id: Mapped[int] = mapped_column(
+        ForeignKey("item_plano.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False
+    )
+    data_prevista: Mapped[date] = mapped_column(Date, nullable=False)
+    autor_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    substituido_por_id: Mapped[int | None] = mapped_column(
+        ForeignKey("previsao_entrega_item.id", ondelete="RESTRICT", onupdate="RESTRICT")
+    )
+    deletado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    deletado_por_id: Mapped[int | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT", onupdate="RESTRICT"))
+    motivo_exclusao: Mapped[str | None] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class UnidadeEquipamento(Base):
     """Unidade física entregue: marca, modelo, número de série e vida útil. Nasce na entrega."""
 
@@ -1848,7 +2104,7 @@ class Notificacao(Base):
     Quem VE cada notificacao e resolvido em
     app/repositories/notificacoes.py::resolver_destinatarios (materializado
     em NotificacaoDestinatario no momento do insert, nao em tempo de
-    leitura) -- ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md.
+    leitura) -- ver docs/planos/planmode-notificacoes-escopo-2026-09-25.md.
 
     `lida` (coluna abaixo) esta DEPRECATED desde o mesmo Plan Mode -- estado
     de leitura agora vive por usuario em NotificacaoDestinatario.lida, nao
@@ -1896,7 +2152,7 @@ class NotificacaoDestinatario(Base):
     compartilhado pela equipe toda. Materializado no INSERT da notificacao
     (app/repositories/notificacoes.py::resolver_destinatarios), nao
     calculado em tempo de leitura -- ver
-    docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md pra regra
+    docs/planos/planmode-notificacoes-escopo-2026-09-25.md pra regra
     completa de quem entra em cada tipo (titular/suplente via
     InstrumentoResponsavel + gestor/admin sempre; broadcast pra colaborador
     quando nao ha instrumento monitorado; leitor nunca entra)."""

@@ -25,7 +25,6 @@ from app.db.models import (
     NotificacaoTipo,
     UnidadeEquipamento,
     User,
-    UserRole,
 )
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.equipamentos import nome_curto_do_item
@@ -33,8 +32,9 @@ from app.repositories import itens_equipamento as repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
 from app.schemas_entregas import (
+    CancelamentoUnidadeRead,
+    CorrecaoDataEntrega,
     EntregaCreate,
-    EntregaLegadaRead,
     EntregaRead,
     EquipamentosInstrumentoRead,
     ItemEntregaCreate,
@@ -44,6 +44,8 @@ from app.schemas_entregas import (
     UnidadeRead,
     UnidadeUpdate,
 )
+from app.services.conclusao_acompanhamento import assert_nao_concluido
+from app.services.inauguracao_entrega import registrar_resposta_inauguracao
 
 MARCO_ENTREGA = "cronograma_entrega"
 MARCO_FASE_ENTREGUE = "fase_equipamento_entregue"
@@ -92,10 +94,14 @@ def _instrumento_ou_404(db: Session, nr_convenio: str) -> InstrumentoEquipamento
     return instrumento
 
 
-def _situacao(planejado: int | None, entregue: int, revisao_pendente: bool) -> SituacaoItem:
+def _situacao(planejado: int | None, entregue: int, cancelado: int = 0) -> SituacaoItem:
+    """A quantidade a entregar é o planejado menos as unidades canceladas."""
+    a_entregar = None if planejado is None else planejado - cancelado
     if entregue == 0:
-        return "legado_a_revisar" if revisao_pendente else "pendente"
-    if planejado is not None and entregue >= planejado:
+        if a_entregar is not None and a_entregar <= 0:
+            return "cancelado"
+        return "pendente"
+    if a_entregar is not None and entregue >= a_entregar:
         return "entregue"
     return "parcial"
 
@@ -107,7 +113,13 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
     unidades_por_item: dict[int, list[UnidadeRead]] = {}
     for unidade, data in repo.listar_unidades_ativas(db, [item.id for item, _, _ in controlados]):
         unidades_por_item.setdefault(unidade.item_id, []).append(_unidade_read(unidade, data))
-    revisoes = repo.contar_revisoes_pendentes(db, instrumento.id)
+    cancelamentos: dict[int, list[CancelamentoUnidadeRead]] = {}
+    for c in repo.listar_cancelamentos_ativos(db, [item.id for item, _, _ in controlados]):
+        cancelamentos.setdefault(c.item_id, []).append(
+            CancelamentoUnidadeRead(id=c.id, item_id=c.item_id, motivo=c.motivo, criado_em=c.criado_em, ativo=True)
+        )
+    previsoes = repo.previsoes_ativas_por_item(db, [item.id for item, _, _ in controlados])
+    canceladas = {item_id: len(lista) for item_id, lista in cancelamentos.items()}
     rendimentos: dict[int, list[RendimentoRead]] = {}
     for filho in itens:
         item_filho = filho[0]
@@ -131,8 +143,12 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
                 familia=familia,
                 controla_unidade=True,
                 quantidade_planejada=item.quantidade_planejada,
+                valor_total=float(item.valor_total) if item.valor_total is not None else None,
+                quantidade_cancelada=canceladas.get(item.id, 0),
+                cancelamentos=cancelamentos.get(item.id, []),
+                previsao_entrega=previsoes.get(item.id),
                 quantidade_entregue=len(unidades),
-                situacao=_situacao(item.quantidade_planejada, len(unidades), revisoes > 0),
+                situacao=_situacao(item.quantidade_planejada, len(unidades), canceladas.get(item.id, 0)),
                 ultima_entrega=max((u.data_entrega for u in unidades), default=None),
                 unidades=unidades,
                 rendimentos=rendimentos.get(item.id, []),
@@ -143,7 +159,6 @@ def listar_equipamentos_do_instrumento(*, nr_convenio: str, db: Session, usuario
         pode_editar=usuario_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id)),
         itens=resultado,
         outros_itens=len(itens) - len(controlados) - sum(len(rendimentos.get(i.id, [])) for i, _, _ in controlados),
-        revisoes_pendentes=revisoes,
     )
 
 
@@ -176,7 +191,11 @@ def _validar_itens(
             if not dados.confirmar_quantidade_desconhecida:
                 raise ValidationError(f"O item {item.id} não tem quantidade planejada; confirme a quantidade entregue.")
         else:
-            falta = item.quantidade_planejada - repo.quantidade_entregue(db, item.id)
+            falta = (
+                item.quantidade_planejada
+                - repo.quantidade_cancelada(db, item.id)
+                - repo.quantidade_entregue(db, item.id)
+            )
             if len(dados.unidades) > falta:
                 raise ValidationError(
                     f"Quantidade acima do planejado para o item {item.id}: faltam {max(falta, 0)} unidade(s)."
@@ -243,6 +262,7 @@ def registrar_entrega(*, nr_convenio: str, dados: EntregaCreate, db: Session, us
     existente = repo.obter_entrega_por_chave(db, dados.chave_idempotencia)
     if existente is not None:
         return _reenvio(db, existente, instrumento)
+    assert_nao_concluido(db, instrumento.id)
     if dados.data_ocorrencia > date.today():
         raise ValidationError("A data da entrega não pode estar no futuro.")
     validados = _validar_itens(db, instrumento, dados.itens)
@@ -270,6 +290,8 @@ def registrar_entrega(*, nr_convenio: str, dados: EntregaCreate, db: Session, us
             evento_id=evento.id,
             usuario=usuario,
         )
+        if dados.inauguracao is not None:
+            registrar_resposta_inauguracao(db, instrumento, dados.inauguracao, usuario)
         log_action(
             db,
             user_id=usuario.id,
@@ -308,6 +330,9 @@ def corrigir_unidade(*, unidade_id: int, dados: UnidadeUpdate, db: Session, usua
         raise NotFoundError(f"Unidade {unidade_id} não encontrada.")
     instrumento = monitoramento_repo.obter_instrumento_por_id(db, entrega.instrumento_id)
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, entrega.instrumento_id))
+    assert_nao_concluido(db, entrega.instrumento_id)
+    db.refresh(entrega)  # relê depois da trava
+    db.refresh(unidade)
     if entrega.deletado_em is not None:
         raise ValidationError("A entrega desta unidade foi excluída.")
     campos = {c: getattr(dados, c) for c in dados.model_fields_set}
@@ -338,11 +363,118 @@ def corrigir_unidade(*, unidade_id: int, dados: UnidadeUpdate, db: Session, usua
     return _unidade_read(unidade, entrega.data_ocorrencia)
 
 
+def evento_ativo_da_entrega(db: Session, entrega: EntregaEquipamento) -> EventoMarco | None:
+    """Evento ativo ligado à entrega, seguindo a cadeia de correções; `None` se foi excluído."""
+    evento = db.get(EventoMarco, entrega.evento_id) if entrega.evento_id else None
+    vistos: set[int] = set()
+    while evento is not None and evento.id not in vistos:
+        vistos.add(evento.id)
+        if evento.deletado_em is not None:
+            return None
+        if evento.substituido_por_id is None:
+            return evento
+        evento = db.get(EventoMarco, evento.substituido_por_id)
+    return None
+
+
+def alinhar_evento_da_entrega(
+    db: Session, entrega: EntregaEquipamento, *, autor: User | None, observacao: str
+) -> EventoMarco | None:
+    """A entrega manda: deixa um evento ativo `cronograma_entrega` com a data dela e o reaponta.
+
+    Evento já correto só é reapontado; evento com outra data é corrigido (append-only); evento excluído é
+    recriado. Devolve o evento novo ou `None` quando nada mudou. Não commita."""
+    ativo = evento_ativo_da_entrega(db, entrega)
+    if ativo is not None and ativo.data_ocorrencia == entrega.data_ocorrencia:
+        if entrega.evento_id != ativo.id:
+            entrega.evento_id = ativo.id
+            return ativo
+        return None
+    autor_nome = autor.name if autor is not None else "Sistema"
+    texto = f"[{autor_nome}] {observacao}"
+    if ativo is not None:
+        novo = EventoMarco(
+            instrumento_id=ativo.instrumento_id,
+            marco_id=ativo.marco_id,
+            fase_geral_id=ativo.fase_geral_id,
+            data_ocorrencia=entrega.data_ocorrencia,
+            observacao=texto,
+            autor_id=autor.id if autor is not None else None,
+        )
+        monitoramento_repo.substituir_evento(db, ativo, novo)
+        ativo.atualizado_em = _agora()
+    else:
+        marco = monitoramento_repo.obter_marco_por_codigo(db, MARCO_ENTREGA)
+        fase = monitoramento_repo.obter_marco_por_codigo(db, MARCO_FASE_ENTREGUE)
+        if marco is None or fase is None:
+            raise ValidationError("Marco de entrega não encontrado no catálogo.")
+        novo = EventoMarco(
+            instrumento_id=entrega.instrumento_id,
+            marco_id=marco.id,
+            fase_geral_id=fase.id,
+            data_ocorrencia=entrega.data_ocorrencia,
+            observacao=texto,
+            autor_id=autor.id if autor is not None else None,
+        )
+        monitoramento_repo.adicionar_evento(db, novo)
+    entrega.evento_id = novo.id
+    return novo
+
+
+def corrigir_data_entrega(*, entrega_id: int, dados: CorrecaoDataEntrega, db: Session, usuario: User) -> EntregaRead:
+    entrega = repo.obter_entrega(db, entrega_id)
+    if entrega is None:
+        raise NotFoundError(f"Entrega {entrega_id} não encontrada.")
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, entrega.instrumento_id))
+    assert_nao_concluido(db, entrega.instrumento_id)
+    db.refresh(entrega)  # relê depois da trava
+    if entrega.deletado_em is not None:
+        raise ValidationError("A entrega foi excluída.")
+    motivo = dados.motivo.strip()
+    if not motivo:
+        raise ValidationError("Informe o motivo da correção.")
+    if dados.data_ocorrencia > date.today():
+        raise ValidationError("A data da entrega não pode estar no futuro.")
+    if dados.data_ocorrencia == entrega.data_ocorrencia:
+        raise ValidationError("A entrega já está com esta data.")
+    antes = entrega.data_ocorrencia
+    entrega.data_ocorrencia = dados.data_ocorrencia
+    evento = alinhar_evento_da_entrega(
+        db, entrega, autor=usuario, observacao=f"Data da entrega corrigida de {antes:%d/%m/%Y}. {motivo}"
+    )
+    log_action(
+        db,
+        user_id=usuario.id,
+        entity_name="entrega_equipamento",
+        entity_id=entrega.id,
+        action="updated",
+        details={
+            "antes": antes.isoformat(),
+            "depois": dados.data_ocorrencia.isoformat(),
+            "motivo": motivo,
+            "evento_id": evento.id if evento is not None else entrega.evento_id,
+        },
+    )
+    instrumento = monitoramento_repo.obter_instrumento_por_id(db, entrega.instrumento_id)
+    if instrumento is not None:
+        _notificar(
+            db,
+            instrumento,
+            f"{usuario.name} corrigiu a data de uma entrega em {instrumento.nr_convenio}",
+            motivo,
+        )
+    monitoramento_repo.sincronizar(db)
+    db.commit()
+    return _entrega_read(db, entrega)
+
+
 def excluir_entrega(*, entrega_id: int, motivo: str, db: Session, usuario: User) -> EntregaRead:
     entrega = repo.obter_entrega(db, entrega_id)
     if entrega is None:
         raise NotFoundError(f"Entrega {entrega_id} não encontrada.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, entrega.instrumento_id))
+    assert_nao_concluido(db, entrega.instrumento_id)
+    db.refresh(entrega)  # relê depois da trava
     if entrega.deletado_em is not None:
         raise ValidationError(f"Entrega {entrega_id} já está excluída.")
     if not motivo.strip():
@@ -364,59 +496,5 @@ def excluir_entrega(*, entrega_id: int, motivo: str, db: Session, usuario: User)
     if instrumento is not None:
         _notificar(db, instrumento, f"{usuario.name} excluiu uma entrega em {instrumento.nr_convenio}", motivo)
     monitoramento_repo.sincronizar(db)
-    db.commit()
-    return _entrega_read(db, entrega)
-
-
-def listar_entregas_legadas(*, db: Session, usuario: User) -> list[EntregaLegadaRead]:
-    if usuario.role == UserRole.leitor:
-        return []
-    todas = usuario.role in (UserRole.admin, UserRole.gestor)
-    return [
-        EntregaLegadaRead(
-            id=r.id, nr_convenio=nr, evento_id=r.evento_id, data_ocorrencia=data, motivo=r.motivo, criado_em=r.criado_em
-        )
-        for r, nr, data in repo.listar_revisoes_pendentes(db, usuario_id=None if todas else usuario.id)
-    ]
-
-
-def vincular_entrega_legada(
-    *, revisao_id: int, itens: list[ItemEntregaCreate], db: Session, usuario: User
-) -> EntregaRead:
-    revisao = repo.obter_revisao(db, revisao_id)
-    if revisao is None:
-        raise NotFoundError(f"Revisão {revisao_id} não encontrada.")
-    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, revisao.instrumento_id))
-    if revisao.situacao != "pendente":
-        raise ConflictError("Esta entrega já foi vinculada.")
-    instrumento = monitoramento_repo.obter_instrumento_por_id(db, revisao.instrumento_id)
-    evento = db.get(EventoMarco, revisao.evento_id)
-    if instrumento is None or evento is None or evento.data_ocorrencia is None:
-        raise ValidationError("O evento de entrega desta revisão não está mais disponível.")
-    validados = _validar_itens(db, instrumento, itens)
-    entrega = _gravar_entrega(
-        db,
-        instrumento=instrumento,
-        validados=validados,
-        data=evento.data_ocorrencia,
-        observacao=evento.observacao,
-        chave=f"legado:{evento.id}",
-        evento_id=evento.id,
-        usuario=usuario,
-    )
-    revisao.situacao, revisao.resolvida_em, revisao.resolvida_por_id, revisao.entrega_id = (
-        "resolvida",
-        _agora(),
-        usuario.id,
-        entrega.id,
-    )
-    log_action(
-        db,
-        user_id=usuario.id,
-        entity_name="entrega_legada_revisao",
-        entity_id=revisao.id,
-        action="resolved",
-        details={"entrega_id": entrega.id, "itens": _resumo_itens(validados)},
-    )
     db.commit()
     return _entrega_read(db, entrega)

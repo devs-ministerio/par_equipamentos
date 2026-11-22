@@ -26,6 +26,9 @@ export type InauguracaoResumo = z.infer<typeof inauguracaoResumoSchema>;
 const licencaVencendoResumoSchema = z.object({
   nr_convenio: z.string(),
   nome_convenente: z.string(),
+  area: z.string().nullable().optional(),
+  matricula: z.string().nullable().optional(),
+  fonte: z.enum(["ansn", "interna"]).optional(),
   data_validade: z.string(),
   dias: z.number(),
 });

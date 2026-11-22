@@ -162,4 +162,36 @@ describe("Agenda executiva e atualização do recorte", () => {
       screen.getByText("Nenhum prazo crítico registrado."),
     ).toBeInTheDocument();
   });
+
+  it("licença por área mostra a área e não repete a chave", () => {
+    render(
+      <MemoryRouter>
+        <AgendaExecutiva
+          licencas={[
+            {
+              nr_convenio: "QA-X",
+              nome_convenente: "Unidade X",
+              area: "RADIOTERAPIA",
+              data_validade: "2026-11-01",
+              dias: 5,
+            },
+            {
+              nr_convenio: "QA-X",
+              nome_convenente: "Unidade X",
+              area: "MEDICINA NUCLEAR",
+              data_validade: "2027-01-01",
+              dias: 70,
+            },
+          ]}
+          inauguracoes={[]}
+        />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByText(/Licença de operação · RADIOTERAPIA/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Licença de operação · MEDICINA NUCLEAR/),
+    ).toBeInTheDocument();
+  });
 });

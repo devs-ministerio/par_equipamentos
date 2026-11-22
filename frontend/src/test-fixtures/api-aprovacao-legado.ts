@@ -11,6 +11,7 @@ export function prepararApiAprovacao({
   const controle = {
     candidato,
     prova: criarProva(),
+    colaboradores: undefined as (() => Response) | undefined,
     consultar: undefined as (() => Promise<Response>) | undefined,
     aprovar: undefined as ((pedido: unknown) => Promise<Response>) | undefined,
   };
@@ -27,6 +28,14 @@ export function prepararApiAprovacao({
         status: "active",
         created_at: "2026-10-18T10:00:00Z",
       });
+    if (url.pathname.endsWith("/monitoramento/colaboradores"))
+      return (
+        controle.colaboradores?.() ??
+        json([
+          { id: 5, name: "Técnica Sintética" },
+          { id: 6, name: "Técnico Sintético" },
+        ])
+      );
     if (url.pathname.endsWith("/prova"))
       return controle.consultar ? controle.consultar() : json(controle.prova);
     if (url.pathname.endsWith("/aprovacoes")) {

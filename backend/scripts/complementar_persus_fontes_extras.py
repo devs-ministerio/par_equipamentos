@@ -16,7 +16,7 @@ docstring de `EventoMarco` em `app/db/models.py`). 4 fontes fecham isso:
 2. ``Controle PERSUS.xlsx``, abas **Pagamentos**/**Fiscalização** --
    pagamentos individuais de obra (match pelo código "Cod." da aba Obras,
    validado cruzado por UF + overlap de nome -- ver
-   `docs/arquitetura/planmode-relatorios-2026-09-25.md`) e de fiscalização
+   `docs/planos/planmode-relatorios-2026-09-25.md`) e de fiscalização
    (match por nome+UF, fuzzy). Grava em `pagamento_obra_persus`.
 3. ``Entregas_aceleradores_lineares_PERSUS_PRONON_CONV.xlsx``, aba
    **CONVÊNIO** -- licença/inauguração/valor global por CNES direto (essa
@@ -64,6 +64,7 @@ from sqlalchemy.orm import Session
 from app.db.base import SessionLocal
 from app.db.models import Convenio, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, PagamentoObraPersus
 from app.pipeline.texto import normalizar_texto, parsear_valor_brasileiro
+from app.situacao_programa import normalizar_situacao_programa
 from scripts.complementar_persus_monitoramento import _cnes, _texto
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -156,8 +157,7 @@ def _materializar_fase_geral(db: Session, instrumento_id: int, marcos: dict[str,
     qualquer marco mapeado em `_MAPA_MARCO_FASE`. Necessário porque um
     evento físico com `fase_geral_id` de CONTEXTO nunca promove a fase
     sozinho -- só um evento cujo `marco_id` é ele mesmo do grupo
-    `fase_geral` conta pro cálculo (`app/repositories/monitoramento.py::
-    mapa_eventos_por_instrumento`). Idempotente: só insere transição que
+    `fase_geral` conta pro cálculo da fase. Idempotente: só insere transição que
     ainda não existe (mesmo marco + mesma data)."""
     marcos_por_id = {m.id: m for m in marcos.values()}
     eventos = db.query(EventoMarco).filter(EventoMarco.instrumento_id == instrumento_id).all()
@@ -232,7 +232,7 @@ def _criar_instrumento_a_partir_do_convenio(
         origem_dado=origem,
         tipologia=convenio.tipologia,
         investimento_aquisicao=convenio.valor_global,
-        situacao_programa=situacao or convenio.situacao,
+        situacao_programa=normalizar_situacao_programa(situacao or convenio.situacao),
         natureza_servico=convenio.objeto,
         equipamento_descricao="Acelerador linear",
     )

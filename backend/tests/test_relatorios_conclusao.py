@@ -35,8 +35,12 @@ def evento(marco_id):
     return SimpleNamespace(marco_id=marco_id, data_ocorrencia=None, data_prevista=None)
 
 
-def dados(**eventos_por_id):
-    return SimpleNamespace(marcos=MARCOS, eventos_por_instrumento={int(k[1:]): v for k, v in eventos_por_id.items()})
+def dados(conclusoes=None, **eventos_por_id):
+    return SimpleNamespace(
+        marcos=MARCOS,
+        eventos_por_instrumento={int(k[1:]): v for k, v in eventos_por_id.items()},
+        conclusoes=conclusoes or {},
+    )
 
 
 def montar():
@@ -46,14 +50,12 @@ def montar():
         instrumento(3, "Em licitação"),  # previsão vigente
         instrumento(4, "Em licitação"),  # previsão vencida
         instrumento(5, "Em licitação"),  # sem previsão
-        instrumento(6, "Não iniciado"),
+        instrumento(6, "Acompanhamento iniciado"),
     ]
     d = dados(
-        e1=[
-            SimpleNamespace(marco_id=1, data_ocorrencia=date(2026, 5, 1), data_prevista=None),
-            SimpleNamespace(marco_id=2, data_ocorrencia=date(2026, 5, 1), data_prevista=None),
-        ],
-        e2=[evento(1)],
+        conclusoes={1: date(2026, 5, 1)},
+        e1=[SimpleNamespace(marco_id=2, data_ocorrencia=date(2026, 5, 1), data_prevista=None)],
+        e2=[],
         e3=[SimpleNamespace(marco_id=2, data_ocorrencia=None, data_prevista=date(2026, 12, 1))],
         e4=[SimpleNamespace(marco_id=2, data_ocorrencia=None, data_prevista=date(2026, 9, 1))],
     )
@@ -69,7 +71,7 @@ def test_cada_instrumento_recebe_a_situacao_correta_sem_inferir_datas():
         "Em andamento, previsão vigente",
         "Em andamento, previsão vencida",
         "Em andamento, sem previsão",
-        "Não iniciado",
+        "Acompanhamento iniciado",
     ]
 
 
@@ -84,7 +86,7 @@ def test_sintese_conta_lacunas_separadas_de_atraso():
     assert valores["Em andamento com previsão vigente"] == 1
     assert valores["Em andamento com previsão vencida"] == 1
     assert valores["Em andamento sem previsão (lacuna de cadastro)"] == 1
-    assert valores["Não iniciados"] == 1
+    assert valores["Acompanhamento iniciado (sem avanço)"] == 1
 
 
 def test_proximas_previsoes_separa_vigentes_de_vencidas_e_ordena_por_data():

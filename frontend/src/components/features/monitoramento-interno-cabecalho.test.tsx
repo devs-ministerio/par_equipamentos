@@ -29,9 +29,8 @@ function renderizar(
       componenteViaSiconv={null}
       dataInauguracao={null}
       inaugurado
+      inauguracaoDispensada={false}
       diasInauguracao={null}
-      registroLicenca={null}
-      alertaLicenca={false}
       acoesAbertasCount={0}
       acoesAtrasadasCount={0}
     />,
@@ -42,9 +41,8 @@ describe("MonitoramentoInternoCabecalho", () => {
   it("não interpreta situação externa ausente como prestação de contas pendente", () => {
     renderizar(null);
 
-    expect(
-      screen.getByText("Situação externa ainda não verificada"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Sem dado")).toBeInTheDocument();
+    expect(screen.queryByText("Ainda não concluída")).not.toBeInTheDocument();
     expect(
       screen.queryByText(/pendente de conclusão/i),
     ).not.toBeInTheDocument();
@@ -72,22 +70,26 @@ describe("MonitoramentoInternoCabecalho", () => {
     expect(screen.queryByText(/^NUP /)).not.toBeInTheDocument();
   });
 
-  it("mostra a situação do programa só em PERSUS I", () => {
+  it("mostra a fase geral como situação do programa só em PERSUS I", () => {
     renderizar(
       null,
       { nr_convenio: "PS1-1", tipo_contratacao: "PERSUS I" },
-      { situacao_programa: "Em operação" },
+      { situacao_programa: "Em execução", fase_atual: "Pós-entrega" },
     );
 
     expect(screen.getByText("Situação do programa")).toBeInTheDocument();
-    expect(screen.getByText("Em operação")).toBeInTheDocument();
+    expect(screen.getByText("Pós-entrega")).toBeInTheDocument();
+    expect(screen.queryByText("Em execução")).not.toBeInTheDocument();
   });
 
   it("não mostra a situação do programa em convênio, mesmo preenchida", () => {
     renderizar(
       "Prestação de Contas Concluída",
       { nr_convenio: "825374", tipo_contratacao: "Convênio" },
-      { situacao_programa: "Prestação de Contas Concluída" },
+      {
+        situacao_programa: "Prestação de Contas Concluída",
+        fase_atual: "Concluído",
+      },
     );
 
     expect(screen.queryByText("Situação do programa")).not.toBeInTheDocument();

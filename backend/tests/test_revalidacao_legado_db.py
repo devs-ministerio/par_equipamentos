@@ -241,7 +241,7 @@ def test_fila_inelegivel_nao_pode_receber_nova_decisao_humana(matriz, dados):
             usuario=usuarios["admin"],
             candidato_id=alvo.candidato_id,
             dados=DecisaoLegadoCreate(
-                acao="iniciar_analise", chave=uuid4(), captura_id=captura_id, versao=0, justificativa="Teste de fila"
+                acao="rejeitar", chave=uuid4(), captura_id=captura_id, versao=0, justificativa="Teste de fila"
             ),
         )
     assert contar(db, CandidatoLegadoDecisao) == 0
@@ -335,7 +335,7 @@ def test_aprovacao_concorrente_real_nao_e_desfeita_pela_revalidacao(matriz, dado
     with pytest.raises(ConflictError, match="encerrada"):
         registrar_inelegibilidade(db=db, alvo=alvo, escopo=prova(dados))
     assert db.get(CandidatoLegadoDecisao, decisao_id).situacao == "aprovado"
-    assert contar(db, Convenio) == 2 and contar(db, InstrumentoEquipamento) == 1
+    assert contar(db, Convenio) == 2 and contar(db, InstrumentoEquipamento) == 2
     assert contar(db, CandidatoLegadoCaptura) == 1
 
 
@@ -360,7 +360,7 @@ def test_preflight_recusa_estado_improprio_antes_da_coleta(matriz, dados, defeit
         registrar_descoberta(
             db=db,
             candidatos=[candidato(dados)],
-            referencia=ReferenciaDescoberta(origem="snapshot_local", hash_snapshot="e" * 64),
+            referencia=ReferenciaDescoberta.model_construct(origem="snapshot_local", hash_snapshot="e" * 64),
             notificar_novos=False,
         )
     elif defeito == "encerrado":
@@ -396,7 +396,7 @@ def test_publicacao_reconfere_estado_apos_download(matriz, dados, defeito):
         registrar_descoberta(
             db=db,
             candidatos=[candidato(dados)],
-            referencia=ReferenciaDescoberta(origem="snapshot_local", hash_snapshot="e" * 64),
+            referencia=ReferenciaDescoberta.model_construct(origem="snapshot_local", hash_snapshot="e" * 64),
             notificar_novos=False,
         )
         registro = db.get(CandidatoLegadoRegistro, alvo.candidato_id)

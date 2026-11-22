@@ -1,5 +1,5 @@
 """Acesso a MacroCoverage/MunicipalityCoverage para os relatorios (Plan
-Mode docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 2).
+Mode docs/planos/planmode-relatorios-2026-09-25.md, Bloco 2).
 
 Extracao minima -- so o necessario pro relatorio (filtro por UF, sem
 paginacao); app/routers/{macro_coverage,municipality_coverage}.py continuam

@@ -1,6 +1,6 @@
 """Acesso a dados de Notificacao / NotificacaoDestinatario.
 
-Ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md pra regra
+Ver docs/planos/planmode-notificacoes-escopo-2026-09-25.md pra regra
 completa de escopo por destinatário.
 """
 
@@ -112,7 +112,6 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
         return _ids_broadcast(db)
 
     if tipo in (
-        NotificacaoTipo.inclusao_monitoramento,
         NotificacaoTipo.fonte_indisponivel,
         NotificacaoTipo.aprovacao_carteira,
         NotificacaoTipo.convenio_descoberto,
@@ -131,14 +130,37 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
     return _ids_titular_suplente_e_gestores(db, entidade_id)
 
 
-def criar_notificacao(db: Session, notificacao: Notificacao) -> Notificacao:
+def ids_responsaveis_ativos(db: Session, instrumento_id: int) -> set[int]:
+    """Titular e suplente ativos e não leitores (sem a gestão)."""
+    designados = obter_ids_responsaveis_do_instrumento(db, instrumento_id)
+    if not designados:
+        return set()
+    return set(
+        db.execute(
+            select(User.id).where(
+                User.id.in_(designados),
+                User.status == UserStatus.active,
+                User.deleted_at.is_(None),
+                User.role != UserRole.leitor,
+            )
+        ).scalars()
+    )
+
+
+def ids_gestao(db: Session) -> set[int]:
+    return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
+
+
+def criar_notificacao(db: Session, notificacao: Notificacao, *, destinatarios: set[int] | None = None) -> Notificacao:
     """Insere a Notificacao e materializa NotificacaoDestinatario pra cada
     usuário que deve vê-la. `db.add`+`flush` (não commit) -- quem chama
     continua responsável pelo commit, mesmo padrão já usado pelos jobs/
-    services que antes só faziam `db.add(Notificacao(...))` direto."""
+    services que antes só faziam `db.add(Notificacao(...))` direto.
+    `destinatarios` substitui a regra por tipo (aviso de resumo ou só de responsáveis)."""
     db.add(notificacao)
     db.flush()
-    destinatarios = resolver_destinatarios(db, tipo=notificacao.tipo, entidade_id=notificacao.entidade_id)
+    if destinatarios is None:
+        destinatarios = resolver_destinatarios(db, tipo=notificacao.tipo, entidade_id=notificacao.entidade_id)
     for usuario_id in destinatarios:
         db.add(NotificacaoDestinatario(notificacao_id=notificacao.id, usuario_id=usuario_id))
     return notificacao
@@ -169,7 +191,11 @@ _TIPOS_DE_INSTRUMENTO = (
     NotificacaoTipo.entrega_legada_revisao,
     NotificacaoTipo.prazo_acao,
     NotificacaoTipo.prazo_inauguracao,
+    NotificacaoTipo.prazo_previsao_entrega,
 )
+
+
+PREFIXO_DEDUP_RESUMO_SICONV = "siconv-resumo:"
 
 
 def notificacao_no_escopo() -> ColumnElement[bool]:
@@ -177,7 +203,11 @@ def notificacao_no_escopo() -> ColumnElement[bool]:
     instrumentos_fora = select(InstrumentoEquipamento.id).where(~instrumento_no_escopo())
     convenios_fora = select(Convenio.id).where(Convenio.fora_escopo_equipamentos.is_(True))
     return ~(
-        (Notificacao.tipo.in_(_TIPOS_DE_INSTRUMENTO) & Notificacao.entidade_id.in_(instrumentos_fora))
+        (
+            Notificacao.tipo.in_(_TIPOS_DE_INSTRUMENTO)
+            & Notificacao.entidade_id.in_(instrumentos_fora)
+            & ~func.coalesce(Notificacao.chave_dedup, "").startswith(PREFIXO_DEDUP_RESUMO_SICONV, autoescape=True)
+        )
         | ((Notificacao.tipo == NotificacaoTipo.alerta_vigencia) & Notificacao.entidade_id.in_(convenios_fora))
     )
 

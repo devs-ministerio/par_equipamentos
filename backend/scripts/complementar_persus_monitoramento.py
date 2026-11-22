@@ -37,6 +37,7 @@ from app.db.models import AcaoMonitoramento, Convenio, EventoMarco, InstrumentoE
 # (`app.pipeline.texto`) em vez de uma cópia local -- havia 3 quase
 # idênticas entre scripts/services.
 from app.pipeline.texto import parsear_valor_brasileiro as _valor_reais
+from app.situacao_programa import normalizar_situacao_programa
 
 ROOT = Path(__file__).resolve().parents[2]
 ARQUIVO_PADRAO = ROOT / "data/Controle PERSUS.xlsx"
@@ -313,7 +314,7 @@ def _campos_instrumento(convenio: Convenio, origem: str) -> dict[str, object]:
         "tipologia": convenio.tipologia,
         "ano_instrumento": convenio.ano_instrumento,
         "investimento_aquisicao": convenio.valor_global,
-        "situacao_programa": convenio.situacao,
+        "situacao_programa": normalizar_situacao_programa(convenio.situacao),
         "natureza_servico": convenio.objeto,
         "equipamento_descricao": "Acelerador linear",
         "chave_origem": convenio.chave_origem,

@@ -48,6 +48,7 @@ vi.mock("@/hooks/use-notificacoes", () => ({
 const NAV_ITEMS: HeaderNavItem[] = [
   { path: "/dashboard", label: "Análise de mérito", icon: Scale },
   { path: "/monitoramento-equipamentos", label: "Dados oficiais" },
+  { path: "/painel-fechado", label: "Painel fechado", disabled: true },
 ];
 
 function renderHeader() {
@@ -79,6 +80,12 @@ describe("AppHeader", () => {
     renderHeader();
     const item = screen.getByRole("button", { name: "Análise de mérito" });
     expect(item.querySelector("svg[aria-hidden='true']")).not.toBeNull();
+  });
+
+  it("mantém o item desabilitado visível e sem clique", () => {
+    renderHeader();
+    const item = screen.getAllByRole("button", { name: "Painel fechado" })[0];
+    expect(item).toBeDisabled();
   });
 
   it("abre o menu mobile e navega ao clicar num item", async () => {

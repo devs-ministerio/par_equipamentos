@@ -185,7 +185,7 @@ function SecaoMonitoramentoInterno({
     >
       {monitorado ? (
         <p className="m-0 text-xs text-muted-foreground">
-          Entrega, instalação, licenciamento CNEN e inauguração.
+          Entrega, instalação, licenciamento ANSN e inauguração.
         </p>
       ) : (
         <AdicionarMonitoramentoButton

@@ -16,7 +16,7 @@ from typing import Any
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.base import SessionLocal
-from app.db.models import FonteCaptura, Notificacao, NotificacaoTipo
+from app.db.models import FonteCaptura, Notificacao, NotificacaoTipo, User, UserRole
 from app.repositories.capturas_fonte import (
     adicionar_captura,
     existe_alerta_recente,
@@ -24,6 +24,7 @@ from app.repositories.capturas_fonte import (
     listar_ultimos_sucessos,
 )
 from app.repositories.notificacoes import criar_notificacao
+from app.schemas_fontes import FonteResumoRead, FonteSituacaoRead
 
 ROTULOS_FONTE = {
     "cnes_tomografo": "Cobertura de tomógrafos",
@@ -180,3 +181,27 @@ def situacao_das_fontes(db: Session, *, agora: datetime | None = None) -> list[S
             )
         )
     return resultado
+
+
+def situacoes_das_fontes_para(db: Session, usuario: User) -> list[FonteSituacaoRead | FonteResumoRead]:
+    """Admin recebe o detalhe da coleta; os demais papéis só a data do último sucesso."""
+    situacoes = situacao_das_fontes(db)
+    if usuario.role != UserRole.admin:
+        return [
+            FonteResumoRead(fonte=s.fonte, rotulo=s.rotulo, ultimo_sucesso_em=s.ultimo_sucesso_em) for s in situacoes
+        ]
+    return [
+        FonteSituacaoRead(
+            fonte=s.fonte,
+            rotulo=s.rotulo,
+            status=s.ultima_tentativa.status,
+            ultima_tentativa_em=s.ultima_tentativa.finalizado_em,
+            ultimo_sucesso_em=s.ultimo_sucesso_em,
+            defasada=s.defasada,
+            itens_verificados=s.ultima_tentativa.itens_verificados,
+            itens_alterados=s.ultima_tentativa.itens_alterados,
+            # Capturas anteriores também podem conter exceções cruas no banco.
+            erro=mensagem_publica_da_captura(s.ultima_tentativa.status),
+        )
+        for s in situacoes
+    ]

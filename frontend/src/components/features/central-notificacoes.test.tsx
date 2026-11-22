@@ -70,6 +70,34 @@ describe("Central de notificações integrada à API", () => {
     );
   });
 
+  it("atualização oficial abre o popup completo e só navega pelo botão do popup", async () => {
+    const { fetch, fechar } = montar([
+      criarAviso(1, {
+        tipo: "atualizacao_api",
+        corpo: "Situação do convênio: A → B\n\nPagamentos: 1 novo(s)",
+        destino: "/instrumento/1",
+      }),
+    ]);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Ver detalhes" }),
+    );
+    expect(await screen.findByText("Pagamentos: 1 novo(s)")).toBeVisible();
+    expect(fechar).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Destino atual")).not.toHaveTextContent(
+      "/instrumento/1",
+    );
+    expect(fetch.mock.calls.some(([, init]) => init?.method === "PATCH")).toBe(
+      true,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Abrir instrumento" }));
+    await waitFor(() => expect(fechar).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.getByLabelText("Destino atual")).toHaveTextContent(
+        "/instrumento/1",
+      ),
+    );
+  });
+
   it("abre registro já lido sem emitir outra escrita", async () => {
     const { fetch, fechar } = montar([
       criarAviso(1, { lida: true, destino: "/instrumento/1" }),

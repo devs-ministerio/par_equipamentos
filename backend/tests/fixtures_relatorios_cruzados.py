@@ -5,7 +5,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, PropostaCandidata
+from app.db.models import ConclusaoInstrumento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, PropostaCandidata
 from tests.fixtures_relatorios_matriz import REGISTROS, criar_carteira_matriz
 
 
@@ -48,8 +48,8 @@ def criar_carteira_cruzada(db: Session) -> None:
             concluido = marcos["fase_concluido"]
             db.add_all(
                 [
-                    EventoMarco(
-                        instrumento_id=instrumento.id, marco_id=concluido.id, data_ocorrencia=date(registro.ano, 1, 31)
+                    ConclusaoInstrumento(
+                        instrumento_id=instrumento.id, resultado="integral", data_conclusao=date(registro.ano, 1, 31)
                     ),
                     EventoMarco(
                         instrumento_id=instrumento.id,

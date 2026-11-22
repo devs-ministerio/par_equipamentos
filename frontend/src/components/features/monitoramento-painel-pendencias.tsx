@@ -242,7 +242,7 @@ export function MonitoramentoPainelPendencias({
           </div>
           <div className="flex items-baseline justify-between gap-4 py-3 sm:pl-5">
             <span className="text-sm text-muted-foreground">
-              Licenças CNEN deferidas
+              Licenças ANSN deferidas
             </span>
             <strong className="font-data text-lg tabular-nums">
               {`${licencasCnenDeferidas.quantidade}/${licencasCnenDeferidas.total}`}

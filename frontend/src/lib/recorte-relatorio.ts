@@ -10,7 +10,6 @@ import type { PropostaCandidata } from "@/services/propostas-candidatas";
 /** Origens de Situação com efeito em cada visão; as demais não alteram o resultado nem o arquivo (D04). */
 const ORIGENS_DA_VISAO: Record<string, OrigemSituacao[]> = {
   encerrados: ["instrumento", "proposta"],
-  previsoes: ["monitoramento"],
   entregues: [],
 };
 

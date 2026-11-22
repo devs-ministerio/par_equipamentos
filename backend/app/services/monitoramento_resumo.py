@@ -13,7 +13,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.db.models import EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
+from app.repositories import documentos as documentos_repo
 from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.schemas_monitoramento import (
@@ -23,81 +23,24 @@ from app.schemas_monitoramento import (
     EquipamentoInstrumentoResumo,
     InauguracaoResumo,
     IndicadoresInstrumentoRead,
-    LacunaConclusaoResumo,
     LicencaVencendoResumo,
     ResumoMonitoramentoRead,
 )
+from app.services import licenca_operacao
+from app.services.fase_acompanhamento import FaseAcompanhamento
 from app.services.monitoramento_divergencias import divergencia_conclusao
-
-
-def _fase_atual_id(fases_gerais_desc: list[MarcoCatalogo], marco_ids_com_evento: set[int]) -> int | None:
-    """Mesma regra ja usada no front (MonitoramentoInterno.tsx): marco de
-    fase_geral de MAIOR ordem que tem pelo menos 1 evento lancado --
-    `fases_gerais_desc` ja vem ordenado por `ordem` decrescente."""
-    for f in fases_gerais_desc:
-        if f.id in marco_ids_com_evento:
-            return f.id
-    return None
-
-
-def _acumular_lacunas_conclusao(
-    *,
-    instrumento: InstrumentoEquipamento,
-    fase_atual: MarcoCatalogo | None,
-    eventos_instrumento: list[EventoMarco],
-    marco_inauguracao_id: int | None,
-    lacunas: list[LacunaConclusaoResumo],
-) -> None:
-    """Lacunas de cadastro ou evidência (D42), distintas de atraso e de divergência administrativa.
-
-    Nada é inferido: sem data, sem inauguração real ou sem previsão o instrumento só entra na lista de saneamento."""
-    if fase_atual is None:  # "Não iniciado" não tem o que concluir nem prever
-        return
-    inauguracoes = [e for e in eventos_instrumento if marco_inauguracao_id and e.marco_id == marco_inauguracao_id]
-    if fase_atual.codigo == "fase_concluido":
-        conclusoes = [e for e in eventos_instrumento if e.marco_id == fase_atual.id]
-        if conclusoes and not any(e.data_ocorrencia for e in conclusoes):
-            lacunas.append(
-                LacunaConclusaoResumo(
-                    nr_convenio=instrumento.nr_convenio,
-                    nome_convenente=instrumento.nome_convenente,
-                    tipo="concluido_sem_data_conclusao",
-                )
-            )
-        if not any(e.data_ocorrencia for e in inauguracoes):
-            lacunas.append(
-                LacunaConclusaoResumo(
-                    nr_convenio=instrumento.nr_convenio,
-                    nome_convenente=instrumento.nome_convenente,
-                    tipo="concluido_sem_inauguracao_real",
-                )
-            )
-        return
-    if not any(e.data_prevista or e.data_ocorrencia for e in inauguracoes):
-        lacunas.append(
-            LacunaConclusaoResumo(
-                nr_convenio=instrumento.nr_convenio,
-                nome_convenente=instrumento.nome_convenente,
-                tipo="andamento_sem_previsao",
-            )
-        )
+from app.services.repasses import fases_calculadas_em_lote
 
 
 def _acumular_divergencia_conclusao(
     *,
     instrumento,
-    fase_atual,
-    eventos_instrumento,
+    fase_atual: FaseAcompanhamento,
     propostas_por_chave,
     divergencias: list[DivergenciaConclusaoRead],
     por_fonte: Counter[str],
 ) -> None:
-    fase_concluida = bool(
-        fase_atual
-        and fase_atual.codigo == "fase_concluido"
-        and any(evento.marco_id == fase_atual.id and evento.data_ocorrencia for evento in eventos_instrumento)
-    )
-    if not fase_concluida:
+    if fase_atual != FaseAcompanhamento.concluido:
         return
     divergencia = divergencia_conclusao(
         instrumento,
@@ -111,7 +54,7 @@ def _acumular_divergencia_conclusao(
             nr_convenio=instrumento.nr_convenio,
             nome_convenente=instrumento.nome_convenente,
             tipo_contratacao=instrumento.tipo_contratacao,
-            fase_interna=fase_atual.rotulo,
+            fase_interna=fase_atual.value,
             fonte_externa=divergencia.fonte_externa,
             status_externo_original=divergencia.status_externo_original,
             status_externo_normalizado=divergencia.status_externo_normalizado,
@@ -129,23 +72,20 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     proposito).
 
     Eventos sao filtrados no banco pelos marcos necessarios (fase_geral +
-    licenca CNEN + inauguracao) -- nao carrega o historico inteiro de
+    licenca ANSN + inauguracao) -- nao carrega o historico inteiro de
     EventoMarco. Contagens de acao tambem sao agregadas no SQL."""
     hoje = date.today()
     dados = monitoramento_repo.carregar_dados_resumo_monitoramento(db, hoje=hoje)
     instrumentos = dados.instrumentos
     propostas_por_chave = dados.propostas_por_chave
     marcos = dados.marcos
-    fases_gerais_desc = sorted(
-        (m for m in marcos if m.grupo == MarcoGrupo.fase_geral),
-        key=lambda m: m.ordem or 0,
-        reverse=True,
-    )
+    fases_por_instrumento = fases_calculadas_em_lote(db, instrumentos)
     marco_licenca = next((m for m in marcos if m.codigo == "regulatorio_licenca_operacao"), None)
     marco_inauguracao = next((m for m in marcos if m.codigo == "cronograma_previsao_inauguracao"), None)
 
     eventos_por_instrumento = dados.eventos_por_instrumento
-    pcts = []
+    licencas_por_instrumento = documentos_repo.licencas_deferidas_por_instrumento(db, [i.id for i in instrumentos])
+    vinculos_licenca = licenca_operacao.vinculos_por_instrumento(db, instrumentos, hoje)
     contagem_fase: Counter[str] = Counter()
     contagem_tecnico: Counter[str] = Counter()
     licencas_deferidas = 0
@@ -154,22 +94,16 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     divergencias_conclusao: list[DivergenciaConclusaoRead] = []
     divergencias_por_fonte: Counter[str] = Counter()
     indicadores_por_instrumento: list[IndicadoresInstrumentoRead] = []
-    lacunas_conclusao: list[LacunaConclusaoResumo] = []
 
     for inst in instrumentos:
         eventos_inst = eventos_por_instrumento.get(inst.id, [])
-        marco_ids_com_evento = {e.marco_id for e in eventos_inst}
 
-        fase_atual_id = _fase_atual_id(fases_gerais_desc, marco_ids_com_evento)
-        fase_atual = next((f for f in fases_gerais_desc if f.id == fase_atual_id), None)
-        if fase_atual and fase_atual.execucao_fisica_pct_referencia is not None:
-            pcts.append(fase_atual.execucao_fisica_pct_referencia)
-        contagem_fase[fase_atual.rotulo if fase_atual else "Não iniciado"] += 1
+        fase_atual = fases_por_instrumento[inst.id]
+        contagem_fase[fase_atual.value] += 1
 
         _acumular_divergencia_conclusao(
             instrumento=inst,
             fase_atual=fase_atual,
-            eventos_instrumento=eventos_inst,
             propostas_por_chave=propostas_por_chave,
             divergencias=divergencias_conclusao,
             por_fonte=divergencias_por_fonte,
@@ -181,21 +115,41 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         # fora da distribuicao silenciosamente).
         contagem_tecnico[inst.tecnico_titular or "Sem técnico definido"] += 1
 
-        licenca_deferida = False
-        if marco_licenca:
+        # Fonte oficial: vinculo do estabelecimento (CNES) com a matricula da ANSN, um alerta por vinculo. Sem vinculo,
+        # vale o registro interno (documento deferido ou evento legado), rotulado como tal.
+        vinculos_ansn = vinculos_licenca.get(inst.id, [])
+        licenca_deferida = any(v.situacao == "valida" for v in vinculos_ansn)
+        for v in vinculos_ansn:
+            if v.validade is not None:
+                licencas_vencendo.append(
+                    LicencaVencendoResumo(
+                        nr_convenio=inst.nr_convenio,
+                        nome_convenente=inst.nome_convenente,
+                        area=v.area,
+                        matricula=v.matricula,
+                        fonte="ansn",
+                        data_validade=v.validade,
+                        dias=(v.validade - hoje).days,
+                    )
+                )
+        doc_licenca = licencas_por_instrumento.get(inst.id)
+        if not vinculos_ansn and doc_licenca is not None:
+            licenca_deferida = True
+            if doc_licenca.data_validade:
+                licencas_vencendo.append(
+                    LicencaVencendoResumo(
+                        nr_convenio=inst.nr_convenio,
+                        nome_convenente=inst.nome_convenente,
+                        data_validade=doc_licenca.data_validade,
+                        dias=(doc_licenca.data_validade - hoje).days,
+                    )
+                )
+        if marco_licenca and not vinculos_ansn and doc_licenca is None:
             evs_licenca = [e for e in eventos_inst if e.marco_id == marco_licenca.id]
             licenca_deferida = any(e.status_regulatorio == "Deferido" for e in evs_licenca)
-            if licenca_deferida:
-                licencas_deferidas += 1
-            # Evento mais recente com data_validade preenchida -- mesma
-            # regra ja usada no front (MonitoramentoInterno.tsx) pro
-            # contador de vencimento no detalhe do instrumento.
-            # Desempate por id além de created_at (achado ao vivo,
-            # convênio 947527) -- carga em lote grava vários eventos do
-            # mesmo marco com o MESMO created_at (timestamp do processo).
+            # Evento mais recente com data_validade preenchida; desempate por id (carga em lote repete created_at).
+            # Só licença deferida entra no alerta (D26): validade de processo indeferido ou em análise não vale.
             ev_validade = max(
-                # Só licença deferida entra no alerta de vencimento (D26): validade de processo
-                # indeferido ou em análise não é licença vigente.
                 (e for e in evs_licenca if e.data_validade and e.status_regulatorio == "Deferido"),
                 key=lambda e: (e.created_at, e.id),
                 default=None,
@@ -210,6 +164,8 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                         dias=(ev_validade.data_validade - hoje).days,
                     )
                 )
+        if licenca_deferida:
+            licencas_deferidas += 1
 
         if marco_inauguracao:
             evs_inaug = [e for e in eventos_inst if e.marco_id == marco_inauguracao.id]
@@ -241,14 +197,6 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                         )
                     )
 
-        _acumular_lacunas_conclusao(
-            instrumento=inst,
-            fase_atual=fase_atual,
-            eventos_instrumento=eventos_inst,
-            marco_inauguracao_id=marco_inauguracao.id if marco_inauguracao else None,
-            lacunas=lacunas_conclusao,
-        )
-
         acoes_pendentes_inst, acoes_atrasadas_inst = dados.acoes_por_instrumento.get(inst.id, (0, 0))
         indicadores_por_instrumento.append(
             IndicadoresInstrumentoRead(
@@ -256,7 +204,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                 acoes_pendentes=acoes_pendentes_inst,
                 acoes_atrasadas=acoes_atrasadas_inst,
                 licenca_cnen_deferida=licenca_deferida,
-                pct_referencia_fase=(fase_atual.execucao_fisica_pct_referencia if fase_atual else None),
+                pct_referencia_fase=None,
                 ultima_atividade_em=dados.ultima_atividade_por_instrumento.get(inst.id),
             )
         )
@@ -286,9 +234,8 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
 
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),
-        # Sem evento de fase, o instrumento é exibido como "Não iniciado" e
-        # contribui com 0% para a média da carteira, sem inflar o indicador.
-        pct_execucao_fisica_medio=(sum(pcts) / len(instrumentos)) if instrumentos else None,
+        # A fase calculada não tem percentual de referência: não se inventa medição física.
+        pct_execucao_fisica_medio=None,
         distribuicao_fase=[ContagemRotulo(rotulo=r, quantidade=q) for r, q in contagem_fase.most_common()],
         licencas_cnen_deferidas=licencas_deferidas,
         licencas_vencendo=licencas_vencendo,
@@ -306,6 +253,5 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         acoes_em_aberto=acoes_em_aberto,
         fila_acoes_truncada=dados.acoes_pendentes > len(acoes_em_aberto),
         equipamentos_por_instrumento=equipamentos_por_instrumento,
-        lacunas_conclusao=lacunas_conclusao,
         gerado_em=datetime.now(timezone.utc),
     )

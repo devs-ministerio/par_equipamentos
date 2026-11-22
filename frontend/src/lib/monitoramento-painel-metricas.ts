@@ -197,7 +197,7 @@ export function montarMetricasPainel(
     acoesAtrasadas,
     licencasDeferidas: indicadores.filter((item) => item.licenca_cnen_deferida)
       .length,
-    // Sem marco de fase, o instrumento aparece como "Não iniciado" (0%).
+    // Sem marco de fase, o instrumento aparece como "Acompanhamento iniciado" (0%).
     // Incluir esses casos evita a média inflada dos apenas já movimentados.
     pctReferenciaMedio: mediaReferenciaFase(instrumentos, indicadores),
     pctsComReferencia: pcts.length,
@@ -227,7 +227,7 @@ export function montarMetricasPainel(
       .map(([rotulo, dados]) => ({ rotulo, ...dados }))
       .sort((a, b) => b.valor - a.valor),
     fases: contar(
-      instrumentos.map((item) => item.fase_atual ?? "Não iniciado"),
+      instrumentos.map((item) => item.fase_atual ?? "Acompanhamento iniciado"),
     ),
     // Conta instrumentos por equipamento, pelos marcadores canônicos (mesma fonte do filtro). Instrumento com
     // mais de um equipamento entra em cada um, então esta distribuição pode somar mais que o total de instrumentos.

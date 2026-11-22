@@ -25,11 +25,11 @@ def contexto(matriz, dados):
     return db, usuarios, candidato(dados)
 
 
-def coletar(db, c, *, origem="siconv_oficial", notificar=True):
+def coletar(db, c, *, notificar=True):
     return registrar_descoberta(
         db=db,
         candidatos=[c],
-        referencia=ReferenciaDescoberta(origem=origem, hash_snapshot="a" * 64),
+        referencia=ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="a" * 64),
         notificar_novos=notificar,
     )
 
@@ -49,7 +49,7 @@ def test_primeira_oficial_gera_um_aviso_replay_nao_duplica(contexto):
     assert set(db.scalars(select(NotificacaoDestinatario.usuario_id))) == {usuarios["admin"].id, usuarios["gestor"].id}
 
 
-@pytest.mark.parametrize("defeito", ["snapshot", "escopo_v1", "sem_confirmacao", "sem_escopo"])
+@pytest.mark.parametrize("defeito", ["escopo_v1", "sem_escopo"])
 def test_diagnostico_nao_notifica_nem_suprime_futura_descoberta_oficial(contexto, defeito):
     db, _, c = contexto
     inicial = c
@@ -57,11 +57,18 @@ def test_diagnostico_nao_notifica_nem_suprime_futura_descoberta_oficial(contexto
         inicial = c.model_copy(update={"criterio_escopo": "prioritarios_ms_v1"})
     elif defeito == "sem_escopo":
         inicial = c.model_copy(update={"criterio_escopo": None, "orgao_superior": None})
-    elif defeito == "sem_confirmacao":
-        inicial = c.model_copy(update={"confirmacao_portal": "nao_encontrado", "data_publicacao": None})
-    coletar(db, inicial, origem="snapshot_local" if defeito == "snapshot" else "siconv_oficial")
+    coletar(db, inicial)
     assert quantidade(db, Notificacao) == 0
     coletar(db, c)
+    assert quantidade(db, Notificacao) == 1
+
+
+def test_descoberta_sem_portal_avisa_uma_vez_e_a_confirmacao_depois_nao_repete(contexto):
+    db, _, c = contexto
+    coletar(db, c.model_copy(update={"confirmacao_portal": "nao_encontrado", "data_publicacao": None}))
+    assert quantidade(db, Notificacao) == 1
+    coletar(db, c)
+    assert quantidade(db, CandidatoLegadoCaptura) == 2
     assert quantidade(db, Notificacao) == 1
 
 

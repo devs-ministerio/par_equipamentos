@@ -5,6 +5,7 @@ import { fmtDataHora } from "@/lib/monitoramento-format";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
 import { cn } from "@/lib/utils";
 import type { Notificacao } from "@/services/notificacoes";
+import { abreDetalhe } from "@/lib/notificacao-detalhe";
 import { estiloCard } from "./monitoramento-ui";
 
 export function NotificacaoItem({
@@ -57,7 +58,7 @@ export function NotificacaoItem({
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
-        {(aviso.destino || !aviso.lida) && (
+        {(aviso.destino || !aviso.lida || abreDetalhe(aviso)) && (
           <Button
             size="sm"
             variant="outline"
@@ -65,7 +66,11 @@ export function NotificacaoItem({
             disabled={ocupada}
             onClick={() => void abrir(aviso)}
           >
-            {aviso.destino ? "Abrir registro" : "Marcar como lida"}
+            {abreDetalhe(aviso)
+              ? "Ver detalhes"
+              : aviso.destino
+                ? "Abrir registro"
+                : "Marcar como lida"}
           </Button>
         )}
         <Button

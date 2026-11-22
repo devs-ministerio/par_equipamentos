@@ -1,4 +1,4 @@
-"""Contratos HTTP de GET /relatorios (Plan Mode docs/arquitetura/
+"""Contratos HTTP de GET /relatorios (Plan Mode docs/planos/
 planmode-relatorios-2026-09-25.md, Blocos 2, 4 e 5)."""
 
 from __future__ import annotations

@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
-from app.auth import require_current_user
+from app.auth import require_current_user, require_gestor_user
 from app.db.base import get_db
 from app.db.models import User
 from app.schemas_aprovacao_legado import AprovacaoLegadoCreate, AprovacaoLegadoRead, ProvaLegadoRead
@@ -52,7 +52,7 @@ def listar(
     confirmacao: ConfirmacaoPortal | None = None,
     situacao: Annotated[list[SituacaoLegado] | None, Query()] = None,
     db: Session = Depends(get_db),
-    _usuario: User = Depends(require_current_user),
+    _usuario: User = Depends(require_gestor_user),
 ):
     return listar_candidatos(
         db=db,
@@ -61,7 +61,6 @@ def listar(
         busca=busca,
         confirmacao=confirmacao,
         situacao=situacao,
-        somente_oficiais=True,
     )
 
 
@@ -81,6 +80,6 @@ def historico(
     pagina: Annotated[int, Query(ge=1)] = 1,
     tamanho_pagina: Annotated[int, Query(ge=1, le=50)] = 10,
     db: Session = Depends(get_db),
-    _usuario: User = Depends(require_current_user),
+    _usuario: User = Depends(require_gestor_user),
 ):
     return consultar_historico(db=db, candidato_id=candidato_id, pagina=pagina, tamanho=tamanho_pagina)

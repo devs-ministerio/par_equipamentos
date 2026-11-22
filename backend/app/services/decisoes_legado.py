@@ -20,7 +20,7 @@ def registrar_decisao(
         registro = repositorio.bloquear_candidato(db, candidato_id)
         if registro is None:
             raise NotFoundError("Candidato não encontrado.")
-        situacao = "em_analise" if dados.acao == "iniciar_analise" else "rejeitado"
+        situacao = "rejeitado"
         replay = repositorio.obter_replay(db, candidato_id, dados.chave)
         if replay:
             if (replay.usuario_id, replay.captura_id, replay.situacao, replay.justificativa) != (
@@ -41,7 +41,8 @@ def registrar_decisao(
         captura = candidatos.obter_capturas(db, {dados.captura_id}).get(dados.captura_id)
         if captura is None or captura.origem != "siconv_oficial" or not captura.elegivel:
             raise ConflictError("Somente descobertas da fonte oficial podem ser analisadas no Radar.")
-        if estado not in ("novo", "em_analise") or (situacao == "em_analise" and estado != "novo"):
+        # "em_analise" só existe em linhas antigas; a ação que a gravava foi removida.
+        if estado not in ("novo", "em_analise"):
             raise ConflictError("A situação atual não permite esta decisão.")
         decisao = CandidatoLegadoDecisao(
             candidato_id=candidato_id,

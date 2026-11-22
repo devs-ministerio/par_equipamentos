@@ -18,12 +18,18 @@ const candidato: CandidatoLegado = {
   id_proposta: "1001",
   captura_id: 2,
   versao: 0,
+  itens: [],
   situacao: "novo",
   confirmacao_portal: "nao_consultado",
   data_publicacao: null,
   origem: "siconv_oficial",
   descoberto_em: "2026-10-06T10:00:00Z",
   verificado_em: "2026-10-06T10:00:00Z",
+  valor_global: null,
+  municipio: null,
+  uf: null,
+  data_instrumento: null,
+  recaptura_em: null,
   componentes: [],
   evidencias: [],
 };
@@ -76,16 +82,14 @@ function preparar({ role = "gestor", item = candidato, falha = false } = {}) {
 
 it("valida justificativa, envia captura e versão com CSRF e fecha após sucesso", async () => {
   const fetch = preparar();
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Iniciar análise" }),
-  );
+  fireEvent.click(await screen.findByRole("button", { name: "Rejeitar" }));
   fireEvent.click(screen.getByRole("button", { name: "Confirmar decisão" }));
   expect(await screen.findByText(/pelo menos 3 caracteres/)).toBeVisible();
   expect(
     fetch.mock.calls.filter(([, init]) => init?.method === "POST"),
   ).toHaveLength(0);
   fireEvent.change(
-    screen.getByRole("textbox", { name: "Justificativa da análise" }),
+    screen.getByRole("textbox", { name: "Motivo da rejeição" }),
     { target: { value: "Conferência sintética" } },
   );
   fireEvent.click(screen.getByRole("button", { name: "Confirmar decisão" }));
@@ -96,7 +100,7 @@ it("valida justificativa, envia captura e versão com CSRF e fecha após sucesso
   );
   const chamada = fetch.mock.calls.find(([, init]) => init?.method === "POST");
   expect(JSON.parse(String(chamada?.[1]?.body))).toMatchObject({
-    acao: "iniciar_analise",
+    acao: "rejeitar",
     captura_id: 2,
     versao: 0,
     justificativa: "Conferência sintética",
@@ -146,9 +150,7 @@ it.each(["colaborador", "leitor"])(
 
 it("cancelar não grava uma decisão", async () => {
   const fetch = preparar();
-  fireEvent.click(
-    await screen.findByRole("button", { name: "Iniciar análise" }),
-  );
+  fireEvent.click(await screen.findByRole("button", { name: "Rejeitar" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
   expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   expect(
@@ -187,4 +189,11 @@ it("service rejeita decisão malformada antes de enviar", async () => {
   expect(
     fetch.mock.calls.filter(([, init]) => init?.method === "POST"),
   ).toHaveLength(0);
+});
+
+it("sem confirmação do Portal o Aprovar fica desabilitado e Rejeitar segue livre", async () => {
+  preparar();
+  const aprovar = await screen.findByRole("button", { name: "Aprovar" });
+  expect(aprovar).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Rejeitar" })).toBeEnabled();
 });

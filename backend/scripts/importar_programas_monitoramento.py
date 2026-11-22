@@ -41,6 +41,7 @@ from sqlalchemy import delete, select
 
 from app.db.base import SessionLocal
 from app.db.models import CnesEstabelecimento, Convenio, EventoMarco, InstrumentoEquipamento, MarcoCatalogo
+from app.situacao_programa import normalizar_situacao_programa
 from scripts.lib_identificadores import gerar_identificador_aleatorio
 from scripts.lib_monitoramento_convenio import espelhar_convenio
 
@@ -100,15 +101,12 @@ def _cnes(valor: object) -> str | None:
 # precisa do mesmo vocabulário sentence-case usado pelas fontes reais
 # (SICONV já devolve "Em execução") -- unifica "Inaugurada"/"Não
 # inaugurada" no mesmo rótulo operacional que PERSUS II/PRONON usam.
-_MAPA_SITUACAO = {"INAUGURADA": "Em operação", "NÃO INAUGURADA": "Em execução"}
-
-
 def _situacao_normalizada(situacao: str | None) -> str | None:
     if not situacao:
         return situacao
-    mapeada = _MAPA_SITUACAO.get(situacao.upper())
-    if mapeada:
-        return mapeada
+    normalizada = normalizar_situacao_programa(situacao)
+    if normalizada != situacao:
+        return normalizada
     return situacao.capitalize()
 
 

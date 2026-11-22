@@ -270,9 +270,6 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     expect(
       metrica("Instrumentos com atenção").getByText("0"),
     ).toBeInTheDocument();
-    expect(
-      metrica("Progresso de fase · referência").getByText("20%"),
-    ).toBeInTheDocument();
     expect(screen.getByText("1 instrumentos")).toBeInTheDocument();
     // When: a mesma query perde o único instrumento do recorte.
     h.respostas.set("/monitoramento/instrumentos", {

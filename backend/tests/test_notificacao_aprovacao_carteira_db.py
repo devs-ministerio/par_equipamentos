@@ -32,7 +32,10 @@ def test_aviso_real_da_aprovacao_so_aparece_para_destinatarios_gerenciais(matriz
     ref, _, _, _, pedido = preparar_prova(db, dados)
     aprovar_entrada(db=db, usuario_id=usuarios["admin"].id, candidato_id=ref.candidato_id, dados=pedido)
     pagina = listar(db, usuarios[perfil])
-    assert pagina.total == pagina.nao_lidas == (1 if perfil in ("admin", "gestor") else 0)
+    gerencial = perfil in ("admin", "gestor")
+    assert pagina.total == (1 if gerencial else 0)
+    # `nao_lidas` conta todos os tipos: a aprovação também avisa a inclusão no monitoramento (gestão e titular).
+    assert pagina.nao_lidas == (2 if gerencial else 1 if perfil == "titular" else 0)
     if pagina.itens:
         assert pagina.itens[0].destino == "/monitoramento-equipamentos?busca=999001"
         assert pagina.itens[0].notificacao.tipo == NotificacaoTipo.aprovacao_carteira
@@ -41,11 +44,12 @@ def test_aviso_real_da_aprovacao_so_aparece_para_destinatarios_gerenciais(matriz
 def test_destino_usa_convenio_e_nao_instrumento_com_id_colidente(matriz, dados):
     db, usuarios, *_ = matriz
     ref, _, _, _, pedido = preparar_prova(db, dados)
-    decisao = aprovar_entrada(db=db, usuario_id=usuarios["admin"].id, candidato_id=ref.candidato_id, dados=pedido)
-    # As sequences independentes criam a mesma PK em entidades diferentes.
+    # As sequences independentes criam a mesma PK em entidades diferentes: o instrumento alheio nasce antes
+    # (a aprovação também cria o instrumento do convênio aprovado) e fica com o id do convênio aprovado.
     instrumento = InstrumentoEquipamento(nr_convenio="777777", nome_convenente="Instituição sintética alheia")
     db.add(instrumento)
     db.commit()
+    decisao = aprovar_entrada(db=db, usuario_id=usuarios["admin"].id, candidato_id=ref.candidato_id, dados=pedido)
     aviso = listar(db, usuarios["admin"]).itens[0]
     assert instrumento.id == aviso.notificacao.entidade_id
     assert aviso.destino == "/monitoramento-equipamentos?busca=999001"
@@ -84,7 +88,7 @@ def test_http_serializa_tipo_e_destino_da_aprovacao_sem_nova_rota(matriz, dados,
         resposta = client.get("/notificacoes?tipo=aprovacao_carteira")
     assert resposta.status_code == 200
     pagina = resposta.json()
-    assert pagina["total"] == pagina["nao_lidas"] == 1
+    assert pagina["total"] == 1
     assert pagina["itens"][0]["tipo"] == "aprovacao_carteira"
     assert pagina["itens"][0]["destino"] == "/monitoramento-equipamentos?busca=999001"
     assert pagina["itens"][0]["lida"] is False

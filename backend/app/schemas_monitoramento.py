@@ -40,12 +40,15 @@ class ContagemRotulo(BaseModel):
 
 
 class LicencaVencendoResumo(BaseModel):
-    """1 por instrumento com licenca de operacao/alteracao emitida E
-    data_validade preenchida -- achado 2026-09-09, alimenta o painel de
-    gestao (semaforo de licenca por vencer). `dias` negativo = ja vencida."""
+    """1 por vinculo (estabelecimento x matricula da ANSN) com validade oficial; sem vinculo, 1 por instrumento com o
+    registro interno (documento ou evento legado), com `fonte="interna"`. Alimenta o painel de gestao (semaforo de
+    licenca por vencer). `dias` negativo = ja vencida."""
 
     nr_convenio: str
     nome_convenente: str
+    area: str | None = None
+    matricula: str | None = None
+    fonte: Literal["ansn", "interna"] = "interna"
     data_validade: date
     dias: int
 

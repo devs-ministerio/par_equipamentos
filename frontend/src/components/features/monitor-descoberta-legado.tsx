@@ -1,7 +1,9 @@
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useFontes } from "@/hooks/use-fontes";
+import { temDetalhe } from "@/services/fontes";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 
 const STATUS = { ok: "Concluída", parcial: "Parcial", erro: "Falhou" } as const;
@@ -15,7 +17,34 @@ export function MonitorDescobertaLegado({
   fonte: "siconv_descoberta" | "transferegov_descoberta";
 }) {
   const consulta = useFontes();
+  const { usuarioAtual } = useAuthSession();
   const fonte = consulta.data?.find((item) => item.fonte === codigo);
+  const detalhe = fonte && temDetalhe(fonte) ? fonte : undefined;
+  if (usuarioAtual?.role !== "admin") {
+    return (
+      <section
+        aria-label="Última coleta com sucesso"
+        className="my-4 border-l-2 border-primary bg-muted/40 px-4 py-3 text-xs"
+      >
+        {consulta.isPending || !usuarioAtual ? (
+          <Skeleton className="h-4 w-56" />
+        ) : (
+          <p>
+            {fonte?.ultimo_sucesso_em ? (
+              <>
+                Última coleta com sucesso:{" "}
+                <span className="font-medium">
+                  {dataHora(fonte.ultimo_sucesso_em)}
+                </span>
+              </>
+            ) : (
+              "Nenhuma coleta com sucesso registrada."
+            )}
+          </p>
+        )}
+      </section>
+    );
+  }
   return (
     <section
       aria-label="Monitor de consultas"
@@ -45,7 +74,7 @@ export function MonitorDescobertaLegado({
         <p role="alert" className="mt-2 text-xs text-destructive">
           {mensagemSeguraDoErro(consulta.error)}
         </p>
-      ) : !fonte ? (
+      ) : !detalhe ? (
         <p className="mt-1 text-xs text-muted-foreground">
           Nenhuma coleta registrada.
         </p>
@@ -54,18 +83,18 @@ export function MonitorDescobertaLegado({
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
             <span
               className={
-                fonte.status === "ok" && !fonte.defasada
+                detalhe.status === "ok" && !detalhe.defasada
                   ? "font-medium text-primary"
                   : "font-medium text-destructive"
               }
             >
-              {STATUS[fonte.status]}
-              {fonte.defasada ? " · Defasada" : ""}
+              {STATUS[detalhe.status]}
+              {detalhe.defasada ? " · Defasada" : ""}
             </span>
-            <span>{dataHora(fonte.ultima_tentativa_em)}</span>
+            <span>{dataHora(detalhe.ultima_tentativa_em)}</span>
             <span className="text-muted-foreground">
-              {fonte.itens_verificados} verificados · {fonte.itens_alterados}{" "}
-              alterados
+              {detalhe.itens_verificados} verificados ·{" "}
+              {detalhe.itens_alterados} alterados
             </span>
           </div>
           <details className="mt-2 text-xs">
@@ -73,13 +102,13 @@ export function MonitorDescobertaLegado({
               Detalhes da coleta
             </summary>
             <p className="mt-2">
-              Último sucesso: {dataHora(fonte.ultimo_sucesso_em)}
+              Último sucesso: {dataHora(detalhe.ultimo_sucesso_em)}
             </p>
             <p className="mt-1 text-muted-foreground">
-              {fonte.itens_verificados === 0
+              {detalhe.itens_verificados === 0
                 ? "Nenhum item verificado nesta execução: o resultado não comprova que a fonte não tem entradas novas."
                 : "Itens verificados e alterados são os da última execução."}
-              {fonte.defasada
+              {detalhe.defasada
                 ? " A coleta está defasada: a fila vazia não indica vigilância atual."
                 : ""}
             </p>
@@ -88,8 +117,8 @@ export function MonitorDescobertaLegado({
               administra o sistema; atualizar o histórico apenas relê este
               registro.
             </p>
-            {fonte.erro && (
-              <p className="mt-1 text-muted-foreground">{fonte.erro}</p>
+            {detalhe.erro && (
+              <p className="mt-1 text-muted-foreground">{detalhe.erro}</p>
             )}
           </details>
         </>

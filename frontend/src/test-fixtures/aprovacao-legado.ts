@@ -16,7 +16,20 @@ export function criarCandidato(
     data_publicacao: "2026-10-02",
     descoberto_em: "2026-10-18T10:00:00Z",
     verificado_em: "2026-10-18T10:00:00Z",
+    valor_global: null,
+    municipio: null,
+    uf: null,
+    data_instrumento: null,
+    recaptura_em: new Date().toISOString(),
     componentes: [],
+    itens: [
+      {
+        nome: "Mamógrafo",
+        quantidade: "1",
+        valor_unitario: "1500000",
+        valor_total: "1500000",
+      },
+    ],
     evidencias: [
       {
         id_item: "1",

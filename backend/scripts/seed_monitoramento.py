@@ -21,7 +21,7 @@ from __future__ import annotations
 from datetime import date
 
 from app.db.base import SessionLocal
-from app.db.indices import garantir_indice_unico_fase_geral
+from app.db.indices import garantir_indice_unico_fase_geral, garantir_indice_unico_inauguracao
 from app.db.models import CnesEstabelecimento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, MarcoGrupo
 from app.db.seed_guard import recusar_se_producao
 
@@ -79,27 +79,61 @@ CATALOGO = [
         8,
         1.0,
         "Concluído",
-        "Inaugurado e com licença de operação emitida pela CNEN",
+        "Inaugurado e com licença de operação emitida pela ANSN",
     ),
-    # --- cronograma_fisico: datas pontuais, sem status de sistema nenhum ---
-    ("cronograma_inicio_fabricacao", MarcoGrupo.cronograma_fisico, None, None, "Início da fabricação", None),
-    ("cronograma_chegada_porto", MarcoGrupo.cronograma_fisico, None, None, "Chegada no Brasil (porto)", None),
-    ("cronograma_entrega", MarcoGrupo.cronograma_fisico, None, None, "Entrega no estabelecimento", None),
-    ("cronograma_instalacao_inicio", MarcoGrupo.cronograma_fisico, None, None, "Instalação — início", None),
-    ("cronograma_instalacao_fim", MarcoGrupo.cronograma_fisico, None, None, "Instalação — final", None),
-    ("cronograma_comissionamento", MarcoGrupo.cronograma_fisico, None, None, "Comissionamento (teste de aceite)", None),
-    ("cronograma_obra_inicio", MarcoGrupo.cronograma_fisico, None, None, "Início da reforma/obra", None),
+    # --- cronograma_fisico ("Cronograma", opcional): datas pontuais; `ordem` so organiza a exibicao ---
+    ("cronograma_inicio_fabricacao", MarcoGrupo.cronograma_fisico, 10, None, "Início da fabricação", None),
+    (
+        "cronograma_fabricacao_concluida",
+        MarcoGrupo.cronograma_fisico,
+        20,
+        None,
+        "Fabricação concluída / disponível para expedição",
+        None,
+    ),
+    ("cronograma_chegada_porto", MarcoGrupo.cronograma_fisico, 30, None, "Chegada ao Brasil", None),
+    (
+        "cronograma_desembaraco_aduaneiro",
+        MarcoGrupo.cronograma_fisico,
+        40,
+        None,
+        "Desembaraço aduaneiro concluído",
+        None,
+    ),
+    ("cronograma_obra_inicio", MarcoGrupo.cronograma_fisico, 50, None, "Início da reforma/obra", None),
+    (
+        "cronograma_infraestrutura_pronta",
+        MarcoGrupo.cronograma_fisico,
+        60,
+        None,
+        "Infraestrutura pronta para receber o equipamento",
+        None,
+    ),
+    ("cronograma_obra_fim", MarcoGrupo.cronograma_fisico, 70, None, "Conclusão da reforma/obra", None),
+    ("cronograma_entrega", MarcoGrupo.cronograma_fisico, 80, None, "Entrega no estabelecimento", None),
+    ("cronograma_instalacao_inicio", MarcoGrupo.cronograma_fisico, 90, None, "Início da instalação", None),
+    ("cronograma_instalacao_fim", MarcoGrupo.cronograma_fisico, 100, None, "Conclusão da instalação", None),
+    (
+        "cronograma_comissionamento",
+        MarcoGrupo.cronograma_fisico,
+        110,
+        None,
+        "Testes de aceitação / comissionamento",
+        None,
+    ),
+    ("cronograma_treinamento", MarcoGrupo.cronograma_fisico, 120, None, "Treinamento da equipe concluído", None),
+    ("cronograma_inicio_operacao", MarcoGrupo.cronograma_fisico, 130, None, "Início da operação assistencial", None),
     ("cronograma_obra_ponto_critico", MarcoGrupo.cronograma_fisico, None, None, "Ponto crítico da obra", None),
-    ("cronograma_obra_fim", MarcoGrupo.cronograma_fisico, None, None, "Fim da reforma/obra", None),
     ("cronograma_previsao_inauguracao", MarcoGrupo.cronograma_fisico, None, None, "Previsão de inauguração", None),
+    ("cronograma_inauguracao_dispensada", MarcoGrupo.cronograma_fisico, None, None, "Inauguração dispensada", None),
     ("cronograma_ordem_servico", MarcoGrupo.cronograma_fisico, None, None, "Ordem de serviço", None),
     ("cronograma_trp", MarcoGrupo.cronograma_fisico, None, None, "TRP — recebimento provisório", None),
     ("cronograma_trd", MarcoGrupo.cronograma_fisico, None, None, "TRD — recebimento definitivo", None),
     ("cronograma_chegada_obra", MarcoGrupo.cronograma_fisico, None, None, "Chegada na obra", None),
     # --- regulatorio: so relevante pra equipamento que emite radiacao (linac,
     # braquiterapia, PET-CT, gama camara) -- status vem do vocabulario da
-    # propria CNEN/planilha (NI/NA/Em análise/Em diligência/Deferido).
-    ("regulatorio_matricula_cnen", MarcoGrupo.regulatorio, None, None, "Matrícula CNEN", None),
+    # propria ANSN/planilha (NI/NA/Em análise/Em diligência/Deferido).
+    ("regulatorio_matricula_cnen", MarcoGrupo.regulatorio, None, None, "Matrícula ANSN", None),
     (
         "regulatorio_descomissionamento",
         MarcoGrupo.regulatorio,
@@ -163,7 +197,7 @@ EVENTOS_948686 = [
         None,
         "Repasse FNS realizado (R$ 9.003.200,00) — fonte: Portal da Transparência/SICONV.",
     ),
-    ("regulatorio_matricula_cnen", None, None, None, "16981", None, "Matrícula CNEN registrada pra este instrumento."),
+    ("regulatorio_matricula_cnen", None, None, None, "16981", None, "Matrícula ANSN registrada pra este instrumento."),
     (
         "regulatorio_modificacao_casamata",
         date(2025, 10, 13),
@@ -171,7 +205,7 @@ EVENTOS_948686 = [
         "Deferido",
         None,
         None,
-        "SCRA 2025SCRA2197 de modificação/casamata enviado à CNEN em 13/10/25 e deferido. "
+        "SCRA 2025SCRA2197 de modificação/casamata enviado à ANSN em 13/10/25 e deferido. "
         "Contexto: em 08/10/25 foi solicitado esclarecimento via TransfereGov/SEI sobre "
         "revisão do RPAS; instituição respondeu em 13/10 com o SCRA.",
     ),
@@ -199,6 +233,7 @@ def run() -> None:
         marcos_por_codigo = {m.codigo: m for m in db.query(MarcoCatalogo).all()}
         print(f"Catálogo: {len(marcos_por_codigo)} marco(s).")
         garantir_indice_unico_fase_geral(db.connection())
+        garantir_indice_unico_inauguracao(db.connection(), exigir=False)
 
         cnes = db.get(CnesEstabelecimento, CNES_948686["cnes"])
         if cnes is None:

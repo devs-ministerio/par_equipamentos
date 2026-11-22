@@ -13,6 +13,7 @@ from collections import defaultdict
 from collections.abc import Generator, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import NamedTuple
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
@@ -20,7 +21,6 @@ from sqlalchemy.orm import Session
 from app.db.models import (
     AcaoMonitoramento,
     CnesEstabelecimento,
-    Convenio,
     EventoMarco,
     InstrumentoEquipamento,
     InstrumentoResponsavel,
@@ -228,44 +228,10 @@ def mapear_coordenadas_cnes(db: Session, cnes_codes: set[str]) -> dict[str, tupl
     }
 
 
-def listar_marcos_fase_geral_desc(db: Session) -> list[MarcoCatalogo]:
-    """Ordem decrescente -- o chamador percorre do marco mais avançado pro
-    menos avançado até achar o primeiro com evento registrado (fase atual)."""
-    return list(
-        db.execute(
-            select(MarcoCatalogo)
-            .where(MarcoCatalogo.grupo == MarcoGrupo.fase_geral)
-            .order_by(MarcoCatalogo.ordem.desc())
-        )
-        .scalars()
-        .all()
-    )
-
-
 def listar_marcos_catalogo(db: Session, *, limit: int) -> list[MarcoCatalogo]:
     return list(
         db.execute(select(MarcoCatalogo).order_by(MarcoCatalogo.grupo, MarcoCatalogo.ordem).limit(limit)).scalars()
     )
-
-
-def mapa_eventos_por_instrumento(
-    db: Session, marco_ids: list[int], *, instrumento_ids: list[int] | None = None
-) -> dict[int, set[int]]:
-    """`{instrumento_id: {marco_id, ...}}` -- só os pares relevantes pros
-    `marco_ids` pedidos (fase_geral), não todo `EventoMarco` da tabela
-    (universo monitorado é pequeno hoje, mas a query já nasce restrita).
-    Só considera evento ATIVO -- um evento corrigido/excluído não pode mais
-    empurrar a fase pra frente."""
-    eventos_por_instrumento: dict[int, set[int]] = defaultdict(set)
-    if marco_ids:
-        stmt = select(EventoMarco.instrumento_id, EventoMarco.marco_id).where(
-            EventoMarco.marco_id.in_(marco_ids), _EVENTO_ATIVO
-        )
-        if instrumento_ids is not None:
-            stmt = stmt.where(EventoMarco.instrumento_id.in_(instrumento_ids))
-        for instrumento_id, marco_id in db.execute(stmt):
-            eventos_por_instrumento[instrumento_id].add(marco_id)
-    return eventos_por_instrumento
 
 
 def obter_instrumento_por_nr_convenio(db: Session, nr_convenio: str) -> InstrumentoEquipamento | None:
@@ -398,6 +364,45 @@ def listar_acoes_monitoradas(db: Session, *, pendentes: bool, limit: int) -> lis
     return [(acao, nr_convenio) for acao, nr_convenio in db.execute(stmt).all()]
 
 
+class AcoesDoInstrumento(NamedTuple):
+    acoes: list[AcaoMonitoramento]
+    total: int  # do conjunto filtrado, além do teto
+    abertas: int  # do instrumento inteiro, independente do filtro
+    atrasadas: int  # abertas com prazo antes de hoje, do instrumento inteiro
+
+
+def listar_acoes_do_instrumento_com_total(
+    db: Session, instrumento_id: int, *, pendentes: bool, limit: int
+) -> AcoesDoInstrumento:
+    """Ações ativas de UM instrumento, pendentes primeiro e depois por prazo (id desempata), com o total sem o teto.
+
+    Pendentes vêm antes das concluídas: a pendência que bloqueia a conclusão nunca fica fora do lote enquanto
+    houver menos de `limit` pendentes. `abertas` e `atrasadas` contam o instrumento inteiro."""
+    base = [AcaoMonitoramento.instrumento_id == instrumento_id, _ACAO_ATIVA]
+    filtros = [*base, AcaoMonitoramento.data_conclusao.is_(None)] if pendentes else base
+    acoes = list(
+        db.scalars(
+            select(AcaoMonitoramento)
+            .where(*filtros)
+            .order_by(
+                AcaoMonitoramento.data_conclusao.is_not(None),
+                AcaoMonitoramento.data_prevista.asc().nulls_last(),
+                AcaoMonitoramento.id,
+            )
+            .limit(limit)
+        )
+    )
+    total = int(db.execute(select(func.count()).select_from(AcaoMonitoramento).where(*filtros)).scalar_one())
+    aberta = AcaoMonitoramento.data_conclusao.is_(None)
+    abertas, atrasadas = db.execute(
+        select(
+            func.count().filter(aberta),
+            func.count().filter(aberta, AcaoMonitoramento.data_prevista < func.current_date()),
+        ).where(*base)
+    ).one()
+    return AcoesDoInstrumento(acoes, total, int(abertas), int(atrasadas))
+
+
 def resolver_nomes_usuarios(db: Session, ids: Iterable[int | None]) -> dict[int, str]:
     """`{user_id: name}` pros ids pedidos -- usado pra montar `autor_nome`/
     `atualizado_por_nome`/`deletado_por_nome` sem N+1 query por evento/ação.
@@ -413,25 +418,6 @@ def adicionar_instrumento(db: Session, instrumento: InstrumentoEquipamento) -> N
     """Persiste e materializa o id para o caso de uso registrar sua auditoria."""
     db.add(instrumento)
     db.flush()
-
-
-def preencher_ano_convenio_se_ausente(
-    db: Session,
-    *,
-    numero: str,
-    tipo_contratacao: str,
-    ano: int,
-) -> None:
-    """Espelha no universo de instrumentos firmados o ano definido pela gestão."""
-    convenio = db.execute(
-        select(Convenio).where(
-            Convenio.numero == numero,
-            Convenio.tipo_contratacao == tipo_contratacao,
-            Convenio.ano_instrumento.is_(None),
-        )
-    ).scalar_one_or_none()
-    if convenio is not None:
-        convenio.ano_instrumento = ano
 
 
 def adicionar_evento(db: Session, evento: EventoMarco) -> None:

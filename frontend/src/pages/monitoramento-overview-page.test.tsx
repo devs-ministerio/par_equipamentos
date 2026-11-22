@@ -134,7 +134,7 @@ describe("Mesa de trabalho com fontes HTTP e componentes reais", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("atualiza os seis indicadores com o mesmo recorte da lista", async () => {
+  it("atualiza os cinco indicadores com o mesmo recorte da lista", async () => {
     // Given: respostas sintéticas independentes, com metadados dos dois instrumentos.
     const h = prepararMesa();
     h.resumo.licencas_vencendo = [
@@ -159,18 +159,12 @@ describe("Mesa de trabalho com fontes HTTP e componentes reais", () => {
     await tabelaPronta();
     const metrica = (rotulo: string) =>
       within(screen.getByText(rotulo, { exact: true }).parentElement!);
-    expect(
-      metrica("Fase média · referência").getByText("60%"),
-    ).toBeInTheDocument();
     expect(metrica("Licenças a vencer").getByText("1")).toBeInTheDocument();
     // When
     await user.click(screen.getByRole("button", { name: /^UF/ }));
     await user.click(screen.getByRole("option", { name: "BA" }));
     // Then: nenhum indicador conserva o total global anterior.
     expect(metrica("Instrumentos").getByText("1")).toBeInTheDocument();
-    expect(
-      metrica("Fase média · referência").getByText("20%"),
-    ).toBeInTheDocument();
     expect(metrica("Licenças a vencer").getByText("0")).toBeInTheDocument();
     expect(
       metrica("Próxima inauguração").getByText("22/10/2026"),

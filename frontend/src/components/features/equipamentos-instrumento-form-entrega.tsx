@@ -1,6 +1,5 @@
 /** Painel "Registrar entrega": data, observação e um ou mais itens pendentes
- * (multisseleção). No modo legado a data vem do evento antigo e só os itens
- * são escolhidos. */
+ * (multisseleção). */
 import { useId, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
@@ -36,20 +35,24 @@ export interface EnvioEntrega {
   dataOcorrencia: string;
   observacao: string | null;
   itens: ItemEntregaInput[];
+  inauguracao: { necessaria: boolean; dataPrevista: string | null } | null;
 }
 
 export function EquipamentosInstrumentoFormEntrega({
   itens,
   apenasItemId,
-  dataLegada,
+  previsaoInauguracao,
+  perguntarInauguracao = true,
   onEnviar,
   onFechar,
 }: {
   itens: ItemEquipamento[];
   /** Aberto pelo ícone de um item: mostra só ele. Sem isso, lista os pendentes. */
   apenasItemId?: number;
-  /** Presente no vínculo de entrega antiga: data fixa do evento original. */
-  dataLegada?: string | null;
+  /** Previsão de inauguração já registrada: vem preenchida para confirmação. */
+  previsaoInauguracao?: string | null;
+  /** Falso quando a inauguração já aconteceu: a pergunta não faz sentido. */
+  perguntarInauguracao?: boolean;
   onEnviar: (envio: EnvioEntrega) => Promise<void>;
   onFechar: () => void;
 }) {
@@ -64,12 +67,15 @@ export function EquipamentosInstrumentoFormEntrega({
     control,
     handleSubmit,
     watch,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<RegistrarEntregaFormValues>({
     resolver: zodResolver(registrarEntregaSchema),
     defaultValues: {
-      dataOcorrencia: dataLegada ?? new Date().toISOString().slice(0, 10),
+      dataOcorrencia: new Date().toISOString().slice(0, 10),
       observacao: "",
+      precisaInauguracao: previsaoInauguracao ? "sim" : undefined,
+      dataInauguracao: previsaoInauguracao ?? "",
       itens: pendentes.map((i) => ({
         itemId: i.id,
         selecionado: apenasItemId !== undefined,
@@ -81,13 +87,35 @@ export function EquipamentosInstrumentoFormEntrega({
   const { fields } = useFieldArray({ control, name: "itens" });
   const marcados = watch("itens");
 
+  const perguntar = perguntarInauguracao;
+  const precisa = watch("precisaInauguracao");
+
   async function aoSubmeter(v: RegistrarEntregaFormValues) {
+    if (perguntar) {
+      if (!v.precisaInauguracao) {
+        setError("precisaInauguracao", { message: "Responda esta pergunta." });
+        return;
+      }
+      if (v.precisaInauguracao === "sim" && !v.dataInauguracao) {
+        setError("dataInauguracao", { message: "Informe a previsão." });
+        return;
+      }
+    }
     try {
       await onEnviar({
         chave: chave.current,
         dataOcorrencia: v.dataOcorrencia,
         observacao: v.observacao?.trim() || null,
         itens: itensParaApi(v.itens),
+        inauguracao: perguntar
+          ? {
+              necessaria: v.precisaInauguracao === "sim",
+              dataPrevista:
+                v.precisaInauguracao === "sim"
+                  ? v.dataInauguracao || null
+                  : null,
+            }
+          : null,
       });
       onFechar();
     } catch {
@@ -102,42 +130,38 @@ export function EquipamentosInstrumentoFormEntrega({
         className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
       >
         <DialogHeader>
-          <DialogTitle>
-            {dataLegada ? "Vincular entrega registrada" : "Registrar entrega"}
-          </DialogTitle>
+          <DialogTitle>Registrar entrega</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(aoSubmeter)} className="grid gap-3">
-          {!dataLegada && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor={`${formId}-data`} className="text-[11px]">
-                  Data da entrega
-                </label>
-                <input
-                  id={`${formId}-data`}
-                  type="date"
-                  max={new Date().toISOString().slice(0, 10)}
-                  className={cn(estiloInput, "w-full")}
-                  aria-invalid={Boolean(errors.dataOcorrencia)}
-                  {...register("dataOcorrencia")}
-                />
-                <ErroCampo
-                  id={`${formId}-data-erro`}
-                  mensagem={errors.dataOcorrencia?.message}
-                />
-              </div>
-              <div>
-                <label htmlFor={`${formId}-obs`} className="text-[11px]">
-                  Observação
-                </label>
-                <input
-                  id={`${formId}-obs`}
-                  className={cn(estiloInput, "w-full")}
-                  {...register("observacao")}
-                />
-              </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor={`${formId}-data`} className="text-[11px]">
+                Data da entrega
+              </label>
+              <input
+                id={`${formId}-data`}
+                type="date"
+                max={new Date().toISOString().slice(0, 10)}
+                className={cn(estiloInput, "w-full")}
+                aria-invalid={Boolean(errors.dataOcorrencia)}
+                {...register("dataOcorrencia")}
+              />
+              <ErroCampo
+                id={`${formId}-data-erro`}
+                mensagem={errors.dataOcorrencia?.message}
+              />
             </div>
-          )}
+            <div>
+              <label htmlFor={`${formId}-obs`} className="text-[11px]">
+                Observação
+              </label>
+              <input
+                id={`${formId}-obs`}
+                className={cn(estiloInput, "w-full")}
+                {...register("observacao")}
+              />
+            </div>
+          </div>
           <fieldset className="grid gap-2">
             <legend className="text-[11px] mb-1">Equipamentos entregues</legend>
             {fields.length === 0 && (
@@ -174,6 +198,73 @@ export function EquipamentosInstrumentoFormEntrega({
               mensagem={errors.itens?.message ?? errors.itens?.root?.message}
             />
           </fieldset>
+          {perguntar && (
+            <fieldset className="grid gap-3 rounded-md border border-border bg-muted/30 p-3">
+              <legend className="px-1 text-[12px] font-medium">
+                Inauguração
+              </legend>
+              <div className="mx-auto grid w-fit grid-cols-[auto_10rem] items-center gap-x-4 gap-y-1.5">
+                <p className="text-[12.5px]">
+                  O equipamento precisa de inauguração?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { valor: "sim", rotulo: "Sim" },
+                    { valor: "nao", rotulo: "Não" },
+                  ].map((o) => (
+                    <label
+                      key={o.valor}
+                      className={cn(
+                        "flex h-8 cursor-pointer items-center justify-center rounded-lg border text-[12.5px] transition-colors focus-within:ring-2 focus-within:ring-primary",
+                        precisa === o.valor
+                          ? "border-primary bg-primary/10 font-medium text-primary"
+                          : "border-border bg-background hover:bg-muted",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        value={o.valor}
+                        className="sr-only"
+                        {...register("precisaInauguracao")}
+                      />
+                      {o.rotulo}
+                    </label>
+                  ))}
+                </div>
+                <div className="col-span-2">
+                  <ErroCampo
+                    id={`${formId}-inaug-erro`}
+                    mensagem={errors.precisaInauguracao?.message}
+                  />
+                </div>
+                {precisa === "sim" && (
+                  <>
+                    <label
+                      htmlFor={`${formId}-inaug`}
+                      className="text-[12.5px]"
+                    >
+                      {previsaoInauguracao
+                        ? "Confirme a previsão de inauguração"
+                        : "Previsão de inauguração"}
+                    </label>
+                    <input
+                      id={`${formId}-inaug`}
+                      type="date"
+                      className={cn(estiloInput, "h-8 min-h-8 w-full py-0")}
+                      aria-invalid={Boolean(errors.dataInauguracao)}
+                      {...register("dataInauguracao")}
+                    />
+                    <div className="col-span-2">
+                      <ErroCampo
+                        id={`${formId}-inaug-data-erro`}
+                        mensagem={errors.dataInauguracao?.message}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </fieldset>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onFechar}>
               Cancelar

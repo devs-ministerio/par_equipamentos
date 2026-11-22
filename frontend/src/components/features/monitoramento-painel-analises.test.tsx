@@ -8,7 +8,7 @@ import { criarInstrumentoTeste } from "@/test-fixtures/monitoramento-hooks";
 import { MonitoramentoInternoFiltros } from "./monitoramento-interno-filtros";
 import { MonitoramentoPainelAnalises } from "./monitoramento-painel-analises";
 
-const fases = ["Não iniciado", "Concluído"];
+const fases = ["Acompanhamento iniciado", "Concluído"];
 const carteira = [
   criarInstrumentoTeste({
     id: 1,
@@ -24,7 +24,7 @@ const carteira = [
     municipio: "anápolis",
     uf: "GO",
     ano_instrumento: 2026,
-    fase_atual: "Não iniciado",
+    fase_atual: "Acompanhamento iniciado",
     tipo_contratacao: "TED",
   }),
   criarInstrumentoTeste({
@@ -69,7 +69,9 @@ describe("Panorama do painel com dados e filtros reais", () => {
     expect(screen.getByText("2 de 3 instrumentos")).toBeInTheDocument();
     expect(screen.getByText("2 instrumentos")).toBeInTheDocument();
     expect(
-      screen.getByRole("img", { name: "Não iniciado: 1; Concluído: 1" }),
+      screen.getByRole("img", {
+        name: "Acompanhamento iniciado: 1; Concluído: 1",
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("img", { name: "2025: 1; 2026: 1" }),
@@ -134,7 +136,9 @@ describe("Panorama do painel com dados e filtros reais", () => {
       screen.getByRole("img", { name: "Convênio: 1; Não informado: 1" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("img", { name: "Não iniciado: 1; Concluído: 1" }),
+      screen.getByRole("img", {
+        name: "Acompanhamento iniciado: 1; Concluído: 1",
+      }),
     ).toBeInTheDocument();
   });
 

@@ -5,7 +5,7 @@ Revises: c9f1a4d7e602
 Create Date: 2026-09-17 00:00:00.000000
 
 Item 2 do Plan Mode database 2026-09-16
-(docs/arquitetura/planmode-database-2026-09-16.md): Secao 3 da constituicao
+(docs/planos/planmode-database-2026-09-16.md): Secao 3 da constituicao
 database define idx_<tabela>_<coluna(s)>/uq_<tabela>_<coluna(s)>. Havia 3
 prefixos de indice coexistindo (idx_/ix_/ux_) e 5 UNIQUE sem nome explicito
 (autogerado pelo Postgres). So RENAME de metadata (ALTER INDEX/ALTER TABLE

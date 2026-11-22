@@ -84,7 +84,7 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         # divergente continua visível na dimensão administrativa, mas não tira o instrumento dos concluídos.
         prioridade = 1
         motivos.append("Concluído no monitoramento interno")
-        evidencia = f"Evento fase_concluido ativo em {fato.data_conclusao:%d/%m/%Y}"
+        evidencia = f"Conclusão confirmada em {fato.data_conclusao:%d/%m/%Y}"
     if not motivos and fato.tipo == "Convênio":
         estados = [
             s for s in (fato.situacao_carteira, fato.situacao_monitoramento, fato.situacao_oficial) if s and s.strip()
@@ -110,7 +110,7 @@ def _classificar(fato: FatoEncerramento, chave: str) -> tuple[int, RegistroEncer
         prioridade = 2
         motivos.append("Conclusão interna sem data")
         pendencia = True
-        evidencia = "Evento fase_concluido ativo sem data de ocorrência"
+        evidencia = "Conclusão confirmada sem data"
     pagas = [
         o for o in fato.ordens if normalizar_texto(o.in_situacao_op) == "PAGA" and o.id_ordem_pagamento is not None
     ]

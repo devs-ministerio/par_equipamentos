@@ -45,7 +45,9 @@ def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
     return f"{prefixo} {observacao}" if observacao else prefixo
 
 
-def _evento_read(evento: EventoMarco, nomes: dict[int, str]) -> EventoMarcoRead:
+def _evento_read(
+    evento: EventoMarco, nomes: dict[int, str], gerado_por_entrega_id: int | None = None
+) -> EventoMarcoRead:
     """Monta EventoMarcoRead resolvendo autor/exclusão a partir do mapa de
     nomes já carregado (evita N+1 query por evento, ver
     `monitoramento_repo.resolver_nomes_usuarios`)."""
@@ -67,6 +69,7 @@ def _evento_read(evento: EventoMarco, nomes: dict[int, str]) -> EventoMarcoRead:
         deletado_por_nome=nomes.get(evento.deletado_por_id) if evento.deletado_por_id else None,
         motivo_exclusao=evento.motivo_exclusao,
         ativo=evento.deletado_em is None and evento.substituido_por_id is None,
+        gerado_por_entrega_id=gerado_por_entrega_id,
     )
 
 

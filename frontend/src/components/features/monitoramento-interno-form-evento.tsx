@@ -3,8 +3,9 @@
  * validade; marco de entrega pede o equipamento físico). Extraído de
  * MonitoramentoInterno.tsx. */
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
+import { avisoMarcoIndisponivel } from "@/lib/marcos-por-fase";
 import { cn } from "@/lib/utils";
 import type { MarcoCatalogo } from "@/services/monitoramento-marcos";
 import {
@@ -13,15 +14,6 @@ import {
 } from "@/lib/validations/monitoramento";
 import { ErroCampo, estiloCard, estiloInput } from "./monitoramento-ui";
 import { idsDescricaoCampo } from "@/lib/monitoramento-status";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const STATUS_REGULATORIO_OPCOES = [
   "NI",
@@ -32,22 +24,36 @@ const STATUS_REGULATORIO_OPCOES = [
   "Indeferido",
 ];
 
+/** Só o cronograma é lançado aqui; o regulatório (licença, SCRA, matrícula) tem registro próprio em Documentos. */
 const GRUPOS: { chave: MarcoCatalogo["grupo"]; rotulo: string }[] = [
-  { chave: "fase_geral", rotulo: "Fase geral" },
-  { chave: "cronograma_fisico", rotulo: "Cronograma físico" },
-  { chave: "regulatorio", rotulo: "Regulatório (CNEN)" },
+  { chave: "cronograma_fisico", rotulo: "Cronograma" },
 ];
 
 /** A entrega passou a ser lançada em "Equipamentos do instrumento". */
 const MARCO_ENTREGA_NO_ESTABELECIMENTO = "cronograma_entrega";
+/** Documentos têm registro próprio (cartão Documentos); a fase é calculada e não se lança. */
+const MARCOS_DE_DOCUMENTO = [
+  "cronograma_ordem_servico",
+  "cronograma_trp",
+  "cronograma_trd",
+  "regulatorio_licenca_operacao",
+  "regulatorio_modificacao_casamata",
+  "regulatorio_descomissionamento",
+  // A inauguração é registrada na entrega do equipamento, não aqui.
+  "cronograma_previsao_inauguracao",
+  "cronograma_inauguracao_dispensada",
+  // Sem uso no fluxo novo; ficam só no histórico.
+  "cronograma_obra_ponto_critico",
+  "cronograma_chegada_obra",
+];
 
 export function MonitoramentoInternoFormEvento({
   marcos,
   onRegistrar,
   valoresIniciais,
   marcoFixo,
+  fase,
   rotuloSubmit = "Registrar evento",
-  previsaoInauguracao,
   onCancelar,
 }: {
   marcos: MarcoCatalogo[];
@@ -60,8 +66,9 @@ export function MonitoramentoInternoFormEvento({
    * (ver docstring do backend) -- mostra o marco como texto fixo em vez de
    * select editável. */
   marcoFixo?: MarcoCatalogo;
+  /** Fase calculada do instrumento: marcos fora da janela aparecem desabilitados com o motivo. */
+  fase?: string | null;
   rotuloSubmit?: string;
-  previsaoInauguracao?: string | null;
   /** Descarta a edição aberta sem enviar nada. */
   onCancelar?: () => void;
 }) {
@@ -71,7 +78,6 @@ export function MonitoramentoInternoFormEvento({
     register,
     handleSubmit,
     watch,
-    setError,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<EnviarEventoFormValues>({
@@ -80,9 +86,6 @@ export function MonitoramentoInternoFormEvento({
       valoresIniciais ??
       (marcoFixo ? { marcoId: String(marcoFixo.id) } : undefined),
   });
-  const [conclusaoPendente, setConclusaoPendente] =
-    useState<EnviarEventoFormValues | null>(null);
-  const [confirmandoConclusao, setConfirmandoConclusao] = useState(false);
 
   const marcoIdSelecionado = watch("marcoId");
   const marcoDoForm =
@@ -90,38 +93,16 @@ export function MonitoramentoInternoFormEvento({
   const ehRegulatorio = marcoDoForm?.grupo === "regulatorio";
   const ehLicencaOperacao =
     marcoDoForm?.codigo === "regulatorio_licenca_operacao";
-  // Marco de cronograma físico/regulatório precisa indicar a fase geral
-  // correspondente (Plan Mode monitoramento-evolucao 2026-09-19 -- fecha o
-  // bug de evento registrado sem mover a fase geral). Obrigatório aqui e
-  // validado de novo no backend.
-  const precisaFaseGeral =
-    Boolean(marcoDoForm) && marcoDoForm?.grupo !== "fase_geral";
-  const fasesGerais = marcos.filter((m) => m.grupo === "fase_geral");
   // Achado 2026-09-09, 2a rodada (pedido do usuario: "o equipamento
   // entregue pode mover para eventos") -- so o marco de entrega pede os
   // campos fisicos, junto do mesmo lancamento.
   const ehEntrega = marcoDoForm?.codigo === "cronograma_entrega";
-  const ehConclusao = marcoDoForm?.codigo === "fase_concluido";
 
   useEffect(() => {
     if (marcoDoForm?.grupo === "fase_geral") setValue("dataPrevista", "");
   }, [marcoDoForm?.grupo, setValue]);
 
   async function aoSubmeter(valores: EnviarEventoFormValues) {
-    if (precisaFaseGeral && !valores.faseGeralId) {
-      setError("faseGeralId", {
-        message: "Selecione a fase geral correspondente.",
-      });
-      return;
-    }
-    if (ehConclusao && !marcoFixo) {
-      if (!valores.dataOcorrencia) {
-        setError("dataOcorrencia", { message: "Informe a data de conclusão." });
-        return;
-      }
-      setConclusaoPendente(valores);
-      return;
-    }
     try {
       await onRegistrar(valores);
     } catch {
@@ -179,11 +160,21 @@ export function MonitoramentoInternoFormEvento({
                       .filter(
                         (m) =>
                           m.grupo === chave &&
-                          m.codigo !== MARCO_ENTREGA_NO_ESTABELECIMENTO,
+                          m.codigo !== MARCO_ENTREGA_NO_ESTABELECIMENTO &&
+                          !MARCOS_DE_DOCUMENTO.includes(m.codigo),
                       )
                       .map((m) => (
-                        <option key={m.id} value={m.id}>
+                        <option
+                          key={m.id}
+                          value={m.id}
+                          disabled={Boolean(
+                            avisoMarcoIndisponivel(m.codigo, fase),
+                          )}
+                        >
                           {m.rotulo}
+                          {avisoMarcoIndisponivel(m.codigo, fase)
+                            ? ` — ${avisoMarcoIndisponivel(m.codigo, fase)}`
+                            : ""}
                         </option>
                       ))}
                   </optgroup>
@@ -195,41 +186,6 @@ export function MonitoramentoInternoFormEvento({
               mensagem={errors.marcoId?.message}
             />
           </div>
-          {precisaFaseGeral && (
-            <div className="min-w-0 flex-1 basis-full sm:min-w-52 sm:basis-auto">
-              <label
-                htmlFor={campoId("evento-fase-geral")}
-                className="text-[11px] text-muted-foreground block mb-1"
-              >
-                Fase geral correspondente
-              </label>
-              <select
-                id={campoId("evento-fase-geral")}
-                className={cn(estiloInput, "w-full")}
-                aria-invalid={Boolean(errors.faseGeralId)}
-                aria-describedby={idsDescricaoCampo(
-                  campoId("evento-fase-geral"),
-                  Boolean(errors.faseGeralId),
-                  false,
-                )}
-                defaultValue=""
-                {...register("faseGeralId")}
-              >
-                <option value="" disabled>
-                  Selecione a fase...
-                </option>
-                {fasesGerais.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.rotulo}
-                  </option>
-                ))}
-              </select>
-              <ErroCampo
-                id={campoId("evento-fase-geral-error")}
-                mensagem={errors.faseGeralId?.message}
-              />
-            </div>
-          )}
           <div className="w-full sm:w-auto">
             {/* Rotulo dinamico -- pedido do usuario 2026-09-09: "a licenca
               cnen vamos precisar da data da licença e da data de validade
@@ -427,54 +383,6 @@ export function MonitoramentoInternoFormEvento({
           </button>
         )}
       </form>
-      <Dialog
-        open={Boolean(conclusaoPendente)}
-        onOpenChange={(aberto) => !aberto && setConclusaoPendente(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar inauguração</DialogTitle>
-            <DialogDescription>
-              {previsaoInauguracao === conclusaoPendente?.dataOcorrencia
-                ? `A previsão registrada (${previsaoInauguracao}) é igual à data de conclusão. Confirme a inauguração nessa data.`
-                : previsaoInauguracao
-                  ? `A previsão registrada é ${previsaoInauguracao}. Confirme a inauguração na data real de conclusão informada.`
-                  : "Não há previsão registrada. A inauguração será registrada na data de conclusão informada."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={confirmandoConclusao}
-              onClick={() => setConclusaoPendente(null)}
-            >
-              Voltar
-            </Button>
-            <Button
-              disabled={confirmandoConclusao}
-              onClick={async () => {
-                if (!conclusaoPendente || confirmandoConclusao) return;
-                setConfirmandoConclusao(true);
-                try {
-                  await onRegistrar({
-                    ...conclusaoPendente,
-                    confirmarInauguracao: true,
-                  });
-                  setConclusaoPendente(null);
-                } catch {
-                  // O pai exibe o erro seguro; manter a confirmação para retry.
-                } finally {
-                  setConfirmandoConclusao(false);
-                }
-              }}
-            >
-              {confirmandoConclusao
-                ? "Confirmando..."
-                : "Confirmar inauguração"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

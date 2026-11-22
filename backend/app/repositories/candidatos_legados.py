@@ -2,6 +2,8 @@
 
 from collections import defaultdict
 from collections.abc import Sequence
+from datetime import datetime
+from typing import Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -14,17 +16,19 @@ from app.db.models_legado import (
     CandidatoLegadoEvidencia,
     CandidatoLegadoRegistro,
 )
+from app.db.models_recaptura_legado import CandidatoLegadoRecaptura
+from app.equipamentos import nome_curto_do_item
 from app.schemas_coleta_recaptura_legado import AlvoRecapturaLegado
 from app.schemas_escopo_descoberta import ComponenteDescoberto
-from app.schemas_legado import CandidatoLegadoRead, EvidenciaLegadoRead
+from app.schemas_legado import CandidatoLegadoRead, EvidenciaLegadoRead, ItemPlanoLegadoRead
 
 
 def bloquear_lote(db: Session) -> None:
     db.execute(select(func.pg_advisory_xact_lock(func.hashtext("sigeo:radar-legado"))))
 
 
-def numeros_ja_confirmados_oficialmente(db: Session, numeros: set[str]) -> set[str]:
-    """Histórico elegível, não apenas a última captura (pode perder confirmação)."""
+def numeros_ja_descobertos_oficialmente(db: Session, numeros: set[str]) -> set[str]:
+    """Histórico elegível, não apenas a última captura. Não exige o Portal: o aviso sai na descoberta."""
     if not numeros:
         return set()
     return set(
@@ -35,7 +39,6 @@ def numeros_ja_confirmados_oficialmente(db: Session, numeros: set[str]) -> set[s
                 CandidatoLegadoRegistro.numero.in_(numeros),
                 CandidatoLegadoCaptura.origem == "siconv_oficial",
                 CandidatoLegadoCaptura.elegivel.is_(True),
-                CandidatoLegadoCaptura.confirmacao_portal == "confirmado",
                 CandidatoLegadoCaptura.criterio_escopo == "prioritarios_ms_celebrados_v2",
                 CandidatoLegadoCaptura.orgao_superior == "36000",
             )
@@ -158,7 +161,7 @@ def componentes_por_captura(db: Session, ids: set[int]) -> dict[int, list[Compon
     return resultado
 
 
-def _consulta_candidatos(*, somente_oficiais: bool = False):
+def _consulta_candidatos():
     candidato, captura = CandidatoLegadoRegistro, CandidatoLegadoCaptura
     decisao = CandidatoLegadoDecisao
     ultima_id = (
@@ -186,27 +189,69 @@ def _consulta_candidatos(*, somente_oficiais: bool = False):
         .exists()
     )
     # Decisões encerradas continuam consultáveis, mesmo após entrada na carteira.
-    fila_elegivel = (
-        captura.elegivel.is_(True)
-        & or_(captura.criterio_escopo.is_(None), captura.confirmacao_portal == "confirmado")
-        & ~conhecido
-        & ~monitorado
+    fila_elegivel = captura.elegivel.is_(True) & ~conhecido & ~monitorado
+    # Só descoberta oficial atual. O Portal não é exigido para ver o candidato (o SICONV já traz
+    # assinatura e publicação); ele é exigido para recapturar e aprovar.
+    fila_elegivel &= (
+        (captura.origem == "siconv_oficial")
+        & (captura.criterio_escopo == "prioritarios_ms_celebrados_v2")
+        & (captura.orgao_superior == "36000")
     )
-    if somente_oficiais:
-        # Compatibilidade diagnóstica não comprova descoberta oficial atual.
-        fila_elegivel &= (
-            (captura.criterio_escopo == "prioritarios_ms_celebrados_v2")
-            & (captura.orgao_superior == "36000")
-            & (captura.confirmacao_portal == "confirmado")
-        )
     return consulta.where(or_(decisao.situacao.in_(["aprovado", "rejeitado"]), fila_elegivel))
 
 
 def contar_novos(db: Session) -> int:
-    consulta = _consulta_candidatos(somente_oficiais=True).where(
-        CandidatoLegadoCaptura.origem == "siconv_oficial", CandidatoLegadoDecisao.id.is_(None)
-    )
+    consulta = _consulta_candidatos().where(CandidatoLegadoDecisao.id.is_(None))
     return db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
+
+
+def _texto_ou_none(valor: object) -> str | None:
+    texto = str(valor).strip() if valor is not None else ""
+    return texto or None
+
+
+def _itens_do_plano(itens: object) -> list[ItemPlanoLegadoRead]:
+    """Bens do plano de aplicação (nome só com o título, quantidade e valores), na ordem da fonte."""
+    if not isinstance(itens, list):
+        return []
+    bens: list[ItemPlanoLegadoRead] = []
+    for item in itens:
+        if not isinstance(item, dict) or str(item.get("TIPO_DESPESA_ITEM") or "BEM").upper() != "BEM":
+            continue
+        nome = nome_curto_do_item(str(item.get("DESCRICAO_ITEM") or ""))
+        if nome:
+            bens.append(
+                ItemPlanoLegadoRead(
+                    nome=nome,
+                    quantidade=_texto_ou_none(item.get("QTD_ITEM")),
+                    valor_unitario=_texto_ou_none(item.get("VALOR_UNITARIO_ITEM")),
+                    valor_total=_texto_ou_none(item.get("VALOR_TOTAL_ITEM")),
+                )
+            )
+    return bens
+
+
+_SEM_RECAPTURA: tuple[Any, ...] = (None, None, None, [], None)
+
+
+def _resumo_recaptura(
+    db: Session, ids: set[int]
+) -> dict[int, tuple[object, str | None, str | None, list[ItemPlanoLegadoRead], datetime]]:
+    """Valor, município, UF e itens da última recaptura oficial de cada candidato."""
+    if not ids:
+        return {}
+    r = CandidatoLegadoRecaptura
+    ultima = select(func.max(r.id)).where(r.candidato_id.in_(ids)).group_by(r.candidato_id)
+    municipio = r.payload_oficial["portal"]["municipioConvenente"]["nomeIBGE"].astext
+    uf = r.payload_oficial["portal"]["municipioConvenente"]["uf"]["nome"].astext
+    return {
+        candidato_id: (valor, mun, sigla, _itens_do_plano(itens), criado_em)
+        for candidato_id, valor, mun, sigla, itens, criado_em in db.execute(
+            select(r.candidato_id, r.valor_global, municipio, uf, r.payload_oficial["itens"], r.criado_em).where(
+                r.id.in_(ultima)
+            )
+        )
+    }
 
 
 def listar_pagina(
@@ -217,12 +262,9 @@ def listar_pagina(
     busca: str | None,
     confirmacao: str | None,
     situacao: Sequence[str] | None = None,
-    somente_oficiais: bool = False,
 ) -> tuple[int, list[CandidatoLegadoRead]]:
     candidato, captura, decisao = CandidatoLegadoRegistro, CandidatoLegadoCaptura, CandidatoLegadoDecisao
-    consulta = _consulta_candidatos(somente_oficiais=somente_oficiais)
-    if somente_oficiais:
-        consulta = consulta.where(captura.origem == "siconv_oficial")
+    consulta = _consulta_candidatos()
     if situacao:
         consulta = consulta.where(func.coalesce(decisao.situacao, "novo").in_(situacao))
     if confirmacao:
@@ -240,6 +282,7 @@ def listar_pagina(
     ).all()
     evidencias = evidencias_por_captura(db, {captura.id for _, captura, _ in registros})
     componentes = componentes_por_captura(db, {captura.id for _, captura, _ in registros})
+    recapturas = _resumo_recaptura(db, {candidato.id for candidato, _, _ in registros})
     itens = [
         CandidatoLegadoRead.model_validate(
             {
@@ -256,6 +299,16 @@ def listar_pagina(
                 "captura_id": captura.id,
                 "situacao": decisao.situacao if decisao else "novo",
                 "versao": decisao.id if decisao else 0,
+                "valor_global": recapturas.get(candidato.id, _SEM_RECAPTURA)[0],
+                "municipio": recapturas.get(candidato.id, _SEM_RECAPTURA)[1],
+                "uf": recapturas.get(candidato.id, _SEM_RECAPTURA)[2],
+                "recaptura_em": recapturas.get(candidato.id, _SEM_RECAPTURA)[4],
+                "itens": recapturas.get(candidato.id, _SEM_RECAPTURA)[3]
+                or [
+                    ItemPlanoLegadoRead(nome=nome)
+                    for nome in dict.fromkeys(e.nome for e in evidencias.get(captura.id, []))
+                ],
+                "data_instrumento": captura.data_assinatura_siconv or captura.data_publicacao,
             }
         )
         for candidato, captura, decisao in registros

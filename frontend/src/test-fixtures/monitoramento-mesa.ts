@@ -31,7 +31,7 @@ export function prepararMesa() {
       nome_convenente: "Unidade Beta sintética",
       municipio: "Cidade Beta",
       uf: "BA",
-      fase_atual: "Não iniciado",
+      fase_atual: "Acompanhamento iniciado",
       tecnico_titular: null,
     }),
   ];

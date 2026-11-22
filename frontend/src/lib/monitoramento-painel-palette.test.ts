@@ -43,7 +43,7 @@ describe("paleta categórica do painel", () => {
 
 describe("cores estáveis por dimensão", () => {
   const fases = [
-    "Não iniciado",
+    "Acompanhamento iniciado",
     "Planejamento",
     "Contratação",
     "Execução",
@@ -54,7 +54,7 @@ describe("cores estáveis por dimensão", () => {
     "Concluído",
   ];
 
-  it("Não iniciado e Concluído nunca coincidem, mesmo com nove fases", () => {
+  it("Acompanhamento iniciado e Concluído nunca coincidem, mesmo com nove fases", () => {
     const cores = fases.map((f) => corDaFase(f, fases));
     expect(cores[0]).not.toBe(cores[8]);
     expect(new Set(cores).size).toBe(fases.length);
@@ -65,8 +65,11 @@ describe("cores estáveis por dimensão", () => {
     expect(corDaFase("Concluído", fases)).toBe(
       corDaFase("Concluído", ["Concluído"]),
     );
-    expect(corDaFase("Não iniciado", fases)).toBe(
-      corDaFase("Não iniciado", ["Não iniciado", "Concluído"]),
+    expect(corDaFase("Acompanhamento iniciado", fases)).toBe(
+      corDaFase("Acompanhamento iniciado", [
+        "Acompanhamento iniciado",
+        "Concluído",
+      ]),
     );
   });
 

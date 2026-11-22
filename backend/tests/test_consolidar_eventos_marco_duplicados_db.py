@@ -34,6 +34,7 @@ def db():
     # O índice único (migration c7d8e9f0a1b2) impede criar o duplicado que este script existe para
     # consolidar; sai dentro da transação de teste e volta com o rollback.
     conexao.exec_driver_sql("DROP INDEX IF EXISTS uq_evento_marco_fase_geral_ativo")
+    conexao.exec_driver_sql("DROP INDEX IF EXISTS uq_evento_marco_inauguracao_ativa")
     sessao = Session(bind=conexao, join_transaction_mode="create_savepoint")
     try:
         yield sessao
@@ -185,3 +186,19 @@ def test_cronograma_e_regulatorio_nao_sao_consolidados(db):
         db.refresh(segundo)
         assert inst.id not in resultado.por_instrumento
         assert primeiro.substituido_por_id is None and segundo.substituido_por_id is None
+
+
+def test_inauguracao_unica_mantem_so_um_entre_previsao_e_dispensada(db):
+    inst = _instrumento(db)
+    previsao = _marco(db, "cronograma_previsao_inauguracao")
+    dispensada = _marco(db, "cronograma_inauguracao_dispensada")
+    a = EventoMarco(instrumento_id=inst.id, marco_id=previsao.id, data_prevista=date(2027, 1, 1))
+    b = EventoMarco(instrumento_id=inst.id, marco_id=previsao.id, data_ocorrencia=date(2026, 10, 1))
+    c = EventoMarco(instrumento_id=inst.id, marco_id=dispensada.id)
+    db.add_all([a, b, c])
+    db.flush()
+    resultado = executar(db, aplicar=True, inauguracao=True)
+    assert resultado.eventos_substituidos == 2
+    assert b.substituido_por_id is None  # ocorrência real vence
+    assert a.substituido_por_id == b.id and c.substituido_por_id == b.id
+    assert executar(db, aplicar=True, inauguracao=True).eventos_substituidos == 0  # idempotente

@@ -1,6 +1,7 @@
 """Contratos explícitos do Radar legado; sem payload federal cru na API."""
 
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -27,13 +28,22 @@ class EvidenciaLegadoRead(BaseModel):
     relacao: Literal["aquisicao", "modernizacao", "existente", "mencao"]
 
 
+class ItemPlanoLegadoRead(BaseModel):
+    """Bem do plano de aplicação, como veio na última recaptura oficial."""
+
+    nome: str
+    quantidade: str | None = None
+    valor_unitario: str | None = None
+    valor_total: str | None = None
+
+
 class CandidatoLegadoRead(BaseModel):
     id: int
     numero: str
     id_proposta: str
     confirmacao_portal: ConfirmacaoPortal
     data_publicacao: date | None
-    origem: Literal["snapshot_local", "siconv_oficial"]
+    origem: Literal["siconv_oficial"]
     descoberto_em: datetime
     verificado_em: datetime
     evidencias: list[EvidenciaLegadoRead]
@@ -41,6 +51,15 @@ class CandidatoLegadoRead(BaseModel):
     captura_id: int
     situacao: SituacaoLegado
     versao: int
+    # Vêm da última recaptura oficial; nulos enquanto ela não existe.
+    valor_global: Decimal | None = None
+    municipio: str | None = None
+    uf: str | None = None
+    data_instrumento: date | None = None
+    # Horário da última recaptura (prova da aprovação); nulo se nunca houve.
+    recaptura_em: datetime | None = None
+    # Nomes dos bens do plano (recaptura) ou, sem ela, dos equipamentos reconhecidos na descoberta.
+    itens: list[ItemPlanoLegadoRead] = Field(default_factory=list)
 
 
 class CandidatosLegadosRead(BaseModel):
@@ -51,7 +70,7 @@ class CandidatosLegadosRead(BaseModel):
 
 class DecisaoLegadoCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    acao: Literal["iniciar_analise", "rejeitar"]
+    acao: Literal["rejeitar"]
     chave: UUID
     captura_id: int = Field(gt=0)
     versao: int = Field(ge=0)
@@ -81,5 +100,5 @@ class HistoricoLegadoRead(BaseModel):
 
 class ReferenciaDescoberta(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    origem: Literal["snapshot_local", "siconv_oficial"]
+    origem: Literal["siconv_oficial"]
     hash_snapshot: str = Field(pattern=r"^[a-f0-9]{64}$")

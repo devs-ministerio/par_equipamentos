@@ -23,14 +23,13 @@ describe("recorte do relatório", () => {
   it("cada visão aceita só as origens de situação com efeito", () => {
     expect(origensDaVisao(null)).toHaveLength(3);
     expect(origensDaVisao("entregues")).toEqual([]);
-    expect(origensDaVisao("previsoes")).toEqual(["monitoramento"]);
     expect(origensDaVisao("encerrados")).toEqual(["instrumento", "proposta"]);
   });
 
   it("descarta a situação escolhida quando a visão a ignora", () => {
     const fase = codificarSituacao("monitoramento", "Em licitação");
     expect(situacaoVale(fase, "encerrados")).toBe(false);
-    expect(situacaoVale(fase, "previsoes")).toBe(true);
+    expect(situacaoVale(fase, null)).toBe(true);
     expect(situacaoVale(null, "entregues")).toBe(true);
   });
 
@@ -40,8 +39,8 @@ describe("recorte do relatório", () => {
       { value: codificarSituacao("monitoramento", "B"), label: "B" },
     ];
     expect(
-      opcoesSituacaoDaVisao(opcoes, "previsoes").map((o) => o.label),
-    ).toEqual(["B"]);
+      opcoesSituacaoDaVisao(opcoes, "encerrados").map((o) => o.label),
+    ).toEqual(["A"]);
   });
 
   it("acrescenta valores exclusivos das propostas sem repetir", () => {

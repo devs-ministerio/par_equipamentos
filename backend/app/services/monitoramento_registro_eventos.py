@@ -18,8 +18,13 @@ from app.db.models import (
     User,
 )
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
+from app.repositories import itens_equipamento as entregas_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.repositories.notificacoes import obter_ids_responsaveis_do_instrumento
+from app.services.conclusao_acompanhamento import assert_nao_concluido
+from app.services.fase_acompanhamento import calcular_fase_acompanhamento
+from app.services.inauguracao_realizada import registrar_inauguracao_realizada
+from app.services.marcos_por_fase import JANELAS, marco_disponivel_na_fase, motivo_indisponivel
 from app.services.monitoramento_cadastro import DadosEquipamentoEntregue, _resumo_equipamento_entregue
 from app.services.monitoramento_comum import _agora_utc, _compor_observacao, _notificar_edicao_manual
 
@@ -45,12 +50,39 @@ class NovoEventoMonitorado:
 def _validar_fase_geral_id(db: Session, marco: MarcoCatalogo, fase_geral_id: int | None) -> int | None:
     if marco.grupo == MarcoGrupo.fase_geral:
         return None
-    if fase_geral_id is None:
-        raise ValidationError("Indique a fase geral correspondente a este marco de cronograma físico/regulatório.")
+    if fase_geral_id is None:  # a fase é calculada: o vínculo só existe em registros históricos
+        return None
     fase = monitoramento_repo.obter_marco_por_id(db, fase_geral_id)
     if fase is None or fase.grupo != MarcoGrupo.fase_geral:
         raise ValidationError(f"fase_geral_id {fase_geral_id} não corresponde a um marco de fase geral válido.")
     return fase_geral_id
+
+
+def _validar_marco_na_fase(db: Session, instrumento: InstrumentoEquipamento, marco: MarcoCatalogo) -> None:
+    if marco.codigo not in JANELAS:
+        return
+    from app.services.repasses import fatos_do_instrumento  # evita import circular
+
+    fase = calcular_fase_acompanhamento(fatos_do_instrumento(db, instrumento))
+    if not marco_disponivel_na_fase(marco.codigo, fase):
+        raise ValidationError(motivo_indisponivel(marco.codigo, fase))
+
+
+MARCOS_DE_INAUGURACAO = ("cronograma_previsao_inauguracao", "cronograma_inauguracao_dispensada")
+
+
+def _inauguracao_vigente(db: Session, instrumento_id: int) -> EventoMarco | None:
+    """Uma inauguração por instrumento: previsão (ou realizada) e "dispensada" são excludentes."""
+    for codigo in MARCOS_DE_INAUGURACAO:
+        marco = monitoramento_repo.obter_marco_por_codigo(db, codigo)
+        if marco is None:
+            continue
+        evento = monitoramento_repo.obter_evento_mais_recente_do_marco(
+            db, instrumento_id=instrumento_id, marco_id=marco.id
+        )
+        if evento is not None:
+            return evento
+    return None
 
 
 def _validar_validade_nao_anterior(dados: NovoEventoMonitorado) -> None:
@@ -102,40 +134,15 @@ def _registrar_inauguracao_confirmada(
 ) -> tuple[int | None, date | None]:
     if marco.codigo != "fase_concluido":
         return None, None
-    marco_inauguracao = monitoramento_repo.obter_marco_por_codigo(db, "cronograma_previsao_inauguracao")
-    if marco_inauguracao is None:
-        raise ValidationError("Marco de previsão de inauguração não encontrado no catálogo.")
-    anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
-        db, instrumento_id=instrumento.id, marco_id=marco_inauguracao.id
-    )
-    if anterior and anterior.data_ocorrencia is not None:
-        raise ValidationError("Já existe uma inauguração realizada para este instrumento.")
-    previsao_anterior = anterior.data_prevista if anterior else None
-    inauguracao = EventoMarco(
-        instrumento_id=instrumento.id,
-        marco_id=marco_inauguracao.id,
-        fase_geral_id=marco.id,
-        data_ocorrencia=dados.data_ocorrencia,
-        observacao=_compor_observacao(usuario.name, "Inauguração confirmada ao concluir o instrumento."),
-        autor_id=usuario.id,
-    )
-    monitoramento_repo.adicionar_evento(db, inauguracao)
-    if anterior is not None:
-        anterior.substituido_por_id = inauguracao.id
-        anterior.atualizado_em = _agora_utc()
-    log_action(
+    if dados.data_ocorrencia is None:
+        raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
+    inauguracao, previsao_anterior = registrar_inauguracao_realizada(
         db,
-        user_id=usuario.id,
-        entity_name="evento_marco",
-        entity_id=inauguracao.id,
-        action="created",
-        details={
-            "nr_convenio": nr_convenio,
-            "marco_id": marco_inauguracao.id,
-            "data_prevista_anterior": previsao_anterior.isoformat() if previsao_anterior else None,
-            "data_ocorrencia": dados.data_ocorrencia.isoformat() if dados.data_ocorrencia else None,
-            "confirmada_com_conclusao": True,
-        },
+        instrumento=instrumento,
+        data_ocorrencia=dados.data_ocorrencia,
+        usuario=usuario,
+        fase_geral_id=marco.id,
+        observacao="Inauguração confirmada ao concluir o instrumento.",
     )
     return inauguracao.id, previsao_anterior
 
@@ -154,12 +161,14 @@ def registrar_evento_monitorado(
     if instrumento is None:
         raise NotFoundError(f"Instrumento {nr_convenio} não monitorado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     marco = monitoramento_repo.obter_marco_por_id(db, dados.marco_id)
     if marco is None:
         raise ValidationError(f"Marco {dados.marco_id} não existe no catálogo.")
     fase_geral_id = _validar_fase_geral_id(db, marco, dados.fase_geral_id)
 
     _validar_dados_novo_evento(marco, dados)
+    _validar_marco_na_fase(db, instrumento, marco)
 
     evento_anterior = monitoramento_repo.obter_evento_mais_recente_do_marco(
         db, instrumento_id=instrumento.id, marco_id=dados.marco_id
@@ -168,6 +177,12 @@ def registrar_evento_monitorado(
         raise ConflictError(
             f'A fase "{marco.rotulo}" já está registrada para {nr_convenio}. Edite o lançamento existente.'
         )
+    if marco.codigo in MARCOS_DE_INAUGURACAO:
+        existente = _inauguracao_vigente(db, instrumento.id)
+        if existente is not None:
+            raise ConflictError(
+                f"{nr_convenio} já tem uma inauguração registrada. Há apenas uma por instrumento: edite o lançamento existente."
+            )
     reprogramou = bool(
         dados.data_prevista
         and evento_anterior
@@ -262,6 +277,12 @@ def _inauguracao_vinculada_a_conclusao(
     return None
 
 
+def _recusar_se_nasceu_de_entrega(db: Session, evento_id: int) -> None:
+    """O evento gerado por uma entrega ativa acompanha a entrega: a entrega é a fonte da data e das unidades."""
+    if entregas_repo.entregas_ativas_por_evento(db, [evento_id]):
+        raise ConflictError("Este evento vem de uma entrega de equipamento. Altere pela entrega.")
+
+
 def editar_evento_monitorado(
     *,
     evento_id: int,
@@ -278,6 +299,9 @@ def editar_evento_monitorado(
     if antigo is None:
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, antigo.instrumento_id))
+    assert_nao_concluido(db, antigo.instrumento_id)
+    db.refresh(antigo)  # relê depois da trava
+    _recusar_se_nasceu_de_entrega(db, antigo.id)
     if antigo.deletado_em is not None or antigo.substituido_por_id is not None:
         raise ValidationError(f"Evento {evento_id} já foi excluído ou corrigido -- não pode editar de novo.")
 
@@ -292,6 +316,13 @@ def editar_evento_monitorado(
     if dados.data_ocorrencia and dados.data_ocorrencia > date.today():
         raise ValidationError("A data realizada não pode estar no futuro.")
     _validar_validade_nao_anterior(dados)
+    if (
+        dados.data_prevista
+        and antigo.data_prevista
+        and dados.data_prevista != antigo.data_prevista
+        and not (dados.observacao or "").strip()
+    ):
+        raise ValidationError("Informe a justificativa para alterar a data prevista.")
     if marco.codigo == "fase_concluido" and dados.data_ocorrencia is None:
         # Mesma invariante da criação (achado D27): a correção não pode deixar a conclusão sem data.
         raise ValidationError("Informe a data de ocorrência para concluir o instrumento.")
@@ -373,6 +404,9 @@ def excluir_evento_monitorado(
     if evento is None:
         raise NotFoundError(f"Evento {evento_id} não encontrado.")
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, evento.instrumento_id))
+    assert_nao_concluido(db, evento.instrumento_id)
+    db.refresh(evento)  # relê depois da trava
+    _recusar_se_nasceu_de_entrega(db, evento.id)
     if evento.deletado_em is not None:
         raise ValidationError(f"Evento {evento_id} já está excluído.")
     if not motivo.strip():

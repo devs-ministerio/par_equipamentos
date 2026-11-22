@@ -39,8 +39,6 @@ def publicar_ciclo(
         revalidacoes = RevalidacoesCiclo.model_validate(revalidacoes.model_dump())
         if type(notificar_novos) is not bool:
             raise ValidationError("Modo de notificação deve ser booleano explícito.")
-        if referencia.origem != "siconv_oficial":
-            raise ValidationError("Ciclo integrado exige snapshots oficiais.")
         if {c.numero for c in candidatos} & {e.alvo.numero for e in revalidacoes.entradas}:
             raise ValidationError("O mesmo candidato não pode ser elegível e inelegível no ciclo.")
         if revalidacoes.entradas:

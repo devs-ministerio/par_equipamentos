@@ -1,6 +1,6 @@
 # Inventário SIGEO → SISGEO — Bloco 0 (23/10/2026)
 
-Mapa de ocorrências para o [plano de identidade SISGEO](planmode-identidade-sisgeo-2026-10-20.md). Somente leitura, sobre a `homologacao` alinhada à `master` (`553d18b`), com `git grep` (arquivos versionados, sem `package-lock.json` nem `uv.lock`). **Nenhuma troca foi feita.** A decisão do nome por extenso e da marca segue pendente do usuário.
+Mapa de ocorrências para o [plano de identidade SISGEO](../planos/planmode-identidade-sisgeo-2026-10-20.md). Somente leitura, sobre a `homologacao` alinhada à `master` (`553d18b`), com `git grep` (arquivos versionados, sem `package-lock.json` nem `uv.lock`). **Nenhuma troca foi feita.** A decisão do nome por extenso e da marca segue pendente do usuário.
 
 ## Números
 
@@ -23,7 +23,7 @@ Mapa de ocorrências para o [plano de identidade SISGEO](planmode-identidade-sis
 
 ### B. Documentação atual (atualizar junto)
 
-`README.md`, `AGENTS.md`, `CLAUDE.md`, `backend/README.md`, `docs/metodologia-parametros.md` e `docs/arquitetura/runbook-devops.md`.
+`README.md`, `AGENTS.md`, `CLAUDE.md`, `backend/README.md`, `docs/metodologia-parametros.md` e `docs/runbooks/runbook-devops.md`.
 
 ### C. Documentação histórica e de fonte (não alterar)
 

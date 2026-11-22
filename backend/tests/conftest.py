@@ -22,10 +22,18 @@ from sqlalchemy.engine import make_url
 os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 
 _DB_TEST_MODULES = {
+    "test_avisos_siconv_db.py",
+    "test_cancelamento_unidade_db.py",
+    "test_conclusao_acompanhamento_db.py",
+    "test_trava_instrumento_db.py",
+    "test_documentos_instrumento_db.py",
+    "test_licenca_ansn_db.py",
+    "test_previsoes_entrega_db.py",
+    "test_repasses_db.py",
     "test_reabrir_eventos_consolidados_db.py",
-    "test_relatorios_previsoes_db.py",
     "test_indice_unico_evento_marco_db.py",
     "test_consolidar_eventos_marco_duplicados_db.py",
+    "test_migracao_fluxo_db.py",
     "test_preencher_cnes_ano_descricao_instrumento_db.py",
     "test_relatorios_entregues_db.py",
     "test_recalcular_cobertura_macro_db.py",
@@ -89,7 +97,6 @@ _DB_TEST_MODULES = {
     "test_contrato_escopo_legado_db.py",
     "test_recaptura_propostas_local_db.py",
     "test_notificacoes_destinatarios_db.py",
-    "test_aviso_entrega_legada_db.py",
     "test_auditoria.py",
     "test_auth_session.py",
     "test_capturas_fonte.py",
@@ -221,6 +228,52 @@ def headers_autenticados():
     db.query(User).filter_by(id=user_id).delete()
     db.commit()
     db.close()
+
+
+def _sessao_de_teste(papel, rotulo: str):
+    from uuid import uuid4
+
+    from app.auth import ACCESS_COOKIE_NAME, create_access_token, create_refresh_token, hash_password
+    from app.db.base import SessionLocal
+    from app.db.models import User
+
+    db = SessionLocal()
+    user = User(
+        name="Pytest Sessão",
+        email=f"pytest-{rotulo}-{uuid4()}@example.com",
+        password_hash=hash_password("senha-pytest"),
+        role=papel,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    _, refresh_token_id = create_refresh_token(db, user)
+    db.commit()
+    token = create_access_token(user, refresh_token_id)
+    user_id = user.id
+    db.close()
+
+    yield {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
+
+    db = SessionLocal()
+    db.query(User).filter_by(id=user_id).delete()
+    db.commit()
+    db.close()
+
+
+@pytest.fixture(scope="session")
+def headers_admin():
+    from app.db.models import UserRole
+
+    yield from _sessao_de_teste(UserRole.admin, "headers-admin")
+
+
+@pytest.fixture(scope="session")
+def headers_gestor():
+    """Mesma ideia de `headers_autenticados`, com perfil gestor (Radar de instrumentos)."""
+    from app.db.models import UserRole
+
+    yield from _sessao_de_teste(UserRole.gestor, "headers-gestor")
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:

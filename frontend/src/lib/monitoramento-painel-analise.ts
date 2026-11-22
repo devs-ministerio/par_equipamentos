@@ -18,9 +18,9 @@ export function resumirCarteiraPainel(
   ordemFases: string[],
 ) {
   const fasesContadas = new Map(
-    contar(instrumentos.map((item) => item.fase_atual ?? "Não iniciado")).map(
-      (item) => [item.rotulo, item.quantidade],
-    ),
+    contar(
+      instrumentos.map((item) => item.fase_atual ?? "Acompanhamento iniciado"),
+    ).map((item) => [item.rotulo, item.quantidade]),
   );
   const fases = [
     ...ordemFases.map((rotulo) => ({

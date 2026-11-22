@@ -125,8 +125,9 @@ def test_aprovacao_e_replay_funcionam_com_ambos_triggers_ativos(historico_proteg
     parametros = dict(db=db, usuario_id=usuarios["admin"].id, candidato_id=ref.candidato_id, dados=pedido)
     decisao = aprovar_entrada(**parametros)
     assert aprovar_entrada(**parametros) == decisao
-    for modelo in (CandidatoLegadoRecaptura, CandidatoLegadoDecisao, Notificacao):
-        assert db.scalar(select(func.count()).select_from(modelo)) == 1
+    # Dois avisos: entrada aprovada e inclusão no monitoramento.
+    for modelo, esperado in ((CandidatoLegadoRecaptura, 1), (CandidatoLegadoDecisao, 1), (Notificacao, 2)):
+        assert db.scalar(select(func.count()).select_from(modelo)) == esperado
     assert db.get(CandidatoLegadoDecisao, decisao.id).recaptura_id == prova.id
 
 

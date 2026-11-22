@@ -4,7 +4,7 @@ from datetime import date
 
 from sqlalchemy import insert, select
 
-from app.db.models import Convenio, EventoMarco, InstrumentoEquipamento, MarcoCatalogo
+from app.db.models import ConclusaoInstrumento, Convenio, EventoMarco, InstrumentoEquipamento, MarcoCatalogo
 
 
 def criar_monitorados_limite(db, quantidade=501):
@@ -37,8 +37,8 @@ def concluir_monitorados(db, instrumentos):
     fase = marcos["fase_concluido"]
     inauguracao = marcos["cronograma_previsao_inauguracao"]
     db.execute(
-        insert(EventoMarco),
-        [{"instrumento_id": i.id, "marco_id": fase.id, "data_ocorrencia": date(2010, 1, 1)} for i in instrumentos],
+        insert(ConclusaoInstrumento),
+        [{"instrumento_id": i.id, "resultado": "integral", "data_conclusao": date(2010, 1, 1)} for i in instrumentos],
     )
     db.execute(
         insert(EventoMarco),

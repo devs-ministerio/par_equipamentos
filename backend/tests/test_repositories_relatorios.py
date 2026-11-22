@@ -1,6 +1,6 @@
 """app/repositories/{cobertura_relatorio,convenios,execucoes}.py e o filtro
 novo de app/repositories/monitoramento.py::listar_instrumentos -- extração
-mínima pro relatório (Plan Mode docs/arquitetura/
+mínima pro relatório (Plan Mode docs/planos/
 planmode-relatorios-2026-09-25.md, Bloco 2). Usa o dado sintético já
 semeado por `tests/fixtures_cobertura.py`/`scripts/seed_monitoramento.py`
 (rodado em `pytest_sessionstart`, ver conftest.py)."""

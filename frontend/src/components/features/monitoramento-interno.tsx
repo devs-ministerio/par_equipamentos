@@ -28,8 +28,17 @@ import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho
 import { MonitoramentoInternoCadastro } from "./monitoramento-interno-cadastro";
 import { MonitoramentoInternoCronograma } from "./monitoramento-interno-fase-cronograma";
 import { MonitoramentoInternoFaseGeral } from "./monitoramento-interno-fase-geral";
+import { ConclusaoAcompanhamento } from "./conclusao-acompanhamento";
+import { DocumentosInstrumento } from "./documentos-instrumento";
+import { useEquipamentosInstrumento } from "@/hooks/useEquipamentosInstrumento";
 import { EquipamentosInstrumento } from "./equipamentos-instrumento";
+import { LicencaOperacaoCard } from "./licenca-operacao-card";
 import { MonitoramentoInternoAcoes } from "./monitoramento-interno-acoes";
+import type {
+  CriarAcaoFormValues,
+  EnviarEventoFormValues,
+} from "@/lib/validations/monitoramento";
+import { MonitoramentoInternoLancamentos } from "./monitoramento-interno-lancamentos";
 import { MonitoramentoInternoEventos } from "./monitoramento-interno-eventos";
 
 export function MonitoramentoInterno({
@@ -56,8 +65,14 @@ function MonitoramentoInternoConteudo({
   // Fallback de leitura SICONV; nunca escreve componente no banco.
   const programaQuery = useConvenioPrograma(numeroConvenio);
   const marcosQuery = useMonitoramentoMarcos();
+  const equipamentosQuery = useEquipamentosInstrumento(numeroConvenio);
   const timelineQuery = useInstrumentoTimeline(numeroConvenio);
-  const acoesQuery = useAcoesDoInstrumento(numeroConvenio);
+  // Instrumento sem acompanhamento (timeline vazia) também dá 404 nas ações: só consulta depois de a timeline confirmar.
+  const [somentePendentes, setSomentePendentes] = useState(false);
+  const acoesQuery = useAcoesDoInstrumento(numeroConvenio, {
+    enabled: timelineQuery.isSuccess && timelineQuery.data !== null,
+    pendentes: somentePendentes,
+  });
   const sessao = useAuthSession();
 
   const salvarCadastro = useSalvarCadastroInstrumento(numeroConvenio);
@@ -120,6 +135,29 @@ function MonitoramentoInternoConteudo({
     );
   }
 
+  const itensControlados = equipamentosQuery.data?.itens ?? [];
+  const totaisEquipamentos = itensControlados.length
+    ? {
+        entregues: itensControlados.reduce(
+          (t, i) => t + i.quantidade_entregue,
+          0,
+        ),
+        planejadas: itensControlados.reduce(
+          (t, i) =>
+            t +
+            Math.max(
+              (i.quantidade_planejada ?? i.quantidade_entregue) -
+                i.quantidade_cancelada,
+              0,
+            ),
+          0,
+        ),
+        canceladas: itensControlados.reduce(
+          (t, i) => t + i.quantidade_cancelada,
+          0,
+        ),
+      }
+    : null;
   const marcos = marcosQuery.data;
   const timeline = timelineQuery.data;
   const acoes = acoesQuery.data;
@@ -127,22 +165,51 @@ function MonitoramentoInternoConteudo({
   // A permissão do instrumento em cache não sobrepõe a sessão atual.
   const podeEditar =
     inst.pode_editar && sessao.podeEditar && !sessao.erroSessao;
+  // Concluído trava todas as edições; só "Reabrir" (podeEditar) segue liberado.
+  const concluido = inst.fase_atual === "Concluído";
+  const podeEditarConteudo = podeEditar && !concluido;
 
   const {
-    fasesGerais,
     eventosPorMarco,
-    faseAtual,
-    pctAtual,
     cronogramaFisico,
-    regulatorio,
-    registroLicenca,
     dataInauguracao,
+    eventoInauguracao,
     inaugurado,
+    inauguracaoDispensada,
     diasInauguracao,
     acoesAbertas,
     acoesAtrasadas,
-    validadeLicenca,
   } = derivarMonitoramentoInterno(marcos, timeline, acoes);
+
+  const registrarEvento = (valores: EnviarEventoFormValues) =>
+    executarEscrita(() =>
+      registrarEventoMutation.mutateAsync({
+        marco_id: Number(valores.marcoId),
+        fase_geral_id: valores.faseGeralId ? Number(valores.faseGeralId) : null,
+        confirmar_inauguracao: valores.confirmarInauguracao ?? false,
+        data_ocorrencia: valores.dataOcorrencia || null,
+        data_prevista: valores.dataPrevista || null,
+        status_regulatorio: valores.statusRegulatorio || null,
+        numero_documento: valores.numeroDocumento || null,
+        data_validade: valores.dataValidade || null,
+        observacao: valores.observacao || null,
+        equipamento_marca: valores.equipamentoMarca || null,
+        equipamento_modelo: valores.equipamentoModelo || null,
+        equipamento_numero_serie: valores.equipamentoNumeroSerie || null,
+        equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos
+          ? Number(valores.equipamentoVidaUtilAnos)
+          : null,
+      }),
+    );
+
+  const criarAcao = (valores: CriarAcaoFormValues) =>
+    executarEscrita(() =>
+      criarAcaoMutation.mutateAsync({
+        descricao: valores.descricao,
+        data_prevista: valores.dataPrevista || null,
+        responsavel: valores.responsavel || null,
+      }),
+    );
 
   const componenteViaSiconv = !inst.componente
     ? componenteDoProgramaSiconv(programaQuery.data)
@@ -166,22 +233,28 @@ function MonitoramentoInternoConteudo({
         componenteViaSiconv={componenteViaSiconv}
         dataInauguracao={dataInauguracao}
         inaugurado={inaugurado}
+        inauguracaoDispensada={inauguracaoDispensada}
         diasInauguracao={diasInauguracao}
-        registroLicenca={registroLicenca}
-        alertaLicenca={validadeLicenca !== null && validadeLicenca < 90}
-        acoesAbertasCount={acoesAbertas.length}
-        acoesAtrasadasCount={acoesAtrasadas.length}
+        acoesAbertasCount={acoesQuery.abertas ?? acoesAbertas.length}
+        acoesAtrasadasCount={acoesQuery.atrasadas ?? acoesAtrasadas.length}
+        equipamentos={totaisEquipamentos}
       />
 
       <EquipamentosInstrumento
         numeroConvenio={numeroConvenio}
-        podeEditarInstrumento={podeEditar}
+        podeEditarInstrumento={podeEditarConteudo}
         aoSessaoInvalida={sessao.tratarSessaoInvalida}
+        previsaoInauguracao={
+          inaugurado ? null : (eventoInauguracao?.data_prevista ?? null)
+        }
+        inauguracaoRealizada={inaugurado}
       />
+
+      <LicencaOperacaoCard numeroConvenio={numeroConvenio} />
 
       <MonitoramentoInternoCadastro
         instrumento={inst}
-        podeEditar={podeEditar}
+        podeEditar={podeEditarConteudo}
         aberto={cadastroAberto}
         onAbrir={() => setCadastroAberto(true)}
         onFechar={() => setCadastroAberto(false)}
@@ -210,35 +283,63 @@ function MonitoramentoInternoConteudo({
       <div className="grid gap-4">
         <OperationalDetailSection titulo="Fase e cronograma">
           <MonitoramentoInternoFaseGeral
-            fasesGerais={fasesGerais}
-            faseAtual={faseAtual}
-            pctAtual={pctAtual}
+            faseAtual={inst.fase_atual}
+            acao={
+              <ConclusaoAcompanhamento
+                numeroConvenio={numeroConvenio}
+                podeEditarInstrumento={podeEditar}
+                aoSessaoInvalida={sessao.tratarSessaoInvalida}
+                aoErro={setErroEscrita}
+              />
+            }
           />
           <MonitoramentoInternoCronograma
             cronogramaFisico={cronogramaFisico}
-            regulatorio={regulatorio}
+            entregaPorItem={itensControlados.some(
+              (i) => i.quantidade_entregue > 0,
+            )}
+            documentos={
+              <DocumentosInstrumento
+                numeroConvenio={numeroConvenio}
+                podeEditarInstrumento={podeEditarConteudo}
+                aoSessaoInvalida={sessao.tratarSessaoInvalida}
+              />
+            }
+            acao={
+              <MonitoramentoInternoLancamentos
+                marcos={marcos}
+                fase={inst.fase_atual}
+                podeEditar={podeEditarConteudo}
+                onRegistrarEvento={registrarEvento}
+                onCriarAcao={criarAcao}
+              />
+            }
             eventosPorMarco={eventosPorMarco}
             multiploEquipamento={multiploEquipamento}
           />
         </OperationalDetailSection>
 
         <OperationalDetailSection
-          titulo={`Ações (${acoes?.length ?? 0})`}
-          abertoPorPadrao={acoesAbertas.length > 0}
+          titulo={`Ações (${acoesQuery.total ?? acoes?.length ?? 0})`}
+          abertoPorPadrao={(acoesQuery.abertas ?? acoesAbertas.length) > 0}
         >
+          <label className="mb-2 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={somentePendentes}
+              onChange={(e) => setSomentePendentes(e.target.checked)}
+            />
+            Só pendentes
+          </label>
+          {acoes && (acoesQuery.total ?? 0) > acoes.length && (
+            <p className="m-0 mb-2 text-[12.5px] text-muted-foreground">
+              Mostrando {acoes.length} de {acoesQuery.total} ações.
+            </p>
+          )}
           <MonitoramentoInternoAcoes
             acoes={acoes}
-            podeEditar={podeEditar}
+            podeEditar={podeEditarConteudo}
             concluindoAcaoId={concluindoAcaoId}
-            onCriar={(valores) =>
-              executarEscrita(() =>
-                criarAcaoMutation.mutateAsync({
-                  descricao: valores.descricao,
-                  data_prevista: valores.dataPrevista || null,
-                  responsavel: valores.responsavel || null,
-                }),
-              )
-            }
             onConcluir={(acaoId) => {
               setErroEscrita(null);
               setConcluindoAcaoId(acaoId);
@@ -267,38 +368,11 @@ function MonitoramentoInternoConteudo({
           />
         </OperationalDetailSection>
 
-        <OperationalDetailSection
-          titulo="Linha do tempo de eventos"
-          abertoPorPadrao={false}
-        >
+        <OperationalDetailSection titulo="Eventos" abertoPorPadrao={false}>
           <MonitoramentoInternoEventos
             marcos={marcos}
             eventos={timeline.eventos}
-            podeEditar={podeEditar}
-            onRegistrar={(valores) =>
-              executarEscrita(() =>
-                registrarEventoMutation.mutateAsync({
-                  marco_id: Number(valores.marcoId),
-                  fase_geral_id: valores.faseGeralId
-                    ? Number(valores.faseGeralId)
-                    : null,
-                  confirmar_inauguracao: valores.confirmarInauguracao ?? false,
-                  data_ocorrencia: valores.dataOcorrencia || null,
-                  data_prevista: valores.dataPrevista || null,
-                  status_regulatorio: valores.statusRegulatorio || null,
-                  numero_documento: valores.numeroDocumento || null,
-                  data_validade: valores.dataValidade || null,
-                  observacao: valores.observacao || null,
-                  equipamento_marca: valores.equipamentoMarca || null,
-                  equipamento_modelo: valores.equipamentoModelo || null,
-                  equipamento_numero_serie:
-                    valores.equipamentoNumeroSerie || null,
-                  equipamento_vida_util_anos: valores.equipamentoVidaUtilAnos
-                    ? Number(valores.equipamentoVidaUtilAnos)
-                    : null,
-                }),
-              )
-            }
+            podeEditar={podeEditarConteudo}
             onEditar={(eventoId, valores) =>
               executarEscrita(() =>
                 editarEventoMutation.mutateAsync({

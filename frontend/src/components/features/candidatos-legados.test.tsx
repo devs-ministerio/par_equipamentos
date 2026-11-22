@@ -4,11 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { CandidatosLegados } from "./candidatos-legados";
 import { fetchCandidatosLegados } from "@/services/candidatos-legados";
 import { ApiError } from "@/lib/api-error";
-import { CandidatoLegadoItem } from "./candidato-legado-item";
-import type {
-  CandidatoLegado,
-  ConfirmacaoLegado,
-} from "@/services/candidatos-legados";
+import type { CandidatoLegado } from "@/services/candidatos-legados";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -21,10 +17,29 @@ const candidato: CandidatoLegado = {
   situacao: "novo",
   confirmacao_portal: "nao_encontrado",
   data_publicacao: null,
-  origem: "snapshot_local",
+  origem: "siconv_oficial",
   descoberto_em: "2026-10-06T10:00:00Z",
   verificado_em: "2026-10-06T10:00:00Z",
+  valor_global: null,
+  municipio: null,
+  uf: null,
+  data_instrumento: null,
+  recaptura_em: null,
   componentes: [],
+  itens: [
+    {
+      nome: "Acelerador Linear",
+      quantidade: "1",
+      valor_unitario: "2500000.50",
+      valor_total: "2500000.50",
+    },
+    {
+      nome: "Mesa Cirúrgica",
+      quantidade: "3",
+      valor_unitario: "10000",
+      valor_total: "30000",
+    },
+  ],
   evidencias: [
     {
       id_item: "1",
@@ -68,94 +83,80 @@ function prepararApi(payload: unknown, status = 200) {
 }
 
 describe("Radar legado", () => {
-  it("mantém confirmação apenas nos detalhes, sem recriar filtro ou alterar situação", async () => {
+  it("mostra só componente, valor, local e datas, sem detalhes ocultos", async () => {
     const fetch = prepararApi({
       total: 1,
       novos: 1,
-      itens: [{ ...candidato, origem: "siconv_oficial" }],
+      itens: [
+        {
+          ...candidato,
+          valor_global: "1500000.00",
+          municipio: "Campinas",
+          uf: "SP",
+          data_instrumento: "2026-09-30",
+        },
+      ],
     });
     await screen.findByText("Convênio 123456");
-    expect(
-      screen.queryByRole("button", { name: /Confirmação no Portal/ }),
-    ).not.toBeInTheDocument();
+    for (const rotulo of [
+      "Componente",
+      "Valor",
+      "UF",
+      "Município",
+      "Data do instrumento",
+      "Descoberto em",
+      "Recaptura",
+    ])
+      expect(screen.getByText(rotulo)).toBeVisible();
+    expect(screen.getByText("Campinas")).toBeVisible();
+    expect(screen.getByText("SP")).toBeVisible();
+    expect(screen.getByText("30/09/2026")).toBeVisible();
+    expect(screen.queryByText("Item")).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: /Ver itens do convênio 123456/ }),
+    );
+    expect(await screen.findByText("Acelerador Linear")).toBeVisible();
+    expect(screen.getByText("Mesa Cirúrgica")).toBeVisible();
+    expect(screen.getByText("R$ 30.000,00")).toBeVisible();
+    expect(screen.getByRole("columnheader", { name: "Qtd." })).toBeVisible();
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: "Escape",
+    });
+    expect(screen.getByText("Novo")).toBeVisible();
+    expect(screen.queryByText("Mais detalhes")).not.toBeInTheDocument();
     expect(
       screen.queryByText("Não localizado no Portal"),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Mais detalhes"));
-    expect(screen.getByText("Não localizado no Portal")).toBeVisible();
-    expect(screen.getByText("Novo")).toBeVisible();
     expect(fetch.mock.calls.some(([url]) => url.includes("confirmacao="))).toBe(
       false,
     );
   });
 
-  it.each<[ConfirmacaoLegado, string]>([
-    ["nao_consultado", "Aguardando verificação"],
-    ["nao_encontrado", "Não localizado no Portal"],
-    ["sem_publicacao", "Publicação pendente de confirmação"],
-    ["confirmado", "Publicação confirmada"],
-  ])(
-    "mostra %s como evidência, não situação operacional",
-    (confirmacao, rotulo) => {
-      render(
-        <ul>
-          <CandidatoLegadoItem
-            candidato={{ ...candidato, confirmacao_portal: confirmacao }}
-          />
-        </ul>,
-      );
-      expect(screen.getByText("Novo")).toBeVisible();
-      expect(screen.queryByText(rotulo)).not.toBeInTheDocument();
-      expect(screen.queryByText(/Aprovado/)).not.toBeInTheDocument();
-      expect(screen.queryByText("Ver evidências")).not.toBeInTheDocument();
-      expect(screen.queryByText("LINAC sintético")).not.toBeInTheDocument();
-      fireEvent.click(screen.getByText("Mais detalhes"));
-      expect(screen.getByText(rotulo)).toBeVisible();
-      expect(screen.getByText("LINAC sintético")).toBeVisible();
-    },
-  );
+  it("sem recaptura a lista mostra traço em vez de inventar valor e local", async () => {
+    prepararApi({ total: 1, novos: 1, itens: [candidato] });
+    await screen.findByText("Convênio 123456");
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(3);
+  });
 
-  it("filtra situação humana no servidor sem confundir com confirmação oficial", async () => {
+  it("separa ativos de arquivados no servidor", async () => {
     const fetch = prepararApi({
       total: 1,
       novos: 1,
-      itens: [{ ...candidato, origem: "siconv_oficial" }],
+      itens: [candidato],
     });
     await screen.findByText("Convênio 123456");
-    fireEvent.click(screen.getByText("Mais detalhes"));
-    await waitFor(() =>
-      expect(screen.getByText(/Captura do SICONV/)).toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByRole("button", { name: /^Situação/ }));
-    fireEvent.click(screen.getByRole("checkbox", { name: "Em análise" }));
+    expect(
+      fetch.mock.calls.some(([url]) => url.includes("situacao=novo")),
+    ).toBe(true);
+    fireEvent.click(screen.getByRole("tab", { name: "Arquivados" }));
     await waitFor(() =>
       expect(
-        fetch.mock.calls.some(([url]) => url.includes("situacao=em_analise")),
+        fetch.mock.calls.some(([url]) => url.includes("situacao=aprovado")),
       ).toBe(true),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Limpar seleção" }));
-    const detalhes = await screen.findByText(/Mais detalhes|Menos detalhes/);
-    if (detalhes.textContent?.includes("Mais")) fireEvent.click(detalhes);
     expect(
-      await screen.findByText("Não localizado no Portal"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /^Situação/ }),
-    ).toBeInTheDocument();
-  });
-
-  it("separa candidato não confirmado de carteira e explica equipamento existente", async () => {
-    prepararApi({ total: 1, novos: 0, itens: [candidato] });
-    await waitFor(() =>
-      expect(screen.getByText("Convênio 123456")).toBeInTheDocument(),
-    );
-    fireEvent.click(screen.getByText("Mais detalhes"));
-    expect(screen.getByText("Não localizado no Portal")).toBeInTheDocument();
-    expect(screen.getByText(/Equipamento existente/)).toBeInTheDocument();
-    expect(screen.getByText(/frescor não confirmado/)).toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Incluir/ }),
-    ).not.toBeInTheDocument();
+      fetch.mock.calls.some(([url]) => url.includes("situacao=rejeitado")),
+    ).toBe(true);
   });
 
   it("envia busca e página ao servidor, sem filtrar lista parcial na UI", async () => {
@@ -206,7 +207,7 @@ describe("Radar legado", () => {
     });
     await waitFor(() =>
       expect(
-        screen.getByText(/Nenhum candidato com esses filtros/),
+        screen.getByText(/Nenhum candidato com essa busca/),
       ).toBeInTheDocument(),
     );
   });

@@ -1,5 +1,5 @@
 """Casos de uso de notificações (Radar de Convênios + monitoramento interno +
-alerta de vigência). Ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md."""
+alerta de vigência). Ver docs/planos/planmode-notificacoes-escopo-2026-09-25.md."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Notificacao, NotificacaoTipo
 from app.domain_errors import NotFoundError
 from app.repositories.notificacoes import (
+    PREFIXO_DEDUP_RESUMO_SICONV,
     listar_notificacoes_paginadas,
     mapear_convenios_monitorados,
     mapear_identificadores_instrumentos,
@@ -84,6 +85,7 @@ def listar_notificacoes(
             NotificacaoTipo.entrega_legada_revisao,
             NotificacaoTipo.prazo_acao,
             NotificacaoTipo.prazo_inauguracao,
+            NotificacaoTipo.prazo_previsao_entrega,
         )
     }
     ids_propostas = {
@@ -129,6 +131,8 @@ def listar_notificacoes(
         elif notificacao.tipo == NotificacaoTipo.alerta_vigencia:
             identificador = convenios_monitorados.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None
+        elif (notificacao.chave_dedup or "").startswith(PREFIXO_DEDUP_RESUMO_SICONV):
+            destino = None  # resumo da rodada: não pertence a um instrumento só
         else:
             identificador = instrumentos.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None

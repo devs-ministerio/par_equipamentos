@@ -26,7 +26,6 @@ import {
   type InstrumentoResumo,
 } from "@/components/features/monitoramento-overview-lista";
 import { fmtData } from "@/lib/monitoramento-format";
-import { mediaReferenciaFase } from "@/lib/monitoramento-painel-metricas";
 
 export function MonitoramentoOverviewPage() {
   const resumoQuery = useMonitoramentoResumo();
@@ -45,7 +44,7 @@ export function MonitoramentoOverviewPage() {
     <PageHeader
       eyebrow="Monitoramento interno"
       title="Mesa de trabalho"
-      description="Entrega, instalação, licenciamento CNEN e inauguração."
+      description="Entrega, instalação, licenciamento ANSN e inauguração."
       actions={
         <Button asChild variant="outline" size="sm" className="group">
           <Link to="/dashboard">
@@ -107,10 +106,6 @@ export function MonitoramentoOverviewPage() {
   const licencasFiltradas = resumo.licencas_vencendo.filter((item) =>
     numerosFiltrados.has(item.nr_convenio),
   );
-  const progressoReferencia = mediaReferenciaFase(
-    instrumentosFiltrados,
-    resumo.indicadores_por_instrumento,
-  );
 
   // "Próxima inauguração" -- a mais próxima AINDA NÃO realizada E ainda no
   // futuro, ordenada por data (resumo.inauguracoes já vem ordenado por data
@@ -154,20 +149,12 @@ export function MonitoramentoOverviewPage() {
       <div className="mb-6">
         <MetricStrip
           compactMobile
-          desktopColumns={6}
+          desktopColumns={5}
           items={[
             {
               key: "instrumentos",
               label: "Instrumentos",
               value: instrumentosFiltrados.length,
-            },
-            {
-              key: "execucao",
-              label: "Fase média · referência",
-              value:
-                progressoReferencia != null
-                  ? `${Math.round(progressoReferencia * 100)}%`
-                  : "—",
             },
             {
               key: "licencas",

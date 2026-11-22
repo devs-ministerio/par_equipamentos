@@ -1,0 +1,189 @@
+"""Consultas de repasse e dos fatos que calculam a fase do acompanhamento. Não commita."""
+
+from __future__ import annotations
+
+from datetime import datetime
+
+from sqlalchemy import exists, select
+from sqlalchemy.orm import Session
+
+from app.db.models import (
+    Convenio,
+    EntregaEquipamento,
+    EventoMarco,
+    MarcoCatalogo,
+    RepasseInstrumento,
+)
+
+CODIGOS_AQUISICAO = (
+    "fase_em_licitacao",
+    "fase_equipamento_em_aquisicao",
+    "fase_contratado",
+    "fase_em_andamento",
+    "fase_comissionamento",
+)
+# Fabricação e importação realizadas (com data) também indicam aquisição em curso.
+CODIGOS_AQUISICAO_REALIZADA = (
+    "cronograma_inicio_fabricacao",
+    "cronograma_fabricacao_concluida",
+    "cronograma_chegada_porto",
+    "cronograma_desembaraco_aduaneiro",
+)
+CODIGO_AGUARDANDO_REPASSE = "fase_aguardando_repasse"
+CODIGO_CONCLUIDO = "fase_concluido"
+# Eventos de cronograma que, uma vez realizados (com data de ocorrência), iniciam o pós-entrega.
+CODIGOS_POS_ENTREGA = (
+    "cronograma_instalacao_inicio",
+    "cronograma_instalacao_fim",
+    "cronograma_comissionamento",
+    "cronograma_treinamento",
+    "cronograma_inicio_operacao",
+)
+
+_REPASSE_ATIVO = (RepasseInstrumento.deletado_em.is_(None), RepasseInstrumento.substituido_por_id.is_(None))
+
+
+def listar_repasses_ativos(db: Session, instrumento_id: int) -> list[RepasseInstrumento]:
+    return list(
+        db.execute(
+            select(RepasseInstrumento)
+            .where(RepasseInstrumento.instrumento_id == instrumento_id, *_REPASSE_ATIVO)
+            .order_by(RepasseInstrumento.id)
+        ).scalars()
+    )
+
+
+def adicionar_repasse(db: Session, repasse: RepasseInstrumento) -> RepasseInstrumento:
+    db.add(repasse)
+    db.flush()
+    return repasse
+
+
+def encerrar_repasse(db: Session, repasse: RepasseInstrumento, *, agora: datetime, motivo: str) -> None:
+    """Tira o repasse da vigência antes de inserir o substituto (o índice único só admite um ativo)."""
+    repasse.deletado_em = agora
+    repasse.motivo_exclusao = motivo
+    db.flush()
+
+
+def ligar_substituto(db: Session, antigo: RepasseInstrumento, novo: RepasseInstrumento) -> None:
+    antigo.substituido_por_id = novo.id
+    db.flush()
+
+
+def obter_valor_repasse_previsto(db: Session, nr_convenio: str) -> float | None:
+    valor = db.execute(select(Convenio.valor_repasse).where(Convenio.numero == nr_convenio)).scalar_one_or_none()
+    return float(valor) if valor is not None else None
+
+
+def obter_desembolsos_siconv(db: Session, nr_convenio: str) -> list[dict]:
+    bruto = db.execute(select(Convenio.siconv_raw).where(Convenio.numero == nr_convenio)).scalar_one_or_none()
+    desembolsos = (bruto or {}).get("desembolsos") or []
+    return [d for d in desembolsos if isinstance(d, dict)]
+
+
+def existe_entrega_ativa(db: Session, instrumento_id: int) -> bool:
+    return bool(
+        db.execute(
+            select(
+                exists().where(
+                    EntregaEquipamento.instrumento_id == instrumento_id,
+                    EntregaEquipamento.deletado_em.is_(None),
+                    EntregaEquipamento.substituido_por_id.is_(None),
+                )
+            )
+        ).scalar()
+    )
+
+
+def existe_evento_ativo_de_marcos(db: Session, instrumento_id: int, codigos: tuple[str, ...]) -> bool:
+    return bool(
+        db.execute(
+            select(
+                exists().where(
+                    EventoMarco.instrumento_id == instrumento_id,
+                    EventoMarco.substituido_por_id.is_(None),
+                    EventoMarco.deletado_em.is_(None),
+                    EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo.in_(codigos))),
+                )
+            )
+        ).scalar()
+    )
+
+
+def existe_evento_realizado_de_marcos(db: Session, instrumento_id: int, codigos: tuple[str, ...]) -> bool:
+    """Como `existe_evento_ativo_de_marcos`, mas só conta evento com data de ocorrência (aconteceu)."""
+    return bool(
+        db.execute(
+            select(
+                exists().where(
+                    EventoMarco.instrumento_id == instrumento_id,
+                    EventoMarco.substituido_por_id.is_(None),
+                    EventoMarco.deletado_em.is_(None),
+                    EventoMarco.data_ocorrencia.is_not(None),
+                    EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo.in_(codigos))),
+                )
+            )
+        ).scalar()
+    )
+
+
+# --- Versões em lote (um round-trip por fato) para listas e painéis -----------------------------------------------
+
+
+def repasses_ativos_por_instrumento(db: Session, instrumento_ids: list[int]) -> dict[int, list[RepasseInstrumento]]:
+    resultado: dict[int, list[RepasseInstrumento]] = {}
+    if not instrumento_ids:
+        return resultado
+    linhas = db.execute(
+        select(RepasseInstrumento)
+        .where(RepasseInstrumento.instrumento_id.in_(instrumento_ids), *_REPASSE_ATIVO)
+        .order_by(RepasseInstrumento.id)
+    ).scalars()
+    for repasse in linhas:
+        resultado.setdefault(repasse.instrumento_id, []).append(repasse)
+    return resultado
+
+
+def valores_repasse_previsto(db: Session, nr_convenios: list[str]) -> dict[str, float]:
+    if not nr_convenios:
+        return {}
+    return {
+        numero: float(valor)
+        for numero, valor in db.execute(
+            select(Convenio.numero, Convenio.valor_repasse).where(
+                Convenio.numero.in_(nr_convenios), Convenio.valor_repasse.is_not(None)
+            )
+        ).all()
+    }
+
+
+def ids_com_entrega_ativa(db: Session, instrumento_ids: list[int]) -> set[int]:
+    if not instrumento_ids:
+        return set()
+    return set(
+        db.execute(
+            select(EntregaEquipamento.instrumento_id).where(
+                EntregaEquipamento.instrumento_id.in_(instrumento_ids),
+                EntregaEquipamento.deletado_em.is_(None),
+                EntregaEquipamento.substituido_por_id.is_(None),
+            )
+        ).scalars()
+    )
+
+
+def ids_com_evento_de_marcos(
+    db: Session, instrumento_ids: list[int], codigos: tuple[str, ...], *, realizado: bool = False
+) -> set[int]:
+    """Instrumentos com evento ativo de algum dos marcos; com `realizado`, só se aconteceu (tem data de ocorrência)."""
+    if not instrumento_ids:
+        return set()
+    consulta = select(EventoMarco.instrumento_id).where(
+        EventoMarco.instrumento_id.in_(instrumento_ids),
+        EventoMarco.substituido_por_id.is_(None),
+        EventoMarco.deletado_em.is_(None),
+        EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo.in_(codigos))),
+    )
+    if realizado:
+        consulta = consulta.where(EventoMarco.data_ocorrencia.is_not(None))
+    return set(db.execute(consulta).scalars())

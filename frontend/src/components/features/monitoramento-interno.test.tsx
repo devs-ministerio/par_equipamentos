@@ -36,82 +36,7 @@ async function editarCadastro() {
 }
 
 describe("monitoramento interno com orquestração e filhos reais", () => {
-  it.each([
-    ["2026SCRA001", "2026-10-19", null, "SCRA 2026SCRA001 — 19/10/2026"],
-    [null, "2026-10-19", null, "SCRA não informado — 19/10/2026"],
-    [
-      "2026SCRA001",
-      null,
-      "2030-12-01",
-      "SCRA 2026SCRA001 — Data de emissão não informada",
-    ],
-  ])(
-    "card CNEN usa documento %s e emissão %s, com validade %s",
-    async (numero, emissao, validade, esperado) => {
-      // Arrange
-      const h = prepararOrquestracao();
-      h.controle.timeline.eventos = [
-        criarEventoTeste({
-          marco_id: 3,
-          numero_documento: numero,
-          data_ocorrencia: emissao,
-          data_validade: validade,
-          status_regulatorio: "Deferido",
-        }),
-      ];
-      // Act
-      montar(h);
-      // Assert
-      const card = (await screen.findByText("Licença CNEN")).parentElement!;
-      expect(within(card).getByText(esperado)).toBeInTheDocument();
-      expect(within(card).getByText("Deferido")).toBeInTheDocument();
-      expect(within(card).queryByText("01/12/2030")).not.toBeInTheDocument();
-    },
-  );
-
-  it("card CNEN sem licença não usa documento de outro marco", async () => {
-    // Arrange
-    const h = prepararOrquestracao();
-    h.controle.timeline.eventos = [
-      criarEventoTeste({ marco_id: 2, numero_documento: "OUTRO-MARCO" }),
-    ];
-    // Act
-    montar(h);
-    // Assert
-    const card = (await screen.findByText("Licença CNEN")).parentElement!;
-    expect(within(card).getByText("Sem registro")).toBeInTheDocument();
-    expect(within(card).queryByText(/OUTRO-MARCO/)).not.toBeInTheDocument();
-  });
-
-  it("cabeçalho e cronograma reconhecem inauguração registrada após previsão com criação empatada", async () => {
-    // Arrange
-    const h = prepararOrquestracao();
-    h.controle.timeline.eventos = [
-      criarEventoTeste({
-        id: 9,
-        marco_id: 2,
-        data_ocorrencia: null,
-        data_prevista: "2030-01-01",
-      }),
-      criarEventoTeste({
-        id: 10,
-        marco_id: 2,
-        data_ocorrencia: "2026-10-19",
-        data_prevista: null,
-      }),
-    ];
-    // Act
-    montar(h);
-    // Assert
-    expect(await screen.findByText("Realizada")).toBeInTheDocument();
-    const cronograma = screen
-      .getByRole("heading", { name: "Cronograma físico" })
-      .closest("section")!;
-    expect(within(cronograma).getByText("19/10/2026")).toBeInTheDocument();
-    expect(within(cronograma).queryByText(/2030/)).not.toBeInTheDocument();
-  });
-
-  it("cabeçalho e cronograma usam licença vigente, não o ID textual maior", async () => {
+  it("o cartão de licença saiu do cabeçalho e o cartão é Documentos", async () => {
     // Arrange
     const h = prepararOrquestracao();
     h.controle.timeline.eventos = [
@@ -134,18 +59,13 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     // Act
     montar(h);
     // Assert
-    const rotulo = await screen.findByText("Licença CNEN");
+    expect(screen.queryByText("Licença ANSN")).not.toBeInTheDocument();
     expect(
-      within(rotulo.parentElement!).getByText("SCRA ATUAL — 19/10/2026"),
+      await screen.findByRole("heading", { name: "Documentos" }),
     ).toBeInTheDocument();
     expect(
-      within(rotulo.parentElement!).getByText("Deferido"),
-    ).toBeInTheDocument();
-    const regulatorio = screen
-      .getByRole("heading", { name: "Regulatório (CNEN)" })
-      .closest("section")!;
-    expect(within(regulatorio).getByText(/ATUAL/)).toBeInTheDocument();
-    expect(within(regulatorio).queryByText(/ANTIGO/)).not.toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Regulatório (ANSN)" }),
+    ).not.toBeInTheDocument();
   });
 
   it.each(["ação", "evento"])(
@@ -161,7 +81,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       await waitFor(() => expect(h.client.isFetching()).toBe(0));
       let alvo: HTMLElement;
       if (tipo === "evento") {
-        const resumo = screen.getByText(/Linha do tempo de eventos/, {
+        const resumo = screen.getByText(/^Eventos/, {
           selector: "summary",
         });
         fireEvent.click(resumo);
@@ -217,7 +137,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       await waitFor(() => expect(h.client.isFetching()).toBe(0));
       let alvo: HTMLElement;
       if (tipo === "evento") {
-        const resumo = screen.getByText(/Linha do tempo de eventos/, {
+        const resumo = screen.getByText(/^Eventos/, {
           selector: "summary",
         });
         fireEvent.click(resumo);
@@ -256,13 +176,11 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
   it("registra evento pelo transporte real e atualiza fase/timeline após confirmação", async () => {
     // Arrange
     const h = montar();
-    const abrir = await screen.findByRole("button", {
-      name: "+ Lançar evento",
-    });
+    const abrir = await screen.findByRole("button", { name: "Evento" });
     await waitFor(() => expect(abrir).toBeEnabled());
     fireEvent.click(abrir);
     fireEvent.change(screen.getByLabelText("Marco"), {
-      target: { value: "1" },
+      target: { value: "5" },
     });
     fireEvent.change(screen.getByLabelText("Data de ocorrência"), {
       target: { value: "2026-10-20" },
@@ -270,9 +188,9 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     // Act
     fireEvent.click(screen.getByRole("button", { name: "Registrar evento" }));
     // Assert
-    expect(
-      await screen.findByText(/etapa \d+ de \d+ · 50%/),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
     expect(
       screen.queryByRole("button", { name: "Registrar evento" }),
     ).not.toBeInTheDocument();
@@ -281,7 +199,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
         String(input).endsWith("/eventos") && init?.method === "POST",
     );
     expect(JSON.parse(String(pedido?.[1]?.body))).toMatchObject({
-      marco_id: 1,
+      marco_id: 5,
       data_ocorrencia: "2026-10-20",
       data_prevista: null,
       confirmar_inauguracao: false,
@@ -344,6 +262,36 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("filtra as ações por pendentes na origem", async () => {
+    const h = prepararOrquestracao();
+    montar(h);
+    await screen.findByText("Conferir documento sintético");
+    fireEvent.click(screen.getByLabelText("Só pendentes"));
+    await waitFor(() =>
+      expect(
+        h.fetch.mock.calls.some(([input]) =>
+          String(input).includes("/acoes?pendentes=true"),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("instrumento sem acompanhamento (timeline e ações em 404) mostra o vazio, sem alerta", async () => {
+    const h = prepararOrquestracao();
+    h.controle.timelineStatus = 404;
+    h.controle.acoesStatus = 404;
+    montar(h);
+    expect(
+      await screen.findByText(/Ainda não monitorado internamente/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Tentar novamente" }),
+    ).not.toBeInTheDocument();
+    expect(
+      h.fetch.mock.calls.some(([input]) => String(input).endsWith("/acoes")),
+    ).toBe(false);
+  });
+
   it.each(["timelineStatus", "marcosStatus", "acoesStatus"] as const)(
     "recupera falha de %s com retry das consultas essenciais",
     async (campo) => {
@@ -379,7 +327,7 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       await screen.findByRole("button", { name: "Editar cadastro" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: /Concluir ação/ }),
+      await screen.findByRole("button", { name: /Concluir ação/ }),
     ).toBeDisabled();
   });
 
@@ -464,14 +412,12 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
     // Arrange
     const h = montar();
     await screen.findByText("Cadastro interno");
-    fireEvent.change(screen.getByLabelText("Nova ação"), {
+    fireEvent.click(await screen.findByRole("button", { name: "Ação" }));
+    fireEvent.change(screen.getByLabelText("Descrição"), {
       target: { value: "Nova ação sintética" },
     });
     // Act
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "+ Adicionar" })).toBeEnabled(),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "+ Adicionar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Registrar" }));
     // Assert
     expect(await screen.findByText("Nova ação sintética")).toBeInTheDocument();
     const pedido = h.fetch.mock.calls.find(
@@ -482,7 +428,9 @@ describe("monitoramento interno com orquestração e filhos reais", () => {
       data_prevista: null,
       responsavel: null,
     });
-    expect(screen.getByLabelText("Nova ação")).toHaveValue("");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("conclui ação e atualiza os indicadores sem nova ação automática", async () => {

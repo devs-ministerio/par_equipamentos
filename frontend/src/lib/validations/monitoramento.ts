@@ -63,3 +63,114 @@ export const motivoExclusaoSchema = z.object({
     .max(500),
 });
 export type MotivoExclusaoFormValues = z.infer<typeof motivoExclusaoSchema>;
+
+export const confirmarRepasseSchema = z.object({
+  tipo: z.enum(["integral", "parcial"], {
+    message: "Informe se o repasse foi integral ou parcial.",
+  }),
+  justificativa: z
+    .string()
+    .trim()
+    .max(1000, "Máximo de 1000 caracteres.")
+    .optional(),
+});
+export type ConfirmarRepasseFormValues = z.infer<typeof confirmarRepasseSchema>;
+
+export const motivoUnidadeSchema = z.object({
+  motivo: z
+    .string()
+    .trim()
+    .min(5, "Informe o motivo (mínimo 5 caracteres).")
+    .max(1000, "Máximo de 1000 caracteres."),
+});
+export type MotivoUnidadeFormValues = z.infer<typeof motivoUnidadeSchema>;
+
+export const previsaoEntregaSchema = z.object({
+  dataPrevista: z.string().min(1, "Informe a data prevista."),
+  motivo: z.string().trim().max(1000, "Máximo de 1000 caracteres.").optional(),
+});
+export type PrevisaoEntregaFormValues = z.infer<typeof previsaoEntregaSchema>;
+
+const TIPOS_CNEN = ["cnen_scra", "cnen_licenca"];
+
+export const documentoSchema = z
+  .object({
+    tipo: z.enum(
+      [
+        "nota_fiscal",
+        "ordem_servico",
+        "trp",
+        "trd",
+        "cnen_scra",
+        "cnen_licenca",
+      ],
+      { message: "Escolha o tipo do documento." },
+    ),
+    numero: z.string().trim().max(100, "Máximo de 100 caracteres.").optional(),
+    dataDocumento: z.string().min(1, "Informe a data do documento."),
+    status: z.string().optional(),
+    dataValidade: z.string().optional(),
+    observacao: z
+      .string()
+      .trim()
+      .max(1000, "Máximo de 1000 caracteres.")
+      .optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.status && !TIPOS_CNEN.includes(v.tipo)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["status"],
+        message: "O status só vale para documentos da ANSN.",
+      });
+    }
+    if (v.dataValidade && v.tipo !== "cnen_licenca") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["dataValidade"],
+        message: "A validade só vale para a licença de operação.",
+      });
+    }
+  });
+export type DocumentoFormValues = z.infer<typeof documentoSchema>;
+
+/** A justificativa passa a ser obrigatória quando a conclusão não é integral. */
+export function criarConclusaoSchema(exigeJustificativa: boolean) {
+  return z
+    .object({
+      dataConclusao: z.string().min(1, "Informe a data da conclusão."),
+      dataInauguracao: z.string().optional(),
+      justificativa: z
+        .string()
+        .trim()
+        .max(1000, "Máximo de 1000 caracteres.")
+        .optional(),
+    })
+    .superRefine((v, ctx) => {
+      if (v.dataInauguracao && v.dataConclusao) {
+        if (v.dataInauguracao > new Date().toISOString().slice(0, 10)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["dataInauguracao"],
+            message: "A inauguração não pode estar no futuro.",
+          });
+        } else if (v.dataInauguracao > v.dataConclusao) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["dataInauguracao"],
+            message: "A inauguração não pode ser depois da conclusão.",
+          });
+        }
+      }
+      if (exigeJustificativa && !v.justificativa) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["justificativa"],
+          message: "Informe a justificativa: a conclusão não é integral.",
+        });
+      }
+    });
+}
+export type ConclusaoFormValues = z.infer<
+  ReturnType<typeof criarConclusaoSchema>
+>;

@@ -203,7 +203,10 @@ export function useMonitoramentoInternoFiltros<
                 ))
         )
           return false;
-        if (situacao && (instrumento.fase_atual ?? "Não iniciado") !== situacao)
+        if (
+          situacao &&
+          (instrumento.fase_atual ?? "Acompanhamento iniciado") !== situacao
+        )
           return false;
         if (programa && (instrumento.programa ?? "Não informado") !== programa)
           return false;
@@ -333,7 +336,7 @@ export function useMonitoramentoInternoFiltros<
     ),
     situacaoOptions: opcoes(
       instrumentos,
-      (item) => item.fase_atual ?? "Não iniciado",
+      (item) => item.fase_atual ?? "Acompanhamento iniciado",
     ),
     programaOptions: opcoes(
       instrumentos,

@@ -16,18 +16,25 @@ from app.auth import hash_password
 from app.db.base import engine
 from app.db.models import (
     Convenio,
-    EntregaLegadaRevisao,
     EquipamentoCatalogo,
     EventoMarco,
     InstrumentoEquipamento,
     InstrumentoResponsavel,
     ItemPlano,
+    MarcoCatalogo,
     RenemItem,
     User,
     UserRole,
 )
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
-from app.schemas_entregas import EntregaCreate, ItemEntregaCreate, UnidadeEntregaCreate, UnidadeUpdate
+from app.schemas_entregas import (
+    CorrecaoDataEntrega,
+    EntregaCreate,
+    InauguracaoEntrega,
+    ItemEntregaCreate,
+    UnidadeEntregaCreate,
+    UnidadeUpdate,
+)
 from app.services import entregas_equipamento as svc
 
 pytestmark = pytest.mark.db
@@ -253,26 +260,6 @@ def test_excluir_entrega_libera_a_quantidade_e_exige_motivo(db):
         svc.excluir_entrega(entrega_id=entrega.id, motivo="de novo", db=db, usuario=c.titular)
 
 
-def test_vincular_entrega_legada_resolve_a_revisao(db):
-    c = Cenario(db)
-    evento = svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
-    svc.excluir_entrega(entrega_id=evento.id, motivo="simula legado", db=db, usuario=c.titular)
-    ev = db.get(EventoMarco, evento.evento_id)
-    ev.deletado_em = ev.deletado_por_id = ev.motivo_exclusao = None
-    revisao = EntregaLegadaRevisao(instrumento_id=c.inst.id, evento_id=ev.id, motivo="varios_itens")
-    db.add(revisao)
-    db.flush()
-    pendentes = svc.listar_entregas_legadas(db=db, usuario=c.titular)
-    assert [p.id for p in pendentes] == [revisao.id]
-    assert svc.listar_entregas_legadas(db=db, usuario=c.outro) == []
-    assert svc.listar_entregas_legadas(db=db, usuario=c.leitor) == []
-    resolvida = svc.vincular_entrega_legada(revisao_id=revisao.id, itens=[_item(c.dois)], db=db, usuario=c.titular)
-    assert resolvida.data_ocorrencia == ev.data_ocorrencia
-    assert db.get(EntregaLegadaRevisao, revisao.id).situacao == "resolvida"
-    with pytest.raises(ConflictError):
-        svc.vincular_entrega_legada(revisao_id=revisao.id, itens=[_item(c.dois)], db=db, usuario=c.titular)
-
-
 def test_http_leitura_exige_sessao_e_devolve_contrato(headers_autenticados):
     from fastapi.testclient import TestClient
 
@@ -282,7 +269,7 @@ def test_http_leitura_exige_sessao_e_devolve_contrato(headers_autenticados):
     assert cliente.get("/monitoramento/instrumentos/948686/equipamentos").status_code == 401
     resposta = cliente.get("/monitoramento/instrumentos/948686/equipamentos", headers=headers_autenticados)
     assert resposta.status_code == 200
-    assert set(resposta.json()) == {"nr_convenio", "pode_editar", "itens", "outros_itens", "revisoes_pendentes"}
+    assert set(resposta.json()) == {"nr_convenio", "pode_editar", "itens", "outros_itens"}
     assert (
         cliente.get("/monitoramento/instrumentos/NAO-EXISTE/equipamentos", headers=headers_autenticados).status_code
         == 404
@@ -412,3 +399,187 @@ def test_entregas_em_datas_diferentes_ficam_cada_uma_com_o_proprio_registro(db):
     assert len({e.id for e in eventos}) == 3
     assert all(e.substituido_por_id is None and e.deletado_em is None for e in eventos)
     assert [e.data_ocorrencia for e in eventos] == [date(2026, 3, 10), date(2026, 3, 20), date(2026, 3, 25)]
+
+
+def _eventos_inauguracao(db, inst, codigo):
+    marco = db.query(MarcoCatalogo).filter_by(codigo=codigo).one()
+    return db.query(EventoMarco).filter_by(instrumento_id=inst.id, marco_id=marco.id).order_by(EventoMarco.id).all()
+
+
+def test_entrega_sem_resposta_de_inauguracao_nao_cria_evento(db):
+    c = Cenario(db)
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um)), db=db, usuario=c.titular)
+    assert _eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao") == []
+    assert _eventos_inauguracao(db, c.inst, "cronograma_inauguracao_dispensada") == []
+
+
+def test_inauguracao_necessaria_exige_previsao():
+    with pytest.raises(PydanticValidationError):
+        InauguracaoEntrega(necessaria=True)
+
+
+def test_inauguracao_sim_registra_previsao_e_confirma_a_existente_sem_duplicar(db):
+    c = Cenario(db)
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=True, data_prevista=date(2027, 3, 1))
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    eventos = _eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao")
+    assert [e.data_prevista for e in eventos] == [date(2027, 3, 1)]
+    # Mesma data em outra entrega: confirmada, sem novo evento.
+    dados2 = _dados(_item(c.dois, 2))
+    dados2.inauguracao = InauguracaoEntrega(necessaria=True, data_prevista=date(2027, 3, 1))
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados2, db=db, usuario=c.titular)
+    assert len(_eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao")) == 1
+
+
+def test_inauguracao_sim_com_data_nova_substitui_a_previsao_anterior(db):
+    c = Cenario(db)
+    marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+    original = EventoMarco(
+        instrumento_id=c.inst.id, marco_id=marco.id, data_prevista=date(2027, 1, 1), autor_id=c.titular.id
+    )
+    db.add(original)
+    db.flush()
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=True, data_prevista=date(2027, 6, 1))
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    eventos = _eventos_inauguracao(db, c.inst, "cronograma_previsao_inauguracao")
+    assert len(eventos) == 2 and original.substituido_por_id == eventos[1].id
+    assert eventos[1].data_prevista == date(2027, 6, 1)
+
+
+def test_inauguracao_nao_registra_dispensada_e_encerra_a_previsao(db):
+    c = Cenario(db)
+    marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+    original = EventoMarco(
+        instrumento_id=c.inst.id, marco_id=marco.id, data_prevista=date(2027, 1, 1), autor_id=c.titular.id
+    )
+    db.add(original)
+    db.flush()
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=False)
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    dispensada = _eventos_inauguracao(db, c.inst, "cronograma_inauguracao_dispensada")
+    assert len(dispensada) == 1 and original.substituido_por_id == dispensada[0].id
+
+
+def test_inauguracao_ja_realizada_nao_e_alterada(db):
+    c = Cenario(db)
+    marco = db.query(MarcoCatalogo).filter_by(codigo="cronograma_previsao_inauguracao").one()
+    real = EventoMarco(
+        instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=date(2026, 10, 1), autor_id=c.titular.id
+    )
+    db.add(real)
+    db.flush()
+    dados = _dados(_item(c.um))
+    dados.inauguracao = InauguracaoEntrega(necessaria=False)
+    svc.registrar_entrega(nr_convenio=c.inst.nr_convenio, dados=dados, db=db, usuario=c.titular)
+    assert real.substituido_por_id is None
+    assert _eventos_inauguracao(db, c.inst, "cronograma_inauguracao_dispensada") == []
+
+
+def _entrega_simples(db, c, data=None):
+    return svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um), data=data), db=db, usuario=c.titular
+    )
+
+
+def test_evento_de_entrega_nao_se_edita_nem_se_exclui_pelos_eventos(db):
+    from app.schemas_monitoramento_api import EventoMarcoCreate  # noqa: F401
+    from app.services import monitoramento_registro_eventos as eventos
+
+    c = Cenario(db)
+    entrega = _entrega_simples(db, c)
+    with pytest.raises(ConflictError, match="vem de uma entrega"):
+        eventos.excluir_evento_monitorado(evento_id=entrega.evento_id, motivo="x", db=db, usuario=c.titular)
+    evento = db.get(EventoMarco, entrega.evento_id)
+    assert evento.deletado_em is None
+    with pytest.raises(ConflictError, match="vem de uma entrega"):
+        eventos.editar_evento_monitorado(
+            evento_id=entrega.evento_id,
+            dados=eventos.NovoEventoMonitorado(marco_id=evento.marco_id, data_ocorrencia=date.today()),
+            db=db,
+            usuario=c.titular,
+        )
+    # Excluída a entrega, o evento (também excluído) deixa de ser protegido.
+    svc.excluir_entrega(entrega_id=entrega.id, motivo="lançada por engano", db=db, usuario=c.titular)
+    assert svc.repo.entregas_ativas_por_evento(db, [entrega.evento_id]) == {}
+
+
+def test_corrigir_data_da_entrega_move_entrega_e_evento_juntos(db):
+    c = Cenario(db)
+    entrega = _entrega_simples(db, c)
+    antigo_id = entrega.evento_id
+    nova = date.today() - timedelta(days=10)
+    atualizada = svc.corrigir_data_entrega(
+        entrega_id=entrega.id,
+        dados=CorrecaoDataEntrega(data_ocorrencia=nova, motivo="data lançada errada"),
+        db=db,
+        usuario=c.titular,
+    )
+    assert atualizada.data_ocorrencia == nova and atualizada.evento_id != antigo_id
+    antigo, novo = db.get(EventoMarco, antigo_id), db.get(EventoMarco, atualizada.evento_id)
+    assert antigo.substituido_por_id == novo.id and novo.data_ocorrencia == nova
+    leitura = svc.listar_equipamentos_do_instrumento(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    colposcopio = next(i for i in leitura.itens if i.descricao == "Colposcópio")
+    assert all(u.data_entrega == nova for u in colposcopio.unidades)
+
+
+def test_corrigir_data_da_entrega_recusas(db):
+    c = Cenario(db)
+    entrega = _entrega_simples(db, c)
+    ontem = date.today() - timedelta(days=1)
+
+    def tentar(**kw):
+        data = kw.get("data_ocorrencia", ontem)
+        motivo = kw.get("motivo", "ajuste")
+        return svc.corrigir_data_entrega(
+            entrega_id=entrega.id,
+            dados=CorrecaoDataEntrega(data_ocorrencia=data, motivo=motivo),
+            db=db,
+            usuario=kw.get("usuario", c.titular),
+        )
+
+    with pytest.raises(ValidationError, match="futuro"):
+        tentar(data_ocorrencia=date.today() + timedelta(days=1))
+    with pytest.raises(ValidationError, match="já está com esta data"):
+        tentar(data_ocorrencia=date.today())
+    with pytest.raises(ValidationError, match="motivo"):
+        tentar(motivo="   ")
+    with pytest.raises(AuthorizationError):
+        svc.corrigir_data_entrega(
+            entrega_id=entrega.id,
+            dados=CorrecaoDataEntrega(data_ocorrencia=ontem, motivo="ajuste"),
+            db=db,
+            usuario=c.leitor,
+        )
+    with pytest.raises(NotFoundError):
+        svc.corrigir_data_entrega(
+            entrega_id=0, dados=CorrecaoDataEntrega(data_ocorrencia=ontem, motivo="ajuste"), db=db, usuario=c.titular
+        )
+
+
+def test_alinhar_evento_cobre_excluido_corrigido_e_data_diferente(db):
+    from scripts.alinhar_eventos_das_entregas import executar
+
+    c = Cenario(db)
+    excluida = _entrega_simples(db, c)
+    db.get(EventoMarco, excluida.evento_id).deletado_em = svc._agora()
+    divergente = svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio,
+        dados=_dados(_item(c.dois), data=date.today() - timedelta(days=3)),
+        db=db,
+        usuario=c.titular,
+    )
+    db.get(EventoMarco, divergente.evento_id).data_ocorrencia = date.today() - timedelta(days=30)
+    db.flush()
+    simulacao = executar(db, aplicar=False)
+    assert simulacao["evento excluído: recriar"] >= 1 and simulacao["data diferente: corrigir evento"] >= 1
+    assert db.get(EventoMarco, excluida.evento_id).substituido_por_id is None  # simulação não mexe
+    executar(db, aplicar=True)
+    for entrega_id in (excluida.id, divergente.id):
+        entrega = svc.repo.obter_entrega(db, entrega_id)
+        assert entrega is not None
+        ativo = svc.evento_ativo_da_entrega(db, entrega)
+        assert ativo is not None and ativo.id == entrega.evento_id and ativo.data_ocorrencia == entrega.data_ocorrencia
+    assert executar(db, aplicar=False)["já alinhada"] >= 2  # idempotente

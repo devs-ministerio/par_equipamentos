@@ -4,7 +4,7 @@
 > documentação atual; monograma "GEO"). Documentos datados em `docs/` mantêm o nome da época. **Identificadores
 > técnicos continuam `sigeo_*`** de propósito: cookies `sigeo_access`/`sigeo_refresh`/`sigeo_csrf`, roles
 > `sigeo_runtime`/`sigeo_migration`/`sigeo_backup`, prefixo do R2, grupo de concorrência dos workflows e
-> variáveis `SIGEO_LOCAL_*` (renomear deslogaria todos e quebraria backups). Plano: `docs/arquitetura/planmode-identidade-sisgeo-2026-10-20.md`.
+> variáveis `SIGEO_LOCAL_*` (renomear deslogaria todos e quebraria backups). Plano: `docs/planos/planmode-identidade-sisgeo-2026-10-20.md`.
 
 Leia [`README.md`](README.md) primeiro para stack e como rodar. Este arquivo
 é sobre convenções e pegadinhas específicas deste repo.
@@ -94,7 +94,7 @@ reintroduzir o erro:
   firmados", `backend/app/routers/convenios.py`) é o universo completo de
   repasse — 581 registros desde a correção de 2026-09-18 (**desatualizado**: 560 em 26/10/2026, sem PRONON, ver "Monitoramento por item e unidade") (403 Convênio/
   SICONV/TransfereGov originais + 178 de FAF/TED/PERSUS I/PERSUS II/PRONON,
-  ver `docs/arquitetura/diagnostico-ingestao-dados-2026-09-18.md`).
+  ver `docs/diagnosticos/diagnostico-ingestao-dados-2026-09-18.md`).
   `instrumento_equipamento` (monitoramento interno pós-repasse) é um
   subconjunto BEM menor — só o que a equipe decide acompanhar
   manualmente: **91** hoje (71 Convênio + 12 FAF + 3 TED + 5 PERSUS I
@@ -179,7 +179,7 @@ reintroduzir o erro:
 
 ## Plan Mode monitoramento-evolucao (2026-09-19)
 
-`docs/arquitetura/planmode-monitoramento-evolucao-2026-09-19.md` fechou o vínculo entre fase
+`docs/planos/planmode-monitoramento-evolucao-2026-09-19.md` fechou o vínculo entre fase
 geral e cronograma físico/regulatório, tornou evento/ação editáveis/excluíveis de forma
 auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
 
@@ -191,6 +191,9 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
   `DELETE` físico. "Ativo"/vigente = `substituido_por_id IS NULL AND deletado_em IS NULL` — só
   isso entra no cálculo de fase e nas listagens padrão (`app/repositories/monitoramento.py`);
   exclusão/correção nunca some de verdade, só sai da timeline visível.
+- **[ATUALIZADO em 19/11/2026, fluxo de acompanhamento]** `fase_geral_id` deixou de ser exigido em evento de cronograma (a fase é calculada
+  dos fatos, não escolhida); o catálogo "Cronograma" é opcional. O relatório "Conclusão e previsões" foi removido; Concluídos lê
+  `conclusao_instrumento` (conclusão confirmada pela equipe), não mais o evento `fase_concluido`.
 - **`EventoMarco.fase_geral_id`** (novo, obrigatório no service — `_validar_fase_geral_id` em
   `app/services/monitoramento_eventos.py` — pra marco de grupo físico/regulatório; nulo quando o
   próprio evento já é de grupo=fase_geral) fecha um bug real confirmado ao vivo: evento de
@@ -247,13 +250,15 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
 
 ## Monitoramento por item e unidade (Plan Mode monitoramento-itens, 2026-10-23)
 
-Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md` (classificação em
+Plano em `docs/planos/planmode-monitoramento-itens-detalhado-2026-10-23.md` (classificação em
 `planmode-classificacao-itens-2026-10-23.md`). Sem push/PR/merge sem autorização do usuário.
 
 - **Modelo**: `item_plano` (projeção dos itens do SICONV por `ID_ITEM_PAD`, ou `manual:{numero}:{ordem}` nas
   cargas manuais; `OBRA`/`SERVICO` ficam de fora), `entrega_equipamento` (append-only, soft delete com motivo),
-  `unidade_equipamento` (nasce na entrega: marca, modelo, série única dentro do item, vida útil) e
-  `entrega_legada_revisao` (fila das entregas antigas sem vínculo inequívoco). Cada `item_plano` é um equipamento
+  `unidade_equipamento` (nasce na entrega: marca, modelo, série única dentro do item, vida útil). A fila
+  `entrega_legada_revisao` (entregas antigas sem vínculo) ficou só como histórico no banco: **a função de vincular foi
+  removida em 21/11/2026** (sem endpoint, tela, situação "A vincular" nem script); instrumentos com pedido antigo seguem o
+  fluxo normal (registrar a entrega e concluir), e o pedido não impede a conclusão. Cada `item_plano` é um equipamento
   distinto: dois itens com o mesmo código e nome são duas linhas.
 - **16 famílias** controlam unidade (`equipamento_catalogo.controle_por_unidade`) e definem "Prioritário". **Regra de
   valor (26/10/2026):** equipamento fora das 16 famílias também entra no monitoramento por item quando o valor de uma
@@ -262,10 +267,10 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   Pela linha inteira entrariam lotes baratos (293 computadores, 120 camas), por isso o critério é por unidade.
   Na tela o item aparece sem família; no painel, em "Outros equipamentos (a partir de R$ 300 mil)".
   Aceleradores manuais de PERSUS I/II usam o código 011806 (`codigo_fonte = regra_da_equipe`).
-- **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`,
-  `vincular_entregas_legadas.py` (conservador; avisa os técnicos pelo tipo `entrega_legada_revisao`).
+- **Scripts** (simulação por padrão, `--aplicar --confirmo-host`): `projetar_itens_plano.py`
+  (a lógica por convênio está em `app/services/projecao_itens_plano.py` e roda também na aprovação do Radar). PERSUS I com conclusão antiga: `corrigir_entregas_persus_i.py` e depois `concluir_persus_i_pela_inauguracao.py` (conclui na data da inauguração, só sem impedimento).
 - **API** (`routers/entregas.py`): leitura dos itens do instrumento, entrega com várias unidades por item e
-  idempotência, correção de unidade (AuditLog antes/depois), exclusão com motivo, fila e vínculo de legado.
+  idempotência, correção de unidade (AuditLog antes/depois), exclusão com motivo.
   Entrega acima do planejado é bloqueada; toda entrega vincula pelo menos um item.
 - **Tela**: seção "Equipamentos do instrumento" acima do Cadastro interno. A entrega no estabelecimento não é mais
   lançada pelo seletor de marcos da linha do tempo (o backend ainda aceita o marco).
@@ -289,6 +294,17 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   `instrumento_no_escopo()` (`repositories/convenios.py`) esconde o instrumento monitorado ligado a ele (o detalhe dá 404).
   Universo medido em 26/10: 560 firmados (403 Convênio, 92 PERSUS I, 50 PERSUS II, 12 FAF, 3 TED; PRONON saiu em 21/09),
   542 depois da marcação; 292 monitorados, 288 depois.
+- **Mapas Mermaid**: índice, convenções e validador em `docs/mermaid/README.md` (monitoramento interno e Radar de instrumentos). Mudou o fluxo, atualize o mapa no mesmo commit.
+- **Radar e conclusão (19/11/2026, `docs/mermaid/monitoramento-interno.md`)**: o Radar de instrumentos é só de `gestor`/`admin`
+  (API recusa com 403 a lista, o histórico e a prova para os demais; o botão some). Card enxuto: componente, valor, UF, município, data da coleta e
+  do instrumento; os itens (todos os bens da última recaptura, em tabela com quantidade e valores) abrem no botão **Itens · n** ao lado do número do convênio. O monitor da coleta (status, contagens e detalhes) é só do `admin`; os demais veem apenas data e hora da última coleta com sucesso. A lista tem duas abas: **Aguardando** (novo/em análise) e **Arquivados** (aprovado/rejeitado). **Aprovar** abre um pop-up único (igual ao de adicionar ao monitoramento interno) com técnico titular obrigatório na tela e na API (`tecnico_titular_id` sem ele é 422); sem "Iniciar análise" (sobra Aprovar e Rejeitar). A mesma transação cria o
+  instrumento monitorado (`origem_dado="radar_aprovacao"`) e emite `inclusao_monitoramento`, que agora vai a titular+suplente+gestor/admin; o técnico indicado
+  recebe pop-up (`use-aviso-novo-instrumento`) além do sino. Não existe mais aprovação só na carteira.
+  **"Concluído" = "Concluir acompanhamento"**: a trava vale pela mesma condição da fase (conclusão confirmada ou evento antigo `fase_concluido`), e Reabrir desfaz os dois; `migrar_concluidos_para_conclusao` unifica os dados antigos (não rodado em produção).
+  **Itens, exceções de unidade**: instrumento monitorado sem item controlado usa o limite de R$ 100 mil por unidade (`limite_valor_unitario_excecao`) e, sem nenhum, os 3 de maior valor unitário (`itens_excecao_da_excecao`), em `projetar_itens_plano.py`.
+  **Instrumento concluído trava todas as edições** (cadastro, eventos, ações, documentos, previsão, repasse, entregas, unidades, cancelamentos) com 409
+  "Reabra-o para alterar o instrumento" (`assert_nao_concluido`); só Reabrir segue livre. No front, `monitoramento-interno.tsx` usa `podeEditarConteudo`.
+
 - NUP só em FAF/TED, formatado `25000.198305/2024-59`; eventos e ações ordenados por lançamento mais recente.
 
 - **Marcador vale para o que o item é, não para o que ele menciona** (2026-10-26): "Monitor
@@ -302,7 +318,7 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   (simulação por padrão, `--aplicar --confirmo-host`, auditoria); local: 172 removidos, 81 criados, 95 origens.
   Corrigido junto: "Tomógrafo (Acima de 16 canais até 80)" era lido como "até 16" (`_canais`).
 
-- **Identidade visual SISGEO (2026-10-26, `docs/arquitetura/planmode-identidade-visual-sisgeo-2026-10-26.md`)**:
+- **Identidade visual SISGEO (2026-10-26, `docs/planos/planmode-identidade-visual-sisgeo-2026-10-26.md`)**:
   primário azul `#2A4D9B` (CTA, foco, estado ativo); as quatro cores do laço só no logotipo
   (`components/common/logo.tsx`, SVGs em `src/assets/brand/`), na faixa `.faixa-laco` (`MetricStrip`, `PageHeader`) e nas séries
   dos gráficos. Âmbar nunca em texto (contraste 2,2:1). Login só com o logotipo centralizado; e-mails de convite/redefinição usam `public/email/sisgeo-logo.png` (URL absoluta por `APP_PUBLIC_URL`, centralizado, com faixa do laço no topo); relatórios Word fecham com o logotipo centralizado (`app/reports/assets/sisgeo-logo.png`). Séries de gráfico: 8 cores com distância Lab ≥ 25 (teste). Significado do laço: azul = Novembro Azul (próstata), magenta = Outubro Rosa (mama), roxo = campanhas lilás (colo do útero), âmbar = Setembro Dourado (infantil); vale só para logotipo e faixa. "Mais detalhes" usa `DetalhesAnimados`
@@ -363,6 +379,9 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   de `fixtures_cobertura.py`. **Não investigado nem limpo ainda** — fica
   registrado pra não esquecer, próxima sessão que mexer em usuários/E2E
   deveria investigar o alcance antes de assumir que só afetou cobertura.
+  **Atualização 22/11/2026:** consulta em leitura na produção devolve 0
+  usuários `pytest-%`; o achado não se confirma mais. Ver
+  `docs/diagnosticos/relatorio-limpeza-banco-2026-11-22.md`.
 
 ## Estrutura de pastas do frontend (flat, kebab-case)
 
@@ -545,7 +564,7 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   `CREATEDB`/`CREATEROLE`) **não deve ser usado por nenhuma credencial de
   aplicação**. Isso só passou a ser verdade em 23/10/2026: até então a
   `DATABASE_URL` do Render ainda usava o `neondb_owner`, e a troca da senha
-  dele derrubou o login (ver `docs/arquitetura/incidente-api-neondb-owner-2026-10-23.md`).
+  dele derrubou o login (ver `docs/diagnosticos/incidente-api-neondb-owner-2026-10-23.md`).
   Antes de trocar qualquer credencial, inventariar onde ela é usada (Render,
   secrets do GitHub por environment, Vercel). Migration não roda mais no boot da API nem nos jobs de dado —
   ver "Migration desacoplada do boot" logo abaixo. **Precedência desde o
@@ -567,9 +586,9 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
 
 ## Arquitetura backend: erro de domínio + Repository/Service (Plan Mode backend 2026-09-17)
 
-`docs/arquitetura/diagnostico-constituicao-backend-2026-09-16.md` (nota 7,0/10) apontou que a
+`docs/diagnosticos/diagnostico-constituicao-backend-2026-09-16.md` (nota 7,0/10) apontou que a
 maior parte do backend ainda é `Router -> SQLAlchemy` direto, sem hierarquia de erro de domínio.
-`docs/arquitetura/planmode-backend-2026-09-17.md` (Bloco 1) começou a fechar isso, **sem migrar o
+`docs/planos/planmode-backend-2026-09-17.md` (Bloco 1) começou a fechar isso, **sem migrar o
 backend inteiro de uma vez** — só a fundação + uma feature-piloto:
 
 - **`backend/app/domain_errors.py`** (novo) — `DomainError` base +
@@ -595,7 +614,7 @@ backend inteiro de uma vez** — só a fundação + uma feature-piloto:
   `GET /monitoramento/instrumentos` e `GET /monitoramento/instrumentos/{nr_convenio}` seguem o
   mesmo contrato de `notificacoes` — `backend/app/repositories/monitoramento.py` (novo, primeira
   extração de query real deste domínio: `listar_instrumentos`/`listar_marcos_fase_geral_desc`/
-  `mapa_eventos_por_instrumento`/`obter_instrumento_por_nr_convenio`/
+  `obter_instrumento_por_nr_convenio`/
   `listar_eventos_do_instrumento`) + `backend/app/services/monitoramento_instrumentos.py`
   (`listar_instrumentos_monitorados`/`obter_timeline_instrumento`, já existia pra
   `criar_instrumento_monitorado`). `obter_timeline_instrumento` levanta `NotFoundError` (não mais
@@ -629,7 +648,7 @@ autenticação por cookie foi resolvido em 2026-09-17 (ver "Segurança e sessão
 
 ## Segurança e sessão (Plan Mode segurança 2026-09-16)
 
-`docs/arquitetura/planmode-seguranca-2026-09-16.md` (após
+`docs/planos/planmode-seguranca-2026-09-16.md` (após
 `diagnostico-constituicao-seguranca-2026-09-16.md`, nota 3,4/10) definiu 5
 blocos. **Blocos 1, 2, 4 e 5 implementados** (2026-09-17); **Bloco 3
 implementado só na parte estrutural** (autorização movida pro Service,
@@ -933,10 +952,10 @@ gestão de usuários, seguindo o mesmo padrão Router → Service → Repository
 
 ## Plan Mode frontend (reavaliação 2026-09-17)
 
-`docs/arquitetura/diagnostico-constituicao-frontend-2026-09-16.md` (reescrito como "Reavaliação —
+`docs/diagnosticos/diagnostico-constituicao-frontend-2026-09-16.md` (reescrito como "Reavaliação —
 2026-09-17") reauditou o frontend contra `padroes/frontend/constiuicao_frontend.md` — nota de
 conformidade **7,2/10** após os Blocos 0/1/2, nota separada de **UI/UX 5,8/10** de uma auditoria
-visual sênior autenticada em 8 rotas × 3 breakpoints (1440/768/400px). `docs/arquitetura/
+visual sênior autenticada em 8 rotas × 3 breakpoints (1440/768/400px). `docs/planos/
 planmode-frontend-2026-09-17.md` formaliza o roadmap de correção em blocos, executados um de cada
 vez (mesma cadência dos Plan Mode backend/segurança — nunca "refatoração completa" numa tacada só).
 
@@ -1078,7 +1097,7 @@ decide sozinho.
 ## Estratégia de dados do Neon: ingestão e clonagem
 
 Decisão do usuário, 2026-09-16 (documentado no diagnóstico
-`docs/arquitetura/diagnostico-constituicao-database-2026-09-16.md`, seção "Estratégia de ingestão e
+`docs/diagnosticos/diagnostico-constituicao-database-2026-09-16.md`, seção "Estratégia de ingestão e
 clonagem"): **migração de servidor/ambiente é `pg_dump`/`pg_restore` do Neon inteiro, nunca
 reingestão** (reprocessar planilha/CNPJ/JSON do zero). Isso não substitui a necessidade de dataset
 sintético/anonimizado para desenvolvimento — só define que o Neon, não os scripts de importação, é
@@ -1103,11 +1122,11 @@ precisa de sincronização contínua:
 - **Pendente de decisão formal**: onde/com que frequência roda o `pg_dump`/`pg_restore` de migração
   de servidor, e como esse clone se concilia com backup/retenção/RPO-RTO (ciclo devops) e com o
   dataset sintético de desenvolvimento (ainda não existe) — ver
-  `docs/arquitetura/planmode-database-2026-09-16.md`, Bloco 5.
+  `docs/planos/planmode-database-2026-09-16.md`, Bloco 5.
 
 ## Notificações: escopo por destinatário + alerta de vigência (Plan Mode notificacoes-escopo 2026-09-25)
 
-`docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md` fechou o que `authz.py` já registrava
+`docs/planos/planmode-notificacoes-escopo-2026-09-25.md` fechou o que `authz.py` já registrava
 como pendência desde o Plan Mode segurança ("recorte de visibilidade por colaborador... quando a
 política de acesso por instrumento" existir): `Notificacao.lida` deixou de ser um boolean único
 compartilhado por toda a equipe e virou uma tabela nova, `NotificacaoDestinatario` (`notificacao_id`
@@ -1123,6 +1142,25 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
   (decisão do usuário, 03/11/2026; antes caía no broadcast para todo colaborador, o que espalhou 154 avisos de
   instrumentos sem dono em outubro). Aviso já enviado não foi alterado. `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
   `leitor` nunca entra em nenhum branch, mesmo sendo titular/suplente hipoteticamente.
+- **Radar antes do Portal (22/11/2026)**: fila e contador (sempre só descoberta oficial; o modo diagnóstico e a origem `snapshot_local` saíram do código em 22/11/2026) e o aviso `convenio_descoberto` não esperam
+  mais o Portal; o card mostra "Portal pendente · há N dias". **Aprovar continua exigindo `confirmacao_portal = 'confirmado'`**
+  (botão desabilitado, `preparar_revisao` devolve 409, `preparar_alvo_coleta` recusa recaptura) porque convenente, município, UF,
+  região e ano só vêm do Portal e são gravados uma vez na aprovação. Em produção (21/11) a recaptura nunca rodou (0 linhas), então
+  nenhum candidato foi aprovado pelo Radar ainda. Mapa: `docs/mermaid/radar-instrumentos.md` seção 18.
+  O botão Aprovar também fica desabilitado, com o motivo, sem prova vigente (`recaptura_em` ausente ou > 24 h); o card mostra "Descoberto em"
+  e "Recaptura" separados. O resumo `siconv-resumo:` (`PREFIXO_DEDUP_RESUMO_SICONV`, em `repositories/notificacoes.py`) é isento do filtro de escopo.
+- **Confirmação do Portal por finalidade (22/11/2026)**: `descoberta_legado.confirmar_no_portal` valida só `codigo` e
+  `dataPublicacao` (`DimConvenioConfirmacao`); `numero`/`objeto` vazios (caso `7AAFSX`) já não derrubam a rodada. O contrato
+  completo (`DimConvenioPortal`, via `PortalLegadoCapturado`) segue exigido na recaptura e na aprovação. Portal sem `codigo`
+  continua `confirmacoes_inconclusivas` (rodada parcial, candidato não publicado). A revalidação do histórico não espera mais
+  por falha do Portal: ela usa só o SICONV. Sem estado novo nem migration (o plano previa `inconclusivo`; o existente bastou).
+- **Avisos do espelho SICONV (22/11/2026)**: `espelho_diff.mesmo_valor` compara campos identificadores (`NR_*`,
+  `UG_RESPONSAVEL`) em forma canônica (sem `.`, `/`, `-`, espaço, nem zeros à esquerda): a fonte alternava `000.969` e
+  `969` e gerava 80-110 avisos/dia. Rodada com até 10 convênios alterados avisa individualmente titular, suplente e gestão
+  (`job_verificacao_siconv.avisar_mudancas`); acima disso titular/suplente recebem só o dos seus e a gestão recebe **um
+  resumo** (`chave_dedup` `siconv-resumo:<rodada>`, sem destino). O corpo é em linhas e o clique em `atualizacao_api` abre o
+  popup `NotificacaoDetalheDialog` (sino e Central), com "Abrir instrumento" dentro dele. Plano:
+  `docs/planos/planmode-radar-confirmacao-e-ruido-2026-11-22.md`.
 - **Tipo novo `alerta_vigencia`**: fim de vigência do convênio a 3 meses (`Convenio.
   data_final_vigencia`, `entidade_id` = `Convenio.id`) — job novo `backend/scripts/
   job_alerta_vigencia.py` (janela de 90 dias, dedup de 30 dias pro mesmo convênio, dentro de
@@ -1149,7 +1187,7 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
 
 Auditoria sênior cruzando os 6 diagnósticos mais recentes (`diagnostico-constituicao-*`) contra o
 código atual não achou nenhum item Crítico aberto — as pendências reais eram dívida conhecida e
-adiada. `docs/arquitetura/planmode-fechamento-final-2026-09-25.md` fechou 11 blocos (0-10) na mesma
+adiada. `docs/planos/planmode-fechamento-final-2026-09-25.md` fechou 11 blocos (0-10) na mesma
 sessão; vários se revelaram já satisfeitos ou de escopo menor do que os diagnósticos diziam
 (diagnósticos tendem a ficar levemente desatualizados entre uma auditoria e a próxima).
 
@@ -1272,7 +1310,7 @@ bloqueado de tudo, sem exceção, em qualquer um dos dois gates abaixo.
 
 ## Relatórios Excel/Word (Plan Mode relatorios 2026-09-25/26)
 
-`docs/arquitetura/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
+`docs/planos/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
 independentes**, decisão do usuário 2026-09-26: `GET /relatorios` (`app/routers/relatorios.py`,
 `app/services/relatorios.py`) com `tipo_relatorio=instrumentos_repasse|analise_merito`.
 
@@ -1383,8 +1421,8 @@ descartável de `/tmp`.
 ## Release de 22/10/2026 e operação de produção
 
 Primeiro release grande para produção depois da integração do espelho oficial, do Radar e das notificações
-(PR #28, merge `ef2baa2`). Plano e evidências em `docs/arquitetura/planmode-execucao-producao-2026-10-22.md`;
-revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimentos em `docs/arquitetura/runbook-devops.md`.
+(PR #28, merge `ef2baa2`). Plano e evidências em `docs/planos/planmode-execucao-producao-2026-10-22.md`;
+revisão em `docs/diagnosticos/revisao-prelancamento-2026-10-22.md`; procedimentos em `docs/runbooks/runbook-devops.md`.
 
 - **Ordem de um release que muda schema (nunca inverter):** backup manual (`backup_banco.yml`) → pré-voo de posse
   (abaixo) → merge na `master` → `migrar_banco.yml` → **Manual Deploy no Render** → verificações (`/health`, login,
@@ -1403,15 +1441,16 @@ revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimento
   existir, o que também denuncia conexão no banco errado. O `neondb_owner` só deve ser usado por quem roda o
   pré-voo; a senha dele foi trocada em 22/10 depois de exposta, e **isso derrubou o login em produção**, porque o
   Render ainda usava esse role em vez do `sigeo_runtime` (corrigido em 23/10; ver
-  `docs/arquitetura/incidente-api-neondb-owner-2026-10-23.md`). Antes de trocar uma credencial, inventariar os usos.
+  `docs/diagnosticos/incidente-api-neondb-owner-2026-10-23.md`). Antes de trocar uma credencial, inventariar os usos.
 - **Backup:** `backup_banco.yml` agenda `02:17` e `14:17` UTC (23:17 e 11:17 em Brasília), `pg_dump -Fc` com a role
   somente leitura `sigeo_backup`, cifra com `age` para duas identidades, envia ao R2 e aplica retenção de 7 dias
   (mantém ao menos 3 íntegros), com checagem de backup íntegro nas últimas 24 h. Só roda na `master` (environment
   Production). Restauração: `backend/scripts/restaurar_backup.sh`. RPO de 24 h tem ciclo agendado comprovado em
   22/10; **RTO de 1 h segue não certificado** (medidos: restauração no Neon 848 s e deploy do Render; falta a troca de
-  `DATABASE_URL` e o teste funcional). Rotacionar a credencial do R2 antes de 20/11/2026.
-- **Agendamentos desligados de propósito:** `pipelines.yml` e `radar_convenios.yml` (cron comentado). Escrevem em
-  produção e geram notificações; ativar um de cada vez, com rodada manual supervisionada antes (Fase 4 do plano).
+  `DATABASE_URL` e o teste funcional). Rotacionar antes de 21/05/2027 a credencial do R2 (token `sigeo-backup-github-actions`, TTL de 6 meses) **e** a validade da senha do role `sigeo_backup` (`ALTER ROLE ... VALID UNTIL`); as duas venceram em 20/11/2026 e pararam os backups até 22/11/2026.
+- **Agendamentos LIGADOS (conferido em 21/11/2026):** `pipelines.yml` e `radar_convenios.yml` rodam por cron porque as
+  variáveis `ATUALIZACOES_PIPELINES_ATIVAS` e `ATUALIZACOES_RADAR_ATIVAS` estão `true` no GitHub desde 27/10/2026. Para
+  suspender, trocar a variável para `false`. Escrevem em produção e geram notificações.
 - **Conferência de produção só de leitura:** usar `psql` com heredoc de aspas simples (`<<'SQL'`) para não esbarrar
   na expansão de `!` do zsh; sempre confirmar `select current_database(), current_user` antes, porque uma variável de
   ambiente vazia faz o `psql` cair no Postgres local sem aviso.
@@ -1474,3 +1513,11 @@ que valem isolamento de contexto:
   citada na metodologia ainda está vigente. Invocar quando surgir dúvida
   normativa ou antes de assumir que um parâmetro citado em `docs/` continua
   válido.
+- **Inauguração ao concluir (21/11/2026)**: opcional. A pergunta "precisa de inauguração?" é da entrega (previsão ou dispensada). O campo de data da conclusão só aparece com previsão pendente ou sem resposta; informado, registra a inauguração realizada no cronograma (`app/services/inauguracao_realizada.py`) na mesma transação. Dispensada ou já realizada em outra data: a API recusa. Evento de inauguração não se cria pelo seletor de eventos, só se edita.
+- **Ação aberta na conclusão**: a avaliação lista até `LIMITE_ACOES` (50) e acrescenta "E mais N ação(ões) aberta(s)." (`repositories/conclusoes.py::contar_acoes_abertas`). Qualquer ação aberta bloqueia, o teto é só de exibição.
+- **Trava por instrumento**: `assert_nao_concluido` e a conclusão/reabertura fazem `SELECT ... FOR UPDATE` na linha do instrumento (`repositories/conclusoes.py::bloquear_instrumento`, `lock_timeout` 5 s, erro vira 409). Fecha a corrida concluir × criar ação/entrega. Escritor novo no instrumento deve chamar `assert_nao_concluido`. Teste com commit real: `test_trava_instrumento_db.py`.
+- **`/fontes/capturas` por papel**: `admin` recebe o detalhe (`FonteSituacaoRead`: status, contadores, defasagem, erro); os demais papéis só `fonte`, `rotulo` e `ultimo_sucesso_em` (`FonteResumoRead`), montado em `services/capturas_fonte.py::situacoes_das_fontes_para`. Esconder no front não basta: o corte é na API. Teste de rota com admin usa a fixture `headers_admin`.
+- **Consulta que falha não esconde controle**: sem dado em cache, o componente mostra `ErrorAlert` com `mensagemSeguraDoErro` e "Tentar novamente" (cartão de licença, controle de conclusão, seletor de técnico da aprovação no Radar). `return null` só vale para "carregou e não se aplica".
+- **Ações no detalhe**: `GET /monitoramento/instrumentos/{nr}/acoes` (envelope `{data, meta.total}`, teto 200) alimenta lista e contadores; `GET /monitoramento/acoes` (teto 500, carteira inteira) não serve ao detalhe. Não reutilizar o nome `listar_acoes_do_instrumento` do repositório (já é a leitura do relatório): a nova é `listar_acoes_do_instrumento_com_total`.
+- **Entrega manda no evento (21/11/2026)**: o evento `cronograma_entrega` gerado por entrega ativa (`entrega_equipamento.evento_id`) não se edita nem se exclui em Eventos (409; `EventoMarcoRead.gerado_por_entrega_id` esconde os botões). A data se corrige em `PATCH /monitoramento/entregas/{id}/data` (`services/entregas_equipamento.py::corrigir_data_entrega`, que alinha o evento por correção append-only) e a exclusão é `excluir_entrega`. `scripts/alinhar_eventos_das_entregas.py` (simulação por padrão, `--aplicar --confirmo-host`) alinha o histórico: a data da entrega sempre vence. Entregas sem evento (histórico migrado) ficam como estão.
+- **Revisão 3 do monitoramento (21/11/2026)**: (1) quem recebe um ID e escreve (ação, entrega, evento, documento, cancelamento) **relê o registro depois de `assert_nao_concluido`** (a trava do instrumento) com `db.refresh`, antes de validar; ler antes e validar depois deixa duas correções partirem da mesma versão (testes em `tests/test_trava_instrumento_db.py`, com threads e `populate_existing`). (2) `GET /monitoramento/instrumentos/{nr}/acoes` devolve pendentes primeiro e `meta {total, abertas, atrasadas}` do instrumento inteiro (`?pendentes=true` filtra na origem; a tela tem "Só pendentes"); consulta de ações só dispara depois de a timeline existir. (3) `candidato_legado_decisao.tecnico_titular_id` (migration `d9e0f1a2b3c4`) guarda o titular aceito: o reenvio idempotente da aprovação compara com ele (decisão antiga, nula, não compara). (4) `DecisaoItemCreate.situacao_esperada` (padrão `pendente`): decisão da fila sobre item que mudou é 409, e item de instrumento concluído exige reabrir; ordem de trava instrumento → item, igual à entrega. (5) `concluir_persus_i_pela_inauguracao` não reconclui instrumento com conclusão desfeita por Reabrir (só considera evento antigo ativo ou excluído pela migração, `MOTIVO_REVISAO`). (6) A avaliação de conclusão da tela é relida ao abrir o diálogo e invalidada pelas mutações de ações, entregas, unidades, previsões e eventos (`monitoramentoKeys.conclusao`). (7) O SQL do evento legado de conclusão está em `repositories/conclusoes.py::eventos_concluido_legado`.

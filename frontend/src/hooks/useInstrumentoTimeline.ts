@@ -58,6 +58,7 @@ export function useRegistrarEvento(nrConvenio: string) {
         queryKey: monitoramentoKeys.instrumentos,
       });
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
+      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.conclusao });
     },
   });
 }
@@ -83,6 +84,7 @@ export function useEditarEvento(nrConvenio: string) {
         queryKey: monitoramentoKeys.instrumentos,
       });
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
+      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.conclusao });
     },
   });
 }
@@ -107,6 +109,7 @@ export function useExcluirEvento(nrConvenio: string) {
         queryKey: monitoramentoKeys.instrumentos,
       });
       queryClient.invalidateQueries({ queryKey: monitoramentoKeys.resumo });
+      queryClient.invalidateQueries({ queryKey: monitoramentoKeys.conclusao });
     },
   });
 }

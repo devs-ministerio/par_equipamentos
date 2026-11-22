@@ -1,5 +1,5 @@
 /** Unidades entregues de um item, com correção e exclusão da entrega. */
-import { Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { fmtData } from "@/lib/monitoramento-format";
 import type { UnidadeEquipamento } from "@/services/entregas-equipamento";
+import { CorrigirDataEntrega } from "./equipamentos-instrumento-corrigir-data";
 import { ConfirmarExclusaoComMotivo } from "./monitoramento-ui";
 
 export const botaoIcone =
@@ -21,6 +22,7 @@ export function EquipamentosInstrumentoUnidades({
   onFechar,
   onCorrigir,
   onExcluirEntrega,
+  onCorrigirData,
 }: {
   nome: string;
   unidades: UnidadeEquipamento[];
@@ -28,8 +30,14 @@ export function EquipamentosInstrumentoUnidades({
   onFechar: () => void;
   onCorrigir: (unidade: UnidadeEquipamento) => void;
   onExcluirEntrega: (entregaId: number, motivo: string) => Promise<void>;
+  onCorrigirData: (
+    entregaId: number,
+    data: string,
+    motivo: string,
+  ) => Promise<void>;
 }) {
   const [excluindo, setExcluindo] = useState<number | null>(null);
+  const [corrigindoData, setCorrigindoData] = useState<number | null>(null);
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && onFechar()}>
       <DialogContent
@@ -78,15 +86,40 @@ export function EquipamentosInstrumentoUnidades({
                     <button
                       type="button"
                       className={botaoIcone}
+                      aria-label={`Corrigir data da entrega da unidade ${u.ordem} de ${nome}`}
+                      title="Corrigir data da entrega"
+                      onClick={() => {
+                        setExcluindo(null);
+                        setCorrigindoData(u.entrega_id);
+                      }}
+                    >
+                      <CalendarDays className="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      className={botaoIcone}
                       aria-label={`Excluir entrega da unidade ${u.ordem} de ${nome}`}
                       title="Excluir entrega"
-                      onClick={() => setExcluindo(u.entrega_id)}
+                      onClick={() => {
+                        setCorrigindoData(null);
+                        setExcluindo(u.entrega_id);
+                      }}
                     >
                       <Trash2 className="size-4" aria-hidden="true" />
                     </button>
                   </span>
                 )}
               </div>
+              {corrigindoData === u.entrega_id && (
+                <CorrigirDataEntrega
+                  dataAtual={u.data_entrega}
+                  onCancelar={() => setCorrigindoData(null)}
+                  onCorrigir={async (data, motivo) => {
+                    await onCorrigirData(u.entrega_id, data, motivo);
+                    setCorrigindoData(null);
+                  }}
+                />
+              )}
               {excluindo === u.entrega_id && (
                 <ConfirmarExclusaoComMotivo
                   onCancelar={() => setExcluindo(null)}
