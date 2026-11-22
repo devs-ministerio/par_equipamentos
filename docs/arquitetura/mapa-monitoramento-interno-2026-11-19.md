@@ -1,8 +1,10 @@
-# Mapa do Monitoramento interno (19/11/2026, revisão 2)
+# Mapa do Monitoramento interno (revisão 3, de 21/11/2026)
 
-Objetivo: servir de base para a equipe validar o fluxo e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da branch `feat/persus-ii-fora-do-monitoramento` (estado de 19/11/2026, depois da revisão 2). Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
+Objetivo: servir de base para a equipe validar o fluxo e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da branch `feat/persus-ii-fora-do-monitoramento` (estado de 21/11/2026, depois da revisão 3). Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
 Escopo: Mesa de trabalho (`/monitoramento-equipamentos/instrumentos`), detalhe do instrumento (`/monitoramento-equipamentos/instrumentos/:nr`), Radar de instrumentos e fila de revisão de itens. O Painel de Gestão está desabilitado (flag `PAINEL_GESTAO_HABILITADO`) e fica fora deste mapa.
+
+Mudanças da revisão 3: entrega manda no evento de cronograma; conclusão com trava por instrumento e leitura depois da trava; ações lidas por instrumento (pendentes primeiro, contadores do conjunto inteiro); aprovação do Radar exige titular; revisão de itens confere a situação esperada; contrato de licença e conclusão detalhados.
 
 Mudanças da revisão 2: instrumento concluído trava todas as edições; as 16 famílias entram no diagrama de itens; exceções de itens, entregas e unidades listadas; Radar só para gestor e admin, com card enxuto e aprovação com técnico; jobs detalhados; código sem uso removido.
 
@@ -24,10 +26,14 @@ flowchart LR
     GEST(["gestor / admin"]):::perfil --> REV["Revisão de itens<br/>/revisao-itens"]:::tela
     GEST --> RADAR["Radar de instrumentos<br/>botão do cabeçalho"]:::tela
     OUTROS(["colaborador / leitor"]):::perfil -. "não veem o Radar" .-> RADAR
-    RADAR -->|"aprovar com técnico"| DET
+    RADAR -->|"aprovar com técnico: entra na carteira e a lista atualiza"| DADOS
+    AVISO["Aviso de inclusão (sino ou pop-up)"]:::tela -->|"passo posterior: abrir o instrumento"| DET
     PAINEL["Painel de gestão<br/>botão desabilitado"]:::off
     SINO["Sino de notificações"]:::tela -->|"abre o instrumento"| DET
+    DET -->|"Voltar"| MESA
 ```
+
+Detalhes de navegação: o retorno da Mesa preserva filtros e paginação (`navegacao-retorno`). Instrumento sem acompanhamento (timeline 404) mostra só "Ainda não monitorado internamente", sem alerta de erro, e as consultas dependentes (ações) nem são disparadas. Falha real de consulta mostra alerta com mensagem segura e "Tentar novamente".
 
 ## 2. Estrutura da página de detalhe
 
@@ -53,13 +59,13 @@ flowchart TB
     CRON --> LANC["Lançar evento ou ação"]:::comp
 
     CAB -.-> A1["GET /monitoramento/instrumentos/:nr"]:::api
-    EQ -.-> A2["GET /monitoramento/instrumentos/:nr/equipamentos<br/>POST .../entregas · PATCH /unidades/:id · DELETE /entregas/:id<br/>POST /itens/:id/cancelamentos · DELETE /cancelamentos/:id<br/>PUT e DELETE /itens/:id/previsao-entrega<br/>GET e POST .../repasse"]:::api
+    EQ -.-> A2["GET /monitoramento/instrumentos/:nr/equipamentos<br/>POST .../entregas · PATCH /unidades/:id · DELETE /entregas/:id<br/>POST /itens/:id/cancelamentos · DELETE /cancelamentos/:id<br/>PUT e DELETE /itens/:id/previsao-entrega<br/>PATCH /monitoramento/entregas/:id/data (corrige a data, com motivo)<br/>GET e POST .../repasse"]:::api
     LIC -.-> A3["GET .../licenca-operacao"]:::api
     CAD -.-> A4["PATCH /monitoramento/instrumentos/:nr<br/>GET /monitoramento/colaboradores · GET /cnes-referencia"]:::api
     FASE -.-> A5["GET e POST e DELETE .../conclusao"]:::api
     DOC -.-> A6["GET e POST .../documentos<br/>PUT e DELETE /documentos/:id"]:::api
     LANC -.-> A7["POST .../eventos · POST .../acoes"]:::api
-    SEC2 -.-> A8["GET /monitoramento/acoes<br/>PATCH /acoes/:id · PATCH /acoes/:id/concluir · DELETE /acoes/:id"]:::api
+    SEC2 -.-> A8["GET /monitoramento/instrumentos/:nr/acoes (pendentes primeiro, ?pendentes=true)<br/>PATCH /acoes/:id · PATCH /acoes/:id/concluir · DELETE /acoes/:id"]:::api
     SEC3 -.-> A9["PATCH e DELETE /monitoramento/eventos/:id"]:::api
 ```
 
@@ -81,8 +87,11 @@ stateDiagram-v2
     EquipamentoEntregue --> PosEntrega: instalação, comissionamento, treinamento ou operação
     PosEntrega --> Concluido: conclusão confirmada pela equipe
     EquipamentoEntregue --> Concluido: conclusão confirmada
-    Concluido --> EquipamentoEntregue: reabertura com motivo
+    Concluido --> FaseCalculada: reabertura com motivo recalcula a fase dos fatos
+    FaseCalculada --> [*]
 ```
+
+Reabrir não devolve a uma fase fixa: a fase volta a ser a mais avançada que os fatos sustentam (por exemplo Equipamento entregue, se há entrega, ou Pós-entrega, se há marco pós-entrega).
 
 Nomes na tela: Acompanhamento iniciado, Aguardando repasse, Valor repassado, Em aquisição, Equipamento entregue, Pós-entrega, Concluído.
 
@@ -177,11 +186,11 @@ flowchart TB
 |---|---|---|
 | Entrega passa do planejado | Compara **quantidade**, não data: unidades novas maiores que `planejado − já entregue − canceladas` dão 422 | `entregas_equipamento._validar_itens` |
 | Data da entrega no futuro | 422 | `registrar_entrega` |
-| Instrumento monitorado sem nenhum item controlado | Entrou pelo componente: o item de aquisição classificado cuja unidade vale **R$ 100 mil ou mais** passa a ter controle por unidade, para a entrega poder ser lançada (`limite_valor_unitario_excecao`) | `projetar_itens_plano._aplicar_excecao_instrumento` |
-| Nenhum item chega a R$ 100 mil (exceção da exceção) | Os **3 itens de maior valor unitário** do instrumento viram controle por unidade (`itens_excecao_da_excecao`) | `projetar_itens_plano._aplicar_excecao_instrumento` |
-| Equipamento fora das 16 famílias | Monitorado por item só se a unidade vale **R$ 300 mil ou mais** (`limite_valor_unitario_monitorado`); valor da unidade = valor do item no plano ÷ quantidade | `classificacao_itens`, `projetar_itens_plano` |
+| Instrumento monitorado sem nenhum item controlado | Entrou pelo componente: entre as **aquisições com classificação aplicada e valor**, as cuja unidade vale **R$ 100 mil ou mais** passam a ter controle por unidade, para a entrega poder ser lançada. O limite é configurável (`limite_valor_unitario_excecao`) | `projetar_itens_plano._aplicar_excecao_instrumento` |
+| Nenhum item chega a R$ 100 mil (exceção da exceção) | Os **N itens de maior valor unitário** (padrão 3, configurável em `itens_excecao_da_excecao`) viram controle por unidade; só concorrem os mesmos candidatos acima | `projetar_itens_plano._aplicar_excecao_instrumento` |
+| Equipamento fora das 16 famílias | Regra geral: monitorado por item só se a unidade vale **R$ 300 mil ou mais** (`limite_valor_unitario_monitorado`, configurável); valor da unidade = valor do item no plano ÷ quantidade. As duas exceções acima só valem para instrumento sem nenhum item controlado | `classificacao_itens`, `projetar_itens_plano` |
 | Item sem quantidade planejada | Exige confirmar a quantidade entregue; não permite cancelar unidade | `_validar_itens`, `cancelamento_unidade` |
-| Item não controlado por unidade | Entrega recusada (item fora das 16 famílias e abaixo de R$ 300 mil) | `_validar_itens` |
+| Item não controlado por unidade | Entrega recusada. O teste final é `controla_unidade` do item, que pode ser verdadeiro por família, por valor ou por uma das exceções acima | `_validar_itens` |
 | Item de outro instrumento ou inativo | Tratado como inexistente, sem vazar que existe | `_validar_itens` |
 | Mesmo item duas vezes na entrega | 422 | `_validar_itens` |
 | Entrega sem item vinculado | 422: toda entrega liga ao menos um item | `_validar_itens` |
@@ -193,6 +202,7 @@ flowchart TB
 | Rendimento de aplicação | Não soma unidade nem valor; aparece como linha filha do item principal | `classificacao_itens` |
 | Carga manual | Não tem valor, então não entra na regra de R$ 300 mil | `classificacao_itens` |
 | Decisão da equipe na fila de revisão | Prevalece sobre a regra automática | `decisao_classificacao_item` |
+| Decisão sobre item que mudou desde a leitura | 409: a decisão informa a situação esperada (`situacao_esperada`, padrão pendente); em item de instrumento concluído, 409 "reabra" (decidir muda `controla_unidade`) | `classificacao_itens_plano.decidir` |
 | Convênio com todos os itens obra ou serviço | `fora_escopo_equipamentos=true`: some de tudo | `instrumento_no_escopo()` |
 | PERSUS II | Fora do monitoramento interno | `criar_instrumento_monitorado` |
 | Acompanhamento concluído | Nada pode ser alterado até reabrir (seção 5) | `assert_nao_concluido` |
@@ -208,6 +218,8 @@ flowchart TB
 ## 5. Concluir e reabrir o acompanhamento
 
 "Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz. Nesse caso a tela já mostra "Reabrir" (a avaliação da conclusão reconhece o evento antigo). Reabrir desfaz a conclusão confirmada **e** o evento antigo, mesmo quando os dois coexistem (caso dos instrumentos migrados).
+
+A avaliação da tela é lida de novo ao abrir o diálogo e invalidada por qualquer mutação que mude os impedimentos (ação, entrega, unidade, previsão, evento), então o botão não fica bloqueado por um resultado antigo. A decisão final é sempre do servidor, que revalida no POST.
 
 Regra: com o acompanhamento **concluído**, o instrumento inteiro fica travado para edição. A única ação liberada é **reabrir** (com motivo). Isso vale para cadastro, entregas, unidades, cancelamentos, previsões, repasse, eventos, ações e documentos.
 
@@ -227,7 +239,9 @@ flowchart TB
     AV --> IMP{"Impedimentos?"}:::regra
     IMP -->|"ação aberta<br/>(lista até 50 e resume o resto)"| X["Não conclui"]:::regra
     IMP -->|"item na fila de revisão"| X
-    IMP -->|"nenhum"| RES["Resultado calculado pelo sistema<br/>só itens por unidade contam"]:::regra
+    IMP -->|"nenhum item controlado por unidade"| X
+    IMP -->|"unidade sem entrega nem cancelamento"| X
+    IMP -->|"nenhum"| RES["Resultado calculado pelo sistema<br/>só itens por unidade contam<br/>integral: tudo entregue, nada cancelado<br/>parcial: há entrega e unidade cancelada (justificativa obrigatória)<br/>sem entregas: tudo cancelado (justificativa obrigatória)"]:::regra
     RES --> INA{"Inauguração do instrumento?<br/>(opcional)"}:::regra
     INA -->|"dispensada ou já realizada"| SEMCAMPO["Campo de data não aparece"]:::regra
     INA -->|"previsão pendente ou sem resposta"| CAMPO["Data de inauguração opcional<br/>até hoje e até a data da conclusão"]:::acao
@@ -235,10 +249,10 @@ flowchart TB
     CAMPO -->|"informada"| REAL["Registra a inauguração realizada no cronograma<br/>no lugar da previsão, na mesma transação"]:::regra
     SEMCAMPO --> CONF
     REAL --> CONF
-    CONF["Equipe confirma<br/>POST .../conclusao"]:::acao
-    CONF --> FIM["Fase Concluído<br/>instrumento inteiro travado"]:::regra
+    CONF["Equipe confirma<br/>POST .../conclusao"]:::acao --> REVAL["No POST, na mesma transação: trava o instrumento,<br/>revalida impedimentos e resultado,<br/>grava a inauguração realizada (se informada) e a conclusão"]:::regra
+    REVAL --> FIM["Fase Concluído<br/>instrumento inteiro travado"]:::regra
     FIM --> REAB["Reabrir com motivo<br/>DELETE .../conclusao"]:::acao
-    REAB --> VOLTA["Volta à fase calculada dos fatos<br/>edição liberada"]:::regra
+    REAB --> VOLTA["Recalcula a fase dos fatos<br/>(a inauguração realizada permanece)<br/>edição liberada"]:::regra
     FIM -. "qualquer edição recebe 409" .-> BLOQ["Reabra o acompanhamento para alterar"]:::regra
 ```
 
@@ -255,14 +269,17 @@ flowchart TB
     C -->|"sim"| V{"Há vínculo CNES e matrícula<br/>para cada área exigida?"}:::regra
     V -->|"não"| SV["Área: sem vínculo com a ANSN"]:::dado
     V -->|"sim"| I{"Matrícula na última carga da ANSN?"}:::regra
-    I -->|"não"| NC["Não consta na última carga<br/>nunca diz vencida"]:::dado
+    I -->|"não"| NC["Não consta na última carga"]:::dado
     I -->|"sim, suspensa"| SU["Suspensa"]:::dado
-    I -->|"sim, válida"| VA["Válida até data, com dias restantes"]:::dado
-    NC -. "alerta usa o documento interno, rotulado interna" .-> AL["Alerta de licença do resumo"]:::dado
-    VA --> AL
+    I -->|"sim, válida"| VA["Válida até data, com dias restantes<br/>menos de 90 dias: aviso de proximidade"]:::dado
+    VA -->|"validade já passou"| VE["Vencida em data, calculada pela validade"]:::dado
+    VA --> AL["Alerta de licença do resumo"]:::dado
+    SV -. "sem nenhum vínculo ANSN: vale o registro interno (documento ou evento), rotulado interna" .-> AL
 ```
 
-A fase do instrumento não depende da licença: o card só informa, e o estado nunca é escolhido por usuário (vem da última carga da ANSN). A carga da ANSN e dos vínculos é feita pela equipe direto no banco (`scripts/importar_licencas_ansn.py`). Ainda não há tela para vincular ou trocar matrícula.
+A fase do instrumento não depende da licença: o card só informa, e o estado nunca é escolhido por usuário (vem da última carga da ANSN). O estado "não consta na última carga" é diferente de "vencida": a primeira é ausência da matrícula na carga, a segunda vem da data de validade. Matrícula ausente da carga não aciona o registro interno enquanto o vínculo existir.
+
+A carga da ANSN e dos vínculos é feita pela equipe direto no banco (`scripts/importar_licencas_ansn.py`). Ainda não há tela para vincular ou trocar matrícula.
 
 ## 7. Registros append-only (eventos, ações, documentos)
 
@@ -304,6 +321,8 @@ stateDiagram-v2
     end note
 ```
 
+Corrigir uma ação já concluída preserva a data de conclusão na versão corrigida. No detalhe, os contadores de abertas e atrasadas vêm do instrumento inteiro (não só do lote de até 200 linhas), as pendentes vêm antes das concluídas e o filtro "Só pendentes" é aplicado no servidor.
+
 Ação não tem tipo nem catálogo: é texto livre com vencimento. Quem edita segue a titularidade do instrumento (seção 8). O responsável da ação (`responsavel_id`) é quem executa; quem criou fica em `criado_por_id`, sempre vindo da sessão. A lista do detalhe vem de `GET /monitoramento/instrumentos/{nr}/acoes` (até 200 e o total).
 
 ### 7.2 Eventos: manuais, gerados por entrega e gerados pela conclusão
@@ -312,9 +331,10 @@ Ação não tem tipo nem catálogo: é texto livre com vencimento. Quem edita se
 |---|---|---|
 | Manual | Usuário lança marco do catálogo | Sim (editar corrige append-only; excluir é soft delete com motivo) |
 | `cronograma_entrega` | Gerado ao registrar entrega de equipamento | Não: 409 "vem de uma entrega". A data muda por `PATCH /monitoramento/entregas/{id}/data` (com motivo) e entrega e evento mudam juntos |
-| Inauguração realizada ou dispensada | Gerada ao concluir o acompanhamento | Segue a regra de inauguração (um só ativo no conjunto, 409 se repetir) |
+| Inauguração dispensada ou prevista | Gravada na entrega (a pergunta "precisa de inauguração?") | Segue a regra de inauguração (um só ativo no conjunto, 409 se repetir) |
+| Inauguração realizada | Gerada ao concluir, se a data foi informada | Idem; ao concluir só pode nascer a realizada, nunca a dispensada |
 
-Instrumento concluído recusa qualquer escrita de evento até ser reaberto.
+Instrumento concluído recusa qualquer escrita de evento até ser reaberto. A tela lista apenas eventos ativos (corrigidos e excluídos ficam no histórico do banco).
 
 ## 8. Quem pode fazer o quê
 
@@ -372,7 +392,7 @@ Busca, paginação e bloqueios do Radar:
 - A lista aceita `busca` (até 100 caracteres), `situacao` (novo, em análise, aprovado, rejeitado; várias), `confirmacao` do portal (não consultado, não encontrado, sem publicação, confirmado) e paginação de 1 a 50 por página (padrão 10). Só entram descobertas da fonte oficial.
 - Só gestor e admin ativos listam, veem histórico e prova, decidem e aprovam; os demais recebem 403.
 - Rejeitar exige a versão atual do candidato (409 "o candidato mudou" se alguém decidiu antes) e uma situação que permita a decisão.
-- Aprovar exige a prova da última recaptura: hash conferido, rodada de até 24 horas e completa (rodada parcial, expirada ou com horário futuro dá 409). A chave de aprovação é idempotente: repetir com os mesmos dados devolve o mesmo resultado; com dados diferentes, 409.
+- Aprovar exige a prova da última recaptura: hash conferido, rodada de até 24 horas e completa (rodada parcial, expirada ou com horário futuro dá 409). A chave de aprovação é idempotente: repetir com os mesmos dados devolve o mesmo resultado; com dados diferentes (inclusive outro técnico titular, comparado com o titular gravado na decisão original, `candidato_legado_decisao.tecnico_titular_id`), 409.
 - Concorrência: a aprovação trava o lote e o candidato; se a carteira ou o histórico conflitarem, 409 e nada é gravado.
 
 Detalhes do aprovar com técnico:
@@ -428,7 +448,7 @@ Leitor nunca recebe aviso. Colaborador que não é titular nem suplente não rec
 
 Regras comuns: simulação por padrão nos scripts que gravam; `--aplicar` exige `--confirmo-host`; o aviso é criado por `criar_notificacao`, que grava o destinatário na criação (não em tempo de leitura); aviso de instrumento ou convênio fora de escopo não aparece para ninguém.
 
-Importante para o release: nenhum agendamento foi ligado. A decisão de ligar cada um fica para depois de uma rodada supervisionada.
+Importante para o release: os workflows definem o cron no código, mas cada rotina só roda quando a variável do GitHub (`ATUALIZACOES_*_ATIVAS`) está `true`. O valor dessas variáveis no GitHub não foi consultado nesta revisão, então o mapa não afirma se algum agendamento está efetivamente ligado. O backup (`backup_banco.yml`) tem agendamento próprio, sem essa variável. A decisão de ligar cada rotina fica para depois de uma rodada supervisionada.
 
 ## 11. Registro de funcionalidades (para a equipe marcar)
 
