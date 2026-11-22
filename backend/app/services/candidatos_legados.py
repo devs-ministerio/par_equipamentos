@@ -161,7 +161,6 @@ def listar_candidatos(
     busca: str | None,
     confirmacao: ConfirmacaoPortal | None,
     situacao: list[SituacaoLegado] | None = None,
-    somente_oficiais: bool = False,
 ) -> CandidatosLegadosRead:
     total, itens = repositorio.listar_pagina(
         db,
@@ -170,6 +169,5 @@ def listar_candidatos(
         busca=busca,
         confirmacao=confirmacao,
         situacao=situacao,
-        somente_oficiais=somente_oficiais,
     )
     return CandidatosLegadosRead(total=total, novos=repositorio.contar_novos(db), itens=itens)

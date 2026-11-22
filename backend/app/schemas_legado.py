@@ -43,7 +43,7 @@ class CandidatoLegadoRead(BaseModel):
     id_proposta: str
     confirmacao_portal: ConfirmacaoPortal
     data_publicacao: date | None
-    origem: Literal["snapshot_local", "siconv_oficial"]
+    origem: Literal["siconv_oficial"]
     descoberto_em: datetime
     verificado_em: datetime
     evidencias: list[EvidenciaLegadoRead]
@@ -100,5 +100,5 @@ class HistoricoLegadoRead(BaseModel):
 
 class ReferenciaDescoberta(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
-    origem: Literal["snapshot_local", "siconv_oficial"]
+    origem: Literal["siconv_oficial"]
     hash_snapshot: str = Field(pattern=r"^[a-f0-9]{64}$")

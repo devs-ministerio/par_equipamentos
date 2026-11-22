@@ -143,10 +143,9 @@ def test_componente_persistido_sem_inventar_equipamento_e_portal_ausente_so_sai_
     ausente = candidato.model_copy(update={"confirmacao_portal": "nao_encontrado", "data_publicacao": None})
     assert registrar_descoberta(db=db, candidatos=[ausente], referencia=referencia) == 1
     resultado = listar_candidatos(db=db, busca="999002", pagina=1, tamanho=10, confirmacao=None)
-    # Visão diagnóstica (sem somente_oficiais) segue exigindo o Portal; a da API oficial não.
-    assert resultado.total == 0 and resultado.novos == 1
-    oficial = listar_candidatos(db=db, busca="999002", pagina=1, tamanho=10, confirmacao=None, somente_oficiais=True)
-    assert oficial.total == 1 and oficial.itens[0].confirmacao_portal == "nao_encontrado"
+    # O Portal não esconde o candidato: ele aparece com a confirmação pendente.
+    assert resultado.total == 1 and resultado.novos == 1
+    assert resultado.itens[0].confirmacao_portal == "nao_encontrado"
     assert len(list(db.scalars(select(CandidatoLegadoCaptura)))) == 2
 
 
@@ -171,6 +170,9 @@ def test_captura_oficial_substitui_itens_nao_acumula_evidencia_antiga(matriz):
     atualizado = candidato.model_copy(update={"evidencias": (evidencia.model_copy(update={"id_item": "2"}),)})
     assert registrar_descoberta(db=db, candidatos=[atualizado], referencia=referencia) == 1
     assert registrar_descoberta(db=db, candidatos=[atualizado], referencia=referencia) == 0
-    resultado = listar_candidatos(db=db, busca="999003", pagina=1, tamanho=10, confirmacao=None)
-    assert [e.id_item for e in resultado.itens[0].evidencias] == ["2"]
+    # Critério v1 é legado e não entra na fila oficial; confere a evidência direto no banco.
+    registro = db.scalar(select(CandidatoLegadoRegistro).where(CandidatoLegadoRegistro.numero == "999003"))
+    ultima = db.get(CandidatoLegadoCaptura, registro.ultima_captura_id)
+    ativas = db.scalars(select(CandidatoLegadoEvidencia).where(CandidatoLegadoEvidencia.captura_id == ultima.id)).all()
+    assert [e.id_item for e in ativas] == ["2"]
     assert len(list(db.scalars(select(CandidatoLegadoEvidencia)))) == 2

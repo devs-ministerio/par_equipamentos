@@ -260,10 +260,10 @@ flowchart TB
     classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
     classDef tela fill:#E8EEF9,stroke:#2A4D9B,color:#1a2f5e
 
-    Q["GET /candidatos-legados<br/>pagina, tamanho_pagina 1 a 50 (padrão 10),<br/>busca até 100, confirmacao, situacao[]"]:::tela --> BASE["Base da fila: elegível<br/>(sem somente_oficiais, ainda exige Portal)"]:::regra
+    Q["GET /candidatos-legados<br/>pagina, tamanho_pagina 1 a 50 (padrão 10),<br/>busca até 100, confirmacao, situacao[]"]:::tela --> BASE["Base da fila: captura elegível"]:::regra
     BASE --> F1["Fora quem já é convênio conhecido<br/>(tipo Convênio ou sem tipo)"]:::regra
     F1 --> F2["Fora quem já é monitorado"]:::regra
-    F2 --> F3["somente_oficiais: critério v2,<br/>órgão 36000, origem siconv_oficial<br/>(sem exigir o Portal)"]:::regra
+    F2 --> F3["Só descoberta oficial: critério v2,<br/>órgão 36000, origem siconv_oficial<br/>(sem exigir o Portal)"]:::regra
     F3 --> F4["Decisões aprovado e rejeitado continuam listadas (aba Arquivados)"]:::regra
     F4 --> F5["Filtros: situação (sem decisão conta como novo),<br/>confirmação, busca por número ou id da proposta"]:::regra
     F5 --> ORD["Ordem: verificado_em decrescente, depois id"]:::regra
@@ -535,7 +535,7 @@ flowchart TB
 
 O que mudou no código:
 
-- A fila e o contador da API oficial (`somente_oficiais`) deixaram de exigir `confirmacao_portal = 'confirmado'`. A visão diagnóstica, sem esse parâmetro, continua exigindo.
+- A fila e o contador deixaram de exigir `confirmacao_portal = 'confirmado'`. O modo diagnóstico (listagem sem `somente_oficiais`) foi removido em 22/11/2026: a lista é sempre só a descoberta oficial.
 - O aviso `convenio_descoberto` sai na primeira descoberta oficial, sem esperar o Portal, e uma vez só: a confirmação posterior não repete (`numeros_ja_descobertos_oficialmente`). Os candidatos que já existiam em produção não geram aviso retroativo.
 - O card mostra o selo "Portal pendente · há N dias" (contado da descoberta) enquanto a análise está aberta.
 - O botão Aprovar aparece desabilitado até o Portal confirmar. A API também recusa: `preparar_revisao` devolve 409 com "Aprovar exige a confirmação do convênio no Portal da Transparência", mesmo que alguém chame a rota direto.

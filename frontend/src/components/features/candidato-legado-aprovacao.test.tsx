@@ -76,7 +76,6 @@ describe("conferência e aprovação no Radar", () => {
   );
 
   it.each([
-    criarCandidato({ origem: "snapshot_local" }),
     criarCandidato({ situacao: "rejeitado" }),
     criarCandidato({ situacao: "aprovado", versao: 31 }),
   ])("não oferece aprovação em estado incompatível %j", async (candidato) => {

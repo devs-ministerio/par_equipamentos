@@ -13,9 +13,8 @@ from app.services.descoberta_legado import CandidatoLegado
 def planejar_avisos(
     db: Session, candidatos: list[CandidatoLegado], referencia: ReferenciaDescoberta, *, notificar_novos: bool
 ) -> set[str]:
-    # Baseline explícita pode ser silenciosa. Snapshot diagnóstico nunca gera
-    # aviso gerencial, nem substitui confirmação oficial do lote atual.
-    if not notificar_novos or referencia.origem != "siconv_oficial":
+    # Baseline explícita pode ser silenciosa.
+    if not notificar_novos:
         return set()
     numeros = {
         c.numero

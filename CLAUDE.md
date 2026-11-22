@@ -1139,7 +1139,7 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
   (decisão do usuário, 03/11/2026; antes caía no broadcast para todo colaborador, o que espalhou 154 avisos de
   instrumentos sem dono em outubro). Aviso já enviado não foi alterado. `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
   `leitor` nunca entra em nenhum branch, mesmo sendo titular/suplente hipoteticamente.
-- **Radar antes do Portal (22/11/2026)**: fila e contador da API oficial (`somente_oficiais`) e o aviso `convenio_descoberto` não esperam
+- **Radar antes do Portal (22/11/2026)**: fila e contador (sempre só descoberta oficial; o modo diagnóstico e a origem `snapshot_local` saíram do código em 22/11/2026) e o aviso `convenio_descoberto` não esperam
   mais o Portal; o card mostra "Portal pendente · há N dias". **Aprovar continua exigindo `confirmacao_portal = 'confirmado'`**
   (botão desabilitado, `preparar_revisao` devolve 409, `preparar_alvo_coleta` recusa recaptura) porque convenente, município, UF,
   região e ano só vêm do Portal e são gravados uma vez na aprovação. Em produção (21/11) a recaptura nunca rodou (0 linhas), então

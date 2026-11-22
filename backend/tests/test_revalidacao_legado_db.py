@@ -360,7 +360,7 @@ def test_preflight_recusa_estado_improprio_antes_da_coleta(matriz, dados, defeit
         registrar_descoberta(
             db=db,
             candidatos=[candidato(dados)],
-            referencia=ReferenciaDescoberta(origem="snapshot_local", hash_snapshot="e" * 64),
+            referencia=ReferenciaDescoberta.model_construct(origem="snapshot_local", hash_snapshot="e" * 64),
             notificar_novos=False,
         )
     elif defeito == "encerrado":
@@ -396,7 +396,7 @@ def test_publicacao_reconfere_estado_apos_download(matriz, dados, defeito):
         registrar_descoberta(
             db=db,
             candidatos=[candidato(dados)],
-            referencia=ReferenciaDescoberta(origem="snapshot_local", hash_snapshot="e" * 64),
+            referencia=ReferenciaDescoberta.model_construct(origem="snapshot_local", hash_snapshot="e" * 64),
             notificar_novos=False,
         )
         registro = db.get(CandidatoLegadoRegistro, alvo.candidato_id)

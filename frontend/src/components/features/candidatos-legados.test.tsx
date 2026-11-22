@@ -17,7 +17,7 @@ const candidato: CandidatoLegado = {
   situacao: "novo",
   confirmacao_portal: "nao_encontrado",
   data_publicacao: null,
-  origem: "snapshot_local",
+  origem: "siconv_oficial",
   descoberto_em: "2026-10-06T10:00:00Z",
   verificado_em: "2026-10-06T10:00:00Z",
   valor_global: null,
@@ -90,7 +90,6 @@ describe("Radar legado", () => {
       itens: [
         {
           ...candidato,
-          origem: "siconv_oficial",
           valor_global: "1500000.00",
           municipio: "Campinas",
           uf: "SP",
@@ -143,7 +142,7 @@ describe("Radar legado", () => {
     const fetch = prepararApi({
       total: 1,
       novos: 1,
-      itens: [{ ...candidato, origem: "siconv_oficial" }],
+      itens: [candidato],
     });
     await screen.findByText("Convênio 123456");
     expect(

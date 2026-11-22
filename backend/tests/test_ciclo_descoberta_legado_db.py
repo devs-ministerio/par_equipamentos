@@ -356,7 +356,7 @@ def test_erro_na_segunda_revalidacao_reverte_primeira_descoberta_e_avisos(ciclo,
     assert contar(db, FonteCaptura) == 1 and contar(db, Notificacao) == 0
 
 
-@pytest.mark.parametrize("defeito", ["origem", "sobreposicao", "snapshot", "mistura"])
+@pytest.mark.parametrize("defeito", ["sobreposicao", "snapshot", "mistura"])
 def test_contrato_do_ciclo_nao_aceita_provas_de_rodadas_diferentes(ciclo, dados, defeito):
     # Arrange
     db, *_ = ciclo
@@ -368,8 +368,6 @@ def test_contrato_do_ciclo_nao_aceita_provas_de_rodadas_diferentes(ciclo, dados,
     entradas = [entrada]
     referencia = ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot=sha256(("a" * 128).encode()).hexdigest())
     notificar = True
-    if defeito == "origem":
-        referencia = referencia.model_copy(update={"origem": "snapshot_local"})
     if defeito == "sobreposicao":
         positivo = positivo.model_copy(update={"numero": alvo.numero})
     if defeito == "snapshot":

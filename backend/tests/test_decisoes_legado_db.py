@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.auth import create_access_token, create_refresh_token, hash_password
 from app.db.base import engine, get_db
 from app.db.models import Convenio, InstrumentoEquipamento, User, UserRole, UserStatus
-from app.db.models_legado import CandidatoLegadoDecisao
+from app.db.models_legado import CandidatoLegadoCaptura, CandidatoLegadoDecisao
 from app.domain_errors import AuthorizationError, ConflictError, NotFoundError
 from app.main import app
 from app.schemas_legado import DecisaoLegadoCreate, ReferenciaDescoberta
@@ -71,7 +71,6 @@ def listar(db, numero, situacao=None):
         busca=numero,
         confirmacao=None,
         situacao=[situacao] if situacao else None,
-        somente_oficiais=True,
     )
 
 
@@ -188,10 +187,17 @@ def test_captura_nova_versao_obsoleta_e_estado_encerrado_bloqueados(triagem):
 def test_snapshot_local_nao_entra_na_fila_nem_aceita_decisao(triagem):
     db, usuario, candidato, _ = triagem
     registrar_descoberta(
-        db=db, candidatos=[candidato], referencia=ReferenciaDescoberta(origem="snapshot_local", hash_snapshot="d" * 64)
+        db=db, candidatos=[candidato], referencia=ReferenciaDescoberta(origem="siconv_oficial", hash_snapshot="d" * 64)
     )
+    item = listar(db, candidato.numero).itens[0]
+    # Linha legada (demo) que ainda existe em clones antigos: o CHECK do banco a admite.
+    db.execute(
+        update(CandidatoLegadoCaptura)
+        .where(CandidatoLegadoCaptura.id == item.captura_id)
+        .values(origem="snapshot_local")
+    )
+    db.flush()
     assert listar(db, candidato.numero).total == 0
-    item = listar_candidatos(db=db, pagina=1, tamanho=10, busca=candidato.numero, confirmacao=None).itens[0]
     with pytest.raises(ConflictError, match="fonte oficial"):
         decidir(db, usuario, item, comando(item))
 

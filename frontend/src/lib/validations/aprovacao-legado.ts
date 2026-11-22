@@ -19,9 +19,4 @@ export const aprovacaoLegadoSchema = referenciaProvaLegadoSchema
   })
   .strict();
 
-export const confirmacaoAprovacaoSchema = aprovacaoLegadoSchema;
-
 export type AprovacaoLegadoInput = z.infer<typeof aprovacaoLegadoSchema>;
-export type ConfirmacaoAprovacaoInput = z.infer<
-  typeof confirmacaoAprovacaoSchema
->;

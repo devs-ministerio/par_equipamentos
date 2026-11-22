@@ -161,7 +161,7 @@ def componentes_por_captura(db: Session, ids: set[int]) -> dict[int, list[Compon
     return resultado
 
 
-def _consulta_candidatos(*, somente_oficiais: bool = False):
+def _consulta_candidatos():
     candidato, captura = CandidatoLegadoRegistro, CandidatoLegadoCaptura
     decisao = CandidatoLegadoDecisao
     ultima_id = (
@@ -190,22 +190,18 @@ def _consulta_candidatos(*, somente_oficiais: bool = False):
     )
     # Decisões encerradas continuam consultáveis, mesmo após entrada na carteira.
     fila_elegivel = captura.elegivel.is_(True) & ~conhecido & ~monitorado
-    if somente_oficiais:
-        # Compatibilidade diagnóstica não comprova descoberta oficial atual. O Portal não é
-        # exigido para ver o candidato (o SICONV já traz assinatura e publicação); ele é
-        # exigido para recapturar e aprovar.
-        fila_elegivel &= (captura.criterio_escopo == "prioritarios_ms_celebrados_v2") & (
-            captura.orgao_superior == "36000"
-        )
-    else:
-        fila_elegivel &= or_(captura.criterio_escopo.is_(None), captura.confirmacao_portal == "confirmado")
+    # Só descoberta oficial atual. O Portal não é exigido para ver o candidato (o SICONV já traz
+    # assinatura e publicação); ele é exigido para recapturar e aprovar.
+    fila_elegivel &= (
+        (captura.origem == "siconv_oficial")
+        & (captura.criterio_escopo == "prioritarios_ms_celebrados_v2")
+        & (captura.orgao_superior == "36000")
+    )
     return consulta.where(or_(decisao.situacao.in_(["aprovado", "rejeitado"]), fila_elegivel))
 
 
 def contar_novos(db: Session) -> int:
-    consulta = _consulta_candidatos(somente_oficiais=True).where(
-        CandidatoLegadoCaptura.origem == "siconv_oficial", CandidatoLegadoDecisao.id.is_(None)
-    )
+    consulta = _consulta_candidatos().where(CandidatoLegadoDecisao.id.is_(None))
     return db.scalar(select(func.count()).select_from(consulta.subquery())) or 0
 
 
@@ -266,12 +262,9 @@ def listar_pagina(
     busca: str | None,
     confirmacao: str | None,
     situacao: Sequence[str] | None = None,
-    somente_oficiais: bool = False,
 ) -> tuple[int, list[CandidatoLegadoRead]]:
     candidato, captura, decisao = CandidatoLegadoRegistro, CandidatoLegadoCaptura, CandidatoLegadoDecisao
-    consulta = _consulta_candidatos(somente_oficiais=somente_oficiais)
-    if somente_oficiais:
-        consulta = consulta.where(captura.origem == "siconv_oficial")
+    consulta = _consulta_candidatos()
     if situacao:
         consulta = consulta.where(func.coalesce(decisao.situacao, "novo").in_(situacao))
     if confirmacao:

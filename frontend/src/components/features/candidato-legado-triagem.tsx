@@ -52,7 +52,6 @@ export function CandidatoLegadoTriagem({
         <div className="flex flex-wrap items-center gap-2">
           {podeDecidir &&
             aberta &&
-            candidato.origem === "siconv_oficial" &&
             (motivoSemAprovacao ? (
               <Button
                 type="button"
@@ -65,7 +64,7 @@ export function CandidatoLegadoTriagem({
             ) : (
               <CandidatoLegadoAprovacao candidato={candidato} />
             ))}
-          {podeDecidir && aberta && candidato.origem === "siconv_oficial" && (
+          {podeDecidir && aberta && (
             <Button
               type="button"
               variant="outline"

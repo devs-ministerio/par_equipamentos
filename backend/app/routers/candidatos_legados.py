@@ -61,7 +61,6 @@ def listar(
         busca=busca,
         confirmacao=confirmacao,
         situacao=situacao,
-        somente_oficiais=True,
     )
 
 
