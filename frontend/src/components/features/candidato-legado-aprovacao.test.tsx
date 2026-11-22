@@ -77,7 +77,6 @@ describe("conferência e aprovação no Radar", () => {
 
   it.each([
     criarCandidato({ origem: "snapshot_local" }),
-    criarCandidato({ confirmacao_portal: "nao_consultado" }),
     criarCandidato({ situacao: "rejeitado" }),
     criarCandidato({ situacao: "aprovado", versao: 31 }),
   ])("não oferece aprovação em estado incompatível %j", async (candidato) => {
@@ -88,6 +87,14 @@ describe("conferência e aprovação no Radar", () => {
     expect(
       screen.queryByRole("button", { name: "Aprovar" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("sem confirmação do Portal o Aprovar aparece desabilitado", async () => {
+    montar({
+      candidato: criarCandidato({ confirmacao_portal: "nao_encontrado" }),
+    });
+    await screen.findByText("Convênio 999001");
+    expect(screen.getByRole("button", { name: "Aprovar" })).toBeDisabled();
   });
 
   it("não aprova sem escolher o técnico", async () => {

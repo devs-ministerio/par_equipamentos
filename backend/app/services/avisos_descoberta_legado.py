@@ -1,4 +1,4 @@
-"""Primeira descoberta confirmada: aviso transacional, não aprovação."""
+"""Primeira descoberta oficial: aviso transacional, não aprovação. Não espera o Portal."""
 
 from sqlalchemy.orm import Session
 
@@ -22,10 +22,8 @@ def planejar_avisos(
         for c in candidatos
         if c.criterio_escopo == "prioritarios_ms_celebrados_v2"
         and c.orgao_superior == "36000"
-        and c.confirmacao_portal == "confirmado"
-        and c.data_publicacao is not None
     }
-    return numeros - candidatos_repo.numeros_ja_confirmados_oficialmente(db, numeros)
+    return numeros - candidatos_repo.numeros_ja_descobertos_oficialmente(db, numeros)
 
 
 def emitir_avisos(db: Session, numeros: set[str]) -> None:
@@ -33,7 +31,7 @@ def emitir_avisos(db: Session, numeros: set[str]) -> None:
         return
     registros = candidatos_repo.obter_registros(db, numeros)
     if set(registros) != numeros:
-        raise ConflictError("Descoberta confirmada sem identidade persistida para notificação.")
+        raise ConflictError("Descoberta oficial sem identidade persistida para notificação.")
     criar_avisos_descoberta(
         db,
         [
@@ -41,7 +39,7 @@ def emitir_avisos(db: Session, numeros: set[str]) -> None:
                 tipo=NotificacaoTipo.convenio_descoberto,
                 entidade_id=registros[numero].id,
                 titulo=f"Convênio {numero}: novo no Radar",
-                corpo="Descoberta oficial confirmada no recorte de equipamentos do Ministério da Saúde. Aguardando análise no Radar; ainda não incluído na carteira.",
+                corpo="Descoberta oficial no recorte de equipamentos do Ministério da Saúde. Aguardando análise no Radar; ainda não incluído na carteira. Aprovar exige a confirmação no Portal da Transparência.",
             )
             for numero in sorted(numeros)
         ],

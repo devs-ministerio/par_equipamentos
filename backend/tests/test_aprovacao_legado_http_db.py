@@ -229,6 +229,22 @@ def test_rodada_nao_confiavel_bloqueia_aprovacao_http(fluxo_aprovacao, defeito):
     sem_inclusao(db)
 
 
+def test_sem_confirmacao_no_portal_bloqueia_aprovacao_http(fluxo_aprovacao):
+    # O candidato é visível na fila sem o Portal, mas aprovar exige a confirmação.
+    from app.db.models_legado import CandidatoLegadoCaptura
+
+    db, _, ref, _, pedido, cliente = fluxo_aprovacao
+    captura = db.get(CandidatoLegadoCaptura, ref.captura_id)
+    captura.confirmacao_portal = "nao_encontrado"
+    captura.data_publicacao = None
+    db.commit()
+    with cliente("admin") as http:
+        resposta = postar(http, ref.candidato_id, pedido.model_dump(mode="json"))
+    assert resposta.status_code == 409
+    assert "Portal da Transparência" in resposta.text
+    sem_inclusao(db)
+
+
 def test_candidato_inexistente_retorna_404(fluxo_aprovacao):
     db, _, _, _, pedido, cliente = fluxo_aprovacao
     with cliente("admin") as http:

@@ -116,7 +116,7 @@ def test_service_preserva_escopo_replay_e_nao_herda_evidencia_de_outro_criterio(
     assert len(list(db.scalars(select(CandidatoLegadoCaptura)))) == 2
 
 
-def test_componente_persistido_sem_inventar_equipamento_e_portal_ausente_sai_da_fila(matriz):
+def test_componente_persistido_sem_inventar_equipamento_e_portal_ausente_so_sai_da_visao_diagnostica(matriz):
     db, *_ = matriz
     componente = ComponenteDescoberto(
         id_programa="10", nome_programa=COMPONENTES_ALVO[0], componente=COMPONENTES_ALVO[0]
@@ -143,7 +143,10 @@ def test_componente_persistido_sem_inventar_equipamento_e_portal_ausente_sai_da_
     ausente = candidato.model_copy(update={"confirmacao_portal": "nao_encontrado", "data_publicacao": None})
     assert registrar_descoberta(db=db, candidatos=[ausente], referencia=referencia) == 1
     resultado = listar_candidatos(db=db, busca="999002", pagina=1, tamanho=10, confirmacao=None)
-    assert resultado.total == 0 and resultado.novos == 0
+    # Visão diagnóstica (sem somente_oficiais) segue exigindo o Portal; a da API oficial não.
+    assert resultado.total == 0 and resultado.novos == 1
+    oficial = listar_candidatos(db=db, busca="999002", pagina=1, tamanho=10, confirmacao=None, somente_oficiais=True)
+    assert oficial.total == 1 and oficial.itens[0].confirmacao_portal == "nao_encontrado"
     assert len(list(db.scalars(select(CandidatoLegadoCaptura)))) == 2
 
 

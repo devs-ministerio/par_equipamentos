@@ -284,7 +284,7 @@ def listar(db, busca=None, confirmacao=None, pagina=1, tamanho=10):
 
 
 @pytest.mark.parametrize("defeito", ["sem_escopo", "escopo_v1", "sem_confirmacao", "valido"])
-def test_fila_oficial_e_contador_exigem_escopo_atual_confirmado(candidatos, defeito):
+def test_fila_oficial_e_contador_exigem_escopo_atual_sem_exigir_o_portal(candidatos, defeito):
     # Arrange: registros históricos são preservados, mas não são descobertas validadas.
     alteracoes = {
         "criterio_escopo": "prioritarios_ms_celebrados_v2",
@@ -317,7 +317,8 @@ def test_fila_oficial_e_contador_exigem_escopo_atual_confirmado(candidatos, defe
             somente_oficiais=True,
         )
         # Assert: fila e badge usam a mesma elegibilidade; não apagam evidências.
-        esperado = int(defeito == "valido")
+        # O Portal não esconde o candidato: o SICONV já traz assinatura e publicação.
+        esperado = int(defeito in ("valido", "sem_confirmacao"))
         assert resultado.total == len(resultado.itens) == esperado
         assert resultado.novos == antes.novos + esperado
         assert db.scalar(select(CandidatoLegadoRegistro.id).where(CandidatoLegadoRegistro.numero == registro.numero))

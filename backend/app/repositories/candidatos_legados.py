@@ -25,8 +25,8 @@ def bloquear_lote(db: Session) -> None:
     db.execute(select(func.pg_advisory_xact_lock(func.hashtext("sigeo:radar-legado"))))
 
 
-def numeros_ja_confirmados_oficialmente(db: Session, numeros: set[str]) -> set[str]:
-    """Histórico elegível, não apenas a última captura (pode perder confirmação)."""
+def numeros_ja_descobertos_oficialmente(db: Session, numeros: set[str]) -> set[str]:
+    """Histórico elegível, não apenas a última captura. Não exige o Portal: o aviso sai na descoberta."""
     if not numeros:
         return set()
     return set(
@@ -37,7 +37,6 @@ def numeros_ja_confirmados_oficialmente(db: Session, numeros: set[str]) -> set[s
                 CandidatoLegadoRegistro.numero.in_(numeros),
                 CandidatoLegadoCaptura.origem == "siconv_oficial",
                 CandidatoLegadoCaptura.elegivel.is_(True),
-                CandidatoLegadoCaptura.confirmacao_portal == "confirmado",
                 CandidatoLegadoCaptura.criterio_escopo == "prioritarios_ms_celebrados_v2",
                 CandidatoLegadoCaptura.orgao_superior == "36000",
             )
@@ -188,19 +187,16 @@ def _consulta_candidatos(*, somente_oficiais: bool = False):
         .exists()
     )
     # Decisões encerradas continuam consultáveis, mesmo após entrada na carteira.
-    fila_elegivel = (
-        captura.elegivel.is_(True)
-        & or_(captura.criterio_escopo.is_(None), captura.confirmacao_portal == "confirmado")
-        & ~conhecido
-        & ~monitorado
-    )
+    fila_elegivel = captura.elegivel.is_(True) & ~conhecido & ~monitorado
     if somente_oficiais:
-        # Compatibilidade diagnóstica não comprova descoberta oficial atual.
-        fila_elegivel &= (
-            (captura.criterio_escopo == "prioritarios_ms_celebrados_v2")
-            & (captura.orgao_superior == "36000")
-            & (captura.confirmacao_portal == "confirmado")
+        # Compatibilidade diagnóstica não comprova descoberta oficial atual. O Portal não é
+        # exigido para ver o candidato (o SICONV já traz assinatura e publicação); ele é
+        # exigido para recapturar e aprovar.
+        fila_elegivel &= (captura.criterio_escopo == "prioritarios_ms_celebrados_v2") & (
+            captura.orgao_superior == "36000"
         )
+    else:
+        fila_elegivel &= or_(captura.criterio_escopo.is_(None), captura.confirmacao_portal == "confirmado")
     return consulta.where(or_(decisao.situacao.in_(["aprovado", "rejeitado"]), fila_elegivel))
 
 

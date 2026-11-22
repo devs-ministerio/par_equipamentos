@@ -129,7 +129,7 @@ flowchart LR
     C --> S3["sem_publicacao<br/>Portal conhece, sem data"]:::nao
     C --> S4["confirmado<br/>com data_publicacao do Portal"]:::ok
     C --> S5["contrato inválido<br/>sem código: não publica, rodada parcial"]:::nao
-    S4 --> USO["Hoje: só confirmado entra na fila oficial,<br/>gera aviso e permite recapturar e aprovar"]:::ok
+    S4 --> USO["Só confirmado permite recapturar e aprovar.<br/>A fila, o contador e o aviso não esperam o Portal"]:::ok
     S1 -. "mantém 'confirmado' anterior se o critério for o mesmo" .-> S4
     S2 -. "consultado de novo todo dia" .-> C
 ```
@@ -166,7 +166,7 @@ flowchart TB
     HASH -->|"sim"| CAP[("candidato_legado_captura<br/>atualiza ultima_captura_id")]:::dado
     CAP --> EVI[("candidato_legado_evidencia<br/>candidato_legado_componente")]:::dado
     REG --> AV{"Aviso convenio_descoberto?"}:::regra
-    AV -->|"critério v2, órgão 36000, Portal confirmado,<br/>com data, origem oficial, ainda não avisado,<br/>e rodada não é baseline"| N["Notificação a gestor e admin ativos<br/>sem destino (triagem é no Radar)"]:::aviso
+    AV -->|"critério v2, órgão 36000, origem oficial,<br/>ainda não descoberto antes,<br/>e rodada não é baseline"| N["Notificação a gestor e admin ativos<br/>sem destino (triagem é no Radar)"]:::aviso
     CAND --> IE["IntegrityError na concorrência"]:::regra --> C409["ConflictError: nada é gravado"]:::regra
 ```
 
@@ -206,7 +206,7 @@ A validação da prova (`validar_captura_promocao`) confere: hash igual, mesmo c
 
 ```mermaid
 stateDiagram-v2
-    [*] --> novo: descoberto e confirmado
+    [*] --> novo: descoberto (Portal pode estar pendente)
     novo --> em_analise: iniciar_analise (API; sem botão na tela)
     novo --> rejeitado: rejeitar com justificativa
     em_analise --> rejeitado: rejeitar com justificativa
@@ -236,7 +236,7 @@ flowchart TB
     T1 --> RP{"Mesma chave já aprovada?"}:::regra
     RP -->|"sim, mesmos dados e mesmo titular"| IDEM["Devolve o resultado anterior"]:::regra
     RP -->|"sim, dados ou titular diferentes"| E1["409"]:::erro
-    RP -->|"não"| REV["preparar_revisao: estado novo ou em análise,<br/>versão e captura iguais, fora da carteira,<br/>descoberta oficial, recaptura mais recente,<br/>rodada siconv_recaptura ok e dentro de 24 h,<br/>hash igual, projeção igual à prova"]:::regra
+    RP -->|"não"| REV["preparar_revisao: estado novo ou em análise,<br/>versão e captura iguais, fora da carteira,<br/>descoberta oficial com Portal confirmado, recaptura mais recente,<br/>rodada siconv_recaptura ok e dentro de 24 h,<br/>hash igual, projeção igual à prova"]:::regra
     REV -->|"qualquer falha"| E1
     REV --> CART["carteira_legado.adicionar (insert estrito)"]:::dado
     CART --> MARC["Marcadores de equipamento<br/>(classificar_descricoes)"]:::dado
@@ -260,10 +260,10 @@ flowchart TB
     classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
     classDef tela fill:#E8EEF9,stroke:#2A4D9B,color:#1a2f5e
 
-    Q["GET /candidatos-legados<br/>pagina, tamanho_pagina 1 a 50 (padrão 10),<br/>busca até 100, confirmacao, situacao[]"]:::tela --> BASE["Base da fila:<br/>elegível e (sem critério ou Portal confirmado)"]:::regra
+    Q["GET /candidatos-legados<br/>pagina, tamanho_pagina 1 a 50 (padrão 10),<br/>busca até 100, confirmacao, situacao[]"]:::tela --> BASE["Base da fila: elegível<br/>(sem somente_oficiais, ainda exige Portal)"]:::regra
     BASE --> F1["Fora quem já é convênio conhecido<br/>(tipo Convênio ou sem tipo)"]:::regra
     F1 --> F2["Fora quem já é monitorado"]:::regra
-    F2 --> F3["somente_oficiais: critério v2,<br/>órgão 36000, Portal confirmado,<br/>origem siconv_oficial"]:::regra
+    F2 --> F3["somente_oficiais: critério v2,<br/>órgão 36000, origem siconv_oficial<br/>(sem exigir o Portal)"]:::regra
     F3 --> F4["Decisões aprovado e rejeitado continuam listadas (aba Arquivados)"]:::regra
     F4 --> F5["Filtros: situação (sem decisão conta como novo),<br/>confirmação, busca por número ou id da proposta"]:::regra
     F5 --> ORD["Ordem: verificado_em decrescente, depois id"]:::regra
@@ -510,35 +510,41 @@ sequenceDiagram
     UI->>API: PATCH lidas
 ```
 
-## 18. Decisão pendente: o Radar precisa esperar o Portal?
+## 18. Radar antes do Portal (implementado em 22/11/2026)
 
-Hoje a confirmação no Portal trava quatro pontos de uma vez. O Portal é necessário para **recapturar e aprovar**, porque a recaptura traz convenente, município e data do Portal. Para **enxergar** o candidato, ele só atrasa, porque o SICONV já traz assinatura e publicação e o Portal repete a mesma data.
+O Portal é necessário para **recapturar e aprovar**, porque a recaptura traz convenente, município e data do Portal, e esses campos são gravados uma vez na aprovação. Para **enxergar** o candidato ele só atrasava, porque o SICONV já traz assinatura e publicação e o Portal repete a mesma data. Por isso a confirmação deixou de esconder o candidato e continua travando a aprovação.
 
 ```mermaid
 flowchart TB
     classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
     classDef nao fill:#FBE9E7,stroke:#C62828,color:#5a1010
     classDef ok fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
-    classDef prop fill:#eee,stroke:#999,color:#555,stroke-dasharray:4 3
 
-    subgraph HOJE["Hoje"]
+    subgraph ANTES["Antes"]
         H1["SICONV: candidato descoberto"]:::regra --> H2{"Portal confirmou?"}:::regra
         H2 -->|"não"| H3["Invisível: fora da fila, do contador e do aviso"]:::nao
         H2 -->|"sim"| H4["Fila, contador, aviso"]:::ok
-        H4 --> H5["Recaptura e aprovação"]:::ok
     end
-    subgraph PROPOSTA["Proposta, não implementada"]
-        P1["SICONV: candidato descoberto"]:::prop --> P2["Aparece na fila com selo Portal pendente e idade em dias"]:::prop
-        P2 --> P3{"Portal confirmou?"}:::prop
-        P3 -->|"não"| P4["Triagem e rejeição liberadas; aprovar desabilitado"]:::prop
-        P3 -->|"sim"| P5["Recaptura e aprovação"]:::prop
+    subgraph AGORA["Agora"]
+        P1["SICONV: candidato descoberto"]:::regra --> P2["Fila, contador e aviso na hora.<br/>Selo Portal pendente com a idade em dias"]:::ok
+        P2 --> P3{"Portal confirmou?"}:::regra
+        P3 -->|"não"| P4["Rejeitar liberado.<br/>Aprovar desabilitado na tela e recusado na API (409)"]:::nao
+        P3 -->|"sim"| P5["Recaptura e aprovação"]:::ok
     end
 ```
 
-Pontos de código que hoje exigem `confirmacao_portal = 'confirmado'`: a base da fila e `somente_oficiais` (`repositories/candidatos_legados.py`), `contar_novos`, `planejar_avisos` (`services/avisos_descoberta_legado.py`) e `preparar_alvo_coleta` (`services/recapturas_legado.py`). A proposta mexeria nos três primeiros e manteria o quarto.
+O que mudou no código:
+
+- A fila e o contador da API oficial (`somente_oficiais`) deixaram de exigir `confirmacao_portal = 'confirmado'`. A visão diagnóstica, sem esse parâmetro, continua exigindo.
+- O aviso `convenio_descoberto` sai na primeira descoberta oficial, sem esperar o Portal, e uma vez só: a confirmação posterior não repete (`numeros_ja_descobertos_oficialmente`). Os candidatos que já existiam em produção não geram aviso retroativo.
+- O card mostra o selo "Portal pendente · há N dias" (contado da descoberta) enquanto a análise está aberta.
+- O botão Aprovar aparece desabilitado até o Portal confirmar. A API também recusa: `preparar_revisao` devolve 409 com "Aprovar exige a confirmação do convênio no Portal da Transparência", mesmo que alguém chame a rota direto.
+- A recaptura continua exigindo a confirmação (`preparar_alvo_coleta`).
+
+Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, município, UF, região e ano, que alimentam filtros, mapa, relatórios e o cruzamento com o CNES. O espelho diário só atualiza campos do SICONV e nada preencheria esses buracos depois. A aba "Aguardando Portal" do plano deixou de ser necessária, porque o selo e a idade ficam na própria fila.
 
 > [!warning] A confirmar
-> A proposta muda a regra "sem fonte, não há seção" e substitui a aba "Aguardando Portal" prevista no plano: com o selo e a idade na própria fila, a aba deixa de ser necessária. Depende de decisão do produto. Mesmo com a proposta, a aprovação segue travada enquanto a recaptura não rodar em produção (seção 7).
+> A aprovação segue travada enquanto a recaptura não rodar em produção (seção 7).
 
 ## 19. Registro de funcionalidades (para a equipe marcar)
 
@@ -563,8 +569,8 @@ Pontos de código que hoje exigem `confirmacao_portal = 'confirmado'`: a base da
 | Popup de detalhe da atualização oficial (sino e Central) | Implementado em 22/11, só em commit local | |
 | Resumo único para a gestão acima de 10 convênios | Implementado em 22/11, só em commit local | |
 | Confirmação do Portal só com código e data | Implementada em 22/11, só em commit local | |
-| Radar antes do Portal (seção 18) | Proposta, aguarda decisão | |
-| Aba Aguardando Portal | Prevista no plano, substituída pela proposta da seção 18 se aprovada | |
+| Fila, contador e aviso sem esperar o Portal; selo Portal pendente; Aprovar travado até confirmar (seção 18) | Implementado em 22/11, só em commit local | |
+| Aba Aguardando Portal | Dispensada: o selo e a idade ficam na própria fila | |
 | Job de descoberta TransfereGov e avisos de proposta | Ativo no workflow | |
 
 ## 20. Código sem uso

@@ -6,6 +6,32 @@ import { CandidatoLegadoItensDialog } from "./candidato-legado-itens-dialog";
 import { estiloCard } from "./monitoramento-ui";
 import type { ReactNode } from "react";
 
+const MS_DIA = 86_400_000;
+
+function diasDesde(iso: string): number {
+  return Math.max(
+    0,
+    Math.floor((Date.now() - new Date(iso).getTime()) / MS_DIA),
+  );
+}
+
+/** Pendente do Portal: o candidato já aparece, mas só aprova depois da confirmação. */
+function PortalPendente({ candidato }: { candidato: CandidatoLegado }) {
+  const aberta =
+    candidato.situacao === "novo" || candidato.situacao === "em_analise";
+  if (!aberta || candidato.confirmacao_portal === "confirmado") return null;
+  const dias = diasDesde(candidato.descoberto_em);
+  return (
+    <Badge
+      variant="outline"
+      className="max-w-full whitespace-normal border-warning/25 bg-warning/10 text-xs text-warning"
+    >
+      Portal pendente ·{" "}
+      {dias === 0 ? "hoje" : `há ${dias} ${dias === 1 ? "dia" : "dias"}`}
+    </Badge>
+  );
+}
+
 function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <div className="min-w-0">
@@ -37,12 +63,15 @@ export function CandidatoLegadoItem({
           </h3>
           <CandidatoLegadoItensDialog candidato={candidato} />
         </div>
-        <Badge
-          variant="outline"
-          className={`max-w-full whitespace-normal text-xs ${CLASSES_SITUACAO[candidato.situacao]}`}
-        >
-          {ROTULOS_SITUACAO[candidato.situacao]}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <PortalPendente candidato={candidato} />
+          <Badge
+            variant="outline"
+            className={`max-w-full whitespace-normal text-xs ${CLASSES_SITUACAO[candidato.situacao]}`}
+          >
+            {ROTULOS_SITUACAO[candidato.situacao]}
+          </Badge>
+        </div>
       </div>
       <dl className="mt-3 space-y-2">
         <Campo rotulo="Componente" valor={componentes.join(" · ") || "—"} />

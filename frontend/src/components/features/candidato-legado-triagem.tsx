@@ -35,9 +35,18 @@ export function CandidatoLegadoTriagem({
           {podeDecidir &&
             aberta &&
             candidato.origem === "siconv_oficial" &&
-            candidato.confirmacao_portal === "confirmado" && (
+            (candidato.confirmacao_portal === "confirmado" ? (
               <CandidatoLegadoAprovacao candidato={candidato} />
-            )}
+            ) : (
+              <Button
+                type="button"
+                className="min-h-11 sm:min-h-8"
+                disabled
+                title="Libera quando o Portal da Transparência confirmar"
+              >
+                Aprovar
+              </Button>
+            ))}
           {podeDecidir && aberta && candidato.origem === "siconv_oficial" && (
             <Button
               type="button"

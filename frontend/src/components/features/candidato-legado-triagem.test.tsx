@@ -189,3 +189,10 @@ it("service rejeita decisão malformada antes de enviar", async () => {
     fetch.mock.calls.filter(([, init]) => init?.method === "POST"),
   ).toHaveLength(0);
 });
+
+it("sem confirmação do Portal o Aprovar fica desabilitado e Rejeitar segue livre", async () => {
+  preparar();
+  const aprovar = await screen.findByRole("button", { name: "Aprovar" });
+  expect(aprovar).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Rejeitar" })).toBeEnabled();
+});
