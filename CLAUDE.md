@@ -1425,7 +1425,7 @@ revisão em `docs/diagnosticos/revisao-prelancamento-2026-10-22.md`; procediment
   (mantém ao menos 3 íntegros), com checagem de backup íntegro nas últimas 24 h. Só roda na `master` (environment
   Production). Restauração: `backend/scripts/restaurar_backup.sh`. RPO de 24 h tem ciclo agendado comprovado em
   22/10; **RTO de 1 h segue não certificado** (medidos: restauração no Neon 848 s e deploy do Render; falta a troca de
-  `DATABASE_URL` e o teste funcional). Rotacionar a credencial do R2 antes de 20/11/2026.
+  `DATABASE_URL` e o teste funcional). Rotacionar antes de 21/05/2027 a credencial do R2 (token `sigeo-backup-github-actions`, TTL de 6 meses) **e** a validade da senha do role `sigeo_backup` (`ALTER ROLE ... VALID UNTIL`); as duas venceram em 20/11/2026 e pararam os backups até 22/11/2026.
 - **Agendamentos LIGADOS (conferido em 21/11/2026):** `pipelines.yml` e `radar_convenios.yml` rodam por cron porque as
   variáveis `ATUALIZACOES_PIPELINES_ATIVAS` e `ATUALIZACOES_RADAR_ATIVAS` estão `true` no GitHub desde 27/10/2026. Para
   suspender, trocar a variável para `false`. Escrevem em produção e geram notificações.

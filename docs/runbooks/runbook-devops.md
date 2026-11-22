@@ -232,8 +232,17 @@ Meta aprovada: **RPO ≤ 24 h** e **RTO ≤ 1 h**. O histórico nativo do Neon B
 `BACKUP_AGE_RECIPIENT`, `BACKUP_R2_ENDPOINT`, `BACKUP_R2_BUCKET`,
 `BACKUP_R2_ACCESS_KEY_ID`, `BACKUP_R2_SECRET_ACCESS_KEY`,
 `BACKUP_CREDENTIAL_EXPIRES_ON` (AAAA-MM-DD; o workflow avisa a 10 dias do
-vencimento e recusa rodar depois dele). A credencial atual expira em
-**20/11/2026**; rotacionar antes e atualizar a data.
+vencimento e recusa rodar depois dele). A credencial atual (token de conta
+`sigeo-backup-github-actions`, Object Read & Write só no bucket de backups, TTL de 6 meses)
+expira em **21/05/2027**; rotacionar antes e atualizar a data.
+
+**Duas validades andam juntas.** Além do token do R2, o role `sigeo_backup` no Neon tem a senha com
+validade (`rolvaliduntil`). Em 20/11/2026 as duas venceram e os backups pararam (último íntegro às
+10:07 UTC de 20/11). Foi corrigido em 22/11/2026: token novo, secrets gravados e
+`ALTER ROLE sigeo_backup VALID UNTIL '2027-05-21 23:59:59+00'`. Na próxima rotação, renovar as duas
+e conferir com `select rolname, rolvaliduntil from pg_roles where rolname = 'sigeo_backup'`.
+Sintomas: `A credencial do R2 expirou` (data do secret) ou `password authentication failed for user
+"sigeo_backup"` (validade do role).
 
 **Impacto no sistema:** o backup **não derruba nem pausa a aplicação**. O
 `pg_dump` lê um retrato consistente do banco e não bloqueia leituras nem
