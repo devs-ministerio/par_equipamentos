@@ -23,13 +23,13 @@ def candidato_sintetico(numero: str) -> CandidatoLegado:
     )
 
 
-def portal_sintetico(numero: str, *, completo: bool = True) -> ConvenioPortalTransparencia:
+def portal_sintetico(numero: str, *, completo: bool = True, esqueleto: bool = False) -> ConvenioPortalTransparencia:
     return ConvenioPortalTransparencia.model_validate(
         {
             "dimConvenio": {
-                "codigo": numero,
-                "numero": "1/2026" if completo else "",
-                "objeto": "Aquisição de tomógrafo" if completo else "",
+                "codigo": numero if completo else "",
+                "numero": "" if esqueleto else "1/2026",
+                "objeto": "" if esqueleto else "Aquisição de tomógrafo",
             },
             "dataPublicacao": "01/10/2026",
             "campo_ignorado": "valor-que-nao-deve-ir-ao-diagnostico",
@@ -67,3 +67,18 @@ def test_identidade_divergente_continua_abortando_o_lote(monkeypatch):
     with requests.Session() as sessao, pytest.raises(ValueError, match="identidade diferente"):
         job_descoberta_siconv.confirmar_candidatos([candidato_sintetico("123456")], sessao=sessao, rodada=rodada)
     assert rodada.detalhes == {}
+
+
+def test_numero_e_objeto_vazios_nao_impedem_a_confirmacao(monkeypatch):
+    # Caso real 7AAFSX: confirmar só consome codigo e dataPublicacao.
+    candidato = candidato_sintetico("123456")
+    monkeypatch.setattr(
+        job_descoberta_siconv,
+        "buscar_convenio_por_numero_dto",
+        lambda numero, session: portal_sintetico(numero, esqueleto=True),
+    )
+    rodada = CapturaEmAndamento(fonte="siconv_descoberta", iniciado_em=datetime.now(UTC))
+    with requests.Session() as sessao:
+        resultado = job_descoberta_siconv.confirmar_candidatos([candidato], sessao=sessao, rodada=rodada)
+    assert [c.confirmacao_portal for c in resultado] == ["confirmado"]
+    assert rodada.parcial is None and "confirmacoes_inconclusivas" not in rodada.detalhes

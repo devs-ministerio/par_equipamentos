@@ -89,25 +89,32 @@ def test_portal_ausente_sem_data_ou_identidade_divergente_nunca_confirma():
 
 @pytest.mark.parametrize("campo", ["numero", "objeto"])
 @pytest.mark.parametrize("valor", [None, "", "   "])
-def test_portal_com_codigo_e_data_mas_identidade_incompleta_nao_confirma(campo, valor):
-    # Arrange: formato incompleto observado no aceite nacional de 19/10.
+def test_portal_com_codigo_e_data_confirma_mesmo_sem_numero_ou_objeto(campo, valor):
+    # Formato observado no aceite nacional de 19/10 (7AAFSX). Confirmar só consome
+    # codigo e dataPublicacao; o contrato completo é exigido na recaptura e na aprovação.
     candidato = descobrir_legado([convenio(numero="7AAFSX")], [item()], conhecidos=set())[0]
     identidade = {"codigo": "7AAFSX", "numero": "1/2026", "objeto": "Aquisição de LINAC", campo: valor}
     portal = ConvenioPortalTransparencia.model_validate({"dimConvenio": identidade, "dataPublicacao": "01/10/2026"})
-    # Act / Assert: não converter evidência incompleta em confirmação.
-    with pytest.raises(ValidationError):
-        confirmar_no_portal(candidato, portal)
+    confirmado = confirmar_no_portal(candidato, portal)
+    assert confirmado.confirmacao_portal == "confirmado"
     assert candidato.confirmacao_portal == "nao_consultado"
 
 
 @pytest.mark.parametrize("campo", ["numero", "objeto"])
-def test_campo_de_identidade_omitido_nao_confirma(campo):
-    # Arrange
+@pytest.mark.parametrize("valor", [None, "", "   "])
+def test_contrato_completo_do_portal_continua_exigindo_numero_e_objeto(campo, valor):
+    from app.schemas_portal_legado import DimConvenioPortal
+
+    identidade = {"codigo": "7AAFSX", "numero": "1/2026", "objeto": "Aquisição de LINAC", campo: valor}
+    with pytest.raises(ValidationError):
+        DimConvenioPortal.model_validate(identidade)
+
+
+def test_portal_sem_codigo_nao_confirma():
     candidato = descobrir_legado([convenio()], [item()], conhecidos=set())[0]
-    identidade = {"codigo": "123456", "numero": "1/2026", "objeto": "Aquisição de LINAC"}
-    del identidade[campo]
-    portal = ConvenioPortalTransparencia.model_validate({"dimConvenio": identidade, "dataPublicacao": "01/10/2026"})
-    # Act / Assert
+    portal = ConvenioPortalTransparencia.model_validate(
+        {"dimConvenio": {"numero": "1/2026", "objeto": "x"}, "dataPublicacao": "01/10/2026"}
+    )
     with pytest.raises(ValidationError):
         confirmar_no_portal(candidato, portal)
 

@@ -4,14 +4,13 @@ from collections.abc import Iterable
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.equipamentos import CATALOGO_EQUIPAMENTOS, classificar_descricoes
 from app.pipeline.portal_transparencia import ConvenioPortalTransparencia
 from app.schemas_escopo_descoberta import ComponenteDescoberto
 from app.schemas_identidade_legado import NumeroConvenioLegado
 from app.schemas_legado import ItemDump as ItemDump
-from app.schemas_portal_legado import DimConvenioPortal
 
 
 class ConvenioDump(BaseModel):
@@ -107,8 +106,24 @@ def descobrir_legado(
     ]
 
 
+class DimConvenioConfirmacao(BaseModel):
+    """Só a identidade: confirmar não consome `numero` nem `objeto`, então não os exige.
+
+    O contrato completo (`DimConvenioPortal`) continua valendo onde o dado entra de fato (recaptura e aprovação).
+    Um registro do Portal com `numero`/`objeto` vazios ainda confirma publicação.
+    """
+
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+    codigo: NumeroConvenioLegado
+
+    @field_validator("codigo", mode="before")
+    @classmethod
+    def codigo_textual(cls, valor: str | int) -> str:
+        return str(valor)
+
+
 class PublicacaoPortal(BaseModel):
-    dimConvenio: DimConvenioPortal
+    dimConvenio: DimConvenioConfirmacao
     dataPublicacao: str | None = None
 
 

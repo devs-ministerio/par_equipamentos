@@ -1139,6 +1139,11 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
   (decisão do usuário, 03/11/2026; antes caía no broadcast para todo colaborador, o que espalhou 154 avisos de
   instrumentos sem dono em outubro). Aviso já enviado não foi alterado. `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
   `leitor` nunca entra em nenhum branch, mesmo sendo titular/suplente hipoteticamente.
+- **Confirmação do Portal por finalidade (22/11/2026)**: `descoberta_legado.confirmar_no_portal` valida só `codigo` e
+  `dataPublicacao` (`DimConvenioConfirmacao`); `numero`/`objeto` vazios (caso `7AAFSX`) já não derrubam a rodada. O contrato
+  completo (`DimConvenioPortal`, via `PortalLegadoCapturado`) segue exigido na recaptura e na aprovação. Portal sem `codigo`
+  continua `confirmacoes_inconclusivas` (rodada parcial, candidato não publicado). A revalidação do histórico não espera mais
+  por falha do Portal: ela usa só o SICONV. Sem estado novo nem migration (o plano previa `inconclusivo`; o existente bastou).
 - **Avisos do espelho SICONV (22/11/2026)**: `espelho_diff.mesmo_valor` compara campos identificadores (`NR_*`,
   `UG_RESPONSAVEL`) em forma canônica (sem `.`, `/`, `-`, espaço, nem zeros à esquerda): a fonte alternava `000.969` e
   `969` e gerava 80-110 avisos/dia. Rodada com até 10 convênios alterados avisa individualmente titular, suplente e gestão
