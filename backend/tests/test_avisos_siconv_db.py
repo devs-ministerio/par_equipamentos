@@ -48,9 +48,7 @@ def _usuario(db, role: UserRole) -> User:
 
 
 def _instrumento(db, titular: User | None) -> InstrumentoEquipamento:
-    inst = InstrumentoEquipamento(
-        nr_convenio=f"AVS{uuid4().hex[:8]}", nome_convenente="x", tipo_contratacao="Convênio"
-    )
+    inst = InstrumentoEquipamento(nr_convenio=f"AVS{uuid4().hex[:8]}", nome_convenente="x", tipo_contratacao="Convênio")
     db.add(inst)
     db.flush()
     if titular is not None:
@@ -60,9 +58,7 @@ def _instrumento(db, titular: User | None) -> InstrumentoEquipamento:
 
 
 def _quem_ve(db, notificacao_id: int) -> set[int]:
-    return {
-        d.usuario_id for d in db.query(NotificacaoDestinatario).filter_by(notificacao_id=notificacao_id).all()
-    }
+    return {d.usuario_id for d in db.query(NotificacaoDestinatario).filter_by(notificacao_id=notificacao_id).all()}
 
 
 def _avisos(instrumentos):

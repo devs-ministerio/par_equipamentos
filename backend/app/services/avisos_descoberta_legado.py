@@ -20,8 +20,7 @@ def planejar_avisos(
     numeros = {
         c.numero
         for c in candidatos
-        if c.criterio_escopo == "prioritarios_ms_celebrados_v2"
-        and c.orgao_superior == "36000"
+        if c.criterio_escopo == "prioritarios_ms_celebrados_v2" and c.orgao_superior == "36000"
     }
     return numeros - candidatos_repo.numeros_ja_descobertos_oficialmente(db, numeros)
 

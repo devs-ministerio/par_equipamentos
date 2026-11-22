@@ -13,7 +13,6 @@ Create Date: 2026-11-19 16:00:00.000000
 from typing import Sequence, Union
 
 from alembic import op
-
 from app.db.indices import INDICE_INAUGURACAO, garantir_indice_unico_inauguracao
 
 revision: str = "b9c0d1e2f3a4"

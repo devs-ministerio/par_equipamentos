@@ -84,7 +84,9 @@ def test_identificador_com_pontuacao_alternada_nao_conta_como_mudanca():
     assert diff_campos({"NR_LICITACAO": "02"}, {"NR_LICITACAO": "002"}) == {}
     assert diff_campos({"NR_LICITACAO": "092013"}, {"NR_LICITACAO": "00092013"}) == {}
     assert diff_campos({"NR_LICITACAO": "0022015"}, {"NR_LICITACAO": "022015"}) == {}
-    assert diff_campos({"NR_PROCESSO_LICITACAO": "23000.001/2024-11"}, {"NR_PROCESSO_LICITACAO": "230000012024-11"}) == {}
+    assert (
+        diff_campos({"NR_PROCESSO_LICITACAO": "23000.001/2024-11"}, {"NR_PROCESSO_LICITACAO": "230000012024-11"}) == {}
+    )
 
 
 def test_identificador_diferente_de_verdade_continua_avisado():

@@ -38,12 +38,16 @@ from app.db.base import SessionLocal
 from app.db.models import Convenio, InstrumentoEquipamento, Notificacao, NotificacaoTipo
 from app.pipeline.texto import parsear_valor_brasileiro
 from app.repositories.espelho_siconv import bloquear_escopo_atual, numeros_oficiais_conhecidos
-from app.repositories.notificacoes import criar_notificacao, ids_gestao, ids_responsaveis_ativos
+from app.repositories.notificacoes import (
+    PREFIXO_DEDUP_RESUMO_SICONV,
+    criar_notificacao,
+    ids_gestao,
+    ids_responsaveis_ativos,
+)
 from app.rotulos_siconv import rotulo_campo_siconv
 from app.schemas_filhas_legado import chave_termo_aditivo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.espelho_diff import DiffLista, diff_lista, mesclar_lista, mesmo_valor
-from app.repositories.notificacoes import PREFIXO_DEDUP_RESUMO_SICONV
 from app.services.projecao_legado import _data_siconv
 
 # Reaproveita os helpers ja existentes de scripts/coletar_siconv_legado.py
