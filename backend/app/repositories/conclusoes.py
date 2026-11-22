@@ -9,7 +9,14 @@ from sqlalchemy import func, select, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from app.db.models import AcaoMonitoramento, ConclusaoInstrumento, InstrumentoEquipamento, ItemPlano
+from app.db.models import (
+    AcaoMonitoramento,
+    ConclusaoInstrumento,
+    EventoMarco,
+    InstrumentoEquipamento,
+    ItemPlano,
+    MarcoCatalogo,
+)
 
 LIMITE_ACOES = 50
 ESPERA_TRAVA_INSTRUMENTO = "5s"
@@ -30,6 +37,20 @@ def bloquear_instrumento(db: Session, instrumento_id: int) -> None:
         if getattr(exc.orig, "sqlstate", None) == "55P03":
             raise InstrumentoEmUso from exc
         raise
+
+
+def eventos_concluido_legado(db: Session, instrumento_id: int) -> list[EventoMarco]:
+    """Evento antigo `fase_concluido` ainda ativo: conta como concluído até a migração para a conclusão confirmada."""
+    return list(
+        db.execute(
+            select(EventoMarco).where(
+                EventoMarco.instrumento_id == instrumento_id,
+                EventoMarco.substituido_por_id.is_(None),
+                EventoMarco.deletado_em.is_(None),
+                EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo == "fase_concluido")),
+            )
+        ).scalars()
+    )
 
 
 def obter_ativa(db: Session, instrumento_id: int) -> ConclusaoInstrumento | None:

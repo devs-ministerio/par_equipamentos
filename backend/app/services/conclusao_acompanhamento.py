@@ -11,12 +11,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
 from app.authz import assert_pode_editar_instrumento, usuario_pode_editar_instrumento
-from app.db.models import ConclusaoInstrumento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo, User
+from app.db.models import ConclusaoInstrumento, EventoMarco, InstrumentoEquipamento, User
 from app.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.equipamentos import nome_curto_do_item
 from app.repositories import conclusoes as repo
@@ -80,20 +79,6 @@ def _instrumento_ou_404(db: Session, nr_convenio: str) -> InstrumentoEquipamento
     return instrumento
 
 
-def _eventos_concluido_legado(db: Session, instrumento_id: int) -> list[EventoMarco]:
-    """Evento antigo `fase_concluido` ainda ativo: conta como concluído até a migração para a conclusão confirmada."""
-    return list(
-        db.execute(
-            select(EventoMarco).where(
-                EventoMarco.instrumento_id == instrumento_id,
-                EventoMarco.substituido_por_id.is_(None),
-                EventoMarco.deletado_em.is_(None),
-                EventoMarco.marco_id.in_(select(MarcoCatalogo.id).where(MarcoCatalogo.codigo == "fase_concluido")),
-            )
-        ).scalars()
-    )
-
-
 def _ler_legado(evento: EventoMarco) -> ConclusaoRead:
     """Conclusão antiga (evento `fase_concluido`) apresentada como conclusão, para a tela oferecer Reabrir."""
     return ConclusaoRead(
@@ -118,7 +103,7 @@ def assert_nao_concluido(db: Session, instrumento_id: int) -> None:
     Trava o instrumento antes de checar: quem grava espera a conclusão terminar (e a vê), e a conclusão
     espera quem grava (e vê a pendência nova)."""
     travar_instrumento(db, instrumento_id)
-    if repo.existe_ativa(db, instrumento_id) or _eventos_concluido_legado(db, instrumento_id):
+    if repo.existe_ativa(db, instrumento_id) or repo.eventos_concluido_legado(db, instrumento_id):
         raise ConflictError("O acompanhamento está concluído. Reabra-o para alterar o instrumento.")
 
 
@@ -183,7 +168,7 @@ def avaliar_conclusao(*, nr_convenio: str, db: Session, usuario: User) -> Avalia
     itens = _itens_controlados(db, instrumento.id)
     resultado = calcular_resultado(itens)
     ativa = repo.obter_ativa(db, instrumento.id)
-    legados = [] if ativa else _eventos_concluido_legado(db, instrumento.id)
+    legados = [] if ativa else repo.eventos_concluido_legado(db, instrumento.id)
     return AvaliacaoConclusaoRead(
         nr_convenio=nr_convenio,
         pode_editar=usuario_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id)),
@@ -278,7 +263,7 @@ def reabrir_acompanhamento(*, nr_convenio: str, dados: ReaberturaCreate, db: Ses
     assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
     travar_instrumento(db, instrumento.id)
     conclusao = repo.obter_ativa(db, instrumento.id)
-    legados = _eventos_concluido_legado(db, instrumento.id)
+    legados = repo.eventos_concluido_legado(db, instrumento.id)
     if conclusao is None and not legados:
         raise NotFoundError("O acompanhamento não está concluído.")
     motivo = dados.motivo.strip()
