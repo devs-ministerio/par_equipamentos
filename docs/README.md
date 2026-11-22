@@ -13,8 +13,8 @@ Para stack e como rodar, veja o [README da raiz](../README.md). Regras e pegadin
 | [database/](database/) | Modelo ER (`modelo_er.md` e `.mermaid`, lido por `auditar_drift_schema.py`) | Schema |
 | [design/](design/) | Histórico de produto (não é o estado atual do app) | Contexto de produto |
 | [monitoramento-equipamentos/](monitoramento-equipamentos/) | Fontes de ingestão e guia SICONV | Ingestão de dados |
-| [referencias/](referencias/) | Material de referência normativa | Consulta |
-| [assets/](assets/) | Imagens e GeoJSON de apoio | Uso por código e docs |
+| [referencias/](referencias/) | Avaliação de radiofármacos PET-CT e captura do tooltip do parâmetro do acelerador | Consulta |
+| [assets/](assets/) | Infográfico do modelo de monitoramento (atual e futuro, com SIMRAD) e GeoJSON das macrorregiões | Uso por código e docs |
 | [prototipo/](prototipo/) | Protótipo HTML anterior ao app | Histórico |
 
 Documentos datados em `planos/` e `diagnosticos/` são registro do momento: não se reescrevem. Mudou o estado atual, atualize o documento vivo (`arquitetura/`, `mermaid/`, `metodologia-parametros.md`).
