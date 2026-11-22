@@ -31,7 +31,7 @@ regrediu; todos os achados P0/P1/P2 abaixo que não foram citados como resolvido
 
 ### Atualização 2026-09-17 (correção pós-consolidação)
 
-`docs/arquitetura/planmode-consolidacao-2026-09-17.md` reconferiu os achados P0 abaixo contra o
+`docs/planos/planmode-consolidacao-2026-09-17.md` reconferiu os achados P0 abaixo contra o
 código atual (não só releu este documento) e encontrou 3 dos 4 P0 já fechados por
 `planmode-database-2026-09-17.md`, que rodou depois deste diagnóstico ter sido escrito mas antes da
 consolidação — a redação abaixo não tinha sido atualizada para refletir isso. Confirmado no código:

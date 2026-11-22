@@ -172,5 +172,5 @@ entrega do Plan Mode.
 ## Execução
 
 Blocos A-E implementados em 2026-09-17, na ordem acima. Detalhe do que mudou em cada arquivo:
-`docs/arquitetura/diagnostico-constituicao-backend-2026-09-16.md`, seção "Execução (2026-09-17,
+`docs/diagnosticos/diagnostico-constituicao-backend-2026-09-16.md`, seção "Execução (2026-09-17,
 Plan Mode backend)".

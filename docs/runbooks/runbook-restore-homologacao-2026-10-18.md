@@ -2,7 +2,7 @@
 
 ## Escopo e limite do aceite
 
-Estratégia ligada ao [plan-mode de espelho/notificações aprovado](planmode-espelho-notificacoes-2026-10-06.md). O ensaio usa
+Estratégia ligada ao [plan-mode de espelho/notificações aprovado](../planos/planmode-espelho-notificacoes-2026-10-06.md). O ensaio usa
 somente bancos `sigeo_test_migrations_<UUID>` recém-criados, identidades
 sintéticas e roles exclusivas. Não é um comando de recuperação de produção.
 Não executar os helpers contra um clone preservado ou serviço em uso.

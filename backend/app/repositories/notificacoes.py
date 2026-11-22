@@ -1,6 +1,6 @@
 """Acesso a dados de Notificacao / NotificacaoDestinatario.
 
-Ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md pra regra
+Ver docs/planos/planmode-notificacoes-escopo-2026-09-25.md pra regra
 completa de escopo por destinatário.
 """
 

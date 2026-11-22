@@ -1,4 +1,4 @@
-"""Formatação pt-BR pra exibição em relatório (Plan Mode docs/arquitetura/
+"""Formatação pt-BR pra exibição em relatório (Plan Mode docs/planos/
 planmode-relatorios-2026-09-25.md, Bloco 5) -- usada só no Word (texto puro
 em tabela/parágrafo); no Excel o valor cru é preservado (sortável/somável)
 e a aparência vem de `Worksheet.cell.number_format`, ver `xlsx_builder.py`.

@@ -18,7 +18,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { useAvisoNovoInstrumento } from "@/hooks/use-aviso-novo-instrumento";
 import type { Notificacao } from "@/services/notificacoes";
 
-/** Sino de notificação (docs/arquitetura/
+/** Sino de notificação (docs/planos/
  * planmode-notificacoes-escopo-2026-09-25.md) -- 4 tipos misturados na mesma
  * lista (proposta_candidata/atualizacao_api/edicao_manual/alerta_vigencia).
  * Escopo por destinatário resolvido no backend (titular/suplente do

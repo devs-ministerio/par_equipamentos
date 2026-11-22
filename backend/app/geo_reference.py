@@ -3,7 +3,7 @@
 Nao e dado de negocio -- nao muda, nao vem do banco. Espelha
 `frontend/src/data/geo-reference.ts::UF_INFO` (fonte historica dessa
 mesma referencia, so com nome/regiao, sem estado). Vira fonte oficial pro
-backend com o Plan Mode de relatorios (docs/arquitetura/
+backend com o Plan Mode de relatorios (docs/planos/
 planmode-relatorios-2026-09-25.md, Bloco 1): nenhuma tabela do SISGEO
 persiste "grande regiao" de forma confiavel entre os dominios (Convenio,
 InstrumentoEquipamento, equipment_offer_row) -- por isso a regiao e sempre

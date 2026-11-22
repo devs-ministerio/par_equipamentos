@@ -16,7 +16,7 @@ docstring de `EventoMarco` em `app/db/models.py`). 4 fontes fecham isso:
 2. ``Controle PERSUS.xlsx``, abas **Pagamentos**/**Fiscalização** --
    pagamentos individuais de obra (match pelo código "Cod." da aba Obras,
    validado cruzado por UF + overlap de nome -- ver
-   `docs/arquitetura/planmode-relatorios-2026-09-25.md`) e de fiscalização
+   `docs/planos/planmode-relatorios-2026-09-25.md`) e de fiscalização
    (match por nome+UF, fuzzy). Grava em `pagamento_obra_persus`.
 3. ``Entregas_aceleradores_lineares_PERSUS_PRONON_CONV.xlsx``, aba
    **CONVÊNIO** -- licença/inauguração/valor global por CNES direto (essa

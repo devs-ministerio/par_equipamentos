@@ -1,5 +1,5 @@
 """app/geo_reference.py -- mapa oficial UF -> grande regiao para os relatorios
-(Plan Mode docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 1)."""
+(Plan Mode docs/planos/planmode-relatorios-2026-09-25.md, Bloco 1)."""
 
 from __future__ import annotations
 

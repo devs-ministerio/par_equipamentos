@@ -1,6 +1,6 @@
 # Monitoramento por item e unidade — plano detalhado (23/10/2026)
 
-Detalha, etapa por etapa, o [plano de monitoramento por item](planmode-monitoramento-itens-equipamentos-2026-10-20.md) com as respostas do usuário de 23/10. Posição na ordem geral: trilha B do [plano unificado](planmode-homologacao-unificado-2026-10-23.md). Base de dados: [inventário](inventario-itens-equipamento-2026-10-22.md), medido na cópia de 17/10 (não é a produção). **Nada aqui foi implementado.** Tudo acontece na `homologacao`; cada etapa é um PR com base nela.
+Detalha, etapa por etapa, o [plano de monitoramento por item](planmode-monitoramento-itens-equipamentos-2026-10-20.md) com as respostas do usuário de 23/10. Posição na ordem geral: trilha B do [plano unificado](planmode-homologacao-unificado-2026-10-23.md). Base de dados: [inventário](../arquitetura/inventario-itens-equipamento-2026-10-22.md), medido na cópia de 17/10 (não é a produção). **Nada aqui foi implementado.** Tudo acontece na `homologacao`; cada etapa é um PR com base nela.
 
 ## 0. Decisões fechadas
 

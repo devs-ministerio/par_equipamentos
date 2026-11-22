@@ -1,6 +1,6 @@
 # Inventário de itens de equipamento — Bloco 0 do monitoramento por item (22/10/2026)
 
-Evidência para o [plano de monitoramento por item e equipamento físico](planmode-monitoramento-itens-equipamentos-2026-10-20.md). Somente leitura, sobre a cópia protegida `sigeo_homologacao_clone_20261017` (revisão `b7f35c806e4a`, 248 instrumentos monitorados e 560 convênios, anterior ao release; **não é a produção**, que tem 292 instrumentos monitorados). Nenhum dado de produção foi lido nem alterado.
+Evidência para o [plano de monitoramento por item e equipamento físico](../planos/planmode-monitoramento-itens-equipamentos-2026-10-20.md). Somente leitura, sobre a cópia protegida `sigeo_homologacao_clone_20261017` (revisão `b7f35c806e4a`, 248 instrumentos monitorados e 560 convênios, anterior ao release; **não é a produção**, que tem 292 instrumentos monitorados). Nenhum dado de produção foi lido nem alterado.
 
 ## De onde vem o item individual
 

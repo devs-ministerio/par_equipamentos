@@ -6,7 +6,7 @@ import { MetodologiaPage } from "./metodologia-page";
 
 /**
  * Página de Relatórios da Análise de Mérito -- geração do relatório de
- * cobertura/déficit oncológico (Plan Mode docs/arquitetura/
+ * cobertura/déficit oncológico (Plan Mode docs/planos/
  * planmode-relatorios-2026-09-25.md, Bloco 6: "o relatório de análise de
  * mérito deve ficar onde já construímos os botões") + a Metodologia (que
  * antes tinha item próprio no menu, virou seção aqui). O relatório de

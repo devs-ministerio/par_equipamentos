@@ -96,7 +96,7 @@ Decisões já tomadas:
 | G3 | Este documento revisado ao fechar cada PR | contínua | estados atualizados |
 
 ### H. Observabilidade, triagem diária e métricas de uso (sessão de 26 a 28/10/2026)
-Origem: conversa em que se montou a triagem diária de alertas e se investigou a banda do Render. Contexto de base: [monitoramento Render/Neon](monitoramento-render-neon-2026-10-18.md), [incidente de 23/10](incidente-api-neondb-owner-2026-10-23.md) e a seção Observabilidade do [runbook](runbook-devops.md). Nada abaixo foi alterado em produção, no código ou nos monitores; só houve leitura (Gmail, Render, Neon, banco em transação somente leitura).
+Origem: conversa em que se montou a triagem diária de alertas e se investigou a banda do Render. Contexto de base: [monitoramento Render/Neon](../arquitetura/monitoramento-render-neon-2026-10-18.md), [incidente de 23/10](../diagnosticos/incidente-api-neondb-owner-2026-10-23.md) e a seção Observabilidade do [runbook](../runbooks/runbook-devops.md). Nada abaixo foi alterado em produção, no código ou nos monitores; só houve leitura (Gmail, Render, Neon, banco em transação somente leitura).
 
 | ID | Pendência | Estado | Critério de pronto |
 |----|-----------|--------|--------------------|

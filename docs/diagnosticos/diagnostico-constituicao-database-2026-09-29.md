@@ -88,7 +88,7 @@ configuração caso o role precise ser recriado. Gap de reprodutibilidade, não 
 
 ### P2 (persistente desde 09-28) — ensaio `pg_dump`/`pg_restore` de migração de servidor
 
-Runbook completo (`docs/arquitetura/runbook-devops.md`), mas nunca executado — distinto do
+Runbook completo (`docs/runbooks/runbook-devops.md`), mas nunca executado — distinto do
 PITR, que já foi testado com sucesso.
 
 ## Próximo Plan Mode

@@ -2104,7 +2104,7 @@ class Notificacao(Base):
     Quem VE cada notificacao e resolvido em
     app/repositories/notificacoes.py::resolver_destinatarios (materializado
     em NotificacaoDestinatario no momento do insert, nao em tempo de
-    leitura) -- ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md.
+    leitura) -- ver docs/planos/planmode-notificacoes-escopo-2026-09-25.md.
 
     `lida` (coluna abaixo) esta DEPRECATED desde o mesmo Plan Mode -- estado
     de leitura agora vive por usuario em NotificacaoDestinatario.lida, nao
@@ -2152,7 +2152,7 @@ class NotificacaoDestinatario(Base):
     compartilhado pela equipe toda. Materializado no INSERT da notificacao
     (app/repositories/notificacoes.py::resolver_destinatarios), nao
     calculado em tempo de leitura -- ver
-    docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md pra regra
+    docs/planos/planmode-notificacoes-escopo-2026-09-25.md pra regra
     completa de quem entra em cada tipo (titular/suplente via
     InstrumentoResponsavel + gestor/admin sempre; broadcast pra colaborador
     quando nao ha instrumento monitorado; leitor nunca entra)."""

@@ -5,7 +5,7 @@ Módulos: `relatorios_filtro` (filtro, rótulos e constantes), `relatorios_recor
 (análise de mérito). Aqui ficam `montar_relatorio` e a reexportação dos nomes que routers e testes já usavam.
 
 Orquestra a geração dos relatórios Excel/Word -- Plan Mode
-docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 2, 4 e 5.
+docs/planos/planmode-relatorios-2026-09-25.md, Blocos 2, 4 e 5.
 
 Dois relatórios INDEPENDENTES (pedido do usuário 2026-09-26: "separar o
 relatório de instrumentos e repasse do relatório de análise de mérito"):

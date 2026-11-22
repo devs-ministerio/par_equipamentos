@@ -1,5 +1,5 @@
 """app/reports/docx_builder.py -- builder generico de documento (Plan Mode
-docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 1)."""
+docs/planos/planmode-relatorios-2026-09-25.md, Bloco 1)."""
 
 from __future__ import annotations
 

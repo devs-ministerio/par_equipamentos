@@ -51,7 +51,7 @@ Não fazer rollback para um destino `/health/live` ausente na versão anterior.
 
 ## Atualização de 23/10/2026 — o que o incidente da `DATABASE_URL` mostrou
 
-Contexto: [incidente de 23/10](incidente-api-neondb-owner-2026-10-23.md). A troca da senha do `neondb_owner` derrubou a API (`/health` 500, `/health/live` 200) e o problema só foi percebido de manhã.
+Contexto: [incidente de 23/10](../diagnosticos/incidente-api-neondb-owner-2026-10-23.md). A troca da senha do `neondb_owner` derrubou a API (`/health` 500, `/health/live` 200) e o problema só foi percebido de manhã.
 
 ### Estado verificado no New Relic (conta 8544864, em 23/10, só leitura)
 
@@ -103,7 +103,7 @@ O usuário passou a rodar uma triagem diária, somente leitura, sobre a caixa de
 
 | Item da triagem | Estado real |
 |---|---|
-| Backup agendado falhou em 23/10 07:38 UTC | **Real e grave.** `pg_dump: permission denied for table fonte_captura`: tabelas novas ficaram com dono e permissões errados. Sem backup válido por cerca de 12 horas. Corrigido no mesmo dia; ver [incidente](incidente-api-neondb-owner-2026-10-23.md). **Foi a triagem que expôs isso.** |
+| Backup agendado falhou em 23/10 07:38 UTC | **Real e grave.** `pg_dump: permission denied for table fonte_captura`: tabelas novas ficaram com dono e permissões errados. Sem backup válido por cerca de 12 horas. Corrigido no mesmo dia; ver [incidente](../diagnosticos/incidente-api-neondb-owner-2026-10-23.md). **Foi a triagem que expôs isso.** |
 | Alerta "falha de prontidão do banco" aberto | **Já fechado.** O New Relic não tinha issue ativo; a triagem viu só o e-mail de ativação e nenhum de fechamento. |
 | Backend CI falhou no commit 118499a | **Obsoleto.** O run foi substituído; os commits seguintes do PR passaram em todos os workflows. |
 
@@ -129,7 +129,7 @@ A triagem passa a **verificar o estado atual**, usando o e-mail só como pista, 
 | 6 | **Neon** | consumo de CU-h e armazenamento contra o plano | acima de 80% do plano |
 | 7 | **Segurança da conta** | manter a leitura dos alertas do Google | qualquer alerta novo, para confirmação humana |
 
-O texto pronto para colar na rotina está em [triagem-diaria-instrucoes.md](triagem-diaria-instrucoes.md).
+O texto pronto para colar na rotina está em [triagem-diaria-instrucoes.md](../runbooks/triagem-diaria-instrucoes.md).
 
 Regras de severidade:
 - O que o **estado confirma** como falha (itens 1 a 5) é prioridade máxima e vai para o push do celular; o resto fica no resumo diário.

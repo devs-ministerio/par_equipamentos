@@ -89,7 +89,7 @@ function opcoesUnicas(
  * Relatório de Instrumentos e Repasse -- convênios firmados, propostas
  * candidatas (linhas de financiamento) e monitoramento interno numa
  * chamada só (`GET /relatorios`), em Excel ou Word (Plan Mode
- * docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 6 e 7).
+ * docs/planos/planmode-relatorios-2026-09-25.md, Blocos 6 e 7).
  *
  * Mesmos filtros de "Instrumentos e repasses" (Dados Oficiais,
  * `monitoramento-equipamentos-page.tsx`) -- pedido do usuário: "coloque os

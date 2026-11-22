@@ -23,12 +23,12 @@ Este documento **liga** os planos que estavam soltos e define a ordem de execuç
 
 | Trilha | Plano de origem | Estado | Precisa de decisão? |
 |---|---|---|---|
-| **A. Identidade SISGEO** | [identidade-sisgeo](planmode-identidade-sisgeo-2026-10-20.md), [inventário](inventario-sisgeo-2026-10-23.md) | Bloco 0 feito (PR #44); decisões tomadas | Não |
-| **B. Monitoramento por item e unidade** | [itens-equipamentos](planmode-monitoramento-itens-equipamentos-2026-10-20.md), [inventário](inventario-itens-equipamento-2026-10-22.md) | Bloco 0 quase fechado | **Sim, ver seção 5** |
+| **A. Identidade SISGEO** | [identidade-sisgeo](planmode-identidade-sisgeo-2026-10-20.md), [inventário](../arquitetura/inventario-sisgeo-2026-10-23.md) | Bloco 0 feito (PR #44); decisões tomadas | Não |
+| **B. Monitoramento por item e unidade** | [itens-equipamentos](planmode-monitoramento-itens-equipamentos-2026-10-20.md), [inventário](../arquitetura/inventario-itens-equipamento-2026-10-22.md) | Bloco 0 quase fechado | **Sim, ver seção 5** |
 | **C. Relatórios e apresentação** | [execução, Fase 5 item 0](planmode-execucao-producao-2026-10-22.md), PR #38 | #38 pronto, em espera; visão "Todos" sem plano de tela | Escopo da tela "Todos" |
 | **D. Qualidade e governança de dados** | [governança](planmode-governanca-dados-2026-09-28.md), [normalização](planmode-normalizacao-database-2026-09-28.md) | CHECKs de CNPJ fechadas; `fonte_dado_id` ainda não é gravado; 113 de 292 instrumentos sem titular | Atribuição de titulares é da equipe |
 | **E. Espelho, Radar e notificações** | [espelho](planmode-espelho-notificacoes-2026-10-06.md) (etapas 3 a 6) | Em produção; faltam recaptura validada nas fontes reais, ciclo nacional com candidato elegível e ativação gradual dos jobs | Autorização por job |
-| **F. Operação e observabilidade (produção)** | [execução, pendências](planmode-execucao-producao-2026-10-22.md), [monitoramento](monitoramento-render-neon-2026-10-18.md) | Triagem diária por estado (PR #43); push do celular vinculado | Canal extra, segundo destinatário |
+| **F. Operação e observabilidade (produção)** | [execução, pendências](planmode-execucao-producao-2026-10-22.md), [monitoramento](../arquitetura/monitoramento-render-neon-2026-10-18.md) | Triagem diária por estado (PR #43); push do celular vinculado | Canal extra, segundo destinatário |
 
 A trilha F é de **produção**, não de homologação; está aqui só para aparecer no mesmo mapa e porque algumas peças dela são pré-requisito das outras (ver dependências).
 

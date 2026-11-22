@@ -47,4 +47,4 @@ A execução deste plano gravou FAF/TED/PERSUS I/PERSUS II/PRONON só em `instru
 `convenio` ("Instrumentos firmados") para todos eles — só permanecem também no monitoramento
 interno o que a equipe já acompanhava (Convênio/FAF/TED) e PERSUS I ainda não inaugurado. Detalhe
 completo, migration e script de correção em
-`docs/arquitetura/diagnostico-ingestao-dados-2026-09-18.md` ("Correção de escopo").
+`docs/diagnosticos/diagnostico-ingestao-dados-2026-09-18.md` ("Correção de escopo").

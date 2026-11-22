@@ -1,7 +1,7 @@
 # Diagnóstico da Constituição de Segurança — 2026-09-16
 
 > **Fechamento do bloco (2026-09-17)**: os 4 P0 e a maior parte dos P1 deste diagnóstico foram
-> resolvidos via `docs/arquitetura/planmode-seguranca-2026-09-16.md`, Blocos 1, 2, 4 e 5 (completos)
+> resolvidos via `docs/planos/planmode-seguranca-2026-09-16.md`, Blocos 1, 2, 4 e 5 (completos)
 > e Bloco 3 (parcial — estrutura movida para o Service, matriz de role/escopo por técnico/UF segue
 > como decisão de produto pendente). Ver "Fechamento do bloco segurança (2026-09-17)" no fim deste
 > documento para o detalhe achado a achado e a validação executada (testes automatizados + fluxo
@@ -534,7 +534,7 @@ sem essa decisão.
 
 ## Fechamento do bloco segurança (2026-09-17)
 
-Implementação de `docs/arquitetura/planmode-seguranca-2026-09-16.md`, Blocos 1, 2, 3 (parcial), 4 e
+Implementação de `docs/planos/planmode-seguranca-2026-09-16.md`, Blocos 1, 2, 3 (parcial), 4 e
 5, em 4 commits (`5bc60a5`, `a6cc725`, `ca1e5ad`, `ea4bd3f`, branch `feat/equipamento-em-uso`).
 
 **O que fechou, resumido** (detalhe achado a achado nas seções acima):

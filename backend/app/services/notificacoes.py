@@ -1,5 +1,5 @@
 """Casos de uso de notificações (Radar de Convênios + monitoramento interno +
-alerta de vigência). Ver docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md."""
+alerta de vigência). Ver docs/planos/planmode-notificacoes-escopo-2026-09-25.md."""
 
 from __future__ import annotations
 

@@ -192,7 +192,7 @@ Ao concluir cada fase, atualizar no mesmo PR:
 - `AGENTS.md`: retirar a contagem/destino histórico de 21 PRONON e a afirmação
   de que PERSUS/PRONON entram pelo mesmo importador; refletir os universos
   vigentes.
-- `docs/arquitetura/diagnostico-constituicao-database-2026-09-21.md` e
+- `docs/diagnosticos/diagnostico-constituicao-database-2026-09-21.md` e
   `diagnostico-ingestao-dados-2026-09-21.md`: marcar achados fechados com
   evidência, sem reescrever o histórico.
 - `docs/database/modelo_er.md` e `modelo_er.mermaid`: confirmar constraints e

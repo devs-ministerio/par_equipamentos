@@ -1,4 +1,4 @@
-"""Geração de relatórios Excel/Word -- Plan Mode docs/arquitetura/
+"""Geração de relatórios Excel/Word -- Plan Mode docs/planos/
 planmode-relatorios-2026-09-25.md, Blocos 2 e 4.
 
 GET (não POST): é leitura sem mudança de estado -- evita exigir o header

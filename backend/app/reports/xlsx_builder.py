@@ -1,5 +1,5 @@
 """Builder generico de planilhas .xlsx para os relatorios (Plan Mode
-docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 1).
+docs/planos/planmode-relatorios-2026-09-25.md, Bloco 1).
 
 Modulo puro: recebe dado ja formatado, devolve bytes. Sem FastAPI/DB --
 quem monta o dado (Bloco 2, services/relatorios.py) decide o que entra em

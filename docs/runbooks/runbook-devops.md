@@ -117,7 +117,7 @@ antes de promovê-la.
   para o coletor. A única telemetria HTTP encaminhada é o evento
   `sigeo.http`, que contém método, caminho sem querystring, status, duração e
   `trace_id` aleatório — nunca corpo, cabeçalhos, usuário ou token.
-- A [política de retenção de observabilidade](politica-retencao-observabilidade.md)
+- A [política de retenção de observabilidade](../arquitetura/politica-retencao-observabilidade.md)
   define os prazos efetivos, minimização, acesso e resposta a eventual envio
   indevido. Em 23/09/2026, a conta New Relic confirmou 30 dias para `Log`, 8
   dias para APM/erros/traces e 395 dias para dados de Synthetic; não use logs
@@ -417,7 +417,7 @@ psql "$ADMIN_DATABASE_URL" --no-psqlrc -1 -v ON_ERROR_STOP=1 \
 
 ## Trocar a senha de um role do banco (regra após o incidente de 23/10/2026)
 
-A troca da senha do `neondb_owner` derrubou a API porque o Render ainda a usava (ver [incidente](incidente-api-neondb-owner-2026-10-23.md)). Antes de resetar qualquer role:
+A troca da senha do `neondb_owner` derrubou a API porque o Render ainda a usava (ver [incidente](../diagnosticos/incidente-api-neondb-owner-2026-10-23.md)). Antes de resetar qualquer role:
 
 1. **Inventariar os usos pelo nome do usuário**, não pela documentação: variável `DATABASE_URL` do Render, secrets do repositório e do environment `Production` no GitHub (`DATABASE_URL`, `DATABASE_URL_MIGRATION`, `BACKUP_DATABASE_URL`), variáveis da Vercel, `.env` locais e jobs agendados. Só o usuário que vê os valores consegue conferir o usuário de cada string.
 2. **Ter a string nova pronta** para cada ponto de uso e trocá-las na mesma janela, começando pelo Render.

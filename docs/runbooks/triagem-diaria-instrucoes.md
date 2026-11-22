@@ -1,6 +1,6 @@
 # Instruções da triagem diária do SIGEO
 
-Texto para colar na rotina de triagem diária. Origem: [monitoramento Render/Neon](monitoramento-render-neon-2026-10-18.md), seção "Triagem diária de e-mail". Atualizar este arquivo quando um limite ou um endereço mudar.
+Texto para colar na rotina de triagem diária. Origem: [monitoramento Render/Neon](../arquitetura/monitoramento-render-neon-2026-10-18.md), seção "Triagem diária de e-mail". Atualizar este arquivo quando um limite ou um endereço mudar.
 
 ---
 

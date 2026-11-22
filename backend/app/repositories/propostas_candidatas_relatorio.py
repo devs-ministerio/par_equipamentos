@@ -1,5 +1,5 @@
 """Acesso a PropostaCandidata pra o relatório de instrumentos e repasse
-(Plan Mode docs/arquitetura/planmode-relatorios-2026-09-25.md, Bloco 4) --
+(Plan Mode docs/planos/planmode-relatorios-2026-09-25.md, Bloco 4) --
 "linhas de financiamento" ainda não viradas convênio (TransfereGov novo).
 
 Independente de `app/repositories/propostas_candidatas.py::FiltrosPropostaCandidata`

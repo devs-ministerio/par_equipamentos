@@ -10,7 +10,7 @@ const PRAZO_EXPORTACAO_MS = 90_000;
 
 // ---------------------------------------------------------------------
 // Relatórios Excel/Word (backend/app/routers/relatorios.py) -- Plan Mode
-// docs/arquitetura/planmode-relatorios-2026-09-25.md, Blocos 3, 6 e 7.
+// docs/planos/planmode-relatorios-2026-09-25.md, Blocos 3, 6 e 7.
 // ---------------------------------------------------------------------
 
 export type EscopoRelatorio = "brasil" | "regiao" | "uf" | "municipio" | "cnes";

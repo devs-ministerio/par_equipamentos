@@ -2,7 +2,7 @@
 
 ## Objetivo e conclusão
 
-Executar 100% das pendências do [diagnóstico de qualidade de 2026-09-24](diagnostico-constituicao-qualidade-2026-09-24.md) e tornar a Constituição de Testes & Qualidade uma política mensurável e bloqueante.
+Executar 100% das pendências do [diagnóstico de qualidade de 2026-09-24](../diagnosticos/diagnostico-constituicao-qualidade-2026-09-24.md) e tornar a Constituição de Testes & Qualidade uma política mensurável e bloqueante.
 
 O plano só estará concluído quando a cobertura for medida e bloqueada por camada, os cenários centrais SUS/em uso não dependerem de `skip`, os contratos HTTP tiverem matriz auditável, E2E crítico rodar no CI e todos os gates terminarem sem warnings. Não reduzir thresholds para acomodar a base atual.
 

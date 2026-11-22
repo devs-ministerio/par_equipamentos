@@ -671,7 +671,7 @@ def test_atualizar_cadastro_nao_sincroniza_mais_responsavel_por_texto():
     texto->relacional (`_EMAIL_RESPONSAVEL_POR_TEXTO`/
     `_sincronizar_responsaveis_relacionais`) foi removido de propósito --
     "não é aceitável inferir qual colaborador corresponde a cada nome"
-    (docs/arquitetura/planmode-governanca-dados-2026-09-28.md). PATCH em
+    (docs/planos/planmode-governanca-dados-2026-09-28.md). PATCH em
     `tecnico_titular` só atualiza o texto legado agora; vínculo relacional
     exige atribuição explícita de um gestor."""
     db = SessionLocal()

@@ -4,7 +4,7 @@
 > documentação atual; monograma "GEO"). Documentos datados em `docs/` mantêm o nome da época. **Identificadores
 > técnicos continuam `sigeo_*`** de propósito: cookies `sigeo_access`/`sigeo_refresh`/`sigeo_csrf`, roles
 > `sigeo_runtime`/`sigeo_migration`/`sigeo_backup`, prefixo do R2, grupo de concorrência dos workflows e
-> variáveis `SIGEO_LOCAL_*` (renomear deslogaria todos e quebraria backups). Plano: `docs/arquitetura/planmode-identidade-sisgeo-2026-10-20.md`.
+> variáveis `SIGEO_LOCAL_*` (renomear deslogaria todos e quebraria backups). Plano: `docs/planos/planmode-identidade-sisgeo-2026-10-20.md`.
 
 Leia [`README.md`](README.md) primeiro para stack e como rodar. Este arquivo
 é sobre convenções e pegadinhas específicas deste repo.
@@ -94,7 +94,7 @@ reintroduzir o erro:
   firmados", `backend/app/routers/convenios.py`) é o universo completo de
   repasse — 581 registros desde a correção de 2026-09-18 (**desatualizado**: 560 em 26/10/2026, sem PRONON, ver "Monitoramento por item e unidade") (403 Convênio/
   SICONV/TransfereGov originais + 178 de FAF/TED/PERSUS I/PERSUS II/PRONON,
-  ver `docs/arquitetura/diagnostico-ingestao-dados-2026-09-18.md`).
+  ver `docs/diagnosticos/diagnostico-ingestao-dados-2026-09-18.md`).
   `instrumento_equipamento` (monitoramento interno pós-repasse) é um
   subconjunto BEM menor — só o que a equipe decide acompanhar
   manualmente: **91** hoje (71 Convênio + 12 FAF + 3 TED + 5 PERSUS I
@@ -179,7 +179,7 @@ reintroduzir o erro:
 
 ## Plan Mode monitoramento-evolucao (2026-09-19)
 
-`docs/arquitetura/planmode-monitoramento-evolucao-2026-09-19.md` fechou o vínculo entre fase
+`docs/planos/planmode-monitoramento-evolucao-2026-09-19.md` fechou o vínculo entre fase
 geral e cronograma físico/regulatório, tornou evento/ação editáveis/excluíveis de forma
 auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
 
@@ -250,7 +250,7 @@ auditável, e ajustou nomenclatura/UI do módulo (3 blocos, todos concluídos).
 
 ## Monitoramento por item e unidade (Plan Mode monitoramento-itens, 2026-10-23)
 
-Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md` (classificação em
+Plano em `docs/planos/planmode-monitoramento-itens-detalhado-2026-10-23.md` (classificação em
 `planmode-classificacao-itens-2026-10-23.md`). Sem push/PR/merge sem autorização do usuário.
 
 - **Modelo**: `item_plano` (projeção dos itens do SICONV por `ID_ITEM_PAD`, ou `manual:{numero}:{ordem}` nas
@@ -318,7 +318,7 @@ Plano em `docs/arquitetura/planmode-monitoramento-itens-detalhado-2026-10-23.md`
   (simulação por padrão, `--aplicar --confirmo-host`, auditoria); local: 172 removidos, 81 criados, 95 origens.
   Corrigido junto: "Tomógrafo (Acima de 16 canais até 80)" era lido como "até 16" (`_canais`).
 
-- **Identidade visual SISGEO (2026-10-26, `docs/arquitetura/planmode-identidade-visual-sisgeo-2026-10-26.md`)**:
+- **Identidade visual SISGEO (2026-10-26, `docs/planos/planmode-identidade-visual-sisgeo-2026-10-26.md`)**:
   primário azul `#2A4D9B` (CTA, foco, estado ativo); as quatro cores do laço só no logotipo
   (`components/common/logo.tsx`, SVGs em `src/assets/brand/`), na faixa `.faixa-laco` (`MetricStrip`, `PageHeader`) e nas séries
   dos gráficos. Âmbar nunca em texto (contraste 2,2:1). Login só com o logotipo centralizado; e-mails de convite/redefinição usam `public/email/sisgeo-logo.png` (URL absoluta por `APP_PUBLIC_URL`, centralizado, com faixa do laço no topo); relatórios Word fecham com o logotipo centralizado (`app/reports/assets/sisgeo-logo.png`). Séries de gráfico: 8 cores com distância Lab ≥ 25 (teste). Significado do laço: azul = Novembro Azul (próstata), magenta = Outubro Rosa (mama), roxo = campanhas lilás (colo do útero), âmbar = Setembro Dourado (infantil); vale só para logotipo e faixa. "Mais detalhes" usa `DetalhesAnimados`
@@ -561,7 +561,7 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
   `CREATEDB`/`CREATEROLE`) **não deve ser usado por nenhuma credencial de
   aplicação**. Isso só passou a ser verdade em 23/10/2026: até então a
   `DATABASE_URL` do Render ainda usava o `neondb_owner`, e a troca da senha
-  dele derrubou o login (ver `docs/arquitetura/incidente-api-neondb-owner-2026-10-23.md`).
+  dele derrubou o login (ver `docs/diagnosticos/incidente-api-neondb-owner-2026-10-23.md`).
   Antes de trocar qualquer credencial, inventariar onde ela é usada (Render,
   secrets do GitHub por environment, Vercel). Migration não roda mais no boot da API nem nos jobs de dado —
   ver "Migration desacoplada do boot" logo abaixo. **Precedência desde o
@@ -583,9 +583,9 @@ vez, páginas antigas continuam em inline style até serem tocadas de novo.
 
 ## Arquitetura backend: erro de domínio + Repository/Service (Plan Mode backend 2026-09-17)
 
-`docs/arquitetura/diagnostico-constituicao-backend-2026-09-16.md` (nota 7,0/10) apontou que a
+`docs/diagnosticos/diagnostico-constituicao-backend-2026-09-16.md` (nota 7,0/10) apontou que a
 maior parte do backend ainda é `Router -> SQLAlchemy` direto, sem hierarquia de erro de domínio.
-`docs/arquitetura/planmode-backend-2026-09-17.md` (Bloco 1) começou a fechar isso, **sem migrar o
+`docs/planos/planmode-backend-2026-09-17.md` (Bloco 1) começou a fechar isso, **sem migrar o
 backend inteiro de uma vez** — só a fundação + uma feature-piloto:
 
 - **`backend/app/domain_errors.py`** (novo) — `DomainError` base +
@@ -645,7 +645,7 @@ autenticação por cookie foi resolvido em 2026-09-17 (ver "Segurança e sessão
 
 ## Segurança e sessão (Plan Mode segurança 2026-09-16)
 
-`docs/arquitetura/planmode-seguranca-2026-09-16.md` (após
+`docs/planos/planmode-seguranca-2026-09-16.md` (após
 `diagnostico-constituicao-seguranca-2026-09-16.md`, nota 3,4/10) definiu 5
 blocos. **Blocos 1, 2, 4 e 5 implementados** (2026-09-17); **Bloco 3
 implementado só na parte estrutural** (autorização movida pro Service,
@@ -949,10 +949,10 @@ gestão de usuários, seguindo o mesmo padrão Router → Service → Repository
 
 ## Plan Mode frontend (reavaliação 2026-09-17)
 
-`docs/arquitetura/diagnostico-constituicao-frontend-2026-09-16.md` (reescrito como "Reavaliação —
+`docs/diagnosticos/diagnostico-constituicao-frontend-2026-09-16.md` (reescrito como "Reavaliação —
 2026-09-17") reauditou o frontend contra `padroes/frontend/constiuicao_frontend.md` — nota de
 conformidade **7,2/10** após os Blocos 0/1/2, nota separada de **UI/UX 5,8/10** de uma auditoria
-visual sênior autenticada em 8 rotas × 3 breakpoints (1440/768/400px). `docs/arquitetura/
+visual sênior autenticada em 8 rotas × 3 breakpoints (1440/768/400px). `docs/planos/
 planmode-frontend-2026-09-17.md` formaliza o roadmap de correção em blocos, executados um de cada
 vez (mesma cadência dos Plan Mode backend/segurança — nunca "refatoração completa" numa tacada só).
 
@@ -1094,7 +1094,7 @@ decide sozinho.
 ## Estratégia de dados do Neon: ingestão e clonagem
 
 Decisão do usuário, 2026-09-16 (documentado no diagnóstico
-`docs/arquitetura/diagnostico-constituicao-database-2026-09-16.md`, seção "Estratégia de ingestão e
+`docs/diagnosticos/diagnostico-constituicao-database-2026-09-16.md`, seção "Estratégia de ingestão e
 clonagem"): **migração de servidor/ambiente é `pg_dump`/`pg_restore` do Neon inteiro, nunca
 reingestão** (reprocessar planilha/CNPJ/JSON do zero). Isso não substitui a necessidade de dataset
 sintético/anonimizado para desenvolvimento — só define que o Neon, não os scripts de importação, é
@@ -1119,11 +1119,11 @@ precisa de sincronização contínua:
 - **Pendente de decisão formal**: onde/com que frequência roda o `pg_dump`/`pg_restore` de migração
   de servidor, e como esse clone se concilia com backup/retenção/RPO-RTO (ciclo devops) e com o
   dataset sintético de desenvolvimento (ainda não existe) — ver
-  `docs/arquitetura/planmode-database-2026-09-16.md`, Bloco 5.
+  `docs/planos/planmode-database-2026-09-16.md`, Bloco 5.
 
 ## Notificações: escopo por destinatário + alerta de vigência (Plan Mode notificacoes-escopo 2026-09-25)
 
-`docs/arquitetura/planmode-notificacoes-escopo-2026-09-25.md` fechou o que `authz.py` já registrava
+`docs/planos/planmode-notificacoes-escopo-2026-09-25.md` fechou o que `authz.py` já registrava
 como pendência desde o Plan Mode segurança ("recorte de visibilidade por colaborador... quando a
 política de acesso por instrumento" existir): `Notificacao.lida` deixou de ser um boolean único
 compartilhado por toda a equipe e virou uma tabela nova, `NotificacaoDestinatario` (`notificacao_id`
@@ -1165,7 +1165,7 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
 
 Auditoria sênior cruzando os 6 diagnósticos mais recentes (`diagnostico-constituicao-*`) contra o
 código atual não achou nenhum item Crítico aberto — as pendências reais eram dívida conhecida e
-adiada. `docs/arquitetura/planmode-fechamento-final-2026-09-25.md` fechou 11 blocos (0-10) na mesma
+adiada. `docs/planos/planmode-fechamento-final-2026-09-25.md` fechou 11 blocos (0-10) na mesma
 sessão; vários se revelaram já satisfeitos ou de escopo menor do que os diagnósticos diziam
 (diagnósticos tendem a ficar levemente desatualizados entre uma auditoria e a próxima).
 
@@ -1288,7 +1288,7 @@ bloqueado de tudo, sem exceção, em qualquer um dos dois gates abaixo.
 
 ## Relatórios Excel/Word (Plan Mode relatorios 2026-09-25/26)
 
-`docs/arquitetura/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
+`docs/planos/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
 independentes**, decisão do usuário 2026-09-26: `GET /relatorios` (`app/routers/relatorios.py`,
 `app/services/relatorios.py`) com `tipo_relatorio=instrumentos_repasse|analise_merito`.
 
@@ -1399,8 +1399,8 @@ descartável de `/tmp`.
 ## Release de 22/10/2026 e operação de produção
 
 Primeiro release grande para produção depois da integração do espelho oficial, do Radar e das notificações
-(PR #28, merge `ef2baa2`). Plano e evidências em `docs/arquitetura/planmode-execucao-producao-2026-10-22.md`;
-revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimentos em `docs/arquitetura/runbook-devops.md`.
+(PR #28, merge `ef2baa2`). Plano e evidências em `docs/planos/planmode-execucao-producao-2026-10-22.md`;
+revisão em `docs/diagnosticos/revisao-prelancamento-2026-10-22.md`; procedimentos em `docs/runbooks/runbook-devops.md`.
 
 - **Ordem de um release que muda schema (nunca inverter):** backup manual (`backup_banco.yml`) → pré-voo de posse
   (abaixo) → merge na `master` → `migrar_banco.yml` → **Manual Deploy no Render** → verificações (`/health`, login,
@@ -1419,7 +1419,7 @@ revisão em `docs/arquitetura/revisao-prelancamento-2026-10-22.md`; procedimento
   existir, o que também denuncia conexão no banco errado. O `neondb_owner` só deve ser usado por quem roda o
   pré-voo; a senha dele foi trocada em 22/10 depois de exposta, e **isso derrubou o login em produção**, porque o
   Render ainda usava esse role em vez do `sigeo_runtime` (corrigido em 23/10; ver
-  `docs/arquitetura/incidente-api-neondb-owner-2026-10-23.md`). Antes de trocar uma credencial, inventariar os usos.
+  `docs/diagnosticos/incidente-api-neondb-owner-2026-10-23.md`). Antes de trocar uma credencial, inventariar os usos.
 - **Backup:** `backup_banco.yml` agenda `02:17` e `14:17` UTC (23:17 e 11:17 em Brasília), `pg_dump -Fc` com a role
   somente leitura `sigeo_backup`, cifra com `age` para duas identidades, envia ao R2 e aplica retenção de 7 dias
   (mantém ao menos 3 íntegros), com checagem de backup íntegro nas últimas 24 h. Só roda na `master` (environment
