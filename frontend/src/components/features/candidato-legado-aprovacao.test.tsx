@@ -106,7 +106,10 @@ describe("conferência e aprovação no Radar", () => {
       montar({ candidato: criarCandidato({ recaptura_em: quando }) });
       await screen.findByText("Convênio 999001");
       expect(screen.getByRole("button", { name: "Aprovar" })).toBeDisabled();
-      expect(screen.getByText(new RegExp(texto))).toBeVisible();
+      expect(screen.getByRole("button", { name: "Aprovar" })).toHaveAttribute(
+        "title",
+        expect.stringMatching(new RegExp(texto)),
+      );
     },
   );
 

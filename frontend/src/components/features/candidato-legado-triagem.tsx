@@ -54,19 +54,14 @@ export function CandidatoLegadoTriagem({
             aberta &&
             candidato.origem === "siconv_oficial" &&
             (motivoSemAprovacao ? (
-              <>
-                <Button
-                  type="button"
-                  className="min-h-11 sm:min-h-8"
-                  disabled
-                  title={motivoSemAprovacao}
-                >
-                  Aprovar
-                </Button>
-                <span className="text-xs text-muted-foreground">
-                  {motivoSemAprovacao}
-                </span>
-              </>
+              <Button
+                type="button"
+                className="min-h-11 sm:min-h-8"
+                disabled
+                title={motivoSemAprovacao}
+              >
+                Aprovar
+              </Button>
             ) : (
               <CandidatoLegadoAprovacao candidato={candidato} />
             ))}
