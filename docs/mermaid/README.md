@@ -9,7 +9,7 @@ Pasta de mapas de fluxo lidos do código. Cada mapa cobre um módulo, tem revis�
 | [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 3, 21/11/2026 |
 | [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos, workflow | 1, 21/11/2026 |
 
-O diagrama antigo `docs/arquitetura/fluxo_requisicao.mermaid` (17/09/2026) é anterior à reformulação do Radar e não vale mais. Os mapas desta pasta o substituem.
+O arquivo [fluxo-requisicao-legado.mermaid](fluxo-requisicao-legado.mermaid) é o diagrama antigo do Radar (17/09/2026, antes da reformulação), movido de `docs/arquitetura/fluxo_requisicao.mermaid`. Fica só como histórico: o fluxo vigente está em `radar-instrumentos.md`. O texto `docs/arquitetura/fluxo_requisicao.md` continua onde estava.
 
 ## Convenções
 
