@@ -7,60 +7,19 @@ from pydantic import ValidationError
 
 from app.pipeline.portal_transparencia import ConvenioPortalTransparencia
 from app.repositories.descoberta_legado import ler_snapshot_csv
-from app.services.descoberta_legado import confirmar_no_portal, descobrir_legado
+from app.services.descoberta_legado import CandidatoLegado, EvidenciaLegado, confirmar_no_portal
 
 
-def convenio(proposta="1", numero="123456"):
-    return {"ID_PROPOSTA": proposta, "NR_CONVENIO": numero}
-
-
-def item(proposta="1", identificador="10", descricao="Aquisição de LINAC"):
-    return {"ID_PROPOSTA": proposta, "ID_ITEM_PAD": identificador, "DESCRICAO_ITEM": descricao}
-
-
-def test_descoberta_exclui_conhecidos_e_proposta_sem_convenio_sem_inventar_compra():
-    resultado = descobrir_legado(
-        [convenio(), convenio("2", "234567")],
-        [item(), item("2", descricao="Equipamento existente: mamógrafo"), item("3")],
-        conhecidos={"123456"},
+def novo_candidato(numero="123456", proposta="1"):
+    evidencia = EvidenciaLegado(
+        id_item="10", codigo_equipamento="acelerador_linear", descricao="Aquisição de LINAC", relacao="aquisicao"
     )
-    assert len(resultado) == 1 and resultado[0].numero == "234567"
-    assert resultado[0].confirmacao_portal == "nao_consultado"
-    assert resultado[0].evidencias[0].codigo_equipamento == "mamografo"
-    assert resultado[0].evidencias[0].relacao == "existente"
-
-
-def test_alias_canonico_idempotencia_e_reordenacao():
-    registros = [item(), item(identificador="11", descricao="PET-CT"), item()]
-    esperado = descobrir_legado([convenio()], registros, conhecidos=set())
-    assert descobrir_legado([convenio(), convenio()], reversed(registros), conhecidos=set()) == esperado
-    assert {e.codigo_equipamento for e in esperado[0].evidencias} == {"acelerador_linear", "pet_ct"}
-    assert len(esperado[0].evidencias) == 2
-
-
-@pytest.mark.parametrize("registros", [[], [item(descricao="Compra de cadeiras")], [item(descricao="")]])
-def test_sem_evidencia_do_catalogo_nao_entra_no_radar(registros):
-    assert descobrir_legado([convenio()], registros, conhecidos=set()) == []
-
-
-def test_vinculo_ambiguo_e_item_divergente_abortam_sem_resultado_parcial():
-    with pytest.raises(ValueError, match="ambíguo"):
-        descobrir_legado([convenio(), convenio(numero="654321")], [item()], conhecidos=set())
-    with pytest.raises(ValueError, match="ambíguo"):
-        descobrir_legado([convenio(), convenio(proposta="2")], [item()], conhecidos=set())
-    with pytest.raises(ValueError, match="divergentes"):
-        descobrir_legado([convenio()], [item(), item(descricao="Mamógrafo")], conhecidos=set())
-
-
-@pytest.mark.parametrize("registro", [{}, convenio(proposta=""), convenio(numero="FAF-1")])
-def test_identidade_ausente_ou_nao_numerica_e_rejeitada(registro):
-    with pytest.raises(ValidationError):
-        descobrir_legado([registro], [item()], conhecidos=set())
+    return CandidatoLegado(numero=numero, id_proposta=proposta, evidencias=(evidencia,))
 
 
 @pytest.mark.parametrize("publicacao", ["2026-10-01", "01/10/2026"])
 def test_confirmacao_exige_identidade_exata_e_publicacao(publicacao):
-    candidato = descobrir_legado([convenio()], [item()], conhecidos=set())[0]
+    candidato = novo_candidato()
     portal = ConvenioPortalTransparencia.model_validate(
         {
             "dimConvenio": {"codigo": "123456", "numero": "1/2026", "objeto": "Aquisição de LINAC"},
@@ -75,7 +34,7 @@ def test_confirmacao_exige_identidade_exata_e_publicacao(publicacao):
 
 
 def test_portal_ausente_sem_data_ou_identidade_divergente_nunca_confirma():
-    candidato = descobrir_legado([convenio()], [item()], conhecidos=set())[0]
+    candidato = novo_candidato()
     assert confirmar_no_portal(candidato, None).confirmacao_portal == "nao_encontrado"
     identidade = {"codigo": 123456, "numero": "1/2026", "objeto": "Aquisição de LINAC"}
     sem_data = ConvenioPortalTransparencia.model_validate({"dimConvenio": identidade})
@@ -92,7 +51,7 @@ def test_portal_ausente_sem_data_ou_identidade_divergente_nunca_confirma():
 def test_portal_com_codigo_e_data_confirma_mesmo_sem_numero_ou_objeto(campo, valor):
     # Formato observado no aceite nacional de 19/10 (7AAFSX). Confirmar só consome
     # codigo e dataPublicacao; o contrato completo é exigido na recaptura e na aprovação.
-    candidato = descobrir_legado([convenio(numero="7AAFSX")], [item()], conhecidos=set())[0]
+    candidato = novo_candidato(numero="7AAFSX")
     identidade = {"codigo": "7AAFSX", "numero": "1/2026", "objeto": "Aquisição de LINAC", campo: valor}
     portal = ConvenioPortalTransparencia.model_validate({"dimConvenio": identidade, "dataPublicacao": "01/10/2026"})
     confirmado = confirmar_no_portal(candidato, portal)
@@ -111,7 +70,7 @@ def test_contrato_completo_do_portal_continua_exigindo_numero_e_objeto(campo, va
 
 
 def test_portal_sem_codigo_nao_confirma():
-    candidato = descobrir_legado([convenio()], [item()], conhecidos=set())[0]
+    candidato = novo_candidato()
     portal = ConvenioPortalTransparencia.model_validate(
         {"dimConvenio": {"numero": "1/2026", "objeto": "x"}, "dataPublicacao": "01/10/2026"}
     )
@@ -124,7 +83,7 @@ def test_snapshot_zip_preserva_texto_com_ponto_e_virgula_e_bom(tmp_path):
     with ZipFile(caminho, "w") as arquivo:
         arquivo.writestr("fonte.csv", '\ufeffID_PROPOSTA;ID_ITEM_PAD;DESCRICAO_ITEM\n1;10;"LINAC; aquisição"\n')
     assert list(ler_snapshot_csv(caminho, colunas={"ID_PROPOSTA", "ID_ITEM_PAD", "DESCRICAO_ITEM"})) == [
-        item(descricao="LINAC; aquisição")
+        {"ID_PROPOSTA": "1", "ID_ITEM_PAD": "10", "DESCRICAO_ITEM": "LINAC; aquisição"}
     ]
 
 

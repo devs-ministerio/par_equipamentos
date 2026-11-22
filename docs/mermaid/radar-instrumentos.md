@@ -593,7 +593,7 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 
 ## 20. Código sem uso
 
-- `descobrir_legado` em `backend/app/services/descoberta_legado.py`: só os testes o chamam (`tests/test_descoberta_legado.py`). O fluxo de produção usa `descobrir_prioritarios_ms`. Candidato a remoção junto com o teste; `confirmar_no_portal` do mesmo arquivo continua em uso.
+- Removidos em 22/11/2026: `descobrir_legado` (só os testes o chamavam), o script `diagnosticar_descoberta_siconv.py` (diagnóstico sobre snapshot local, sem referência em workflow ou documentação), o modo diagnóstico da lista e a origem `snapshot_local` do contrato da API. O CHECK do banco ainda admite `snapshot_local` e as guardas de linha legada nos serviços ficam até uma migration estreitar o CHECK (produção tem só `siconv_oficial`: 31 capturas).
 - Ação `iniciar_analise` e estado `em_analise`: a API aceita, a tela não tem mais o botão. O estado ainda aparece na aba Aguardando. Decidir se vira código a remover ou se volta para a tela.
 - Aba "Propostas em tramitação": carrega a lista sob demanda, mas fica desabilitada. Hoje a aba não é alcançável pelo usuário.
 - `Notificacao.lida` está obsoleta; o escopo por destinatário vale (`NotificacaoDestinatario`).
