@@ -371,6 +371,15 @@ def test_evento_antigo_fase_concluido_tambem_trava_e_pode_ser_reaberto(db):  # n
     assert svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular).conclusao is None
 
 
+def test_evento_antigo_sem_data_nao_inventa_a_data_do_dia(db):  # noqa: F811
+    c = _preparar(db)
+    marco = db.execute(select(MarcoCatalogo).where(MarcoCatalogo.codigo == "fase_concluido")).scalar_one()
+    db.add(EventoMarco(instrumento_id=c.inst.id, marco_id=marco.id, data_ocorrencia=None, autor_id=c.titular.id))
+    db.flush()
+    avaliacao = svc.avaliar_conclusao(nr_convenio=c.inst.nr_convenio, db=db, usuario=c.titular)
+    assert avaliacao.conclusao is not None and avaliacao.conclusao.data_conclusao is None
+
+
 def test_reabrir_desfaz_tambem_o_evento_antigo_que_coexiste_com_a_conclusao_confirmada(db):  # noqa: F811
     c = _preparar(db)
     _entregar_tudo(db, c)

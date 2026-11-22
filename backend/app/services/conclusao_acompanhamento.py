@@ -84,7 +84,7 @@ def _ler_legado(evento: EventoMarco) -> ConclusaoRead:
     return ConclusaoRead(
         id=evento.id,
         resultado="integral",
-        data_conclusao=evento.data_ocorrencia or date.today(),
+        data_conclusao=evento.data_ocorrencia,
         justificativa=None,
         data_inauguracao=None,
     )

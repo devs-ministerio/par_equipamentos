@@ -302,8 +302,11 @@ export function ConclusaoAcompanhamento({
     <div className="flex flex-wrap items-center gap-2">
       {concluida && (
         <span className="text-[12px] text-muted-foreground">
-          Concluído em {fmtData(concluida.data_conclusao)} ·{" "}
-          {ROTULO_RESULTADO[concluida.resultado].toLowerCase()}
+          Concluído{" "}
+          {concluida.data_conclusao
+            ? `em ${fmtData(concluida.data_conclusao)}`
+            : "(data não registrada)"}{" "}
+          · {ROTULO_RESULTADO[concluida.resultado].toLowerCase()}
         </span>
       )}
       {podeEditar && (

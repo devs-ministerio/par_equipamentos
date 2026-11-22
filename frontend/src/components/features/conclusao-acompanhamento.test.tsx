@@ -212,6 +212,23 @@ describe("conclusão do acompanhamento", () => {
     ).toBeDisabled();
   });
 
+  it("conclusão antiga sem data não inventa a data", async () => {
+    responder({
+      ...base,
+      conclusao: {
+        id: 1,
+        resultado: "integral",
+        data_conclusao: null,
+        justificativa: null,
+        data_inauguracao: null,
+      },
+    });
+    montar();
+    expect(
+      await screen.findByText(/Concluído \(data não registrada\) · integral/),
+    ).toBeInTheDocument();
+  });
+
   it("concluído mostra o resultado e reabre com motivo", async () => {
     const chamadas = responder({
       ...base,

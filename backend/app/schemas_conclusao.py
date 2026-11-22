@@ -18,7 +18,8 @@ class ImpedimentoRead(BaseModel):
 class ConclusaoRead(BaseModel):
     id: int
     resultado: ResultadoConclusao
-    data_conclusao: date
+    # Nula só na conclusão antiga (evento `fase_concluido`) lançada sem data.
+    data_conclusao: date | None
     justificativa: str | None
     data_inauguracao: date | None
 

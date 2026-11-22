@@ -11,7 +11,7 @@ export type ResultadoConclusao = z.infer<typeof resultadoSchema>;
 const conclusaoSchema = z.object({
   id: z.number(),
   resultado: resultadoSchema,
-  data_conclusao: z.string(),
+  data_conclusao: z.string().nullable(),
   justificativa: z.string().nullable(),
   data_inauguracao: z.string().nullable(),
 });

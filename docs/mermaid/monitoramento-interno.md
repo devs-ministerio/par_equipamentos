@@ -219,7 +219,7 @@ flowchart TB
 
 ## 5. Concluir e reabrir o acompanhamento
 
-"Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz. Nesse caso a tela já mostra "Reabrir" (a avaliação da conclusão reconhece o evento antigo). Reabrir desfaz a conclusão confirmada **e** o evento antigo, mesmo quando os dois coexistem (caso dos instrumentos migrados).
+"Concluído" e "Concluir acompanhamento" são a mesma coisa: a fase Concluído existe quando há conclusão confirmada. Enquanto a migração dos concluídos antigos (`migrar_concluidos_para_conclusao`) não roda em produção, o evento antigo `fase_concluido` também vale como concluído, com a mesma trava, e Reabrir também o desfaz. Nesse caso a tela já mostra "Reabrir" (a avaliação da conclusão reconhece o evento antigo). Se o evento antigo não tem data (6 em produção, 22/11/2026), a API devolve `data_conclusao` nula e a tela mostra "Concluído (data não registrada)", em vez da data do dia; a migração manda esses casos para revisão. Reabrir desfaz a conclusão confirmada **e** o evento antigo, mesmo quando os dois coexistem (caso dos instrumentos migrados).
 
 A avaliação da tela é lida de novo ao abrir o diálogo e invalidada por qualquer mutação que mude os impedimentos (ação, entrega, unidade, previsão, evento), então o botão não fica bloqueado por um resultado antigo. A decisão final é sempre do servidor, que revalida no POST.
 
