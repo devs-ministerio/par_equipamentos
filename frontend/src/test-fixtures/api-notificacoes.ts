@@ -8,7 +8,7 @@ export function criarAviso(
 ): Notificacao {
   return {
     id,
-    tipo: "atualizacao_api",
+    tipo: "edicao_manual",
     titulo: `Convênio sintético ${id}`,
     corpo: "Situação oficial alterada",
     entidade_id: id,

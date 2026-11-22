@@ -37,6 +37,8 @@ class PaginaNotificacoesComDestino:
     total: int
     nao_lidas: int
 
+PREFIXO_DEDUP_RESUMO_SICONV = "siconv-resumo:"
+
 
 def corpo_publico_da_notificacao(notificacao: Notificacao) -> str | None:
     # Avisos de captura antigos podem ter sido gravados com a exceção crua.
@@ -130,6 +132,8 @@ def listar_notificacoes(
         elif notificacao.tipo == NotificacaoTipo.alerta_vigencia:
             identificador = convenios_monitorados.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None
+        elif (notificacao.chave_dedup or "").startswith(PREFIXO_DEDUP_RESUMO_SICONV):
+            destino = None  # resumo da rodada: não pertence a um instrumento só
         else:
             identificador = instrumentos.get(notificacao.entidade_id)
             destino = f"/monitoramento-equipamentos/instrumentos/{identificador}" if identificador else None

@@ -2,6 +2,8 @@ import { Bell } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CentralNotificacoes } from "./central-notificacoes";
+import { NotificacaoDetalheDialog } from "./notificacao-detalhe-dialog";
+import { abreDetalhe } from "@/lib/notificacao-detalhe";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +34,7 @@ const RÓTULO_TIPO = ROTULOS_NOTIFICACAO;
 export function NotificationBell() {
   const [centralAberta, setCentralAberta] = useState(false);
   const [resumoAberto, setResumoAberto] = useState(false);
+  const [detalhe, setDetalhe] = useState<Notificacao | null>(null);
   const { notificacoes, naoLidas, carregando, marcarLida, habilitado, erro } =
     useNotificacoes();
   const navigate = useNavigate();
@@ -42,6 +45,11 @@ export function NotificationBell() {
   async function abrirNotificacao(notificacao: Notificacao) {
     try {
       if (!notificacao.lida) await marcarLida(notificacao.id);
+      if (abreDetalhe(notificacao)) {
+        setResumoAberto(false);
+        setDetalhe(notificacao);
+        return;
+      }
       if (notificacao.destino) {
         setResumoAberto(false);
         navigate(notificacao.destino);
@@ -159,6 +167,14 @@ export function NotificationBell() {
           <CentralNotificacoes fechar={() => setCentralAberta(false)} />
         </DialogContent>
       </Dialog>
+      <NotificacaoDetalheDialog
+        aviso={detalhe}
+        fechar={() => setDetalhe(null)}
+        irParaRegistro={(destino) => {
+          setDetalhe(null);
+          navigate(destino);
+        }}
+      />
     </>
   );
 }

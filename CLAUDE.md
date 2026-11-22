@@ -1139,6 +1139,13 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
   (decisão do usuário, 03/11/2026; antes caía no broadcast para todo colaborador, o que espalhou 154 avisos de
   instrumentos sem dono em outubro). Aviso já enviado não foi alterado. `proposta_candidata` (nunca tem instrumento monitorado) é sempre broadcast.
   `leitor` nunca entra em nenhum branch, mesmo sendo titular/suplente hipoteticamente.
+- **Avisos do espelho SICONV (22/11/2026)**: `espelho_diff.mesmo_valor` compara campos identificadores (`NR_*`,
+  `UG_RESPONSAVEL`) em forma canônica (sem `.`, `/`, `-`, espaço, nem zeros à esquerda): a fonte alternava `000.969` e
+  `969` e gerava 80-110 avisos/dia. Rodada com até 10 convênios alterados avisa individualmente titular, suplente e gestão
+  (`job_verificacao_siconv.avisar_mudancas`); acima disso titular/suplente recebem só o dos seus e a gestão recebe **um
+  resumo** (`chave_dedup` `siconv-resumo:<rodada>`, sem destino). O corpo é em linhas e o clique em `atualizacao_api` abre o
+  popup `NotificacaoDetalheDialog` (sino e Central), com "Abrir instrumento" dentro dele. Plano:
+  `docs/planos/planmode-radar-confirmacao-e-ruido-2026-11-22.md`.
 - **Tipo novo `alerta_vigencia`**: fim de vigência do convênio a 3 meses (`Convenio.
   data_final_vigencia`, `entidade_id` = `Convenio.id`) — job novo `backend/scripts/
   job_alerta_vigencia.py` (janela de 90 dias, dedup de 30 dias pro mesmo convênio, dentro de

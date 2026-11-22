@@ -10,6 +10,8 @@ import { useNotificacoes } from "@/hooks/use-notificacoes";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { ROTULOS_NOTIFICACAO } from "@/lib/notificacao-rotulos";
 import { NotificacaoItem } from "./notificacao-item";
+import { NotificacaoDetalheDialog } from "./notificacao-detalhe-dialog";
+import { abreDetalhe } from "@/lib/notificacao-detalhe";
 import type { Notificacao, NotificacaoTipo } from "@/services/notificacoes";
 import { NAV_ITEM_CLASS } from "@/lib/navigation-styles";
 import { cn } from "@/lib/utils";
@@ -68,6 +70,7 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
   const [tipo, setTipo] = useState<NotificacaoTipo[]>(inicial.tipo);
   const [caixa, setCaixa] = useState<Caixa>(inicial.caixa);
   const [pagina, setPagina] = useState(inicial.pagina);
+  const [detalhe, setDetalhe] = useState<Notificacao | null>(null);
   useEffect(() => {
     try {
       sessionStorage.setItem(
@@ -98,6 +101,10 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
         pagina > 1
       )
         setPagina(pagina - 1);
+      if (abreDetalhe(aviso)) {
+        setDetalhe(aviso);
+        return;
+      }
       if (aviso.destino) {
         fechar();
         navigate(aviso.destino);
@@ -268,6 +275,15 @@ export function CentralNotificacoes({ fechar }: { fechar: () => void }) {
           </ul>
         )}
       </div>
+      <NotificacaoDetalheDialog
+        aviso={detalhe}
+        fechar={() => setDetalhe(null)}
+        irParaRegistro={(destino) => {
+          setDetalhe(null);
+          fechar();
+          navigate(destino);
+        }}
+      />
       <Pagination
         page={pagina}
         totalItems={avisos.total}

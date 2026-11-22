@@ -130,14 +130,39 @@ def resolver_destinatarios(db: Session, *, tipo: NotificacaoTipo, entidade_id: i
     return _ids_titular_suplente_e_gestores(db, entidade_id)
 
 
-def criar_notificacao(db: Session, notificacao: Notificacao) -> Notificacao:
+def ids_responsaveis_ativos(db: Session, instrumento_id: int) -> set[int]:
+    """Titular e suplente ativos e não leitores (sem a gestão)."""
+    designados = obter_ids_responsaveis_do_instrumento(db, instrumento_id)
+    if not designados:
+        return set()
+    return set(
+        db.execute(
+            select(User.id).where(
+                User.id.in_(designados),
+                User.status == UserStatus.active,
+                User.deleted_at.is_(None),
+                User.role != UserRole.leitor,
+            )
+        ).scalars()
+    )
+
+
+def ids_gestao(db: Session) -> set[int]:
+    return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
+
+
+def criar_notificacao(
+    db: Session, notificacao: Notificacao, *, destinatarios: set[int] | None = None
+) -> Notificacao:
     """Insere a Notificacao e materializa NotificacaoDestinatario pra cada
     usuário que deve vê-la. `db.add`+`flush` (não commit) -- quem chama
     continua responsável pelo commit, mesmo padrão já usado pelos jobs/
-    services que antes só faziam `db.add(Notificacao(...))` direto."""
+    services que antes só faziam `db.add(Notificacao(...))` direto.
+    `destinatarios` substitui a regra por tipo (aviso de resumo ou só de responsáveis)."""
     db.add(notificacao)
     db.flush()
-    destinatarios = resolver_destinatarios(db, tipo=notificacao.tipo, entidade_id=notificacao.entidade_id)
+    if destinatarios is None:
+        destinatarios = resolver_destinatarios(db, tipo=notificacao.tipo, entidade_id=notificacao.entidade_id)
     for usuario_id in destinatarios:
         db.add(NotificacaoDestinatario(notificacao_id=notificacao.id, usuario_id=usuario_id))
     return notificacao
