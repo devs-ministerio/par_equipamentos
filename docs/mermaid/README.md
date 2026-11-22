@@ -8,6 +8,7 @@ Pasta de mapas de fluxo lidos do código. Cada mapa cobre um módulo, tem revis�
 | --- | --- | --- |
 | [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 4, 22/11/2026 |
 | [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, decisão pendente sobre o Portal, workflow | 3, 22/11/2026 |
+| [banco-de-dados.md](banco-de-dados.md) | Banco de dados: 50 tabelas por domínio, ligações com e sem chave estrangeira, estado de uso em produção | 1, 22/11/2026 |
 
 ## Convenções
 
