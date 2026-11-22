@@ -9,7 +9,7 @@ O mapa do schema está em [banco-de-dados.md](../mermaid/banco-de-dados.md).
 | Classe | Itens |
 |---|---|
 | Remover agora (sem risco) | Correção de texto no `CLAUDE.md`; nada no banco |
-| Remover depois de confirmação | 4 tabelas vazias de pipeline antigo, 12 colunas sempre nulas, CHECKs de `snapshot_local` e `em_analise`, retenção de `refresh_token` |
+| Remover depois de confirmação | 2 tabelas vazias de pipeline antigo (`accelerator_row`, `inca_estimate`), 12 colunas sempre nulas, CHECKs de `snapshot_local` e `em_analise`, retenção de `refresh_token` |
 | Manter | Tabelas com código vivo mesmo com poucas linhas, índices de apoio a FK |
 
 ## Tabelas sem uso
@@ -20,7 +20,7 @@ O mapa do schema está em [banco-de-dados.md](../mermaid/banco-de-dados.md).
 | `inca_estimate` | 0 | modelo e `scripts/importar_inca_estimates.py` | Remover após confirmação |
 | `municipality_population_row` | 11.140 | modelo e 3 scripts (`importar_populacao_municipios`, `atualizar_dados_producao`, `auditar_integridade_database`) | Manter: uso futuro (decisão do usuário, 22/11) |
 | `reference_file` | 2 | modelo, 7 scripts de pipeline e importação | Manter até decidir sobre os scripts |
-| `fonte_dado` | 6 | modelo e `scripts/backfill_fontes_dado.py`; nenhuma rota ou serviço lê | Remover após confirmação |
+| `fonte_dado` | 6 | modelo, `scripts/backfill_fontes_dado.py` e FK em 142 convênios, 85 instrumentos e 204 pagamentos PERSUS | Manter: guarda a proveniência (correção após o diagnóstico do Codex, que achou as referências) |
 | `pagamento_obra_persus` | 204 | modelo e 2 scripts (`complementar_persus_fontes_extras`, `normalizar_cnpj_database`); nenhuma rota ou serviço lê | Manter: uso futuro (decisão do usuário, 22/11) |
 | `entrega_legada_revisao` | 3 | `repositories/notificacoes.py`, `services/notificacoes.py` | Manter: código vivo |
 
