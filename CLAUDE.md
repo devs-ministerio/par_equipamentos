@@ -379,6 +379,9 @@ Plano em `docs/planos/planmode-monitoramento-itens-detalhado-2026-10-23.md` (cla
   de `fixtures_cobertura.py`. **Não investigado nem limpo ainda** — fica
   registrado pra não esquecer, próxima sessão que mexer em usuários/E2E
   deveria investigar o alcance antes de assumir que só afetou cobertura.
+  **Atualização 22/11/2026:** consulta em leitura na produção devolve 0
+  usuários `pytest-%`; o achado não se confirma mais. Ver
+  `docs/diagnosticos/relatorio-limpeza-banco-2026-11-22.md`.
 
 ## Estrutura de pastas do frontend (flat, kebab-case)
 
