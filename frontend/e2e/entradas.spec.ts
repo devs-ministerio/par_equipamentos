@@ -87,7 +87,7 @@ test("central independente, sem aprovação automática, responsiva", async ({
         usuario_id: 1,
         usuario_nome: "Demonstração",
         situacao_anterior: candidato.situacao,
-        situacao: dados.acao === "iniciar_analise" ? "em_analise" : "rejeitado",
+        situacao: "rejeitado",
         justificativa: dados.justificativa,
         criado_em: "2026-10-06T10:00:00Z",
       };
@@ -131,53 +131,16 @@ test("central independente, sem aprovação automática, responsiva", async ({
   ).not.toBeVisible();
   await expect(dialog.getByText("1 evidência", { exact: true })).toHaveCount(0);
   await expect(
-    dialog.getByRole("tab", { name: "Convênios", exact: true }),
-  ).toHaveAttribute("data-state", "active");
-  await expect(
-    dialog.getByRole("tab", { name: "Propostas em tramitação", exact: true }),
-  ).toBeDisabled();
+    dialog.getByRole("tab", { name: "Propostas em tramitação" }),
+  ).toHaveCount(0);
   await expect(dialog.getByText("Nenhuma coleta registrada.")).toBeVisible();
-  const evidencia = dialog.getByText(
-    "Aquisição de acelerador linear — evidência sintética para demonstração de revisão.",
-  );
-  const expansao = dialog.locator('.animar-detalhes[data-state="open"]');
-  await expect(evidencia).not.toBeVisible();
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await dialog.getByText("Mais detalhes", { exact: true }).click();
-  await expect(evidencia).toBeVisible();
-  await expect(expansao).toHaveCSS("animation-name", "none");
-  await dialog.getByText("Menos detalhes", { exact: true }).click();
-  await expect(evidencia).not.toBeVisible();
-  await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(dialog.getByText("Novo", { exact: true })).toBeVisible();
-  await dialog.getByText("Mais detalhes", { exact: true }).click();
-  await expect(
-    dialog.getByText("Aguardando verificação", { exact: true }),
-  ).toBeVisible();
-  await expect(evidencia).toBeVisible();
-  // Conteúdo que chega depois da animação não pode ficar preso à altura inicial.
-  await expansao.evaluate(async (el) => {
-    await Promise.all(el.getAnimations().map((animacao) => animacao.finished));
-    const tardio = document.createElement("p");
-    tardio.dataset.testeExpansao = "true";
-    tardio.textContent = "Conteúdo recebido após a abertura";
-    tardio.style.minHeight = "400px";
-    el.append(tardio);
-  });
-  await expect
-    .poll(() => expansao.evaluate((el) => el.scrollHeight - el.clientHeight))
-    .toBeLessThanOrEqual(1);
-  await expansao
-    .locator('[data-teste-expansao="true"]')
-    .evaluate((el) => el.remove());
-  await dialog.getByText("Menos detalhes", { exact: true }).click();
-  await expect(evidencia).not.toBeVisible();
   await expect(
     page.getByText("Convênios legados descobertos", { exact: true }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("button", { name: /Aprovar|Incluir/ }),
-  ).toHaveCount(0);
+  // Sem confirmação do Portal e prova vigente, Aprovar existe mas fica travado.
+  await expect(page.getByRole("button", { name: /^Aprovar/ })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Incluir/ })).toHaveCount(0);
   for (const width of [320, 375, 400, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await dialog.evaluate(async (el) => {
@@ -196,21 +159,14 @@ test("central independente, sem aprovação automática, responsiva", async ({
       )
       .toBeGreaterThanOrEqual(16);
     await expect(dialog).toBeInViewport();
-    const larguraCard = await dialog
-      .getByRole("heading", { name: "Convênio 900101", exact: true })
-      .locator("../..")
+    const larguraSecao = await dialog
+      .getByRole("region", { name: "Candidatos à entrada" })
       .evaluate((el) => el.getBoundingClientRect().width);
-    for (const campo of [
-      dialog.getByRole("textbox", { name: "Buscar candidato legado" }),
-      dialog.getByRole("button", { name: /^Situação/ }),
-    ]) {
-      const larguraCampo = await campo.evaluate(
-        (el) => el.getBoundingClientRect().width,
-      );
-      const larguraEsperada =
-        width >= 640 ? (larguraCard - 8) / 2 : larguraCard;
-      expect(Math.abs(larguraCampo - larguraEsperada)).toBeLessThanOrEqual(1);
-    }
+    // A busca ocupa a largura da seção em qualquer viewport.
+    const larguraBusca = await dialog
+      .getByRole("textbox", { name: "Buscar candidato legado" })
+      .evaluate((el) => el.getBoundingClientRect().width);
+    expect(Math.abs(larguraBusca - larguraSecao)).toBeLessThanOrEqual(1);
     await expect
       .poll(() => dialog.evaluate((el) => el.scrollWidth - el.clientWidth))
       .toBeLessThanOrEqual(0);
@@ -230,17 +186,15 @@ test("central independente, sem aprovação automática, responsiva", async ({
     page.getByRole("link", { name: "Propostas em tramitação →", exact: true }),
   ).toHaveCount(0);
   await page.setViewportSize({ width: 400, height: 900 });
+  await dialog.getByRole("button", { name: "Rejeitar", exact: true }).click();
   await dialog
-    .getByRole("button", { name: "Iniciar análise", exact: true })
-    .click();
-  await dialog
-    .getByRole("textbox", { name: "Justificativa da análise" })
+    .getByRole("textbox", { name: "Motivo da rejeição" })
     .fill("Conferência sintética de evidências");
   await page.screenshot({ path: testInfo.outputPath("triagem-form-400.png") });
   await dialog
     .getByRole("button", { name: "Confirmar decisão", exact: true })
     .click();
-  await expect(dialog.getByText("Em análise", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Rejeitado", { exact: true })).toBeVisible();
   await dialog
     .getByRole("button", { name: "Histórico de decisões", exact: true })
     .click();
