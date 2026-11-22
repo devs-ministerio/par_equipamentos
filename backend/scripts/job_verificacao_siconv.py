@@ -88,7 +88,7 @@ def comparar_campos_oficiais(antigo: dict | None, novo: dict[str, str]) -> dict[
     return {
         campo: (str(antigo[campo]), valor)
         for campo, valor in novo.items()
-        if campo in antigo and not mesmo_valor(antigo[campo], valor)
+        if campo in antigo and not mesmo_valor(antigo[campo], valor, campo)
     }
 
 

@@ -75,3 +75,31 @@ def test_lista_so_com_zeros_a_esquerda_nao_gera_alteracao():
     antigo = [{"ID": "1", "NR_LICITACAO": "15"}]
     novo = [{"ID": "1", "NR_LICITACAO": "015"}]
     assert diff_lista(antigo, novo, "ID").vazio
+
+
+def test_identificador_com_pontuacao_alternada_nao_conta_como_mudanca():
+    # Pares reais de produção (21/11/2026): a fonte alterna a grafia todo dia.
+    assert diff_campos({"NR_DL": "000.969"}, {"NR_DL": "969"}) == {}
+    assert diff_campos({"NR_DL": "969"}, {"NR_DL": "000.969"}) == {}
+    assert diff_campos({"NR_LICITACAO": "02"}, {"NR_LICITACAO": "002"}) == {}
+    assert diff_campos({"NR_LICITACAO": "092013"}, {"NR_LICITACAO": "00092013"}) == {}
+    assert diff_campos({"NR_LICITACAO": "0022015"}, {"NR_LICITACAO": "022015"}) == {}
+    assert diff_campos({"NR_PROCESSO_LICITACAO": "23000.001/2024-11"}, {"NR_PROCESSO_LICITACAO": "230000012024-11"}) == {}
+
+
+def test_identificador_diferente_de_verdade_continua_avisado():
+    assert diff_campos({"NR_DL": "000.969"}, {"NR_DL": "970"}) == {"NR_DL": ("000.969", "970")}
+    assert diff_campos({"NR_LICITACAO": "02"}, {"NR_LICITACAO": "03"}) == {"NR_LICITACAO": ("02", "03")}
+    assert diff_campos({"NR_LICITACAO": "A-1"}, {"NR_LICITACAO": "A-2"}) == {"NR_LICITACAO": ("A-1", "A-2")}
+
+
+def test_pontuacao_so_e_ignorada_em_campo_identificador():
+    assert diff_campos({"VALOR_LICITACAO": "1.000"}, {"VALOR_LICITACAO": "1000"}) != {}
+    assert diff_campos({"DESCRICAO": "a-b"}, {"DESCRICAO": "ab"}) != {}
+
+
+def test_identificador_e_idempotente_na_lista():
+    antigo = [{"NR_MOV_FIN": "1", "NR_DL": "000.969"}]
+    novo = [{"NR_MOV_FIN": "1", "NR_DL": "969"}]
+    assert diff_lista(antigo, novo, "NR_MOV_FIN").vazio
+    assert diff_lista(novo, antigo, "NR_MOV_FIN").vazio
