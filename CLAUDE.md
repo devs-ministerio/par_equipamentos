@@ -1426,8 +1426,9 @@ revisão em `docs/diagnosticos/revisao-prelancamento-2026-10-22.md`; procediment
   Production). Restauração: `backend/scripts/restaurar_backup.sh`. RPO de 24 h tem ciclo agendado comprovado em
   22/10; **RTO de 1 h segue não certificado** (medidos: restauração no Neon 848 s e deploy do Render; falta a troca de
   `DATABASE_URL` e o teste funcional). Rotacionar a credencial do R2 antes de 20/11/2026.
-- **Agendamentos desligados de propósito:** `pipelines.yml` e `radar_convenios.yml` (cron comentado). Escrevem em
-  produção e geram notificações; ativar um de cada vez, com rodada manual supervisionada antes (Fase 4 do plano).
+- **Agendamentos LIGADOS (conferido em 21/11/2026):** `pipelines.yml` e `radar_convenios.yml` rodam por cron porque as
+  variáveis `ATUALIZACOES_PIPELINES_ATIVAS` e `ATUALIZACOES_RADAR_ATIVAS` estão `true` no GitHub desde 27/10/2026. Para
+  suspender, trocar a variável para `false`. Escrevem em produção e geram notificações.
 - **Conferência de produção só de leitura:** usar `psql` com heredoc de aspas simples (`<<'SQL'`) para não esbarrar
   na expansão de `!` do zsh; sempre confirmar `select current_database(), current_user` antes, porque uma variável de
   ambiente vazia faz o `psql` cair no Postgres local sem aviso.

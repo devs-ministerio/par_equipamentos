@@ -298,8 +298,9 @@ flowchart TB
 
 Cada tarefa roda só se o pré-voo passou e não foi cancelada; no disparo manual dá para escolher uma tarefa só. Uma tarefa que falha não impede as seguintes (usam `!cancelled()`).
 
-> [!warning] A confirmar
-> O CLAUDE.md do repositório diz que o cron do `radar_convenios.yml` está desligado de propósito. No arquivo, o cron está ativo e quem o liga ou desliga é a variável `ATUALIZACOES_RADAR_ATIVAS` do repositório. Confirmar no GitHub o valor atual dessa variável antes de afirmar que o Radar roda sozinho em produção.
+Conferido em 21/11/2026: a variável `ATUALIZACOES_RADAR_ATIVAS` está `true`, então o Radar roda sozinho em produção todo dia às 06:30 de Brasília (o CLAUDE.md antigo dizia o contrário e foi corrigido).
+
+Estado observado nas rodadas de 19 a 21/11: a tarefa `descoberta-siconv` termina como parcial todos os dias, porque o Portal da Transparência devolve para o convênio `7AAFSX` um registro com número e objeto vazios (contrato inválido). Oito candidatos ficam sem confirmação e as revalidações são adiadas. Nenhum dado é corrompido, mas a rodada conta como falha.
 
 ## 13. API
 
@@ -355,6 +356,6 @@ Toda rota mutável exige o cabeçalho CSRF (`X-CSRF-Token`).
 ## 17. Limites desta análise
 
 - Não executei o job contra o SICONV ou o Portal; o mapa vem da leitura do código e dos testes.
-- Não verifiquei o valor atual de `ATUALIZACOES_RADAR_ATIVAS` no GitHub nem se a recaptura é rodada em produção por alguém (ver avisos nas seções 7 e 12).
+- Não verifiquei se a recaptura é rodada em produção por alguém (ver aviso na seção 7).
 - Os componentes `candidato-legado-aprovacao.tsx`, `candidato-legado-historico.tsx`, `candidato-legado-item.tsx` e `candidato-legado-itens-dialog.tsx` foram descritos a partir dos hooks, do serviço e do mapa do monitoramento, sem releitura linha a linha nesta revisão.
 - O comportamento de rede (tempos, limites do Portal) não está no código e não entra aqui.
