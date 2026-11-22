@@ -73,8 +73,26 @@ Todos mudam dado só com `--aplicar --confirmo-host`; o padrão é simulação. 
 | `consolidar_eventos_marco_duplicados` | Só se a migration do índice acusar duplicado |
 | `excluir_documentos_instrumento` | Só sob pedido, para documento lançado por engano |
 
+### Ordem ensaiada (22/11/2026, cópia local)
+
+Rodada na cópia `sigeo_ensaio_release_20261122` (base de 20/11, head), com simulação antes de cada `--aplicar --confirmo-host 127.0.0.1`. Todos terminaram sem erro e a reexecução não grava nada (idempotentes).
+
+| # | Script | Resultado no ensaio |
+|---|---|---|
+| 1 | `remover_persus_ii_do_monitoramento` | 24 removidos (427 → 403 instrumentos) |
+| 2 | `derivar_repasses_siconv` | 237 repasses (103 integrais, 134 parciais); 166 sem desembolso |
+| 3 | `migrar_marcos_para_documentos` | 170 documentos migrados; 68 marcos sem data realizada descartados |
+| 4 | `corrigir_entregas_persus_i` | 60 datas corrigidas, 17 entregas criadas, 3 sem inauguração realizada |
+| 5 | `alinhar_eventos_das_entregas` | 60 eventos corrigidos, 12 recriados, 1 reapontado; 17 entregas sem evento ficam como estão |
+| 6 | `migrar_concluidos_para_conclusao` | 207 conclusões (27 com ações fechadas); 14 vão à revisão da equipe |
+| 7 | `concluir_persus_i_pela_inauguracao` | 88 já concluídos pelo passo 6; 4 nunca concluídos |
+
+Dependências: 4 antes de 5, 6 e 7 (docstrings); 1 antes de tudo, para não migrar o que sai do monitoramento. Os passos 2 e 3 não dependem dos demais. `importar_licencas_ansn` não entrou no ensaio: precisa do JSON da ANSN e da planilha de vínculos validada pela equipe.
+
+Conferência final: 207 conclusões ativas, 0 duplicadas, 0 com data futura; 207 eventos antigos `fase_concluido` ativos (a migração não os apaga; Reabrir os desfaz junto); 2 instrumentos FAF seguem sem par na carteira.
+
 > [!warning] A confirmar
-> A ordem entre esses scripts e o que cada um grava em produção ainda não foi ensaiada. Ensaiar na cópia `sigeo_ensaio_release_20261122` antes de propor a sequência, como foi feito no release de 23/10.
+> O ensaio usou a base de 20/11. Antes da produção, repetir sobre o backup mais recente. Cada passo em produção exige "pode gravar", backup e `select current_database(), current_user`. Os 14 casos de revisão e os 3 instrumentos PERSUS I sem inauguração realizada precisam de decisão da equipe.
 
 ## Pendências que não são código
 
