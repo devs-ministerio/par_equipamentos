@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Notificacao, NotificacaoTipo
 from app.domain_errors import NotFoundError
 from app.repositories.notificacoes import (
+    PREFIXO_DEDUP_RESUMO_SICONV,
     listar_notificacoes_paginadas,
     mapear_convenios_monitorados,
     mapear_identificadores_instrumentos,
@@ -36,8 +37,6 @@ class PaginaNotificacoesComDestino:
     itens: list[NotificacaoComDestino]
     total: int
     nao_lidas: int
-
-PREFIXO_DEDUP_RESUMO_SICONV = "siconv-resumo:"
 
 
 def corpo_publico_da_notificacao(notificacao: Notificacao) -> str | None:

@@ -20,6 +20,7 @@ export function criarCandidato(
     municipio: null,
     uf: null,
     data_instrumento: null,
+    recaptura_em: new Date().toISOString(),
     componentes: [],
     itens: [
       {

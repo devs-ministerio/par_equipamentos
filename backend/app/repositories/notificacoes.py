@@ -151,9 +151,7 @@ def ids_gestao(db: Session) -> set[int]:
     return _ids_ativos_por_role(db, (UserRole.gestor, UserRole.admin))
 
 
-def criar_notificacao(
-    db: Session, notificacao: Notificacao, *, destinatarios: set[int] | None = None
-) -> Notificacao:
+def criar_notificacao(db: Session, notificacao: Notificacao, *, destinatarios: set[int] | None = None) -> Notificacao:
     """Insere a Notificacao e materializa NotificacaoDestinatario pra cada
     usuário que deve vê-la. `db.add`+`flush` (não commit) -- quem chama
     continua responsável pelo commit, mesmo padrão já usado pelos jobs/
@@ -197,12 +195,19 @@ _TIPOS_DE_INSTRUMENTO = (
 )
 
 
+PREFIXO_DEDUP_RESUMO_SICONV = "siconv-resumo:"
+
+
 def notificacao_no_escopo() -> ColumnElement[bool]:
     """Aviso de instrumento ou convênio fora de escopo (só obra, por exemplo) não aparece para ninguém."""
     instrumentos_fora = select(InstrumentoEquipamento.id).where(~instrumento_no_escopo())
     convenios_fora = select(Convenio.id).where(Convenio.fora_escopo_equipamentos.is_(True))
     return ~(
-        (Notificacao.tipo.in_(_TIPOS_DE_INSTRUMENTO) & Notificacao.entidade_id.in_(instrumentos_fora))
+        (
+            Notificacao.tipo.in_(_TIPOS_DE_INSTRUMENTO)
+            & Notificacao.entidade_id.in_(instrumentos_fora)
+            & ~func.coalesce(Notificacao.chave_dedup, "").startswith(PREFIXO_DEDUP_RESUMO_SICONV, autoescape=True)
+        )
         | ((Notificacao.tipo == NotificacaoTipo.alerta_vigencia) & Notificacao.entidade_id.in_(convenios_fora))
     )
 

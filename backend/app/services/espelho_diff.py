@@ -23,7 +23,7 @@ SEPARADORES_IDENTIFICADOR = str.maketrans("", "", "./- ")
 
 def campo_identificador(campo: str | None) -> bool:
     """Campos que identificam (número de documento, licitação, processo, UG), não medem nada."""
-    return bool(campo) and (campo.startswith("NR_") or campo == "UG_RESPONSAVEL")
+    return campo is not None and (campo.startswith("NR_") or campo == "UG_RESPONSAVEL")
 
 
 def canonico_identificador(valor: str) -> str:

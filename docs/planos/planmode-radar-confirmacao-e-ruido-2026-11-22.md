@@ -1,6 +1,6 @@
 # Plan Mode: Radar, confirmação do Portal e ruído de avisos (22/11/2026)
 
-Estado: plano para aprovação. Nada deste documento foi implementado.
+Estado: **histórico**. O plano previa o estado `inconclusivo`, migration, quarentena e a aba "Aguardando Portal"; nada disso foi implementado. O que valeu está em `docs/mermaid/radar-instrumentos.md` (seções 15 e 18).
 
 ## 1. Por que este plano existe
 

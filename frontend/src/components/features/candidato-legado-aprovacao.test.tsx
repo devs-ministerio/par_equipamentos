@@ -97,6 +97,19 @@ describe("conferência e aprovação no Radar", () => {
     expect(screen.getByRole("button", { name: "Aprovar" })).toBeDisabled();
   });
 
+  it.each([
+    ["sem recaptura", null, "Prova ausente"],
+    ["com recaptura vencida", "2020-01-01T00:00:00Z", "Prova vencida"],
+  ])(
+    "Aprovar fica desabilitado %s e mostra o motivo",
+    async (_n, quando, texto) => {
+      montar({ candidato: criarCandidato({ recaptura_em: quando }) });
+      await screen.findByText("Convênio 999001");
+      expect(screen.getByRole("button", { name: "Aprovar" })).toBeDisabled();
+      expect(screen.getByText(new RegExp(texto))).toBeVisible();
+    },
+  );
+
   it("não aprova sem escolher o técnico", async () => {
     // Arrange
     const { fetch } = montar();

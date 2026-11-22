@@ -43,7 +43,7 @@ from app.rotulos_siconv import rotulo_campo_siconv
 from app.schemas_filhas_legado import chave_termo_aditivo
 from app.services.capturas_fonte import CapturaEmAndamento, captura
 from app.services.espelho_diff import DiffLista, diff_lista, mesclar_lista, mesmo_valor
-from app.services.notificacoes import PREFIXO_DEDUP_RESUMO_SICONV
+from app.repositories.notificacoes import PREFIXO_DEDUP_RESUMO_SICONV
 from app.services.projecao_legado import _data_siconv
 
 # Reaproveita os helpers ja existentes de scripts/coletar_siconv_legado.py

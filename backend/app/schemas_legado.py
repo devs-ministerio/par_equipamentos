@@ -56,6 +56,8 @@ class CandidatoLegadoRead(BaseModel):
     municipio: str | None = None
     uf: str | None = None
     data_instrumento: date | None = None
+    # Horário da última recaptura (prova da aprovação); nulo se nunca houve.
+    recaptura_em: datetime | None = None
     # Nomes dos bens do plano (recaptura) ou, sem ela, dos equipamentos reconhecidos na descoberta.
     itens: list[ItemPlanoLegadoRead] = Field(default_factory=list)
 

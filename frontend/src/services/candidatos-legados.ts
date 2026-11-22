@@ -30,6 +30,7 @@ const candidatoSchema = z.object({
   municipio: z.string().nullable().default(null),
   uf: z.string().nullable().default(null),
   data_instrumento: z.string().nullable().default(null),
+  recaptura_em: z.string().datetime({ offset: true }).nullable().default(null),
   componentes: z
     .array(
       z.object({

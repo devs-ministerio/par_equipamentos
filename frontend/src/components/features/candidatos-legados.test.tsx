@@ -24,6 +24,7 @@ const candidato: CandidatoLegado = {
   municipio: null,
   uf: null,
   data_instrumento: null,
+  recaptura_em: null,
   componentes: [],
   itens: [
     {
@@ -104,7 +105,8 @@ describe("Radar legado", () => {
       "UF",
       "Município",
       "Data do instrumento",
-      "Data da coleta",
+      "Descoberto em",
+      "Recaptura",
     ])
       expect(screen.getByText(rotulo)).toBeVisible();
     expect(screen.getByText("Campinas")).toBeVisible();

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth import hash_password
 from app.db.base import engine
 from app.db.models import (
+    Convenio,
     InstrumentoEquipamento,
     InstrumentoResponsavel,
     Notificacao,
@@ -109,3 +110,18 @@ def test_leitor_nunca_recebe(db):
     db.flush()
     aviso = db.query(Notificacao).filter_by(entidade_id=inst.id, tipo=NotificacaoTipo.atualizacao_api).one()
     assert leitor.id not in _quem_ve(db, aviso.id)
+
+
+def test_resumo_da_rodada_continua_visivel_quando_so_o_primeiro_instrumento_sai_do_escopo(db):
+    from app.repositories.notificacoes import listar_notificacoes_paginadas
+
+    gestor = _usuario(db, UserRole.gestor)
+    primeiro = _instrumento(db, None)
+    outros = [_instrumento(db, None) for _ in range(LIMITE_AVISOS_INDIVIDUAIS)]
+    avisar_mudancas(db, _avisos([primeiro, *outros]), rodada="r-escopo")
+    db.add(Convenio(numero=primeiro.nr_convenio, convenente_nome="x", fora_escopo_equipamentos=True))
+    db.flush()
+
+    pagina = listar_notificacoes_paginadas(db, usuario_id=gestor.id, limit=50, offset=0, apenas_nao_lidas=False)
+
+    assert any((i.notificacao.chave_dedup or "") == "siconv-resumo:r-escopo" for i in pagina.itens)

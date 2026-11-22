@@ -20,6 +20,7 @@ const base: CandidatoLegado = {
   municipio: null,
   uf: null,
   data_instrumento: null,
+  recaptura_em: null,
   componentes: [],
   evidencias: [],
 };

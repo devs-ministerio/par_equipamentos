@@ -2,6 +2,8 @@
 
 from collections import defaultdict
 from collections.abc import Sequence
+from datetime import datetime
+from typing import Any
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -233,9 +235,12 @@ def _itens_do_plano(itens: object) -> list[ItemPlanoLegadoRead]:
     return bens
 
 
+_SEM_RECAPTURA: tuple[Any, ...] = (None, None, None, [], None)
+
+
 def _resumo_recaptura(
     db: Session, ids: set[int]
-) -> dict[int, tuple[object, str | None, str | None, list[ItemPlanoLegadoRead]]]:
+) -> dict[int, tuple[object, str | None, str | None, list[ItemPlanoLegadoRead], datetime]]:
     """Valor, município, UF e itens da última recaptura oficial de cada candidato."""
     if not ids:
         return {}
@@ -244,9 +249,11 @@ def _resumo_recaptura(
     municipio = r.payload_oficial["portal"]["municipioConvenente"]["nomeIBGE"].astext
     uf = r.payload_oficial["portal"]["municipioConvenente"]["uf"]["nome"].astext
     return {
-        candidato_id: (valor, mun, sigla, _itens_do_plano(itens))
-        for candidato_id, valor, mun, sigla, itens in db.execute(
-            select(r.candidato_id, r.valor_global, municipio, uf, r.payload_oficial["itens"]).where(r.id.in_(ultima))
+        candidato_id: (valor, mun, sigla, _itens_do_plano(itens), criado_em)
+        for candidato_id, valor, mun, sigla, itens, criado_em in db.execute(
+            select(r.candidato_id, r.valor_global, municipio, uf, r.payload_oficial["itens"], r.criado_em).where(
+                r.id.in_(ultima)
+            )
         )
     }
 
@@ -299,10 +306,11 @@ def listar_pagina(
                 "captura_id": captura.id,
                 "situacao": decisao.situacao if decisao else "novo",
                 "versao": decisao.id if decisao else 0,
-                "valor_global": recapturas.get(candidato.id, (None, None, None, []))[0],
-                "municipio": recapturas.get(candidato.id, (None, None, None, []))[1],
-                "uf": recapturas.get(candidato.id, (None, None, None, []))[2],
-                "itens": recapturas.get(candidato.id, (None, None, None, []))[3]
+                "valor_global": recapturas.get(candidato.id, _SEM_RECAPTURA)[0],
+                "municipio": recapturas.get(candidato.id, _SEM_RECAPTURA)[1],
+                "uf": recapturas.get(candidato.id, _SEM_RECAPTURA)[2],
+                "recaptura_em": recapturas.get(candidato.id, _SEM_RECAPTURA)[4],
+                "itens": recapturas.get(candidato.id, _SEM_RECAPTURA)[3]
                 or [
                     ItemPlanoLegadoRead(nome=nome)
                     for nome in dict.fromkeys(e.nome for e in evidencias.get(captura.id, []))

@@ -1,4 +1,4 @@
-# Mapa do Radar de instrumentos (revisão 2, de 22/11/2026)
+# Mapa do Radar de instrumentos (revisão 3, de 22/11/2026)
 
 Objetivo: servir de base para a equipe validar o fluxo do Radar e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da branch `feat/persus-ii-fora-do-monitoramento` (estado de 22/11/2026) e conferido, em leitura, contra o banco de produção de 21/11/2026. A revisão 2 incorpora os blocos 1 a 3 do plano [planmode-radar-confirmacao-e-ruido-2026-11-22.md](../planos/planmode-radar-confirmacao-e-ruido-2026-11-22.md), que estão em commits locais e **ainda não estão em produção**. Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
@@ -545,6 +545,24 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 
 > [!warning] A confirmar
 > A aprovação segue travada enquanto a recaptura não rodar em produção (seção 7).
+
+### Revisão 3: três estados, não um
+
+"Portal confirmou" e "pode aprovar" são coisas diferentes. O candidato passa por três estados independentes:
+
+| Estado | Quem decide | Onde aparece |
+| --- | --- | --- |
+| Publicação confirmada | Rodada da descoberta (Portal) | Selo "Portal pendente" some |
+| Prova vigente | Recaptura de até 24 h (`VALIDADE_RECAPTURA`) | Campo "Recaptura" no card; sem prova, Aprovar fica desabilitado com o motivo ("Prova ausente" ou "Prova vencida") |
+| Aprovado | Decisão humana, transação única | Situação "Aprovado" |
+
+- O card separa "Descoberto em" (primeira vez no SICONV) de "Recaptura" (última prova oficial, `recaptura_em`). A tela só antecipa o bloqueio: quem decide é a API, que devolve 409 se a prova faltar ou estiver vencida, antes do POST.
+- Contrato do Portal inconclusivo (campo vazio, timeout): a confirmação usa só `codigo` e `dataPublicacao`, então um registro esqueleto não derruba a rodada nem adia revalidações. O estado `inconclusivo` do plano não foi implementado.
+- A revalidação do job diário usa o snapshot do SICONV. O script `job_revalidacao_legado_local` é separado e roda só em clone local.
+- Rejeitar trava o candidato (situação terminal).
+- A medição de 5 a 22 dias entre SICONV e Portal vem da amostra de 12 confirmados em produção (inclui `7AAIPN`, de 13/11 para 18/11); não é garantia.
+- Seção 15: a comparação canônica vale para os campos identificadores; a chave do registro (`NR_MOV_FIN`) segue em texto cru (produção: 0 casos de pontuação ou zero à esquerda em 1.664 chaves). O limite de 10 conta instrumentos monitorados com aviso elegível. O resumo da rodada (`siconv-resumo:`) não some quando o instrumento usado como âncora sai do escopo.
+- Implementado nos commits 948d642 (documentação) e 5c5641e (código) e nos desta revisão.
 
 ## 19. Registro de funcionalidades (para a equipe marcar)
 

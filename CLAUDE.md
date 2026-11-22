@@ -1144,6 +1144,8 @@ tempo de leitura) por `app/repositories/notificacoes.py::criar_notificacao` — 
   (botão desabilitado, `preparar_revisao` devolve 409, `preparar_alvo_coleta` recusa recaptura) porque convenente, município, UF,
   região e ano só vêm do Portal e são gravados uma vez na aprovação. Em produção (21/11) a recaptura nunca rodou (0 linhas), então
   nenhum candidato foi aprovado pelo Radar ainda. Mapa: `docs/mermaid/radar-instrumentos.md` seção 18.
+  O botão Aprovar também fica desabilitado, com o motivo, sem prova vigente (`recaptura_em` ausente ou > 24 h); o card mostra "Descoberto em"
+  e "Recaptura" separados. O resumo `siconv-resumo:` (`PREFIXO_DEDUP_RESUMO_SICONV`, em `repositories/notificacoes.py`) é isento do filtro de escopo.
 - **Confirmação do Portal por finalidade (22/11/2026)**: `descoberta_legado.confirmar_no_portal` valida só `codigo` e
   `dataPublicacao` (`DimConvenioConfirmacao`); `numero`/`objeto` vazios (caso `7AAFSX`) já não derrubam a rodada. O contrato
   completo (`DimConvenioPortal`, via `PortalLegadoCapturado`) segue exigido na recaptura e na aprovação. Portal sem `codigo`
