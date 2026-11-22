@@ -6,8 +6,8 @@ Pasta de mapas de fluxo lidos do código. Cada mapa cobre um módulo, tem revis�
 
 | Mapa | Escopo | Revisão |
 | --- | --- | --- |
-| [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 3, 21/11/2026 |
-| [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, decisão pendente sobre o Portal, workflow | 2, 22/11/2026 |
+| [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 4, 22/11/2026 |
+| [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, decisão pendente sobre o Portal, workflow | 3, 22/11/2026 |
 
 ## Convenções
 

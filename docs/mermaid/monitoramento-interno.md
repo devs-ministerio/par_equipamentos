@@ -1,8 +1,10 @@
-# Mapa do Monitoramento interno (revisão 3, de 21/11/2026)
+# Mapa do Monitoramento interno (revisão 4, de 22/11/2026)
 
 Objetivo: servir de base para a equipe validar o fluxo e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da branch `feat/persus-ii-fora-do-monitoramento` (estado de 21/11/2026, depois da revisão 3). Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
 Escopo: Mesa de trabalho (`/monitoramento-equipamentos/instrumentos`), detalhe do instrumento (`/monitoramento-equipamentos/instrumentos/:nr`), Radar de instrumentos e fila de revisão de itens. O Painel de Gestão está desabilitado (flag `PAINEL_GESTAO_HABILITADO`) e fica fora deste mapa.
+
+Mudanças da revisão 4: Radar mostra o candidato antes do Portal (Aprovar segue travado); card separa "Descoberto em" e "Recaptura"; Aprovar exige prova vigente; política de avisos do SICONV com resumo e popup de detalhe. Detalhes no mapa do Radar.
 
 Mudanças da revisão 3: entrega manda no evento de cronograma; conclusão com trava por instrumento e leitura depois da trava; ações lidas por instrumento (pendentes primeiro, contadores do conjunto inteiro); aprovação do Radar exige titular; revisão de itens confere a situação esperada; contrato de licença e conclusão detalhados.
 
@@ -375,7 +377,7 @@ flowchart TB
     FONTES["GET /fontes/capturas"]:::tela --> PAPEL{"Papel?"}:::regra
     PAPEL -->|"admin"| DET["Detalhe da coleta<br/>status, contadores, defasagem"]:::tela
     PAPEL -->|"demais papéis"| RESUMO["Só a data do último sucesso<br/>(a API não envia o resto)"]:::tela
-    J["job descoberta-siconv<br/>e recaptura oficial"]:::job --> CARD["Card do candidato, aba Aguardando<br/>Componente em linha própria<br/>Valor · UF · Município · Datas em uma linha<br/>Botão Itens · n ao lado do número"]:::tela
+    J["job descoberta-siconv<br/>e recaptura oficial"]:::job --> CARD["Card do candidato, aba Aguardando<br/>Componente em linha própria<br/>Valor · UF · Município · Datas (instrumento, descoberto em, recaptura)<br/>Selo Portal pendente com a idade<br/>Botão Itens · n ao lado do número"]:::tela
     CARD -. "Itens · n" .-> TAB["Pop-up em tabela:<br/>item · quantidade · valor unitário · valor total"]:::tela
     CARD --> D{"Decisão"}:::regra
     D -->|"rejeitar, com motivo"| REJ["Rejeitado<br/>vai para a aba Arquivados"]:::regra
@@ -397,7 +399,7 @@ Busca, paginação e bloqueios do Radar:
 
 Detalhes do aprovar com técnico:
 
-- O botão **Aprovar** abre o mesmo pop-up de "Adicionar ao monitoramento interno": o técnico titular é obrigatório e **Confirmar** já leva o instrumento ao monitoramento. Não há mais "Iniciar análise"; sobra Aprovar e Rejeitar.
+- O botão **Aprovar** fica desabilitado, com o motivo no tooltip, sem confirmação do Portal ou sem prova vigente (recaptura de até 24 h); com os dois, abre o mesmo pop-up de "Adicionar ao monitoramento interno": o técnico titular é obrigatório e **Confirmar** já leva o instrumento ao monitoramento. Não há mais "Iniciar análise"; sobra Aprovar e Rejeitar.
 - A lista tem duas abas: **Aguardando** (novo e em análise) e **Arquivados** (aprovado e rejeitado). O card não mostra o campo Item; o botão **Itens · n**, ao lado do número do convênio, abre um pop-up em tabela (item, quantidade, valor unitário e total) com todos os bens da última recaptura.
 - O monitor da coleta (status, defasagem, contagens e detalhes) aparece completo só para o admin. Os demais perfis veem apenas a data e hora da última coleta com sucesso.
 - O técnico titular é obrigatório também na API (sem ele, 422): toda aprovação vai ao monitoramento. A mesma transação cria o instrumento monitorado (tipo Convênio, origem `radar_aprovacao`), grava o titular e emite o aviso de inclusão. Se qualquer passo falhar, nada é gravado.
@@ -425,7 +427,7 @@ flowchart LR
 
 | Aviso | Destinatários |
 |---|---|
-| `edicao_manual`, `atualizacao_api`, `prazo_*`, `inclusao_monitoramento` | Titular, suplente, gestor e admin ativos; sem técnico, só gestor e admin |
+| `edicao_manual`, `atualizacao_api`, `prazo_*`, `inclusao_monitoramento` | Titular, suplente, gestor e admin ativos; sem técnico, só gestor e admin. Exceção: rodada do SICONV com mais de 10 instrumentos alterados manda individual só a titular e suplente e um resumo à gestão (mapa do Radar, seção 15) |
 | `alerta_vigencia` | Igual ao anterior quando há instrumento monitorado; sem instrumento, só gestor e admin |
 | `aprovacao_carteira`, `convenio_descoberto`, `fonte_indisponivel` | Só gestor e admin |
 | `proposta_candidata` | Todos, exceto leitor (broadcast) |
