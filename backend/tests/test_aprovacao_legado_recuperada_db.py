@@ -146,23 +146,11 @@ def test_duas_sessoes_mesma_chave_criam_uma_aprovacao(matriz, dados):
 
 
 def test_aprovacao_apos_analise_replay_confere_versao_anterior(matriz, dados):
-    from app.schemas_legado import DecisaoLegadoCreate
-    from app.services.decisoes_legado import registrar_decisao
+    from tests.test_revisao_legado_recuperada_db import decisao_humana
 
     db, usuarios, *_ = matriz
     ref, _, _, _, pedido = preparar_prova(db, dados)
-    anterior = registrar_decisao(
-        db=db,
-        usuario=usuarios["admin"],
-        candidato_id=ref.candidato_id,
-        dados=DecisaoLegadoCreate(
-            acao="iniciar_analise",
-            chave=uuid4(),
-            captura_id=ref.captura_id,
-            versao=0,
-            justificativa="Análise iniciada pela gestão",
-        ),
-    )
+    anterior = decisao_humana(db, usuarios["admin"], ref, "em_analise")
     pedido = pedido.model_copy(update={"versao": anterior.id})
     aprovada = executar(db, usuarios["admin"].id, ref, pedido)
     assert aprovada.situacao_anterior == "em_analise"

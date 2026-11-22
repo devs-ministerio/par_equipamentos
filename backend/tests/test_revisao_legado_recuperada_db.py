@@ -182,25 +182,47 @@ def test_rele_usuario_desautorizado_mesmo_com_objeto_antigo_na_session(matriz, d
         preparar_revisao(db=db, usuario_id=usuario_id, candidato_id=ref.candidato_id, dados=pedido)
 
 
-@pytest.mark.parametrize("acao", ["iniciar_analise", "rejeitar"])
-def test_estado_humano_e_versao_sao_revalidados(matriz, dados, acao):
+def decisao_humana(db, usuario, ref, situacao):
+    """Rejeição pela API; "em_analise" (estado legado, sem ação que o grave) direto no banco."""
     from app.schemas_legado import DecisaoLegadoCreate
     from app.services.decisoes_legado import registrar_decisao
 
+    if situacao == "rejeitado":
+        return registrar_decisao(
+            db=db,
+            usuario=usuario,
+            candidato_id=ref.candidato_id,
+            dados=DecisaoLegadoCreate(
+                acao="rejeitar",
+                chave=uuid4(),
+                captura_id=ref.captura_id,
+                versao=0,
+                justificativa="Análise humana registrada",
+            ),
+        )
+    decisao = CandidatoLegadoDecisao(
+        candidato_id=ref.candidato_id,
+        captura_id=ref.captura_id,
+        usuario_id=usuario.id,
+        chave=uuid4(),
+        situacao_anterior="novo",
+        situacao="em_analise",
+        justificativa="Análise humana registrada",
+    )
+    db.add(decisao)
+    db.flush()
+    return decisao
+
+
+@pytest.mark.parametrize("situacao", ["em_analise", "rejeitado"])
+def test_estado_humano_e_versao_sao_revalidados(matriz, dados, situacao):
     db, usuarios, *_ = matriz
     ref, _, _, _, pedido = preparar_prova(db, dados)
-    decisao = registrar_decisao(
-        db=db,
-        usuario=usuarios["admin"],
-        candidato_id=ref.candidato_id,
-        dados=DecisaoLegadoCreate(
-            acao=acao, chave=uuid4(), captura_id=ref.captura_id, versao=0, justificativa="Análise humana registrada"
-        ),
-    )
+    decisao = decisao_humana(db, usuarios["admin"], ref, situacao)
     with pytest.raises(ConflictError):
         preparar_revisao(db=db, usuario_id=usuarios["admin"].id, candidato_id=ref.candidato_id, dados=pedido)
     pedido = pedido.model_copy(update={"versao": decisao.id})
-    if acao == "rejeitar":
+    if situacao == "rejeitado":
         with pytest.raises(ConflictError, match="encerrada"):
             preparar_revisao(db=db, usuario_id=usuarios["admin"].id, candidato_id=ref.candidato_id, dados=pedido)
     else:

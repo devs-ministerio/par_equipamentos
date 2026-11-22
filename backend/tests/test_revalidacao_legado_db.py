@@ -241,7 +241,7 @@ def test_fila_inelegivel_nao_pode_receber_nova_decisao_humana(matriz, dados):
             usuario=usuarios["admin"],
             candidato_id=alvo.candidato_id,
             dados=DecisaoLegadoCreate(
-                acao="iniciar_analise", chave=uuid4(), captura_id=captura_id, versao=0, justificativa="Teste de fila"
+                acao="rejeitar", chave=uuid4(), captura_id=captura_id, versao=0, justificativa="Teste de fila"
             ),
         )
     assert contar(db, CandidatoLegadoDecisao) == 0

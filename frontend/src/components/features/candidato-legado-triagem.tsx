@@ -118,9 +118,7 @@ function DecisaoForm({
       })}
     >
       <label htmlFor={campoId} className="text-xs font-semibold">
-        {acao === "rejeitar"
-          ? "Motivo da rejeição"
-          : "Justificativa da análise"}
+        Motivo da rejeição
       </label>
       <Input
         id={campoId}

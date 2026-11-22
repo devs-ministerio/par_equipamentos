@@ -70,7 +70,7 @@ class CandidatosLegadosRead(BaseModel):
 
 class DecisaoLegadoCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    acao: Literal["iniciar_analise", "rejeitar"]
+    acao: Literal["rejeitar"]
     chave: UUID
     captura_id: int = Field(gt=0)
     versao: int = Field(ge=0)

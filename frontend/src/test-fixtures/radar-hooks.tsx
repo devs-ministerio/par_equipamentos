@@ -60,10 +60,10 @@ export function prepararHooksRadar(role: AuthUser["role"] = "admin") {
     if (url.pathname.endsWith("/auth/refresh"))
       return json({ detail: "Sessão expirada" }, 401);
     if (url.pathname.endsWith("/decisoes")) {
-      const decisao = { ...criarDecisao(), situacao: "em_analise" };
+      const decisao = { ...criarDecisao(), situacao: "rejeitado" };
       controle.candidato = {
         ...controle.candidato,
-        situacao: "em_analise",
+        situacao: "rejeitado",
         versao: decisao.id,
       };
       controle.historico = [{ ...decisao, usuario_nome: "Pessoa sintética" }];

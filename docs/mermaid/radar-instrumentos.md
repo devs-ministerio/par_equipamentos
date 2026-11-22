@@ -46,9 +46,7 @@ flowchart TB
     P2(["colaborador / leitor"]):::perfil -. "botão não aparece; API devolve 403" .-> BTN
     BTN --> CEN["Central Radar de instrumentos (pop-up)"]:::tela
     CEN --> MON["Monitor da coleta"]:::tela
-    CEN --> ABA1["Aba Convênios"]:::tela
-    CEN --> ABA2["Aba Propostas em tramitação<br/>desabilitada: aguardando critério"]:::off
-    ABA1 --> LISTA["Lista: busca, abas, paginação"]:::tela
+    CEN --> LISTA["Lista: busca, abas, paginação"]:::tela
     LISTA --> CARD["Card do candidato"]:::tela
     CARD --> ITENS["Itens · n: pop-up em tabela"]:::tela
     CARD --> HIST["Histórico de decisões"]:::tela
@@ -207,11 +205,8 @@ A validação da prova (`validar_captura_promocao`) confere: hash igual, mesmo c
 ```mermaid
 stateDiagram-v2
     [*] --> novo: descoberto (Portal pode estar pendente)
-    novo --> em_analise: iniciar_analise (API; sem botão na tela)
     novo --> rejeitado: rejeitar com justificativa
-    em_analise --> rejeitado: rejeitar com justificativa
     novo --> aprovado: aprovar (transação da seção 9)
-    em_analise --> aprovado: aprovar (transação da seção 9)
     rejeitado --> [*]
     aprovado --> [*]
 ```
@@ -290,7 +285,6 @@ flowchart TB
     IND --> DEST["Notificação proposta_candidata:<br/>broadcast a todo não leitor"]:::aviso
     RES --> DEST
     PC --> API["GET /propostas-candidatas"]:::tela
-    API --> ABA["Aba Propostas em tramitação<br/>(desabilitada na central)"]:::off
     DEST -->|"destino"| DADOS["Dados oficiais, aba componentes, subaba novas"]:::tela
 ```
 
@@ -329,7 +323,7 @@ Estado observado em produção: a tarefa `descoberta-siconv` termina como parcia
 | `GET /candidatos-legados` | gestor, admin | Lista paginada (seção 10) |
 | `GET /candidatos-legados/{id}/prova` | gestor, admin | Resumo da prova da última recaptura e validade (sempre só leitura) |
 | `POST /candidatos-legados/{id}/aprovacoes` | gestor, admin | Aprovação com técnico titular (seção 9) |
-| `POST /candidatos-legados/{id}/decisoes` | gestor, admin | `iniciar_analise` ou `rejeitar` |
+| `POST /candidatos-legados/{id}/decisoes` | gestor, admin | `rejeitar` (a ação `iniciar_analise` foi removida) |
 | `GET /candidatos-legados/{id}/historico` | gestor, admin | Decisões em ordem, paginadas |
 | `GET /notificacoes` | qualquer logado não leitor | Lista do usuário, com `destino` calculado, busca, tipo, caixa e paginação |
 | `PATCH /notificacoes/{id}` | destinatário | Marca como lida |
@@ -582,7 +576,7 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 | Monitor da coleta por papel | Ativa | |
 | Recaptura (valor, itens, prova) | Só em clone local | |
 | Revalidação (esconde falso positivo) | Só em clone local | |
-| Aba Propostas em tramitação | Código pronto, desabilitada na tela | |
+| Aba Propostas em tramitação | Removida da central em 22/11/2026 | |
 | Comparação canônica de identificadores do SICONV | Implementada em 22/11, só em commit local | |
 | Popup de detalhe da atualização oficial (sino e Central) | Implementado em 22/11, só em commit local | |
 | Resumo único para a gestão acima de 10 convênios | Implementado em 22/11, só em commit local | |
@@ -594,8 +588,7 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 ## 20. Código sem uso
 
 - Removidos em 22/11/2026: `descobrir_legado` (só os testes o chamavam), o script `diagnosticar_descoberta_siconv.py` (diagnóstico sobre snapshot local, sem referência em workflow ou documentação), o modo diagnóstico da lista e a origem `snapshot_local` do contrato da API. O CHECK do banco ainda admite `snapshot_local` e as guardas de linha legada nos serviços ficam até uma migration estreitar o CHECK (produção tem só `siconv_oficial`: 31 capturas).
-- Ação `iniciar_analise` e estado `em_analise`: a API aceita, a tela não tem mais o botão. O estado ainda aparece na aba Aguardando. Decidir se vira código a remover ou se volta para a tela.
-- Aba "Propostas em tramitação": carrega a lista sob demanda, mas fica desabilitada. Hoje a aba não é alcançável pelo usuário.
+- Removidos em 22/11/2026: a ação `iniciar_analise` (a API só aceita `rejeitar`) e a aba "Propostas em tramitação" da central. O estado `em_analise` não nasce mais; o CHECK do banco e as guardas de leitura o toleram até uma migration estreitá-lo (proposta no relatório de limpeza do banco).
 - `Notificacao.lida` está obsoleta; o escopo por destinatário vale (`NotificacaoDestinatario`).
 
 ## 21. Limites desta análise
