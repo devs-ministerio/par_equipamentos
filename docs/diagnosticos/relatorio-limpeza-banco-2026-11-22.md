@@ -18,17 +18,14 @@ O mapa do schema está em [banco-de-dados.md](../mermaid/banco-de-dados.md).
 |---|---|---|---|
 | `accelerator_row` | 0 | modelo e `scripts/importar_aceleradores.py` | Remover após confirmação |
 | `inca_estimate` | 0 | modelo e `scripts/importar_inca_estimates.py` | Remover após confirmação |
-| `municipality_population_row` | 11.140 | modelo e 3 scripts (`importar_populacao_municipios`, `atualizar_dados_producao`, `auditar_integridade_database`) | Manter até decidir sobre os scripts |
+| `municipality_population_row` | 11.140 | modelo e 3 scripts (`importar_populacao_municipios`, `atualizar_dados_producao`, `auditar_integridade_database`) | Manter: uso futuro (decisão do usuário, 22/11) |
 | `reference_file` | 2 | modelo, 7 scripts de pipeline e importação | Manter até decidir sobre os scripts |
 | `fonte_dado` | 6 | modelo e `scripts/backfill_fontes_dado.py`; nenhuma rota ou serviço lê | Remover após confirmação |
-| `pagamento_obra_persus` | 204 | modelo e 2 scripts (`complementar_persus_fontes_extras`, `normalizar_cnpj_database`); nenhuma rota ou serviço lê | Manter: tem dado |
+| `pagamento_obra_persus` | 204 | modelo e 2 scripts (`complementar_persus_fontes_extras`, `normalizar_cnpj_database`); nenhuma rota ou serviço lê | Manter: uso futuro (decisão do usuário, 22/11) |
 | `entrega_legada_revisao` | 3 | `repositories/notificacoes.py`, `services/notificacoes.py` | Manter: código vivo |
 
-> [!warning] A confirmar
-> Se a população por município e o `reference_file` ainda alimentam algum pipeline. A cobertura usa CNES/ElastiCNES agregado; a população entra pelos scripts de importação, não pelo caminho da API. Pergunta aberta ao usuário, sem resposta até agora.
-
-> [!warning] A confirmar
-> `pagamento_obra_persus` tem 204 linhas e nenhum leitor na API. Antes de qualquer decisão, a equipe PERSUS confirma se a carga é histórico a preservar.
+> [!note] Decisão do usuário (22/11/2026)
+> `pagamento_obra_persus` e `municipality_population_row` ficam, porque serão usadas no futuro. Os scripts que as alimentam também ficam. Resta decidir só sobre `reference_file` (2 linhas, ligado a `execution` e aos pipelines).
 
 ## Colunas sem referência no código
 
@@ -71,7 +68,7 @@ Cerca de 2,8 MB em índices sem leitura detectada (3 em `equipment_offer_row`, 1
 ## Ordem sugerida
 
 1. Corrigir o `CLAUDE.md` (sem risco).
-2. Decidir sobre população, `reference_file` e `pagamento_obra_persus` (perguntas acima).
+2. Decidir sobre `reference_file`.
 3. Migration única de limpeza, depois do release: remove tabelas vazias e colunas nulas confirmadas e estreita os CHECKs. Backup antes; ensaio na cópia local; `downgrade` recria estrutura vazia.
 4. Rotina de purga de `refresh_token` expirado, como job separado.
 
