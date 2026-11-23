@@ -28,6 +28,7 @@ from app.repositories import propostas_candidatas as propostas_repo
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.repositories.notificacoes import criar_notificacao
 from app.services.monitoramento_eventos import substituir_responsaveis_instrumento
+from app.services.projecao_itens_plano import projetar as projetar_itens_plano
 from app.services.repasses import fases_calculadas_em_lote
 
 LIMITE_MONITORAMENTO_RELATORIO = 500
@@ -122,6 +123,9 @@ def criar_instrumento_monitorado_sem_commit(
     monitoramento_repo.adicionar_instrumento(db, instrumento)
     # Itens do plano nascem soltos; sem este vínculo a tela diz que não há itens controlados.
     itens_repo.vincular_itens_soltos_do_convenio(db, instrumento_id=instrumento.id, nr_convenio=nr_convenio)
+    # A projeção reaplica a classificação já com o instrumento: é ela que aplica a exceção de quem entra sem
+    # item controlado (R$ 100 mil por unidade, ou os de maior valor). Só ligar os itens não basta.
+    projetar_itens_plano(db, aplicar=True, convenio_numero=nr_convenio)
     # A relação é a fonte de verdade; os nomes são apenas o espelho legado
     # preenchido pela função, nunca aceitos como entrada livre.
     titular, suplente = substituir_responsaveis_instrumento(
