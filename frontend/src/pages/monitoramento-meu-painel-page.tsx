@@ -4,6 +4,7 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardColaborador } from "@/components/features/card-colaborador";
+import { SecaoSituacao } from "@/components/features/painel-tecnico-situacao";
 import { MonitoramentoFilaAcoes } from "@/components/features/monitoramento-fila-acoes";
 import { MonitoramentoPainelPrazos } from "@/components/features/monitoramento-painel-prazos";
 import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
@@ -16,10 +17,6 @@ import {
   usePainelTecnico,
   useTecnicosPainel,
 } from "@/hooks/use-painel-tecnico";
-import {
-  SecaoAtividade,
-  SecaoRegistro,
-} from "@/components/features/painel-tecnico-secoes";
 import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-carteira";
 import {
   entrouNoRadarRecente,
@@ -209,8 +206,7 @@ export function MonitoramentoMeuPainelPage() {
           />
         </>
       )}
-      <SecaoRegistro dados={dados} />
-      <SecaoAtividade dados={dados} />
+      <SecaoSituacao linhas={linhas} />
     </div>
   );
 }
