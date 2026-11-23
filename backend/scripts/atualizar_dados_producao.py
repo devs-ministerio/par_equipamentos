@@ -27,6 +27,7 @@ TAREFAS = {
     "transferegov": ("scripts.job_verificacao_transferegov", "transferegov_verificacao"),
     "descoberta-transferegov": ("scripts.job_descoberta_transferegov", "transferegov_descoberta"),
     "descoberta-siconv": ("scripts.job_descoberta_siconv", "siconv_descoberta"),
+    "recaptura": ("scripts.job_recaptura_legado", "siconv_recaptura"),
     "vigencia": ("scripts.job_alerta_vigencia", "alerta_vigencia"),
     "tomografo": ("scripts.run_pipeline_tomografo", "cnes_tomografo"),
     "ressonancia": ("scripts.run_pipeline_ressonancia", "cnes_ressonancia"),
@@ -157,6 +158,10 @@ def executar(tarefa: str) -> None:
                         resumo = _resumo_pipeline(familia)
                         rodada.itens_verificados = resumo["equipamentos"]
                         rodada.detalhes.update(resumo)
+            elif tarefa == "recaptura":
+                # Cada candidato grava a própria rodada; sem pendentes não há rodada a conferir.
+                job.run()
+                return
             else:
                 job.run()
             resultado = _ultima_captura(fonte, depois_de=anterior["id"] if anterior else 0)

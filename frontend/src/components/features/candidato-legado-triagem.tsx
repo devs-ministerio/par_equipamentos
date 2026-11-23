@@ -13,20 +13,12 @@ import type { CandidatoLegado } from "@/services/candidatos-legados";
 import { CandidatoLegadoHistorico } from "./candidato-legado-historico";
 import { CandidatoLegadoAprovacao } from "./candidato-legado-aprovacao";
 
-const VALIDADE_PROVA_MS = 24 * 60 * 60 * 1000; // espelha VALIDADE_RECAPTURA no backend
-
 /** Por que o Aprovar está travado (null = liberado). A decisão final continua no backend. */
-function motivoSemAprovacaoDe(
-  candidato: CandidatoLegado,
-  agora = Date.now(),
-): string | null {
+function motivoSemAprovacaoDe(candidato: CandidatoLegado): string | null {
   if (candidato.confirmacao_portal !== "confirmado")
     return "Libera quando o Portal da Transparência confirmar";
   if (!candidato.recaptura_em)
-    return "Prova ausente: falta a recaptura oficial";
-  const idade = agora - new Date(candidato.recaptura_em).getTime();
-  if (idade < 0 || idade > VALIDADE_PROVA_MS)
-    return "Prova vencida: refazer a recaptura oficial";
+    return "Aguardando os dados oficiais do convênio";
   return null;
 }
 

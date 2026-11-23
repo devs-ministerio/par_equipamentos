@@ -1,7 +1,5 @@
 """Consulta gerencial sem aprovação, coleta externa ou retenção de locks HTTP."""
 
-from datetime import timedelta
-
 from sqlalchemy.orm import Session
 
 from app.domain_errors import ConflictError, NotFoundError
@@ -49,7 +47,6 @@ def consultar_prova(*, db: Session, usuario_id: int, candidato_id: int) -> Prova
             municipio=revisao.projecao.municipio,
             uf=revisao.projecao.uf,
             capturado_em=rodada.iniciado_em,
-            expira_em=rodada.iniciado_em + timedelta(hours=24),
         )
     finally:
         db.rollback()

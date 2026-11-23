@@ -94,7 +94,6 @@ def test_pedido_obsoleto_ou_identidade_alheia_nao_prepara_aprovacao(matriz, dado
     [
         "parcial",
         "fonte",
-        "expirada",
         "futura",
         "invertida",
         "hashes",
@@ -115,8 +114,6 @@ def test_prova_adulterada_ou_rodada_invalida_recusada(matriz, dados, defeito):
         rodada.status = "parcial"
     elif defeito == "fonte":
         rodada.fonte = "outra_fonte"
-    elif defeito == "expirada":
-        rodada.iniciado_em = datetime.now(UTC) - timedelta(hours=25)
     elif defeito == "futura":
         rodada.iniciado_em = datetime.now(UTC) + timedelta(hours=1)
     elif defeito == "invertida":

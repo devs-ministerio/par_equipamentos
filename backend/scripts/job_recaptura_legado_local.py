@@ -16,13 +16,20 @@ from scripts.recaptura_legado_guardas import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from sqlalchemy.orm import Session, sessionmaker
 
+    from app.schemas_coleta_recaptura_legado import AlvoRecapturaLegado, PacoteRecapturaLegado
     from app.schemas_recaptura_persistencia import RecapturaPersistida
 
 
 def recapturar_candidato(
-    *, db: "Session", candidato_id: int, fabrica_sessao: "sessionmaker[Session]"
+    *,
+    db: "Session",
+    candidato_id: int,
+    fabrica_sessao: "sessionmaker[Session]",
+    coletar: "Callable[[AlvoRecapturaLegado], PacoteRecapturaLegado] | None" = None,
 ) -> "RecapturaPersistida":
     """Kernel com sessão dedicada; usado após validação do destino pelo launcher."""
     from app.schemas_recaptura_persistencia import ReferenciaRecaptura
@@ -35,7 +42,7 @@ def recapturar_candidato(
     alvo = preparar_alvo_coleta(db=db, candidato_id=candidato_id)
     inicio = datetime.now(UTC)
     try:
-        pacote = coletar_recaptura(alvo)
+        pacote = (coletar or coletar_recaptura)(alvo)
     except Exception:
         db.rollback()
         registrar_captura("siconv_recaptura", iniciado_em=inicio, status="erro", fabrica_sessao=fabrica_sessao)

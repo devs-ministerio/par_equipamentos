@@ -96,10 +96,7 @@ describe("conferência e aprovação no Radar", () => {
     expect(screen.getByRole("button", { name: "Aprovar" })).toBeDisabled();
   });
 
-  it.each([
-    ["sem recaptura", null, "Prova ausente"],
-    ["com recaptura vencida", "2020-01-01T00:00:00Z", "Prova vencida"],
-  ])(
+  it.each([["sem recaptura", null, "Aguardando os dados oficiais"]])(
     "Aprovar fica desabilitado %s e mostra o motivo",
     async (_n, quando, texto) => {
       montar({ candidato: criarCandidato({ recaptura_em: quando }) });
