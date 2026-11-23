@@ -255,6 +255,7 @@ def carteira_da_regiao(
         n_acoes, atrasadas = acoes.get(iid, (0, 0)) if monitorado else (0, 0)
         resultado.append(
             {
+                "instrumento_id": iid,
                 "numero": c.numero,
                 "uf": c.uf,
                 "municipio": c.municipio,

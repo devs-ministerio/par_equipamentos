@@ -7,12 +7,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import User, UserRole, UserStatus
+from app.db.models import InstrumentoEquipamento, User, UserRole, UserStatus
 from app.domain_errors import AuthorizationError, NotFoundError
 from app.repositories import painel_tecnico as repo
 from app.schemas_painel_tecnico import PainelCarteiraLinhaRead, PainelTecnicoRead, PainelTecnicoResumoRead
+from app.services.repasses import fases_calculadas_em_lote
 
 _GESTAO = (UserRole.admin, UserRole.gestor)
 
@@ -59,4 +61,14 @@ def obter_carteira(*, db: Session, usuario: User, usuario_id: int | None = None)
     ufs = None if alvo is None else repo.ufs_do_usuario(db, alvo.id)
     uid = None if alvo is None else alvo.id
     linhas = repo.carteira_da_regiao(db, ufs, uid, datetime.now(UTC).date())
-    return [PainelCarteiraLinhaRead(**linha) for linha in linhas]
+    ids = [linha["instrumento_id"] for linha in linhas if linha["instrumento_id"] is not None]
+    instrumentos = (
+        list(db.scalars(select(InstrumentoEquipamento).where(InstrumentoEquipamento.id.in_(ids)))) if ids else []
+    )
+    fases = fases_calculadas_em_lote(db, instrumentos) if instrumentos else {}
+    resultado = []
+    for linha in linhas:
+        iid = linha.pop("instrumento_id")
+        fase = fases.get(iid) if iid is not None else None
+        resultado.append(PainelCarteiraLinhaRead(**linha, fase=fase.value if fase else None))
+    return resultado

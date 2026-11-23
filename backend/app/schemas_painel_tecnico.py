@@ -34,6 +34,7 @@ class PainelCarteiraLinhaRead(BaseModel):
     cnpj_convenente: str | None
     tipo_contratacao: str | None
     situacao: str | None
+    fase: str | None = None
     valor_global: float | None
     em_aberto: bool
     monitorado: bool

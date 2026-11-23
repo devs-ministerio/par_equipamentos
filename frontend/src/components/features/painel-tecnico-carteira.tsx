@@ -40,7 +40,7 @@ function valorOrdem(l: LinhaCarteira, c: Chave): string | number {
   if (c === "acoes") return l.acoes;
   if (c === "eventos") return l.eventos;
   if (c === "municipio") return `${l.uf ?? ""} ${l.municipio ?? ""}`;
-  if (c === "situacao") return l.situacao ?? "";
+  if (c === "situacao") return (l.monitorado ? l.fase : l.situacao) ?? "";
   return l.numero;
 }
 
@@ -153,7 +153,18 @@ export function PainelTecnicoCarteira({
                 <TableCell className="max-w-56 truncate">
                   {l.convenente}
                 </TableCell>
-                <TableCell>{l.situacao}</TableCell>
+                <TableCell>
+                  {l.monitorado ? (
+                    l.fase
+                  ) : (
+                    <div className="leading-tight">
+                      <span className="block text-xs text-muted-foreground">
+                        Situação do SITE
+                      </span>
+                      {l.situacao}
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {l.monitorado ? l.acoes : "—"}
                 </TableCell>
