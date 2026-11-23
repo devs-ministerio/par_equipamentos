@@ -99,7 +99,7 @@ export function PainelTecnicoCarteira({
   return (
     <PainelSecao
       titulo="Carteira da região"
-      apoio={`${filtradas.length} de ${linhas.length} convênios`}
+      apoio={`${filtradas.length} de ${linhas.length} instrumentos`}
     >
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Input
