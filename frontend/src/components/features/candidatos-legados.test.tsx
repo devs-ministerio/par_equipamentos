@@ -22,6 +22,7 @@ const candidato: CandidatoLegado = {
   verificado_em: "2026-10-06T10:00:00Z",
   valor_global: null,
   municipio: null,
+  numero_processo: null,
   uf: null,
   data_instrumento: null,
   recaptura_em: null,

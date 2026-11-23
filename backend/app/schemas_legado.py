@@ -55,6 +55,7 @@ class CandidatoLegadoRead(BaseModel):
     valor_global: Decimal | None = None
     municipio: str | None = None
     uf: str | None = None
+    numero_processo: str | None = None
     data_instrumento: date | None = None
     # Horário da última recaptura (prova da aprovação); nulo se nunca houve.
     recaptura_em: datetime | None = None

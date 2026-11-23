@@ -27,6 +27,7 @@ const candidatoSchema = z.object({
   verificado_em: z.string().datetime({ offset: true }),
   valor_global: z.string().nullable().default(null),
   municipio: z.string().nullable().default(null),
+  numero_processo: z.string().nullable().default(null),
   uf: z.string().nullable().default(null),
   data_instrumento: z.string().nullable().default(null),
   recaptura_em: z.string().datetime({ offset: true }).nullable().default(null),

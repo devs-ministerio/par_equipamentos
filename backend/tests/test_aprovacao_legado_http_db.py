@@ -229,8 +229,8 @@ def test_rodada_nao_confiavel_bloqueia_aprovacao_http(fluxo_aprovacao, defeito):
     sem_inclusao(db)
 
 
-def test_sem_confirmacao_no_portal_bloqueia_aprovacao_http(fluxo_aprovacao):
-    # O candidato é visível na fila sem o Portal, mas aprovar exige a confirmação.
+def test_portal_nao_encontrado_nao_bloqueia_a_aprovacao_http(fluxo_aprovacao):
+    # O Portal só enriquece: a publicação comprovada no SICONV basta para aprovar.
     from app.db.models_legado import CandidatoLegadoCaptura
 
     db, _, ref, _, pedido, cliente = fluxo_aprovacao
@@ -240,9 +240,7 @@ def test_sem_confirmacao_no_portal_bloqueia_aprovacao_http(fluxo_aprovacao):
     db.commit()
     with cliente("admin") as http:
         resposta = postar(http, ref.candidato_id, pedido.model_dump(mode="json"))
-    assert resposta.status_code == 409
-    assert "Portal da Transparência" in resposta.text
-    sem_inclusao(db)
+    assert resposta.status_code == 200
 
 
 def test_candidato_inexistente_retorna_404(fluxo_aprovacao):

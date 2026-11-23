@@ -58,8 +58,8 @@ def preparar_revisao(
         or not descoberta.elegivel
     ):
         raise ConflictError("A descoberta não confirma candidato oficial elegível.")
-    if descoberta.confirmacao_portal != "confirmado":
-        raise ConflictError("Aprovar exige a confirmação do convênio no Portal da Transparência.")
+    if descoberta.data_publicacao_siconv is None:
+        raise ConflictError("Aprovar exige a publicação registrada no SICONV.")
     prova = recapturas.obter_ultima(db, registro.id)
     if prova is None or prova.id != dados.recaptura_id or prova.captura_id != dados.captura_id:
         raise ConflictError("Revise a última recaptura oficial deste candidato.")

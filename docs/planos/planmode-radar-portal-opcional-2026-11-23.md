@@ -54,3 +54,11 @@ Constituições: backend §§2–6, 9–12; qualidade; segurança §4. Estado: *
 - Onde o Portal responde, CNPJ, município, UF, IBGE e objeto batem com o SICONV em todos os casos (10 convênios). Processo bate onde os dois têm valor. Nome divergiu em 1 de 10, com CNPJ igual.
 - Número e ano: o Portal usa o sequencial da proposta com o `ANO` do convênio (94266/2013 vira 94266/2014 com `ANO` 2014). Correção do que o diagnóstico anterior assumiu (`NR_PROPOSTA` puro). Há 934 convênios do MS (2,8% de 33.249) com `ANO` diferente do ano da proposta. Exceção legada: 709655 (Portal `00850/2009`).
 - Limites: 10 convênios comparados com o Portal, os 6 casos de ano divergente da amostra local do diagnóstico não estavam disponíveis (usei outros da base nacional), e a projeção completa (`ProjecaoCarteiraLegado`) ainda não foi instanciada.
+
+## Resultado da fase 2 (23/11/2026)
+- Portal passou a ser opcional na recaptura e na aprovação. `compor_portal` (`scripts/coletar_recaptura_legado.py`) monta o cadastro pelo SICONV (`origem_cadastro="siconv"`) e, quando o Portal responde, usa o Portal onde ele tem valor e o SICONV para preencher vazios (`complementado_do_siconv`). CNPJ divergente é conflito. O nome da instituição é sempre o do SICONV e o CNPJ é a chave de conferência.
+- A publicação registrada no SICONV segue obrigatória (recaptura e aprovação). A conferência de data com o Portal só vale quando a origem do cadastro é o Portal.
+- Front: o botão Aprovar deixa de depender de `confirmacao_portal`; só falta recaptura.
+- Card do Radar mostra o número do processo (`numero_processo`, lido do cadastro da última recaptura).
+- Mesa de trabalho ganhou o filtro "Responsável" (técnico titular do SISGEO, com a opção "Sem responsável").
+- Pendente: Manual Deploy no Render e rodar `tarefa=recaptura` para os candidatos com Portal não encontrado (7AAFRI e de novembro); confirmar a regra institucional com a área responsável.

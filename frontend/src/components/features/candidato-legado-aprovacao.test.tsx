@@ -88,12 +88,12 @@ describe("conferência e aprovação no Radar", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("sem confirmação do Portal o Aprovar aparece desabilitado", async () => {
+  it("com o Portal não encontrado o Aprovar continua habilitado", async () => {
     montar({
       candidato: criarCandidato({ confirmacao_portal: "nao_encontrado" }),
     });
     await screen.findByText("Convênio 999001");
-    expect(screen.getByRole("button", { name: "Aprovar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Aprovar" })).toBeEnabled();
   });
 
   it.each([["sem recaptura", null, "Aguardando os dados oficiais"]])(

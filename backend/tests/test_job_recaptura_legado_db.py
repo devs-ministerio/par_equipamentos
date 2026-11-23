@@ -136,7 +136,7 @@ def test_descoberta_sem_prova_de_escopo_vigente_nao_inicia_download(matriz, dado
     assert fontes[1] == [] and contar(db, FonteCaptura) == 0
 
 
-@pytest.mark.parametrize("defeito", ["sem_captura", "sem_portal", "encerrado"])
+@pytest.mark.parametrize("defeito", ["sem_captura", "encerrado"])
 def test_preflight_bloqueia_pendencia_ou_decisao_sem_chamar_fonte(matriz, dados, fontes, defeito):
     db, usuarios, *_ = matriz
     ref, _, _ = preparar(db, dados)
@@ -144,11 +144,6 @@ def test_preflight_bloqueia_pendencia_ou_decisao_sem_chamar_fonte(matriz, dados,
         registro = db.get(CandidatoLegadoRegistro, ref.candidato_id)
         assert registro is not None
         registro.ultima_captura_id = None
-    elif defeito == "sem_portal":
-        captura = db.get(CandidatoLegadoCaptura, ref.captura_id)
-        assert captura is not None
-        captura.confirmacao_portal = "nao_encontrado"
-        captura.data_publicacao = None
     else:
         db.add(
             CandidatoLegadoDecisao(
