@@ -130,7 +130,7 @@ export function PainelTecnicoCarteira({
         </p>
       ) : (
         <Table>
-          <TableHeader className="[&_th]:uppercase">
+          <TableHeader className="[&_button]:font-[inherit] [&_button]:text-[length:inherit] [&_button]:uppercase [&_th]:text-xs [&_th]:font-medium [&_th]:uppercase [&_th]:tracking-wide">
             <TableRow>
               {cab("numero", "Instrumento")}
               {cab("municipio", "Município")}
