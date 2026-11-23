@@ -49,7 +49,7 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
       <div className="mt-6 overflow-x-auto">
         <div className="relative min-w-[36rem]">
           <div
-            className="pointer-events-none absolute inset-x-0 top-[30px] h-44"
+            className="pointer-events-none absolute inset-x-0 top-[66px] h-44"
             aria-hidden="true"
           >
             {GRADE.map((g) => (
@@ -70,6 +70,16 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
                 className="group flex min-w-0 flex-1 flex-col items-center"
                 title={`${c.rotulo}: ${c.valor} (${pct(c.valor, linhas.length)})`}
               >
+                <span
+                  className={cn(
+                    "mb-1 flex h-8 items-end text-center text-xs leading-tight",
+                    c.tom === "alerta"
+                      ? "font-semibold text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {c.rotulo}
+                </span>
                 <span className="mb-1.5 text-base font-semibold tabular-nums">
                   {c.valor}
                 </span>
@@ -86,17 +96,7 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
                     }}
                   />
                 </div>
-                <span
-                  className={cn(
-                    "mt-2.5 text-center text-xs leading-tight",
-                    c.tom === "alerta"
-                      ? "font-semibold text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {c.rotulo}
-                </span>
-                <span className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                <span className="mt-1.5 text-[11px] text-muted-foreground tabular-nums">
                   {pct(c.valor, linhas.length)}
                 </span>
               </li>
