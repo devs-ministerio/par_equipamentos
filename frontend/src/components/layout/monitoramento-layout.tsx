@@ -5,7 +5,6 @@
  * vivia fora de qualquer layout, com breadcrumb manual proprio e nenhum
  * link de volta pro resto do app. */
 import { Outlet, useLocation } from "react-router-dom";
-import { CardColaborador } from "@/components/features/card-colaborador";
 import { CentralEntradasLink } from "@/components/features/central-entradas-link";
 import { CONTAINER_CLASS } from "@/lib/layout";
 import { AppHeader } from "./app-header";
@@ -23,7 +22,6 @@ export function MonitoramentoLayout() {
         navItems={NAV_ITEMS_MONITORAMENTO}
         rightExtra={<CentralEntradasLink />}
       />
-      <CardColaborador />
       {/* `key` por rota: a animação de entrada roda a cada troca de página. */}
       <main
         key={location.pathname}

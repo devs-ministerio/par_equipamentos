@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.auth import hash_password
 from app.db.base import engine
 from app.db.models import (
+    AcaoMonitoramento,
     Convenio,
     EventoMarco,
     InstrumentoEquipamento,
@@ -117,3 +118,29 @@ def test_gestao_filtra_por_colaborador_e_ve_todos(db):
     assert um.escopo == "individual" and um.usuario is not None and um.usuario.id == tecnico.id
     assert um.carteira.faltam_em_aberto == 1
     assert tecnico.id in {t.id for t in svc.listar_tecnicos(db=db, usuario=gestor)}
+
+
+def test_carteira_lista_convenios_da_regiao_e_define_sem_registro(db):
+    tecnico, _ = _cenario(db)
+    # Segundo instrumento: só ação (já é registro). Terceiro: nada (sem registro).
+    for com_acao in (True, False):
+        c = _convenio(db)
+        inst = InstrumentoEquipamento(nr_convenio=c.numero, nome_convenente="x", tipo_contratacao="Convênio", uf=UF)
+        db.add(inst)
+        db.flush()
+        if com_acao:
+            db.add(
+                AcaoMonitoramento(
+                    instrumento_id=inst.id, descricao="a", data_prevista=date(2020, 1, 1), responsavel="x"
+                )
+            )
+    db.flush()
+    linhas = svc.obter_carteira(db=db, usuario=tecnico)
+    assert len(linhas) == 5  # 3 do cenário + 2 novos; PERSUS II fora
+    assert sum(1 for x in linhas if not x.monitorado) == 2
+    assert sum(1 for x in linhas if x.sem_registro) == 1
+    atrasadas = [x for x in linhas if x.acoes_atrasadas]
+    assert len(atrasadas) == 1 and atrasadas[0].monitorado
+    assert sum(1 for x in linhas if x.lancado_recente) == 1
+    with pytest.raises(AuthorizationError):
+        svc.obter_carteira(db=db, usuario=tecnico, usuario_id=tecnico.id + 999)

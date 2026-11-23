@@ -26,14 +26,23 @@ class PainelCarteiraRegiaoRead(BaseModel):
     valor_faltam_concluidos: float
 
 
-class PainelFaltanteRead(BaseModel):
+class PainelCarteiraLinhaRead(BaseModel):
     numero: str
     uf: str | None
     municipio: str | None
     convenente: str | None
+    tipo_contratacao: str | None
     situacao: str | None
     valor_global: float | None
     em_aberto: bool
+    monitorado: bool
+    titular: str | None
+    eventos: int
+    acoes_abertas: int
+    acoes_atrasadas: int
+    ultimo_lancamento: datetime | None
+    lancado_recente: bool
+    sem_registro: bool
 
 
 class PainelContagemRead(BaseModel):
@@ -52,22 +61,10 @@ class PainelSemanaRead(BaseModel):
 
 class PainelAtividadeRead(BaseModel):
     lancamentos_total: int
-    lancamentos_14d: int
+    lancamentos_15d: int
     instrumentos_tocados: int
     ultimo_lancamento: datetime | None
     por_semana: list[PainelSemanaRead]
-
-
-class PainelAcoesRead(BaseModel):
-    abertas: int
-    atrasadas: int
-    proximas_7d: int
-
-
-class PainelInstrumentoSimplesRead(BaseModel):
-    nr_convenio: str
-    municipio: str | None
-    uf: str | None
 
 
 class PainelTecnicoResumoRead(BaseModel):
@@ -85,10 +82,7 @@ class PainelTecnicoRead(BaseModel):
     ufs: list[str] | None
     gerado_em: datetime
     carteira: PainelCarteiraRegiaoRead
-    faltantes: list[PainelFaltanteRead]
     regiao: PainelContagemRead
     regiao_sem_titular: int
     meus: PainelContagemRead
     atividade: PainelAtividadeRead
-    acoes: PainelAcoesRead
-    meus_sem_registro: list[PainelInstrumentoSimplesRead]

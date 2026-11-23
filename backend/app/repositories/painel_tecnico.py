@@ -29,6 +29,7 @@ from app.db.models import (
 from app.repositories.convenios import instrumento_no_escopo
 
 PERSUS_II = "PERSUS II"
+JANELA_RECENTE_DIAS = 15
 
 
 def ufs_do_usuario(db: Session, usuario_id: int) -> list[str]:
@@ -93,7 +94,9 @@ def _ativo(modelo: Any) -> Any:
 
 def contagens(db: Session, ids: Select[Any]) -> dict[str, int]:
     inst = InstrumentoEquipamento
-    com_registro = exists().where(EventoMarco.instrumento_id == inst.id, _ativo(EventoMarco))
+    com_registro = exists().where(EventoMarco.instrumento_id == inst.id, _ativo(EventoMarco)) | exists().where(
+        AcaoMonitoramento.instrumento_id == inst.id, _ativo(AcaoMonitoramento)
+    )
     concluido = exists().where(
         ConclusaoInstrumento.instrumento_id == inst.id, ConclusaoInstrumento.deletado_em.is_(None)
     )
@@ -152,9 +155,7 @@ def _em_aberto(c: Convenio) -> bool:
     return not (c.situacao or "").lower().endswith("concluída")
 
 
-def carteira_da_regiao(
-    db: Session, ufs: list[str] | None, limite: int = 100
-) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def resumo_carteira(db: Session, ufs: list[str] | None) -> dict[str, Any]:
     base_elegiveis = (
         select(func.count())
         .select_from(Convenio)
@@ -174,8 +175,7 @@ def carteira_da_regiao(
     def soma(itens: list[Convenio]) -> float:
         return float(sum(float(c.valor_global or 0) for c in itens))
 
-    ordenados = sorted(faltantes, key=lambda c: (not _em_aberto(c), -float(c.valor_global or 0)))[:limite]
-    resumo = {
+    return {
         "elegiveis": elegiveis,
         "monitorados": monitorados,
         "cobertura_pct": round(100 * monitorados / elegiveis, 1) if elegiveis else None,
@@ -184,29 +184,116 @@ def carteira_da_regiao(
         "valor_faltam_em_aberto": soma(abertos),
         "valor_faltam_concluidos": soma(concluidos),
     }
-    lista = [
-        {
-            "numero": c.numero,
-            "uf": c.uf,
-            "municipio": c.municipio,
-            "convenente": c.convenente_nome,
-            "situacao": c.situacao,
-            "valor_global": float(c.valor_global) if c.valor_global is not None else None,
-            "em_aberto": _em_aberto(c),
-        }
-        for c in ordenados
-    ]
-    return resumo, lista
+
+
+def carteira_da_regiao(
+    db: Session, ufs: list[str] | None, usuario_id: int | None, hoje: date, limite: int = 1000
+) -> list[dict[str, Any]]:
+    """Um convênio por linha (PERSUS II fora), com o que o técnico precisa para triar: se já está no monitoramento,
+    se tem evento ou ação, ações atrasadas e se houve lançamento recente."""
+    consulta = (
+        select(Convenio, InstrumentoEquipamento.id)
+        .outerjoin(InstrumentoEquipamento, InstrumentoEquipamento.nr_convenio == Convenio.numero)
+        .where(
+            Convenio.fora_escopo_equipamentos.is_(False),
+            func.coalesce(Convenio.tipo_contratacao, "Convênio") != PERSUS_II,
+        )
+        .order_by(Convenio.valor_global.desc().nulls_last(), Convenio.numero)
+        .limit(limite)
+    )
+    if ufs is not None:
+        consulta = consulta.where(Convenio.uf.in_(ufs))
+    linhas = db.execute(consulta).all()
+    ids = [i for _, i in linhas if i is not None]
+
+    eventos: dict[int, tuple[int, datetime | None]] = {}
+    recentes: set[int] = set()
+    acoes: dict[int, tuple[int, int]] = {}
+    titulares: dict[int, str] = {}
+    if ids:
+        for iid, n, ultimo in db.execute(
+            select(EventoMarco.instrumento_id, func.count(), func.max(EventoMarco.created_at))
+            .where(EventoMarco.instrumento_id.in_(ids), _ativo(EventoMarco))
+            .group_by(EventoMarco.instrumento_id)
+        ):
+            eventos[iid] = (n, ultimo)
+        autor = EventoMarco.autor_id == usuario_id if usuario_id is not None else EventoMarco.autor_id.is_not(None)
+        recentes = set(
+            db.execute(
+                select(EventoMarco.instrumento_id)
+                .where(
+                    EventoMarco.instrumento_id.in_(ids),
+                    _ativo(EventoMarco),
+                    autor,
+                    EventoMarco.created_at >= datetime.now(UTC) - timedelta(days=JANELA_RECENTE_DIAS),
+                )
+                .distinct()
+            ).scalars()
+        )
+        aberta = AcaoMonitoramento.data_conclusao.is_(None)
+        for iid, total, atrasadas in db.execute(
+            select(
+                AcaoMonitoramento.instrumento_id,
+                func.count().filter(aberta),
+                func.count().filter(aberta, AcaoMonitoramento.data_prevista < hoje),
+            )
+            .where(AcaoMonitoramento.instrumento_id.in_(ids), _ativo(AcaoMonitoramento))
+            .group_by(AcaoMonitoramento.instrumento_id)
+        ):
+            acoes[iid] = (total, atrasadas)
+        # Ação concluída também é registro: conta no "sem registro" mesmo sem estar aberta.
+        com_acao = set(
+            db.execute(
+                select(AcaoMonitoramento.instrumento_id)
+                .where(AcaoMonitoramento.instrumento_id.in_(ids), _ativo(AcaoMonitoramento))
+                .distinct()
+            ).scalars()
+        )
+        for iid, nome in db.execute(
+            select(InstrumentoResponsavel.instrumento_id, User.name)
+            .join(User, User.id == InstrumentoResponsavel.usuario_id)
+            .where(InstrumentoResponsavel.instrumento_id.in_(ids), InstrumentoResponsavel.papel == "titular")
+        ):
+            titulares[iid] = nome
+    else:
+        com_acao = set()
+
+    resultado = []
+    for c, iid in linhas:
+        monitorado = iid is not None
+        n_eventos, ultimo = eventos.get(iid, (0, None)) if monitorado else (0, None)
+        abertas, atrasadas = acoes.get(iid, (0, 0)) if monitorado else (0, 0)
+        resultado.append(
+            {
+                "numero": c.numero,
+                "uf": c.uf,
+                "municipio": c.municipio,
+                "convenente": c.convenente_nome,
+                "tipo_contratacao": c.tipo_contratacao,
+                "situacao": c.situacao,
+                "valor_global": float(c.valor_global) if c.valor_global is not None else None,
+                "em_aberto": _em_aberto(c),
+                "monitorado": monitorado,
+                "titular": titulares.get(iid) if monitorado else None,
+                "eventos": n_eventos,
+                "acoes_abertas": abertas,
+                "acoes_atrasadas": atrasadas,
+                "ultimo_lancamento": ultimo,
+                "lancado_recente": monitorado and iid in recentes,
+                "sem_registro": monitorado and n_eventos == 0 and iid not in com_acao,
+            }
+        )
+    return resultado
 
 
 def atividade(db: Session, usuario_id: int | None, semanas: int = 8) -> dict[str, Any]:
     autor = EventoMarco.autor_id == usuario_id if usuario_id is not None else EventoMarco.autor_id.is_not(None)
     filtros = (_ativo(EventoMarco), autor)
     agora = datetime.now(UTC)
-    total, ult14, tocados, ultimo = db.execute(
+    total, ult15, tocados, ultimo = db.execute(
         select(
             func.count(),
-            func.count().filter(EventoMarco.created_at >= agora - timedelta(days=14)),
+            func.count().filter(EventoMarco.created_at >= agora - timedelta(days=JANELA_RECENTE_DIAS)),
             func.count(func.distinct(EventoMarco.instrumento_id)),
             func.max(EventoMarco.created_at),
         ).where(*filtros)
@@ -220,41 +307,8 @@ def atividade(db: Session, usuario_id: int | None, semanas: int = 8) -> dict[str
     ).all()
     return {
         "lancamentos_total": total,
-        "lancamentos_14d": ult14,
+        "lancamentos_15d": ult15,
         "instrumentos_tocados": tocados,
         "ultimo_lancamento": ultimo,
         "por_semana": [{"semana": s.date(), "lancamentos": n} for s, n in por_semana],
     }
-
-
-def acoes(db: Session, usuario_id: int | None, hoje: date) -> dict[str, int]:
-    aberta = AcaoMonitoramento.data_conclusao.is_(None)
-    abertas, atrasadas, proximas = db.execute(
-        select(
-            func.count().filter(aberta),
-            func.count().filter(aberta, AcaoMonitoramento.data_prevista < hoje),
-            func.count().filter(
-                aberta,
-                AcaoMonitoramento.data_prevista >= hoje,
-                AcaoMonitoramento.data_prevista <= hoje + timedelta(days=7),
-            ),
-        ).where(
-            _ativo(AcaoMonitoramento),
-            AcaoMonitoramento.instrumento_id.in_(_ids_instrumentos_do_usuario(usuario_id)),
-        )
-    ).one()
-    return {"abertas": abertas, "atrasadas": atrasadas, "proximas_7d": proximas}
-
-
-def sem_registro_do_usuario(db: Session, usuario_id: int | None, limite: int = 20) -> list[dict[str, Any]]:
-    inst = InstrumentoEquipamento
-    linhas = db.execute(
-        select(inst.nr_convenio, inst.municipio, inst.uf)
-        .where(
-            inst.id.in_(_ids_instrumentos_do_usuario(usuario_id)),
-            ~exists().where(EventoMarco.instrumento_id == inst.id, _ativo(EventoMarco)),
-        )
-        .order_by(inst.uf, inst.municipio, inst.nr_convenio)
-        .limit(limite)
-    ).all()
-    return [{"nr_convenio": n, "municipio": m, "uf": u} for n, m, u in linhas]

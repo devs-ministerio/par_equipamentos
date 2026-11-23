@@ -5,15 +5,16 @@ import { MetricStrip } from "@/components/common/metric-strip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import {
+  useCarteiraTecnico,
   usePainelTecnico,
   useTecnicosPainel,
 } from "@/hooks/use-painel-tecnico";
 import {
   SecaoAtividade,
-  SecaoCarteira,
   SecaoRegistro,
-  SecaoSemRegistro,
 } from "@/components/features/painel-tecnico-secoes";
+import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-carteira";
+import type { FiltroCarteira } from "@/lib/painel-tecnico-filtro";
 
 export function MonitoramentoMeuPainelPage() {
   const { usuarioAtual } = useAuthSession();
@@ -22,9 +23,12 @@ export function MonitoramentoMeuPainelPage() {
   const [colaboradorId, setColaboradorId] = useState<number | undefined>();
   const tecnicos = useTecnicosPainel(gestao);
   const consulta = usePainelTecnico(colaboradorId);
+  const carteiraQuery = useCarteiraTecnico(colaboradorId);
+  const [filtroCarteira, setFiltroCarteira] = useState<FiltroCarteira>("todos");
+  const linhas = carteiraQuery.data ?? [];
   const dados = consulta.data;
 
-  const titulo = "Painel de gestão";
+  const titulo = gestao ? "Painéis da equipe" : "Meu painel";
   const filtro = gestao ? (
     <label className="flex items-center gap-2 text-sm">
       <span className="text-muted-foreground">Colaborador</span>
@@ -75,6 +79,13 @@ export function MonitoramentoMeuPainelPage() {
   const semRegiao =
     dados.escopo === "individual" && (dados.ufs ?? []).length === 0;
   const c = dados.carteira;
+  const faltam = linhas.filter((l) => !l.monitorado);
+  const faltamAbertos = faltam.filter((l) => l.em_aberto).length;
+  const acoesAtrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
+  const comAtraso = linhas.filter((l) => l.acoes_atrasadas > 0).length;
+  const recentes = linhas.filter((l) => l.lancado_recente).length;
+  const alternar = (f: FiltroCarteira) =>
+    setFiltroCarteira((atual) => (atual === f ? "todos" : f));
   return (
     <div className="space-y-6">
       {header}
@@ -96,35 +107,60 @@ export function MonitoramentoMeuPainelPage() {
                 ? "—"
                 : `${c.cobertura_pct.toLocaleString("pt-BR")}%`,
             variant: "primary",
+            detail: `${c.monitorados} de ${c.elegiveis} convênios`,
+            onClick: () => setFiltroCarteira("todos"),
+            ativo: filtroCarteira === "todos",
           },
           {
             key: "faltam",
-            label: "Faltam incluir (em aberto)",
-            value: c.faltam_em_aberto,
-            variant: c.faltam_em_aberto > 0 ? "warning" : "success",
+            label: "Faltam incluir",
+            value: faltam.length,
+            variant: faltam.length > 0 ? "warning" : "success",
+            detail: `${faltamAbertos} em aberto`,
+            onClick: () => alternar("faltam"),
+            ativo: filtroCarteira === "faltam",
           },
           {
             key: "sem-registro",
             label: "Sem registro",
-            value: dados.meus.sem_registro,
+            value: linhas.filter((l) => l.sem_registro).length,
+            detail: "Sem eventos nem ações",
+            onClick: () => alternar("sem-registro"),
+            ativo: filtroCarteira === "sem-registro",
           },
           {
             key: "atrasadas",
             label: "Ações atrasadas",
-            value: dados.acoes.atrasadas,
-            variant: dados.acoes.atrasadas > 0 ? "destructive" : "success",
+            value: acoesAtrasadas,
+            variant: acoesAtrasadas > 0 ? "destructive" : "success",
+            detail: `${comAtraso} instrumentos`,
+            onClick: () => alternar("atrasadas"),
+            ativo: filtroCarteira === "atrasadas",
           },
           {
             key: "lanc",
-            label: "Lançamentos em 14 dias",
-            value: dados.atividade.lancamentos_14d,
+            label: "Lançamentos nos últimos 15 dias",
+            value: dados.atividade.lancamentos_15d,
+            detail: `${recentes} instrumentos`,
+            onClick: () => alternar("recentes"),
+            ativo: filtroCarteira === "recentes",
           },
         ]}
       />
-      <SecaoCarteira dados={dados} />
+      {carteiraQuery.isError ? (
+        <ErrorAlert
+          mensagem="Não foi possível carregar a carteira."
+          onRetry={() => carteiraQuery.refetch()}
+        />
+      ) : (
+        <PainelTecnicoCarteira
+          linhas={linhas}
+          filtro={filtroCarteira}
+          onLimpar={() => setFiltroCarteira("todos")}
+        />
+      )}
       <SecaoRegistro dados={dados} />
       <SecaoAtividade dados={dados} />
-      <SecaoSemRegistro dados={dados} />
     </div>
   );
 }

@@ -26,43 +26,52 @@ const painelSchema = z.object({
     valor_faltam_em_aberto: z.number(),
     valor_faltam_concluidos: z.number(),
   }),
-  faltantes: z.array(
-    z.object({
-      numero: z.string(),
-      uf: z.string().nullable(),
-      municipio: z.string().nullable(),
-      convenente: z.string().nullable(),
-      situacao: z.string().nullable(),
-      valor_global: z.number().nullable(),
-      em_aberto: z.boolean(),
-    }),
-  ),
   regiao: contagemSchema,
   regiao_sem_titular: z.number(),
   meus: contagemSchema,
   atividade: z.object({
     lancamentos_total: z.number(),
-    lancamentos_14d: z.number(),
+    lancamentos_15d: z.number(),
     instrumentos_tocados: z.number(),
     ultimo_lancamento: z.string().nullable(),
     por_semana: z.array(
       z.object({ semana: z.string(), lancamentos: z.number() }),
     ),
   }),
-  acoes: z.object({
-    abertas: z.number(),
-    atrasadas: z.number(),
-    proximas_7d: z.number(),
-  }),
-  meus_sem_registro: z.array(
-    z.object({
-      nr_convenio: z.string(),
-      municipio: z.string().nullable(),
-      uf: z.string().nullable(),
-    }),
-  ),
 });
 export type PainelTecnico = z.infer<typeof painelSchema>;
+
+const carteiraSchema = z.array(
+  z.object({
+    numero: z.string(),
+    uf: z.string().nullable(),
+    municipio: z.string().nullable(),
+    convenente: z.string().nullable(),
+    tipo_contratacao: z.string().nullable(),
+    situacao: z.string().nullable(),
+    valor_global: z.number().nullable(),
+    em_aberto: z.boolean(),
+    monitorado: z.boolean(),
+    titular: z.string().nullable(),
+    eventos: z.number(),
+    acoes_abertas: z.number(),
+    acoes_atrasadas: z.number(),
+    ultimo_lancamento: z.string().nullable(),
+    lancado_recente: z.boolean(),
+    sem_registro: z.boolean(),
+  }),
+);
+export type LinhaCarteira = z.infer<typeof carteiraSchema>[number];
+
+export function fetchCarteiraTecnico(
+  usuarioId?: number,
+): Promise<LinhaCarteira[]> {
+  const query = usuarioId ? `?usuario_id=${usuarioId}` : "";
+  return apiGetAuthed(
+    `/monitoramento/painel-tecnico/carteira${query}`,
+    carteiraSchema,
+  );
+}
 
 const tecnicosSchema = z.array(
   z.object({

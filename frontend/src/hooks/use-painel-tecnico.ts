@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  fetchCarteiraTecnico,
   fetchPainelTecnico,
   fetchTecnicosPainel,
 } from "@/services/painel-tecnico";
@@ -18,5 +19,12 @@ export function useTecnicosPainel(habilitado: boolean) {
     queryKey: ["painel-tecnico", "tecnicos"] as const,
     queryFn: fetchTecnicosPainel,
     enabled: habilitado,
+  });
+}
+
+export function useCarteiraTecnico(usuarioId?: number) {
+  return useQuery({
+    queryKey: ["painel-tecnico", "carteira", usuarioId ?? "padrao"] as const,
+    queryFn: () => fetchCarteiraTecnico(usuarioId),
   });
 }

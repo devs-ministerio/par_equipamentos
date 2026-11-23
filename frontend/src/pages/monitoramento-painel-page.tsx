@@ -1,6 +1,7 @@
 import { FASES_ACOMPANHAMENTO } from "@/lib/fases-acompanhamento";
 import { useMemo } from "react";
 import { PageHeader } from "@/components/common/page-header";
+import { CardColaborador } from "@/components/features/card-colaborador";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMonitoramentoResumo } from "@/hooks/useMonitoramentoResumo";
@@ -30,6 +31,7 @@ const header = (
   <PageHeader
     eyebrow="Monitoramento interno"
     title="Painel de gestão"
+    actions={<CardColaborador />}
     description="Execução física, distribuição territorial e pendências dos instrumentos monitorados."
   />
 );
@@ -113,6 +115,7 @@ export function MonitoramentoPainelPage() {
       <PageHeader
         eyebrow="Monitoramento interno"
         title="Painel de gestão"
+        actions={<CardColaborador />}
         description="Execução física, distribuição territorial e pendências dos instrumentos monitorados."
       />
       <MonitoramentoInternoFiltros filtros={filtros} />
