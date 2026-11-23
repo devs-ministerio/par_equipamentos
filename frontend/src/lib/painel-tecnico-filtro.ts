@@ -5,20 +5,28 @@ export type FiltroCarteira =
   | "faltam"
   | "sem-registro"
   | "concluidos"
-  | "recentes";
+  | "radar";
 
 export const ROTULO_FILTRO: Record<FiltroCarteira, string> = {
   todos: "Toda a carteira",
   faltam: "Faltam incluir",
   "sem-registro": "Sem registro",
   concluidos: "Concluídos",
-  recentes: "Lançamentos nos últimos 15 dias",
+  radar: "Novos Instrumentos (últimos 30 dias)",
 };
+
+export const JANELA_RADAR_DIAS = 30;
+
+export function entrouNoRadarRecente(l: LinhaCarteira): boolean {
+  if (!l.entrou_radar_em) return false;
+  const limite = Date.now() - JANELA_RADAR_DIAS * 86_400_000;
+  return new Date(l.entrou_radar_em).getTime() >= limite;
+}
 
 export function aplicaFiltro(l: LinhaCarteira, f: FiltroCarteira): boolean {
   if (f === "faltam") return !l.monitorado;
   if (f === "sem-registro") return l.sem_registro;
   if (f === "concluidos") return l.monitorado && l.fase === "Concluído";
-  if (f === "recentes") return l.lancado_recente;
+  if (f === "radar") return entrouNoRadarRecente(l);
   return true;
 }

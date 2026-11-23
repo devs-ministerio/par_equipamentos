@@ -52,6 +52,7 @@ const carteiraSchema = z.array(
     situacao: z.string().nullable(),
     fase: z.string().nullable(),
     cnes: z.string().nullable(),
+    entrou_radar_em: z.string().nullable(),
     valor_global: z.number().nullable(),
     em_aberto: z.boolean(),
     monitorado: z.boolean(),

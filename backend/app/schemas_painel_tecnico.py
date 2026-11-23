@@ -32,6 +32,7 @@ class PainelCarteiraLinhaRead(BaseModel):
     municipio: str | None
     convenente: str | None
     cnes: str | None = None
+    entrou_radar_em: date | None = None
     cnpj_convenente: str | None
     tipo_contratacao: str | None
     situacao: str | None

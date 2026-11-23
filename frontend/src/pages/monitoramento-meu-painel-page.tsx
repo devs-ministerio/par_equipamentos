@@ -15,7 +15,11 @@ import {
   SecaoRegistro,
 } from "@/components/features/painel-tecnico-secoes";
 import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-carteira";
-import type { FiltroCarteira } from "@/lib/painel-tecnico-filtro";
+import {
+  entrouNoRadarRecente,
+  type FiltroCarteira,
+} from "@/lib/painel-tecnico-filtro";
+import { fmtData } from "@/lib/monitoramento-format";
 
 export function MonitoramentoMeuPainelPage() {
   const { usuarioAtual } = useAuthSession();
@@ -90,7 +94,12 @@ export function MonitoramentoMeuPainelPage() {
   const concluidos = linhas.filter(
     (l) => l.monitorado && l.fase === "Concluído",
   ).length;
-  const recentes = linhas.filter((l) => l.lancado_recente).length;
+  const novosRadar = linhas.filter(entrouNoRadarRecente).length;
+  const ultimoRadar = linhas
+    .map((l) => l.entrou_radar_em)
+    .filter((d): d is string => d != null)
+    .sort()
+    .at(-1);
   const alternar = (f: FiltroCarteira) =>
     setFiltroCarteira((atual) => (atual === f ? "todos" : f));
   return (
@@ -140,12 +149,14 @@ export function MonitoramentoMeuPainelPage() {
             ativo: filtroCarteira === "concluidos",
           },
           {
-            key: "lanc",
-            label: "Lançamentos nos últimos 15 dias",
-            value: dados.atividade.lancamentos_15d,
-            detail: `${recentes} instrumentos`,
-            onClick: () => alternar("recentes"),
-            ativo: filtroCarteira === "recentes",
+            key: "radar",
+            label: "Novos Instrumentos",
+            value: novosRadar,
+            detail: ultimoRadar
+              ? `Último em ${fmtData(ultimoRadar)}`
+              : "Nenhum até agora",
+            onClick: () => alternar("radar"),
+            ativo: filtroCarteira === "radar",
           },
         ]}
       />
