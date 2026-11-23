@@ -18,11 +18,7 @@ import {
 import { SortableTableHead } from "@/components/common/sortable-table-head";
 import { PainelSecao } from "@/components/features/monitoramento-painel-visuals";
 import { fmtMoeda } from "@/lib/monitoramento-format";
-import {
-  capitalizarInstituicao,
-  capitalizarNome,
-  normalizarTexto,
-} from "@/utils/texto";
+import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import {
   aplicaFiltro,
   ROTULO_FILTRO,
@@ -73,7 +69,7 @@ export function PainelTecnicoCarteira({
         aplicaFiltro(l, filtro) &&
         (!termo ||
           normalizarTexto(
-            `${l.numero} ${l.municipio ?? ""} ${l.uf ?? ""} ${l.convenente ?? ""} ${l.titular ?? ""}`,
+            `${l.numero} ${l.municipio ?? ""} ${l.uf ?? ""} ${l.cnes ?? ""} ${l.convenente ?? ""} ${l.titular ?? ""}`,
           ).includes(termo)),
     );
     const sinal = ordem.dir === "asc" ? 1 : -1;
@@ -108,7 +104,7 @@ export function PainelTecnicoCarteira({
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Input
           className="max-w-xs"
-          placeholder="Buscar convênio, município ou convenente"
+          placeholder="Buscar instrumento, município ou CNES"
           value={busca}
           onChange={(e) => {
             setBusca(e.target.value);
@@ -138,7 +134,7 @@ export function PainelTecnicoCarteira({
             <TableRow>
               {cab("numero", "Instrumento")}
               {cab("municipio", "Município")}
-              <TableHead>Convenente</TableHead>
+              <TableHead>CNES</TableHead>
               {cab("situacao", "Situação")}
               {cab("acoes", "N.º de Ações", "right")}
               {cab("eventos", "N.º de Eventos", "right")}
@@ -156,9 +152,7 @@ export function PainelTecnicoCarteira({
                     .filter(Boolean)
                     .join(" / ")}
                 </TableCell>
-                <TableCell className="max-w-56 truncate">
-                  {l.convenente ? capitalizarInstituicao(l.convenente) : ""}
-                </TableCell>
+                <TableCell className="tabular-nums">{l.cnes ?? "—"}</TableCell>
                 <TableCell>{l.monitorado ? l.fase : l.situacao}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {l.monitorado ? l.acoes : "—"}

@@ -192,7 +192,7 @@ def carteira_da_regiao(
     """Um convênio por linha (PERSUS II fora), com o que o técnico precisa para triar: se já está no monitoramento,
     se tem evento ou ação, ações atrasadas e se houve lançamento recente."""
     consulta = (
-        select(Convenio, InstrumentoEquipamento.id)
+        select(Convenio, InstrumentoEquipamento.id, InstrumentoEquipamento.cnes)
         .outerjoin(InstrumentoEquipamento, InstrumentoEquipamento.nr_convenio == Convenio.numero)
         .where(
             Convenio.fora_escopo_equipamentos.is_(False),
@@ -204,7 +204,7 @@ def carteira_da_regiao(
     if ufs is not None:
         consulta = consulta.where(Convenio.uf.in_(ufs))
     linhas = db.execute(consulta).all()
-    ids = [i for _, i in linhas if i is not None]
+    ids = [i for _, i, _ in linhas if i is not None]
 
     eventos: dict[int, int] = {}
     recentes: set[int] = set()
@@ -249,7 +249,7 @@ def carteira_da_regiao(
             titulares[iid] = nome
 
     resultado = []
-    for c, iid in linhas:
+    for c, iid, cnes_instrumento in linhas:
         monitorado = iid is not None
         n_eventos = eventos.get(iid, 0) if monitorado else 0
         n_acoes, atrasadas = acoes.get(iid, (0, 0)) if monitorado else (0, 0)
@@ -260,6 +260,7 @@ def carteira_da_regiao(
                 "uf": c.uf,
                 "municipio": c.municipio,
                 "convenente": c.convenente_nome,
+                "cnes": cnes_instrumento or c.cnes,
                 "cnpj_convenente": c.convenente_cnpj,
                 "tipo_contratacao": c.tipo_contratacao,
                 "situacao": c.situacao,

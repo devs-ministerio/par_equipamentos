@@ -31,6 +31,7 @@ class PainelCarteiraLinhaRead(BaseModel):
     uf: str | None
     municipio: str | None
     convenente: str | None
+    cnes: str | None = None
     cnpj_convenente: str | None
     tipo_contratacao: str | None
     situacao: str | None

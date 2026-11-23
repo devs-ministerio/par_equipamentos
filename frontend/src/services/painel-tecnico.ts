@@ -51,6 +51,7 @@ const carteiraSchema = z.array(
     tipo_contratacao: z.string().nullable(),
     situacao: z.string().nullable(),
     fase: z.string().nullable(),
+    cnes: z.string().nullable(),
     valor_global: z.number().nullable(),
     em_aberto: z.boolean(),
     monitorado: z.boolean(),
