@@ -10,7 +10,14 @@ export function SecaoEquipamentos({
 }: {
   familias: FamiliaEntregue[];
 }) {
-  const familias = todasFamilias.filter((f) => f.planejado > 0);
+  const familias = todasFamilias
+    .filter((f) => f.planejado > 0)
+    .sort(
+      (a, b) =>
+        b.entregue - a.entregue ||
+        b.planejado - a.planejado ||
+        a.familia.localeCompare(b.familia),
+    );
   const [todas, setTodas] = useState(false);
   const planejado = familias.reduce((t, f) => t + f.planejado, 0);
   const entregue = familias.reduce((t, f) => t + f.entregue, 0);
