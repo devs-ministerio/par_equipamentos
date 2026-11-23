@@ -172,6 +172,9 @@ Evidência anterior só é mesclada quando o candidato ainda não tem critério.
 
 ## 7. Recaptura, prova e revalidação
 
+> [!note] Atualização de 22/11/2026
+> Os rótulos "só em clone local" abaixo descrevem o desenho original. A recaptura passou a rodar na CI e a prova deixou de ter validade de 24 h. Ver a [seção 21](#21-enriquecimento-pela-ci-e-fim-da-validade-da-prova-22112026).
+
 ```mermaid
 flowchart TB
     classDef job fill:#EEE,stroke:#777,color:#333,stroke-dasharray:4 3

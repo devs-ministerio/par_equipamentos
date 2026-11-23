@@ -10,6 +10,56 @@ Pasta de mapas de fluxo lidos do código. Cada mapa cobre um módulo, tem revis�
 | [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, decisão pendente sobre o Portal, workflow | 3, 22/11/2026 |
 | [banco-de-dados.md](banco-de-dados.md) | Banco de dados: 50 tabelas por domínio, ligações com e sem chave estrangeira, estado de uso em produção | 1, 22/11/2026 |
 
+## Abrir direto no GitHub
+
+Cada link abre o diagrama na própria seção. No GitHub, passar o mouse sobre o diagrama mostra os controles de zoom e arraste, que ajudam quando ele aparece pequeno no Mac.
+
+### Radar de instrumentos
+
+Arquivo inteiro: [radar-instrumentos.md](radar-instrumentos.md)
+
+- [1. Visão de ponta a ponta](radar-instrumentos.md#1-visão-de-ponta-a-ponta)
+- [2. Acesso e telas](radar-instrumentos.md#2-acesso-e-telas)
+- [3. Descoberta SICONV (job diário)](radar-instrumentos.md#3-descoberta-siconv-job-diário)
+- [4. Critério de escopo (o que vira candidato)](radar-instrumentos.md#4-critério-de-escopo-o-que-vira-candidato)
+- [5. Confirmação no Portal da Transparência](radar-instrumentos.md#5-confirmação-no-portal-da-transparência)
+- [6. Persistência e avisos](radar-instrumentos.md#6-persistência-e-avisos)
+- [7. Recaptura, prova e revalidação](radar-instrumentos.md#7-recaptura-prova-e-revalidação)
+- [8. Estados do candidato e decisões](radar-instrumentos.md#8-estados-do-candidato-e-decisões)
+- [9. Aprovação (transação única)](radar-instrumentos.md#9-aprovação-transação-única)
+- [10. Lista, filtros e paginação](radar-instrumentos.md#10-lista-filtros-e-paginação)
+- [11. Propostas do TransfereGov (job e aba)](radar-instrumentos.md#11-propostas-do-transferegov-job-e-aba)
+- [12. Workflow, cron e proteções](radar-instrumentos.md#12-workflow-cron-e-proteções)
+- [15. Avisos do espelho SICONV e popup de detalhe](radar-instrumentos.md#15-avisos-do-espelho-siconv-e-popup-de-detalhe)
+- [16. Fontes externas e suas APIs](radar-instrumentos.md#16-fontes-externas-e-suas-apis)
+- [17. Fluxos de API (sequências)](radar-instrumentos.md#17-fluxos-de-api-sequências)
+- [18. Radar antes do Portal (implementado em 22/11/2026)](radar-instrumentos.md#18-radar-antes-do-portal-implementado-em-22112026)
+
+### Monitoramento interno
+
+Arquivo inteiro: [monitoramento-interno.md](monitoramento-interno.md)
+
+- [1. Telas e navegação](monitoramento-interno.md#1-telas-e-navegação)
+- [2. Estrutura da página de detalhe](monitoramento-interno.md#2-estrutura-da-página-de-detalhe)
+- [3. Fase do acompanhamento (calculada, nunca escolhida)](monitoramento-interno.md#3-fase-do-acompanhamento-calculada-nunca-escolhida)
+- [4. Itens, entregas e unidades](monitoramento-interno.md#4-itens-entregas-e-unidades)
+- [5. Concluir e reabrir o acompanhamento](monitoramento-interno.md#5-concluir-e-reabrir-o-acompanhamento)
+- [6. Licença de operação (por estabelecimento CNES)](monitoramento-interno.md#6-licença-de-operação-por-estabelecimento-cnes)
+- [7. Registros append-only (eventos, ações, documentos)](monitoramento-interno.md#7-registros-append-only-eventos-ações-documentos)
+- [8. Quem pode fazer o quê](monitoramento-interno.md#8-quem-pode-fazer-o-quê)
+- [9. Radar de instrumentos (revisão 2)](monitoramento-interno.md#9-radar-de-instrumentos-revisão-2)
+- [10. Avisos e jobs](monitoramento-interno.md#10-avisos-e-jobs)
+
+### Banco de dados
+
+Arquivo inteiro: [banco-de-dados.md](banco-de-dados.md)
+
+- [2. Cobertura](banco-de-dados.md#2-cobertura)
+- [3. Carteira e monitoramento](banco-de-dados.md#3-carteira-e-monitoramento)
+- [4. Itens e entregas](banco-de-dados.md#4-itens-e-entregas)
+- [5. Radar de instrumentos](banco-de-dados.md#5-radar-de-instrumentos)
+- [6. Acesso e avisos](banco-de-dados.md#6-acesso-e-avisos)
+
 ## Convenções
 
 Nome do arquivo: `<modulo>.md` em kebab-case, sem data (a data fica no título). Primeira linha: `# Mapa do <módulo> (revisão N, de dd/mm/aaaa)`.
