@@ -18,7 +18,6 @@ from app.schemas_aprovacao_legado import AprovacaoLegadoCreate, AprovacaoLegadoR
 from app.schemas_captura_legado import ItemRecapturado
 from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
 from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado_sem_commit
-from app.services.projecao_itens_plano import projetar as projetar_itens_plano
 from app.services.revisao_legado import preparar_revisao
 
 
@@ -124,9 +123,7 @@ def aprovar_entrada(
                 origem_dado="radar_aprovacao",
             ),
         )
-        # Depois do instrumento: a projeção liga os itens a ele e aplica a exceção de quem entra sem item controlado.
-        db.flush()
-        projetar_itens_plano(db, aplicar=True, convenio_numero=convenio.numero)
+        # A criação do instrumento já projeta os itens do plano (liga ao instrumento e aplica a exceção).
         criar_notificacao(
             db,
             Notificacao(
