@@ -76,9 +76,13 @@ function AvisoCandidatos({ candidatos }: { candidatos: Candidato[] }) {
 export function AdicionarMonitoramentoButton({
   dados,
   candidatos = [],
+  rotulo = "+ Adicionar ao monitoramento interno",
+  aoAdicionar,
 }: {
   dados: DadosAdicionarMonitoramento;
   candidatos?: Candidato[];
+  rotulo?: string;
+  aoAdicionar?: () => void;
 }) {
   const sessao = useAuthSession();
   const queryClient = useQueryClient();
@@ -115,6 +119,7 @@ export function AdicionarMonitoramentoButton({
       queryClient.invalidateQueries({
         queryKey: monitoramentoKeys.instrumentos,
       });
+      aoAdicionar?.();
       fechar();
     },
     onError: (e) => setErro(mensagemSeguraDoErro(e)),
@@ -135,7 +140,7 @@ export function AdicionarMonitoramentoButton({
         disabled
         title="PERSUS II não entra no monitoramento interno por enquanto."
       >
-        + Adicionar ao monitoramento interno
+        {rotulo}
       </Button>
     );
   }
@@ -146,7 +151,7 @@ export function AdicionarMonitoramentoButton({
       onOpenChange={(v) => (v ? setAberto(true) : fechar())}
     >
       <Button size="sm" onClick={() => setAberto(true)}>
-        + Adicionar ao monitoramento interno
+        {rotulo}
       </Button>
       <DialogContent>
         {etapa === "form" ? (

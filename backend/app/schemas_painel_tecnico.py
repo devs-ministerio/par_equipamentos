@@ -31,6 +31,7 @@ class PainelCarteiraLinhaRead(BaseModel):
     uf: str | None
     municipio: str | None
     convenente: str | None
+    cnpj_convenente: str | None
     tipo_contratacao: str | None
     situacao: str | None
     valor_global: float | None
@@ -38,9 +39,8 @@ class PainelCarteiraLinhaRead(BaseModel):
     monitorado: bool
     titular: str | None
     eventos: int
-    acoes_abertas: int
+    acoes: int
     acoes_atrasadas: int
-    ultimo_lancamento: datetime | None
     lancado_recente: bool
     sem_registro: bool
 

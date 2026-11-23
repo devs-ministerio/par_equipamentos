@@ -206,17 +206,17 @@ def carteira_da_regiao(
     linhas = db.execute(consulta).all()
     ids = [i for _, i in linhas if i is not None]
 
-    eventos: dict[int, tuple[int, datetime | None]] = {}
+    eventos: dict[int, int] = {}
     recentes: set[int] = set()
-    acoes: dict[int, tuple[int, int]] = {}
+    acoes: dict[int, tuple[int, int]] = {}  # (total ativas, abertas e atrasadas)
     titulares: dict[int, str] = {}
     if ids:
-        for iid, n, ultimo in db.execute(
-            select(EventoMarco.instrumento_id, func.count(), func.max(EventoMarco.created_at))
+        for iid, n in db.execute(
+            select(EventoMarco.instrumento_id, func.count())
             .where(EventoMarco.instrumento_id.in_(ids), _ativo(EventoMarco))
             .group_by(EventoMarco.instrumento_id)
         ):
-            eventos[iid] = (n, ultimo)
+            eventos[iid] = n
         autor = EventoMarco.autor_id == usuario_id if usuario_id is not None else EventoMarco.autor_id.is_not(None)
         recentes = set(
             db.execute(
@@ -234,41 +234,32 @@ def carteira_da_regiao(
         for iid, total, atrasadas in db.execute(
             select(
                 AcaoMonitoramento.instrumento_id,
-                func.count().filter(aberta),
+                func.count(),
                 func.count().filter(aberta, AcaoMonitoramento.data_prevista < hoje),
             )
             .where(AcaoMonitoramento.instrumento_id.in_(ids), _ativo(AcaoMonitoramento))
             .group_by(AcaoMonitoramento.instrumento_id)
         ):
             acoes[iid] = (total, atrasadas)
-        # Ação concluída também é registro: conta no "sem registro" mesmo sem estar aberta.
-        com_acao = set(
-            db.execute(
-                select(AcaoMonitoramento.instrumento_id)
-                .where(AcaoMonitoramento.instrumento_id.in_(ids), _ativo(AcaoMonitoramento))
-                .distinct()
-            ).scalars()
-        )
         for iid, nome in db.execute(
             select(InstrumentoResponsavel.instrumento_id, User.name)
             .join(User, User.id == InstrumentoResponsavel.usuario_id)
             .where(InstrumentoResponsavel.instrumento_id.in_(ids), InstrumentoResponsavel.papel == "titular")
         ):
             titulares[iid] = nome
-    else:
-        com_acao = set()
 
     resultado = []
     for c, iid in linhas:
         monitorado = iid is not None
-        n_eventos, ultimo = eventos.get(iid, (0, None)) if monitorado else (0, None)
-        abertas, atrasadas = acoes.get(iid, (0, 0)) if monitorado else (0, 0)
+        n_eventos = eventos.get(iid, 0) if monitorado else 0
+        n_acoes, atrasadas = acoes.get(iid, (0, 0)) if monitorado else (0, 0)
         resultado.append(
             {
                 "numero": c.numero,
                 "uf": c.uf,
                 "municipio": c.municipio,
                 "convenente": c.convenente_nome,
+                "cnpj_convenente": c.convenente_cnpj,
                 "tipo_contratacao": c.tipo_contratacao,
                 "situacao": c.situacao,
                 "valor_global": float(c.valor_global) if c.valor_global is not None else None,
@@ -276,11 +267,10 @@ def carteira_da_regiao(
                 "monitorado": monitorado,
                 "titular": titulares.get(iid) if monitorado else None,
                 "eventos": n_eventos,
-                "acoes_abertas": abertas,
+                "acoes": n_acoes,
                 "acoes_atrasadas": atrasadas,
-                "ultimo_lancamento": ultimo,
                 "lancado_recente": monitorado and iid in recentes,
-                "sem_registro": monitorado and n_eventos == 0 and iid not in com_acao,
+                "sem_registro": monitorado and n_eventos == 0 and n_acoes == 0,
             }
         )
     return resultado

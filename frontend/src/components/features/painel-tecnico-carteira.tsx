@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AdicionarMonitoramentoButton } from "@/components/features/adicionar-monitoramento-button";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -27,14 +29,14 @@ type Chave =
   | "municipio"
   | "situacao"
   | "valor"
-  | "atrasadas"
-  | "ultimo";
+  | "acoes"
+  | "eventos";
 const PASSO = 25;
 
 function valorOrdem(l: LinhaCarteira, c: Chave): string | number {
   if (c === "valor") return l.valor_global ?? -1;
-  if (c === "atrasadas") return l.acoes_atrasadas;
-  if (c === "ultimo") return l.ultimo_lancamento ?? "";
+  if (c === "acoes") return l.acoes;
+  if (c === "eventos") return l.eventos;
   if (c === "municipio") return `${l.uf ?? ""} ${l.municipio ?? ""}`;
   if (c === "situacao") return l.situacao ?? "";
   return l.numero;
@@ -49,6 +51,9 @@ export function PainelTecnicoCarteira({
   filtro: FiltroCarteira;
   onLimpar: () => void;
 }) {
+  const queryClient = useQueryClient();
+  const atualizar = () =>
+    queryClient.invalidateQueries({ queryKey: ["painel-tecnico"] });
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<{ chave: Chave; dir: "asc" | "desc" }>({
     chave: "valor",
@@ -130,9 +135,10 @@ export function PainelTecnicoCarteira({
               <TableHead>Convenente</TableHead>
               {cab("situacao", "Situação")}
               <TableHead>Monitoramento</TableHead>
-              {cab("atrasadas", "Ações atrasadas", "right")}
-              {cab("ultimo", "Último lançamento")}
+              {cab("acoes", "Qtd. de ações", "right")}
+              {cab("eventos", "Qtd. de eventos", "right")}
               {cab("valor", "Valor global", "right")}
+              <TableHead>Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -170,15 +176,39 @@ export function PainelTecnicoCarteira({
                   </div>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {l.acoes_atrasadas || "—"}
+                  {l.monitorado ? l.acoes : "—"}
                 </TableCell>
-                <TableCell>
-                  {l.ultimo_lancamento
-                    ? new Date(l.ultimo_lancamento).toLocaleDateString("pt-BR")
-                    : "—"}
+                <TableCell className="text-right tabular-nums">
+                  {l.monitorado ? l.eventos : "—"}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {fmtMoeda(l.valor_global)}
+                </TableCell>
+                <TableCell>
+                  {l.monitorado ? (
+                    <Button asChild variant="outline" size="sm">
+                      <Link
+                        to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(l.numero)}`}
+                      >
+                        Abrir instrumento
+                      </Link>
+                    </Button>
+                  ) : (
+                    <AdicionarMonitoramentoButton
+                      rotulo="Incluir no monitoramento"
+                      aoAdicionar={atualizar}
+                      dados={{
+                        nr_convenio: l.numero,
+                        cnpj_convenente: l.cnpj_convenente ?? "",
+                        nome_convenente: l.convenente ?? "",
+                        tipo_contratacao: l.tipo_contratacao ?? "Convênio",
+                        municipio: l.municipio,
+                        uf: l.uf,
+                        referencia: `convênio ${l.numero}`,
+                        descricao: `${l.convenente ?? ""} — ${l.municipio ?? ""}/${l.uf ?? ""}`,
+                      }}
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             ))}
