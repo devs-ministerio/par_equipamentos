@@ -136,8 +136,8 @@ export function PainelTecnicoCarteira({
               {cab("municipio", "Município")}
               <TableHead>Convenente</TableHead>
               {cab("situacao", "Situação")}
-              {cab("acoes", "N de Ações", "right")}
-              {cab("eventos", "N de Eventos", "right")}
+              {cab("acoes", "N.º de Ações", "right")}
+              {cab("eventos", "N.º de Eventos", "right")}
               {cab("valor", "Valor global", "right")}
               <TableHead>Monitoramento</TableHead>
               <TableHead>Ação</TableHead>
