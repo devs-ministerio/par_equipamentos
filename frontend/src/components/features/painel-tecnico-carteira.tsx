@@ -160,9 +160,9 @@ export function PainelTecnicoCarteira({
                 <TableCell>
                   <div className="flex flex-wrap items-center gap-1">
                     {l.monitorado ? (
-                      <Badge variant="success">No monitoramento</Badge>
+                      <Badge variant="success">Monitorado</Badge>
                     ) : (
-                      <Badge variant="warning">Fora do monitoramento</Badge>
+                      <Badge variant="warning">A incluir</Badge>
                     )}
                     {l.sem_registro && (
                       <Badge variant="destructive">Sem registro</Badge>
