@@ -15,8 +15,6 @@ import { CandidatoLegadoAprovacao } from "./candidato-legado-aprovacao";
 
 /** Por que o Aprovar está travado (null = liberado). A decisão final continua no backend. */
 function motivoSemAprovacaoDe(candidato: CandidatoLegado): string | null {
-  if (candidato.confirmacao_portal !== "confirmado")
-    return "Libera quando o Portal da Transparência confirmar";
   if (!candidato.recaptura_em)
     return "Aguardando os dados oficiais do convênio";
   return null;

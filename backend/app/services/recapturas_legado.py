@@ -51,8 +51,8 @@ def preparar_alvo_coleta(*, db: Session, candidato_id: int) -> AlvoRecapturaLega
             raise ConflictError("Recaptura exige descoberta oficial elegível.")
         if descoberta.criterio_escopo != "prioritarios_ms_celebrados_v2" or descoberta.orgao_superior != "36000":
             raise ConflictError("Atualize a descoberta para comprovar o escopo institucional vigente.")
-        if descoberta.confirmacao_portal != "confirmado":
-            raise ConflictError("Recaptura exige confirmação prévia no Portal.")
+        if descoberta.data_publicacao_siconv is None:
+            raise ConflictError("Recaptura exige a publicação registrada no SICONV.")
         decisao = decisoes.ultima_decisao(db, registro.id)
         if decisao is not None and decisao.situacao not in ("novo", "em_analise"):
             raise ConflictError("A análise deste candidato já foi encerrada.")

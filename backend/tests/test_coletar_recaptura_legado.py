@@ -122,12 +122,10 @@ def test_principal_nao_pode_estar_ausente_ambiguo_ou_trocado(fontes, dados, defe
     assert not set(ARQUIVOS_FILHAS.values()).intersection(chamadas)
 
 
-@pytest.mark.parametrize("defeito", ["404", "multiplo", "outro", "incompleto"])
+@pytest.mark.parametrize("defeito", ["multiplo", "outro", "incompleto"])
 def test_portal_invalido_bloqueia_antes_das_filhas(fontes, dados, defeito):
     _, chamadas, caches, portal = fontes
-    if defeito == "404":
-        portal["status"] = 404
-    elif defeito == "multiplo":
+    if defeito == "multiplo":
         portal["corpo"] = [dados["portal"], dados["portal"]]
     elif defeito == "outro":
         portal["corpo"]["dimConvenio"]["codigo"] = 999002
@@ -137,6 +135,33 @@ def test_portal_invalido_bloqueia_antes_das_filhas(fontes, dados, defeito):
         coletor.coletar_recaptura(alvo())
     assert not set(ARQUIVOS_FILHAS.values()).intersection(chamadas)
     assert all(not cache.exists() for cache in caches)
+
+
+def test_portal_nao_encontrado_usa_o_cadastro_do_siconv(fontes, dados):
+    arquivos, _, _, portal = fontes
+    portal["status"] = 404
+    proposta = {
+        **dados["proposta"],
+        "NR_PROPOSTA": "10/2026",
+        "OBJETO_PROPOSTA": "AQUISIÇÃO DE EQUIPAMENTO",
+        "NM_PROPONENTE": "INSTITUTO TESTE",
+        "IDENTIF_PROPONENTE": "40596265000119",
+        "MUNIC_PROPONENTE": "CIANORTE",
+        "UF_PROPONENTE": "PR",
+    }
+    arquivos["siconv_proposta"] = csv_zip([proposta], ["ID_PROPOSTA", "COD_ORGAO_SUP"])
+    pacote = coletor.coletar_recaptura(alvo())
+    extras = pacote.captura.portal.model_extra or {}
+    assert extras["origem_cadastro"] == "siconv"
+    assert pacote.captura.portal.dimConvenio.numero.startswith("10/")
+    assert pacote.captura.portal.convenente.nome == "INSTITUTO TESTE"
+
+
+def test_portal_nao_encontrado_e_siconv_sem_cadastro_recusa_com_conflito(fontes):
+    _, _, _, portal = fontes
+    portal["status"] = 404
+    with pytest.raises(ConflictError, match="cadastro mínimo"):
+        coletor.coletar_recaptura(alvo())
 
 
 def test_chave_ausente_nao_baixa_arquivos(fontes, monkeypatch):

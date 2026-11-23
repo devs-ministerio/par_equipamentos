@@ -18,6 +18,7 @@ const base: CandidatoLegado = {
   verificado_em: "2026-11-21T10:00:00Z",
   valor_global: null,
   municipio: null,
+  numero_processo: null,
   uf: null,
   data_instrumento: null,
   recaptura_em: null,
@@ -47,4 +48,15 @@ it("não mostra o selo quando o Portal confirmou ou a análise já acabou", () =
     <CandidatoLegadoItem candidato={{ ...base, situacao: "rejeitado" }} />,
   );
   expect(screen.queryByText(/Portal pendente/)).not.toBeInTheDocument();
+});
+
+it("mostra o processo como marcador, e nada quando não há", () => {
+  const { rerender } = render(
+    <CandidatoLegadoItem
+      candidato={{ ...base, numero_processo: "25000.123456/2024-11" }}
+    />,
+  );
+  expect(screen.getByText("25000.123456/2024-11")).toBeVisible();
+  rerender(<CandidatoLegadoItem candidato={base} />);
+  expect(screen.queryByText("25000.123456/2024-11")).not.toBeInTheDocument();
 });

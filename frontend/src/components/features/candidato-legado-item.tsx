@@ -64,6 +64,14 @@ export function CandidatoLegadoItem({
           <CandidatoLegadoItensDialog candidato={candidato} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {candidato.numero_processo ? (
+            <Badge
+              variant="outline"
+              className="max-w-full whitespace-normal text-xs"
+            >
+              {candidato.numero_processo}
+            </Badge>
+          ) : null}
           <PortalPendente candidato={candidato} />
           <Badge
             variant="outline"

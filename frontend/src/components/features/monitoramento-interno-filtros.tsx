@@ -100,6 +100,14 @@ export function MonitoramentoInternoFiltros({
         clearLabel="Programas"
         minWidth={160}
       />
+      <SingleSelectFilter
+        placeholder="Responsável"
+        options={filtros.responsavelOptions}
+        value={filtros.responsavel}
+        onChange={filtros.setResponsavel}
+        clearLabel="Responsável"
+        minWidth={150}
+      />
       {filtros.temReferencias && (
         <SingleSelectFilter
           placeholder="Período por"

@@ -231,12 +231,12 @@ def _itens_do_plano(itens: object) -> list[ItemPlanoLegadoRead]:
     return bens
 
 
-_SEM_RECAPTURA: tuple[Any, ...] = (None, None, None, [], None)
+_SEM_RECAPTURA: tuple[Any, ...] = (None, None, None, [], None, None)
 
 
 def _resumo_recaptura(
     db: Session, ids: set[int]
-) -> dict[int, tuple[object, str | None, str | None, list[ItemPlanoLegadoRead], datetime]]:
+) -> dict[int, tuple[object, str | None, str | None, list[ItemPlanoLegadoRead], datetime, str | None]]:
     """Valor, município, UF e itens da última recaptura oficial de cada candidato."""
     if not ids:
         return {}
@@ -244,12 +244,13 @@ def _resumo_recaptura(
     ultima = select(func.max(r.id)).where(r.candidato_id.in_(ids)).group_by(r.candidato_id)
     municipio = r.payload_oficial["portal"]["municipioConvenente"]["nomeIBGE"].astext
     uf = r.payload_oficial["portal"]["municipioConvenente"]["uf"]["nome"].astext
+    processo = r.payload_oficial["portal"]["numeroProcesso"].astext
     return {
-        candidato_id: (valor, mun, sigla, _itens_do_plano(itens), criado_em)
-        for candidato_id, valor, mun, sigla, itens, criado_em in db.execute(
-            select(r.candidato_id, r.valor_global, municipio, uf, r.payload_oficial["itens"], r.criado_em).where(
-                r.id.in_(ultima)
-            )
+        candidato_id: (valor, mun, sigla, _itens_do_plano(itens), criado_em, proc)
+        for candidato_id, valor, mun, sigla, itens, criado_em, proc in db.execute(
+            select(
+                r.candidato_id, r.valor_global, municipio, uf, r.payload_oficial["itens"], r.criado_em, processo
+            ).where(r.id.in_(ultima))
         )
     }
 
@@ -303,6 +304,7 @@ def listar_pagina(
                 "municipio": recapturas.get(candidato.id, _SEM_RECAPTURA)[1],
                 "uf": recapturas.get(candidato.id, _SEM_RECAPTURA)[2],
                 "recaptura_em": recapturas.get(candidato.id, _SEM_RECAPTURA)[4],
+                "numero_processo": recapturas.get(candidato.id, _SEM_RECAPTURA)[5],
                 "itens": recapturas.get(candidato.id, _SEM_RECAPTURA)[3]
                 or [
                     ItemPlanoLegadoRead(nome=nome)

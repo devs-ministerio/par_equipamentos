@@ -4,10 +4,13 @@ O chamador deve fornecer alvo obtido do Service e validar o destino local.
 Downloads nacionais são temporários e descartados inclusive em falha.
 """
 
+import re
 from datetime import UTC, datetime
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+from pydantic import ValidationError as ErroContrato
 
 from app.domain_errors import ConflictError
 from app.pipeline.portal_transparencia import _headers, _sessao_com_retry, buscar_convenio_por_numero_dto
@@ -37,24 +40,80 @@ def _selecionar(
     return selecionadas, sha256(conteudo).hexdigest()
 
 
-def completar_dim_convenio(portal: dict, proposta: dict[str, str]) -> dict:
-    """Portal às vezes devolve `numero` e `objeto` vazios; o SICONV traz o mesmo dado.
+def _preenchido(valor: object) -> bool:
+    return valor is not None and str(valor).strip() != ""
 
-    `numero` do Portal é o `NR_PROPOSTA` e `objeto` é o `OBJETO_PROPOSTA` (conferido em 11
-    recapturas de produção). Só preenche o que veio vazio e marca a origem.
+
+def _base_siconv(convenio: dict[str, str], proposta: dict[str, str]) -> dict:
+    """Cadastro mínimo da carteira só com SICONV; vazio vira ausente."""
+    sequencial = (proposta.get("NR_PROPOSTA") or "").split("/")[0]
+    ano = convenio.get("ANO") or (proposta.get("NR_PROPOSTA") or "").split("/")[-1]
+    base = {
+        "dimConvenio": {
+            "codigo": convenio.get("NR_CONVENIO"),
+            "numero": f"{sequencial}/{ano}" if sequencial and ano else "",
+            "objeto": proposta.get("OBJETO_PROPOSTA"),
+        },
+        "convenente": {"nome": proposta.get("NM_PROPONENTE"), "cnpjFormatado": proposta.get("IDENTIF_PROPONENTE")},
+        "municipioConvenente": {
+            "nomeIBGE": proposta.get("MUNIC_PROPONENTE"),
+            "codigoIBGE": proposta.get("COD_MUNIC_IBGE"),
+            "uf": {"nome": proposta.get("UF_PROPONENTE")},
+        },
+        "dataPublicacao": convenio.get("DIA_PUBL_CONV"),
+        "dataInicioVigencia": convenio.get("DIA_INIC_VIGENC_CONV"),
+        "dataFinalVigencia": convenio.get("DIA_FIM_VIGENC_CONV"),
+        "numeroProcesso": convenio.get("NR_PROCESSO"),
+    }
+    return _sem_vazios(base)
+
+
+def _sem_vazios(valor: dict) -> dict:
+    return {
+        k: (_sem_vazios(v) if isinstance(v, dict) else v)
+        for k, v in valor.items()
+        if (isinstance(v, dict) and _sem_vazios(v)) or (not isinstance(v, dict) and _preenchido(v))
+    }
+
+
+def _completar(portal: dict, base: dict, caminho: str, preenchidos: list[str]) -> dict:
+    """O Portal manda onde trouxe valor; o SICONV preenche só o que veio vazio."""
+    resultado = dict(portal)
+    for campo, do_siconv in base.items():
+        atual = resultado.get(campo)
+        if isinstance(do_siconv, dict):
+            resultado[campo] = _completar(
+                atual if isinstance(atual, dict) else {}, do_siconv, f"{caminho}{campo}.", preenchidos
+            )
+        elif not _preenchido(atual):
+            resultado[campo] = do_siconv
+            preenchidos.append(f"{caminho}{campo}")
+    return resultado
+
+
+def compor_portal(portal: dict | None, convenio: dict[str, str], proposta: dict[str, str]) -> dict:
+    """Cadastro do Portal completado pelo SICONV, ou só SICONV quando o Portal não encontra.
+
+    Regras (fase 1 do plano, 23/11/2026): número = sequencial de NR_PROPOSTA + ANO do convênio;
+    nome da instituição sempre do SICONV, com o CNPJ como chave (CNPJ divergente recusa).
+    Os marcadores ficam como campos extras para não alterar o hash das provas já gravadas.
     """
-    dim = dict(portal.get("dimConvenio") or {})
-    preenchidos = [
-        campo
-        for campo, origem in (("numero", "NR_PROPOSTA"), ("objeto", "OBJETO_PROPOSTA"))
-        if not str(dim.get(campo) or "").strip() and str(proposta.get(origem) or "").strip()
-    ]
-    if not preenchidos:
-        return portal
-    for campo in preenchidos:
-        dim[campo] = proposta["NR_PROPOSTA" if campo == "numero" else "OBJETO_PROPOSTA"].strip()
-    dim["complementado_do_siconv"] = preenchidos
-    return {**portal, "dimConvenio": dim}
+    base = _base_siconv(convenio, proposta)
+    if portal is None:
+        return {**base, "origem_cadastro": "siconv"}
+    cnpj_portal = re.sub(r"\D", "", str((portal.get("convenente") or {}).get("cnpjFormatado") or ""))
+    cnpj_siconv = re.sub(r"\D", "", str((base.get("convenente") or {}).get("cnpjFormatado") or ""))
+    if cnpj_portal and cnpj_siconv and cnpj_portal != cnpj_siconv:
+        raise ConflictError("O CNPJ do convenente diverge entre Portal e SICONV; prova não publicada.")
+    preenchidos: list[str] = []
+    composto = _completar(portal, base, "", preenchidos)
+    nome = (base.get("convenente") or {}).get("nome")
+    if nome and (composto.get("convenente") or {}).get("nome") != nome:
+        composto["convenente"] = {**composto["convenente"], "nome": nome}
+    composto["origem_cadastro"] = "portal"
+    if preenchidos:
+        composto["complementado_do_siconv"] = preenchidos
+    return composto
 
 
 def coletar_recaptura(alvo: AlvoRecapturaLegado, *, cache: Path | None = None) -> PacoteRecapturaLegado:
@@ -100,13 +159,17 @@ def coletar_recaptura(alvo: AlvoRecapturaLegado, *, cache: Path | None = None) -
             raise ConflictError("A fonte atual não comprova equipamento ou componente prioritário do MS.")
         with _sessao_com_retry() as sessao:
             portal = buscar_convenio_por_numero_dto(alvo.numero, session=sessao)
-        if portal is None:
-            raise ConflictError("Convênio não encontrado no Portal; prova não publicada.")
-        portal_validado = PortalLegadoCapturado.model_validate(
-            completar_dim_convenio(portal.model_dump(mode="json", exclude_none=True), propostas[0])
-        )
-        if portal_validado.dimConvenio.codigo != alvo.numero:
+        portal_bruto = portal.model_dump(mode="json", exclude_none=True) if portal is not None else None
+        if portal_bruto is not None and str((portal_bruto.get("dimConvenio") or {}).get("codigo")) != alvo.numero:
             raise ConflictError("Portal retornou identidade divergente; prova não publicada.")
+        try:
+            portal_validado = PortalLegadoCapturado.model_validate(
+                compor_portal(portal_bruto, convenios[0], propostas[0])
+            )
+        except ErroContrato as erro:
+            if portal_bruto is not None:
+                raise
+            raise ConflictError("O Portal não encontrou o convênio e o SICONV não traz o cadastro mínimo.") from erro
         filhas: dict[str, list[dict[str, str]]] = {}
         hashes_filhas: dict[str, str] = {}
         for campo, nome in ARQUIVOS_FILHAS.items():

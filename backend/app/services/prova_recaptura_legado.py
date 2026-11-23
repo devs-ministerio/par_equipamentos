@@ -45,8 +45,10 @@ def validar_captura_promocao(
         raise ConflictError("A prova revisada não confirma convênio celebrado no escopo vigente.")
     if candidato.orgao_superior != CODIGO_MS or captura.proposta.COD_ORGAO_SUP != CODIGO_MS:
         raise ConflictError("A recaptura não confirma o Ministério da Saúde.")
-    if candidato.confirmacao_portal != "confirmado" or candidato.data_publicacao != captura.portal.dataPublicacao:
-        raise ConflictError("A confirmação oficial do Portal mudou desde a descoberta.")
+    # Cadastro vindo só do SICONV não tem o que comparar; com Portal, as duas publicações devem coincidir.
+    origem_cadastro = (captura.portal.model_extra or {}).get("origem_cadastro", "portal")
+    if origem_cadastro == "portal" and captura.portal.dataPublicacao != celebracao.DIA_PUBL_CONV:
+        raise ConflictError("Portal e SICONV divergem na data de publicação.")
     if (celebracao.DIA_ASSIN_CONV, celebracao.DIA_PUBL_CONV) != (
         candidato.data_assinatura_siconv,
         candidato.data_publicacao_siconv,

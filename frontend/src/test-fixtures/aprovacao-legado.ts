@@ -18,6 +18,7 @@ export function criarCandidato(
     verificado_em: "2026-10-18T10:00:00Z",
     valor_global: null,
     municipio: null,
+    numero_processo: null,
     uf: null,
     data_instrumento: null,
     recaptura_em: new Date().toISOString(),
