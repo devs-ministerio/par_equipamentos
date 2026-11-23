@@ -6,10 +6,11 @@ const LIMITE = 8;
 
 /** Equipamentos planejados e entregues por tipo (família) nos instrumentos monitorados da região. */
 export function SecaoEquipamentos({
-  familias,
+  familias: todasFamilias,
 }: {
   familias: FamiliaEntregue[];
 }) {
+  const familias = todasFamilias.filter((f) => f.planejado > 0);
   const [todas, setTodas] = useState(false);
   const planejado = familias.reduce((t, f) => t + f.planejado, 0);
   const entregue = familias.reduce((t, f) => t + f.entregue, 0);
