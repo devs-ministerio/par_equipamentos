@@ -95,11 +95,6 @@ export function MonitoramentoMeuPainelPage() {
   return (
     <div className="space-y-6">
       {header}
-      <p className="m-0 text-sm text-muted-foreground">
-        {dados.escopo === "todos"
-          ? "Todos os estados"
-          : `${dados.usuario?.nome} · ${(dados.ufs ?? []).join(", ") || "sem região definida"}`}
-      </p>
       {semRegiao && (
         <ErrorAlert mensagem="Este colaborador ainda não tem região de monitoramento definida." />
       )}
