@@ -162,9 +162,7 @@ export function PainelTecnicoCarteira({
                     {l.monitorado ? (
                       <Badge variant="success">No monitoramento</Badge>
                     ) : (
-                      <Badge variant={l.em_aberto ? "warning" : "outline"}>
-                        {l.em_aberto ? "Falta incluir" : "Não incluído"}
-                      </Badge>
+                      <Badge variant="warning">Fora do monitoramento</Badge>
                     )}
                     {l.sem_registro && (
                       <Badge variant="destructive">Sem registro</Badge>
