@@ -206,6 +206,7 @@ describe("useMonitoramentoInternoFiltros", () => {
     {
       ...instrumentos[0]!,
       nr_convenio: "999003",
+      tecnico_titular: "Bruno Costa",
       cnes: null,
       municipio: null,
       uf: null,
@@ -243,6 +244,8 @@ describe("useMonitoramentoInternoFiltros", () => {
     ["situacao=Acompanhamento%20iniciado", "999003"],
     ["programa=Não%20informado", "999003"],
     ["programa=Oncologia", "25000198305202459"],
+    ["responsavel=Ana%20Silva", "25000198305202459"],
+    ["responsavel=Sem%20respons%C3%A1vel", "953749"],
     ["ano_inicio=2026", "953749"],
     ["ano_fim=2025", "25000198305202459"],
     ["ano_inicio=2025&ano_fim=2025", "25000198305202459"],

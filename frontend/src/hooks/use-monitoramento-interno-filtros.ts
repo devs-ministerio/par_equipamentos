@@ -16,6 +16,8 @@ import {
   type FonteEquipamentosFiltro,
 } from "@/lib/monitoramento-filtro-equipamentos";
 
+const SEM_RESPONSAVEL = "Sem responsável";
+
 type OpcaoFiltro = { value: string; label: string };
 export type ClasseEquipamentoFiltro = ClasseEquipamento | "todos";
 
@@ -29,6 +31,7 @@ const PARAMETROS = [
   "equipamento",
   "situacao",
   "programa",
+  "responsavel",
   "ano_inicio",
   "ano_fim",
   "referencia",
@@ -111,6 +114,7 @@ export function useMonitoramentoInternoFiltros<
   );
   const situacao = searchParams.get("situacao");
   const programa = searchParams.get("programa");
+  const responsavel = searchParams.get("responsavel");
   const referencia = referenciaValida(searchParams.get("referencia"));
   const anosDoEvento = useMemo(
     () => anosPorReferencia(referencia, inauguracoes ?? []),
@@ -210,6 +214,11 @@ export function useMonitoramentoInternoFiltros<
           return false;
         if (programa && (instrumento.programa ?? "Não informado") !== programa)
           return false;
+        if (
+          responsavel &&
+          (instrumento.tecnico_titular ?? SEM_RESPONSAVEL) !== responsavel
+        )
+          return false;
         const ano = anoDe(instrumento);
         if (anoInicio && (ano == null || ano < Number(anoInicio))) return false;
         if (anoFim && (ano == null || ano > Number(anoFim))) return false;
@@ -226,6 +235,7 @@ export function useMonitoramentoInternoFiltros<
       equipamento,
       situacao,
       programa,
+      responsavel,
       anoInicio,
       anoFim,
       anoDe,
@@ -275,6 +285,9 @@ export function useMonitoramentoInternoFiltros<
     setSituacao: (valor: string | null) => definirFiltro("situacao", valor),
     programa,
     setPrograma: (valor: string | null) => definirFiltro("programa", valor),
+    responsavel,
+    setResponsavel: (valor: string | null) =>
+      definirFiltro("responsavel", valor),
     referencia,
     // Trocar a referência muda o significado dos anos; o intervalo anterior não vale mais.
     setReferencia: (valor: string | null) => {
@@ -341,6 +354,10 @@ export function useMonitoramentoInternoFiltros<
     programaOptions: opcoes(
       instrumentos,
       (item) => item.programa ?? "Não informado",
+    ),
+    responsavelOptions: opcoes(
+      instrumentos,
+      (item) => item.tecnico_titular ?? SEM_RESPONSAVEL,
     ),
     anoOptions: [
       ...new Set(
