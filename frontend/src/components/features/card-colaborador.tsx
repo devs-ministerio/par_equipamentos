@@ -28,7 +28,7 @@ export function CardColaborador() {
       <div
         className={`${CONTAINER_CLASS} flex flex-wrap items-center justify-between gap-3 py-2.5`}
       >
-        <div className="min-w-0">
+        <Link to={ROTA_PAINEL} className="min-w-0 hover:underline">
           <p className="m-0 truncate text-sm font-semibold">
             {usuarioAtual.name}
           </p>
@@ -36,11 +36,11 @@ export function CardColaborador() {
             {PAPEL[usuarioAtual.role] ?? usuarioAtual.role}
             {!gestao && ufs.length > 0 && ` · ${ufs.join(", ")}`}
           </p>
-        </div>
+        </Link>
         <Button asChild size="sm" variant={noPainel ? "secondary" : "default"}>
           <Link to={ROTA_PAINEL}>
             <LayoutDashboard aria-hidden="true" />
-            {gestao ? "Painéis da equipe" : "Meu painel"}
+            Painel de gestão
           </Link>
         </Button>
       </div>

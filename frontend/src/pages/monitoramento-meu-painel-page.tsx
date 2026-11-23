@@ -24,7 +24,7 @@ export function MonitoramentoMeuPainelPage() {
   const consulta = usePainelTecnico(colaboradorId);
   const dados = consulta.data;
 
-  const titulo = gestao ? "Painéis da equipe" : "Meu painel";
+  const titulo = "Painel de gestão";
   const filtro = gestao ? (
     <label className="flex items-center gap-2 text-sm">
       <span className="text-muted-foreground">Colaborador</span>
