@@ -132,32 +132,21 @@ export function PainelTecnicoCarteira({
         <Table>
           <TableHeader className="[&_th]:uppercase">
             <TableRow>
-              {cab("numero", "Convênio")}
+              {cab("numero", "Instrumento")}
               {cab("municipio", "Município")}
               <TableHead>Convenente</TableHead>
               {cab("situacao", "Situação")}
-              <TableHead>Monitoramento</TableHead>
               {cab("acoes", "N de Ações", "right")}
               {cab("eventos", "N de Eventos", "right")}
               {cab("valor", "Valor global", "right")}
+              <TableHead>Monitoramento</TableHead>
               <TableHead>Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtradas.slice(0, visiveis).map((l) => (
               <TableRow key={l.numero}>
-                <TableCell className="font-medium">
-                  {l.monitorado ? (
-                    <Link
-                      className="text-primary hover:underline"
-                      to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(l.numero)}`}
-                    >
-                      {l.numero}
-                    </Link>
-                  ) : (
-                    l.numero
-                  )}
-                </TableCell>
+                <TableCell className="font-medium">{l.numero}</TableCell>
                 <TableCell>
                   {[l.municipio, l.uf].filter(Boolean).join(" / ")}
                 </TableCell>
@@ -165,6 +154,15 @@ export function PainelTecnicoCarteira({
                   {l.convenente}
                 </TableCell>
                 <TableCell>{l.situacao}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {l.monitorado ? l.acoes : "—"}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {l.monitorado ? l.eventos : "—"}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {fmtMoeda(l.valor_global)}
+                </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap items-center gap-1">
                     {l.monitorado ? (
@@ -176,15 +174,6 @@ export function PainelTecnicoCarteira({
                       <Badge variant="destructive">Sem registro</Badge>
                     )}
                   </div>
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {l.monitorado ? l.acoes : "—"}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {l.monitorado ? l.eventos : "—"}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fmtMoeda(l.valor_global)}
                 </TableCell>
                 <TableCell>
                   {l.monitorado ? (
