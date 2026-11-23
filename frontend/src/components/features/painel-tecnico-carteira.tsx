@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { botaoIcone } from "@/components/features/equipamentos-instrumento-unidades";
 import { AdicionarMonitoramentoButton } from "@/components/features/adicionar-monitoramento-button";
 import { Input } from "@/components/ui/input";
 import {
@@ -128,15 +130,15 @@ export function PainelTecnicoCarteira({
         </p>
       ) : (
         <Table>
-          <TableHeader>
+          <TableHeader className="[&_th]:uppercase">
             <TableRow>
               {cab("numero", "Convênio")}
               {cab("municipio", "Município")}
               <TableHead>Convenente</TableHead>
               {cab("situacao", "Situação")}
               <TableHead>Monitoramento</TableHead>
-              {cab("acoes", "Qtd. de ações", "right")}
-              {cab("eventos", "Qtd. de eventos", "right")}
+              {cab("acoes", "N de Ações", "right")}
+              {cab("eventos", "N de Eventos", "right")}
               {cab("valor", "Valor global", "right")}
               <TableHead>Ação</TableHead>
             </TableRow>
@@ -186,16 +188,18 @@ export function PainelTecnicoCarteira({
                 </TableCell>
                 <TableCell>
                   {l.monitorado ? (
-                    <Button asChild variant="outline" size="sm">
-                      <Link
-                        to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(l.numero)}`}
-                      >
-                        Abrir instrumento
-                      </Link>
-                    </Button>
+                    <Link
+                      className={botaoIcone}
+                      aria-label={`Abrir instrumento ${l.numero}`}
+                      title="Abrir instrumento"
+                      to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(l.numero)}`}
+                    >
+                      <ArrowUpRight className="size-4" aria-hidden="true" />
+                    </Link>
                   ) : (
                     <AdicionarMonitoramentoButton
                       rotulo="Incluir no monitoramento"
+                      somenteIcone
                       aoAdicionar={atualizar}
                       dados={{
                         nr_convenio: l.numero,

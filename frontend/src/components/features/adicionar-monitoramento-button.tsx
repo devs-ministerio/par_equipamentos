@@ -2,6 +2,7 @@
  * O técnico é informado antes da confirmação final e a criação fica em
  * AuditLog no backend. */
 import { useState } from "react";
+import { Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import {
@@ -20,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Campo, estiloInput } from "./monitoramento-ui";
+import { botaoIcone } from "./equipamentos-instrumento-unidades";
 import { fmtMoeda } from "@/lib/monitoramento-format";
 import type {
   CriarInstrumentoInput,
@@ -77,11 +79,14 @@ export function AdicionarMonitoramentoButton({
   dados,
   candidatos = [],
   rotulo = "+ Adicionar ao monitoramento interno",
+  somenteIcone = false,
   aoAdicionar,
 }: {
   dados: DadosAdicionarMonitoramento;
   candidatos?: Candidato[];
   rotulo?: string;
+  /** Gatilho como ícone pequeno com legenda (title), no padrão do check de entrega. */
+  somenteIcone?: boolean;
   aoAdicionar?: () => void;
 }) {
   const sessao = useAuthSession();
@@ -150,9 +155,21 @@ export function AdicionarMonitoramentoButton({
       open={aberto}
       onOpenChange={(v) => (v ? setAberto(true) : fechar())}
     >
-      <Button size="sm" onClick={() => setAberto(true)}>
-        {rotulo}
-      </Button>
+      {somenteIcone ? (
+        <button
+          type="button"
+          className={botaoIcone}
+          aria-label={`${rotulo}: ${dados.referencia}`}
+          title={rotulo}
+          onClick={() => setAberto(true)}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+        </button>
+      ) : (
+        <Button size="sm" onClick={() => setAberto(true)}>
+          {rotulo}
+        </Button>
+      )}
       <DialogContent>
         {etapa === "form" ? (
           <>
