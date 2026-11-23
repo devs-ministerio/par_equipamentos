@@ -173,7 +173,7 @@ Evidência anterior só é mesclada quando o candidato ainda não tem critério.
 ## 7. Recaptura, prova e revalidação
 
 > [!note] Atualização de 22/11/2026
-> Os rótulos "só em clone local" abaixo descrevem o desenho original. A recaptura passou a rodar na CI e a prova deixou de ter validade de 24 h. Ver a [seção 21](#21-enriquecimento-pela-ci-e-fim-da-validade-da-prova-22112026).
+> Os rótulos "só em clone local" abaixo descrevem o desenho original. A recaptura passou a rodar na CI e a prova deixou de ter validade de 24 h. Ver a [seção 22](#22-enriquecimento-pela-ci-e-fim-da-validade-da-prova-22112026).
 
 ```mermaid
 flowchart TB
@@ -603,7 +603,7 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 - Os componentes `candidato-legado-aprovacao.tsx`, `candidato-legado-historico.tsx`, `candidato-legado-item.tsx` e `candidato-legado-itens-dialog.tsx` foram descritos a partir dos hooks, do serviço e do mapa do monitoramento, sem releitura linha a linha nesta revisão.
 - O comportamento de rede (tempos, limites do Portal) não está no código e não entra aqui.
 
-## 21. Enriquecimento pela CI e fim da validade da prova (22/11/2026)
+## 22. Enriquecimento pela CI e fim da validade da prova (22/11/2026)
 
 A recaptura deixou de ser passo manual local. O workflow `radar_convenios.yml` ganhou o passo `recaptura` depois da descoberta SICONV (`scripts/job_recaptura_legado.py`). Ele grava valor, município, UF e itens do plano de aplicação para cada candidato aberto, com o Portal confirmado e sem recaptura da descoberta atual. Os arquivos nacionais do SICONV são baixados uma vez por rodada. Nunca aprova.
 
