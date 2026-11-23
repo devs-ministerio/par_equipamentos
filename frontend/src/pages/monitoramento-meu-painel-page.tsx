@@ -4,6 +4,8 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardColaborador } from "@/components/features/card-colaborador";
+import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
+import { entreguesPorFamilia } from "@/lib/equipamentos-entregues";
 import { SecaoSituacao } from "@/components/features/painel-tecnico-situacao";
 import { MonitoramentoFilaAcoes } from "@/components/features/monitoramento-fila-acoes";
 import { MonitoramentoPainelPrazos } from "@/components/features/monitoramento-painel-prazos";
@@ -207,6 +209,12 @@ export function MonitoramentoMeuPainelPage() {
         </>
       )}
       <SecaoSituacao linhas={linhas} />
+      <SecaoEquipamentos
+        familias={entreguesPorFamilia(
+          resumo.data?.equipamentos_por_instrumento ?? [],
+          numerosMonitorados,
+        )}
+      />
     </div>
   );
 }
