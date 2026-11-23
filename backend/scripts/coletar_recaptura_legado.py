@@ -37,6 +37,26 @@ def _selecionar(
     return selecionadas, sha256(conteudo).hexdigest()
 
 
+def completar_dim_convenio(portal: dict, proposta: dict[str, str]) -> dict:
+    """Portal às vezes devolve `numero` e `objeto` vazios; o SICONV traz o mesmo dado.
+
+    `numero` do Portal é o `NR_PROPOSTA` e `objeto` é o `OBJETO_PROPOSTA` (conferido em 11
+    recapturas de produção). Só preenche o que veio vazio e marca a origem.
+    """
+    dim = dict(portal.get("dimConvenio") or {})
+    preenchidos = [
+        campo
+        for campo, origem in (("numero", "NR_PROPOSTA"), ("objeto", "OBJETO_PROPOSTA"))
+        if not str(dim.get(campo) or "").strip() and str(proposta.get(origem) or "").strip()
+    ]
+    if not preenchidos:
+        return portal
+    for campo in preenchidos:
+        dim[campo] = proposta["NR_PROPOSTA" if campo == "numero" else "OBJETO_PROPOSTA"].strip()
+    dim["complementado_do_siconv"] = preenchidos
+    return {**portal, "dimConvenio": dim}
+
+
 def coletar_recaptura(alvo: AlvoRecapturaLegado, *, cache: Path | None = None) -> PacoteRecapturaLegado:
     """Valida escopo antes das filhas; nenhuma coleção omitida vira vazia."""
     alvo = AlvoRecapturaLegado.model_validate(alvo.model_dump())
@@ -82,7 +102,9 @@ def coletar_recaptura(alvo: AlvoRecapturaLegado, *, cache: Path | None = None) -
             portal = buscar_convenio_por_numero_dto(alvo.numero, session=sessao)
         if portal is None:
             raise ConflictError("Convênio não encontrado no Portal; prova não publicada.")
-        portal_validado = PortalLegadoCapturado.model_validate(portal.model_dump(mode="json", exclude_none=True))
+        portal_validado = PortalLegadoCapturado.model_validate(
+            completar_dim_convenio(portal.model_dump(mode="json", exclude_none=True), propostas[0])
+        )
         if portal_validado.dimConvenio.codigo != alvo.numero:
             raise ConflictError("Portal retornou identidade divergente; prova não publicada.")
         filhas: dict[str, list[dict[str, str]]] = {}

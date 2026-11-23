@@ -16,6 +16,13 @@ verdade, espelha o código com arquivo/linha): [`docs/metodologia-parametros.md`
 Decisões de arquitetura, convenções e histórico de cada Plan Mode executado:
 [`CLAUDE.md`](CLAUDE.md).
 
+Mapas dos fluxos e do banco (abrem direto no GitHub):
+[Radar de instrumentos](docs/mermaid/radar-instrumentos.md) ·
+[Monitoramento interno](docs/mermaid/monitoramento-interno.md) ·
+[Banco de dados](docs/mermaid/banco-de-dados.md) ·
+[índice por diagrama](docs/mermaid/README.md). O significado de cada tabela e
+coluna está no [dicionário de dados](docs/dicionario-dados/README.md).
+
 ## Módulos
 
 - **Análise de mérito** (`/dashboard`, `/mapa`, `/relatorios`) — o núcleo
@@ -25,13 +32,15 @@ Decisões de arquitetura, convenções e histórico de cada Plan Mode executado:
   oferta SUS e em uso (nunca o total informativo) — ver
   [`docs/metodologia-parametros.md`](docs/metodologia-parametros.md).
 - **Monitoramento de equipamento** (`/monitoramento-equipamentos/*`) —
-  acompanhamento manual pós-repasse (91 instrumentos hoje): fase geral,
+  acompanhamento manual pós-repasse (cerca de 290 instrumentos monitorados em 26/10/2026): fase geral,
   cronograma físico, licenciamento CNEN e inauguração de cada convênio/FAF/
   TED/PERSUS monitorado, com histórico append-only auditável (evento nunca é
   editado in-place, só substituído com rastro).
-- **Radar de Convênios / Linhas de financiamento** — descoberta automática de
-  propostas novas no TransfereGov, casamento com o catálogo de equipamentos
-  do SISGEO, e triagem manual antes de entrar no monitoramento interno.
+- **Radar de instrumentos** — descoberta diária de convênios novos no SICONV
+  (`radar_convenios.yml`), confirmação no Portal da Transparência e
+  recaptura dos dados oficiais (valor, município, UF e itens), tudo na CI. A
+  aprovação para a carteira é humana, por gestor ou admin, e nunca automática.
+  Mapa em [`docs/mermaid/radar-instrumentos.md`](docs/mermaid/radar-instrumentos.md).
 - **Notificações** — alerta por destinatário (técnico titular/suplente do
   instrumento) de atualização de proposta, edição manual e vencimento de
   licença/vigência, sem depender de e-mail externo.
@@ -143,7 +152,8 @@ docs/
   planos/                                # plan-modes (histórico de decisões)
   diagnosticos/                          # diagnósticos, incidentes, revisões
   runbooks/                              # procedimentos operacionais e roteiros de release
-  mermaid/                               # mapas de fluxo (monitoramento interno, Radar)
+  mermaid/                               # mapas de fluxo e do banco (Radar, monitoramento interno, 50 tabelas)
+  dicionario-dados/                      # dicionário de dados por domínio
   assets/                                # imagens e GeoJSON de apoio
   prototipo/decan-prototipo_1.html       # protótipo HTML standalone, anterior à app real
   referencias/                           # documentos/imagens de referência normativa
@@ -167,6 +177,10 @@ docs/
   `.github/workflows/pipelines.yml`,
   hoje só `workflow_dispatch` (manual) — o cron diário fica comentado até
   existir deploy com `DATABASE_URL` pública alcançável pelo runner.
+- **Radar e fontes oficiais**: `.github/workflows/radar_convenios.yml` (cron diário às
+  09:30 UTC, ligado pela variável `ATUALIZACOES_RADAR_ATIVAS`; disparo manual por
+  tarefa) roda descoberta, atualização SICONV/TransfereGov, recaptura e alertas de
+  vigência com a credencial `sigeo_runtime`.
 - **CI**: `backend_ci.yml`/`frontend_ci.yml` (lint/tipo/teste/build a cada
   PR), `e2e_ci.yml` (E2E autenticado, Postgres efêmero), `secret_scan.yml`/
   `static_security.yml`/`supply_chain.yml` (SAST/SBOM/CVE).
