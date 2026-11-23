@@ -60,10 +60,24 @@ def _cenario(db):
     db.flush()
     codigo = f"9{uuid4().int % 100000:05d}"
     db.add(RenemItem(codigo_item=codigo, nome="Equipamento teste", versao_lista="t", catalogo_id=familia.id))
-    conv = Convenio(numero=f"FIL{uuid4().hex[:8]}", objeto="x", convenente_nome="x")
+    id_origem = uuid4().hex[:10]
+    conv = Convenio(
+        numero=f"FIL{uuid4().hex[:8]}",
+        objeto="x",
+        convenente_nome="x",
+        siconv_raw={
+            "itens_plano_aplicacao": [
+                {
+                    "ID_ITEM_PAD": id_origem,
+                    "DESCRICAO_ITEM": "Tomógrafo sem canais",
+                    "QTD_ITEM": "1",
+                    "VALOR_TOTAL_ITEM": "100",
+                }
+            ]
+        },
+    )
     db.add(conv)
     db.flush()
-    id_origem = uuid4().hex[:10]
     item = ItemPlano(
         convenio_id=conv.id,
         origem="siconv",
@@ -182,3 +196,42 @@ def test_decisao_em_instrumento_concluido_exige_reabrir(db):
     db.flush()
     with pytest.raises(ConflictError, match="Reabra"):
         svc.decidir(item_id=item.id, dados=DecisaoItemCreate(acao="nao_equipamento"), db=db, usuario=gestor)
+
+
+def test_confirmar_item_de_valor_alto_fora_das_familias_controla_unidade_pela_regra_de_valor(db):
+    """Caso 949415: confirmar não pode gravar "não controla" e esconder a regra de R$ 300 mil por unidade."""
+    conv, item, *_ = _cenario(db)
+    conv.siconv_raw = {
+        "itens_plano_aplicacao": [
+            {
+                "ID_ITEM_PAD": item.id_origem,
+                "DESCRICAO_ITEM": "Sistema de Hemodinâmica",
+                "QTD_ITEM": "2",
+                "VALOR_TOTAL_ITEM": "6690500",
+            }
+        ]
+    }
+    item.descricao, item.quantidade_planejada, item.valor_total = "Sistema de Hemodinâmica", 2, 6690500
+    item.tipo_lancamento = "aquisicao"
+    db.flush()
+    gestor = _usuario(db, UserRole.gestor)
+
+    svc.decidir(item_id=item.id, dados=DecisaoItemCreate(acao="confirmar"), db=db, usuario=gestor)
+
+    assert item.controla_unidade is True
+    vigente = db.execute(
+        select(DecisaoClassificacaoItem).where(
+            DecisaoClassificacaoItem.convenio_numero == conv.numero,
+            DecisaoClassificacaoItem.substituida_por_id.is_(None),
+        )
+    ).scalar_one()
+    assert vigente.conta_unidade is None
+
+
+def test_fila_nao_mostra_item_de_convenio_fora_de_escopo(db):
+    conv, item, *_ = _cenario(db)
+    gestor = _usuario(db, UserRole.gestor)
+    assert item.id in [i.id for i in svc.listar_fila(db=db, usuario=gestor)]
+    conv.fora_escopo_equipamentos = True
+    db.flush()
+    assert item.id not in [i.id for i in svc.listar_fila(db=db, usuario=gestor)]

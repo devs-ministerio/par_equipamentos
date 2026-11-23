@@ -27,6 +27,7 @@ from app.domain_errors import AuthorizationError, ConflictError, NotFoundError, 
 from app.equipamentos import normalizar_texto
 from app.schemas_classificacao import DecisaoItemCreate, ItemParaRevisaoRead
 from app.services.conclusao_acompanhamento import assert_nao_concluido
+from app.services.projecao_itens_plano import projetar as projetar_itens_plano
 
 
 def _assert_gestao(usuario: User) -> None:
@@ -41,7 +42,11 @@ def listar_fila(*, db: Session, usuario: User) -> list[ItemParaRevisaoRead]:
         .join(Convenio, Convenio.id == ItemPlano.convenio_id)
         .outerjoin(InstrumentoEquipamento, InstrumentoEquipamento.id == ItemPlano.instrumento_id)
         .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
-        .where(ItemPlano.situacao_classificacao == "pendente", ItemPlano.ativo.is_(True))
+        .where(
+            ItemPlano.situacao_classificacao == "pendente",
+            ItemPlano.ativo.is_(True),
+            Convenio.fora_escopo_equipamentos.is_(False),
+        )
         .order_by(ItemPlano.id)
     ).all()
     return [
@@ -123,7 +128,7 @@ def decidir(*, item_id: int, dados: DecisaoItemCreate, db: Session, usuario: Use
     elif tipo == "multiplo":
         raise ValidationError("Um item com mais de um equipamento precisa ser corrigido, não confirmado.")
     catalogo = db.get(EquipamentoCatalogo, catalogo_id) if catalogo_id else None
-    controla = tipo == "aquisicao" and catalogo is not None and catalogo.controle_por_unidade
+    por_familia = tipo == "aquisicao" and catalogo is not None and catalogo.controle_por_unidade
     chave = (
         chave_do_item({"ID_ITEM_PAD": item.id_origem})
         if item.origem == "siconv"
@@ -135,7 +140,9 @@ def decidir(*, item_id: int, dados: DecisaoItemCreate, db: Session, usuario: Use
         chave=chave,
         tipo_lancamento=tipo,
         codigo_item=codigo,
-        conta_unidade=controla,
+        # Só a família afirma o controle. Gravar False diria "a equipe decidiu não controlar" e a projeção deixaria de
+        # aplicar a regra de valor por unidade e a exceção do instrumento (caso 949415, hemodinâmica de R$ 3,3 mi).
+        conta_unidade=True if por_familia else None,
         origem="tecnico",
         status="aplicada",
         observacao=dados.observacao,
@@ -144,9 +151,13 @@ def decidir(*, item_id: int, dados: DecisaoItemCreate, db: Session, usuario: Use
     item.tipo_lancamento, item.codigo_item, item.catalogo_id = tipo, codigo, catalogo_id
     if codigo is not None and codigo != antes["codigo"]:
         item.codigo_fonte = "definido_pela_equipe"
-    item.controla_unidade = controla
+    item.controla_unidade = por_familia
     item.situacao_classificacao = "aplicada"
     item.motivo_classificacao = dados.observacao or "Decisão da equipe"
+    db.flush()
+    # A projeção aplica a decisão vigente com as mesmas regras de valor e de exceção do instrumento.
+    projetar_itens_plano(db, aplicar=True, convenio_numero=convenio.numero)
+    controla = item.controla_unidade
     log_action(
         db,
         user_id=usuario.id,
