@@ -47,7 +47,7 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
         Instrumentos por situação
       </h3>
       <div className="mt-6 overflow-x-auto">
-        <div className="relative min-w-[34rem]">
+        <div className="relative min-w-[44rem]">
           <div
             className="pointer-events-none absolute inset-x-0 top-10 h-44"
             aria-hidden="true"
@@ -88,7 +88,7 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
                 </div>
                 <span
                   className={cn(
-                    "mt-2.5 text-center text-xs leading-tight [overflow-wrap:anywhere]",
+                    "mt-2.5 text-center text-[11px] leading-tight break-normal",
                     c.tom === "alerta"
                       ? "font-semibold text-foreground"
                       : "text-muted-foreground",
