@@ -43,6 +43,7 @@ class PainelCarteiraLinhaRead(BaseModel):
     titular: str | None
     eventos: int
     acoes: int
+    acoes_abertas: int = 0
     acoes_atrasadas: int
     lancado_recente: bool
     sem_registro: bool

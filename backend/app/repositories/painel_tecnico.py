@@ -214,7 +214,7 @@ def carteira_da_regiao(
 
     eventos: dict[int, int] = {}
     recentes: set[int] = set()
-    acoes: dict[int, tuple[int, int]] = {}  # (total ativas, abertas e atrasadas)
+    acoes: dict[int, tuple[int, int, int]] = {}  # (total ativas, abertas, abertas e atrasadas)
     titulares: dict[int, str] = {}
     if ids:
         for iid, n in db.execute(
@@ -237,16 +237,17 @@ def carteira_da_regiao(
             ).scalars()
         )
         aberta = AcaoMonitoramento.data_conclusao.is_(None)
-        for iid, total, atrasadas in db.execute(
+        for iid, total, abertas, atrasadas in db.execute(
             select(
                 AcaoMonitoramento.instrumento_id,
                 func.count(),
+                func.count().filter(aberta),
                 func.count().filter(aberta, AcaoMonitoramento.data_prevista < hoje),
             )
             .where(AcaoMonitoramento.instrumento_id.in_(ids), _ativo(AcaoMonitoramento))
             .group_by(AcaoMonitoramento.instrumento_id)
         ):
-            acoes[iid] = (total, atrasadas)
+            acoes[iid] = (total, abertas, atrasadas)
         for iid, nome in db.execute(
             select(InstrumentoResponsavel.instrumento_id, User.name)
             .join(User, User.id == InstrumentoResponsavel.usuario_id)
@@ -258,7 +259,7 @@ def carteira_da_regiao(
     for c, iid, cnes_instrumento, origem, criado_em in linhas:
         monitorado = iid is not None
         n_eventos = eventos.get(iid, 0) if monitorado else 0
-        n_acoes, atrasadas = acoes.get(iid, (0, 0)) if monitorado else (0, 0)
+        n_acoes, n_abertas, atrasadas = acoes.get(iid, (0, 0, 0)) if monitorado else (0, 0, 0)
         resultado.append(
             {
                 "instrumento_id": iid,
@@ -279,6 +280,7 @@ def carteira_da_regiao(
                 "titular": titulares.get(iid) if monitorado else None,
                 "eventos": n_eventos,
                 "acoes": n_acoes,
+                "acoes_abertas": n_abertas,
                 "acoes_atrasadas": atrasadas,
                 "lancado_recente": monitorado and iid in recentes,
                 "sem_registro": monitorado and n_eventos == 0 and n_acoes == 0,

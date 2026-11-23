@@ -3,14 +3,14 @@ import type { LinhaCarteira } from "@/services/painel-tecnico";
 export type FiltroCarteira =
   | "todos"
   | "faltam"
-  | "sem-titular"
+  | "acoes-pendentes"
   | "concluidos"
   | "radar";
 
 export const ROTULO_FILTRO: Record<FiltroCarteira, string> = {
   todos: "Toda a carteira",
-  faltam: "Faltam incluir",
-  "sem-titular": "Sem titular",
+  faltam: "Fora do monitoramento",
+  "acoes-pendentes": "Ações pendentes",
   concluidos: "Concluídos",
   radar: "Novos Instrumentos (últimos 7 dias)",
 };
@@ -23,9 +23,18 @@ export function entrouNoRadarRecente(l: LinhaCarteira): boolean {
   return new Date(l.entrou_radar_em).getTime() >= limite;
 }
 
+export const JANELA_VALOR_RADAR_DIAS = 30;
+
+export function entrouNoRadarNaJanela(l: LinhaCarteira, dias: number): boolean {
+  if (!l.entrou_radar_em) return false;
+  return (
+    new Date(l.entrou_radar_em).getTime() >= Date.now() - dias * 86_400_000
+  );
+}
+
 export function aplicaFiltro(l: LinhaCarteira, f: FiltroCarteira): boolean {
   if (f === "faltam") return !l.monitorado;
-  if (f === "sem-titular") return l.monitorado && !l.titular;
+  if (f === "acoes-pendentes") return l.monitorado && l.acoes_abertas > 0;
   if (f === "concluidos") return l.monitorado && l.fase === "Concluído";
   if (f === "radar") return entrouNoRadarRecente(l);
   return true;

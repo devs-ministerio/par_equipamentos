@@ -59,6 +59,7 @@ const carteiraSchema = z.array(
     titular: z.string().nullable(),
     eventos: z.number(),
     acoes: z.number(),
+    acoes_abertas: z.number(),
     acoes_atrasadas: z.number(),
     lancado_recente: z.boolean(),
     sem_registro: z.boolean(),

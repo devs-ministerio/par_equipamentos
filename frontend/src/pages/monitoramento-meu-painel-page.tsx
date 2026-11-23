@@ -16,10 +16,12 @@ import {
 } from "@/components/features/painel-tecnico-secoes";
 import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-carteira";
 import {
+  entrouNoRadarNaJanela,
   entrouNoRadarRecente,
+  JANELA_VALOR_RADAR_DIAS,
   type FiltroCarteira,
 } from "@/lib/painel-tecnico-filtro";
-import { fmtData } from "@/lib/monitoramento-format";
+import { fmtMoeda } from "@/lib/monitoramento-format";
 
 export function MonitoramentoMeuPainelPage() {
   const { usuarioAtual } = useAuthSession();
@@ -95,11 +97,11 @@ export function MonitoramentoMeuPainelPage() {
     (l) => l.monitorado && l.fase === "Concluído",
   ).length;
   const novosRadar = linhas.filter(entrouNoRadarRecente).length;
-  const ultimoRadar = linhas
-    .map((l) => l.entrou_radar_em)
-    .filter((d): d is string => d != null)
-    .sort()
-    .at(-1);
+  const valorRadar30 = linhas
+    .filter((l) => entrouNoRadarNaJanela(l, JANELA_VALOR_RADAR_DIAS))
+    .reduce((t, l) => t + (l.valor_global ?? 0), 0);
+  const pendentes = linhas.reduce((t, l) => t + l.acoes_abertas, 0);
+  const atrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
   const alternar = (f: FiltroCarteira) =>
     setFiltroCarteira((atual) => (atual === f ? "todos" : f));
   return (
@@ -112,19 +114,19 @@ export function MonitoramentoMeuPainelPage() {
         items={[
           {
             key: "cobertura",
-            label: "Cobertura da região",
+            label: "Cobertura do monitoramento",
             value:
               c.cobertura_pct == null
                 ? "—"
                 : `${c.cobertura_pct.toLocaleString("pt-BR")}%`,
             variant: "primary",
-            detail: `${c.monitorados} de ${c.elegiveis} convênios`,
+            detail: `${c.monitorados} de ${c.elegiveis} instrumentos monitorados`,
             onClick: () => setFiltroCarteira("todos"),
             ativo: filtroCarteira === "todos",
           },
           {
             key: "faltam",
-            label: "Faltam incluir",
+            label: "Fora do monitoramento",
             value: faltam.length,
             variant: faltam.length > 0 ? "warning" : "success",
             detail: `${faltamAbertos} em aberto`,
@@ -132,19 +134,19 @@ export function MonitoramentoMeuPainelPage() {
             ativo: filtroCarteira === "faltam",
           },
           {
-            key: "sem-titular",
-            label: "Sem titular",
-            value: linhas.filter((l) => l.monitorado && !l.titular).length,
-            detail: "Sem técnico designado",
-            onClick: () => alternar("sem-titular"),
-            ativo: filtroCarteira === "sem-titular",
+            key: "acoes-pendentes",
+            label: "Ações pendentes",
+            value: pendentes,
+            variant: atrasadas > 0 ? "destructive" : "success",
+            detail: `${atrasadas} atrasadas`,
+            onClick: () => alternar("acoes-pendentes"),
+            ativo: filtroCarteira === "acoes-pendentes",
           },
           {
             key: "concluidos",
             label: "Concluídos",
             value: concluidos,
             variant: "success",
-            detail: "No monitoramento interno",
             onClick: () => alternar("concluidos"),
             ativo: filtroCarteira === "concluidos",
           },
@@ -152,9 +154,7 @@ export function MonitoramentoMeuPainelPage() {
             key: "radar",
             label: "Novos Instrumentos",
             value: novosRadar,
-            detail: ultimoRadar
-              ? `Último em ${fmtData(ultimoRadar)}`
-              : "Nenhum até agora",
+            detail: `${fmtMoeda(valorRadar30)} nos últimos ${JANELA_VALOR_RADAR_DIAS} dias`,
             onClick: () => alternar("radar"),
             ativo: filtroCarteira === "radar",
           },
