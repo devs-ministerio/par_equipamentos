@@ -69,7 +69,7 @@ export function CandidatoLegadoItem({
               variant="outline"
               className="max-w-full whitespace-normal text-xs"
             >
-              Processo · {candidato.numero_processo}
+              {candidato.numero_processo}
             </Badge>
           ) : null}
           <PortalPendente candidato={candidato} />

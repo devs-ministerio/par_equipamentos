@@ -59,6 +59,6 @@ Constituições: backend §§2–6, 9–12; qualidade; segurança §4. Estado: *
 - Portal passou a ser opcional na recaptura e na aprovação. `compor_portal` (`scripts/coletar_recaptura_legado.py`) monta o cadastro pelo SICONV (`origem_cadastro="siconv"`) e, quando o Portal responde, usa o Portal onde ele tem valor e o SICONV para preencher vazios (`complementado_do_siconv`). CNPJ divergente é conflito. O nome da instituição é sempre o do SICONV e o CNPJ é a chave de conferência.
 - A publicação registrada no SICONV segue obrigatória (recaptura e aprovação). A conferência de data com o Portal só vale quando a origem do cadastro é o Portal.
 - Front: o botão Aprovar deixa de depender de `confirmacao_portal`; só falta recaptura.
-- Card do Radar mostra o número do processo como marcador "Processo · …", ao lado de Novo e Portal pendente (`numero_processo`, lido do cadastro da última recaptura).
+- Card do Radar mostra o número do processo como marcador (só o número), ao lado de Novo e Portal pendente (`numero_processo`, lido do cadastro da última recaptura).
 - Mesa de trabalho ganhou o filtro "Responsável" (técnico titular do SISGEO, com a opção "Sem responsável").
 - Pendente: Manual Deploy no Render e rodar `tarefa=recaptura` para os candidatos com Portal não encontrado (7AAFRI e de novembro); confirmar a regra institucional com a área responsável.

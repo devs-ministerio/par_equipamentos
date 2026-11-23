@@ -56,7 +56,7 @@ it("mostra o processo como marcador, e nada quando não há", () => {
       candidato={{ ...base, numero_processo: "25000.123456/2024-11" }}
     />,
   );
-  expect(screen.getByText("Processo · 25000.123456/2024-11")).toBeVisible();
+  expect(screen.getByText("25000.123456/2024-11")).toBeVisible();
   rerender(<CandidatoLegadoItem candidato={base} />);
-  expect(screen.queryByText(/Processo ·/)).not.toBeInTheDocument();
+  expect(screen.queryByText("25000.123456/2024-11")).not.toBeInTheDocument();
 });
