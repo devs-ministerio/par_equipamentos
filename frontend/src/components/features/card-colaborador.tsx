@@ -5,11 +5,6 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { usePainelTecnico } from "@/hooks/use-painel-tecnico";
 
 const ROTA_PAINEL = "/monitoramento-equipamentos/meu-painel";
-const PAPEL: Record<string, string> = {
-  admin: "Administrador",
-  gestor: "Gestor",
-  colaborador: "Colaborador",
-};
 
 /** Card do cabeçalho do Painel de gestão: quem está logado e o atalho para o painel individual. */
 export function CardColaborador({ semBotao = false }: { semBotao?: boolean }) {
@@ -26,12 +21,7 @@ export function CardColaborador({ semBotao = false }: { semBotao?: boolean }) {
         {usuarioAtual.name}
       </p>
       <p className="m-0 text-center text-xs leading-tight text-muted-foreground">
-        {[
-          PAPEL[usuarioAtual.role] ?? usuarioAtual.role,
-          !gestao && ufs.join(", "),
-        ]
-          .filter(Boolean)
-          .join(" - ")}
+        {gestao ? "Região: Todas" : `Região: ${ufs.join(", ") || "—"}`}
       </p>
       {!semBotao && (
         <Button asChild size="sm" className="mt-0.5 w-full">
