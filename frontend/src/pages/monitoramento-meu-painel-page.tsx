@@ -132,12 +132,12 @@ export function MonitoramentoMeuPainelPage() {
             ativo: filtroCarteira === "faltam",
           },
           {
-            key: "sem-registro",
-            label: "Sem registro",
-            value: linhas.filter((l) => l.sem_registro).length,
-            detail: "Sem eventos nem ações",
-            onClick: () => alternar("sem-registro"),
-            ativo: filtroCarteira === "sem-registro",
+            key: "sem-titular",
+            label: "Sem titular",
+            value: linhas.filter((l) => l.monitorado && !l.titular).length,
+            detail: "Sem técnico designado",
+            onClick: () => alternar("sem-titular"),
+            ativo: filtroCarteira === "sem-titular",
           },
           {
             key: "concluidos",

@@ -3,14 +3,14 @@ import type { LinhaCarteira } from "@/services/painel-tecnico";
 export type FiltroCarteira =
   | "todos"
   | "faltam"
-  | "sem-registro"
+  | "sem-titular"
   | "concluidos"
   | "radar";
 
 export const ROTULO_FILTRO: Record<FiltroCarteira, string> = {
   todos: "Toda a carteira",
   faltam: "Faltam incluir",
-  "sem-registro": "Sem registro",
+  "sem-titular": "Sem titular",
   concluidos: "Concluídos",
   radar: "Novos Instrumentos (últimos 7 dias)",
 };
@@ -25,7 +25,7 @@ export function entrouNoRadarRecente(l: LinhaCarteira): boolean {
 
 export function aplicaFiltro(l: LinhaCarteira, f: FiltroCarteira): boolean {
   if (f === "faltam") return !l.monitorado;
-  if (f === "sem-registro") return l.sem_registro;
+  if (f === "sem-titular") return l.monitorado && !l.titular;
   if (f === "concluidos") return l.monitorado && l.fase === "Concluído";
   if (f === "radar") return entrouNoRadarRecente(l);
   return true;
