@@ -87,8 +87,9 @@ export function MonitoramentoMeuPainelPage() {
   const c = dados.carteira;
   const faltam = linhas.filter((l) => !l.monitorado);
   const faltamAbertos = faltam.filter((l) => l.em_aberto).length;
-  const acoesAtrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
-  const comAtraso = linhas.filter((l) => l.acoes_atrasadas > 0).length;
+  const concluidos = linhas.filter(
+    (l) => l.monitorado && l.fase === "Concluído",
+  ).length;
   const recentes = linhas.filter((l) => l.lancado_recente).length;
   const alternar = (f: FiltroCarteira) =>
     setFiltroCarteira((atual) => (atual === f ? "todos" : f));
@@ -130,13 +131,13 @@ export function MonitoramentoMeuPainelPage() {
             ativo: filtroCarteira === "sem-registro",
           },
           {
-            key: "atrasadas",
-            label: "Ações atrasadas",
-            value: acoesAtrasadas,
-            variant: acoesAtrasadas > 0 ? "destructive" : "success",
-            detail: `${comAtraso} instrumentos`,
-            onClick: () => alternar("atrasadas"),
-            ativo: filtroCarteira === "atrasadas",
+            key: "concluidos",
+            label: "Concluídos",
+            value: concluidos,
+            variant: "success",
+            detail: "No monitoramento interno",
+            onClick: () => alternar("concluidos"),
+            ativo: filtroCarteira === "concluidos",
           },
           {
             key: "lanc",
