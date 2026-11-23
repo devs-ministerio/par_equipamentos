@@ -33,3 +33,21 @@ export function capitalizarNome(texto: string): string {
     )
     .join(" ");
 }
+
+const PARTICULAS = new Set(["de", "da", "do", "das", "dos", "e"]);
+
+/** Nome de instituição: só converte quando vem todo em maiúsculas (grafia da
+ * origem), preservando siglas em nomes de caixa mista. Partículas ficam em
+ * minúsculas. */
+export function capitalizarInstituicao(texto: string): string {
+  if (texto !== texto.toUpperCase()) return texto;
+  return texto
+    .toLowerCase()
+    .split(" ")
+    .map((p, i) =>
+      p && (i === 0 || !PARTICULAS.has(p))
+        ? p.charAt(0).toUpperCase() + p.slice(1)
+        : p,
+    )
+    .join(" ");
+}

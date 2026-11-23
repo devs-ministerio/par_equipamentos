@@ -18,7 +18,11 @@ import {
 import { SortableTableHead } from "@/components/common/sortable-table-head";
 import { PainelSecao } from "@/components/features/monitoramento-painel-visuals";
 import { fmtMoeda } from "@/lib/monitoramento-format";
-import { normalizarTexto } from "@/utils/texto";
+import {
+  capitalizarInstituicao,
+  capitalizarNome,
+  normalizarTexto,
+} from "@/utils/texto";
 import {
   aplicaFiltro,
   ROTULO_FILTRO,
@@ -148,23 +152,14 @@ export function PainelTecnicoCarteira({
               <TableRow key={l.numero}>
                 <TableCell className="font-medium">{l.numero}</TableCell>
                 <TableCell>
-                  {[l.municipio, l.uf].filter(Boolean).join(" / ")}
+                  {[l.municipio ? capitalizarNome(l.municipio) : null, l.uf]
+                    .filter(Boolean)
+                    .join(" / ")}
                 </TableCell>
                 <TableCell className="max-w-56 truncate">
-                  {l.convenente}
+                  {l.convenente ? capitalizarInstituicao(l.convenente) : ""}
                 </TableCell>
-                <TableCell>
-                  {l.monitorado ? (
-                    l.fase
-                  ) : (
-                    <div className="leading-tight">
-                      <span className="block text-xs text-muted-foreground">
-                        Situação do SITE
-                      </span>
-                      {l.situacao}
-                    </div>
-                  )}
-                </TableCell>
+                <TableCell>{l.monitorado ? l.fase : l.situacao}</TableCell>
                 <TableCell className="text-right tabular-nums">
                   {l.monitorado ? l.acoes : "—"}
                 </TableCell>
