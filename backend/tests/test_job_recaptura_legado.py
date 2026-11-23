@@ -11,8 +11,9 @@ def _executar(monkeypatch, resultados: dict[int, Exception | None]):
 
     def recapturar(*, db, candidato_id, fabrica_sessao, coletar):
         chamados.append(candidato_id)
-        if resultados[candidato_id] is not None:
-            raise resultados[candidato_id]
+        erro = resultados[candidato_id]
+        if erro is not None:
+            raise erro
 
     monkeypatch.setattr(job, "_pendentes", lambda: list(resultados))
     monkeypatch.setattr(job, "recapturar_candidato", recapturar)
