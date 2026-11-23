@@ -41,10 +41,10 @@ export function SecaoEquipamentos({
           {visiveis.map((f) => (
             <li
               key={f.familia}
-              className="grid grid-cols-[minmax(0,10rem)_1fr_4.5rem] items-center gap-3 text-sm sm:grid-cols-[minmax(0,14rem)_1fr_5rem]"
+              className="grid grid-cols-[minmax(0,10rem)_1fr_4.5rem] items-center gap-3 text-sm sm:grid-cols-[minmax(0,15rem)_1fr_5rem]"
               title={`${f.familia}: ${f.entregue} entregues de ${f.planejado} planejados`}
             >
-              <span className="truncate">{f.familia}</span>
+              <span className="leading-tight">{f.familia}</span>
               <div
                 className="h-3 overflow-hidden rounded-full bg-secondary"
                 aria-hidden="true"
