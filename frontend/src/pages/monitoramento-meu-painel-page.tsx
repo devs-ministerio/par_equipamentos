@@ -208,13 +208,15 @@ export function MonitoramentoMeuPainelPage() {
           />
         </>
       )}
-      <SecaoSituacao linhas={linhas} />
-      <SecaoEquipamentos
-        familias={entreguesPorFamilia(
-          resumo.data?.equipamentos_por_instrumento ?? [],
-          numerosMonitorados,
-        )}
-      />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SecaoSituacao linhas={linhas} />
+        <SecaoEquipamentos
+          familias={entreguesPorFamilia(
+            resumo.data?.equipamentos_por_instrumento ?? [],
+            numerosMonitorados,
+          )}
+        />
+      </div>
     </div>
   );
 }

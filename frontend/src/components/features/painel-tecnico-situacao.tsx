@@ -47,9 +47,9 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
         Instrumentos por situação
       </h3>
       <div className="mt-6 overflow-x-auto">
-        <div className="relative min-w-[36rem]">
+        <div className="relative min-w-[34rem]">
           <div
-            className="pointer-events-none absolute inset-x-0 top-[66px] h-44"
+            className="pointer-events-none absolute inset-x-0 top-10 h-44"
             aria-hidden="true"
           >
             {GRADE.map((g) => (
@@ -61,7 +61,7 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
             ))}
           </div>
           <ul
-            className="relative m-0 flex list-none items-end gap-3 p-0"
+            className="relative m-0 flex list-none items-start gap-2 p-0"
             aria-label="Instrumentos por situação do monitoramento interno"
           >
             {colunas.map((c) => (
@@ -70,20 +70,10 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
                 className="group flex min-w-0 flex-1 flex-col items-center"
                 title={`${c.rotulo}: ${c.valor} (${pct(c.valor, linhas.length)})`}
               >
-                <span
-                  className={cn(
-                    "mb-1 flex h-8 items-end text-center text-xs leading-tight",
-                    c.tom === "alerta"
-                      ? "font-semibold text-foreground"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {c.rotulo}
-                </span>
-                <span className="mb-1.5 text-base font-semibold tabular-nums">
-                  {c.valor}
-                </span>
-                <div className="flex h-44 w-full items-end justify-center">
+                <div className="flex h-[13.5rem] w-full flex-col items-center justify-end">
+                  <span className="mb-1 text-base leading-6 font-semibold tabular-nums">
+                    {c.valor}
+                  </span>
                   <div
                     className={cn(
                       "w-3/5 max-w-14 rounded-t-lg transition-opacity group-hover:opacity-80",
@@ -91,12 +81,22 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
                     )}
                     style={{
                       height:
-                        c.valor > 0 ? `${(100 * c.valor) / maximo}%` : "3px",
+                        c.valor > 0 ? `${(11 * c.valor) / maximo}rem` : "3px",
                       opacity: c.valor > 0 ? undefined : 0.35,
                     }}
                   />
                 </div>
-                <span className="mt-1.5 text-[11px] text-muted-foreground tabular-nums">
+                <span
+                  className={cn(
+                    "mt-2.5 text-center text-xs leading-tight [overflow-wrap:anywhere]",
+                    c.tom === "alerta"
+                      ? "font-semibold text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {c.rotulo}
+                </span>
+                <span className="mt-1 text-[11px] text-muted-foreground tabular-nums">
                   {pct(c.valor, linhas.length)}
                 </span>
               </li>
