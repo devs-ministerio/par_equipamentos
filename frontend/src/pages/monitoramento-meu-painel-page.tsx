@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CardColaborador } from "@/components/features/card-colaborador";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import {
   useCarteiraTecnico,
@@ -53,7 +54,12 @@ export function MonitoramentoMeuPainelPage() {
     <PageHeader
       eyebrow="Monitoramento interno"
       title={titulo}
-      actions={filtro}
+      actions={
+        <div className="flex flex-wrap items-stretch gap-3">
+          <CardColaborador semBotao />
+          {filtro}
+        </div>
+      }
     />
   );
 

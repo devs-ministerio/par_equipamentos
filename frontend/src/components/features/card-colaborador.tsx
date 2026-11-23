@@ -12,7 +12,7 @@ const PAPEL: Record<string, string> = {
 };
 
 /** Card do cabeçalho do Painel de gestão: quem está logado e o atalho para o painel individual. */
-export function CardColaborador() {
+export function CardColaborador({ semBotao = false }: { semBotao?: boolean }) {
   const { usuarioAtual } = useAuthSession();
   const gestao =
     usuarioAtual?.role === "admin" || usuarioAtual?.role === "gestor";
@@ -33,12 +33,14 @@ export function CardColaborador() {
           .filter(Boolean)
           .join(" - ")}
       </p>
-      <Button asChild size="sm" className="mt-0.5 w-full">
-        <Link to={ROTA_PAINEL}>
-          <LayoutDashboard aria-hidden="true" />
-          {gestao ? "Painéis da equipe" : "Meu painel"}
-        </Link>
-      </Button>
+      {!semBotao && (
+        <Button asChild size="sm" className="mt-0.5 w-full">
+          <Link to={ROTA_PAINEL}>
+            <LayoutDashboard aria-hidden="true" />
+            {gestao ? "Painéis da equipe" : "Meu painel"}
+          </Link>
+        </Button>
+      )}
     </div>
   );
 }
