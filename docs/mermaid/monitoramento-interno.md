@@ -112,7 +112,7 @@ Fora da janela a opção aparece desabilitada com o motivo, e o backend recusa c
 
 ### 4.1 As 16 famílias com controle por unidade
 
-Item de uma destas famílias sempre é monitorado por unidade e define "Prioritário". Quatro delas exigem licença de operação (ANSN); Cobalto e Radioterapia também exigem, mas não têm controle por unidade.
+Item de aquisição de uma destas famílias é monitorado por unidade e define "Prioritário"; item ainda pendente na fila de revisão não controla até ser decidido. Quatro delas exigem licença de operação (ANSN); Cobalto e Radioterapia também exigem, mas não têm controle por unidade.
 
 ```mermaid
 flowchart LR
@@ -166,7 +166,7 @@ flowchart TB
     INST -->|"não"| FIM0["Segue sem controle"]:::dado
     INST -->|"sim"| EXC{"Há item de aquisição com<br/>unidade a partir de R$ 100 mil?"}:::regra
     EXC -->|"sim"| SIM
-    EXC -->|"não: exceção da exceção"| TOP["Os 3 itens de maior valor unitário<br/>passam a ter controle por unidade"]:::regra
+    EXC -->|"não: exceção da exceção"| TOP["Os N itens de maior valor unitário (padrão 3,<br/>itens_excecao_da_excecao) passam a ter controle por unidade"]:::regra
     TOP --> SIM
 
     SIM --> PREV["Previsão de entrega por item<br/>PUT e DELETE"]:::acao
@@ -203,7 +203,7 @@ flowchart TB
 | Cancelamento | Exige unidade pendente; já desfeito dá 409 | `cancelamento_unidade` |
 | Rendimento de aplicação | Não soma unidade nem valor; aparece como linha filha do item principal | `classificacao_itens` |
 | Carga manual | Não tem valor, então não entra na regra de R$ 300 mil | `classificacao_itens` |
-| Decisão da equipe na fila de revisão | Prevalece sobre a regra automática. **Confirmar grava `conta_unidade = true` só quando a família controla unidade; sem família grava nulo**, e a projeção do convênio roda logo depois. Gravar `false` seria "a equipe decidiu não controlar" e escondia a regra de R$ 300 mil e a exceção (caso 949415, hemodinâmica de R$ 3,3 mi por unidade) | `classificacao_itens_plano.decidir`, `decisao_classificacao_item` |
+| Decisão da equipe na fila de revisão | Prevalece sobre a regra automática. **Confirmar grava `conta_unidade = true` só quando a família controla unidade; sem família grava nulo**, e a projeção do convênio roda logo depois. Gravar `false` seria "a equipe decidiu não controlar" e escondia a regra de R$ 300 mil e a exceção (caso 949415, hemodinâmica de R$ 3,3 mi por unidade). Alcance de `false`: bloqueia a regra automática de R$ 300 mil, mas a seleção da exceção do instrumento não consulta a decisão | `classificacao_itens_plano.decidir`, `decisao_classificacao_item` |
 | Criar instrumento monitorado (Mesa ou aprovação do Radar) | Liga os itens soltos ao instrumento **e projeta o plano na mesma transação**, para a exceção de R$ 100 mil valer nos dois caminhos. Só ligar não bastava (caso 970368) | `monitoramento_instrumentos.criar_instrumento_monitorado_sem_commit` |
 | Fila de revisão de itens | Não lista item de convênio fora de escopo | `classificacao_itens_plano.listar_fila` |
 | Decisão sobre item que mudou desde a leitura | 409: a decisão informa a situação esperada (`situacao_esperada`, padrão pendente); em item de instrumento concluído, 409 "reabra" (decidir muda `controla_unidade`) | `classificacao_itens_plano.decidir` |
@@ -297,7 +297,7 @@ stateDiagram-v2
     note right of Ativo
         Ativo = substituido_por_id nulo
         e deletado_em nulo.
-        Nunca UPDATE nem DELETE físico.
+        Nunca DELETE físico nem alteração do conteúdo original.<br/>Só mudam o ponteiro substituido_por_id e os<br/>metadados de exclusão lógica da linha antiga.
     end note
 ```
 
@@ -317,7 +317,7 @@ stateDiagram-v2
     Corrigida --> [*]: só histórico
     Excluida --> [*]: só histórico
     note right of Pendente
-        Concluir é o único UPDATE permitido.
+        Concluir é a única alteração do conteúdo<br/>(grava data_conclusao na própria ação).
         Ação já excluída ou corrigida não edita
         nem conclui de novo (422).
         Instrumento concluído recusa criar,
@@ -440,19 +440,29 @@ Leitor nunca recebe aviso. Colaborador que não é titular nem suplente não rec
 
 | Job | O que faz | Agenda | Estado | Grava |
 |---|---|---|---|---|
-| `job_prazos_monitoramento` | Avisa D-1, D0 e D+1 de ação aberta com prazo e de previsão de inauguração não realizada. Dedup por `chave_dedup`; concluir, excluir ou reagendar arquiva os avisos antigos | 08:00 de São Paulo (intenção) | **Não agendado.** Só roda à mão, com simulação por padrão e `--aplicar --confirmo-host` | `Notificacao` |
+| `job_prazos_monitoramento` | Avisa D-1, D0 e D+1 de ação aberta com prazo, de previsão de inauguração não realizada e de previsão de entrega de item controlado cuja unidade ainda está pendente (`prazo_previsao_entrega`). Dedup por `chave_dedup`; concluir, excluir ou reagendar arquiva os avisos antigos | 08:00 de São Paulo (intenção) | **Não agendado.** Só roda à mão, com simulação por padrão e `--aplicar --confirmo-host` | `Notificacao` |
 | `job_alerta_vigencia` | Convênios com fim de vigência em até 90 dias. Não repete o mesmo convênio em 30 dias | Diário no `radar_convenios.yml` (06:30 Brasília) | Só roda se a variável `ATUALIZACOES_RADAR_ATIVAS` for `true`; manual pelo `workflow_dispatch` | `Notificacao` |
 | `job_verificacao_siconv` | Baixa o dump oficial do SICONV e reconcilia convênios conhecidos e instrumentos. Compara por chave estável; a primeira captura de cada convênio vira linha de base | Diário (mesmo workflow) | Mesma variável | `Convenio`, `InstrumentoEquipamento`, `Notificacao` |
 | `job_verificacao_transferegov` | Consulta ao vivo cada parceria monitorada (parceria e ordens de pagamento) | Diário (mesmo workflow) | Mesma variável | Instrumento, repasse, `Notificacao` |
 | `job_descoberta_transferegov` | Descobre propostas do TransfereGov de programas do Ministério da Saúde | Diário (mesmo workflow) | Mesma variável | Propostas candidatas, `Notificacao` |
 | `job_descoberta_siconv` | Coleta fresca de convênios para o Radar; nunca inclui na carteira nem no monitoramento | Diário (mesmo workflow) | Mesma variável | Candidatos do Radar |
-| `job_recaptura_legado_local`, `job_revalidacao_legado_local` | Recaptura oficial de um candidato e revalidação de escopo histórico | Manual | Só em clone local validado | Recaptura do candidato |
+| `job_recaptura_legado` (passo `recaptura` do `radar_convenios.yml`) | Grava valor, município, UF e itens do plano de cada candidato aberto, com publicação no SICONV e sem recaptura da descoberta atual; o Portal é opcional | Diário, depois da descoberta SICONV; também manual (`tarefa=recaptura`) | Mesma variável | Recaptura do candidato |
+| `job_revalidacao_legado_local` | Revalidação de escopo histórico sobre snapshot local | Manual | Só em clone local validado | Candidatos do Radar |
 | `pipelines.yml` | Atualiza cobertura (tomógrafo, ressonância, PET-CT) e população | 06:00 Brasília | Só com `ATUALIZACOES_PIPELINES_ATIVAS=true`; fora do monitoramento interno | Dados de cobertura |
 | `backup_banco.yml` | `pg_dump` cifrado com `age` para o R2, retenção de 7 dias | 02:17 e 14:17 UTC | Ligado | R2 |
 
-Regras comuns: simulação por padrão nos scripts que gravam; `--aplicar` exige `--confirmo-host`; o aviso é criado por `criar_notificacao`, que grava o destinatário na criação (não em tempo de leitura); aviso de instrumento ou convênio fora de escopo não aparece para ninguém.
+Regras comuns: simulação por padrão nos scripts que gravam; `--aplicar` exige `--confirmo-host`; o aviso é criado por `criar_notificacao`, que grava o destinatário na criação (não em tempo de leitura); aviso de instrumento ou convênio fora de escopo não aparece para ninguém, com uma exceção: o resumo da rodada do SICONV (`siconv-resumo:`) não some quando o instrumento usado como âncora sai do escopo.
 
 Importante para o release: os workflows definem o cron no código, mas cada rotina só roda quando a variável do GitHub (`ATUALIZACOES_*_ATIVAS`) está `true`. O valor dessas variáveis no GitHub não foi consultado nesta revisão, então o mapa não afirma se algum agendamento está efetivamente ligado. O backup (`backup_banco.yml`) tem agendamento próprio, sem essa variável. A decisão de ligar cada rotina fica para depois de uma rodada supervisionada.
+
+### 10.4 Rotas que os diagramas não detalham
+
+| Rota | Quem | O que faz |
+|---|---|---|
+| `GET /monitoramento/classificacao/fila` | gestor, admin | Itens pendentes de revisão (sem convênio fora de escopo) |
+| `POST /monitoramento/classificacao/itens/{item_id}` | gestor, admin | Confirmar, corrigir ou marcar "não é equipamento" (seção 4.3) |
+| `GET /monitoramento/acoes` | qualquer logado | Ações da carteira inteira, teto 500; o detalhe usa `.../instrumentos/{nr}/acoes` |
+| `GET /relatorios/encerrados` e `/relatorios/entregues` | qualquer logado | Prévias dos relatórios Concluídos e Entregues |
 
 ## 11. Registro de funcionalidades (para a equipe marcar)
 
@@ -522,7 +532,7 @@ Método: busca por nome em todo o `frontend/src` e `backend` (incluindo testes).
 
 `migrar_marcos_para_documentos`, `migrar_concluidos_para_conclusao`, `migrar_eventos_inauguracao_prevista`, `remover_persus_ii_do_monitoramento`, `corrigir_entregas_persus_i`, `concluir_persus_i_pela_inauguracao`, `consolidar_eventos_marco_duplicados`, `derivar_repasses_siconv`, `projetar_itens_plano` (este também serve de rotina recorrente), `preencher_*`, `importar_planilha_monitoramento`, `importar_programas_monitoramento`. Depois do release e da conferência em produção, mover para `scripts/arquivo/` ou remover, mantendo o histórico no git.
 
-Pendente já registrado no plano do fluxo: remover a leitura do evento antigo `fase_concluido` em `fatos_do_instrumento` e `fases_calculadas_em_lote` depois de conferir a produção.
+O POST de eventos ainda aceita registrar `fase_concluido` (com data e confirmação de inauguração) e esse caminho **não passa pela avaliação de impedimentos** da conclusão estruturada (`POST .../conclusao`); o evento ativo passa a contar como concluído. Pendente já registrado no plano do fluxo: remover a leitura do evento antigo `fase_concluido` em `fatos_do_instrumento` e `fases_calculadas_em_lote` depois de conferir a produção.
 
 ## 13. Limites desta análise
 

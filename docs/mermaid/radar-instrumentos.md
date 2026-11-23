@@ -22,7 +22,7 @@ flowchart LR
     PORTAL --> BD[("candidato_legado<br/>+ capturas, evidências, componentes")]:::dado
     BD --> AV["Aviso convenio_descoberto<br/>só gestor e admin"]:::aviso
     BD --> FILA["Radar: aba Aguardando"]:::tela
-    REC["Recaptura (valor, itens, prova)<br/>só em clone local"]:::job -. "prova válida por 24 h" .-> FILA
+    REC["Recaptura (valor, itens, prova)<br/>na CI, depois da descoberta"]:::job -. "prova gravada decide a aprovação" .-> FILA
     REV["Revalidação: esconde falso positivo"]:::job -. "só em clone local" .-> BD
     FILA --> DEC{"Gestor ou admin decide"}:::regra
     DEC -->|"Rejeitar com motivo"| ARQ["Aba Arquivados"]:::tela
@@ -32,7 +32,7 @@ flowchart LR
     TX --> N["Notificações: inclusão e aprovação"]:::aviso
 ```
 
-O fluxo tem duas metades que não se falam por rede: a coleta (job e recaptura, escrevem no banco) e a triagem humana (API e telas, só leem e decidem). O que liga as duas é o banco e a regra de frescor da prova.
+O fluxo tem duas metades que não se falam por rede: a coleta (job e recaptura, escrevem no banco) e a triagem humana (API e telas, só leem e decidem). O que liga as duas é o banco e a prova da recaptura, gravada com a coleta.
 
 ## 2. Acesso e telas
 
@@ -54,7 +54,7 @@ flowchart TB
     CARD --> REJ["Rejeitar: justificativa"]:::tela
 ```
 
-O contador de novos no botão é a quantidade de candidatos oficiais sem decisão (`contar_novos`), recalculada a cada 60 segundos. A aba "Propostas em tramitação" existe no código e carrega a lista de propostas do TransfereGov sob demanda, mas fica desabilitada na tela com a dica "Aguardando definição do critério de propostas novas".
+O contador de novos no botão é a quantidade de candidatos oficiais sem decisão (`contar_novos`), recalculada a cada 60 segundos. A central só tem as abas Aguardando e Arquivados; a aba "Propostas em tramitação" foi removida em 22/11/2026.
 
 O monitor da coleta mostra status, defasagem e contagens só para o `admin`. Os demais perfis veem apenas a data e hora da última coleta com sucesso (`/fontes/capturas` corta na API, não só na tela). Uma fonte aparece como defasada quando passa de 36 horas sem captura bem-sucedida.
 
@@ -72,13 +72,15 @@ flowchart TB
     ZIP --> PRIO["descobrir_prioritarios_ms<br/>aplica o escopo (seção 4)"]:::regra
     PRIO --> REVAL["selecionar_revalidacoes<br/>candidatos abertos que podem ter saído do escopo"]:::regra
     REVAL --> SNAP["preparar_snapshot"]:::job
-    SNAP --> CONF["confirmar_candidatos<br/>Portal da Transparência"]:::regra
-    CONF --> OK{"Portal devolveu o código do convênio?<br/>contrato mínimo, seção 5"}:::regra
-    OK -->|"não"| INC["confirmações_inconclusivas<br/>candidato não publicado, rodada parcial"]:::erro
-    OK -->|"sim"| LIM{"Candidatos acima do limite (1000)?"}:::regra
-    INC --> LIM
+    SNAP --> LIM{"Candidatos acima do limite (1000)?<br/>verificado antes de consultar o Portal"}:::regra
     LIM -->|"sim"| ERRO["ValueError: lote não aplicado"]:::erro
-    LIM -->|"não"| PUB["publicar_ciclo<br/>uma transação: descoberta + inelegibilidades + avisos"]:::dado
+    LIM -->|"não"| CONF["confirmar_candidatos<br/>Portal da Transparência"]:::regra
+    CONF --> OK{"Resposta do Portal"}:::regra
+    OK -->|"404 ou lista vazia"| NE["nao_encontrado: candidato segue,<br/>selo Portal pendente"]:::dado
+    OK -->|"contrato inválido (sem código)"| INC["confirmações_inconclusivas<br/>candidato não publicado, rodada parcial"]:::erro
+    OK -->|"código e data presentes"| PUB["publicar_ciclo<br/>uma transação: descoberta + inelegibilidades + avisos"]:::dado
+    NE --> PUB
+    INC --> PUB
     PUB --> CONFL{"Conflito de revisão (ConflictError)?"}:::regra
     CONFL -->|"sim"| CR["publicacao = conflito_revisao<br/>nada gravado"]:::erro
     CONFL -->|"não"| FIM["Rodada concluída<br/>(parcial levanta erro no fim)"]:::job
@@ -173,7 +175,7 @@ Evidência anterior só é mesclada quando o candidato ainda não tem critério.
 ## 7. Recaptura, prova e revalidação
 
 > [!note] Atualização de 22/11/2026
-> Os rótulos "só em clone local" abaixo descrevem o desenho original. A recaptura passou a rodar na CI e a prova deixou de ter validade de 24 h. Ver a [seção 22](#22-enriquecimento-pela-ci-e-fim-da-validade-da-prova-22112026).
+> **Histórico.** Os rótulos "só em clone local", "Portal confirmado" e "frescor de 24 h" abaixo descrevem o desenho original. Vigente: a recaptura roda na CI, o Portal é opcional ([seção 23](#23-portal-opcional-na-recaptura-e-na-aprovação-23112026)) e a prova gravada não vence ([seção 22](#22-enriquecimento-pela-ci-e-fim-da-validade-da-prova-22112026).
 
 ```mermaid
 flowchart TB
@@ -183,11 +185,11 @@ flowchart TB
     classDef erro fill:#FBE9E7,stroke:#C62828,color:#5a1010
 
     LOC["Scripts locais: coletar_recaptura_legado,<br/>job_recaptura_legado_local,<br/>job_revalidacao_legado_local"]:::job --> AVISO["Só clone local.<br/>Automação de produção não habilitada"]:::erro
-    LOC --> PREP["preparar_alvo_coleta<br/>exige descoberta oficial v2, órgão 36000,<br/>Portal confirmado, decisão novo ou em análise<br/>encerra a leitura antes do download"]:::regra
+    LOC --> PREP["preparar_alvo_coleta<br/>exige descoberta oficial v2, órgão 36000,<br/>publicação registrada no SICONV, decisão novo ou em análise<br/>encerra a leitura antes do download"]:::regra
     PREP --> REGR["registrar_recaptura<br/>trava lote, depois candidato"]:::regra
     REGR --> VAL["validar_captura_promocao"]:::regra
     VAL --> OKR[("FonteCaptura siconv_recaptura<br/>+ candidato_legado_recaptura")]:::dado
-    OKR --> PROVA["Prova: hash, frescor de 24 h"]:::regra
+    OKR --> PROVA["Prova: hash; a coleta nova só grava<br/>se tiver até 24 h"]:::regra
     LOC --> RV["registrar_inelegibilidade<br/>(revalidação)"]:::regra
     RV --> RVR["Esconde falso positivo, não rejeita:<br/>fonte deixou de qualificar, identidade igual,<br/>fora da carteira, decisão não encerrada"]:::regra
     RVR --> RVD[("FonteCaptura siconv_revalidacao<br/>+ captura inelegível")]:::dado
@@ -196,9 +198,9 @@ flowchart TB
 
 A validação da prova (`validar_captura_promocao`) confere: hash igual, mesmo candidato, convênio celebrado no escopo, Ministério da Saúde, confirmação do Portal inalterada, datas oficiais inalteradas, obra ou serviço não aceito como aquisição de equipamento e evidência prioritária inalterada.
 
-`VALIDADE_RECAPTURA` é de 24 horas. Replay da mesma recaptura é reconhecido pelo horário de início.
+`VALIDADE_RECAPTURA` (24 horas) limita a idade da **coleta** no momento de gravar uma recaptura nova e de revalidar. A prova já gravada não vence: consulta e aprovação não conferem a idade, só o hash, a captura atual e a rodada completa. Replay da mesma recaptura é reconhecido pelo horário de início.
 
-**Conferido em produção (21/11/2026): a recaptura nunca rodou.** `candidato_legado_recaptura` tem 0 linhas e não existe nenhuma rodada `siconv_recaptura`. Como a aprovação exige uma recaptura de até 24 horas, nenhum candidato chegou à carteira pelo Radar: `convenio` e `instrumento_equipamento` não têm registro com origem `radar_aprovacao`. Há 11 candidatos confirmados sem decisão, o mais antigo descoberto em 28/10, e 1 rejeitado. Os 427 instrumentos e 560 convênios atuais vêm de cargas manuais.
+**Conferido em produção (21/11/2026): a recaptura nunca rodou.** `candidato_legado_recaptura` tem 0 linhas e não existe nenhuma rodada `siconv_recaptura`. Como a aprovação exige uma recaptura gravada, nenhum candidato chegou à carteira pelo Radar: `convenio` e `instrumento_equipamento` não têm registro com origem `radar_aprovacao`. Há 11 candidatos confirmados sem decisão, o mais antigo descoberto em 28/10, e 1 rejeitado. Os 427 instrumentos e 560 convênios atuais vêm de cargas manuais.
 
 > [!warning] A confirmar
 > Decidir como a recaptura passa a existir em produção (agendada com a chave do Portal, ou operada à mão com procedimento documentado). Isso grava em produção e mexe em operação, então depende de autorização.
@@ -214,7 +216,7 @@ stateDiagram-v2
     aprovado --> [*]
 ```
 
-Regras das decisões (`candidato_legado_decisao`): a tabela é imutável por trigger (`trg_decisao_legado_imutavel`), com `situacao` em em_analise, rejeitado ou aprovado, justificativa de 3 a 1000 caracteres, chave única por candidato e uma decisão de aprovação por convênio. O campo `versao` do candidato é o id da última decisão: decidir com versão velha dá 409 "O candidato mudou". Repetir a mesma chave devolve o resultado anterior (idempotência).
+Regras das decisões (`candidato_legado_decisao`): a tabela é imutável por trigger (`trg_decisao_legado_imutavel`), com `situacao` em em_analise (estado legado, não nasce mais), rejeitado ou aprovado, justificativa de 3 a 1000 caracteres, chave única por candidato e uma decisão de aprovação por convênio. O campo `versao` do candidato é o id da última decisão: decidir com versão velha dá 409 "O candidato mudou". Repetir a mesma chave devolve o resultado anterior (idempotência).
 
 Quem decide: só `admin` e `gestor` ativos. A listagem mostra na aba Aguardando os estados novo e em análise, e na aba Arquivados aprovado e rejeitado.
 
@@ -239,9 +241,9 @@ flowchart TB
     REV --> CART["carteira_legado.adicionar (insert estrito)"]:::dado
     CART --> MARC["Marcadores de equipamento<br/>(classificar_descricoes)"]:::dado
     MARC --> DECR[("Linha de decisão: aprovado<br/>com tecnico_titular_id")]:::dado
-    DECR --> INST["criar_instrumento_monitorado<br/>tipo Convênio, origem radar_aprovacao, titular gravado.<br/>Liga os itens ao instrumento e projeta o plano<br/>(regra de valor e exceção do instrumento)"]:::dado
+    DECR --> INST["criar_instrumento_monitorado_sem_commit<br/>tipo Convênio, origem radar_aprovacao.<br/>Liga os itens ao instrumento, projeta o plano<br/>(regra de valor e exceção), grava o titular<br/>e emite a inclusão"]:::dado
     INST --> NOT["Notificações:<br/>inclusao_monitoramento (titular, suplente, gestor, admin)<br/>aprovacao_carteira (gestor, admin)"]:::aviso
-    NOT --> FRESC["Confere frescor de novo"]:::regra
+    NOT --> FRESC["Confere que a rodada da recaptura ainda existe"]:::regra
     FRESC --> COM["commit"]:::dado
     COM -. "IntegrityError em qualquer passo" .-> E1
 ```
@@ -279,11 +281,11 @@ flowchart TB
     classDef aviso fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
 
     J["job descoberta-transferegov"]:::job --> PR["Programas do Ministério da Saúde<br/>com nome no catálogo ou alias curado<br/>(sem similaridade)"]:::regra
-    PR --> PP["Propostas desses programas, com parceria,<br/>espelho e cronograma"]:::job
-    PP --> PC[("proposta_candidata<br/>baseline silenciosa na 1ª carga")]:::regra
+    PR --> PP["Propostas desses programas, com ou sem parceria,<br/>espelho e cronograma"]:::job
+    PP --> PC[("proposta_candidata")]:::regra
     PC --> AV{"Quantas novas na rodada?"}:::regra
     AV -->|"até 10, com baseline"| IND["Um aviso por proposta"]:::aviso
-    AV -->|"mais de 10 ou carga inicial"| RES["Um aviso-resumo"]:::aviso
+    AV -->|"mais de 10 ou 1ª carga com propostas novas"| RES["Um aviso-resumo"]:::aviso
     IND --> DEST["Notificação proposta_candidata:<br/>broadcast a todo não leitor"]:::aviso
     RES --> DEST
     PC --> API["GET /propostas-candidatas"]:::tela
@@ -307,7 +309,8 @@ flowchart TB
     T1 --> T2["siconv (convênios conhecidos)"]:::job
     T2 --> T3["transferegov (parcerias monitoradas)"]:::job
     T3 --> T4["descoberta-siconv (Radar)"]:::job
-    T4 --> T5["vigencia (alertas de fim de vigência)"]:::job
+    T4 --> T4B["recaptura (dados oficiais dos candidatos abertos)"]:::job
+    T4B --> T5["vigencia (alertas de fim de vigência)"]:::job
     EXE["Executor exige role sigeo_runtime,<br/>host Neon e trava de sessão (CHAVE_LOCK)"]:::regra -.-> T1
     CONC["Grupo de concorrência sigeo-production-database,<br/>sem cancelar em andamento; limite de 120 min"]:::regra -.-> GATE
 ```
@@ -323,26 +326,26 @@ Estado observado em produção: a tarefa `descoberta-siconv` termina como parcia
 | Rota | Quem | O que faz |
 | --- | --- | --- |
 | `GET /candidatos-legados` | gestor, admin | Lista paginada (seção 10) |
-| `GET /candidatos-legados/{id}/prova` | gestor, admin | Resumo da prova da última recaptura e validade (sempre só leitura) |
+| `GET /candidatos-legados/{id}/prova` | gestor, admin | Resumo da prova da última recaptura, com `capturado_em` (sempre só leitura; não há validade) |
 | `POST /candidatos-legados/{id}/aprovacoes` | gestor, admin | Aprovação com técnico titular (seção 9) |
 | `POST /candidatos-legados/{id}/decisoes` | gestor, admin | `rejeitar` (a ação `iniciar_analise` foi removida) |
-| `GET /candidatos-legados/{id}/historico` | gestor, admin | Decisões em ordem, paginadas |
-| `GET /notificacoes` | qualquer logado não leitor | Lista do usuário, com `destino` calculado, busca, tipo, caixa e paginação |
+| `GET /candidatos-legados/{id}/historico` | gestor, admin | Decisões em ordem, paginadas (padrão 10, teto 50) |
+| `GET /notificacoes` | qualquer logado (o leitor nunca é destinatário, então a lista dele vem vazia) | Lista do usuário, com `destino` calculado, busca, tipo, caixa e paginação |
 | `PATCH /notificacoes/{id}` | destinatário | Marca como lida |
 | `PATCH /notificacoes/lidas` | destinatário | Marca todas como lidas |
 | `PATCH /notificacoes/{id}/arquivo` | destinatário | Arquiva ou restaura |
 | `GET /fontes/capturas` | qualquer logado | Detalhe para admin, só data do último sucesso para os demais |
-| `GET /propostas-candidatas` | qualquer logado | Lista do TransfereGov |
+| `GET /propostas-candidatas` | qualquer logado | Lista do TransfereGov, com filtros `uf`, `busca`, `ano` e `id_programa`; padrão 50, teto 500 |
 
 Toda rota mutável exige o cabeçalho CSRF (`X-CSRF-Token`). As sequências de chamadas estão na seção 17.
 
 ## 14. Segurança, trava e concorrência
 
-- Ordem de trava: lote, depois candidato (decisões, recaptura e aprovação seguem a mesma ordem), para evitar impasse.
+- Ordem de trava: lote, depois candidato (recaptura e aprovação seguem essa ordem), para evitar impasse. A rejeição trava só o candidato.
 - Decisão e aprovação conferem `versao` e `captura_id` do candidato: se mudou desde que a tela carregou, 409.
 - Idempotência por chave (UUID gerado no front) em decisão e aprovação; recaptura por horário de início.
 - Decisões são imutáveis por trigger no banco; corrigir é decidir de novo, nunca editar.
-- Prova só vale por 24 horas e só se o hash bater com a captura. A consulta da prova nunca grava.
+- A aprovação só vale se o hash da prova bater com a captura e a rodada da recaptura estiver completa; a prova gravada não expira. A consulta da prova nunca grava.
 - Revalidação esconde, nunca rejeita: quem some do escopo some da fila, mas a decisão humana continua soberana.
 
 ## 15. Avisos do espelho SICONV e popup de detalhe
@@ -433,7 +436,7 @@ sequenceDiagram
     API-->>UI: itens com versao e captura_id
     G->>UI: Aprovar
     UI->>API: GET prova do candidato
-    API-->>UI: prova e validade de 24 horas
+    API-->>UI: prova e data da coleta (capturado_em)
     G->>UI: escolhe o técnico titular
     UI->>API: POST aprovacoes, com CSRF e chave UUID
     API->>DB: transação única da seção 9
@@ -508,7 +511,9 @@ sequenceDiagram
 
 ## 18. Radar antes do Portal (implementado em 22/11/2026; Aprovar deixou de exigir o Portal em 23/11, seção 23)
 
-Nesta seção o Portal ainda aparece como pré-requisito de recaptura e aprovação; a regra vigente está na seção 23. O Portal era necessário para **recapturar e aprovar**, porque a recaptura traz convenente, município e data do Portal, e esses campos são gravados uma vez na aprovação. Para **enxergar** o candidato ele só atrasava, porque o SICONV já traz assinatura e publicação e o Portal repete a mesma data. Por isso a confirmação deixou de esconder o candidato e continua travando a aprovação.
+> **Histórico.** Esta seção descreve o desenho de 22/11, em que o Portal ainda travava a recaptura e a aprovação. A regra vigente está na seção 23; os diagramas e bullets abaixo que falam em Aprovar travado pelo Portal estão superados.
+
+Nesta seção o Portal aparece como pré-requisito de recaptura e aprovação. O Portal era necessário para **recapturar e aprovar**, porque a recaptura traz convenente, município e data do Portal, e esses campos são gravados uma vez na aprovação. Para **enxergar** o candidato ele só atrasava, porque o SICONV já traz assinatura e publicação e o Portal repete a mesma data. Por isso a confirmação deixou de esconder o candidato e continua travando a aprovação.
 
 ```mermaid
 flowchart TB
@@ -549,7 +554,7 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 | Estado | Quem decide | Onde aparece |
 | --- | --- | --- |
 | Publicação confirmada | Rodada da descoberta (Portal) | Selo "Portal pendente" some |
-| Prova vigente | Recaptura de até 24 h (`VALIDADE_RECAPTURA`) | Campo "Recaptura" no card; sem prova, Aprovar fica desabilitado com o motivo ("Prova ausente" ou "Prova vencida") |
+| Prova gravada | Recaptura (a coleta nova só grava com até 24 h; depois não vence) | Campo "Recaptura" no card; sem recaptura, Aprovar fica desabilitado com o motivo ("Prova ausente") |
 | Aprovado | Decisão humana, transação única | Situação "Aprovado" |
 
 - O card separa "Descoberto em" (primeira vez no SICONV) de "Recaptura" (última prova oficial, `recaptura_em`). A tela só antecipa o bloqueio: quem decide é a API, que devolve 409 se a prova faltar ou estiver vencida, antes do POST.
@@ -572,7 +577,7 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 | Busca, abas Aguardando e Arquivados, paginação | Ativa | |
 | Card com valor, UF, município, datas e Itens · n | Ativa | |
 | Rejeitar com justificativa e histórico | Ativa | |
-| Iniciar análise | API existe; sem botão na tela | |
+| Iniciar análise | Removida: a API só aceita rejeitar | |
 | Aprovar com técnico titular, entrada no monitoramento | Ativa | |
 | Pop-up de inclusão para o técnico | Ativa | |
 | Monitor da coleta por papel | Ativa | |
@@ -606,9 +611,9 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 
 ## 22. Enriquecimento pela CI e fim da validade da prova (22/11/2026)
 
-A recaptura deixou de ser passo manual local. O workflow `radar_convenios.yml` ganhou o passo `recaptura` depois da descoberta SICONV (`scripts/job_recaptura_legado.py`). Ele grava valor, município, UF e itens do plano de aplicação para cada candidato aberto, com o Portal confirmado e sem recaptura da descoberta atual. Os arquivos nacionais do SICONV são baixados uma vez por rodada. Nunca aprova.
+A recaptura deixou de ser passo manual local. O workflow `radar_convenios.yml` ganhou o passo `recaptura` depois da descoberta SICONV (`scripts/job_recaptura_legado.py`). Ele grava valor, município, UF e itens do plano de aplicação para cada candidato aberto, com a publicação registrada no SICONV e sem recaptura da descoberta atual; o Portal é opcional (seção 23). Também roda no cron diário. Os arquivos nacionais do SICONV são baixados uma vez por rodada. Nunca aprova.
 
-A validade de 24 h da prova foi removida da consulta (`expira_em`), da revisão, da aprovação e da tela. O Aprovar libera com o Portal confirmado e a recaptura gravada. A conferência por hash continua: o backend recusa se a prova mudou desde a revisão. Uma nova recaptura só é gravada quando a descoberta do candidato muda.
+A validade de 24 h da prova foi removida da consulta (`expira_em`), da revisão, da aprovação e da tela. O Aprovar libera com a recaptura gravada (o Portal é opcional, seção 23). A conferência por hash continua: o backend recusa se a prova mudou desde a revisão. Uma nova recaptura só é gravada quando a descoberta do candidato muda.
 
 ## 23. Portal opcional na recaptura e na aprovação (23/11/2026)
 
@@ -633,10 +638,12 @@ flowchart TB
     PROVA --> APR["Aprovar libera com a recaptura gravada<br/>e o técnico titular escolhido"]:::ok
 ```
 
-- O nome da instituição vem sempre do SICONV, e o CNPJ é a chave de conferência.
+- Portal sem registro: cadastro só com SICONV. Resposta parcial do Portal: o Portal manda onde trouxe valor e o SICONV preenche os vazios (`complementado_do_siconv`), com `origem_cadastro = portal`. Falha HTTP ou de contrato do Portal pode abortar a recaptura; não é o mesmo que ausência de registro.
+- CNPJ é conflito só quando os dois estão preenchidos e divergem depois de normalizar.
+- Nome: quando o SICONV traz o nome, ele substitui o do Portal; o CNPJ é a chave de conferência.
 - Campos só do Portal (situação, tipo de convenente, conclusão, última liberação) ficam vazios sem bloquear.
 - A conferência de data com o Portal só vale quando a origem do cadastro é o Portal.
-- Número do instrumento = sequencial de `NR_PROPOSTA` + `/` + `ANO` do convênio. O Portal usa o `ANO` do convênio, não o da proposta (934 convênios do MS, 2,8%, têm os dois diferentes).
+- Número do instrumento: se o Portal trouxe `dimConvenio.numero`, ele prevalece; o número derivado do SICONV (sequencial de `NR_PROPOSTA` + `/` + `ANO` do convênio, ou o sufixo de `NR_PROPOSTA` se o `ANO` faltar) só completa. O Portal usa o `ANO` do convênio, não o da proposta (934 convênios do MS, 2,8%, têm os dois diferentes).
 - Card: o número do processo aparece como marcador (só o número), no padrão do selo "Novo" e antes do selo "Portal pendente".
 - Em produção, a recaptura de 23/11 gravou 7 de 8 candidatos; o oitavo estava com a análise encerrada.
 

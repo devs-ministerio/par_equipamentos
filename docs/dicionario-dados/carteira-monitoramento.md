@@ -31,7 +31,7 @@ Colunas:
 | --- | --- | --- | --- | --- |
 | `id` | bigint | não | Identificador interno. | PK |
 | `numero` | texto | não | Identificador do instrumento, chave de negócio única. FAF e TED usam o NUP SEI; PERSUS usa código com prefixo (PS1-, PS2-). |  |
-| `numero_instrumento` | texto | sim | Número do convênio no Portal da Transparência (`dimConvenio.numero`). |  |
+| `numero_instrumento` | texto | sim | Número do instrumento. Vem de `dimConvenio.numero` do Portal quando o Portal responde; senão é derivado do SICONV (sequencial de `NR_PROPOSTA` + `/` + `ANO` do convênio). |  |
 | `ano_instrumento` | integer | sim | Ano do instrumento. |  |
 | `objeto` | texto | sim | Objeto do instrumento. |  |
 | `situacao` | texto | sim | Situação do instrumento. **A confirmar.** |  |
