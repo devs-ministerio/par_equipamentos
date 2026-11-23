@@ -179,7 +179,7 @@ def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -
     return {i: entregues.get(i, 0) for i in controlados if i is not None}
 
 
-ROTULO_FAMILIA_POR_VALOR = "Outros equipamentos (Não prioritários)"
+ROTULO_FAMILIA_POR_VALOR = "Outros equipamentos"
 
 
 def _cancelamentos_ativos_do_item():
