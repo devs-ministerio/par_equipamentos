@@ -30,7 +30,6 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
     if (!l.monitorado) semMonitoramento += 1;
     else if (l.fase) contagem.set(l.fase, (contagem.get(l.fase) ?? 0) + 1);
   }
-  const monitorados = linhas.length - semMonitoramento;
   const colunas: Coluna[] = [
     ...FASES_ACOMPANHAMENTO.map(
       (fase): Coluna => ({
@@ -44,34 +43,9 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
   const maximo = Math.max(1, ...colunas.map((c) => c.valor));
   return (
     <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div>
-          <h3 className="m-0 text-base font-semibold tracking-tight">
-            Instrumentos por situação
-          </h3>
-          <p className="m-0 mt-1 text-xs text-muted-foreground">
-            Fase no monitoramento interno
-          </p>
-        </div>
-        <dl className="m-0 flex gap-6">
-          <div>
-            <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-              Instrumentos
-            </dt>
-            <dd className="m-0 font-display text-xl font-semibold tabular-nums">
-              {linhas.length}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
-              Monitorados
-            </dt>
-            <dd className="m-0 font-display text-xl font-semibold text-primary tabular-nums">
-              {pct(monitorados, linhas.length)}
-            </dd>
-          </div>
-        </dl>
-      </div>
+      <h3 className="m-0 text-base font-semibold tracking-tight">
+        Instrumentos por situação
+      </h3>
       <div className="mt-6 overflow-x-auto">
         <div className="relative min-w-[36rem]">
           <div
