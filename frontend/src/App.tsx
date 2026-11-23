@@ -66,6 +66,11 @@ const MonitoramentoOverviewPage = lazy(() =>
 // Painel de Gestao (achado 2026-09-09, 2a rodada, pedido do usuario: "uma
 // página de painel apenas com dashboards... para avaliação da gestão") --
 // so leitura executiva, sem tabela/form, ver docstring do arquivo.
+const MonitoramentoMeuPainelPage = lazy(() =>
+  import("./pages/monitoramento-meu-painel-page").then((m) => ({
+    default: m.MonitoramentoMeuPainelPage,
+  })),
+);
 const MonitoramentoPainelPage = lazy(() =>
   import("./pages/monitoramento-painel-page").then((m) => ({
     default: m.MonitoramentoPainelPage,
@@ -206,6 +211,10 @@ function App() {
                         />
                       )
                     }
+                  />
+                  <Route
+                    path="/monitoramento-equipamentos/meu-painel"
+                    element={<MonitoramentoMeuPainelPage />}
                   />
                   <Route
                     path="/monitoramento-equipamentos/relatorios"

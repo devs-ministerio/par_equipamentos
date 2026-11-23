@@ -1,0 +1,94 @@
+"""Contratos HTTP do painel individual do técnico (monitoramento interno)."""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Literal
+
+from pydantic import BaseModel
+
+
+class PainelUsuarioRead(BaseModel):
+    id: int
+    nome: str
+    papel: str
+
+
+class PainelCarteiraRegiaoRead(BaseModel):
+    """Convênios do escopo na região (PERSUS II fora: ainda em contratação) frente ao que já foi cadastrado."""
+
+    elegiveis: int
+    monitorados: int
+    cobertura_pct: float | None
+    faltam_em_aberto: int
+    faltam_concluidos: int
+    valor_faltam_em_aberto: float
+    valor_faltam_concluidos: float
+
+
+class PainelFaltanteRead(BaseModel):
+    numero: str
+    uf: str | None
+    municipio: str | None
+    convenente: str | None
+    situacao: str | None
+    valor_global: float | None
+    em_aberto: bool
+
+
+class PainelContagemRead(BaseModel):
+    instrumentos: int
+    com_registro: int
+    sem_registro: int
+    concluidos: int
+    com_repasse: int
+    com_entrega: int
+
+
+class PainelSemanaRead(BaseModel):
+    semana: date
+    lancamentos: int
+
+
+class PainelAtividadeRead(BaseModel):
+    lancamentos_total: int
+    lancamentos_14d: int
+    instrumentos_tocados: int
+    ultimo_lancamento: datetime | None
+    por_semana: list[PainelSemanaRead]
+
+
+class PainelAcoesRead(BaseModel):
+    abertas: int
+    atrasadas: int
+    proximas_7d: int
+
+
+class PainelInstrumentoSimplesRead(BaseModel):
+    nr_convenio: str
+    municipio: str | None
+    uf: str | None
+
+
+class PainelTecnicoResumoRead(BaseModel):
+    """Opção do filtro por colaborador (gestão e admin)."""
+
+    id: int
+    nome: str
+    ufs: list[str]
+    instrumentos: int
+
+
+class PainelTecnicoRead(BaseModel):
+    escopo: Literal["individual", "todos"]
+    usuario: PainelUsuarioRead | None
+    ufs: list[str] | None
+    gerado_em: datetime
+    carteira: PainelCarteiraRegiaoRead
+    faltantes: list[PainelFaltanteRead]
+    regiao: PainelContagemRead
+    regiao_sem_titular: int
+    meus: PainelContagemRead
+    atividade: PainelAtividadeRead
+    acoes: PainelAcoesRead
+    meus_sem_registro: list[PainelInstrumentoSimplesRead]
