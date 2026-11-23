@@ -21,9 +21,9 @@ from scripts.proteger_clone_local import ProtecaoTexto
 
 
 def _selecionar(
-    nome: str, *, chave: str, valores: set[str], obrigatorias: set[str], cache: Path
+    nome: str, *, chave: str, valores: set[str], obrigatorias: set[str], cache: Path, reaproveitar: bool = False
 ) -> tuple[list[dict[str, str]], str]:
-    conteudo = _baixar_zip(nome, atualizar_cache=True, diretorio_cache=cache)
+    conteudo = _baixar_zip(nome, atualizar_cache=not reaproveitar, diretorio_cache=cache)
     selecionadas: list[dict[str, str]] = []
     with _linhas_csv_do_zip(conteudo, justificativa_ta=nome == "siconv_termo_aditivo") as (cabecalho, linhas):
         if not {chave, *obrigatorias} <= set(cabecalho):
@@ -37,16 +37,20 @@ def _selecionar(
     return selecionadas, sha256(conteudo).hexdigest()
 
 
-def coletar_recaptura(alvo: AlvoRecapturaLegado) -> PacoteRecapturaLegado:
+def coletar_recaptura(alvo: AlvoRecapturaLegado, *, cache: Path | None = None) -> PacoteRecapturaLegado:
     """Valida escopo antes das filhas; nenhuma coleção omitida vira vazia."""
     alvo = AlvoRecapturaLegado.model_validate(alvo.model_dump())
     _headers()  # Falha antes dos downloads se a chave não estiver disponível.
     iniciado = datetime.now(UTC)
     with TemporaryDirectory(prefix="sigeo-recaptura-") as diretorio:
-        cache = Path(diretorio)
+        # Com cache do chamador (lote), os arquivos nacionais já baixados são reaproveitados.
+        reaproveitar = cache is not None
+        cache = cache if cache is not None else Path(diretorio)
 
         def ler(nome: str, chave: str, valores: set[str], *campos: str) -> tuple[list[dict[str, str]], str]:
-            return _selecionar(nome, chave=chave, valores=valores, obrigatorias=set(campos), cache=cache)
+            return _selecionar(
+                nome, chave=chave, valores=valores, obrigatorias=set(campos), cache=cache, reaproveitar=reaproveitar
+            )
 
         convenios, hash_convenios = ler("siconv_convenio", "NR_CONVENIO", {alvo.numero}, "ID_PROPOSTA")
         propostas, hash_proposta = ler("siconv_proposta", "ID_PROPOSTA", {alvo.id_proposta}, "COD_ORGAO_SUP")

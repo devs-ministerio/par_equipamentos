@@ -17,7 +17,6 @@ const provaSchema = referenciaProvaLegadoSchema.extend({
   municipio: z.string(),
   uf: z.string(),
   capturado_em: z.string().datetime({ offset: true }),
-  expira_em: z.string().datetime({ offset: true }),
 });
 export type ProvaLegado = z.infer<typeof provaSchema>;
 

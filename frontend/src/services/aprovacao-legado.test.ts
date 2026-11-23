@@ -38,7 +38,6 @@ describe("contrato de aprovação do Radar", () => {
     { candidato_id: 8 },
     { hash_revisado: "inválido" },
     { valor_global: "1.000,50" },
-    { expira_em: "ontem" },
     { recaptura_id: null },
   ])("recusa prova incompatível ou malformada %j", async (alteracao) => {
     // Arrange

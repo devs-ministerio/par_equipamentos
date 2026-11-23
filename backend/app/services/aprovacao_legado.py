@@ -1,7 +1,5 @@
 """Aprovação transacional da prova persistida; autorização sempre no Service."""
 
-from datetime import UTC, datetime
-
 from pydantic import TypeAdapter
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -21,7 +19,6 @@ from app.schemas_captura_legado import ItemRecapturado
 from app.services.equipamento_marcadores import DadosMarcador, registrar_marcadores
 from app.services.monitoramento_instrumentos import NovoInstrumentoMonitorado, criar_instrumento_monitorado_sem_commit
 from app.services.projecao_itens_plano import projetar as projetar_itens_plano
-from app.services.prova_recaptura_legado import validar_frescor_recaptura
 from app.services.revisao_legado import preparar_revisao
 
 
@@ -142,7 +139,6 @@ def aprovar_entrada(
         rodada = recapturas.obter_fonte(db, revisao.fonte_captura_id)
         if rodada is None:
             raise ConflictError("Rodada oficial indisponível.")
-        validar_frescor_recaptura(capturado_em=rodada.iniciado_em, agora=datetime.now(UTC))
         resultado = AprovacaoLegadoRead.model_validate(decisao)
         db.commit()
         return resultado

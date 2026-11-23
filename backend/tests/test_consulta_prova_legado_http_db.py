@@ -38,16 +38,13 @@ def test_consulta_segura_repetivel_sem_decisao_ou_transacao_retida(fluxo_aprovac
             "municipio",
             "uf",
             "capturado_em",
-            "expira_em",
         }
         assert resumo["numero"] == "999001" and resumo["situacao"] == "Em execução"
         assert resumo["valor_global"] == "1000.50"
         assert resumo["hash_revisado"] == prova.hash_conteudo
         assert resumo["captura_id"] == ref.captura_id and resumo["recaptura_id"] == prova.id
         assert resumo["versao"] == 0
-        inicio = datetime.fromisoformat(resumo["capturado_em"])
-        fim = datetime.fromisoformat(resumo["expira_em"])
-        assert fim - inicio == timedelta(hours=24)
+        datetime.fromisoformat(resumo["capturado_em"])
         assert not db.in_transaction()
         assert http.get(f"/candidatos-legados/{ref.candidato_id}/prova").json() == resumo
         assert not db.in_transaction()
@@ -63,14 +60,14 @@ def test_sem_autorizacao_nao_consulta_prova_nem_revela_existencia(fluxo_aprovaca
     sem_inclusao(db)
 
 
-@pytest.mark.parametrize("defeito", ["expirada", "futura", "parcial"])
+@pytest.mark.parametrize("defeito", ["futura", "parcial"])
 def test_rodada_invalida_nao_fornece_referencia_para_aprovacao(fluxo_aprovacao, defeito):
     db, _, ref, prova, _, cliente = fluxo_aprovacao
     rodada = db.get(FonteCaptura, prova.fonte_captura_id)
     if defeito == "parcial":
         rodada.status = "parcial"
     else:
-        rodada.iniciado_em = datetime.now(UTC) + (timedelta(hours=1) if defeito == "futura" else -timedelta(hours=25))
+        rodada.iniciado_em = datetime.now(UTC) + timedelta(hours=1)
     db.commit()
     with cliente("admin") as http:
         resposta = http.get(f"/candidatos-legados/{ref.candidato_id}/prova")
@@ -92,17 +89,6 @@ def test_referencia_consultada_funciona_no_post_sem_upload_de_payload(fluxo_apro
         resposta = postar(http, ref.candidato_id, corpo)
         assert resposta.status_code == 200 and resposta.json()["situacao"] == "aprovado"
         assert http.get(f"/candidatos-legados/{ref.candidato_id}/prova").status_code == 409
-
-
-def test_expirar_apos_consulta_bloqueia_post(fluxo_aprovacao):
-    db, _, ref, prova, pedido, cliente = fluxo_aprovacao
-    with cliente("admin") as http:
-        assert http.get(f"/candidatos-legados/{ref.candidato_id}/prova").status_code == 200
-        rodada = db.get(FonteCaptura, prova.fonte_captura_id)
-        rodada.iniciado_em = datetime.now(UTC) - timedelta(hours=25)
-        db.commit()
-        assert postar(http, ref.candidato_id, pedido.model_dump(mode="json")).status_code == 409
-    sem_inclusao(db)
 
 
 def test_perda_de_permissao_apos_login_impede_consulta(fluxo_aprovacao):
