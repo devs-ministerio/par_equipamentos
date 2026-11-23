@@ -57,7 +57,6 @@ export function criarProva(overrides: Partial<ProvaLegado> = {}): ProvaLegado {
     municipio: "Cidade sintética",
     uf: "BA",
     capturado_em: "2026-10-18T10:00:00Z",
-    expira_em: "2026-10-19T10:00:00Z",
     ...overrides,
   };
 }

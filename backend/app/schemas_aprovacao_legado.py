@@ -38,7 +38,6 @@ class ProvaLegadoRead(ReferenciaProvaLegado):
     municipio: str
     uf: str
     capturado_em: datetime
-    expira_em: datetime
 
 
 class AprovacaoLegadoRead(DecisaoLegadoRead):

@@ -599,3 +599,9 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 - A espera do Portal é medida com checagem diária, com margem de 1 dia.
 - Os componentes `candidato-legado-aprovacao.tsx`, `candidato-legado-historico.tsx`, `candidato-legado-item.tsx` e `candidato-legado-itens-dialog.tsx` foram descritos a partir dos hooks, do serviço e do mapa do monitoramento, sem releitura linha a linha nesta revisão.
 - O comportamento de rede (tempos, limites do Portal) não está no código e não entra aqui.
+
+## 21. Enriquecimento pela CI e fim da validade da prova (22/11/2026)
+
+A recaptura deixou de ser passo manual local. O workflow `radar_convenios.yml` ganhou o passo `recaptura` depois da descoberta SICONV (`scripts/job_recaptura_legado.py`). Ele grava valor, município, UF e itens do plano de aplicação para cada candidato aberto, com o Portal confirmado e sem recaptura da descoberta atual. Os arquivos nacionais do SICONV são baixados uma vez por rodada. Nunca aprova.
+
+A validade de 24 h da prova foi removida da consulta (`expira_em`), da revisão, da aprovação e da tela. O Aprovar libera com o Portal confirmado e a recaptura gravada. A conferência por hash continua: o backend recusa se a prova mudou desde a revisão. Uma nova recaptura só é gravada quando a descoberta do candidato muda.

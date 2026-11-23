@@ -215,14 +215,14 @@ def test_revisao_obsoleta_ou_prova_alheia_retornam_conflito(fluxo_aprovacao, cam
     sem_inclusao(db)
 
 
-@pytest.mark.parametrize("defeito", ["expirada", "futura", "parcial"])
+@pytest.mark.parametrize("defeito", ["futura", "parcial"])
 def test_rodada_nao_confiavel_bloqueia_aprovacao_http(fluxo_aprovacao, defeito):
     db, _, ref, prova, pedido, cliente = fluxo_aprovacao
     rodada = db.get(FonteCaptura, prova.fonte_captura_id)
     if defeito == "parcial":
         rodada.status = "parcial"
     else:
-        rodada.iniciado_em = datetime.now(UTC) + (timedelta(hours=1) if defeito == "futura" else -timedelta(hours=25))
+        rodada.iniciado_em = datetime.now(UTC) + timedelta(hours=1)
     db.commit()
     with cliente("admin") as http:
         assert postar(http, ref.candidato_id, pedido.model_dump(mode="json")).status_code == 409

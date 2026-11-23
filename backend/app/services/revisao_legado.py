@@ -25,7 +25,6 @@ from app.services.projecao_legado import projetar_carteira
 from app.services.prova_recaptura_legado import (
     hash_captura_promocao,
     validar_captura_promocao,
-    validar_frescor_recaptura,
 )
 
 
@@ -68,7 +67,6 @@ def preparar_revisao(
     if rodada is None or rodada.fonte != "siconv_recaptura" or rodada.status != "ok":
         raise ConflictError("A recaptura não possui rodada oficial completa.")
     agora = datetime.now(UTC)
-    validar_frescor_recaptura(capturado_em=rodada.iniciado_em, agora=agora)
     if rodada.finalizado_em < rodada.iniciado_em or rodada.finalizado_em > agora:
         raise ConflictError("O horário da rodada oficial é inconsistente.")
     try:
