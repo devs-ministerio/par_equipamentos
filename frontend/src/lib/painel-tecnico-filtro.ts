@@ -12,10 +12,10 @@ export const ROTULO_FILTRO: Record<FiltroCarteira, string> = {
   faltam: "Faltam incluir",
   "sem-registro": "Sem registro",
   concluidos: "Concluídos",
-  radar: "Novos Instrumentos (últimos 30 dias)",
+  radar: "Novos Instrumentos (últimos 7 dias)",
 };
 
-export const JANELA_RADAR_DIAS = 30;
+export const JANELA_RADAR_DIAS = 7;
 
 export function entrouNoRadarRecente(l: LinhaCarteira): boolean {
   if (!l.entrou_radar_em) return false;
