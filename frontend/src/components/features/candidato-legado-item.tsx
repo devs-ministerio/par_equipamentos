@@ -64,6 +64,14 @@ export function CandidatoLegadoItem({
           <CandidatoLegadoItensDialog candidato={candidato} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {candidato.numero_processo ? (
+            <Badge
+              variant="outline"
+              className="max-w-full whitespace-normal text-xs"
+            >
+              Processo · {candidato.numero_processo}
+            </Badge>
+          ) : null}
           <PortalPendente candidato={candidato} />
           <Badge
             variant="outline"
@@ -75,11 +83,10 @@ export function CandidatoLegadoItem({
       </div>
       <dl className="mt-3 space-y-2">
         <Campo rotulo="Componente" valor={componentes.join(" · ") || "—"} />
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-7">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 lg:grid-cols-6">
           <Campo rotulo="Valor" valor={fmtMoeda(candidato.valor_global)} />
           <Campo rotulo="UF" valor={candidato.uf ?? "—"} />
           <Campo rotulo="Município" valor={candidato.municipio ?? "—"} />
-          <Campo rotulo="Processo" valor={candidato.numero_processo ?? "—"} />
           <Campo
             rotulo="Data do instrumento"
             valor={fmtData(candidato.data_instrumento)}

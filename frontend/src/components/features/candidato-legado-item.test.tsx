@@ -50,13 +50,13 @@ it("não mostra o selo quando o Portal confirmou ou a análise já acabou", () =
   expect(screen.queryByText(/Portal pendente/)).not.toBeInTheDocument();
 });
 
-it("mostra o número do processo, ou traço quando não há", () => {
+it("mostra o processo como marcador, e nada quando não há", () => {
   const { rerender } = render(
     <CandidatoLegadoItem
       candidato={{ ...base, numero_processo: "25000.123456/2024-11" }}
     />,
   );
-  expect(screen.getByText("25000.123456/2024-11")).toBeVisible();
+  expect(screen.getByText("Processo · 25000.123456/2024-11")).toBeVisible();
   rerender(<CandidatoLegadoItem candidato={base} />);
-  expect(screen.queryByText("25000.123456/2024-11")).not.toBeInTheDocument();
+  expect(screen.queryByText(/Processo ·/)).not.toBeInTheDocument();
 });
