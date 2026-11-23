@@ -164,7 +164,7 @@ Colunas:
 
 ## `candidato_legado_recaptura`
 
-Prova de recaptura oficial do convênio, válida por 24 horas.
+Prova de recaptura oficial do convênio. A coleta só é gravada com até 24 horas de idade; depois de gravada a prova não vence e a aprovação confere hash, captura atual e rodada completa.
 
 Chave primária: `id`. Colunas: 9. Uso: 0 linhas em produção (contagem exata de 22/11/2026).
 
@@ -199,13 +199,12 @@ Colunas:
 | `captura_id` | bigint | não | Referência a `candidato_legado_captura.id`. | FK `candidato_legado_captura.id` (RESTRICT) |
 | `fonte_captura_id` | bigint | não | Referência a `fonte_captura.id`. | FK `fonte_captura.id` (RESTRICT) |
 | `hash_conteudo` | varchar(64) | não | Hash SHA-256 do payload oficial. |  |
-| `situacao` | texto | não | Situação do convênio no SICONV na recaptura. **A confirmar.** |  |
+| `situacao` | texto | não | Situação do convênio no SICONV na recaptura (campo `SIT_CONVENIO`, gravado por `registrar_recaptura`). |  |
 | `valor_global` | numeric | não | Valor global na recaptura (≥ 0). |  |
 | `payload_oficial` | jsonb | não | Payload oficial do convênio na recaptura (JSON). |  |
 | `criado_em` | timestamptz | não | Data e hora de criação do registro. | padrão `now()` |
 
 > [!warning] A confirmar
-> Descrição inferida do nome ou sem fonte no código: `situacao`.
 
 ## `candidato_legado_decisao`
 

@@ -1,8 +1,8 @@
-# Mapa do banco de dados (revisão 1, de 22/11/2026)
+# Mapa do banco de dados (revisão 2, de 23/11/2026)
 
-Objetivo: dar uma visão única das 50 tabelas do schema e de como elas se ligam, para a equipe validar o modelo e apontar o que está sem uso. Gerado a partir do schema real no head `d9e0f1a2b3c4` (cópia de ensaio `sigeo_ensaio_release_20261122`): 50 tabelas, 596 colunas e 98 chaves estrangeiras. Produção ainda está em `e9f0a1b2c3d4`; as 7 tabelas que só existem no head estão marcadas. Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
+Objetivo: dar uma visão única das 50 tabelas do schema e de como elas se ligam, para a equipe validar o modelo e apontar o que está sem uso. Gerado a partir do schema real no head `d9e0f1a2b3c4` (cópia de ensaio `sigeo_ensaio_release_20261122`): 50 tabelas, 596 colunas e 98 chaves estrangeiras. Produção está no head `d9e0f1a2b3c4` desde 23/11/2026 (conferido em `alembic_version`); as 7 tabelas marcadas com asterisco chegaram junto, e a revisão 2 não mudou o schema. Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
-Cada entidade mostra só a chave primária, as chaves estrangeiras e até 6 colunas de negócio. O detalhe de todas as colunas fica para o dicionário de dados. `autor_id` e `deletado_por_id` apontam para `user` em todas as tabelas append-only e foram omitidos das relações para não poluir o desenho.
+Cada entidade mostra só a chave primária, as chaves estrangeiras e até 6 colunas de negócio. O detalhe de todas as colunas fica para o dicionário de dados. `autor_id` e `deletado_por_id` apontam para `user` em todas as tabelas append-only e foram omitidos das relações para não poluir o desenho. Outras relações com `user` também ficaram de fora quando só registram quem executou ou revisou (por exemplo `execution.executed_by`, `reference_file.uploaded_by`, `proposta_candidata.revisado_por`). Nas relações desenhadas, `|o` no lado do pai significa chave estrangeira que aceita nulo.
 
 ## 1. Como o banco se divide
 
@@ -14,7 +14,7 @@ Cada entidade mostra só a chave primária, as chaves estrangeiras e até 6 colu
 | Radar | `fonte_captura`, `candidato_legado`, `candidato_legado_captura`, `candidato_legado_componente`, `candidato_legado_evidencia`, `candidato_legado_recaptura`, `candidato_legado_decisao`, `proposta_candidata`, `evidencia_transferegov` | Job de descoberta, recaptura e gestão |
 | Acesso e avisos | `user`, `refresh_token`, `audit_log`, `notificacao`, `notificacao_destinatario` | Aplicação |
 
-\* Só existe no head; ainda não está em produção.
+\* Tabela criada no release de 22/11/2026 (migrations até `d9e0f1a2b3c4`); já está em produção.
 
 Fora dos domínios: `alembic_version`, controlada pelo Alembic.
 
@@ -129,15 +129,15 @@ erDiagram
         integer failed_login_attempts
     }
     competency ||--o{ execution : "competency_id"
-    execution ||--o{ competency : "published_execution_id"
+    execution |o--o{ competency : "published_execution_id"
     execution ||--o{ equipment_offer_row : "execution_id"
     execution ||--o{ macro_coverage : "execution_id"
     execution ||--o{ municipality_coverage : "execution_id"
     reference_file ||--o{ accelerator_row : "reference_file_id"
-    reference_file ||--o{ execution : "accelerator_file_id"
-    reference_file ||--o{ execution : "population_file_id"
+    reference_file |o--o{ execution : "accelerator_file_id"
+    reference_file |o--o{ execution : "population_file_id"
     reference_file ||--o{ municipality_population_row : "reference_file_id"
-    user ||--o{ config_decision : "confirmed_by"
+    user |o--o{ config_decision : "confirmed_by"
 ```
 
 ## 3. Carteira e monitoramento
@@ -305,15 +305,15 @@ erDiagram
     convenio }o..o| instrumento_equipamento : "numero + tipo_contratacao (sem FK)"
     instalacao_ansn }o..o{ vinculo_licenca_estabelecimento : "matricula (sem FK)"
     acao_monitoramento |o--o{ acao_monitoramento : "substituido_por_id"
-    cnes_estabelecimento ||--o{ convenio : "cnes"
-    cnes_estabelecimento ||--o{ instrumento_equipamento : "cnes"
+    cnes_estabelecimento |o--o{ convenio : "cnes"
+    cnes_estabelecimento |o--o{ instrumento_equipamento : "cnes"
     cnes_estabelecimento ||--o{ vinculo_licenca_estabelecimento : "cnes"
     documento_instrumento |o--o{ documento_instrumento : "substituido_por_id"
     evento_marco |o--o{ evento_marco : "substituido_por_id"
-    evento_marco ||--o{ documento_instrumento : "origem_evento_id"
-    fonte_dado ||--o{ convenio : "fonte_dado_id"
-    fonte_dado ||--o{ instrumento_equipamento : "fonte_dado_id"
-    fonte_dado ||--o{ pagamento_obra_persus : "fonte_dado_id"
+    evento_marco |o--o{ documento_instrumento : "origem_evento_id"
+    fonte_dado |o--o{ convenio : "fonte_dado_id"
+    fonte_dado |o--o{ instrumento_equipamento : "fonte_dado_id"
+    fonte_dado |o--o{ pagamento_obra_persus : "fonte_dado_id"
     instrumento_equipamento ||--o{ acao_monitoramento : "instrumento_id"
     instrumento_equipamento ||--o{ conclusao_instrumento : "instrumento_id"
     instrumento_equipamento ||--o{ documento_instrumento : "instrumento_id"
@@ -321,16 +321,16 @@ erDiagram
     instrumento_equipamento ||--o{ instrumento_responsavel : "instrumento_id"
     instrumento_equipamento ||--o{ pagamento_obra_persus : "instrumento_id"
     instrumento_equipamento ||--o{ repasse_instrumento : "instrumento_id"
-    marco_catalogo ||--o{ evento_marco : "fase_geral_id"
+    marco_catalogo |o--o{ evento_marco : "fase_geral_id"
     marco_catalogo ||--o{ evento_marco : "marco_id"
     repasse_instrumento |o--o{ repasse_instrumento : "substituido_por_id"
-    user ||--o{ acao_monitoramento : "responsavel_id"
+    user |o--o{ acao_monitoramento : "responsavel_id"
     user ||--o{ instrumento_responsavel : "usuario_id"
 ```
 
 ## 4. Itens e entregas
 
-O plano de aplicação do SICONV vira `item_plano` (um equipamento distinto por linha). A entrega é append-only e gera `unidade_equipamento` para as famílias com controle por unidade ou valor unitário acima do limite. `equipamento_catalogo` é o catálogo das famílias; `renem_item` e `codigo_item_legado` o alimentam. `decisao_classificacao_item` guarda a decisão de classificação por `convenio_numero` e `chave_item`, sem chave estrangeira.
+O plano de aplicação do SICONV vira `item_plano` (um equipamento distinto por linha). A entrega é append-only e gera `unidade_equipamento` para as famílias com controle por unidade ou valor unitário acima do limite. `equipamento_catalogo` é o catálogo das famílias; `renem_item` e `codigo_item_legado` o alimentam. `decisao_classificacao_item` guarda a decisão de classificação por `convenio_numero` e `chave_item`, sem chave estrangeira. Em `conta_unidade`, nulo significa que a equipe não afirmou controle (a projeção aplica a regra de valor e a exceção do instrumento) e `false` é decisão explícita de não controlar. `convenio.fora_escopo_equipamentos` esconde o convênio de tudo (obra e serviço, ou órgão que não é o Ministério da Saúde).
 
 ```mermaid
 erDiagram
@@ -493,30 +493,30 @@ erDiagram
         bigint revisado_por FK
         string cnes FK
     }
-    convenio ||--o{ equipamento_marcador : "convenio_id"
+    convenio |o--o{ equipamento_marcador : "convenio_id"
     convenio ||--o{ item_plano : "convenio_id"
     decisao_classificacao_item |o--o{ decisao_classificacao_item : "substituida_por_id"
     entrega_equipamento |o--o{ entrega_equipamento : "substituido_por_id"
-    entrega_equipamento ||--o{ entrega_legada_revisao : "entrega_id"
+    entrega_equipamento |o--o{ entrega_legada_revisao : "entrega_id"
     entrega_equipamento ||--o{ unidade_equipamento : "entrega_id"
     equipamento_catalogo ||--o{ codigo_item_legado : "catalogo_id"
     equipamento_catalogo ||--o{ equipamento_marcador : "equipamento_catalogo_id"
-    equipamento_catalogo ||--o{ item_plano : "catalogo_id"
-    equipamento_catalogo ||--o{ renem_item : "catalogo_id"
+    equipamento_catalogo |o--o{ item_plano : "catalogo_id"
+    equipamento_catalogo |o--o{ renem_item : "catalogo_id"
     evento_marco |o--o{ evento_marco : "substituido_por_id"
-    evento_marco ||--o{ entrega_equipamento : "evento_id"
+    evento_marco |o--o{ entrega_equipamento : "evento_id"
     evento_marco ||--o{ entrega_legada_revisao : "evento_id"
     instrumento_equipamento ||--o{ entrega_equipamento : "instrumento_id"
     instrumento_equipamento ||--o{ entrega_legada_revisao : "instrumento_id"
-    instrumento_equipamento ||--o{ equipamento_marcador : "instrumento_equipamento_id"
+    instrumento_equipamento |o--o{ equipamento_marcador : "instrumento_equipamento_id"
     instrumento_equipamento ||--o{ evento_marco : "instrumento_id"
-    instrumento_equipamento ||--o{ item_plano : "instrumento_id"
+    instrumento_equipamento |o--o{ item_plano : "instrumento_id"
     item_plano |o--o{ item_plano : "item_principal_id"
     item_plano ||--o{ cancelamento_unidade_planejada : "item_id"
     item_plano ||--o{ previsao_entrega_item : "item_id"
     item_plano ||--o{ unidade_equipamento : "item_id"
     previsao_entrega_item |o--o{ previsao_entrega_item : "substituido_por_id"
-    proposta_candidata ||--o{ equipamento_marcador : "proposta_candidata_id"
+    proposta_candidata |o--o{ equipamento_marcador : "proposta_candidata_id"
 ```
 
 ## 5. Radar de instrumentos
@@ -653,20 +653,20 @@ erDiagram
     candidato_legado ||--o{ candidato_legado_captura : "candidato_id"
     candidato_legado ||--o{ candidato_legado_decisao : "candidato_id"
     candidato_legado ||--o{ candidato_legado_recaptura : "candidato_id"
-    candidato_legado_captura ||--o{ candidato_legado : "ultima_captura_id"
+    candidato_legado_captura |o--o{ candidato_legado : "ultima_captura_id"
     candidato_legado_captura ||--o{ candidato_legado_componente : "captura_id"
     candidato_legado_captura ||--o{ candidato_legado_decisao : "candidato_id,captura_id"
     candidato_legado_captura ||--o{ candidato_legado_evidencia : "captura_id"
     candidato_legado_captura ||--o{ candidato_legado_recaptura : "candidato_id,captura_id"
-    candidato_legado_recaptura ||--o{ candidato_legado_decisao : "candidato_id,captura_id,recaptura_id"
-    cnes_estabelecimento ||--o{ convenio : "cnes"
-    cnes_estabelecimento ||--o{ proposta_candidata : "cnes"
-    convenio ||--o{ candidato_legado_decisao : "convenio_id"
+    candidato_legado_recaptura |o--o{ candidato_legado_decisao : "candidato_id,captura_id,recaptura_id"
+    cnes_estabelecimento |o--o{ convenio : "cnes"
+    cnes_estabelecimento |o--o{ proposta_candidata : "cnes"
+    convenio |o--o{ candidato_legado_decisao : "convenio_id"
     equipamento_catalogo ||--o{ candidato_legado_evidencia : "equipamento_catalogo_id"
-    fonte_captura ||--o{ candidato_legado_captura : "fonte_captura_id"
+    fonte_captura |o--o{ candidato_legado_captura : "fonte_captura_id"
     fonte_captura ||--o{ candidato_legado_recaptura : "fonte_captura_id"
     proposta_candidata ||--o{ evidencia_transferegov : "proposta_candidata_id"
-    user ||--o{ candidato_legado_decisao : "tecnico_titular_id"
+    user |o--o{ candidato_legado_decisao : "tecnico_titular_id"
     user ||--o{ candidato_legado_decisao : "usuario_id"
 ```
 
@@ -720,7 +720,7 @@ erDiagram
         boolean arquivada
     }
     notificacao ||--o{ notificacao_destinatario : "notificacao_id"
-    user ||--o{ audit_log : "user_id"
+    user |o--o{ audit_log : "user_id"
     user ||--o{ notificacao_destinatario : "usuario_id"
     user ||--o{ refresh_token : "user_id"
 ```
@@ -731,6 +731,7 @@ erDiagram
 | --- | --- | --- |
 | `instrumento_equipamento` | `convenio` | `nr_convenio` = `numero` e mesmo `tipo_contratacao` (padrão "Convênio") |
 | `decisao_classificacao_item` | `convenio` | `convenio_numero` |
+| `decisao_classificacao_item` | `item_plano` | `convenio_numero` + `chave_item` (`ID_ITEM_PAD` do SICONV ou hash do texto na carga manual) |
 | `notificacao` | instrumento, convênio, proposta ou candidato | `entidade_id` conforme `tipo` |
 | `instalacao_ansn` | `vinculo_licenca_estabelecimento` | `matricula` |
 | `candidato_legado` | `convenio` | `numero` (a aprovação grava `convenio_id` na decisão) |

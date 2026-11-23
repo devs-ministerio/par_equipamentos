@@ -6,9 +6,9 @@ Pasta de mapas de fluxo lidos do código. Cada mapa cobre um módulo, tem revis�
 
 | Mapa | Escopo | Revisão |
 | --- | --- | --- |
-| [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 4, 22/11/2026 |
-| [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, decisão pendente sobre o Portal, workflow | 3, 22/11/2026 |
-| [banco-de-dados.md](banco-de-dados.md) | Banco de dados: 50 tabelas por domínio, ligações com e sem chave estrangeira, estado de uso em produção | 1, 22/11/2026 |
+| [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 5, 23/11/2026 |
+| [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, Portal opcional, workflow | 4, 23/11/2026 |
+| [banco-de-dados.md](banco-de-dados.md) | Banco de dados: 50 tabelas por domínio, ligações com e sem chave estrangeira, estado de uso em produção | 2, 23/11/2026 |
 
 ## Abrir direto no GitHub
 
@@ -33,7 +33,8 @@ Arquivo inteiro: [radar-instrumentos.md](radar-instrumentos.md)
 - [15. Avisos do espelho SICONV e popup de detalhe](radar-instrumentos.md#15-avisos-do-espelho-siconv-e-popup-de-detalhe)
 - [16. Fontes externas e suas APIs](radar-instrumentos.md#16-fontes-externas-e-suas-apis)
 - [17. Fluxos de API (sequências)](radar-instrumentos.md#17-fluxos-de-api-sequências)
-- [18. Radar antes do Portal (implementado em 22/11/2026)](radar-instrumentos.md#18-radar-antes-do-portal-implementado-em-22112026)
+- [18. Radar antes do Portal](radar-instrumentos.md#18-radar-antes-do-portal-implementado-em-22112026-aprovar-deixou-de-exigir-o-portal-em-2311-seção-23)
+- [23. Portal opcional na recaptura e na aprovação](radar-instrumentos.md#23-portal-opcional-na-recaptura-e-na-aprovação-23112026)
 
 ### Monitoramento interno
 
@@ -64,7 +65,7 @@ Arquivo inteiro: [banco-de-dados.md](banco-de-dados.md)
 
 Nome do arquivo: `<modulo>.md` em kebab-case, sem data (a data fica no título). Primeira linha: `# Mapa do <módulo> (revisão N, de dd/mm/aaaa)`.
 
-Estrutura de cada mapa: objetivo e escopo, seções numeradas com um diagrama cada, depois "Registro de funcionalidades", "Código sem uso" e "Limites desta análise". O que foi inferido e não confirmado no código vai como `> [!warning] A confirmar`.
+Estrutura dos mapas de fluxo (Radar e Monitoramento): objetivo e escopo, seções numeradas com um diagrama cada, depois "Registro de funcionalidades", "Código sem uso" e "Limites desta análise". O mapa do banco é por domínio e termina em "Estado de uso das tabelas". O que foi inferido e não confirmado no código vai como `> [!warning] A confirmar`.
 
 Cores: azul `#2A4D9B` para telas, âmbar `#C98A00` para perfis, cinza tracejado para o que está desligado ou sem uso.
 
@@ -72,7 +73,7 @@ Regra de manutenção: mudou o fluxo no código, atualiza o mapa no mesmo commit
 
 ## Validar
 
-O validador renderiza todos os blocos ```mermaid de um arquivo e falha se algum não compilar. Precisa de Node e do pacote `mermaid` instalado no diretório de trabalho do script.
+O validador analisa (`mermaid.parse`) todos os blocos ```mermaid de um arquivo e imprime o erro de cada bloco inválido, mas o script não define código de saída diferente de zero; confira a última linha ("N blocos, M com erro"). Precisa de Node e do pacote `mermaid` instalado no diretório de trabalho do script.
 
 ```bash
 node docs/mermaid/validar.mjs docs/mermaid/radar-instrumentos.md

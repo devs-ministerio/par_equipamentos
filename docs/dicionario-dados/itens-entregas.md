@@ -272,7 +272,7 @@ Colunas:
 | `chave_item` | texto | não | `ID_ITEM_PAD` do SICONV; na carga manual, hash do texto normalizado do item. |  |
 | `tipo_lancamento` | texto | não | aquisicao, rendimento_aplicacao, acessorio_insumo, multiplo ou nao_equipamento. |  |
 | `codigo_item` | varchar(6) | sim | Código RENEM do item (6 dígitos); opcional. |  |
-| `conta_unidade` | boolean | sim | Se o item conta como unidade. |  |
+| `conta_unidade` | boolean | sim | Verdadeiro: a família do item controla unidade. Falso: decisão explícita de não controlar. Nulo: a equipe não afirmou, e a projeção aplica a regra de valor por unidade e a exceção do instrumento (a exceção não consulta esta coluna). |  |
 | `origem` | texto | não | Quem decidiu: motor, revisao_equipe ou tecnico. |  |
 | `status` | texto | não | aplicada ou pendente. | padrão `'aplicada'` |
 | `observacao` | texto | sim | Observação livre. |  |
