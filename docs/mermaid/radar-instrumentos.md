@@ -1,6 +1,6 @@
-# Mapa do Radar de instrumentos (revisão 3, de 22/11/2026)
+# Mapa do Radar de instrumentos (revisão 4, de 23/11/2026)
 
-Objetivo: servir de base para a equipe validar o fluxo do Radar e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da branch `feat/persus-ii-fora-do-monitoramento` (estado de 22/11/2026) e conferido, em leitura, contra o banco de produção de 21/11/2026. A revisão 2 incorpora os blocos 1 a 3 do plano [planmode-radar-confirmacao-e-ruido-2026-11-22.md](../planos/planmode-radar-confirmacao-e-ruido-2026-11-22.md), que estão em commits locais e **ainda não estão em produção**. Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
+Objetivo: servir de base para a equipe validar o fluxo do Radar e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da `master` (estado de 23/11/2026) e conferido, em leitura, contra o banco de produção. As revisões 2 e 3 (plano [planmode-radar-confirmacao-e-ruido-2026-11-22.md](../planos/planmode-radar-confirmacao-e-ruido-2026-11-22.md)) já estão em produção. A revisão 4 incorpora o **Portal opcional** (seção 23, plano [planmode-radar-portal-opcional-2026-11-23.md](../planos/planmode-radar-portal-opcional-2026-11-23.md)), o número do processo no card e a projeção dos itens dentro da criação do instrumento. Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
 Escopo: o Radar de convênios do SICONV (candidatos "legados"), da descoberta diária até a entrada na carteira de monitoramento. Cobre também a aba de propostas do TransfereGov e o job que a alimenta, porque dividem o workflow e a central. O detalhe do que acontece depois da aprovação está em [monitoramento-interno.md](monitoramento-interno.md).
 
@@ -234,14 +234,13 @@ flowchart TB
     T1 --> RP{"Mesma chave já aprovada?"}:::regra
     RP -->|"sim, mesmos dados e mesmo titular"| IDEM["Devolve o resultado anterior"]:::regra
     RP -->|"sim, dados ou titular diferentes"| E1["409"]:::erro
-    RP -->|"não"| REV["preparar_revisao: estado novo ou em análise,<br/>versão e captura iguais, fora da carteira,<br/>descoberta oficial com Portal confirmado, recaptura mais recente,<br/>rodada siconv_recaptura ok e dentro de 24 h,<br/>hash igual, projeção igual à prova"]:::regra
+    RP -->|"não"| REV["preparar_revisao: estado novo ou em análise,<br/>versão e captura iguais, fora da carteira,<br/>descoberta oficial com publicação no SICONV (DIA_PUBL_CONV), recaptura mais recente,<br/>rodada siconv_recaptura ok,<br/>hash igual, projeção igual à prova"]:::regra
     REV -->|"qualquer falha"| E1
     REV --> CART["carteira_legado.adicionar (insert estrito)"]:::dado
     CART --> MARC["Marcadores de equipamento<br/>(classificar_descricoes)"]:::dado
     MARC --> DECR[("Linha de decisão: aprovado<br/>com tecnico_titular_id")]:::dado
-    DECR --> INST["criar_instrumento_monitorado<br/>tipo Convênio, origem radar_aprovacao,<br/>titular gravado"]:::dado
-    INST --> ITP["projetar_itens_plano (aplicar)"]:::dado
-    ITP --> NOT["Notificações:<br/>inclusao_monitoramento (titular, suplente, gestor, admin)<br/>aprovacao_carteira (gestor, admin)"]:::aviso
+    DECR --> INST["criar_instrumento_monitorado<br/>tipo Convênio, origem radar_aprovacao, titular gravado.<br/>Liga os itens ao instrumento e projeta o plano<br/>(regra de valor e exceção do instrumento)"]:::dado
+    INST --> NOT["Notificações:<br/>inclusao_monitoramento (titular, suplente, gestor, admin)<br/>aprovacao_carteira (gestor, admin)"]:::aviso
     NOT --> FRESC["Confere frescor de novo"]:::regra
     FRESC --> COM["commit"]:::dado
     COM -. "IntegrityError em qualquer passo" .-> E1
@@ -507,9 +506,9 @@ sequenceDiagram
     UI->>API: PATCH lidas
 ```
 
-## 18. Radar antes do Portal (implementado em 22/11/2026)
+## 18. Radar antes do Portal (implementado em 22/11/2026; Aprovar deixou de exigir o Portal em 23/11, seção 23)
 
-O Portal é necessário para **recapturar e aprovar**, porque a recaptura traz convenente, município e data do Portal, e esses campos são gravados uma vez na aprovação. Para **enxergar** o candidato ele só atrasava, porque o SICONV já traz assinatura e publicação e o Portal repete a mesma data. Por isso a confirmação deixou de esconder o candidato e continua travando a aprovação.
+Nesta seção o Portal ainda aparece como pré-requisito de recaptura e aprovação; a regra vigente está na seção 23. O Portal era necessário para **recapturar e aprovar**, porque a recaptura traz convenente, município e data do Portal, e esses campos são gravados uma vez na aprovação. Para **enxergar** o candidato ele só atrasava, porque o SICONV já traz assinatura e publicação e o Portal repete a mesma data. Por isso a confirmação deixou de esconder o candidato e continua travando a aprovação.
 
 ```mermaid
 flowchart TB
@@ -581,10 +580,12 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 | Revalidação (esconde falso positivo) | Só em clone local | |
 | Aba Propostas em tramitação | Removida da central em 22/11/2026 | |
 | Comparação canônica de identificadores do SICONV | Implementada em 22/11, só em commit local | |
-| Popup de detalhe da atualização oficial (sino e Central) | Implementado em 22/11, só em commit local | |
-| Resumo único para a gestão acima de 10 convênios | Implementado em 22/11, só em commit local | |
-| Confirmação do Portal só com código e data | Implementada em 22/11, só em commit local | |
-| Fila, contador e aviso sem esperar o Portal; selo Portal pendente; Aprovar travado até confirmar (seção 18) | Implementado em 22/11, só em commit local | |
+| Popup de detalhe da atualização oficial (sino e Central) | Em produção | |
+| Resumo único para a gestão acima de 10 convênios | Em produção | |
+| Confirmação do Portal só com código e data | Em produção | |
+| Fila, contador e aviso sem esperar o Portal; selo Portal pendente (seção 18) | Em produção | |
+| Recaptura e aprovação sem o Portal; publicação do SICONV obrigatória (seção 23) | Em produção desde 23/11 | |
+| Número do processo no card, como marcador, antes do selo Portal pendente | Em produção desde 23/11 | |
 | Aba Aguardando Portal | Dispensada: o selo e a idade ficam na própria fila | |
 | Job de descoberta TransfereGov e avisos de proposta | Ativo no workflow | |
 
@@ -608,3 +609,36 @@ Por que não aprovar antes do Portal: o cadastro nasceria sem convenente, CNPJ, 
 A recaptura deixou de ser passo manual local. O workflow `radar_convenios.yml` ganhou o passo `recaptura` depois da descoberta SICONV (`scripts/job_recaptura_legado.py`). Ele grava valor, município, UF e itens do plano de aplicação para cada candidato aberto, com o Portal confirmado e sem recaptura da descoberta atual. Os arquivos nacionais do SICONV são baixados uma vez por rodada. Nunca aprova.
 
 A validade de 24 h da prova foi removida da consulta (`expira_em`), da revisão, da aprovação e da tela. O Aprovar libera com o Portal confirmado e a recaptura gravada. A conferência por hash continua: o backend recusa se a prova mudou desde a revisão. Uma nova recaptura só é gravada quando a descoberta do candidato muda.
+
+## 23. Portal opcional na recaptura e na aprovação (23/11/2026)
+
+O Portal da Transparência virou enriquecimento. A prova mínima do candidato vem do SICONV e o cadastro nasce completo sem o Portal (número, objeto, convenente, CNPJ, município, UF, IBGE, processo e vigência). A **publicação registrada no SICONV** (`DIA_PUBL_CONV`) continua obrigatória na recaptura e na aprovação.
+
+```mermaid
+flowchart TB
+    classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
+    classDef nao fill:#FBE9E7,stroke:#C62828,color:#5a1010
+    classDef ok fill:#EAF6EC,stroke:#2E7D32,color:#1b4d1e
+    classDef dado fill:#F3EAF7,stroke:#7B3FA0,color:#40205a
+
+    R["Recaptura do candidato"]:::regra --> PUB{"SICONV tem DIA_PUBL_CONV<br/>e NR_PROPOSTA?"}:::regra
+    PUB -->|"não"| E1["Recusa com 409"]:::nao
+    PUB -->|"sim"| POR{"Portal respondeu?"}:::regra
+    POR -->|"não ou incompleto"| S1["compor_portal: cadastro só com SICONV<br/>origem_cadastro = siconv"]:::ok
+    POR -->|"sim"| CNPJ{"CNPJ igual ao do SICONV?"}:::regra
+    CNPJ -->|"não"| E2["Conflito: recusa"]:::nao
+    CNPJ -->|"sim"| S2["Portal onde tem valor, SICONV nos vazios<br/>(complementado_do_siconv)"]:::ok
+    S1 --> PROVA["Prova gravada em payload_oficial"]:::dado
+    S2 --> PROVA
+    PROVA --> APR["Aprovar libera com a recaptura gravada<br/>e o técnico titular escolhido"]:::ok
+```
+
+- O nome da instituição vem sempre do SICONV, e o CNPJ é a chave de conferência.
+- Campos só do Portal (situação, tipo de convenente, conclusão, última liberação) ficam vazios sem bloquear.
+- A conferência de data com o Portal só vale quando a origem do cadastro é o Portal.
+- Número do instrumento = sequencial de `NR_PROPOSTA` + `/` + `ANO` do convênio. O Portal usa o `ANO` do convênio, não o da proposta (934 convênios do MS, 2,8%, têm os dois diferentes).
+- Card: o número do processo aparece como marcador (só o número), no padrão do selo "Novo" e antes do selo "Portal pendente".
+- Em produção, a recaptura de 23/11 gravou 7 de 8 candidatos; o oitavo estava com a análise encerrada.
+
+> [!warning] A confirmar
+> A regra institucional "Portal opcional" ainda precisa de confirmação da área responsável. A norma consultada não o exige. Sem o Portal, nada confere a publicação com o DOU de forma independente.

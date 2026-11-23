@@ -1,4 +1,4 @@
-# Mapa do Monitoramento interno (revisão 4, de 22/11/2026)
+# Mapa do Monitoramento interno (revisão 5, de 23/11/2026)
 
 Objetivo: servir de base para a equipe validar o fluxo e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da branch `feat/persus-ii-fora-do-monitoramento` (estado de 21/11/2026, depois da revisão 3). Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
@@ -203,9 +203,11 @@ flowchart TB
 | Cancelamento | Exige unidade pendente; já desfeito dá 409 | `cancelamento_unidade` |
 | Rendimento de aplicação | Não soma unidade nem valor; aparece como linha filha do item principal | `classificacao_itens` |
 | Carga manual | Não tem valor, então não entra na regra de R$ 300 mil | `classificacao_itens` |
-| Decisão da equipe na fila de revisão | Prevalece sobre a regra automática | `decisao_classificacao_item` |
+| Decisão da equipe na fila de revisão | Prevalece sobre a regra automática. **Confirmar grava `conta_unidade = true` só quando a família controla unidade; sem família grava nulo**, e a projeção do convênio roda logo depois. Gravar `false` seria "a equipe decidiu não controlar" e escondia a regra de R$ 300 mil e a exceção (caso 949415, hemodinâmica de R$ 3,3 mi por unidade) | `classificacao_itens_plano.decidir`, `decisao_classificacao_item` |
+| Criar instrumento monitorado (Mesa ou aprovação do Radar) | Liga os itens soltos ao instrumento **e projeta o plano na mesma transação**, para a exceção de R$ 100 mil valer nos dois caminhos. Só ligar não bastava (caso 970368) | `monitoramento_instrumentos.criar_instrumento_monitorado_sem_commit` |
+| Fila de revisão de itens | Não lista item de convênio fora de escopo | `classificacao_itens_plano.listar_fila` |
 | Decisão sobre item que mudou desde a leitura | 409: a decisão informa a situação esperada (`situacao_esperada`, padrão pendente); em item de instrumento concluído, 409 "reabra" (decidir muda `controla_unidade`) | `classificacao_itens_plano.decidir` |
-| Convênio com todos os itens obra ou serviço | `fora_escopo_equipamentos=true`: some de tudo | `instrumento_no_escopo()` |
+| Convênio com todos os itens obra ou serviço, ou de órgão que não é o Ministério da Saúde | `fora_escopo_equipamentos=true`: some de tudo. Em 23/11/2026 foram marcados o 880090 (Ministério das Mulheres) e o 725685 (UFPE); as demais unidades gestoras (FNS e CEF-Programas do MS) são do Ministério da Saúde | `instrumento_no_escopo()` |
 | PERSUS II | Fora do monitoramento interno | `criar_instrumento_monitorado` |
 | Acompanhamento concluído | Nada pode ser alterado até reabrir (seção 5) | `assert_nao_concluido` |
 
@@ -394,12 +396,12 @@ Busca, paginação e bloqueios do Radar:
 - A lista aceita `busca` (até 100 caracteres), `situacao` (novo, em análise, aprovado, rejeitado; várias), `confirmacao` do portal (não consultado, não encontrado, sem publicação, confirmado) e paginação de 1 a 50 por página (padrão 10). Só entram descobertas da fonte oficial.
 - Só gestor e admin ativos listam, veem histórico e prova, decidem e aprovam; os demais recebem 403.
 - Rejeitar exige a versão atual do candidato (409 "o candidato mudou" se alguém decidiu antes) e uma situação que permita a decisão.
-- Aprovar exige a prova da última recaptura: hash conferido, rodada de até 24 horas e completa (rodada parcial, expirada ou com horário futuro dá 409). A chave de aprovação é idempotente: repetir com os mesmos dados devolve o mesmo resultado; com dados diferentes (inclusive outro técnico titular, comparado com o titular gravado na decisão original, `candidato_legado_decisao.tecnico_titular_id`), 409.
+- Aprovar exige a prova da última recaptura: hash conferido e rodada completa, com a publicação do SICONV (rodada parcial ou sem publicação dá 409). A chave de aprovação é idempotente: repetir com os mesmos dados devolve o mesmo resultado; com dados diferentes (inclusive outro técnico titular, comparado com o titular gravado na decisão original, `candidato_legado_decisao.tecnico_titular_id`), 409.
 - Concorrência: a aprovação trava o lote e o candidato; se a carteira ou o histórico conflitarem, 409 e nada é gravado.
 
 Detalhes do aprovar com técnico:
 
-- O botão **Aprovar** fica desabilitado, com o motivo no tooltip, sem confirmação do Portal ou sem prova vigente (recaptura de até 24 h); com os dois, abre o mesmo pop-up de "Adicionar ao monitoramento interno": o técnico titular é obrigatório e **Confirmar** já leva o instrumento ao monitoramento. Não há mais "Iniciar análise"; sobra Aprovar e Rejeitar.
+- O botão **Aprovar** fica desabilitado, com o motivo no tooltip, enquanto não houver recaptura gravada (o Portal é opcional desde 23/11; a validade de 24 h da prova foi removida); com ela, abre o mesmo pop-up de "Adicionar ao monitoramento interno": o técnico titular é obrigatório e **Confirmar** já leva o instrumento ao monitoramento. Não há mais "Iniciar análise"; sobra Aprovar e Rejeitar.
 - A lista tem duas abas: **Aguardando** (novo e em análise) e **Arquivados** (aprovado e rejeitado). O card não mostra o campo Item; o botão **Itens · n**, ao lado do número do convênio, abre um pop-up em tabela (item, quantidade, valor unitário e total) com todos os bens da última recaptura.
 - O monitor da coleta (status, defasagem, contagens e detalhes) aparece completo só para o admin. Os demais perfis veem apenas a data e hora da última coleta com sucesso.
 - O técnico titular é obrigatório também na API (sem ele, 422): toda aprovação vai ao monitoramento. A mesma transação cria o instrumento monitorado (tipo Convênio, origem `radar_aprovacao`), grava o titular e emite o aviso de inclusão. Se qualquer passo falhar, nada é gravado.
@@ -458,7 +460,7 @@ Marque a coluna final com **usa**, **não usa** ou **não conheço**.
 
 | # | Funcionalidade | Onde fica | Equipe usa? |
 |---|---|---|---|
-| 1 | Filtros da Mesa: busca por número, convenente, CNES ou município; contratação; CNES; UF; município; prioritário; equipamento; situação; programa; período | Mesa de trabalho | |
+| 1 | Filtros da Mesa: busca por número, convenente, CNES ou município; contratação; CNES; UF; município; prioritário; equipamento; situação; programa; período; **responsável** (técnico titular, com a opção "Sem responsável") | Mesa de trabalho | |
 | 2 | Indicadores no topo da Mesa e lista de instrumentos | Mesa de trabalho | |
 | 3 | Adicionar instrumento ao monitoramento | Dados oficiais | |
 | 4 | Cadastro interno (técnico titular e suplente, nível, tipologia, modalidade, responsável da execução, CNES) | Detalhe | |

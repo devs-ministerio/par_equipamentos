@@ -1,6 +1,6 @@
-# Mapa do banco de dados (revisão 1, de 22/11/2026)
+# Mapa do banco de dados (revisão 2, de 23/11/2026)
 
-Objetivo: dar uma visão única das 50 tabelas do schema e de como elas se ligam, para a equipe validar o modelo e apontar o que está sem uso. Gerado a partir do schema real no head `d9e0f1a2b3c4` (cópia de ensaio `sigeo_ensaio_release_20261122`): 50 tabelas, 596 colunas e 98 chaves estrangeiras. Produção ainda está em `e9f0a1b2c3d4`; as 7 tabelas que só existem no head estão marcadas. Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
+Objetivo: dar uma visão única das 50 tabelas do schema e de como elas se ligam, para a equipe validar o modelo e apontar o que está sem uso. Gerado a partir do schema real no head `d9e0f1a2b3c4` (cópia de ensaio `sigeo_ensaio_release_20261122`): 50 tabelas, 596 colunas e 98 chaves estrangeiras. Produção está no head `d9e0f1a2b3c4` desde 23/11/2026 (conferido em `alembic_version`); as 7 tabelas marcadas com asterisco chegaram junto, e a revisão 2 não mudou o schema. Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
 Cada entidade mostra só a chave primária, as chaves estrangeiras e até 6 colunas de negócio. O detalhe de todas as colunas fica para o dicionário de dados. `autor_id` e `deletado_por_id` apontam para `user` em todas as tabelas append-only e foram omitidos das relações para não poluir o desenho.
 
@@ -14,7 +14,7 @@ Cada entidade mostra só a chave primária, as chaves estrangeiras e até 6 colu
 | Radar | `fonte_captura`, `candidato_legado`, `candidato_legado_captura`, `candidato_legado_componente`, `candidato_legado_evidencia`, `candidato_legado_recaptura`, `candidato_legado_decisao`, `proposta_candidata`, `evidencia_transferegov` | Job de descoberta, recaptura e gestão |
 | Acesso e avisos | `user`, `refresh_token`, `audit_log`, `notificacao`, `notificacao_destinatario` | Aplicação |
 
-\* Só existe no head; ainda não está em produção.
+\* Tabela criada no release de 22/11/2026 (migrations até `d9e0f1a2b3c4`); já está em produção.
 
 Fora dos domínios: `alembic_version`, controlada pelo Alembic.
 
@@ -330,7 +330,7 @@ erDiagram
 
 ## 4. Itens e entregas
 
-O plano de aplicação do SICONV vira `item_plano` (um equipamento distinto por linha). A entrega é append-only e gera `unidade_equipamento` para as famílias com controle por unidade ou valor unitário acima do limite. `equipamento_catalogo` é o catálogo das famílias; `renem_item` e `codigo_item_legado` o alimentam. `decisao_classificacao_item` guarda a decisão de classificação por `convenio_numero` e `chave_item`, sem chave estrangeira.
+O plano de aplicação do SICONV vira `item_plano` (um equipamento distinto por linha). A entrega é append-only e gera `unidade_equipamento` para as famílias com controle por unidade ou valor unitário acima do limite. `equipamento_catalogo` é o catálogo das famílias; `renem_item` e `codigo_item_legado` o alimentam. `decisao_classificacao_item` guarda a decisão de classificação por `convenio_numero` e `chave_item`, sem chave estrangeira. Em `conta_unidade`, nulo significa que a equipe não afirmou controle (a projeção aplica a regra de valor e a exceção do instrumento) e `false` é decisão explícita de não controlar. `convenio.fora_escopo_equipamentos` esconde o convênio de tudo (obra e serviço, ou órgão que não é o Ministério da Saúde).
 
 ```mermaid
 erDiagram
