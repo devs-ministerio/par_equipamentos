@@ -23,15 +23,6 @@ export function entrouNoRadarRecente(l: LinhaCarteira): boolean {
   return new Date(l.entrou_radar_em).getTime() >= limite;
 }
 
-export const JANELA_VALOR_RADAR_DIAS = 30;
-
-export function entrouNoRadarNaJanela(l: LinhaCarteira, dias: number): boolean {
-  if (!l.entrou_radar_em) return false;
-  return (
-    new Date(l.entrou_radar_em).getTime() >= Date.now() - dias * 86_400_000
-  );
-}
-
 export function aplicaFiltro(l: LinhaCarteira, f: FiltroCarteira): boolean {
   if (f === "faltam") return !l.monitorado;
   if (f === "acoes-pendentes") return l.monitorado && l.acoes_abertas > 0;

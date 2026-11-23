@@ -16,9 +16,8 @@ import {
 } from "@/components/features/painel-tecnico-secoes";
 import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-carteira";
 import {
-  entrouNoRadarNaJanela,
   entrouNoRadarRecente,
-  JANELA_VALOR_RADAR_DIAS,
+  JANELA_RADAR_DIAS,
   type FiltroCarteira,
 } from "@/lib/painel-tecnico-filtro";
 import { fmtMoeda } from "@/lib/monitoramento-format";
@@ -97,8 +96,8 @@ export function MonitoramentoMeuPainelPage() {
     (l) => l.monitorado && l.fase === "Concluído",
   ).length;
   const novosRadar = linhas.filter(entrouNoRadarRecente).length;
-  const valorRadar30 = linhas
-    .filter((l) => entrouNoRadarNaJanela(l, JANELA_VALOR_RADAR_DIAS))
+  const valorRadar = linhas
+    .filter(entrouNoRadarRecente)
     .reduce((t, l) => t + (l.valor_global ?? 0), 0);
   const pendentes = linhas.reduce((t, l) => t + l.acoes_abertas, 0);
   const atrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
@@ -154,7 +153,7 @@ export function MonitoramentoMeuPainelPage() {
             key: "radar",
             label: "Novos Instrumentos",
             value: novosRadar,
-            detail: `${fmtMoeda(valorRadar30)} nos últimos ${JANELA_VALOR_RADAR_DIAS} dias`,
+            detail: `${fmtMoeda(valorRadar)} nos últimos ${JANELA_RADAR_DIAS} dias`,
             onClick: () => alternar("radar"),
             ativo: filtroCarteira === "radar",
           },
