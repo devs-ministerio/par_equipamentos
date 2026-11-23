@@ -1,49 +1,29 @@
-import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
-import { Pagination } from "@/components/common/pagination";
-import { useListaPaginada } from "@/hooks/useListaPaginada";
 import { cn } from "@/lib/utils";
 import type {
-  AcaoAbertaResumo,
   DivergenciaConclusao,
   InauguracaoResumo,
   LicencaVencendoResumo,
 } from "@/services/monitoramento-resumo";
-import { AgendaExecutiva } from "./monitoramento-painel-agenda";
-import { DivergenciasConclusao } from "./monitoramento-painel-divergencias";
-import { MonitoramentoPainelVigencias } from "./monitoramento-painel-vigencias";
 import { PainelSecao } from "./monitoramento-painel-visuals";
 
 interface Props {
-  vigencias: Array<{
-    nr_convenio: string;
-    nome_convenente: string;
-    data_final: string;
-    dias: number;
-  }>;
   licencas: LicencaVencendoResumo[];
   inauguracoes: InauguracaoResumo[];
   divergencias: DivergenciaConclusao[];
-  divergenciasPorFonte: string;
   semTecnico: number;
   acoesAtrasadas: number;
   acoesPendentes: number;
   licencasCnenDeferidas: { quantidade: number; total: number };
-  acoes: AcaoAbertaResumo[];
-  filaTruncada: boolean;
 }
 
 export function MonitoramentoPainelPendencias({
-  vigencias,
   licencas,
   inauguracoes,
   divergencias,
-  divergenciasPorFonte,
   semTecnico,
   acoesAtrasadas,
   acoesPendentes,
   licencasCnenDeferidas,
-  acoes,
-  filaTruncada,
 }: Props) {
   const licencasEmNoventaDias = licencas.filter(
     (item) => item.dias < 90,
@@ -55,11 +35,6 @@ export function MonitoramentoPainelPendencias({
   const licencasProximas = licencas.filter(
     (item) => item.dias >= 0 && item.dias < 90,
   ).length;
-  const {
-    pagina: paginaAcoes,
-    definirPagina: definirPaginaAcoes,
-    inicio: inicioAcoes,
-  } = useListaPaginada(acoes.length, 8, acoes.map((acao) => acao.id).join("|"));
   const indicadores = [
     {
       rotulo: "Licenças em menos de 90 dias",
@@ -129,93 +104,6 @@ export function MonitoramentoPainelPendencias({
           </div>
         ))}
       </div>
-
-      <MonitoramentoPainelVigencias vigencias={vigencias} />
-
-      <div className="mt-7 grid gap-x-9 gap-y-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <PainelSecao
-          titulo="Agenda de prazos"
-          apoio="Licenças e inaugurações por proximidade"
-          className="flex min-w-0 flex-col"
-        >
-          <AgendaExecutiva inauguracoes={inauguracoes} licencas={licencas} />
-        </PainelSecao>
-        <PainelSecao
-          titulo="Divergências de conclusão"
-          apoio={
-            divergenciasPorFonte || `${divergencias.length} casos no recorte`
-          }
-          className="flex min-w-0 flex-col"
-        >
-          <DivergenciasConclusao itens={divergencias} />
-        </PainelSecao>
-      </div>
-
-      <PainelSecao
-        titulo="Fila de ações"
-        apoio={`${acoesPendentes} pendentes no recorte`}
-        className="mt-8"
-      >
-        {acoes.length ? (
-          <div className="divide-y divide-border">
-            {acoes.slice(inicioAcoes, inicioAcoes + 8).map((acao) => (
-              <LinkDetalheInstrumento
-                key={acao.id}
-                nrConvenio={acao.nr_convenio}
-                className="group grid gap-1 py-3 text-sm transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4"
-              >
-                <span className="min-w-0">
-                  <strong className="block font-semibold text-foreground group-hover:text-primary">
-                    {acao.descricao}
-                  </strong>
-                  <span className="text-xs text-muted-foreground">
-                    {acao.nome_convenente} ·{" "}
-                    {acao.responsavel ?? "Responsável não definido"}
-                  </span>
-                </span>
-                <span
-                  className={cn(
-                    "text-xs font-semibold sm:text-right",
-                    acao.dias != null && acao.dias < 0
-                      ? "text-destructive"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {acao.dias == null
-                    ? "Sem prazo"
-                    : acao.dias < 0
-                      ? `${Math.abs(acao.dias)} dias de atraso`
-                      : acao.dias === 0
-                        ? "Vence hoje"
-                        : `Em ${acao.dias} dias`}
-                </span>
-              </LinkDetalheInstrumento>
-            ))}
-          </div>
-        ) : (
-          <p className="py-6 text-sm text-muted-foreground">
-            {acoesPendentes > 0
-              ? "Há ações pendentes neste recorte que não estão na lista carregada."
-              : "Nenhuma ação pendente neste recorte."}
-          </p>
-        )}
-        {acoes.length > 0 && (
-          <nav aria-label="Paginação da fila de ações">
-            <Pagination
-              page={paginaAcoes}
-              totalItems={acoes.length}
-              pageSize={8}
-              onPageChange={definirPaginaAcoes}
-            />
-          </nav>
-        )}
-        {filaTruncada && acoesPendentes > acoes.length && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            A lista carregada contém as primeiras 500 ações da base por prazo;
-            há pendências deste recorte fora dela.
-          </p>
-        )}
-      </PainelSecao>
 
       <PainelSecao titulo="Qualidade do acompanhamento" className="mt-8">
         <div className="grid divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">

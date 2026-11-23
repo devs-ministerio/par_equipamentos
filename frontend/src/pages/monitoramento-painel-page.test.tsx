@@ -41,7 +41,7 @@ function metrica(rotulo: string) {
 }
 
 describe("Painel de gestão com composição e HTTP reais simulados", () => {
-  it("recalcula valor/vigências por recorte e remove valor cuja fonte deixou de ser confiável", async () => {
+  it("recalcula o valor por recorte e remove valor cuja fonte deixou de ser confiável", async () => {
     // Given: relógio fixo apenas para Date; chamadas assíncronas continuam reais.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
@@ -56,36 +56,13 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     expect(
       metrica("Valor global informado").getByText(/2\.000/),
     ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", {
-        name: /Instrumentos com vigência a encerrar/,
-      }),
-    );
-    expect(
-      within(screen.getByRole("dialog")).getByRole("link", { name: /QA001/ }),
-    ).toBeInTheDocument();
-    await user.keyboard("{Escape}");
-    // When: a vigência pertence à UF excluída.
+    // When: o recorte exclui uma UF.
     await user.click(screen.getByRole("button", { name: /^UF/ }));
     await user.click(screen.getByRole("option", { name: "BA" }));
     // Then
     expect(
       metrica("Valor global informado").getByText(/1\.000/),
     ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", {
-        name: /Instrumentos com vigência a encerrar/,
-      }),
-    );
-    expect(
-      within(screen.getByRole("dialog")).queryByRole("link"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(screen.getByRole("dialog")).getByText(
-        /Nenhuma vigência com encerramento/,
-      ),
-    ).toBeInTheDocument();
-    await user.keyboard("{Escape}");
     // When: atualização da fonte retira a base comparável do instrumento filtrado.
     lista.itens[1]!.financeiro_fonte_confiavel = false;
     await act(async () => {

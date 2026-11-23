@@ -98,17 +98,6 @@ export function MonitoramentoPainelPage() {
   const instrumentosFiltrados = filtros.filtrados;
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
   const fases = [...FASES_ACOMPANHAMENTO];
-  const divergenciasPorFonte = [
-    ...dados.divergencias
-      .reduce((contagem, item) => {
-        const fonte = item.fonte_externa;
-        contagem.set(fonte, (contagem.get(fonte) ?? 0) + 1);
-        return contagem;
-      }, new Map<string, number>())
-      .entries(),
-  ]
-    .map(([fonte, quantidade]) => `${fonte}: ${quantidade}`)
-    .join(" · ");
 
   return (
     <div className="pb-8">
@@ -175,11 +164,9 @@ export function MonitoramentoPainelPage() {
       <MonitoramentoPainelLacunas lacunas={dados.lacunas} />
 
       <MonitoramentoPainelPendencias
-        vigencias={dados.vigenciasProximas}
         licencas={dados.licencas}
         inauguracoes={dados.inauguracoes}
         divergencias={dados.divergencias}
-        divergenciasPorFonte={divergenciasPorFonte}
         semTecnico={dados.semTecnico}
         acoesAtrasadas={dados.acoesAtrasadas}
         acoesPendentes={dados.acoesPendentes}
@@ -187,8 +174,6 @@ export function MonitoramentoPainelPage() {
           quantidade: dados.licencasDeferidas,
           total: instrumentosFiltrados.length,
         }}
-        acoes={dados.acoes}
-        filaTruncada={resumo.fila_acoes_truncada}
       />
 
       <MonitoramentoPainelGeografia

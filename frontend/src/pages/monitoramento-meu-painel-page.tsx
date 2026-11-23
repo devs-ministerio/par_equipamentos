@@ -4,6 +4,12 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardColaborador } from "@/components/features/card-colaborador";
+import { MonitoramentoFilaAcoes } from "@/components/features/monitoramento-fila-acoes";
+import { MonitoramentoPainelPrazos } from "@/components/features/monitoramento-painel-prazos";
+import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
+import { useConveniosLista } from "@/hooks/useConveniosLista";
+import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
+import { useMonitoramentoResumo } from "@/hooks/useMonitoramentoResumo";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import {
   useCarteiraTecnico,
@@ -33,6 +39,9 @@ export function MonitoramentoMeuPainelPage() {
   const [filtroCarteira, setFiltroCarteira] = useState<FiltroCarteira>("todos");
   const linhas = carteiraQuery.data ?? [];
   const dados = consulta.data;
+  const resumo = useMonitoramentoResumo();
+  const instrumentosQuery = useMonitoramentoInstrumentos();
+  const conveniosQuery = useConveniosLista();
 
   const titulo = gestao ? "Painéis da equipe" : "Meu painel";
   const filtro = gestao ? (
@@ -100,6 +109,19 @@ export function MonitoramentoMeuPainelPage() {
     .filter(entrouNoRadarRecente)
     .reduce((t, l) => t + (l.valor_global ?? 0), 0);
   const pendentes = linhas.reduce((t, l) => t + l.acoes_abertas, 0);
+  const numerosMonitorados = new Set(
+    linhas.filter((l) => l.monitorado).map((l) => l.numero),
+  );
+  const prazos =
+    resumo.data && instrumentosQuery.data && conveniosQuery.data
+      ? montarMetricasPainel(
+          instrumentosQuery.data.filter((i) =>
+            numerosMonitorados.has(i.nr_convenio),
+          ),
+          resumo.data,
+          conveniosQuery.data.itens,
+        )
+      : null;
   const atrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
   const alternar = (f: FiltroCarteira) =>
     setFiltroCarteira((atual) => (atual === f ? "todos" : f));
@@ -170,6 +192,22 @@ export function MonitoramentoMeuPainelPage() {
           filtro={filtroCarteira}
           onLimpar={() => setFiltroCarteira("todos")}
         />
+      )}
+      {prazos && (
+        <>
+          <MonitoramentoPainelPrazos
+            vigencias={prazos.vigenciasProximas}
+            licencas={prazos.licencas}
+            inauguracoes={prazos.inauguracoes}
+            divergencias={prazos.divergencias}
+          />
+          <MonitoramentoFilaAcoes
+            acoes={prazos.acoes}
+            acoesPendentes={pendentes}
+            filaTruncada={resumo.data?.fila_acoes_truncada ?? false}
+            className="mt-8"
+          />
+        </>
       )}
       <SecaoRegistro dados={dados} />
       <SecaoAtividade dados={dados} />
