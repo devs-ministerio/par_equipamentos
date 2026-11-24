@@ -22,10 +22,6 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
-import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
-import { MultiSelectFilter } from "@/components/common/multi-select-filter";
-import { SingleSelectFilter } from "@/components/common/single-select-filter";
-import { SearchInput } from "@/components/common/search-input";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { SecaoPropostasCandidatas } from "@/components/features/secao-propostas-candidatas";
 import {
@@ -36,10 +32,7 @@ import { DadosOficiaisMetricas } from "@/components/features/dados-oficiais-metr
 import { DadosOficiaisFiltros } from "@/components/features/dados-oficiais-filtros";
 import { DadosOficiaisLista } from "@/components/features/dados-oficiais-lista";
 import { DadosOficiaisInstrumentos } from "@/components/features/dados-oficiais-instrumentos";
-import type {
-  AbaDadosOficiais,
-  ClasseEquipamento,
-} from "@/types/dados-oficiais";
+import type { AbaDadosOficiais } from "@/types/dados-oficiais";
 import {
   TAMANHO_PAGINA_DADOS_OFICIAIS,
   useDadosOficiaisFiltros,
@@ -110,36 +103,23 @@ export function MonitoramentoEquipamentosPage() {
     },
     [setSearchParams],
   );
+  const filtrosDadosOficiais = useDadosOficiaisFiltros();
   const {
     busca,
-    setBusca,
     uf,
-    setUf,
     municipio,
-    setMunicipio,
     cnes,
-    setCnes,
     equipamento,
-    setEquipamento,
     classeEquipamento,
-    setClasseEquipamento,
     situacao,
-    setSituacao,
     anoInicio,
-    setAnoInicio,
     anoFim,
-    setAnoFim,
     programa,
-    setPrograma,
     tipoContratacao,
-    setTipoContratacao,
     monitorado,
-    setMonitorado,
     pagina,
     setPagina,
-    hasFiltros,
-    limparFiltros,
-  } = useDadosOficiaisFiltros();
+  } = filtrosDadosOficiais;
   const instrumentosQuery = useMonitoramentoInstrumentos();
   const monitoramentoPronto =
     monitorado === null || instrumentosQuery.isSuccess;
@@ -325,111 +305,25 @@ export function MonitoramentoEquipamentosPage() {
               )}
 
               <DadosOficiaisFiltros
-                ativos={hasFiltros}
-                onLimpar={limparFiltros}
-                contagem={
+                filtros={filtrosDadosOficiais}
+                opcoes={{
+                  tipoContratacao: tipoContratacaoOptions,
+                  uf: ufs,
+                  municipio: municipioOptions,
+                  cnes: cnesOptions,
+                  equipamento: equipamentoOptions,
+                  situacao: situacaoOptions,
+                  programa: programaOptions,
+                  ano: anoOptions,
+                }}
+                aviso={
                   monitoramentoPronto
-                    ? `${filtrados.length} de ${convenios.length} instrumentos`
+                    ? undefined
                     : instrumentosQuery.isError
                       ? "Monitoramento indisponível"
                       : "Consultando monitoramento..."
                 }
-              >
-                <SearchInput
-                  value={busca}
-                  onChange={setBusca}
-                  placeholder="Buscar número, convenente, CNES ou município"
-                  width={90}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Contratação"
-                  options={tipoContratacaoOptions}
-                  selected={tipoContratacao}
-                  onChange={setTipoContratacao}
-                />
-                <SingleSelectFilter
-                  placeholder="Monitorado"
-                  options={[
-                    { value: "sim", label: "Sim" },
-                    { value: "nao", label: "Não" },
-                  ]}
-                  value={monitorado}
-                  onChange={setMonitorado}
-                  clearLabel="Todos"
-                  minWidth={120}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="UF"
-                  options={ufs}
-                  selected={uf}
-                  onChange={setUf}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="CNES"
-                  options={cnesOptions}
-                  selected={cnes}
-                  onChange={setCnes}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Município"
-                  options={municipioOptions}
-                  selected={municipio}
-                  onChange={setMunicipio}
-                />
-                <div
-                  role="group"
-                  aria-label="Classificação e equipamento"
-                  className="flex w-full min-w-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-md sm:outline sm:outline-1 sm:outline-border sm:outline-offset-2"
-                >
-                  <SingleSelectFilter
-                    placeholder="Prioritário"
-                    options={[
-                      { value: "prioritario", label: "Prioritários" },
-                      { value: "outro", label: "Outros identificados" },
-                    ]}
-                    value={classeEquipamento}
-                    onChange={(valor) =>
-                      setClasseEquipamento(
-                        (valor ?? "prioritario") as ClasseEquipamento,
-                      )
-                    }
-                    clearLabel="Prioritários"
-                    minWidth={125}
-                  />
-                  <MultiSelectFilter
-                    appearance="standard"
-                    placeholder="Equipamento"
-                    options={equipamentoOptions}
-                    selected={equipamento}
-                    onChange={setEquipamento}
-                  />
-                </div>
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Situação"
-                  options={situacaoOptions}
-                  selected={situacao}
-                  onChange={setSituacao}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Programas"
-                  options={programaOptions}
-                  selected={programa}
-                  onChange={setPrograma}
-                />
-                <AnoIntervaloFilter
-                  options={anoOptions}
-                  inicio={anoInicio}
-                  fim={anoFim}
-                  onInicioChange={setAnoInicio}
-                  onFimChange={setAnoFim}
-                />
-              </DadosOficiaisFiltros>
+              />
 
               <DadosOficiaisInstrumentos
                 carregando={!monitoramentoPronto && !instrumentosQuery.isError}

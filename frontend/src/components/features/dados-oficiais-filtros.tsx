@@ -1,24 +1,28 @@
-import type { ReactNode } from "react";
-import { FilterWorkspace } from "@/components/common/filter-workspace";
+import { BarraFiltros } from "@/components/common/barra-filtros";
+import {
+  montarControlesDadosOficiais,
+  montarRecortesDadosOficiais,
+  type FiltrosDadosOficiais,
+  type OpcoesDadosOficiais,
+} from "./dados-oficiais-filtros-controles";
 
+/** Filtros de Dados oficiais no mesmo padrão do Painel de gestão. */
 export function DadosOficiaisFiltros({
-  ativos,
-  onLimpar,
-  contagem,
-  children,
+  filtros,
+  opcoes,
+  aviso,
 }: {
-  ativos: boolean;
-  onLimpar: () => void;
-  contagem: string;
-  children: ReactNode;
+  filtros: FiltrosDadosOficiais;
+  opcoes: OpcoesDadosOficiais;
+  aviso?: string;
 }) {
   return (
-    <FilterWorkspace
-      hasAnyFilter={ativos}
-      onClear={onLimpar}
-      contagem={contagem}
-    >
-      {children}
-    </FilterWorkspace>
+    <BarraFiltros
+      controles={montarControlesDadosOficiais(filtros, opcoes)}
+      recortes={montarRecortesDadosOficiais(filtros, opcoes)}
+      onLimpar={filtros.limparFiltros}
+      aviso={aviso}
+      rotulo="Filtros de dados oficiais"
+    />
   );
 }

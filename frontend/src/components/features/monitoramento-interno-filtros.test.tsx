@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { describe, expect, it } from "vitest";
@@ -59,13 +59,28 @@ function montar(query = "") {
   );
   return userEvent.setup();
 }
-async function selecionar(
-  user: ReturnType<typeof userEvent.setup>,
-  campo: string,
+type Usuario = ReturnType<typeof userEvent.setup>;
+
+async function abrir(user: Usuario, filtro: string) {
+  await user.click(screen.getByRole("button", { name: filtro }));
+}
+/** Abre o filtro e escolhe uma opção da lista (o popover fecha ao escolher). */
+async function escolher(
+  user: Usuario,
+  filtro: string,
+  grupo: string,
   opcao: string,
 ) {
-  await user.click(screen.getByRole("button", { name: new RegExp(campo) }));
-  await user.click(screen.getByRole("option", { name: opcao }));
+  await abrir(user, filtro);
+  await user.click(
+    within(screen.getByRole("group", { name: grupo })).getByRole("button", {
+      name: opcao,
+    }),
+  );
+}
+async function escolherUf(user: Usuario, uf: string) {
+  await abrir(user, "UF / Município");
+  await user.selectOptions(screen.getByRole("combobox", { name: "UF" }), uf);
 }
 
 describe("Filtros reais do monitoramento e URL", () => {
@@ -78,118 +93,132 @@ describe("Filtros reais do monitoramento e URL", () => {
       </MemoryRouter>,
     );
     const user = userEvent.setup();
+    // Then: a etiqueta do filtro ativo usa a grafia exibida.
+    expect(
+      screen.getByRole("button", {
+        name: "Remover filtro Município: Anápolis",
+      }),
+    ).toBeInTheDocument();
     // When
-    await user.click(screen.getByRole("button", { name: /^Anápolis/ }));
+    await abrir(user, "UF / Município");
     // Then: valor normalizado não vaza como rótulo em minúsculas.
     expect(
-      screen.getByRole("option", { name: "Anápolis" }),
+      within(screen.getByRole("group", { name: "Município" })).getByRole(
+        "button",
+        { name: "Anápolis", pressed: true },
+      ),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("option", { name: "Anápolis" }));
-    expect(
-      screen.getByRole("button", { name: /^Anápolis/ }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("2 de 2 instrumentos")).toBeInTheDocument();
   });
 
   it("preserva espaços durante a digitação de uma busca com várias palavras", async () => {
     // Given: campo controlado pela URL, sem setters simulados.
     const user = montar("pagina=3&origem=teste");
-    const busca = screen.getByRole("textbox", {
-      name: "Buscar número, convenente, CNES ou município",
-    });
+    await abrir(user, "Busca");
+    const busca = screen.getByRole("searchbox", { name: "Buscar instrumento" });
     // When: digitação incremental inclui um espaço entre palavras.
     await user.type(busca, "Hospital Sintético");
     // Then: busca, resultados e URL permanecem coerentes.
     expect(busca).toHaveValue("Hospital Sintético");
-    expect(screen.getByText("2 de 2 instrumentos")).toBeInTheDocument();
+    expect(screen.getByLabelText("Resultados")).toHaveTextContent(
+      "sintetico-0,sintetico-1",
+    );
     expect(screen.getByLabelText("URL")).not.toHaveTextContent("pagina=");
     expect(screen.getByLabelText("URL")).toHaveTextContent("origem=teste");
   });
 
   it.each([
-    ["Contratação", "TED", "sintetico-1"],
-    ["CNES", "teste-0", "sintetico-0"],
-    ["UF", "BA", "sintetico-1"],
-    ["Município", "Cidade Alfa", "sintetico-0"],
-    ["Equipamento", "Mamógrafo", "sintetico-0"],
-    ["Situação", "Concluído", "sintetico-1"],
-    ["Programas", "Programa Beta", "sintetico-1"],
+    ["Contratação", "Contratação", "TED", "sintetico-1"],
+    ["CNES", "CNES", "teste-0", "sintetico-0"],
+    ["Equipamento", "Equipamento", "Mamógrafo", "sintetico-0"],
+    ["Situação", "Situação", "Concluído", "sintetico-1"],
+    ["Programas", "Programas", "Programa Beta", "sintetico-1"],
   ])(
     "aplica %s e limpa o recorte sem apagar parâmetros externos",
-    async (campo, opcao, numero) => {
+    async (filtro, grupo, opcao, numero) => {
       // Given
       const user = montar("pagina=4&origem=teste");
       // When
-      await selecionar(user, campo, opcao);
+      await escolher(user, filtro, grupo, opcao);
       // Then
       expect(screen.getByLabelText("Resultados")).toHaveTextContent(numero);
-      expect(screen.getByText("1 de 2 instrumentos")).toBeInTheDocument();
+      expect(screen.getByLabelText("Resultados")).not.toHaveTextContent(",");
       expect(screen.getByLabelText("URL")).not.toHaveTextContent("pagina=");
       await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
       expect(screen.getByLabelText("URL")).toHaveTextContent("?origem=teste");
-      expect(screen.getByText("2 de 2 instrumentos")).toBeInTheDocument();
+      expect(screen.getByLabelText("Resultados")).toHaveTextContent(
+        "sintetico-0,sintetico-1",
+      );
     },
   );
+
+  it("aplica UF e Município no mesmo filtro", async () => {
+    // Given
+    const user = montar("origem=teste");
+    // When
+    await escolherUf(user, "BA");
+    // Then
+    expect(screen.getByLabelText("Resultados")).toHaveTextContent(
+      "sintetico-1",
+    );
+    // When
+    await user.click(
+      within(screen.getByRole("group", { name: "Município" })).getByRole(
+        "button",
+        { name: "Cidade Beta" },
+      ),
+    );
+    // Then
+    expect(screen.getByLabelText("URL")).toHaveTextContent("uf=BA");
+    expect(screen.getByLabelText("URL")).toHaveTextContent("municipio=");
+    expect(screen.getByLabelText("Resultados")).toHaveTextContent(
+      "sintetico-1",
+    );
+  });
 
   it("combina filtros e apresenta recorte vazio sem reutilizar resultados anteriores", async () => {
     // Given
     const user = montar();
     // When
-    await selecionar(user, "UF", "BA");
-    await selecionar(user, "Contratação", "Convênio");
+    await escolherUf(user, "BA");
+    await escolher(user, "Contratação", "Contratação", "Convênio");
     // Then
-    expect(screen.getByText("0 de 2 instrumentos")).toBeInTheDocument();
     expect(screen.getByLabelText("Resultados")).toBeEmptyDOMElement();
   });
 
-  it.each([
-    [
-      "ano_fim=2025",
-      "… — 2025",
-      "Ano início",
-      "2026",
-      "ano_inicio=2026",
-      "ano_fim=",
-      "sintetico-1",
-    ],
-    [
-      "ano_inicio=2026",
-      "2026 — …",
-      "Ano fim",
-      "2025",
-      "ano_fim=2025",
-      "ano_inicio=",
+  it("oferece apenas anos compatíveis com o outro limite do período", async () => {
+    // Given
+    const user = montar("ano_fim=2025&origem=teste&pagina=3");
+    // When
+    await abrir(user, "Período");
+    // Then: o ano inicial não passa do final.
+    const inicial = screen.getByRole("combobox", { name: "Ano inicial" });
+    expect(
+      within(inicial).queryByRole("option", { name: "2026" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(inicial).getByRole("option", { name: "2025" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Resultados")).toHaveTextContent(
       "sintetico-0",
-    ],
-  ])(
-    "substitui intervalo incompatível %s sem perder o ano escolhido",
-    async (query, rotulo, campo, ano, presente, ausente, numero) => {
-      // Given
-      const user = montar(`${query}&origem=teste&pagina=3`);
-      // When
-      await user.click(
-        screen.getByRole("button", { name: new RegExp(rotulo) }),
-      );
-      await selecionar(user, campo, ano);
-      // Then
-      expect(screen.getByLabelText("URL")).toHaveTextContent(presente);
-      expect(screen.getByLabelText("URL")).not.toHaveTextContent(ausente);
-      expect(screen.getByLabelText("URL")).toHaveTextContent("origem=teste");
-      expect(screen.getByLabelText("URL")).not.toHaveTextContent("pagina=");
-      expect(screen.getByLabelText("Resultados")).toHaveTextContent(numero);
-    },
-  );
+    );
+  });
 
   it("mantém o limite compatível e permite limpar apenas um ano", async () => {
     // Given
     const user = montar("ano_fim=2026");
     // When
-    await user.click(screen.getByRole("button", { name: /… — 2026/ }));
-    await selecionar(user, "Ano início", "2025");
+    await abrir(user, "Período");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Ano inicial" }),
+      "2025",
+    );
     // Then
     expect(screen.getByLabelText("URL")).toHaveTextContent("ano_inicio=2025");
     expect(screen.getByLabelText("URL")).toHaveTextContent("ano_fim=2026");
-    await selecionar(user, "^2025▾$", "Ano início");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Ano inicial" }),
+      "",
+    );
     expect(screen.getByLabelText("URL")).not.toHaveTextContent("ano_inicio=");
     expect(screen.getByLabelText("URL")).toHaveTextContent("ano_fim=2026");
   });
@@ -198,15 +227,17 @@ describe("Filtros reais do monitoramento e URL", () => {
     // Given
     const user = montar("equipamento=Mamógrafo");
     // When
-    await selecionar(user, "Todos", "Outros identificados");
-    await user.click(screen.getByRole("button", { name: /^Equipamento/ }));
-    // Then
-    expect(
-      screen.queryByRole("option", { name: "Mamógrafo" }),
-    ).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole("option", { name: "Cadeira hospitalar" }),
+    await abrir(user, "Equipamento");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Mostrar na lista" }),
+      "outro",
     );
+    // Then
+    const grupo = within(screen.getByRole("group", { name: "Equipamento" }));
+    expect(
+      grupo.queryByRole("button", { name: "Mamógrafo" }),
+    ).not.toBeInTheDocument();
+    await user.click(grupo.getByRole("button", { name: "Cadeira hospitalar" }));
     expect(screen.getByLabelText("Resultados")).toHaveTextContent(
       "sintetico-1",
     );

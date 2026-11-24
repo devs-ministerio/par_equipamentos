@@ -22,7 +22,13 @@ export type Controle = {
   conteudo: (fechar: () => void) => ReactNode;
 };
 
-export function ControleDesktop({ controle }: { controle: Controle }) {
+export function ControleDesktop({
+  controle,
+  className,
+}: {
+  controle: Controle;
+  className?: string;
+}) {
   const [aberto, setAberto] = useState(false);
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
@@ -33,15 +39,16 @@ export function ControleDesktop({ controle }: { controle: Controle }) {
           size="sm"
           className={cn(
             "gap-1.5 px-2 text-xs text-muted-foreground",
+            className,
             controle.ativo &&
               "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary",
           )}
         >
           <controle.icone className="size-3.5" aria-hidden="true" />
-          {controle.rotulo}
+          <span className="truncate">{controle.rotulo}</span>
           {controle.ativo && (
             <span
-              className="size-1.5 rounded-full bg-current"
+              className="size-1.5 shrink-0 rounded-full bg-current"
               aria-hidden="true"
             />
           )}
@@ -66,6 +73,7 @@ export function ApresentacaoFiltros({
   rotuloGrupo = "Filtros do painel",
   className,
   classeSheet = "shrink-0 @min-[1080px]:hidden",
+  classeBotao,
 }: {
   controles: Controle[];
   rotuloGrupo?: string;
@@ -73,6 +81,8 @@ export function ApresentacaoFiltros({
   className?: string;
   /** Visibilidade do botão "Filtros" em telas estreitas. */
   classeSheet?: string;
+  /** Classes extras dos botões em linha (ex.: `flex-1` para dividir a largura). */
+  classeBotao?: string;
 }) {
   const ativos = controles.filter(({ ativo }) => ativo).length;
   return (
@@ -86,7 +96,11 @@ export function ApresentacaoFiltros({
         }
       >
         {controles.map((controle) => (
-          <ControleDesktop key={controle.rotulo} controle={controle} />
+          <ControleDesktop
+            key={controle.rotulo}
+            controle={controle}
+            className={classeBotao}
+          />
         ))}
       </div>
       <div className={classeSheet}>
