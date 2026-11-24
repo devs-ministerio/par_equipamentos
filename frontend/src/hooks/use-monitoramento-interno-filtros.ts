@@ -1,33 +1,29 @@
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 export type {
   ClasseEquipamentoFiltro,
   InstrumentoMonitoramentoFiltravel,
 } from "@/lib/monitoramento-filtros-instrumento";
 import type { ResumoMonitoramento } from "@/services/monitoramento-resumo";
-import { anosEmOperacao } from "@/lib/painel-gestao-andamento";
+import { useAcoesFiltrosUrl } from "@/hooks/use-acoes-filtros-url";
+import { montarOpcoesFiltros } from "@/lib/monitoramento-filtros-opcoes";
+import { useAnosPorReferencia } from "@/hooks/use-anos-por-referencia";
 import { chaveMunicipio } from "@/lib/municipio-filtro";
 import {
   PARAMETROS,
-  SEM_RESPONSAVEL,
   anoValido,
   instrumentoCorrespondeAosFiltros,
-  opcoes,
-  opcoesMunicipio,
   paginaValida,
   type ClasseEquipamentoFiltro,
   type InstrumentoMonitoramentoFiltravel,
 } from "@/lib/monitoramento-filtros-instrumento";
 import {
-  anosPorReferencia,
   referenciaValida,
   type DataDeInauguracao,
-  type ReferenciaPeriodo,
 } from "@/lib/referencia-periodo-painel";
 import {
   chaveEquipamentoFiltro,
   equipamentosPorInstrumento,
-  opcoesEquipamentosFiltro,
   type FonteEquipamentosFiltro,
 } from "@/lib/monitoramento-filtro-equipamentos";
 
@@ -47,7 +43,15 @@ export function useMonitoramentoInternoFiltros<
     | readonly ResumoMonitoramento["etapas_por_instrumento"][number][]
     | null = null,
 ) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const {
+    definirFiltro,
+    setPagina,
+    limparFiltros,
+    setUfComMunicipio,
+    setReferencia,
+    setPeriodo,
+  } = useAcoesFiltrosUrl(instrumentos);
   const busca = searchParams.get("busca") ?? "";
   const tipoContratacao = searchParams.get("tipo_contratacao");
   const cnes = searchParams.get("cnes");
@@ -76,67 +80,14 @@ export function useMonitoramentoInternoFiltros<
     searchParams.get("referencia"),
     etapasDeOperacao !== null,
   );
-  const anosPorInstrumento = useMemo(() => {
-    if (referencia === "inicio_operacao") {
-      return new Map(
-        (etapasDeOperacao ?? []).map((etapa) => [
-          etapa.nr_convenio,
-          Array.from(anosEmOperacao(etapa), Number),
-        ]),
-      );
-    }
-    return new Map(
-      Array.from(
-        anosPorReferencia(referencia, inauguracoes ?? []),
-        ([numero, ano]) => [numero, [ano]],
-      ),
-    );
-  }, [referencia, inauguracoes, etapasDeOperacao]);
-  const porEvento = referencia !== "ano_instrumento";
-  const anosDe = useCallback(
-    (instrumento: InstrumentoMonitoramentoFiltravel) =>
-      porEvento
-        ? (anosPorInstrumento.get(instrumento.nr_convenio) ?? [])
-        : instrumento.ano_instrumento == null
-          ? []
-          : [instrumento.ano_instrumento],
-    [porEvento, anosPorInstrumento],
+  const { anosDe, porEvento } = useAnosPorReferencia(
+    referencia,
+    inauguracoes,
+    etapasDeOperacao,
   );
   const anoInicio = anoValido(searchParams.get("ano_inicio"));
   const anoFim = anoValido(searchParams.get("ano_fim"));
   const pagina = paginaValida(searchParams.get("pagina"));
-
-  const definirFiltro = useCallback(
-    (chave: (typeof PARAMETROS)[number], valor: string | null) => {
-      setSearchParams(
-        (anteriores) => {
-          const proximos = new URLSearchParams(anteriores);
-          if (valor) proximos.set(chave, valor);
-          else proximos.delete(chave);
-          proximos.delete("pagina");
-          if (chave === "classe") proximos.delete("equipamento");
-          return proximos;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
-
-  const setPagina = useCallback(
-    (proximaPagina: number) => {
-      setSearchParams(
-        (anteriores) => {
-          const proximos = new URLSearchParams(anteriores);
-          if (proximaPagina <= 1) proximos.delete("pagina");
-          else proximos.set("pagina", String(proximaPagina));
-          return proximos;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
 
   const filtrados = useMemo(
     () =>
@@ -182,18 +133,6 @@ export function useMonitoramentoInternoFiltros<
     [porEvento, instrumentos, anosDe],
   );
 
-  const limparFiltros = useCallback(() => {
-    setSearchParams(
-      (anteriores) => {
-        const proximos = new URLSearchParams(anteriores);
-        for (const parametro of PARAMETROS) proximos.delete(parametro);
-        proximos.delete("pagina");
-        return proximos;
-      },
-      { replace: true },
-    );
-  }, [setSearchParams]);
-
   return {
     filtrados,
     total: instrumentos.length,
@@ -207,31 +146,7 @@ export function useMonitoramentoInternoFiltros<
     setCnes: (valor: string | null) => definirFiltro("cnes", valor),
     uf,
     setUf: (valor: string | null) => definirFiltro("uf", valor),
-    setUfComMunicipio: (valor: string | null) => {
-      setSearchParams(
-        (anteriores) => {
-          const proximos = new URLSearchParams(anteriores);
-          if (valor) proximos.set("uf", valor);
-          else proximos.delete("uf");
-          const municipioAtual = proximos.get("municipio");
-          if (
-            valor &&
-            municipioAtual &&
-            !instrumentos.some(
-              (item) =>
-                item.uf === valor &&
-                chaveMunicipio(item.municipio ?? "") ===
-                  chaveMunicipio(municipioAtual),
-            )
-          ) {
-            proximos.delete("municipio");
-          }
-          proximos.delete("pagina");
-          return proximos;
-        },
-        { replace: true },
-      );
-    },
+    setUfComMunicipio,
     municipio,
     setMunicipio: (valor: string | null) => definirFiltro("municipio", valor),
     classeEquipamento,
@@ -248,89 +163,25 @@ export function useMonitoramentoInternoFiltros<
     setResponsavel: (valor: string | null) =>
       definirFiltro("responsavel", valor),
     referencia,
-    // Trocar a referência muda o significado dos anos; o intervalo anterior não vale mais.
-    setReferencia: (valor: string | null) => {
-      setSearchParams(
-        (anteriores) => {
-          const proximos = new URLSearchParams(anteriores);
-          if (valor) proximos.set("referencia", valor);
-          else proximos.delete("referencia");
-          proximos.delete("ano_inicio");
-          proximos.delete("ano_fim");
-          proximos.delete("pagina");
-          return proximos;
-        },
-        { replace: true },
-      );
-    },
+    setReferencia,
     temReferencias: inauguracoes !== null,
     semDataNaReferencia,
     anoInicio,
     setAnoInicio: (valor: string | null) => definirFiltro("ano_inicio", valor),
     anoFim,
     setAnoFim: (valor: string | null) => definirFiltro("ano_fim", valor),
-    setPeriodo: (
-      inicio: string | null,
-      fim: string | null,
-      novaReferencia?: ReferenciaPeriodo,
-    ) => {
-      // useSearchParams não enfileira dois setters como useState.
-      setSearchParams(
-        (anteriores) => {
-          const proximos = new URLSearchParams(anteriores);
-          if (inicio) proximos.set("ano_inicio", inicio);
-          else proximos.delete("ano_inicio");
-          if (fim) proximos.set("ano_fim", fim);
-          else proximos.delete("ano_fim");
-          if (novaReferencia === "ano_instrumento")
-            proximos.delete("referencia");
-          else if (novaReferencia) proximos.set("referencia", novaReferencia);
-          proximos.delete("pagina");
-          return proximos;
-        },
-        { replace: true },
-      );
-    },
+    setPeriodo,
     pagina,
     setPagina,
     hasFiltros: PARAMETROS.some((parametro) => searchParams.has(parametro)),
     limparFiltros,
-    tipoContratacaoOptions: opcoes(
+    ...montarOpcoesFiltros(
       instrumentos,
-      (item) => item.tipo_contratacao ?? "Convênio",
-    ),
-    cnesOptions: opcoes(
-      instrumentos.filter((item) => item.cnes),
-      (item) => item.cnes!,
-    ),
-    ufOptions: opcoes(
-      instrumentos.filter((item) => item.uf),
-      (item) => item.uf!,
-    ),
-    municipioOptions: opcoesMunicipio(instrumentos),
-    municipioOptionsPorUf: opcoesMunicipio(
-      uf ? instrumentos.filter((item) => item.uf === uf) : instrumentos,
-    ),
-    equipamentoOptions: opcoesEquipamentosFiltro(
-      new Set(instrumentos.map((item) => item.nr_convenio)),
-      fontesEquipamentos,
+      uf,
       classeEquipamento,
+      fontesEquipamentos,
+      anosDe,
     ),
-    situacaoOptions: opcoes(
-      instrumentos,
-      (item) => item.fase_atual ?? "Acompanhamento iniciado",
-    ),
-    programaOptions: opcoes(
-      instrumentos,
-      (item) => item.programa ?? "Não informado",
-    ),
-    responsavelOptions: opcoes(
-      instrumentos,
-      (item) => item.tecnico_titular ?? SEM_RESPONSAVEL,
-    ),
-    anoOptions: [...new Set(instrumentos.flatMap(anosDe))]
-      .sort((a, b) => b - a)
-      .map((ano) => ({ value: String(ano), label: String(ano) })),
   };
 }
 
