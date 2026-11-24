@@ -40,15 +40,25 @@ def _instrumento_do_item(db: Session, item: ItemPlano) -> InstrumentoEquipamento
     return instrumento
 
 
-def cancelar_unidade_planejada(
-    *, item_id: int, dados: CancelamentoUnidadeCreate, db: Session, usuario: User
-) -> CancelamentoUnidadeRead:
+def _travar_instrumento_e_item(db: Session, item_id: int, usuario: User) -> tuple[ItemPlano, InstrumentoEquipamento]:
+    """Trava na mesma ordem da entrega (instrumento, depois item), para não cruzar travas com ela."""
+    lido = db.get(ItemPlano, item_id)
+    if lido is None or not lido.ativo:
+        raise NotFoundError("Item não encontrado.")
+    instrumento = _instrumento_do_item(db, lido)
+    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
+    assert_nao_concluido(db, instrumento.id)
     item = repo.travar_itens(db, [item_id]).get(item_id)
     if item is None or not item.ativo:
         raise NotFoundError("Item não encontrado.")
-    instrumento = _instrumento_do_item(db, item)
-    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
-    assert_nao_concluido(db, instrumento.id)
+    db.refresh(item)  # relê depois da trava
+    return item, instrumento
+
+
+def cancelar_unidade_planejada(
+    *, item_id: int, dados: CancelamentoUnidadeCreate, db: Session, usuario: User
+) -> CancelamentoUnidadeRead:
+    item, instrumento = _travar_instrumento_e_item(db, item_id, usuario)
     if not item.controla_unidade or item.quantidade_planejada is None:
         raise ValidationError("O item não tem quantidade planejada controlada por unidade.")
     pendentes = (
@@ -76,10 +86,7 @@ def reativar_unidade_cancelada(
     cancelamento = repo.obter_cancelamento(db, cancelamento_id)
     if cancelamento is None:
         raise NotFoundError("Cancelamento não encontrado.")
-    item = repo.travar_itens(db, [cancelamento.item_id])[cancelamento.item_id]
-    instrumento = _instrumento_do_item(db, item)
-    assert_pode_editar_instrumento(usuario, obter_ids_responsaveis_do_instrumento(db, instrumento.id))
-    assert_nao_concluido(db, instrumento.id)
+    item, instrumento = _travar_instrumento_e_item(db, cancelamento.item_id, usuario)
     db.refresh(cancelamento)  # relê depois da trava
     if cancelamento.deletado_em is not None:
         raise ConflictError("Este cancelamento já foi desfeito.")

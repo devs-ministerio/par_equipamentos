@@ -7,12 +7,12 @@ Auditoria do Codex na branch `feat/painel-individual-tecnico` (commit 46319f2), 
 | ID | Achado | Estado |
 | --- | --- | --- |
 | I-01 | Segundo clique na família do gráfico de equipamentos não desfaz o filtro no Painel de gestão | Corrigido |
-| I-02 | Previsão de inauguração pode virar "Realizada" (datas duplas e inferência pela entrega do acelerador) | Aberto, decisão de regra |
-| I-03 | Quantidade planejada desconhecida gera totais divergentes entre KPI, tipo e UF | Aberto, decisão de regra |
-| I-04 | "Valor global" tem critérios diferentes no Painel de gestão e na Carteira do Meu painel | Aberto, decisão de produto |
+| I-02 | Previsão de inauguração pode virar "Realizada" (datas duplas e inferência pela entrega do acelerador) | Descartado: só afeta nós antigos; novos entram pelo check da entrega |
+| I-03 | Quantidade planejada desconhecida gera totais divergentes entre KPI, tipo e UF | Latente: 0 itens com quantidade nula no clone; fica registrado |
+| I-04 | "Valor global" tem critérios diferentes no Painel de gestão e na Carteira do Meu painel | Esclarecido com o usuário (Carteira e KPI são a mesma informação, individual e geral) |
 | I-05 | Seção 14 do mapa Mermaid generaliza os fluxos das duas telas | Aberto, documentação |
 | I-06 | Catálogo de marcos bloqueia a Gestão sem alimentar a tela | Aberto |
-| I-07 | Ordem de travas inversa entre cancelamento (item → instrumento) e entrega (instrumento → item) | Aberto, testar concorrência |
+| I-07 | Ordem de travas inversa entre cancelamento (item → instrumento) e entrega (instrumento → item) | Corrigido: cancelamento e reativação travam instrumento → item, como a entrega |
 
 ## Menor
 
