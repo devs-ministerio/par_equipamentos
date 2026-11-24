@@ -14,13 +14,13 @@ A página de Relatórios (`frontend/src/pages/monitoramento-relatorios-page.tsx`
 | Entregue | Unidades entregues por item do plano (`entrega_equipamento`, `unidade_equipamento`), via `resumo`. | `relatorios_entregues.py`, serviço e filtro próprios, uma linha por unidade. |
 | Em operação, valor, equipamentos | Calculados no `resumo` e em `derivarPainel`. | `relatorios_tabelas.py` e `relatorios_recorte.py`, com extração própria por visão. |
 
-Por consequência, o relatório de Concluídos traz mais instrumentos que as telas, inclusive os não monitorados. Em Entregues, Em operação, valor e equipamentos, a estrutura é a mesma (motor paralelo por visão), mas a comparação linha a linha ainda não foi feita: é a Fase 0.
+Por consequência, o relatório de Concluídos traz mais instrumentos que as telas, inclusive os não monitorados. Em Entregues, Em operação, valor e equipamentos, a estrutura é a mesma (motor paralelo por visão), mas a comparação linha a linha ainda não foi feita: é a Fase 1.
 
 ## 3. Decisões já tomadas (usuário, 24/11/2026)
 
 1. **Caminho A**: uma camada única de fatos do instrumento no backend. Telas e relatórios consomem a mesma fonte; o relatório só formata.
 2. **Concluído = o das telas**: conclusão confirmada pela equipe no monitoramento (fase Concluído). "Prestação de contas SICONV" e "Parceria paga" continuam no arquivo como **colunas informativas** e na lista de divergências, mas não definem Concluído.
-3. **Entregue e Em operação seguem as telas**, sem regra própria do relatório (premissa a reconfirmar na Fase 0 se a comparação achar divergência).
+3. **Entregue e Em operação seguem as telas**, sem regra própria do relatório (premissa a reconfirmar na Fase 1 se a comparação achar divergência).
 
 ## 4. Princípios
 
@@ -38,7 +38,7 @@ Por consequência, o relatório de Concluídos traz mais instrumentos que as tel
 
 **Relatório como formatador.** Todos, Concluídos e Equipamento entregue passam a ser três recortes da mesma extração. O motor de precedência e reconciliação de `relatorios_encerrados.py` sai. Os geradores Word e Excel e o visual dos arquivos ficam como estão.
 
-**Página de Relatórios.** Dividida por visão (regra das 200 linhas). A prévia mostra o mesmo número do card da tela correspondente. Mudança de interface pequena.
+**Página de Relatórios.** Primeiro passo do plano (Fase 0): upgrade de UI no padrão do Painel de gestão e divisão por responsabilidade (regra das 200 linhas), antes de qualquer mudança de regra. Na Fase 4 a prévia passa a mostrar o mesmo número do card da tela correspondente.
 
 **Garantia.** Teste de paridade por indicador: com o mesmo filtro, o total do card, da prévia e do arquivo gerado são iguais.
 
@@ -46,11 +46,11 @@ Por consequência, o relatório de Concluídos traz mais instrumentos que as tel
 
 | Fase | Entrega | Critério de pronto |
 | --- | --- | --- |
-| 0 | Matriz completa de divergências (Concluídos, Entregues, Em operação, Situação, Valor, Equipamentos), com um instrumento real de exemplo por divergência. Leitura em produção e no clone. | Tabela revisada pelo usuário. |
-| 1 | Camada única + Concluídos. Colunas informativas de prestação de contas e parceria paga. | Paridade Concluídos: card = prévia = arquivo, na Mesa, em Dados oficiais e no Painel. |
-| 2 | Equipamento entregue pela camada única. | Paridade de unidades entregues. |
-| 3 | Todos, valor e equipamentos; remoção do código morto dos motores antigos. | Paridade de valor e quantidade. |
-| 4 | Página dividida por visão, prévia igual ao card. | Arquivos abaixo de 200 linhas; testes de componente. |
+| 0 | **Upgrade de UI da página de Relatórios** (primeiro passo, sem mexer em regra de dado): filtros no padrão do Painel de gestão (`BarraFiltros`, popovers, chips removíveis, "Limpar filtros", Sheet no celular), seletor de visão e de nível em pílulas, geração (Word/Excel) em uma barra de ação clara, e a página dividida por responsabilidade em arquivos de até 200 linhas. Todos os filtros e visões atuais continuam. | Nenhum filtro ou botão a menos; página e componentes abaixo de 200 linhas; testes de componente; verificação no navegador em desktop e celular. |
+| 1 | Matriz completa de divergências (Concluídos, Entregues, Em operação, Situação, Valor, Equipamentos), com um instrumento real de exemplo por divergência. Leitura em produção e no clone. | Tabela revisada pelo usuário. |
+| 2 | Camada única + Concluídos. Colunas informativas de prestação de contas e parceria paga. | Paridade Concluídos: card = prévia = arquivo, na Mesa, em Dados oficiais e no Painel. |
+| 3 | Equipamento entregue pela camada única. | Paridade de unidades entregues. |
+| 4 | Todos, valor e equipamentos; remoção do código morto dos motores antigos; a prévia da página passa a mostrar o mesmo número do card da tela correspondente. | Paridade de valor e quantidade. |
 
 ## 7. Relatórios: modelos
 
@@ -78,7 +78,7 @@ Formato de **Nota Informativa** em `.docx` ou Excel, com os dados em tabelas e "
 
 ### 7.2 Completo (a desenhar)
 
-O nível Completo hoje é a timeline inteira de eventos: no Word, um bloco por instrumento; no Excel, tabela. **O desenho dos relatórios completos ainda não existe e é a próxima etapa deste plano**, depois da paridade da Fase 1. O que precisa ser decidido:
+O nível Completo hoje é a timeline inteira de eventos: no Word, um bloco por instrumento; no Excel, tabela. **O desenho dos relatórios completos ainda não existe e é a próxima etapa deste plano**, depois da paridade da Fase 2. O que precisa ser decidido:
 
 - Estrutura do documento completo (seções e ordem) por tipo de pedido: por UF, por estabelecimento, por programa.
 - Quais campos de cada instrumento entram (cadastro, itens e unidades, cronograma físico, regulatório, ações, documentos).
@@ -89,14 +89,14 @@ O nível Completo hoje é a timeline inteira de eventos: no Word, um bloco por i
 
 | Risco | Mitigação |
 | --- | --- |
-| Mudar a definição de Concluído reduz o número que o usuário vê hoje no relatório | A diferença é listada na Fase 0 e as colunas informativas preservam a evidência de prestação de contas e parceria paga. |
+| Mudar a definição de Concluído reduz o número que o usuário vê hoje no relatório | A diferença é listada na Fase 1 e as colunas informativas preservam a evidência de prestação de contas e parceria paga. |
 | Fatos em lote ficam lentos em carteira grande | Reaproveitar as consultas em lote do `resumo`; teto de consulta já existente (`limites_relatorio`). |
 | Regressão nos arquivos Word/Excel já aprovados | Os geradores não mudam; testes de caracterização dos arquivos antes de trocar a origem dos dados. |
-| Divergência de entrega por unidade (entregue por unidade vs por instrumento) | Reconfirmar a premissa na Fase 0. |
+| Divergência de entrega por unidade (entregue por unidade vs por instrumento) | Reconfirmar a premissa na Fase 1. |
 
 ## 9. Fora de escopo
 
-Regra de cobertura e relatório de mérito, mudança de schema, gravação em produção, redesenho visual dos arquivos, relatório completo (seção 7.2, etapa posterior).
+Regra de cobertura e relatório de mérito, mudança de schema, gravação em produção, redesenho visual dos arquivos Word e Excel (o upgrade de UI da Fase 0 é só da página), relatório completo (seção 7.2, etapa posterior).
 
 ## 10. Documentação a atualizar ao fechar cada fase
 
