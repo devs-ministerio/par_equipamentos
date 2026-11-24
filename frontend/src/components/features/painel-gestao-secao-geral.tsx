@@ -74,7 +74,10 @@ export function PainelSecaoVisaoGeral({
         <PainelGestaoEquipamentos
           familias={d.familias}
           selecionada={locais.familia}
-          onSelecionar={(f) => f && alternarLocal("familia", f)}
+          onSelecionar={(f) => {
+            const alvo = f ?? locais.familia;
+            if (alvo) alternarLocal("familia", alvo);
+          }}
         />
       </div>
     </PainelBloco>

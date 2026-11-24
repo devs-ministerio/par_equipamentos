@@ -11,8 +11,6 @@ export interface ItemRanking {
   detalhe?: string;
   /** Cor própria da barra (padrão: gradiente primário). */
   cor?: string;
-  /** Parte do valor já realizada (ex.: entregue de planejado), desenhada dentro da barra. */
-  parcial?: number;
   /** Partes coloridas da barra, em ordem; o que sobra do valor fica no tom claro. */
   segmentos?: Array<{ valor: number; cor: string }>;
 }
@@ -76,7 +74,7 @@ function Linha({
           className={
             item.cor
               ? "h-full rounded-full"
-              : item.parcial === undefined && !item.segmentos
+              : !item.segmentos
                 ? "h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
                 : "h-full rounded-full bg-primary/25"
           }
@@ -98,14 +96,6 @@ function Linha({
                 />
               ))}
             </div>
-          )}
-          {item.parcial !== undefined && (
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
-              style={{
-                width: `${item.valor > 0 ? (100 * item.parcial) / item.valor : 0}%`,
-              }}
-            />
           )}
         </div>
       </div>

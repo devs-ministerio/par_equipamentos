@@ -13,7 +13,7 @@ export interface PropsSecaoPainel {
   alternarLocal: (campo: FiltroLocal, valor: string) => void;
 }
 
-export interface PropsSecaoEvolucao extends PropsSecaoPainel {
+export interface PropsSecaoEvolucao extends Omit<PropsSecaoPainel, "filtros"> {
   anoSelecionado: (referencia: ReferenciaPeriodo) => string | null;
   alternarAno: (referencia: ReferenciaPeriodo, ano: string) => void;
 }
