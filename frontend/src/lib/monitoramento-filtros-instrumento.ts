@@ -4,6 +4,7 @@ import { correspondeBuscaLivre } from "@/lib/busca-livre";
 import { chaveMunicipio, opcoesMunicipios } from "@/lib/municipio-filtro";
 import {
   chaveEquipamentoFiltro,
+  classeDoMarcador,
   type equipamentosPorInstrumento,
 } from "@/lib/monitoramento-filtro-equipamentos";
 
@@ -80,6 +81,8 @@ export interface CriteriosFiltroInstrumento {
   uf: string | null;
   municipio: string | null;
   equipamento: string | null;
+  /** "Prioritários" ou "Outros identificados": o instrumento precisa ter equipamento da classe. */
+  classe: ClasseEquipamentoFiltro;
   situacao: string | null;
   programa: string | null;
   responsavel: string | null;
@@ -122,6 +125,11 @@ export function instrumentoCorrespondeAosFiltros(
     chaveMunicipio(instrumento.municipio ?? "") !== c.municipio
   )
     return false;
+  if (c.classe !== "todos") {
+    const marcadores = c.marcadoresPorNumero.get(instrumento.nr_convenio);
+    if (!marcadores?.some((item) => classeDoMarcador(item) === c.classe))
+      return false;
+  }
   if (c.equipamento) {
     const marcadores = c.marcadoresPorNumero.get(instrumento.nr_convenio);
     const confere =

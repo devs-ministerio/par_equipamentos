@@ -15,6 +15,16 @@ export function chaveEquipamentoFiltro(nome: string): string {
   return nomePrioritarioCanonico(limpo) ?? normalizarTexto(limpo);
 }
 
+/** Classe do marcador: prioritário (flag ou nome canônico das 16 famílias) ou outro. */
+export function classeDoMarcador(marcador: {
+  nome: string;
+  prioritario?: boolean;
+}): "prioritario" | "outro" {
+  return marcador.prioritario || nomePrioritarioCanonico(marcador.nome) !== null
+    ? "prioritario"
+    : "outro";
+}
+
 /** Somente marcadores canônicos da listagem; nunca classifica prosa planejada. */
 export function equipamentosPorInstrumento(
   fontes: readonly FonteEquipamentosFiltro[],

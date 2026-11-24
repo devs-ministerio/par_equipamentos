@@ -242,4 +242,27 @@ describe("Filtros reais do monitoramento e URL", () => {
       "sintetico-1",
     );
   });
+
+  it.each([
+    ["outro", "sintetico-1"],
+    ["prioritario", "sintetico-0"],
+  ])(
+    "a lista %s restringe os instrumentos, não só as opções de equipamento",
+    async (classe, numero) => {
+      // Given
+      const user = montar("origem=teste");
+      // When
+      await abrir(user, "Equipamento");
+      await user.selectOptions(
+        screen.getByRole("combobox", { name: "Mostrar na lista" }),
+        classe,
+      );
+      // Then
+      expect(screen.getByLabelText("Resultados")).toHaveTextContent(numero);
+      expect(screen.getByLabelText("Resultados")).not.toHaveTextContent(",");
+      expect(screen.getByLabelText("URL")).toHaveTextContent(
+        `classe=${classe}`,
+      );
+    },
+  );
 });
