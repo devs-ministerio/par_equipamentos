@@ -26,15 +26,25 @@ const ana = { id: 7, name: "Ana Técnica" };
 
 describe("aviso de instrumento novo", () => {
   beforeEach(() => {
-    const guardado = new Map<string, string>();
-    vi.stubGlobal("localStorage", {
-      getItem: (k: string) => guardado.get(k) ?? null,
-      setItem: (k: string, v: string) => void guardado.set(k, v),
-    });
     vi.mocked(toast.info).mockClear();
   });
 
-  it("avisa o técnico responsável uma única vez", () => {
+  it("reaparece a cada carregamento enquanto não for aberto e abre marcando a notificação", () => {
+    const abrir = vi.fn();
+    const lista = [aviso()];
+    renderHook(() => useAvisoNovoInstrumento(lista, ana, abrir)).unmount();
+    renderHook(() => useAvisoNovoInstrumento(lista, ana, abrir));
+    expect(toast.info).toHaveBeenCalledTimes(2);
+    const opcoes = vi.mocked(toast.info).mock.calls[1][1] as unknown as {
+      duration: number;
+      action: { onClick: () => void };
+    };
+    expect(opcoes.duration).toBe(Infinity);
+    opcoes.action.onClick();
+    expect(abrir).toHaveBeenCalledWith(lista[0]);
+  });
+
+  it("avisa o técnico responsável uma única vez por carregamento", () => {
     const abrir = vi.fn();
     const { rerender } = renderHook(
       ({ lista }) => useAvisoNovoInstrumento(lista, ana, abrir),
