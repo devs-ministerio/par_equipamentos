@@ -74,7 +74,7 @@ export function MonitoramentoEquipamentosPage() {
   const aba: AbaDadosOficiais =
     searchParams.get("aba") === "componentes" ? "componentes" : "convenios";
   const subAbaFinanciamento: EstagioProposta =
-    searchParams.get("subaba") === "confirmada" ? "confirmada" : "tramitacao";
+    searchParams.get("subaba") === "tramitacao" ? "tramitacao" : "confirmada";
   const setAba = useCallback(
     (proximaAba: AbaDadosOficiais) => {
       setSearchParams(
@@ -94,7 +94,7 @@ export function MonitoramentoEquipamentosPage() {
       setSearchParams(
         (anteriores) => {
           const proximos = new URLSearchParams(anteriores);
-          if (proximaSubAba === "tramitacao") proximos.delete("subaba");
+          if (proximaSubAba === "confirmada") proximos.delete("subaba");
           else proximos.set("subaba", proximaSubAba);
           return proximos;
         },
