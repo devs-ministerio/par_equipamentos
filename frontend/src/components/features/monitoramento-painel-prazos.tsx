@@ -44,11 +44,11 @@ export function MonitoramentoPainelPrazos({
     <>
       <MonitoramentoPainelVigencias vigencias={vigencias} />
 
-      <div className="mt-7 grid gap-x-9 gap-y-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <PainelSecao
           titulo="Agenda de prazos"
           apoio="Licenças e inaugurações por proximidade"
-          className="flex min-w-0 flex-col"
+          className="flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
         >
           <AgendaExecutiva inauguracoes={inauguracoes} licencas={licencas} />
         </PainelSecao>
@@ -57,7 +57,7 @@ export function MonitoramentoPainelPrazos({
           apoio={
             divergenciasPorFonte || `${divergencias.length} casos no recorte`
           }
-          className="flex min-w-0 flex-col"
+          className="flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
         >
           <DivergenciasConclusao itens={divergencias} />
         </PainelSecao>

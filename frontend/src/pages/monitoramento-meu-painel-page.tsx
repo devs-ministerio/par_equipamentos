@@ -3,6 +3,10 @@ import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  PainelBloco,
+  PainelNavegacao,
+} from "@/components/features/painel-tecnico-estrutura";
 import { CardColaborador } from "@/components/features/card-colaborador";
 import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
 import { entreguesPorFamilia } from "@/lib/equipamentos-entregues";
@@ -27,6 +31,12 @@ import {
 } from "@/lib/painel-tecnico-filtro";
 import { fmtMoeda } from "@/lib/monitoramento-format";
 
+const SECOES = [
+  { id: "visao-geral", rotulo: "Visão geral" },
+  { id: "carteira", rotulo: "Carteira" },
+  { id: "prazos", rotulo: "Prazos e pendências" },
+];
+
 export function MonitoramentoMeuPainelPage() {
   const { usuarioAtual } = useAuthSession();
   const gestao =
@@ -44,10 +54,10 @@ export function MonitoramentoMeuPainelPage() {
 
   const titulo = gestao ? "Painéis da equipe" : "Meu painel";
   const filtro = gestao ? (
-    <label className="flex items-center gap-2 text-sm">
+    <label className="flex w-full flex-col gap-1 text-sm sm:w-auto sm:flex-row sm:items-center sm:gap-2">
       <span className="text-muted-foreground">Colaborador</span>
       <select
-        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+        className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm sm:w-auto"
         value={colaboradorId ?? ""}
         onChange={(e) =>
           setColaboradorId(e.target.value ? Number(e.target.value) : undefined)
@@ -68,7 +78,7 @@ export function MonitoramentoMeuPainelPage() {
       eyebrow="Monitoramento interno"
       title={titulo}
       actions={
-        <div className="flex flex-wrap items-stretch gap-3">
+        <div className="flex w-full flex-wrap items-stretch gap-3 sm:w-auto">
           <CardColaborador semBotao />
           {filtro}
         </div>
@@ -122,100 +132,125 @@ export function MonitoramentoMeuPainelPage() {
         )
       : null;
   const atrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
-  const alternar = (f: FiltroCarteira) =>
+  const irParaCarteira = () =>
+    requestAnimationFrame(() =>
+      document
+        .getElementById("carteira")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  const alternar = (f: FiltroCarteira) => {
     setFiltroCarteira((atual) => (atual === f ? "todos" : f));
+    if (filtroCarteira !== f) irParaCarteira();
+  };
   return (
     <div className="space-y-6">
       {header}
       {semRegiao && (
         <ErrorAlert mensagem="Este colaborador ainda não tem região de monitoramento definida." />
       )}
-      <MetricStrip
-        items={[
-          {
-            key: "cobertura",
-            label: "Cobertura do monitoramento",
-            value:
-              c.cobertura_pct == null
-                ? "—"
-                : `${c.cobertura_pct.toLocaleString("pt-BR")}%`,
-            variant: "primary",
-            detail: `${c.monitorados} de ${c.elegiveis} instrumentos monitorados`,
-            onClick: () => setFiltroCarteira("todos"),
-            ativo: filtroCarteira === "todos",
-          },
-          {
-            key: "faltam",
-            label: "Fora do monitoramento",
-            value: faltam.length,
-            variant: faltam.length > 0 ? "warning" : "success",
-            detail: `${faltamAbertos} em aberto`,
-            onClick: () => alternar("faltam"),
-            ativo: filtroCarteira === "faltam",
-          },
-          {
-            key: "acoes-pendentes",
-            label: "Ações pendentes",
-            value: pendentes,
-            variant: atrasadas > 0 ? "destructive" : "success",
-            detail: `${atrasadas} atrasadas`,
-            onClick: () => alternar("acoes-pendentes"),
-            ativo: filtroCarteira === "acoes-pendentes",
-          },
-          {
-            key: "concluidos",
-            label: "Concluídos",
-            value: concluidos,
-            variant: "success",
-            onClick: () => alternar("concluidos"),
-            ativo: filtroCarteira === "concluidos",
-          },
-          {
-            key: "radar",
-            label: "Novos Instrumentos",
-            value: novosRadar,
-            detail: `${fmtMoeda(valorRadar)} nos últimos ${JANELA_RADAR_DIAS} dias`,
-            onClick: () => alternar("radar"),
-            ativo: filtroCarteira === "radar",
-          },
-        ]}
-      />
-      {carteiraQuery.isError ? (
-        <ErrorAlert
-          mensagem="Não foi possível carregar a carteira."
-          onRetry={() => carteiraQuery.refetch()}
-        />
-      ) : (
-        <PainelTecnicoCarteira
-          linhas={linhas}
-          filtro={filtroCarteira}
-          onLimpar={() => setFiltroCarteira("todos")}
-        />
-      )}
-      {prazos && (
-        <>
-          <MonitoramentoPainelPrazos
-            vigencias={prazos.vigenciasProximas}
-            licencas={prazos.licencas}
-            inauguracoes={prazos.inauguracoes}
-            divergencias={prazos.divergencias}
+      <PainelNavegacao itens={SECOES} />
+      <div className="space-y-12">
+        <PainelBloco id="visao-geral" titulo="Visão geral">
+          <MetricStrip
+            items={[
+              {
+                key: "cobertura",
+                label: "Cobertura do monitoramento",
+                value:
+                  c.cobertura_pct == null
+                    ? "—"
+                    : `${c.cobertura_pct.toLocaleString("pt-BR")}%`,
+                variant: "primary",
+                detail: `${c.monitorados} de ${c.elegiveis} instrumentos monitorados`,
+                onClick: () => {
+                  setFiltroCarteira("todos");
+                  irParaCarteira();
+                },
+                ativo: filtroCarteira === "todos",
+              },
+              {
+                key: "faltam",
+                label: "Fora do monitoramento",
+                value: faltam.length,
+                variant: faltam.length > 0 ? "warning" : "success",
+                detail: `${faltamAbertos} em aberto`,
+                onClick: () => alternar("faltam"),
+                ativo: filtroCarteira === "faltam",
+              },
+              {
+                key: "acoes-pendentes",
+                label: "Ações pendentes",
+                value: pendentes,
+                variant: atrasadas > 0 ? "destructive" : "success",
+                detail: `${atrasadas} atrasadas`,
+                onClick: () => alternar("acoes-pendentes"),
+                ativo: filtroCarteira === "acoes-pendentes",
+              },
+              {
+                key: "concluidos",
+                label: "Concluídos",
+                value: concluidos,
+                variant: "success",
+                onClick: () => alternar("concluidos"),
+                ativo: filtroCarteira === "concluidos",
+              },
+              {
+                key: "radar",
+                label: "Novos Instrumentos",
+                value: novosRadar,
+                detail: `${fmtMoeda(valorRadar)} nos últimos ${JANELA_RADAR_DIAS} dias`,
+                onClick: () => alternar("radar"),
+                ativo: filtroCarteira === "radar",
+              },
+            ]}
           />
-          <MonitoramentoFilaAcoes
-            acoes={prazos.acoes}
-            acoesPendentes={pendentes}
-            filaTruncada={resumo.data?.fila_acoes_truncada ?? false}
-            className="mt-8"
-          />
-        </>
-      )}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <SecaoSituacao linhas={linhas} />
-        <SecaoEquipamentos
-          familias={entreguesPorFamilia(
-            resumo.data?.equipamentos_por_instrumento ?? [],
-            numerosMonitorados,
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <SecaoSituacao linhas={linhas} />
+            <SecaoEquipamentos
+              familias={entreguesPorFamilia(
+                resumo.data?.equipamentos_por_instrumento ?? [],
+                numerosMonitorados,
+              )}
+            />
+          </div>
+        </PainelBloco>
+        <PainelBloco id="carteira" titulo="Carteira">
+          {carteiraQuery.isError ? (
+            <ErrorAlert
+              mensagem="Não foi possível carregar a carteira."
+              onRetry={() => carteiraQuery.refetch()}
+            />
+          ) : (
+            <PainelTecnicoCarteira
+              linhas={linhas}
+              filtro={filtroCarteira}
+              onLimpar={() => setFiltroCarteira("todos")}
+            />
           )}
-        />
+        </PainelBloco>
+        <PainelBloco id="prazos" titulo="Prazos e pendências">
+          {prazos ? (
+            <div className="space-y-6">
+              <MonitoramentoPainelPrazos
+                vigencias={prazos.vigenciasProximas}
+                licencas={prazos.licencas}
+                inauguracoes={prazos.inauguracoes}
+                divergencias={prazos.divergencias}
+              />
+              <MonitoramentoFilaAcoes
+                acoes={prazos.acoes}
+                acoesPendentes={pendentes}
+                filaTruncada={resumo.data?.fila_acoes_truncada ?? false}
+                className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
+              />
+            </div>
+          ) : (
+            <div className="grid gap-3" role="status" aria-label="Carregando">
+              <Skeleton className="h-20" />
+              <Skeleton className="h-64" />
+            </div>
+          )}
+        </PainelBloco>
       </div>
     </div>
   );

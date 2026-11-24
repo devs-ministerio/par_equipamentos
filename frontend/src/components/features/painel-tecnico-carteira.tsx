@@ -16,7 +16,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SortableTableHead } from "@/components/common/sortable-table-head";
-import { PainelSecao } from "@/components/features/monitoramento-painel-visuals";
 import { fmtMoeda } from "@/lib/monitoramento-format";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import {
@@ -34,6 +33,18 @@ type Chave =
   | "acoes"
   | "eventos";
 const PASSO = 25;
+const VARIANTE_FASE: Record<
+  string,
+  "default" | "secondary" | "success" | "warning" | "outline"
+> = {
+  "Acompanhamento iniciado": "outline",
+  "Aguardando repasse": "warning",
+  "Valor repassado": "secondary",
+  "Em aquisição": "secondary",
+  "Equipamento entregue": "default",
+  "Pós-entrega": "default",
+  Concluído: "success",
+};
 
 function valorOrdem(l: LinhaCarteira, c: Chave): string | number {
   if (c === "valor") return l.valor_global ?? -1;
@@ -97,11 +108,16 @@ export function PainelTecnicoCarteira({
   );
 
   return (
-    <PainelSecao
-      titulo="Carteira da região"
-      apoio={`${filtradas.length} de ${linhas.length} instrumentos`}
-    >
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+    <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="mr-auto">
+          <h3 className="m-0 text-base font-semibold tracking-tight">
+            Carteira da região
+          </h3>
+          <p className="m-0 mt-0.5 text-xs text-muted-foreground tabular-nums">
+            {filtradas.length} de {linhas.length} instrumentos
+          </p>
+        </div>
         <Input
           className="max-w-xs"
           placeholder="Buscar instrumento, município ou CNES"
@@ -145,15 +161,25 @@ export function PainelTecnicoCarteira({
           </TableHeader>
           <TableBody>
             {filtradas.slice(0, visiveis).map((l) => (
-              <TableRow key={l.numero}>
+              <TableRow key={l.numero} className="hover:bg-muted/40">
                 <TableCell className="font-medium">{l.numero}</TableCell>
                 <TableCell>
                   {[l.municipio ? capitalizarNome(l.municipio) : null, l.uf]
                     .filter(Boolean)
                     .join(" / ")}
                 </TableCell>
-                <TableCell className="tabular-nums">{l.cnes ?? "—"}</TableCell>
-                <TableCell>{l.monitorado ? l.fase : l.situacao}</TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">
+                  {l.cnes ?? "—"}
+                </TableCell>
+                <TableCell>
+                  {l.monitorado ? (
+                    <Badge variant={VARIANTE_FASE[l.fase ?? ""] ?? "secondary"}>
+                      {l.fase}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">{l.situacao}</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {l.monitorado ? l.acoes : "—"}
                 </TableCell>
@@ -219,6 +245,6 @@ export function PainelTecnicoCarteira({
           </Button>
         </div>
       )}
-    </PainelSecao>
+    </section>
   );
 }
