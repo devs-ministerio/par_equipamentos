@@ -155,6 +155,25 @@ it("cruza os gráficos com a carteira do técnico e restaura o recorte inicial",
   await waitFor(() => expect(scrollIntoView).toHaveBeenCalledOnce());
 });
 
+it("troca o marcador Monitorado por Novo nos 7 dias seguintes à entrada pelo Radar", async () => {
+  const h = preparar();
+  const resposta = h.respostas.get(CARTEIRA)!;
+  const linhas = resposta.body as Array<Record<string, unknown>>;
+  linhas[0].entrou_radar_em = new Date().toISOString();
+  const carteira = within(
+    await (async () => {
+      montar(h);
+      return screen.findByRole("region", { name: "Carteira" });
+    })(),
+  );
+  const nova = (await carteira.findByText("QA001")).closest("tr")!;
+  const antiga = carteira.getByText("QA002").closest("tr")!;
+  expect(within(nova).getByText("Novo")).toBeInTheDocument();
+  expect(within(nova).queryByText("Monitorado")).not.toBeInTheDocument();
+  expect(within(antiga).getByText("Monitorado")).toBeInTheDocument();
+  expect(within(antiga).queryByText("Novo")).not.toBeInTheDocument();
+});
+
 it("aguarda a carteira e oferece nova tentativa se a fonte de prazos falhar", async () => {
   const h = preparar();
   const respostaCarteira = h.respostas.get(CARTEIRA)!;

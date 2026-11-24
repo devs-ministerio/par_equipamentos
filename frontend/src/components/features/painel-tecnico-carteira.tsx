@@ -181,14 +181,7 @@ export function PainelTecnicoCarteira({
           <TableBody>
             {filtradas.slice(0, visiveis).map((l) => (
               <TableRow key={l.numero} className="hover:bg-muted/40">
-                <TableCell className="font-medium">
-                  {l.numero}
-                  {entrouNoRadarRecente(l) && (
-                    <Badge variant="success" className="ml-2">
-                      Novo
-                    </Badge>
-                  )}
-                </TableCell>
+                <TableCell className="font-medium">{l.numero}</TableCell>
                 <TableCell>
                   {[l.municipio ? capitalizarNome(l.municipio) : null, l.uf]
                     .filter(Boolean)
@@ -217,13 +210,19 @@ export function PainelTecnicoCarteira({
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap items-center justify-center gap-1">
-                    {l.monitorado ? (
-                      <Badge variant="success">Monitorado</Badge>
+                    {entrouNoRadarRecente(l) ? (
+                      <Badge variant="success">Novo</Badge>
                     ) : (
-                      <Badge variant="warning">A incluir</Badge>
-                    )}
-                    {l.sem_registro && (
-                      <Badge variant="destructive">Sem registro</Badge>
+                      <>
+                        {l.monitorado ? (
+                          <Badge variant="success">Monitorado</Badge>
+                        ) : (
+                          <Badge variant="warning">A incluir</Badge>
+                        )}
+                        {l.sem_registro && (
+                          <Badge variant="destructive">Sem registro</Badge>
+                        )}
+                      </>
                     )}
                   </div>
                 </TableCell>
