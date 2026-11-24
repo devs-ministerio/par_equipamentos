@@ -31,6 +31,11 @@ class InauguracaoResumo(BaseModel):
     dias: int
 
 
+class UnidadesEntreguesRead(BaseModel):
+    data: date
+    quantidade: int
+
+
 class EtapasInstrumentoRead(BaseModel):
     """Datas das etapas de um instrumento, para prazos médios e para a situação da inauguração no painel.
     Repasse não entra: a confirmação de repasse não guarda data própria."""
@@ -41,6 +46,8 @@ class EtapasInstrumentoRead(BaseModel):
     inauguracao: date | None = None
     conclusao: date | None = None
     inauguracao_dispensada: bool = False
+    conclusao_resultado: str | None = None
+    unidades_entregues: list[UnidadesEntreguesRead] = []
 
 
 class ContagemRotulo(BaseModel):

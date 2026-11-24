@@ -87,6 +87,10 @@ const etapasInstrumentoSchema = z.object({
   inauguracao: z.string().nullable(),
   conclusao: z.string().nullable(),
   inauguracao_dispensada: z.boolean(),
+  conclusao_resultado: z.string().nullable(),
+  unidades_entregues: z.array(
+    z.object({ data: z.string(), quantidade: z.number() }),
+  ),
 });
 
 const lacunaConclusaoSchema = z.object({

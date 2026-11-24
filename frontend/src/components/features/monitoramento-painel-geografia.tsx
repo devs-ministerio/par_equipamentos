@@ -344,7 +344,7 @@ export function MonitoramentoPainelGeografia({
                         {locais.length}
                       </strong>
                       <span className="mt-1 max-w-28 text-xs leading-snug text-muted-foreground">
-                        locais distintos
+                        estabelecimentos de saúde
                       </span>
                     </div>
                   </div>
@@ -360,9 +360,9 @@ export function MonitoramentoPainelGeografia({
           {(distribuicao.semCoordenadas > 0 ||
             distribuicao.foraDasMacros > 0) && (
             <p className="mt-3 text-xs text-muted-foreground">
-              Fora do mapa: {distribuicao.semCoordenadas} sem coordenadas no
-              CNES · {distribuicao.foraDasMacros} com coordenadas que não caem
-              em nenhuma macrorregião da geometria.
+              Fora do mapa: {distribuicao.semCoordenadas} sem CNES vinculado ou
+              sem coordenadas no CNES · {distribuicao.foraDasMacros} com
+              coordenadas que não caem em nenhuma macrorregião da geometria.
             </p>
           )}
         </>

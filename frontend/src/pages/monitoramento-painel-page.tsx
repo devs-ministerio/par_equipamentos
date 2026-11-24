@@ -31,6 +31,7 @@ import { RankingBarras } from "@/components/features/painel-gestao-ranking";
 import { PainelGestaoCompletude } from "@/components/features/painel-gestao-completude";
 import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
 import {
+  entregaInauguracaoPorAno,
   entregaPorUf,
   instrumentosParados,
   prazosMedios,
@@ -125,27 +126,37 @@ export function MonitoramentoPainelPage() {
     );
   }
 
-  // Instrumento sem ano herda o ano do instrumento firmado correspondente.
+  // O ano do instrumento é sempre o do instrumento firmado (convênio).
   const anoPorNumero = new Map(
     convenios.map((c) => [c.numero, c.anoInstrumento]),
   );
-  const instrumentosFiltrados = filtros.filtrados.map((i) =>
-    i.ano_instrumento == null && anoPorNumero.get(i.nr_convenio) != null
-      ? { ...i, ano_instrumento: anoPorNumero.get(i.nr_convenio)! }
-      : i,
-  );
+  const instrumentosFiltrados = filtros.filtrados.map((i) => ({
+    ...i,
+    ano_instrumento: anoPorNumero.get(i.nr_convenio) ?? null,
+  }));
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
   const fases = [...FASES_ACOMPANHAMENTO];
   const analise = resumirCarteiraPainel(instrumentosFiltrados, fases);
   const total = instrumentosFiltrados.length;
   const isAdmin = sessao.usuarioAtual?.role === "admin";
-  const mostraVencidas = isAdmin || sessao.usuarioAtual?.role === "gestor";
   const numeros = new Set(instrumentosFiltrados.map((i) => i.nr_convenio));
   const familias = entreguesPorFamilia(
     resumo.equipamentos_por_instrumento,
     numeros,
   );
-  const anosInauguracao = dados.inauguracoesPorAno;
+  const entregaAno = entregaInauguracaoPorAno(
+    numeros,
+    resumo.etapas_por_instrumento,
+  );
+  const totalEntregaAno = entregaAno.anos.reduce(
+    (t, a) => t + a.inaugurados + a.dispensados,
+    0,
+  );
+  const persusIISemAno = filtros.hasFiltros
+    ? 0
+    : convenios.filter(
+        (c) => c.tipoContratacao === "PERSUS II" && c.anoInstrumento == null,
+      ).length;
   const situacaoInaug = situacaoInauguracao(
     numeros,
     resumo.etapas_por_instrumento,
@@ -253,40 +264,51 @@ export function MonitoramentoPainelPage() {
                 ],
               }))}
             />
+            {persusIISemAno > 0 && (
+              <p className="m-0 mt-4 text-xs text-muted-foreground">
+                Não contabiliza os {persusIISemAno} PERSUS II, que não têm ano.
+              </p>
+            )}
           </PainelCartao>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <PainelCartao
-              titulo="Ano de inauguração"
-              apoio={
-                mostraVencidas && dados.previsoesVencidasForaDaSerie > 0
-                  ? `${dados.previsoesVencidasForaDaSerie} previsões vencidas fora da série`
-                  : undefined
-              }
+              titulo="Ano de inauguração/entrega"
+              apoio={`${totalEntregaAno} equipamentos`}
             >
               <LegendaSegmentos
                 itens={[
-                  { nome: "Realizadas", cor: COR_REALIZADA },
-                  { nome: "Previstas", cor: COR_PREVISTA },
+                  { nome: "Inaugurados", cor: COR_REALIZADA },
+                  {
+                    nome: "Entregues, inauguração dispensada",
+                    cor: "var(--painel-chart-turquesa)",
+                  },
                 ]}
               />
               <GraficoColunas
-                vazio="Nenhuma data de inauguração registrada neste recorte."
-                colunas={anosInauguracao.map((a) => ({
+                vazio="Nenhum equipamento com entrega resolvida neste recorte."
+                colunas={entregaAno.anos.map((a) => ({
                   rotulo: a.ano,
                   segmentos: [
                     {
-                      nome: "Realizadas",
-                      valor: a.realizadas,
+                      nome: "Inaugurados",
+                      valor: a.inaugurados,
                       cor: COR_REALIZADA,
                     },
                     {
-                      nome: "Previstas",
-                      valor: a.previstas,
-                      cor: COR_PREVISTA,
+                      nome: "Entregues, inauguração dispensada",
+                      valor: a.dispensados,
+                      cor: "var(--painel-chart-turquesa)",
                     },
                   ],
                 }))}
               />
+              {entregaAno.aguardando > 0 && (
+                <p className="m-0 mt-4 text-xs text-muted-foreground">
+                  Não contabiliza {entregaAno.aguardando} equipamentos entregues
+                  em instrumentos que ainda precisam de inauguração ou
+                  conclusão.
+                </p>
+              )}
             </PainelCartao>
             <PainelCartao titulo="Situação da inauguração">
               <GraficoRosca
@@ -393,7 +415,7 @@ export function MonitoramentoPainelPage() {
               />
             </PainelCartao>
             <PainelCartao
-              titulo="Concentração por UF"
+              titulo="Instrumentos por UF"
               apoio={`Top 5: ${analise.concentracaoTop5Uf}%`}
             >
               <RankingBarras

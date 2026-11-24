@@ -69,3 +69,4 @@ def test_inauguracao_dispensada_so_conta_evento_ativo(db):
     db.add(EventoMarco(instrumento_id=inst.id, marco_id=marco.id, observacao="Dispensada na entrega"))
     db.flush()
     assert repo.ids_com_inauguracao_dispensada(db, [inst.id, sem.id]) == {inst.id}
+

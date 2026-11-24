@@ -28,6 +28,7 @@ from app.schemas_monitoramento import (
     IndicadoresInstrumentoRead,
     LicencaVencendoResumo,
     ResumoMonitoramentoRead,
+    UnidadesEntreguesRead,
 )
 from app.services import licenca_operacao
 from app.services.fase_acompanhamento import FaseAcompanhamento
@@ -240,6 +241,8 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     entregas = etapas_repo.primeira_entrega_por_instrumento(db, ids)
     conclusoes = conclusoes_repo.datas_conclusao_ativas(db, ids)
     dispensadas = etapas_repo.ids_com_inauguracao_dispensada(db, ids)
+    resultados = etapas_repo.resultado_conclusao_por_instrumento(db, ids)
+    unidades = etapas_repo.unidades_entregues_por_data(db, ids)
     inauguradas = {i.nr_convenio: i.data for i in inauguracoes if i.realizada}
     etapas_por_instrumento = [
         EtapasInstrumentoRead(
@@ -249,6 +252,8 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
             inauguracao=inauguradas.get(i.nr_convenio),
             conclusao=conclusoes.get(i.id),
             inauguracao_dispensada=i.id in dispensadas,
+            conclusao_resultado=resultados.get(i.id),
+            unidades_entregues=[UnidadesEntreguesRead(data=d, quantidade=q) for d, q in unidades.get(i.id, [])],
         )
         for i in instrumentos
     ]

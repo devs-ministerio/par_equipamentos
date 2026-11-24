@@ -11,7 +11,14 @@ from datetime import date
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.db.models import Convenio, EntregaEquipamento, EventoMarco, MarcoCatalogo
+from app.db.models import (
+    ConclusaoInstrumento,
+    Convenio,
+    EntregaEquipamento,
+    EventoMarco,
+    MarcoCatalogo,
+    UnidadeEquipamento,
+)
 
 MARCO_DISPENSADA = "cronograma_inauguracao_dispensada"
 
@@ -56,3 +63,39 @@ def ids_com_inauguracao_dispensada(db: Session, instrumento_ids: Sequence[int]) 
         )
     )
     return {instrumento_id for (instrumento_id,) in linhas}
+
+
+def resultado_conclusao_por_instrumento(db: Session, instrumento_ids: Sequence[int]) -> dict[int, str]:
+    if not instrumento_ids:
+        return {}
+    linhas = db.execute(
+        select(ConclusaoInstrumento.instrumento_id, ConclusaoInstrumento.resultado).where(
+            ConclusaoInstrumento.instrumento_id.in_(instrumento_ids), ConclusaoInstrumento.deletado_em.is_(None)
+        )
+    )
+    return {instrumento_id: resultado for instrumento_id, resultado in linhas}
+
+
+def unidades_entregues_por_data(db: Session, instrumento_ids: Sequence[int]) -> dict[int, list[tuple[date, int]]]:
+    """Unidades de equipamento entregues (entregas ativas) agrupadas pela data da entrega, por instrumento."""
+    if not instrumento_ids:
+        return {}
+    linhas = db.execute(
+        select(
+            EntregaEquipamento.instrumento_id,
+            EntregaEquipamento.data_ocorrencia,
+            func.count(UnidadeEquipamento.id),
+        )
+        .join(UnidadeEquipamento, UnidadeEquipamento.entrega_id == EntregaEquipamento.id)
+        .where(
+            EntregaEquipamento.instrumento_id.in_(instrumento_ids),
+            EntregaEquipamento.substituido_por_id.is_(None),
+            EntregaEquipamento.deletado_em.is_(None),
+        )
+        .group_by(EntregaEquipamento.instrumento_id, EntregaEquipamento.data_ocorrencia)
+        .order_by(EntregaEquipamento.instrumento_id, EntregaEquipamento.data_ocorrencia)
+    )
+    resultado: dict[int, list[tuple[date, int]]] = {}
+    for instrumento_id, data, quantidade in linhas:
+        resultado.setdefault(instrumento_id, []).append((data, int(quantidade)))
+    return resultado

@@ -583,3 +583,18 @@ def test_alinhar_evento_cobre_excluido_corrigido_e_data_diferente(db):
         ativo = svc.evento_ativo_da_entrega(db, entrega)
         assert ativo is not None and ativo.id == entrega.evento_id and ativo.data_ocorrencia == entrega.data_ocorrencia
     assert executar(db, aplicar=False)["já alinhada"] >= 2  # idempotente
+
+
+def test_unidades_entregues_por_data_para_o_painel_de_gestao(db):
+    from app.repositories import etapas_instrumento as etapas
+
+    c = Cenario(db)
+    svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.dois, 2), data=date(2025, 3, 1)), db=db, usuario=c.titular
+    )
+    svc.registrar_entrega(
+        nr_convenio=c.inst.nr_convenio, dados=_dados(_item(c.um), data=date(2025, 6, 1)), db=db, usuario=c.titular
+    )
+    assert etapas.unidades_entregues_por_data(db, [c.inst.id]) == {
+        c.inst.id: [(date(2025, 3, 1), 2), (date(2025, 6, 1), 1)]
+    }

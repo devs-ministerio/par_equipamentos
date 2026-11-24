@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   prazosMedios,
   situacaoInauguracao,
+  entregaInauguracaoPorAno,
   instrumentosParados,
 } from "./painel-gestao-andamento";
 
@@ -12,6 +13,8 @@ const etapa = (nr: string, o: Record<string, unknown> = {}) => ({
   inauguracao: null,
   conclusao: null,
   inauguracao_dispensada: false,
+  conclusao_resultado: null,
+  unidades_entregues: [],
   ...o,
 });
 
@@ -62,5 +65,37 @@ describe("painel de gestão: andamento", () => {
     const r = instrumentosParados(instrumentos, indicadores, agora);
     expect(r.faixas.map((f) => f.quantidade)).toEqual([1, 0, 0, 1]);
     expect(r.semAtividade).toBe(1);
+  });
+
+  it("conta equipamentos entregues só com inauguração dispensada ou inaugurados e 100% concluídos", () => {
+    const entregas = [
+      { data: "2024-05-01", quantidade: 2 },
+      { data: "2025-02-01", quantidade: 1 },
+    ];
+    const etapas = [
+      etapa("1", {
+        inauguracao_dispensada: true,
+        unidades_entregues: entregas,
+      }),
+      etapa("2", {
+        inauguracao: "2025-09-10",
+        conclusao_resultado: "integral",
+        unidades_entregues: entregas,
+      }),
+      etapa("3", {
+        inauguracao: "2025-09-10",
+        conclusao_resultado: null,
+        unidades_entregues: [{ data: "2025-01-01", quantidade: 4 }],
+      }),
+      etapa("4", {
+        unidades_entregues: [{ data: "2025-01-01", quantidade: 5 }],
+      }),
+    ];
+    const r = entregaInauguracaoPorAno(new Set(["1", "2", "3", "4"]), etapas);
+    expect(r.anos).toEqual([
+      { ano: "2024", inaugurados: 0, dispensados: 2 },
+      { ano: "2025", inaugurados: 3, dispensados: 1 },
+    ]);
+    expect(r.aguardando).toBe(9);
   });
 });
