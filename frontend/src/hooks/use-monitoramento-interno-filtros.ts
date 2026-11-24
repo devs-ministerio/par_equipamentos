@@ -1,11 +1,23 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
+export type {
+  ClasseEquipamentoFiltro,
+  InstrumentoMonitoramentoFiltravel,
+} from "@/lib/monitoramento-filtros-instrumento";
 import type { ResumoMonitoramento } from "@/services/monitoramento-resumo";
 import { anosEmOperacao } from "@/lib/painel-gestao-andamento";
-import type { ClasseEquipamento } from "@/types/dados-oficiais";
-import { correspondeBuscaLivre } from "@/lib/busca-livre";
-import { chaveMunicipio, opcoesMunicipios } from "@/lib/municipio-filtro";
+import { chaveMunicipio } from "@/lib/municipio-filtro";
+import {
+  PARAMETROS,
+  SEM_RESPONSAVEL,
+  anoValido,
+  instrumentoCorrespondeAosFiltros,
+  opcoes,
+  opcoesMunicipio,
+  paginaValida,
+  type ClasseEquipamentoFiltro,
+  type InstrumentoMonitoramentoFiltravel,
+} from "@/lib/monitoramento-filtros-instrumento";
 import {
   anosPorReferencia,
   referenciaValida,
@@ -18,72 +30,6 @@ import {
   opcoesEquipamentosFiltro,
   type FonteEquipamentosFiltro,
 } from "@/lib/monitoramento-filtro-equipamentos";
-
-const SEM_RESPONSAVEL = "Sem responsável";
-
-type OpcaoFiltro = { value: string; label: string };
-export type ClasseEquipamentoFiltro = ClasseEquipamento | "todos";
-
-const PARAMETROS = [
-  "busca",
-  "tipo_contratacao",
-  "cnes",
-  "uf",
-  "municipio",
-  "classe",
-  "equipamento",
-  "situacao",
-  "programa",
-  "responsavel",
-  "ano_inicio",
-  "ano_fim",
-  "referencia",
-] as const;
-
-function paginaValida(valor: string | null): number {
-  const pagina = Number(valor);
-  return Number.isInteger(pagina) && pagina > 0 ? pagina : 1;
-}
-export type InstrumentoMonitoramentoFiltravel = Pick<
-  InstrumentoEquipamento,
-  | "nr_convenio"
-  | "cnes"
-  | "nome_convenente"
-  | "municipio"
-  | "uf"
-  | "tipo_contratacao"
-  | "fase_atual"
-  | "situacao_prestacao_contas"
-  | "tecnico_titular"
-> &
-  Partial<
-    Pick<
-      InstrumentoEquipamento,
-      "equipamento_descricao" | "programa" | "ano_instrumento"
-    >
-  >;
-
-function opcoes(
-  instrumentos: InstrumentoMonitoramentoFiltravel[],
-  valor: (instrumento: InstrumentoMonitoramentoFiltravel) => string,
-): OpcaoFiltro[] {
-  return [...new Set(instrumentos.map(valor))]
-    .sort((a, b) => a.localeCompare(b, "pt-BR"))
-    .map((value) => ({ value, label: value }));
-}
-
-function opcoesMunicipio(
-  instrumentos: InstrumentoMonitoramentoFiltravel[],
-): OpcaoFiltro[] {
-  return opcoesMunicipios(instrumentos.map((item) => item.municipio)).map(
-    ({ value, label }) => ({ value, label }),
-  );
-}
-
-/** Link com ano que não tem 4 dígitos (ex.: `abc`) vale como filtro ausente. */
-function anoValido(valor: string | null): string | null {
-  return valor && /^\d{4}$/.test(valor) ? valor : null;
-}
 
 /** Filtros das visões de monitoramento refletidos na URL.
  *
@@ -194,67 +140,23 @@ export function useMonitoramentoInternoFiltros<
 
   const filtrados = useMemo(
     () =>
-      instrumentos.filter((instrumento) => {
-        if (
-          !correspondeBuscaLivre(busca, [
-            instrumento.nr_convenio,
-            instrumento.nome_convenente,
-            instrumento.cnes,
-            instrumento.municipio,
-            instrumento.uf,
-            instrumento.tipo_contratacao,
-            instrumento.equipamento_descricao,
-            instrumento.programa,
-            instrumento.tecnico_titular,
-            instrumento.fase_atual,
-            instrumento.situacao_prestacao_contas,
-          ])
-        )
-          return false;
-        if (
-          tipoContratacao &&
-          (instrumento.tipo_contratacao ?? "Convênio") !== tipoContratacao
-        )
-          return false;
-        if (cnes && instrumento.cnes !== cnes) return false;
-        if (uf && instrumento.uf !== uf) return false;
-        if (
-          municipio &&
-          chaveMunicipio(instrumento.municipio ?? "") !== municipio
-        )
-          return false;
-        if (
-          equipamento &&
-          !(equipamento === "nao informado"
-            ? !marcadoresPorNumero.get(instrumento.nr_convenio)?.length
-            : marcadoresPorNumero
-                .get(instrumento.nr_convenio)
-                ?.some(
-                  (item) => chaveEquipamentoFiltro(item.nome) === equipamento,
-                ))
-        )
-          return false;
-        if (
-          situacao &&
-          (instrumento.fase_atual ?? "Acompanhamento iniciado") !== situacao
-        )
-          return false;
-        if (programa && (instrumento.programa ?? "Não informado") !== programa)
-          return false;
-        if (
-          responsavel &&
-          (instrumento.tecnico_titular ?? SEM_RESPONSAVEL) !== responsavel
-        )
-          return false;
-        return (
-          (!anoInicio && !anoFim) ||
-          anosDe(instrumento).some(
-            (ano) =>
-              (!anoInicio || ano >= Number(anoInicio)) &&
-              (!anoFim || ano <= Number(anoFim)),
-          )
-        );
-      }),
+      instrumentos.filter((instrumento) =>
+        instrumentoCorrespondeAosFiltros(instrumento, {
+          busca,
+          tipoContratacao,
+          cnes,
+          uf,
+          municipio,
+          equipamento,
+          situacao,
+          programa,
+          responsavel,
+          anoInicio,
+          anoFim,
+          marcadoresPorNumero,
+          anosDe,
+        }),
+      ),
     [
       instrumentos,
       marcadoresPorNumero,
