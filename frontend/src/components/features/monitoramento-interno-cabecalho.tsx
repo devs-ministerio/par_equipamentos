@@ -64,7 +64,7 @@ export function MonitoramentoInternoCabecalho({
       valor: inaugurado
         ? `Realizada em ${fmtData(dataInauguracao)}`
         : dataInauguracao
-          ? "Prevista"
+          ? `Prevista em ${fmtData(dataInauguracao)}`
           : inauguracaoDispensada
             ? "Dispensada"
             : origemAlternativa
