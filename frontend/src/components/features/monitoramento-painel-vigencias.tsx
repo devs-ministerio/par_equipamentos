@@ -28,7 +28,7 @@ export function MonitoramentoPainelVigencias({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="group flex w-full cursor-pointer items-center justify-between gap-4 border border-border border-l-[3px] border-l-warning bg-card px-5 py-5 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-6"
+          className="group flex w-full cursor-pointer items-center justify-between gap-4 overflow-hidden rounded-2xl border border-border/80 border-l-[3px] border-l-warning bg-card shadow-[var(--shadow-soft)] px-5 py-5 text-left transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-6"
         >
           <span className="min-w-0">
             <span className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] text-warning uppercase">

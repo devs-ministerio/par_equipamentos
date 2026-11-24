@@ -31,6 +31,7 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
     else if (l.fase) contagem.set(l.fase, (contagem.get(l.fase) ?? 0) + 1);
   }
   const colunas: Coluna[] = [
+    { rotulo: SEM_MONITORAMENTO, valor: semMonitoramento, tom: "alerta" },
     ...FASES_ACOMPANHAMENTO.map(
       (fase): Coluna => ({
         rotulo: fase,
@@ -38,7 +39,6 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
         tom: fase === "Concluído" ? "concluido" : "fase",
       }),
     ),
-    { rotulo: SEM_MONITORAMENTO, valor: semMonitoramento, tom: "alerta" },
   ];
   const maximo = Math.max(1, ...colunas.map((c) => c.valor));
   return (
