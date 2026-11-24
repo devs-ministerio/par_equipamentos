@@ -153,7 +153,7 @@ export function MonitoramentoMeuPainelPage() {
         <ErrorAlert mensagem="Este colaborador ainda não tem região de monitoramento definida." />
       )}
       <PainelNavegacao itens={SECOES_MEU_PAINEL} />
-      <div className="space-y-12">
+      <div className="-mt-3 space-y-12">
         <PainelBloco id="visao-geral" titulo="Visão geral" ocultarTitulo>
           <PainelTecnicoIndicadores
             carteira={c}

@@ -159,7 +159,7 @@ export function MonitoramentoPainelPage() {
           setLocais({});
         }}
       />
-      <div className="space-y-12">
+      <div className="-mt-3 space-y-12">
         <PainelSecaoVisaoGeral {...comum} />
         <PainelSecaoEvolucao
           {...comum}
