@@ -37,3 +37,10 @@ export function aplicaFiltro(l: LinhaCarteira, f: FiltroCarteira): boolean {
   if (f === "radar") return entrouNoRadarRecente(l);
   return true;
 }
+
+/** Âncoras do Meu painel. */
+export const SECOES_MEU_PAINEL = [
+  { id: "visao-geral", rotulo: "Visão geral" },
+  { id: "carteira", rotulo: "Carteira" },
+  { id: "prazos", rotulo: "Prazos e pendências" },
+];

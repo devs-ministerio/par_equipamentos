@@ -8,6 +8,7 @@ import {
 } from "@/components/features/painel-tecnico-estrutura";
 import { PainelTecnicoIndicadores } from "@/components/features/painel-tecnico-indicadores";
 import { PainelTecnicoGraficos } from "@/components/features/painel-tecnico-graficos";
+import { useFiltrosMeuPainel } from "@/hooks/use-filtros-meu-painel";
 import { derivarMeuPainel } from "@/lib/painel-tecnico-derivados";
 import { SeletorColaboradorPainel } from "@/components/features/seletor-colaborador-painel";
 import { CardColaborador } from "@/components/features/card-colaborador";
@@ -22,14 +23,8 @@ import {
   usePainelTecnico,
   useTecnicosPainel,
 } from "@/hooks/use-painel-tecnico";
+import { SECOES_MEU_PAINEL } from "@/lib/painel-tecnico-filtro";
 import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-carteira";
-import { type FiltroCarteira } from "@/lib/painel-tecnico-filtro";
-
-const SECOES = [
-  { id: "visao-geral", rotulo: "Visão geral" },
-  { id: "carteira", rotulo: "Carteira" },
-  { id: "prazos", rotulo: "Prazos e pendências" },
-];
 
 export function MonitoramentoMeuPainelPage() {
   const { usuarioAtual } = useAuthSession();
@@ -39,20 +34,23 @@ export function MonitoramentoMeuPainelPage() {
   const tecnicos = useTecnicosPainel(gestao);
   const consulta = usePainelTecnico(colaboradorId);
   const carteiraQuery = useCarteiraTecnico(colaboradorId);
-  const [filtroCarteira, setFiltroCarteira] = useState<FiltroCarteira>("todos");
-  const [faseSel, setFaseSel] = useState<string | undefined>();
-  const [familiaSel, setFamiliaSel] = useState<string | undefined>();
-  const linhas = carteiraQuery.data;
-  const dados = consulta.data;
-  const limparFiltros = () => {
-    setFiltroCarteira("todos");
-    setFaseSel(undefined);
-    setFamiliaSel(undefined);
-  };
+  const {
+    filtroCarteira,
+    setFiltroCarteira,
+    faseSel,
+    setFaseSel,
+    familiaSel,
+    setFamiliaSel,
+    limparFiltros,
+    irParaCarteira,
+    alternar,
+    chips: chipsDashboard,
+  } = useFiltrosMeuPainel();
+  const { data: linhas } = carteiraQuery;
+  const { data: dados } = consulta;
   const resumo = useMonitoramentoResumo();
   const instrumentosQuery = useMonitoramentoInstrumentos();
   const conveniosQuery = useConveniosLista();
-
   const titulo = gestao ? "Painéis da equipe" : "Meu painel";
   const seletor = gestao ? (
     <SeletorColaboradorPainel
@@ -72,24 +70,21 @@ export function MonitoramentoMeuPainelPage() {
     />
   );
 
-  if (consulta.isError) {
+  const falha = consulta.isError
+    ? { mensagem: "Não foi possível carregar o painel.", refazer: consulta }
+    : carteiraQuery.isError && !linhas
+      ? {
+          mensagem: "Não foi possível carregar a carteira.",
+          refazer: carteiraQuery,
+        }
+      : null;
+  if (falha) {
     return (
       <div>
         {header}
         <ErrorAlert
-          mensagem="Não foi possível carregar o painel."
-          onRetry={() => consulta.refetch()}
-        />
-      </div>
-    );
-  }
-  if (carteiraQuery.isError && !linhas) {
-    return (
-      <div>
-        {header}
-        <ErrorAlert
-          mensagem="Não foi possível carregar a carteira."
-          onRetry={() => carteiraQuery.refetch()}
+          mensagem={falha.mensagem}
+          onRetry={() => falha.refazer.refetch()}
         />
       </div>
     );
@@ -109,8 +104,7 @@ export function MonitoramentoMeuPainelPage() {
       </div>
     );
   }
-  const semRegiao =
-    dados.escopo === "individual" && (dados.ufs ?? []).length === 0;
+  const semRegiao = dados.escopo === "individual" && !dados.ufs?.length;
   const c = dados.carteira;
   const equipamentosResumo = resumo.data?.equipamentos_por_instrumento ?? [];
   const {
@@ -126,14 +120,6 @@ export function MonitoramentoMeuPainelPage() {
     linhasSituacao,
     linhasCarteira,
   } = derivarMeuPainel(linhas, equipamentosResumo, faseSel, familiaSel);
-  const chipsDashboard = [
-    ...(faseSel
-      ? [{ rotulo: faseSel, onRemover: () => setFaseSel(undefined) }]
-      : []),
-    ...(familiaSel
-      ? [{ rotulo: familiaSel, onRemover: () => setFamiliaSel(undefined) }]
-      : []),
-  ];
   const prazos =
     resumo.data && instrumentosQuery.data && conveniosQuery.data
       ? montarMetricasPainel(
@@ -149,16 +135,6 @@ export function MonitoramentoMeuPainelPage() {
     instrumentosQuery,
     conveniosQuery,
   ].filter((query) => query.isError);
-  const irParaCarteira = () =>
-    requestAnimationFrame(() =>
-      document
-        .getElementById("carteira")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
-  const alternar = (f: FiltroCarteira) => {
-    setFiltroCarteira((atual) => (atual === f ? "todos" : f));
-    if (filtroCarteira !== f) irParaCarteira();
-  };
   return (
     <div className="space-y-6 pb-8">
       {header}
@@ -171,7 +147,7 @@ export function MonitoramentoMeuPainelPage() {
       {semRegiao && (
         <ErrorAlert mensagem="Este colaborador ainda não tem região de monitoramento definida." />
       )}
-      <PainelNavegacao itens={SECOES} />
+      <PainelNavegacao itens={SECOES_MEU_PAINEL} />
       <div className="space-y-12">
         <PainelBloco id="visao-geral" titulo="Visão geral">
           <PainelTecnicoIndicadores
