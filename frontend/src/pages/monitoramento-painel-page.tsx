@@ -14,7 +14,8 @@ import { fmtMoeda } from "@/lib/monitoramento-format";
 import { rotulosEquipamentoDoInstrumento } from "@/lib/monitoramento-filtro-equipamentos";
 import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
 import { MetricStrip } from "@/components/common/metric-strip";
-import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
+import { PainelGestaoFiltros } from "@/components/features/painel-gestao-filtros";
+import { PainelGestaoRecortes } from "@/components/features/painel-gestao-recortes";
 import { MonitoramentoPainelGeografia } from "@/components/features/monitoramento-painel-geografia";
 import {
   COR_EM_OPERACAO,
@@ -38,7 +39,6 @@ import { RankingBarras } from "@/components/features/painel-gestao-ranking";
 import { PainelGestaoCompletude } from "@/components/features/painel-gestao-completude";
 import {
   ROTULO_SEM_LANCAMENTO,
-  anosEmOperacao,
   entregaInauguracaoPorAno,
   entregaPorUf,
   faixaDeAtualizacao,
@@ -48,6 +48,7 @@ import {
   situacaoDoInstrumento,
   situacaoInauguracao,
 } from "@/lib/painel-gestao-andamento";
+import type { ReferenciaPeriodo } from "@/lib/referencia-periodo-painel";
 import { resumirCarteiraPainel } from "@/lib/monitoramento-painel-analise";
 import {
   COR_PREVISTA,
@@ -78,19 +79,11 @@ const header = (
   />
 );
 
-type FiltroLocal =
-  | "familia"
-  | "anoInstrumento"
-  | "inauguracao"
-  | "anoOperacao"
-  | "atualizacao"
-  | "prazo";
+type FiltroLocal = "familia" | "inauguracao" | "atualizacao" | "prazo";
 
 const ROTULO_FILTRO_LOCAL: Record<FiltroLocal, string> = {
-  familia: "Equipamento",
-  anoInstrumento: "Ano do instrumento",
+  familia: "Família no gráfico",
   inauguracao: "Inauguração",
-  anoOperacao: "Início de operação",
   atualizacao: "Sem atualizações",
   prazo: "Prazo entre etapas",
 };
@@ -113,13 +106,33 @@ export function MonitoramentoPainelPage() {
   const sessao = useAuthSession();
   const resumo = resumoQuery.data;
   const instrumentos = instrumentosQuery.data;
-  const filtros = useMonitoramentoInternoFiltros(
-    instrumentos ?? [],
-    conveniosQuery.data?.itens ?? [],
-    resumo?.inauguracoes ?? null,
-  );
   const marcos = marcosQuery.data;
   const convenios = conveniosQuery.data?.itens;
+  // O ano do firmado prevalece; cargas sem convênio usam o ano do cadastro.
+  const instrumentosComAno = useMemo(() => {
+    const anoPorNumero = new Map(
+      convenios?.map((c) => [c.numero, c.anoInstrumento]),
+    );
+    return (instrumentos ?? []).map((i) => ({
+      ...i,
+      ano_instrumento:
+        anoPorNumero.get(i.nr_convenio) ?? i.ano_instrumento ?? null,
+    }));
+  }, [instrumentos, convenios]);
+  const filtros = useMonitoramentoInternoFiltros(
+    instrumentosComAno,
+    convenios ?? [],
+    resumo?.inauguracoes ?? null,
+    resumo?.etapas_por_instrumento ?? null,
+  );
+  const anoSelecionado = (referencia: ReferenciaPeriodo) =>
+    filtros.referencia === referencia && filtros.anoInicio === filtros.anoFim
+      ? filtros.anoInicio
+      : null;
+  const alternarAno = (referencia: ReferenciaPeriodo, ano: string) => {
+    const valor = anoSelecionado(referencia) === ano ? null : ano;
+    filtros.setPeriodo(valor, valor, valor ? referencia : "ano_instrumento");
+  };
   const equipamentosPorNumero = useMemo(
     () =>
       new Map(
@@ -164,11 +177,6 @@ export function MonitoramentoPainelPage() {
     );
   }
 
-  // O ano do instrumento é sempre o do instrumento firmado (convênio).
-  // Instrumento de carga manual sem convênio correspondente usa o ano do próprio cadastro.
-  const anoPorNumero = new Map(
-    convenios.map((c) => [c.numero, c.anoInstrumento]),
-  );
   const etapaPorNumero = new Map(
     resumo.etapas_por_instrumento.map((e) => [e.nr_convenio, e]),
   );
@@ -192,41 +200,25 @@ export function MonitoramentoPainelPage() {
         resumo.etapas_por_instrumento,
       )
     : null;
-  const instrumentosFiltrados = filtros.filtrados
-    .map((i) => ({
-      ...i,
-      ano_instrumento:
-        anoPorNumero.get(i.nr_convenio) ?? i.ano_instrumento ?? null,
-    }))
-    .filter((i) => {
-      const n = i.nr_convenio;
-      if (locais.familia && !familiasDoNumero.get(n)?.has(locais.familia))
-        return false;
-      if (
-        locais.anoInstrumento &&
-        String(i.ano_instrumento) !== locais.anoInstrumento
-      )
-        return false;
-      if (
-        locais.inauguracao &&
-        situacaoDoInstrumento(etapaPorNumero.get(n), comPrevisao.has(n)) !==
-          locais.inauguracao
-      )
-        return false;
-      if (
-        locais.anoOperacao &&
-        !anosEmOperacao(etapaPorNumero.get(n)).has(locais.anoOperacao)
-      )
-        return false;
-      if (
-        locais.atualizacao &&
-        faixaDeAtualizacao(i.fase_atual, ultimaAtividade.get(n)) !==
-          locais.atualizacao
-      )
-        return false;
-      if (numerosDoPrazo && !numerosDoPrazo.has(n)) return false;
-      return true;
-    });
+  const instrumentosFiltrados = filtros.filtrados.filter((i) => {
+    const n = i.nr_convenio;
+    if (locais.familia && !familiasDoNumero.get(n)?.has(locais.familia))
+      return false;
+    if (
+      locais.inauguracao &&
+      situacaoDoInstrumento(etapaPorNumero.get(n), comPrevisao.has(n)) !==
+        locais.inauguracao
+    )
+      return false;
+    if (
+      locais.atualizacao &&
+      faixaDeAtualizacao(i.fase_atual, ultimaAtividade.get(n)) !==
+        locais.atualizacao
+    )
+      return false;
+    if (numerosDoPrazo && !numerosDoPrazo.has(n)) return false;
+    return true;
+  });
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
   const fases = [...FASES_ACOMPANHAMENTO];
   const analise = resumirCarteiraPainel(instrumentosFiltrados, fases);
@@ -272,37 +264,24 @@ export function MonitoramentoPainelPage() {
   return (
     <div className="space-y-6 pb-8">
       {header}
-      <MonitoramentoInternoFiltros filtros={filtros} />
-      {Object.keys(locais).length > 0 && (
-        <div
-          className="flex flex-wrap items-center gap-2"
-          role="group"
-          aria-label="Filtros dos gráficos"
-        >
-          {(Object.entries(locais) as [FiltroLocal, string][]).map(
-            ([campo, valor]) => (
-              <button
-                key={campo}
-                type="button"
-                onClick={() => alternarLocal(campo, valor)}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
-                aria-label={`Remover filtro ${ROTULO_FILTRO_LOCAL[campo]}: ${valor}`}
-              >
-                {ROTULO_FILTRO_LOCAL[campo]}: {valor}{" "}
-                <span aria-hidden="true">×</span>
-              </button>
-            ),
-          )}
-          <button
-            type="button"
-            onClick={() => setLocais({})}
-            className="cursor-pointer border-0 bg-transparent px-1 text-xs text-muted-foreground underline"
-          >
-            Limpar filtros dos gráficos
-          </button>
-        </div>
-      )}
-      <PainelNavegacao itens={SECOES} />
+      <PainelNavegacao
+        itens={SECOES}
+        filtros={<PainelGestaoFiltros filtros={filtros} />}
+      />
+      <PainelGestaoRecortes
+        filtros={filtros}
+        recortesGraficos={(
+          Object.entries(locais) as [FiltroLocal, string][]
+        ).map(([campo, valor]) => ({
+          rotulo: ROTULO_FILTRO_LOCAL[campo],
+          valor,
+          remover: () => alternarLocal(campo, valor),
+        }))}
+        limpar={() => {
+          filtros.limparFiltros();
+          setLocais({});
+        }}
+      />
       <div className="space-y-12">
         <PainelBloco id="visao-geral" titulo="Visão geral">
           <MetricStrip
@@ -358,8 +337,8 @@ export function MonitoramentoPainelPage() {
         <PainelBloco id="evolucao" titulo="Evolução">
           <PainelCartao titulo="Ano do instrumento">
             <GraficoColunas
-              selecionado={locais.anoInstrumento}
-              onSelecionar={(r) => alternarLocal("anoInstrumento", r)}
+              selecionado={anoSelecionado("ano_instrumento")}
+              onSelecionar={(r) => alternarAno("ano_instrumento", r)}
               vazio="Nenhum ano informado."
               colunas={analise.anos.map((a) => ({
                 rotulo: a.rotulo,
@@ -379,8 +358,8 @@ export function MonitoramentoPainelPage() {
               apoio={`${totalEntregaAno} equipamentos em operação`}
             >
               <GraficoColunas
-                selecionado={locais.anoOperacao}
-                onSelecionar={(r) => alternarLocal("anoOperacao", r)}
+                selecionado={anoSelecionado("inicio_operacao")}
+                onSelecionar={(r) => alternarAno("inicio_operacao", r)}
                 vazio="Nenhum equipamento em operação neste recorte."
                 colunas={entregaAno.anos.map((a) => ({
                   rotulo: a.ano,
@@ -469,6 +448,7 @@ export function MonitoramentoPainelPage() {
             </PainelCartao>
             <PainelCartao titulo="Prazo médio entre etapas">
               <RankingBarras
+                compacto
                 vazio="Sem instrumentos com as duas datas."
                 selecionado={locais.prazo}
                 onSelecionar={(r) => alternarLocal("prazo", r)}
@@ -486,7 +466,7 @@ export function MonitoramentoPainelPage() {
               limite={10}
               selecionado={filtros.uf}
               onSelecionar={(uf) =>
-                filtros.setUf(filtros.uf === uf ? null : uf)
+                filtros.setUfComMunicipio(filtros.uf === uf ? null : uf)
               }
               vazio="Nenhum equipamento planejado neste recorte."
               itens={porUf.map((u) => ({
@@ -572,7 +552,7 @@ export function MonitoramentoPainelPage() {
                 limite={14}
                 selecionado={filtros.uf}
                 onSelecionar={(uf) =>
-                  filtros.setUf(filtros.uf === uf ? null : uf)
+                  filtros.setUfComMunicipio(filtros.uf === uf ? null : uf)
                 }
                 itens={analise.ufs.map((u) => ({
                   rotulo: u.rotulo,

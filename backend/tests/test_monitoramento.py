@@ -60,6 +60,7 @@ from app.routers.monitoramento import (
     registrar_acao,
     registrar_evento,
 )
+from app.serializers_monitoramento import _acao_read, _evento_read
 from app.services.monitoramento_eventos import (
     NovoEventoMonitorado,
     atualizar_cadastro_instrumento,
@@ -328,6 +329,27 @@ def test_patch_cadastro_convenio_inexistente_404():
         db.close()
 
 
+def test_exibicao_remove_apenas_a_assinatura_legada_e_preserva_autoria():
+    nomes = {1: "Autora do teste"}
+    criado_em = datetime.now(timezone.utc)
+    evento = EventoMarco(id=1, marco_id=1, autor_id=1, created_at=criado_em, observacao="[Autora do teste] Confirmado")
+    acao = AcaoMonitoramento(
+        id=2, instrumento_id=1, criado_por_id=1, created_at=criado_em, descricao="[Autora do teste] Conferir registro"
+    )
+
+    saida_evento = _evento_read(evento, nomes)
+    saida_acao = _acao_read(acao, "123456", nomes)
+    assert saida_evento.observacao == "Confirmado"
+    assert saida_evento.autor_nome == "Autora do teste"
+    assert saida_acao.descricao == "Conferir registro"
+    assert saida_acao.criado_por_nome == "Autora do teste"
+
+    evento.observacao = "[Conferência] Confirmado"
+    assert _evento_read(evento, nomes).observacao == "[Conferência] Confirmado"
+    evento.observacao = "[Autora do teste]"
+    assert _evento_read(evento, nomes).observacao is None
+
+
 def test_registrar_evento_persiste_numero_documento_e_data_validade():
     db = SessionLocal()
     evento_id = None
@@ -350,6 +372,8 @@ def test_registrar_evento_persiste_numero_documento_e_data_validade():
         resultado = registrar_evento(NR_CONVENIO_SEED, corpo, db, usuario_teste)
         evento_id = resultado.id
         assert resultado.autor_nome == usuario_teste.name
+        assert resultado.observacao == corpo.observacao
+        assert db.get(EventoMarco, evento_id).observacao == corpo.observacao
         assert resultado.numero_documento == "TESTE-123"
         assert resultado.data_validade == date(2031, 1, 10)
         log = db.query(AuditLog).filter_by(entity_name="evento_marco", entity_id=evento_id).one()
@@ -1120,6 +1144,8 @@ def test_editar_evento_monitorado_corrige_e_fecha_original():
         )
 
         assert novo.id != antigo_id
+        assert novo.observacao == "corrigido"
+        assert novo.autor_id == usuario.id
         assert novo.marco_id == marco_fisico.id
         assert novo.data_ocorrencia == date(2026, 1, 2)
         assert antigo.substituido_por_id == novo.id
@@ -1392,6 +1418,7 @@ def test_registrar_acao_monitorada_seta_criado_por_id():
             usuario=usuario,
         )
         assert acao.criado_por_id == usuario.id
+        assert acao.descricao == "ação pytest"
     finally:
         db.rollback()
         db.query(User).filter_by(id=usuario.id).delete()

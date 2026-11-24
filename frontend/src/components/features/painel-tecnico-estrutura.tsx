@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+const ESPACO_ABAIXO_DO_CABECALHO = 3;
+
 export interface ItemNavegacao {
   id: string;
   rotulo: string;
@@ -42,14 +44,20 @@ export function PainelBloco({
 }
 
 /** Atalhos fixos sob o cabeçalho; marca a seção que está na tela. */
-export function PainelNavegacao({ itens }: { itens: ItemNavegacao[] }) {
+export function PainelNavegacao({
+  itens,
+  filtros,
+}: {
+  itens: ItemNavegacao[];
+  filtros?: ReactNode;
+}) {
   const [ativo, setAtivo] = useState(itens[0]?.id);
-  const [topo, setTopo] = useState(65);
+  const [alturaCabecalho, setAlturaCabecalho] = useState(65);
   useEffect(() => {
     const cabecalho = document.querySelector("header.sticky");
     if (!cabecalho || typeof ResizeObserver === "undefined") return;
     const medir = () =>
-      setTopo(Math.round(cabecalho.getBoundingClientRect().height));
+      setAlturaCabecalho(Math.round(cabecalho.getBoundingClientRect().height));
     medir();
     const observador = new ResizeObserver(medir);
     observador.observe(cabecalho);
@@ -71,33 +79,40 @@ export function PainelNavegacao({ itens }: { itens: ItemNavegacao[] }) {
     return () => observador.disconnect();
   }, [itens]);
   return (
-    <nav
-      aria-label="Seções do painel"
-      style={{ top: topo }}
-      className="sticky z-30 -mx-1 mb-8 flex gap-1 overflow-x-auto border-b border-border/70 bg-background/85 px-1 py-3 backdrop-blur-md"
+    <div
+      style={{ top: alturaCabecalho + ESPACO_ABAIXO_DO_CABECALHO }}
+      className="@container sticky z-30 rounded-xl border border-border bg-card p-2 shadow-sm"
     >
-      {itens.map((item) => (
-        <a
-          key={item.id}
-          href={`#${item.id}`}
-          aria-current={ativo === item.id ? "true" : undefined}
-          onClick={(e) => {
-            e.preventDefault();
-            document
-              .getElementById(item.id)
-              ?.scrollIntoView({ behavior: "smooth", block: "start" });
-            setAtivo(item.id);
-          }}
-          className={cn(
-            "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-            ativo === item.id
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-          )}
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <nav
+          aria-label="Seções do painel"
+          className="flex min-w-0 gap-1 overflow-x-auto"
         >
-          {item.rotulo}
-        </a>
-      ))}
-    </nav>
+          {itens.map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              aria-current={ativo === item.id ? "true" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                document
+                  .getElementById(item.id)
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                setAtivo(item.id);
+              }}
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-1.5 text-sm font-medium transition-colors",
+                ativo === item.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {item.rotulo}
+            </a>
+          ))}
+        </nav>
+        {filtros}
+      </div>
+    </div>
   );
 }

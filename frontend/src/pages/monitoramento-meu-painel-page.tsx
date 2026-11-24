@@ -8,8 +8,8 @@ import {
   PainelNavegacao,
 } from "@/components/features/painel-tecnico-estrutura";
 import { CardColaborador } from "@/components/features/card-colaborador";
-import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
-import { entreguesPorFamilia } from "@/lib/equipamentos-entregues";
+import { PainelGestaoEquipamentos } from "@/components/features/painel-gestao-equipamentos";
+import { equipamentosPorSituacao } from "@/lib/painel-gestao-operacao";
 import { SecaoSituacao } from "@/components/features/painel-tecnico-situacao";
 import { MonitoramentoFilaAcoes } from "@/components/features/monitoramento-fila-acoes";
 import { MonitoramentoPainelPrazos } from "@/components/features/monitoramento-painel-prazos";
@@ -49,8 +49,13 @@ export function MonitoramentoMeuPainelPage() {
   const [filtroCarteira, setFiltroCarteira] = useState<FiltroCarteira>("todos");
   const [faseSel, setFaseSel] = useState<string | undefined>();
   const [familiaSel, setFamiliaSel] = useState<string | undefined>();
-  const linhas = carteiraQuery.data ?? [];
+  const linhas = carteiraQuery.data;
   const dados = consulta.data;
+  const limparFiltros = () => {
+    setFiltroCarteira("todos");
+    setFaseSel(undefined);
+    setFamiliaSel(undefined);
+  };
   const resumo = useMonitoramentoResumo();
   const instrumentosQuery = useMonitoramentoInstrumentos();
   const conveniosQuery = useConveniosLista();
@@ -64,8 +69,7 @@ export function MonitoramentoMeuPainelPage() {
         value={colaboradorId ?? ""}
         onChange={(e) => {
           setColaboradorId(e.target.value ? Number(e.target.value) : undefined);
-          setFaseSel(undefined);
-          setFamiliaSel(undefined);
+          limparFiltros();
         }}
       >
         <option value="">Todos</option>
@@ -102,11 +106,29 @@ export function MonitoramentoMeuPainelPage() {
       </div>
     );
   }
-  if (!dados) {
+  if (carteiraQuery.isError && !linhas) {
     return (
       <div>
         {header}
-        <Skeleton className="h-24 w-full" />
+        <ErrorAlert
+          mensagem="Não foi possível carregar a carteira."
+          onRetry={() => carteiraQuery.refetch()}
+        />
+      </div>
+    );
+  }
+  if (!dados || !linhas) {
+    return (
+      <div>
+        {header}
+        <div
+          className="grid gap-3"
+          role="status"
+          aria-label="Carregando painel"
+        >
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
       </div>
     );
   }
@@ -118,10 +140,8 @@ export function MonitoramentoMeuPainelPage() {
   const concluidos = linhas.filter(
     (l) => l.monitorado && l.fase === "Concluído",
   ).length;
-  const novosRadar = linhas.filter(entrouNoRadarRecente).length;
-  const valorRadar = linhas
-    .filter(entrouNoRadarRecente)
-    .reduce((t, l) => t + (l.valor_global ?? 0), 0);
+  const novosRadar = linhas.filter(entrouNoRadarRecente);
+  const valorRadar = novosRadar.reduce((t, l) => t + (l.valor_global ?? 0), 0);
   const pendentes = linhas.reduce((t, l) => t + l.acoes_abertas, 0);
   const numerosMonitorados = new Set(
     linhas.filter((l) => l.monitorado).map((l) => l.numero),
@@ -164,6 +184,11 @@ export function MonitoramentoMeuPainelPage() {
           conveniosQuery.data.itens,
         )
       : null;
+  const fontesPrazosComErro = [
+    resumo,
+    instrumentosQuery,
+    conveniosQuery,
+  ].filter((query) => query.isError);
   const atrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
   const irParaCarteira = () =>
     requestAnimationFrame(() =>
@@ -176,8 +201,14 @@ export function MonitoramentoMeuPainelPage() {
     if (filtroCarteira !== f) irParaCarteira();
   };
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {header}
+      {tecnicos.isError && (
+        <ErrorAlert
+          mensagem="Não foi possível carregar a lista de colaboradores."
+          onRetry={() => tecnicos.refetch()}
+        />
+      )}
       {semRegiao && (
         <ErrorAlert mensagem="Este colaborador ainda não tem região de monitoramento definida." />
       )}
@@ -196,10 +227,10 @@ export function MonitoramentoMeuPainelPage() {
                 variant: "primary",
                 detail: `${c.monitorados} de ${c.elegiveis} instrumentos monitorados`,
                 onClick: () => {
-                  setFiltroCarteira("todos");
+                  limparFiltros();
                   irParaCarteira();
                 },
-                ativo: filtroCarteira === "todos",
+                ativo: filtroCarteira === "todos" && !faseSel && !familiaSel,
               },
               {
                 key: "faltam",
@@ -230,7 +261,7 @@ export function MonitoramentoMeuPainelPage() {
               {
                 key: "radar",
                 label: "Novos Instrumentos",
-                value: novosRadar,
+                value: novosRadar.length,
                 detail: `${fmtMoeda(valorRadar)} nos últimos ${JANELA_RADAR_DIAS} dias`,
                 onClick: () => alternar("radar"),
                 ativo: filtroCarteira === "radar",
@@ -243,31 +274,36 @@ export function MonitoramentoMeuPainelPage() {
               selecionada={faseSel}
               onSelecionar={setFaseSel}
             />
-            <SecaoEquipamentos
-              familias={entreguesPorFamilia(
-                equipamentosResumo,
-                numerosEquipamentos,
-              )}
-              selecionada={familiaSel}
-              onSelecionar={setFamiliaSel}
-            />
+            {resumo.data ? (
+              <PainelGestaoEquipamentos
+                familias={equipamentosPorSituacao(
+                  equipamentosResumo,
+                  numerosEquipamentos,
+                  resumo.data.etapas_por_instrumento,
+                )}
+                selecionada={familiaSel}
+                onSelecionar={setFamiliaSel}
+              />
+            ) : resumo.isError ? (
+              <ErrorAlert
+                mensagem="Não foi possível carregar os equipamentos."
+                onRetry={() => resumo.refetch()}
+              />
+            ) : (
+              <div role="status" aria-label="Carregando equipamentos">
+                <Skeleton className="h-full min-h-64" />
+              </div>
+            )}
           </div>
         </PainelBloco>
         <PainelBloco id="carteira" titulo="Carteira">
-          {carteiraQuery.isError ? (
-            <ErrorAlert
-              mensagem="Não foi possível carregar a carteira."
-              onRetry={() => carteiraQuery.refetch()}
-            />
-          ) : (
-            <PainelTecnicoCarteira
-              linhas={linhasCarteira}
-              total={linhas.length}
-              chips={chipsDashboard}
-              filtro={filtroCarteira}
-              onLimpar={() => setFiltroCarteira("todos")}
-            />
-          )}
+          <PainelTecnicoCarteira
+            linhas={linhasCarteira}
+            total={linhas.length}
+            chips={chipsDashboard}
+            filtro={filtroCarteira}
+            onLimpar={() => setFiltroCarteira("todos")}
+          />
         </PainelBloco>
         <PainelBloco id="prazos" titulo="Prazos e pendências">
           {prazos ? (
@@ -282,9 +318,15 @@ export function MonitoramentoMeuPainelPage() {
                 acoes={prazos.acoes}
                 acoesPendentes={pendentes}
                 filaTruncada={resumo.data?.fila_acoes_truncada ?? false}
-                className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
               />
             </div>
+          ) : fontesPrazosComErro.length > 0 ? (
+            <ErrorAlert
+              mensagem="Não foi possível carregar prazos e pendências."
+              onRetry={() =>
+                Promise.all(fontesPrazosComErro.map((query) => query.refetch()))
+              }
+            />
           ) : (
             <div className="grid gap-3" role="status" aria-label="Carregando">
               <Skeleton className="h-20" />

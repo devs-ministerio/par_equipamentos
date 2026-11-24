@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
+import type { ResumoMonitoramento } from "@/services/monitoramento-resumo";
+import { anosEmOperacao } from "@/lib/painel-gestao-andamento";
 import type { ClasseEquipamento } from "@/types/dados-oficiais";
 import { correspondeBuscaLivre } from "@/lib/busca-livre";
 import { chaveMunicipio, opcoesMunicipios } from "@/lib/municipio-filtro";
@@ -8,6 +10,7 @@ import {
   anosPorReferencia,
   referenciaValida,
   type DataDeInauguracao,
+  type ReferenciaPeriodo,
 } from "@/lib/referencia-periodo-painel";
 import {
   chaveEquipamentoFiltro,
@@ -89,6 +92,9 @@ export function useMonitoramentoInternoFiltros<
   fontesEquipamentos: readonly FonteEquipamentosFiltro[] = [],
   /** Datas de inauguração por instrumento; quando informadas, o período pode olhar o evento (D41). */
   inauguracoes: readonly DataDeInauguracao[] | null = null,
+  etapasDeOperacao:
+    | readonly ResumoMonitoramento["etapas_por_instrumento"][number][]
+    | null = null,
 ) {
   const [searchParams, setSearchParams] = useSearchParams();
   const busca = searchParams.get("busca") ?? "";
@@ -115,19 +121,35 @@ export function useMonitoramentoInternoFiltros<
   const situacao = searchParams.get("situacao");
   const programa = searchParams.get("programa");
   const responsavel = searchParams.get("responsavel");
-  const referencia = referenciaValida(searchParams.get("referencia"));
-  const anosDoEvento = useMemo(
-    () => anosPorReferencia(referencia, inauguracoes ?? []),
-    [referencia, inauguracoes],
+  const referencia = referenciaValida(
+    searchParams.get("referencia"),
+    etapasDeOperacao !== null,
   );
+  const anosPorInstrumento = useMemo(() => {
+    if (referencia === "inicio_operacao") {
+      return new Map(
+        (etapasDeOperacao ?? []).map((etapa) => [
+          etapa.nr_convenio,
+          Array.from(anosEmOperacao(etapa), Number),
+        ]),
+      );
+    }
+    return new Map(
+      Array.from(
+        anosPorReferencia(referencia, inauguracoes ?? []),
+        ([numero, ano]) => [numero, [ano]],
+      ),
+    );
+  }, [referencia, inauguracoes, etapasDeOperacao]);
   const porEvento = referencia !== "ano_instrumento";
-  // Ano que o filtro compara: o do evento escolhido ou o do instrumento.
-  const anoDe = useCallback(
+  const anosDe = useCallback(
     (instrumento: InstrumentoMonitoramentoFiltravel) =>
       porEvento
-        ? (anosDoEvento.get(instrumento.nr_convenio) ?? null)
-        : (instrumento.ano_instrumento ?? null),
-    [porEvento, anosDoEvento],
+        ? (anosPorInstrumento.get(instrumento.nr_convenio) ?? [])
+        : instrumento.ano_instrumento == null
+          ? []
+          : [instrumento.ano_instrumento],
+    [porEvento, anosPorInstrumento],
   );
   const anoInicio = searchParams.get("ano_inicio");
   const anoFim = searchParams.get("ano_fim");
@@ -219,10 +241,14 @@ export function useMonitoramentoInternoFiltros<
           (instrumento.tecnico_titular ?? SEM_RESPONSAVEL) !== responsavel
         )
           return false;
-        const ano = anoDe(instrumento);
-        if (anoInicio && (ano == null || ano < Number(anoInicio))) return false;
-        if (anoFim && (ano == null || ano > Number(anoFim))) return false;
-        return true;
+        return (
+          (!anoInicio && !anoFim) ||
+          anosDe(instrumento).some(
+            (ano) =>
+              (!anoInicio || ano >= Number(anoInicio)) &&
+              (!anoFim || ano <= Number(anoFim)),
+          )
+        );
       }),
     [
       instrumentos,
@@ -238,14 +264,15 @@ export function useMonitoramentoInternoFiltros<
       responsavel,
       anoInicio,
       anoFim,
-      anoDe,
+      anosDe,
     ],
   );
 
   // Instrumentos que o período por evento deixa de fora por não terem a data (acessíveis ao zerar a referência).
   const semDataNaReferencia = useMemo(
-    () => (porEvento ? instrumentos.filter((i) => anoDe(i) == null).length : 0),
-    [porEvento, instrumentos, anoDe],
+    () =>
+      porEvento ? instrumentos.filter((i) => anosDe(i).length === 0).length : 0,
+    [porEvento, instrumentos, anosDe],
   );
 
   const limparFiltros = useCallback(() => {
@@ -273,6 +300,31 @@ export function useMonitoramentoInternoFiltros<
     setCnes: (valor: string | null) => definirFiltro("cnes", valor),
     uf,
     setUf: (valor: string | null) => definirFiltro("uf", valor),
+    setUfComMunicipio: (valor: string | null) => {
+      setSearchParams(
+        (anteriores) => {
+          const proximos = new URLSearchParams(anteriores);
+          if (valor) proximos.set("uf", valor);
+          else proximos.delete("uf");
+          const municipioAtual = proximos.get("municipio");
+          if (
+            valor &&
+            municipioAtual &&
+            !instrumentos.some(
+              (item) =>
+                item.uf === valor &&
+                chaveMunicipio(item.municipio ?? "") ===
+                  chaveMunicipio(municipioAtual),
+            )
+          ) {
+            proximos.delete("municipio");
+          }
+          proximos.delete("pagina");
+          return proximos;
+        },
+        { replace: true },
+      );
+    },
     municipio,
     setMunicipio: (valor: string | null) => definirFiltro("municipio", valor),
     classeEquipamento,
@@ -310,7 +362,11 @@ export function useMonitoramentoInternoFiltros<
     setAnoInicio: (valor: string | null) => definirFiltro("ano_inicio", valor),
     anoFim,
     setAnoFim: (valor: string | null) => definirFiltro("ano_fim", valor),
-    setPeriodo: (inicio: string | null, fim: string | null) => {
+    setPeriodo: (
+      inicio: string | null,
+      fim: string | null,
+      novaReferencia?: ReferenciaPeriodo,
+    ) => {
       // useSearchParams não enfileira dois setters como useState.
       setSearchParams(
         (anteriores) => {
@@ -319,6 +375,9 @@ export function useMonitoramentoInternoFiltros<
           else proximos.delete("ano_inicio");
           if (fim) proximos.set("ano_fim", fim);
           else proximos.delete("ano_fim");
+          if (novaReferencia === "ano_instrumento")
+            proximos.delete("referencia");
+          else if (novaReferencia) proximos.set("referencia", novaReferencia);
           proximos.delete("pagina");
           return proximos;
         },
@@ -342,6 +401,9 @@ export function useMonitoramentoInternoFiltros<
       (item) => item.uf!,
     ),
     municipioOptions: opcoesMunicipio(instrumentos),
+    municipioOptionsPorUf: opcoesMunicipio(
+      uf ? instrumentos.filter((item) => item.uf === uf) : instrumentos,
+    ),
     equipamentoOptions: opcoesEquipamentosFiltro(
       new Set(instrumentos.map((item) => item.nr_convenio)),
       fontesEquipamentos,
@@ -359,11 +421,7 @@ export function useMonitoramentoInternoFiltros<
       instrumentos,
       (item) => item.tecnico_titular ?? SEM_RESPONSAVEL,
     ),
-    anoOptions: [
-      ...new Set(
-        instrumentos.map(anoDe).filter((ano): ano is number => ano != null),
-      ),
-    ]
+    anoOptions: [...new Set(instrumentos.flatMap(anosDe))]
       .sort((a, b) => b - a)
       .map((ano) => ({ value: String(ano), label: String(ano) })),
   };

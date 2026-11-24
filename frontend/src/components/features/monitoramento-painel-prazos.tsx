@@ -6,7 +6,7 @@ import type {
 import { AgendaExecutiva } from "./monitoramento-painel-agenda";
 import { DivergenciasConclusao } from "./monitoramento-painel-divergencias";
 import { MonitoramentoPainelVigencias } from "./monitoramento-painel-vigencias";
-import { PainelSecao } from "./monitoramento-painel-visuals";
+import { PainelCartao } from "./painel-gestao-cartao";
 
 interface Props {
   vigencias: Array<{
@@ -45,22 +45,20 @@ export function MonitoramentoPainelPrazos({
       <MonitoramentoPainelVigencias vigencias={vigencias} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <PainelSecao
+        <PainelCartao
           titulo="Agenda de prazos"
           apoio="Licenças e inaugurações por proximidade"
-          className="flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
         >
           <AgendaExecutiva inauguracoes={inauguracoes} licencas={licencas} />
-        </PainelSecao>
-        <PainelSecao
+        </PainelCartao>
+        <PainelCartao
           titulo="Divergências de conclusão"
           apoio={
             divergenciasPorFonte || `${divergencias.length} casos no recorte`
           }
-          className="flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6"
         >
           <DivergenciasConclusao itens={divergencias} />
-        </PainelSecao>
+        </PainelCartao>
       </div>
     </>
   );

@@ -3,7 +3,7 @@ import { Pagination } from "@/components/common/pagination";
 import { useListaPaginada } from "@/hooks/useListaPaginada";
 import { cn } from "@/lib/utils";
 import type { AcaoAbertaResumo } from "@/services/monitoramento-resumo";
-import { PainelSecao } from "./monitoramento-painel-visuals";
+import { PainelCartao } from "./painel-gestao-cartao";
 
 interface Props {
   acoes: AcaoAbertaResumo[];
@@ -24,7 +24,7 @@ export function MonitoramentoFilaAcoes({
     inicio: inicioAcoes,
   } = useListaPaginada(acoes.length, 8, acoes.map((acao) => acao.id).join("|"));
   return (
-    <PainelSecao
+    <PainelCartao
       titulo="Fila de ações"
       apoio={`${acoesPendentes} pendentes no recorte`}
       className={className}
@@ -88,6 +88,6 @@ export function MonitoramentoFilaAcoes({
           pendências deste recorte fora dela.
         </p>
       )}
-    </PainelSecao>
+    </PainelCartao>
   );
 }

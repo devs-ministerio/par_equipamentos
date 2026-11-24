@@ -120,6 +120,7 @@ export function PainelTecnicoCarteira({
         </p>
         <Input
           className="max-w-xs"
+          aria-label="Buscar instrumento, município ou CNES"
           placeholder="Buscar instrumento, município ou CNES"
           value={busca}
           onChange={(e) => {
@@ -137,6 +138,7 @@ export function PainelTecnicoCarteira({
             <button
               type="button"
               className="cursor-pointer font-semibold text-primary hover:underline"
+              aria-label={`Remover filtro ${c.rotulo}`}
               onClick={c.onRemover}
             >
               Limpar
@@ -149,6 +151,7 @@ export function PainelTecnicoCarteira({
             <button
               type="button"
               className="cursor-pointer font-semibold text-primary hover:underline"
+              aria-label={`Remover filtro ${ROTULO_FILTRO[filtro]}`}
               onClick={onLimpar}
             >
               Limpar
@@ -171,7 +174,7 @@ export function PainelTecnicoCarteira({
               {cab("acoes", "N.º de Ações", "right")}
               {cab("eventos", "N.º de Eventos", "right")}
               {cab("valor", "Valor global", "right")}
-              <TableHead>Monitoramento</TableHead>
+              <TableHead className="text-center">Monitoramento</TableHead>
               <TableHead>Ação</TableHead>
             </TableRow>
           </TableHeader>
@@ -213,7 +216,7 @@ export function PainelTecnicoCarteira({
                   {fmtMoeda(l.valor_global)}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex flex-wrap items-center justify-center gap-1">
                     {l.monitorado ? (
                       <Badge variant="success">Monitorado</Badge>
                     ) : (

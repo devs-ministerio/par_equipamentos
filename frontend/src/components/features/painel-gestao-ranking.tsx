@@ -20,11 +20,18 @@ export interface ItemRanking {
 interface PropsLinha {
   item: ItemRanking;
   maximo: number;
+  compacto: boolean;
   selecionado?: string | null;
   onSelecionar?: (chave: string) => void;
 }
 
-function Linha({ item, maximo, selecionado, onSelecionar }: PropsLinha) {
+function Linha({
+  item,
+  maximo,
+  compacto,
+  selecionado,
+  onSelecionar,
+}: PropsLinha) {
   const chave = item.chave ?? item.rotulo;
   const Tag = onSelecionar ? "button" : "div";
   return (
@@ -37,14 +44,20 @@ function Linha({ item, maximo, selecionado, onSelecionar }: PropsLinha) {
           }
         : {})}
       className={cn(
-        "grid w-full grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit sm:grid-cols-[minmax(0,11rem)_1fr_auto]",
+        "grid w-full items-center rounded-md border-0 bg-transparent p-1 text-left text-inherit",
+        compacto
+          ? "grid-cols-[minmax(0,1fr)_minmax(1.25rem,16%)_auto] gap-1.5 text-xs sm:grid-cols-[minmax(0,12rem)_minmax(1.25rem,1fr)_auto] sm:gap-3 sm:text-sm"
+          : "grid-cols-[minmax(0,9rem)_1fr_auto] gap-3 text-sm sm:grid-cols-[minmax(0,11rem)_1fr_auto]",
         onSelecionar &&
           "cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring",
         selecionado === chave && "bg-primary/10",
         selecionado && selecionado !== chave && "opacity-40",
       )}
     >
-      <span className="leading-tight" title={item.rotulo}>
+      <span
+        className={cn("leading-tight", compacto && "truncate")}
+        title={item.rotulo}
+      >
         {item.rotulo}
         {item.detalhe && (
           <small className="block text-xs font-normal text-muted-foreground">
@@ -53,7 +66,10 @@ function Linha({ item, maximo, selecionado, onSelecionar }: PropsLinha) {
         )}
       </span>
       <div
-        className="h-2.5 overflow-hidden rounded-full bg-secondary"
+        className={cn(
+          "overflow-hidden rounded-full bg-secondary",
+          compacto ? "h-2.25" : "h-2.5",
+        )}
         aria-hidden="true"
       >
         <div
@@ -104,12 +120,14 @@ function Linha({ item, maximo, selecionado, onSelecionar }: PropsLinha) {
 export function RankingBarras({
   itens,
   limite = 7,
+  compacto = false,
   vazio = "Nenhum instrumento neste recorte.",
   selecionado,
   onSelecionar,
 }: {
   itens: ItemRanking[];
   limite?: number;
+  compacto?: boolean;
   vazio?: string;
   /** Chave da linha filtrada; as demais ficam esmaecidas. */
   selecionado?: string | null;
@@ -137,6 +155,7 @@ export function RankingBarras({
           <Linha
             item={item}
             maximo={maximo}
+            compacto={compacto}
             selecionado={selecionado}
             onSelecionar={onSelecionar}
           />

@@ -27,7 +27,6 @@ from app.services.monitoramento_comum import (  # noqa: F401
     _MODALIDADES_ONCO_VALIDAS,
     _TIPOLOGIAS_VALIDAS,
     _agora_utc,
-    _compor_observacao,
     _notificar_edicao_manual,
 )
 from app.services.monitoramento_registro_eventos import (  # noqa: F401
