@@ -1,60 +1,29 @@
 import { useMemo, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { botaoIcone } from "@/components/features/equipamentos-instrumento-unidades";
-import { AdicionarMonitoramentoButton } from "@/components/features/adicionar-monitoramento-button";
+import { PainelTecnicoCarteiraLinha } from "@/components/features/painel-tecnico-carteira-linha";
 import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { SortableTableHead } from "@/components/common/sortable-table-head";
-import { fmtMoeda } from "@/lib/monitoramento-format";
-import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import {
-  aplicaFiltro,
-  entrouNoRadarRecente,
+  filtrarEOrdenarCarteira,
+  type ChaveOrdem,
+  type OrdemCarteira,
+} from "@/lib/painel-tecnico-carteira-linhas";
+import {
   ROTULO_FILTRO,
   type FiltroCarteira,
 } from "@/lib/painel-tecnico-filtro";
 import type { LinhaCarteira } from "@/services/painel-tecnico";
 
-type Chave =
-  | "numero"
-  | "municipio"
-  | "situacao"
-  | "valor"
-  | "acoes"
-  | "eventos";
 const PASSO = 25;
-const VARIANTE_FASE: Record<
-  string,
-  "default" | "secondary" | "success" | "warning" | "outline"
-> = {
-  "Acompanhamento iniciado": "outline",
-  "Aguardando repasse": "warning",
-  "Valor repassado": "secondary",
-  "Em aquisição": "secondary",
-  "Equipamento entregue": "default",
-  "Pós-entrega": "default",
-  Concluído: "success",
-};
-
-function valorOrdem(l: LinhaCarteira, c: Chave): string | number {
-  if (c === "valor") return l.valor_global ?? -1;
-  if (c === "acoes") return l.acoes;
-  if (c === "eventos") return l.eventos;
-  if (c === "municipio") return `${l.uf ?? ""} ${l.municipio ?? ""}`;
-  if (c === "situacao") return (l.monitorado ? l.fase : l.situacao) ?? "";
-  return l.numero;
-}
 
 export function PainelTecnicoCarteira({
   linhas,
@@ -73,30 +42,17 @@ export function PainelTecnicoCarteira({
   const atualizar = () =>
     queryClient.invalidateQueries({ queryKey: ["painel-tecnico"] });
   const [busca, setBusca] = useState("");
-  const [ordem, setOrdem] = useState<{ chave: Chave; dir: "asc" | "desc" }>({
+  const [ordem, setOrdem] = useState<OrdemCarteira>({
     chave: "valor",
     dir: "desc",
   });
   const [visiveis, setVisiveis] = useState(PASSO);
-  const filtradas = useMemo(() => {
-    const termo = normalizarTexto(busca);
-    const lista = linhas.filter(
-      (l) =>
-        aplicaFiltro(l, filtro) &&
-        (!termo ||
-          normalizarTexto(
-            `${l.numero} ${l.municipio ?? ""} ${l.uf ?? ""} ${l.cnes ?? ""} ${l.convenente ?? ""} ${l.titular ?? ""}`,
-          ).includes(termo)),
-    );
-    const sinal = ordem.dir === "asc" ? 1 : -1;
-    return [...lista].sort((a, b) => {
-      const x = valorOrdem(a, ordem.chave);
-      const y = valorOrdem(b, ordem.chave);
-      return (x < y ? -1 : x > y ? 1 : 0) * sinal;
-    });
-  }, [linhas, filtro, busca, ordem]);
+  const filtradas = useMemo(
+    () => filtrarEOrdenarCarteira(linhas, filtro, busca, ordem),
+    [linhas, filtro, busca, ordem],
+  );
 
-  const cab = (chave: Chave, texto: string, align?: "right") => (
+  const cab = (chave: ChaveOrdem, texto: string, align?: "right") => (
     <SortableTableHead
       ativo={ordem.chave === chave}
       direcao={ordem.dir}
@@ -180,81 +136,11 @@ export function PainelTecnicoCarteira({
           </TableHeader>
           <TableBody>
             {filtradas.slice(0, visiveis).map((l) => (
-              <TableRow key={l.numero} className="hover:bg-muted/40">
-                <TableCell className="font-medium">{l.numero}</TableCell>
-                <TableCell>
-                  {[l.municipio ? capitalizarNome(l.municipio) : null, l.uf]
-                    .filter(Boolean)
-                    .join(" / ")}
-                </TableCell>
-                <TableCell className="tabular-nums text-muted-foreground">
-                  {l.cnes ?? "—"}
-                </TableCell>
-                <TableCell>
-                  {l.monitorado ? (
-                    <Badge variant={VARIANTE_FASE[l.fase ?? ""] ?? "secondary"}>
-                      {l.fase}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground">{l.situacao}</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {l.monitorado ? l.acoes : "—"}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {l.monitorado ? l.eventos : "—"}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fmtMoeda(l.valor_global)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap items-center justify-center gap-1">
-                    {entrouNoRadarRecente(l) ? (
-                      <Badge variant="success">Novo</Badge>
-                    ) : (
-                      <>
-                        {l.monitorado ? (
-                          <Badge variant="success">Monitorado</Badge>
-                        ) : (
-                          <Badge variant="warning">A incluir</Badge>
-                        )}
-                        {l.sem_registro && (
-                          <Badge variant="destructive">Sem registro</Badge>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {l.monitorado ? (
-                    <Link
-                      className={botaoIcone}
-                      aria-label={`Abrir instrumento ${l.numero}`}
-                      title="Abrir instrumento"
-                      to={`/monitoramento-equipamentos/instrumentos/${encodeURIComponent(l.numero)}`}
-                    >
-                      <ArrowUpRight className="size-4" aria-hidden="true" />
-                    </Link>
-                  ) : (
-                    <AdicionarMonitoramentoButton
-                      rotulo="Incluir no monitoramento"
-                      somenteIcone
-                      aoAdicionar={atualizar}
-                      dados={{
-                        nr_convenio: l.numero,
-                        cnpj_convenente: l.cnpj_convenente ?? "",
-                        nome_convenente: l.convenente ?? "",
-                        tipo_contratacao: l.tipo_contratacao ?? "Convênio",
-                        municipio: l.municipio,
-                        uf: l.uf,
-                        referencia: `convênio ${l.numero}`,
-                        descricao: `${l.convenente ?? ""} — ${l.municipio ?? ""}/${l.uf ?? ""}`,
-                      }}
-                    />
-                  )}
-                </TableCell>
-              </TableRow>
+              <PainelTecnicoCarteiraLinha
+                key={l.numero}
+                l={l}
+                aoAtualizar={atualizar}
+              />
             ))}
           </TableBody>
         </Table>
