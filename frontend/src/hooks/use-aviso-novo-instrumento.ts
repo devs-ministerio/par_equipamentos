@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { createElement, useEffect } from "react";
 import { toast } from "sonner";
+import { ClipboardCheck } from "lucide-react";
 import type { Notificacao } from "@/services/notificacoes";
 
 const JANELA_MS = 7 * 86_400_000;
@@ -55,8 +56,16 @@ export function useAvisoNovoInstrumento(
     gravarVistos(usuario.id, [...vistos, ...novos.map((n) => n.id)]);
     for (const aviso of novos.slice(0, 3)) {
       toast.info(aviso.titulo, {
-        description: "Novo instrumento sob sua responsabilidade.",
         duration: 15_000,
+        icon: createElement(ClipboardCheck, { className: "size-5" }),
+        classNames: {
+          toast:
+            "!items-center !gap-3 !rounded-xl !border-border !border-l-4 !border-l-primary !bg-card !py-4 !pl-4 !pr-4 !shadow-lg",
+          icon: "!size-9 !shrink-0 !items-center !justify-center !rounded-full !bg-primary/10 !text-primary",
+          title: "!text-sm !font-semibold !leading-snug !text-foreground",
+          actionButton:
+            "!ml-auto !h-8 !rounded-md !bg-primary !px-3 !text-xs !font-semibold !text-primary-foreground hover:!bg-primary/90",
+        },
         action: aviso.destino
           ? { label: "Abrir", onClick: () => abrir(aviso.destino as string) }
           : undefined,
