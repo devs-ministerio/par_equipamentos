@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, Settings2, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { ChevronDown, Settings2, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -14,7 +14,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import type { Controle } from "./painel-gestao-filtros-controles";
+
+export type Controle = {
+  rotulo: string;
+  icone: LucideIcon;
+  ativo: boolean;
+  conteudo: (fechar: () => void) => ReactNode;
+};
 
 export function ControleDesktop({ controle }: { controle: Controle }) {
   const [aberto, setAberto] = useState(false);
@@ -55,20 +61,35 @@ export function ControleDesktop({ controle }: { controle: Controle }) {
 }
 
 /** Os controles em linha (largura grande) e, abaixo dela, no painel "Filtros" de baixo para cima. */
-export function ApresentacaoFiltros({ controles }: { controles: Controle[] }) {
+export function ApresentacaoFiltros({
+  controles,
+  rotuloGrupo = "Filtros do painel",
+  className,
+  classeSheet = "shrink-0 @min-[1080px]:hidden",
+}: {
+  controles: Controle[];
+  rotuloGrupo?: string;
+  /** Substitui o contêiner em linha (ex.: permitir quebra de linha numa barra de página). */
+  className?: string;
+  /** Visibilidade do botão "Filtros" em telas estreitas. */
+  classeSheet?: string;
+}) {
   const ativos = controles.filter(({ ativo }) => ativo).length;
   return (
     <>
       <div
         role="group"
-        aria-label="Filtros do painel"
-        className="hidden shrink-0 items-center gap-0.5 border-l border-border pl-2 @min-[1080px]:flex"
+        aria-label={rotuloGrupo}
+        className={
+          className ??
+          "hidden shrink-0 items-center gap-0.5 border-l border-border pl-2 @min-[1080px]:flex"
+        }
       >
         {controles.map((controle) => (
           <ControleDesktop key={controle.rotulo} controle={controle} />
         ))}
       </div>
-      <div className="shrink-0 @min-[1080px]:hidden">
+      <div className={classeSheet}>
         <Sheet>
           <SheetTrigger asChild>
             <Button type="button" variant="outline" size="sm">
@@ -88,7 +109,7 @@ export function ApresentacaoFiltros({ controles }: { controles: Controle[] }) {
             className="max-h-[85dvh] overflow-y-auto rounded-t-xl"
           >
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <SheetTitle>Filtros do painel</SheetTitle>
+              <SheetTitle>{rotuloGrupo}</SheetTitle>
               <SheetClose asChild>
                 <Button
                   type="button"

@@ -1,5 +1,7 @@
-import { type ReactNode } from "react";
 import {
+  Activity,
+  Building2,
+  Layers,
   CalendarRange,
   ClipboardList,
   MapPin,
@@ -8,26 +10,23 @@ import {
   UserRound,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import type { Controle } from "@/components/common/controles-filtro";
 import type { FiltrosMonitoramentoInterno } from "@/hooks/use-monitoramento-interno-filtros";
 import { CLASSES_FILTRO_EQUIPAMENTO } from "@/lib/monitoramento-filtro-equipamentos";
 import {
   CampoSelect,
   Opcoes,
   PeriodoFiltros,
+  type Opcao,
 } from "./painel-gestao-filtros-campos";
-
-export type Controle = {
-  rotulo: string;
-  icone: typeof Search;
-  ativo: boolean;
-  conteudo: (fechar: () => void) => ReactNode;
-};
 
 /** Os seis controles do filtro mínimo do painel, com o estado "ativo" de cada um. */
 export function montarControlesFiltro(
   filtros: FiltrosMonitoramentoInterno,
+  /** Inclui CNES, Situação e Programas (a Mesa de trabalho mantém todos os filtros). */
+  completo = false,
 ): Controle[] {
-  return [
+  const base: Controle[] = [
     {
       rotulo: "Busca",
       icone: Search,
@@ -168,5 +167,64 @@ export function montarControlesFiltro(
         />
       ),
     },
+  ];
+  if (!completo) return base;
+  const lista = (
+    rotulo: string,
+    icone: Controle["icone"],
+    opcoes: Opcao[],
+    valor: string | null,
+    todos: string,
+    definir: (valor: string | null) => void,
+  ): Controle => ({
+    rotulo,
+    icone,
+    ativo: !!valor,
+    conteudo: (fechar) => (
+      <Opcoes
+        rotulo={rotulo}
+        opcoes={opcoes}
+        valor={valor}
+        todos={todos}
+        selecionar={(escolhido) => {
+          definir(escolhido);
+          fechar();
+        }}
+        pesquisar
+      />
+    ),
+  });
+  const [busca, periodo, contratacao, local, equipamento, responsavel] = base;
+  return [
+    busca,
+    periodo,
+    contratacao,
+    local,
+    lista(
+      "CNES",
+      Building2,
+      filtros.cnesOptions,
+      filtros.cnes,
+      "Todos os CNES",
+      filtros.setCnes,
+    ),
+    equipamento,
+    lista(
+      "Situação",
+      Activity,
+      filtros.situacaoOptions,
+      filtros.situacao,
+      "Todas as situações",
+      filtros.setSituacao,
+    ),
+    lista(
+      "Programas",
+      Layers,
+      filtros.programaOptions,
+      filtros.programa,
+      "Todos os programas",
+      filtros.setPrograma,
+    ),
+    responsavel,
   ];
 }

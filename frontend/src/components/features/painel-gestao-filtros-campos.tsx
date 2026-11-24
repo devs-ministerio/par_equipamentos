@@ -94,21 +94,23 @@ export function PeriodoFiltros({
 }) {
   return (
     <>
-      <CampoSelect
-        rotulo="Referência"
-        value={filtros.referencia}
-        onChange={(e) =>
-          filtros.setReferencia(
-            e.target.value === "ano_instrumento" ? null : e.target.value,
-          )
-        }
-      >
-        {OPCOES_REFERENCIA_GESTAO.map(({ value, label }) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </CampoSelect>
+      {filtros.temReferencias && (
+        <CampoSelect
+          rotulo="Referência"
+          value={filtros.referencia}
+          onChange={(e) =>
+            filtros.setReferencia(
+              e.target.value === "ano_instrumento" ? null : e.target.value,
+            )
+          }
+        >
+          {OPCOES_REFERENCIA_GESTAO.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </CampoSelect>
+      )}
       <div className="grid grid-cols-2 gap-2">
         <CampoSelect
           rotulo="Ano inicial"

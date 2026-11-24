@@ -1,25 +1,19 @@
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  ChipsFiltrosAtivos,
+  type RecortePainel,
+} from "@/components/common/chips-filtros-ativos";
 import type { FiltrosMonitoramentoInterno } from "@/hooks/use-monitoramento-interno-filtros";
 import { OPCOES_REFERENCIA_GESTAO } from "@/lib/referencia-periodo-painel";
 import { CLASSES_FILTRO_EQUIPAMENTO } from "@/lib/monitoramento-filtro-equipamentos";
 import type { Opcao } from "./painel-gestao-filtros-campos";
 
-export type RecortePainel = {
-  rotulo: string;
-  valor: string;
-  remover: () => void;
-};
+export type { RecortePainel };
 
-export function PainelGestaoRecortes({
-  filtros,
-  recortesGraficos,
-  limpar,
-}: {
-  filtros: FiltrosMonitoramentoInterno;
-  recortesGraficos: RecortePainel[];
-  limpar: () => void;
-}) {
+/** Filtros ativos do hook do monitoramento como etiquetas, após as dos gráficos. */
+export function montarRecortes(
+  filtros: FiltrosMonitoramentoInterno,
+  recortesGraficos: RecortePainel[] = [],
+): RecortePainel[] {
   const recortes: RecortePainel[] = [...recortesGraficos];
   const adicionar = (
     rotulo: string,
@@ -76,38 +70,22 @@ export function PainelGestaoRecortes({
   adicionar("CNES", filtros.cnes, () => filtros.setCnes(null));
   adicionar("Programa", filtros.programa, () => filtros.setPrograma(null));
 
-  if (!recortes.length) return null;
+  return recortes;
+}
 
+export function PainelGestaoRecortes({
+  filtros,
+  recortesGraficos,
+  limpar,
+}: {
+  filtros: FiltrosMonitoramentoInterno;
+  recortesGraficos: RecortePainel[];
+  limpar: () => void;
+}) {
   return (
-    <div
-      role="group"
-      aria-label="Filtros ativos"
-      className="flex min-w-0 flex-wrap items-center gap-1.5"
-    >
-      {recortes.map(({ rotulo, valor, remover }) => (
-        <button
-          key={rotulo}
-          type="button"
-          aria-label={`Remover filtro ${rotulo}: ${valor}`}
-          title={`${rotulo}: ${valor}`}
-          className="flex min-w-0 max-w-full cursor-pointer items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-medium text-primary hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-ring"
-          onClick={remover}
-        >
-          <span className="truncate">
-            {rotulo}: {valor}
-          </span>
-          <X className="size-3 shrink-0" aria-hidden="true" />
-        </button>
-      ))}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="h-7 text-xs"
-        onClick={limpar}
-      >
-        Limpar filtros
-      </Button>
-    </div>
+    <ChipsFiltrosAtivos
+      recortes={montarRecortes(filtros, recortesGraficos)}
+      limpar={limpar}
+    />
   );
 }
