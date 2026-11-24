@@ -64,14 +64,36 @@ export function situacaoInauguracao(
   };
   const porNumero = new Map(etapas.map((e) => [e.nr_convenio, e]));
   for (const numero of numeros) {
-    const e = porNumero.get(numero);
-    if (e?.inauguracao || (e && inauguracaoPelaEntrega(e)))
-      contagem.Realizada += 1;
-    else if (e?.inauguracao_dispensada) contagem.Dispensada += 1;
-    else if (numerosComPrevisao.has(numero)) contagem.Prevista += 1;
-    else contagem["Sem registro"] += 1;
+    contagem[
+      situacaoDoInstrumento(
+        porNumero.get(numero),
+        numerosComPrevisao.has(numero),
+      )
+    ] += 1;
   }
   return contagem;
+}
+
+/** Situação da inauguração de um instrumento (a mesma regra do gráfico de rosca). */
+export function situacaoDoInstrumento(
+  e: Etapas | undefined,
+  temPrevisao: boolean,
+): SituacaoInauguracao {
+  if (e?.inauguracao || (e && inauguracaoPelaEntrega(e))) return "Realizada";
+  if (e?.inauguracao_dispensada) return "Dispensada";
+  return temPrevisao ? "Prevista" : "Sem registro";
+}
+
+/** Anos em que as unidades do instrumento entram em operação (mesma regra do gráfico por ano). */
+export function anosEmOperacao(e: Etapas | undefined): Set<string> {
+  const anos = new Set<string>();
+  if (!e) return anos;
+  if (e.inauguracao_dispensada || inauguracaoPelaEntrega(e)) {
+    for (const u of e.unidades_entregues) anos.add(u.data.slice(0, 4));
+  } else if (e.inauguracao && e.conclusao_resultado === "integral") {
+    anos.add(e.inauguracao.slice(0, 4));
+  }
+  return anos;
 }
 
 export interface PrazoMedio {
@@ -116,12 +138,51 @@ export function prazosMedios(
   }).filter((p) => p.instrumentos > 0);
 }
 
+/** Instrumentos que entram na média de um intervalo (têm as duas datas, em ordem). */
+export function instrumentosDoPrazo(
+  rotulo: string,
+  numeros: ReadonlySet<string>,
+  etapas: Etapas[],
+): Set<string> {
+  const intervalo = INTERVALOS.find((i) => i.rotulo === rotulo);
+  const resultado = new Set<string>();
+  if (!intervalo) return resultado;
+  for (const e of etapas) {
+    if (!numeros.has(e.nr_convenio)) continue;
+    const inicio = e[intervalo.de];
+    const fim = e[intervalo.ate];
+    if (
+      typeof inicio === "string" &&
+      typeof fim === "string" &&
+      dias(inicio, fim) >= 0
+    )
+      resultado.add(e.nr_convenio);
+  }
+  return resultado;
+}
+
 export const FAIXAS_PARADOS = [
   { rotulo: "Até 30 dias", max: 30, cor: "var(--success)" },
   { rotulo: "31 a 60", max: 60, cor: "var(--primary)" },
   { rotulo: "61 a 90", max: 90, cor: "var(--warning)" },
   { rotulo: "Mais de 90", max: Infinity, cor: "var(--destructive)" },
 ] as const;
+
+export const ROTULO_SEM_LANCAMENTO = "Sem lançamento";
+
+/** Faixa de tempo sem atualização do instrumento; `null` para concluído, "Sem lançamento" se nunca houve. */
+export function faixaDeAtualizacao(
+  faseAtual: string | null | undefined,
+  ultimaAtividadeEm: string | null | undefined,
+  agora = Date.now(),
+): string | null {
+  if (faseAtual === "Concluído") return null;
+  if (!ultimaAtividadeEm) return ROTULO_SEM_LANCAMENTO;
+  const d = Math.floor(
+    (agora - new Date(ultimaAtividadeEm).getTime()) / DIA_MS,
+  );
+  return (FAIXAS_PARADOS.find((f) => d <= f.max) ?? FAIXAS_PARADOS[3]).rotulo;
+}
 
 /** Instrumentos não concluídos por tempo desde o último lançamento (evento ou ação). */
 export function instrumentosParados(
@@ -135,15 +196,14 @@ export function instrumentosParados(
   const faixas = FAIXAS_PARADOS.map((f) => ({ ...f, quantidade: 0 }));
   let semAtividade = 0;
   for (const i of instrumentos) {
-    if (i.fase_atual === "Concluído") continue;
-    const quando = ultima.get(i.nr_convenio);
-    if (!quando) {
-      semAtividade += 1;
-      continue;
-    }
-    const d = Math.floor((agora - new Date(quando).getTime()) / DIA_MS);
-    const faixa = faixas.find((f) => d <= f.max) ?? faixas[faixas.length - 1];
-    faixa.quantidade += 1;
+    const rotulo = faixaDeAtualizacao(
+      i.fase_atual,
+      ultima.get(i.nr_convenio),
+      agora,
+    );
+    if (rotulo === null) continue;
+    if (rotulo === ROTULO_SEM_LANCAMENTO) semAtividade += 1;
+    else faixas.find((f) => f.rotulo === rotulo)!.quantidade += 1;
   }
   return { faixas, semAtividade };
 }
