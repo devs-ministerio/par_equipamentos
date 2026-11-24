@@ -53,16 +53,12 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     lista.itens[0]!.data_final_vigencia = "2026-10-30";
     const user = montar(h);
     await pronto();
-    expect(
-      metrica("Valor global informado").getByText(/2\.000/),
-    ).toBeInTheDocument();
+    expect(metrica("Valor global").getByText(/2\.000/)).toBeInTheDocument();
     // When: o recorte exclui uma UF.
     await user.click(screen.getByRole("button", { name: /^UF/ }));
     await user.click(screen.getByRole("option", { name: "BA" }));
     // Then
-    expect(
-      metrica("Valor global informado").getByText(/1\.000/),
-    ).toBeInTheDocument();
+    expect(metrica("Valor global").getByText(/1\.000/)).toBeInTheDocument();
     // When: atualização da fonte retira a base comparável do instrumento filtrado.
     lista.itens[1]!.financeiro_fonte_confiavel = false;
     await act(async () => {
@@ -70,9 +66,7 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     });
     // Then: não conservar a soma antiga nem transformar desconhecido em zero.
     await waitFor(() =>
-      expect(
-        metrica("Valor global informado").getByText("—"),
-      ).toBeInTheDocument(),
+      expect(metrica("Valor global").getByText("—")).toBeInTheDocument(),
     );
   });
 
@@ -146,9 +140,7 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     expect(
       await screen.findByText("Não foi possível carregar o painel de gestão."),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText("Valor global informado"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Valor global")).not.toBeInTheDocument();
   });
 
   it.each(["admin", "gestor", "colaborador", "leitor"])(
@@ -249,8 +241,6 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
       expect(screen.getByText("0 de 1 instrumentos")).toBeInTheDocument(),
     );
     expect(metrica("Instrumentos").getByText("0")).toBeInTheDocument();
-    expect(
-      metrica("Valor global informado").getByText("—"),
-    ).toBeInTheDocument();
+    expect(metrica("Valor global").getByText("—")).toBeInTheDocument();
   });
 });

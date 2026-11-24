@@ -48,14 +48,21 @@ export function LegendaSegmentos({
 export function GraficoColunas({
   colunas,
   vazio,
+  selecionado,
+  onSelecionar,
 }: {
   colunas: ColunaGrafico[];
   vazio: string;
+  /** Rótulo da coluna filtrada; as demais ficam esmaecidas. */
+  selecionado?: string | null;
+  /** Com esta prop, cada coluna vira um botão que filtra o painel. */
+  onSelecionar?: (rotulo: string) => void;
 }) {
   const totais = colunas.map((c) =>
     c.segmentos.reduce((soma, s) => soma + s.valor, 0),
   );
   const maximo = Math.max(1, ...totais);
+  const Tag = onSelecionar ? "button" : "div";
   if (colunas.length === 0)
     return <p className="m-0 text-sm text-muted-foreground">{vazio}</p>;
   return (
@@ -75,7 +82,7 @@ export function GraficoColunas({
         </div>
         <ul
           className="relative m-0 flex flex-1 list-none items-stretch gap-2 p-0"
-          role="img"
+          role={onSelecionar ? "list" : "img"}
           aria-label={colunas
             .map(
               (c, i) =>
@@ -94,40 +101,57 @@ export function GraficoColunas({
                 .map((s) => `${s.valor} ${s.nome.toLowerCase()}`)
                 .join(" · ")}`}
             >
-              <div className="relative w-full flex-1">
-                <div className="absolute inset-0 flex flex-col items-center justify-end">
-                  <span className="mb-1 text-base leading-6 font-semibold tabular-nums">
-                    {totais[i]}
-                  </span>
-                  <div
-                    className={cn(
-                      "flex w-3/5 max-w-14 flex-col-reverse overflow-hidden rounded-t-lg",
-                      totais[i] === 0 && "bg-border",
-                    )}
-                    style={{
-                      height:
-                        totais[i] > 0
-                          ? `calc((100% - 2.5rem) * ${totais[i] / maximo})`
-                          : "3px",
-                    }}
-                  >
-                    {c.segmentos
-                      .filter((s) => s.valor > 0)
-                      .map((s) => (
-                        <div
-                          key={s.nome}
-                          style={{
-                            height: `${(100 * s.valor) / totais[i]}%`,
-                            background: s.cor,
-                          }}
-                        />
-                      ))}
+              <Tag
+                {...(onSelecionar
+                  ? {
+                      type: "button" as const,
+                      "aria-pressed": selecionado === c.rotulo,
+                      onClick: () => onSelecionar(c.rotulo),
+                    }
+                  : {})}
+                className={cn(
+                  "flex min-h-0 w-full flex-1 flex-col rounded-md border-0 bg-transparent p-0 text-inherit",
+                  onSelecionar &&
+                    "cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring",
+                  selecionado && selecionado !== c.rotulo && "opacity-40",
+                  selecionado === c.rotulo && "bg-primary/10",
+                )}
+              >
+                <div className="relative w-full flex-1">
+                  <div className="absolute inset-0 flex flex-col items-center justify-end">
+                    <span className="mb-1 text-base leading-6 font-semibold tabular-nums">
+                      {totais[i]}
+                    </span>
+                    <div
+                      className={cn(
+                        "flex w-3/5 max-w-14 flex-col-reverse overflow-hidden rounded-t-lg",
+                        totais[i] === 0 && "bg-border",
+                      )}
+                      style={{
+                        height:
+                          totais[i] > 0
+                            ? `calc((100% - 2.5rem) * ${totais[i] / maximo})`
+                            : "3px",
+                      }}
+                    >
+                      {c.segmentos
+                        .filter((s) => s.valor > 0)
+                        .map((s) => (
+                          <div
+                            key={s.nome}
+                            style={{
+                              height: `${(100 * s.valor) / totais[i]}%`,
+                              background: s.cor,
+                            }}
+                          />
+                        ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <span className="flex h-8 w-full items-end justify-center pb-0.5 text-center text-[11px] leading-tight font-medium text-muted-foreground tabular-nums">
-                {c.rotulo}
-              </span>
+                <span className="flex h-8 w-full items-end justify-center pb-0.5 text-center text-[11px] leading-tight font-medium text-muted-foreground tabular-nums">
+                  {c.rotulo}
+                </span>
+              </Tag>
             </li>
           ))}
         </ul>

@@ -48,6 +48,7 @@ export function PainelGestaoEquipamentos({
           <ul
             className={cn(
               "m-0 mt-5 list-none space-y-3 p-0",
+              !rola && "flex flex-1 flex-col justify-evenly space-y-0 gap-3",
               rola && "overflow-y-auto pr-2",
             )}
             style={rola ? { maxHeight: `${LIMITE * 2.9}rem` } : undefined}

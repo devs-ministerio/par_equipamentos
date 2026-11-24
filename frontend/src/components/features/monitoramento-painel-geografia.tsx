@@ -5,6 +5,7 @@ import { RotateCcw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMacroGeojson } from "@/hooks/useMacroGeojson";
 import { cn } from "@/lib/utils";
+import { chaveMunicipio } from "@/lib/municipio-filtro";
 import { fetchMacroCoverage } from "@/services/api";
 import {
   agruparInstrumentosPorLocal,
@@ -90,13 +91,16 @@ export function MonitoramentoPainelGeografia({
       setLocalSelecionado(null);
     }
   }
+  const municipios = new Set(
+    (distribuicao?.pontos ?? []).map(
+      (p) =>
+        `${p.instrumento.uf ?? ""}:${chaveMunicipio(p.instrumento.municipio ?? "")}`,
+    ),
+  ).size;
   const localAtivo = locais.find((local) => local.chave === localSelecionado);
   const ranking = [...(distribuicao?.contagemPorMacro.entries() ?? [])]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);
-  const mapeados = distribuicao
-    ? distribuicao.pontos.length - distribuicao.foraDasMacros
-    : 0;
 
   function selecionarMacro(macroId: string | null) {
     setAvisoMacro(null);
@@ -114,13 +118,6 @@ export function MonitoramentoPainelGeografia({
 
   return (
     <div className="space-y-4">
-      {distribuicao && (
-        <p className="m-0 text-sm tabular-nums text-muted-foreground">
-          <strong className="text-foreground">{mapeados}</strong> de{" "}
-          {instrumentos.length} instrumentos no mapa
-        </p>
-      )}
-
       {geoQuery.isPending && (
         <div
           role="status"
@@ -341,10 +338,10 @@ export function MonitoramentoPainelGeografia({
                     </div>
                     <div className="flex min-h-24 flex-col items-center justify-center border-l border-border pl-4 sm:pl-6">
                       <strong className="font-display text-3xl font-semibold tracking-tight tabular-nums text-foreground">
-                        {locais.length}
+                        {municipios}
                       </strong>
                       <span className="mt-1 max-w-28 text-xs leading-snug text-muted-foreground">
-                        estabelecimentos de saúde
+                        municípios
                       </span>
                     </div>
                   </div>

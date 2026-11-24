@@ -1,5 +1,5 @@
 import { FASES_ACOMPANHAMENTO } from "@/lib/fases-acompanhamento";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { CardColaborador } from "@/components/features/card-colaborador";
 import { ErrorAlert } from "@/components/common/error-alert";
@@ -37,10 +37,15 @@ import { GraficoRosca } from "@/components/features/painel-gestao-rosca";
 import { RankingBarras } from "@/components/features/painel-gestao-ranking";
 import { PainelGestaoCompletude } from "@/components/features/painel-gestao-completude";
 import {
+  ROTULO_SEM_LANCAMENTO,
+  anosEmOperacao,
   entregaInauguracaoPorAno,
   entregaPorUf,
+  faixaDeAtualizacao,
+  instrumentosDoPrazo,
   instrumentosParados,
   prazosMedios,
+  situacaoDoInstrumento,
   situacaoInauguracao,
 } from "@/lib/painel-gestao-andamento";
 import { resumirCarteiraPainel } from "@/lib/monitoramento-painel-analise";
@@ -73,7 +78,34 @@ const header = (
   />
 );
 
+type FiltroLocal =
+  | "familia"
+  | "anoInstrumento"
+  | "inauguracao"
+  | "anoOperacao"
+  | "atualizacao"
+  | "prazo";
+
+const ROTULO_FILTRO_LOCAL: Record<FiltroLocal, string> = {
+  familia: "Equipamento",
+  anoInstrumento: "Ano do instrumento",
+  inauguracao: "Inauguração",
+  anoOperacao: "Início de operação",
+  atualizacao: "Sem atualizações",
+  prazo: "Prazo entre etapas",
+};
+
 export function MonitoramentoPainelPage() {
+  const [locais, setLocais] = useState<Partial<Record<FiltroLocal, string>>>(
+    {},
+  );
+  const alternarLocal = (campo: FiltroLocal, valor: string) =>
+    setLocais((atual) => {
+      const proximo = { ...atual };
+      if (atual[campo] === valor) delete proximo[campo];
+      else proximo[campo] = valor;
+      return proximo;
+    });
   const resumoQuery = useMonitoramentoResumo();
   const instrumentosQuery = useMonitoramentoInstrumentos();
   const marcosQuery = useMonitoramentoMarcos();
@@ -137,11 +169,64 @@ export function MonitoramentoPainelPage() {
   const anoPorNumero = new Map(
     convenios.map((c) => [c.numero, c.anoInstrumento]),
   );
-  const instrumentosFiltrados = filtros.filtrados.map((i) => ({
-    ...i,
-    ano_instrumento:
-      anoPorNumero.get(i.nr_convenio) ?? i.ano_instrumento ?? null,
-  }));
+  const etapaPorNumero = new Map(
+    resumo.etapas_por_instrumento.map((e) => [e.nr_convenio, e]),
+  );
+  const ultimaAtividade = new Map(
+    resumo.indicadores_por_instrumento.map((i) => [
+      i.nr_convenio,
+      i.ultima_atividade_em,
+    ]),
+  );
+  const comPrevisao = new Set(resumo.inauguracoes.map((i) => i.nr_convenio));
+  const familiasDoNumero = new Map<string, Set<string>>();
+  for (const l of resumo.equipamentos_por_instrumento) {
+    const atual = familiasDoNumero.get(l.nr_convenio) ?? new Set<string>();
+    atual.add(l.familia);
+    familiasDoNumero.set(l.nr_convenio, atual);
+  }
+  const numerosDoPrazo = locais.prazo
+    ? instrumentosDoPrazo(
+        locais.prazo,
+        new Set(filtros.filtrados.map((i) => i.nr_convenio)),
+        resumo.etapas_por_instrumento,
+      )
+    : null;
+  const instrumentosFiltrados = filtros.filtrados
+    .map((i) => ({
+      ...i,
+      ano_instrumento:
+        anoPorNumero.get(i.nr_convenio) ?? i.ano_instrumento ?? null,
+    }))
+    .filter((i) => {
+      const n = i.nr_convenio;
+      if (locais.familia && !familiasDoNumero.get(n)?.has(locais.familia))
+        return false;
+      if (
+        locais.anoInstrumento &&
+        String(i.ano_instrumento) !== locais.anoInstrumento
+      )
+        return false;
+      if (
+        locais.inauguracao &&
+        situacaoDoInstrumento(etapaPorNumero.get(n), comPrevisao.has(n)) !==
+          locais.inauguracao
+      )
+        return false;
+      if (
+        locais.anoOperacao &&
+        !anosEmOperacao(etapaPorNumero.get(n)).has(locais.anoOperacao)
+      )
+        return false;
+      if (
+        locais.atualizacao &&
+        faixaDeAtualizacao(i.fase_atual, ultimaAtividade.get(n)) !==
+          locais.atualizacao
+      )
+        return false;
+      if (numerosDoPrazo && !numerosDoPrazo.has(n)) return false;
+      return true;
+    });
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
   const fases = [...FASES_ACOMPANHAMENTO];
   const analise = resumirCarteiraPainel(instrumentosFiltrados, fases);
@@ -188,6 +273,35 @@ export function MonitoramentoPainelPage() {
     <div className="space-y-6 pb-8">
       {header}
       <MonitoramentoInternoFiltros filtros={filtros} />
+      {Object.keys(locais).length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filtros dos gráficos"
+        >
+          {(Object.entries(locais) as [FiltroLocal, string][]).map(
+            ([campo, valor]) => (
+              <button
+                key={campo}
+                type="button"
+                onClick={() => alternarLocal(campo, valor)}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
+                aria-label={`Remover filtro ${ROTULO_FILTRO_LOCAL[campo]}: ${valor}`}
+              >
+                {ROTULO_FILTRO_LOCAL[campo]}: {valor}{" "}
+                <span aria-hidden="true">×</span>
+              </button>
+            ),
+          )}
+          <button
+            type="button"
+            onClick={() => setLocais({})}
+            className="cursor-pointer border-0 bg-transparent px-1 text-xs text-muted-foreground underline"
+          >
+            Limpar filtros dos gráficos
+          </button>
+        </div>
+      )}
       <PainelNavegacao itens={SECOES} />
       <div className="space-y-12">
         <PainelBloco id="visao-geral" titulo="Visão geral">
@@ -200,7 +314,7 @@ export function MonitoramentoPainelPage() {
               },
               {
                 key: "valor-global",
-                label: "Valor global informado",
+                label: "Valor global",
                 value: dados.instrumentosComValor
                   ? fmtMoeda(dados.valorGlobal)
                   : "—",
@@ -216,6 +330,10 @@ export function MonitoramentoPainelPage() {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <PainelCartao titulo="Instrumentos por situação">
               <GraficoColunas
+                selecionado={filtros.situacao}
+                onSelecionar={(r) =>
+                  filtros.setSituacao(filtros.situacao === r ? null : r)
+                }
                 vazio="Nenhum instrumento neste recorte."
                 colunas={analise.fases.map((f) => ({
                   rotulo: f.rotulo,
@@ -229,13 +347,19 @@ export function MonitoramentoPainelPage() {
                 }))}
               />
             </PainelCartao>
-            <PainelGestaoEquipamentos familias={familias} />
+            <PainelGestaoEquipamentos
+              familias={familias}
+              selecionada={locais.familia}
+              onSelecionar={(f) => f && alternarLocal("familia", f)}
+            />
           </div>
         </PainelBloco>
 
         <PainelBloco id="evolucao" titulo="Evolução">
           <PainelCartao titulo="Ano do instrumento">
             <GraficoColunas
+              selecionado={locais.anoInstrumento}
+              onSelecionar={(r) => alternarLocal("anoInstrumento", r)}
               vazio="Nenhum ano informado."
               colunas={analise.anos.map((a) => ({
                 rotulo: a.rotulo,
@@ -255,6 +379,8 @@ export function MonitoramentoPainelPage() {
               apoio={`${totalEntregaAno} equipamentos em operação`}
             >
               <GraficoColunas
+                selecionado={locais.anoOperacao}
+                onSelecionar={(r) => alternarLocal("anoOperacao", r)}
                 vazio="Nenhum equipamento em operação neste recorte."
                 colunas={entregaAno.anos.map((a) => ({
                   rotulo: a.ano,
@@ -285,6 +411,8 @@ export function MonitoramentoPainelPage() {
             <PainelCartao titulo="Situação da inauguração">
               <GraficoRosca
                 rotuloTotal="instrumentos"
+                selecionada={locais.inauguracao}
+                onSelecionar={(r) => alternarLocal("inauguracao", r)}
                 fatias={[
                   {
                     rotulo: "Realizada",
@@ -317,18 +445,35 @@ export function MonitoramentoPainelPage() {
             <PainelCartao titulo="Instrumentos sem atualizações">
               <GraficoColunas
                 vazio="Nenhum instrumento em andamento."
-                colunas={parados.faixas.map((f) => ({
-                  rotulo: f.rotulo,
-                  segmentos: [
-                    { nome: f.rotulo, valor: f.quantidade, cor: f.cor },
-                  ],
-                }))}
+                selecionado={locais.atualizacao}
+                onSelecionar={(r) => alternarLocal("atualizacao", r)}
+                colunas={[
+                  ...parados.faixas.map((f) => ({
+                    rotulo: f.rotulo,
+                    segmentos: [
+                      { nome: f.rotulo, valor: f.quantidade, cor: f.cor },
+                    ],
+                  })),
+                  {
+                    rotulo: ROTULO_SEM_LANCAMENTO,
+                    segmentos: [
+                      {
+                        nome: ROTULO_SEM_LANCAMENTO,
+                        valor: parados.semAtividade,
+                        cor: "var(--painel-chart-ardosia)",
+                      },
+                    ],
+                  },
+                ]}
               />
             </PainelCartao>
             <PainelCartao titulo="Prazo médio entre etapas">
               <RankingBarras
                 vazio="Sem instrumentos com as duas datas."
+                selecionado={locais.prazo}
+                onSelecionar={(r) => alternarLocal("prazo", r)}
                 itens={prazos.map((p) => ({
+                  chave: p.rotulo,
                   rotulo: `${p.rotulo} (${p.instrumentos})`,
                   valor: p.dias,
                   texto: formatarPrazo(p.dias),
@@ -339,6 +484,10 @@ export function MonitoramentoPainelPage() {
           <PainelCartao titulo="Entregue por UF">
             <RankingBarras
               limite={10}
+              selecionado={filtros.uf}
+              onSelecionar={(uf) =>
+                filtros.setUf(filtros.uf === uf ? null : uf)
+              }
               vazio="Nenhum equipamento planejado neste recorte."
               itens={porUf.map((u) => ({
                 rotulo: u.uf,
@@ -366,10 +515,25 @@ export function MonitoramentoPainelPage() {
         <PainelBloco id="composicao" titulo="Composição">
           <div className="grid gap-6 lg:grid-cols-2">
             <PainelCartao titulo="Tipo de contratação">
-              <GraficoRosca fatias={contratacoes} rotuloTotal="instrumentos" />
+              <GraficoRosca
+                fatias={contratacoes}
+                rotuloTotal="instrumentos"
+                selecionada={filtros.tipoContratacao}
+                onSelecionar={(r) =>
+                  filtros.setTipoContratacao(
+                    filtros.tipoContratacao === r ? null : r,
+                  )
+                }
+              />
             </PainelCartao>
             <PainelCartao titulo="Investimento por contratação">
               <RankingBarras
+                selecionado={filtros.tipoContratacao}
+                onSelecionar={(r) =>
+                  filtros.setTipoContratacao(
+                    filtros.tipoContratacao === r ? null : r,
+                  )
+                }
                 itens={dados.porTipo.map((t) => ({
                   rotulo: t.rotulo,
                   detalhe: `${t.comValor} de ${t.quantidade} com valor`,
@@ -382,6 +546,10 @@ export function MonitoramentoPainelPage() {
             <PainelCartao titulo="Valor global por situação">
               <RankingBarras
                 limite={8}
+                selecionado={filtros.situacao}
+                onSelecionar={(r) =>
+                  filtros.setSituacao(filtros.situacao === r ? null : r)
+                }
                 itens={fases
                   .map((f) => ({
                     rotulo: f,
@@ -402,6 +570,10 @@ export function MonitoramentoPainelPage() {
             >
               <RankingBarras
                 limite={14}
+                selecionado={filtros.uf}
+                onSelecionar={(uf) =>
+                  filtros.setUf(filtros.uf === uf ? null : uf)
+                }
                 itens={analise.ufs.map((u) => ({
                   rotulo: u.rotulo,
                   valor: u.quantidade,
@@ -411,7 +583,13 @@ export function MonitoramentoPainelPage() {
             <PainelCartao titulo="Instrumentos por técnico titular">
               <RankingBarras
                 limite={8}
+                selecionado={filtros.responsavel}
+                onSelecionar={(r) =>
+                  filtros.setResponsavel(filtros.responsavel === r ? null : r)
+                }
                 itens={dados.porTecnico.map((t) => ({
+                  chave:
+                    t.rotulo === "Não informado" ? "Sem responsável" : t.rotulo,
                   rotulo: t.rotulo,
                   valor: t.quantidade,
                 }))}

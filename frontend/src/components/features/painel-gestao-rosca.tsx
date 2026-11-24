@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 export interface FatiaRosca {
   rotulo: string;
   valor: number;
@@ -11,9 +13,15 @@ const COR_FUNDO = "var(--secondary)";
 export function GraficoRosca({
   fatias,
   rotuloTotal,
+  selecionada,
+  onSelecionar,
 }: {
   fatias: FatiaRosca[];
   rotuloTotal: string;
+  /** Rótulo da fatia filtrada; as demais ficam esmaecidas. */
+  selecionada?: string | null;
+  /** Com esta prop, fatias e legenda viram botões que filtram o painel. */
+  onSelecionar?: (rotulo: string) => void;
 }) {
   const total = fatias.reduce((soma, f) => soma + f.valor, 0);
   if (total === 0)
@@ -22,6 +30,7 @@ export function GraficoRosca({
         Nenhum instrumento neste recorte.
       </p>
     );
+  const Tag = onSelecionar ? "button" : "div";
   let acumulado = 0;
   return (
     <div className="flex flex-1 flex-col items-center gap-6 sm:flex-row sm:items-center">
@@ -57,6 +66,11 @@ export function GraficoRosca({
                   strokeWidth="4.5"
                   strokeDasharray={`${Math.max(parte - 0.6, 0.1)} ${100 - Math.max(parte - 0.6, 0.1)}`}
                   strokeDashoffset={-inicio}
+                  className={cn(
+                    onSelecionar && "cursor-pointer",
+                    selecionada && selecionada !== f.rotulo && "opacity-30",
+                  )}
+                  onClick={onSelecionar && (() => onSelecionar(f.rotulo))}
                 >
                   <title>{`${f.rotulo}: ${f.valor}`}</title>
                 </circle>
@@ -74,22 +88,36 @@ export function GraficoRosca({
       </div>
       <ul className="m-0 grid w-full min-w-0 list-none gap-2.5 p-0">
         {fatias.map((f) => (
-          <li
-            key={f.rotulo}
-            className="grid grid-cols-[auto_minmax(0,1fr)_auto_3rem] items-center gap-2 text-sm"
-          >
-            <i
-              aria-hidden="true"
-              className="size-2.5 rounded-sm"
-              style={{ backgroundColor: f.cor }}
-            />
-            <span className="truncate" title={f.rotulo}>
-              {f.rotulo}
-            </span>
-            <strong className="tabular-nums">{f.valor}</strong>
-            <span className="text-right text-xs text-muted-foreground tabular-nums">
-              {Math.round((100 * f.valor) / total)}%
-            </span>
+          <li key={f.rotulo}>
+            <Tag
+              {...(onSelecionar
+                ? {
+                    type: "button" as const,
+                    "aria-pressed": selecionada === f.rotulo,
+                    onClick: () => onSelecionar(f.rotulo),
+                  }
+                : {})}
+              className={cn(
+                "grid w-full grid-cols-[auto_minmax(0,1fr)_auto_3rem] items-center gap-2 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit",
+                onSelecionar &&
+                  "cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring",
+                selecionada === f.rotulo && "bg-primary/10",
+                selecionada && selecionada !== f.rotulo && "opacity-40",
+              )}
+            >
+              <i
+                aria-hidden="true"
+                className="size-2.5 rounded-sm"
+                style={{ backgroundColor: f.cor }}
+              />
+              <span className="truncate" title={f.rotulo}>
+                {f.rotulo}
+              </span>
+              <strong className="tabular-nums">{f.valor}</strong>
+              <span className="text-right text-xs text-muted-foreground tabular-nums">
+                {Math.round((100 * f.valor) / total)}%
+              </span>
+            </Tag>
           </li>
         ))}
       </ul>
