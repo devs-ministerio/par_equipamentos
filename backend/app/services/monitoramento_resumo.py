@@ -13,7 +13,9 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from app.repositories import conclusoes as conclusoes_repo
 from app.repositories import documentos as documentos_repo
+from app.repositories import etapas_instrumento as etapas_repo
 from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.schemas_monitoramento import (
@@ -21,6 +23,7 @@ from app.schemas_monitoramento import (
     ContagemRotulo,
     DivergenciaConclusaoRead,
     EquipamentoInstrumentoResumo,
+    EtapasInstrumentoRead,
     InauguracaoResumo,
     IndicadoresInstrumentoRead,
     LicencaVencendoResumo,
@@ -232,6 +235,24 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         for i, f, p, e in itens_repo.resumo_por_instrumento_e_familia(db, set(numero_por_id))
     ]
 
+    ids = [i.id for i in instrumentos]
+    publicacoes = etapas_repo.publicacoes_por_numero(db, [i.nr_convenio for i in instrumentos])
+    entregas = etapas_repo.primeira_entrega_por_instrumento(db, ids)
+    conclusoes = conclusoes_repo.datas_conclusao_ativas(db, ids)
+    dispensadas = etapas_repo.ids_com_inauguracao_dispensada(db, ids)
+    inauguradas = {i.nr_convenio: i.data for i in inauguracoes if i.realizada}
+    etapas_por_instrumento = [
+        EtapasInstrumentoRead(
+            nr_convenio=i.nr_convenio,
+            publicacao=publicacoes.get(i.nr_convenio),
+            entrega=entregas.get(i.id),
+            inauguracao=inauguradas.get(i.nr_convenio),
+            conclusao=conclusoes.get(i.id),
+            inauguracao_dispensada=i.id in dispensadas,
+        )
+        for i in instrumentos
+    ]
+
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),
         # A fase calculada não tem percentual de referência: não se inventa medição física.
@@ -253,5 +274,6 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         acoes_em_aberto=acoes_em_aberto,
         fila_acoes_truncada=dados.acoes_pendentes > len(acoes_em_aberto),
         equipamentos_por_instrumento=equipamentos_por_instrumento,
+        etapas_por_instrumento=etapas_por_instrumento,
         gerado_em=datetime.now(timezone.utc),
     )

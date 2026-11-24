@@ -88,6 +88,7 @@ const resumo: ResumoMonitoramento = {
   ],
   acoes_em_aberto: [],
   fila_acoes_truncada: false,
+  etapas_por_instrumento: [],
   equipamentos_por_instrumento: [],
   lacunas_conclusao: [],
   gerado_em: "2026-09-29T00:00:00Z",

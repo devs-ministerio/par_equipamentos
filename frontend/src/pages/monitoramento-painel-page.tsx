@@ -21,7 +21,6 @@ import {
   PainelBloco,
   PainelNavegacao,
 } from "@/components/features/painel-tecnico-estrutura";
-import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
 import { PainelCartao } from "@/components/features/painel-gestao-cartao";
 import {
   GraficoColunas,
@@ -30,6 +29,13 @@ import {
 import { GraficoRosca } from "@/components/features/painel-gestao-rosca";
 import { RankingBarras } from "@/components/features/painel-gestao-ranking";
 import { PainelGestaoCompletude } from "@/components/features/painel-gestao-completude";
+import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
+import {
+  entregaPorUf,
+  instrumentosParados,
+  prazosMedios,
+  situacaoInauguracao,
+} from "@/lib/painel-gestao-andamento";
 import { resumirCarteiraPainel } from "@/lib/monitoramento-painel-analise";
 import {
   COR_PREVISTA,
@@ -38,9 +44,16 @@ import {
   corDaFase,
 } from "@/lib/monitoramento-painel-palette";
 
+function formatarPrazo(dias: number): string {
+  return dias >= 365
+    ? `${(dias / 365).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} anos`
+    : `${dias.toLocaleString("pt-BR")} dias`;
+}
+
 const SECOES = [
   { id: "visao-geral", rotulo: "Visão geral" },
   { id: "evolucao", rotulo: "Evolução" },
+  { id: "andamento", rotulo: "Andamento" },
   { id: "composicao", rotulo: "Composição" },
   { id: "territorio", rotulo: "Território" },
 ];
@@ -112,7 +125,15 @@ export function MonitoramentoPainelPage() {
     );
   }
 
-  const instrumentosFiltrados = filtros.filtrados;
+  // Instrumento sem ano herda o ano do instrumento firmado correspondente.
+  const anoPorNumero = new Map(
+    convenios.map((c) => [c.numero, c.anoInstrumento]),
+  );
+  const instrumentosFiltrados = filtros.filtrados.map((i) =>
+    i.ano_instrumento == null && anoPorNumero.get(i.nr_convenio) != null
+      ? { ...i, ano_instrumento: anoPorNumero.get(i.nr_convenio)! }
+      : i,
+  );
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
   const fases = [...FASES_ACOMPANHAMENTO];
   const analise = resumirCarteiraPainel(instrumentosFiltrados, fases);
@@ -124,7 +145,25 @@ export function MonitoramentoPainelPage() {
     resumo.equipamentos_por_instrumento,
     numeros,
   );
-  const anosInauguracao = dados.inauguracoesPorAno.slice(-8);
+  const anosInauguracao = dados.inauguracoesPorAno;
+  const situacaoInaug = situacaoInauguracao(
+    numeros,
+    resumo.etapas_por_instrumento,
+    new Set(resumo.inauguracoes.map((i) => i.nr_convenio)),
+  );
+  const parados = instrumentosParados(
+    instrumentosFiltrados,
+    resumo.indicadores_por_instrumento.filter((i) =>
+      numeros.has(i.nr_convenio),
+    ),
+  );
+  const prazos = prazosMedios(numeros, resumo.etapas_por_instrumento);
+  const porUf = entregaPorUf(
+    instrumentosFiltrados,
+    resumo.equipamentos_por_instrumento,
+  );
+  const entregues = familias.reduce((t, f) => t + f.entregue, 0);
+  const planejados = familias.reduce((t, f) => t + f.planejado, 0);
   const contratacoes = analise.contratacoes.map((c) => ({
     rotulo: c.rotulo,
     valor: c.quantidade,
@@ -169,12 +208,10 @@ export function MonitoramentoPainelPage() {
                 ),
               },
               {
-                key: "atencao",
-                label: "Instrumentos com atenção",
-                value: dados.instrumentosEmAtencao,
-                variant:
-                  dados.instrumentosEmAtencao > 0 ? "destructive" : "success",
-                detail: `${dados.pontosAtencao} ocorrências: ${dados.acoesAtrasadas} ações atrasadas, ${dados.inauguracoesAtrasadas} inaugurações atrasadas, ${dados.licencasCriticas} licenças críticas, ${dados.divergencias.length} divergências externas`,
+                key: "entregues",
+                label: "Equipamentos entregues",
+                value: entregues,
+                detail: `${planejados} planejados em ${familias.length} tipos`,
               },
             ]}
           />
@@ -199,34 +236,25 @@ export function MonitoramentoPainelPage() {
         </PainelBloco>
 
         <PainelBloco id="evolucao" titulo="Evolução">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <PainelCartao
-              titulo="Ano do instrumento"
-              apoio={
-                [
-                  analise.anosOmitidos > 0
-                    ? `${analise.anosOmitidos} anos anteriores não exibidos`
-                    : "",
-                  analise.semAno > 0 ? `${analise.semAno} sem ano` : "",
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || undefined
-              }
-            >
-              <GraficoColunas
-                vazio="Nenhum ano informado."
-                colunas={analise.anos.map((a) => ({
-                  rotulo: a.rotulo,
-                  segmentos: [
-                    {
-                      nome: "Instrumentos",
-                      valor: a.quantidade,
-                      cor: COR_REALIZADA,
-                    },
-                  ],
-                }))}
-              />
-            </PainelCartao>
+          <PainelCartao
+            titulo="Ano do instrumento"
+            apoio={analise.semAno > 0 ? `${analise.semAno} sem ano` : undefined}
+          >
+            <GraficoColunas
+              vazio="Nenhum ano informado."
+              colunas={analise.anos.map((a) => ({
+                rotulo: a.rotulo,
+                segmentos: [
+                  {
+                    nome: "Instrumentos",
+                    valor: a.quantidade,
+                    cor: COR_REALIZADA,
+                  },
+                ],
+              }))}
+            />
+          </PainelCartao>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <PainelCartao
               titulo="Ano de inauguração"
               apoio={
@@ -260,7 +288,82 @@ export function MonitoramentoPainelPage() {
                 }))}
               />
             </PainelCartao>
+            <PainelCartao titulo="Situação da inauguração">
+              <GraficoRosca
+                rotuloTotal="instrumentos"
+                fatias={[
+                  {
+                    rotulo: "Realizada",
+                    valor: situacaoInaug.Realizada,
+                    cor: COR_REALIZADA,
+                  },
+                  {
+                    rotulo: "Prevista",
+                    valor: situacaoInaug.Prevista,
+                    cor: COR_PREVISTA,
+                  },
+                  {
+                    rotulo: "Dispensada",
+                    valor: situacaoInaug.Dispensada,
+                    cor: "var(--painel-chart-turquesa)",
+                  },
+                  {
+                    rotulo: "Sem registro",
+                    valor: situacaoInaug["Sem registro"],
+                    cor: "var(--painel-chart-ardosia)",
+                  },
+                ]}
+              />
+            </PainelCartao>
           </div>
+        </PainelBloco>
+
+        <PainelBloco id="andamento" titulo="Andamento">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PainelCartao
+              titulo="Instrumentos parados"
+              apoio={
+                parados.semAtividade > 0
+                  ? `${parados.semAtividade} sem nenhum lançamento`
+                  : undefined
+              }
+            >
+              <GraficoColunas
+                vazio="Nenhum instrumento em andamento."
+                colunas={parados.faixas.map((f) => ({
+                  rotulo: f.rotulo,
+                  segmentos: [
+                    { nome: f.rotulo, valor: f.quantidade, cor: f.cor },
+                  ],
+                }))}
+              />
+            </PainelCartao>
+            <PainelCartao titulo="Prazo médio entre etapas">
+              <RankingBarras
+                vazio="Sem instrumentos com as duas datas."
+                itens={prazos.map((p) => ({
+                  rotulo: `${p.rotulo} (${p.instrumentos})`,
+                  valor: p.dias,
+                  texto: formatarPrazo(p.dias),
+                }))}
+              />
+            </PainelCartao>
+          </div>
+          <PainelCartao
+            titulo="Entregue por UF"
+            apoio={`${entregues} de ${planejados} equipamentos`}
+          >
+            <RankingBarras
+              limite={10}
+              vazio="Nenhum equipamento planejado neste recorte."
+              itens={porUf.map((u) => ({
+                rotulo: u.uf,
+                valor: u.planejado,
+                parcial: u.entregue,
+                texto: `${u.entregue} / ${u.planejado}`,
+              }))}
+            />
+          </PainelCartao>
         </PainelBloco>
 
         <PainelBloco id="composicao" titulo="Composição">
@@ -298,14 +401,6 @@ export function MonitoramentoPainelPage() {
                 itens={analise.ufs.map((u) => ({
                   rotulo: u.rotulo,
                   valor: u.quantidade,
-                }))}
-              />
-            </PainelCartao>
-            <PainelCartao titulo="Instrumentos por equipamento">
-              <RankingBarras
-                itens={dados.porEquipamento.map((e) => ({
-                  rotulo: e.rotulo,
-                  valor: e.quantidade,
                 }))}
               />
             </PainelCartao>

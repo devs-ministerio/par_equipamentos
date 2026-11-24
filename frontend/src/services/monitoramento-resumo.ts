@@ -80,6 +80,15 @@ export type EquipamentoInstrumentoResumo = z.infer<
   typeof equipamentoInstrumentoSchema
 >;
 
+const etapasInstrumentoSchema = z.object({
+  nr_convenio: z.string(),
+  publicacao: z.string().nullable(),
+  entrega: z.string().nullable(),
+  inauguracao: z.string().nullable(),
+  conclusao: z.string().nullable(),
+  inauguracao_dispensada: z.boolean(),
+});
+
 const lacunaConclusaoSchema = z.object({
   nr_convenio: z.string(),
   nome_convenente: z.string(),
@@ -109,6 +118,7 @@ const resumoMonitoramentoSchema = z.object({
   fila_acoes_truncada: z.boolean(),
   equipamentos_por_instrumento: z.array(equipamentoInstrumentoSchema),
   lacunas_conclusao: z.array(lacunaConclusaoSchema).default([]),
+  etapas_por_instrumento: z.array(etapasInstrumentoSchema).default([]),
   gerado_em: z.string(),
 });
 export type ResumoMonitoramento = z.infer<typeof resumoMonitoramentoSchema>;

@@ -25,6 +25,7 @@ _DB_TEST_MODULES = {
     "test_avisos_siconv_db.py",
     "test_cancelamento_unidade_db.py",
     "test_conclusao_acompanhamento_db.py",
+    "test_etapas_instrumento_db.py",
     "test_criar_instrumento_projeta_itens_db.py",
     "test_painel_tecnico_db.py",
     "test_trava_instrumento_db.py",

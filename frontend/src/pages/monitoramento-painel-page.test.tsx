@@ -232,21 +232,13 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     h.resumo.indicadores_por_instrumento[0]!.acoes_pendentes = 2;
     const user = montar(h);
     await pronto();
-    // Duas ações atrasadas do mesmo instrumento: 1 instrumento, 2 ocorrências.
-    expect(
-      metrica("Instrumentos com atenção").getByText("1"),
-    ).toBeInTheDocument();
-    expect(
-      metrica("Instrumentos com atenção").getByText(/2 ocorrências/),
-    ).toBeInTheDocument();
+    expect(metrica("Instrumentos").getByText("2")).toBeInTheDocument();
     // When
     await user.click(screen.getByRole("button", { name: /^UF/ }));
     await user.click(screen.getByRole("option", { name: "BA" }));
     // Then
     expect(screen.getByText("1 de 2 instrumentos")).toBeInTheDocument();
-    expect(
-      metrica("Instrumentos com atenção").getByText("0"),
-    ).toBeInTheDocument();
+    expect(metrica("Instrumentos").getByText("1")).toBeInTheDocument();
     // When: a mesma query perde o único instrumento do recorte.
     h.respostas.set("/monitoramento/instrumentos", {
       body: [h.instrumentos[0]!],

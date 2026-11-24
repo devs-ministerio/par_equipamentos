@@ -46,7 +46,7 @@ export function resumirCarteiraPainel(
     return Number(a.rotulo) - Number(b.rotulo);
   });
   const anosValidos = todosAnos.filter((item) => item.rotulo !== "Sem ano");
-  const anos = anosValidos.slice(-8);
+  const anos = anosValidos;
   const semAno =
     todosAnos.find((item) => item.rotulo === "Sem ano")?.quantidade ?? 0;
   const contratacoes = contar(

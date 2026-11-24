@@ -6,6 +6,8 @@ export interface ItemRanking {
   valor: number;
   /** Texto à direita; padrão é o próprio valor. */
   texto?: string;
+  /** Parte do valor já realizada (ex.: entregue de planejado), desenhada dentro da barra. */
+  parcial?: number;
 }
 
 /** Barras horizontais ordenadas; mostra os primeiros e expande o restante. */
@@ -39,9 +41,22 @@ export function RankingBarras({
               aria-hidden="true"
             >
               <div
-                className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
+                className={
+                  item.parcial === undefined
+                    ? "h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
+                    : "h-full rounded-full bg-primary/25"
+                }
                 style={{ width: `${(100 * item.valor) / maximo}%` }}
-              />
+              >
+                {item.parcial !== undefined && (
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
+                    style={{
+                      width: `${item.valor > 0 ? (100 * item.parcial) / item.valor : 0}%`,
+                    }}
+                  />
+                )}
+              </div>
             </div>
             <strong className="min-w-8 text-right font-semibold tabular-nums">
               {item.texto ?? item.valor}
