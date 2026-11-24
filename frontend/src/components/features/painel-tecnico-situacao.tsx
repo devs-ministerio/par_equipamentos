@@ -50,14 +50,14 @@ export function SecaoSituacao({
   ];
   const maximo = Math.max(1, ...colunas.map((c) => c.valor));
   return (
-    <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
+    <section className="flex h-full flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
       <h3 className="m-0 text-base font-semibold tracking-tight">
         Instrumentos por situação
       </h3>
-      <div className="mt-6 overflow-x-auto">
-        <div className="relative min-w-[44rem]">
+      <div className="mt-6 flex flex-1 overflow-x-auto">
+        <div className="relative flex min-h-[18rem] min-w-[44rem] flex-1">
           <div
-            className="pointer-events-none absolute inset-x-0 top-10 h-44"
+            className="pointer-events-none absolute inset-x-0 top-10 bottom-[4.75rem]"
             aria-hidden="true"
           >
             {GRADE.map((g) => (
@@ -69,7 +69,7 @@ export function SecaoSituacao({
             ))}
           </div>
           <ul
-            className="relative m-0 flex list-none items-start gap-2 p-0"
+            className="relative m-0 flex flex-1 list-none items-stretch gap-2 p-0"
             aria-label="Instrumentos por situação do monitoramento interno"
           >
             {colunas.map((c) => (
@@ -84,39 +84,45 @@ export function SecaoSituacao({
                   }
                   title={`${c.rotulo}: ${c.valor} (${pct(c.valor, linhas.length)})`}
                   className={cn(
-                    "group flex w-full cursor-pointer flex-col items-center rounded-lg border-0 bg-transparent p-0 pb-1 text-inherit transition-opacity focus-visible:outline-2 focus-visible:outline-ring",
+                    "group flex h-full w-full cursor-pointer flex-col items-center rounded-lg border-0 bg-transparent p-0 pb-1 text-inherit transition-opacity focus-visible:outline-2 focus-visible:outline-ring",
                     selecionada && selecionada !== c.rotulo && "opacity-40",
                   )}
                 >
-                  <div className="flex h-[13.5rem] w-full flex-col items-center justify-end">
-                    <span className="mb-1 text-base leading-6 font-semibold tabular-nums">
-                      {c.valor}
-                    </span>
-                    <div
-                      className={cn(
-                        "w-3/5 max-w-14 rounded-t-lg transition-opacity group-hover:opacity-80",
-                        COR_BARRA[c.tom],
-                      )}
-                      style={{
-                        height:
-                          c.valor > 0 ? `${(11 * c.valor) / maximo}rem` : "3px",
-                        opacity: c.valor > 0 ? undefined : 0.35,
-                      }}
-                    />
+                  <div className="relative w-full flex-1">
+                    <div className="absolute inset-0 flex flex-col items-center justify-end">
+                      <span className="mb-1 text-base leading-6 font-semibold tabular-nums">
+                        {c.valor}
+                      </span>
+                      <div
+                        className={cn(
+                          "w-3/5 max-w-14 rounded-t-lg transition-opacity group-hover:opacity-80",
+                          COR_BARRA[c.tom],
+                        )}
+                        style={{
+                          height:
+                            c.valor > 0
+                              ? `calc((100% - 2.5rem) * ${c.valor / maximo})`
+                              : "3px",
+                          opacity: c.valor > 0 ? undefined : 0.35,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <span
-                    className={cn(
-                      "mt-2.5 text-center text-[11px] leading-tight break-normal",
-                      c.tom === "alerta"
-                        ? "font-semibold text-foreground"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {c.rotulo}
-                  </span>
-                  <span className="mt-1 text-[11px] text-muted-foreground tabular-nums">
-                    {pct(c.valor, linhas.length)}
-                  </span>
+                  <div className="flex h-[4.75rem] w-full flex-col items-center">
+                    <span
+                      className={cn(
+                        "mt-2.5 text-center text-[11px] leading-tight break-normal",
+                        c.tom === "alerta"
+                          ? "font-semibold text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {c.rotulo}
+                    </span>
+                    <span className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                      {pct(c.valor, linhas.length)}
+                    </span>
+                  </div>
                 </button>
               </li>
             ))}
