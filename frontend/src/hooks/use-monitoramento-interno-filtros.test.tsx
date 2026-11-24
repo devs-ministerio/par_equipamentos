@@ -259,6 +259,16 @@ describe("useMonitoramentoInternoFiltros", () => {
     },
   );
 
+  it.each(["ano_inicio=abc", "ano_fim=20x6", "ano_inicio=26&ano_fim="])(
+    "ignora ano inválido %s da URL em vez de esvaziar o painel",
+    (query) => {
+      const { result } = montar(query);
+      const todos = montar("").result.current.filtrados.length;
+      expect(result.current.filtrados).toHaveLength(todos);
+      expect(result.current.anoInicio).toBeNull();
+    },
+  );
+
   it.each(["0", "-1", "2.5", "invalida"])(
     "descarta página inválida %s",
     (pagina) => {

@@ -80,6 +80,11 @@ function opcoesMunicipio(
   );
 }
 
+/** Link com ano que não tem 4 dígitos (ex.: `abc`) vale como filtro ausente. */
+function anoValido(valor: string | null): string | null {
+  return valor && /^\d{4}$/.test(valor) ? valor : null;
+}
+
 /** Filtros das visões de monitoramento refletidos na URL.
  *
  * A fonte é a mesma lista usada pela mesa e pelo painel; não mistura dados
@@ -151,8 +156,8 @@ export function useMonitoramentoInternoFiltros<
           : [instrumento.ano_instrumento],
     [porEvento, anosPorInstrumento],
   );
-  const anoInicio = searchParams.get("ano_inicio");
-  const anoFim = searchParams.get("ano_fim");
+  const anoInicio = anoValido(searchParams.get("ano_inicio"));
+  const anoFim = anoValido(searchParams.get("ano_fim"));
   const pagina = paginaValida(searchParams.get("pagina"));
 
   const definirFiltro = useCallback(

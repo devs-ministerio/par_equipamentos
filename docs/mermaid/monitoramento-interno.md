@@ -546,7 +546,10 @@ O POST de eventos ainda aceita registrar `fase_concluido` (com data e confirmaç
 
 ## 14. Painel de gestão e Meu painel (24/11/2026)
 
-Telas só de leitura: nenhuma grava dado. Os dois usam o mesmo recorte de filtros e as mesmas regras de situação do equipamento; o Meu painel mostra a carteira do técnico logado e o Painel de gestão a carteira inteira (gestão pode filtrar por responsável).
+Os indicadores e gráficos das duas telas são só leitura e usam as mesmas regras de situação do equipamento. A única escrita é o botão **Incluir no monitoramento** da Carteira do Meu painel (mesma mutação do botão de "Dados oficiais").
+
+- **Painel de gestão** (carteira inteira): filtros mínimos na URL (`useSearchParams`, compartilháveis) e quatro filtros locais dos gráficos (família, inauguração, atualização, prazo) em estado da página; os demais cliques dos gráficos escrevem na URL. Ano inválido na URL é ignorado. O catálogo de marcos não é consultado.
+- **Meu painel** (carteira do técnico logado): filtros em estado local da página, recorte pela região do técnico; `gestor` e `admin` escolhem o colaborador.
 
 ```mermaid
 flowchart LR
@@ -593,3 +596,4 @@ A regra vive só no Painel de gestão e no Meu painel (`lib/painel-gestao-operac
 | Derivação dos gráficos (pura, testável) | `lib/painel-gestao-derivados.ts` |
 | Completude do cadastro (só admin) | `painel-gestao-completude.tsx` |
 | Mapa por município | `monitoramento-painel-geografia.tsx` |
+| Incluir na carteira (única escrita do Meu painel) | `painel-tecnico-carteira.tsx` |

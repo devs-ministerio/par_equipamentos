@@ -5,7 +5,6 @@ import { prepararMesa } from "./monitoramento-mesa";
 export const ROTAS_PAINEL = [
   "/monitoramento/instrumentos",
   "/monitoramento/resumo",
-  "/monitoramento/marcos",
   "/convenios",
 ] as const;
 

@@ -195,6 +195,16 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     },
   );
 
+  it("abre o painel mesmo com falha no catálogo de marcos, que nenhum gráfico usa", async () => {
+    // Given
+    const h = prepararPainel();
+    h.respostas.set("/monitoramento/marcos", { body: {}, status: 503 });
+    // When
+    montar(h);
+    // Then
+    expect(await pronto()).toBeInTheDocument();
+  });
+
   it("rejeita resumo fora do contrato em vez de mostrar indicadores parciais", async () => {
     // Given
     const h = prepararPainel();

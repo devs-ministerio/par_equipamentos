@@ -5,7 +5,6 @@ import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMonitoramentoResumo } from "@/hooks/useMonitoramentoResumo";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
-import { useMonitoramentoMarcos } from "@/hooks/useMonitoramentoMarcos";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useMonitoramentoInternoFiltros } from "@/hooks/use-monitoramento-interno-filtros";
@@ -59,12 +58,10 @@ export function MonitoramentoPainelPage() {
     });
   const resumoQuery = useMonitoramentoResumo();
   const instrumentosQuery = useMonitoramentoInstrumentos();
-  const marcosQuery = useMonitoramentoMarcos();
   const conveniosQuery = useConveniosLista();
   const sessao = useAuthSession();
   const resumo = resumoQuery.data;
   const instrumentos = instrumentosQuery.data;
-  const marcos = marcosQuery.data;
   const convenios = conveniosQuery.data?.itens;
   // O ano do firmado prevalece; cargas sem convênio usam o ano do cadastro.
   const instrumentosComAno = useMemo(() => {
@@ -105,7 +102,6 @@ export function MonitoramentoPainelPage() {
   if (
     resumoQuery.isError ||
     instrumentosQuery.isError ||
-    marcosQuery.isError ||
     conveniosQuery.isError
   ) {
     return (
@@ -116,14 +112,13 @@ export function MonitoramentoPainelPage() {
           onRetry={() => {
             resumoQuery.refetch();
             instrumentosQuery.refetch();
-            marcosQuery.refetch();
             conveniosQuery.refetch();
           }}
         />
       </div>
     );
   }
-  if (!resumo || !instrumentos || !marcos || !convenios) {
+  if (!resumo || !instrumentos || !convenios) {
     return (
       <div>
         {header}
