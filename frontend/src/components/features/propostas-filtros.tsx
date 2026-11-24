@@ -4,7 +4,7 @@ import {
   CalendarRange,
   Layers,
   MapPin,
-  Flag,
+  Eye,
   Search,
   Stethoscope,
 } from "lucide-react";
@@ -79,7 +79,7 @@ export function PropostasFiltros({ filtros: f }: { filtros: Filtros }) {
     },
     multipla(
       "Etapa",
-      Flag,
+      Eye,
       ESTAGIOS,
       f.estagio,
       f.setEstagio,
