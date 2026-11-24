@@ -8,6 +8,8 @@ export interface ItemRanking {
   texto?: string;
   /** Parte do valor já realizada (ex.: entregue de planejado), desenhada dentro da barra. */
   parcial?: number;
+  /** Partes coloridas da barra, em ordem; o que sobra do valor fica no tom claro. */
+  segmentos?: Array<{ valor: number; cor: string }>;
 }
 
 /** Barras horizontais ordenadas; mostra os primeiros e expande o restante. */
@@ -42,12 +44,26 @@ export function RankingBarras({
             >
               <div
                 className={
-                  item.parcial === undefined
+                  item.parcial === undefined && !item.segmentos
                     ? "h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
                     : "h-full rounded-full bg-primary/25"
                 }
                 style={{ width: `${(100 * item.valor) / maximo}%` }}
               >
+                {item.segmentos && (
+                  <div className="flex h-full">
+                    {item.segmentos.map((seg, i) => (
+                      <div
+                        key={i}
+                        className="h-full"
+                        style={{
+                          width: `${item.valor > 0 ? (100 * seg.valor) / item.valor : 0}%`,
+                          backgroundColor: seg.cor,
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
                 {item.parcial !== undefined && (
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"

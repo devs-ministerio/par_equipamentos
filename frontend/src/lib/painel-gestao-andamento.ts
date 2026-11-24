@@ -36,6 +36,20 @@ export function inauguracaoPelaEntrega(e: Etapas): boolean {
   );
 }
 
+/**
+ * Equipamentos entregues do instrumento já estão em operação: inauguração dispensada, realizada com o
+ * instrumento 100% concluído, ou acelerador linear concluído (data da entrega vale como inauguração).
+ * Os demais entregues ainda precisam de inauguração.
+ */
+export function instrumentoEmOperacao(e: Etapas | undefined): boolean {
+  if (!e) return false;
+  return (
+    e.inauguracao_dispensada ||
+    inauguracaoPelaEntrega(e) ||
+    (!!e.inauguracao && e.conclusao_resultado === "integral")
+  );
+}
+
 /** Situação da inauguração de cada instrumento: realizada, prevista, dispensada ou sem registro. */
 export function situacaoInauguracao(
   numeros: ReadonlySet<string>,
@@ -136,15 +150,21 @@ export function instrumentosParados(
 
 export interface EntregaUf {
   uf: string;
+  /** Total planejado (inclui o que já foi entregue). */
   planejado: number;
+  /** Entregues em instrumentos que ainda precisam de inauguração. */
   entregue: number;
+  /** Entregues e em operação. */
+  operacao: number;
 }
 
-/** Equipamentos planejados e entregues por UF do instrumento. */
+/** Equipamentos por UF do instrumento: em operação, entregues (a inaugurar) e planejados. */
 export function entregaPorUf(
   instrumentos: InstrumentoEquipamento[],
   linhas: EquipamentoInstrumentoResumo[],
+  etapas: Etapas[],
 ): EntregaUf[] {
+  const etapaPorNumero = new Map(etapas.map((e) => [e.nr_convenio, e]));
   const ufPorNumero = new Map(
     instrumentos.map((i) => [i.nr_convenio, i.uf ?? "—"]),
   );
@@ -152,9 +172,16 @@ export function entregaPorUf(
   for (const l of linhas) {
     const uf = ufPorNumero.get(l.nr_convenio);
     if (uf === undefined || l.planejado <= 0) continue;
-    const atual = mapa.get(uf) ?? { uf, planejado: 0, entregue: 0 };
+    const atual = mapa.get(uf) ?? {
+      uf,
+      planejado: 0,
+      entregue: 0,
+      operacao: 0,
+    };
     atual.planejado += l.planejado;
-    atual.entregue += l.entregue;
+    if (instrumentoEmOperacao(etapaPorNumero.get(l.nr_convenio)))
+      atual.operacao += l.entregue;
+    else atual.entregue += l.entregue;
     mapa.set(uf, atual);
   }
   return [...mapa.values()].sort(

@@ -16,7 +16,14 @@ import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
 import { MetricStrip } from "@/components/common/metric-strip";
 import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
 import { MonitoramentoPainelGeografia } from "@/components/features/monitoramento-painel-geografia";
-import { entreguesPorFamilia } from "@/lib/equipamentos-entregues";
+import {
+  COR_EM_OPERACAO,
+  COR_ENTREGUE,
+  LEGENDA_OPERACAO,
+  equipamentosPorSituacao,
+  totaisOperacao,
+} from "@/lib/painel-gestao-operacao";
+import { PainelGestaoEquipamentos } from "@/components/features/painel-gestao-equipamentos";
 import {
   PainelBloco,
   PainelNavegacao,
@@ -29,7 +36,6 @@ import {
 import { GraficoRosca } from "@/components/features/painel-gestao-rosca";
 import { RankingBarras } from "@/components/features/painel-gestao-ranking";
 import { PainelGestaoCompletude } from "@/components/features/painel-gestao-completude";
-import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
 import {
   entregaInauguracaoPorAno,
   entregaPorUf,
@@ -142,9 +148,10 @@ export function MonitoramentoPainelPage() {
   const total = instrumentosFiltrados.length;
   const isAdmin = sessao.usuarioAtual?.role === "admin";
   const numeros = new Set(instrumentosFiltrados.map((i) => i.nr_convenio));
-  const familias = entreguesPorFamilia(
+  const familias = equipamentosPorSituacao(
     resumo.equipamentos_por_instrumento,
     numeros,
+    resumo.etapas_por_instrumento,
   );
   const entregaAno = entregaInauguracaoPorAno(
     numeros,
@@ -174,9 +181,9 @@ export function MonitoramentoPainelPage() {
   const porUf = entregaPorUf(
     instrumentosFiltrados,
     resumo.equipamentos_por_instrumento,
+    resumo.etapas_por_instrumento,
   );
-  const entregues = familias.reduce((t, f) => t + f.entregue, 0);
-  const planejados = familias.reduce((t, f) => t + f.planejado, 0);
+  const equipamentos = totaisOperacao(familias);
   const contratacoes = analise.contratacoes.map((c) => ({
     rotulo: c.rotulo,
     valor: c.quantidade,
@@ -223,8 +230,8 @@ export function MonitoramentoPainelPage() {
               {
                 key: "entregues",
                 label: "Equipamentos entregues",
-                value: entregues,
-                detail: `${planejados} planejados em ${familias.length} tipos`,
+                value: equipamentos.entregue,
+                detail: `${equipamentos.operacao} em operação · ${equipamentos.restante} planejados em ${familias.length} tipos`,
               },
             ]}
           />
@@ -244,7 +251,7 @@ export function MonitoramentoPainelPage() {
                 }))}
               />
             </PainelCartao>
-            <SecaoEquipamentos familias={familias} />
+            <PainelGestaoEquipamentos familias={familias} />
           </div>
         </PainelBloco>
 
@@ -271,30 +278,30 @@ export function MonitoramentoPainelPage() {
           </PainelCartao>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <PainelCartao
-              titulo="Ano de Inauguração/entrega dos Equipamentos"
-              apoio={`${totalEntregaAno} equipamentos`}
+              titulo="Ano de Início de Operação dos Equipamentos"
+              apoio={`${totalEntregaAno} equipamentos em operação`}
             >
               <LegendaSegmentos
                 itens={[
-                  { nome: "Inaugurados", cor: COR_REALIZADA },
+                  { nome: "Inauguração realizada", cor: COR_REALIZADA },
                   {
-                    nome: "Entregues, inauguração dispensada",
+                    nome: "Inauguração dispensada",
                     cor: "var(--painel-chart-turquesa)",
                   },
                 ]}
               />
               <GraficoColunas
-                vazio="Nenhum equipamento com entrega resolvida neste recorte."
+                vazio="Nenhum equipamento em operação neste recorte."
                 colunas={entregaAno.anos.map((a) => ({
                   rotulo: a.ano,
                   segmentos: [
                     {
-                      nome: "Inaugurados",
+                      nome: "Inauguração realizada",
                       valor: a.inaugurados,
                       cor: COR_REALIZADA,
                     },
                     {
-                      nome: "Entregues, inauguração dispensada",
+                      nome: "Inauguração dispensada",
                       valor: a.dispensados,
                       cor: "var(--painel-chart-turquesa)",
                     },
@@ -303,8 +310,8 @@ export function MonitoramentoPainelPage() {
               />
               {entregaAno.aguardando > 0 && (
                 <p className="m-0 mt-4 text-xs text-muted-foreground">
-                  Não contabiliza {entregaAno.aguardando} equipamentos entregues
-                  em instrumentos que ainda precisam de inauguração.
+                  Não contabiliza {entregaAno.aguardando} equipamentos
+                  entregues, que ainda precisam de inauguração.
                 </p>
               )}
             </PainelCartao>
@@ -371,16 +378,20 @@ export function MonitoramentoPainelPage() {
           </div>
           <PainelCartao
             titulo="Entregue por UF"
-            apoio={`${entregues} de ${planejados} equipamentos`}
+            apoio={`${equipamentos.entregue} entregues · ${equipamentos.operacao} em operação · ${equipamentos.restante} planejados`}
           >
+            <LegendaSegmentos itens={LEGENDA_OPERACAO} />
             <RankingBarras
               limite={10}
               vazio="Nenhum equipamento planejado neste recorte."
               itens={porUf.map((u) => ({
                 rotulo: u.uf,
                 valor: u.planejado,
-                parcial: u.entregue,
-                texto: `${u.entregue} / ${u.planejado}`,
+                segmentos: [
+                  { valor: u.operacao, cor: COR_EM_OPERACAO },
+                  { valor: u.entregue, cor: COR_ENTREGUE },
+                ],
+                texto: `${u.operacao} · ${u.entregue} · ${u.planejado - u.operacao - u.entregue}`,
               }))}
             />
           </PainelCartao>
