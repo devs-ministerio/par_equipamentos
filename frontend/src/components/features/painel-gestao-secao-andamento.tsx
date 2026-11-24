@@ -6,7 +6,7 @@ import {
 import { RankingBarras } from "@/components/features/painel-gestao-ranking";
 import type { PropsSecaoPainel } from "@/components/features/painel-gestao-secoes-tipos";
 import { PainelBloco } from "@/components/features/painel-tecnico-estrutura";
-import { ROTULO_SEM_LANCAMENTO } from "@/lib/painel-gestao-andamento";
+import { ROTULO_SEM_LANCAMENTO } from "@/lib/painel-gestao-atualizacao";
 import {
   COR_EM_OPERACAO,
   COR_ENTREGUE,

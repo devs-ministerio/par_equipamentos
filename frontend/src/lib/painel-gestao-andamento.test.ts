@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
-import {
-  prazosMedios,
-  situacaoInauguracao,
-  entregaInauguracaoPorAno,
-  instrumentosParados,
-} from "./painel-gestao-andamento";
+import { situacaoInauguracao } from "./painel-gestao-andamento";
+import { prazosMedios } from "./painel-gestao-prazos";
+import { entregaInauguracaoPorAno } from "./painel-gestao-entrega";
+import { instrumentosParados } from "./painel-gestao-atualizacao";
 
 const etapa = (nr: string, o: Record<string, unknown> = {}) => ({
   nr_convenio: nr,

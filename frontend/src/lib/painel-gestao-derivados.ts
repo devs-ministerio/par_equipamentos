@@ -8,10 +8,13 @@ import {
 import {
   entregaInauguracaoPorAno,
   entregaPorUf,
+} from "@/lib/painel-gestao-entrega";
+import {
   faixaDeAtualizacao,
-  instrumentosDoPrazo,
   instrumentosParados,
-  prazosMedios,
+} from "@/lib/painel-gestao-atualizacao";
+import { instrumentosDoPrazo, prazosMedios } from "@/lib/painel-gestao-prazos";
+import {
   situacaoDoInstrumento,
   situacaoInauguracao,
 } from "@/lib/painel-gestao-andamento";

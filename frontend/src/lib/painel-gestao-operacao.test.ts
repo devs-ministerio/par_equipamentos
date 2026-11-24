@@ -3,7 +3,7 @@ import {
   equipamentosPorSituacao,
   totaisOperacao,
 } from "./painel-gestao-operacao";
-import { entregaPorUf } from "./painel-gestao-andamento";
+import { entregaPorUf } from "./painel-gestao-entrega";
 
 const etapa = (nr: string, o: Record<string, unknown> = {}) => ({
   nr_convenio: nr,
