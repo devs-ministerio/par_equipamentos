@@ -44,12 +44,10 @@ vi.mock("./proposta-card", () => ({
 }));
 
 describe("SecaoPropostasCandidatas", () => {
-  it("não expõe CNES em tramitação", () => {
-    render(<SecaoPropostasCandidatas modo="tramitacao" />);
+  it("lista proposta em tramitação e oferece o filtro de estágio", () => {
+    render(<SecaoPropostasCandidatas />);
 
-    expect(
-      screen.queryByRole("button", { name: /cnes/i }),
-    ).not.toBeInTheDocument();
     expect(screen.getByText("Proposta 123")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Estágio" })).toBeVisible();
   });
 });

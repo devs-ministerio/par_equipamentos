@@ -20,7 +20,7 @@ import { useMemo } from "react";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
 import { usePropostasFiltros } from "@/hooks/use-propostas-filtros";
-import { estagioDeFato, type EstagioProposta } from "@/lib/proposta-status";
+import { SeletorTipoFinanciamento } from "./seletor-tipo-financiamento";
 import { PropostasFiltros } from "./propostas-filtros";
 import { CardProposta } from "./proposta-card";
 import { CardInstrumentoManual } from "./card-instrumento-manual";
@@ -42,13 +42,10 @@ import {
  * inteiro). "Tipo de contratação" fica de fora dos filtros porque não se
  * aplica aqui (toda PropostaCandidata é, por definição, TransfereGov
  * Novo; convênio legado nunca entra nesta lista). */
-export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
+export function SecaoPropostasCandidatas() {
   const { propostas: todas, carregando } = usePropostasCandidatas();
   const { data: instrumentos = [] } = useMonitoramentoInstrumentos();
-  const propostas = useMemo(
-    () => todas.filter((p) => estagioDeFato(p) === modo),
-    [todas, modo],
-  );
+  const propostas = todas;
   const instrumentosPorNumero = useMemo(
     () =>
       new Map(
@@ -60,13 +57,10 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
     [instrumentos],
   );
   const manuais = useMemo(
-    () =>
-      modo === "confirmada"
-        ? instrumentosManuaisFinanciamento(instrumentos, todas)
-        : [],
-    [instrumentos, todas, modo],
+    () => instrumentosManuaisFinanciamento(instrumentos, todas),
+    [instrumentos, todas],
   );
-  const f = usePropostasFiltros(propostas, manuais, modo);
+  const f = usePropostasFiltros(propostas, manuais);
   const { filtradas, manuaisFiltrados, gruposPorSituacao } = f;
 
   if (carregando) return <p className="text-muted-foreground">Carregando...</p>;
@@ -74,16 +68,21 @@ export function SecaoPropostasCandidatas({ modo }: { modo: EstagioProposta }) {
   if (propostas.length === 0 && manuais.length === 0) {
     return (
       <p className="py-5 text-sm italic text-muted-foreground">
-        {modo === "tramitacao"
-          ? "Nenhuma proposta ou solicitação no momento — o job de descoberta roda diariamente."
-          : "Nenhuma parceria confirmada ainda."}
+        Nenhuma linha de financiamento no momento — o job de descoberta roda
+        diariamente.
       </p>
     );
   }
 
   return (
-    <div className="mt-4">
-      <PropostasFiltros filtros={f} modo={modo} />
+    <div>
+      <SeletorTipoFinanciamento
+        tipos={f.tipos}
+        total={f.total}
+        atual={f.tipo}
+        onChange={f.setTipo}
+      />
+      <PropostasFiltros filtros={f} />
 
       {filtradas.length === 0 && manuaisFiltrados.length === 0 ? (
         <p className="py-5 text-sm italic text-muted-foreground">

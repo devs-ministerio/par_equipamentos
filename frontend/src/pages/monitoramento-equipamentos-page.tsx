@@ -24,10 +24,7 @@ import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { SecaoPropostasCandidatas } from "@/components/features/secao-propostas-candidatas";
-import {
-  AbasDadosOficiais,
-  SubAbasFinanciamento,
-} from "@/components/features/dados-oficiais-abas";
+import { AbasDadosOficiais } from "@/components/features/dados-oficiais-abas";
 import { DadosOficiaisMetricas } from "@/components/features/dados-oficiais-metricas";
 import { DadosOficiaisFiltros } from "@/components/features/dados-oficiais-filtros";
 import { DadosOficiaisLista } from "@/components/features/dados-oficiais-lista";
@@ -40,7 +37,6 @@ import {
 import { useDadosOficiaisOpcoes } from "@/hooks/use-dados-oficiais-opcoes";
 import { useDadosOficiaisResumo } from "@/hooks/use-dados-oficiais-resumo";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
-import { estagioDeFato, type EstagioProposta } from "@/lib/proposta-status";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
@@ -73,8 +69,6 @@ export function MonitoramentoEquipamentosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const aba: AbaDadosOficiais =
     searchParams.get("aba") === "componentes" ? "componentes" : "convenios";
-  const subAbaFinanciamento: EstagioProposta =
-    searchParams.get("subaba") === "tramitacao" ? "tramitacao" : "confirmada";
   const setAba = useCallback(
     (proximaAba: AbaDadosOficiais) => {
       setSearchParams(
@@ -82,20 +76,6 @@ export function MonitoramentoEquipamentosPage() {
           const proximos = new URLSearchParams(anteriores);
           if (proximaAba === "convenios") proximos.delete("aba");
           else proximos.set("aba", proximaAba);
-          return proximos;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
-  const setSubAbaFinanciamento = useCallback(
-    (proximaSubAba: EstagioProposta) => {
-      setSearchParams(
-        (anteriores) => {
-          const proximos = new URLSearchParams(anteriores);
-          if (proximaSubAba === "confirmada") proximos.delete("subaba");
-          else proximos.set("subaba", proximaSubAba);
           return proximos;
         },
         { replace: true },
@@ -254,22 +234,23 @@ export function MonitoramentoEquipamentosPage() {
   // leve e independente do resto do estado (mesma queryKey sem status do
   // SecaoPropostasCandidatas, já cacheada quando a aba abrir de verdade).
   const { propostas: todasPropostas } = usePropostasCandidatas();
-  const totalConfirmadas =
-    todasPropostas.filter((p) => estagioDeFato(p) === "confirmada").length +
+  const totalLinhasFinanciamento =
+    todasPropostas.length +
     instrumentosManuaisFinanciamento(
       instrumentosQuery.data ?? [],
       todasPropostas,
     ).length;
-  const totalEmTramitacao = todasPropostas.filter(
-    (p) => estagioDeFato(p) !== "confirmada",
-  ).length;
 
   return (
     <div>
       <PageHeader
         eyebrow="Dados oficiais"
         title="Instrumentos e repasses"
-        description="Convênios, propostas, valores e execução das fontes oficiais."
+        description={
+          aba === "componentes"
+            ? "Parcerias confirmadas e propostas em tramitação."
+            : "Convênios, propostas, valores e execução das fontes oficiais."
+        }
       />
 
       {erro && (
@@ -283,7 +264,7 @@ export function MonitoramentoEquipamentosPage() {
       <AbasDadosOficiais
         aba={aba}
         totalInstrumentos={convenios?.length ?? 0}
-        totalPropostas={totalConfirmadas + totalEmTramitacao}
+        totalPropostas={totalLinhasFinanciamento}
         onChange={setAba}
       />
 
@@ -355,19 +336,7 @@ export function MonitoramentoEquipamentosPage() {
 
       {aba === "componentes" && (
         <>
-          {/* Radar de Convênios -- organizado pelo estágio real no funil
-                TransfereGov, não por critério de pagamento: "Confirmada
-                (parceria)" primeiro (fato consumado), "Em tramitação
-                (proposta)" depois (pode virar parceria ou mudar de
-                situação na fonte). */}
-          <SubAbasFinanciamento
-            atual={subAbaFinanciamento}
-            confirmadas={totalConfirmadas}
-            emTramitacao={totalEmTramitacao}
-            onChange={setSubAbaFinanciamento}
-          />
-
-          <SecaoPropostasCandidatas modo={subAbaFinanciamento} />
+          <SecaoPropostasCandidatas />
         </>
       )}
     </div>

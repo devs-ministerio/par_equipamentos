@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { usePropostasOpcoes } from "./use-propostas-opcoes";
 import {
   ORDEM_SITUACAO_POR_ESTAGIO,
+  estagioDeFato,
   situacaoDeFato,
-  type EstagioProposta,
 } from "@/lib/proposta-status";
 import { correspondeBuscaLivre } from "@/lib/busca-livre";
 import type { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
@@ -13,11 +13,7 @@ type Proposta = ReturnType<typeof usePropostasCandidatas>["propostas"][number];
 type Manual = ReturnType<typeof instrumentosManuaisFinanciamento>[number];
 
 /** Estado, opções e recorte dos filtros de Linhas de financiamento (propostas e cadastros manuais). */
-export function usePropostasFiltros(
-  propostas: Proposta[],
-  manuais: Manual[],
-  modo: EstagioProposta,
-) {
+export function usePropostasFiltros(propostas: Proposta[], manuais: Manual[]) {
   const [uf, setUf] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
   const [cnes, setCnes] = useState<string[]>([]);
@@ -27,6 +23,8 @@ export function usePropostasFiltros(
   const [anoInicio, setAnoInicio] = useState<string | null>(null);
   const [anoFim, setAnoFim] = useState<string | null>(null);
   const [programa, setPrograma] = useState<string[]>([]);
+  const [estagio, setEstagio] = useState<string[]>([]);
+  const [tipo, setTipo] = useState<string | null>(null);
 
   const limparFiltros = () => {
     setBusca("");
@@ -38,6 +36,8 @@ export function usePropostasFiltros(
     setAnoInicio(null);
     setAnoFim(null);
     setPrograma([]);
+    setEstagio([]);
+    setTipo(null);
   };
 
   const hasFiltros = Boolean(
@@ -49,7 +49,9 @@ export function usePropostasFiltros(
     situacao.length > 0 ||
     anoInicio ||
     anoFim ||
-    programa.length > 0,
+    programa.length > 0 ||
+    estagio.length > 0 ||
+    tipo !== null,
   );
 
   const { equipamentosPorProposta, opcoes } = usePropostasOpcoes(
@@ -96,6 +98,9 @@ export function usePropostasFiltros(
         return false;
       if (programa.length > 0 && !programa.includes(String(p.id_programa)))
         return false;
+      if (estagio.length > 0 && !estagio.includes(estagioDeFato(p)))
+        return false;
+      if (tipo && p.tipo_contratacao !== tipo) return false;
       return true;
     });
   }, [
@@ -109,6 +114,8 @@ export function usePropostasFiltros(
     anoInicio,
     anoFim,
     programa,
+    estagio,
+    tipo,
     equipamentosPorProposta,
   ]);
 
@@ -120,7 +127,8 @@ export function usePropostasFiltros(
       situacao.length > 0 ||
       anoInicio ||
       anoFim ||
-      programa.length > 0
+      programa.length > 0 ||
+      (estagio.length > 0 && !estagio.includes("confirmada"))
     )
       return [];
     return manuais.filter((i) => {
@@ -135,6 +143,7 @@ export function usePropostasFiltros(
         ])
       )
         return false;
+      if (tipo && i.tipo_contratacao !== tipo) return false;
       if (uf.length > 0 && !uf.includes(i.uf ?? "")) return false;
       if (cnes.length > 0 && !cnes.includes(i.cnes ?? "")) return false;
       if (municipio.length > 0 && !municipio.includes(i.municipio ?? ""))
@@ -152,6 +161,8 @@ export function usePropostasFiltros(
     anoInicio,
     anoFim,
     programa,
+    estagio,
+    tipo,
   ]);
 
   // Sub-agrupado por situação de fato numa ordem fixa de funil do estágio
@@ -166,7 +177,12 @@ export function usePropostasFiltros(
       lista.push(p);
       porSituacao.set(sit, lista);
     }
-    const ordem = ORDEM_SITUACAO_POR_ESTAGIO[modo];
+    const ordem = [
+      ...new Set([
+        ...ORDEM_SITUACAO_POR_ESTAGIO.confirmada,
+        ...ORDEM_SITUACAO_POR_ESTAGIO.tramitacao,
+      ]),
+    ];
     const situacoes = [...porSituacao.keys()].sort((a, b) => {
       const ia = ordem.indexOf(a),
         ib = ordem.indexOf(b);
@@ -176,7 +192,18 @@ export function usePropostasFiltros(
       return ia - ib;
     });
     return situacoes.map((sit) => ({ sit, itens: porSituacao.get(sit)! }));
-  }, [filtradas, modo]);
+  }, [filtradas]);
+
+  const tipos = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const item of [...propostas, ...manuais]) {
+      const t = item.tipo_contratacao;
+      if (t) contagem.set(t, (contagem.get(t) ?? 0) + 1);
+    }
+    return [...contagem.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))
+      .map(([valor, total]) => ({ valor, total }));
+  }, [propostas, manuais]);
 
   return {
     busca,
@@ -197,6 +224,12 @@ export function usePropostasFiltros(
     setAnoFim,
     programa,
     setPrograma,
+    estagio,
+    setEstagio,
+    tipo,
+    setTipo,
+    tipos,
+    total: propostas.length + manuais.length,
     hasFiltros,
     limparFiltros,
     filtradas,

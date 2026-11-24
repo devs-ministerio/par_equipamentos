@@ -43,7 +43,7 @@ export function estagioDeFato(p: { tem_parceria: boolean }): EstagioProposta {
 
 export const ESTAGIO_LABEL: Record<EstagioProposta, string> = {
   confirmada: "Confirmada (parceria)",
-  tramitacao: "Propostas e solicitações",
+  tramitacao: "Em tramitação",
 };
 
 /** Ordem fixa de exibição dentro de cada estágio -- mais avançado no

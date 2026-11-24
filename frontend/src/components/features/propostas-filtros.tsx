@@ -4,6 +4,7 @@ import {
   CalendarRange,
   Layers,
   MapPin,
+  Flag,
   Search,
   Stethoscope,
 } from "lucide-react";
@@ -15,18 +16,17 @@ import {
   type OpcaoFiltro,
 } from "@/components/common/opcoes-multiplas";
 import { Input } from "@/components/ui/input";
-import type { EstagioProposta } from "@/lib/proposta-status";
+import { ESTAGIO_LABEL } from "@/lib/proposta-status";
 import type { PropostasFiltros as Filtros } from "@/hooks/use-propostas-filtros";
 import { CampoSelect } from "./painel-gestao-filtros-campos";
 
+const ESTAGIOS: OpcaoFiltro[] = [
+  { value: "confirmada", label: ESTAGIO_LABEL.confirmada },
+  { value: "tramitacao", label: ESTAGIO_LABEL.tramitacao },
+];
+
 /** Filtros de Linhas de financiamento no mesmo padrão do Painel de gestão. */
-export function PropostasFiltros({
-  filtros: f,
-  modo,
-}: {
-  filtros: Filtros;
-  modo: EstagioProposta;
-}) {
+export function PropostasFiltros({ filtros: f }: { filtros: Filtros }) {
   const o = f.opcoes;
   const multipla = (
     rotulo: string,
@@ -120,18 +120,7 @@ export function PropostasFiltros({
       f.setMunicipio,
       "Todos os municípios",
     ),
-    ...(modo !== "tramitacao"
-      ? [
-          multipla(
-            "CNES",
-            Building2,
-            o.cnes,
-            f.cnes,
-            f.setCnes,
-            "Todos os CNES",
-          ),
-        ]
-      : []),
+    multipla("CNES", Building2, o.cnes, f.cnes, f.setCnes, "Todos os CNES"),
     multipla(
       "Equipamento",
       Stethoscope,
@@ -139,6 +128,14 @@ export function PropostasFiltros({
       f.equipamento,
       f.setEquipamento,
       "Todos os equipamentos",
+    ),
+    multipla(
+      "Estágio",
+      Flag,
+      ESTAGIOS,
+      f.estagio,
+      f.setEstagio,
+      "Todos os estágios",
     ),
     multipla(
       "Situação",
@@ -182,7 +179,8 @@ export function PropostasFiltros({
     });
   lista("UF", f.uf, o.uf, () => f.setUf([]));
   lista("Município", f.municipio, o.municipio, () => f.setMunicipio([]));
-  if (modo !== "tramitacao") lista("CNES", f.cnes, o.cnes, () => f.setCnes([]));
+  lista("CNES", f.cnes, o.cnes, () => f.setCnes([]));
+  lista("Estágio", f.estagio, ESTAGIOS, () => f.setEstagio([]));
   lista("Equipamento", f.equipamento, o.equipamento, () =>
     f.setEquipamento([]),
   );
