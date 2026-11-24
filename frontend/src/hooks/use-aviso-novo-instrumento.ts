@@ -56,7 +56,8 @@ export function useAvisoNovoInstrumento(
     gravarVistos(usuario.id, [...vistos, ...novos.map((n) => n.id)]);
     for (const aviso of novos.slice(0, 3)) {
       toast.info(aviso.titulo, {
-        duration: 15_000,
+        duration: Infinity,
+        closeButton: true,
         icon: createElement(ClipboardCheck, { className: "size-5" }),
         classNames: {
           toast:
