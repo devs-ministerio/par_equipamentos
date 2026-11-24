@@ -20,6 +20,7 @@ import { fmtMoeda } from "@/lib/monitoramento-format";
 import { capitalizarNome, normalizarTexto } from "@/utils/texto";
 import {
   aplicaFiltro,
+  entrouNoRadarRecente,
   ROTULO_FILTRO,
   type FiltroCarteira,
 } from "@/lib/painel-tecnico-filtro";
@@ -177,7 +178,14 @@ export function PainelTecnicoCarteira({
           <TableBody>
             {filtradas.slice(0, visiveis).map((l) => (
               <TableRow key={l.numero} className="hover:bg-muted/40">
-                <TableCell className="font-medium">{l.numero}</TableCell>
+                <TableCell className="font-medium">
+                  {l.numero}
+                  {entrouNoRadarRecente(l) && (
+                    <Badge variant="success" className="ml-2">
+                      Novo
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell>
                   {[l.municipio ? capitalizarNome(l.municipio) : null, l.uf]
                     .filter(Boolean)
