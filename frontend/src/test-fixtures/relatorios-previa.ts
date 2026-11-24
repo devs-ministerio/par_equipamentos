@@ -6,6 +6,7 @@ export function criarInstrumentosPrevia(total: number) {
     const sufixo = String(indice + 1).padStart(3, "0");
     return criarConvenioTeste({
       numero: `QA${sufixo}`,
+      cnesNomeEstabelecimento: `Unidade ${sufixo}`,
       convenente: { nome: `Unidade ${sufixo}`, cnpj: null, tipo: "" },
     });
   });

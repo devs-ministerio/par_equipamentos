@@ -1,4 +1,5 @@
 import { BarraFiltros } from "@/components/common/barra-filtros";
+import { ChipsFiltrosAtivos } from "@/components/common/chips-filtros-ativos";
 import {
   montarControlesRelatorio,
   montarRecortesRelatorio,
@@ -17,9 +18,25 @@ export function RelatorioFiltros({
   return (
     <BarraFiltros
       controles={montarControlesRelatorio(filtros, opcoes)}
-      recortes={montarRecortesRelatorio(filtros, opcoes)}
+      recortes={[]}
       onLimpar={filtros.limparFiltros}
       rotulo="Filtros do relatório"
+    />
+  );
+}
+
+/** Filtros ativos do relatório, removíveis um a um, com "Limpar filtros"; ficam no cabeçalho da prévia. */
+export function RelatorioFiltrosAtivos({
+  filtros,
+  opcoes,
+}: {
+  filtros: FiltrosRelatorio;
+  opcoes: OpcoesRelatorio;
+}) {
+  return (
+    <ChipsFiltrosAtivos
+      recortes={montarRecortesRelatorio(filtros, opcoes)}
+      limpar={filtros.limparFiltros}
     />
   );
 }

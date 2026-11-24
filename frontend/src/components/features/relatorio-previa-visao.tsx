@@ -1,14 +1,13 @@
+import type { ReactNode } from "react";
 import { ErrorAlert } from "@/components/common/error-alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
-import type { ConvenioUnificado } from "@/types/monitoramento";
-import type { PropostaCandidata } from "@/services/propostas-candidatas";
+import type { LinhaRelatorio } from "@/lib/relatorio-linhas";
 import type { useRelatorioEncerrados } from "@/hooks/use-relatorio-encerrados";
 import type { useRelatorioEntregues } from "@/hooks/use-relatorio-entregues";
 import { RelatorioEncerradosPrevia } from "./relatorio-encerrados-previa";
 import { RelatorioEntreguesPrevia } from "./relatorio-entregues-previa";
-import { RelatorioInstrumentosTabela } from "./relatorio-instrumentos-tabela";
-import { RelatorioPropostasTabela } from "./relatorio-propostas-tabela";
+import { RelatorioRegistrosTabela } from "./relatorio-registros-tabela";
 
 function Carregando({ rotulo }: { rotulo: string }) {
   return <Skeleton className="h-64 w-full" role="status" aria-label={rotulo} />;
@@ -77,71 +76,44 @@ export function PreviaEncerrados({
   );
 }
 
-/** Visão padrão: instrumentos firmados e linhas de financiamento (parcerias e propostas). */
+/** Prévia do relatório: uma tabela só com instrumentos (Convênios e PERSUS I e II), linhas de financiamento confirmadas e propostas. */
 export function PreviaCarteira({
-  origemSituacao,
   carregandoConvenios,
   erroConvenios,
   recarregarConvenios,
-  convenios,
-  faseMonitoramento,
   carregandoPropostas,
   erroPropostas,
-  confirmadas,
-  emTramitacao,
+  linhas,
   onLimparFiltros,
+  filtrosAtivos,
 }: {
-  origemSituacao: string | null;
   carregandoConvenios: boolean;
   erroConvenios: unknown;
   recarregarConvenios: () => void;
-  convenios: ConvenioUnificado[];
-  faseMonitoramento: Map<string, string>;
   carregandoPropostas: boolean;
   erroPropostas: unknown;
-  confirmadas: PropostaCandidata[];
-  emTramitacao: PropostaCandidata[];
+  linhas: LinhaRelatorio[];
   onLimparFiltros?: () => void;
+  filtrosAtivos?: ReactNode;
 }) {
-  const soPropostas = origemSituacao === "proposta";
-  const soInstrumentos =
-    origemSituacao === "instrumento" || origemSituacao === "monitoramento";
+  if (carregandoConvenios || carregandoPropostas)
+    return <Carregando rotulo="Carregando" />;
   return (
     <>
-      {soPropostas ? null : carregandoConvenios ? (
-        <Carregando rotulo="Carregando" />
-      ) : erroConvenios ? (
+      {erroConvenios ? (
         <ErrorAlert
           mensagem={mensagemSeguraDoErro(erroConvenios)}
           onRetry={recarregarConvenios}
         />
-      ) : (
-        <RelatorioInstrumentosTabela
-          itens={convenios}
-          faseMonitoramento={faseMonitoramento}
-          onLimparFiltros={onLimparFiltros}
-        />
-      )}
-      {carregandoPropostas ? (
-        <Carregando rotulo="Carregando" />
-      ) : erroPropostas ? (
+      ) : null}
+      {erroPropostas ? (
         <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
-      ) : soInstrumentos ? null : (
-        <>
-          <RelatorioPropostasTabela
-            titulo="Parcerias confirmadas"
-            descricao="Instrumentos com parceria formalizada"
-            itens={confirmadas}
-            onLimparFiltros={onLimparFiltros}
-          />
-          <RelatorioPropostasTabela
-            titulo="Em tramitação"
-            descricao="Linhas de financiamento ainda em análise"
-            itens={emTramitacao}
-            onLimparFiltros={onLimparFiltros}
-          />
-        </>
-      )}
+      ) : null}
+      <RelatorioRegistrosTabela
+        itens={linhas}
+        onLimparFiltros={onLimparFiltros}
+        filtrosAtivos={filtrosAtivos}
+      />
     </>
   );
 }

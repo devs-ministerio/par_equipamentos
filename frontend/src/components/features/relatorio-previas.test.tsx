@@ -10,22 +10,24 @@ import {
   criarConvenioTeste,
   criarMarcadorTeste,
 } from "@/test-fixtures/dados-oficiais";
-import { RelatorioInstrumentosTabela } from "./relatorio-instrumentos-tabela";
-import { RelatorioPropostasTabela } from "./relatorio-propostas-tabela";
+import { RelatorioRegistrosTabela } from "./relatorio-registros-tabela";
+import { linhaDeConvenio, linhaDeProposta } from "@/lib/relatorio-linhas";
+
+const convenio = (c: Parameters<typeof linhaDeConvenio>[0]) =>
+  linhaDeConvenio(c, new Map());
+const proposta = (p: Parameters<typeof linhaDeProposta>[0]) =>
+  linhaDeProposta(p, new Map());
 
 type TipoPrevia = "instrumentos" | "propostas";
 function previa(tipo: TipoPrevia, total: number, onLimparFiltros?: () => void) {
   return tipo === "instrumentos" ? (
-    <RelatorioInstrumentosTabela
-      itens={criarInstrumentosPrevia(total)}
-      faseMonitoramento={new Map()}
+    <RelatorioRegistrosTabela
+      itens={criarInstrumentosPrevia(total).map(convenio)}
       onLimparFiltros={onLimparFiltros}
     />
   ) : (
-    <RelatorioPropostasTabela
-      titulo="Propostas em tramitação"
-      descricao="Recorte sintético"
-      itens={criarPropostasPrevia(total)}
+    <RelatorioRegistrosTabela
+      itens={criarPropostasPrevia(total).map(proposta)}
       onLimparFiltros={onLimparFiltros}
     />
   );
@@ -87,20 +89,17 @@ describe.each<TipoPrevia>(["instrumentos", "propostas"])(
       // When
       rerender(
         tipo === "instrumentos" ? (
-          <RelatorioInstrumentosTabela
+          <RelatorioRegistrosTabela
             itens={criarInstrumentosPrevia(45).map((item, i) => ({
-              ...item,
-              convenente: { ...item.convenente, nome: `Atualizada ${i + 1}` },
+              ...convenio(item),
+              estabelecimento: `Atualizada ${i + 1}`,
             }))}
-            faseMonitoramento={new Map()}
           />
         ) : (
-          <RelatorioPropostasTabela
-            titulo="Propostas em tramitação"
-            descricao="Recorte sintético"
+          <RelatorioRegistrosTabela
             itens={criarPropostasPrevia(45).map((item, i) => ({
-              ...item,
-              nm_proponente: `Atualizada ${i + 1}`,
+              ...proposta(item),
+              estabelecimento: `Atualizada ${i + 1}`,
             }))}
           />
         ),
@@ -119,21 +118,16 @@ describe.each<TipoPrevia>(["instrumentos", "propostas"])(
       // When
       rerender(
         tipo === "instrumentos" ? (
-          <RelatorioInstrumentosTabela
-            itens={criarInstrumentosPrevia(45).map((item) => ({
-              ...item,
-              numero: `OUTRO-${item.numero}`,
-            }))}
-            faseMonitoramento={new Map()}
+          <RelatorioRegistrosTabela
+            itens={criarInstrumentosPrevia(45).map((item) =>
+              convenio({ ...item, numero: `OUTRO-${item.numero}` }),
+            )}
           />
         ) : (
-          <RelatorioPropostasTabela
-            titulo="Propostas em tramitação"
-            descricao="Recorte sintético"
-            itens={criarPropostasPrevia(45).map((item) => ({
-              ...item,
-              id: item.id + 100,
-            }))}
+          <RelatorioRegistrosTabela
+            itens={criarPropostasPrevia(45).map((item) =>
+              proposta({ ...item, id: item.id + 100 }),
+            )}
           />
         ),
       );
@@ -213,12 +207,13 @@ describe("Dados apresentados nas prévias", () => {
     item.financeiro.global = 0;
     // When
     render(
-      <RelatorioInstrumentosTabela
+      <RelatorioRegistrosTabela
         itens={[
           item,
           criarConvenioTeste({ numero: "QA002", cnes: null, situacao: "" }),
-        ]}
-        faseMonitoramento={new Map([[item.numero, "Em instalação"]])}
+        ].map((c) =>
+          linhaDeConvenio(c, new Map([[item.numero, "Em instalação"]])),
+        )}
       />,
     );
     // Then
@@ -258,21 +253,16 @@ describe("Dados apresentados nas prévias", () => {
     });
     // When
     render(
-      <RelatorioPropostasTabela
-        titulo="Parcerias confirmadas"
-        descricao="Recorte sintético"
-        itens={[confirmada, semDados]}
-      />,
+      <RelatorioRegistrosTabela itens={[confirmada, semDados].map(proposta)} />,
     );
     // Then
     const tabela = within(screen.getByRole("table"));
     expect(tabela.getByText("QA-PARCERIA")).toBeInTheDocument();
     expect(tabela.getByText("1002")).toBeInTheDocument();
     expect(tabela.getByText("Pago conforme fonte")).toBeInTheDocument();
-    expect(tabela.getByText("20/10/2026")).toBeInTheDocument();
+    expect(tabela.getAllByText("2026").length).toBeGreaterThan(0);
     expect(tabela.getByText("Salvador/BA")).toBeInTheDocument();
     expect(screen.getAllByText("R$ 0")).toHaveLength(2);
-    expect(screen.getByText(/Município não informado/)).toBeInTheDocument();
-    expect(screen.getByText("Situação não informada")).toBeInTheDocument();
+    expect(tabela.getAllByText("—").length).toBeGreaterThan(0);
   });
 });

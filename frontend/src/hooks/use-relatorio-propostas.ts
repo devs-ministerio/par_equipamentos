@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import { estagioDeFato } from "@/lib/proposta-status";
 import { propostaCombina } from "@/lib/recorte-relatorio";
@@ -33,15 +33,19 @@ export function useRelatorioPropostas(
     erro: erroPropostas,
   } = usePropostasCandidatas();
 
-  const propostasFiltradas = useMemo(
-    () =>
+  const recortar = useCallback(
+    (ignorarTipo: boolean) =>
       propostas.filter((p) => {
         if (
           origemSituacao === "instrumento" ||
           origemSituacao === "monitoramento"
         )
           return false;
-        if (tipoContratacao && tipoContratacao !== p.tipo_contratacao)
+        if (
+          !ignorarTipo &&
+          tipoContratacao &&
+          tipoContratacao !== p.tipo_contratacao
+        )
           return false;
         if (
           situacaoEscolhida &&
@@ -83,6 +87,9 @@ export function useRelatorioPropostas(
       equipamento,
     ],
   );
+  const propostasFiltradas = useMemo(() => recortar(false), [recortar]);
+  const propostasSemTipo = useMemo(() => recortar(true), [recortar]);
+
   const propostasConfirmadas = useMemo(
     () => propostasFiltradas.filter((p) => estagioDeFato(p) === "confirmada"),
     [propostasFiltradas],
@@ -92,7 +99,18 @@ export function useRelatorioPropostas(
     [propostasFiltradas],
   );
 
+  const parceriasSemTipo = useMemo(
+    () => propostasSemTipo.filter((p) => estagioDeFato(p) === "confirmada"),
+    [propostasSemTipo],
+  );
+  const solicitacoesSemTipo = useMemo(
+    () => propostasSemTipo.filter((p) => estagioDeFato(p) === "tramitacao"),
+    [propostasSemTipo],
+  );
+
   return {
+    parceriasSemTipo,
+    solicitacoesSemTipo,
     propostas,
     totalPropostasFonte,
     carregandoPropostas,

@@ -17,7 +17,6 @@ export function useRelatorioOpcoes({
   encerramento,
   programaOptions,
   equipamentoOptions,
-  tipoContratacaoOptions,
 }: {
   propostas: PropostaCandidata[];
   situacaoInstrumentoOptions: Opcao[];
@@ -25,7 +24,6 @@ export function useRelatorioOpcoes({
   encerramento: string | null;
   programaOptions: Opcao[];
   equipamentoOptions: Opcao[];
-  tipoContratacaoOptions: Opcao[];
 }) {
   const situacaoOptions = useMemo(
     () =>
@@ -61,22 +59,9 @@ export function useRelatorioOpcoes({
     [equipamentoOptions, propostas],
   );
 
-  // Os tipos das propostas (ex.: FAF, PRONON) também são opções, mesmo sem instrumento do tipo.
-  const tipoOptions = useMemo(() => {
-    const existentes = new Set(tipoContratacaoOptions.map((o) => o.value));
-    const extras = [
-      ...new Set(propostas.map((p) => p.tipo_contratacao)),
-    ].filter((tipo) => !existentes.has(tipo));
-    return [
-      ...tipoContratacaoOptions,
-      ...extras.map((value) => ({ value, label: value })),
-    ];
-  }, [tipoContratacaoOptions, propostas]);
-
   return {
     situacaoDaVisaoOptions,
     programaTodasOptions,
     equipamentoTodasOptions,
-    tipoOptions,
   };
 }

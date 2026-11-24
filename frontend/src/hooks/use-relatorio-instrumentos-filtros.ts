@@ -30,6 +30,7 @@ export function useRelatorioInstrumentosFiltros() {
   const [anoFim, setAnoFim] = useState<string | null>(null);
   const [programa, setPrograma] = useState<string | null>(null);
   const [tipoContratacao, setTipoContratacao] = useState<string | null>(null);
+  const [monitorado, setMonitorado] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
   const [municipio, setMunicipio] = useState<string | null>(null);
   const [cnes, setCnes] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export function useRelatorioInstrumentosFiltros() {
     setAnoFim(null);
     setPrograma(null);
     setTipoContratacao(null);
+    setMonitorado(null);
     setEquipamento(null);
     setMunicipio(null);
     setCnes(null);
@@ -64,6 +66,7 @@ export function useRelatorioInstrumentosFiltros() {
     dataFim ||
     programa ||
     tipoContratacao ||
+    monitorado ||
     equipamento ||
     municipio ||
     cnes ||
@@ -91,6 +94,8 @@ export function useRelatorioInstrumentosFiltros() {
     setPrograma,
     tipoContratacao,
     setTipoContratacao,
+    monitorado,
+    setMonitorado,
     equipamento,
     setEquipamento,
     municipio,

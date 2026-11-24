@@ -9,7 +9,7 @@ const inst = (nr: string, tipo: string, cnes: string | null) =>
   ({ nr_convenio: nr, tipo_contratacao: tipo, cnes }) as InstrumentoEquipamento;
 
 describe("financiamento manual", () => {
-  it("lista só FAF e TED que não correspondem a uma proposta", () => {
+  it("lista só FAF (o TED é instrumento) que não correspondem a uma proposta", () => {
     const itens = [
       inst("1", "FAF", null),
       inst("2", "TED", null),
@@ -19,7 +19,7 @@ describe("financiamento manual", () => {
     const r = instrumentosManuaisFinanciamento(itens, [
       { cd_parceria: "202500044035", id_proposta: 44942 },
     ]);
-    expect(r.map((i) => i.nr_convenio)).toEqual(["1", "2"]);
+    expect(r.map((i) => i.nr_convenio)).toEqual(["1"]);
   });
 
   it("candidato exige o mesmo CNES e outro número", () => {

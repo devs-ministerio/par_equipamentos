@@ -1,5 +1,10 @@
+import { useMemo } from "react";
+import { montarRecorte, opcoesContratacao } from "@/lib/relatorio-recorte";
 import { PageHeader } from "@/components/common/page-header";
-import { RelatorioFiltros } from "@/components/features/relatorio-filtros";
+import {
+  RelatorioFiltros,
+  RelatorioFiltrosAtivos,
+} from "@/components/features/relatorio-filtros";
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-carteira";
 import { RelatorioEscopoResumo } from "@/components/features/relatorio-escopo-resumo";
@@ -14,6 +19,12 @@ import { decodificarSituacao } from "@/lib/situacao-relatorio";
 import { useState } from "react";
 import type { NivelRelatorio } from "@/services/relatorios";
 
+const OPCOES_MONITORADO = [
+  { value: "propostas", label: "Proposta" },
+  { value: "sem", label: "Celebrado" },
+  { value: "monitorado", label: "Em monitoramento" },
+];
+
 /**
  * Relatório de Instrumentos e Repasse: convênios firmados, parcerias e
  * propostas (linhas de financiamento) e monitoramento interno, em Excel ou
@@ -27,7 +38,6 @@ export function MonitoramentoRelatoriosPage() {
   const filtros = useRelatorioInstrumentosFiltros();
   const { hasFiltros } = filtros;
   const situacaoEscolhida = decodificarSituacao(filtros.situacao);
-  const origemSituacao = situacaoEscolhida?.origem ?? null;
 
   const carteira = useRelatorioConvenios(filtros, situacaoEscolhida);
   const propostas = useRelatorioPropostas(filtros, situacaoEscolhida);
@@ -38,7 +48,6 @@ export function MonitoramentoRelatoriosPage() {
     encerramento: null,
     programaOptions: carteira.programaOptions,
     equipamentoOptions: carteira.equipamentoOptions,
-    tipoContratacaoOptions: carteira.tipoContratacaoOptions,
   });
   const escopo = useRelatorioEscopo(
     filtros,
@@ -47,10 +56,53 @@ export function MonitoramentoRelatoriosPage() {
   );
   const { gerando, erro, gerar } = useGerarRelatorio("instrumentos_repasse");
 
-  const totalRegistros =
-    carteira.conveniosFiltrados.length +
-    propostas.propostasConfirmadas.length +
-    propostas.propostasEmTramitacao.length;
+  const recorte = useMemo(
+    () =>
+      montarRecorte(
+        carteira.conveniosFiltrados,
+        propostas.propostasConfirmadas,
+        propostas.propostasEmTramitacao,
+        carteira.faseMonitoramento,
+        filtros.monitorado,
+      ),
+    [
+      filtros.monitorado,
+      carteira.conveniosFiltrados,
+      propostas.propostasConfirmadas,
+      propostas.propostasEmTramitacao,
+      carteira.faseMonitoramento,
+    ],
+  );
+  const tipoOptions = useMemo(
+    () =>
+      opcoesContratacao(
+        montarRecorte(
+          carteira.conveniosSemTipo,
+          propostas.parceriasSemTipo,
+          propostas.solicitacoesSemTipo,
+          carteira.faseMonitoramento,
+          filtros.monitorado,
+        ),
+      ),
+    [
+      filtros.monitorado,
+      carteira.conveniosSemTipo,
+      carteira.faseMonitoramento,
+      propostas.parceriasSemTipo,
+      propostas.solicitacoesSemTipo,
+    ],
+  );
+  const opcoesFiltros = {
+    tipo: tipoOptions,
+    monitorado: OPCOES_MONITORADO,
+    uf: carteira.ufs,
+    municipio: carteira.municipioOptions,
+    cnes: carteira.cnesOptions,
+    equipamento: opcoes.equipamentoTodasOptions,
+    situacao: opcoes.situacaoDaVisaoOptions,
+    programa: opcoes.programaTodasOptions,
+    ano: carteira.anoOptions,
+  };
   const limparFiltros = hasFiltros ? filtros.limparFiltros : undefined;
   const fonteParcial =
     carteira.totalConveniosFonte > carteira.convenios.length ||
@@ -62,62 +114,44 @@ export function MonitoramentoRelatoriosPage() {
         className="mb-0"
         eyebrow="Monitoramento interno"
         title="Relatórios"
-        description="Confira o recorte e exporte em Word ou Excel."
+        description="Filtre o recorte e gere o relatório em Word ou Excel."
         actions={
           <RelatorioEscopoResumo
             escopo={escopo.resumoEscopo}
             rotuloTotal="Registros"
-            total={totalRegistros}
+            total={recorte.total}
           />
         }
       />
 
-      <RelatorioFiltros
-        filtros={filtros}
-        opcoes={{
-          tipo: opcoes.tipoOptions,
-          uf: carteira.ufs,
-          municipio: carteira.municipioOptions,
-          cnes: carteira.cnesOptions,
-          equipamento: opcoes.equipamentoTodasOptions,
-          situacao: opcoes.situacaoDaVisaoOptions,
-          programa: opcoes.programaTodasOptions,
-          ano: carteira.anoOptions,
-        }}
-      />
+      <RelatorioFiltros filtros={filtros} opcoes={opcoesFiltros} />
 
       <RelatorioResumoCarteira
-        instrumentos={carteira.conveniosFiltrados.length}
-        valorInstrumentos={carteira.valorGlobalInstrumentos}
-        parcerias={propostas.propostasConfirmadas.length}
-        propostas={propostas.propostasEmTramitacao.length}
+        tiposInstrumentos={recorte.instrumentos.map((l) => l.tipo)}
+        tiposParcerias={recorte.confirmadas.map((l) => l.tipo)}
+        situacoesPropostas={recorte.solicitacoes.map((l) => l.situacao)}
       />
 
-      <div className="border-b border-border pb-3">
-        <h2 className="font-display text-xl font-bold tracking-tight">
-          Prévia
-        </h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {fonteParcial
-            ? "A prévia usa parte da fonte; o arquivo consulta tudo de novo e pode trazer mais registros."
-            : "O arquivo traz o mesmo recorte da prévia."}
+      {fonteParcial && (
+        <p className="m-0 text-xs text-muted-foreground">
+          A prévia usa parte da fonte; o arquivo consulta tudo de novo e pode
+          trazer mais registros.
         </p>
-      </div>
+      )}
 
       <PreviaCarteira
-        origemSituacao={origemSituacao}
         carregandoConvenios={carteira.conveniosQuery.isLoading}
         erroConvenios={
           carteira.conveniosQuery.isError ? carteira.conveniosQuery.error : null
         }
         recarregarConvenios={() => void carteira.conveniosQuery.refetch()}
-        convenios={carteira.conveniosFiltrados}
-        faseMonitoramento={carteira.faseMonitoramento}
         carregandoPropostas={propostas.carregandoPropostas}
         erroPropostas={propostas.erroPropostas}
-        confirmadas={propostas.propostasConfirmadas}
-        emTramitacao={propostas.propostasEmTramitacao}
+        linhas={recorte.linhas}
         onLimparFiltros={limparFiltros}
+        filtrosAtivos={
+          <RelatorioFiltrosAtivos filtros={filtros} opcoes={opcoesFiltros} />
+        }
       />
 
       <RelatorioBotoesGerar

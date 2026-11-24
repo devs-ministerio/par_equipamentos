@@ -155,16 +155,23 @@ export function useRelatorioConvenios(
     [instrumentosQuery.data],
   );
 
-  const conveniosFiltrados = useMemo(() => {
-    if (origemSituacao === "proposta") return [];
-    const base = filtrarTudo();
-    if (origemSituacao !== "monitoramento") return base;
-    const alvo = normalizarTexto(situacaoEscolhida!.valor);
-    return base.filter(
-      (item) =>
-        normalizarTexto(faseMonitoramento.get(item.numero) ?? "") === alvo,
-    );
-  }, [filtrarTudo, origemSituacao, situacaoEscolhida, faseMonitoramento]);
+  // Mesmo recorte, com ou sem o filtro de contratação (as opções de contratação
+  // contam o recorte sem o próprio filtro, senão a seleção esconderia as outras).
+  const recortar = useCallback(
+    (ignorar?: FiltroDadosOficiais) => {
+      if (origemSituacao === "proposta") return [];
+      const base = filtrarTudo(ignorar);
+      if (origemSituacao !== "monitoramento") return base;
+      const alvo = normalizarTexto(situacaoEscolhida!.valor);
+      return base.filter(
+        (item) =>
+          normalizarTexto(faseMonitoramento.get(item.numero) ?? "") === alvo,
+      );
+    },
+    [filtrarTudo, origemSituacao, situacaoEscolhida, faseMonitoramento],
+  );
+  const conveniosFiltrados = useMemo(() => recortar(), [recortar]);
+  const conveniosSemTipo = useMemo(() => recortar("tipo"), [recortar]);
 
   const valorGlobalInstrumentos = useMemo(
     () =>
@@ -180,6 +187,7 @@ export function useRelatorioConvenios(
     conveniosQuery,
     totalConveniosFonte,
     conveniosFiltrados,
+    conveniosSemTipo,
     faseMonitoramento,
     valorGlobalInstrumentos,
     ufs,

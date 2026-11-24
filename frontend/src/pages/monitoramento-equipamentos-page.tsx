@@ -135,8 +135,8 @@ export function MonitoramentoEquipamentosPage() {
   // é bem mais leve que antes (sem siconv_raw/transferegov_raw na
   // listagem, ver services/convenios.ts) mesmo carregando tudo de uma vez.
   const conveniosQuery = useConveniosLista();
-  // FAF e TED são linhas de financiamento: aparecem em "Linhas de
-  // financiamento", não em Instrumentos/Programas.
+  // O FAF é linha de financiamento: aparece em "Linhas de
+  // financiamento", não em Instrumentos/Programas. O TED é instrumento.
   const convenios = useMemo(
     () =>
       conveniosQuery.data?.itens.filter(

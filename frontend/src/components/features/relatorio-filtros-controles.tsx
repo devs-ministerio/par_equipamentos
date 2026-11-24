@@ -2,6 +2,7 @@ import {
   Activity,
   Building2,
   ClipboardList,
+  Eye,
   Layers,
   MapPin,
   Stethoscope,
@@ -18,6 +19,7 @@ export type FiltrosRelatorio = ReturnType<
 
 export interface OpcoesRelatorio {
   tipo: Opcao[];
+  monitorado: Opcao[];
   uf: Opcao[];
   municipio: Opcao[];
   cnes: Opcao[];
@@ -58,6 +60,14 @@ export function montarControlesRelatorio(
     ),
   });
   return [
+    unica(
+      "Etapa",
+      Eye,
+      o.monitorado,
+      f.monitorado,
+      f.setMonitorado,
+      "Todas as etapas",
+    ),
     periodoRelatorio(f, o),
     unica(
       "Contratação",
@@ -123,6 +133,7 @@ export function montarRecortesRelatorio(
         remover: limpar,
       });
   };
+  unico("Etapa", f.monitorado, o.monitorado, () => f.setMonitorado(null));
   unico("Contratação", f.tipoContratacao, o.tipo, () =>
     f.setTipoContratacao(null),
   );
