@@ -137,18 +137,18 @@ export function montarControlesDadosOficiais(
       "Todas as contratações",
     ),
     {
-      rotulo: "Monitorado",
+      rotulo: "Etapa",
       icone: Eye,
       ativo: !!f.monitorado,
       conteudo: (fechar) => (
         <Opcoes
-          rotulo="Monitorado"
+          rotulo="Etapa"
           opcoes={[
-            { value: "sim", label: "Sim" },
-            { value: "nao", label: "Não" },
+            { value: "nao", label: "Celebrado" },
+            { value: "sim", label: "Em monitoramento" },
           ]}
           valor={f.monitorado}
-          todos="Todos"
+          todos="Todas as etapas"
           selecionar={(valor) => {
             f.setMonitorado(valor);
             fechar();
@@ -251,8 +251,8 @@ export function montarRecortesDadosOficiais(
   );
   if (f.monitorado)
     recortes.push({
-      rotulo: "Monitorado",
-      valor: f.monitorado === "sim" ? "Sim" : "Não",
+      rotulo: "Etapa",
+      valor: f.monitorado === "sim" ? "Em monitoramento" : "Celebrado",
       remover: () => f.setMonitorado(null),
     });
   lista("UF", f.uf, o.uf, () => f.setUf([]));

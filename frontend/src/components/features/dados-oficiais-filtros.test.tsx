@@ -56,10 +56,12 @@ describe("Filtros de Dados oficiais no padrão de popovers", () => {
     expect(screen.getByLabelText("URL")).toHaveTextContent("?origem=teste");
   });
 
-  it("mantém Monitorado, Situação e período entre os filtros", async () => {
+  it("mantém Etapa, Situação e período entre os filtros", async () => {
     const user = montar("monitorado=sim&ano_inicio=2025");
     expect(
-      screen.getByRole("button", { name: "Remover filtro Monitorado: Sim" }),
+      screen.getByRole("button", {
+        name: "Remover filtro Etapa: Em monitoramento",
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Remover filtro Período: 2025 – …" }),
