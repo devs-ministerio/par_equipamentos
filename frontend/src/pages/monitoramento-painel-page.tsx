@@ -127,12 +127,14 @@ export function MonitoramentoPainelPage() {
   }
 
   // O ano do instrumento é sempre o do instrumento firmado (convênio).
+  // Instrumento de carga manual sem convênio correspondente usa o ano do próprio cadastro.
   const anoPorNumero = new Map(
     convenios.map((c) => [c.numero, c.anoInstrumento]),
   );
   const instrumentosFiltrados = filtros.filtrados.map((i) => ({
     ...i,
-    ano_instrumento: anoPorNumero.get(i.nr_convenio) ?? null,
+    ano_instrumento:
+      anoPorNumero.get(i.nr_convenio) ?? i.ano_instrumento ?? null,
   }));
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
   const fases = [...FASES_ACOMPANHAMENTO];
@@ -272,7 +274,7 @@ export function MonitoramentoPainelPage() {
           </PainelCartao>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <PainelCartao
-              titulo="Ano de inauguração/entrega"
+              titulo="Ano de Inauguração/entrega dos Equipamentos"
               apoio={`${totalEntregaAno} equipamentos`}
             >
               <LegendaSegmentos
@@ -305,8 +307,7 @@ export function MonitoramentoPainelPage() {
               {entregaAno.aguardando > 0 && (
                 <p className="m-0 mt-4 text-xs text-muted-foreground">
                   Não contabiliza {entregaAno.aguardando} equipamentos entregues
-                  em instrumentos que ainda precisam de inauguração ou
-                  conclusão.
+                  em instrumentos que ainda precisam de inauguração.
                 </p>
               )}
             </PainelCartao>

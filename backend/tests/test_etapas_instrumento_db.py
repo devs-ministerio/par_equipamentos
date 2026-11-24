@@ -10,7 +10,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import engine
-from app.db.models import Convenio, EntregaEquipamento, EventoMarco, InstrumentoEquipamento, MarcoCatalogo
+from app.db.models import (
+    Convenio,
+    EntregaEquipamento,
+    EquipamentoCatalogo,
+    EventoMarco,
+    InstrumentoEquipamento,
+    ItemPlano,
+    MarcoCatalogo,
+)
 from app.repositories import etapas_instrumento as repo
 
 pytestmark = pytest.mark.db
@@ -70,3 +78,25 @@ def test_inauguracao_dispensada_so_conta_evento_ativo(db):
     db.flush()
     assert repo.ids_com_inauguracao_dispensada(db, [inst.id, sem.id]) == {inst.id}
 
+
+
+def test_acelerador_linear_so_conta_item_de_aquisicao_ativo(db):
+    com = _instrumento(db)
+    sem = _instrumento(db)
+    catalogo = db.execute(select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == "acelerador_linear")).scalar_one()
+    for inst, tipo in ((com, "aquisicao"), (sem, "rendimento_aplicacao")):
+        conv = db.execute(select(Convenio).where(Convenio.numero == inst.nr_convenio)).scalar_one()
+        db.add(
+            ItemPlano(
+                convenio_id=conv.id,
+                instrumento_id=inst.id,
+                origem="manual",
+                id_origem=f"t:{uuid4().hex}",
+                descricao="Acelerador Linear",
+                catalogo_id=catalogo.id,
+                tipo_lancamento=tipo,
+                quantidade_planejada=1,
+            )
+        )
+    db.flush()
+    assert repo.ids_com_acelerador_linear(db, [com.id, sem.id]) == {com.id}

@@ -14,6 +14,7 @@ const etapa = (nr: string, o: Record<string, unknown> = {}) => ({
   conclusao: null,
   inauguracao_dispensada: false,
   conclusao_resultado: null,
+  tem_acelerador_linear: false,
   unidades_entregues: [],
   ...o,
 });
@@ -97,5 +98,28 @@ describe("painel de gestão: andamento", () => {
       { ano: "2025", inaugurados: 3, dispensados: 1 },
     ]);
     expect(r.aguardando).toBe(9);
+  });
+
+  it("acelerador linear concluído sem registro usa a data da entrega como inauguração", () => {
+    const acelerador = {
+      tem_acelerador_linear: true,
+      conclusao_resultado: "integral",
+      unidades_entregues: [{ data: "2024-05-02", quantidade: 1 }],
+    };
+    const etapas = [
+      etapa("1", acelerador),
+      etapa("2", { ...acelerador, conclusao_resultado: null }),
+      etapa("3", { ...acelerador, tem_acelerador_linear: false }),
+    ];
+    const numeros = new Set(["1", "2", "3"]);
+    expect(situacaoInauguracao(numeros, etapas, new Set())).toEqual({
+      Realizada: 1,
+      Dispensada: 0,
+      Prevista: 0,
+      "Sem registro": 2,
+    });
+    const r = entregaInauguracaoPorAno(numeros, etapas);
+    expect(r.anos).toEqual([{ ano: "2024", inaugurados: 1, dispensados: 0 }]);
+    expect(r.aguardando).toBe(2);
   });
 });

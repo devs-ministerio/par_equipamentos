@@ -15,7 +15,9 @@ from app.db.models import (
     ConclusaoInstrumento,
     Convenio,
     EntregaEquipamento,
+    EquipamentoCatalogo,
     EventoMarco,
+    ItemPlano,
     MarcoCatalogo,
     UnidadeEquipamento,
 )
@@ -99,3 +101,20 @@ def unidades_entregues_por_data(db: Session, instrumento_ids: Sequence[int]) -> 
     for instrumento_id, data, quantidade in linhas:
         resultado.setdefault(instrumento_id, []).append((data, int(quantidade)))
     return resultado
+
+
+def ids_com_acelerador_linear(db: Session, instrumento_ids: Sequence[int]) -> set[int]:
+    """Instrumentos com item de aquisição de Acelerador Linear no plano (só eles têm data de inauguração lançada)."""
+    if not instrumento_ids:
+        return set()
+    linhas = db.execute(
+        select(ItemPlano.instrumento_id)
+        .join(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
+        .where(
+            EquipamentoCatalogo.codigo == "acelerador_linear",
+            ItemPlano.instrumento_id.in_(instrumento_ids),
+            ItemPlano.ativo.is_(True),
+            ItemPlano.tipo_lancamento == "aquisicao",
+        )
+    )
+    return {instrumento_id for (instrumento_id,) in linhas}

@@ -47,6 +47,7 @@ class EtapasInstrumentoRead(BaseModel):
     conclusao: date | None = None
     inauguracao_dispensada: bool = False
     conclusao_resultado: str | None = None
+    tem_acelerador_linear: bool = False
     unidades_entregues: list[UnidadesEntreguesRead] = []
 
 

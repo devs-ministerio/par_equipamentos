@@ -22,6 +22,20 @@ export type SituacaoInauguracao =
   | "Dispensada"
   | "Sem registro";
 
+/**
+ * Acelerador linear concluído sem registro de inauguração: só aceleradores têm data de inauguração lançada,
+ * então a data da entrega vale como inauguração. Vale só no cálculo do painel; nada é gravado.
+ */
+export function inauguracaoPelaEntrega(e: Etapas): boolean {
+  return (
+    !e.inauguracao &&
+    !e.inauguracao_dispensada &&
+    e.tem_acelerador_linear &&
+    e.conclusao_resultado === "integral" &&
+    e.unidades_entregues.length > 0
+  );
+}
+
 /** Situação da inauguração de cada instrumento: realizada, prevista, dispensada ou sem registro. */
 export function situacaoInauguracao(
   numeros: ReadonlySet<string>,
@@ -37,7 +51,8 @@ export function situacaoInauguracao(
   const porNumero = new Map(etapas.map((e) => [e.nr_convenio, e]));
   for (const numero of numeros) {
     const e = porNumero.get(numero);
-    if (e?.inauguracao) contagem.Realizada += 1;
+    if (e?.inauguracao || (e && inauguracaoPelaEntrega(e)))
+      contagem.Realizada += 1;
     else if (e?.inauguracao_dispensada) contagem.Dispensada += 1;
     else if (numerosComPrevisao.has(numero)) contagem.Prevista += 1;
     else contagem["Sem registro"] += 1;
@@ -156,7 +171,8 @@ export interface EntregaInauguracaoAno {
 /**
  * Equipamentos entregues por ano, só onde a entrega está resolvida:
  * - inauguração dispensada: cada unidade entra no ano da própria entrega, mesmo com itens pendentes;
- * - inauguração realizada e instrumento 100% concluído: todas as unidades entram no ano da inauguração.
+ * - inauguração realizada e instrumento 100% concluído: todas as unidades entram no ano da inauguração;
+ * - acelerador linear concluído sem registro: cada unidade entra no ano da entrega (vale como inauguração).
  * Instrumentos que ainda precisam de inauguração ou conclusão não entram; `aguardando` soma as unidades deles.
  */
 export function entregaInauguracaoPorAno(
@@ -176,6 +192,9 @@ export function entregaInauguracaoPorAno(
     if (e.inauguracao_dispensada) {
       for (const u of e.unidades_entregues)
         linha(u.data.slice(0, 4)).dispensados += u.quantidade;
+    } else if (inauguracaoPelaEntrega(e)) {
+      for (const u of e.unidades_entregues)
+        linha(u.data.slice(0, 4)).inaugurados += u.quantidade;
     } else if (e.inauguracao && e.conclusao_resultado === "integral") {
       linha(e.inauguracao.slice(0, 4)).inaugurados += total;
     } else {
