@@ -37,8 +37,8 @@ export function useRelatorioInstrumentosFiltros() {
     null,
   );
 
+  // A visão (encerramento) é escolhida à parte e não entra no "limpar filtros".
   const limparFiltros = () => {
-    setEncerramento(null);
     setUf(null);
     setSituacao(null);
     setPeriodoPor(null);
@@ -55,7 +55,6 @@ export function useRelatorioInstrumentosFiltros() {
   };
 
   const hasFiltros = Boolean(
-    encerramento ||
     uf ||
     situacao ||
     anoInicio ||

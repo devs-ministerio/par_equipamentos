@@ -47,9 +47,6 @@ export function RelatorioPropostasTabela({
       <header className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
         <div>
           <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
-            <span className="mr-2 inline-flex size-5 items-center justify-center rounded-full bg-primary text-[9px] text-primary-foreground">
-              {titulo === "Parcerias confirmadas" ? "03" : "04"}
-            </span>
             Linhas de financiamento
           </p>
           <h2 className="mt-2 font-display text-xl font-bold tracking-[-0.035em] text-foreground sm:text-2xl">

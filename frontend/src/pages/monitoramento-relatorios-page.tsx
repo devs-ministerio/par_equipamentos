@@ -1,868 +1,139 @@
-import { useCallback, useMemo, useState } from "react";
-import { SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
-import { FilterWorkspace } from "@/components/common/filter-workspace";
-import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
-import { SingleSelectFilter } from "@/components/common/single-select-filter";
-import { ErrorAlert } from "@/components/common/error-alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RelatorioInstrumentosTabela } from "@/components/features/relatorio-instrumentos-tabela";
-import { RelatorioPropostasTabela } from "@/components/features/relatorio-propostas-tabela";
+import { RelatorioFiltros } from "@/components/features/relatorio-filtros";
 import { RelatorioBotoesGerar } from "@/components/features/relatorio-botoes-gerar";
 import { RelatorioResumoCarteira } from "@/components/features/relatorio-resumo-carteira";
-import { RelatorioEncerradosPrevia } from "@/components/features/relatorio-encerrados-previa";
-import { RelatorioEntreguesPrevia } from "@/components/features/relatorio-entregues-previa";
-import { useRelatorioEntregues } from "@/hooks/use-relatorio-entregues";
-import { useRelatorioEncerrados } from "@/hooks/use-relatorio-encerrados";
-import { useConveniosLista } from "@/hooks/useConveniosLista";
-import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
-import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
-import { useDadosOficiaisOpcoes } from "@/hooks/use-dados-oficiais-opcoes";
+import { RelatorioEscopoResumo } from "@/components/features/relatorio-escopo-resumo";
+import { PreviaCarteira } from "@/components/features/relatorio-previa-visao";
 import { useRelatorioInstrumentosFiltros } from "@/hooks/use-relatorio-instrumentos-filtros";
+import { useRelatorioConvenios } from "@/hooks/use-relatorio-convenios";
+import { useRelatorioPropostas } from "@/hooks/use-relatorio-propostas";
+import { useRelatorioOpcoes } from "@/hooks/use-relatorio-opcoes";
+import { useRelatorioEscopo } from "@/hooks/use-relatorio-escopo";
 import { useGerarRelatorio } from "@/hooks/use-gerar-relatorio";
-import { UF_INFO } from "@/data/geo-reference";
-import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
-import { municipiosDoInstrumento } from "@/lib/municipio-filtro";
-import { mensagemSeguraDoErro } from "@/lib/api-error";
-import { decodificarSituacao, opcoesSituacao } from "@/lib/situacao-relatorio";
-import { estagioDeFato } from "@/lib/proposta-status";
-import {
-  equipamentosFinanciados,
-  mesclarOpcoes,
-  opcoesSituacaoDaVisao,
-  propostaCombina,
-  situacaoVale,
-} from "@/lib/recorte-relatorio";
-import { capitalizarNome, normalizarTexto } from "@/utils/texto";
-import type { ConvenioUnificado } from "@/types/monitoramento";
-import type { FiltroDadosOficiais } from "@/types/dados-oficiais";
-import type { NivelRelatorio, FiltroRelatorio } from "@/services/relatorios";
-
-const situacaoExibida = (item: ConvenioUnificado) => item.situacao;
-const SEM_MONITORADOS = new Set<string>();
-const TEM_ACENTO = /[À-ÖØ-öø-ÿ]/;
-type IgnorarExtra = "municipio" | "cnes" | "estabelecimento";
-
-/** Deduplica por grafia (mesmo município/estabelecimento grafado diferente
- * por origem -- achado 2026-09-26, "não da pra ter dois São Paulo um
- * minúsculo, um maiúsculo e um sem acento"): `value` é a chave normalizada
- * (comparável direto contra `normalizarTexto(campo)`), `label` prefere a
- * grafia acentuada quando alguma variante tem, senão capitaliza a que
- * tiver. */
-function opcoesAgrupadas(
-  itens: ConvenioUnificado[],
-  valor: (
-    item: ConvenioUnificado,
-  ) => string | null | undefined | (string | null | undefined)[],
-): { value: string; label: string }[] {
-  const grupos = new Map<string, string[]>();
-  for (const item of itens) {
-    const encontrado = valor(item);
-    for (const bruto of Array.isArray(encontrado) ? encontrado : [encontrado]) {
-      if (!bruto) continue;
-      const chave = normalizarTexto(bruto);
-      const lista = grupos.get(chave);
-      if (lista) lista.push(bruto);
-      else grupos.set(chave, [bruto]);
-    }
-  }
-  return [...grupos.entries()]
-    .map(([chave, brutos]) => ({
-      value: chave,
-      label: capitalizarNome(
-        brutos.find((b) => TEM_ACENTO.test(b)) ?? brutos[0],
-      ),
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
-}
-
-function opcoesUnicas(
-  itens: ConvenioUnificado[],
-  valor: (item: ConvenioUnificado) => string | null | undefined,
-) {
-  return [...new Set(itens.map(valor).filter((v): v is string => Boolean(v)))]
-    .sort((a, b) => a.localeCompare(b, "pt-BR"))
-    .map((v) => ({ value: v, label: v }));
-}
+import { decodificarSituacao } from "@/lib/situacao-relatorio";
+import { useState } from "react";
+import type { NivelRelatorio } from "@/services/relatorios";
 
 /**
- * Relatório de Instrumentos e Repasse -- convênios firmados, propostas
- * candidatas (linhas de financiamento) e monitoramento interno numa
- * chamada só (`GET /relatorios`), em Excel ou Word (Plan Mode
- * docs/planos/planmode-relatorios-2026-09-25.md, Blocos 6 e 7).
- *
- * Mesmos filtros de "Instrumentos e repasses" (Dados Oficiais,
- * `monitoramento-equipamentos-page.tsx`) -- pedido do usuário: "coloque os
- * mesmos filtros que temos no instrumentos/repasses" + "separar em
- * instrumentos/programas e linhas de financiamento (parceria e
- * propostas)". As 3 seções (Instrumentos/Programas, Parceria, Propostas)
- * ficam empilhadas uma abaixo da outra, sem abas. A tabela de prévia é
- * 100% client-side (mesmo dado já carregado por `useConveniosLista`/
- * `usePropostasCandidatas`/`useMonitoramentoInstrumentos`, zero chamada
- * nova) -- mostra exatamente o recorte que os botões abaixo baixam.
- * `situacao`/`programa`/`equipamento` só filtram a seção de Convênios: o
- * vocabulário de `situacao`/`programa` diverge entre Convenio (SICONV) e
- * PropostaCandidata (TransfereGov novo), ver `app/services/relatorios.py`
- * no backend -- aplicar o mesmo valor nas Propostas quase sempre
- * filtraria pra um conjunto vazio.
- *
- * `Município`/`CNES`/`Estabelecimento` são lista suspensa, mesmo modelo
- * dos demais filtros -- `município`/`estabelecimento` deduplicados por
- * grafia (`opcoesAgrupadas`, ver comentário acima); `CNES` é código exato,
- * sem ambiguidade de grafia (`opcoesUnicas`). Só `município`/`CNES` viram
- * parâmetro pro backend na geração -- o backend trata os 3 como hierarquia
- * de escopo mutuamente exclusiva (Brasil -> UF -> Município -> CNES),
- * então CNES tem prioridade (mais específico), depois Município (exige UF
- * junto), depois UF; `Estabelecimento`/`Equipamento` não têm campo próprio
- * ali, ficam só na prévia.
+ * Relatório de Instrumentos e Repasse: convênios firmados, parcerias e
+ * propostas (linhas de financiamento) e monitoramento interno, em Excel ou
+ * Word (`GET /relatorios`). A prévia é o mesmo recorte que o arquivo traz:
+ * os filtros (único estado em `useRelatorioInstrumentosFiltros`) cascateiam
+ * entre si e viram o filtro de geração em `useRelatorioEscopo`.
+ * Plano: docs/planos/planmode-relatorios-paridade-2026-11-24.md (Fase 0).
  */
 export function MonitoramentoRelatoriosPage() {
   const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
-
-  const {
-    encerramento,
-    setEncerramento,
-    periodoPor,
-    setPeriodoPor,
-    dataInicio,
-    setDataInicio,
-    dataFim,
-    setDataFim,
-    uf,
-    setUf,
-    situacao,
-    setSituacao,
-    anoInicio,
-    setAnoInicio,
-    anoFim,
-    setAnoFim,
-    programa,
-    setPrograma,
-    tipoContratacao,
-    setTipoContratacao,
-    equipamento,
-    setEquipamento,
-    municipio,
-    setMunicipio,
-    cnes,
-    setCnes,
-    nomeEstabelecimento,
-    hasFiltros,
-    limparFiltros,
-  } = useRelatorioInstrumentosFiltros();
-
-  const situacaoEscolhida = decodificarSituacao(situacao);
+  const filtros = useRelatorioInstrumentosFiltros();
+  const { hasFiltros } = filtros;
+  const situacaoEscolhida = decodificarSituacao(filtros.situacao);
   const origemSituacao = situacaoEscolhida?.origem ?? null;
-  const situacaoInstrumento =
-    origemSituacao === "instrumento" ? situacaoEscolhida!.valor : null;
 
-  const conveniosQuery = useConveniosLista();
-  const convenios = useMemo(
-    () => conveniosQuery.data?.itens ?? [],
-    [conveniosQuery.data],
-  );
-  const totalConveniosFonte = conveniosQuery.data?.total ?? 0;
-
-  // Período de 2 datas (Bloco 8, 2026-09-27) -- substitui o antigo `ano`
-  // único de `filtrarDadosOficiais` (que continua servindo só Dados
-  // Oficiais, sem mudança). Aplicado igual município/CNES/Estabelecimento:
-  // fora da cascata de Dados Oficiais, direto no filtro combinado abaixo.
-  const dentroDoPeriodo = useCallback(
-    (anoInstrumento: number | null) => {
-      if (!anoInicio && !anoFim) return true;
-      if (anoInstrumento === null) return false;
-      if (anoInicio && anoInstrumento < Number(anoInicio)) return false;
-      return !(anoFim && anoInstrumento > Number(anoFim));
-    },
-    [anoInicio, anoFim],
-  );
-
-  // Filtro único, cascateando TODOS os campos entre si -- achado ao vivo
-  // 2026-09-26: `município`/`CNES`/`Estabelecimento` viviam fora da cascata
-  // de `filtrarDadosOficiais` (não estreitavam nem eram estreitados pelos
-  // demais seletores). `ignorarDO` cobre o vocabulário de Dados Oficiais
-  // (uf/equipamento/situação/programa/tipo); `ignorarExtra` cobre os 3
-  // campos exclusivos desta página -- cada seletor ignora só o próprio
-  // critério, senão uma seleção elimina a opção necessária pra desfazê-la.
-  const filtrarTudo = useCallback(
-    (ignorarDO?: FiltroDadosOficiais, ignorarExtra?: IgnorarExtra) => {
-      const base = filtrarDadosOficiais(
-        convenios,
-        {
-          uf: uf ? [uf] : [],
-          municipio: [],
-          cnes: [],
-          equipamento: equipamento ? [equipamento] : [],
-          situacao: situacaoInstrumento ? [situacaoInstrumento] : [],
-          anoInicio: null,
-          anoFim: null,
-          programa: programa ? [programa] : [],
-          tipoContratacao: tipoContratacao ? [tipoContratacao] : [],
-          monitorado: null,
-        },
-        SEM_MONITORADOS,
-        situacaoExibida,
-        ignorarDO,
-      );
-      return base.filter(
-        (item) =>
-          dentroDoPeriodo(item.anoInstrumento) &&
-          (ignorarExtra === "municipio" ||
-            !municipio ||
-            municipiosDoInstrumento(item).some(
-              (nome) => normalizarTexto(nome) === municipio,
-            )) &&
-          (ignorarExtra === "cnes" || !cnes || item.cnes === cnes) &&
-          (ignorarExtra === "estabelecimento" ||
-            !nomeEstabelecimento ||
-            normalizarTexto(item.cnesNomeEstabelecimento ?? "") ===
-              nomeEstabelecimento),
-      );
-    },
-    [
-      convenios,
-      uf,
-      situacaoInstrumento,
-      dentroDoPeriodo,
-      programa,
-      tipoContratacao,
-      equipamento,
-      municipio,
-      cnes,
-      nomeEstabelecimento,
-    ],
-  );
-
-  const filtrarConvenios = useCallback(
-    (ignorar?: FiltroDadosOficiais) => filtrarTudo(ignorar),
-    [filtrarTudo],
-  );
-
-  const {
-    ufs,
-    equipamentoOptions,
-    anoOptions,
-    situacaoOptions: situacaoInstrumentoOptions,
-    tipoContratacaoOptions,
-    programaOptions,
-  } = useDadosOficiaisOpcoes({
-    classeEquipamento: "prioritario",
-    filtrar: filtrarConvenios,
-    situacaoExibida,
+  const carteira = useRelatorioConvenios(filtros, situacaoEscolhida);
+  const propostas = useRelatorioPropostas(filtros, situacaoEscolhida);
+  const opcoes = useRelatorioOpcoes({
+    propostas: propostas.propostas,
+    situacaoInstrumentoOptions: carteira.situacaoInstrumentoOptions,
+    faseMonitoramento: carteira.faseMonitoramento,
+    encerramento: null,
+    programaOptions: carteira.programaOptions,
+    equipamentoOptions: carteira.equipamentoOptions,
+    tipoContratacaoOptions: carteira.tipoContratacaoOptions,
   });
-
-  const municipioOptions = useMemo(
-    () =>
-      opcoesAgrupadas(filtrarTudo(undefined, "municipio"), (item) =>
-        municipiosDoInstrumento(item),
-      ),
-    [filtrarTudo],
+  const escopo = useRelatorioEscopo(
+    filtros,
+    carteira.convenios,
+    situacaoEscolhida,
   );
-  const cnesOptions = useMemo(
-    () => opcoesUnicas(filtrarTudo(undefined, "cnes"), (item) => item.cnes),
-    [filtrarTudo],
-  );
-
-  const instrumentosQuery = useMonitoramentoInstrumentos();
-  const faseMonitoramento = useMemo(
-    () =>
-      new Map(
-        (instrumentosQuery.data ?? []).map((i) => [
-          i.nr_convenio,
-          i.fase_atual ?? "Não iniciado",
-        ]),
-      ),
-    [instrumentosQuery.data],
-  );
-
-  const conveniosFiltrados = useMemo(() => {
-    if (origemSituacao === "proposta") return [];
-    const base = filtrarTudo();
-    if (origemSituacao !== "monitoramento") return base;
-    const alvo = normalizarTexto(situacaoEscolhida!.valor);
-    return base.filter(
-      (item) =>
-        normalizarTexto(faseMonitoramento.get(item.numero) ?? "") === alvo,
-    );
-  }, [filtrarTudo, origemSituacao, situacaoEscolhida, faseMonitoramento]);
-
-  const {
-    propostas,
-    total: totalPropostasFonte,
-    carregando: carregandoPropostas,
-    erro: erroPropostas,
-  } = usePropostasCandidatas();
-
-  const situacaoOptions = useMemo(
-    () =>
-      opcoesSituacao({
-        instrumento: situacaoInstrumentoOptions.map((o) => o.value),
-        monitoramento: [...new Set(faseMonitoramento.values())],
-        proposta: propostas
-          .map((p) => p.situacao_proposta)
-          .filter((v): v is string => Boolean(v)),
-      }),
-    [situacaoInstrumentoOptions, faseMonitoramento, propostas],
-  );
-
-  const situacaoDaVisaoOptions = useMemo(
-    () => opcoesSituacaoDaVisao(situacaoOptions, encerramento),
-    [situacaoOptions, encerramento],
-  );
-  // Programas e equipamentos que só existem nas propostas também entram nas opções (D04).
-  const programaTodasOptions = useMemo(
-    () =>
-      mesclarOpcoes(
-        programaOptions,
-        propostas.map((p) => p.nm_programa),
-      ),
-    [programaOptions, propostas],
-  );
-  const equipamentoTodasOptions = useMemo(
-    () =>
-      mesclarOpcoes(
-        equipamentoOptions,
-        propostas.flatMap(equipamentosFinanciados),
-      ),
-    [equipamentoOptions, propostas],
-  );
-
-  // Os tipos das propostas (ex.: FAF, PRONON) também são opções, mesmo sem instrumento do tipo.
-  const tipoOptions = useMemo(() => {
-    const existentes = new Set(tipoContratacaoOptions.map((o) => o.value));
-    const extras = [
-      ...new Set(propostas.map((p) => p.tipo_contratacao)),
-    ].filter((tipo) => !existentes.has(tipo));
-    return [
-      ...tipoContratacaoOptions,
-      ...extras.map((value) => ({ value, label: value })),
-    ];
-  }, [tipoContratacaoOptions, propostas]);
-
-  const propostasFiltradas = useMemo(
-    () =>
-      propostas.filter((p) => {
-        if (
-          origemSituacao === "instrumento" ||
-          origemSituacao === "monitoramento"
-        )
-          return false;
-        if (tipoContratacao && tipoContratacao !== p.tipo_contratacao)
-          return false;
-        if (
-          situacaoEscolhida &&
-          normalizarTexto(p.situacao_proposta ?? "") !==
-            normalizarTexto(situacaoEscolhida.valor)
-        )
-          return false;
-        if (uf && p.uf !== uf) return false;
-        if (anoInicio || anoFim) {
-          const anoProposta = Number(p.data_proposta?.slice(0, 4));
-          if (!anoProposta) return false;
-          if (anoInicio && anoProposta < Number(anoInicio)) return false;
-          if (anoFim && anoProposta > Number(anoFim)) return false;
-        }
-        if (municipio && normalizarTexto(p.municipio ?? "") !== municipio)
-          return false;
-        if (cnes && p.cnes !== cnes) return false;
-        if (!propostaCombina(p, { programa, equipamento })) return false;
-        if (
-          nomeEstabelecimento &&
-          normalizarTexto(p.cnes_nome_estabelecimento ?? "") !==
-            nomeEstabelecimento
-        )
-          return false;
-        return true;
-      }),
-    [
-      propostas,
-      uf,
-      anoInicio,
-      anoFim,
-      municipio,
-      cnes,
-      nomeEstabelecimento,
-      origemSituacao,
-      situacaoEscolhida,
-      tipoContratacao,
-      programa,
-      equipamento,
-    ],
-  );
-  const propostasConfirmadas = useMemo(
-    () => propostasFiltradas.filter((p) => estagioDeFato(p) === "confirmada"),
-    [propostasFiltradas],
-  );
-  const propostasEmTramitacao = useMemo(
-    () => propostasFiltradas.filter((p) => estagioDeFato(p) === "tramitacao"),
-    [propostasFiltradas],
-  );
-  const valorGlobalInstrumentos = useMemo(
-    () =>
-      conveniosFiltrados.reduce(
-        (total, item) => total + (item.financeiro.global ?? 0),
-        0,
-      ),
-    [conveniosFiltrados],
-  );
-
   const { gerando, erro, gerar } = useGerarRelatorio("instrumentos_repasse");
 
-  // O backend trata uf/município/CNES como uma hierarquia de escopo
-  // mutuamente exclusiva (Brasil -> UF -> Município -> CNES), diferente
-  // dos filtros combináveis desta página -- CNES já identifica um único
-  // estabelecimento (mais específico), depois Município (exige UF junto),
-  // depois UF, senão Brasil.
-  //
-  // Dois achados ao vivo 2026-09-26, "relatório gerado não responde a
-  // todos os filtros selecionados":
-  // 1. Selecionar só Município (sem UF) fazia `escopoGeracao` cair pra
-  //    "brasil" -- a validação de `FiltroRelatorio` exige os dois juntos --
-  //    e o arquivo baixava o Brasil inteiro, silenciosamente ignorando o
-  //    município escolhido. UF agora é derivada do próprio item quando o
-  //    usuário não a selecionou explicitamente.
-  // 2. `Estabelecimento` nunca tinha campo próprio no backend -- resolvido
-  //    pro CNES correspondente (1:1 na prática, mesmo dado de origem do
-  //    dropdown) quando CNES não foi selecionado à parte.
-  const municipioItens = municipio
-    ? convenios.filter((item) =>
-        municipiosDoInstrumento(item).some(
-          (nome) => normalizarTexto(nome) === municipio,
-        ),
-      )
-    : [];
-  const ufsDoMunicipio = new Set(municipioItens.map((item) => item.uf));
-  const municipioAmbiguo = Boolean(municipio && !uf && ufsDoMunicipio.size > 1);
-  const municipioItem = municipioItens[0];
-  const ufEfetiva = uf ?? municipioItem?.uf;
-  const estabelecimentoItens =
-    !cnes && nomeEstabelecimento
-      ? convenios.filter(
-          (item) =>
-            normalizarTexto(item.cnesNomeEstabelecimento ?? "") ===
-            nomeEstabelecimento,
-        )
-      : [];
-  const cnesDoEstabelecimento = new Set(
-    estabelecimentoItens.map((item) => item.cnes).filter(Boolean),
-  );
-  const estabelecimentoAmbiguo = Boolean(
-    nomeEstabelecimento && !cnes && cnesDoEstabelecimento.size > 1,
-  );
-  const estabelecimentoItem = estabelecimentoItens[0];
-  const cnesEfetivo = cnes ?? estabelecimentoItem?.cnes ?? undefined;
-
-  const escopoGeracao = cnesEfetivo
-    ? "cnes"
-    : municipio && ufEfetiva
-      ? "municipio"
-      : ufEfetiva
-        ? "uf"
-        : "brasil";
-  const resumoEscopo =
-    escopoGeracao === "cnes"
-      ? `CNES ${cnesEfetivo}`
-      : escopoGeracao === "municipio"
-        ? `${capitalizarNome(municipio ?? "")} / ${ufEfetiva}`
-        : escopoGeracao === "uf"
-          ? (UF_INFO[ufEfetiva ?? ""]?.nome ?? ufEfetiva ?? "")
-          : "Brasil";
-  const somenteEncerrados = encerramento === "encerrados";
-  const somenteEntregues = encerramento === "entregues";
-  // Período por data do evento (D02): conclusão em Concluídos, entrega em Equipamento entregue. Nas demais visões
-  // o período continua sendo o ano do instrumento.
-  const visaoPorEvento = somenteEncerrados || somenteEntregues;
-  const porDataDoEvento = visaoPorEvento && periodoPor === "data_do_evento";
-  const filtroGeracao: FiltroRelatorio = {
-    escopo: escopoGeracao,
-    uf:
-      escopoGeracao === "uf" || escopoGeracao === "municipio"
-        ? ufEfetiva
-        : undefined,
-    municipio:
-      escopoGeracao === "municipio" ? (municipio ?? undefined) : undefined,
-    cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
-    anoInicio: anoInicio && !porDataDoEvento ? Number(anoInicio) : undefined,
-    anoFim: anoFim && !porDataDoEvento ? Number(anoFim) : undefined,
-    ...(porDataDoEvento
-      ? {
-          periodoPor: "data_do_evento" as const,
-          dataInicio: dataInicio ?? undefined,
-          dataFim: dataFim ?? undefined,
-        }
-      : {}),
-    situacao: situacaoEscolhida?.valor,
-    situacaoOrigem: situacaoEscolhida?.origem,
-    programa: programa ?? undefined,
-    tipoContratacao: tipoContratacao ?? undefined,
-    equipamento: equipamento ?? undefined,
-    encerramento: somenteEncerrados
-      ? "encerrados"
-      : somenteEntregues
-        ? "entregues"
-        : "todos",
-  };
-  const encerrados = useRelatorioEncerrados(filtroGeracao, somenteEncerrados);
-  const entregues = useRelatorioEntregues(filtroGeracao, somenteEntregues);
-  // Cada visão conta uma entidade diferente: instrumentos na carteira e na conclusão, unidades físicas nas entregas.
-  const unidadeContagem = somenteEntregues ? "unidade" : "registro";
-  const totalRegistros = somenteEncerrados
-    ? (encerrados.data?.total ?? 0)
-    : somenteEntregues
-      ? (entregues.data?.total ?? 0)
-      : conveniosFiltrados.length +
-        propostasConfirmadas.length +
-        propostasEmTramitacao.length;
+  const totalRegistros =
+    carteira.conveniosFiltrados.length +
+    propostas.propostasConfirmadas.length +
+    propostas.propostasEmTramitacao.length;
+  const limparFiltros = hasFiltros ? filtros.limparFiltros : undefined;
+  const fonteParcial =
+    carteira.totalConveniosFonte > carteira.convenios.length ||
+    propostas.totalPropostasFonte > propostas.propostas.length;
 
   return (
-    <div className="flex flex-col gap-7 pb-8">
+    <div className="flex flex-col gap-6 pb-8">
       <PageHeader
         className="mb-0"
         eyebrow="Monitoramento interno"
         title="Relatórios"
-        description="Explore instrumentos, parcerias e propostas. Ajuste o recorte e confira os dados antes de exportar."
+        description="Confira o recorte e exporte em Word ou Excel."
         actions={
-          <div className="grid min-w-0 grid-cols-2 gap-x-5 gap-y-2 border-t border-border pt-3 sm:min-w-52 sm:grid-cols-1 sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0">
-            <div>
-              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
-                Escopo atual
-              </p>
-              <p className="mt-1 break-words text-sm font-semibold text-foreground">
-                {resumoEscopo}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold tracking-[0.1em] text-muted-foreground uppercase">
-                {somenteEntregues ? "Unidades" : "Registros"}
-              </p>
-              <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-                {totalRegistros.toLocaleString("pt-BR")}
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                na prévia carregada
-              </p>
-            </div>
-          </div>
+          <RelatorioEscopoResumo
+            escopo={escopo.resumoEscopo}
+            rotuloTotal="Registros"
+            total={totalRegistros}
+          />
         }
       />
 
-      <FilterWorkspace
-        hasAnyFilter={hasFiltros}
-        onClear={limparFiltros}
-        contagem={`${totalRegistros} ${totalRegistros === 1 ? unidadeContagem : `${unidadeContagem}s`} na prévia`}
-        className="mb-0 rounded-sm border border-border bg-card p-4 sm:p-5"
-      >
-        <div className="flex w-full flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <SlidersHorizontal
-                aria-hidden="true"
-                className="size-4 text-primary"
-              />
-              Refinar prévia
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Os filtros atualizam as tabelas antes da exportação.
-            </p>
-          </div>
-        </div>
-        <SingleSelectFilter
-          placeholder="Visão"
-          options={[
-            { value: "encerrados", label: "Concluídos (detalhe)" },
-            { value: "entregues", label: "Entregas (unidades)" },
-          ]}
-          value={encerramento}
-          onChange={(valor) => {
-            setEncerramento(valor);
-            if (!situacaoVale(situacao, valor)) setSituacao(null);
-            if (!valor) {
-              setPeriodoPor(null);
-              setDataInicio(null);
-              setDataFim(null);
-            }
-          }}
-          clearLabel="Carteira e financiamento"
-          minWidth={190}
-        />
-        {visaoPorEvento && (
-          <SingleSelectFilter
-            placeholder="Período por"
-            options={[
-              {
-                value: "data_do_evento",
-                label: somenteEntregues
-                  ? "Data da entrega"
-                  : "Data da conclusão",
-              },
-            ]}
-            value={periodoPor}
-            onChange={setPeriodoPor}
-            clearLabel="Ano do instrumento"
-            minWidth={170}
-          />
-        )}
-        <SingleSelectFilter
-          placeholder="Contratação"
-          options={tipoOptions}
-          value={tipoContratacao}
-          onChange={setTipoContratacao}
-          clearLabel="Contratação"
-          minWidth={120}
-        />
-        <SingleSelectFilter
-          placeholder="UF"
-          options={ufs}
-          value={uf}
-          onChange={setUf}
-          clearLabel="UF"
-          minWidth={100}
-        />
-        <SingleSelectFilter
-          placeholder="Município"
-          options={municipioOptions}
-          value={municipio}
-          onChange={setMunicipio}
-          clearLabel="Município"
-          minWidth={140}
-        />
-        <SingleSelectFilter
-          placeholder="CNES"
-          options={cnesOptions}
-          value={cnes}
-          onChange={setCnes}
-          clearLabel="CNES"
-          minWidth={110}
-        />
-        <SingleSelectFilter
-          placeholder="Equipamento"
-          options={equipamentoTodasOptions}
-          value={equipamento}
-          onChange={setEquipamento}
-          clearLabel="Equipamento"
-          minWidth={160}
-        />
-        {!somenteEntregues && (
-          <SingleSelectFilter
-            placeholder="Situação"
-            options={situacaoDaVisaoOptions}
-            value={situacao}
-            onChange={setSituacao}
-            clearLabel="Situação"
-            minWidth={150}
-          />
-        )}
-        <SingleSelectFilter
-          placeholder="Programas"
-          options={programaTodasOptions}
-          value={programa}
-          onChange={setPrograma}
-          clearLabel="Programas"
-          minWidth={160}
-        />
-        {porDataDoEvento ? (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <label className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">De</span>
-              <input
-                type="date"
-                value={dataInicio ?? ""}
-                max={dataFim ?? undefined}
-                onChange={(e) => setDataInicio(e.target.value || null)}
-                className="h-9 rounded-md border border-border bg-background px-2"
-              />
-            </label>
-            <label className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Até</span>
-              <input
-                type="date"
-                value={dataFim ?? ""}
-                min={dataInicio ?? undefined}
-                onChange={(e) => setDataFim(e.target.value || null)}
-                className="h-9 rounded-md border border-border bg-background px-2"
-              />
-            </label>
-          </div>
-        ) : (
-          <AnoIntervaloFilter
-            options={anoOptions}
-            inicio={anoInicio}
-            fim={anoFim}
-            onInicioChange={setAnoInicio}
-            onFimChange={setAnoFim}
-          />
-        )}
-      </FilterWorkspace>
+      <RelatorioFiltros
+        filtros={filtros}
+        opcoes={{
+          tipo: opcoes.tipoOptions,
+          uf: carteira.ufs,
+          municipio: carteira.municipioOptions,
+          cnes: carteira.cnesOptions,
+          equipamento: opcoes.equipamentoTodasOptions,
+          situacao: opcoes.situacaoDaVisaoOptions,
+          programa: opcoes.programaTodasOptions,
+          ano: carteira.anoOptions,
+        }}
+      />
 
-      {!somenteEncerrados && !somenteEntregues && (
-        <>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Indicadores e tabelas abaixo descrevem somente a prévia carregada.
-            {totalConveniosFonte > convenios.length &&
-              ` A fonte tem ${totalConveniosFonte.toLocaleString("pt-BR")} convênios; ${convenios.length.toLocaleString("pt-BR")} estão nesta prévia.`}
-            {totalPropostasFonte > propostas.length &&
-              ` A fonte tem ${totalPropostasFonte.toLocaleString("pt-BR")} propostas; ${propostas.length.toLocaleString("pt-BR")} estão nesta prévia.`}
-          </p>
-          <RelatorioResumoCarteira
-            instrumentos={conveniosFiltrados.length}
-            valorInstrumentos={valorGlobalInstrumentos}
-            parcerias={propostasConfirmadas.length}
-            propostas={propostasEmTramitacao.length}
-          />
-        </>
-      )}
+      <RelatorioResumoCarteira
+        instrumentos={carteira.conveniosFiltrados.length}
+        valorInstrumentos={carteira.valorGlobalInstrumentos}
+        parcerias={propostas.propostasConfirmadas.length}
+        propostas={propostas.propostasEmTramitacao.length}
+      />
 
-      <div className="flex items-center gap-3 border-b border-border pb-3 pt-1">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-          01
-        </div>
-        <div>
-          <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
-            Prévia parcial dos dados
-          </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            A prévia usa até 1.000 convênios e 500 propostas; o arquivo consulta
-            as fontes novamente e pode incluir mais registros.
-          </p>
-          {totalPropostasFonte > propostas.length && (
-            <p className="mt-1 text-xs text-amber-700">
-              {totalPropostasFonte.toLocaleString("pt-BR")} propostas na fonte;{" "}
-              {propostas.length.toLocaleString("pt-BR")} carregadas para a
-              prévia.
-            </p>
-          )}
-        </div>
+      <div className="border-b border-border pb-3">
+        <h2 className="font-display text-xl font-bold tracking-tight">
+          Prévia
+        </h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {fonteParcial
+            ? "A prévia usa parte da fonte; o arquivo consulta tudo de novo e pode trazer mais registros."
+            : "O arquivo traz o mesmo recorte da prévia."}
+        </p>
       </div>
 
-      {somenteEntregues ? (
-        entregues.isLoading ? (
-          <Skeleton
-            className="h-64 w-full"
-            role="status"
-            aria-label="Carregando entregues"
-          />
-        ) : entregues.isError ? (
-          <ErrorAlert
-            mensagem={mensagemSeguraDoErro(entregues.error)}
-            onRetry={() => entregues.refetch()}
-          />
-        ) : entregues.data ? (
-          <RelatorioEntreguesPrevia
-            itens={entregues.data.itens}
-            total={entregues.data.total}
-            pagina={entregues.pagina}
-            onPaginaChange={entregues.setPagina}
-          />
-        ) : null
-      ) : somenteEncerrados ? (
-        encerrados.isLoading ? (
-          <Skeleton
-            className="h-64 w-full"
-            role="status"
-            aria-label="Carregando concluídos"
-          />
-        ) : encerrados.isError ? (
-          <ErrorAlert
-            mensagem={mensagemSeguraDoErro(encerrados.error)}
-            onRetry={() => encerrados.refetch()}
-          />
-        ) : encerrados.data ? (
-          <>
-            <p className="text-sm text-muted-foreground">
-              Uma linha por instrumento ou parceria. Ordem paga não comprova
-              quitação integral nem conclusão física.
-            </p>
-            <RelatorioEncerradosPrevia
-              titulo="Concluídos"
-              itens={encerrados.data.itens}
-              total={encerrados.data.total}
-              pagina={encerrados.pagina}
-              onPaginaChange={encerrados.setPagina}
-            />
-            <RelatorioEncerradosPrevia
-              titulo="Pendências excluídas dos concluídos"
-              itens={encerrados.data.pendencias}
-              total={encerrados.data.total_pendencias}
-              pagina={encerrados.paginaPendencias}
-              onPaginaChange={encerrados.setPaginaPendencias}
-            />
-          </>
-        ) : null
-      ) : (
-        <>
-          {origemSituacao === "proposta" ? null : conveniosQuery.isLoading ? (
-            <Skeleton
-              className="h-64 w-full"
-              role="status"
-              aria-label="Carregando"
-            />
-          ) : conveniosQuery.isError ? (
-            <ErrorAlert
-              mensagem={mensagemSeguraDoErro(conveniosQuery.error)}
-              onRetry={() => conveniosQuery.refetch()}
-            />
-          ) : (
-            <RelatorioInstrumentosTabela
-              itens={conveniosFiltrados}
-              faseMonitoramento={faseMonitoramento}
-              onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-            />
-          )}
-
-          {carregandoPropostas ? (
-            <Skeleton
-              className="h-64 w-full"
-              role="status"
-              aria-label="Carregando"
-            />
-          ) : erroPropostas ? (
-            <ErrorAlert mensagem={mensagemSeguraDoErro(erroPropostas)} />
-          ) : origemSituacao === "instrumento" ||
-            origemSituacao === "monitoramento" ? null : (
-            <>
-              <RelatorioPropostasTabela
-                titulo="Parcerias confirmadas"
-                descricao="Instrumentos com parceria formalizada"
-                itens={propostasConfirmadas}
-                onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-              />
-              <RelatorioPropostasTabela
-                titulo="Propostas e solicitações"
-                descricao="Linhas de financiamento ainda em análise"
-                itens={propostasEmTramitacao}
-                onLimparFiltros={hasFiltros ? limparFiltros : undefined}
-              />
-            </>
-          )}
-        </>
-      )}
+      <PreviaCarteira
+        origemSituacao={origemSituacao}
+        carregandoConvenios={carteira.conveniosQuery.isLoading}
+        erroConvenios={
+          carteira.conveniosQuery.isError ? carteira.conveniosQuery.error : null
+        }
+        recarregarConvenios={() => void carteira.conveniosQuery.refetch()}
+        convenios={carteira.conveniosFiltrados}
+        faseMonitoramento={carteira.faseMonitoramento}
+        carregandoPropostas={propostas.carregandoPropostas}
+        erroPropostas={propostas.erroPropostas}
+        confirmadas={propostas.propostasConfirmadas}
+        emTramitacao={propostas.propostasEmTramitacao}
+        onLimparFiltros={limparFiltros}
+      />
 
       <RelatorioBotoesGerar
-        formatoUnico={somenteEncerrados || somenteEntregues}
         nivel={nivel}
         onNivelChange={setNivel}
-        podeGerar={
-          !municipioAmbiguo &&
-          !estabelecimentoAmbiguo &&
-          (!somenteEncerrados ||
-            Boolean(
-              encerrados.data && !encerrados.isFetching && !encerrados.isError,
-            )) &&
-          (!somenteEntregues ||
-            Boolean(
-              entregues.data && !entregues.isFetching && !entregues.isError,
-            ))
-        }
+        podeGerar={!escopo.municipioAmbiguo && !escopo.estabelecimentoAmbiguo}
         gerando={gerando}
         erro={erro}
         contexto={
-          municipioAmbiguo
+          escopo.municipioAmbiguo
             ? "Há municípios com este nome em mais de uma UF. Selecione a UF antes de exportar."
-            : estabelecimentoAmbiguo
+            : escopo.estabelecimentoAmbiguo
               ? "Há mais de um CNES com este nome. Selecione o CNES antes de exportar."
-              : `O arquivo reunirá o recorte de ${resumoEscopo}, com os filtros aplicados na prévia acima.`
+              : `Recorte de ${escopo.resumoEscopo}, com os filtros acima.`
         }
-        onGerar={(formato) => void gerar(formato, nivel, filtroGeracao)}
+        onGerar={(formato) => void gerar(formato, nivel, escopo.filtroGeracao)}
       />
     </div>
   );

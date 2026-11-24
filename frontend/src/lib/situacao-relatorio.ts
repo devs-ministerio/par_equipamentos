@@ -14,9 +14,11 @@ export function codificarSituacao(origem: OrigemSituacao, valor: string) {
   return `${origem}|${valor}`;
 }
 
+export type SituacaoDecodificada = { origem: OrigemSituacao; valor: string };
+
 export function decodificarSituacao(
   codigo: string | null,
-): { origem: OrigemSituacao; valor: string } | null {
+): SituacaoDecodificada | null {
   if (!codigo) return null;
   const [origem, ...resto] = codigo.split("|");
   if (!ORIGENS.includes(origem as OrigemSituacao) || resto.length === 0)

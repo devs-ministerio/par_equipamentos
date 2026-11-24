@@ -1,6 +1,6 @@
 # Plan Mode: relatórios que batem com as telas (24/11/2026)
 
-Estado: **aprovado o desenho; nada implementado.** Sem push, PR ou merge sem autorização. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
+Estado: **desenho aprovado; Fase 0 (UI) feita localmente.** Por decisão do usuário (24/11/2026), as visões "Concluídos" e "Entregas" saíram da página de Relatórios; voltam como recortes da camada única nas Fases 2 a 4. O backend delas segue até lá. Sem push, PR ou merge sem autorização. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
 
 ## 1. Por que este plano existe
 

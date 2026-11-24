@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { useRelatorioInstrumentosFiltros } from "./use-relatorio-instrumentos-filtros";
 
 const recortes = [
-  ["encerramento", "setEncerramento", "encerrados"],
   ["uf", "setUf", "BA"],
   ["situacao", "setSituacao", "Em execução"],
   ["anoInicio", "setAnoInicio", "2025"],
@@ -17,6 +16,14 @@ const recortes = [
 ] as const;
 
 describe("estado dos filtros do relatório", () => {
+  it("a visão (encerramento) não conta como filtro nem é limpa por limparFiltros", () => {
+    const { result } = renderHook(useRelatorioInstrumentosFiltros);
+    act(() => result.current.setEncerramento("encerrados"));
+    expect(result.current.hasFiltros).toBe(false);
+    act(() => result.current.limparFiltros());
+    expect(result.current.encerramento).toBe("encerrados");
+  });
+
   it.each(recortes)(
     "reconhece o recorte isolado %s e consegue limpá-lo",
     (campo, setter, valor) => {
