@@ -32,7 +32,7 @@ export function PainelSecaoVisaoGeral({
 }: PropsSecaoPainel) {
   const { dados, equipamentos, analise, fases } = d;
   return (
-    <PainelBloco id="visao-geral" titulo="Visão geral">
+    <PainelBloco id="visao-geral" titulo="Visão geral" ocultarTitulo>
       <MetricStrip
         items={[
           { key: "instrumentos", label: "Instrumentos", value: d.total },

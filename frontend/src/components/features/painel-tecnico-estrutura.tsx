@@ -14,11 +14,14 @@ export function PainelBloco({
   titulo,
   children,
   className,
+  ocultarTitulo = false,
 }: {
   id: string;
   titulo: string;
   children: ReactNode;
   className?: string;
+  /** Primeira seção: a aba ativa já diz onde está; o título fica só para leitor de tela. */
+  ocultarTitulo?: boolean;
 }) {
   return (
     <section
@@ -26,7 +29,12 @@ export function PainelBloco({
       aria-labelledby={`${id}-titulo`}
       className={cn("scroll-mt-36 space-y-6", className)}
     >
-      <header className="relative border-b border-border pb-4">
+      <header
+        className={cn(
+          "relative border-b border-border pb-4",
+          ocultarTitulo && "sr-only",
+        )}
+      >
         <h2
           id={`${id}-titulo`}
           className="m-0 font-display text-2xl leading-tight font-bold tracking-[-0.03em] text-foreground sm:text-[1.75rem]"

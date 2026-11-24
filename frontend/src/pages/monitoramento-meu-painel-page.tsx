@@ -149,7 +149,7 @@ export function MonitoramentoMeuPainelPage() {
       )}
       <PainelNavegacao itens={SECOES_MEU_PAINEL} />
       <div className="space-y-12">
-        <PainelBloco id="visao-geral" titulo="Visão geral">
+        <PainelBloco id="visao-geral" titulo="Visão geral" ocultarTitulo>
           <PainelTecnicoIndicadores
             carteira={c}
             faltam={faltam.length}
