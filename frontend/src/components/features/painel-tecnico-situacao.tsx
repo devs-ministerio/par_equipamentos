@@ -1,8 +1,8 @@
 import { FASES_ACOMPANHAMENTO } from "@/lib/fases-acompanhamento";
 import { cn } from "@/lib/utils";
+import { SEM_MONITORAMENTO } from "@/lib/painel-tecnico-filtro";
 import type { LinhaCarteira } from "@/services/painel-tecnico";
 
-const SEM_MONITORAMENTO = "Sem monitoramento";
 const GRADE = [0, 25, 50, 75, 100];
 
 function pct(valor: number, total: number): string {
@@ -23,7 +23,15 @@ const COR_BARRA: Record<Coluna["tom"], string> = {
 };
 
 /** Instrumentos da carteira por situação do monitoramento interno (fase oficial) e os ainda não incluídos. */
-export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
+export function SecaoSituacao({
+  linhas,
+  selecionada,
+  onSelecionar,
+}: {
+  linhas: LinhaCarteira[];
+  selecionada?: string;
+  onSelecionar: (rotulo: string | undefined) => void;
+}) {
   const contagem = new Map<string, number>();
   let semMonitoramento = 0;
   for (const l of linhas) {
@@ -65,40 +73,51 @@ export function SecaoSituacao({ linhas }: { linhas: LinhaCarteira[] }) {
             aria-label="Instrumentos por situação do monitoramento interno"
           >
             {colunas.map((c) => (
-              <li
-                key={c.rotulo}
-                className="group flex min-w-0 flex-1 flex-col items-center"
-                title={`${c.rotulo}: ${c.valor} (${pct(c.valor, linhas.length)})`}
-              >
-                <div className="flex h-[13.5rem] w-full flex-col items-center justify-end">
-                  <span className="mb-1 text-base leading-6 font-semibold tabular-nums">
-                    {c.valor}
-                  </span>
-                  <div
-                    className={cn(
-                      "w-3/5 max-w-14 rounded-t-lg transition-opacity group-hover:opacity-80",
-                      COR_BARRA[c.tom],
-                    )}
-                    style={{
-                      height:
-                        c.valor > 0 ? `${(11 * c.valor) / maximo}rem` : "3px",
-                      opacity: c.valor > 0 ? undefined : 0.35,
-                    }}
-                  />
-                </div>
-                <span
+              <li key={c.rotulo} className="flex min-w-0 flex-1 flex-col">
+                <button
+                  type="button"
+                  aria-pressed={selecionada === c.rotulo}
+                  onClick={() =>
+                    onSelecionar(
+                      selecionada === c.rotulo ? undefined : c.rotulo,
+                    )
+                  }
+                  title={`${c.rotulo}: ${c.valor} (${pct(c.valor, linhas.length)})`}
                   className={cn(
-                    "mt-2.5 text-center text-[11px] leading-tight break-normal",
-                    c.tom === "alerta"
-                      ? "font-semibold text-foreground"
-                      : "text-muted-foreground",
+                    "group flex w-full cursor-pointer flex-col items-center rounded-lg border-0 bg-transparent p-0 pb-1 text-inherit transition-opacity focus-visible:outline-2 focus-visible:outline-ring",
+                    selecionada && selecionada !== c.rotulo && "opacity-40",
                   )}
                 >
-                  {c.rotulo}
-                </span>
-                <span className="mt-1 text-[11px] text-muted-foreground tabular-nums">
-                  {pct(c.valor, linhas.length)}
-                </span>
+                  <div className="flex h-[13.5rem] w-full flex-col items-center justify-end">
+                    <span className="mb-1 text-base leading-6 font-semibold tabular-nums">
+                      {c.valor}
+                    </span>
+                    <div
+                      className={cn(
+                        "w-3/5 max-w-14 rounded-t-lg transition-opacity group-hover:opacity-80",
+                        COR_BARRA[c.tom],
+                      )}
+                      style={{
+                        height:
+                          c.valor > 0 ? `${(11 * c.valor) / maximo}rem` : "3px",
+                        opacity: c.valor > 0 ? undefined : 0.35,
+                      }}
+                    />
+                  </div>
+                  <span
+                    className={cn(
+                      "mt-2.5 text-center text-[11px] leading-tight break-normal",
+                      c.tom === "alerta"
+                        ? "font-semibold text-foreground"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {c.rotulo}
+                  </span>
+                  <span className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                    {pct(c.valor, linhas.length)}
+                  </span>
+                </button>
               </li>
             ))}
           </ul>

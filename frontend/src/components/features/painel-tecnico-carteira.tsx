@@ -59,10 +59,14 @@ export function PainelTecnicoCarteira({
   linhas,
   filtro,
   onLimpar,
+  total,
+  chips = [],
 }: {
   linhas: LinhaCarteira[];
   filtro: FiltroCarteira;
   onLimpar: () => void;
+  total?: number;
+  chips?: { rotulo: string; onRemover: () => void }[];
 }) {
   const queryClient = useQueryClient();
   const atualizar = () =>
@@ -111,7 +115,7 @@ export function PainelTecnicoCarteira({
     <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <p className="m-0 mr-auto text-sm font-medium tabular-nums">
-          {filtradas.length} de {linhas.length} instrumentos
+          {filtradas.length} de {total ?? linhas.length} instrumentos
         </p>
         <Input
           className="max-w-xs"
@@ -122,6 +126,22 @@ export function PainelTecnicoCarteira({
             setVisiveis(PASSO);
           }}
         />
+        {chips.map((c) => (
+          <Badge
+            key={c.rotulo}
+            variant="secondary"
+            className="h-7 gap-2 px-3 text-sm"
+          >
+            {c.rotulo}
+            <button
+              type="button"
+              className="cursor-pointer font-semibold text-primary hover:underline"
+              onClick={c.onRemover}
+            >
+              Limpar
+            </button>
+          </Badge>
+        ))}
         {filtro !== "todos" && (
           <Badge variant="secondary" className="h-7 gap-2 px-3 text-sm">
             {ROTULO_FILTRO[filtro]}
@@ -137,7 +157,7 @@ export function PainelTecnicoCarteira({
       </div>
       {filtradas.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Nenhum convênio com este filtro.
+          Nenhum instrumento com este filtro.
         </p>
       ) : (
         <Table>

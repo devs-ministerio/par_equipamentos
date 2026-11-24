@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import type { FamiliaEntregue } from "@/lib/equipamentos-entregues";
 
@@ -7,8 +8,12 @@ const LIMITE = 8;
 /** Equipamentos planejados e entregues por tipo (família) nos instrumentos monitorados da região. */
 export function SecaoEquipamentos({
   familias: todasFamilias,
+  selecionada,
+  onSelecionar,
 }: {
   familias: FamiliaEntregue[];
+  selecionada?: string;
+  onSelecionar: (familia: string | undefined) => void;
 }) {
   const familias = todasFamilias
     .filter((f) => f.planejado > 0)
@@ -46,35 +51,47 @@ export function SecaoEquipamentos({
       ) : (
         <ul className="m-0 mt-5 list-none space-y-3 p-0">
           {visiveis.map((f) => (
-            <li
-              key={f.familia}
-              className="grid grid-cols-[minmax(0,10rem)_1fr_4.5rem] items-center gap-3 text-sm sm:grid-cols-[minmax(0,15rem)_1fr_5rem]"
-              title={`${f.familia}: ${f.entregue} entregues de ${f.planejado} planejados`}
-            >
-              <span className="leading-tight">{f.familia}</span>
-              <div
-                className="h-3 overflow-hidden rounded-full bg-secondary"
-                aria-hidden="true"
+            <li key={f.familia}>
+              <button
+                type="button"
+                aria-pressed={selecionada === f.familia}
+                onClick={() =>
+                  onSelecionar(
+                    selecionada === f.familia ? undefined : f.familia,
+                  )
+                }
+                title={`${f.familia}: ${f.entregue} entregues de ${f.planejado} planejados`}
+                className={cn(
+                  "grid w-full cursor-pointer grid-cols-[minmax(0,10rem)_1fr_4.5rem] items-center gap-3 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring sm:grid-cols-[minmax(0,15rem)_1fr_5rem]",
+                  selecionada === f.familia && "bg-primary/10",
+                  selecionada && selecionada !== f.familia && "opacity-40",
+                )}
               >
+                <span className="leading-tight">{f.familia}</span>
                 <div
-                  className="relative h-full rounded-full bg-primary/25"
-                  style={{ width: `${(100 * f.planejado) / maximo}%` }}
+                  className="h-3 overflow-hidden rounded-full bg-secondary"
+                  aria-hidden="true"
                 >
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
-                    style={{
-                      width: `${f.planejado > 0 ? (100 * f.entregue) / f.planejado : 0}%`,
-                    }}
-                  />
+                    className="relative h-full rounded-full bg-primary/25"
+                    style={{ width: `${(100 * f.planejado) / maximo}%` }}
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
+                      style={{
+                        width: `${f.planejado > 0 ? (100 * f.entregue) / f.planejado : 0}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-              <span className="text-right font-semibold tabular-nums">
-                {f.entregue}
-                <span className="font-normal text-muted-foreground">
-                  {" "}
-                  / {f.planejado}
+                <span className="text-right font-semibold tabular-nums">
+                  {f.entregue}
+                  <span className="font-normal text-muted-foreground">
+                    {" "}
+                    / {f.planejado}
+                  </span>
                 </span>
-              </span>
+              </button>
             </li>
           ))}
         </ul>

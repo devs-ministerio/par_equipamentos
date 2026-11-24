@@ -27,6 +27,7 @@ import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-cart
 import {
   entrouNoRadarRecente,
   JANELA_RADAR_DIAS,
+  faseDaLinha,
   type FiltroCarteira,
 } from "@/lib/painel-tecnico-filtro";
 import { fmtMoeda } from "@/lib/monitoramento-format";
@@ -46,6 +47,8 @@ export function MonitoramentoMeuPainelPage() {
   const consulta = usePainelTecnico(colaboradorId);
   const carteiraQuery = useCarteiraTecnico(colaboradorId);
   const [filtroCarteira, setFiltroCarteira] = useState<FiltroCarteira>("todos");
+  const [faseSel, setFaseSel] = useState<string | undefined>();
+  const [familiaSel, setFamiliaSel] = useState<string | undefined>();
   const linhas = carteiraQuery.data ?? [];
   const dados = consulta.data;
   const resumo = useMonitoramentoResumo();
@@ -59,9 +62,11 @@ export function MonitoramentoMeuPainelPage() {
       <select
         className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm sm:w-auto"
         value={colaboradorId ?? ""}
-        onChange={(e) =>
-          setColaboradorId(e.target.value ? Number(e.target.value) : undefined)
-        }
+        onChange={(e) => {
+          setColaboradorId(e.target.value ? Number(e.target.value) : undefined);
+          setFaseSel(undefined);
+          setFamiliaSel(undefined);
+        }}
       >
         <option value="">Todos</option>
         {(tecnicos.data ?? []).map((t) => (
@@ -121,6 +126,34 @@ export function MonitoramentoMeuPainelPage() {
   const numerosMonitorados = new Set(
     linhas.filter((l) => l.monitorado).map((l) => l.numero),
   );
+  const equipamentosResumo = resumo.data?.equipamentos_por_instrumento ?? [];
+  const numerosDaFamilia = (familia: string) =>
+    new Set(
+      equipamentosResumo
+        .filter((e) => e.familia === familia && e.planejado > 0)
+        .map((e) => e.nr_convenio),
+    );
+  const numerosFamiliaSel = familiaSel ? numerosDaFamilia(familiaSel) : null;
+  const linhasSituacao = numerosFamiliaSel
+    ? linhas.filter((l) => l.monitorado && numerosFamiliaSel.has(l.numero))
+    : linhas;
+  const linhasDaFase = faseSel
+    ? linhas.filter((l) => faseDaLinha(l) === faseSel)
+    : linhas;
+  const numerosEquipamentos = new Set(
+    linhasDaFase.filter((l) => l.monitorado).map((l) => l.numero),
+  );
+  const linhasCarteira = linhasDaFase.filter(
+    (l) => !numerosFamiliaSel || numerosFamiliaSel.has(l.numero),
+  );
+  const chipsDashboard = [
+    ...(faseSel
+      ? [{ rotulo: faseSel, onRemover: () => setFaseSel(undefined) }]
+      : []),
+    ...(familiaSel
+      ? [{ rotulo: familiaSel, onRemover: () => setFamiliaSel(undefined) }]
+      : []),
+  ];
   const prazos =
     resumo.data && instrumentosQuery.data && conveniosQuery.data
       ? montarMetricasPainel(
@@ -205,12 +238,18 @@ export function MonitoramentoMeuPainelPage() {
             ]}
           />
           <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-            <SecaoSituacao linhas={linhas} />
+            <SecaoSituacao
+              linhas={linhasSituacao}
+              selecionada={faseSel}
+              onSelecionar={setFaseSel}
+            />
             <SecaoEquipamentos
               familias={entreguesPorFamilia(
-                resumo.data?.equipamentos_por_instrumento ?? [],
-                numerosMonitorados,
+                equipamentosResumo,
+                numerosEquipamentos,
               )}
+              selecionada={familiaSel}
+              onSelecionar={setFamiliaSel}
             />
           </div>
         </PainelBloco>
@@ -222,7 +261,9 @@ export function MonitoramentoMeuPainelPage() {
             />
           ) : (
             <PainelTecnicoCarteira
-              linhas={linhas}
+              linhas={linhasCarteira}
+              total={linhas.length}
+              chips={chipsDashboard}
               filtro={filtroCarteira}
               onLimpar={() => setFiltroCarteira("todos")}
             />

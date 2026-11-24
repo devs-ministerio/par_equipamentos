@@ -15,6 +15,13 @@ export const ROTULO_FILTRO: Record<FiltroCarteira, string> = {
   radar: "Novos Instrumentos (últimos 7 dias)",
 };
 
+export const SEM_MONITORAMENTO = "Sem monitoramento";
+
+/** Situação exibida no gráfico: fase oficial quando monitorado, senão "Sem monitoramento". */
+export function faseDaLinha(l: LinhaCarteira): string | null {
+  return l.monitorado ? (l.fase ?? null) : SEM_MONITORAMENTO;
+}
+
 export const JANELA_RADAR_DIAS = 7;
 
 export function entrouNoRadarRecente(l: LinhaCarteira): boolean {
