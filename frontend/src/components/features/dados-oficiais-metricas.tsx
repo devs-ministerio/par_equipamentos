@@ -3,14 +3,8 @@ import { fmtMoeda } from "@/lib/monitoramento-format";
 import type { TotalFinanceiro } from "@/hooks/use-dados-oficiais-resumo";
 
 function totalFinanceiro(total: TotalFinanceiro) {
-  if (total.valor === null)
-    return { value: "Sem valor informado", detail: undefined };
   return {
-    value: fmtMoeda(total.valor),
-    detail:
-      total.informados < total.total
-        ? `valor conhecido de ${total.informados} de ${total.total} instrumentos`
-        : undefined,
+    value: total.valor === null ? "Sem valor informado" : fmtMoeda(total.valor),
   };
 }
 

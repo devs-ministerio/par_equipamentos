@@ -25,11 +25,10 @@ describe("DadosOficiaisMetricas: totais financeiros", () => {
     expect(screen.queryByText(/R\$\s*0/)).not.toBeInTheDocument();
   });
 
-  it("recorte misto mostra a soma conhecida e a cobertura", () => {
+  it("recorte misto mostra a soma conhecida, sem legenda de cobertura", () => {
     montar({ valor: 1500, informados: 2, total: 5 });
-    expect(
-      screen.getAllByText("valor conhecido de 2 de 5 instrumentos").length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText(/1\.500/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/valor conhecido de/)).not.toBeInTheDocument();
   });
 
   it("zero informado e válido continua zero", () => {
