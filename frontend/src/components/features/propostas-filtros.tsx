@@ -16,13 +16,12 @@ import {
   type OpcaoFiltro,
 } from "@/components/common/opcoes-multiplas";
 import { Input } from "@/components/ui/input";
-import { ESTAGIO_LABEL } from "@/lib/proposta-status";
 import type { PropostasFiltros as Filtros } from "@/hooks/use-propostas-filtros";
 import { CampoSelect } from "./painel-gestao-filtros-campos";
 
 const ESTAGIOS: OpcaoFiltro[] = [
-  { value: "confirmada", label: ESTAGIO_LABEL.confirmada },
-  { value: "tramitacao", label: ESTAGIO_LABEL.tramitacao },
+  { value: "tramitacao", label: "Proposta" },
+  { value: "confirmada", label: "Celebrado" },
 ];
 
 /** Filtros de Linhas de financiamento no mesmo padrão do Painel de gestão. */
@@ -78,6 +77,14 @@ export function PropostasFiltros({ filtros: f }: { filtros: Filtros }) {
         </form>
       ),
     },
+    multipla(
+      "Etapa",
+      Flag,
+      ESTAGIOS,
+      f.estagio,
+      f.setEstagio,
+      "Todas as etapas",
+    ),
     {
       rotulo: "Período",
       icone: CalendarRange,
@@ -130,14 +137,6 @@ export function PropostasFiltros({ filtros: f }: { filtros: Filtros }) {
       "Todos os equipamentos",
     ),
     multipla(
-      "Estágio",
-      Flag,
-      ESTAGIOS,
-      f.estagio,
-      f.setEstagio,
-      "Todos os estágios",
-    ),
-    multipla(
       "Situação",
       Activity,
       o.situacao,
@@ -180,7 +179,7 @@ export function PropostasFiltros({ filtros: f }: { filtros: Filtros }) {
   lista("UF", f.uf, o.uf, () => f.setUf([]));
   lista("Município", f.municipio, o.municipio, () => f.setMunicipio([]));
   lista("CNES", f.cnes, o.cnes, () => f.setCnes([]));
-  lista("Estágio", f.estagio, ESTAGIOS, () => f.setEstagio([]));
+  lista("Etapa", f.estagio, ESTAGIOS, () => f.setEstagio([]));
   lista("Equipamento", f.equipamento, o.equipamento, () =>
     f.setEquipamento([]),
   );

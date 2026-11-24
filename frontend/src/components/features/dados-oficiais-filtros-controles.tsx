@@ -87,6 +87,26 @@ export function montarControlesDadosOficiais(
       ),
     },
     {
+      rotulo: "Etapa",
+      icone: Eye,
+      ativo: !!f.monitorado,
+      conteudo: (fechar) => (
+        <Opcoes
+          rotulo="Etapa"
+          opcoes={[
+            { value: "nao", label: "Celebrado" },
+            { value: "sim", label: "Em monitoramento" },
+          ]}
+          valor={f.monitorado}
+          todos="Todas as etapas"
+          selecionar={(valor) => {
+            f.setMonitorado(valor);
+            fechar();
+          }}
+        />
+      ),
+    },
+    {
       rotulo: "Período",
       icone: CalendarRange,
       ativo: !!(f.anoInicio || f.anoFim),
@@ -136,26 +156,6 @@ export function montarControlesDadosOficiais(
       f.setTipoContratacao,
       "Todas as contratações",
     ),
-    {
-      rotulo: "Etapa",
-      icone: Eye,
-      ativo: !!f.monitorado,
-      conteudo: (fechar) => (
-        <Opcoes
-          rotulo="Etapa"
-          opcoes={[
-            { value: "nao", label: "Celebrado" },
-            { value: "sim", label: "Em monitoramento" },
-          ]}
-          valor={f.monitorado}
-          todos="Todas as etapas"
-          selecionar={(valor) => {
-            f.setMonitorado(valor);
-            fechar();
-          }}
-        />
-      ),
-    },
     multipla("UF", MapPin, o.uf, f.uf, f.setUf, "Todas as UFs"),
     multipla(
       "Município",

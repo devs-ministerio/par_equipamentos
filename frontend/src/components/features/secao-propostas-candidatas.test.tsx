@@ -44,10 +44,10 @@ vi.mock("./proposta-card", () => ({
 }));
 
 describe("SecaoPropostasCandidatas", () => {
-  it("lista proposta em tramitação e oferece o filtro de estágio", () => {
+  it("lista proposta em tramitação e oferece o filtro de etapa", () => {
     render(<SecaoPropostasCandidatas />);
 
     expect(screen.getByText("Proposta 123")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Estágio" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Etapa" })).toBeVisible();
   });
 });
