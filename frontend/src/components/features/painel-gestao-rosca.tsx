@@ -27,7 +27,7 @@ export function GraficoRosca({
     <div className="flex flex-1 flex-col items-center gap-6 sm:flex-row sm:items-center">
       <div className="relative size-40 shrink-0">
         <svg
-          viewBox="0 0 36 36"
+          viewBox="-1.5 -1.5 39 39"
           className="size-full -rotate-90"
           role="img"
           aria-label={fatias.map((f) => `${f.rotulo}: ${f.valor}`).join("; ")}

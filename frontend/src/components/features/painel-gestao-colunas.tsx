@@ -14,14 +14,15 @@ export interface ColunaGrafico {
   segmentos: SegmentoColuna[];
 }
 
+/** Legenda de rodapé, centralizada, no mesmo padrão em todos os gráficos do painel. */
 export function LegendaSegmentos({
   itens,
 }: {
-  itens: Array<{ nome: string; cor: string }>;
+  itens: Array<{ nome: string; cor: string; valor?: number }>;
 }) {
   return (
     <ul
-      className="m-0 mb-3 flex list-none flex-wrap gap-x-5 gap-y-1 p-0 text-xs text-muted-foreground"
+      className="m-0 mt-auto flex list-none flex-wrap justify-center gap-x-5 gap-y-1 p-0 pt-5 text-xs text-muted-foreground"
       aria-label="Legenda"
     >
       {itens.map((item) => (
@@ -32,6 +33,11 @@ export function LegendaSegmentos({
             style={{ backgroundColor: item.cor }}
           />
           {item.nome}
+          {item.valor !== undefined && (
+            <strong className="font-semibold text-foreground tabular-nums">
+              {item.valor}
+            </strong>
+          )}
         </li>
       ))}
     </ul>

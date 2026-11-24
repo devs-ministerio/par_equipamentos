@@ -1,6 +1,3 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-
 export interface ItemRanking {
   rotulo: string;
   valor: number;
@@ -8,11 +5,15 @@ export interface ItemRanking {
   texto?: string;
   /** Parte do valor já realizada (ex.: entregue de planejado), desenhada dentro da barra. */
   parcial?: number;
+  /** Linha de apoio sob o rótulo, em tom discreto. */
+  detalhe?: string;
+  /** Cor própria da barra (padrão: gradiente primário). */
+  cor?: string;
   /** Partes coloridas da barra, em ordem; o que sobra do valor fica no tom claro. */
   segmentos?: Array<{ valor: number; cor: string }>;
 }
 
-/** Barras horizontais ordenadas; mostra os primeiros e expande o restante. */
+/** Barras horizontais ordenadas; acima de `limite` linhas a lista rola dentro do cartão. */
 export function RankingBarras({
   itens,
   limite = 7,
@@ -22,21 +23,35 @@ export function RankingBarras({
   limite?: number;
   vazio?: string;
 }) {
-  const [todos, setTodos] = useState(false);
   if (itens.length === 0)
     return <p className="m-0 text-sm text-muted-foreground">{vazio}</p>;
   const maximo = Math.max(1, ...itens.map((i) => i.valor));
-  const visiveis = todos ? itens : itens.slice(0, limite);
+  const altura = itens.some((i) => i.detalhe) ? 3.5 : 2.75;
+  const rola = itens.length > limite;
   return (
     <>
-      <ul className="m-0 list-none space-y-3 p-0">
-        {visiveis.map((item) => (
+      <ul
+        className={
+          rola
+            ? "m-0 list-none space-y-3 overflow-y-auto p-0 pr-2"
+            : "m-0 list-none space-y-3 p-0"
+        }
+        style={rola ? { maxHeight: `${limite * altura}rem` } : undefined}
+        tabIndex={rola ? 0 : undefined}
+        aria-label={rola ? "Lista com rolagem" : undefined}
+      >
+        {itens.map((item) => (
           <li
             key={item.rotulo}
             className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 text-sm sm:grid-cols-[minmax(0,11rem)_1fr_auto]"
           >
             <span className="leading-tight" title={item.rotulo}>
               {item.rotulo}
+              {item.detalhe && (
+                <small className="block text-xs font-normal text-muted-foreground">
+                  {item.detalhe}
+                </small>
+              )}
             </span>
             <div
               className="h-2.5 overflow-hidden rounded-full bg-secondary"
@@ -44,11 +59,16 @@ export function RankingBarras({
             >
               <div
                 className={
-                  item.parcial === undefined && !item.segmentos
-                    ? "h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
-                    : "h-full rounded-full bg-primary/25"
+                  item.cor
+                    ? "h-full rounded-full"
+                    : item.parcial === undefined && !item.segmentos
+                      ? "h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
+                      : "h-full rounded-full bg-primary/25"
                 }
-                style={{ width: `${(100 * item.valor) / maximo}%` }}
+                style={{
+                  width: `${(100 * item.valor) / maximo}%`,
+                  ...(item.cor ? { backgroundColor: item.cor } : {}),
+                }}
               >
                 {item.segmentos && (
                   <div className="flex h-full">
@@ -80,17 +100,6 @@ export function RankingBarras({
           </li>
         ))}
       </ul>
-      {itens.length > limite && (
-        <div className="mt-4 flex justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setTodos((v) => !v)}
-          >
-            {todos ? "Mostrar menos" : `Mostrar todos (${itens.length})`}
-          </Button>
-        </div>
-      )}
     </>
   );
 }

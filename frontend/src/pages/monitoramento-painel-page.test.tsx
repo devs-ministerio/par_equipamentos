@@ -74,11 +74,6 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
         metrica("Valor global informado").getByText("—"),
       ).toBeInTheDocument(),
     );
-    expect(
-      metrica("Valor global informado").getByText(
-        /Pagamento ao fornecedor sem base comparável/,
-      ),
-    ).toBeInTheDocument();
   });
 
   it.each(ROTAS_PAINEL)("aguarda a fonte principal %s", async (rota) => {

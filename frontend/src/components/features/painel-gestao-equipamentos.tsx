@@ -1,6 +1,4 @@
-import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   COR_EM_OPERACAO,
   COR_ENTREGUE,
@@ -32,24 +30,14 @@ export function PainelGestaoEquipamentos({
         b.planejado - a.planejado ||
         a.familia.localeCompare(b.familia),
     );
-  const [todos, setTodos] = useState(false);
   const { operacao, entregue, restante } = totaisOperacao(familias);
   const maximo = Math.max(1, ...familias.map((f) => f.planejado));
-  const visiveis = todos ? familias : familias.slice(0, LIMITE);
+  const rola = familias.length > LIMITE;
   return (
-    <section className="h-full rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <h3 className="m-0 text-base font-semibold tracking-tight">
-          Equipamentos por tipo
-        </h3>
-        <p className="m-0 text-sm tabular-nums text-muted-foreground">
-          <strong className="font-display text-xl font-semibold text-foreground">
-            {operacao}
-          </strong>{" "}
-          em operação · {entregue} entregues, a inaugurar · {restante}{" "}
-          planejados
-        </p>
-      </div>
+    <section className="flex h-full min-w-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <h3 className="m-0 text-base font-semibold tracking-tight">
+        Equipamentos por tipo
+      </h3>
       {familias.length === 0 ? (
         <p className="mt-4 mb-0 text-sm text-muted-foreground">
           Nenhum equipamento com controle por unidade nos instrumentos
@@ -57,11 +45,16 @@ export function PainelGestaoEquipamentos({
         </p>
       ) : (
         <>
-          <div className="mt-4">
-            <LegendaSegmentos itens={LEGENDA_OPERACAO} />
-          </div>
-          <ul className="m-0 list-none space-y-3 p-0">
-            {visiveis.map((f) => (
+          <ul
+            className={cn(
+              "m-0 mt-5 list-none space-y-3 p-0",
+              rola && "overflow-y-auto pr-2",
+            )}
+            style={rola ? { maxHeight: `${LIMITE * 2.9}rem` } : undefined}
+            tabIndex={rola ? 0 : undefined}
+            aria-label={rola ? "Lista com rolagem" : undefined}
+          >
+            {familias.map((f) => (
               <li key={f.familia}>
                 <button
                   type="button"
@@ -74,7 +67,7 @@ export function PainelGestaoEquipamentos({
                   }
                   title={`${f.familia}: ${f.operacao} em operação, ${f.entregue} entregues a inaugurar, ${f.planejado - f.operacao - f.entregue} planejados`}
                   className={cn(
-                    "grid w-full cursor-pointer grid-cols-[minmax(0,7rem)_minmax(2rem,1fr)_6.5rem] items-center gap-2 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit transition-colors enabled:hover:bg-muted/50 disabled:cursor-default focus-visible:outline-2 focus-visible:outline-ring xl:grid-cols-[minmax(0,11rem)_1fr_6.5rem] xl:gap-3",
+                    "grid w-full cursor-pointer grid-cols-[minmax(0,7rem)_minmax(2rem,1fr)_4.5rem] items-center gap-2 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit transition-colors enabled:hover:bg-muted/50 disabled:cursor-default focus-visible:outline-2 focus-visible:outline-ring xl:grid-cols-[minmax(0,11rem)_1fr_4.5rem] xl:gap-3",
                     selecionada === f.familia && "bg-primary/10",
                     selecionada && selecionada !== f.familia && "opacity-40",
                   )}
@@ -108,11 +101,10 @@ export function PainelGestaoEquipamentos({
                     </div>
                   </div>
                   <span className="whitespace-nowrap text-right tabular-nums text-muted-foreground">
-                    {f.operacao} ·{" "}
                     <strong className="font-semibold text-foreground">
-                      {f.entregue}
+                      {f.operacao}
                     </strong>{" "}
-                    · {f.planejado - f.operacao - f.entregue}
+                    de {f.planejado}
                   </span>
                 </button>
               </li>
@@ -120,16 +112,13 @@ export function PainelGestaoEquipamentos({
           </ul>
         </>
       )}
-      {familias.length > LIMITE && (
-        <div className="mt-4 flex justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setTodos((v) => !v)}
-          >
-            {todos ? "Mostrar menos" : `Mostrar todos (${familias.length})`}
-          </Button>
-        </div>
+      {familias.length > 0 && (
+        <LegendaSegmentos
+          itens={LEGENDA_OPERACAO.map((l, i) => ({
+            ...l,
+            valor: [operacao, entregue, restante][i],
+          }))}
+        />
       )}
     </section>
   );

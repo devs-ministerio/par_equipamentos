@@ -161,11 +161,6 @@ export function MonitoramentoPainelPage() {
     (t, a) => t + a.inaugurados + a.dispensados,
     0,
   );
-  const persusIISemAno = filtros.hasFiltros
-    ? 0
-    : convenios.filter(
-        (c) => c.tipoContratacao === "PERSUS II" && c.anoInstrumento == null,
-      ).length;
   const situacaoInaug = situacaoInauguracao(
     numeros,
     resumo.etapas_por_instrumento,
@@ -189,11 +184,6 @@ export function MonitoramentoPainelPage() {
     valor: c.quantidade,
     cor: corDaContratacao(c.rotulo),
   }));
-  const pago =
-    dados.percentualPagoComRegra == null
-      ? null
-      : Math.round(dados.percentualPagoComRegra * 100);
-
   return (
     <div className="space-y-6 pb-8">
       {header}
@@ -207,7 +197,6 @@ export function MonitoramentoPainelPage() {
                 key: "instrumentos",
                 label: "Instrumentos",
                 value: total,
-                detail: `${dados.fases.find((fase) => fase.rotulo === "Concluído")?.quantidade ?? 0} em fase concluída`,
               },
               {
                 key: "valor-global",
@@ -215,17 +204,6 @@ export function MonitoramentoPainelPage() {
                 value: dados.instrumentosComValor
                   ? fmtMoeda(dados.valorGlobal)
                   : "—",
-                detail: (
-                  <>
-                    {pago == null
-                      ? "Pagamento ao fornecedor sem base comparável"
-                      : `${pago}% pago ao fornecedor`}
-                    <br />
-                    {`Valor de ${dados.instrumentosComValor} de ${total} instrumentos`}
-                    {dados.pagamentosManuaisConcluidos > 0 &&
-                      ` · ${dados.pagamentosManuaisConcluidos} com quitação assumida pela regra da carga concluída (não é pagamento registrado)`}
-                  </>
-                ),
               },
               {
                 key: "operacao",
@@ -270,26 +248,12 @@ export function MonitoramentoPainelPage() {
                 ],
               }))}
             />
-            {persusIISemAno > 0 && (
-              <p className="m-0 mt-4 text-xs text-muted-foreground">
-                Não contabiliza os {persusIISemAno} PERSUS II, que não têm ano.
-              </p>
-            )}
           </PainelCartao>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
             <PainelCartao
               titulo="Ano de Início de Operação dos Equipamentos"
               apoio={`${totalEntregaAno} equipamentos em operação`}
             >
-              <LegendaSegmentos
-                itens={[
-                  { nome: "Inauguração realizada", cor: COR_REALIZADA },
-                  {
-                    nome: "Inauguração dispensada",
-                    cor: "var(--painel-chart-turquesa)",
-                  },
-                ]}
-              />
               <GraficoColunas
                 vazio="Nenhum equipamento em operação neste recorte."
                 colunas={entregaAno.anos.map((a) => ({
@@ -308,12 +272,15 @@ export function MonitoramentoPainelPage() {
                   ],
                 }))}
               />
-              {entregaAno.aguardando > 0 && (
-                <p className="m-0 mt-4 text-xs text-muted-foreground">
-                  Não contabiliza {entregaAno.aguardando} equipamentos
-                  entregues, que ainda precisam de inauguração.
-                </p>
-              )}
+              <LegendaSegmentos
+                itens={[
+                  { nome: "Inauguração realizada", cor: COR_REALIZADA },
+                  {
+                    nome: "Inauguração dispensada",
+                    cor: "var(--painel-chart-turquesa)",
+                  },
+                ]}
+              />
             </PainelCartao>
             <PainelCartao titulo="Situação da inauguração">
               <GraficoRosca
@@ -347,14 +314,7 @@ export function MonitoramentoPainelPage() {
 
         <PainelBloco id="andamento" titulo="Andamento">
           <div className="grid gap-6 lg:grid-cols-2">
-            <PainelCartao
-              titulo="Instrumentos parados"
-              apoio={
-                parados.semAtividade > 0
-                  ? `${parados.semAtividade} sem nenhum lançamento`
-                  : undefined
-              }
-            >
+            <PainelCartao titulo="Instrumentos sem atualizações">
               <GraficoColunas
                 vazio="Nenhum instrumento em andamento."
                 colunas={parados.faixas.map((f) => ({
@@ -376,11 +336,7 @@ export function MonitoramentoPainelPage() {
               />
             </PainelCartao>
           </div>
-          <PainelCartao
-            titulo="Entregue por UF"
-            apoio={`${equipamentos.operacao} em operação · ${equipamentos.entregue} entregues, a inaugurar · ${equipamentos.restante} planejados`}
-          >
-            <LegendaSegmentos itens={LEGENDA_OPERACAO} />
+          <PainelCartao titulo="Entregue por UF">
             <RankingBarras
               limite={10}
               vazio="Nenhum equipamento planejado neste recorte."
@@ -391,7 +347,17 @@ export function MonitoramentoPainelPage() {
                   { valor: u.operacao, cor: COR_EM_OPERACAO },
                   { valor: u.entregue, cor: COR_ENTREGUE },
                 ],
-                texto: `${u.operacao} · ${u.entregue} · ${u.planejado - u.operacao - u.entregue}`,
+                texto: `${u.operacao} de ${u.planejado}`,
+              }))}
+            />
+            <LegendaSegmentos
+              itens={LEGENDA_OPERACAO.map((l, i) => ({
+                ...l,
+                valor: [
+                  equipamentos.operacao,
+                  equipamentos.entregue,
+                  equipamentos.restante,
+                ][i],
               }))}
             />
           </PainelCartao>
@@ -405,8 +371,10 @@ export function MonitoramentoPainelPage() {
             <PainelCartao titulo="Investimento por contratação">
               <RankingBarras
                 itens={dados.porTipo.map((t) => ({
-                  rotulo: `${t.rotulo} (${t.comValor}/${t.quantidade})`,
+                  rotulo: t.rotulo,
+                  detalhe: `${t.comValor} de ${t.quantidade} com valor`,
                   valor: t.valor,
+                  cor: corDaContratacao(t.rotulo),
                   texto: t.comValor ? fmtMoeda(t.valor) : "—",
                 }))}
               />
@@ -420,15 +388,20 @@ export function MonitoramentoPainelPage() {
                     valor: dados.valoresPorFase.get(f) ?? 0,
                   }))
                   .filter((f) => f.valor > 0)
-                  .map((f) => ({ ...f, texto: fmtMoeda(f.valor) }))}
+                  .map((f) => ({
+                    ...f,
+                    cor: corDaFase(f.rotulo, fases),
+                    texto: fmtMoeda(f.valor),
+                  }))}
               />
             </PainelCartao>
             <PainelCartao
               titulo="Instrumentos por UF"
-              apoio={`Top 5: ${analise.concentracaoTop5Uf}%`}
+              apoio={`Top 5 concentram ${analise.concentracaoTop5Uf}%`}
+              className="lg:row-span-2"
             >
               <RankingBarras
-                limite={8}
+                limite={14}
                 itens={analise.ufs.map((u) => ({
                   rotulo: u.rotulo,
                   valor: u.quantidade,
