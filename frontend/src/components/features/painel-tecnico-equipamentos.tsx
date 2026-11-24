@@ -13,7 +13,7 @@ export function SecaoEquipamentos({
 }: {
   familias: FamiliaEntregue[];
   selecionada?: string;
-  onSelecionar: (familia: string | undefined) => void;
+  onSelecionar?: (familia: string | undefined) => void;
 }) {
   const familias = todasFamilias
     .filter((f) => f.planejado > 0)
@@ -29,7 +29,7 @@ export function SecaoEquipamentos({
   const maximo = Math.max(1, ...familias.map((f) => f.planejado));
   const visiveis = todas ? familias : familias.slice(0, LIMITE);
   return (
-    <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
+    <section className="h-full rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <h3 className="m-0 text-base font-semibold tracking-tight">
           Equipamentos por tipo
@@ -54,15 +54,16 @@ export function SecaoEquipamentos({
             <li key={f.familia}>
               <button
                 type="button"
+                disabled={!onSelecionar}
                 aria-pressed={selecionada === f.familia}
                 onClick={() =>
-                  onSelecionar(
+                  onSelecionar?.(
                     selecionada === f.familia ? undefined : f.familia,
                   )
                 }
                 title={`${f.familia}: ${f.entregue} entregues de ${f.planejado} planejados`}
                 className={cn(
-                  "grid w-full cursor-pointer grid-cols-[minmax(0,10rem)_1fr_4.5rem] items-center gap-3 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:outline-ring sm:grid-cols-[minmax(0,15rem)_1fr_5rem]",
+                  "grid w-full cursor-pointer grid-cols-[minmax(0,10rem)_1fr_4.5rem] items-center gap-3 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit transition-colors enabled:hover:bg-muted/50 disabled:cursor-default focus-visible:outline-2 focus-visible:outline-ring sm:grid-cols-[minmax(0,15rem)_1fr_5rem]",
                   selecionada === f.familia && "bg-primary/10",
                   selecionada && selecionada !== f.familia && "opacity-40",
                 )}

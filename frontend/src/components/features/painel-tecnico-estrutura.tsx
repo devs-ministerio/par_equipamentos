@@ -47,7 +47,7 @@ export function PainelNavegacao({ itens }: { itens: ItemNavegacao[] }) {
   const [topo, setTopo] = useState(65);
   useEffect(() => {
     const cabecalho = document.querySelector("header.sticky");
-    if (!cabecalho) return;
+    if (!cabecalho || typeof ResizeObserver === "undefined") return;
     const medir = () =>
       setTopo(Math.round(cabecalho.getBoundingClientRect().height));
     medir();
@@ -56,6 +56,7 @@ export function PainelNavegacao({ itens }: { itens: ItemNavegacao[] }) {
     return () => observador.disconnect();
   }, []);
   useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
     const observador = new IntersectionObserver(
       (entradas) => {
         const visivel = entradas.find((e) => e.isIntersecting);

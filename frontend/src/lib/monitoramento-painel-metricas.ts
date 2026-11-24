@@ -78,6 +78,7 @@ export function montarMetricasPainel(
     string,
     { quantidade: number; comValor: number; valor: number }
   >();
+  const valoresPorFase = new Map<string, number>();
   for (const instrumento of instrumentos) {
     const convenio = conveniosPorNumero.get(instrumento.nr_convenio);
     if (convenio?.desembolsoIntegralDaCarga) cargasManuais += 1;
@@ -117,6 +118,8 @@ export function montarMetricasPainel(
       instrumentosComValor += 1;
       grupo.comValor += 1;
       grupo.valor += valor;
+      const fase = instrumento.fase_atual ?? "Acompanhamento iniciado";
+      valoresPorFase.set(fase, (valoresPorFase.get(fase) ?? 0) + valor);
       const pago = convenio?.valorPagoFornecedor;
       const pagamentoRegistrado =
         pago != null &&
@@ -223,6 +226,7 @@ export function montarMetricasPainel(
       valorGlobalComRegraPagamento > 0
         ? valorPagoComRegraPagamento / valorGlobalComRegraPagamento
         : null,
+    valoresPorFase,
     porTipo: [...valoresPorTipo]
       .map(([rotulo, dados]) => ({ rotulo, ...dados }))
       .sort((a, b) => b.valor - a.valor),

@@ -113,30 +113,13 @@ export function MonitoramentoPainelGeografia({
   }
 
   return (
-    <section
-      className="mt-8 border-t border-border pt-6"
-      aria-labelledby="geografia-painel-titulo"
-    >
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2
-            id="geografia-painel-titulo"
-            className="font-display text-2xl font-semibold tracking-tight"
-          >
-            Distribuição geográfica
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Instrumentos por macrorregião de saúde, posicionados pelas
-            coordenadas do CNES.
-          </p>
-        </div>
-        {distribuicao && (
-          <p className="text-sm tabular-nums text-muted-foreground">
-            <strong className="text-foreground">{mapeados}</strong> de{" "}
-            {instrumentos.length} instrumentos no mapa
-          </p>
-        )}
-      </div>
+    <div className="space-y-4">
+      {distribuicao && (
+        <p className="m-0 text-sm tabular-nums text-muted-foreground">
+          <strong className="text-foreground">{mapeados}</strong> de{" "}
+          {instrumentos.length} instrumentos no mapa
+        </p>
+      )}
 
       {geoQuery.isPending && (
         <div
@@ -167,15 +150,13 @@ export function MonitoramentoPainelGeografia({
         <>
           <div
             className={cn(
-              "grid bg-card lg:grid-cols-[minmax(0,1fr)_300px]",
-              !macroSelecionada && "border border-border",
+              "grid overflow-hidden rounded-2xl border border-border/80 bg-card shadow-[var(--shadow-soft)] lg:grid-cols-[minmax(0,1fr)_300px]",
             )}
           >
             <div
               className={cn(
                 "min-w-0 p-4 sm:p-5",
-                !macroSelecionada &&
-                  "border-b border-border lg:border-r lg:border-b-0",
+                "border-b border-border lg:border-r lg:border-b-0",
               )}
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -244,11 +225,7 @@ export function MonitoramentoPainelGeografia({
             </div>
 
             <div
-              className={cn(
-                "flex min-w-0 flex-col p-4 sm:p-5",
-                macroSelecionada &&
-                  "border-t border-border lg:border-t-0 lg:border-l",
-              )}
+              className={cn("flex min-w-0 flex-col p-4 sm:p-5")}
               aria-live="polite"
             >
               {localAtivo ? (
@@ -390,6 +367,6 @@ export function MonitoramentoPainelGeografia({
           )}
         </>
       )}
-    </section>
+    </div>
   );
 }

@@ -14,25 +14,42 @@ import { fmtMoeda } from "@/lib/monitoramento-format";
 import { rotulosEquipamentoDoInstrumento } from "@/lib/monitoramento-filtro-equipamentos";
 import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
 import { MetricStrip } from "@/components/common/metric-strip";
-import {
-  DistribuicaoHorizontal,
-  PainelSecao,
-} from "@/components/features/monitoramento-painel-visuals";
 import { MonitoramentoInternoFiltros } from "@/components/features/monitoramento-interno-filtros";
-import { MonitoramentoPainelLacunas } from "@/components/features/monitoramento-painel-lacunas";
 import { MonitoramentoPainelGeografia } from "@/components/features/monitoramento-painel-geografia";
-import { MonitoramentoPainelAnalises } from "@/components/features/monitoramento-painel-analises";
-import { MonitoramentoPainelEntregues } from "@/components/features/monitoramento-painel-entregues";
 import { entreguesPorFamilia } from "@/lib/equipamentos-entregues";
-import { MonitoramentoPainelPendencias } from "@/components/features/monitoramento-painel-pendencias";
-import { MonitoramentoPainelEvolucao } from "@/components/features/monitoramento-painel-evolucao";
+import {
+  PainelBloco,
+  PainelNavegacao,
+} from "@/components/features/painel-tecnico-estrutura";
+import { SecaoEquipamentos } from "@/components/features/painel-tecnico-equipamentos";
+import { PainelCartao } from "@/components/features/painel-gestao-cartao";
+import {
+  GraficoColunas,
+  LegendaSegmentos,
+} from "@/components/features/painel-gestao-colunas";
+import { GraficoRosca } from "@/components/features/painel-gestao-rosca";
+import { RankingBarras } from "@/components/features/painel-gestao-ranking";
+import { PainelGestaoCompletude } from "@/components/features/painel-gestao-completude";
+import { resumirCarteiraPainel } from "@/lib/monitoramento-painel-analise";
+import {
+  COR_PREVISTA,
+  COR_REALIZADA,
+  corDaContratacao,
+  corDaFase,
+} from "@/lib/monitoramento-painel-palette";
+
+const SECOES = [
+  { id: "visao-geral", rotulo: "Visão geral" },
+  { id: "evolucao", rotulo: "Evolução" },
+  { id: "composicao", rotulo: "Composição" },
+  { id: "territorio", rotulo: "Território" },
+];
 
 const header = (
   <PageHeader
     eyebrow="Monitoramento interno"
     title="Painel de gestão"
     actions={<CardColaborador />}
-    description="Execução física, distribuição territorial e pendências dos instrumentos monitorados."
   />
 );
 
@@ -98,125 +115,233 @@ export function MonitoramentoPainelPage() {
   const instrumentosFiltrados = filtros.filtrados;
   const dados = montarMetricasPainel(instrumentosFiltrados, resumo, convenios);
   const fases = [...FASES_ACOMPANHAMENTO];
+  const analise = resumirCarteiraPainel(instrumentosFiltrados, fases);
+  const total = instrumentosFiltrados.length;
+  const isAdmin = sessao.usuarioAtual?.role === "admin";
+  const mostraVencidas = isAdmin || sessao.usuarioAtual?.role === "gestor";
+  const numeros = new Set(instrumentosFiltrados.map((i) => i.nr_convenio));
+  const familias = entreguesPorFamilia(
+    resumo.equipamentos_por_instrumento,
+    numeros,
+  );
+  const anosInauguracao = dados.inauguracoesPorAno.slice(-8);
+  const contratacoes = analise.contratacoes.map((c) => ({
+    rotulo: c.rotulo,
+    valor: c.quantidade,
+    cor: corDaContratacao(c.rotulo),
+  }));
+  const pago =
+    dados.percentualPagoComRegra == null
+      ? null
+      : Math.round(dados.percentualPagoComRegra * 100);
 
   return (
-    <div className="pb-8">
-      <PageHeader
-        eyebrow="Monitoramento interno"
-        title="Painel de gestão"
-        actions={<CardColaborador />}
-        description="Execução física, distribuição territorial e pendências dos instrumentos monitorados."
-      />
+    <div className="space-y-6 pb-8">
+      {header}
       <MonitoramentoInternoFiltros filtros={filtros} />
-      <MetricStrip
-        items={[
-          {
-            key: "instrumentos",
-            label: "Instrumentos",
-            value: instrumentosFiltrados.length,
-            detail: `${dados.fases.find((fase) => fase.rotulo === "Concluído")?.quantidade ?? 0} em fase concluída`,
-          },
-          {
-            key: "valor-global",
-            label: "Valor global informado",
-            value: dados.instrumentosComValor
-              ? fmtMoeda(dados.valorGlobal)
-              : "—",
-            detail: (
-              <>
-                {dados.percentualPagoComRegra == null
-                  ? "Pagamento ao fornecedor sem base comparável"
-                  : `${Math.round(dados.percentualPagoComRegra * 100)}% pago ao fornecedor`}
-                <br />
-                {`Valor de ${dados.instrumentosComValor} de ${instrumentosFiltrados.length} instrumentos`}
-                {dados.pagamentosManuaisConcluidos > 0 &&
-                  ` · ${dados.pagamentosManuaisConcluidos} com quitação assumida pela regra da carga concluída (não é pagamento registrado)`}
-              </>
-            ),
-          },
-          {
-            key: "atencao",
-            label: "Instrumentos com atenção",
-            value: dados.instrumentosEmAtencao,
-            variant:
-              dados.instrumentosEmAtencao > 0 ? "destructive" : "success",
-            detail: `${dados.pontosAtencao} ocorrências: ${dados.acoesAtrasadas} ações atrasadas, ${dados.inauguracoesAtrasadas} inaugurações atrasadas, ${dados.licencasCriticas} licenças críticas, ${dados.divergencias.length} divergências externas`,
-          },
-        ]}
-      />
-
-      <MonitoramentoPainelEvolucao
-        inauguracoesPorAno={dados.inauguracoesPorAno}
-        previsoesVencidas={dados.previsoesVencidasForaDaSerie}
-        porTipo={dados.porTipo}
-        total={instrumentosFiltrados.length}
-        semCnes={dados.semCnes}
-        semCoordenadas={dados.semCoordenadas}
-        semTecnico={dados.semTecnico}
-        semAno={dados.semAno}
-        comPagamentoDeterminado={
-          dados.instrumentosComPagamento + dados.pagamentosManuaisConcluidos
-        }
-        cargasManuais={dados.cargasManuais}
-        viewerRole={sessao.usuarioAtual?.role}
-      />
-
-      <MonitoramentoPainelLacunas lacunas={dados.lacunas} />
-
-      <MonitoramentoPainelPendencias
-        licencas={dados.licencas}
-        inauguracoes={dados.inauguracoes}
-        divergencias={dados.divergencias}
-        semTecnico={dados.semTecnico}
-        acoesAtrasadas={dados.acoesAtrasadas}
-        acoesPendentes={dados.acoesPendentes}
-        licencasCnenDeferidas={{
-          quantidade: dados.licencasDeferidas,
-          total: instrumentosFiltrados.length,
-        }}
-      />
-
-      <MonitoramentoPainelGeografia
-        instrumentos={instrumentosFiltrados}
-        equipamentosPorNumero={equipamentosPorNumero}
-      />
-
-      <MonitoramentoPainelAnalises
-        instrumentos={instrumentosFiltrados}
-        fases={fases}
-      />
-
-      <PainelSecao
-        titulo="Composição da carteira"
-        apoio={`${instrumentosFiltrados.length} instrumentos monitorados`}
-        className="mt-8"
-      >
-        <div className="grid gap-x-10 gap-y-6 md:grid-cols-3">
-          <div>
-            <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
-              Por equipamento
-            </h4>
-            <DistribuicaoHorizontal itens={dados.porEquipamento} limite={7} />
+      <PainelNavegacao itens={SECOES} />
+      <div className="space-y-12">
+        <PainelBloco id="visao-geral" titulo="Visão geral">
+          <MetricStrip
+            items={[
+              {
+                key: "instrumentos",
+                label: "Instrumentos",
+                value: total,
+                detail: `${dados.fases.find((fase) => fase.rotulo === "Concluído")?.quantidade ?? 0} em fase concluída`,
+              },
+              {
+                key: "valor-global",
+                label: "Valor global informado",
+                value: dados.instrumentosComValor
+                  ? fmtMoeda(dados.valorGlobal)
+                  : "—",
+                detail: (
+                  <>
+                    {pago == null
+                      ? "Pagamento ao fornecedor sem base comparável"
+                      : `${pago}% pago ao fornecedor`}
+                    <br />
+                    {`Valor de ${dados.instrumentosComValor} de ${total} instrumentos`}
+                    {dados.pagamentosManuaisConcluidos > 0 &&
+                      ` · ${dados.pagamentosManuaisConcluidos} com quitação assumida pela regra da carga concluída (não é pagamento registrado)`}
+                  </>
+                ),
+              },
+              {
+                key: "atencao",
+                label: "Instrumentos com atenção",
+                value: dados.instrumentosEmAtencao,
+                variant:
+                  dados.instrumentosEmAtencao > 0 ? "destructive" : "success",
+                detail: `${dados.pontosAtencao} ocorrências: ${dados.acoesAtrasadas} ações atrasadas, ${dados.inauguracoesAtrasadas} inaugurações atrasadas, ${dados.licencasCriticas} licenças críticas, ${dados.divergencias.length} divergências externas`,
+              },
+            ]}
+          />
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <PainelCartao titulo="Instrumentos por situação">
+              <GraficoColunas
+                vazio="Nenhum instrumento neste recorte."
+                colunas={analise.fases.map((f) => ({
+                  rotulo: f.rotulo,
+                  segmentos: [
+                    {
+                      nome: f.rotulo,
+                      valor: f.quantidade,
+                      cor: corDaFase(f.rotulo, fases),
+                    },
+                  ],
+                }))}
+              />
+            </PainelCartao>
+            <SecaoEquipamentos familias={familias} />
           </div>
-          <div>
-            <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
-              Por técnico titular
-            </h4>
-            <DistribuicaoHorizontal itens={dados.porTecnico} limite={6} />
+        </PainelBloco>
+
+        <PainelBloco id="evolucao" titulo="Evolução">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PainelCartao
+              titulo="Ano do instrumento"
+              apoio={
+                [
+                  analise.anosOmitidos > 0
+                    ? `${analise.anosOmitidos} anos anteriores não exibidos`
+                    : "",
+                  analise.semAno > 0 ? `${analise.semAno} sem ano` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || undefined
+              }
+            >
+              <GraficoColunas
+                vazio="Nenhum ano informado."
+                colunas={analise.anos.map((a) => ({
+                  rotulo: a.rotulo,
+                  segmentos: [
+                    {
+                      nome: "Instrumentos",
+                      valor: a.quantidade,
+                      cor: COR_REALIZADA,
+                    },
+                  ],
+                }))}
+              />
+            </PainelCartao>
+            <PainelCartao
+              titulo="Ano de inauguração"
+              apoio={
+                mostraVencidas && dados.previsoesVencidasForaDaSerie > 0
+                  ? `${dados.previsoesVencidasForaDaSerie} previsões vencidas fora da série`
+                  : undefined
+              }
+            >
+              <LegendaSegmentos
+                itens={[
+                  { nome: "Realizadas", cor: COR_REALIZADA },
+                  { nome: "Previstas", cor: COR_PREVISTA },
+                ]}
+              />
+              <GraficoColunas
+                vazio="Nenhuma data de inauguração registrada neste recorte."
+                colunas={anosInauguracao.map((a) => ({
+                  rotulo: a.ano,
+                  segmentos: [
+                    {
+                      nome: "Realizadas",
+                      valor: a.realizadas,
+                      cor: COR_REALIZADA,
+                    },
+                    {
+                      nome: "Previstas",
+                      valor: a.previstas,
+                      cor: COR_PREVISTA,
+                    },
+                  ],
+                }))}
+              />
+            </PainelCartao>
           </div>
-          <div>
-            <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
-              Entregues / planejados
-            </h4>
-            <MonitoramentoPainelEntregues
-              familias={entreguesPorFamilia(
-                resumo.equipamentos_por_instrumento,
-                new Set(instrumentosFiltrados.map((i) => i.nr_convenio)),
-              )}
+        </PainelBloco>
+
+        <PainelBloco id="composicao" titulo="Composição">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <PainelCartao titulo="Tipo de contratação">
+              <GraficoRosca fatias={contratacoes} rotuloTotal="instrumentos" />
+            </PainelCartao>
+            <PainelCartao titulo="Investimento por contratação">
+              <RankingBarras
+                itens={dados.porTipo.map((t) => ({
+                  rotulo: `${t.rotulo} (${t.comValor}/${t.quantidade})`,
+                  valor: t.valor,
+                  texto: t.comValor ? fmtMoeda(t.valor) : "—",
+                }))}
+              />
+            </PainelCartao>
+            <PainelCartao titulo="Valor global por situação">
+              <RankingBarras
+                limite={8}
+                itens={fases
+                  .map((f) => ({
+                    rotulo: f,
+                    valor: dados.valoresPorFase.get(f) ?? 0,
+                  }))
+                  .filter((f) => f.valor > 0)
+                  .map((f) => ({ ...f, texto: fmtMoeda(f.valor) }))}
+              />
+            </PainelCartao>
+            <PainelCartao
+              titulo="Concentração por UF"
+              apoio={`Top 5: ${analise.concentracaoTop5Uf}%`}
+            >
+              <RankingBarras
+                limite={8}
+                itens={analise.ufs.map((u) => ({
+                  rotulo: u.rotulo,
+                  valor: u.quantidade,
+                }))}
+              />
+            </PainelCartao>
+            <PainelCartao titulo="Instrumentos por equipamento">
+              <RankingBarras
+                itens={dados.porEquipamento.map((e) => ({
+                  rotulo: e.rotulo,
+                  valor: e.quantidade,
+                }))}
+              />
+            </PainelCartao>
+            <PainelCartao titulo="Instrumentos por técnico titular">
+              <RankingBarras
+                limite={8}
+                itens={dados.porTecnico.map((t) => ({
+                  rotulo: t.rotulo,
+                  valor: t.quantidade,
+                }))}
+              />
+            </PainelCartao>
+          </div>
+          {isAdmin && (
+            <PainelGestaoCompletude
+              total={total}
+              semCnes={dados.semCnes}
+              semCoordenadas={dados.semCoordenadas}
+              semTecnico={dados.semTecnico}
+              semAno={dados.semAno}
+              comPagamentoDeterminado={
+                dados.instrumentosComPagamento +
+                dados.pagamentosManuaisConcluidos
+              }
+              cargasManuais={dados.cargasManuais}
             />
-          </div>
-        </div>
-      </PainelSecao>
+          )}
+        </PainelBloco>
+
+        <PainelBloco id="territorio" titulo="Território">
+          <MonitoramentoPainelGeografia
+            instrumentos={instrumentosFiltrados}
+            equipamentosPorNumero={equipamentosPorNumero}
+          />
+        </PainelBloco>
+      </div>
     </div>
   );
 }

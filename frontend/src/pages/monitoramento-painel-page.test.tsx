@@ -33,7 +33,7 @@ function montar(h = prepararPainel()) {
 }
 async function pronto() {
   return screen.findByRole("heading", {
-    name: "Panorama dos Instrumentos e Programas",
+    name: "Visão geral",
   });
 }
 function metrica(rotulo: string) {
@@ -94,7 +94,7 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", {
-        name: "Panorama dos Instrumentos e Programas",
+        name: "Visão geral",
       }),
     ).not.toBeInTheDocument();
     // When
@@ -247,7 +247,6 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     expect(
       metrica("Instrumentos com atenção").getByText("0"),
     ).toBeInTheDocument();
-    expect(screen.getByText("1 instrumentos")).toBeInTheDocument();
     // When: a mesma query perde o único instrumento do recorte.
     h.respostas.set("/monitoramento/instrumentos", {
       body: [h.instrumentos[0]!],
@@ -266,6 +265,5 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     expect(
       metrica("Valor global informado").getByText("—"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("1 instrumentos")).not.toBeInTheDocument();
   });
 });
