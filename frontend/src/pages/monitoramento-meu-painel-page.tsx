@@ -66,6 +66,11 @@ export function MonitoramentoMeuPainelPage() {
     <PageHeader
       eyebrow="Monitoramento interno"
       title={titulo}
+      description={
+        gestao
+          ? "Carteira e prazos de cada colaborador da equipe."
+          : "Sua carteira de instrumentos, prazos e pendências."
+      }
       actions={<CardColaborador semBotao acao={seletor} />}
     />
   );

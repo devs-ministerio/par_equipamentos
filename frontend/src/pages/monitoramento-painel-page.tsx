@@ -43,6 +43,7 @@ const header = (
   <PageHeader
     eyebrow="Monitoramento interno"
     title="Painel de gestão"
+    description="Visão consolidada dos instrumentos monitorados: andamento, composição e território."
     actions={<CardColaborador />}
   />
 );
