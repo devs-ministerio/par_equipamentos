@@ -10,13 +10,11 @@ export interface ItemNavegacao {
 export function PainelBloco({
   id,
   titulo,
-  resumo,
   children,
   className,
 }: {
   id: string;
   titulo: string;
-  resumo?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -33,11 +31,6 @@ export function PainelBloco({
         >
           {titulo}
         </h2>
-        {resumo && (
-          <p className="m-0 mt-1.5 text-sm text-muted-foreground tabular-nums">
-            {resumo}
-          </p>
-        )}
         <span
           aria-hidden="true"
           className="absolute -bottom-px left-0 h-0.5 w-14 rounded-full bg-primary"
