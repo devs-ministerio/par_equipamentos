@@ -1,20 +1,17 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
-import { MetricStrip } from "@/components/common/metric-strip";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   PainelBloco,
   PainelNavegacao,
 } from "@/components/features/painel-tecnico-estrutura";
-import { ChevronDown, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { PainelTecnicoIndicadores } from "@/components/features/painel-tecnico-indicadores";
+import { PainelTecnicoGraficos } from "@/components/features/painel-tecnico-graficos";
+import { derivarMeuPainel } from "@/lib/painel-tecnico-derivados";
+import { SeletorColaboradorPainel } from "@/components/features/seletor-colaborador-painel";
 import { CardColaborador } from "@/components/features/card-colaborador";
-import { PainelGestaoEquipamentos } from "@/components/features/painel-gestao-equipamentos";
-import { equipamentosPorSituacao } from "@/lib/painel-gestao-operacao";
-import { SecaoSituacao } from "@/components/features/painel-tecnico-situacao";
-import { MonitoramentoFilaAcoes } from "@/components/features/monitoramento-fila-acoes";
-import { MonitoramentoPainelPrazos } from "@/components/features/monitoramento-painel-prazos";
+import { PainelTecnicoPrazos } from "@/components/features/painel-tecnico-prazos";
 import { montarMetricasPainel } from "@/lib/monitoramento-painel-metricas";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
@@ -26,13 +23,7 @@ import {
   useTecnicosPainel,
 } from "@/hooks/use-painel-tecnico";
 import { PainelTecnicoCarteira } from "@/components/features/painel-tecnico-carteira";
-import {
-  entrouNoRadarRecente,
-  JANELA_RADAR_DIAS,
-  faseDaLinha,
-  type FiltroCarteira,
-} from "@/lib/painel-tecnico-filtro";
-import { fmtMoeda } from "@/lib/monitoramento-format";
+import { type FiltroCarteira } from "@/lib/painel-tecnico-filtro";
 
 const SECOES = [
   { id: "visao-geral", rotulo: "Visão geral" },
@@ -63,36 +54,15 @@ export function MonitoramentoMeuPainelPage() {
   const conveniosQuery = useConveniosLista();
 
   const titulo = gestao ? "Painéis da equipe" : "Meu painel";
-  const nomeSelecionado =
-    (tecnicos.data ?? []).find((t) => t.id === colaboradorId)?.nome ??
-    "Todos os colaboradores";
   const seletor = gestao ? (
-    <Button asChild size="sm" className="relative mt-0.5 w-full cursor-pointer">
-      <label>
-        <Users aria-hidden="true" />
-        <span className="truncate">{nomeSelecionado}</span>
-        <ChevronDown aria-hidden="true" />
-        <select
-          aria-label="Colaborador"
-          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-          value={colaboradorId ?? ""}
-          onChange={(e) => {
-            setColaboradorId(
-              e.target.value ? Number(e.target.value) : undefined,
-            );
-            limparFiltros();
-          }}
-        >
-          <option value="">Todos os colaboradores</option>
-          {(tecnicos.data ?? []).map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.nome}
-              {t.ufs.length > 0 ? ` (${t.ufs.join(", ")})` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-    </Button>
+    <SeletorColaboradorPainel
+      tecnicos={tecnicos.data ?? []}
+      colaboradorId={colaboradorId}
+      onSelecionar={(id) => {
+        setColaboradorId(id);
+        limparFiltros();
+      }}
+    />
   ) : undefined;
   const header = (
     <PageHeader
@@ -142,37 +112,20 @@ export function MonitoramentoMeuPainelPage() {
   const semRegiao =
     dados.escopo === "individual" && (dados.ufs ?? []).length === 0;
   const c = dados.carteira;
-  const faltam = linhas.filter((l) => !l.monitorado);
-  const faltamAbertos = faltam.filter((l) => l.em_aberto).length;
-  const concluidos = linhas.filter(
-    (l) => l.monitorado && l.fase === "Concluído",
-  ).length;
-  const novosRadar = linhas.filter(entrouNoRadarRecente);
-  const valorRadar = novosRadar.reduce((t, l) => t + (l.valor_global ?? 0), 0);
-  const pendentes = linhas.reduce((t, l) => t + l.acoes_abertas, 0);
-  const numerosMonitorados = new Set(
-    linhas.filter((l) => l.monitorado).map((l) => l.numero),
-  );
   const equipamentosResumo = resumo.data?.equipamentos_por_instrumento ?? [];
-  const numerosDaFamilia = (familia: string) =>
-    new Set(
-      equipamentosResumo
-        .filter((e) => e.familia === familia && e.planejado > 0)
-        .map((e) => e.nr_convenio),
-    );
-  const numerosFamiliaSel = familiaSel ? numerosDaFamilia(familiaSel) : null;
-  const linhasSituacao = numerosFamiliaSel
-    ? linhas.filter((l) => l.monitorado && numerosFamiliaSel.has(l.numero))
-    : linhas;
-  const linhasDaFase = faseSel
-    ? linhas.filter((l) => faseDaLinha(l) === faseSel)
-    : linhas;
-  const numerosEquipamentos = new Set(
-    linhasDaFase.filter((l) => l.monitorado).map((l) => l.numero),
-  );
-  const linhasCarteira = linhasDaFase.filter(
-    (l) => !numerosFamiliaSel || numerosFamiliaSel.has(l.numero),
-  );
+  const {
+    faltam,
+    faltamAbertos,
+    concluidos,
+    novosRadar,
+    valorRadar,
+    pendentes,
+    atrasadas,
+    numerosMonitorados,
+    numerosEquipamentos,
+    linhasSituacao,
+    linhasCarteira,
+  } = derivarMeuPainel(linhas, equipamentosResumo, faseSel, familiaSel);
   const chipsDashboard = [
     ...(faseSel
       ? [{ rotulo: faseSel, onRemover: () => setFaseSel(undefined) }]
@@ -196,7 +149,6 @@ export function MonitoramentoMeuPainelPage() {
     instrumentosQuery,
     conveniosQuery,
   ].filter((query) => query.isError);
-  const atrasadas = linhas.reduce((t, l) => t + l.acoes_atrasadas, 0);
   const irParaCarteira = () =>
     requestAnimationFrame(() =>
       document
@@ -222,86 +174,32 @@ export function MonitoramentoMeuPainelPage() {
       <PainelNavegacao itens={SECOES} />
       <div className="space-y-12">
         <PainelBloco id="visao-geral" titulo="Visão geral">
-          <MetricStrip
-            items={[
-              {
-                key: "cobertura",
-                label: "Cobertura do monitoramento",
-                value:
-                  c.cobertura_pct == null
-                    ? "—"
-                    : `${c.cobertura_pct.toLocaleString("pt-BR")}%`,
-                variant: "primary",
-                detail: `${c.monitorados} de ${c.elegiveis} instrumentos monitorados`,
-                onClick: () => {
-                  limparFiltros();
-                  irParaCarteira();
-                },
-                ativo: filtroCarteira === "todos" && !faseSel && !familiaSel,
-              },
-              {
-                key: "faltam",
-                label: "Fora do monitoramento",
-                value: faltam.length,
-                variant: faltam.length > 0 ? "warning" : "success",
-                detail: `${faltamAbertos} em aberto`,
-                onClick: () => alternar("faltam"),
-                ativo: filtroCarteira === "faltam",
-              },
-              {
-                key: "acoes-pendentes",
-                label: "Ações pendentes",
-                value: pendentes,
-                variant: atrasadas > 0 ? "destructive" : "success",
-                detail: `${atrasadas} atrasadas`,
-                onClick: () => alternar("acoes-pendentes"),
-                ativo: filtroCarteira === "acoes-pendentes",
-              },
-              {
-                key: "concluidos",
-                label: "Concluídos",
-                value: concluidos,
-                variant: "success",
-                onClick: () => alternar("concluidos"),
-                ativo: filtroCarteira === "concluidos",
-              },
-              {
-                key: "radar",
-                label: "Novos Instrumentos",
-                value: novosRadar.length,
-                detail: `${fmtMoeda(valorRadar)} nos últimos ${JANELA_RADAR_DIAS} dias`,
-                onClick: () => alternar("radar"),
-                ativo: filtroCarteira === "radar",
-              },
-            ]}
+          <PainelTecnicoIndicadores
+            carteira={c}
+            faltam={faltam.length}
+            faltamAbertos={faltamAbertos}
+            pendentes={pendentes}
+            atrasadas={atrasadas}
+            concluidos={concluidos}
+            novosRadar={novosRadar.length}
+            valorRadar={valorRadar}
+            filtro={filtroCarteira}
+            semFiltroGrafico={!faseSel && !familiaSel}
+            alternar={alternar}
+            restaurar={() => {
+              limparFiltros();
+              irParaCarteira();
+            }}
           />
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-            <SecaoSituacao
-              linhas={linhasSituacao}
-              selecionada={faseSel}
-              onSelecionar={setFaseSel}
-            />
-            {resumo.data ? (
-              <PainelGestaoEquipamentos
-                familias={equipamentosPorSituacao(
-                  equipamentosResumo,
-                  numerosEquipamentos,
-                  resumo.data.etapas_por_instrumento,
-                )}
-                selecionada={familiaSel}
-                onSelecionar={setFamiliaSel}
-              />
-            ) : resumo.isError ? (
-              <ErrorAlert
-                mensagem="Não foi possível carregar os equipamentos."
-                onRetry={() => resumo.refetch()}
-              />
-            ) : (
-              <div role="status" aria-label="Carregando equipamentos">
-                <Skeleton className="h-full min-h-64" />
-              </div>
-            )}
-          </div>
+          <PainelTecnicoGraficos
+            linhasSituacao={linhasSituacao}
+            faseSel={faseSel}
+            onFase={setFaseSel}
+            familiaSel={familiaSel}
+            onFamilia={setFamiliaSel}
+            resumo={resumo}
+            numerosEquipamentos={numerosEquipamentos}
+          />
         </PainelBloco>
         <PainelBloco id="carteira" titulo="Carteira">
           <PainelTecnicoCarteira
@@ -313,33 +211,12 @@ export function MonitoramentoMeuPainelPage() {
           />
         </PainelBloco>
         <PainelBloco id="prazos" titulo="Prazos e pendências">
-          {prazos ? (
-            <div className="space-y-6">
-              <MonitoramentoPainelPrazos
-                vigencias={prazos.vigenciasProximas}
-                licencas={prazos.licencas}
-                inauguracoes={prazos.inauguracoes}
-                divergencias={prazos.divergencias}
-              />
-              <MonitoramentoFilaAcoes
-                acoes={prazos.acoes}
-                acoesPendentes={pendentes}
-                filaTruncada={resumo.data?.fila_acoes_truncada ?? false}
-              />
-            </div>
-          ) : fontesPrazosComErro.length > 0 ? (
-            <ErrorAlert
-              mensagem="Não foi possível carregar prazos e pendências."
-              onRetry={() =>
-                Promise.all(fontesPrazosComErro.map((query) => query.refetch()))
-              }
-            />
-          ) : (
-            <div className="grid gap-3" role="status" aria-label="Carregando">
-              <Skeleton className="h-20" />
-              <Skeleton className="h-64" />
-            </div>
-          )}
+          <PainelTecnicoPrazos
+            prazos={prazos}
+            fontesComErro={fontesPrazosComErro}
+            pendentes={pendentes}
+            filaTruncada={resumo.data?.fila_acoes_truncada ?? false}
+          />
         </PainelBloco>
       </div>
     </div>
