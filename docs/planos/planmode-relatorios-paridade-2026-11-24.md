@@ -1,6 +1,6 @@
 # Plan Mode: relatórios que batem com as telas (24/11/2026)
 
-Estado: **desenho aprovado; Fase 0 (UI) feita localmente.** Por decisão do usuário (24/11/2026), as visões "Concluídos" e "Entregas" saíram da página de Relatórios; voltam como recortes da camada única nas Fases 2 a 4. O backend delas segue até lá. Sem push, PR ou merge sem autorização. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
+Estado: **desenho aprovado; Fase 0 (UI) feita localmente (commit `9403a92`), só no front: prévia, filtros e KPIs; a geração dos arquivos segue com as regras antigas.** Por decisão do usuário (24/11/2026), as visões "Concluídos" e "Entregas" saíram da página de Relatórios; voltam como recortes da camada única nas Fases 2 a 4. O backend delas segue até lá. Sem push, PR ou merge sem autorização. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
 
 ## 1. Por que este plano existe
 
@@ -21,6 +21,26 @@ Por consequência, o relatório de Concluídos traz mais instrumentos que as tel
 1. **Caminho A**: uma camada única de fatos do instrumento no backend. Telas e relatórios consomem a mesma fonte; o relatório só formata.
 2. **Concluído = o das telas**: conclusão confirmada pela equipe no monitoramento (fase Concluído). "Prestação de contas SICONV" e "Parceria paga" continuam no arquivo como **colunas informativas** e na lista de divergências, mas não definem Concluído.
 3. **Entregue e Em operação seguem as telas**, sem regra própria do relatório (premissa a reconfirmar na Fase 1 se a comparação achar divergência).
+
+## 3.1 Nomenclatura e etapas (decisões do usuário, 24/11/2026)
+
+O fluxo do instrumento é **Proposta → Celebrado → Em monitoramento**. Cada registro está em uma só etapa. Os nomes abaixo valem para tela, prévia, Word e Excel.
+
+| Conceito | Nome | Conteúdo |
+| --- | --- | --- |
+| Grupo | Instrumentos e programas | Convênio, **TED**, PERSUS I, PERSUS II |
+| Grupo | Linhas de financiamento | **FAF** confirmado (parceria confirmada do TransfereGov e FAF firmado; o que é as duas coisas conta uma vez) |
+| Grupo | Propostas | Solicitações em tramitação |
+| Filtro | **Etapa** (primeiro da barra) | opções **Proposta**, **Celebrado**, **Em monitoramento**; "Todas as etapas" limpa |
+| Etapa | Proposta | só o grupo Propostas |
+| Etapa | Celebrado | firmado (instrumento ou linha confirmada) sem fase no monitoramento interno; não inclui proposta |
+| Etapa | Em monitoramento | firmado com fase no monitoramento interno |
+
+**Enquadramento normativo (de memória, a confirmar em fonte oficial).** TED é instrumento (Decreto 10.426/2020); convênio é instrumento (Decreto 11.531/2023 e Portaria Conjunta MGI/MF/CGU 33/2023); FAF é transferência fundo a fundo do SUS (Lei 8.142/1990, LC 141/2012, Portaria de Consolidação GM/MS nº 6/2017), sem instrumento. Enquadramento do PERSUS não conhecido. "Celebrado" é impreciso para FAF e PERSUS; decidir se saem da etapa ou ganham etapa própria. Confirmar com o `pesquisador-normativo`.
+
+**Regra única no código:** `TIPOS_LINHA_FINANCIAMENTO = {FAF}` (`lib/financiamento-manual.ts`) alimenta Dados oficiais e Relatórios. Mudou o agrupamento, muda lá.
+
+**Etapa no backend:** na Fase 2 o filtro vira parâmetro de `GET /relatorios` com a mesma regra da prévia (função de recorte única), para o arquivo trazer o mesmo recorte.
 
 ## 4. Princípios
 
