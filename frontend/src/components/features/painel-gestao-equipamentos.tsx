@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   COR_EM_OPERACAO,
@@ -15,8 +16,13 @@ const LIMITE = 8;
 /** Equipamentos por tipo: em operação, entregues (precisam de inauguração) e o restante planejado. */
 export function PainelGestaoEquipamentos({
   familias: todas,
+  selecionada,
+  onSelecionar,
 }: {
   familias: FamiliaOperacao[];
+  /** Com `onSelecionar`, cada tipo vira um botão que filtra o restante da página. */
+  selecionada?: string;
+  onSelecionar?: (familia: string | undefined) => void;
 }) {
   const familias = todas
     .filter((f) => f.planejado > 0)
@@ -38,9 +44,10 @@ export function PainelGestaoEquipamentos({
         </h3>
         <p className="m-0 text-sm tabular-nums text-muted-foreground">
           <strong className="font-display text-xl font-semibold text-foreground">
-            {entregue}
+            {operacao}
           </strong>{" "}
-          entregues · {operacao} em operação · {restante} planejados
+          em operação · {entregue} entregues, a inaugurar · {restante}{" "}
+          planejados
         </p>
       </div>
       {familias.length === 0 ? (
@@ -55,46 +62,59 @@ export function PainelGestaoEquipamentos({
           </div>
           <ul className="m-0 list-none space-y-3 p-0">
             {visiveis.map((f) => (
-              <li
-                key={f.familia}
-                title={`${f.familia}: ${f.operacao} em operação, ${f.entregue} entregues a inaugurar, ${f.planejado - f.operacao - f.entregue} planejados`}
-                className="grid grid-cols-[minmax(0,7rem)_minmax(2rem,1fr)_6.5rem] items-center gap-2 p-1 text-sm xl:grid-cols-[minmax(0,11rem)_1fr_6.5rem] xl:gap-3"
-              >
-                <span className="leading-tight">{f.familia}</span>
-                <div
-                  className="h-3 overflow-hidden rounded-full bg-secondary"
-                  aria-hidden="true"
+              <li key={f.familia}>
+                <button
+                  type="button"
+                  disabled={!onSelecionar}
+                  aria-pressed={selecionada === f.familia}
+                  onClick={() =>
+                    onSelecionar?.(
+                      selecionada === f.familia ? undefined : f.familia,
+                    )
+                  }
+                  title={`${f.familia}: ${f.operacao} em operação, ${f.entregue} entregues a inaugurar, ${f.planejado - f.operacao - f.entregue} planejados`}
+                  className={cn(
+                    "grid w-full cursor-pointer grid-cols-[minmax(0,7rem)_minmax(2rem,1fr)_6.5rem] items-center gap-2 rounded-md border-0 bg-transparent p-1 text-left text-sm text-inherit transition-colors enabled:hover:bg-muted/50 disabled:cursor-default focus-visible:outline-2 focus-visible:outline-ring xl:grid-cols-[minmax(0,11rem)_1fr_6.5rem] xl:gap-3",
+                    selecionada === f.familia && "bg-primary/10",
+                    selecionada && selecionada !== f.familia && "opacity-40",
+                  )}
                 >
+                  <span className="leading-tight">{f.familia}</span>
                   <div
-                    className="flex h-full overflow-hidden rounded-full"
-                    style={{
-                      width: `${(100 * f.planejado) / maximo}%`,
-                      backgroundColor: COR_PLANEJADO,
-                    }}
+                    className="h-3 overflow-hidden rounded-full bg-secondary"
+                    aria-hidden="true"
                   >
                     <div
-                      className="h-full"
+                      className="flex h-full overflow-hidden rounded-full"
                       style={{
-                        width: `${(100 * f.operacao) / f.planejado}%`,
-                        backgroundColor: COR_EM_OPERACAO,
+                        width: `${(100 * f.planejado) / maximo}%`,
+                        backgroundColor: COR_PLANEJADO,
                       }}
-                    />
-                    <div
-                      className="h-full"
-                      style={{
-                        width: `${(100 * f.entregue) / f.planejado}%`,
-                        backgroundColor: COR_ENTREGUE,
-                      }}
-                    />
+                    >
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${(100 * f.operacao) / f.planejado}%`,
+                          backgroundColor: COR_EM_OPERACAO,
+                        }}
+                      />
+                      <div
+                        className="h-full"
+                        style={{
+                          width: `${(100 * f.entregue) / f.planejado}%`,
+                          backgroundColor: COR_ENTREGUE,
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-                <span className="whitespace-nowrap text-right tabular-nums text-muted-foreground">
-                  {f.operacao} ·{" "}
-                  <strong className="font-semibold text-foreground">
-                    {f.entregue}
-                  </strong>{" "}
-                  · {f.planejado - f.operacao - f.entregue}
-                </span>
+                  <span className="whitespace-nowrap text-right tabular-nums text-muted-foreground">
+                    {f.operacao} ·{" "}
+                    <strong className="font-semibold text-foreground">
+                      {f.entregue}
+                    </strong>{" "}
+                    · {f.planejado - f.operacao - f.entregue}
+                  </span>
+                </button>
               </li>
             ))}
           </ul>

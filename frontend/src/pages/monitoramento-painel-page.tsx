@@ -228,10 +228,10 @@ export function MonitoramentoPainelPage() {
                 ),
               },
               {
-                key: "entregues",
-                label: "Equipamentos entregues",
-                value: equipamentos.entregue,
-                detail: `${equipamentos.operacao} em operação · ${equipamentos.restante} planejados em ${familias.length} tipos`,
+                key: "operacao",
+                label: "Equipamentos em operação",
+                value: equipamentos.operacao,
+                detail: `${equipamentos.entregue} entregues, a inaugurar · ${equipamentos.restante} planejados`,
               },
             ]}
           />
@@ -378,7 +378,7 @@ export function MonitoramentoPainelPage() {
           </div>
           <PainelCartao
             titulo="Entregue por UF"
-            apoio={`${equipamentos.entregue} entregues · ${equipamentos.operacao} em operação · ${equipamentos.restante} planejados`}
+            apoio={`${equipamentos.operacao} em operação · ${equipamentos.entregue} entregues, a inaugurar · ${equipamentos.restante} planejados`}
           >
             <LegendaSegmentos itens={LEGENDA_OPERACAO} />
             <RankingBarras
