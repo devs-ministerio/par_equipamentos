@@ -7,6 +7,8 @@ import {
   PainelBloco,
   PainelNavegacao,
 } from "@/components/features/painel-tecnico-estrutura";
+import { ChevronDown, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CardColaborador } from "@/components/features/card-colaborador";
 import { PainelGestaoEquipamentos } from "@/components/features/painel-gestao-equipamentos";
 import { equipamentosPorSituacao } from "@/lib/painel-gestao-operacao";
@@ -61,37 +63,42 @@ export function MonitoramentoMeuPainelPage() {
   const conveniosQuery = useConveniosLista();
 
   const titulo = gestao ? "Painéis da equipe" : "Meu painel";
-  const filtro = gestao ? (
-    <label className="flex w-full flex-col gap-1 text-sm sm:w-auto sm:flex-row sm:items-center sm:gap-2">
-      <span className="text-muted-foreground">Colaborador</span>
-      <select
-        className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm sm:w-auto"
-        value={colaboradorId ?? ""}
-        onChange={(e) => {
-          setColaboradorId(e.target.value ? Number(e.target.value) : undefined);
-          limparFiltros();
-        }}
-      >
-        <option value="">Todos</option>
-        {(tecnicos.data ?? []).map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.nome}
-            {t.ufs.length > 0 ? ` (${t.ufs.join(", ")})` : ""}
-          </option>
-        ))}
-      </select>
-    </label>
+  const nomeSelecionado =
+    (tecnicos.data ?? []).find((t) => t.id === colaboradorId)?.nome ??
+    "Todos os colaboradores";
+  const seletor = gestao ? (
+    <Button asChild size="sm" className="relative mt-0.5 w-full cursor-pointer">
+      <label>
+        <Users aria-hidden="true" />
+        <span className="truncate">{nomeSelecionado}</span>
+        <ChevronDown aria-hidden="true" />
+        <select
+          aria-label="Colaborador"
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          value={colaboradorId ?? ""}
+          onChange={(e) => {
+            setColaboradorId(
+              e.target.value ? Number(e.target.value) : undefined,
+            );
+            limparFiltros();
+          }}
+        >
+          <option value="">Todos os colaboradores</option>
+          {(tecnicos.data ?? []).map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.nome}
+              {t.ufs.length > 0 ? ` (${t.ufs.join(", ")})` : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+    </Button>
   ) : undefined;
   const header = (
     <PageHeader
       eyebrow="Monitoramento interno"
       title={titulo}
-      actions={
-        <div className="flex w-full flex-wrap items-stretch gap-3 sm:w-auto">
-          <CardColaborador semBotao />
-          {filtro}
-        </div>
-      }
+      actions={<CardColaborador semBotao acao={seletor} />}
     />
   );
 

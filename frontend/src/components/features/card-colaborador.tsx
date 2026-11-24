@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { LayoutDashboard } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,14 @@ import { usePainelTecnico } from "@/hooks/use-painel-tecnico";
 const ROTA_PAINEL = "/monitoramento-equipamentos/meu-painel";
 
 /** Card do cabeçalho do Painel de gestão: quem está logado e o atalho para o painel individual. */
-export function CardColaborador({ semBotao = false }: { semBotao?: boolean }) {
+export function CardColaborador({
+  semBotao = false,
+  acao,
+}: {
+  semBotao?: boolean;
+  /** Substitui o botão do painel (ex.: seletor de colaborador no painel da equipe). */
+  acao?: ReactNode;
+}) {
   const { usuarioAtual } = useAuthSession();
   const gestao =
     usuarioAtual?.role === "admin" || usuarioAtual?.role === "gestor";
@@ -23,7 +31,8 @@ export function CardColaborador({ semBotao = false }: { semBotao?: boolean }) {
       <p className="m-0 text-center text-xs leading-tight text-muted-foreground">
         {gestao ? "Região: Todas" : `Região: ${ufs.join(", ") || "—"}`}
       </p>
-      {!semBotao && (
+      {acao}
+      {!semBotao && !acao && (
         <Button asChild size="sm" className="mt-0.5 w-full">
           <Link to={ROTA_PAINEL}>
             <LayoutDashboard aria-hidden="true" />
