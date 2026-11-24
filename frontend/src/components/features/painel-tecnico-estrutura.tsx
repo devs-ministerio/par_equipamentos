@@ -22,7 +22,7 @@ export function PainelBloco({
     <section
       id={id}
       aria-labelledby={`${id}-titulo`}
-      className={cn("scroll-mt-28 space-y-6", className)}
+      className={cn("scroll-mt-36 space-y-6", className)}
     >
       <header className="relative border-b border-border pb-4">
         <h2
@@ -44,6 +44,17 @@ export function PainelBloco({
 /** Atalhos fixos sob o cabeçalho; marca a seção que está na tela. */
 export function PainelNavegacao({ itens }: { itens: ItemNavegacao[] }) {
   const [ativo, setAtivo] = useState(itens[0]?.id);
+  const [topo, setTopo] = useState(65);
+  useEffect(() => {
+    const cabecalho = document.querySelector("header.sticky");
+    if (!cabecalho) return;
+    const medir = () =>
+      setTopo(Math.round(cabecalho.getBoundingClientRect().height));
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(cabecalho);
+    return () => observador.disconnect();
+  }, []);
   useEffect(() => {
     const observador = new IntersectionObserver(
       (entradas) => {
@@ -61,7 +72,8 @@ export function PainelNavegacao({ itens }: { itens: ItemNavegacao[] }) {
   return (
     <nav
       aria-label="Seções do painel"
-      className="sticky top-14 z-30 -mx-1 mb-8 flex gap-1 overflow-x-auto border-b border-border/70 bg-background/85 px-1 py-2 backdrop-blur-md"
+      style={{ top: topo }}
+      className="sticky z-30 -mx-1 mb-8 flex gap-1 overflow-x-auto border-b border-border/70 bg-background/85 px-1 py-3 backdrop-blur-md"
     >
       {itens.map((item) => (
         <a
