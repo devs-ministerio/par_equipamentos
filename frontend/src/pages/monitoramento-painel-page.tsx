@@ -249,10 +249,7 @@ export function MonitoramentoPainelPage() {
         </PainelBloco>
 
         <PainelBloco id="evolucao" titulo="Evolução">
-          <PainelCartao
-            titulo="Ano do instrumento"
-            apoio={analise.semAno > 0 ? `${analise.semAno} sem ano` : undefined}
-          >
+          <PainelCartao titulo="Ano do instrumento">
             <GraficoColunas
               vazio="Nenhum ano informado."
               colunas={analise.anos.map((a) => ({
