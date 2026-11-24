@@ -1,15 +1,20 @@
 """Ajusta a resposta sobre inauguração dos instrumentos (exceto os com Acelerador Linear).
 
-Regras (decisão do usuário, 24/11/2026), por instrumento no escopo e **sem** item de aquisição de Acelerador Linear:
+Regras (decisão do usuário, 24/11/2026), por instrumento no escopo:
 
-- conclusão ativa com resultado integral e sem nenhum registro de inauguração (nem previsão, nem realizada, nem
-  dispensada): grava "Inauguração dispensada";
-- sem conclusão ativa (em aberto) e com inauguração **realizada**: o lançamento da realizada é excluído com motivo
-  (soft delete, nunca físico), deixando o instrumento sem registro para a equipe responder se precisa de inauguração;
-- sem conclusão ativa e sem registro: nada a fazer (a equipe responde ao registrar a entrega);
-- todo o resto (previsão pendente, dispensada ou realizada em concluído integral, resultado sem_entregas): fica como está.
+Instrumento **sem** Acelerador Linear:
+- inauguração realizada em instrumento sem conclusão ativa (em aberto): o lançamento da realizada é excluído com
+  motivo (soft delete, nunca físico) e, em seguida, vale a regra abaixo;
+- sem nenhum registro de inauguração (nem previsão, nem realizada, nem dispensada) e concluído integral **ou** com
+  equipamento entregue: grava "Inauguração dispensada";
+- previsão pendente, dispensada, ou instrumento sem conclusão e sem entrega: fica como está.
 
-Aceleradores nunca são alterados e saem listados no final. Idempotente. Sem ``--aplicar`` apenas simula.
+Instrumento **com** Acelerador Linear:
+- concluído integral e sem nenhum registro de inauguração: grava a inauguração **realizada** com a data da primeira
+  entrega do acelerador (nunca no futuro);
+- qualquer outro caso: não altera; a lista sai no final.
+
+Idempotente. Sem ``--aplicar`` apenas simula.
 
 Uso:
     python -m scripts.ajustar_inauguracao_entregues
@@ -20,7 +25,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.engine import make_url
@@ -35,8 +40,9 @@ from app.repositories.convenios import instrumento_no_escopo
 
 MARCO_PREVISAO = "cronograma_previsao_inauguracao"
 MARCO_DISPENSADA = "cronograma_inauguracao_dispensada"
-OBS_DISPENSADA = "Dispensada: ajuste em lote, instrumento concluído sem registro de inauguração"
-MOTIVO_EXCLUSAO = "Ajuste em lote: instrumento em aberto, a equipe deve informar se precisa de inauguração"
+OBS_DISPENSADA = "Dispensada: ajuste em lote, instrumento sem registro de inauguração"
+OBS_REALIZADA = "Inauguração realizada: data da entrega do acelerador, copiada em lote"
+MOTIVO_EXCLUSAO = "Ajuste em lote: instrumento em aberto, inauguração realizada substituída pela resposta de dispensa"
 
 
 def executar(db: Session, *, aplicar: bool) -> tuple[Counter[str], list[tuple[str, str]]]:
@@ -51,6 +57,8 @@ def executar(db: Session, *, aplicar: bool) -> tuple[Counter[str], list[tuple[st
     ).all()
     ids = [i.id for i in instrumentos]
     com_acelerador = etapas_repo.ids_com_acelerador_linear(db, ids)
+    com_entrega = set(etapas_repo.primeira_entrega_por_instrumento(db, ids))
+    entrega_acelerador = etapas_repo.primeira_entrega_de_acelerador(db, ids)
     resultado_por_id = {
         instrumento_id: resultado
         for instrumento_id, resultado in db.execute(
@@ -59,6 +67,7 @@ def executar(db: Session, *, aplicar: bool) -> tuple[Counter[str], list[tuple[st
             )
         )
     }
+    hoje = date.today()
     for instrumento in instrumentos:
         evento_previsao = monitoramento_repo.obter_evento_mais_recente_do_marco(
             db, instrumento_id=instrumento.id, marco_id=previsao.id
@@ -67,7 +76,24 @@ def executar(db: Session, *, aplicar: bool) -> tuple[Counter[str], list[tuple[st
             db, instrumento_id=instrumento.id, marco_id=dispensada.id
         )
         resultado = resultado_por_id.get(instrumento.id)
+        sem_registro = evento_previsao is None and evento_dispensada is None
         if instrumento.id in com_acelerador:
+            data = entrega_acelerador.get(instrumento.id)
+            if resultado == "integral" and sem_registro and data is not None and data <= hoje:
+                contagem["acelerador concluído sem registro -> realizada na data da entrega"] += 1
+                if aplicar:
+                    novo = EventoMarco(
+                        instrumento_id=instrumento.id,
+                        marco_id=previsao.id,
+                        data_ocorrencia=data,
+                        observacao=OBS_REALIZADA,
+                        autor_id=None,
+                    )
+                    monitoramento_repo.adicionar_evento(db, novo)
+                    _auditar(
+                        db, instrumento, "inauguracao_realizada_pela_entrega_em_lote", novo.id, data=data.isoformat()
+                    )
+                continue
             if evento_dispensada is not None:
                 situacao = "dispensada"
             elif evento_previsao is not None and evento_previsao.data_ocorrencia is not None:
@@ -79,51 +105,42 @@ def executar(db: Session, *, aplicar: bool) -> tuple[Counter[str], list[tuple[st
             aceleradores.append((instrumento.nr_convenio, f"{resultado or 'em aberto'}; inauguração {situacao}"))
             contagem["acelerador: não alterado"] += 1
             continue
-        if resultado == "integral" and evento_previsao is None and evento_dispensada is None:
-            contagem[
-                "concluído integral sem registro -> dispensada" if aplicar else "a dispensar (concluído integral)"
-            ] += 1
+        if resultado is None and evento_previsao is not None and evento_previsao.data_ocorrencia is not None:
+            contagem["em aberto com realizada -> removida"] += 1
+            if aplicar:
+                evento_previsao.deletado_em = datetime.now(timezone.utc)
+                evento_previsao.motivo_exclusao = MOTIVO_EXCLUSAO
+                _auditar(
+                    db,
+                    instrumento,
+                    "inauguracao_realizada_removida_em_lote",
+                    evento_previsao.id,
+                    data_realizada=evento_previsao.data_ocorrencia.isoformat(),
+                )
+            evento_previsao = None
+            sem_registro = evento_dispensada is None
+        if sem_registro and (resultado == "integral" or instrumento.id in com_entrega):
+            contagem["sem registro -> dispensada"] += 1
             if aplicar:
                 novo = EventoMarco(
                     instrumento_id=instrumento.id, marco_id=dispensada.id, observacao=OBS_DISPENSADA, autor_id=None
                 )
                 monitoramento_repo.adicionar_evento(db, novo)
-                log_action(
-                    db,
-                    user_id=None,
-                    entity_name="instrumento_equipamento",
-                    entity_id=instrumento.id,
-                    action="inauguracao_dispensada_em_lote",
-                    details={"nr_convenio": instrumento.nr_convenio, "evento_id": novo.id},
-                )
-            continue
-        if (
-            resultado is None
-            and evento_previsao is not None
-            and evento_previsao.data_ocorrencia is not None
-            and evento_dispensada is None
-        ):
-            contagem[
-                "em aberto com realizada -> sem registro" if aplicar else "a limpar (em aberto com realizada)"
-            ] += 1
-            if aplicar:
-                evento_previsao.deletado_em = datetime.now(timezone.utc)
-                evento_previsao.motivo_exclusao = MOTIVO_EXCLUSAO
-                log_action(
-                    db,
-                    user_id=None,
-                    entity_name="instrumento_equipamento",
-                    entity_id=instrumento.id,
-                    action="inauguracao_realizada_removida_em_lote",
-                    details={
-                        "nr_convenio": instrumento.nr_convenio,
-                        "evento_id": evento_previsao.id,
-                        "data_realizada": evento_previsao.data_ocorrencia.isoformat(),
-                    },
-                )
+                _auditar(db, instrumento, "inauguracao_dispensada_em_lote", novo.id)
             continue
         contagem["sem alteração"] += 1
     return contagem, aceleradores
+
+
+def _auditar(db: Session, instrumento: InstrumentoEquipamento, acao: str, evento_id: int, **extra: str) -> None:
+    log_action(
+        db,
+        user_id=None,
+        entity_name="instrumento_equipamento",
+        entity_id=instrumento.id,
+        action=acao,
+        details={"nr_convenio": instrumento.nr_convenio, "evento_id": evento_id, **extra},
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

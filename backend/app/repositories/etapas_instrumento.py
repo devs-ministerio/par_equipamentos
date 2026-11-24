@@ -118,3 +118,23 @@ def ids_com_acelerador_linear(db: Session, instrumento_ids: Sequence[int]) -> se
         )
     )
     return {instrumento_id for (instrumento_id,) in linhas}
+
+
+def primeira_entrega_de_acelerador(db: Session, instrumento_ids: Sequence[int]) -> dict[int, date]:
+    """Data da primeira entrega ativa de Acelerador Linear, por instrumento."""
+    if not instrumento_ids:
+        return {}
+    linhas = db.execute(
+        select(ItemPlano.instrumento_id, func.min(EntregaEquipamento.data_ocorrencia))
+        .join(UnidadeEquipamento, UnidadeEquipamento.item_id == ItemPlano.id)
+        .join(EntregaEquipamento, EntregaEquipamento.id == UnidadeEquipamento.entrega_id)
+        .join(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
+        .where(
+            EquipamentoCatalogo.codigo == "acelerador_linear",
+            ItemPlano.instrumento_id.in_(instrumento_ids),
+            EntregaEquipamento.substituido_por_id.is_(None),
+            EntregaEquipamento.deletado_em.is_(None),
+        )
+        .group_by(ItemPlano.instrumento_id)
+    )
+    return {instrumento_id: data for instrumento_id, data in linhas}

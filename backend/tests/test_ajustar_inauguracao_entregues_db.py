@@ -14,11 +14,13 @@ from app.db.base import engine
 from app.db.models import (
     ConclusaoInstrumento,
     Convenio,
+    EntregaEquipamento,
     EquipamentoCatalogo,
     EventoMarco,
     InstrumentoEquipamento,
     ItemPlano,
     MarcoCatalogo,
+    UnidadeEquipamento,
 )
 from scripts.ajustar_inauguracao_entregues import MARCO_DISPENSADA, MARCO_PREVISAO, executar
 
@@ -38,7 +40,7 @@ def db():
         conexao.close()
 
 
-def _instrumento(db, *, integral=False, acelerador=False):
+def _instrumento(db, *, integral=False, acelerador=False, entregue=None):
     numero = f"AJ{uuid4().hex[:8]}"
     convenio = Convenio(numero=numero, objeto="x", convenente_nome="x", uf="ZZ", tipo_contratacao="Convênio")
     db.add(convenio)
@@ -63,6 +65,26 @@ def _instrumento(db, *, integral=False, acelerador=False):
             )
         )
     db.flush()
+    if entregue is not None:
+        item = db.execute(select(ItemPlano).where(ItemPlano.instrumento_id == inst.id)).scalars().first()
+        if item is None:
+            item = ItemPlano(
+                convenio_id=convenio.id,
+                instrumento_id=inst.id,
+                origem="manual",
+                id_origem=f"t:{uuid4().hex}",
+                descricao="Mamógrafo",
+                quantidade_planejada=1,
+            )
+            db.add(item)
+            db.flush()
+        entrega = EntregaEquipamento(
+            instrumento_id=inst.id, data_ocorrencia=entregue, chave_idempotencia=f"k{uuid4().hex}"
+        )
+        db.add(entrega)
+        db.flush()
+        db.add(UnidadeEquipamento(entrega_id=entrega.id, item_id=item.id, ordem=1))
+        db.flush()
     return inst
 
 
@@ -88,28 +110,35 @@ def _ativos(db, inst, codigo):
 
 def test_aplica_as_regras_e_preserva_aceleradores(db):
     concluido = _instrumento(db, integral=True)
-    aberto_realizada = _instrumento(db)
+    aberto_realizada = _instrumento(db, entregue=date(2025, 2, 1))
     db.add(
         EventoMarco(
-            instrumento_id=aberto_realizada.id, marco_id=_marco(db, MARCO_PREVISAO).id, data_ocorrencia=date(2025, 3, 1)
+            instrumento_id=aberto_realizada.id,
+            marco_id=_marco(db, MARCO_PREVISAO).id,
+            data_ocorrencia=date(2025, 3, 1),
         )
     )
-    aberto_sem_registro = _instrumento(db)
-    acelerador = _instrumento(db, integral=True, acelerador=True)
+    aberto_entregue = _instrumento(db, entregue=date(2025, 2, 1))
+    aberto_sem_entrega = _instrumento(db)
+    acelerador_sem_registro = _instrumento(db, integral=True, acelerador=True, entregue=date(2024, 5, 2))
+    acelerador_aberto = _instrumento(db, acelerador=True, entregue=date(2024, 5, 2))
     db.flush()
 
-    simulado, _ = executar(db, aplicar=False)
+    executar(db, aplicar=False)
     assert _ativos(db, concluido, MARCO_DISPENSADA) == []
-    assert sum(simulado.values()) >= 4
 
     contagem, aceleradores = executar(db, aplicar=True)
     db.flush()
-    assert len(_ativos(db, concluido, MARCO_DISPENSADA)) == 1
+    for inst in (concluido, aberto_realizada, aberto_entregue):
+        assert len(_ativos(db, inst, MARCO_DISPENSADA)) == 1
     assert _ativos(db, aberto_realizada, MARCO_PREVISAO) == []
-    assert _ativos(db, aberto_sem_registro, MARCO_PREVISAO) == []
-    assert _ativos(db, acelerador, MARCO_DISPENSADA) == []
-    assert acelerador.nr_convenio in {numero for numero, _ in aceleradores}
-    assert contagem["concluído integral sem registro -> dispensada"] == 1
+    assert _ativos(db, aberto_sem_entrega, MARCO_DISPENSADA) == []
+    realizada = _ativos(db, acelerador_sem_registro, MARCO_PREVISAO)
+    assert [e.data_ocorrencia for e in realizada] == [date(2024, 5, 2)]
+    assert _ativos(db, acelerador_sem_registro, MARCO_DISPENSADA) == []
+    assert _ativos(db, acelerador_aberto, MARCO_PREVISAO) == []
+    assert acelerador_aberto.nr_convenio in {numero for numero, _ in aceleradores}
+    assert contagem["acelerador concluído sem registro -> realizada na data da entrega"] == 1
 
     repetido, _ = executar(db, aplicar=True)
-    assert "concluído integral sem registro -> dispensada" not in repetido
+    assert "sem registro -> dispensada" not in repetido
