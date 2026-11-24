@@ -1,8 +1,10 @@
-# Mapa do Monitoramento interno (revisão 5, de 23/11/2026)
+# Mapa do Monitoramento interno (revisão 6, de 24/11/2026)
 
 Objetivo: servir de base para a equipe validar o fluxo e apontar funcionalidade ou código sem uso. Tudo aqui foi lido do código da branch `feat/persus-ii-fora-do-monitoramento` (estado de 21/11/2026, depois da revisão 3). Os diagramas usam Mermaid e renderizam no Obsidian, no GitHub e no VS Code.
 
-Escopo: Mesa de trabalho (`/monitoramento-equipamentos/instrumentos`), detalhe do instrumento (`/monitoramento-equipamentos/instrumentos/:nr`), Radar de instrumentos e fila de revisão de itens. O Painel de Gestão está desabilitado (flag `PAINEL_GESTAO_HABILITADO`) e fica fora deste mapa.
+Escopo: Mesa de trabalho (`/monitoramento-equipamentos/instrumentos`), detalhe do instrumento (`/monitoramento-equipamentos/instrumentos/:nr`), Radar de instrumentos e fila de revisão de itens. O Painel de gestão e o Meu painel entram na seção 14 (a flag `PAINEL_GESTAO_HABILITADO` está `true` na branch de trabalho).
+
+Mudanças da revisão 6: seção 14 (Painel de gestão e Meu painel: filtros mínimos, regras de situação do equipamento, cancelamento de unidade planejada, valor global).
 
 Mudanças da revisão 4: Radar mostra o candidato antes do Portal (Aprovar segue travado); card separa "Descoberto em" e "Recaptura"; Aprovar exige prova vigente; política de avisos do SICONV com resumo e popup de detalhe. Detalhes no mapa do Radar.
 
@@ -30,7 +32,8 @@ flowchart LR
     OUTROS(["colaborador / leitor"]):::perfil -. "não veem o Radar" .-> RADAR
     RADAR -->|"aprovar com técnico: entra na carteira e a lista atualiza"| DADOS
     AVISO["Aviso de inclusão (sino ou pop-up)"]:::tela -->|"passo posterior: abrir o instrumento"| DET
-    PAINEL["Painel de gestão<br/>botão desabilitado"]:::off
+    PAINEL["Painel de gestão<br/>/painel (seção 14)"]:::tela
+    MEU["Meu painel<br/>/meu-painel (seção 14)"]:::tela
     SINO["Sino de notificações"]:::tela -->|"abre o instrumento"| DET
     DET -->|"Voltar"| MESA
 ```
@@ -540,3 +543,53 @@ O POST de eventos ainda aceita registrar `fase_concluido` (com data e confirmaç
 - Endpoints foram cruzados com o frontend pelo caminho; endpoint usado só por script externo apareceria como "com consumidor" se o texto coincidir.
 - Uso real em produção não foi medido. Para isso, olhar `AuditLog` por tipo de ação (quem lançou o quê, quando) é o melhor indicador de funcionalidade que a equipe não usa.
 - A agenda dos jobs reflete os arquivos de workflow. O valor das variáveis `ATUALIZACOES_*_ATIVAS` no GitHub não foi consultado.
+
+## 14. Painel de gestão e Meu painel (24/11/2026)
+
+Telas só de leitura: nenhuma grava dado. Os dois usam o mesmo recorte de filtros e as mesmas regras de situação do equipamento; o Meu painel mostra a carteira do técnico logado e o Painel de gestão a carteira inteira (gestão pode filtrar por responsável).
+
+```mermaid
+flowchart LR
+    classDef tela fill:#E8EEF9,stroke:#2A4D9B,color:#1a2f5e
+    F["Filtros mínimos no navegador:<br/>Busca, Período, Contratação,<br/>UF/Município, Equipamento, Responsável"]:::tela --> BASE["Instrumentos do recorte"]
+    G["Clique nos gráficos<br/>(situação, UF, contratação, responsável,<br/>ano, família, inauguração, atualização, prazo)"]:::tela --> LOC["Filtros locais da página"]
+    BASE --> REC["Recorte final"]
+    LOC --> REC
+    REC --> KPI["Instrumentos, Valor global,<br/>Equipamentos em operação"]
+    REC --> GR["Gráficos: Visão geral, Evolução,<br/>Andamento, Composição, Território"]
+    FU["URL guarda os filtros mínimos<br/>(useSearchParams)"] -.-> F
+```
+
+### 14.1 Situação do equipamento
+
+```mermaid
+flowchart TB
+    classDef regra fill:#FFF4DD,stroke:#C98A00,color:#5a3d00
+    E["Equipamento planejado<br/>(item monitorado)"] --> C{"Unidade cancelada?"}:::regra
+    C -->|"sim"| X["Sai do planejado<br/>(cancelamento_unidade_planejada, append-only)"]
+    C -->|"não"| D{"Instrumento dispensa inauguração<br/>ou inauguração realizada com 100% concluído<br/>ou acelerador concluído sem registro?"}:::regra
+    D -->|"sim, e a unidade foi entregue"| OP["Em operação"]
+    D -->|"não, mas a unidade foi entregue"| EN["Entregue, a inaugurar"]
+    D -->|"sem entrega"| PL["Planejado"]
+```
+
+A regra vive só no Painel de gestão e no Meu painel (`lib/painel-gestao-operacao.ts`, `lib/painel-gestao-andamento.ts`); relatórios e demais telas não a usam. A conclusão do instrumento é decisão do técnico: o painel não conclui nada sozinho, de modo que equipamento entregue em instrumento ainda aberto fica "a inaugurar".
+
+### 14.2 Valor global
+
+`valor_global` só entra na soma quando é numérico **e** a fonte é confiável (`financeiro.fonteConfiavel`) ou o desembolso é integral da carga (`desembolso_integral_da_carga`: FAF, TED, PERSUS I, PERSUS II, PRONON). Instrumento sem valor aparece como "—" em "Investimento por contratação" ("n de m com valor"). Preencher valor ausente é carga de dado (scripts `definir_valor_persus_ii.py` e `registrar_convenio_faf_parceria.py`, simulação por padrão, `--aplicar --confirmo-host`), nunca edição do painel.
+
+### 14.3 Cancelamento de unidade planejada
+
+`cancelar_unidade_planejada` (`services/cancelamento_unidade.py`) grava em `cancelamento_unidade_planejada`, append-only, com motivo. Só vale em instrumento não concluído (`assert_nao_concluido`). O cancelamento reduz o planejado do item e não vira "entrega".
+
+### 14.4 Registro de funcionalidades (painel)
+
+| Funcionalidade | Onde |
+| --- | --- |
+| Filtros mínimos no navegador de seções | `painel-gestao-filtros*.tsx` |
+| Chips de recortes ativos e "Limpar" | `painel-gestao-recortes.tsx` |
+| Seções Visão geral, Evolução, Andamento, Composição | `painel-gestao-secao-*.tsx` |
+| Derivação dos gráficos (pura, testável) | `lib/painel-gestao-derivados.ts` |
+| Completude do cadastro (só admin) | `painel-gestao-completude.tsx` |
+| Mapa por município | `monitoramento-painel-geografia.tsx` |

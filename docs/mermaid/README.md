@@ -6,7 +6,7 @@ Pasta de mapas de fluxo lidos do código. Cada mapa cobre um módulo, tem revis�
 
 | Mapa | Escopo | Revisão |
 | --- | --- | --- |
-| [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 5, 23/11/2026 |
+| [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 6, 24/11/2026 |
 | [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, Portal opcional, workflow | 4, 23/11/2026 |
 | [banco-de-dados.md](banco-de-dados.md) | Banco de dados: 50 tabelas por domínio, ligações com e sem chave estrangeira, estado de uso em produção | 2, 23/11/2026 |
 
@@ -50,6 +50,7 @@ Arquivo inteiro: [monitoramento-interno.md](monitoramento-interno.md)
 - [8. Quem pode fazer o quê](monitoramento-interno.md#8-quem-pode-fazer-o-quê)
 - [9. Radar de instrumentos (revisão 2)](monitoramento-interno.md#9-radar-de-instrumentos-revisão-2)
 - [10. Avisos e jobs](monitoramento-interno.md#10-avisos-e-jobs)
+- [14. Painel de gestão e Meu painel](monitoramento-interno.md#14-painel-de-gestão-e-meu-painel-24112026)
 
 ### Banco de dados
 
