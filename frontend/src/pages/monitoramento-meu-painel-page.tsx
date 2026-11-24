@@ -117,6 +117,10 @@ export function MonitoramentoMeuPainelPage() {
   const valorRadar = linhas
     .filter(entrouNoRadarRecente)
     .reduce((t, l) => t + (l.valor_global ?? 0), 0);
+  const valorCarteira = linhas.reduce((t, l) => t + (l.valor_global ?? 0), 0);
+  const regiaoTexto = dados.ufs?.length
+    ? dados.ufs.join(", ")
+    : "Todos os estados";
   const pendentes = linhas.reduce((t, l) => t + l.acoes_abertas, 0);
   const numerosMonitorados = new Set(
     linhas.filter((l) => l.monitorado).map((l) => l.numero),
@@ -150,7 +154,11 @@ export function MonitoramentoMeuPainelPage() {
       )}
       <PainelNavegacao itens={SECOES} />
       <div className="space-y-12">
-        <PainelBloco id="visao-geral" titulo="Visão geral">
+        <PainelBloco
+          id="visao-geral"
+          titulo="Visão geral"
+          resumo={`${regiaoTexto} · ${linhas.length} instrumentos`}
+        >
           <MetricStrip
             items={[
               {
@@ -214,7 +222,11 @@ export function MonitoramentoMeuPainelPage() {
             />
           </div>
         </PainelBloco>
-        <PainelBloco id="carteira" titulo="Carteira">
+        <PainelBloco
+          id="carteira"
+          titulo="Carteira"
+          resumo={`${linhas.length - faltam.length} monitorados · ${faltam.length} a incluir · ${fmtMoeda(valorCarteira)} em valor global`}
+        >
           {carteiraQuery.isError ? (
             <ErrorAlert
               mensagem="Não foi possível carregar a carteira."
@@ -228,7 +240,15 @@ export function MonitoramentoMeuPainelPage() {
             />
           )}
         </PainelBloco>
-        <PainelBloco id="prazos" titulo="Prazos e pendências">
+        <PainelBloco
+          id="prazos"
+          titulo="Prazos e pendências"
+          resumo={
+            prazos
+              ? `${prazos.vigenciasProximas.length} vigências a encerrar · ${pendentes} ações pendentes (${atrasadas} atrasadas)`
+              : undefined
+          }
+        >
           {prazos ? (
             <div className="space-y-6">
               <MonitoramentoPainelPrazos

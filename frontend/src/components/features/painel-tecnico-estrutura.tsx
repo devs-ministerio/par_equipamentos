@@ -6,15 +6,17 @@ export interface ItemNavegacao {
   rotulo: string;
 }
 
-/** Bloco da página com título de seção e âncora para a navegação lateral. */
+/** Bloco da página com título de seção (e resumo em dados) e âncora para a navegação fixa. */
 export function PainelBloco({
   id,
   titulo,
+  resumo,
   children,
   className,
 }: {
   id: string;
   titulo: string;
+  resumo?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -22,14 +24,25 @@ export function PainelBloco({
     <section
       id={id}
       aria-labelledby={`${id}-titulo`}
-      className={cn("scroll-mt-28 space-y-5", className)}
+      className={cn("scroll-mt-28 space-y-6", className)}
     >
-      <h2
-        id={`${id}-titulo`}
-        className="m-0 font-display text-xl font-semibold tracking-tight text-foreground"
-      >
-        {titulo}
-      </h2>
+      <header className="relative border-b border-border pb-4">
+        <h2
+          id={`${id}-titulo`}
+          className="m-0 font-display text-2xl leading-tight font-bold tracking-[-0.03em] text-foreground sm:text-[1.75rem]"
+        >
+          {titulo}
+        </h2>
+        {resumo && (
+          <p className="m-0 mt-1.5 text-sm text-muted-foreground tabular-nums">
+            {resumo}
+          </p>
+        )}
+        <span
+          aria-hidden="true"
+          className="absolute -bottom-px left-0 h-0.5 w-14 rounded-full bg-primary"
+        />
+      </header>
       {children}
     </section>
   );

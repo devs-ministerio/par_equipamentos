@@ -110,14 +110,9 @@ export function PainelTecnicoCarteira({
   return (
     <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <div className="mr-auto">
-          <h3 className="m-0 text-base font-semibold tracking-tight">
-            Carteira da região
-          </h3>
-          <p className="m-0 mt-0.5 text-xs text-muted-foreground tabular-nums">
-            {filtradas.length} de {linhas.length} instrumentos
-          </p>
-        </div>
+        <p className="m-0 mr-auto text-sm font-medium tabular-nums">
+          {filtradas.length} de {linhas.length} instrumentos
+        </p>
         <Input
           className="max-w-xs"
           placeholder="Buscar instrumento, município ou CNES"
