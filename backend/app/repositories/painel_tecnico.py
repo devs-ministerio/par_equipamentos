@@ -27,9 +27,17 @@ from app.db.models import (
     UsuarioRegiaoMonitoramento,
 )
 from app.repositories.convenios import instrumento_no_escopo
+from app.valor_global import valor_global_considerado
 
 PERSUS_II = "PERSUS II"
 JANELA_RECENTE_DIAS = 15
+
+
+def _valor(c: Convenio) -> float | None:
+    """Valor global pela mesma regra do Painel de gestão (fonte confiável ou carga manual)."""
+    return valor_global_considerado(
+        c.valor_global, tipo_contratacao=c.tipo_contratacao, fonte_confiavel=c.financeiro_fonte_confiavel
+    )
 
 
 def ufs_do_usuario(db: Session, usuario_id: int) -> list[str]:
@@ -173,7 +181,7 @@ def resumo_carteira(db: Session, ufs: list[str] | None) -> dict[str, Any]:
     monitorados = elegiveis - len(faltantes)
 
     def soma(itens: list[Convenio]) -> float:
-        return float(sum(float(c.valor_global or 0) for c in itens))
+        return float(sum(_valor(c) or 0 for c in itens))
 
     return {
         "elegiveis": elegiveis,
@@ -274,7 +282,7 @@ def carteira_da_regiao(
                 "cnpj_convenente": c.convenente_cnpj,
                 "tipo_contratacao": c.tipo_contratacao,
                 "situacao": c.situacao,
-                "valor_global": float(c.valor_global) if c.valor_global is not None else None,
+                "valor_global": _valor(c),
                 "em_aberto": _em_aberto(c),
                 "monitorado": monitorado,
                 "titular": titulares.get(iid) if monitorado else None,

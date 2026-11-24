@@ -64,6 +64,7 @@ def _convenio(db, *, situacao="Em execução", tipo="Convênio", valor=1000):
         situacao=situacao,
         tipo_contratacao=tipo,
         valor_global=valor,
+        financeiro_fonte_confiavel=True,
     )
     db.add(c)
     db.flush()
@@ -88,6 +89,15 @@ def _cenario(db):
     _convenio(db, tipo="PERSUS II")
     db.flush()
     return tecnico, outro
+
+
+def test_valor_sem_fonte_confiavel_nao_entra_na_carteira(db):
+    tecnico, _ = _cenario(db)
+    sem_fonte = _convenio(db, valor=900)
+    sem_fonte.financeiro_fonte_confiavel = False
+    db.flush()
+    p = svc.obter_painel(db=db, usuario=tecnico)
+    assert p.carteira.valor_faltam_em_aberto == 500
 
 
 def test_painel_do_colaborador_cobre_a_regiao_e_conta_o_que_falta(db):

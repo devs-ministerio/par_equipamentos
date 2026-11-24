@@ -580,7 +580,7 @@ A regra vive só no Painel de gestão e no Meu painel (`lib/painel-gestao-operac
 
 ### 14.2 Valor global
 
-`valor_global` só entra na soma quando é numérico **e** a fonte é confiável (`financeiro.fonteConfiavel`) ou o desembolso é integral da carga (`desembolso_integral_da_carga`: FAF, TED, PERSUS I, PERSUS II, PRONON). Instrumento sem valor aparece como "—" em "Investimento por contratação" ("n de m com valor"). Preencher valor ausente é carga de dado (scripts `definir_valor_persus_ii.py` e `registrar_convenio_faf_parceria.py`, simulação por padrão, `--aplicar --confirmo-host`), nunca edição do painel.
+`valor_global` só entra na soma quando é numérico **e** a fonte é confiável (`financeiro.fonteConfiavel`) ou o desembolso é integral da carga (`desembolso_integral_da_carga`: FAF, TED, PERSUS I, PERSUS II, PRONON). A Carteira do Meu painel usa a mesma regra (`app/valor_global.py`, `valor_global_considerado`): valor negativo ou de convênio sem fonte confiável não entra na soma nem aparece. Instrumento sem valor aparece como "—" em "Investimento por contratação" ("n de m com valor"). Preencher valor ausente é carga de dado (scripts `definir_valor_persus_ii.py` e `registrar_convenio_faf_parceria.py`, simulação por padrão, `--aplicar --confirmo-host`), nunca edição do painel.
 
 ### 14.3 Cancelamento de unidade planejada
 
