@@ -1,4 +1,4 @@
-"""Relatório da carteira de propostas em tramitação."""
+"""Relatório de propostas: tudo que não tem parceria formalizada (com parceria vira instrumento FAF)."""
 
 from dataclasses import replace
 from datetime import date
