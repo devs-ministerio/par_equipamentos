@@ -192,9 +192,17 @@ def test_previa_de_propostas_confere_com_word_e_excel(entregas):  # noqa: F811
     finally:
         pasta.close()
     word = montar_relatorio(db=sessao, formato="docx", nivel="completo", tipo_relatorio="propostas", filtro=novo_filtro)
-    texto = "\n".join(p.text for p in Document(BytesIO(word)).paragraphs)
+    documento = Document(BytesIO(word))
+    texto = "\n".join(p.text for p in documento.paragraphs)
     assert "Quantidade de Propostas: 1" in texto and "FAF" in texto
     assert "Documento gerado automaticamente" not in texto
+    titulo = next(p for p in documento.paragraphs if p.text.startswith("Proposta - "))
+    assert titulo.text == f"Proposta - {id_proposta}" and titulo.style.font.bold
+    assert len(documento.tables) == 2
+    ficha = documento.tables[1]
+    assert ficha.autofit is False and [c.text for c in ficha.rows[0].cells] == ["Campo", "Informação"]
+    assert all(r.cells[0].paragraphs[0].runs[0].bold for r in ficha.rows if len(r._tr.tc_lst) == 1)
+    assert any([c.text for c in r.cells] == ["Proponente", f"Entregues {marca} proposta"] for r in ficha.rows)
 
 
 def test_recorte_brasil_inclui_todas_as_contratacoes(entregas):  # noqa: F811

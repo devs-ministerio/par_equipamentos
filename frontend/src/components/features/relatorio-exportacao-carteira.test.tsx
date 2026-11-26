@@ -55,7 +55,7 @@ function abrirPagina(filtro: FiltroRelatorio) {
 }
 
 it("só abre a exportação após confirmar o tipo compatível e devolve o foco ao cancelar", async () => {
-  const { user, seletor, configurar, previa } = abrirPagina({
+  const { user, seletor, configurar, previa, gerar } = abrirPagina({
     escopo: "uf",
     uf: "BA",
     etapa: "propostas",
@@ -80,7 +80,8 @@ it("só abre a exportação após confirmar o tipo compatível e devolve o foco 
   await user.click(configurar);
   const dialogo = within(screen.getByRole("dialog", { name: "Propostas" }));
   expect(dialogo.getByText("UF: Bahia")).toBeInTheDocument();
-  expect(dialogo.getByRole("button", { name: "Simplificado" })).toHaveAttribute(
+  expect(dialogo.getByRole("button", { name: "Simplificado" })).toBeDisabled();
+  expect(dialogo.getByRole("button", { name: "Completo" })).toHaveAttribute(
     "aria-pressed",
     "true",
   );
@@ -90,11 +91,17 @@ it("só abre a exportação após confirmar o tipo compatível e devolve o foco 
   expect(dialogo.getByRole("button", { name: "Baixar Excel" })).toBeEnabled();
   expect(previa).toHaveBeenLastCalledWith(
     "propostas",
-    "simplificado",
+    "completo",
     { escopo: "uf", uf: "BA", etapa: "propostas" },
     1,
     expect.anything(),
   );
+  await user.click(dialogo.getByRole("button", { name: "Baixar Word" }));
+  expect(gerar).toHaveBeenCalledWith("docx", "completo", {
+    escopo: "uf",
+    uf: "BA",
+    etapa: "propostas",
+  });
   await user.click(dialogo.getByRole("button", { name: "Cancelar" }));
   await waitFor(() => expect(configurar).toHaveFocus());
   expect(seletor).toHaveTextContent("Propostas");

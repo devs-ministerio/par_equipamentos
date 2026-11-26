@@ -24,15 +24,26 @@ _ALINHAMENTOS_EQUIPAMENTO = (
     WD_ALIGN_PARAGRAPH.RIGHT,
 )
 _PROPOSTAS = (
-    ("Proposta", ("Nº da Proposta", "Data da Proposta", "Dias desde a Proposta")),
+    ("Proposta", ("Data da Proposta", "Dias desde a Proposta")),
     ("Proponente", ("Proponente", "CNPJ do Proponente", "CNES", "Município", "UF", "Região")),
     ("Programa e objeto", ("Programa", "Componente", "Equipamento", "Objeto")),
     ("Situação e valor", ("Situação da Proposta", "Status da Revisão", "Valor Global da Proposta")),
 )
 
 
-def _campos_rotulados(registro: dict[str, str], campos: Sequence[str], separador: str) -> str:
-    return separador.join(f"{c}: {registro[c]}" for c in campos if registro[c] not in ("", "—"))
+def _ficha(titulo: str, registro: dict[str, str], secoes: Sequence[tuple[str, Sequence[str]]]) -> SecaoTabela:
+    linhas: list[tuple[str, str]] = []
+    titulos: set[int] = set()
+    for rotulo, campos in secoes:
+        valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
+        if valores:
+            titulos.add(len(linhas))
+            linhas.append((rotulo, ""))
+            linhas.extend(valores)
+    return SecaoTabela(
+        titulo, ("Campo", "Informação"), linhas, pesos_colunas=(4.3, 5.7),
+        linhas_de_secao=frozenset(titulos), mesclas={i + 1: (0, 1) for i in titulos},
+    )
 
 
 def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequence[str]]) -> list[SecaoTabela]:
@@ -41,22 +52,9 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
     fichas = []
     for linha in linhas:
         registro = dict(zip(relatorio.colunas, linha, strict=True))
-        dados_ficha: list[tuple[str, str]] = []
-        titulos: set[int] = set()
-        mesclas = {}
-        for titulo, campos in _CABECALHO_INSTRUMENTO:
-            valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
-            if valores:
-                titulos.add(len(dados_ficha))
-                mesclas[len(dados_ficha) + 1] = (0, 1)
-                dados_ficha.append((titulo, ""))
-                dados_ficha.extend(valores)
         contratacao = registro["Contratação"]
         prefixo = contratacao if contratacao not in ("", "—") else "Instrumento"
-        fichas.append(SecaoTabela(
-            f"{prefixo} - {registro['Instrumento']}", ("Campo", "Informação"), dados_ficha,
-            pesos_colunas=(4.3, 5.7), linhas_de_secao=frozenset(titulos), mesclas=mesclas,
-        ))
+        fichas.append(_ficha(f"{prefixo} - {registro['Instrumento']}", registro, _CABECALHO_INSTRUMENTO))
 
         equipamentos = relatorio.equipamentos_por_instrumento.get(registro["Instrumento"], [])
         dados_equipamentos: list[tuple[str | int, ...]] = [
@@ -79,10 +77,11 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
     return fichas
 
 
-def registros_propostas_word(titulo: str, colunas: Sequence[str], linhas: Sequence[Sequence[str]]) -> SecaoTabela:
-    registros = []
+def fichas_propostas(colunas: Sequence[str], linhas: Sequence[Sequence[str]]) -> list[SecaoTabela]:
+    if not linhas:
+        return [SecaoTabela("Fichas das propostas", ("Campo", "Informação"), [], pesos_colunas=(4.3, 5.7))]
+    fichas = []
     for linha in linhas:
         registro = dict(zip(colunas, linha, strict=True))
-        registros.append(tuple(_campos_rotulados(registro, campos, "\n") for _, campos in _PROPOSTAS))
-    return SecaoTabela(titulo, tuple(rotulo for rotulo, _ in _PROPOSTAS), registros,
-                      pesos_colunas=(1.35, 2.3, 3.3, 1.75))
+        fichas.append(_ficha(f"Proposta - {registro['Nº da Proposta']}", registro, _PROPOSTAS))
+    return fichas
