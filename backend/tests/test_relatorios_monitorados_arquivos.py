@@ -7,6 +7,7 @@ from openpyxl import load_workbook
 
 from app.reports.monitorados import gerar_monitorados
 from app.reports.xlsx_builder import FORMATO_MOEDA
+from app.services.relatorios_equipamentos_modelo import COLUNAS_EQUIPAMENTO_COMPLETO, DATAS, MOEDA
 from app.services.relatorios_modelo import RelatorioMonitorado, Tabela
 
 
@@ -124,3 +125,35 @@ def test_excel_cabecalho_tambem_permanece_texto_literal():
     pasta = _xlsx(_relatorio(colunas=("=1+1",), linhas=[("literal",)]))
     assert pasta["Registros"]["A1"].value == "=1+1"
     assert pasta["Registros"]["A1"].data_type == "s"
+
+
+def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
+    def linha(numero, serie, valor):
+        return (
+            numero, "0030001", "Hospital Alfa", "Belo Horizonte", "MG", "Sudeste", "Convênio", "Acelerador Linear",
+            "0100 – Acelerador linear", "Em operação", "Em execução", "Concluído", 1, valor, date(2026, 1, 10),
+            date(2026, 1, 15), "Realizada", "12345", 2024, date(2024, 1, 1), date(2026, 12, 31),
+            "Fabricante A", "Modelo B", serie, "Almeida",
+        )
+
+    relatorio = _relatorio(
+        colunas=COLUNAS_EQUIPAMENTO_COMPLETO, linhas=[linha("100", "SN1", 1234.5), linha("200", None, None),
+                                                       linha("100", "SN2", 0.0)],
+        colunas_data=DATAS, colunas_moeda=MOEDA, arquivo_base="equipamentos", total=3,
+    )
+    doc = Document(BytesIO(gerar_monitorados(relatorio, formato="docx", nivel="completo", recorte="MG")))
+    assert len(doc.tables) == 3
+    titulos = [p.text for p in doc.paragraphs if p.text.startswith("Instrumento ")]
+    assert titulos == ["Instrumento 100", "Instrumento 200"]
+    dados = next(p for p in doc.paragraphs if p.text.startswith("Estabelecimento:"))
+    assert dados.paragraph_format.keep_with_next
+    assert "CNES: 0030001" in dados.text
+    cadastro = next(p.text for p in doc.paragraphs if p.text.startswith("Instrumento:"))
+    assert "Processo: 12345" in cadastro and "Fim da vigência: 31/12/2026" in cadastro
+    ficha = doc.tables[1]
+    assert not ficha.autofit and len(ficha.columns) == 7
+    assert [c.text for c in ficha.rows[1].cells][3:] == [
+        "R$ 1.234,50", "10/01/2026", "15/01/2026\nRealizada", "Marca: Fabricante A\nModelo: Modelo B\nSérie: SN1",
+    ]
+    assert ficha.rows[2].cells[3].text == "R$ 0,00" and "Série: SN2" in ficha.rows[2].cells[6].text
+    assert doc.tables[2].rows[1].cells[3].text == ""

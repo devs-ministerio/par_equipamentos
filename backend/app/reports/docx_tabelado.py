@@ -26,6 +26,7 @@ class SecaoTabela:
     linhas: Sequence[Sequence[Any]]
     pesos_colunas: Sequence[float] | None = None
     fonte_pt: float | None = None
+    detalhes: Sequence[tuple[str, str]] = ()
 
 
 def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> None:
@@ -76,7 +77,11 @@ def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]
         tabelas = []
         for secao in secoes:
             # Título preso (keepNext) a uma tabela longa vai sozinho para a página seguinte.
-            docx_builder.adicionar_titulo(documento, secao.titulo, solto=len(secao.linhas) > _LINHAS_TABELA_CURTA)
+            docx_builder.adicionar_titulo(
+                documento, secao.titulo, solto=not secao.detalhes and len(secao.linhas) > _LINHAS_TABELA_CURTA
+            )
+            for rotulo, valor in secao.detalhes:
+                docx_builder.adicionar_paragrafo_rotulo_valor(documento, rotulo, valor, manter_com_proximo=True)
             tabelas.append(
                 docx_builder.adicionar_tabela(
                     documento,

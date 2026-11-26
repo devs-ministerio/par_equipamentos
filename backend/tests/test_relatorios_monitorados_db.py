@@ -75,11 +75,19 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
             pasta = load_workbook(BytesIO(arquivo), read_only=True)
             registros = list(pasta["Registros"].iter_rows(max_row=len(previa.linhas) + 1, values_only=True))
             pasta.close()
+            assert registros[0] == previa.colunas
+            assert [r[ix] for r in registros[1:]] == [r[ix] for r in previa.linhas]
         else:
             doc = Document(BytesIO(arquivo))
-            registros = [tuple(c.text for c in linha.cells) for linha in doc.tables[-1].rows]
-        assert registros[0] == previa.colunas
-        assert [r[ix] for r in registros[1:]] == [r[ix] for r in previa.linhas]
+            assert [p.text for p in doc.paragraphs if p.style.name == "Heading 1" and p.text.startswith("Instrumento ")] == [
+                f"Instrumento {numero}"
+            ]
+            ficha = doc.tables[-1]
+            assert ficha.autofit is False and len(ficha.columns) == 7
+            qtd = previa.colunas.index("Qtd")
+            assert [(r.cells[1].text, int(r.cells[2].text)) for r in ficha.rows[1:]] == [
+                (r[ix], r[qtd]) for r in previa.linhas
+            ]
 
     operacao = montar_relatorio_monitorado(
         db=sessao,

@@ -233,10 +233,14 @@ def adicionar_paragrafo(documento: DocumentType, texto: str) -> None:
 
 
 @_serializar_xml
-def adicionar_paragrafo_rotulo_valor(documento: DocumentType, rotulo: str, valor: str) -> None:
+def adicionar_paragrafo_rotulo_valor(
+    documento: DocumentType, rotulo: str, valor: str, *, manter_com_proximo: bool = False
+) -> None:
     """`**Rótulo:** valor` -- mesmo padrão usado nos briefings reais do
     departamento pra ficha de instrumento (Convênio/SEI/Objeto/...)."""
     paragrafo = _novo_paragrafo(documento)
+    if manter_com_proximo:
+        paragrafo.paragraph_format.keep_with_next = True
     run_rotulo = paragrafo.add_run(f"{rotulo}: ")
     run_rotulo.bold = True
     paragrafo.add_run(valor)

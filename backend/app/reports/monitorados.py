@@ -6,6 +6,7 @@ from typing import Literal
 
 from app.reports import docx_builder, xlsx_builder
 from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
+from app.reports.equipamentos_fichas import fichas_equipamentos
 from app.services.relatorios_filtro import Nivel
 from app.services.relatorios_modelo import Celula, RelatorioMonitorado
 
@@ -147,7 +148,9 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
             )
         )
     # Sem síntese (modelo ainda sem quebras), a tabela de registros é o único conteúdo.
-    if equipamentos and nivel == "simplificado":
+    if equipamentos and nivel == "completo":
+        secoes.extend(fichas_equipamentos(r))
+    elif equipamentos:
         secoes.append(_registros_equipamentos_simplificados(r))
     elif nivel == "completo" or not r.quebras:
         secoes.append(
