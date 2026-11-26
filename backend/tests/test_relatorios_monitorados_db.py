@@ -200,3 +200,36 @@ def test_contexto_usa_nome_do_cnes_ou_do_convenente(db):  # noqa: F811
     assert contextos[sem.nr_convenio].estabelecimento == f"Convenente B {marca}"
     assert contextos[com.nr_convenio].regiao == "Sul"
     assert contextos[sem.nr_convenio].regiao == "Sudeste"
+
+
+def test_valores_por_familia_so_com_preco_unitario_uniforme(db):  # noqa: F811
+    from uuid import uuid4
+
+    from app.repositories.relatorios_contexto import valores_por_familia
+
+    marca = uuid4().hex[:6]
+    conv = Convenio(numero=f"VF{marca}", objeto="x", convenente_nome="x", uf="RS")
+    db.add(conv)
+    db.flush()
+
+    def novo(sufixo, itens):
+        inst = InstrumentoEquipamento(
+            nr_convenio=f"VF{marca}{sufixo}", nome_convenente="x", tipo_contratacao="Convênio", uf="RS", ano_instrumento=2025
+        )
+        db.add(inst)
+        db.flush()
+        for n, (valor, qtd) in enumerate(itens, 1):
+            db.add(ItemPlano(
+                convenio_id=conv.id, instrumento_id=inst.id, origem="manual", id_origem=f"manual:{marca}{sufixo}:{n}",
+                descricao="Mamógrafo digital", controla_unidade=True, quantidade_planejada=qtd, valor_total=valor,
+            ))
+        db.flush()
+        return inst.id
+
+    uniforme = novo("a", [(100, 1), (300, 3)])
+    sem_preco = novo("b", [(100, 1), (None, 1)])
+    sem_qtd = novo("c", [(100, 1), (100, None)])
+    precos_diferentes = novo("d", [(100, 1), (300, 1)])
+    resultado = valores_por_familia(db, {uniforme, sem_preco, sem_qtd, precos_diferentes})
+    assert {i for i, _ in resultado} == {uniforme}
+    assert next(iter(resultado.values())) == (400.0, 4)
