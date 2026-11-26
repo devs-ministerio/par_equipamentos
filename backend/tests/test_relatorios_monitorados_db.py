@@ -12,8 +12,8 @@ from openpyxl import load_workbook
 from sqlalchemy import select
 
 from app.db.models import (
-    Convenio,
     CancelamentoUnidadePlanejada,
+    Convenio,
     EventoMarco,
     InstrumentoEquipamento,
     ItemPlano,
@@ -171,3 +171,32 @@ def test_recorte_brasil_inclui_todas_as_contratacoes(entregas):  # noqa: F811
 
     assert contratacoes(base) == {"Convênio", "PERSUS I"}
     assert contratacoes(replace(base, tipo_contratacao="PERSUS I")) == {"PERSUS I"}
+
+
+def test_contexto_usa_nome_do_cnes_ou_do_convenente(db):  # noqa: F811
+    from uuid import uuid4
+
+    from app.db.models import CnesEstabelecimento
+    from app.services.monitoramento_instrumentos import InstrumentoComFase
+    from app.services.relatorios_contexto import carregar_contextos
+
+    marca = uuid4().hex[:6]
+    cnes = "9" + str(int(marca, 16) % 10**6).zfill(6)
+    db.add(CnesEstabelecimento(cnes=cnes, nome_estabelecimento=f"Hospital CNES {marca}"))
+    db.flush()
+    com = InstrumentoEquipamento(
+        nr_convenio=f"CTA{marca}", nome_convenente=f"Convenente A {marca}", tipo_contratacao="Convênio",
+        uf="RS", municipio="PORTO ALEGRE", cnes=cnes, ano_instrumento=2025,
+    )
+    sem = InstrumentoEquipamento(
+        nr_convenio=f"CTB{marca}", nome_convenente=f"Convenente B {marca}", tipo_contratacao="Convênio",
+        uf="SP", ano_instrumento=2025,
+    )
+    db.add_all([com, sem])
+    db.flush()
+    contextos = carregar_contextos(db, [InstrumentoComFase(com, "Concluído"), InstrumentoComFase(sem, "Concluído")])
+    assert contextos[com.nr_convenio].estabelecimento == f"Hospital CNES {marca}"
+    assert contextos[com.nr_convenio].municipio == "Porto Alegre"
+    assert contextos[sem.nr_convenio].estabelecimento == f"Convenente B {marca}"
+    assert contextos[com.nr_convenio].regiao == "Sul"
+    assert contextos[sem.nr_convenio].regiao == "Sudeste"
