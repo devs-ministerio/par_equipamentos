@@ -66,7 +66,7 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
     )
     assert previa.total == 4
     situacao_entrega = "Entregue, a inaugurar" if previsao else "Em operação"
-    ix = previa.colunas.index("Situação")
+    ix = previa.colunas.index("Situação (Equipamento)")
     assert Counter(linha[ix] for linha in previa.linhas) == {"Planejado": 1, situacao_entrega: 2, "Cancelado": 1}
     for formato in ("xlsx", "docx"):
         arquivo = montar_relatorio(db=sessao, formato=formato, nivel=nivel, tipo_relatorio=tipo, filtro=filtro)
@@ -233,3 +233,25 @@ def test_valores_por_familia_so_com_preco_unitario_uniforme(db):  # noqa: F811
     resultado = valores_por_familia(db, {uniforme, sem_preco, sem_qtd, precos_diferentes})
     assert {i for i, _ in resultado} == {uniforme}
     assert next(iter(resultado.values())) == (400.0, 4)
+
+
+def test_equipamentos_com_valor_data_e_unidade(entregas):  # noqa: F811
+    sessao, numero, marca = entregas
+    inst = sessao.scalars(select(InstrumentoEquipamento).where(InstrumentoEquipamento.nr_convenio == numero)).one()
+    item = sessao.scalars(select(ItemPlano).where(ItemPlano.instrumento_id == inst.id)).one()
+    item.valor_total = 1000
+    sessao.flush()
+    filtro = FiltroRelatorio(escopo="brasil", busca=marca)
+    completo = montar_relatorio_monitorado(db=sessao, tipo="equipamentos_monitorados", nivel="completo", filtro=filtro)
+    simples = montar_relatorio_monitorado(db=sessao, tipo="equipamentos_monitorados", nivel="simplificado", filtro=filtro)
+    assert len(completo.colunas) == 25 and len(simples.colunas) == 16
+    cols = completo.colunas
+    unidades = [linha for linha in completo.linhas if linha[cols.index("Série")]]
+    assert [u[cols.index("Valor do Equipamento")] for u in unidades] == [500.0, 500.0]
+    assert {u[cols.index("Data de Entrega do Equipamento")] for u in unidades} == {date(2026, 3, 10)}
+    assert {u[cols.index("Marca")] for u in unidades} == {"Acme"}
+    sc = simples.colunas
+    entregue = next(linha for linha in simples.linhas if linha[sc.index("Situação (Equipamento)")] != "Planejado")
+    assert entregue[sc.index("Data de Entrega do Equipamento")] == date(2026, 3, 10)
+    assert entregue[sc.index("Valor do Equipamento")] == 1000.0
+    assert simples.arquivo_base == "equipamentos" and simples.legenda

@@ -27,6 +27,7 @@ def listar_unidades_entregues(db: Session, *, instrumento_ids: set[int] | None =
             InstrumentoEquipamento.cnes,
             InstrumentoEquipamento.ano_instrumento.label("ano"),
             InstrumentoEquipamento.programa,
+            ItemPlano.id.label("item_id"),
             ItemPlano.descricao.label("descricao_item"),
             _nome_renem_vigente().label("nome_renem"),
             EquipamentoCatalogo.nome.label("familia"),

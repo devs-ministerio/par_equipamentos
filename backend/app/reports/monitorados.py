@@ -22,7 +22,7 @@ def gerar_monitorados(relatorio: RelatorioMonitorado, *, formato: Literal["xlsx"
         if criterios:
             resumo.append([rotulo_criterios, criterios])
         xlsx_builder.escrever_aba_tabela(pasta, "Resumo", ["Campo", "Valor"], resumo)
-        xlsx_builder.escrever_aba_tabela(pasta, "Registros", colunas, linhas, colunas_data=list(_DATAS))
+        xlsx_builder.escrever_aba_tabela(pasta, "Registros", colunas, linhas, colunas_data=[*_DATAS, *relatorio.colunas_data])
         return xlsx_builder.gerar_bytes(pasta)
 
     documento = docx_builder.novo_documento(relatorio.titulo, paisagem=True)
@@ -32,5 +32,5 @@ def gerar_monitorados(relatorio: RelatorioMonitorado, *, formato: Literal["xlsx"
         docx_builder.adicionar_paragrafo(documento, f"{rotulo_criterios}: {criterios}.")
     return gerar_bytes_tabelados(
         documento,
-        [SecaoTabela(relatorio.titulo, colunas, docx_builder.linhas_como_texto(colunas, linhas, colunas_data=_DATAS))],
+        [SecaoTabela(relatorio.titulo, colunas, docx_builder.linhas_como_texto(colunas, linhas, colunas_data=(*_DATAS, *relatorio.colunas_data)))],
     )
