@@ -9,6 +9,7 @@ cada aba; este arquivo so sabe desenhar tabela.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date, datetime
 from io import BytesIO
 from typing import Any
@@ -28,6 +29,13 @@ FORMATO_MOEDA = '"R$" #,##0.00'
 FORMATO_DATA = "DD/MM/YYYY"
 
 
+@dataclass(frozen=True)
+class BlocoAba:
+    titulo: str | None
+    colunas: Sequence[str]
+    linhas: Sequence[Sequence[Any]]
+
+
 def nova_pasta() -> Workbook:
     pasta = Workbook()
     # Workbook() ja vem com uma aba "Sheet" vazia -- removida pra quem
@@ -44,6 +52,7 @@ def escrever_aba_tabela(
     *,
     colunas_moeda: Sequence[str] = (),
     colunas_data: Sequence[str] = (),
+    rodape: Sequence[Sequence[Any]] = (),
 ) -> Worksheet:
     """`colunas_moeda`/`colunas_data` (por NOME, não índice -- robusto a
     reordenar coluna no chamador) aplicam `number_format` do Excel, mantendo
@@ -66,6 +75,12 @@ def escrever_aba_tabela(
             celula = aba.cell(row=numero_linha, column=numero_coluna)
             if celula.data_type == "f":
                 celula.data_type = "s"
+    if rodape:
+        # Legenda fica abaixo de uma linha em branco, fora do auto_filter.
+        aba.append([])
+        for linha in rodape:
+            aba.append(list(linha))
+        aba.cell(row=len(linhas) + 3, column=1).font = Font(bold=True)
     aba.freeze_panes = "A2"
     if linhas:
         aba.auto_filter.ref = f"A1:{get_column_letter(len(colunas))}{len(linhas) + 1}"
@@ -77,7 +92,31 @@ def escrever_aba_tabela(
     aba.page_setup.fitToWidth = 1
     aba.page_setup.fitToHeight = 0
     aba.print_title_rows = "1:1"
-    aba.print_area = f"A1:{get_column_letter(len(colunas))}{max(1, len(linhas) + 1)}" if colunas else None
+    total_linhas = len(linhas) + 1 + (len(rodape) + 1 if rodape else 0)
+    aba.print_area = f"A1:{get_column_letter(len(colunas))}{max(1, total_linhas)}" if colunas else None
+    return aba
+
+
+def escrever_aba_blocos(pasta: Workbook, titulo: str, blocos: Sequence[BlocoAba]) -> Worksheet:
+    """Aba de resumo: blocos de tabela empilhados, separados por uma linha em branco."""
+    aba = pasta.create_sheet(title=titulo[:31])
+    largura = max((len(b.colunas) for b in blocos), default=1)
+    for indice, bloco in enumerate(blocos):
+        if indice:
+            aba.append([])
+        if bloco.titulo:
+            aba.append([bloco.titulo])
+            aba.cell(row=aba.max_row, column=1).font = Font(bold=True)
+        aba.append(list(bloco.colunas))
+        for celula in aba[aba.max_row]:
+            celula.fill = _COR_CABECALHO
+            celula.font = _FONTE_CABECALHO
+        for linha in bloco.linhas:
+            aba.append(list(linha))
+    for coluna in range(1, largura + 1):
+        letra = get_column_letter(coluna)
+        maior = max((len(str(c.value)) for c in aba[letra] if c.value is not None), default=8)
+        aba.column_dimensions[letra].width = min(maior + 2, _LARGURA_MAXIMA_COLUNA)
     return aba
 
 
