@@ -54,10 +54,14 @@ def test_resumo_conta_equipamentos_por_situacao():
         _fato(situacao="entregue", quantidade=1),
     ]
     indicadores, quebras = resumo_equipamentos(fatos, escopo="uf", referencia=date(2026, 11, 26))
-    mapa = dict(indicadores)
-    assert mapa["Quantidade de Equipamentos"] == 6
-    assert mapa["Em operação"] == 2 and mapa["Planejado"] == 3 and mapa["Entregue, a inaugurar"] == 1
-    assert "Aceleradores Lineares" not in mapa
+    assert indicadores == (("Quantidade de Equipamentos", 6),)
+    assert quebras[0].linhas == [
+        ("Planejado", 3, "50%"),
+        ("Entregue, a inaugurar", 1, "17%"),
+        ("Em operação", 2, "33%"),
+        ("Cancelado", 0, "0%"),
+        ("Total", 6, "100%"),
+    ]
     assert [q.titulo for q in quebras][:4] == [
         "Por situação",
         "Por equipamento",

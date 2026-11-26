@@ -53,17 +53,16 @@ def resumo_equipamentos(
     por_situacao: Counter[str] = Counter()
     for f in fatos:
         por_situacao[ROTULOS[f.situacao]] += f.quantidade
-    indicadores: tuple[tuple[str, Celula], ...] = (
-        ("Quantidade de Equipamentos", sum(por_situacao.values())),
-        *((r, por_situacao[r]) for r in ORDEM_SITUACAO),
-    )
+    total = sum(por_situacao.values())
+    indicadores: tuple[tuple[str, Celula], ...] = (("Quantidade de Equipamentos", total),)
+    linhas_situacao: list[tuple[Celula, ...]] = [
+        (rotulo, por_situacao[rotulo], f"{round(por_situacao[rotulo] / total * 100) if total else 0}%")
+        for rotulo in ORDEM_SITUACAO
+        if por_situacao[rotulo] or rotulo == ROTULOS["cancelado"]
+    ]
+    linhas_situacao.append(("Total", total, "100%" if total else "0%"))
     quebras = [
-        quebra_por(
-            "Por situação",
-            "Situação (Equipamento)",
-            [ROTULOS[f.situacao] for f in fatos for _ in range(f.quantidade)],
-            ordem=ORDEM_SITUACAO,
-        ),
+        Tabela("Por situação", ("Situação (Equipamento)", "Total", "%"), linhas_situacao),
         quebra_por("Por equipamento", "Equipamento", [f.equipamento for f in fatos for _ in range(f.quantidade)]),
         _geografia(fatos, escopo),
         quebra_por(

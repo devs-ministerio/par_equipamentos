@@ -134,8 +134,9 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
     if r.criterios:
         rotulo = "Fases" if r.unidade == "instrumentos" else "Situações"
         docx_builder.adicionar_paragrafo(documento, f"{rotulo}: {', '.join(r.criterios)}.")
-    for rotulo_indicador, valor in r.indicadores:
-        docx_builder.adicionar_paragrafo(documento, f"{rotulo_indicador}: {'—' if valor is None else valor}.")
+    if not equipamentos:
+        for rotulo_indicador, valor in r.indicadores:
+            docx_builder.adicionar_paragrafo(documento, f"{rotulo_indicador}: {'—' if valor is None else valor}.")
     secoes: list[SecaoTabela] = []
     if r.quebras:
         q = r.quebras[0]

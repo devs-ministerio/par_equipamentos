@@ -100,8 +100,13 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
     arquivo_simplificado = montar_relatorio(db=sessao, formato="docx", nivel="simplificado", tipo_relatorio=tipo, filtro=filtro)
     doc = Document(BytesIO(arquivo_simplificado))
     paragrafos = [p.text for p in doc.paragraphs]
-    assert any("Quantidade de Equipamentos: 4" in p for p in paragrafos)
-    assert not any("Documento gerado automaticamente" in p or "Aceleradores Lineares:" in p for p in paragrafos)
+    assert any("4 equipamentos" in p for p in paragrafos)
+    assert not any(
+        p.startswith(("Quantidade de Equipamentos:", "Planejado:", "Entregue, a inaugurar:", "Em operação:", "Cancelado:"))
+        or "Documento gerado automaticamente" in p or "Aceleradores Lineares:" in p
+        for p in paragrafos
+    )
+    assert any([c.text for c in r.cells] == ["Cancelado", "1", "25%"] for r in doc.tables[0].rows)
     assert "Convênio" in next(p for p in paragrafos if p.startswith("Filtros:"))
     tabela = doc.tables[-1]
     assert len(doc.tables) == 2 and len(tabela.columns) == 9 and len(tabela.rows) == 4
