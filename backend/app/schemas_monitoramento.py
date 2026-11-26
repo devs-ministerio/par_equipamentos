@@ -47,6 +47,7 @@ class EtapasInstrumentoRead(BaseModel):
     publicacao: date | None = None
     entrega: date | None = None
     inauguracao: date | None = None
+    previsao_inauguracao: date | None = None
     conclusao: date | None = None
     inauguracao_dispensada: bool = False
     modo_operacao: ModoOperacao | None = None

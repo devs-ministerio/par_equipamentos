@@ -68,6 +68,7 @@ def carregar_etapas(
                 publicacao=publicacoes.get(instrumento.nr_convenio),
                 entrega=entregas.get(i),
                 inauguracao=inauguracao,
+                previsao_inauguracao=previsao,
                 conclusao=datas_conclusao.get(i),
                 inauguracao_dispensada=i in dispensadas,
                 conclusao_resultado=resultados.get(i),
