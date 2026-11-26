@@ -88,6 +88,11 @@ git add docs/planos/planmode-relatorios-modelos-2026-11-26.md
 git commit -m "docs(relatorios): registra campos de situação e repasse verificados"
 ```
 
+**Resultado das verificações (26/11/2026, clone local `sigeo_homologacao_clone_20261120`):**
+
+- `convenio.situacao` existe em `backend/app/schemas_convenios.py` (linha 17), junto de `situacao_portal` e `situacao_contratacao`: `SITUACAO_SITE_CAMPO = "situacao"` confirmado.
+- Contagens em `convenio`: `valor_repasse` preenchido em 406, `valor_desembolsado` em 403, iguais em 166 e `valor_repasse > valor_desembolsado` em 237. Confirma que `valor_repasse` é o valor pactuado: manter "Valor de Repasse Pactuado" e "Valor Repassado" como rótulos distintos.
+
 ---
 
 ### Task 1: Recorte Brasil de Equipamentos: regressão e filtro visível
