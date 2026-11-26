@@ -171,10 +171,10 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
     colunas = _COLUNAS_COMPLETO
     assert len(colunas) == 30
     assert set(colunas).isdisjoint({"Técnico Suplente", "Responsável pela Execução", "Contato", "Última Movimentação"})
-    campos_equipamento = {"Equipamentos", "Qtd a Entregar", "Qtd Entregue", "Qtd em Operação", "% Entregue"}
+    campos_equipamento = {"Equipamentos", "Qtd Planejado", "Qtd Entregue", "Qtd em Operação", "% Em Operação"}
     dados = {
         "Equipamentos": "Tomógrafo (2); Mamógrafo",
-        "Qtd a Entregar": 1, "Qtd Entregue": 2, "Qtd em Operação": 1, "% Entregue": "100%",
+        "Qtd Planejado": 1, "Qtd Entregue": 2, "Qtd em Operação": 1, "% Em Operação": "33%",
     }
     linhas = [
         tuple((dados.get(c) if numero == 1 else None) if c in campos_equipamento else f"valor {numero}-{i:02d}."
@@ -210,7 +210,7 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
         assert espaco.tag == qn("w:p") and not espaco.xpath(".//w:t")
         assert espaco.getnext() is equipamentos._tbl
     assert [[c.text for c in row.cells] for row in doc.tables[2].rows] == [
-        ["Equipamento", "Qtd a entregar", "Qtd entregue", "Em operação\n(dos entregues)", "Valor unitário"],
+        ["Equipamento", "Qtd Planejado", "Qtd entregue", "Em operação\n(dos entregues)", "Valor unitário"],
         ["Tomógrafo", "1", "1", "1", "R$ 1.250,50"],
         ["Mamógrafo", "0", "1", "0", ""],
         ["Total", "1", "2", "1", ""],

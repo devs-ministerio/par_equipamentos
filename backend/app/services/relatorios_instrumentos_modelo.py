@@ -32,7 +32,7 @@ _COLUNAS = (
 )
 _COLUNAS_COMPLETO = (
     *_COLUNAS[:3], "CNPJ do Convenente", *_COLUNAS[3:9],
-    "Equipamentos", "Qtd a Entregar", "Qtd Entregue", "Qtd em Operação", "% Entregue",
+    "Equipamentos", "Qtd Planejado", "Qtd Entregue", "Qtd em Operação", "% Em Operação",
     "Data de Publicação", "Data do Último Repasse", "Data de Entrega do Equipamento",
     "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração",
     "Nº do Processo", "Ano do Instrumento", "Início da Vigência", "Fim da Vigência",
@@ -55,9 +55,9 @@ _MOEDA = ("Valor Global", "Valor Repassado")
 _LEGENDA = (
     ("Situação (Site)", "Situação oficial do instrumento nos dados importados."),
     ("Situação (Monitoramento)", "Fase do acompanhamento interno."),
-    ("Qtd a Entregar", "Saldo ainda não entregue, descontadas as unidades canceladas."),
+    ("Qtd Planejado", "Saldo ainda não entregue, descontadas as unidades canceladas."),
     ("Qtd em Operação", "Parte dos equipamentos entregues que já entrou em operação."),
-    ("% Entregue", "Quantidade entregue em relação à quantidade prevista no plano após os cancelamentos."),
+    ("% Em Operação", "Quantidade em operação em relação ao total de unidades entregues e ainda a entregar."),
     ("Data de Conclusão do Monitoramento", "Exibida somente quando não há registro de inauguração."),
     ("Valor Repassado", "Desembolso da fonte confiável ou valor integral da carga manual."),
 )
@@ -108,8 +108,10 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
     base = (ctx.numero, ctx.cnes, ctx.estabelecimento)
     if not completo:
         return (*base, *local, *situacao, *dinheiro, *datas, ctx.tecnico)
-    planejado = sum(e.planejados for e in equipamentos)
+    a_entregar = sum(e.a_entregar for e in equipamentos)
     entregue = sum(e.entregues for e in equipamentos)
+    em_operacao = sum(e.em_operacao for e in equipamentos)
+    total = a_entregar + entregue
     familias = "; ".join(
         f"{nome} ({max(qtd, qtd_entregue)})" if max(qtd, qtd_entregue) > 1 else nome
         for nome, qtd, qtd_entregue, _, _ in equipamentos
@@ -117,8 +119,8 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
     _, status = inauguracao_da_linha(etapa, "em_operacao" if etapa.modo_operacao else "planejado")
     return (
         *base, i.cnpj_convenente or (c.convenente_cnpj if c else None), *local, *situacao,
-        familias or None, sum(e.a_entregar for e in equipamentos), entregue, sum(e.em_operacao for e in equipamentos),
-        f"{round(entregue / planejado * 100)}%" if planejado else None,
+        familias or None, a_entregar, entregue, em_operacao,
+        f"{round(em_operacao / total * 100)}%" if total else None,
         etapa.publicacao, c.data_ultima_liberacao if c else None, etapa.entrega, *datas, status,
         ctx.numero_processo, ctx.ano, ctx.inicio_vigencia, ctx.fim_vigencia, *dinheiro, ctx.tecnico,
         i.nivel_monitoramento, len(acoes),

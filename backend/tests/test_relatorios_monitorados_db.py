@@ -112,10 +112,10 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
         db=sessao, tipo="instrumentos_monitorados", nivel="completo", filtro=filtro
     )
     campos = dict(zip(instrumentos.colunas, instrumentos.linhas[0], strict=True))
-    assert campos["Qtd a Entregar"] == 1
+    assert campos["Qtd Planejado"] == 1
     assert campos["Qtd Entregue"] == 2
     assert campos["Qtd em Operação"] == (0 if previsao else 2)
-    assert campos["% Entregue"] == "67%"
+    assert campos["% Em Operação"] == ("0%" if previsao else "67%")
     concluidos = montar_relatorio_monitorado(
         db=sessao,
         tipo="instrumentos_monitorados",
