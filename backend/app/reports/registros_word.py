@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 from app.reports.docx_tabelado import SecaoTabela
+from app.reports.ficha_word import montar_ficha
 from app.reports.formatacao import formatar_moeda
 from app.services.relatorios_modelo import RelatorioMonitorado
 
@@ -31,21 +32,6 @@ _PROPOSTAS = (
 )
 
 
-def _ficha(titulo: str, registro: dict[str, str], secoes: Sequence[tuple[str, Sequence[str]]]) -> SecaoTabela:
-    linhas: list[tuple[str, str]] = []
-    titulos: set[int] = set()
-    for rotulo, campos in secoes:
-        valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
-        if valores:
-            titulos.add(len(linhas))
-            linhas.append((rotulo, ""))
-            linhas.extend(valores)
-    return SecaoTabela(
-        titulo, ("Campo", "Informação"), linhas, pesos_colunas=(4.3, 5.7),
-        linhas_de_secao=frozenset(titulos), mesclas={i + 1: (0, 1) for i in titulos},
-    )
-
-
 def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequence[str]]) -> list[SecaoTabela]:
     if not linhas:
         return [SecaoTabela("Fichas dos instrumentos", _COLUNAS_EQUIPAMENTO, [], pesos_colunas=_PESOS_INSTRUMENTO)]
@@ -54,7 +40,7 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
         registro = dict(zip(relatorio.colunas, linha, strict=True))
         contratacao = registro["Contratação"]
         prefixo = contratacao if contratacao not in ("", "—") else "Instrumento"
-        fichas.append(_ficha(f"{prefixo} - {registro['Instrumento']}", registro, _CABECALHO_INSTRUMENTO))
+        fichas.append(montar_ficha(f"{prefixo} - {registro['Instrumento']}", registro, _CABECALHO_INSTRUMENTO))
 
         equipamentos = relatorio.equipamentos_por_instrumento.get(registro["Instrumento"], [])
         dados_equipamentos: list[tuple[str | int, ...]] = [
@@ -83,5 +69,5 @@ def fichas_propostas(colunas: Sequence[str], linhas: Sequence[Sequence[str]]) ->
     fichas = []
     for linha in linhas:
         registro = dict(zip(colunas, linha, strict=True))
-        fichas.append(_ficha(f"Proposta - {registro['Nº da Proposta']}", registro, _PROPOSTAS))
+        fichas.append(montar_ficha(f"Proposta - {registro['Nº da Proposta']}", registro, _PROPOSTAS))
     return fichas

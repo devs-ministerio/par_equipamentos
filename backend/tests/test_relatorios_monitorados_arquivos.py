@@ -144,15 +144,19 @@ def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
         colunas_data=DATAS, colunas_moeda=MOEDA, arquivo_base="equipamentos", total=3,
     )
     doc = Document(BytesIO(gerar_monitorados(relatorio, formato="docx", nivel="completo", recorte="MG")))
-    assert len(doc.tables) == 3
-    titulos = [p.text for p in doc.paragraphs if p.text.startswith("Instrumento ")]
-    assert titulos == ["Instrumento 100", "Instrumento 200"]
-    dados = next(p for p in doc.paragraphs if p.text.startswith("Estabelecimento:"))
-    assert dados.paragraph_format.keep_with_next
-    assert "CNES: 0030001" in dados.text
-    cadastro = next(p.text for p in doc.paragraphs if p.text.startswith("Instrumento:"))
-    assert "Processo: 12345" in cadastro and "Fim da vigência: 31/12/2026" in cadastro
-    ficha = doc.tables[1]
+    assert len(doc.tables) == 5
+    titulos = [p for p in doc.paragraphs if p.text.startswith("Convênio - ")]
+    assert [p.text for p in titulos] == ["Convênio - 100", "Convênio - 200"]
+    assert all(p.style.font.bold for p in titulos)
+    formulario = doc.tables[1]
+    assert [c.text for c in formulario.rows[0].cells] == ["Campo", "Informação"]
+    cadastro = {r.cells[0].text: r.cells[1].text for r in formulario.rows[1:] if len(r._tr.tc_lst) == 2}
+    assert cadastro["CNES"] == "0030001"
+    assert cadastro["Nº do Processo"] == "12345" and cadastro["Fim da Vigência"] == "31/12/2026"
+    espaco = formulario._tbl.getnext()
+    assert espaco.tag == qn("w:p") and not espaco.xpath(".//w:t")
+    ficha = doc.tables[2]
+    assert espaco.getnext() is ficha._tbl
     assert not ficha.autofit and len(ficha.columns) == 7
     assert [c.text for c in ficha.rows[0].cells] == [
         "Equipamento", "Descrição do item do plano", "Situação", "Qtd", "Valor", "Entrega", "Inauguração",
@@ -162,7 +166,7 @@ def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
         "R$ 1.234,50", "10/01/2026", "15/01/2026\nRealizada",
     ]
     assert ficha.rows[2].cells[4].text == "R$ 0,00"
-    assert doc.tables[2].rows[1].cells[4].text == ""
+    assert doc.tables[4].rows[1].cells[4].text == ""
 
 
 def test_word_instrumentos_completo_preserva_os_campos_em_fichas():

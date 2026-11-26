@@ -79,8 +79,8 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
             assert [r[ix] for r in registros[1:]] == [r[ix] for r in previa.linhas]
         else:
             doc = Document(BytesIO(arquivo))
-            assert [p.text for p in doc.paragraphs if p.style.name == "Heading 1" and p.text.startswith("Instrumento ")] == [
-                f"Instrumento {numero}"
+            assert [p.text for p in doc.paragraphs if p.style.name == "Heading 1" and " - " in p.text] == [
+                f"Convênio - {numero}"
             ]
             ficha = doc.tables[-1]
             assert ficha.autofit is False and len(ficha.columns) == 7

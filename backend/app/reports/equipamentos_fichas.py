@@ -1,35 +1,25 @@
 """Fichas do Word Completo de Equipamentos, a partir dos registros da prévia."""
 
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
 from app.reports.docx_builder import linhas_como_texto
 from app.reports.docx_tabelado import SecaoTabela
+from app.reports.ficha_word import montar_ficha
 from app.services.relatorios_modelo import RelatorioMonitorado
 
 _COLUNAS = ("Equipamento", "Descrição do item do plano", "Situação", "Qtd", "Valor", "Entrega", "Inauguração")
 _PESOS = (2.1, 3.85, 1.8, 0.55, 1.45, 1.2, 1.7)
 
 
-def _rotulo(nome: str, valor: str) -> str:
-    return f"{nome}: {valor}" if valor else ""
-
-
-def _detalhes(campos: dict[str, str]) -> list[tuple[str, str]]:
-    municipio_uf = " / ".join(filter(None, (campos["Município"], campos["UF"])))
-    detalhes = (
-        ("Estabelecimento", (
-            campos["Estabelecimento de Saúde"], _rotulo("CNES", campos["CNES"]),
-            municipio_uf, _rotulo("Região", campos["Região"]),
-        )),
-        ("Instrumento", (
-            campos["Contratação"], _rotulo("Processo", campos["Nº do Processo"]), _rotulo("Ano", campos["Ano do Instrumento"]),
-            _rotulo("Início da vigência", campos["Início da Vigência"]), _rotulo("Fim da vigência", campos["Fim da Vigência"]),
-        )),
-        ("Acompanhamento", (
-            _rotulo("Situação (Site)", campos["Situação (Site)"]),
-            _rotulo("Situação (Monitoramento)", campos["Situação (Monitoramento)"]),
-            _rotulo("Técnico responsável", campos["Técnico Responsável"]),
-        )),
-    )
-    return [(nome, " · ".join(filter(None, valores))) for nome, valores in detalhes if any(valores)]
+_CABECALHO = (
+    ("Estabelecimento", ("Estabelecimento de Saúde", "CNES", "Município", "UF", "Região")),
+    ("Instrumento", ("Contratação", "Nº do Processo", "Ano do Instrumento", "Início da Vigência", "Fim da Vigência")),
+    ("Acompanhamento", ("Situação (Site)", "Situação (Monitoramento)", "Técnico Responsável")),
+)
+_ALINHAMENTOS = (
+    WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER,
+    WD_ALIGN_PARAGRAPH.RIGHT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT,
+)
 
 
 def _linha_equipamento(campos: dict[str, str]) -> tuple[str, ...]:
@@ -58,10 +48,13 @@ def fichas_equipamentos(relatorio: RelatorioMonitorado) -> list[SecaoTabela]:
             for coluna, original, valor in zip(relatorio.colunas, linha, texto, strict=True)
         }
         grupos.setdefault(campos["Instrumento"], []).append(campos)
-    return [
-        SecaoTabela(
-            f"Instrumento {numero}", _COLUNAS, [_linha_equipamento(campos) for campos in linhas],
-            pesos_colunas=_PESOS, detalhes=_detalhes(linhas[0]),
-        )
-        for numero, linhas in grupos.items()
-    ]
+    fichas = []
+    for numero, linhas in grupos.items():
+        registro = linhas[0]
+        prefixo = registro["Contratação"] or "Instrumento"
+        fichas.append(montar_ficha(f"{prefixo} - {numero}", registro, _CABECALHO))
+        fichas.append(SecaoTabela(
+            "", _COLUNAS, [_linha_equipamento(campos) for campos in linhas],
+            pesos_colunas=_PESOS, alinhamentos=_ALINHAMENTOS,
+        ))
+    return fichas
