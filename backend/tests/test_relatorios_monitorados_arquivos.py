@@ -210,7 +210,7 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
         assert espaco.tag == qn("w:p") and not espaco.xpath(".//w:t")
         assert espaco.getnext() is equipamentos._tbl
     assert [[c.text for c in row.cells] for row in doc.tables[2].rows] == [
-        ["Equipamento", "Qtd Planejado", "Qtd entregue", "Em operação\n(dos entregues)", "Valor unitário"],
+        ["Equipamento", "Qtd Planejado", "Qtd entregue", "Em operação", "Valor unitário"],
         ["Tomógrafo", "1", "1", "1", "R$ 1.250,50"],
         ["Mamógrafo", "0", "1", "0", ""],
         ["Total", "1", "2", "1", ""],

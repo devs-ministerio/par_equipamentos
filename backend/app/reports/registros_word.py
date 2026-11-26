@@ -17,7 +17,7 @@ _CABECALHO_INSTRUMENTO = (
                             "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração")),
     ("Valores", ("Valor Global", "Valor Repassado")),
 )
-_COLUNAS_EQUIPAMENTO = ("Equipamento", "Qtd Planejado", "Qtd entregue", "Em operação\n(dos entregues)", "Valor unitário")
+_COLUNAS_EQUIPAMENTO = ("Equipamento", "Qtd Planejado", "Qtd entregue", "Em operação", "Valor unitário")
 _PESOS_INSTRUMENTO = (4.3, 1.1, 1.1, 1.55, 1.95)
 _ALINHAMENTOS_EQUIPAMENTO = (
     WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER,
