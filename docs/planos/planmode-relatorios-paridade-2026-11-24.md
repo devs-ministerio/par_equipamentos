@@ -2,7 +2,7 @@
 
 ## Entrega parcial de Equipamentos em 26/11/2026
 
-O modelo de Equipamentos usa a mesma extração na prévia e nos arquivos. O Excel tem abas Resumo e Registros, valores em R$ e legenda fora do filtro. O Word Simplificado agrupa os 16 campos em nove colunas. O Completo organiza os 25 campos em fichas por instrumento e tabelas de sete colunas com os equipamentos. O nome do arquivo identifica o recorte.
+O modelo de Equipamentos usa a mesma extração na prévia e nos arquivos. O Excel tem abas Resumo e Registros, valores em R$ e legenda fora do filtro. O Word Simplificado agrupa os 16 campos em nove colunas. O Word Completo usa fichas por instrumento e uma tabela de seis colunas. Nome e descrição do item do plano ficam juntos em Equipamento. O nome do arquivo identifica o recorte.
 
 Os quatro arquivos revisados estão em `outputs/relatorios-equipamentos-2026-11-26-revisado/`. Os dois níveis de MG representam 95 equipamentos. O Excel Brasil soma 533 equipamentos de quatro tipos de contratação. Instrumentos (Task 7), Propostas (Task 8) e a conferência dos 12 arquivos ficam para depois da validação de Equipamentos.
 
