@@ -3,6 +3,7 @@ from io import BytesIO
 
 import pytest
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from openpyxl import load_workbook
 
 from app.reports.monitorados import gerar_monitorados
@@ -207,9 +208,13 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
             if campo not in campos_equipamento and campo != "Instrumento"
         }
     assert [[c.text for c in row.cells] for row in doc.tables[1].rows[-4:]] == [
-        ["Equipamento", "Qtd a entregar", "Qtd entregue", "Dos entregues, em operação", "Valor unitário"],
+        ["Equipamento", "Qtd a entregar", "Qtd entregue", "Em operação\n(dos entregues)", "Valor unitário"],
         ["Tomógrafo", "1", "1", "1", "R$ 1.250,50"],
         ["Mamógrafo", "0", "1", "0", ""],
         ["Total", "1", "2", "1", ""],
     ]
+    linha_equipamento = doc.tables[1].rows[-3]
+    assert linha_equipamento.cells[1].paragraphs[0].alignment == WD_ALIGN_PARAGRAPH.CENTER
+    assert linha_equipamento.cells[-1].paragraphs[0].alignment == WD_ALIGN_PARAGRAPH.RIGHT
+    assert doc.tables[1].rows[-1].cells[0].paragraphs[0].runs[0].bold
     assert doc.tables[2].rows[-1].cells[0].text == "Nenhum equipamento neste recorte."

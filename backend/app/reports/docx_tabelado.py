@@ -9,6 +9,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from docx.document import Document as DocumentType
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt
@@ -30,6 +31,8 @@ class SecaoTabela:
     detalhes: Sequence[tuple[str, str]] = ()
     linhas_de_secao: frozenset[int] = frozenset()
     mesclas: dict[int, tuple[int, int]] = field(default_factory=dict)
+    alinhamentos: tuple[WD_ALIGN_PARAGRAPH, ...] = ()
+    linhas_de_total: frozenset[int] = frozenset()
 
 
 def _mesclar_linha(linha: _Row, intervalo: tuple[int, int] | None) -> None:
@@ -65,17 +68,28 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
             linha = _Row(deepcopy(modelo._tr), tabela)
             tabela._tbl.append(linha._tr)
             try:
-                for celula, valor in zip(linha.cells, valores, strict=True):
-                    celula.paragraphs[0].runs[0].text = "" if valor is None else str(valor)
-                    if indice - 1 in secao.linhas_de_secao:
-                        celula.paragraphs[0].runs[0].bold = True
-                        celula.paragraphs[0].paragraph_format.keep_with_next = True
+                mescla = secao.mesclas.get(indice)
+                alinhamentos = secao.alinhamentos if mescla is None else ()
+                linha_secao = indice - 1 in secao.linhas_de_secao
+                linha_total = indice - 1 in secao.linhas_de_total
+                for coluna, (celula, valor) in enumerate(zip(linha.cells, valores, strict=True)):
+                    paragrafo = celula.paragraphs[0]
+                    run = paragrafo.runs[0]
+                    run.text = "" if valor is None else str(valor)
+                    if alinhamentos:
+                        paragrafo.alignment = alinhamentos[coluna]
+                        paragrafo.paragraph_format.space_before = Pt(3)
+                        paragrafo.paragraph_format.space_after = Pt(3)
+                    if linha_secao or linha_total:
+                        run.bold = True
+                    if linha_secao:
+                        paragrafo.paragraph_format.keep_with_next = True
                         fundo = OxmlElement("w:shd")
-                        fundo.set(qn("w:fill"), "E7EDF5")
+                        fundo.set(qn("w:fill"), "F4F6F9" if alinhamentos else "E7EDF5")
                         celula._tc.get_or_add_tcPr().append(fundo)
                 if total <= 6 and indice == total - 1:
                     docx_builder._formatar_linha_tabela(linha, secao.fonte_pt, indice=indice, total=total)
-                _mesclar_linha(linha, secao.mesclas.get(indice))
+                _mesclar_linha(linha, mescla)
                 xml.write(linha._tr)
             finally:
                 # A linha já está no ZIP; não acumular XML ou wrappers por município.

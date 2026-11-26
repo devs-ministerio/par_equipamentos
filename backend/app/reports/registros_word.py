@@ -2,6 +2,8 @@
 
 from collections.abc import Sequence
 
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
 from app.reports.docx_tabelado import SecaoTabela
 from app.reports.formatacao import formatar_moeda
 from app.services.relatorios_modelo import RelatorioMonitorado
@@ -15,8 +17,12 @@ _CABECALHO_INSTRUMENTO = (
                             "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração")),
     ("Valores", ("Valor Global", "Valor Repassado")),
 )
-_COLUNAS_EQUIPAMENTO = ("Equipamento", "Qtd a entregar", "Qtd entregue", "Dos entregues, em operação", "Valor unitário")
-_PESOS_INSTRUMENTO = (3.7, 1.25, 1.25, 1.75, 1.7)
+_COLUNAS_EQUIPAMENTO = ("Equipamento", "Qtd a entregar", "Qtd entregue", "Em operação\n(dos entregues)", "Valor unitário")
+_PESOS_INSTRUMENTO = (4.3, 1.1, 1.1, 1.55, 1.95)
+_ALINHAMENTOS_EQUIPAMENTO = (
+    WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER,
+    WD_ALIGN_PARAGRAPH.RIGHT,
+)
 _PROPOSTAS = (
     ("Proposta", ("Nº da Proposta", "Data da Proposta", "Dias desde a Proposta")),
     ("Proponente", ("Proponente", "CNPJ do Proponente", "CNES", "Município", "UF", "Região")),
@@ -37,6 +43,7 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
         registro = dict(zip(relatorio.colunas, linha, strict=True))
         dados: list[tuple[str | int, ...]] = []
         titulos: set[int] = set()
+        totais: frozenset[int] = frozenset()
         mesclas = {0: (1, 4)}
         for titulo, campos in _CABECALHO_INSTRUMENTO:
             valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
@@ -60,7 +67,10 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
                  formatar_moeda(e.valor_unitario) if e.valor_unitario is not None else "")
                 for e in equipamentos
             )
-            dados.append(("Total", registro["Qtd a Entregar"], registro["Qtd Entregue"], registro["Qtd em Operação"], ""))
+            if len(equipamentos) > 1:
+                totais = frozenset({len(dados)})
+                dados.append(("Total", registro["Qtd a Entregar"], registro["Qtd Entregue"],
+                              registro["Qtd em Operação"], ""))
         else:
             mesclas[len(dados) + 1] = (0, 4)
             dados.append(("Nenhum equipamento neste recorte.", "", "", "", ""))
@@ -69,6 +79,7 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
         fichas.append(SecaoTabela(
             f"{prefixo} - {registro['Instrumento']}", ("Campo", "Informação", "", "", ""), dados,
             pesos_colunas=_PESOS_INSTRUMENTO, linhas_de_secao=frozenset(titulos), mesclas=mesclas,
+            alinhamentos=_ALINHAMENTOS_EQUIPAMENTO, linhas_de_total=totais,
         ))
     return fichas
 
