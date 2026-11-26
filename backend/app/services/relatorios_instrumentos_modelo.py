@@ -16,6 +16,7 @@ from app.services.relatorios_inauguracao import inauguracao_da_linha
 from app.services.relatorios_modelo import (
     Celula,
     ContextoInstrumento,
+    EquipamentoDoInstrumento,
     RelatorioMonitorado,
     Tabela,
     cabecalho,
@@ -94,7 +95,7 @@ class _Instrumento:
     valores: _Valores
 
 
-def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[tuple[str, int, int]],
+def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoInstrumento],
            acoes: list[AcaoMonitoramento]) -> tuple[Celula, ...]:
     ctx, i, c, etapa, valores = f.contexto, f.instrumento, f.convenio, f.etapa, f.valores
     local = (ctx.municipio, ctx.uf, ctx.regiao)
@@ -104,16 +105,16 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[tuple[str, int
     base = (ctx.numero, ctx.cnes, ctx.estabelecimento)
     if not completo:
         return (*base, *local, *situacao, *dinheiro, *datas, ctx.tecnico)
-    planejado = sum(qtd for _, qtd, _ in equipamentos)
-    entregue = sum(qtd for _, _, qtd in equipamentos)
+    planejado = sum(e.planejados for e in equipamentos)
+    entregue = sum(e.entregues for e in equipamentos)
     familias = "; ".join(
         f"{nome} ({max(qtd, qtd_entregue)})" if max(qtd, qtd_entregue) > 1 else nome
-        for nome, qtd, qtd_entregue in equipamentos
+        for nome, qtd, qtd_entregue, _ in equipamentos
     )
     _, status = inauguracao_da_linha(etapa, "em_operacao" if etapa.modo_operacao else "planejado")
     return (
         *base, i.cnpj_convenente or (c.convenente_cnpj if c else None), *local, *situacao,
-        familias or None, planejado, entregue, entregue if etapa.modo_operacao else 0,
+        familias or None, planejado, entregue, sum(e.em_operacao for e in equipamentos),
         f"{round(entregue / planejado * 100)}%" if planejado else None,
         etapa.publicacao, c.data_ultima_liberacao if c else None, etapa.entrega, *datas, status,
         ctx.numero_processo, ctx.ano, ctx.inicio_vigencia, ctx.fim_vigencia, *dinheiro, ctx.tecnico,
@@ -170,12 +171,16 @@ def montar_instrumentos(
 
     ids = [f.instrumento.id for f in fatos]
     acoes = relatorios_contexto.acoes_abertas(db, set(ids)) if completo else {}
-    familias: dict[int, list[tuple[str, int, int]]] = defaultdict(list)
+    familias: dict[str, list[EquipamentoDoInstrumento]] = defaultdict(list)
     if completo:
+        por_id = {f.instrumento.id: f for f in fatos}
         for i_id, nome, planejado, entregue, _ in itens_equipamento.resumo_com_cancelamentos_por_familia(db, set(ids)):
-            familias[i_id].append((nome, planejado, entregue))
+            f = por_id[i_id]
+            familias[f.contexto.numero].append(
+                EquipamentoDoInstrumento(nome, planejado, entregue, entregue if f.etapa.modo_operacao else 0)
+            )
     linhas = [
-        _linha(f, completo=completo, equipamentos=familias.get(f.instrumento.id, []),
+        _linha(f, completo=completo, equipamentos=familias.get(f.contexto.numero, []),
                acoes=acoes.get(f.instrumento.id, []))
         for f in fatos
     ]
@@ -194,4 +199,5 @@ def montar_instrumentos(
         indicadores=(("Instrumentos", len(linhas)),), quebras=quebras, abas=abas,
         legenda=_LEGENDA, colunas_data=_DATAS, colunas_moeda=_MOEDA,
         arquivo_base="instrumentos", aba_registros="Instrumentos",
+        equipamentos_por_instrumento=dict(familias),
     )

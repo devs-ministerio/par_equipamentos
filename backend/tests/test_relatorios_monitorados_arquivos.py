@@ -8,7 +8,7 @@ from openpyxl import load_workbook
 from app.reports.monitorados import gerar_monitorados
 from app.reports.xlsx_builder import FORMATO_MOEDA
 from app.services.relatorios_equipamentos_modelo import COLUNAS_EQUIPAMENTO_COMPLETO, DATAS, MOEDA
-from app.services.relatorios_modelo import RelatorioMonitorado, Tabela
+from app.services.relatorios_modelo import EquipamentoDoInstrumento, RelatorioMonitorado, Tabela
 
 
 def _relatorio(**extra):
@@ -169,22 +169,38 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
     colunas = _COLUNAS_COMPLETO
     assert len(colunas) == 30
     assert set(colunas).isdisjoint({"Técnico Suplente", "Responsável pela Execução", "Contato", "Última Movimentação"})
+    campos_equipamento = {"Equipamentos", "Qtd Planejada", "Qtd Entregue", "Qtd em Operação", "% Entregue"}
+    dados = {
+        "Equipamentos": "Tomógrafo (2); Mamógrafo",
+        "Qtd Planejada": 2, "Qtd Entregue": 2, "Qtd em Operação": 1, "% Entregue": "100%",
+    }
     linhas = [
-        tuple(f"valor {numero}-{i:02d}." for i in range(len(colunas)))
+        tuple((dados.get(c) if numero == 1 else None) if c in campos_equipamento else f"valor {numero}-{i:02d}."
+              for i, c in enumerate(colunas))
         for numero in (1, 2)
     ]
     relatorio = _relatorio(
         titulo="Instrumentos", arquivo_base="instrumentos", unidade="instrumentos",
         colunas=colunas, linhas=linhas, total=2, colunas_data=(),
+        equipamentos_por_instrumento={linhas[0][0]: [
+            EquipamentoDoInstrumento("Tomógrafo", 2, 1, 1), EquipamentoDoInstrumento("Mamógrafo", 0, 1, 0),
+        ]},
     )
     doc = Document(BytesIO(gerar_monitorados(relatorio, formato="docx", nivel="completo", recorte="RS")))
     assert [p.text for p in doc.paragraphs if p.text.startswith("Instrumento ")] == [
         f"Instrumento {linha[0]}" for linha in linhas
     ]
     assert len(doc.tables) == 3
-    assert all(t.autofit is False and len(t.columns) == 4 and len(t.rows) == 2 for t in doc.tables[1:])
+    assert all(t.autofit is False and len(t.columns) == 5 for t in doc.tables[1:])
+    assert [[c.text for c in row.cells] for row in doc.tables[1].rows[1:]] == [
+        ["Tomógrafo", "2", "1", "1", "50%"],
+        ["Mamógrafo", "0", "1", "0", ""],
+        ["Total", "2", "2", "1", "100%"],
+    ]
+    assert doc.tables[2].rows[1].cells[0].text == "Nenhum registro neste recorte."
     texto = "\n".join([p.text for p in doc.paragraphs] + [
         c.text for t in doc.tables[1:] for c in t.rows[1].cells
     ])
-    assert all(valor in texto for linha in linhas for valor in linha)
+    assert all(valor in texto for linha in linhas for campo, valor in zip(colunas, linha, strict=True)
+               if campo not in campos_equipamento and isinstance(valor, str))
     assert all(p.paragraph_format.keep_with_next for p in doc.paragraphs if p.text.startswith("Estabelecimento:"))

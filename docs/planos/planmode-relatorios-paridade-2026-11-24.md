@@ -6,7 +6,7 @@ O modelo de Equipamentos usa a mesma extração na prévia e nos arquivos. O Exc
 
 Os quatro arquivos revisados estão em `outputs/relatorios-equipamentos-2026-11-26-revisado/`. Os dois níveis de MG representam 95 equipamentos. O Excel Brasil soma 533 equipamentos de quatro tipos de contratação. Após a aprovação de Equipamentos, a entrega passou a incluir os modelos Instrumentos e Propostas.
 
-O Word Completo de Instrumentos apresenta 30 campos em fichas por instrumento, com cadastro no cabeçalho e uma tabela de quatro colunas. A prévia e o Excel usam os mesmos 30 campos.
+O Word Completo de Instrumentos apresenta 30 campos em fichas por instrumento, com cadastro, datas e valores no cabeçalho e uma linha por tipo de equipamento na tabela. A prévia e o Excel usam os mesmos 30 campos.
 
 Estado: **Fase 0 concluída localmente; Fase 1 em diagnóstico.** A página ganhou prévia única, filtros e KPIs. As visões legadas “Concluídos” e “Entregas” e seus consumidores frontend foram removidos. As rotas e as regras da geração Word/Excel seguem disponíveis. As visões voltam como recortes da camada única nas Fases 2 a 4, após revisão da matriz. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
 

@@ -3,8 +3,9 @@
 import unicodedata
 from collections import Counter
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
+from typing import NamedTuple
 
 from app.services.relatorios_filtro import FiltroRelatorio, Nivel
 
@@ -20,6 +21,13 @@ class Tabela:
     colunas_data: tuple[str, ...] = ()
     colunas_moeda: tuple[str, ...] = ()
     legenda: tuple[tuple[str, str], ...] = ()
+
+
+class EquipamentoDoInstrumento(NamedTuple):
+    nome: str
+    planejados: int
+    entregues: int
+    em_operacao: int
 
 
 @dataclass(frozen=True)
@@ -39,6 +47,7 @@ class RelatorioMonitorado:
     colunas_moeda: tuple[str, ...] = ()
     arquivo_base: str = "relatorio"
     aba_registros: str = "Registros"
+    equipamentos_por_instrumento: dict[str, list[EquipamentoDoInstrumento]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

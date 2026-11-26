@@ -156,7 +156,7 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
     elif nivel == "completo" and r.arquivo_base in ("instrumentos", "propostas"):
         textos = _linhas_tabela(r.colunas, r.linhas, colunas_data=_datas(r), colunas_moeda=r.colunas_moeda)
         if r.arquivo_base == "instrumentos":
-            secoes.extend(fichas_instrumentos(r.colunas, textos))
+            secoes.extend(fichas_instrumentos(r, textos))
         else:
             secoes.append(registros_propostas_word(r.titulo, r.colunas, textos))
     elif nivel == "completo" or not r.quebras:
