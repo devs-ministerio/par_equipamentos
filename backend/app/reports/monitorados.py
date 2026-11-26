@@ -7,6 +7,7 @@ from typing import Literal
 from app.reports import docx_builder, xlsx_builder
 from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
 from app.reports.equipamentos_fichas import fichas_equipamentos
+from app.reports.registros_word import registros_word
 from app.services.relatorios_filtro import Nivel
 from app.services.relatorios_modelo import Celula, RelatorioMonitorado
 
@@ -56,7 +57,7 @@ def _xlsx(r: RelatorioMonitorado, recorte: str) -> bytes:
             rodape.append([coluna, texto])
     xlsx_builder.escrever_aba_tabela(
         pasta,
-        "Registros",
+        r.aba_registros,
         list(r.colunas),
         r.linhas,
         colunas_data=_datas(r),
@@ -152,6 +153,9 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
         secoes.extend(fichas_equipamentos(r))
     elif equipamentos:
         secoes.append(_registros_equipamentos_simplificados(r))
+    elif nivel == "completo" and r.arquivo_base in ("instrumentos", "propostas"):
+        textos = _linhas_tabela(r.colunas, r.linhas, colunas_data=_datas(r), colunas_moeda=r.colunas_moeda)
+        secoes.append(registros_word(r.titulo, r.arquivo_base, r.colunas, textos))
     elif nivel == "completo" or not r.quebras:
         secoes.append(
             SecaoTabela(

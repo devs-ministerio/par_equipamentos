@@ -166,6 +166,21 @@ def test_previa_de_propostas_confere_com_word_e_excel(entregas):  # noqa: F811
     titulos = [p.text for p in Document(BytesIO(docx)).paragraphs if " -- Proposta " in p.text]
     assert titulos == [f"Entregues {marca} proposta -- Proposta {id_proposta}"]
 
+    # O tipo dedicado exclui formalizadas mesmo sem etapa explícita.
+    novo_filtro = replace(filtro, etapa=None)
+    previa_dedicada = consultar_monitorados("propostas", novo_filtro, "completo", [], 1, 20, db=sessao, usuario=User())
+    assert previa_dedicada.total == 1
+    assert len(previa_dedicada.colunas) == 16
+    assert previa_dedicada.linhas[0][:2] == (str(id_proposta), f"Entregues {marca} proposta")
+    assert "Parceria Vinculada" not in previa_dedicada.colunas
+    xlsx = montar_relatorio(db=sessao, formato="xlsx", nivel="completo", tipo_relatorio="propostas", filtro=novo_filtro)
+    pasta = load_workbook(BytesIO(xlsx), read_only=True)
+    try:
+        assert pasta.sheetnames == ["Resumo", "Propostas"]
+        assert pasta["Propostas"]["A2"].value == str(id_proposta)
+    finally:
+        pasta.close()
+
 
 def test_recorte_brasil_inclui_todas_as_contratacoes(entregas):  # noqa: F811
     sessao, _, marca = entregas

@@ -1,5 +1,6 @@
 """Extração e exportação das fases selecionadas no relatório de instrumentos."""
 
+from decimal import Decimal
 from io import BytesIO
 
 from docx import Document
@@ -9,11 +10,26 @@ from openpyxl import load_workbook
 
 from app.auth import require_current_user
 from app.db.base import get_db
-from app.db.models import InstrumentoEquipamento
+from app.db.models import Convenio, InstrumentoEquipamento
+from app.repositories import relatorios_contexto
 from app.routers.relatorios import router
 from app.services import relatorios_monitorados
 from app.services.fase_acompanhamento import FaseAcompanhamento
 from app.services.monitoramento_instrumentos import InstrumentoComFase
+from app.services.relatorios_instrumentos_modelo import _valores
+
+
+def test_resumo_financeiro_combina_valores_numeric_com_cargas_manuais():
+    oficial = Convenio(
+        financeiro_fonte_confiavel=True, valor_global=Decimal("250.50"),
+        valor_repasse=Decimal("200.20"), valor_desembolsado=Decimal("100.10"),
+    )
+    manual = Convenio(valor_global=Decimal("100.15"))
+    valores_oficiais = _valores(oficial, InstrumentoEquipamento(tipo_contratacao="Convênio"))
+    valores_manuais = _valores(manual, InstrumentoEquipamento(tipo_contratacao="FAF"))
+    assert valores_oficiais.global_ == 250.50 and valores_oficiais.repassado == 100.10
+    assert valores_manuais.global_ == valores_manuais.repassado == 100.15
+    assert sum(v.global_ for v in (valores_oficiais, valores_manuais) if v.global_ is not None) == 350.65
 
 
 def test_previa_word_excel_consideram_as_mesmas_fases(monkeypatch):
@@ -31,6 +47,8 @@ def test_previa_word_excel_consideram_as_mesmas_fases(monkeypatch):
     ]
     monkeypatch.setattr(relatorios_monitorados, "_instrumentos", lambda *_: instrumentos)
     monkeypatch.setattr(relatorios_monitorados, "carregar_etapas", lambda **_: [])
+    monkeypatch.setattr(relatorios_contexto, "convenios_por_numero", lambda *_: {})
+    monkeypatch.setattr(relatorios_contexto, "nomes_cnes", lambda *_: {})
     app = FastAPI()
     app.include_router(router)
     app.dependency_overrides[get_db] = lambda: None
@@ -47,7 +65,9 @@ def test_previa_word_excel_consideram_as_mesmas_fases(monkeypatch):
         previa = resposta_previa.json()
         assert previa["total"] == 2
         fases_esperadas = ["Em aquisição", "Concluído"]
-        assert [linha[-1] for linha in previa["linhas"]] == fases_esperadas
+        coluna_fase = previa["colunas"].index("Situação (Monitoramento)")
+        assert len(previa["colunas"]) == 14
+        assert [linha[coluna_fase] for linha in previa["linhas"]] == fases_esperadas
 
         arquivos = {}
         for formato in ("xlsx", "docx"):
@@ -56,8 +76,11 @@ def test_previa_word_excel_consideram_as_mesmas_fases(monkeypatch):
             arquivos[formato] = resposta.content
     planilha = load_workbook(BytesIO(arquivos["xlsx"]), read_only=True)
     try:
-        assert [linha[-1] for linha in list(planilha["Registros"].values)[1:]] == fases_esperadas
+        assert planilha.sheetnames == ["Resumo", "Instrumentos"]
+        registros = planilha["Instrumentos"].iter_rows(max_row=3, values_only=True)
+        assert len(next(registros)) == 14
+        assert [linha[coluna_fase] for linha in registros] == fases_esperadas
     finally:
         planilha.close()
     documento = Document(BytesIO(arquivos["docx"]))
-    assert [linha.cells[-1].text for linha in documento.tables[0].rows[1:]] == fases_esperadas
+    assert [linha.cells[0].text for linha in documento.tables[0].rows[1:]] == [*sorted(fases_esperadas), "Total"]

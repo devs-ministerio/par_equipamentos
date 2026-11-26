@@ -25,6 +25,7 @@ export type TipoMonitorado =
 export type TipoRelatorio =
   | "instrumentos_repasse"
   | "analise_merito"
+  | "propostas"
   | TipoMonitorado;
 export type SituacaoEquipamento =
   | "planejado"

@@ -89,7 +89,7 @@ it("só abre a exportação após confirmar o tipo compatível e devolve o foco 
   );
   expect(dialogo.getByRole("button", { name: "Baixar Excel" })).toBeEnabled();
   expect(previa).toHaveBeenLastCalledWith(
-    "instrumentos_repasse",
+    "propostas",
     "simplificado",
     { escopo: "uf", uf: "BA", etapa: "propostas" },
     1,

@@ -13,13 +13,12 @@ from app.services.fatos_instrumento import carregar_etapas
 from app.services.relatorios_equipamentos_modelo import montar_equipamentos
 from app.services.relatorios_equipamentos_resumo import SituacaoEquipamento as SituacaoEquipamento
 from app.services.relatorios_filtro import FiltroRelatorio, Nivel
+from app.services.relatorios_instrumentos_modelo import montar_instrumentos
 from app.services.relatorios_modelo import Celula, RelatorioMonitorado  # noqa: F401
+from app.services.relatorios_propostas_modelo import montar_propostas
 from app.services.relatorios_recorte import _instrumentos
 
-TipoMonitorado = Literal["equipamentos_monitorados", "instrumentos_monitorados"]
-
-TIPOS_MONITORADOS = ("equipamentos_monitorados", "instrumentos_monitorados")
-COLUNAS_BASE = ("Instrumento", "Instituição", "Município", "UF", "CNES", "Contratação")
+TipoMonitorado = Literal["equipamentos_monitorados", "instrumentos_monitorados", "propostas"]
 
 
 def montar_relatorio_monitorado(
@@ -45,6 +44,10 @@ def _montar(
     situacoes: tuple[SituacaoEquipamento, ...],
     fases: tuple[FaseAcompanhamento, ...],
 ) -> RelatorioMonitorado:
+    completo = nivel == "completo"
+    referencia = date.today()
+    if tipo == "propostas":
+        return montar_propostas(db=db, filtro=filtro, completo=completo, referencia=referencia)
     equipamentos = tipo == "equipamentos_monitorados"
     candidatos = _instrumentos(
         db,
@@ -72,26 +75,11 @@ def _montar(
         )
     ]
     instrumentos = [i.instrumento for i in recorte]
-    base = {
-        i.nr_convenio: (i.nr_convenio, i.nome_convenente, i.municipio, i.uf, i.cnes, i.tipo_contratacao)
-        for i in instrumentos
-    }
     etapas = {e.nr_convenio: e for e in carregar_etapas(db=db, instrumentos=instrumentos)}
-    completo = nivel == "completo"
     if not equipamentos:
-        colunas: tuple[str, ...] = (*COLUNAS_BASE, "Fase")
-        if completo:
-            colunas = (*colunas, "Publicação", "Entrega", "Inauguração", "Conclusão")
-        linhas: list[tuple[Celula, ...]] = []
-        for candidato in recorte:
-            numero = candidato.instrumento.nr_convenio
-            linha: tuple[Celula, ...] = (*base[numero], candidato.fase_atual)
-            if completo:
-                etapa = etapas[numero]
-                linha = (*linha, etapa.publicacao, etapa.entrega, etapa.inauguracao, etapa.conclusao)
-            linhas.append(linha)
-        return RelatorioMonitorado(
-            "Instrumentos", colunas, linhas, len(linhas), "instrumentos", tuple(dict.fromkeys(f.value for f in fases))
+        return montar_instrumentos(
+            db=db, recorte=recorte, etapas=etapas, filtro=filtro,
+            fases=tuple(dict.fromkeys(f.value for f in fases)), completo=completo, referencia=referencia,
         )
 
     return montar_equipamentos(
@@ -101,5 +89,5 @@ def _montar(
         filtro=filtro,
         situacoes=situacoes,
         completo=completo,
-        referencia=date.today(),
+        referencia=referencia,
     )

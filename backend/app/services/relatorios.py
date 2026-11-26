@@ -163,7 +163,7 @@ def montar_relatorio(
     filtro.validar_referencia_do_periodo()
     with reservar_geracao_docx() if formato == "docx" else nullcontext():
         try:
-            if tipo_relatorio in ("equipamentos_monitorados", "instrumentos_monitorados"):
+            if tipo_relatorio in ("equipamentos_monitorados", "instrumentos_monitorados", "propostas"):
                 from app.reports.monitorados import gerar_monitorados
 
                 return gerar_monitorados(

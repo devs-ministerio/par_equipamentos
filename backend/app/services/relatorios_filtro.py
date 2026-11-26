@@ -29,7 +29,7 @@ Formato = Literal["xlsx", "docx"]
 
 EtapaRelatorio = Literal["propostas", "sem", "monitorado"]
 TipoRelatorio = Literal[
-    "instrumentos_repasse", "analise_merito", "equipamentos_monitorados", "instrumentos_monitorados"
+    "instrumentos_repasse", "analise_merito", "equipamentos_monitorados", "instrumentos_monitorados", "propostas"
 ]
 
 _ROTULO_GRUPO_MARCO = {

@@ -159,7 +159,7 @@ export function RelatorioExportacaoCarteira({
           </DialogHeader>
           <RelatorioPreviaExportacao
             key={sessao}
-            tipo={visao === "propostas" ? "instrumentos_repasse" : visao}
+            tipo={visao}
             filtroBase={
               visao === "propostas" ? { ...filtro, etapa: visao } : filtro
             }

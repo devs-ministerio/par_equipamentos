@@ -38,6 +38,7 @@ class RelatorioMonitorado:
     colunas_data: tuple[str, ...] = ()
     colunas_moeda: tuple[str, ...] = ()
     arquivo_base: str = "relatorio"
+    aba_registros: str = "Registros"
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,7 @@
 
 O modelo de Equipamentos usa a mesma extração na prévia e nos arquivos. O Excel tem abas Resumo e Registros, valores em R$ e legenda fora do filtro. O Word Simplificado agrupa os 16 campos em nove colunas. O Word Completo usa fichas por instrumento e uma tabela de sete colunas, começando por Equipamento e Descrição do item do plano. O nome do arquivo identifica o recorte.
 
-Os quatro arquivos revisados estão em `outputs/relatorios-equipamentos-2026-11-26-revisado/`. Os dois níveis de MG representam 95 equipamentos. O Excel Brasil soma 533 equipamentos de quatro tipos de contratação. Instrumentos (Task 7), Propostas (Task 8) e a conferência dos 12 arquivos ficam para depois da validação de Equipamentos.
+Os quatro arquivos revisados estão em `outputs/relatorios-equipamentos-2026-11-26-revisado/`. Os dois níveis de MG representam 95 equipamentos. O Excel Brasil soma 533 equipamentos de quatro tipos de contratação. Após a aprovação de Equipamentos, a entrega passou a incluir os modelos Instrumentos e Propostas.
 
 Estado: **Fase 0 concluída localmente; Fase 1 em diagnóstico.** A página ganhou prévia única, filtros e KPIs. As visões legadas “Concluídos” e “Entregas” e seus consumidores frontend foram removidos. As rotas e as regras da geração Word/Excel seguem disponíveis. As visões voltam como recortes da camada única nas Fases 2 a 4, após revisão da matriz. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
 
