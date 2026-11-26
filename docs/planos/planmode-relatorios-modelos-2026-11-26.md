@@ -31,6 +31,10 @@
 **Instrumentos · Completo (34 + abas):** ver `COLUNAS_INSTRUMENTO_COMPLETO` na Task 7. Abas: Resumo, Instrumentos, Financeiro, Ações em aberto. **Sem** aba Histórico de marcos.
 **Propostas · Simplificado (10):** Proponente, CNES, Município, UF, Região, Programa, Equipamento, Situação da Proposta, Valor Global da Proposta, Data da Proposta. **Completo (17):** Nº da Proposta, Proponente, CNPJ do Proponente, CNES, Município, UF, Região, Programa, Componente, Equipamento, Objeto, Situação da Proposta, Valor Global da Proposta, Data da Proposta, Dias desde a Proposta, Parceria Vinculada, Status da Revisão. Abas: Resumo, Propostas.
 
+## Ordem de execução (revisão do Codex, 26/11/2026)
+
+Fechar **Equipamentos de ponta a ponta antes de Instrumentos e Propostas**: Tasks 0 a 6, depois as partes de Equipamentos das Tasks 9, 10 e 11 (escrita dos arquivos, rótulo no front e a conferência dos arquivos de Equipamentos, Excel e Word). **Ponto de parada com validação do usuário** nesse momento. Só então as Tasks 7 (Instrumentos) e 8 (Propostas), e a conferência final dos 12 arquivos.
+
 ## File Structure
 
 | Arquivo | Responsabilidade |
@@ -56,17 +60,11 @@
 
 **Files:** nenhum (só leitura; registrar o resultado nesta seção do plano).
 
-- [ ] **Step 1: Descobrir qual campo é a "Situação (Site)"**
+- [ ] **Step 1: Registrar a decisão sobre a "Situação (Site)" (já tomada)**
 
-```bash
-cd /Users/gustavoleite/dev/par_equipamentos/.codex-work/fluxo
-grep -n "situacao_portal\|situacao_contratacao\|\.situacao\b" backend/app/schemas_convenios.py backend/app/routers/convenios.py
-grep -rn "situacao_portal\|situacao_contratacao\|\.situacao\b" frontend/src --include="*.tsx" --include="*.ts" | grep -i "dados-oficiais\|convenio" | head -20
-```
+Revisão do Codex (26/11/2026): em Dados oficiais a tela prioriza a **fase interna** e só usa `convenio.situacao` como alternativa. Para as duas colunas do relatório ficam separadas: **Situação (Site) = `convenio.situacao`** (situação oficial) e **Situação (Monitoramento) = fase interna** (`InstrumentoComFase.fase_atual`). `SITUACAO_SITE_CAMPO = "situacao"` (Task 5). Conferir só que `grep -n "situacao" backend/app/schemas_convenios.py` confirma o campo.
 
-Expected: o campo exibido na coluna de situação da página Dados oficiais. Escrever o nome em `SITUACAO_SITE_CAMPO` (Task 5). Se for outro que não `situacao_portal`, usar esse.
-
-- [ ] **Step 2: Conferir o que é `valor_repasse` no clone local**
+- [ ] **Step 2: Conferir o que é `valor_repasse` no clone local (achado do Codex: em 237 convênios o repasse pactuado supera o desembolsado; os dois campos são distintos)**
 
 ```bash
 cd backend && uv run python - <<'PY'
@@ -81,7 +79,7 @@ with SessionLocal() as db:
 PY
 ```
 
-Expected: se `valor_repasse` é bem maior que `valor_desembolsado` em muitas linhas, é o valor pactuado: manter o rótulo "Valor de Repasse Pactuado" na aba Financeiro. Se forem quase sempre iguais, apontar ao usuário antes de seguir.
+Expected: `maior` próximo de 237 no clone, confirmando que `valor_repasse` é o valor pactuado: manter os rótulos distintos "Valor de Repasse Pactuado" e "Valor Repassado" na aba Financeiro. **Preservar a regra existente de desembolso integral das cargas manuais** (ler `_valor_global_confiavel` e o uso de `financeiro_fonte_confiavel` antes de implementar a Task 7; não recalcular nem substituir esse valor).
 
 - [ ] **Step 3: Commit (somente se o plano foi atualizado com os resultados)**
 
@@ -92,36 +90,41 @@ git commit -m "docs(relatorios): registra campos de situação e repasse verific
 
 ---
 
-### Task 1: Corrigir o recorte Brasil de Equipamentos
+### Task 1: Recorte Brasil de Equipamentos: regressão e filtro visível
 
 O arquivo `relatorio-equipamentos_monitorados-brasil-*.xlsx` trouxe 92 unidades, todas PERSUS I, enquanto só SP tem 27 de Convênio.
 
-**Files:**
-- Modify: função apontada pelo diagnóstico (candidatos: `backend/app/services/monitoramento_instrumentos.py::listar_monitorados_para_relatorio`, `backend/app/services/relatorios_recorte.py::_instrumentos`, `backend/app/repositories/itens_equipamento.py::resumo_com_cancelamentos_por_familia`)
-- Test: `backend/tests/test_relatorios_monitorados_db.py`
+**Achado do Codex (26/11/2026, clone local):** sem filtro, prévia e Excel do Brasil devolvem **533 unidades** (424 Convênio, 92 PERSUS I, 14 FAF, 3 TED); com o filtro `PERSUS I`, ambos devolvem exatamente 92. Logo, a consulta não tem defeito: o arquivo baixado veio com o filtro de contratação ativo, e nada no arquivo mostrava isso. A correção é de transparência, já coberta pelo nome do arquivo com recorte (Task 3) e pela linha **Filtros** do Resumo, que passa a listar a contratação escolhida. Esta task só fixa a regressão e confere o que a interface envia.
 
-- [ ] **Step 1: Reproduzir no clone local**
+**Files:**
+- Test: `backend/tests/test_relatorios_monitorados_db.py`
+- Verificar (sem alterar, salvo se o passo 2 achar divergência): `frontend/src/components/features/relatorio-previa-exportacao.tsx`, `frontend/src/services/relatorios.ts`
+
+- [ ] **Step 1: Confirmar o achado no clone local**
 
 ```bash
 cd backend && uv run python - <<'PY'
 from collections import Counter
+from dataclasses import replace
 from app.db.base import SessionLocal
 from app.services.relatorios_filtro import FiltroRelatorio
 from app.services.relatorios_monitorados import montar_relatorio_monitorado
 with SessionLocal() as db:
-    for f in (FiltroRelatorio(escopo="brasil"), FiltroRelatorio(escopo="uf", uf="SP")):
-        r = montar_relatorio_monitorado(db=db, tipo="equipamentos_monitorados", nivel="simplificado", filtro=f)
-        print(f.escopo, r.total, Counter(l[5] for l in r.linhas))
+    base = FiltroRelatorio(escopo="brasil")
+    for rotulo, f in (("sem filtro", base), ("PERSUS I", replace(base, tipo_contratacao="PERSUS I"))):
+        r = montar_relatorio_monitorado(db=db, tipo="equipamentos_monitorados", nivel="completo", filtro=f)
+        coluna = r.colunas.index("Contratação")
+        print(rotulo, r.total, Counter(l[coluna] for l in r.linhas))
 PY
 ```
 
-Expected: se Brasil traz Convênio, o arquivo veio de versão antiga e a causa é a geração via rota (passo 2). Se Brasil só traz PERSUS I, seguir o diagnóstico.
+Expected: `sem filtro` com as quatro contratações (~533 unidades) e `PERSUS I` com 92. (Antes da Task 6 o Completo ainda tem `Contratação` na posição 5; o código acima funciona nas duas versões.)
 
-- [ ] **Step 2: Comparar com a rota HTTP**
+- [ ] **Step 2: Conferir o que a interface envia**
 
-Gerar pela API local com `escopo=brasil` e conferir o `Counter` por Contratação do `.xlsx`. Se a rota diverge do serviço, o defeito está no parâmetro (`situacao_origem`/`etapa` defaulting) em `routers/relatorios.py`.
+Na tela de Relatórios, escolher Brasil sem filtro, abrir a aba de rede e conferir que `GET /relatorios/previa` e `GET /relatorios` **não** levam `tipo_contratacao`. Se levarem sem o usuário ter escolhido, o defeito está no hook de filtros (`use-relatorio-instrumentos-filtros.ts`); corrigir lá e acrescentar um teste de vitest.
 
-- [ ] **Step 3: Escrever o teste que falha**
+- [ ] **Step 3: Escrever o teste de regressão**
 
 Em `backend/tests/test_relatorios_monitorados_db.py`, seguir o padrão das fixtures já existentes no arquivo (ler as primeiras 80 linhas). Criar dois instrumentos monitorados com itens controlados, um `Convênio` em SP e um `PERSUS I` em RS, e afirmar:
 
@@ -138,18 +141,16 @@ def test_recorte_brasil_inclui_todas_as_contratacoes(db_com_dois_instrumentos):
 
 (Ajustar o índice 5 após a Task 6, quando a coluna Contratação sair do Simplificado: usar o nome da coluna via `relatorio.colunas.index("Contratação")` no Completo.)
 
-- [ ] **Step 4: Rodar e ver falhar**
+- [ ] **Step 4: Rodar o teste**
 
 Run: `cd backend && uv run pytest tests/test_relatorios_monitorados_db.py::test_recorte_brasil_inclui_todas_as_contratacoes -v`
-Expected: FAIL (se não reproduzir, a causa foi arquivo antigo: documentar no plano e pular os passos 5 e 6).
+Expected: PASS (a consulta já está correta; o teste só impede regressão). Se falhar, o diagnóstico do Codex não se confirma no ambiente de teste: investigar `listar_monitorados_para_relatorio` antes de seguir.
 
-- [ ] **Step 5: Corrigir a função apontada pelo diagnóstico** e rodar o teste: PASS.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add backend/app backend/tests/test_relatorios_monitorados_db.py
-git commit -m "fix(relatorios): recorte Brasil de equipamentos inclui todas as contratações"
+git add backend/tests/test_relatorios_monitorados_db.py
+git commit -m "test(relatorios): regressão do recorte Brasil de equipamentos"
 ```
 
 ---
@@ -599,7 +600,7 @@ git commit -m "feat(relatorios): previsão de inauguração e status da inaugura
 - Test: `backend/tests/test_relatorios_contexto.py` (puro), cobertura de banco em `test_relatorios_monitorados_db.py`
 
 **Interfaces:**
-- Produces (repositório): `convenios_por_numero(db, numeros: set[str]) -> dict[str, Convenio]`; `nomes_cnes(db, cnes: set[str]) -> dict[str, str]`; `descricoes_por_familia(db, instrumento_ids: set[int]) -> dict[tuple[int, str], str]`; `valor_unitario_por_familia(db, instrumento_ids: set[int]) -> dict[tuple[int, str], float]`; `acoes_abertas(db, instrumento_ids: set[int]) -> dict[int, list[AcaoMonitoramento]]`.
+- Produces (repositório): `convenios_por_numero(db, numeros: set[str]) -> dict[str, Convenio]`; `nomes_cnes(db, cnes: set[str]) -> dict[str, str]`; `descricoes_por_familia(db, instrumento_ids: set[int]) -> dict[tuple[int, str], str]`; `valores_por_familia(db, instrumento_ids: set[int]) -> dict[tuple[int, str], tuple[float, int]]` e `valor_unitario_por_item(db, instrumento_ids: set[int]) -> dict[int, float]`; `acoes_abertas(db, instrumento_ids: set[int]) -> dict[int, list[AcaoMonitoramento]]`.
 - Produces (serviço): `SITUACAO_SITE_CAMPO: str`; `contexto_do(instrumento, fase, convenio, nome_cnes) -> ContextoInstrumento`; `carregar_contextos(db, recorte: list[InstrumentoComFase]) -> dict[str, ContextoInstrumento]`.
 
 - [ ] **Step 1: Write the failing test (puro)**
@@ -631,7 +632,7 @@ def test_sem_cnes_usa_o_convenente():
 
 
 def test_dados_do_convenio_quando_existe():
-    convenio = SimpleNamespace(numero_processo="25000.1/2018-11", situacao_portal="Em execução",
+    convenio = SimpleNamespace(numero_processo="25000.1/2018-11", situacao="Em execução",
                                data_inicio_vigencia=date(2018, 3, 15), data_final_vigencia=date(2027, 3, 15))
     c = contexto_do(_instr(), "Aguardando repasse", convenio, None)
     assert (c.numero_processo, c.situacao_site, c.fim_vigencia) == ("25000.1/2018-11", "Em execução", date(2027, 3, 15))
@@ -657,8 +658,8 @@ from app.repositories import relatorios_contexto as repo
 from app.services.monitoramento_instrumentos import InstrumentoComFase
 from app.services.relatorios_modelo import ContextoInstrumento
 
-# Task 0, passo 1: campo do convênio exibido como situação em Dados oficiais.
-SITUACAO_SITE_CAMPO = "situacao_portal"
+# Task 0, passo 1: situação oficial do convênio (a fase interna fica em Situação (Monitoramento)).
+SITUACAO_SITE_CAMPO = "situacao"
 
 
 def contexto_do(instrumento, fase: str | None, convenio, nome_cnes: str | None) -> ContextoInstrumento:
@@ -743,8 +744,10 @@ def descricoes_por_familia(db: Session, instrumento_ids: set[int]) -> dict[tuple
     return {chave: "; ".join(valores) for chave, valores in agrupado.items()}
 
 
-def valor_unitario_por_familia(db: Session, instrumento_ids: set[int]) -> dict[tuple[int, str], float]:
-    """Valor total dos itens com valor e quantidade, dividido pela quantidade planejada; ausente quando não há valor."""
+def valores_por_familia(db: Session, instrumento_ids: set[int]) -> dict[tuple[int, str], tuple[float, int]]:
+    """(valor total, quantidade planejada) da família, só quando TODOS os itens ativos controlados têm valor.
+
+    Família com algum item sem preço fica de fora: o valor não é inventado nem misturado com itens de preços diferentes."""
     if not instrumento_ids:
         return {}
     consulta = (
@@ -753,18 +756,35 @@ def valor_unitario_por_familia(db: Session, instrumento_ids: set[int]) -> dict[t
             _familia(),
             func.sum(ItemPlano.valor_total),
             func.sum(ItemPlano.quantidade_planejada),
+            func.count(ItemPlano.id),
+            func.count(ItemPlano.valor_total),
         )
         .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
         .where(
             ItemPlano.instrumento_id.in_(instrumento_ids),
             ItemPlano.controla_unidade.is_(True),
             ItemPlano.ativo.is_(True),
-            ItemPlano.valor_total.is_not(None),
-            ItemPlano.quantidade_planejada > 0,
         )
         .group_by(ItemPlano.instrumento_id, _familia())
     )
-    return {(int(i), str(f)): float(v) / int(q) for i, f, v, q in db.execute(consulta) if q}
+    return {
+        (int(i), str(f)): (float(v), int(q))
+        for i, f, v, q, itens, com_valor in db.execute(consulta)
+        if itens == com_valor and v is not None and q
+    }
+
+
+def valor_unitario_por_item(db: Session, instrumento_ids: set[int]) -> dict[int, float]:
+    """Valor de uma unidade de cada item (valor do item ÷ quantidade planejada); item sem preço não aparece."""
+    if not instrumento_ids:
+        return {}
+    consulta = select(ItemPlano.id, ItemPlano.valor_total, ItemPlano.quantidade_planejada).where(
+        ItemPlano.instrumento_id.in_(instrumento_ids),
+        ItemPlano.ativo.is_(True),
+        ItemPlano.valor_total.is_not(None),
+        ItemPlano.quantidade_planejada > 0,
+    )
+    return {int(i): float(v) / int(q) for i, v, q in db.execute(consulta)}
 
 
 def acoes_abertas(db: Session, instrumento_ids: set[int]) -> dict[int, list[AcaoMonitoramento]]:
@@ -869,6 +889,18 @@ def test_resumo_conta_unidades_e_destaca_aceleradores():
         "Por UF",
         "Por contratação",
     ]
+
+
+def test_valor_entregue_ignora_planejado_e_cancelado():
+    fatos = [
+        _fato(situacao="em_operacao", valor=100.0),
+        _fato(situacao="entregue", valor=50.0),
+        _fato(situacao="planejado", valor=30.0),
+        _fato(situacao="cancelado", valor=999.0),
+    ]
+    _, quebras = resumo_equipamentos(fatos, escopo="uf", referencia=date(2026, 11, 26))
+    valores = next(q for q in quebras if q.titulo == "Valor do equipamento")
+    assert valores.linhas == [("Planejado", 30.0), ("Entregue", 150.0)]
 
 
 def test_quebra_por_estabelecimento_em_recorte_de_municipio():
@@ -1024,34 +1056,27 @@ def _valores(fatos: list[FatoEquipamento]) -> Tabela | None:
     com_valor = [f for f in fatos if f.valor is not None and f.situacao != "cancelado"]
     if not com_valor:
         return None
-    planejado = sum(f.valor * f.quantidade for f in com_valor if f.situacao == "planejado")
-    entregue = sum(f.valor * f.quantidade for f in com_valor if f.situacao != "planejado")
+    planejado = sum(f.valor for f in com_valor if f.situacao == "planejado")
+    entregue = sum(f.valor for f in com_valor if f.situacao in ("entregue", "em_operacao"))
     return Tabela(
         "Valor do equipamento", ("Situação", "Valor"), [("Planejado", planejado), ("Entregue", entregue)],
         colunas_moeda=("Valor",),
     )
 ```
 
-Observação: o valor por linha é o valor **unitário** da família; o total de uma linha é `valor × quantidade`. Por isso `FatoEquipamento.valor` guarda o valor da linha já multiplicado (Step 4) e o resumo usa `f.valor` direto. Ajustar `_valores` para somar `f.valor` sem multiplicar:
-
-```python
-    planejado = sum(f.valor for f in com_valor if f.situacao == "planejado")
-    entregue = sum(f.valor for f in com_valor if f.situacao != "planejado")
-```
-
-(Aplicar esta versão; o teste do Step 1 não depende dela.)
+Observação (revisão do Codex): `FatoEquipamento.valor` é o valor **total da linha**, nunca uma média por família. Linha de unidade entregue usa o valor do **item vinculado à unidade** (`valor_unitario_por_item`). Linha agregada (planejado, cancelado e Simplificado) usa `valor_total_da_família × quantidade_da_linha ÷ quantidade_planejada_da_família`, e só quando todos os itens da família têm preço (`valores_por_familia`); senão fica vazia. O indicador **Entregue** soma apenas `entregue` e `em_operacao`.
 
 - [ ] **Step 4: Integrar em `relatorios_monitorados.py`**
 
 Em `_montar`, ramo `equipamentos`: substituir `_linhas_equipamentos` por uma função que monta `list[FatoEquipamento]`:
 
 1. `contextos = carregar_contextos(db, recorte)`; `etapas` já carregadas (`carregar_etapas`).
-2. `descricoes = repo.descricoes_por_familia(db, ids)`; `unitarios = repo.valor_unitario_por_familia(db, ids)`.
+2. `descricoes = repo.descricoes_por_familia(db, ids)`; `por_familia = repo.valores_por_familia(db, ids)`; `por_item = repo.valor_unitario_por_item(db, ids)`.
 3. Para cada `(instrumento_id, familia, planejado, entregue, cancelado)` e cada situação com quantidade > 0 (mesma lógica de `quantidades` atual), criar `FatoEquipamento` com:
-   - `valor = unitarios.get((identificador, familia)) * quantidade` ou `None`;
+   - linha agregada: `valor = total * quantidade / planejado_bruto` com `(total, planejado_bruto) = por_familia[(identificador, familia)]`, ou `None` se a família não está em `por_familia`;
    - `descricao_item = descricoes.get((identificador, familia))`;
    - `data_previsao_inauguracao, status_inauguracao = inauguracao_da_linha(etapa, situacao)`;
-   - `data_entrega`: no Completo, para a situação de entrega, uma linha por unidade (`listar_unidades_entregues`, com `descricao_item`, `marca`, `modelo`, `numero_serie`, `data_entrega`, quantidade 1 e valor unitário); nas demais e no Simplificado, `min(data_entrega)` das unidades da `(numero, familia)` só para situações `entregue`/`em_operacao`, senão `None`.
+   - `data_entrega`: no Completo, para a situação de entrega, uma linha por unidade (`listar_unidades_entregues`, com `descricao_item`, `marca`, `modelo`, `numero_serie`, `data_entrega`, quantidade 1 e `valor = por_item.get(unidade["item_id"])`; incluir `item_id` na consulta de `listar_unidades_entregues`); nas demais e no Simplificado, `min(data_entrega)` das unidades da `(numero, familia)` só para situações `entregue`/`em_operacao`, senão `None`.
    - Carregar unidades nos **dois** níveis (hoje só no Completo) para o Simplificado ter a data.
 4. Aplicar `situacoes` e `filtro.equipamento` como hoje. Montar `RelatorioMonitorado` com `colunas = COLUNAS_*`, `linhas = [linha_equipamento(f, completo=completo) for f in fatos]`, `total = sum(f.quantidade ...)`, `cabecalho(...)`, `indicadores/quebras` de `resumo_equipamentos(...)`, `legenda=LEGENDA_EQUIPAMENTOS`, `colunas_data=DATAS`, `colunas_moeda=MOEDA`, `arquivo_base="equipamentos"`. Fonte: `SISGEO · SICONV · RENEM · CNES`. Filtros: `descrever_filtros(filtro, situacoes=...)`.
 
@@ -1250,6 +1275,8 @@ git commit -m "feat(relatorios): modelo de instrumentos com financeiro e ações
 ```
 
 ---
+
+> **Decisão pendente do usuário antes de implementar esta task:** o filtro Etapa "Proposta" seleciona hoje só propostas **sem parceria** (carteira em tramitação), e propostas com parceria já aparecem como instrumentos Celebrados. O modelo aprovado inclui a coluna **Parceria Vinculada**, que só faz sentido se Propostas trouxer o **histórico completo**. Opções: (A) carteira em tramitação (sem parceria), e a coluna Parceria Vinculada sai ou fica sempre "Não"; (B) histórico completo (todas as propostas, com a coluna). Isso muda os totais e a síntese. O código abaixo assume (B) e o recorte `_propostas(db, filtro)` sem `etapa`.
 
 ### Task 8: Modelo de Propostas e tipo `propostas`
 
@@ -1577,9 +1604,9 @@ cd ../frontend && npm run test && npm run lint && npx tsc -b
 
 Expected: suíte verde; `ruff`/`mypy` sem achado novo fora do baseline. Testes de banco exigem `TEST_DATABASE_URL` local.
 
-- [ ] **Step 3: Gerar os seis arquivos no clone local e conferir contra os modelos**
+- [ ] **Step 3: Gerar os 12 arquivos no clone local e conferir contra os modelos**
 
-Gerar, via API local, Equipamentos MG, Instrumentos RS e Propostas Brasil, nos dois níveis, e conferir com openpyxl:
+Gerar, via API local, **três tipos** (Equipamentos MG, Instrumentos RS, Propostas Brasil) × **dois níveis** × **dois formatos** (xlsx e docx) = 12 arquivos, e conferir:
 
 ```bash
 cd backend && uv run python - <<'PY'
@@ -1587,11 +1614,15 @@ from openpyxl import load_workbook
 import glob
 for f in sorted(glob.glob("/caminho/gerado/relatorio-*.xlsx")):
     wb = load_workbook(f)
-    print(f.split("/")[-1], wb.sheetnames, [(ws.title, ws.max_column) for ws in wb])
+    for ws in wb:
+        print(f.split("/")[-1], ws.title, ws.max_column, ws.freeze_panes, ws.auto_filter.ref,
+              [type(c.value).__name__ for c in ws[2]][:6])
 PY
 ```
 
-Expected: abas e número de colunas iguais aos "Modelos aprovados"; Brasil de Equipamentos com mais de uma contratação; nenhuma data de conclusão do monitoramento junto de data de inauguração; legenda depois de uma linha em branco no fim de cada aba.
+Excel (6 arquivos): abas e número de colunas iguais aos "Modelos aprovados"; tipos de célula corretos (datas como data, valores como número com formato monetário, CNES como texto); filtro e painel congelado só na tabela; legenda depois de uma linha em branco no fim da aba; Brasil de Equipamentos sem filtro com mais de uma contratação; nenhuma data de conclusão do monitoramento junto de data de inauguração.
+
+Word (6 arquivos): abrir com `python-docx` e comparar os indicadores e a primeira quebra com os mesmos números da prévia (`GET /relatorios/previa`) e do Resumo do Excel do mesmo recorte; o Simplificado tem uma tabela de síntese, o Completo acrescenta a de registros.
 
 - [ ] **Step 4: Conferir `credencial-local.txt` fora do commit e commitar**
 
@@ -1620,6 +1651,6 @@ git commit -m "docs(relatorios): documenta os modelos de equipamentos, instrumen
 
 **Placeholders:** a Task 1 depende do diagnóstico (causa desconhecida) e declara os candidatos e o teste; a Task 7 descreve as funções de linha em prosa com a ordem exata das colunas em vez de repetir 34 campos (as tuplas de coluna são a fonte única). Se o executor preferir, escrever as funções com teste de ordem por `zip(COLUNAS, linha)`, como nos testes de Equipamentos.
 
-**Consistência de tipos:** `FatoEquipamento.valor` é o valor total da linha (unitário × quantidade) tanto no resumo quanto na linha; `ContextoInstrumento` tem os mesmos 14 campos em todos os testes; `inauguracao_da_linha` recebe a chave de situação (`"planejado" | "entregue" | "em_operacao" | "cancelado"`), igual a `FatoEquipamento.situacao` e a `ROTULOS`.
+**Consistência de tipos:** `FatoEquipamento.valor` é o valor total da linha (item vinculado da unidade, ou valor da família proporcional à quantidade) tanto no resumo quanto na linha; `ContextoInstrumento` tem os mesmos 14 campos em todos os testes; `inauguracao_da_linha` recebe a chave de situação (`"planejado" | "entregue" | "em_operacao" | "cancelado"`), igual a `FatoEquipamento.situacao` e a `ROTULOS`.
 
 **Riscos conhecidos:** `valor_repasse` (rótulo "Pactuado") depende da Task 0; `SITUACAO_SITE_CAMPO` depende da Task 0; os testes de banco exigem Postgres local; o worktree tem trabalho do Codex sem commit, que deve ser commitado antes.
