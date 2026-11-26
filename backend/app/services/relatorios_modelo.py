@@ -29,6 +29,7 @@ class EquipamentoDoInstrumento(NamedTuple):
     planejados: int
     entregues: int
     em_operacao: int
+    valor_unitario: float | None = None
 
     @property
     def a_entregar(self) -> int:

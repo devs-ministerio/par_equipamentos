@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 
 from app.reports.docx_tabelado import SecaoTabela
+from app.reports.formatacao import formatar_moeda
 from app.services.relatorios_modelo import RelatorioMonitorado
 
 _CABECALHO_INSTRUMENTO = (
@@ -14,8 +15,8 @@ _CABECALHO_INSTRUMENTO = (
                             "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração")),
     ("Valores", ("Valor Global", "Valor Repassado")),
 )
-_TABELA_INSTRUMENTO = ("Equipamento", "Qtd a entregar", "Qtd entregue", "Dos entregues, em operação")
-_PESOS_INSTRUMENTO = (3.7, 1.2, 1.2, 1.8)
+_COLUNAS_EQUIPAMENTO = ("Equipamento", "Qtd a entregar", "Qtd entregue", "Dos entregues, em operação", "Valor unitário")
+_PESOS_INSTRUMENTO = (3.7, 1.25, 1.25, 1.75, 1.7)
 _PROPOSTAS = (
     ("Proposta", ("Nº da Proposta", "Data da Proposta", "Dias desde a Proposta")),
     ("Proponente", ("Proponente", "CNPJ do Proponente", "CNES", "Município", "UF", "Região")),
@@ -28,37 +29,46 @@ def _campos_rotulados(registro: dict[str, str], campos: Sequence[str], separador
     return separador.join(f"{c}: {registro[c]}" for c in campos if registro[c] not in ("", "—"))
 
 
-def _formulario_instrumento(registro: dict[str, str]) -> SecaoTabela:
-    linhas: list[tuple[str, str]] = []
-    titulos: set[int] = set()
-    for titulo, campos in _CABECALHO_INSTRUMENTO:
-        valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
-        if valores:
-            titulos.add(len(linhas))
-            linhas.append((titulo, ""))
-            linhas.extend(valores)
-    return SecaoTabela(
-        f"Instrumento {registro['Instrumento']}", ("Campo", "Informação"), linhas,
-        pesos_colunas=(2, 3), linhas_de_secao=frozenset(titulos),
-    )
-
-
 def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequence[str]]) -> list[SecaoTabela]:
     if not linhas:
-        return [SecaoTabela("Fichas dos instrumentos", _TABELA_INSTRUMENTO, [], pesos_colunas=_PESOS_INSTRUMENTO)]
+        return [SecaoTabela("Fichas dos instrumentos", _COLUNAS_EQUIPAMENTO, [], pesos_colunas=_PESOS_INSTRUMENTO)]
     fichas = []
     for linha in linhas:
         registro = dict(zip(relatorio.colunas, linha, strict=True))
-        fichas.append(_formulario_instrumento(registro))
+        dados: list[tuple[str | int, ...]] = []
+        titulos: set[int] = set()
+        mesclas = {0: (1, 4)}
+        for titulo, campos in _CABECALHO_INSTRUMENTO:
+            valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
+            if valores:
+                titulos.add(len(dados))
+                mesclas[len(dados) + 1] = (0, 4)
+                dados.append((titulo, "", "", "", ""))
+                for campo, valor in valores:
+                    mesclas[len(dados) + 1] = (1, 4)
+                    dados.append((campo, valor, "", "", ""))
+
+        titulos.add(len(dados))
+        mesclas[len(dados) + 1] = (0, 4)
+        dados.append(("Equipamentos", "", "", "", ""))
         equipamentos = relatorio.equipamentos_por_instrumento.get(registro["Instrumento"], [])
-        dados: list[tuple[str | int, ...]] = [
-            (e.nome, e.a_entregar, e.entregues, e.em_operacao)
-            for e in equipamentos
-        ]
         if equipamentos:
-            dados.append(("Total", registro["Qtd a Entregar"], registro["Qtd Entregue"], registro["Qtd em Operação"]))
+            titulos.add(len(dados))
+            dados.append(_COLUNAS_EQUIPAMENTO)
+            dados.extend(
+                (e.nome, e.a_entregar, e.entregues, e.em_operacao,
+                 formatar_moeda(e.valor_unitario) if e.valor_unitario is not None else "")
+                for e in equipamentos
+            )
+            dados.append(("Total", registro["Qtd a Entregar"], registro["Qtd Entregue"], registro["Qtd em Operação"], ""))
+        else:
+            mesclas[len(dados) + 1] = (0, 4)
+            dados.append(("Nenhum equipamento neste recorte.", "", "", "", ""))
+        contratacao = registro["Contratação"]
+        prefixo = contratacao if contratacao not in ("", "—") else "Instrumento"
         fichas.append(SecaoTabela(
-            "Equipamentos", _TABELA_INSTRUMENTO, dados, pesos_colunas=_PESOS_INSTRUMENTO,
+            f"{prefixo} - {registro['Instrumento']}", ("Campo", "Informação", "", "", ""), dados,
+            pesos_colunas=_PESOS_INSTRUMENTO, linhas_de_secao=frozenset(titulos), mesclas=mesclas,
         ))
     return fichas
 

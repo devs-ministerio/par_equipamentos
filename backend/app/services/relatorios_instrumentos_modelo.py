@@ -112,7 +112,7 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
     entregue = sum(e.entregues for e in equipamentos)
     familias = "; ".join(
         f"{nome} ({max(qtd, qtd_entregue)})" if max(qtd, qtd_entregue) > 1 else nome
-        for nome, qtd, qtd_entregue, _ in equipamentos
+        for nome, qtd, qtd_entregue, _, _ in equipamentos
     )
     _, status = inauguracao_da_linha(etapa, "em_operacao" if etapa.modo_operacao else "planejado")
     return (
@@ -160,6 +160,7 @@ def _quebras(fatos: list[_Instrumento], escopo: str) -> tuple[Tabela, ...]:
 def montar_instrumentos(
     *, db: Session, recorte: list[InstrumentoComFase], etapas: dict[str, EtapasInstrumentoRead],
     filtro: FiltroRelatorio, fases: tuple[str, ...], completo: bool, referencia: date,
+    incluir_valores_unitarios: bool = False,
 ) -> RelatorioMonitorado:
     numeros = {c.instrumento.nr_convenio for c in recorte}
     convenios = relatorios_contexto.convenios_por_numero(db, numeros)
@@ -177,10 +178,15 @@ def montar_instrumentos(
     familias: dict[str, list[EquipamentoDoInstrumento]] = defaultdict(list)
     if completo:
         por_id = {f.instrumento.id: f for f in fatos}
+        precos = relatorios_contexto.valores_por_familia(db, set(ids)) if incluir_valores_unitarios else {}
         for i_id, nome, planejado, entregue, _ in itens_equipamento.resumo_com_cancelamentos_por_familia(db, set(ids)):
             f = por_id[i_id]
+            preco = precos.get((i_id, nome))
             familias[f.contexto.numero].append(
-                EquipamentoDoInstrumento(nome, planejado, entregue, entregue if f.etapa.modo_operacao else 0)
+                EquipamentoDoInstrumento(
+                    nome, planejado, entregue, entregue if f.etapa.modo_operacao else 0,
+                    preco[0] / preco[1] if preco else None,
+                )
             )
     linhas = [
         _linha(f, completo=completo, equipamentos=familias.get(f.contexto.numero, []),

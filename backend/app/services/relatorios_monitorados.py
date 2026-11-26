@@ -29,9 +29,10 @@ def montar_relatorio_monitorado(
     filtro: FiltroRelatorio,
     situacoes: tuple[SituacaoEquipamento, ...] = (),
     fases: tuple[FaseAcompanhamento, ...] = (),
+    incluir_valores_unitarios: bool = False,
 ) -> RelatorioMonitorado:
     try:
-        return _montar(db, tipo, nivel, filtro, situacoes, fases)
+        return _montar(db, tipo, nivel, filtro, situacoes, fases, incluir_valores_unitarios)
     except LimiteConsultaExcedido as exc:
         raise ValidationError("O recorte excede o limite seguro. Refine os filtros e tente novamente.") from exc
 
@@ -43,6 +44,7 @@ def _montar(
     filtro: FiltroRelatorio,
     situacoes: tuple[SituacaoEquipamento, ...],
     fases: tuple[FaseAcompanhamento, ...],
+    incluir_valores_unitarios: bool,
 ) -> RelatorioMonitorado:
     completo = nivel == "completo"
     referencia = date.today()
@@ -80,6 +82,7 @@ def _montar(
         return montar_instrumentos(
             db=db, recorte=recorte, etapas=etapas, filtro=filtro,
             fases=tuple(dict.fromkeys(f.value for f in fases)), completo=completo, referencia=referencia,
+            incluir_valores_unitarios=incluir_valores_unitarios,
         )
 
     return montar_equipamentos(

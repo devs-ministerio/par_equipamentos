@@ -174,6 +174,7 @@ def montar_relatorio(
                         filtro=filtro,
                         situacoes=situacoes_equipamento,
                         fases=fases_instrumento,
+                        incluir_valores_unitarios=formato == "docx",
                     ),
                     formato=formato,
                     recorte=filtro.titulo(),

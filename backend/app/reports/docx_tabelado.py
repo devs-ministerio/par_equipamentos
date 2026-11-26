@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -29,6 +29,17 @@ class SecaoTabela:
     fonte_pt: float | None = None
     detalhes: Sequence[tuple[str, str]] = ()
     linhas_de_secao: frozenset[int] = frozenset()
+    mesclas: dict[int, tuple[int, int]] = field(default_factory=dict)
+
+
+def _mesclar_linha(linha: _Row, intervalo: tuple[int, int] | None) -> None:
+    if intervalo:
+        inicio, fim = intervalo
+        celulas = linha.cells
+        mesclada = celulas[inicio].merge(celulas[fim])
+        for paragrafo in mesclada.paragraphs[1:]:
+            if not paragrafo.text:
+                mesclada._tc.remove(paragrafo._p)
 
 
 def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> None:
@@ -36,6 +47,7 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
     total = max(len(secao.linhas), 1) + 1
     cabecalho = tabela.rows[0]
     docx_builder._formatar_linha_tabela(cabecalho, secao.fonte_pt, indice=0, total=total)
+    _mesclar_linha(cabecalho, secao.mesclas.get(0))
     with xml.element(tabela._tbl.tag, tabela._tbl.attrib):
         xml.write(tabela._tbl.tblPr)
         xml.write(tabela._tbl.tblGrid)
@@ -63,6 +75,7 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
                         celula._tc.get_or_add_tcPr().append(fundo)
                 if total <= 6 and indice == total - 1:
                     docx_builder._formatar_linha_tabela(linha, secao.fonte_pt, indice=indice, total=total)
+                _mesclar_linha(linha, secao.mesclas.get(indice))
                 xml.write(linha._tr)
             finally:
                 # A linha já está no ZIP; não acumular XML ou wrappers por município.
