@@ -1,5 +1,11 @@
 # Plan Mode: relatórios que batem com as telas (24/11/2026)
 
+## Entrega parcial de Equipamentos em 26/11/2026
+
+O modelo de Equipamentos usa a mesma extração na prévia e nos arquivos. O Excel tem abas Resumo e Registros, valores em R$ e legenda fora do filtro. O Word Simplificado traz a nota informativa. O Completo inclui os registros. O nome do arquivo identifica o recorte.
+
+Os quatro arquivos para validação estão em `outputs/relatorios-equipamentos-2026-11-26/`. Os dois níveis de MG representam 95 unidades. O Excel Brasil soma 533 unidades de quatro tipos de contratação. Instrumentos (Task 7), Propostas (Task 8) e a conferência dos 12 arquivos ficam para depois da validação de Equipamentos.
+
 Estado: **Fase 0 concluída localmente; Fase 1 em diagnóstico.** A página ganhou prévia única, filtros e KPIs. As visões legadas “Concluídos” e “Entregas” e seus consumidores frontend foram removidos. As rotas e as regras da geração Word/Excel seguem disponíveis. As visões voltam como recortes da camada única nas Fases 2 a 4, após revisão da matriz. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
 
 ## 1. Por que este plano existe

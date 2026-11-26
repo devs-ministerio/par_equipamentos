@@ -1310,25 +1310,13 @@ bloqueado de tudo, sem exceção, em qualquer um dos dois gates abaixo.
 
 ## Relatórios Excel/Word (Plan Mode relatorios 2026-09-25/26)
 
-`docs/planos/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
-independentes**, decisão do usuário 2026-09-26: `GET /relatorios` (`app/routers/relatorios.py`,
-`app/services/relatorios.py`) com `tipo_relatorio=instrumentos_repasse|analise_merito`.
+`GET /relatorios` usa `app/routers/relatorios.py` e `app/services/relatorios.py`. A análise de mérito continua separada do monitoramento, sem granularidade CNES.
 
-- **`instrumentos_repasse`** (convênios + propostas candidatas/"linhas de financiamento" ainda sem
-  virar convênio + monitoramento interno completo) — página própria dentro do Monitoramento
-  Interno (`frontend/src/pages/monitoramento-relatorios-page.tsx`, rota
-  `/monitoramento-equipamentos/relatorios`, nav "Relatórios").
-- **`analise_merito`** (só cobertura/déficit oncológico) — continua em `relatorios-page.tsx`, fora
-  do `MonitoramentoLayout` (mesmo lugar onde os botões de export já existiam antes). Não existe pra
-  `escopo=cnes` (`ValidationError`/422 — cobertura não tem granularidade por estabelecimento, mesma
-  limitação da seção "Limitações conhecidas" abaixo).
-
-Filtro geográfico hierárquico (Brasil→Região→UF→Município→CNES) + `ano` opcional (só
-`instrumentos_repasse` — cobertura não tem dimensão de ano civil). Nível Simplificado = estado
-atual; Completo = tudo, inclusive timeline inteira de eventos do monitoramento — no Word narra 1
-bloco por convênio/instrumento (estilo dos briefings reais do departamento, timbre institucional
-Ministério da Saúde/SAES/DECAN/CGPCAN + aviso "gerado automaticamente"); no Excel continua tabela
-(pedido explícito do usuário).
+- **Equipamentos (26/11/2026):** `tipo_relatorio=equipamentos_monitorados`; prévia, Excel e Word usam a mesma extração. Simplificado: 16 colunas, síntese estratégica e Word em nota informativa. Completo: 25 colunas e Word com nota + registros. Excel em ambos: abas Resumo e Registros, legenda no rodapé fora do filtro, datas nativas e valores numéricos em R$; moeda ausente fica vazia. Word formata datas/moeda, preserva filtros ativos e deixa moeda ausente vazia.
+- **Nomes com recorte:** `relatorio-equipamentos-MG-{nivel}.{xlsx|docx}`; os demais downloads também usam o recorte real. Filtro sem família: **Todos os Equipamentos em Oncologia**. Situação (Site) é a oficial; Situação (Monitoramento) é a fase interna. Fonte de Equipamentos: `SISGEO · SICONV · RENEM · CNES`.
+- **Instrumentos e Propostas:** a migração de modelos das Tasks 7/8 aguarda a validação dos arquivos de Equipamentos. Não existe novo `tipo_relatorio=propostas` nesta entrega; a prévia atual de propostas permanece no contrato anterior. Não antecipar abas Financeiro/Ações ou novos esquemas.
+- **Legado mantido:** `instrumentos_repasse` reúne convênios e propostas candidatas; Word completo narra blocos por instrumento e Excel usa tabelas. `instrumentos_monitorados` continua disponível. `analise_merito` permanece na análise de cobertura. Modelos novos não alteram regras de cobertura nem ofertas SUS/em uso.
+- **Conferência local:** `outputs/relatorios-equipamentos-2026-11-26/`, quatro arquivos MG e `conferencia.json`. Autenticação substituída só no ensaio HTTP em processo; serviços/builders reais, transação de homologação explicitamente read-only. Nenhuma carga ou chamada de produção.
 
 - **Filtro de município é feito em Python, nunca `==` em SQL** (`app/pipeline/texto.py::
   normalizar_texto`, upper+sem-acento, aplicado depois de trazer por UF) — achado ao vivo: a mesma
