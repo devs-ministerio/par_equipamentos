@@ -161,3 +161,30 @@ def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
     ]
     assert ficha.rows[2].cells[4].text == "R$ 0,00"
     assert doc.tables[2].rows[1].cells[4].text == ""
+
+
+def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
+    from app.services.relatorios_instrumentos_modelo import _COLUNAS_COMPLETO
+
+    colunas = _COLUNAS_COMPLETO
+    assert len(colunas) == 30
+    assert set(colunas).isdisjoint({"Técnico Suplente", "Responsável pela Execução", "Contato", "Última Movimentação"})
+    linhas = [
+        tuple(f"valor {numero}-{i:02d}." for i in range(len(colunas)))
+        for numero in (1, 2)
+    ]
+    relatorio = _relatorio(
+        titulo="Instrumentos", arquivo_base="instrumentos", unidade="instrumentos",
+        colunas=colunas, linhas=linhas, total=2, colunas_data=(),
+    )
+    doc = Document(BytesIO(gerar_monitorados(relatorio, formato="docx", nivel="completo", recorte="RS")))
+    assert [p.text for p in doc.paragraphs if p.text.startswith("Instrumento ")] == [
+        f"Instrumento {linha[0]}" for linha in linhas
+    ]
+    assert len(doc.tables) == 3
+    assert all(t.autofit is False and len(t.columns) == 4 and len(t.rows) == 2 for t in doc.tables[1:])
+    texto = "\n".join([p.text for p in doc.paragraphs] + [
+        c.text for t in doc.tables[1:] for c in t.rows[1].cells
+    ])
+    assert all(valor in texto for linha in linhas for valor in linha)
+    assert all(p.paragraph_format.keep_with_next for p in doc.paragraphs if p.text.startswith("Estabelecimento:"))

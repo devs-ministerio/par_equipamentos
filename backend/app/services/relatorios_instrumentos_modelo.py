@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from app.db.models import AcaoMonitoramento, Convenio, InstrumentoEquipamento
 from app.repositories import itens_equipamento, relatorios_contexto
-from app.repositories.monitoramento import listar_eventos_por_instrumentos
 from app.schemas_monitoramento import EtapasInstrumentoRead
 from app.services.monitoramento_instrumentos import InstrumentoComFase
 from app.services.relatorios_contexto import contexto_do
@@ -36,8 +35,7 @@ _COLUNAS_COMPLETO = (
     "Data de Publicação", "Data do Último Repasse", "Data de Entrega do Equipamento",
     "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração",
     "Nº do Processo", "Ano do Instrumento", "Início da Vigência", "Fim da Vigência",
-    "Valor Global", "Valor Repassado", "Técnico Responsável", "Técnico Suplente", "Nível de Monitoramento",
-    "Responsável pela Execução", "Contato", "Ações abertas", "Última Movimentação",
+    "Valor Global", "Valor Repassado", "Técnico Responsável", "Nível de Monitoramento", "Ações abertas",
 )
 _FINANCEIRO = (
     "Instrumento", "Estabelecimento de Saúde", "Valor Global", "Valor de Repasse Pactuado", "Contrapartida",
@@ -50,7 +48,7 @@ _ACOES = (
 )
 _DATAS = (
     "Data de Inauguração", "Data de Conclusão do Monitoramento", "Data de Publicação", "Data do Último Repasse",
-    "Data de Entrega do Equipamento", "Início da Vigência", "Fim da Vigência", "Última Movimentação",
+    "Data de Entrega do Equipamento", "Início da Vigência", "Fim da Vigência",
 )
 _MOEDA = ("Valor Global", "Valor Repassado")
 _LEGENDA = (
@@ -97,7 +95,7 @@ class _Instrumento:
 
 
 def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[tuple[str, int, int]],
-           acoes: list[AcaoMonitoramento], ultima: date | None) -> tuple[Celula, ...]:
+           acoes: list[AcaoMonitoramento]) -> tuple[Celula, ...]:
     ctx, i, c, etapa, valores = f.contexto, f.instrumento, f.convenio, f.etapa, f.valores
     local = (ctx.municipio, ctx.uf, ctx.regiao)
     situacao = (ctx.contratacao, ctx.situacao_site, ctx.situacao_monitoramento)
@@ -119,8 +117,7 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[tuple[str, int
         f"{round(entregue / planejado * 100)}%" if planejado else None,
         etapa.publicacao, c.data_ultima_liberacao if c else None, etapa.entrega, *datas, status,
         ctx.numero_processo, ctx.ano, ctx.inicio_vigencia, ctx.fim_vigencia, *dinheiro, ctx.tecnico,
-        i.tecnico_suplente, i.nivel_monitoramento, i.responsavel_execucao_nome, i.responsavel_execucao_contato,
-        len(acoes), ultima,
+        i.nivel_monitoramento, len(acoes),
     )
 
 
@@ -173,15 +170,13 @@ def montar_instrumentos(
 
     ids = [f.instrumento.id for f in fatos]
     acoes = relatorios_contexto.acoes_abertas(db, set(ids)) if completo else {}
-    eventos = listar_eventos_por_instrumentos(db, ids) if completo else {}
     familias: dict[int, list[tuple[str, int, int]]] = defaultdict(list)
     if completo:
         for i_id, nome, planejado, entregue, _ in itens_equipamento.resumo_com_cancelamentos_por_familia(db, set(ids)):
             familias[i_id].append((nome, planejado, entregue))
     linhas = [
         _linha(f, completo=completo, equipamentos=familias.get(f.instrumento.id, []),
-               acoes=acoes.get(f.instrumento.id, []),
-               ultima=max((e.data_ocorrencia for e in eventos.get(f.instrumento.id, []) if e.data_ocorrencia), default=None))
+               acoes=acoes.get(f.instrumento.id, []))
         for f in fatos
     ]
     abas = (
