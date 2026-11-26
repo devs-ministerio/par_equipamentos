@@ -8,8 +8,16 @@ from sqlalchemy.orm import Session
 from app.db.models import PropostaCandidata
 from app.geo_reference import REGIAO_POR_UF
 from app.pipeline.texto import capitalizar_nome
+from app.pipeline.tipo_proposta import tipo_da_proposta
 from app.services.relatorios_filtro import FiltroRelatorio
-from app.services.relatorios_modelo import Celula, RelatorioMonitorado, Tabela, cabecalho, quebra_por
+from app.services.relatorios_modelo import (
+    Celula,
+    RelatorioMonitorado,
+    Tabela,
+    cabecalho,
+    descrever_contratacoes,
+    quebra_por,
+)
 from app.services.relatorios_recorte import _propostas
 
 _COLUNAS = (
@@ -57,14 +65,15 @@ def montar_propostas(*, db: Session, filtro: FiltroRelatorio, completo: bool, re
     )
     filtros = " · ".join(filter(None, (
         filtro.situacao or "Todas as situações", filtro.programa or "todos os programas",
-        filtro.tipo_contratacao, filtro.equipamento, filtro.busca, filtro.periodo_referencia(),
+        descrever_contratacoes(filtro, (tipo_da_proposta(p.nm_programa) for p in propostas)),
+        filtro.equipamento, filtro.busca, filtro.periodo_referencia(),
     )))
     return RelatorioMonitorado(
         titulo="Propostas", colunas=_COLUNAS_COMPLETO if completo else _COLUNAS,
         linhas=[_linha(p, completo=completo, referencia=referencia) for p in propostas],
         total=len(propostas), unidade="propostas",
         cabecalho=cabecalho(filtro, referencia=referencia, fonte="SISGEO", filtros=filtros),
-        indicadores=(("Propostas", len(propostas)),), quebras=quebras,
+        indicadores=(("Quantidade de Propostas", len(propostas)),), quebras=quebras,
         legenda=(("Valor Global da Proposta", "Valor global informado na proposta."),
                  ("Dias desde a Proposta", "Dias entre a data da proposta e a referência do relatório.")),
         colunas_data=_DATAS, colunas_moeda=_MOEDA, arquivo_base="propostas", aba_registros="Propostas",

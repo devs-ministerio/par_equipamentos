@@ -14,7 +14,7 @@ _CABECALHO_INSTRUMENTO = (
                             "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração")),
     ("Valores", ("Valor Global", "Valor Repassado")),
 )
-_TABELA_INSTRUMENTO = ("Equipamento", "Qtd planejada", "Qtd entregue", "Qtd em operação", "% entregue")
+_TABELA_INSTRUMENTO = ("Equipamento", "Qtd a entregar", "Qtd entregue", "Dos entregues, em operação", "% entregue")
 _PESOS_INSTRUMENTO = (3.7, 1.2, 1.2, 1.2, 1.1)
 _PROPOSTAS = (
     ("Proposta", ("Nº da Proposta", "Data da Proposta", "Dias desde a Proposta")),
@@ -41,12 +41,12 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
         ]
         equipamentos = relatorio.equipamentos_por_instrumento.get(registro["Instrumento"], [])
         dados: list[tuple[str | int, ...]] = [
-            (e.nome, e.planejados, e.entregues, e.em_operacao,
+            (e.nome, e.a_entregar, e.entregues, e.em_operacao,
              f"{round(e.entregues / e.planejados * 100)}%" if e.planejados else "")
             for e in equipamentos
         ]
         if equipamentos:
-            dados.append(("Total", registro["Qtd Planejada"], registro["Qtd Entregue"], registro["Qtd em Operação"],
+            dados.append(("Total", registro["Qtd a Entregar"], registro["Qtd Entregue"], registro["Qtd em Operação"],
                           "" if registro["% Entregue"] == "—" else registro["% Entregue"]))
         fichas.append(SecaoTabela(
             f"Instrumento {registro['Instrumento']}", _TABELA_INSTRUMENTO, dados,

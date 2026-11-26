@@ -169,10 +169,10 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
     colunas = _COLUNAS_COMPLETO
     assert len(colunas) == 30
     assert set(colunas).isdisjoint({"Técnico Suplente", "Responsável pela Execução", "Contato", "Última Movimentação"})
-    campos_equipamento = {"Equipamentos", "Qtd Planejada", "Qtd Entregue", "Qtd em Operação", "% Entregue"}
+    campos_equipamento = {"Equipamentos", "Qtd a Entregar", "Qtd Entregue", "Qtd em Operação", "% Entregue"}
     dados = {
         "Equipamentos": "Tomógrafo (2); Mamógrafo",
-        "Qtd Planejada": 2, "Qtd Entregue": 2, "Qtd em Operação": 1, "% Entregue": "100%",
+        "Qtd a Entregar": 1, "Qtd Entregue": 2, "Qtd em Operação": 1, "% Entregue": "100%",
     }
     linhas = [
         tuple((dados.get(c) if numero == 1 else None) if c in campos_equipamento else f"valor {numero}-{i:02d}."
@@ -193,9 +193,9 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
     assert len(doc.tables) == 3
     assert all(t.autofit is False and len(t.columns) == 5 for t in doc.tables[1:])
     assert [[c.text for c in row.cells] for row in doc.tables[1].rows[1:]] == [
-        ["Tomógrafo", "2", "1", "1", "50%"],
+        ["Tomógrafo", "1", "1", "1", "50%"],
         ["Mamógrafo", "0", "1", "0", ""],
-        ["Total", "2", "2", "1", "100%"],
+        ["Total", "1", "2", "1", "100%"],
     ]
     assert doc.tables[2].rows[1].cells[0].text == "Nenhum registro neste recorte."
     texto = "\n".join([p.text for p in doc.paragraphs] + [

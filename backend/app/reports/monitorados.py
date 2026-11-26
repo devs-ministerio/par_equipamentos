@@ -1,7 +1,6 @@
 """Formatação da mesma extração que alimenta a prévia de Relatórios."""
 
 from collections.abc import Sequence
-from datetime import datetime, timezone
 from typing import Literal
 
 from app.reports import docx_builder, xlsx_builder
@@ -124,8 +123,7 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
     fonte = cabecalho.get("Fonte")
     documento = docx_builder.novo_documento(r.titulo, paisagem=True)
     equipamentos = r.arquivo_base == "equipamentos"
-    gerado_em = None if equipamentos else datetime.now(timezone.utc)
-    docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=gerado_em)
+    docx_builder.adicionar_cabecalho_institucional(documento)
     quando = f"Em {referencia}, " if referencia else ""
     unidade = r.unidade
     if equipamentos:

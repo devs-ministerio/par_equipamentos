@@ -108,6 +108,14 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
     assert tabela.autofit is False
     linhas_word = [tuple(c.text for c in linha.cells) for linha in tabela.rows[1:]]
     assert any(linha[0] == numero and situacao_entrega in linha[4] for linha in linhas_word)
+    instrumentos = montar_relatorio_monitorado(
+        db=sessao, tipo="instrumentos_monitorados", nivel="completo", filtro=filtro
+    )
+    campos = dict(zip(instrumentos.colunas, instrumentos.linhas[0], strict=True))
+    assert campos["Qtd a Entregar"] == 1
+    assert campos["Qtd Entregue"] == 2
+    assert campos["Qtd em Operação"] == (0 if previsao else 2)
+    assert campos["% Entregue"] == "67%"
     concluidos = montar_relatorio_monitorado(
         db=sessao,
         tipo="instrumentos_monitorados",
@@ -178,8 +186,15 @@ def test_previa_de_propostas_confere_com_word_e_excel(entregas):  # noqa: F811
     try:
         assert pasta.sheetnames == ["Resumo", "Propostas"]
         assert pasta["Propostas"]["A2"].value == str(id_proposta)
+        resumo = [linha[:2] for linha in pasta["Resumo"].values]
+        assert ("Quantidade de Propostas", 1) in resumo
+        assert "FAF" in next(valor for nome, valor in resumo if nome == "Filtros")
     finally:
         pasta.close()
+    word = montar_relatorio(db=sessao, formato="docx", nivel="completo", tipo_relatorio="propostas", filtro=novo_filtro)
+    texto = "\n".join(p.text for p in Document(BytesIO(word)).paragraphs)
+    assert "Quantidade de Propostas: 1" in texto and "FAF" in texto
+    assert "Documento gerado automaticamente" not in texto
 
 
 def test_recorte_brasil_inclui_todas_as_contratacoes(entregas):  # noqa: F811

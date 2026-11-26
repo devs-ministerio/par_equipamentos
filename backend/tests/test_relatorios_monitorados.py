@@ -40,10 +40,12 @@ def test_previa_word_excel_consideram_as_mesmas_fases(monkeypatch):
     )
     instrumentos = [
         InstrumentoComFase(
-            instrumento=InstrumentoEquipamento(nr_convenio=str(indice), nome_convenente="Unidade de teste"),
+            instrumento=InstrumentoEquipamento(
+                nr_convenio=str(indice), nome_convenente="Unidade de teste", tipo_contratacao=contratacao
+            ),
             fase_atual=fase.value,
         )
-        for indice, fase in enumerate(fases, start=1)
+        for indice, (fase, contratacao) in enumerate(zip(fases, ("Convênio", "TED", "FAF"), strict=True), start=1)
     ]
     monkeypatch.setattr(relatorios_monitorados, "_instrumentos", lambda *_: instrumentos)
     monkeypatch.setattr(relatorios_monitorados, "carregar_etapas", lambda **_: [])
@@ -80,7 +82,14 @@ def test_previa_word_excel_consideram_as_mesmas_fases(monkeypatch):
         registros = planilha["Instrumentos"].iter_rows(max_row=3, values_only=True)
         assert len(next(registros)) == 14
         assert [linha[coluna_fase] for linha in registros] == fases_esperadas
+        resumo = [linha[:2] for linha in planilha["Resumo"].values]
+        assert ("Quantidade de Instrumentos", 2) in resumo
+        filtros = next(valor for nome, valor in resumo if nome == "Filtros")
+        assert "Convênio, TED" in filtros and "FAF" not in filtros
     finally:
         planilha.close()
     documento = Document(BytesIO(arquivos["docx"]))
+    texto = "\n".join(p.text for p in documento.paragraphs)
+    assert "Quantidade de Instrumentos: 2" in texto and "Convênio, TED" in texto
+    assert "Documento gerado automaticamente" not in texto
     assert [linha.cells[0].text for linha in documento.tables[0].rows[1:]] == [*sorted(fases_esperadas), "Total"]

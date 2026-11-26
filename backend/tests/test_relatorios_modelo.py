@@ -24,16 +24,16 @@ def test_nome_do_arquivo_leva_recorte_e_nivel():
 
 
 def test_filtros_padrao_de_equipamentos():
-    assert descrever_filtros(FiltroRelatorio(escopo="brasil")) == (
-        "Todos os Equipamentos em Oncologia · todas as contratações"
-    )
+    assert descrever_filtros(FiltroRelatorio(escopo="brasil")) == "Todos os Equipamentos em Oncologia"
     assert descrever_filtros(FiltroRelatorio(escopo="brasil", equipamento="Mamógrafo", tipo_contratacao="PERSUS I")) == (
         "Mamógrafo · PERSUS I"
     )
     assert descrever_filtros(
-        FiltroRelatorio(escopo="brasil"), contratacoes=("Convênio", "FAF", "PERSUS I", "TED")
+        FiltroRelatorio(escopo="brasil"), contratacoes=("TED", "Convênio", None, "FAF", "PERSUS I", "FAF")
     ) == "Todos os Equipamentos em Oncologia · Convênio, FAF, PERSUS I, TED"
-    assert descrever_filtros(FiltroRelatorio(escopo="brasil"), contratacoes=()) == "Todos os Equipamentos em Oncologia"
+    assert descrever_filtros(
+        FiltroRelatorio(escopo="brasil", tipo_contratacao="TED"), contratacoes=("FAF", "TED")
+    ) == "Todos os Equipamentos em Oncologia · TED"
 
 
 def test_cabecalho_tem_quatro_campos():

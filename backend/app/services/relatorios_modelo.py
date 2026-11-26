@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import NamedTuple
 
+from app.pipeline.texto import normalizar_texto
 from app.services.relatorios_filtro import FiltroRelatorio, Nivel
 
 Celula = str | int | float | date | None
@@ -28,6 +29,10 @@ class EquipamentoDoInstrumento(NamedTuple):
     planejados: int
     entregues: int
     em_operacao: int
+
+    @property
+    def a_entregar(self) -> int:
+        return max(0, self.planejados - self.entregues)
 
 
 @dataclass(frozen=True)
@@ -89,20 +94,22 @@ def nome_arquivo(tipo: str, filtro: FiltroRelatorio, nivel: Nivel, formato: str)
     return f"relatorio-{tipo}-{slug_recorte(filtro)}-{nivel}.{formato}"
 
 
+def descrever_contratacoes(filtro: FiltroRelatorio, contratacoes: Iterable[str | None]) -> str:
+    if filtro.tipo_contratacao:
+        return filtro.tipo_contratacao
+    return ", ".join(sorted({tipo for tipo in contratacoes if tipo}, key=normalizar_texto))
+
+
 def descrever_filtros(
     filtro: FiltroRelatorio,
     *,
     situacoes: Sequence[str] = (),
     fases: Sequence[str] = (),
-    contratacoes: Sequence[str] | None = None,
+    contratacoes: Iterable[str | None] = (),
 ) -> str:
     partes = [filtro.equipamento or ROTULO_TODOS_EQUIPAMENTOS]
-    if filtro.tipo_contratacao:
-        partes.append(filtro.tipo_contratacao)
-    elif contratacoes is None:
-        partes.append("todas as contratações")
-    elif contratacoes:
-        partes.append(", ".join(contratacoes))
+    if descricao := descrever_contratacoes(filtro, contratacoes):
+        partes.append(descricao)
     if situacoes:
         partes.append(", ".join(situacoes))
     if fases:

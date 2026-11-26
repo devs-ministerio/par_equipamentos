@@ -32,7 +32,7 @@ _COLUNAS = (
 )
 _COLUNAS_COMPLETO = (
     *_COLUNAS[:3], "CNPJ do Convenente", *_COLUNAS[3:9],
-    "Equipamentos", "Qtd Planejada", "Qtd Entregue", "Qtd em Operação", "% Entregue",
+    "Equipamentos", "Qtd a Entregar", "Qtd Entregue", "Qtd em Operação", "% Entregue",
     "Data de Publicação", "Data do Último Repasse", "Data de Entrega do Equipamento",
     "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração",
     "Nº do Processo", "Ano do Instrumento", "Início da Vigência", "Fim da Vigência",
@@ -55,6 +55,9 @@ _MOEDA = ("Valor Global", "Valor Repassado")
 _LEGENDA = (
     ("Situação (Site)", "Situação oficial do instrumento nos dados importados."),
     ("Situação (Monitoramento)", "Fase do acompanhamento interno."),
+    ("Qtd a Entregar", "Saldo ainda não entregue, descontadas as unidades canceladas."),
+    ("Qtd em Operação", "Parte dos equipamentos entregues que já entrou em operação."),
+    ("% Entregue", "Quantidade entregue em relação à quantidade prevista no plano após os cancelamentos."),
     ("Data de Conclusão do Monitoramento", "Exibida somente quando não há registro de inauguração."),
     ("Valor Repassado", "Desembolso da fonte confiável ou valor integral da carga manual."),
 )
@@ -114,7 +117,7 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
     _, status = inauguracao_da_linha(etapa, "em_operacao" if etapa.modo_operacao else "planejado")
     return (
         *base, i.cnpj_convenente or (c.convenente_cnpj if c else None), *local, *situacao,
-        familias or None, planejado, entregue, sum(e.em_operacao for e in equipamentos),
+        familias or None, sum(e.a_entregar for e in equipamentos), entregue, sum(e.em_operacao for e in equipamentos),
         f"{round(entregue / planejado * 100)}%" if planejado else None,
         etapa.publicacao, c.data_ultima_liberacao if c else None, etapa.entrega, *datas, status,
         ctx.numero_processo, ctx.ano, ctx.inicio_vigencia, ctx.fim_vigencia, *dinheiro, ctx.tecnico,
@@ -195,8 +198,9 @@ def montar_instrumentos(
         titulo="Instrumentos", colunas=_COLUNAS_COMPLETO if completo else _COLUNAS, linhas=linhas,
         total=len(linhas), unidade="instrumentos", criterios=fases,
         cabecalho=cabecalho(filtro, referencia=referencia, fonte="SISGEO · SICONV · CNES",
-                           filtros=descrever_filtros(filtro, fases=fases)),
-        indicadores=(("Instrumentos", len(linhas)),), quebras=quebras, abas=abas,
+                           filtros=descrever_filtros(filtro, fases=fases,
+                                                     contratacoes=(f.contexto.contratacao for f in fatos))),
+        indicadores=(("Quantidade de Instrumentos", len(linhas)),), quebras=quebras, abas=abas,
         legenda=_LEGENDA, colunas_data=_DATAS, colunas_moeda=_MOEDA,
         arquivo_base="instrumentos", aba_registros="Instrumentos",
         equipamentos_por_instrumento=dict(familias),
