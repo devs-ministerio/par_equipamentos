@@ -29,7 +29,7 @@
 **Equipamentos · Completo (25 colunas):** Instrumento, CNES, Estabelecimento de Saúde, Município, UF, Região, Contratação, Equipamento, Descrição do item no plano (com código), Situação (Equipamento), Situação (Site), Situação (Monitoramento), Qtd, Valor do Equipamento, Data de Entrega do Equipamento, Data de Previsão/Inauguração, Status da Inauguração, Nº do Processo, Ano do Instrumento, Início da Vigência, Fim da Vigência, Marca, Modelo, Série, Técnico Responsável. Abas: Resumo, Registros.
 **Instrumentos · Simplificado (14):** Instrumento, CNES, Estabelecimento de Saúde, Município, UF, Região, Contratação, Situação (Site), Situação (Monitoramento), Valor Global, Valor Repassado, Data de Inauguração, Data de Conclusão do Monitoramento, Técnico Responsável.
 **Instrumentos · Completo (34 + abas):** ver `COLUNAS_INSTRUMENTO_COMPLETO` na Task 7. Abas: Resumo, Instrumentos, Financeiro, Ações em aberto. **Sem** aba Histórico de marcos.
-**Propostas · Simplificado (10):** Proponente, CNES, Município, UF, Região, Programa, Equipamento, Situação da Proposta, Valor Global da Proposta, Data da Proposta. **Completo (17):** Nº da Proposta, Proponente, CNPJ do Proponente, CNES, Município, UF, Região, Programa, Componente, Equipamento, Objeto, Situação da Proposta, Valor Global da Proposta, Data da Proposta, Dias desde a Proposta, Parceria Vinculada, Status da Revisão. Abas: Resumo, Propostas.
+**Propostas · Simplificado (10):** Proponente, CNES, Município, UF, Região, Programa, Equipamento, Situação da Proposta, Valor Global da Proposta, Data da Proposta. **Completo (16):** Nº da Proposta, Proponente, CNPJ do Proponente, CNES, Município, UF, Região, Programa, Componente, Equipamento, Objeto, Situação da Proposta, Valor Global da Proposta, Data da Proposta, Dias desde a Proposta, Status da Revisão. Abas: Resumo, Propostas. Escopo: carteira em tramitação (propostas sem parceria).
 
 ## Ordem de execução (revisão do Codex, 26/11/2026)
 
@@ -1276,7 +1276,7 @@ git commit -m "feat(relatorios): modelo de instrumentos com financeiro e ações
 
 ---
 
-> **Decisão pendente do usuário antes de implementar esta task:** o filtro Etapa "Proposta" seleciona hoje só propostas **sem parceria** (carteira em tramitação), e propostas com parceria já aparecem como instrumentos Celebrados. O modelo aprovado inclui a coluna **Parceria Vinculada**, que só faz sentido se Propostas trouxer o **histórico completo**. Opções: (A) carteira em tramitação (sem parceria), e a coluna Parceria Vinculada sai ou fica sempre "Não"; (B) histórico completo (todas as propostas, com a coluna). Isso muda os totais e a síntese. O código abaixo assume (B) e o recorte `_propostas(db, filtro)` sem `etapa`.
+> **Decisão do usuário (26/11/2026):** Propostas é a **carteira em tramitação**, isto é, só propostas sem parceria, como o filtro Etapa "Proposta" já faz. Propostas com parceria já aparecem como instrumentos Celebrados e não são contadas duas vezes. Por isso a coluna **Parceria Vinculada** **não existe** e o recorte usa `_propostas(db, replace(filtro, etapa="propostas"))`.
 
 ### Task 8: Modelo de Propostas e tipo `propostas`
 
@@ -1286,7 +1286,7 @@ git commit -m "feat(relatorios): modelo de instrumentos com financeiro e ações
 - Test: `backend/tests/test_relatorios_propostas_modelo.py`
 
 **Interfaces:**
-- Produces: `COLUNAS_PROPOSTA_SIMPLIFICADO` (10), `COLUNAS_PROPOSTA_COMPLETO` (17), `linha_proposta(p, *, completo, referencia, cnes_estabelecimento=None)`, `resumo_propostas(propostas)`, `montar_propostas(db, nivel, filtro, referencia) -> RelatorioMonitorado`.
+- Produces: `COLUNAS_PROPOSTA_SIMPLIFICADO` (10), `COLUNAS_PROPOSTA_COMPLETO` (16), `linha_proposta(p, *, completo, referencia, cnes_estabelecimento=None)`, `resumo_propostas(propostas)`, `montar_propostas(db, nivel, filtro, referencia) -> RelatorioMonitorado`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1306,14 +1306,15 @@ def _p(**c):
                 cnes="2000001", municipio="CIDADE X", uf="MG", nm_programa="Programa Exemplo",
                 componente_batido="Componente A", equipamento_detectado="Mamógrafo", ds_objeto="Aquisição",
                 situacao_proposta="Proposta aprovada", vl_global_proposta=900000, data_proposta=date(2025, 9, 3),
-                tem_parceria=True, cd_parceria="PA-001", status="revisada")
+                status="revisada")
     base.update(c)
     return SimpleNamespace(**base)
 
 
 def test_numero_de_colunas_aprovado():
     assert len(COLUNAS_PROPOSTA_SIMPLIFICADO) == 10
-    assert len(COLUNAS_PROPOSTA_COMPLETO) == 17
+    assert len(COLUNAS_PROPOSTA_COMPLETO) == 16
+    assert "Parceria Vinculada" not in COLUNAS_PROPOSTA_COMPLETO
 
 
 def test_linha_simplificada_usa_proponente_e_regiao():
@@ -1323,12 +1324,10 @@ def test_linha_simplificada_usa_proponente_e_regiao():
     assert len(linha) == 10
 
 
-def test_linha_completa_calcula_dias_e_parceria():
+def test_linha_completa_calcula_dias():
     linha = linha_proposta(_p(), completo=True, referencia=date(2026, 11, 26))
     mapa = dict(zip(COLUNAS_PROPOSTA_COMPLETO, linha))
     assert mapa["Dias desde a Proposta"] == 449
-    assert mapa["Parceria Vinculada"] == "Sim (PA-001)"
-    assert dict(zip(COLUNAS_PROPOSTA_COMPLETO, linha_proposta(_p(tem_parceria=False, cd_parceria=None), completo=True, referencia=date(2026, 11, 26))))["Parceria Vinculada"] == "Não"
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1354,13 +1353,12 @@ COLUNAS_PROPOSTA_SIMPLIFICADO = (
 COLUNAS_PROPOSTA_COMPLETO = (
     "Nº da Proposta", "Proponente", "CNPJ do Proponente", "CNES", "Município", "UF", "Região", "Programa",
     "Componente", "Equipamento", "Objeto", "Situação da Proposta", "Valor Global da Proposta", "Data da Proposta",
-    "Dias desde a Proposta", "Parceria Vinculada", "Status da Revisão",
+    "Dias desde a Proposta", "Status da Revisão",
 )
 DATAS_PROPOSTA = ("Data da Proposta",)
 MOEDA_PROPOSTA = ("Valor Global da Proposta",)
 LEGENDA_PROPOSTAS = (
     ("Valor Global da Proposta", "Valor global informado na proposta."),
-    ("Parceria Vinculada", "Sim, com o código da parceria, quando a proposta já virou parceria."),
     ("Dias desde a Proposta", "Dias entre a data da proposta e a data de referência do relatório."),
 )
 
@@ -1376,11 +1374,10 @@ def linha_proposta(p, *, completo: bool, referencia: date) -> tuple[Celula, ...]
             p.situacao_proposta, valor, p.data_proposta,
         )
     dias = (referencia - p.data_proposta).days if p.data_proposta else None
-    parceria = f"Sim ({p.cd_parceria})" if p.tem_parceria and p.cd_parceria else ("Sim" if p.tem_parceria else "Não")
     return (
         p.id_proposta, p.nm_proponente, p.cnpj_ente_recebedor, p.cnes, municipio, uf, regiao, p.nm_programa,
         p.componente_batido, p.equipamento_detectado, p.ds_objeto, p.situacao_proposta, valor, p.data_proposta,
-        dias, parceria, p.status,
+        dias, p.status,
     )
 
 
@@ -1643,7 +1640,7 @@ git commit -m "docs(relatorios): documenta os modelos de equipamentos, instrumen
 - Status da Inauguração e duas colunas de data: Tasks 4 e 6. ✔
 - Legenda no rodapé; Resumo em blocos: Tasks 2 e 9. ✔
 - Instrumentos (Situação (Site)/(Monitoramento), Valor Repassado, datas inauguração/conclusão, Financeiro, Ações em aberto, sem Histórico, sem alertas): Task 7. ✔
-- Propostas 10/17 colunas, fonte SISGEO, tipo próprio: Task 8. ✔
+- Propostas 10/16 colunas, fonte SISGEO, tipo próprio: Task 8. ✔
 - Nome do arquivo com recorte; linhas diferentes sem justificativa; Brasil: Tasks 1 e 3. ✔
 - Município capitalizado: Tasks 5 e 8 (`capitalizar_nome`). ✔
 - Word em nota informativa: Task 9. ✔
