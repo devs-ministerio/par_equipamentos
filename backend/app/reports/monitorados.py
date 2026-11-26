@@ -44,7 +44,7 @@ def _cabecalho_resumo(relatorio: RelatorioMonitorado, recorte: str) -> list[list
 def _xlsx(r: RelatorioMonitorado, recorte: str) -> bytes:
     pasta = xlsx_builder.nova_pasta()
     blocos = [
-        xlsx_builder.BlocoAba(None, ["Campo", "Valor"], _cabecalho_resumo(r, recorte)),
+        xlsx_builder.BlocoAba(None, [r.titulo, ""], _cabecalho_resumo(r, recorte)),
         *([xlsx_builder.BlocoAba("Indicadores", ["Indicador", "Valor"], [list(i) for i in r.indicadores])] if r.indicadores else []),
         *(xlsx_builder.BlocoAba(q.titulo, q.colunas, q.linhas, colunas_moeda=q.colunas_moeda) for q in r.quebras),
     ]
@@ -166,9 +166,7 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
                 _linhas_tabela(r.colunas, r.linhas, colunas_data=_datas(r), colunas_moeda=r.colunas_moeda),
             )
         )
-    docx_builder.adicionar_fonte(
-        documento, f"{fonte or 'SISGEO'} · Recorte: {recorte} · Referência: {referencia or '—'}"
-    )
+    docx_builder.adicionar_fonte(documento, fonte or "SISGEO")
     if not secoes:
         docx_builder.adicionar_logotipo_final(documento)
         return docx_builder.gerar_bytes(documento)

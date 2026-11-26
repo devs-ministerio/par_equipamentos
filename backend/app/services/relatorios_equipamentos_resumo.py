@@ -6,7 +6,13 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Literal
 
-from app.services.relatorios_modelo import Celula, ContextoInstrumento, Tabela, quebra_por
+from app.services.relatorios_modelo import (
+    Celula,
+    ContextoInstrumento,
+    Tabela,
+    descartar_geografia_unica,
+    quebra_por,
+)
 
 SituacaoEquipamento = Literal["planejado", "entregue", "em_operacao", "cancelado"]
 ROTULOS: dict[SituacaoEquipamento, str] = {
@@ -69,6 +75,7 @@ def resumo_equipamentos(
             "Por contratação", "Contratação", [f.contexto.contratacao or "" for f in fatos for _ in range(f.quantidade)]
         ),
     ]
+    quebras = list(descartar_geografia_unica(quebras))
     for opcional in (_agenda(fatos, referencia), _valores(fatos)):
         if opcional:
             quebras.append(opcional)

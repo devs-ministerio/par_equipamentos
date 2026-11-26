@@ -62,12 +62,16 @@ def test_resumo_conta_equipamentos_por_situacao():
         ("Cancelado", 0, "0%"),
         ("Total", 6, "100%"),
     ]
-    assert [q.titulo for q in quebras][:4] == [
-        "Por situação",
-        "Por equipamento",
-        "Por UF",
-        "Por contratação",
-    ]
+    assert [q.titulo for q in quebras][:3] == ["Por situação", "Por equipamento", "Por contratação"]
+
+
+def test_quebra_por_uf_aparece_so_quando_ha_mais_de_um_estado():
+    um_estado = [_fato(), _fato()]
+    _, quebras = resumo_equipamentos(um_estado, escopo="uf", referencia=date(2026, 11, 26))
+    assert "Por UF" not in [q.titulo for q in quebras]
+    dois = [_fato(), _fato(contexto=_ctx(uf="SP", regiao="Sudeste"))]
+    _, quebras = resumo_equipamentos(dois, escopo="uf", referencia=date(2026, 11, 26))
+    assert quebras[2].titulo == "Por UF"
 
 
 def test_valor_cancelado_fica_em_linha_propria_e_fora_do_entregue():
@@ -88,7 +92,8 @@ def test_quebra_por_estabelecimento_em_recorte_de_municipio():
 
 
 def test_resumo_brasil_exibe_regioes_e_nao_converte_valor_ausente_em_zero():
-    fatos = [_fato(situacao="entregue", valor=None), _fato(situacao="cancelado", valor=0.0)]
+    sul = _ctx(uf="RS", regiao="Sul")
+    fatos = [_fato(situacao="entregue", valor=None), _fato(contexto=sul, situacao="cancelado", valor=0.0)]
     _, quebras = resumo_equipamentos(fatos, escopo="brasil", referencia=date(2026, 11, 26))
     assert quebras[2].titulo == "Por região"
     valores = next(q for q in quebras if q.titulo == "Valor do equipamento")

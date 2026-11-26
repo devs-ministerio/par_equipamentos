@@ -24,6 +24,7 @@ from app.services.relatorios_modelo import (
     RelatorioMonitorado,
     cabecalho,
     descrever_filtros,
+    exibir_instrumento,
 )
 
 FONTE = "SISGEO · SICONV · RENEM · CNES"
@@ -60,7 +61,7 @@ LEGENDA_EQUIPAMENTOS = (
 
 def linha_equipamento(f: FatoEquipamento, *, completo: bool) -> tuple[Celula, ...]:
     c = f.contexto
-    base = (c.numero, c.cnes, c.estabelecimento, c.municipio, c.uf, c.regiao)
+    base = (exibir_instrumento(c.numero), c.cnes, c.estabelecimento, c.municipio, c.uf, c.regiao)
     situacoes = (ROTULOS[f.situacao], c.situacao_site, c.situacao_monitoramento)
     datas = (f.data_entrega, f.data_previsao_inauguracao, f.status_inauguracao)
     if not completo:

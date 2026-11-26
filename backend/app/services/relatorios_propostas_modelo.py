@@ -15,6 +15,7 @@ from app.services.relatorios_modelo import (
     RelatorioMonitorado,
     Tabela,
     cabecalho,
+    descartar_geografia_unica,
     descrever_contratacoes,
     formatar_cnpj,
     quebra_por,
@@ -57,18 +58,18 @@ def montar_propostas(*, db: Session, filtro: FiltroRelatorio, completo: bool, re
             valores[situacao] = valores.get(situacao, 0.0) + float(proposta.vl_global_proposta)
     valores_linhas: list[tuple[Celula, ...]] = sorted(valores.items())
     valores_linhas.append(("Total", sum(valores.values()) if valores else None))
-    quebras = (
+    quebras = descartar_geografia_unica((
         quebra_por("Por situação", "Situação da Proposta", (p.situacao_proposta or "Sem informação" for p in propostas)),
         Tabela("Valor por situação", ("Situação da Proposta", "Valor Global da Proposta"), valores_linhas, colunas_moeda=_MOEDA),
         quebra_por("Por programa", "Programa", (p.nm_programa for p in propostas)),
         quebra_por("Por UF", "UF", ((p.uf or "").upper() or "Sem informação" for p in propostas)),
         quebra_por("Por equipamento", "Equipamento", (p.equipamento_detectado or "Sem informação" for p in propostas)),
-    )
+    ))
     filtros = " · ".join(filter(None, (
-        filtro.situacao or "Todas as situações", filtro.programa or "todos os programas",
+        filtro.situacao, filtro.programa,
         descrever_contratacoes(filtro, (tipo_da_proposta(p.nm_programa) for p in propostas)),
         filtro.equipamento, filtro.busca, filtro.periodo_referencia(),
-    )))
+    ))) or "Sem filtros"
     return RelatorioMonitorado(
         titulo="Propostas", colunas=_COLUNAS_COMPLETO if completo else _COLUNAS,
         linhas=[_linha(p, completo=completo, referencia=referencia) for p in propostas],

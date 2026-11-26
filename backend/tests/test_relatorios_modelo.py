@@ -71,3 +71,11 @@ def test_formatar_cnpj_padroniza_e_preserva_o_que_nao_e_cnpj():
     assert formatar_cnpj("123") == "123"
     assert formatar_cnpj("") is None
     assert formatar_cnpj(None) is None
+
+
+def test_exibir_instrumento_formata_so_o_nup():
+    from app.services.relatorios_modelo import exibir_instrumento
+
+    assert exibir_instrumento("25000185040202348") == "25000.185040/2023-48"
+    assert exibir_instrumento("953726") == "953726"
+    assert exibir_instrumento("PS1-358027") == "PS1-358027"

@@ -20,7 +20,9 @@ from app.services.relatorios_modelo import (
     RelatorioMonitorado,
     Tabela,
     cabecalho,
+    descartar_geografia_unica,
     descrever_filtros,
+    exibir_instrumento,
     formatar_cnpj,
     quebra_por,
 )
@@ -105,7 +107,7 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
     situacao = (ctx.contratacao, ctx.situacao_site, ctx.situacao_monitoramento)
     datas = (etapa.inauguracao, None if etapa.inauguracao else etapa.conclusao)
     dinheiro = (valores.global_, valores.repassado)
-    base = (ctx.numero, ctx.cnes, ctx.estabelecimento)
+    base = (exibir_instrumento(ctx.numero), ctx.cnes, ctx.estabelecimento)
     if not completo:
         return (*base, *local, *situacao, *dinheiro, *datas, ctx.tecnico)
     a_entregar = sum(e.a_entregar for e in equipamentos)
@@ -130,7 +132,7 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
 def _financeiro(f: _Instrumento) -> tuple[Celula, ...]:
     ctx, i, v = f.contexto, f.instrumento, f.valores
     return (
-        ctx.numero, ctx.estabelecimento, v.global_, v.pactuado, v.contrapartida, v.empenhado, v.repassado,
+        exibir_instrumento(ctx.numero), ctx.estabelecimento, v.global_, v.pactuado, v.contrapartida, v.empenhado, v.repassado,
         v.pago, v.saldo, i.investimento_aquisicao, i.valor_obra, i.situacao_prestacao_contas,
         i.situacao_ordem_pagamento_transferegov,
     )
@@ -138,7 +140,7 @@ def _financeiro(f: _Instrumento) -> tuple[Celula, ...]:
 
 def _acao(ctx: ContextoInstrumento, a: AcaoMonitoramento, referencia: date) -> tuple[Celula, ...]:
     prazo = "Sem prazo" if a.data_prevista is None else "Vencida" if a.data_prevista < referencia else "No prazo"
-    return (ctx.numero_processo, ctx.numero, ctx.cnes, ctx.estabelecimento, ctx.municipio, ctx.uf,
+    return (ctx.numero_processo, exibir_instrumento(ctx.numero), ctx.cnes, ctx.estabelecimento, ctx.municipio, ctx.uf,
             a.descricao, a.responsavel, a.data_prevista, prazo, ctx.tecnico)
 
 
@@ -150,13 +152,13 @@ def _quebras(fatos: list[_Instrumento], escopo: str) -> tuple[Tabela, ...]:
     rotulo, campo = geografia
     valores_global = [f.valores.global_ for f in fatos if f.valores.global_ is not None]
     repassados = [f.valores.repassado for f in fatos if f.valores.repassado is not None]
-    return (
+    return descartar_geografia_unica((
         quebra_por("Por situação", "Situação (Monitoramento)", (c.situacao_monitoramento or "Sem informação" for c in contextos)),
         quebra_por("Por contratação", "Contratação", (c.contratacao or "Sem informação" for c in contextos)),
         quebra_por(f"Por {rotulo}", rotulo, (getattr(c, campo) or "Sem informação" for c in contextos)),
         Tabela("Valores", _MOEDA, [(sum(valores_global) if valores_global else None,
                                    sum(repassados) if repassados else None)], colunas_moeda=_MOEDA),
-    )
+    ))
 
 
 def montar_instrumentos(

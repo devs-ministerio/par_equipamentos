@@ -25,6 +25,13 @@ def formatar_processo(valor: str | None) -> str | None:
     return f"{digitos[:5]}.{digitos[5:11]}/{digitos[11:15]}-{digitos[15:]}"
 
 
+def exibir_instrumento(numero: str) -> str:
+    """NUP (17 dígitos, usado como identificador de FAF e TED) no padrão do processo; os demais ficam como são."""
+    if re.fullmatch(r"\d{17}\s*", numero):
+        return formatar_processo(numero) or numero
+    return numero
+
+
 def formatar_cnpj(valor: str | None) -> str | None:
     """CNPJ de 14 dígitos no padrão 00.000.000/0000-00; outro formato fica como veio, sem espaços."""
     if not valor or not valor.strip():
@@ -150,6 +157,11 @@ def cabecalho(
         ("Referência", referencia.strftime("%d/%m/%Y")),
         ("Fonte", fonte),
     )
+
+
+def descartar_geografia_unica(quebras: Iterable[Tabela]) -> tuple[Tabela, ...]:
+    """Tira a quebra por UF ou região que só tem um valor (recorte de um estado): repetiria o recorte."""
+    return tuple(q for q in quebras if not (q.titulo in ("Por UF", "Por região") and len(q.linhas) <= 2))
 
 
 def quebra_por(
