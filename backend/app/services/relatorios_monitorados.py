@@ -1,7 +1,6 @@
 """Recorte e linhas compartilhados pela prévia e pelas exportações do monitoramento."""
 
-from dataclasses import dataclass, replace
-from datetime import date
+from dataclasses import replace
 from typing import Literal
 
 from sqlalchemy.orm import Session
@@ -14,11 +13,11 @@ from app.repositories.relatorios_entregues import listar_unidades_entregues
 from app.services.fase_acompanhamento import FaseAcompanhamento
 from app.services.fatos_instrumento import carregar_etapas
 from app.services.relatorios_filtro import FiltroRelatorio, Nivel
+from app.services.relatorios_modelo import Celula, RelatorioMonitorado  # noqa: F401
 from app.services.relatorios_recorte import _instrumentos
 
 TipoMonitorado = Literal["equipamentos_monitorados", "instrumentos_monitorados"]
 SituacaoEquipamento = Literal["planejado", "entregue", "em_operacao", "cancelado"]
-Celula = str | int | date | None
 
 TIPOS_MONITORADOS = ("equipamentos_monitorados", "instrumentos_monitorados")
 ROTULOS: dict[SituacaoEquipamento, str] = {
@@ -30,16 +29,6 @@ ROTULOS: dict[SituacaoEquipamento, str] = {
 COLUNAS_BASE = ("Instrumento", "Instituição", "Município", "UF", "CNES", "Contratação")
 COLUNAS_EQUIPAMENTO = (*COLUNAS_BASE, "Equipamento", "Situação", "Quantidade")
 COLUNAS_UNIDADE = ("Item", "Data de entrega", "Marca", "Modelo", "Série")
-
-
-@dataclass(frozen=True)
-class RelatorioMonitorado:
-    titulo: str
-    colunas: tuple[str, ...]
-    linhas: list[tuple[Celula, ...]]
-    total: int
-    unidade: str
-    criterios: tuple[str, ...] = ()
 
 
 def montar_relatorio_monitorado(
