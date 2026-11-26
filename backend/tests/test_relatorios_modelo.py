@@ -79,3 +79,11 @@ def test_exibir_instrumento_formata_so_o_nup():
     assert exibir_instrumento("25000185040202348") == "25000.185040/2023-48"
     assert exibir_instrumento("953726") == "953726"
     assert exibir_instrumento("PS1-358027") == "PS1-358027"
+
+
+def test_descartar_colunas_vazias_mantem_as_com_dado_e_tudo_sem_linhas():
+    from app.services.relatorios_modelo import descartar_colunas_vazias
+
+    colunas, linhas = descartar_colunas_vazias(("A", "B", "C"), [("x", None, ""), ("y", None, 0)])
+    assert colunas == ("A", "C") and linhas == [("x", ""), ("y", 0)]
+    assert descartar_colunas_vazias(("A", "B"), []) == (("A", "B"), [])

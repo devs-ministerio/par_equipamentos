@@ -164,6 +164,19 @@ def descartar_geografia_unica(quebras: Iterable[Tabela]) -> tuple[Tabela, ...]:
     return tuple(q for q in quebras if not (q.titulo in ("Por UF", "Por região") and len(q.linhas) <= 2))
 
 
+def descartar_colunas_vazias(
+    colunas: Sequence[str], linhas: Sequence[Sequence[Celula]]
+) -> tuple[tuple[str, ...], list[tuple[Celula, ...]]]:
+    """Tira a coluna sem nenhum valor no recorte; sem linhas, mantém todas."""
+    if not linhas:
+        return tuple(colunas), []
+    manter = [i for i in range(len(colunas)) if any(linha[i] not in (None, "") for linha in linhas)]
+    return (
+        tuple(colunas[i] for i in manter),
+        [tuple(linha[i] for i in manter) for linha in linhas],
+    )
+
+
 def quebra_por(
     titulo: str, rotulo: str, valores: Iterable[str], *, ordem: Sequence[str] | None = None
 ) -> Tabela:

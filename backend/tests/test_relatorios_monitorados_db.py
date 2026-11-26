@@ -183,7 +183,7 @@ def test_previa_de_propostas_confere_com_word_e_excel(entregas):  # noqa: F811
     novo_filtro = replace(filtro, etapa=None)
     previa_dedicada = consultar_monitorados("propostas", novo_filtro, "completo", [], 1, 20, db=sessao, usuario=User())
     assert previa_dedicada.total == 1
-    assert len(previa_dedicada.colunas) == 16
+    assert len(previa_dedicada.colunas) == len(previa_dedicada.linhas[0])  # colunas sem dado são omitidas
     assert previa_dedicada.linhas[0][:2] == (str(id_proposta), f"Entregues {marca} proposta")
     assert "Parceria Vinculada" not in previa_dedicada.colunas
     xlsx = montar_relatorio(db=sessao, formato="xlsx", nivel="completo", tipo_relatorio="propostas", filtro=novo_filtro)

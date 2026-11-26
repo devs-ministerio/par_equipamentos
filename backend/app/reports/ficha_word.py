@@ -9,7 +9,7 @@ def montar_ficha(titulo: str, registro: dict[str, str], secoes: Sequence[tuple[s
     linhas: list[tuple[str, str]] = []
     titulos: set[int] = set()
     for rotulo, campos in secoes:
-        valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
+        valores = [(campo, registro[campo]) for campo in campos if registro.get(campo, "") not in ("", "—")]
         if valores:
             titulos.add(len(linhas))
             linhas.append((rotulo, ""))
