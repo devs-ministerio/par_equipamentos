@@ -4,6 +4,7 @@ from io import BytesIO
 import pytest
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 from openpyxl import load_workbook
 
 from app.reports.monitorados import gerar_monitorados
@@ -192,29 +193,30 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
     ix_contratacao = colunas.index("Contratação")
     assert [p.text for p in titulos] == [f"{linha[ix_contratacao]} - {linha[0]}" for linha in linhas]
     assert all(p.style.font.bold for p in titulos)
-    assert len(doc.tables) == 3
-    for ficha, linha in zip(doc.tables[1:], linhas, strict=True):
-        assert ficha.autofit is False and len(ficha.columns) == 5
-        assert [c.text for c in ficha.rows[0].cells[:2]] == ["Campo", "Informação"]
-        assert len(ficha.rows[0]._tr.tc_lst) == 2
-        secoes = [row for row in ficha.rows[1:] if len(row._tr.tc_lst) == 1
-                  and row.cells[0].text != "Nenhum equipamento neste recorte."]
+    assert len(doc.tables) == 5
+    for ficha, equipamentos, linha in zip(doc.tables[1::2], doc.tables[2::2], linhas, strict=True):
+        assert ficha.autofit is False and len(ficha.columns) == 2
+        assert [c.text for c in ficha.rows[0].cells] == ["Campo", "Informação"]
+        secoes = [row for row in ficha.rows[1:] if len(row._tr.tc_lst) == 1]
         assert [r.cells[0].text for r in secoes] == [
-            "Estabelecimento", "Instrumento", "Acompanhamento", "Datas e inauguração", "Valores", "Equipamentos",
+            "Estabelecimento", "Instrumento", "Acompanhamento", "Datas e inauguração", "Valores",
         ]
         assert all(row.cells[0].paragraphs[0].runs[0].bold for row in secoes)
         assert {r.cells[0].text: r.cells[1].text for r in ficha.rows[1:] if len(r._tr.tc_lst) == 2} == {
             campo: valor for campo, valor in zip(colunas, linha, strict=True)
             if campo not in campos_equipamento and campo != "Instrumento"
         }
-    assert [[c.text for c in row.cells] for row in doc.tables[1].rows[-4:]] == [
+        espaco = ficha._tbl.getnext()
+        assert espaco.tag == qn("w:p") and not espaco.xpath(".//w:t")
+        assert espaco.getnext() is equipamentos._tbl
+    assert [[c.text for c in row.cells] for row in doc.tables[2].rows] == [
         ["Equipamento", "Qtd a entregar", "Qtd entregue", "Em operação\n(dos entregues)", "Valor unitário"],
         ["Tomógrafo", "1", "1", "1", "R$ 1.250,50"],
         ["Mamógrafo", "0", "1", "0", ""],
         ["Total", "1", "2", "1", ""],
     ]
-    linha_equipamento = doc.tables[1].rows[-3]
+    linha_equipamento = doc.tables[2].rows[1]
     assert linha_equipamento.cells[1].paragraphs[0].alignment == WD_ALIGN_PARAGRAPH.CENTER
     assert linha_equipamento.cells[-1].paragraphs[0].alignment == WD_ALIGN_PARAGRAPH.RIGHT
-    assert doc.tables[1].rows[-1].cells[0].paragraphs[0].runs[0].bold
-    assert doc.tables[2].rows[-1].cells[0].text == "Nenhum equipamento neste recorte."
+    assert doc.tables[2].rows[-1].cells[0].paragraphs[0].runs[0].bold
+    assert doc.tables[4].rows[-1].cells[0].text == "Nenhum equipamento neste recorte."

@@ -50,6 +50,9 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
     total = max(len(secao.linhas), 1) + 1
     cabecalho = tabela.rows[0]
     docx_builder._formatar_linha_tabela(cabecalho, secao.fonte_pt, indice=0, total=total)
+    if secao.alinhamentos:
+        for celula, alinhamento in zip(cabecalho.cells, secao.alinhamentos, strict=True):
+            celula.paragraphs[0].alignment = alinhamento
     _mesclar_linha(cabecalho, secao.mesclas.get(0))
     with xml.element(tabela._tbl.tag, tabela._tbl.attrib):
         xml.write(tabela._tbl.tblPr)
@@ -112,10 +115,13 @@ def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]
         tabelas = []
         for secao in secoes:
             # Título preso (keepNext) a uma tabela longa vai sozinho para a página seguinte.
-            docx_builder.adicionar_titulo(
-                documento, secao.titulo,
-                solto=not (secao.detalhes or secao.linhas_de_secao) and len(secao.linhas) > _LINHAS_TABELA_CURTA,
-            )
+            if secao.titulo:
+                docx_builder.adicionar_titulo(
+                    documento, secao.titulo,
+                    solto=not (secao.detalhes or secao.linhas_de_secao) and len(secao.linhas) > _LINHAS_TABELA_CURTA,
+                )
+            else:
+                docx_builder.adicionar_paragrafo(documento, "")
             for rotulo, valor in secao.detalhes:
                 docx_builder.adicionar_paragrafo_rotulo_valor(documento, rotulo, valor, manter_com_proximo=True)
             tabelas.append(

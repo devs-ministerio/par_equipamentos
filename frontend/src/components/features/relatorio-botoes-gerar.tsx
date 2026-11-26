@@ -17,6 +17,7 @@ export function RelatorioBotoesGerar({
   onGerar,
   contexto,
   emDialogo = false,
+  desabilitarSimplificado = false,
 }: {
   nivel: NivelRelatorio;
   onNivelChange: (nivel: NivelRelatorio) => void;
@@ -28,6 +29,7 @@ export function RelatorioBotoesGerar({
    * na página e a área de exportação fecha o fluxo. */
   contexto?: string;
   emDialogo?: boolean;
+  desabilitarSimplificado?: boolean;
 }) {
   return (
     <section
@@ -65,12 +67,13 @@ export function RelatorioBotoesGerar({
               key={valor}
               type="button"
               aria-pressed={nivel === valor}
+              disabled={desabilitarSimplificado && valor === "simplificado"}
               onClick={() => onNivelChange(valor)}
               className={cn(
-                "min-h-9 cursor-pointer rounded-full px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-ring",
+                "min-h-9 cursor-pointer rounded-full px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50",
                 nivel === valor
                   ? "bg-card text-primary shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                  : "text-muted-foreground enabled:hover:text-foreground",
               )}
             >
               {rotulo}

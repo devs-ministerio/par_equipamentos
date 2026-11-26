@@ -41,44 +41,39 @@ def fichas_instrumentos(relatorio: RelatorioMonitorado, linhas: Sequence[Sequenc
     fichas = []
     for linha in linhas:
         registro = dict(zip(relatorio.colunas, linha, strict=True))
-        dados: list[tuple[str | int, ...]] = []
+        dados_ficha: list[tuple[str, str]] = []
         titulos: set[int] = set()
-        totais: frozenset[int] = frozenset()
-        mesclas = {0: (1, 4)}
+        mesclas = {}
         for titulo, campos in _CABECALHO_INSTRUMENTO:
             valores = [(campo, registro[campo]) for campo in campos if registro[campo] not in ("", "—")]
             if valores:
-                titulos.add(len(dados))
-                mesclas[len(dados) + 1] = (0, 4)
-                dados.append((titulo, "", "", "", ""))
-                for campo, valor in valores:
-                    mesclas[len(dados) + 1] = (1, 4)
-                    dados.append((campo, valor, "", "", ""))
-
-        titulos.add(len(dados))
-        mesclas[len(dados) + 1] = (0, 4)
-        dados.append(("Equipamentos", "", "", "", ""))
-        equipamentos = relatorio.equipamentos_por_instrumento.get(registro["Instrumento"], [])
-        if equipamentos:
-            titulos.add(len(dados))
-            dados.append(_COLUNAS_EQUIPAMENTO)
-            dados.extend(
-                (e.nome, e.a_entregar, e.entregues, e.em_operacao,
-                 formatar_moeda(e.valor_unitario) if e.valor_unitario is not None else "")
-                for e in equipamentos
-            )
-            if len(equipamentos) > 1:
-                totais = frozenset({len(dados)})
-                dados.append(("Total", registro["Qtd a Entregar"], registro["Qtd Entregue"],
-                              registro["Qtd em Operação"], ""))
-        else:
-            mesclas[len(dados) + 1] = (0, 4)
-            dados.append(("Nenhum equipamento neste recorte.", "", "", "", ""))
+                titulos.add(len(dados_ficha))
+                mesclas[len(dados_ficha) + 1] = (0, 1)
+                dados_ficha.append((titulo, ""))
+                dados_ficha.extend(valores)
         contratacao = registro["Contratação"]
         prefixo = contratacao if contratacao not in ("", "—") else "Instrumento"
         fichas.append(SecaoTabela(
-            f"{prefixo} - {registro['Instrumento']}", ("Campo", "Informação", "", "", ""), dados,
-            pesos_colunas=_PESOS_INSTRUMENTO, linhas_de_secao=frozenset(titulos), mesclas=mesclas,
+            f"{prefixo} - {registro['Instrumento']}", ("Campo", "Informação"), dados_ficha,
+            pesos_colunas=(4.3, 5.7), linhas_de_secao=frozenset(titulos), mesclas=mesclas,
+        ))
+
+        equipamentos = relatorio.equipamentos_por_instrumento.get(registro["Instrumento"], [])
+        dados_equipamentos: list[tuple[str | int, ...]] = [
+            (e.nome, e.a_entregar, e.entregues, e.em_operacao,
+             formatar_moeda(e.valor_unitario) if e.valor_unitario is not None else "")
+            for e in equipamentos
+        ]
+        totais: frozenset[int] = frozenset()
+        if len(equipamentos) > 1:
+            totais = frozenset({len(dados_equipamentos)})
+            dados_equipamentos.append(("Total", registro["Qtd a Entregar"], registro["Qtd Entregue"],
+                                       registro["Qtd em Operação"], ""))
+        if not equipamentos:
+            dados_equipamentos.append(("Nenhum equipamento neste recorte.", "", "", "", ""))
+        fichas.append(SecaoTabela(
+            "", _COLUNAS_EQUIPAMENTO, dados_equipamentos, pesos_colunas=_PESOS_INSTRUMENTO,
+            mesclas={} if equipamentos else {1: (0, 4)},
             alinhamentos=_ALINHAMENTOS_EQUIPAMENTO, linhas_de_total=totais,
         ))
     return fichas

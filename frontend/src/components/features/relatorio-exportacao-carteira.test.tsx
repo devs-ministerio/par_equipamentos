@@ -162,6 +162,11 @@ it("aplica várias fases à prévia e à exportação de instrumentos", async ()
   await user.click(configurar);
 
   const dialogo = within(screen.getByRole("dialog", { name: "Instrumentos" }));
+  expect(dialogo.getByRole("button", { name: "Simplificado" })).toBeDisabled();
+  expect(dialogo.getByRole("button", { name: "Completo" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   const fases = within(
     dialogo.getByRole("group", { name: "Fase do monitoramento" }),
   );
@@ -184,7 +189,7 @@ it("aplica várias fases à prévia e à exportação de instrumentos", async ()
   await waitFor(() =>
     expect(previa).toHaveBeenLastCalledWith(
       "instrumentos_monitorados",
-      "simplificado",
+      "completo",
       recorte,
       1,
       expect.anything(),
@@ -193,11 +198,11 @@ it("aplica várias fases à prévia e à exportação de instrumentos", async ()
   const excel = dialogo.getByRole("button", { name: "Baixar Excel" });
   await waitFor(() => expect(excel).toBeEnabled());
   await user.click(excel);
-  expect(gerar).toHaveBeenCalledWith("xlsx", "simplificado", recorte);
+  expect(gerar).toHaveBeenCalledWith("xlsx", "completo", recorte);
   expect(
     parametrosRelatorio(
       "instrumentos_monitorados",
-      "simplificado",
+      "completo",
       recorte,
     ).getAll("fase_instrumento"),
   ).toEqual(["Em aquisição", "Concluído"]);

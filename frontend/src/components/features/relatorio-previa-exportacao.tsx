@@ -64,7 +64,8 @@ export function RelatorioPreviaExportacao({
   const instrumentos = tipo === "instrumentos_monitorados";
   const fasePrincipal =
     filtroBase.situacaoOrigem === "monitoramento" && filtroBase.situacao;
-  const [nivel, setNivel] = useState<NivelRelatorio>("simplificado");
+  const [nivelSelecionado, setNivel] = useState<NivelRelatorio>("simplificado");
+  const nivel = instrumentos ? "completo" : nivelSelecionado;
   const [situacoes, setSituacoes] = useState<SituacaoEquipamento[] | null>(
     null,
   );
@@ -157,6 +158,7 @@ export function RelatorioPreviaExportacao({
       )}
       <RelatorioBotoesGerar
         emDialogo
+        desabilitarSimplificado={instrumentos}
         nivel={nivel}
         onNivelChange={(novo) => {
           setNivel(novo);
