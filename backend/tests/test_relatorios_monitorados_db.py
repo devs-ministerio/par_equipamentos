@@ -1,6 +1,7 @@
 """Paridade da extração de monitoramento com a prévia e os arquivos."""
 
 from collections import Counter
+from dataclasses import replace
 from datetime import date
 from io import BytesIO
 from typing import Final
@@ -11,6 +12,7 @@ from openpyxl import load_workbook
 from sqlalchemy import select
 
 from app.db.models import (
+    Convenio,
     CancelamentoUnidadePlanejada,
     EventoMarco,
     InstrumentoEquipamento,
@@ -129,3 +131,43 @@ def test_previa_de_propostas_confere_com_word_e_excel(entregas):  # noqa: F811
     docx = montar_relatorio(db=sessao, formato="docx", nivel=nivel, tipo_relatorio=tipo, filtro=filtro)
     titulos = [p.text for p in Document(BytesIO(docx)).paragraphs if " -- Proposta " in p.text]
     assert titulos == [f"Entregues {marca} proposta -- Proposta {id_proposta}"]
+
+
+def test_recorte_brasil_inclui_todas_as_contratacoes(entregas):  # noqa: F811
+    sessao, _, marca = entregas
+    numero = f"PYP{marca}"
+    conv = Convenio(numero=numero, objeto="x", convenente_nome="x", uf="RS", situacao="Em execução")
+    sessao.add(conv)
+    sessao.flush()
+    inst = InstrumentoEquipamento(
+        nr_convenio=numero,
+        nome_convenente=f"Entregues {marca} persus",
+        tipo_contratacao="PERSUS I",
+        uf="RS",
+        ano_instrumento=2025,
+    )
+    sessao.add(inst)
+    sessao.flush()
+    sessao.add(
+        ItemPlano(
+            convenio_id=conv.id,
+            instrumento_id=inst.id,
+            origem="manual",
+            id_origem=f"manual:{numero}:1",
+            descricao="Mamógrafo digital com tomossíntese",
+            controla_unidade=True,
+            quantidade_planejada=1,
+        )
+    )
+    sessao.flush()
+    base = FiltroRelatorio(escopo="brasil", busca=marca)
+
+    def contratacoes(filtro: FiltroRelatorio) -> set[str]:
+        relatorio = montar_relatorio_monitorado(
+            db=sessao, tipo="equipamentos_monitorados", nivel="completo", filtro=filtro
+        )
+        ix = relatorio.colunas.index("Contratação")
+        return {linha[ix] for linha in relatorio.linhas}
+
+    assert contratacoes(base) == {"Convênio", "PERSUS I"}
+    assert contratacoes(replace(base, tipo_contratacao="PERSUS I")) == {"PERSUS I"}
