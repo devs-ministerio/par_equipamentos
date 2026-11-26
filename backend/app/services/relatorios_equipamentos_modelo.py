@@ -30,16 +30,49 @@ from app.services.relatorios_modelo import (
 FONTE = "SISGEO · SICONV · RENEM · CNES"
 
 COLUNAS_EQUIPAMENTO_SIMPLIFICADO = (
-    "Instrumento", "CNES", "Estabelecimento de Saúde", "Município", "UF", "Região", "Equipamento",
-    "Situação (Equipamento)", "Situação (Site)", "Situação (Monitoramento)", "Qtd", "Valor do Equipamento",
-    "Data de Entrega do Equipamento", "Data de Previsão/Inauguração", "Status da Inauguração", "Técnico Responsável",
+    "Instrumento",
+    "CNES",
+    "Estabelecimento de Saúde",
+    "Município",
+    "UF",
+    "Região",
+    "Equipamento",
+    "Situação (Equipamento)",
+    "Situação (Site)",
+    "Situação (Monitoramento)",
+    "Qtd",
+    "Valor do Equipamento",
+    "Data de Entrega do Equipamento",
+    "Data de Previsão/Inauguração",
+    "Status da Inauguração",
+    "Técnico Responsável",
 )
 COLUNAS_EQUIPAMENTO_COMPLETO = (
-    "Instrumento", "CNES", "Estabelecimento de Saúde", "Município", "UF", "Região", "Contratação", "Equipamento",
-    "Descrição do item no plano", "Situação (Equipamento)", "Situação (Site)", "Situação (Monitoramento)", "Qtd",
-    "Valor do Equipamento", "Data de Entrega do Equipamento", "Data de Previsão/Inauguração",
-    "Status da Inauguração", "Nº do Processo", "Ano do Instrumento", "Início da Vigência", "Fim da Vigência",
-    "Marca", "Modelo", "Série", "Técnico Responsável",
+    "Instrumento",
+    "CNES",
+    "Estabelecimento de Saúde",
+    "Município",
+    "UF",
+    "Região",
+    "Contratação",
+    "Equipamento",
+    "Descrição do item no plano",
+    "Situação (Equipamento)",
+    "Situação (Site)",
+    "Situação (Monitoramento)",
+    "Qtd",
+    "Valor do Equipamento",
+    "Data de Entrega do Equipamento",
+    "Data de Previsão/Inauguração",
+    "Status da Inauguração",
+    "Nº do Processo",
+    "Ano do Instrumento",
+    "Início da Vigência",
+    "Fim da Vigência",
+    "Marca",
+    "Modelo",
+    "Série",
+    "Técnico Responsável",
 )
 DATAS = ("Data de Entrega do Equipamento", "Data de Previsão/Inauguração", "Início da Vigência", "Fim da Vigência")
 MOEDA = ("Valor do Equipamento",)
@@ -67,8 +100,22 @@ def linha_equipamento(f: FatoEquipamento, *, completo: bool) -> tuple[Celula, ..
     if not completo:
         return (*base, f.equipamento, *situacoes, f.quantidade, f.valor, *datas, c.tecnico)
     return (
-        *base, c.contratacao, f.equipamento, f.descricao_item, *situacoes, f.quantidade, f.valor, *datas,
-        c.numero_processo, c.ano, c.inicio_vigencia, c.fim_vigencia, f.marca, f.modelo, f.serie, c.tecnico,
+        *base,
+        c.contratacao,
+        f.equipamento,
+        f.descricao_item,
+        *situacoes,
+        f.quantidade,
+        f.valor,
+        *datas,
+        c.numero_processo,
+        c.ano,
+        c.inicio_vigencia,
+        c.fim_vigencia,
+        f.marca,
+        f.modelo,
+        f.serie,
+        c.tecnico,
     )
 
 
@@ -99,9 +146,13 @@ def _fatos_equipamentos(
     unidades = _unidades_por_familia(db, ids, selecionadas)
     alvo = normalizar_texto(equipamento)
     fatos: list[FatoEquipamento] = []
-    for identificador, familia, planejado, entregue, cancelado in itens_equipamento.resumo_com_cancelamentos_por_familia(
-        db, ids
-    ):
+    for (
+        identificador,
+        familia,
+        planejado,
+        entregue,
+        cancelado,
+    ) in itens_equipamento.resumo_com_cancelamentos_por_familia(db, ids):
         if alvo and normalizar_texto(familia) != alvo:
             continue
         numero = numero_por_id[identificador]
@@ -120,17 +171,25 @@ def _fatos_equipamentos(
 
             def fato(situacao=situacao, numero=numero, familia=familia, previsao=previsao, status=status, **resto):
                 return FatoEquipamento(
-                    contexto=contextos[numero], equipamento=familia, situacao=situacao,
-                    data_previsao_inauguracao=previsao, status_inauguracao=status, **resto,
+                    contexto=contextos[numero],
+                    equipamento=familia,
+                    situacao=situacao,
+                    data_previsao_inauguracao=previsao,
+                    status_inauguracao=status,
+                    **resto,
                 )
 
             if completo and situacao == situacao_entrega:
                 detalhadas = da_familia[:quantidade]
                 fatos.extend(
                     fato(
-                        descricao_item=u["descricao_item"], quantidade=1,
-                        valor=por_item.get(u["item_id"]), data_entrega=u["data_entrega"],
-                        marca=u["marca"], modelo=u["modelo"], serie=u["numero_serie"],
+                        descricao_item=u["descricao_item"],
+                        quantidade=1,
+                        valor=por_item.get(u["item_id"]),
+                        data_entrega=u["data_entrega"],
+                        marca=u["marca"],
+                        modelo=u["modelo"],
+                        serie=u["numero_serie"],
                     )
                     for u in detalhadas
                 )
@@ -141,7 +200,8 @@ def _fatos_equipamentos(
             agregado = por_familia.get((identificador, familia))
             fatos.append(
                 fato(
-                    descricao_item=descricoes.get((identificador, familia)), quantidade=quantidade,
+                    descricao_item=descricoes.get((identificador, familia)),
+                    quantidade=quantidade,
                     valor=agregado[0] * quantidade / agregado[1] if agregado else None,
                     data_entrega=min(datas) if datas and not completo and situacao == situacao_entrega else None,
                 )
@@ -170,7 +230,9 @@ def montar_equipamentos(
         "unidades",
         rotulos,
         cabecalho(
-            filtro, referencia=referencia, fonte=FONTE,
+            filtro,
+            referencia=referencia,
+            fonte=FONTE,
             filtros=descrever_filtros(filtro, situacoes=rotulos, contratacoes=(f.contexto.contratacao for f in fatos)),
         ),
         indicadores,

@@ -21,8 +21,10 @@ from app.services.relatorios_instrumentos_modelo import _valores
 
 def test_resumo_financeiro_combina_valores_numeric_com_cargas_manuais():
     oficial = Convenio(
-        financeiro_fonte_confiavel=True, valor_global=Decimal("250.50"),
-        valor_repasse=Decimal("200.20"), valor_desembolsado=Decimal("100.10"),
+        financeiro_fonte_confiavel=True,
+        valor_global=Decimal("250.50"),
+        valor_repasse=Decimal("200.20"),
+        valor_desembolsado=Decimal("100.10"),
     )
     manual = Convenio(valor_global=Decimal("100.15"))
     valores_oficiais = _valores(oficial, InstrumentoEquipamento(tipo_contratacao="Convênio"))

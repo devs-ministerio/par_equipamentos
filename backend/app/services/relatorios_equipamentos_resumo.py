@@ -90,7 +90,10 @@ def _agenda(fatos: list[FatoEquipamento], referencia: date) -> Tabela | None:
     if not previstos:
         return None
     linhas: list[tuple[Celula, ...]] = [
-        (f"Em {dias} dias", len([d for d in previstos.values() if referencia <= d <= referencia + timedelta(days=dias)]))
+        (
+            f"Em {dias} dias",
+            len([d for d in previstos.values() if referencia <= d <= referencia + timedelta(days=dias)]),
+        )
         for dias in (30, 60, 90)
     ]
     return Tabela("Agenda de inaugurações", ("Prazo", "Instrumentos"), linhas)

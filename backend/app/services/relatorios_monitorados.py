@@ -80,8 +80,13 @@ def _montar(
     etapas = {e.nr_convenio: e for e in carregar_etapas(db=db, instrumentos=instrumentos)}
     if not equipamentos:
         return montar_instrumentos(
-            db=db, recorte=recorte, etapas=etapas, filtro=filtro,
-            fases=tuple(dict.fromkeys(f.value for f in fases)), completo=completo, referencia=referencia,
+            db=db,
+            recorte=recorte,
+            etapas=etapas,
+            filtro=filtro,
+            fases=tuple(dict.fromkeys(f.value for f in fases)),
+            completo=completo,
+            referencia=referencia,
             incluir_valores_unitarios=incluir_valores_unitarios,
         )
 

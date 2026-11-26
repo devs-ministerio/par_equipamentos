@@ -15,6 +15,10 @@ def montar_ficha(titulo: str, registro: dict[str, str], secoes: Sequence[tuple[s
             linhas.append((rotulo, ""))
             linhas.extend(valores)
     return SecaoTabela(
-        titulo, ("Campo", "Informação"), linhas, pesos_colunas=(4.3, 5.7),
-        linhas_de_secao=frozenset(titulos), mesclas={i + 1: (0, 1) for i in titulos},
+        titulo,
+        ("Campo", "Informação"),
+        linhas,
+        pesos_colunas=(4.3, 5.7),
+        linhas_de_secao=frozenset(titulos),
+        mesclas={i + 1: (0, 1) for i in titulos},
     )

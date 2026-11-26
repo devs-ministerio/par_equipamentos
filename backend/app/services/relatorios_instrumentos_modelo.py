@@ -29,30 +29,82 @@ from app.services.relatorios_modelo import (
 from app.valor_global import TIPOS_SEM_DADOS_OFICIAIS, valor_global_considerado
 
 _COLUNAS = (
-    "Instrumento", "CNES", "Estabelecimento de Saúde", "Município", "UF", "Região", "Contratação",
-    "Situação (Site)", "Situação (Monitoramento)", "Valor Global", "Valor Repassado", "Data de Inauguração",
-    "Data de Conclusão do Monitoramento", "Técnico Responsável",
+    "Instrumento",
+    "CNES",
+    "Estabelecimento de Saúde",
+    "Município",
+    "UF",
+    "Região",
+    "Contratação",
+    "Situação (Site)",
+    "Situação (Monitoramento)",
+    "Valor Global",
+    "Valor Repassado",
+    "Data de Inauguração",
+    "Data de Conclusão do Monitoramento",
+    "Técnico Responsável",
 )
 _COLUNAS_COMPLETO = (
-    *_COLUNAS[:3], "CNPJ do Convenente", *_COLUNAS[3:9],
-    "Equipamentos", "Qtd Planejado", "Qtd Entregue", "Qtd em Operação", "% Em Operação",
-    "Data de Publicação", "Data do Último Repasse", "Data de Entrega do Equipamento",
-    "Data de Inauguração", "Data de Conclusão do Monitoramento", "Status da Inauguração",
-    "Nº do Processo", "Ano do Instrumento", "Início da Vigência", "Fim da Vigência",
-    "Valor Global", "Valor Repassado", "Técnico Responsável", "Nível de Monitoramento", "Ações abertas",
+    *_COLUNAS[:3],
+    "CNPJ do Convenente",
+    *_COLUNAS[3:9],
+    "Equipamentos",
+    "Qtd Planejado",
+    "Qtd Entregue",
+    "Qtd em Operação",
+    "% Em Operação",
+    "Data de Publicação",
+    "Data do Último Repasse",
+    "Data de Entrega do Equipamento",
+    "Data de Inauguração",
+    "Data de Conclusão do Monitoramento",
+    "Status da Inauguração",
+    "Nº do Processo",
+    "Ano do Instrumento",
+    "Início da Vigência",
+    "Fim da Vigência",
+    "Valor Global",
+    "Valor Repassado",
+    "Técnico Responsável",
+    "Nível de Monitoramento",
+    "Ações abertas",
 )
 _FINANCEIRO = (
-    "Instrumento", "Estabelecimento de Saúde", "Valor Global", "Valor de Repasse Pactuado", "Contrapartida",
-    "Empenhado", "Valor Repassado", "Pago a Fornecedor", "Saldo em Conta", "Valor do Equipamento", "Valor da Obra",
-    "Prestação de Contas", "Ordem de Pagamento",
+    "Instrumento",
+    "Estabelecimento de Saúde",
+    "Valor Global",
+    "Valor de Repasse Pactuado",
+    "Contrapartida",
+    "Empenhado",
+    "Valor Repassado",
+    "Pago a Fornecedor",
+    "Saldo em Conta",
+    "Valor do Equipamento",
+    "Valor da Obra",
+    "Prestação de Contas",
+    "Ordem de Pagamento",
 )
 _ACOES = (
-    "Nº do Processo", "Instrumento", "CNES", "Estabelecimento de Saúde", "Município", "UF",
-    "Ação", "Responsável", "Data Prevista", "Situação da Ação", "Técnico Responsável",
+    "Nº do Processo",
+    "Instrumento",
+    "CNES",
+    "Estabelecimento de Saúde",
+    "Município",
+    "UF",
+    "Ação",
+    "Responsável",
+    "Data Prevista",
+    "Situação da Ação",
+    "Técnico Responsável",
 )
 _DATAS = (
-    "Data de Inauguração", "Data de Conclusão do Monitoramento", "Data de Publicação", "Data do Último Repasse",
-    "Data de Entrega do Equipamento", "Início da Vigência", "Fim da Vigência",
+    "Data de Inauguração",
+    "Data de Conclusão do Monitoramento",
+    "Data de Publicação",
+    "Data do Último Repasse",
+    "Data de Entrega do Equipamento",
+    "Início da Vigência",
+    "Fim da Vigência",
 )
 _MOEDA = ("Valor Global", "Valor Repassado")
 _LEGENDA = (
@@ -85,8 +137,13 @@ def _valores(c: Convenio | None, i: InstrumentoEquipamento) -> _Valores:
     if not c.financeiro_fonte_confiavel:
         return _Valores(None, None)
     campos = (
-        _valor_global_confiavel(c), c.valor_desembolsado, c.valor_repasse, c.valor_contrapartida,
-        c.valor_empenhado, c.valor_pago_fornecedor, c.valor_saldo_conta,
+        _valor_global_confiavel(c),
+        c.valor_desembolsado,
+        c.valor_repasse,
+        c.valor_contrapartida,
+        c.valor_empenhado,
+        c.valor_pago_fornecedor,
+        c.valor_saldo_conta,
     )
     return _Valores(*(float(v) if v is not None else None for v in campos))
 
@@ -100,8 +157,9 @@ class _Instrumento:
     valores: _Valores
 
 
-def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoInstrumento],
-           acoes: list[AcaoMonitoramento]) -> tuple[Celula, ...]:
+def _linha(
+    f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoInstrumento], acoes: list[AcaoMonitoramento]
+) -> tuple[Celula, ...]:
     ctx, i, c, etapa, valores = f.contexto, f.instrumento, f.convenio, f.etapa, f.valores
     local = (ctx.municipio, ctx.uf, ctx.regiao)
     situacao = (ctx.contratacao, ctx.situacao_site, ctx.situacao_monitoramento)
@@ -120,28 +178,65 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
     )
     _, status = inauguracao_da_linha(etapa, "em_operacao" if etapa.modo_operacao else "planejado")
     return (
-        *base, formatar_cnpj(i.cnpj_convenente or (c.convenente_cnpj if c else None)), *local, *situacao,
-        familias or None, a_entregar, entregue, em_operacao,
+        *base,
+        formatar_cnpj(i.cnpj_convenente or (c.convenente_cnpj if c else None)),
+        *local,
+        *situacao,
+        familias or None,
+        a_entregar,
+        entregue,
+        em_operacao,
         f"{round(em_operacao / total * 100)}%" if total else None,
-        etapa.publicacao, c.data_ultima_liberacao if c else None, etapa.entrega, *datas, status,
-        ctx.numero_processo, ctx.ano, ctx.inicio_vigencia, ctx.fim_vigencia, *dinheiro, ctx.tecnico,
-        i.nivel_monitoramento, len(acoes),
+        etapa.publicacao,
+        c.data_ultima_liberacao if c else None,
+        etapa.entrega,
+        *datas,
+        status,
+        ctx.numero_processo,
+        ctx.ano,
+        ctx.inicio_vigencia,
+        ctx.fim_vigencia,
+        *dinheiro,
+        ctx.tecnico,
+        i.nivel_monitoramento,
+        len(acoes),
     )
 
 
 def _financeiro(f: _Instrumento) -> tuple[Celula, ...]:
     ctx, i, v = f.contexto, f.instrumento, f.valores
     return (
-        exibir_instrumento(ctx.numero), ctx.estabelecimento, v.global_, v.pactuado, v.contrapartida, v.empenhado, v.repassado,
-        v.pago, v.saldo, i.investimento_aquisicao, i.valor_obra, i.situacao_prestacao_contas,
+        exibir_instrumento(ctx.numero),
+        ctx.estabelecimento,
+        v.global_,
+        v.pactuado,
+        v.contrapartida,
+        v.empenhado,
+        v.repassado,
+        v.pago,
+        v.saldo,
+        i.investimento_aquisicao,
+        i.valor_obra,
+        i.situacao_prestacao_contas,
         i.situacao_ordem_pagamento_transferegov,
     )
 
 
 def _acao(ctx: ContextoInstrumento, a: AcaoMonitoramento, referencia: date) -> tuple[Celula, ...]:
     prazo = "Sem prazo" if a.data_prevista is None else "Vencida" if a.data_prevista < referencia else "No prazo"
-    return (ctx.numero_processo, exibir_instrumento(ctx.numero), ctx.cnes, ctx.estabelecimento, ctx.municipio, ctx.uf,
-            a.descricao, a.responsavel, a.data_prevista, prazo, ctx.tecnico)
+    return (
+        ctx.numero_processo,
+        exibir_instrumento(ctx.numero),
+        ctx.cnes,
+        ctx.estabelecimento,
+        ctx.municipio,
+        ctx.uf,
+        a.descricao,
+        a.responsavel,
+        a.data_prevista,
+        prazo,
+        ctx.tecnico,
+    )
 
 
 def _quebras(fatos: list[_Instrumento], escopo: str) -> tuple[Tabela, ...]:
@@ -152,18 +247,38 @@ def _quebras(fatos: list[_Instrumento], escopo: str) -> tuple[Tabela, ...]:
     rotulo, campo = geografia
     valores_global = [f.valores.global_ for f in fatos if f.valores.global_ is not None]
     repassados = [f.valores.repassado for f in fatos if f.valores.repassado is not None]
-    return descartar_geografia_unica((
-        quebra_por("Por situação", "Situação (Monitoramento)", (c.situacao_monitoramento or "Sem informação" for c in contextos)),
-        quebra_por("Por contratação", "Contratação", (c.contratacao or "Sem informação" for c in contextos)),
-        quebra_por("Por região" if rotulo == "Região" else f"Por {rotulo}", rotulo, (getattr(c, campo) or "Sem informação" for c in contextos)),
-        Tabela("Valores", _MOEDA, [(sum(valores_global) if valores_global else None,
-                                   sum(repassados) if repassados else None)], colunas_moeda=_MOEDA),
-    ))
+    return descartar_geografia_unica(
+        (
+            quebra_por(
+                "Por situação",
+                "Situação (Monitoramento)",
+                (c.situacao_monitoramento or "Sem informação" for c in contextos),
+            ),
+            quebra_por("Por contratação", "Contratação", (c.contratacao or "Sem informação" for c in contextos)),
+            quebra_por(
+                "Por região" if rotulo == "Região" else f"Por {rotulo}",
+                rotulo,
+                (getattr(c, campo) or "Sem informação" for c in contextos),
+            ),
+            Tabela(
+                "Valores",
+                _MOEDA,
+                [(sum(valores_global) if valores_global else None, sum(repassados) if repassados else None)],
+                colunas_moeda=_MOEDA,
+            ),
+        )
+    )
 
 
 def montar_instrumentos(
-    *, db: Session, recorte: list[InstrumentoComFase], etapas: dict[str, EtapasInstrumentoRead],
-    filtro: FiltroRelatorio, fases: tuple[str, ...], completo: bool, referencia: date,
+    *,
+    db: Session,
+    recorte: list[InstrumentoComFase],
+    etapas: dict[str, EtapasInstrumentoRead],
+    filtro: FiltroRelatorio,
+    fases: tuple[str, ...],
+    completo: bool,
+    referencia: date,
     incluir_valores_unitarios: bool = False,
 ) -> RelatorioMonitorado:
     numeros = {c.instrumento.nr_convenio for c in recorte}
@@ -188,30 +303,56 @@ def montar_instrumentos(
             preco = precos.get((i_id, nome))
             familias[f.contexto.numero].append(
                 EquipamentoDoInstrumento(
-                    nome, planejado, entregue, entregue if f.etapa.modo_operacao else 0,
+                    nome,
+                    planejado,
+                    entregue,
+                    entregue if f.etapa.modo_operacao else 0,
                     preco[0] / preco[1] if preco else None,
                 )
             )
     linhas = [
-        _linha(f, completo=completo, equipamentos=familias.get(f.contexto.numero, []),
-               acoes=acoes.get(f.instrumento.id, []))
+        _linha(
+            f,
+            completo=completo,
+            equipamentos=familias.get(f.contexto.numero, []),
+            acoes=acoes.get(f.instrumento.id, []),
+        )
         for f in fatos
     ]
     abas = (
-        Tabela("Financeiro", _FINANCEIRO, [_financeiro(f) for f in fatos], colunas_moeda=_FINANCEIRO[2:11]),
-        Tabela("Ações em aberto", _ACOES,
-               [_acao(f.contexto, a, referencia) for f in fatos for a in acoes.get(f.instrumento.id, [])],
-               colunas_data=("Data Prevista",)),
-    ) if completo else ()
+        (
+            Tabela("Financeiro", _FINANCEIRO, [_financeiro(f) for f in fatos], colunas_moeda=_FINANCEIRO[2:11]),
+            Tabela(
+                "Ações em aberto",
+                _ACOES,
+                [_acao(f.contexto, a, referencia) for f in fatos for a in acoes.get(f.instrumento.id, [])],
+                colunas_data=("Data Prevista",),
+            ),
+        )
+        if completo
+        else ()
+    )
     quebras = _quebras(fatos, filtro.escopo)
     return RelatorioMonitorado(
-        titulo="Instrumentos", colunas=_COLUNAS_COMPLETO if completo else _COLUNAS, linhas=linhas,
-        total=len(linhas), unidade="instrumentos", criterios=fases,
-        cabecalho=cabecalho(filtro, referencia=referencia, fonte="SISGEO · SICONV · CNES",
-                           filtros=descrever_filtros(filtro, fases=fases,
-                                                     contratacoes=(f.contexto.contratacao for f in fatos))),
-        indicadores=(("Quantidade de Instrumentos", len(linhas)),), quebras=quebras, abas=abas,
-        legenda=_LEGENDA, colunas_data=_DATAS, colunas_moeda=_MOEDA,
-        arquivo_base="instrumentos", aba_registros="Instrumentos",
+        titulo="Instrumentos",
+        colunas=_COLUNAS_COMPLETO if completo else _COLUNAS,
+        linhas=linhas,
+        total=len(linhas),
+        unidade="instrumentos",
+        criterios=fases,
+        cabecalho=cabecalho(
+            filtro,
+            referencia=referencia,
+            fonte="SISGEO · SICONV · CNES",
+            filtros=descrever_filtros(filtro, fases=fases, contratacoes=(f.contexto.contratacao for f in fatos)),
+        ),
+        indicadores=(("Quantidade de Instrumentos", len(linhas)),),
+        quebras=quebras,
+        abas=abas,
+        legenda=_LEGENDA,
+        colunas_data=_DATAS,
+        colunas_moeda=_MOEDA,
+        arquivo_base="instrumentos",
+        aba_registros="Instrumentos",
         equipamentos_por_instrumento=dict(familias),
     )

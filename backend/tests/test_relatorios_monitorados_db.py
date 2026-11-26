@@ -97,13 +97,18 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
         situacoes=("em_operacao",),
     )
     assert operacao.total == (0 if previsao else 2)
-    arquivo_simplificado = montar_relatorio(db=sessao, formato="docx", nivel="simplificado", tipo_relatorio=tipo, filtro=filtro)
+    arquivo_simplificado = montar_relatorio(
+        db=sessao, formato="docx", nivel="simplificado", tipo_relatorio=tipo, filtro=filtro
+    )
     doc = Document(BytesIO(arquivo_simplificado))
     paragrafos = [p.text for p in doc.paragraphs]
     assert any("4 equipamentos" in p for p in paragrafos)
     assert not any(
-        p.startswith(("Quantidade de Equipamentos:", "Planejado:", "Entregue, a inaugurar:", "Em operação:", "Cancelado:"))
-        or "Documento gerado automaticamente" in p or "Aceleradores Lineares:" in p
+        p.startswith(
+            ("Quantidade de Equipamentos:", "Planejado:", "Entregue, a inaugurar:", "Em operação:", "Cancelado:")
+        )
+        or "Documento gerado automaticamente" in p
+        or "Aceleradores Lineares:" in p
         for p in paragrafos
     )
     assert any([c.text for c in r.cells] == ["Cancelado", "1", "25%"] for r in doc.tables[0].rows)
@@ -136,10 +141,8 @@ def test_completo_preserva_quantidade_quando_falta_detalhe_da_entrega(entregas, 
 
     monkeypatch.setattr(relatorios_equipamentos_modelo, "listar_unidades_entregues", lambda *_a, **_kw: [])
     filtro = FiltroRelatorio(escopo="brasil", busca=marca)
-    relatorio = montar_relatorio_monitorado(
-        db=sessao, tipo="equipamentos_monitorados", nivel="completo", filtro=filtro
-    )
-    linha, = relatorio.linhas
+    relatorio = montar_relatorio_monitorado(db=sessao, tipo="equipamentos_monitorados", nivel="completo", filtro=filtro)
+    (linha,) = relatorio.linhas
     assert relatorio.total == linha[relatorio.colunas.index("Qtd")] == 2
     assert linha[relatorio.colunas.index("Data de Entrega do Equipamento")] is None
 
@@ -249,7 +252,8 @@ def test_recorte_brasil_inclui_todas_as_contratacoes(entregas):  # noqa: F811
 
     assert contratacoes(base) == ({"Convênio", "PERSUS I"}, "Todos os Equipamentos em Oncologia · Convênio, PERSUS I")
     assert contratacoes(replace(base, tipo_contratacao="PERSUS I")) == (
-        {"PERSUS I"}, "Todos os Equipamentos em Oncologia · PERSUS I"
+        {"PERSUS I"},
+        "Todos os Equipamentos em Oncologia · PERSUS I",
     )
 
 
@@ -265,12 +269,20 @@ def test_contexto_usa_nome_do_cnes_ou_do_convenente(db):  # noqa: F811
     db.add(CnesEstabelecimento(cnes=cnes, nome_estabelecimento=f"Hospital CNES {marca}"))
     db.flush()
     com = InstrumentoEquipamento(
-        nr_convenio=f"CTA{marca}", nome_convenente=f"Convenente A {marca}", tipo_contratacao="Convênio",
-        uf="RS", municipio="PORTO ALEGRE", cnes=cnes, ano_instrumento=2025,
+        nr_convenio=f"CTA{marca}",
+        nome_convenente=f"Convenente A {marca}",
+        tipo_contratacao="Convênio",
+        uf="RS",
+        municipio="PORTO ALEGRE",
+        cnes=cnes,
+        ano_instrumento=2025,
     )
     sem = InstrumentoEquipamento(
-        nr_convenio=f"CTB{marca}", nome_convenente=f"Convenente B {marca}", tipo_contratacao="Convênio",
-        uf="SP", ano_instrumento=2025,
+        nr_convenio=f"CTB{marca}",
+        nome_convenente=f"Convenente B {marca}",
+        tipo_contratacao="Convênio",
+        uf="SP",
+        ano_instrumento=2025,
     )
     db.add_all([com, sem])
     db.flush()
@@ -294,15 +306,27 @@ def test_valores_por_familia_so_com_preco_unitario_uniforme(db):  # noqa: F811
 
     def novo(sufixo, itens):
         inst = InstrumentoEquipamento(
-            nr_convenio=f"VF{marca}{sufixo}", nome_convenente="x", tipo_contratacao="Convênio", uf="RS", ano_instrumento=2025
+            nr_convenio=f"VF{marca}{sufixo}",
+            nome_convenente="x",
+            tipo_contratacao="Convênio",
+            uf="RS",
+            ano_instrumento=2025,
         )
         db.add(inst)
         db.flush()
         for n, (valor, qtd) in enumerate(itens, 1):
-            db.add(ItemPlano(
-                convenio_id=conv.id, instrumento_id=inst.id, origem="manual", id_origem=f"manual:{marca}{sufixo}:{n}",
-                descricao="Mamógrafo digital", controla_unidade=True, quantidade_planejada=qtd, valor_total=valor,
-            ))
+            db.add(
+                ItemPlano(
+                    convenio_id=conv.id,
+                    instrumento_id=inst.id,
+                    origem="manual",
+                    id_origem=f"manual:{marca}{sufixo}:{n}",
+                    descricao="Mamógrafo digital",
+                    controla_unidade=True,
+                    quantidade_planejada=qtd,
+                    valor_total=valor,
+                )
+            )
         db.flush()
         return inst.id
 
@@ -323,7 +347,9 @@ def test_equipamentos_com_valor_data_e_unidade(entregas):  # noqa: F811
     sessao.flush()
     filtro = FiltroRelatorio(escopo="brasil", busca=marca)
     completo = montar_relatorio_monitorado(db=sessao, tipo="equipamentos_monitorados", nivel="completo", filtro=filtro)
-    simples = montar_relatorio_monitorado(db=sessao, tipo="equipamentos_monitorados", nivel="simplificado", filtro=filtro)
+    simples = montar_relatorio_monitorado(
+        db=sessao, tipo="equipamentos_monitorados", nivel="simplificado", filtro=filtro
+    )
     assert len(completo.colunas) == 25 and len(simples.colunas) == 16
     cols = completo.colunas
     unidades = [linha for linha in completo.linhas if linha[cols.index("Série")]]

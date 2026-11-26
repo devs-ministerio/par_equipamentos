@@ -18,12 +18,13 @@ def _datas(relatorio: RelatorioMonitorado) -> list[str]:
 
 
 def _linhas_tabela(
-    colunas: Sequence[str], linhas: Sequence[Sequence[Celula]], *,
-    colunas_data: Sequence[str] = (), colunas_moeda: Sequence[str] = (),
+    colunas: Sequence[str],
+    linhas: Sequence[Sequence[Celula]],
+    *,
+    colunas_data: Sequence[str] = (),
+    colunas_moeda: Sequence[str] = (),
 ) -> list[list[str]]:
-    textos = docx_builder.linhas_como_texto(
-        colunas, linhas, colunas_data=colunas_data, colunas_moeda=colunas_moeda
-    )
+    textos = docx_builder.linhas_como_texto(colunas, linhas, colunas_data=colunas_data, colunas_moeda=colunas_moeda)
     for original, texto in zip(linhas, textos, strict=True):
         for indice, coluna in enumerate(colunas):
             if coluna in colunas_moeda and original[indice] is None:
@@ -45,7 +46,11 @@ def _xlsx(r: RelatorioMonitorado, recorte: str) -> bytes:
     pasta = xlsx_builder.nova_pasta()
     blocos = [
         xlsx_builder.BlocoAba(None, [r.titulo, ""], _cabecalho_resumo(r, recorte)),
-        *([xlsx_builder.BlocoAba("Indicadores", ["Indicador", "Valor"], [list(i) for i in r.indicadores])] if r.indicadores else []),
+        *(
+            [xlsx_builder.BlocoAba("Indicadores", ["Indicador", "Valor"], [list(i) for i in r.indicadores])]
+            if r.indicadores
+            else []
+        ),
         *(xlsx_builder.BlocoAba(q.titulo, q.colunas, q.linhas, colunas_moeda=q.colunas_moeda) for q in r.quebras),
     ]
     xlsx_builder.escrever_aba_blocos(pasta, "Resumo", blocos)
@@ -89,29 +94,50 @@ def _registros_equipamentos_simplificados(r: RelatorioMonitorado) -> SecaoTabela
             return f"{nome}: {valor}" if valor else ""
 
         municipio_uf = " / ".join(filter(None, (campos["Município"], campos["UF"])))
-        linhas.append([
-            campos["Instrumento"],
-            "\n".join(filter(None, (campos["Estabelecimento de Saúde"], rotulo("CNES", "CNES")))),
-            "\n".join(filter(None, (municipio_uf, campos["Região"]))),
-            campos["Equipamento"],
-            "\n".join(filter(None, (
-                campos["Situação (Equipamento)"],
-                rotulo("Site", "Situação (Site)"),
-                rotulo("Monitoramento", "Situação (Monitoramento)"),
-            ))),
-            campos["Qtd"],
-            campos["Valor do Equipamento"],
-            "\n".join(filter(None, (
-                rotulo("Entrega", "Data de Entrega do Equipamento"),
-                rotulo("Previsão/Inauguração", "Data de Previsão/Inauguração"),
-                rotulo("Status", "Status da Inauguração"),
-            ))),
-            campos["Técnico Responsável"],
-        ])
+        linhas.append(
+            [
+                campos["Instrumento"],
+                "\n".join(filter(None, (campos["Estabelecimento de Saúde"], rotulo("CNES", "CNES")))),
+                "\n".join(filter(None, (municipio_uf, campos["Região"]))),
+                campos["Equipamento"],
+                "\n".join(
+                    filter(
+                        None,
+                        (
+                            campos["Situação (Equipamento)"],
+                            rotulo("Site", "Situação (Site)"),
+                            rotulo("Monitoramento", "Situação (Monitoramento)"),
+                        ),
+                    )
+                ),
+                campos["Qtd"],
+                campos["Valor do Equipamento"],
+                "\n".join(
+                    filter(
+                        None,
+                        (
+                            rotulo("Entrega", "Data de Entrega do Equipamento"),
+                            rotulo("Previsão/Inauguração", "Data de Previsão/Inauguração"),
+                            rotulo("Status", "Status da Inauguração"),
+                        ),
+                    )
+                ),
+                campos["Técnico Responsável"],
+            ]
+        )
     return SecaoTabela(
         "Registros de equipamentos",
-        ("Instrumento", "Estabelecimento", "Local", "Equipamento", "Situação", "Qtd", "Valor",
-         "Entrega e inauguração", "Técnico responsável"),
+        (
+            "Instrumento",
+            "Estabelecimento",
+            "Local",
+            "Equipamento",
+            "Situação",
+            "Qtd",
+            "Valor",
+            "Entrega e inauguração",
+            "Técnico responsável",
+        ),
         linhas,
         pesos_colunas=(1.25, 2.7, 1.75, 1.75, 2.65, 0.65, 1.4, 2.7, 1.7),
     )

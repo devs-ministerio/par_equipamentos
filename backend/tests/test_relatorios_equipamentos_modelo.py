@@ -10,19 +10,41 @@ from app.services.relatorios_modelo import ContextoInstrumento
 
 
 def _ctx(**c):
-    base = dict(numero="1", cnes="2237601", estabelecimento="Hospital A", municipio="Belo Horizonte", uf="MG",
-                regiao="Sudeste", contratacao="Convênio", situacao_site="Em execução",
-                situacao_monitoramento="Concluído", numero_processo="25000.1/2018-11", ano=2018,
-                inicio_vigencia=date(2018, 3, 15), fim_vigencia=date(2027, 3, 15), tecnico="Ana")
+    base = dict(
+        numero="1",
+        cnes="2237601",
+        estabelecimento="Hospital A",
+        municipio="Belo Horizonte",
+        uf="MG",
+        regiao="Sudeste",
+        contratacao="Convênio",
+        situacao_site="Em execução",
+        situacao_monitoramento="Concluído",
+        numero_processo="25000.1/2018-11",
+        ano=2018,
+        inicio_vigencia=date(2018, 3, 15),
+        fim_vigencia=date(2027, 3, 15),
+        tecnico="Ana",
+    )
     base.update(c)
     return ContextoInstrumento(**base)
 
 
 def _fato(**c):
-    base = dict(contexto=_ctx(), equipamento="Acelerador Linear", descricao_item="011807 - Acelerador Linear",
-                situacao="em_operacao", quantidade=1, valor=5_100_000.0, data_entrega=date(2026, 1, 10),
-                data_previsao_inauguracao=date(2026, 2, 20), status_inauguracao="Realizada",
-                marca="Varian", modelo="Halcyon", serie="2526")
+    base = dict(
+        contexto=_ctx(),
+        equipamento="Acelerador Linear",
+        descricao_item="011807 - Acelerador Linear",
+        situacao="em_operacao",
+        quantidade=1,
+        valor=5_100_000.0,
+        data_entrega=date(2026, 1, 10),
+        data_previsao_inauguracao=date(2026, 2, 20),
+        status_inauguracao="Realizada",
+        marca="Varian",
+        modelo="Halcyon",
+        serie="2526",
+    )
     base.update(c)
     return FatoEquipamento(**base)
 

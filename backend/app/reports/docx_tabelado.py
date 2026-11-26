@@ -117,7 +117,8 @@ def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]
             # Título preso (keepNext) a uma tabela longa vai sozinho para a página seguinte.
             if secao.titulo:
                 docx_builder.adicionar_titulo(
-                    documento, secao.titulo,
+                    documento,
+                    secao.titulo,
                     solto=not (secao.detalhes or secao.linhas_de_secao) and len(secao.linhas) > _LINHAS_TABELA_CURTA,
                 )
             else:

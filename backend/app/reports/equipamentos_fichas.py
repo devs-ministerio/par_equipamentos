@@ -17,8 +17,13 @@ _CABECALHO = (
     ("Acompanhamento", ("Situação (Site)", "Situação (Monitoramento)", "Técnico Responsável")),
 )
 _ALINHAMENTOS = (
-    WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER,
-    WD_ALIGN_PARAGRAPH.RIGHT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT,
+    WD_ALIGN_PARAGRAPH.LEFT,
+    WD_ALIGN_PARAGRAPH.LEFT,
+    WD_ALIGN_PARAGRAPH.LEFT,
+    WD_ALIGN_PARAGRAPH.CENTER,
+    WD_ALIGN_PARAGRAPH.RIGHT,
+    WD_ALIGN_PARAGRAPH.CENTER,
+    WD_ALIGN_PARAGRAPH.LEFT,
 )
 
 
@@ -53,8 +58,13 @@ def fichas_equipamentos(relatorio: RelatorioMonitorado) -> list[SecaoTabela]:
         registro = linhas[0]
         prefixo = registro["Contratação"] or "Instrumento"
         fichas.append(montar_ficha(f"{prefixo} - {numero}", registro, _CABECALHO))
-        fichas.append(SecaoTabela(
-            "", _COLUNAS, [_linha_equipamento(campos) for campos in linhas],
-            pesos_colunas=_PESOS, alinhamentos=_ALINHAMENTOS,
-        ))
+        fichas.append(
+            SecaoTabela(
+                "",
+                _COLUNAS,
+                [_linha_equipamento(campos) for campos in linhas],
+                pesos_colunas=_PESOS,
+                alinhamentos=_ALINHAMENTOS,
+            )
+        )
     return fichas

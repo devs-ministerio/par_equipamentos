@@ -148,9 +148,7 @@ def descrever_filtros(
     return " · ".join(partes)
 
 
-def cabecalho(
-    filtro: FiltroRelatorio, *, referencia: date, fonte: str, filtros: str
-) -> tuple[tuple[str, str], ...]:
+def cabecalho(filtro: FiltroRelatorio, *, referencia: date, fonte: str, filtros: str) -> tuple[tuple[str, str], ...]:
     return (
         ("Recorte", filtro.titulo()),
         ("Filtros", filtros),
@@ -177,9 +175,7 @@ def descartar_colunas_vazias(
     )
 
 
-def quebra_por(
-    titulo: str, rotulo: str, valores: Iterable[str], *, ordem: Sequence[str] | None = None
-) -> Tabela:
+def quebra_por(titulo: str, rotulo: str, valores: Iterable[str], *, ordem: Sequence[str] | None = None) -> Tabela:
     contagem = Counter(valores)
     total = sum(contagem.values())
     chaves = [k for k in ordem if k in contagem] if ordem else sorted(contagem, key=lambda k: (-contagem[k], k))

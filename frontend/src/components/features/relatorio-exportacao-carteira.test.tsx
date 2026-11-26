@@ -207,10 +207,8 @@ it("aplica várias fases à prévia e à exportação de instrumentos", async ()
   await user.click(excel);
   expect(gerar).toHaveBeenCalledWith("xlsx", "completo", recorte);
   expect(
-    parametrosRelatorio(
-      "instrumentos_monitorados",
-      "completo",
-      recorte,
-    ).getAll("fase_instrumento"),
+    parametrosRelatorio("instrumentos_monitorados", "completo", recorte).getAll(
+      "fase_instrumento",
+    ),
   ).toEqual(["Em aquisição", "Concluído"]);
 });

@@ -22,7 +22,9 @@ def _relatorio(**extra):
         unidade="unidades",
         cabecalho=(("Recorte", "MG"), ("Filtros", "f"), ("Referência", "26/11/2026"), ("Fonte", "SISGEO")),
         indicadores=(("Unidades", 1),),
-        quebras=(Tabela("Por situação", ("Situação", "Total", "%"), [("Em operação", 1, "100%"), ("Total", 1, "100%")]),),
+        quebras=(
+            Tabela("Por situação", ("Situação", "Total", "%"), [("Em operação", 1, "100%"), ("Total", 1, "100%")]),
+        ),
         abas=(Tabela("Ações em aberto", ("Ação",), [("Enviar parecer",)]),),
         legenda=(("A", "primeira coluna"),),
         colunas_data=("Data",),
@@ -50,7 +52,9 @@ def test_excel_formata_moeda_em_registros_abas_extras_e_resumo():
         colunas=("A", "Valor do Equipamento"),
         linhas=[("x", 1500.5)],
         colunas_moeda=("Valor do Equipamento",),
-        quebras=(Tabela("Valor do equipamento", ("Situação", "Valor"), [("Planejado", 10.0)], colunas_moeda=("Valor",)),),
+        quebras=(
+            Tabela("Valor do equipamento", ("Situação", "Valor"), [("Planejado", 10.0)], colunas_moeda=("Valor",)),
+        ),
         abas=(Tabela("Extra", ("Item", "Preço"), [("a", 3.0)], colunas_moeda=("Preço",)),),
     )
     pasta = _xlsx(r)
@@ -69,7 +73,7 @@ def test_excel_nao_formata_como_moeda_o_que_nao_e_moeda():
 
 def test_excel_rodape_e_blocos_nao_viram_formula():
     r = _relatorio(
-        legenda=(("=1+1", "=HYPERLINK(\"http://x\")"),),
+        legenda=(("=1+1", '=HYPERLINK("http://x")'),),
         indicadores=(("=2+2", "=3+3"),),
         quebras=(Tabela("=T", ("=C", "Total"), [("=SUM(1,2)", 1)]),),
     )
@@ -96,7 +100,9 @@ def test_word_completo_acrescenta_registros_com_data_e_moeda_formatadas():
         colunas=("A", "Data", "Valor do Equipamento"),
         linhas=[("x", date(2026, 1, 10), 1234.5)],
         colunas_moeda=("Valor do Equipamento",),
-        quebras=(Tabela("Valor do equipamento", ("Situação", "Valor"), [("Planejado", 10.0)], colunas_moeda=("Valor",)),),
+        quebras=(
+            Tabela("Valor do equipamento", ("Situação", "Valor"), [("Planejado", 10.0)], colunas_moeda=("Valor",)),
+        ),
     )
     doc = Document(BytesIO(gerar_monitorados(r, formato="docx", recorte="MG", nivel="completo")))
     assert len(doc.tables) == 2
@@ -116,8 +122,7 @@ def test_word_mostra_filtros_ativos_da_mesma_extracao():
 
 
 def test_word_moeda_ausente_fica_vazia_e_zero_real_continua_zero():
-    r = _relatorio(colunas=("Valor do Equipamento",), linhas=[(None,), (0.0,)],
-                   colunas_moeda=("Valor do Equipamento",))
+    r = _relatorio(colunas=("Valor do Equipamento",), linhas=[(None,), (0.0,)], colunas_moeda=("Valor do Equipamento",))
     doc = Document(BytesIO(gerar_monitorados(r, formato="docx", recorte="MG", nivel="completo")))
     assert doc.tables[1].rows[1].cells[0].text == ""
     assert doc.tables[1].rows[2].cells[0].text == "R$ 0,00"
@@ -132,16 +137,40 @@ def test_excel_cabecalho_tambem_permanece_texto_literal():
 def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
     def linha(numero, serie, valor):
         return (
-            numero, "0030001", "Hospital Alfa", "Belo Horizonte", "MG", "Sudeste", "Convênio", "Acelerador Linear",
-            "0100 – Acelerador linear", "Em operação", "Em execução", "Concluído", 1, valor, date(2026, 1, 10),
-            date(2026, 1, 15), "Realizada", "12345", 2024, date(2024, 1, 1), date(2026, 12, 31),
-            "Fabricante A", "Modelo B", serie, "Almeida",
+            numero,
+            "0030001",
+            "Hospital Alfa",
+            "Belo Horizonte",
+            "MG",
+            "Sudeste",
+            "Convênio",
+            "Acelerador Linear",
+            "0100 – Acelerador linear",
+            "Em operação",
+            "Em execução",
+            "Concluído",
+            1,
+            valor,
+            date(2026, 1, 10),
+            date(2026, 1, 15),
+            "Realizada",
+            "12345",
+            2024,
+            date(2024, 1, 1),
+            date(2026, 12, 31),
+            "Fabricante A",
+            "Modelo B",
+            serie,
+            "Almeida",
         )
 
     relatorio = _relatorio(
-        colunas=COLUNAS_EQUIPAMENTO_COMPLETO, linhas=[linha("100", "SN1", 1234.5), linha("200", None, None),
-                                                       linha("100", "SN2", 0.0)],
-        colunas_data=DATAS, colunas_moeda=MOEDA, arquivo_base="equipamentos", total=3,
+        colunas=COLUNAS_EQUIPAMENTO_COMPLETO,
+        linhas=[linha("100", "SN1", 1234.5), linha("200", None, None), linha("100", "SN2", 0.0)],
+        colunas_data=DATAS,
+        colunas_moeda=MOEDA,
+        arquivo_base="equipamentos",
+        total=3,
     )
     doc = Document(BytesIO(gerar_monitorados(relatorio, formato="docx", nivel="completo", recorte="MG")))
     assert len(doc.tables) == 5
@@ -159,11 +188,22 @@ def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
     assert espaco.getnext() is ficha._tbl
     assert not ficha.autofit and len(ficha.columns) == 7
     assert [c.text for c in ficha.rows[0].cells] == [
-        "Equipamento", "Descrição do item do plano", "Situação", "Qtd", "Valor", "Entrega", "Inauguração",
+        "Equipamento",
+        "Descrição do item do plano",
+        "Situação",
+        "Qtd",
+        "Valor",
+        "Entrega",
+        "Inauguração",
     ]
     assert [c.text for c in ficha.rows[1].cells] == [
-        "Acelerador Linear", "0100 – Acelerador linear", "Em operação", "1",
-        "R$ 1.234,50", "10/01/2026", "15/01/2026\nRealizada",
+        "Acelerador Linear",
+        "0100 – Acelerador linear",
+        "Em operação",
+        "1",
+        "R$ 1.234,50",
+        "10/01/2026",
+        "15/01/2026\nRealizada",
     ]
     assert ficha.rows[2].cells[4].text == "R$ 0,00"
     assert doc.tables[4].rows[1].cells[4].text == ""
@@ -178,19 +218,32 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
     campos_equipamento = {"Equipamentos", "Qtd Planejado", "Qtd Entregue", "Qtd em Operação", "% Em Operação"}
     dados = {
         "Equipamentos": "Tomógrafo (2); Mamógrafo",
-        "Qtd Planejado": 1, "Qtd Entregue": 2, "Qtd em Operação": 1, "% Em Operação": "33%",
+        "Qtd Planejado": 1,
+        "Qtd Entregue": 2,
+        "Qtd em Operação": 1,
+        "% Em Operação": "33%",
     }
     linhas = [
-        tuple((dados.get(c) if numero == 1 else None) if c in campos_equipamento else f"valor {numero}-{i:02d}."
-              for i, c in enumerate(colunas))
+        tuple(
+            (dados.get(c) if numero == 1 else None) if c in campos_equipamento else f"valor {numero}-{i:02d}."
+            for i, c in enumerate(colunas)
+        )
         for numero in (1, 2)
     ]
     relatorio = _relatorio(
-        titulo="Instrumentos", arquivo_base="instrumentos", unidade="instrumentos",
-        colunas=colunas, linhas=linhas, total=2, colunas_data=(),
-        equipamentos_por_instrumento={linhas[0][0]: [
-            EquipamentoDoInstrumento("Tomógrafo", 2, 1, 1, 1250.5), EquipamentoDoInstrumento("Mamógrafo", 0, 1, 0),
-        ]},
+        titulo="Instrumentos",
+        arquivo_base="instrumentos",
+        unidade="instrumentos",
+        colunas=colunas,
+        linhas=linhas,
+        total=2,
+        colunas_data=(),
+        equipamentos_por_instrumento={
+            linhas[0][0]: [
+                EquipamentoDoInstrumento("Tomógrafo", 2, 1, 1, 1250.5),
+                EquipamentoDoInstrumento("Mamógrafo", 0, 1, 0),
+            ]
+        },
     )
     doc = Document(BytesIO(gerar_monitorados(relatorio, formato="docx", nivel="completo", recorte="RS")))
     titulos = [p for p in doc.paragraphs if p.style.name == "Heading 1" and " - " in p.text]
@@ -203,11 +256,16 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
         assert [c.text for c in ficha.rows[0].cells] == ["Campo", "Informação"]
         secoes = [row for row in ficha.rows[1:] if len(row._tr.tc_lst) == 1]
         assert [r.cells[0].text for r in secoes] == [
-            "Estabelecimento", "Instrumento", "Acompanhamento", "Datas e inauguração", "Valores",
+            "Estabelecimento",
+            "Instrumento",
+            "Acompanhamento",
+            "Datas e inauguração",
+            "Valores",
         ]
         assert all(row.cells[0].paragraphs[0].runs[0].bold for row in secoes)
         assert {r.cells[0].text: r.cells[1].text for r in ficha.rows[1:] if len(r._tr.tc_lst) == 2} == {
-            campo: valor for campo, valor in zip(colunas, linha, strict=True)
+            campo: valor
+            for campo, valor in zip(colunas, linha, strict=True)
             if campo not in campos_equipamento and campo != "Instrumento"
         }
         espaco = ficha._tbl.getnext()
