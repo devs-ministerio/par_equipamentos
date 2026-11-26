@@ -47,7 +47,7 @@ def test_linha_simplificada_e_completa_seguem_as_colunas():
     assert completo[COLUNAS_EQUIPAMENTO_COMPLETO.index("Nº do Processo")] == "25000.1/2018-11"
 
 
-def test_resumo_conta_unidades_e_destaca_aceleradores():
+def test_resumo_conta_equipamentos_por_situacao():
     fatos = [
         _fato(quantidade=2),
         _fato(situacao="planejado", quantidade=3, equipamento="Mamógrafo"),
@@ -55,9 +55,9 @@ def test_resumo_conta_unidades_e_destaca_aceleradores():
     ]
     indicadores, quebras = resumo_equipamentos(fatos, escopo="uf", referencia=date(2026, 11, 26))
     mapa = dict(indicadores)
-    assert mapa["Unidades"] == 6
+    assert mapa["Quantidade de Equipamentos"] == 6
     assert mapa["Em operação"] == 2 and mapa["Planejado"] == 3 and mapa["Entregue, a inaugurar"] == 1
-    assert mapa["Aceleradores Lineares"] == "3 (2 em operação, 1 faltantes)"
+    assert "Aceleradores Lineares" not in mapa
     assert [q.titulo for q in quebras][:4] == [
         "Por situação",
         "Por equipamento",

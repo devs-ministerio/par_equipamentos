@@ -30,6 +30,10 @@ def test_filtros_padrao_de_equipamentos():
     assert descrever_filtros(FiltroRelatorio(escopo="brasil", equipamento="Mamógrafo", tipo_contratacao="PERSUS I")) == (
         "Mamógrafo · PERSUS I"
     )
+    assert descrever_filtros(
+        FiltroRelatorio(escopo="brasil"), contratacoes=("Convênio", "FAF", "PERSUS I", "TED")
+    ) == "Todos os Equipamentos em Oncologia · Convênio, FAF, PERSUS I, TED"
+    assert descrever_filtros(FiltroRelatorio(escopo="brasil"), contratacoes=()) == "Todos os Equipamentos em Oncologia"
 
 
 def test_cabecalho_tem_quatro_campos():

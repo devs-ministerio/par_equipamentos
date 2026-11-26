@@ -179,12 +179,14 @@ def adicionar_logotipo_final(documento: DocumentType) -> None:
 
 
 @_serializar_xml
-def adicionar_cabecalho_institucional(documento: DocumentType, *, gerado_em: datetime) -> None:
+def adicionar_cabecalho_institucional(documento: DocumentType, *, gerado_em: datetime | None = None) -> None:
     for linha in _CABECALHO_INSTITUCIONAL:
         paragrafo = _novo_paragrafo(documento)
         run = paragrafo.add_run(linha)
         run.bold = linha == _CABECALHO_INSTITUCIONAL[0]
         run.font.size = Pt(10)
+    if gerado_em is None:
+        return
     aviso = _novo_paragrafo(documento)
     run_aviso = aviso.add_run(
         f"Documento gerado automaticamente pelo SISGEO em {gerado_em.astimezone(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')} "

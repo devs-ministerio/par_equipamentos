@@ -51,17 +51,11 @@ def resumo_equipamentos(
     fatos: list[FatoEquipamento], *, escopo: str, referencia: date
 ) -> tuple[tuple[tuple[str, Celula], ...], tuple[Tabela, ...]]:
     por_situacao: Counter[str] = Counter()
-    aceleradores: Counter[str] = Counter()
     for f in fatos:
         por_situacao[ROTULOS[f.situacao]] += f.quantidade
-        if f.equipamento == "Acelerador Linear":
-            aceleradores[f.situacao] += f.quantidade
-    total_ac = sum(aceleradores.values())
-    faltantes = aceleradores["planejado"] + aceleradores["entregue"]
     indicadores: tuple[tuple[str, Celula], ...] = (
-        ("Unidades", sum(por_situacao.values())),
+        ("Quantidade de Equipamentos", sum(por_situacao.values())),
         *((r, por_situacao[r]) for r in ORDEM_SITUACAO),
-        ("Aceleradores Lineares", f"{total_ac} ({aceleradores['em_operacao']} em operação, {faltantes} faltantes)"),
     )
     quebras = [
         quebra_por(

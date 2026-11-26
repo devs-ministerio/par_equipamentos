@@ -80,10 +80,19 @@ def nome_arquivo(tipo: str, filtro: FiltroRelatorio, nivel: Nivel, formato: str)
 
 
 def descrever_filtros(
-    filtro: FiltroRelatorio, *, situacoes: Sequence[str] = (), fases: Sequence[str] = ()
+    filtro: FiltroRelatorio,
+    *,
+    situacoes: Sequence[str] = (),
+    fases: Sequence[str] = (),
+    contratacoes: Sequence[str] | None = None,
 ) -> str:
     partes = [filtro.equipamento or ROTULO_TODOS_EQUIPAMENTOS]
-    partes.append(filtro.tipo_contratacao or "todas as contratações")
+    if filtro.tipo_contratacao:
+        partes.append(filtro.tipo_contratacao)
+    elif contratacoes is None:
+        partes.append("todas as contratações")
+    elif contratacoes:
+        partes.append(", ".join(contratacoes))
     if situacoes:
         partes.append(", ".join(situacoes))
     if fases:

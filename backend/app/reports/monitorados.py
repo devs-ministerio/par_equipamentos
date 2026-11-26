@@ -74,14 +74,61 @@ def _xlsx(r: RelatorioMonitorado, recorte: str) -> bytes:
     return xlsx_builder.gerar_bytes(pasta)
 
 
+def _registros_equipamentos_simplificados(r: RelatorioMonitorado) -> SecaoTabela:
+    linhas = []
+    textos = _linhas_tabela(r.colunas, r.linhas, colunas_data=_datas(r), colunas_moeda=r.colunas_moeda)
+    for originais, valores in zip(r.linhas, textos, strict=True):
+        campos = {
+            coluna: texto if original is not None else ""
+            for coluna, original, texto in zip(r.colunas, originais, valores, strict=True)
+        }
+
+        def rotulo(nome: str, coluna: str) -> str:
+            valor = campos[coluna]
+            return f"{nome}: {valor}" if valor else ""
+
+        municipio_uf = " / ".join(filter(None, (campos["Município"], campos["UF"])))
+        linhas.append([
+            campos["Instrumento"],
+            "\n".join(filter(None, (campos["Estabelecimento de Saúde"], rotulo("CNES", "CNES")))),
+            "\n".join(filter(None, (municipio_uf, campos["Região"]))),
+            campos["Equipamento"],
+            "\n".join(filter(None, (
+                campos["Situação (Equipamento)"],
+                rotulo("Site", "Situação (Site)"),
+                rotulo("Monitoramento", "Situação (Monitoramento)"),
+            ))),
+            campos["Qtd"],
+            campos["Valor do Equipamento"],
+            "\n".join(filter(None, (
+                rotulo("Entrega", "Data de Entrega do Equipamento"),
+                rotulo("Previsão/Inauguração", "Data de Previsão/Inauguração"),
+                rotulo("Status", "Status da Inauguração"),
+            ))),
+            campos["Técnico Responsável"],
+        ])
+    return SecaoTabela(
+        "Registros de equipamentos",
+        ("Instrumento", "Estabelecimento", "Local", "Equipamento", "Situação", "Qtd", "Valor",
+         "Entrega e inauguração", "Técnico responsável"),
+        linhas,
+        pesos_colunas=(1.25, 2.7, 1.75, 1.75, 2.65, 0.65, 1.4, 2.7, 1.7),
+    )
+
+
 def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
     cabecalho = dict(r.cabecalho)
     referencia = cabecalho.get("Referência")
     fonte = cabecalho.get("Fonte")
     documento = docx_builder.novo_documento(r.titulo, paisagem=True)
-    docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=datetime.now(timezone.utc))
+    equipamentos = r.arquivo_base == "equipamentos"
+    gerado_em = None if equipamentos else datetime.now(timezone.utc)
+    docx_builder.adicionar_cabecalho_institucional(documento, gerado_em=gerado_em)
     quando = f"Em {referencia}, " if referencia else ""
-    docx_builder.adicionar_paragrafo(documento, f"{quando}{r.total} {r.unidade} no recorte {recorte}.")
+    unidade = r.unidade
+    if equipamentos:
+        unidade = "equipamento" if r.total == 1 else "equipamentos"
+    docx_builder.adicionar_paragrafo(documento, f"{quando}{r.total} {unidade} no recorte {recorte}.")
     if filtros := cabecalho.get("Filtros"):
         docx_builder.adicionar_paragrafo(documento, f"Filtros: {filtros}.")
     if r.criterios:
@@ -100,7 +147,9 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
             )
         )
     # Sem síntese (modelo ainda sem quebras), a tabela de registros é o único conteúdo.
-    if nivel == "completo" or not r.quebras:
+    if equipamentos and nivel == "simplificado":
+        secoes.append(_registros_equipamentos_simplificados(r))
+    elif nivel == "completo" or not r.quebras:
         secoes.append(
             SecaoTabela(
                 r.titulo,

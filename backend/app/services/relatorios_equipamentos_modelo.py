@@ -163,6 +163,7 @@ def montar_equipamentos(
     fatos = _fatos_equipamentos(db, recorte, etapas, situacoes, completo, filtro.equipamento)
     indicadores, quebras = resumo_equipamentos(fatos, escopo=filtro.escopo, referencia=referencia)
     rotulos = tuple(ROTULOS[s] for s in dict.fromkeys(situacoes))
+    contratacoes = sorted({f.contexto.contratacao for f in fatos if f.contexto.contratacao}, key=normalizar_texto)
     return RelatorioMonitorado(
         "Equipamentos",
         COLUNAS_EQUIPAMENTO_COMPLETO if completo else COLUNAS_EQUIPAMENTO_SIMPLIFICADO,
@@ -170,7 +171,10 @@ def montar_equipamentos(
         sum(f.quantidade for f in fatos),
         "unidades",
         rotulos,
-        cabecalho(filtro, referencia=referencia, fonte=FONTE, filtros=descrever_filtros(filtro, situacoes=rotulos)),
+        cabecalho(
+            filtro, referencia=referencia, fonte=FONTE,
+            filtros=descrever_filtros(filtro, situacoes=rotulos, contratacoes=contratacoes),
+        ),
         indicadores,
         quebras,
         (),

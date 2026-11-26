@@ -1312,11 +1312,11 @@ bloqueado de tudo, sem exceção, em qualquer um dos dois gates abaixo.
 
 `GET /relatorios` usa `app/routers/relatorios.py` e `app/services/relatorios.py`. A análise de mérito continua separada do monitoramento, sem granularidade CNES.
 
-- **Equipamentos (26/11/2026):** `tipo_relatorio=equipamentos_monitorados`; prévia, Excel e Word usam a mesma extração. Simplificado: 16 colunas, síntese estratégica e Word em nota informativa. Completo: 25 colunas e Word com nota + registros. Excel em ambos: abas Resumo e Registros, legenda no rodapé fora do filtro, datas nativas e valores numéricos em R$; moeda ausente fica vazia. Word formata datas/moeda, preserva filtros ativos e deixa moeda ausente vazia.
+- **Equipamentos (26/11/2026):** `tipo_relatorio=equipamentos_monitorados`; prévia, Excel e Word usam a mesma extração. Simplificado: 16 campos, agrupados em nove colunas no Word com largura limitada à área útil do A4 paisagem. Completo: 25 colunas. Ambos os Word trazem nota e registros. Excel usa abas Resumo e Registros, legenda abaixo dos dados e moeda numérica em R$. O resumo exibe Quantidade de Equipamentos e os tipos de contratação do recorte. Moeda ausente fica vazia.
 - **Nomes com recorte:** `relatorio-equipamentos-MG-{nivel}.{xlsx|docx}`; os demais downloads também usam o recorte real. Filtro sem família: **Todos os Equipamentos em Oncologia**. Situação (Site) é a oficial; Situação (Monitoramento) é a fase interna. Fonte de Equipamentos: `SISGEO · SICONV · RENEM · CNES`.
 - **Instrumentos e Propostas:** a migração de modelos das Tasks 7/8 aguarda a validação dos arquivos de Equipamentos. Não existe novo `tipo_relatorio=propostas` nesta entrega; a prévia atual de propostas permanece no contrato anterior. Não antecipar abas Financeiro/Ações ou novos esquemas.
 - **Legado mantido:** `instrumentos_repasse` reúne convênios e propostas candidatas; Word completo narra blocos por instrumento e Excel usa tabelas. `instrumentos_monitorados` continua disponível. `analise_merito` permanece na análise de cobertura. Modelos novos não alteram regras de cobertura nem ofertas SUS/em uso.
-- **Conferência local:** `outputs/relatorios-equipamentos-2026-11-26/`, quatro arquivos MG e `conferencia.json`. Autenticação substituída só no ensaio HTTP em processo; serviços/builders reais, transação de homologação explicitamente read-only. Nenhuma carga ou chamada de produção.
+- **Conferência local:** quatro arquivos MG em `outputs/relatorios-equipamentos-2026-11-26-revisado/`. Ensaio HTTP com autenticação simulada e leitura no clone de homologação.
 
 - **Filtro de município é feito em Python, nunca `==` em SQL** (`app/pipeline/texto.py::
   normalizar_texto`, upper+sem-acento, aplicado depois de trazer por UF) — achado ao vivo: a mesma

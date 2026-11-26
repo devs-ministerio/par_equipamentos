@@ -89,6 +89,17 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
         situacoes=("em_operacao",),
     )
     assert operacao.total == (0 if previsao else 2)
+    arquivo_simplificado = montar_relatorio(db=sessao, formato="docx", nivel="simplificado", tipo_relatorio=tipo, filtro=filtro)
+    doc = Document(BytesIO(arquivo_simplificado))
+    paragrafos = [p.text for p in doc.paragraphs]
+    assert any("Quantidade de Equipamentos: 4" in p for p in paragrafos)
+    assert not any("Documento gerado automaticamente" in p or "Aceleradores Lineares:" in p for p in paragrafos)
+    assert "Convênio" in next(p for p in paragrafos if p.startswith("Filtros:"))
+    tabela = doc.tables[-1]
+    assert len(doc.tables) == 2 and len(tabela.columns) == 9 and len(tabela.rows) == 4
+    assert tabela.autofit is False
+    linhas_word = [tuple(c.text for c in linha.cells) for linha in tabela.rows[1:]]
+    assert any(linha[0] == numero and situacao_entrega in linha[4] for linha in linhas_word)
     concluidos = montar_relatorio_monitorado(
         db=sessao,
         tipo="instrumentos_monitorados",
@@ -177,15 +188,18 @@ def test_recorte_brasil_inclui_todas_as_contratacoes(entregas):  # noqa: F811
     sessao.flush()
     base = FiltroRelatorio(escopo="brasil", busca=marca)
 
-    def contratacoes(filtro: FiltroRelatorio) -> set[str]:
+    def contratacoes(filtro: FiltroRelatorio) -> tuple[set[str], str]:
         relatorio = montar_relatorio_monitorado(
             db=sessao, tipo="equipamentos_monitorados", nivel="completo", filtro=filtro
         )
         ix = relatorio.colunas.index("Contratação")
-        return {linha[ix] for linha in relatorio.linhas}
+        tipos = {linha[ix] for linha in relatorio.linhas}
+        return {tipo for tipo in tipos if isinstance(tipo, str)}, dict(relatorio.cabecalho)["Filtros"]
 
-    assert contratacoes(base) == {"Convênio", "PERSUS I"}
-    assert contratacoes(replace(base, tipo_contratacao="PERSUS I")) == {"PERSUS I"}
+    assert contratacoes(base) == ({"Convênio", "PERSUS I"}, "Todos os Equipamentos em Oncologia · Convênio, PERSUS I")
+    assert contratacoes(replace(base, tipo_contratacao="PERSUS I")) == (
+        {"PERSUS I"}, "Todos os Equipamentos em Oncologia · PERSUS I"
+    )
 
 
 def test_contexto_usa_nome_do_cnes_ou_do_convenente(db):  # noqa: F811
