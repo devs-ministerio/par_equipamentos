@@ -151,13 +151,13 @@ def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
     cadastro = next(p.text for p in doc.paragraphs if p.text.startswith("Instrumento:"))
     assert "Processo: 12345" in cadastro and "Fim da vigência: 31/12/2026" in cadastro
     ficha = doc.tables[1]
-    assert not ficha.autofit and len(ficha.columns) == 6
+    assert not ficha.autofit and len(ficha.columns) == 7
     assert [c.text for c in ficha.rows[0].cells] == [
-        "Equipamento", "Situação", "Qtd", "Valor", "Entrega", "Inauguração",
+        "Equipamento", "Descrição do item do plano", "Situação", "Qtd", "Valor", "Entrega", "Inauguração",
     ]
     assert [c.text for c in ficha.rows[1].cells] == [
-        "Acelerador Linear\n0100 – Acelerador linear", "Em operação", "1",
+        "Acelerador Linear", "0100 – Acelerador linear", "Em operação", "1",
         "R$ 1.234,50", "10/01/2026", "15/01/2026\nRealizada",
     ]
-    assert ficha.rows[2].cells[3].text == "R$ 0,00"
-    assert doc.tables[2].rows[1].cells[3].text == ""
+    assert ficha.rows[2].cells[4].text == "R$ 0,00"
+    assert doc.tables[2].rows[1].cells[4].text == ""

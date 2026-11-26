@@ -4,8 +4,8 @@ from app.reports.docx_builder import linhas_como_texto
 from app.reports.docx_tabelado import SecaoTabela
 from app.services.relatorios_modelo import RelatorioMonitorado
 
-_COLUNAS = ("Equipamento", "Situação", "Qtd", "Valor", "Entrega", "Inauguração")
-_PESOS = (5.95, 1.8, 0.55, 1.45, 1.2, 1.7)
+_COLUNAS = ("Equipamento", "Descrição do item do plano", "Situação", "Qtd", "Valor", "Entrega", "Inauguração")
+_PESOS = (2.1, 3.85, 1.8, 0.55, 1.45, 1.2, 1.7)
 
 
 def _rotulo(nome: str, valor: str) -> str:
@@ -33,12 +33,9 @@ def _detalhes(campos: dict[str, str]) -> list[tuple[str, str]]:
 
 
 def _linha_equipamento(campos: dict[str, str]) -> tuple[str, ...]:
-    equipamento = campos["Equipamento"]
-    descricao = campos["Descrição do item no plano"]
-    if descricao and descricao != equipamento:
-        equipamento = "\n".join(filter(None, (equipamento, descricao)))
     return (
-        equipamento,
+        campos["Equipamento"],
+        campos["Descrição do item no plano"],
         campos["Situação (Equipamento)"],
         campos["Qtd"],
         campos["Valor do Equipamento"],

@@ -83,9 +83,9 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
                 f"Instrumento {numero}"
             ]
             ficha = doc.tables[-1]
-            assert ficha.autofit is False and len(ficha.columns) == 6
+            assert ficha.autofit is False and len(ficha.columns) == 7
             qtd = previa.colunas.index("Qtd")
-            assert [(r.cells[1].text, int(r.cells[2].text)) for r in ficha.rows[1:]] == [
+            assert [(r.cells[2].text, int(r.cells[3].text)) for r in ficha.rows[1:]] == [
                 (r[ix], r[qtd]) for r in previa.linhas
             ]
 
