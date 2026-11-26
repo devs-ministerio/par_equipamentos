@@ -16,6 +16,7 @@ from app.services.relatorios_modelo import (
     Tabela,
     cabecalho,
     descrever_contratacoes,
+    formatar_cnpj,
     quebra_por,
 )
 from app.services.relatorios_recorte import _propostas
@@ -42,7 +43,7 @@ def _linha(p: PropostaCandidata, *, completo: bool, referencia: date) -> tuple[C
         return (p.nm_proponente, *local, p.nm_programa, p.equipamento_detectado, *situacao)
     dias = (referencia - p.data_proposta).days if p.data_proposta else None
     return (
-        str(p.id_proposta), p.nm_proponente, p.cnpj_ente_recebedor, *local, p.nm_programa, p.componente_batido,
+        str(p.id_proposta), p.nm_proponente, formatar_cnpj(p.cnpj_ente_recebedor), *local, p.nm_programa, p.componente_batido,
         p.equipamento_detectado, p.ds_objeto, *situacao, dias, p.status.value if p.status else None,
     )
 
@@ -74,7 +75,6 @@ def montar_propostas(*, db: Session, filtro: FiltroRelatorio, completo: bool, re
         total=len(propostas), unidade="propostas",
         cabecalho=cabecalho(filtro, referencia=referencia, fonte="SISGEO", filtros=filtros),
         indicadores=(("Quantidade de Propostas", len(propostas)),), quebras=quebras,
-        legenda=(("Valor Global da Proposta", "Valor global informado na proposta."),
-                 ("Dias desde a Proposta", "Dias entre a data da proposta e a referência do relatório.")),
+        legenda=(("Dias desde a Proposta", "Dias entre a data da proposta e a referência do relatório."),),
         colunas_data=_DATAS, colunas_moeda=_MOEDA, arquivo_base="propostas", aba_registros="Propostas",
     )

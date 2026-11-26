@@ -50,3 +50,24 @@ def test_quebra_conta_e_soma_total():
     tabela = quebra_por("Por UF", "UF", ["MG", "MG", "SP"])
     assert tabela.colunas == ("UF", "Total", "%")
     assert tabela.linhas == [("MG", 2, "67%"), ("SP", 1, "33%"), ("Total", 3, "100%")]
+
+
+def test_formatar_processo_padroniza_nup_e_tira_espacos():
+    from app.services.relatorios_modelo import formatar_processo
+
+    assert formatar_processo("25000217837202583") == "25000.217837/2025-83"
+    assert formatar_processo("25000151194202336   ") == "25000.151194/2023-36"
+    assert formatar_processo("25000.226791/2011-98") == "25000.226791/2011-98"
+    assert formatar_processo("12345") == "12345"
+    assert formatar_processo("   ") is None
+    assert formatar_processo(None) is None
+
+
+def test_formatar_cnpj_padroniza_e_preserva_o_que_nao_e_cnpj():
+    from app.services.relatorios_modelo import formatar_cnpj
+
+    assert formatar_cnpj("87020517000120") == "87.020.517/0001-20"
+    assert formatar_cnpj("87.020.517/0001-20 ") == "87.020.517/0001-20"
+    assert formatar_cnpj("123") == "123"
+    assert formatar_cnpj("") is None
+    assert formatar_cnpj(None) is None

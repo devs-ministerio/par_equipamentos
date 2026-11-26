@@ -6,7 +6,7 @@ from app.geo_reference import REGIAO_POR_UF
 from app.pipeline.texto import capitalizar_nome
 from app.repositories import relatorios_contexto as repo
 from app.services.monitoramento_instrumentos import InstrumentoComFase
-from app.services.relatorios_modelo import ContextoInstrumento
+from app.services.relatorios_modelo import ContextoInstrumento, formatar_processo
 
 # Task 0, passo 1: situação oficial do convênio (a fase interna fica em Situação (Monitoramento)).
 SITUACAO_SITE_CAMPO = "situacao"
@@ -24,7 +24,7 @@ def contexto_do(instrumento, fase: str | None, convenio, nome_cnes: str | None) 
         contratacao=instrumento.tipo_contratacao,
         situacao_site=getattr(convenio, SITUACAO_SITE_CAMPO, None) if convenio else None,
         situacao_monitoramento=fase,
-        numero_processo=convenio.numero_processo if convenio else None,
+        numero_processo=formatar_processo(convenio.numero_processo) if convenio else None,
         ano=instrumento.ano_instrumento,
         inicio_vigencia=convenio.data_inicio_vigencia if convenio else None,
         fim_vigencia=convenio.data_final_vigencia if convenio else None,

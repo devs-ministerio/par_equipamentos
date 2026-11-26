@@ -21,6 +21,7 @@ from app.services.relatorios_modelo import (
     Tabela,
     cabecalho,
     descrever_filtros,
+    formatar_cnpj,
     quebra_por,
 )
 from app.valor_global import TIPOS_SEM_DADOS_OFICIAIS, valor_global_considerado
@@ -53,13 +54,12 @@ _DATAS = (
 )
 _MOEDA = ("Valor Global", "Valor Repassado")
 _LEGENDA = (
-    ("Situação (Site)", "Situação oficial do instrumento nos dados importados."),
+    ("Situação (Site)", "Situação oficial do instrumento."),
     ("Situação (Monitoramento)", "Fase do acompanhamento interno."),
-    ("Qtd Planejado", "Saldo ainda não entregue, descontadas as unidades canceladas."),
-    ("Qtd em Operação", "Parte dos equipamentos entregues que já entrou em operação."),
-    ("% Em Operação", "Quantidade em operação em relação ao total de unidades entregues e ainda a entregar."),
-    ("Data de Conclusão do Monitoramento", "Exibida somente quando não há registro de inauguração."),
-    ("Valor Repassado", "Desembolso da fonte confiável ou valor integral da carga manual."),
+    ("Qtd Planejado", "Saldo a entregar, sem as unidades canceladas."),
+    ("% Em Operação", "Em operação sobre as unidades entregues e a entregar, sem as canceladas."),
+    ("Data de Conclusão do Monitoramento", "Só aparece quando não há data de inauguração."),
+    ("Valor Repassado", "Valor desembolsado; sem dado financeiro oficial, vale o valor global."),
 )
 
 
@@ -118,7 +118,7 @@ def _linha(f: _Instrumento, *, completo: bool, equipamentos: list[EquipamentoDoI
     )
     _, status = inauguracao_da_linha(etapa, "em_operacao" if etapa.modo_operacao else "planejado")
     return (
-        *base, i.cnpj_convenente or (c.convenente_cnpj if c else None), *local, *situacao,
+        *base, formatar_cnpj(i.cnpj_convenente or (c.convenente_cnpj if c else None)), *local, *situacao,
         familias or None, a_entregar, entregue, em_operacao,
         f"{round(em_operacao / total * 100)}%" if total else None,
         etapa.publicacao, c.data_ultima_liberacao if c else None, etapa.entrega, *datas, status,

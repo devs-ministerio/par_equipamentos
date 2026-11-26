@@ -1,5 +1,6 @@
 """Estruturas e utilidades comuns aos modelos de relatório de Equipamentos, Instrumentos e Propostas."""
 
+import re
 import unicodedata
 from collections import Counter
 from collections.abc import Iterable, Sequence
@@ -12,6 +13,26 @@ from app.services.relatorios_filtro import FiltroRelatorio, Nivel
 
 Celula = str | int | float | date | None
 ROTULO_TODOS_EQUIPAMENTOS = "Todos os Equipamentos em Oncologia"
+
+
+def formatar_processo(valor: str | None) -> str | None:
+    """NUP de 17 dígitos no padrão 25000.217837/2025-83; outro formato fica como veio, sem espaços."""
+    if not valor or not valor.strip():
+        return None
+    digitos = re.sub(r"\D", "", valor)
+    if len(digitos) != 17:
+        return valor.strip()
+    return f"{digitos[:5]}.{digitos[5:11]}/{digitos[11:15]}-{digitos[15:]}"
+
+
+def formatar_cnpj(valor: str | None) -> str | None:
+    """CNPJ de 14 dígitos no padrão 00.000.000/0000-00; outro formato fica como veio, sem espaços."""
+    if not valor or not valor.strip():
+        return None
+    digitos = re.sub(r"\D", "", valor)
+    if len(digitos) != 14:
+        return valor.strip()
+    return f"{digitos[:2]}.{digitos[2:5]}.{digitos[5:8]}/{digitos[8:12]}-{digitos[12:]}"
 
 
 @dataclass(frozen=True)

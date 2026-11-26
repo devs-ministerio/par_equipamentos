@@ -44,13 +44,11 @@ DATAS = ("Data de Entrega do Equipamento", "Data de Previsão/Inauguração", "I
 MOEDA = ("Valor do Equipamento",)
 
 LEGENDA_EQUIPAMENTOS = (
-    ("Situação (Equipamento)", "Planejado, Entregue a inaugurar, Em operação ou Cancelado."),
-    ("Situação (Site)", "Situação oficial do instrumento nos dados importados."),
+    ("Situação (Site)", "Situação oficial do instrumento."),
     ("Situação (Monitoramento)", "Fase do acompanhamento interno."),
-    ("Data de Entrega do Equipamento", "Data em que o equipamento foi entregue. Vazia se ainda não entregue."),
     (
         "Data de Previsão/Inauguração",
-        "Em operação: inauguração realizada. Entregue a inaugurar e Planejado: previsão, se houver.",
+        "Em operação: inauguração realizada. Demais situações: previsão, se houver.",
     ),
     ("Status da Inauguração", "Realizada, Prevista, Dispensada ou Pela entrega."),
     (
