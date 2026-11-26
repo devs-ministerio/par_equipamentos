@@ -3,10 +3,9 @@ from datetime import date
 from app.services.relatorios_equipamentos_modelo import (
     COLUNAS_EQUIPAMENTO_COMPLETO,
     COLUNAS_EQUIPAMENTO_SIMPLIFICADO,
-    FatoEquipamento,
     linha_equipamento,
-    resumo_equipamentos,
 )
+from app.services.relatorios_equipamentos_resumo import FatoEquipamento, resumo_equipamentos
 from app.services.relatorios_modelo import ContextoInstrumento
 
 
@@ -82,3 +81,11 @@ def test_valor_cancelado_fica_em_linha_propria_e_fora_do_entregue():
 def test_quebra_por_estabelecimento_em_recorte_de_municipio():
     _, quebras = resumo_equipamentos([_fato()], escopo="municipio", referencia=date(2026, 11, 26))
     assert quebras[2].titulo == "Por estabelecimento"
+
+
+def test_resumo_brasil_exibe_regioes_e_nao_converte_valor_ausente_em_zero():
+    fatos = [_fato(situacao="entregue", valor=None), _fato(situacao="cancelado", valor=0.0)]
+    _, quebras = resumo_equipamentos(fatos, escopo="brasil", referencia=date(2026, 11, 26))
+    assert quebras[2].titulo == "Por região"
+    valores = next(q for q in quebras if q.titulo == "Valor do equipamento")
+    assert valores.linhas == [("Planejado", None), ("Entregue", None), ("Cancelado", 0.0)]

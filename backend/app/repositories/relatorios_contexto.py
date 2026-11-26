@@ -54,8 +54,7 @@ def valores_por_familia(db: Session, instrumento_ids: set[int]) -> dict[tuple[in
 
     Exige que TODOS os itens ativos controlados tenham valor e quantidade, e que o preço unitário
     (valor_total / quantidade_planejada) seja o mesmo em todos. Caso contrário a família fica de fora:
-    o valor não é inventado nem vira média que misture preços. A Task 6 só usa este valor quando o item
-    vinculado não existe em `valor_unitario_por_item`."""
+    a agregação não mistura preços; no detalhamento da entrega vale o preço do item vinculado."""
     if not instrumento_ids:
         return {}
     familia = _familia()  # mesma instância no SELECT e no GROUP BY (bind compartilhado)
@@ -100,5 +99,6 @@ def valor_unitario_por_item(db: Session, instrumento_ids: set[int]) -> dict[int,
 
 
 def acoes_abertas(db: Session, instrumento_ids: set[int]) -> dict[int, list[AcaoMonitoramento]]:
+    """Ações vigentes ainda sem data de conclusão, agrupadas por instrumento."""
     por_instrumento = listar_acoes_por_instrumentos(db, sorted(instrumento_ids))
     return {i: [a for a in acoes if a.data_conclusao is None] for i, acoes in por_instrumento.items()}

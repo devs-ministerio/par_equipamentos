@@ -28,6 +28,7 @@ from app.services.relatorios import FiltroRelatorio, montar_relatorio
 from app.services.relatorios_encerrados import previa_encerrados
 from app.services.relatorios_entregues import previa_entregues
 from app.services.relatorios_filtro import EtapaRelatorio, TipoRelatorio
+from app.services.relatorios_modelo import nome_arquivo as montar_nome_arquivo
 from app.services.relatorios_monitorados import Celula, SituacaoEquipamento, TipoMonitorado, montar_relatorio_monitorado
 from app.services.relatorios_recorte import previa_propostas
 
@@ -98,7 +99,11 @@ def gerar_relatorio(
         situacoes_equipamento=tuple(situacao_equipamento),
         fases_instrumento=tuple(fase_instrumento or ()),
     )
-    nome_arquivo = f"relatorio-{tipo_relatorio}-{escopo}-{nivel}.{formato}"
+    rotulo = {
+        "equipamentos_monitorados": "equipamentos",
+        "instrumentos_monitorados": "instrumentos",
+    }.get(tipo_relatorio, tipo_relatorio)
+    nome_arquivo = montar_nome_arquivo(rotulo, filtro, nivel, formato)
     return StreamingResponse(
         iter([conteudo]),
         media_type=_MEDIA_TYPE[formato],

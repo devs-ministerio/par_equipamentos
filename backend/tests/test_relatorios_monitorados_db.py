@@ -49,6 +49,7 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
     sessao.flush()
     etapa = carregar_etapas(db=sessao, instrumentos=[inst])[0]
     assert etapa.conclusao_resultado is None
+    assert etapa.previsao_inauguracao == previsao
     assert etapa.modo_operacao == (None if previsao else "inaugurada")
 
     tipo: Final = "equipamentos_monitorados"
@@ -72,11 +73,11 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
         arquivo = montar_relatorio(db=sessao, formato=formato, nivel=nivel, tipo_relatorio=tipo, filtro=filtro)
         if formato == "xlsx":
             pasta = load_workbook(BytesIO(arquivo), read_only=True)
-            registros = list(pasta["Registros"].values)
+            registros = list(pasta["Registros"].iter_rows(max_row=len(previa.linhas) + 1, values_only=True))
             pasta.close()
         else:
             doc = Document(BytesIO(arquivo))
-            registros = [tuple(c.text for c in linha.cells) for linha in doc.tables[0].rows]
+            registros = [tuple(c.text for c in linha.cells) for linha in doc.tables[-1].rows]
         assert registros[0] == previa.colunas
         assert [r[ix] for r in registros[1:]] == [r[ix] for r in previa.linhas]
 
@@ -95,6 +96,20 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
         filtro=FiltroRelatorio(escopo="brasil", busca=marca, situacao="Concluído"),
     )
     assert concluidos.total == 0
+
+
+def test_completo_preserva_quantidade_quando_falta_detalhe_da_entrega(entregas, monkeypatch):  # noqa: F811
+    sessao, _, marca = entregas
+    from app.services import relatorios_equipamentos_modelo
+
+    monkeypatch.setattr(relatorios_equipamentos_modelo, "listar_unidades_entregues", lambda *_a, **_kw: [])
+    filtro = FiltroRelatorio(escopo="brasil", busca=marca)
+    relatorio = montar_relatorio_monitorado(
+        db=sessao, tipo="equipamentos_monitorados", nivel="completo", filtro=filtro
+    )
+    linha, = relatorio.linhas
+    assert relatorio.total == linha[relatorio.colunas.index("Qtd")] == 2
+    assert linha[relatorio.colunas.index("Data de Entrega do Equipamento")] is None
 
 
 def test_previa_de_propostas_confere_com_word_e_excel(entregas):  # noqa: F811

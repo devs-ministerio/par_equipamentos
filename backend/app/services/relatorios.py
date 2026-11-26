@@ -177,6 +177,7 @@ def montar_relatorio(
                     ),
                     formato=formato,
                     recorte=filtro.titulo(),
+                    nivel=nivel,
                 )
             if filtro.encerramento == "encerrados":
                 if tipo_relatorio != "instrumentos_repasse":

@@ -39,3 +39,15 @@ def test_aba_blocos_empilha_titulo_colunas_e_linhas():
     assert valores[0] == ["Campo", "Valor"]
     assert ["Por situação", None] in valores
     assert ["Em operação", 63] in valores
+
+
+def test_rodape_impresso_com_titulo_em_negrito_e_linhas_vazias_fora_do_filtro():
+    pasta = xlsx_builder.nova_pasta()
+    xlsx_builder.escrever_aba_tabela(pasta, "Registros", ["A", "B"], [[1, 2]],
+        rodape=[["Legenda", ""], [], ["=nota", "=literal"]])
+    aba = _abrir(pasta)["Registros"]
+    assert aba["A4"].font.bold
+    assert aba["A5"].value is None
+    assert aba["A6"].value == "=nota" and aba["A6"].data_type == "s"
+    assert aba.auto_filter.ref == "A1:B2"
+    assert "$A$1:$B$6" in str(aba.print_area)

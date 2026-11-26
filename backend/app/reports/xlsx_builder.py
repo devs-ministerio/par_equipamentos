@@ -34,6 +34,15 @@ class BlocoAba:
     titulo: str | None
     colunas: Sequence[str]
     linhas: Sequence[Sequence[Any]]
+    colunas_moeda: Sequence[str] = ()
+
+
+def _neutralizar_formulas(aba: Worksheet, numero_linha: int, total_colunas: int) -> None:
+    """Texto da fonte nunca vira fórmula executável: força tipo texto onde o openpyxl inferiu fórmula."""
+    for numero_coluna in range(1, total_colunas + 1):
+        celula = aba.cell(row=numero_linha, column=numero_coluna)
+        if celula.data_type == "f":
+            celula.data_type = "s"
 
 
 def nova_pasta() -> Workbook:
@@ -61,6 +70,7 @@ def escrever_aba_tabela(
     tem número/data nativos numa tabela de texto."""
     aba = pasta.create_sheet(title=titulo[:31])
     aba.append(list(colunas))
+    _neutralizar_formulas(aba, 1, len(colunas))
     for celula in aba[1]:
         celula.fill = _COR_CABECALHO
         celula.font = _FONTE_CABECALHO
@@ -71,15 +81,13 @@ def escrever_aba_tabela(
         # Forçar texto conserva inclusive o '=' literal, sem prefixar apóstrofo.
         # max_row e a seleção de linha inteira recalculam dimensões varrendo
         # todas as células. Índices conhecidos evitam custo quadrático.
-        for numero_coluna in range(1, len(linha) + 1):
-            celula = aba.cell(row=numero_linha, column=numero_coluna)
-            if celula.data_type == "f":
-                celula.data_type = "s"
+        _neutralizar_formulas(aba, numero_linha, len(linha))
     if rodape:
         # Legenda fica abaixo de uma linha em branco, fora do auto_filter.
         aba.append([])
-        for linha in rodape:
+        for deslocamento, linha in enumerate(rodape):
             aba.append(list(linha))
+            _neutralizar_formulas(aba, len(linhas) + 3 + deslocamento, len(linha))
         aba.cell(row=len(linhas) + 3, column=1).font = Font(bold=True)
     aba.freeze_panes = "A2"
     if linhas:
@@ -101,18 +109,31 @@ def escrever_aba_blocos(pasta: Workbook, titulo: str, blocos: Sequence[BlocoAba]
     """Aba de resumo: blocos de tabela empilhados, separados por uma linha em branco."""
     aba = pasta.create_sheet(title=titulo[:31])
     largura = max((len(b.colunas) for b in blocos), default=1)
+    proxima = 1
     for indice, bloco in enumerate(blocos):
         if indice:
             aba.append([])
+            proxima += 1
         if bloco.titulo:
             aba.append([bloco.titulo])
-            aba.cell(row=aba.max_row, column=1).font = Font(bold=True)
+            _neutralizar_formulas(aba, proxima, 1)
+            aba.cell(row=proxima, column=1).font = Font(bold=True)
+            proxima += 1
         aba.append(list(bloco.colunas))
-        for celula in aba[aba.max_row]:
+        _neutralizar_formulas(aba, proxima, len(bloco.colunas))
+        for numero_coluna in range(1, len(bloco.colunas) + 1):
+            celula = aba.cell(row=proxima, column=numero_coluna)
             celula.fill = _COR_CABECALHO
             celula.font = _FONTE_CABECALHO
+        proxima += 1
+        nomes_moeda = set(bloco.colunas_moeda)
+        moeda = [i for i, c in enumerate(bloco.colunas, start=1) if c in nomes_moeda]
         for linha in bloco.linhas:
             aba.append(list(linha))
+            _neutralizar_formulas(aba, proxima, len(linha))
+            for numero_coluna in moeda:
+                aba.cell(row=proxima, column=numero_coluna).number_format = FORMATO_MOEDA
+            proxima += 1
     for coluna in range(1, largura + 1):
         letra = get_column_letter(coluna)
         maior = max((len(str(c.value)) for c in aba[letra] if c.value is not None), default=8)

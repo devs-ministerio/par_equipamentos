@@ -10,7 +10,8 @@ from app.domain_errors import ValidationError
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.services.fase_acompanhamento import FaseAcompanhamento
 from app.services.fatos_instrumento import carregar_etapas
-from app.services.relatorios_equipamentos_modelo import SituacaoEquipamento, montar_equipamentos
+from app.services.relatorios_equipamentos_modelo import montar_equipamentos
+from app.services.relatorios_equipamentos_resumo import SituacaoEquipamento as SituacaoEquipamento
 from app.services.relatorios_filtro import FiltroRelatorio, Nivel
 from app.services.relatorios_modelo import Celula, RelatorioMonitorado  # noqa: F401
 from app.services.relatorios_recorte import _instrumentos

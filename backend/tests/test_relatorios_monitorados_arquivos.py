@@ -1,0 +1,126 @@
+from datetime import date
+from io import BytesIO
+
+import pytest
+from docx import Document
+from openpyxl import load_workbook
+
+from app.reports.monitorados import gerar_monitorados
+from app.reports.xlsx_builder import FORMATO_MOEDA
+from app.services.relatorios_modelo import RelatorioMonitorado, Tabela
+
+
+def _relatorio(**extra):
+    base = dict(
+        titulo="Equipamentos",
+        colunas=("A", "Data"),
+        linhas=[("x", date(2026, 1, 10))],
+        total=1,
+        unidade="unidades",
+        cabecalho=(("Recorte", "MG"), ("Filtros", "f"), ("Referência", "26/11/2026"), ("Fonte", "SISGEO")),
+        indicadores=(("Unidades", 1),),
+        quebras=(Tabela("Por situação", ("Situação", "Total", "%"), [("Em operação", 1, "100%"), ("Total", 1, "100%")]),),
+        abas=(Tabela("Ações em aberto", ("Ação",), [("Enviar parecer",)]),),
+        legenda=(("A", "primeira coluna"),),
+        colunas_data=("Data",),
+    )
+    base.update(extra)
+    return RelatorioMonitorado(**base)
+
+
+def _xlsx(r):
+    return load_workbook(BytesIO(gerar_monitorados(r, formato="xlsx", recorte="MG")))
+
+
+def test_excel_tem_resumo_registros_e_abas_extras_com_legenda_no_rodape():
+    pasta = _xlsx(_relatorio())
+    assert pasta.sheetnames == ["Resumo", "Registros", "Ações em aberto"]
+    resumo = [[c.value for c in linha] for linha in pasta["Resumo"].iter_rows(max_col=2)]
+    assert ["Fonte", "SISGEO"] in resumo and ["Em operação", 1] in resumo
+    registros = pasta["Registros"]
+    assert registros.auto_filter.ref == "A1:B2"
+    assert registros["A4"].value == "Legenda"
+
+
+def test_excel_formata_moeda_em_registros_abas_extras_e_resumo():
+    r = _relatorio(
+        colunas=("A", "Valor do Equipamento"),
+        linhas=[("x", 1500.5)],
+        colunas_moeda=("Valor do Equipamento",),
+        quebras=(Tabela("Valor do equipamento", ("Situação", "Valor"), [("Planejado", 10.0)], colunas_moeda=("Valor",)),),
+        abas=(Tabela("Extra", ("Item", "Preço"), [("a", 3.0)], colunas_moeda=("Preço",)),),
+    )
+    pasta = _xlsx(r)
+    assert pasta["Registros"]["B2"].number_format == FORMATO_MOEDA
+    assert pasta["Registros"]["B2"].value == 1500.5
+    assert pasta["Extra"]["B2"].number_format == FORMATO_MOEDA
+    achadas = [c for linha in pasta["Resumo"].iter_rows() for c in linha if c.value == 10.0]
+    assert achadas and achadas[0].number_format == FORMATO_MOEDA
+
+
+def test_excel_nao_formata_como_moeda_o_que_nao_e_moeda():
+    pasta = _xlsx(_relatorio())
+    celula = next(c for linha in pasta["Resumo"].iter_rows() for c in linha if c.value == "Unidades")
+    assert pasta["Resumo"].cell(celula.row, 2).number_format == "General"
+
+
+def test_excel_rodape_e_blocos_nao_viram_formula():
+    r = _relatorio(
+        legenda=(("=1+1", "=HYPERLINK(\"http://x\")"),),
+        indicadores=(("=2+2", "=3+3"),),
+        quebras=(Tabela("=T", ("=C", "Total"), [("=SUM(1,2)", 1)]),),
+    )
+    pasta = _xlsx(r)
+    for nome in ("Resumo", "Registros"):
+        for linha in pasta[nome].iter_rows():
+            for c in linha:
+                assert c.data_type != "f", (nome, c.coordinate, c.value)
+    registros = pasta["Registros"]
+    assert registros["A5"].value == "=1+1" and registros["A5"].data_type == "s"
+    textos = [c.value for linha in pasta["Resumo"].iter_rows() for c in linha]
+    assert "=SUM(1,2)" in textos and "=2+2" in textos
+
+
+def test_word_simplificado_e_nota_sem_tabela_de_registros():
+    doc = Document(BytesIO(gerar_monitorados(_relatorio(), formato="docx", recorte="MG")))
+    texto = "\n".join(p.text for p in doc.paragraphs)
+    assert "SISGEO" in texto and "26/11/2026" in texto
+    assert len(doc.tables) == 1
+
+
+def test_word_completo_acrescenta_registros_com_data_e_moeda_formatadas():
+    r = _relatorio(
+        colunas=("A", "Data", "Valor do Equipamento"),
+        linhas=[("x", date(2026, 1, 10), 1234.5)],
+        colunas_moeda=("Valor do Equipamento",),
+        quebras=(Tabela("Valor do equipamento", ("Situação", "Valor"), [("Planejado", 10.0)], colunas_moeda=("Valor",)),),
+    )
+    doc = Document(BytesIO(gerar_monitorados(r, formato="docx", recorte="MG", nivel="completo")))
+    assert len(doc.tables) == 2
+    assert doc.tables[0].rows[1].cells[1].text == "R$ 10,00"
+    assert [c.text for c in doc.tables[1].rows[1].cells] == ["x", "10/01/2026", "R$ 1.234,50"]
+
+
+@pytest.mark.parametrize("formato", ["xlsx", "docx"])
+def test_sem_cabecalho_cai_no_resumo_antigo(formato):
+    r = _relatorio(cabecalho=(), indicadores=(), quebras=(), abas=(), legenda=())
+    assert gerar_monitorados(r, formato=formato, recorte="MG").startswith(b"PK")
+
+
+def test_word_mostra_filtros_ativos_da_mesma_extracao():
+    doc = Document(BytesIO(gerar_monitorados(_relatorio(), formato="docx", recorte="MG")))
+    assert "Filtros: f" in "\n".join(p.text for p in doc.paragraphs)
+
+
+def test_word_moeda_ausente_fica_vazia_e_zero_real_continua_zero():
+    r = _relatorio(colunas=("Valor do Equipamento",), linhas=[(None,), (0.0,)],
+                   colunas_moeda=("Valor do Equipamento",))
+    doc = Document(BytesIO(gerar_monitorados(r, formato="docx", recorte="MG", nivel="completo")))
+    assert doc.tables[1].rows[1].cells[0].text == ""
+    assert doc.tables[1].rows[2].cells[0].text == "R$ 0,00"
+
+
+def test_excel_cabecalho_tambem_permanece_texto_literal():
+    pasta = _xlsx(_relatorio(colunas=("=1+1",), linhas=[("literal",)]))
+    assert pasta["Registros"]["A1"].value == "=1+1"
+    assert pasta["Registros"]["A1"].data_type == "s"
