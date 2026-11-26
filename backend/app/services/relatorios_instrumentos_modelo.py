@@ -155,7 +155,7 @@ def _quebras(fatos: list[_Instrumento], escopo: str) -> tuple[Tabela, ...]:
     return descartar_geografia_unica((
         quebra_por("Por situação", "Situação (Monitoramento)", (c.situacao_monitoramento or "Sem informação" for c in contextos)),
         quebra_por("Por contratação", "Contratação", (c.contratacao or "Sem informação" for c in contextos)),
-        quebra_por(f"Por {rotulo}", rotulo, (getattr(c, campo) or "Sem informação" for c in contextos)),
+        quebra_por("Por região" if rotulo == "Região" else f"Por {rotulo}", rotulo, (getattr(c, campo) or "Sem informação" for c in contextos)),
         Tabela("Valores", _MOEDA, [(sum(valores_global) if valores_global else None,
                                    sum(repassados) if repassados else None)], colunas_moeda=_MOEDA),
     ))
