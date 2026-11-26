@@ -190,17 +190,30 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
     assert [p.text for p in doc.paragraphs if p.text.startswith("Instrumento ")] == [
         f"Instrumento {linha[0]}" for linha in linhas
     ]
-    assert len(doc.tables) == 3
-    assert all(t.autofit is False and len(t.columns) == 5 for t in doc.tables[1:])
-    assert [[c.text for c in row.cells] for row in doc.tables[1].rows[1:]] == [
-        ["Tomógrafo", "1", "1", "1", "50%"],
-        ["Mamógrafo", "0", "1", "0", ""],
-        ["Total", "1", "2", "1", "100%"],
+    assert len(doc.tables) == 5
+    formularios = doc.tables[1::2]
+    tabelas_equipamentos = doc.tables[2::2]
+    assert all(t.autofit is False and len(t.columns) == 4 for t in tabelas_equipamentos)
+    assert [c.text for c in tabelas_equipamentos[0].rows[0].cells] == [
+        "Equipamento", "Qtd a entregar", "Qtd entregue", "Dos entregues, em operação",
     ]
-    assert doc.tables[2].rows[1].cells[0].text == "Nenhum registro neste recorte."
-    texto = "\n".join([p.text for p in doc.paragraphs] + [
-        c.text for t in doc.tables[1:] for c in t.rows[1].cells
-    ])
-    assert all(valor in texto for linha in linhas for campo, valor in zip(colunas, linha, strict=True)
-               if campo not in campos_equipamento and isinstance(valor, str))
-    assert all(p.paragraph_format.keep_with_next for p in doc.paragraphs if p.text.startswith("Estabelecimento:"))
+    assert [[c.text for c in row.cells] for row in tabelas_equipamentos[0].rows[1:]] == [
+        ["Tomógrafo", "1", "1", "1"],
+        ["Mamógrafo", "0", "1", "0"],
+        ["Total", "1", "2", "1"],
+    ]
+    assert tabelas_equipamentos[1].rows[1].cells[0].text == "Nenhum registro neste recorte."
+    assert all(p.style.font.bold for p in doc.paragraphs if p.text.startswith("Instrumento "))
+    for formulario, linha in zip(formularios, linhas, strict=True):
+        assert formulario.autofit is False and len(formulario.columns) == 2
+        assert [c.text for c in formulario.rows[0].cells] == ["Campo", "Informação"]
+        rows = [tuple(c.text for c in row.cells) for row in formulario.rows[1:]]
+        assert [rotulo for rotulo, valor in rows if not valor] == [
+            "Estabelecimento", "Instrumento", "Acompanhamento", "Datas e inauguração", "Valores",
+        ]
+        assert {rotulo: valor for rotulo, valor in rows if valor} == {
+            campo: valor for campo, valor in zip(colunas, linha, strict=True)
+            if campo not in campos_equipamento and campo != "Instrumento"
+        }
+        assert all(row.cells[0].paragraphs[0].runs[0].bold
+                   for row in formulario.rows[1:] if not row.cells[1].text)

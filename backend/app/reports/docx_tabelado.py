@@ -9,6 +9,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from docx.document import Document as DocumentType
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Pt
 from docx.table import Table, _Row
@@ -27,6 +28,7 @@ class SecaoTabela:
     pesos_colunas: Sequence[float] | None = None
     fonte_pt: float | None = None
     detalhes: Sequence[tuple[str, str]] = ()
+    linhas_de_secao: frozenset[int] = frozenset()
 
 
 def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> None:
@@ -53,6 +55,12 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
             try:
                 for celula, valor in zip(linha.cells, valores, strict=True):
                     celula.paragraphs[0].runs[0].text = "" if valor is None else str(valor)
+                    if indice - 1 in secao.linhas_de_secao:
+                        celula.paragraphs[0].runs[0].bold = True
+                        celula.paragraphs[0].paragraph_format.keep_with_next = True
+                        fundo = OxmlElement("w:shd")
+                        fundo.set(qn("w:fill"), "E7EDF5")
+                        celula._tc.get_or_add_tcPr().append(fundo)
                 if total <= 6 and indice == total - 1:
                     docx_builder._formatar_linha_tabela(linha, secao.fonte_pt, indice=indice, total=total)
                 xml.write(linha._tr)
@@ -78,7 +86,8 @@ def gerar_bytes_tabelados(documento: DocumentType, secoes: Sequence[SecaoTabela]
         for secao in secoes:
             # Título preso (keepNext) a uma tabela longa vai sozinho para a página seguinte.
             docx_builder.adicionar_titulo(
-                documento, secao.titulo, solto=not secao.detalhes and len(secao.linhas) > _LINHAS_TABELA_CURTA
+                documento, secao.titulo,
+                solto=not (secao.detalhes or secao.linhas_de_secao) and len(secao.linhas) > _LINHAS_TABELA_CURTA,
             )
             for rotulo, valor in secao.detalhes:
                 docx_builder.adicionar_paragrafo_rotulo_valor(documento, rotulo, valor, manter_com_proximo=True)
