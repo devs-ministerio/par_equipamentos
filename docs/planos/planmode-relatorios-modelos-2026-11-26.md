@@ -891,7 +891,7 @@ def test_resumo_conta_unidades_e_destaca_aceleradores():
     ]
 
 
-def test_valor_entregue_ignora_planejado_e_cancelado():
+def test_valor_cancelado_fica_em_linha_propria_e_fora_do_entregue():
     fatos = [
         _fato(situacao="em_operacao", valor=100.0),
         _fato(situacao="entregue", valor=50.0),
@@ -900,7 +900,7 @@ def test_valor_entregue_ignora_planejado_e_cancelado():
     ]
     _, quebras = resumo_equipamentos(fatos, escopo="uf", referencia=date(2026, 11, 26))
     valores = next(q for q in quebras if q.titulo == "Valor do equipamento")
-    assert valores.linhas == [("Planejado", 30.0), ("Entregue", 150.0)]
+    assert valores.linhas == [("Planejado", 30.0), ("Entregue", 150.0), ("Cancelado", 999.0)]
 
 
 def test_quebra_por_estabelecimento_em_recorte_de_municipio():
@@ -1053,18 +1053,19 @@ def _agenda(fatos: list[FatoEquipamento], referencia: date) -> Tabela | None:
 
 
 def _valores(fatos: list[FatoEquipamento]) -> Tabela | None:
-    com_valor = [f for f in fatos if f.valor is not None and f.situacao != "cancelado"]
+    com_valor = [f for f in fatos if f.valor is not None]
     if not com_valor:
         return None
     planejado = sum(f.valor for f in com_valor if f.situacao == "planejado")
     entregue = sum(f.valor for f in com_valor if f.situacao in ("entregue", "em_operacao"))
-    return Tabela(
-        "Valor do equipamento", ("Situação", "Valor"), [("Planejado", planejado), ("Entregue", entregue)],
-        colunas_moeda=("Valor",),
-    )
+    cancelado = sum(f.valor for f in com_valor if f.situacao == "cancelado")
+    linhas = [("Planejado", planejado), ("Entregue", entregue)]
+    if cancelado:
+        linhas.append(("Cancelado", cancelado))
+    return Tabela("Valor do equipamento", ("Situação", "Valor"), linhas, colunas_moeda=("Valor",))
 ```
 
-Observação (revisão do Codex): `FatoEquipamento.valor` é o valor **total da linha**, nunca uma média por família. Linha de unidade entregue usa o valor do **item vinculado à unidade** (`valor_unitario_por_item`). Linha agregada (planejado, cancelado e Simplificado) usa `valor_total_da_família × quantidade_da_linha ÷ quantidade_planejada_da_família`, e só quando todos os itens da família têm preço (`valores_por_familia`); senão fica vazia. O indicador **Entregue** soma apenas `entregue` e `em_operacao`.
+Observação (revisão do Codex): `FatoEquipamento.valor` é o valor **total da linha**, nunca uma média por família. Linha de unidade entregue usa o valor do **item vinculado à unidade** (`valor_unitario_por_item`). Linha agregada (planejado, cancelado e Simplificado) usa `valor_total_da_família × quantidade_da_linha ÷ quantidade_planejada_da_família`, e só quando todos os itens da família têm preço (`valores_por_familia`); senão fica vazia. O indicador **Entregue** soma apenas `entregue` e `em_operacao`; o valor de `cancelado` aparece numa linha própria "Cancelado" (decisão do usuário, 26/11/2026), nunca somado ao Entregue nem ao Planejado.
 
 - [ ] **Step 4: Integrar em `relatorios_monitorados.py`**
 
