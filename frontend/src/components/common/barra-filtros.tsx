@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { ChipsFiltrosAtivos, type RecortePainel } from "./chips-filtros-ativos";
 import { ApresentacaoFiltros, type Controle } from "./controles-filtro";
 
@@ -8,6 +9,7 @@ export function BarraFiltros({
   onLimpar,
   aviso,
   rotulo,
+  className,
 }: {
   controles: Controle[];
   recortes: RecortePainel[];
@@ -15,9 +17,15 @@ export function BarraFiltros({
   /** Estado da fonte (ex.: monitoramento indisponível); não é contagem de resultados. */
   aviso?: string;
   rotulo: string;
+  className?: string;
 }) {
   return (
-    <div className="@container mb-5 flex flex-col gap-1 rounded-xl border border-border bg-card p-1 shadow-sm">
+    <div
+      className={cn(
+        "@container mb-5 flex flex-col gap-1 rounded-xl border border-border bg-card p-1 shadow-sm",
+        className,
+      )}
+    >
       <ApresentacaoFiltros
         controles={controles}
         rotuloGrupo={rotulo}

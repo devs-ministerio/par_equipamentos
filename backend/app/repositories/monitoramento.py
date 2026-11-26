@@ -134,6 +134,14 @@ def carregar_dados_resumo_monitoramento(db: Session, *, hoje: date) -> DadosResu
     )
 
 
+def numeros_com_monitoramento(db: Session, numeros: set[str]) -> set[str]:
+    if not numeros:
+        return set()
+    return set(
+        db.scalars(select(InstrumentoEquipamento.nr_convenio).where(InstrumentoEquipamento.nr_convenio.in_(numeros)))
+    )
+
+
 def listar_instrumentos(
     db: Session,
     *,

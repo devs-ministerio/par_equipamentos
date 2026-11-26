@@ -16,7 +16,7 @@ from app.repositories.limites_relatorio import LimiteConsultaExcedido
 LIMITE = 20000
 
 
-def listar_unidades_entregues(db: Session) -> list[dict]:
+def listar_unidades_entregues(db: Session, *, instrumento_ids: set[int] | None = None) -> list[dict]:
     consulta = (
         select(
             InstrumentoEquipamento.nr_convenio.label("instrumento"),
@@ -46,6 +46,8 @@ def listar_unidades_entregues(db: Session) -> list[dict]:
         .order_by(InstrumentoEquipamento.nr_convenio, ItemPlano.id, UnidadeEquipamento.ordem)
         .limit(LIMITE + 1)
     )
+    if instrumento_ids is not None:
+        consulta = consulta.where(ItemPlano.instrumento_id.in_(instrumento_ids))
     linhas = [dict(linha) for linha in db.execute(consulta).mappings()]
     if len(linhas) > LIMITE:
         raise LimiteConsultaExcedido

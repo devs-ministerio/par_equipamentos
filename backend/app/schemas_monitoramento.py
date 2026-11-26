@@ -36,6 +36,9 @@ class UnidadesEntreguesRead(BaseModel):
     quantidade: int
 
 
+ModoOperacao = Literal["dispensada", "inaugurada", "pela_entrega"]
+
+
 class EtapasInstrumentoRead(BaseModel):
     """Datas das etapas de um instrumento, para prazos médios e para a situação da inauguração no painel.
     Repasse não entra: a confirmação de repasse não guarda data própria."""
@@ -46,6 +49,7 @@ class EtapasInstrumentoRead(BaseModel):
     inauguracao: date | None = None
     conclusao: date | None = None
     inauguracao_dispensada: bool = False
+    modo_operacao: ModoOperacao | None = None
     conclusao_resultado: str | None = None
     tem_acelerador_linear: bool = False
     unidades_entregues: list[UnidadesEntreguesRead] = []

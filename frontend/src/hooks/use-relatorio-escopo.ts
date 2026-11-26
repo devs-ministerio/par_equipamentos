@@ -15,10 +15,6 @@ export function useRelatorioEscopo(
   situacaoEscolhida: SituacaoDecodificada | null,
 ) {
   const {
-    encerramento,
-    periodoPor,
-    dataInicio,
-    dataFim,
     uf,
     anoInicio,
     anoFim,
@@ -89,12 +85,6 @@ export function useRelatorioEscopo(
         : escopoGeracao === "uf"
           ? (UF_INFO[ufEfetiva ?? ""]?.nome ?? ufEfetiva ?? "")
           : "Brasil";
-  const somenteEncerrados = encerramento === "encerrados";
-  const somenteEntregues = encerramento === "entregues";
-  // Período por data do evento (D02): conclusão em Concluídos, entrega em Equipamento entregue. Nas demais visões
-  // o período continua sendo o ano do instrumento.
-  const visaoPorEvento = somenteEncerrados || somenteEntregues;
-  const porDataDoEvento = visaoPorEvento && periodoPor === "data_do_evento";
   const filtroGeracao: FiltroRelatorio = {
     escopo: escopoGeracao,
     uf:
@@ -104,25 +94,14 @@ export function useRelatorioEscopo(
     municipio:
       escopoGeracao === "municipio" ? (municipio ?? undefined) : undefined,
     cnes: escopoGeracao === "cnes" ? cnesEfetivo : undefined,
-    anoInicio: anoInicio && !porDataDoEvento ? Number(anoInicio) : undefined,
-    anoFim: anoFim && !porDataDoEvento ? Number(anoFim) : undefined,
-    ...(porDataDoEvento
-      ? {
-          periodoPor: "data_do_evento" as const,
-          dataInicio: dataInicio ?? undefined,
-          dataFim: dataFim ?? undefined,
-        }
-      : {}),
+    anoInicio: anoInicio ? Number(anoInicio) : undefined,
+    anoFim: anoFim ? Number(anoFim) : undefined,
     situacao: situacaoEscolhida?.valor,
     situacaoOrigem: situacaoEscolhida?.origem,
     programa: programa ?? undefined,
     tipoContratacao: tipoContratacao ?? undefined,
     equipamento: equipamento ?? undefined,
-    encerramento: somenteEncerrados
-      ? "encerrados"
-      : somenteEntregues
-        ? "entregues"
-        : "todos",
+    encerramento: "todos",
   };
 
   return {
@@ -130,9 +109,5 @@ export function useRelatorioEscopo(
     resumoEscopo,
     municipioAmbiguo,
     estabelecimentoAmbiguo,
-    somenteEncerrados,
-    somenteEntregues,
-    visaoPorEvento,
-    porDataDoEvento,
   };
 }

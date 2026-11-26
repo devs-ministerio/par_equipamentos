@@ -1203,7 +1203,7 @@ class UsuarioRegiaoMonitoramento(Base):
         ForeignKey("user.id", ondelete="CASCADE", onupdate="RESTRICT"), primary_key=True
     )
     uf: Mapped[str] = mapped_column(String(2), primary_key=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class EventoMarco(Base):

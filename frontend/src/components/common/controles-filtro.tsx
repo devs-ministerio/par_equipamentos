@@ -25,16 +25,26 @@ export type Controle = {
 export function ControleDesktop({
   controle,
   className,
+  classePopover,
+  id,
+  disabled,
+  rotuloBotao = controle.rotulo,
 }: {
   controle: Controle;
   className?: string;
+  classePopover?: string;
+  id?: string;
+  disabled?: boolean;
+  rotuloBotao?: string;
 }) {
   const [aberto, setAberto] = useState(false);
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           type="button"
+          disabled={disabled}
           variant="ghost"
           size="sm"
           className={cn(
@@ -45,7 +55,7 @@ export function ControleDesktop({
           )}
         >
           <controle.icone className="size-3.5" aria-hidden="true" />
-          <span className="truncate">{controle.rotulo}</span>
+          <span className="truncate">{rotuloBotao}</span>
           {controle.ativo && (
             <span
               className="size-1.5 shrink-0 rounded-full bg-current"
@@ -58,7 +68,10 @@ export function ControleDesktop({
         align="end"
         sideOffset={8}
         aria-label={controle.rotulo}
-        className="z-[2000] max-h-[var(--radix-popover-content-available-height)] w-[min(19rem,calc(100vw-2rem))] overflow-y-auto p-3"
+        className={cn(
+          "z-[2000] max-h-[var(--radix-popover-content-available-height)] w-[min(19rem,calc(100vw-2rem))] overflow-y-auto p-3",
+          classePopover,
+        )}
       >
         <p className="px-0.5 text-sm font-semibold">{controle.rotulo}</p>
         {controle.conteudo(() => setAberto(false))}

@@ -1,11 +1,11 @@
-import { useState, type ComponentProps } from "react";
+import { Fragment, useState, type ComponentProps } from "react";
 import { Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import type { FiltrosMonitoramentoInterno } from "@/hooks/use-monitoramento-interno-filtros";
 import { OPCOES_REFERENCIA_GESTAO } from "@/lib/referencia-periodo-painel";
 import { normalizarTexto } from "@/utils/texto";
 
-export type Opcao = { value: string; label: string };
+export type Opcao = { value: string; label: string; group?: string };
 
 export function CampoSelect({
   rotulo,
@@ -31,10 +31,10 @@ export function Opcoes({
   pesquisar = false,
 }: {
   rotulo: string;
-  opcoes: Opcao[];
+  opcoes: (Opcao & { desabilitada?: boolean })[];
   valor: string | null;
   selecionar: (valor: string | null) => void;
-  todos: string;
+  todos?: string;
   pesquisar?: boolean;
 }) {
   const [busca, setBusca] = useState("");
@@ -42,6 +42,13 @@ export function Opcoes({
   const visiveis = opcoes.filter(({ label }) =>
     normalizarTexto(label).includes(termo),
   );
+  const itens =
+    todos === undefined
+      ? visiveis
+      : [
+          { value: null, label: todos, desabilitada: false, group: undefined },
+          ...visiveis,
+        ];
   return (
     <div className="space-y-2">
       {pesquisar && (
@@ -58,22 +65,27 @@ export function Opcoes({
         aria-label={rotulo}
         className="max-h-52 space-y-0.5 overflow-y-auto"
       >
-        {[{ value: null, label: todos }, ...visiveis].map(
-          ({ value, label }) => (
+        {itens.map(({ value, label, desabilitada, group }, indice) => (
+          <Fragment key={value ?? ""}>
+            {group && group !== itens[indice - 1]?.group && (
+              <h3 className="mt-1 border-t border-border px-2.5 pt-2 pb-1 text-xs font-semibold text-muted-foreground">
+                {group}
+              </h3>
+            )}
             <button
-              key={value ?? ""}
               type="button"
+              disabled={desabilitada}
               aria-pressed={value === valor}
               onClick={() => selecionar(value)}
-              className="flex min-h-8 w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring aria-pressed:bg-primary/10 aria-pressed:font-semibold aria-pressed:text-primary"
+              className="flex min-h-8 w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-xs enabled:hover:bg-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring disabled:opacity-50 aria-pressed:bg-primary/10 aria-pressed:font-semibold aria-pressed:text-primary"
             >
               {label}
               {value === valor && (
                 <Check className="size-3.5 shrink-0" aria-hidden="true" />
               )}
             </button>
-          ),
-        )}
+          </Fragment>
+        ))}
         {visiveis.length === 0 && (
           <p
             role="status"

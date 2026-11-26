@@ -61,13 +61,13 @@ describe("equipamentos: em operação, entregues e planejados", () => {
     });
   });
 
-  it("inauguração realizada sem conclusão integral continua só entregue", () => {
+  it("inauguração confirmada entra em operação sem conclusão integral", () => {
     const f = equipamentosPorSituacao(
       [linha("5", "Mamógrafo", 1, 1)],
       new Set(["5"]),
       [etapa("5", { inauguracao: "2025-01-01" })],
     );
-    expect(f[0]).toMatchObject({ operacao: 0, entregue: 1 });
+    expect(f[0]).toMatchObject({ operacao: 1, entregue: 0 });
   });
 
   it("entregue por UF usa a mesma separação", () => {

@@ -9,6 +9,7 @@ const recortes = [
   ["anoFim", "setAnoFim", "2026"],
   ["programa", "setPrograma", "Programa sintético"],
   ["tipoContratacao", "setTipoContratacao", "Convênio"],
+  ["monitorado", "setMonitorado", "propostas"],
   ["equipamento", "setEquipamento", "mamografo"],
   ["municipio", "setMunicipio", "SALVADOR"],
   ["cnes", "setCnes", "0000001"],
@@ -16,14 +17,6 @@ const recortes = [
 ] as const;
 
 describe("estado dos filtros do relatório", () => {
-  it("a visão (encerramento) não conta como filtro nem é limpa por limparFiltros", () => {
-    const { result } = renderHook(useRelatorioInstrumentosFiltros);
-    act(() => result.current.setEncerramento("encerrados"));
-    expect(result.current.hasFiltros).toBe(false);
-    act(() => result.current.limparFiltros());
-    expect(result.current.encerramento).toBe("encerrados");
-  });
-
   it.each(recortes)(
     "reconhece o recorte isolado %s e consegue limpá-lo",
     (campo, setter, valor) => {

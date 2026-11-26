@@ -373,7 +373,9 @@ def test_registrar_evento_persiste_numero_documento_e_data_validade():
         evento_id = resultado.id
         assert resultado.autor_nome == usuario_teste.name
         assert resultado.observacao == corpo.observacao
-        assert db.get(EventoMarco, evento_id).observacao == corpo.observacao
+        evento_salvo = db.get(EventoMarco, evento_id)
+        assert evento_salvo is not None
+        assert evento_salvo.observacao == corpo.observacao
         assert resultado.numero_documento == "TESTE-123"
         assert resultado.data_validade == date(2031, 1, 10)
         log = db.query(AuditLog).filter_by(entity_name="evento_marco", entity_id=evento_id).one()

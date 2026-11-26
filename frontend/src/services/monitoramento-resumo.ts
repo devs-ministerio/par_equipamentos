@@ -88,6 +88,10 @@ const etapasInstrumentoSchema = z.object({
   conclusao: z.string().nullable(),
   inauguracao_dispensada: z.boolean(),
   conclusao_resultado: z.string().nullable(),
+  modo_operacao: z
+    .enum(["dispensada", "inaugurada", "pela_entrega"])
+    .nullable()
+    .optional(),
   tem_acelerador_linear: z.boolean().default(false),
   unidades_entregues: z.array(
     z.object({ data: z.string(), quantidade: z.number() }),

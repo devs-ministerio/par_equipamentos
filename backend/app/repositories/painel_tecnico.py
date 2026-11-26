@@ -33,6 +33,12 @@ PERSUS_II = "PERSUS II"
 JANELA_RECENTE_DIAS = 15
 
 
+def instrumentos_por_ids(db: Session, ids: list[int]) -> list[InstrumentoEquipamento]:
+    if not ids:
+        return []
+    return list(db.scalars(select(InstrumentoEquipamento).where(InstrumentoEquipamento.id.in_(ids))))
+
+
 def _valor(c: Convenio) -> float | None:
     """Valor global pela mesma regra do Painel de gestão (fonte confiável ou carga manual)."""
     return valor_global_considerado(

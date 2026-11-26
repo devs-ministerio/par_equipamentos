@@ -23,6 +23,7 @@ export type SituacaoInauguracao =
  * então a data da entrega vale como inauguração. Vale só no cálculo do painel; nada é gravado.
  */
 export function inauguracaoPelaEntrega(e: Etapas): boolean {
+  if (e.modo_operacao !== undefined) return e.modo_operacao === "pela_entrega";
   return (
     !e.inauguracao &&
     !e.inauguracao_dispensada &&
@@ -32,18 +33,17 @@ export function inauguracaoPelaEntrega(e: Etapas): boolean {
   );
 }
 
-/**
- * Equipamentos entregues do instrumento já estão em operação: inauguração dispensada, realizada com o
- * instrumento 100% concluído, ou acelerador linear concluído (data da entrega vale como inauguração).
- * Os demais entregues ainda precisam de inauguração.
- */
+/** Compatibilidade com o resumo anterior ao campo de operação. */
+export function motivoOperacao(e: Etapas | undefined) {
+  if (!e) return null;
+  if (e.modo_operacao !== undefined) return e.modo_operacao;
+  if (e.inauguracao_dispensada) return "dispensada";
+  if (e.inauguracao) return "inaugurada";
+  return inauguracaoPelaEntrega(e) ? "pela_entrega" : null;
+}
+
 export function instrumentoEmOperacao(e: Etapas | undefined): boolean {
-  if (!e) return false;
-  return (
-    e.inauguracao_dispensada ||
-    inauguracaoPelaEntrega(e) ||
-    (!!e.inauguracao && e.conclusao_resultado === "integral")
-  );
+  return motivoOperacao(e) !== null;
 }
 
 /** Situação da inauguração de cada instrumento: realizada, prevista, dispensada ou sem registro. */
@@ -84,9 +84,10 @@ export function situacaoDoInstrumento(
 export function anosEmOperacao(e: Etapas | undefined): Set<string> {
   const anos = new Set<string>();
   if (!e) return anos;
-  if (e.inauguracao_dispensada || inauguracaoPelaEntrega(e)) {
+  const motivo = motivoOperacao(e);
+  if (motivo === "dispensada" || motivo === "pela_entrega") {
     for (const u of e.unidades_entregues) anos.add(u.data.slice(0, 4));
-  } else if (e.inauguracao && e.conclusao_resultado === "integral") {
+  } else if (motivo === "inaugurada" && e.inauguracao) {
     anos.add(e.inauguracao.slice(0, 4));
   }
   return anos;

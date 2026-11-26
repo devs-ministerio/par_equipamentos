@@ -17,6 +17,7 @@ export function RelatorioFiltros({
 }) {
   return (
     <BarraFiltros
+      className="mb-0"
       controles={montarControlesRelatorio(filtros, opcoes)}
       recortes={[]}
       onLimpar={filtros.limparFiltros}
@@ -25,7 +26,7 @@ export function RelatorioFiltros({
   );
 }
 
-/** Filtros ativos do relatório, removíveis um a um, com "Limpar filtros"; ficam no cabeçalho da prévia. */
+/** Filtros ativos do relatório, removíveis um a um, no cabeçalho da prévia. */
 export function RelatorioFiltrosAtivos({
   filtros,
   opcoes,

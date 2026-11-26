@@ -1,7 +1,7 @@
 import type { EquipamentoInstrumentoResumo } from "@/services/monitoramento-resumo";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 import {
-  inauguracaoPelaEntrega,
+  motivoOperacao,
   instrumentoEmOperacao,
   type Etapas,
 } from "@/lib/painel-gestao-andamento";
@@ -56,9 +56,9 @@ export interface EntregaInauguracaoAno {
 /**
  * Equipamentos entregues por ano, só onde a entrega está resolvida:
  * - inauguração dispensada: cada unidade entra no ano da própria entrega, mesmo com itens pendentes;
- * - inauguração realizada e instrumento 100% concluído: todas as unidades entram no ano da inauguração;
+ * - inauguração confirmada: todas as unidades entram no ano da inauguração;
  * - acelerador linear concluído sem registro: cada unidade entra no ano da entrega (vale como inauguração).
- * Instrumentos que ainda precisam de inauguração ou conclusão não entram; `aguardando` soma as unidades deles.
+ * Instrumentos que ainda precisam de inauguração não entram; `aguardando` soma as unidades deles.
  */
 export function entregaInauguracaoPorAno(
   numeros: ReadonlySet<string>,
@@ -74,13 +74,14 @@ export function entregaInauguracaoPorAno(
   for (const e of etapas) {
     if (!numeros.has(e.nr_convenio)) continue;
     const total = e.unidades_entregues.reduce((s, u) => s + u.quantidade, 0);
-    if (e.inauguracao_dispensada) {
+    const motivo = motivoOperacao(e);
+    if (motivo === "dispensada") {
       for (const u of e.unidades_entregues)
         linha(u.data.slice(0, 4)).dispensados += u.quantidade;
-    } else if (inauguracaoPelaEntrega(e)) {
+    } else if (motivo === "pela_entrega") {
       for (const u of e.unidades_entregues)
         linha(u.data.slice(0, 4)).inaugurados += u.quantidade;
-    } else if (e.inauguracao && e.conclusao_resultado === "integral") {
+    } else if (motivo === "inaugurada" && e.inauguracao) {
       linha(e.inauguracao.slice(0, 4)).inaugurados += total;
     } else {
       aguardando += total;

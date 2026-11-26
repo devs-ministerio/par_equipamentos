@@ -40,6 +40,7 @@ _DB_TEST_MODULES = {
     "test_migracao_fluxo_db.py",
     "test_preencher_cnes_ano_descricao_instrumento_db.py",
     "test_relatorios_entregues_db.py",
+    "test_relatorios_monitorados_db.py",
     "test_recalcular_cobertura_macro_db.py",
     "test_usuarios_ultimo_login_db.py",
     "test_baseline_batch_db.py",

@@ -3,7 +3,6 @@ import { opcoesSituacao } from "@/lib/situacao-relatorio";
 import {
   equipamentosFinanciados,
   mesclarOpcoes,
-  opcoesSituacaoDaVisao,
 } from "@/lib/recorte-relatorio";
 import type { PropostaCandidata } from "@/services/propostas-candidatas";
 
@@ -14,14 +13,12 @@ export function useRelatorioOpcoes({
   propostas,
   situacaoInstrumentoOptions,
   faseMonitoramento,
-  encerramento,
   programaOptions,
   equipamentoOptions,
 }: {
   propostas: PropostaCandidata[];
   situacaoInstrumentoOptions: Opcao[];
   faseMonitoramento: Map<string, string>;
-  encerramento: string | null;
   programaOptions: Opcao[];
   equipamentoOptions: Opcao[];
 }) {
@@ -37,10 +34,6 @@ export function useRelatorioOpcoes({
     [situacaoInstrumentoOptions, faseMonitoramento, propostas],
   );
 
-  const situacaoDaVisaoOptions = useMemo(
-    () => opcoesSituacaoDaVisao(situacaoOptions, encerramento),
-    [situacaoOptions, encerramento],
-  );
   // Programas e equipamentos que só existem nas propostas também entram nas opções (D04).
   const programaTodasOptions = useMemo(
     () =>
@@ -60,7 +53,7 @@ export function useRelatorioOpcoes({
   );
 
   return {
-    situacaoDaVisaoOptions,
+    situacaoOptions,
     programaTodasOptions,
     equipamentoTodasOptions,
   };

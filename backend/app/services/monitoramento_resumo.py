@@ -13,9 +13,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.repositories import conclusoes as conclusoes_repo
 from app.repositories import documentos as documentos_repo
-from app.repositories import etapas_instrumento as etapas_repo
 from app.repositories import itens_equipamento as itens_repo
 from app.repositories import monitoramento as monitoramento_repo
 from app.schemas_monitoramento import (
@@ -23,15 +21,14 @@ from app.schemas_monitoramento import (
     ContagemRotulo,
     DivergenciaConclusaoRead,
     EquipamentoInstrumentoResumo,
-    EtapasInstrumentoRead,
     InauguracaoResumo,
     IndicadoresInstrumentoRead,
     LicencaVencendoResumo,
     ResumoMonitoramentoRead,
-    UnidadesEntreguesRead,
 )
 from app.services import licenca_operacao
 from app.services.fase_acompanhamento import FaseAcompanhamento
+from app.services.fatos_instrumento import carregar_etapas, datas_inauguracao
 from app.services.monitoramento_divergencias import divergencia_conclusao
 from app.services.repasses import fases_calculadas_em_lote
 
@@ -95,6 +92,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     licencas_deferidas = 0
     licencas_vencendo: list[LicencaVencendoResumo] = []
     inauguracoes: list[InauguracaoResumo] = []
+    datas_por_instrumento: dict[int, tuple[date | None, date | None]] = {}
     divergencias_conclusao: list[DivergenciaConclusaoRead] = []
     divergencias_por_fonte: Counter[str] = Counter()
     indicadores_por_instrumento: list[IndicadoresInstrumentoRead] = []
@@ -177,7 +175,9 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
             # lista; id desempata created_at empatado (ver comentario acima).
             ev = max(evs_inaug, key=lambda e: (e.created_at, e.id), default=None)
             if ev:
-                data = ev.data_ocorrencia or ev.data_prevista
+                ocorrencia, previsao = datas_inauguracao(ev)
+                datas_por_instrumento[inst.id] = (ocorrencia, previsao)
+                data = ocorrencia or previsao
                 if data:
                     # Descricao PLANEJADA (SICONV) primeiro, cai pro FISICO
                     # (marca+modelo, so preenchido depois da entrega) --
@@ -196,7 +196,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                             uf=inst.uf,
                             equipamento=equipamento,
                             data=data,
-                            realizada=ev.data_ocorrencia is not None,
+                            realizada=ocorrencia is not None,
                             dias=(data - hoje).days,
                         )
                     )
@@ -236,29 +236,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         for i, f, p, e in itens_repo.resumo_por_instrumento_e_familia(db, set(numero_por_id))
     ]
 
-    ids = [i.id for i in instrumentos]
-    publicacoes = etapas_repo.publicacoes_por_numero(db, [i.nr_convenio for i in instrumentos])
-    entregas = etapas_repo.primeira_entrega_por_instrumento(db, ids)
-    conclusoes = conclusoes_repo.datas_conclusao_ativas(db, ids)
-    dispensadas = etapas_repo.ids_com_inauguracao_dispensada(db, ids)
-    resultados = etapas_repo.resultado_conclusao_por_instrumento(db, ids)
-    unidades = etapas_repo.unidades_entregues_por_data(db, ids)
-    com_acelerador = etapas_repo.ids_com_acelerador_linear(db, ids)
-    inauguradas = {i.nr_convenio: i.data for i in inauguracoes if i.realizada}
-    etapas_por_instrumento = [
-        EtapasInstrumentoRead(
-            nr_convenio=i.nr_convenio,
-            publicacao=publicacoes.get(i.nr_convenio),
-            entrega=entregas.get(i.id),
-            inauguracao=inauguradas.get(i.nr_convenio),
-            conclusao=conclusoes.get(i.id),
-            inauguracao_dispensada=i.id in dispensadas,
-            conclusao_resultado=resultados.get(i.id),
-            tem_acelerador_linear=i.id in com_acelerador,
-            unidades_entregues=[UnidadesEntreguesRead(data=d, quantidade=q) for d, q in unidades.get(i.id, [])],
-        )
-        for i in instrumentos
-    ]
+    etapas_por_instrumento = carregar_etapas(db=db, instrumentos=instrumentos, inauguracoes=datas_por_instrumento)
 
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),

@@ -41,7 +41,12 @@ def _instrumento(db, publicacao=None):
     numero = f"ET{uuid4().hex[:8]}"
     db.add(
         Convenio(
-            numero=numero, objeto="x", convenente_nome="x", uf="ZZ", tipo_contratacao="Convênio", data_publicacao=publicacao
+            numero=numero,
+            objeto="x",
+            convenente_nome="x",
+            uf="ZZ",
+            tipo_contratacao="Convênio",
+            data_publicacao=publicacao,
         )
     )
     inst = InstrumentoEquipamento(nr_convenio=numero, nome_convenente="x", tipo_contratacao="Convênio", uf="ZZ")
@@ -53,9 +58,7 @@ def _instrumento(db, publicacao=None):
 def test_publicacao_e_primeira_entrega_ativa(db):
     inst = _instrumento(db, publicacao=date(2024, 1, 5))
     for dia, substituida in ((date(2025, 3, 10), False), (date(2025, 2, 1), False), (date(2024, 12, 1), True)):
-        entrega = EntregaEquipamento(
-            instrumento_id=inst.id, data_ocorrencia=dia, chave_idempotencia=f"k{uuid4().hex}"
-        )
+        entrega = EntregaEquipamento(instrumento_id=inst.id, data_ocorrencia=dia, chave_idempotencia=f"k{uuid4().hex}")
         db.add(entrega)
         db.flush()
         if substituida:
@@ -79,11 +82,12 @@ def test_inauguracao_dispensada_so_conta_evento_ativo(db):
     assert repo.ids_com_inauguracao_dispensada(db, [inst.id, sem.id]) == {inst.id}
 
 
-
 def test_acelerador_linear_so_conta_item_de_aquisicao_ativo(db):
     com = _instrumento(db)
     sem = _instrumento(db)
-    catalogo = db.execute(select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == "acelerador_linear")).scalar_one()
+    catalogo = db.execute(
+        select(EquipamentoCatalogo).where(EquipamentoCatalogo.codigo == "acelerador_linear")
+    ).scalar_one()
     for inst, tipo in ((com, "aquisicao"), (sem, "rendimento_aplicacao")):
         conv = db.execute(select(Convenio).where(Convenio.numero == inst.nr_convenio)).scalar_one()
         db.add(

@@ -1364,6 +1364,14 @@ importação em lote ("Importado de Controle PERSUS.xlsx · sha256:...") que vaz
 intacto). Nome de instituição ALL CAPS cru (`convenente_nome`/`nm_proponente`) **continua sem
 correção automática** — decisão deliberada, mesmo risco de quebrar sigla legítima.
 
+**Fase 0 da paridade (24/11/2026).** A página de Instrumentos e Repasses usa
+a prévia única de `montarRecorte` e tabela responsiva. O filtro Etapa é
+aplicado à prévia. Sua adoção pelo endpoint de exportação faz parte da
+Fase 2. As prévias legadas de Concluídos e Entregas saíram do frontend.
+A geração Word/Excel segue com as regras e rotas existentes. A validação
+visual e as decisões pendentes estão no
+[plano de paridade](docs/planos/planmode-relatorios-paridade-2026-11-24.md).
+
 ## Complementação PERSUS I com fontes extras (2026-09-27)
 
 Auditoria pedida pelo usuário ("nós usamos tudo que tem na planilha?") achou 4 fontes de dado do

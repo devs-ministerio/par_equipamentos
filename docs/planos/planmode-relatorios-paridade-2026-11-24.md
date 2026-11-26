@@ -1,6 +1,6 @@
 # Plan Mode: relatórios que batem com as telas (24/11/2026)
 
-Estado: **desenho aprovado; Fase 0 (UI) feita localmente (commit `9403a92`), só no front: prévia, filtros e KPIs; a geração dos arquivos segue com as regras antigas.** Por decisão do usuário (24/11/2026), as visões "Concluídos" e "Entregas" saíram da página de Relatórios; voltam como recortes da camada única nas Fases 2 a 4. O backend delas segue até lá. Sem push, PR ou merge sem autorização. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
+Estado: **Fase 0 concluída localmente; Fase 1 em diagnóstico.** A página ganhou prévia única, filtros e KPIs. As visões legadas “Concluídos” e “Entregas” e seus consumidores frontend foram removidos. As rotas e as regras da geração Word/Excel seguem disponíveis. As visões voltam como recortes da camada única nas Fases 2 a 4, após revisão da matriz. Produção só leitura. Cada fase fecha com testes, atualização da documentação e um commit local.
 
 ## 1. Por que este plano existe
 
@@ -20,7 +20,7 @@ Por consequência, o relatório de Concluídos traz mais instrumentos que as tel
 
 1. **Caminho A**: uma camada única de fatos do instrumento no backend. Telas e relatórios consomem a mesma fonte; o relatório só formata.
 2. **Concluído = o das telas**: conclusão confirmada pela equipe no monitoramento (fase Concluído). "Prestação de contas SICONV" e "Parceria paga" continuam no arquivo como **colunas informativas** e na lista de divergências, mas não definem Concluído.
-3. **Entregue e Em operação seguem as telas**, sem regra própria do relatório (premissa a reconfirmar na Fase 1 se a comparação achar divergência).
+3. **Equipamentos têm a mesma classificação no Painel, na prévia e nos arquivos.** Uma unidade entregue conta como **Em operação** quando a inauguração do instrumento está confirmada, mesmo que o instrumento ainda não tenha conclusão integral.
 
 ## 3.1 Nomenclatura e etapas (decisões do usuário, 24/11/2026)
 
@@ -42,6 +42,12 @@ O fluxo do instrumento é **Proposta → Celebrado → Em monitoramento**. Cada 
 
 **Etapa no backend:** na Fase 2 o filtro vira parâmetro de `GET /relatorios` com a mesma regra da prévia (função de recorte única), para o arquivo trazer o mesmo recorte.
 
+## 3.2 Relatórios por unidade e por instrumento
+
+- **Equipamentos** conta unidades em quatro situações: **Planejado**, **Entregue, a inaugurar**, **Em operação** e **Cancelado**. A unidade entregue pode entrar em operação por inauguração confirmada ou dispensada. Se houver apenas previsão, a unidade entregue fica **Entregue, a inaugurar**. A quantidade com cancelamento vigente no checklist integra **Cancelado** e sai do saldo de entrega.
+- **Instrumentos** conta um registro por instrumento e usa as fases do Monitoramento Interno, inclusive **Concluído**. O vínculo de um equipamento com a operação e a fase de um instrumento são fatos distintos.
+- **Propostas** e **Celebrados** são relatórios secundários de carteira. O enquadramento de FAF e PERSUS em **Celebrados** segue pendente.
+
 ## 4. Princípios
 
 1. Uma regra, um lugar. Mudou a regra, muda na fonte única; relatório e tela mudam juntos.
@@ -56,7 +62,7 @@ O fluxo do instrumento é **Proposta → Celebrado → Em monitoramento**. Cada 
 
 **Camada única (`app/services/fatos_instrumento.py`).** Devolve, por instrumento: escopo, tipo de contratação, UF/município/CNES, situação oficial, fase, conclusão e data, itens planejados e entregues por unidade, valor. Consumidores: o `resumo` (telas) e os relatórios.
 
-**Relatório como formatador.** Todos, Concluídos e Equipamento entregue passam a ser três recortes da mesma extração. O motor de precedência e reconciliação de `relatorios_encerrados.py` sai. Os geradores Word e Excel e o visual dos arquivos ficam como estão.
+**Relatório como formatador.** Equipamentos e Instrumentos são as visões principais. A seleção de situação das unidades ou de fase dos instrumentos define o recorte de prévia, Word e Excel. A camada única reaproveita os fatos do monitoramento. Propostas e Celebrados são visões secundárias. Os modelos de saída seguem em revisão na seção 7.
 
 **Página de Relatórios.** Primeiro passo do plano (Fase 0): upgrade de UI no padrão do Painel de gestão e divisão por responsabilidade (regra das 200 linhas), antes de qualquer mudança de regra. Na Fase 4 a prévia passa a mostrar o mesmo número do card da tela correspondente.
 
@@ -71,6 +77,10 @@ O fluxo do instrumento é **Proposta → Celebrado → Em monitoramento**. Cada 
 | 2 | Camada única + Concluídos. Colunas informativas de prestação de contas e parceria paga. | Paridade Concluídos: card = prévia = arquivo, na Mesa, em Dados oficiais e no Painel. |
 | 3 | Equipamento entregue pela camada única. | Paridade de unidades entregues. |
 | 4 | Todos, valor e equipamentos; remoção do código morto dos motores antigos; a prévia da página passa a mostrar o mesmo número do card da tela correspondente. | Paridade de valor e quantidade. |
+
+### Verificação da Fase 0 (24/11/2026)
+
+A página real foi aberta no Chromium com respostas HTTP sintéticas. Em desktop (1470 px), os filtros aparecem em linha e a prévia usa tabela. Em 375 px, os filtros abrem em painel inferior e a prévia usa cartões. Em ambos os tamanhos, Etapa → Proposta exibiu só a proposta e Limpar filtros restaurou a carteira. No desktop, o filtro abriu pelo teclado e a opção Completo ativou a seleção com os dois botões de formato disponíveis. O download com dados reais não integrou essa verificação.
 
 ## 7. Relatórios: modelos
 

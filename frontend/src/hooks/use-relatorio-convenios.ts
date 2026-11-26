@@ -123,7 +123,6 @@ export function useRelatorioConvenios(
     equipamentoOptions,
     anoOptions,
     situacaoOptions: situacaoInstrumentoOptions,
-    tipoContratacaoOptions,
     programaOptions,
   } = useDadosOficiaisOpcoes({
     classeEquipamento: "prioritario",
@@ -173,15 +172,6 @@ export function useRelatorioConvenios(
   const conveniosFiltrados = useMemo(() => recortar(), [recortar]);
   const conveniosSemTipo = useMemo(() => recortar("tipo"), [recortar]);
 
-  const valorGlobalInstrumentos = useMemo(
-    () =>
-      conveniosFiltrados.reduce(
-        (total, item) => total + (item.financeiro.global ?? 0),
-        0,
-      ),
-    [conveniosFiltrados],
-  );
-
   return {
     convenios,
     conveniosQuery,
@@ -189,12 +179,10 @@ export function useRelatorioConvenios(
     conveniosFiltrados,
     conveniosSemTipo,
     faseMonitoramento,
-    valorGlobalInstrumentos,
     ufs,
     equipamentoOptions,
     anoOptions,
     situacaoInstrumentoOptions,
-    tipoContratacaoOptions,
     programaOptions,
     municipioOptions,
     cnesOptions,
