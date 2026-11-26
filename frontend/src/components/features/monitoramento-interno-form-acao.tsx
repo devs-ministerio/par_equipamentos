@@ -60,18 +60,19 @@ export function MonitoramentoInternoFormAcao({
   return (
     <form
       onSubmit={handleSubmit(aoSubmeter)}
-      className="flex gap-2.5 flex-wrap items-start mb-3.5"
+      className="mb-3.5 grid grid-cols-1 items-end gap-2.5 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
     >
-      <div className="min-w-0 flex-[2] max-sm:w-full sm:min-w-[220px]">
+      <div className="min-w-0 sm:col-span-3">
         <label
           htmlFor={descricaoId}
           className="text-[11px] text-muted-foreground block mb-1"
         >
           {rotuloCampo}
         </label>
-        <input
+        <textarea
           id={descricaoId}
-          className={cn(estiloInput, "w-full")}
+          rows={4}
+          className={cn(estiloInput, "block w-full resize-y")}
           placeholder="O que precisa ser feito..."
           aria-invalid={Boolean(errors.descricao)}
           aria-describedby={idsDescricaoCampo(
@@ -86,7 +87,7 @@ export function MonitoramentoInternoFormAcao({
           mensagem={errors.descricao?.message}
         />
       </div>
-      <div className="w-full sm:w-auto">
+      <div className="min-w-0">
         <label
           htmlFor={prazoId}
           className="text-[11px] text-muted-foreground block mb-1"
@@ -96,11 +97,11 @@ export function MonitoramentoInternoFormAcao({
         <input
           id={prazoId}
           type="date"
-          className={cn(estiloInput, "w-full")}
+          className={cn(estiloInput, "block w-full min-w-0")}
           {...register("dataPrevista")}
         />
       </div>
-      <div className="w-full min-w-0 sm:min-w-40 sm:w-auto">
+      <div className="min-w-0">
         <label
           htmlFor={responsavelId}
           className="text-[11px] text-muted-foreground block mb-1"
@@ -109,7 +110,7 @@ export function MonitoramentoInternoFormAcao({
         </label>
         <select
           id={responsavelId}
-          className={cn(estiloInput, "w-full bg-background")}
+          className={cn(estiloInput, "block w-full bg-background")}
           {...register("responsavel")}
         >
           <option value="">— Não informado —</option>
@@ -122,24 +123,13 @@ export function MonitoramentoInternoFormAcao({
           )}
         </select>
       </div>
-      {/* Label invisível do mesmo tamanho da dos outros campos -- achado
-          2026-09-15, pedido do usuário: "o botão adicionar do ações está
-          desalinhado". Sem isso o botão (sem label acima) ficava alinhado
-          no topo da linha (items-start), acima da altura real dos inputs
-          vizinhos (que têm label + margem antes do input). */}
-      <div className="w-full sm:w-auto">
-        <span
-          aria-hidden="true"
-          className="mb-1 block text-[11px] text-transparent select-none"
-        >
-          Ação
-        </span>
+      <div className="flex min-w-0 flex-wrap gap-2">
         <button
           type="submit"
           disabled={!podeEditar || isSubmitting}
           className={cn(
             estiloInput,
-            "w-full cursor-pointer border-none bg-primary font-semibold text-primary-foreground sm:w-auto",
+            "flex-1 cursor-pointer border-none bg-primary font-semibold text-primary-foreground",
           )}
         >
           {isSubmitting ? rotuloEnviando : rotuloSubmit}
@@ -151,7 +141,7 @@ export function MonitoramentoInternoFormAcao({
             disabled={isSubmitting}
             className={cn(
               estiloInput,
-              "cursor-pointer border border-border bg-transparent font-semibold w-full sm:w-auto",
+              "flex-1 cursor-pointer border border-border bg-transparent font-semibold",
             )}
           >
             Cancelar
