@@ -93,7 +93,7 @@ export function montarControlesRelatorio(
       o.equipamento,
       f.equipamento,
       f.setEquipamento,
-      "Todos os equipamentos",
+      "Todos os Equipamentos em Oncologia",
     ),
     unica(
       "Situação",

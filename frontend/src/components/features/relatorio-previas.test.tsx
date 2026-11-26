@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  renderHook,
+  screen,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -10,6 +16,8 @@ import {
   criarConvenioTeste,
   criarMarcadorTeste,
 } from "@/test-fixtures/dados-oficiais";
+import { montarControlesRelatorio } from "./relatorio-filtros-controles";
+import { useRelatorioInstrumentosFiltros } from "@/hooks/use-relatorio-instrumentos-filtros";
 import { RelatorioRegistrosTabela } from "./relatorio-registros-tabela";
 import { linhaDeConvenio, linhaDeProposta } from "@/lib/relatorio-linhas";
 
@@ -265,4 +273,26 @@ describe("Dados apresentados nas prévias", () => {
     expect(screen.getAllByText("R$ 0")).toHaveLength(2);
     expect(tabela.getAllByText("—").length).toBeGreaterThan(0);
   });
+});
+
+it("identifica o filtro sem seleção como Todos os Equipamentos em Oncologia", () => {
+  const { result } = renderHook(useRelatorioInstrumentosFiltros);
+  const opcoes = {
+    tipo: [],
+    monitorado: [],
+    uf: [],
+    municipio: [],
+    cnes: [],
+    equipamento: [],
+    situacao: [],
+    programa: [],
+    ano: [],
+  };
+  const controle = montarControlesRelatorio(result.current, opcoes).find(
+    (c) => c.rotulo === "Equipamento",
+  )!;
+  render(controle.conteudo(() => {}));
+  expect(
+    screen.getByRole("button", { name: "Todos os Equipamentos em Oncologia" }),
+  ).toBeInTheDocument();
 });
