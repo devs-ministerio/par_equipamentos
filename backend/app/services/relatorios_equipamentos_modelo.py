@@ -1,5 +1,7 @@
 """Extração, linhas e legenda do relatório de Equipamentos."""
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy.orm import Session
@@ -128,6 +130,103 @@ def _unidades_por_familia(db: Session, ids: set[int], selecionadas: set[str]) ->
     return unidades
 
 
+@dataclass(frozen=True)
+class _Carga:
+    """Dados já carregados que a montagem dos fatos consulta linha a linha."""
+
+    contextos: dict
+    descricoes: dict
+    por_familia: dict
+    por_item: dict
+    unidades: dict[tuple[str, str], list[dict]]
+    selecionadas: set[str]
+    completo: bool
+
+
+def _fato_por_unidade(carga: _Carga, fato: Callable[..., FatoEquipamento], u: dict) -> FatoEquipamento:
+    return fato(
+        descricao_item=u["descricao_item"],
+        quantidade=1,
+        valor=carga.por_item.get(u["item_id"]),
+        data_entrega=u["data_entrega"],
+        marca=u["marca"],
+        modelo=u["modelo"],
+        serie=u["numero_serie"],
+    )
+
+
+def _fato_agregado(
+    carga: _Carga,
+    fato: Callable[..., FatoEquipamento],
+    *,
+    identificador: int,
+    familia: str,
+    quantidade: int,
+    da_familia: list[dict],
+    entrega: bool,
+) -> FatoEquipamento:
+    datas = [u["data_entrega"] for u in da_familia if u["data_entrega"]]
+    agregado = carga.por_familia.get((identificador, familia))
+    return fato(
+        descricao_item=carga.descricoes.get((identificador, familia)),
+        quantidade=quantidade,
+        valor=agregado[0] * quantidade / agregado[1] if agregado else None,
+        data_entrega=min(datas) if datas and not carga.completo and entrega else None,
+    )
+
+
+def _fatos_da_familia(
+    carga: _Carga,
+    *,
+    identificador: int,
+    numero: str,
+    familia: str,
+    quantidades_origem: tuple[int, int, int],
+    etapa: EtapasInstrumentoRead,
+) -> list[FatoEquipamento]:
+    planejado, entregue, cancelado = quantidades_origem
+    situacao_entrega: SituacaoEquipamento = "em_operacao" if etapa.modo_operacao is not None else "entregue"
+    quantidades: dict[SituacaoEquipamento, int] = {
+        "planejado": max(0, planejado - entregue),
+        situacao_entrega: entregue,
+        "cancelado": cancelado,
+    }
+    da_familia, fatos = carga.unidades.get((numero, familia), []), list[FatoEquipamento]()
+    for situacao, quantidade in quantidades.items():
+        if situacao not in carga.selecionadas or quantidade <= 0:
+            continue
+        previsao, status = inauguracao_da_linha(etapa, situacao)
+
+        def fato(situacao=situacao, previsao=previsao, status=status, **resto):
+            return FatoEquipamento(
+                contexto=carga.contextos[numero],
+                equipamento=familia,
+                situacao=situacao,
+                data_previsao_inauguracao=previsao,
+                status_inauguracao=status,
+                **resto,
+            )
+
+        if carga.completo and situacao == situacao_entrega:
+            detalhadas = da_familia[:quantidade]
+            fatos.extend(_fato_por_unidade(carga, fato, u) for u in detalhadas)
+            quantidade -= len(detalhadas)
+            if quantidade == 0:
+                continue
+        fatos.append(
+            _fato_agregado(
+                carga,
+                fato,
+                identificador=identificador,
+                familia=familia,
+                quantidade=quantidade,
+                da_familia=da_familia,
+                entrega=situacao == situacao_entrega,
+            )
+        )
+    return fatos
+
+
 def _fatos_equipamentos(
     db: Session,
     recorte: list[InstrumentoComFase],
@@ -138,12 +237,16 @@ def _fatos_equipamentos(
 ) -> list[FatoEquipamento]:
     numero_por_id = {i.instrumento.id: i.instrumento.nr_convenio for i in recorte}
     ids = set(numero_por_id)
-    contextos = carregar_contextos(db, recorte)
-    descricoes = repo.descricoes_por_familia(db, ids)
-    por_familia = repo.valores_por_familia(db, ids)
-    por_item = repo.valor_unitario_por_item(db, ids)
     selecionadas: set[str] = set(situacoes or ROTULOS)
-    unidades = _unidades_por_familia(db, ids, selecionadas)
+    carga = _Carga(
+        contextos=carregar_contextos(db, recorte),
+        descricoes=repo.descricoes_por_familia(db, ids),
+        por_familia=repo.valores_por_familia(db, ids),
+        por_item=repo.valor_unitario_por_item(db, ids),
+        unidades=_unidades_por_familia(db, ids, selecionadas),
+        selecionadas=selecionadas,
+        completo=completo,
+    )
     alvo = normalizar_texto(equipamento)
     fatos: list[FatoEquipamento] = []
     for (
@@ -156,56 +259,16 @@ def _fatos_equipamentos(
         if alvo and normalizar_texto(familia) != alvo:
             continue
         numero = numero_por_id[identificador]
-        etapa = etapas.get(numero) or EtapasInstrumentoRead(nr_convenio=numero)
-        situacao_entrega: SituacaoEquipamento = "em_operacao" if etapa.modo_operacao is not None else "entregue"
-        quantidades: dict[SituacaoEquipamento, int] = {
-            "planejado": max(0, planejado - entregue),
-            situacao_entrega: entregue,
-            "cancelado": cancelado,
-        }
-        da_familia = unidades.get((numero, familia), [])
-        for situacao, quantidade in quantidades.items():
-            if situacao not in selecionadas or quantidade <= 0:
-                continue
-            previsao, status = inauguracao_da_linha(etapa, situacao)
-
-            def fato(situacao=situacao, numero=numero, familia=familia, previsao=previsao, status=status, **resto):
-                return FatoEquipamento(
-                    contexto=contextos[numero],
-                    equipamento=familia,
-                    situacao=situacao,
-                    data_previsao_inauguracao=previsao,
-                    status_inauguracao=status,
-                    **resto,
-                )
-
-            if completo and situacao == situacao_entrega:
-                detalhadas = da_familia[:quantidade]
-                fatos.extend(
-                    fato(
-                        descricao_item=u["descricao_item"],
-                        quantidade=1,
-                        valor=por_item.get(u["item_id"]),
-                        data_entrega=u["data_entrega"],
-                        marca=u["marca"],
-                        modelo=u["modelo"],
-                        serie=u["numero_serie"],
-                    )
-                    for u in detalhadas
-                )
-                quantidade -= len(detalhadas)
-                if quantidade == 0:
-                    continue
-            datas = [u["data_entrega"] for u in da_familia if u["data_entrega"]]
-            agregado = por_familia.get((identificador, familia))
-            fatos.append(
-                fato(
-                    descricao_item=descricoes.get((identificador, familia)),
-                    quantidade=quantidade,
-                    valor=agregado[0] * quantidade / agregado[1] if agregado else None,
-                    data_entrega=min(datas) if datas and not completo and situacao == situacao_entrega else None,
-                )
+        fatos.extend(
+            _fatos_da_familia(
+                carga,
+                identificador=identificador,
+                numero=numero,
+                familia=familia,
+                quantidades_origem=(planejado, entregue, cancelado),
+                etapa=etapas.get(numero) or EtapasInstrumentoRead(nr_convenio=numero),
             )
+        )
     return fatos
 
 

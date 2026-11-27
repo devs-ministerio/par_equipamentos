@@ -91,7 +91,7 @@ from app.services.relatorios_merito import (  # noqa: F401
     _montar_analise_merito,
     _secao_cobertura_linhas,
 )
-from app.services.relatorios_monitorados import SituacaoEquipamento, montar_relatorio_monitorado
+from app.services.relatorios_monitorados import SituacaoEquipamento, TipoMonitorado, montar_relatorio_monitorado
 from app.services.relatorios_recorte import (  # noqa: F401
     _convenios,
     _convenios_do_recorte,
@@ -145,6 +145,59 @@ def _montar_instrumentos_repasse(db: Session, formato: Formato, nivel: Nivel, fi
     return _montar_instrumentos_repasse_docx(db, nivel, filtro)
 
 
+def _gerar_monitorado(
+    db: Session,
+    formato: Formato,
+    nivel: Nivel,
+    tipo_relatorio: TipoMonitorado,
+    filtro: FiltroRelatorio,
+    situacoes: tuple[SituacaoEquipamento, ...],
+    fases: tuple[FaseAcompanhamento, ...],
+) -> bytes:
+    from app.reports.monitorados import gerar_monitorados
+
+    return gerar_monitorados(
+        montar_relatorio_monitorado(
+            db=db,
+            tipo=tipo_relatorio,
+            nivel=nivel,
+            filtro=filtro,
+            situacoes=situacoes,
+            fases=fases,
+            incluir_valores_unitarios=formato == "docx",
+        ),
+        formato=formato,
+        recorte=filtro.titulo(),
+        nivel=nivel,
+    )
+
+
+def _gerar_extracao_de_instrumentos(
+    db: Session, formato: Formato, tipo_relatorio: TipoRelatorio, filtro: FiltroRelatorio
+) -> bytes:
+    if filtro.encerramento == "encerrados":
+        if tipo_relatorio != "instrumentos_repasse":
+            raise ValidationError("Conclusão só se aplica ao relatório de instrumentos e parcerias.")
+        from app.reports.encerrados import gerar_extracao
+        from app.services.relatorios_encerrados import extrair_encerrados
+
+        return gerar_extracao(
+            extrair_encerrados(db=db, filtro=filtro.filtro_encerrados()),
+            formato=formato,
+            recorte=filtro.titulo(),
+        )
+    if tipo_relatorio != "instrumentos_repasse":
+        raise ValidationError("Equipamento entregue só se aplica ao relatório de instrumentos e parcerias.")
+    from app.reports.entregues import gerar_extracao as gerar_entregues
+    from app.services.relatorios_entregues import extrair_entregues
+
+    return gerar_entregues(
+        extrair_entregues(db=db, filtro=filtro.filtro_encerrados()),
+        formato=formato,
+        recorte=filtro.titulo(),
+    )
+
+
 def montar_relatorio(
     *,
     db: Session,
@@ -164,44 +217,11 @@ def montar_relatorio(
     with reservar_geracao_docx() if formato == "docx" else nullcontext():
         try:
             if tipo_relatorio in ("equipamentos_monitorados", "instrumentos_monitorados", "propostas"):
-                from app.reports.monitorados import gerar_monitorados
-
-                return gerar_monitorados(
-                    montar_relatorio_monitorado(
-                        db=db,
-                        tipo=tipo_relatorio,
-                        nivel=nivel,
-                        filtro=filtro,
-                        situacoes=situacoes_equipamento,
-                        fases=fases_instrumento,
-                        incluir_valores_unitarios=formato == "docx",
-                    ),
-                    formato=formato,
-                    recorte=filtro.titulo(),
-                    nivel=nivel,
+                return _gerar_monitorado(
+                    db, formato, nivel, tipo_relatorio, filtro, situacoes_equipamento, fases_instrumento
                 )
-            if filtro.encerramento == "encerrados":
-                if tipo_relatorio != "instrumentos_repasse":
-                    raise ValidationError("Conclusão só se aplica ao relatório de instrumentos e parcerias.")
-                from app.reports.encerrados import gerar_extracao
-                from app.services.relatorios_encerrados import extrair_encerrados
-
-                return gerar_extracao(
-                    extrair_encerrados(db=db, filtro=filtro.filtro_encerrados()),
-                    formato=formato,
-                    recorte=filtro.titulo(),
-                )
-            if filtro.encerramento == "entregues":
-                if tipo_relatorio != "instrumentos_repasse":
-                    raise ValidationError("Equipamento entregue só se aplica ao relatório de instrumentos e parcerias.")
-                from app.reports.entregues import gerar_extracao as gerar_entregues
-                from app.services.relatorios_entregues import extrair_entregues
-
-                return gerar_entregues(
-                    extrair_entregues(db=db, filtro=filtro.filtro_encerrados()),
-                    formato=formato,
-                    recorte=filtro.titulo(),
-                )
+            if filtro.encerramento != "todos":
+                return _gerar_extracao_de_instrumentos(db, formato, tipo_relatorio, filtro)
             if tipo_relatorio == "analise_merito":
                 return _montar_analise_merito(db, formato, nivel, filtro)
             return _montar_instrumentos_repasse(db, formato, nivel, filtro)

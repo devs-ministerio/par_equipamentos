@@ -1,5 +1,6 @@
 """Relatório de propostas: tudo que não tem parceria formalizada (com parceria vira instrumento FAF)."""
 
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date
 
@@ -90,39 +91,42 @@ def _linha(p: PropostaCandidata, *, completo: bool, referencia: date) -> tuple[C
     )
 
 
-def montar_propostas(*, db: Session, filtro: FiltroRelatorio, completo: bool, referencia: date) -> RelatorioMonitorado:
-    propostas = _propostas(db, replace(filtro, etapa="propostas"))
+def _tabela_valor_por_situacao(propostas: Sequence[PropostaCandidata]) -> tuple[Tabela, ...]:
     valores: dict[str, float] = {}
     for proposta in propostas:
         if proposta.vl_global_proposta is not None:
             situacao = proposta.situacao_proposta or "Sem informação"
             valores[situacao] = valores.get(situacao, 0.0) + float(proposta.vl_global_proposta)
-    valores_linhas: list[tuple[Celula, ...]] = sorted(valores.items())
-    valores_linhas.append(("Total", sum(valores.values())))
-    por_valor = (
-        (
-            Tabela(
-                "Valor por situação",
-                ("Situação da Proposta", "Valor Global da Proposta"),
-                valores_linhas,
-                colunas_moeda=_MOEDA,
-            ),
-        )
-        if valores
-        else ()
+    if not valores:
+        return ()
+    linhas: list[tuple[Celula, ...]] = sorted(valores.items())
+    linhas.append(("Total", sum(valores.values())))
+    return (
+        Tabela(
+            "Valor por situação",
+            ("Situação da Proposta", "Valor Global da Proposta"),
+            linhas,
+            colunas_moeda=_MOEDA,
+        ),
     )
-    quebras = descartar_geografia_unica(
+
+
+def _quebras_propostas(propostas: Sequence[PropostaCandidata]) -> tuple[Tabela, ...]:
+    return descartar_geografia_unica(
         (
             quebra_por(
                 "Por situação", "Situação da Proposta", (p.situacao_proposta or "Sem informação" for p in propostas)
             ),
-            *por_valor,
+            *_tabela_valor_por_situacao(propostas),
             quebra_por("Por programa", "Programa", (p.nm_programa for p in propostas)),
             quebra_por("Por UF", "UF", ((p.uf or "").upper() or "Sem informação" for p in propostas)),
             quebra_por("Por equipamento", "Equipamento", (_equipamento(p) or "Sem informação" for p in propostas)),
         )
     )
-    filtros = (
+
+
+def _descricao_filtros_propostas(filtro: FiltroRelatorio, propostas: Sequence[PropostaCandidata]) -> str:
+    return (
         " · ".join(
             filter(
                 None,
@@ -138,6 +142,10 @@ def montar_propostas(*, db: Session, filtro: FiltroRelatorio, completo: bool, re
         )
         or "Sem filtros"
     )
+
+
+def montar_propostas(*, db: Session, filtro: FiltroRelatorio, completo: bool, referencia: date) -> RelatorioMonitorado:
+    propostas = _propostas(db, replace(filtro, etapa="propostas"))
     colunas, linhas = descartar_colunas_vazias(
         _COLUNAS_COMPLETO if completo else _COLUNAS,
         [_linha(p, completo=completo, referencia=referencia) for p in propostas],
@@ -153,9 +161,14 @@ def montar_propostas(*, db: Session, filtro: FiltroRelatorio, completo: bool, re
         linhas=linhas,
         total=len(propostas),
         unidade="propostas",
-        cabecalho=cabecalho(filtro, referencia=referencia, fonte="SISGEO", filtros=filtros),
+        cabecalho=cabecalho(
+            filtro,
+            referencia=referencia,
+            fonte="SISGEO",
+            filtros=_descricao_filtros_propostas(filtro, propostas),
+        ),
         indicadores=(("Quantidade de Propostas", len(propostas)),),
-        quebras=quebras,
+        quebras=_quebras_propostas(propostas),
         legenda=legenda,
         colunas_data=tuple(c for c in _DATAS if c in colunas),
         colunas_moeda=tuple(c for c in _MOEDA if c in colunas),

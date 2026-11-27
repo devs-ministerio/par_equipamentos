@@ -270,6 +270,56 @@ def _quebras(fatos: list[_Instrumento], escopo: str) -> tuple[Tabela, ...]:
     )
 
 
+def _fatos_instrumentos(
+    db: Session, recorte: list[InstrumentoComFase], etapas: dict[str, EtapasInstrumentoRead]
+) -> list[_Instrumento]:
+    numeros = {c.instrumento.nr_convenio for c in recorte}
+    convenios = relatorios_contexto.convenios_por_numero(db, numeros)
+    nomes = relatorios_contexto.nomes_cnes(db, {c.instrumento.cnes for c in recorte if c.instrumento.cnes})
+    fatos = []
+    for candidato in recorte:
+        i = candidato.instrumento
+        convenio = convenios.get(i.nr_convenio)
+        contexto = contexto_do(i, candidato.fase_atual, convenio, nomes.get(i.cnes or ""))
+        etapa = etapas.get(i.nr_convenio) or EtapasInstrumentoRead(nr_convenio=i.nr_convenio)
+        fatos.append(_Instrumento(contexto, i, convenio, etapa, _valores(convenio, i)))
+    return fatos
+
+
+def _familias_por_instrumento(
+    db: Session, fatos: list[_Instrumento], incluir_valores_unitarios: bool
+) -> dict[str, list[EquipamentoDoInstrumento]]:
+    ids = {f.instrumento.id for f in fatos}
+    familias: dict[str, list[EquipamentoDoInstrumento]] = defaultdict(list)
+    por_id = {f.instrumento.id: f for f in fatos}
+    precos = relatorios_contexto.valores_por_familia(db, ids) if incluir_valores_unitarios else {}
+    for i_id, nome, planejado, entregue, _ in itens_equipamento.resumo_com_cancelamentos_por_familia(db, ids):
+        f = por_id[i_id]
+        preco = precos.get((i_id, nome))
+        familias[f.contexto.numero].append(
+            EquipamentoDoInstrumento(
+                nome,
+                planejado,
+                entregue,
+                entregue if f.etapa.modo_operacao else 0,
+                preco[0] / preco[1] if preco else None,
+            )
+        )
+    return familias
+
+
+def _abas_completo(fatos: list[_Instrumento], acoes: dict, referencia: date) -> tuple[Tabela, ...]:
+    return (
+        Tabela("Financeiro", _FINANCEIRO, [_financeiro(f) for f in fatos], colunas_moeda=_FINANCEIRO[2:11]),
+        Tabela(
+            "Ações em aberto",
+            _ACOES,
+            [_acao(f.contexto, a, referencia) for f in fatos for a in acoes.get(f.instrumento.id, [])],
+            colunas_data=("Data Prevista",),
+        ),
+    )
+
+
 def montar_instrumentos(
     *,
     db: Session,
@@ -281,35 +331,10 @@ def montar_instrumentos(
     referencia: date,
     incluir_valores_unitarios: bool = False,
 ) -> RelatorioMonitorado:
-    numeros = {c.instrumento.nr_convenio for c in recorte}
-    convenios = relatorios_contexto.convenios_por_numero(db, numeros)
-    nomes = relatorios_contexto.nomes_cnes(db, {c.instrumento.cnes for c in recorte if c.instrumento.cnes})
-    fatos = []
-    for candidato in recorte:
-        i = candidato.instrumento
-        convenio = convenios.get(i.nr_convenio)
-        contexto = contexto_do(i, candidato.fase_atual, convenio, nomes.get(i.cnes or ""))
-        etapa = etapas.get(i.nr_convenio) or EtapasInstrumentoRead(nr_convenio=i.nr_convenio)
-        fatos.append(_Instrumento(contexto, i, convenio, etapa, _valores(convenio, i)))
-
-    ids = [f.instrumento.id for f in fatos]
-    acoes = relatorios_contexto.acoes_abertas(db, set(ids)) if completo else {}
-    familias: dict[str, list[EquipamentoDoInstrumento]] = defaultdict(list)
-    if completo:
-        por_id = {f.instrumento.id: f for f in fatos}
-        precos = relatorios_contexto.valores_por_familia(db, set(ids)) if incluir_valores_unitarios else {}
-        for i_id, nome, planejado, entregue, _ in itens_equipamento.resumo_com_cancelamentos_por_familia(db, set(ids)):
-            f = por_id[i_id]
-            preco = precos.get((i_id, nome))
-            familias[f.contexto.numero].append(
-                EquipamentoDoInstrumento(
-                    nome,
-                    planejado,
-                    entregue,
-                    entregue if f.etapa.modo_operacao else 0,
-                    preco[0] / preco[1] if preco else None,
-                )
-            )
+    fatos = _fatos_instrumentos(db, recorte, etapas)
+    ids = {f.instrumento.id for f in fatos}
+    acoes = relatorios_contexto.acoes_abertas(db, ids) if completo else {}
+    familias = _familias_por_instrumento(db, fatos, incluir_valores_unitarios) if completo else {}
     linhas = [
         _linha(
             f,
@@ -319,19 +344,7 @@ def montar_instrumentos(
         )
         for f in fatos
     ]
-    abas = (
-        (
-            Tabela("Financeiro", _FINANCEIRO, [_financeiro(f) for f in fatos], colunas_moeda=_FINANCEIRO[2:11]),
-            Tabela(
-                "Ações em aberto",
-                _ACOES,
-                [_acao(f.contexto, a, referencia) for f in fatos for a in acoes.get(f.instrumento.id, [])],
-                colunas_data=("Data Prevista",),
-            ),
-        )
-        if completo
-        else ()
-    )
+    abas = _abas_completo(fatos, acoes, referencia) if completo else ()
     quebras = _quebras(fatos, filtro.escopo)
     return RelatorioMonitorado(
         titulo="Instrumentos",
