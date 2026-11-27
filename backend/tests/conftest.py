@@ -83,6 +83,7 @@ _DB_TEST_MODULES = {
     "test_fluxo_radar_schema_versionado_db.py",
     "test_migrations_prova_aprovacao_aditivas_db.py",
     "test_migration_escopo_radar_aditiva_db.py",
+    "test_migration_usuario_regiao_aditiva_db.py",
     "test_rollback_snapshot_recuperacao_db.py",
     "test_cadeia_migrations_recuperacao_db.py",
     "test_central_radar_sessao_real_db.py",
