@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/common/page-header";
+import { Info } from "lucide-react";
 import { ErrorAlert } from "@/components/common/error-alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   PainelBloco,
   PainelCarregando,
@@ -143,7 +145,12 @@ export function MonitoramentoMeuPainelPage() {
         />
       )}
       {semRegiao && (
-        <ErrorAlert mensagem="Este colaborador ainda não tem região de monitoramento definida." />
+        <Alert>
+          <Info />
+          <AlertDescription>
+            Este colaborador ainda não tem região de monitoramento definida.
+          </AlertDescription>
+        </Alert>
       )}
       <PainelNavegacao itens={SECOES_MEU_PAINEL} />
       <div className="-mt-3 space-y-12">
