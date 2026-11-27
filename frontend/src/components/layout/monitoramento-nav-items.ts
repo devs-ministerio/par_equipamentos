@@ -10,10 +10,9 @@ import {
 } from "lucide-react";
 import type { HeaderNavItem } from "./app-header";
 
-// Painel de Gestão desabilitado (botão visível, sem clique) no release de 11/2026 (em revisão); o código segue no repositório.
-// Só o desenvolvimento local liga, com VITE_PAINEL_GESTAO_HABILITADO=true; o build de produção fica desabilitado.
+// Painel de Gestão habilitado em 27/11/2026. Para desligar num build, VITE_PAINEL_GESTAO_HABILITADO=false.
 export const PAINEL_GESTAO_HABILITADO =
-  import.meta.env.VITE_PAINEL_GESTAO_HABILITADO === "true";
+  import.meta.env.VITE_PAINEL_GESTAO_HABILITADO !== "false";
 
 // Rota-mae do Monitoramento Interno (exata OU detalhe de instrumento).
 export const EH_MONITORAMENTO_INTERNO = (pathname: string) =>
