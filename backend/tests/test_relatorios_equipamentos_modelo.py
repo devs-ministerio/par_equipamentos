@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 from app.services.relatorios_equipamentos_modelo import (
     COLUNAS_EQUIPAMENTO_COMPLETO,
@@ -10,7 +11,7 @@ from app.services.relatorios_modelo import ContextoInstrumento
 
 
 def _ctx(**c):
-    base = dict(
+    base: dict[str, Any] = dict(
         numero="1",
         cnes="2237601",
         estabelecimento="Hospital A",

@@ -79,7 +79,7 @@ def test_entregas_com_inauguracao_ou_previsao(entregas, previsao):  # noqa: F811
             assert [r[ix] for r in registros[1:]] == [r[ix] for r in previa.linhas]
         else:
             doc = Document(BytesIO(arquivo))
-            assert [p.text for p in doc.paragraphs if p.style.name == "Heading 1" and " - " in p.text] == [
+            assert [p.text for p in doc.paragraphs if p.style and p.style.name == "Heading 1" and " - " in p.text] == [
                 f"Convênio - {numero}"
             ]
             ficha = doc.tables[-1]
@@ -205,7 +205,7 @@ def test_previa_de_propostas_confere_com_word_e_excel(entregas):  # noqa: F811
     assert "Quantidade de Propostas: 1" in texto and "FAF" in texto
     assert "Documento gerado automaticamente" not in texto
     titulo = next(p for p in documento.paragraphs if p.text.startswith("Proposta - "))
-    assert titulo.text == f"Proposta - {id_proposta}" and titulo.style.font.bold
+    assert titulo.text == f"Proposta - {id_proposta}" and titulo.style and titulo.style.font.bold
     assert len(documento.tables) == 2
     ficha = documento.tables[1]
     assert ficha.autofit is False and [c.text for c in ficha.rows[0].cells] == ["Campo", "Informação"]

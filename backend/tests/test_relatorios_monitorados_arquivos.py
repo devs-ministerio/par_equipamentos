@@ -1,5 +1,6 @@
 from datetime import date
 from io import BytesIO
+from typing import Any
 
 import pytest
 from docx import Document
@@ -14,7 +15,7 @@ from app.services.relatorios_modelo import EquipamentoDoInstrumento, RelatorioMo
 
 
 def _relatorio(**extra):
-    base = dict(
+    base: dict[str, Any] = dict(
         titulo="Equipamentos",
         colunas=("A", "Data"),
         linhas=[("x", date(2026, 1, 10))],
@@ -176,7 +177,7 @@ def test_word_equipamentos_completo_agrupa_registros_por_instrumento():
     assert len(doc.tables) == 5
     titulos = [p for p in doc.paragraphs if p.text.startswith("Convênio - ")]
     assert [p.text for p in titulos] == ["Convênio - 100", "Convênio - 200"]
-    assert all(p.style.font.bold for p in titulos)
+    assert all(p.style and p.style.font.bold for p in titulos)
     formulario = doc.tables[1]
     assert [c.text for c in formulario.rows[0].cells] == ["Campo", "Informação"]
     cadastro = {r.cells[0].text: r.cells[1].text for r in formulario.rows[1:] if len(r._tr.tc_lst) == 2}
@@ -246,10 +247,10 @@ def test_word_instrumentos_completo_preserva_os_campos_em_fichas():
         },
     )
     doc = Document(BytesIO(gerar_monitorados(relatorio, formato="docx", nivel="completo", recorte="RS")))
-    titulos = [p for p in doc.paragraphs if p.style.name == "Heading 1" and " - " in p.text]
+    titulos = [p for p in doc.paragraphs if p.style and p.style.name == "Heading 1" and " - " in p.text]
     ix_contratacao = colunas.index("Contratação")
     assert [p.text for p in titulos] == [f"{linha[ix_contratacao]} - {linha[0]}" for linha in linhas]
-    assert all(p.style.font.bold for p in titulos)
+    assert all(p.style and p.style.font.bold for p in titulos)
     assert len(doc.tables) == 5
     for ficha, equipamentos, linha in zip(doc.tables[1::2], doc.tables[2::2], linhas, strict=True):
         assert ficha.autofit is False and len(ficha.columns) == 2

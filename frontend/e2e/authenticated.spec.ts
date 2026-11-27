@@ -74,13 +74,19 @@ test.describe("Fluxo autenticado", () => {
         page.getByRole("heading", { name: "Relatórios" }),
       ).toBeVisible();
 
+      await page.getByRole("button", { name: "Tipo de relatório" }).click();
+      await page.getByRole("button", { name: "Equipamentos" }).click();
+      await page.getByRole("button", { name: "Configurar" }).click();
+      const popup = page.getByRole("dialog");
+      await expect(popup).toBeVisible();
+
       for (const [rotulo, extensao] of [
         ["Baixar Excel", ".xlsx"],
         ["Baixar Word", ".docx"],
       ] as const) {
         const [download] = await Promise.all([
           page.waitForEvent("download", { timeout: 60_000 }),
-          page.getByRole("button", { name: new RegExp(rotulo) }).click(),
+          popup.getByRole("button", { name: new RegExp(rotulo) }).click(),
         ]);
         expect(download.suggestedFilename().startsWith("relatorio-")).toBe(
           true,
