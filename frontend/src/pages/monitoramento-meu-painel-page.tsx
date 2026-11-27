@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { PageHeader } from "@/components/common/page-header";
 import { ErrorAlert } from "@/components/common/error-alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   PainelBloco,
+  PainelCarregando,
   PainelNavegacao,
 } from "@/components/features/painel-tecnico-estrutura";
 import { PainelTecnicoIndicadores } from "@/components/features/painel-tecnico-indicadores";
@@ -98,14 +98,7 @@ export function MonitoramentoMeuPainelPage() {
     return (
       <div>
         {header}
-        <div
-          className="grid gap-3"
-          role="status"
-          aria-label="Carregando painel"
-        >
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
+        <PainelCarregando />
       </div>
     );
   }

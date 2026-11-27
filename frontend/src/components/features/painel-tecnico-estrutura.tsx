@@ -1,3 +1,4 @@
+import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -121,6 +122,16 @@ export function PainelNavegacao({
         </nav>
         {filtros}
       </div>
+    </div>
+  );
+}
+
+/** Esqueleto exibido enquanto o painel e a carteira carregam. */
+export function PainelCarregando() {
+  return (
+    <div className="grid gap-3" role="status" aria-label="Carregando painel">
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }
