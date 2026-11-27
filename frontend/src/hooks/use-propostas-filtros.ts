@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { usePropostasOpcoes } from "./use-propostas-opcoes";
+import { estagioDeFato, situacaoDeFato } from "@/lib/proposta-status";
 import {
-  ORDEM_SITUACAO_POR_ESTAGIO,
-  estagioDeFato,
-  situacaoDeFato,
-} from "@/lib/proposta-status";
+  agruparPorSituacao,
+  contarTipos,
+  filtrarManuais,
+} from "@/lib/propostas-agrupamento";
 import { correspondeBuscaLivre } from "@/lib/busca-livre";
 import type { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
 import type { instrumentosManuaisFinanciamento } from "@/lib/financiamento-manual";
@@ -119,91 +120,48 @@ export function usePropostasFiltros(propostas: Proposta[], manuais: Manual[]) {
     equipamentosPorProposta,
   ]);
 
-  // Os cadastros manuais só têm os campos comuns; qualquer filtro que
-  // dependa de dado da proposta os deixa de fora.
-  const manuaisFiltrados = useMemo(() => {
-    if (
-      equipamento.length > 0 ||
-      situacao.length > 0 ||
-      anoInicio ||
-      anoFim ||
-      programa.length > 0 ||
-      (estagio.length > 0 && !estagio.includes("confirmada"))
-    )
-      return [];
-    return manuais.filter((i) => {
-      if (
-        !correspondeBuscaLivre(busca, [
-          i.nr_convenio,
-          i.nome_convenente,
-          i.cnes,
-          i.municipio,
-          i.uf,
-          i.tipo_contratacao,
-        ])
-      )
-        return false;
-      if (tipo && i.tipo_contratacao !== tipo) return false;
-      if (uf.length > 0 && !uf.includes(i.uf ?? "")) return false;
-      if (cnes.length > 0 && !cnes.includes(i.cnes ?? "")) return false;
-      if (municipio.length > 0 && !municipio.includes(i.municipio ?? ""))
-        return false;
-      return true;
-    });
-  }, [
-    manuais,
-    busca,
-    uf,
-    cnes,
-    municipio,
-    equipamento,
-    situacao,
-    anoInicio,
-    anoFim,
-    programa,
-    estagio,
-    tipo,
-  ]);
+  // Manuais só têm os campos comuns: filtro de dado da proposta os exclui.
+  const manuaisFiltrados = useMemo(
+    () =>
+      filtrarManuais(manuais, {
+        busca,
+        tipo,
+        uf,
+        cnes,
+        municipio,
+        exclui:
+          equipamento.length > 0 ||
+          situacao.length > 0 ||
+          !!anoInicio ||
+          !!anoFim ||
+          programa.length > 0 ||
+          (estagio.length > 0 && !estagio.includes("confirmada")),
+      }),
+    [
+      manuais,
+      busca,
+      uf,
+      cnes,
+      municipio,
+      equipamento,
+      situacao,
+      anoInicio,
+      anoFim,
+      programa,
+      estagio,
+      tipo,
+    ],
+  );
 
-  // Sub-agrupado por situação de fato numa ordem fixa de funil do estágio
-  // atual (mais avançado primeiro, ver ORDEM_SITUACAO_POR_ESTAGIO em
-  // lib/proposta-status.ts); situação fora da ordem conhecida (vocabulário
-  // livre da API) aparece depois, na ordem em que a agregação encontrar.
-  const gruposPorSituacao = useMemo(() => {
-    const porSituacao = new Map<string, typeof filtradas>();
-    for (const p of filtradas) {
-      const sit = situacaoDeFato(p) ?? "Sem situação informada";
-      const lista = porSituacao.get(sit) ?? [];
-      lista.push(p);
-      porSituacao.set(sit, lista);
-    }
-    const ordem = [
-      ...new Set([
-        ...ORDEM_SITUACAO_POR_ESTAGIO.confirmada,
-        ...ORDEM_SITUACAO_POR_ESTAGIO.tramitacao,
-      ]),
-    ];
-    const situacoes = [...porSituacao.keys()].sort((a, b) => {
-      const ia = ordem.indexOf(a),
-        ib = ordem.indexOf(b);
-      if (ia === -1 && ib === -1) return 0;
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
-    return situacoes.map((sit) => ({ sit, itens: porSituacao.get(sit)! }));
-  }, [filtradas]);
+  const gruposPorSituacao = useMemo(
+    () => agruparPorSituacao(filtradas),
+    [filtradas],
+  );
 
-  const tipos = useMemo(() => {
-    const contagem = new Map<string, number>();
-    for (const item of [...propostas, ...manuais]) {
-      const t = item.tipo_contratacao;
-      if (t) contagem.set(t, (contagem.get(t) ?? 0) + 1);
-    }
-    return [...contagem.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0], "pt-BR"))
-      .map(([valor, total]) => ({ valor, total }));
-  }, [propostas, manuais]);
+  const tipos = useMemo(
+    () => contarTipos([...propostas, ...manuais]),
+    [propostas, manuais],
+  );
 
   return {
     busca,
