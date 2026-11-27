@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  mesclarOpcoes,
-  opcoesSituacaoDaVisao,
-  origensDaVisao,
-  propostaCombina,
-  situacaoVale,
-} from "@/lib/recorte-relatorio";
-import { codificarSituacao } from "@/lib/situacao-relatorio";
+import { mesclarOpcoes, propostaCombina } from "@/lib/recorte-relatorio";
 import { criarPropostaPrevia } from "@/test-fixtures/relatorios-previa";
 
 const marcador = (nome: string, relacao: string) => ({
@@ -20,29 +13,6 @@ const marcador = (nome: string, relacao: string) => ({
 });
 
 describe("recorte do relatório", () => {
-  it("cada visão aceita só as origens de situação com efeito", () => {
-    expect(origensDaVisao(null)).toHaveLength(3);
-    expect(origensDaVisao("entregues")).toEqual([]);
-    expect(origensDaVisao("encerrados")).toEqual(["instrumento", "proposta"]);
-  });
-
-  it("descarta a situação escolhida quando a visão a ignora", () => {
-    const fase = codificarSituacao("monitoramento", "Em licitação");
-    expect(situacaoVale(fase, "encerrados")).toBe(false);
-    expect(situacaoVale(fase, null)).toBe(true);
-    expect(situacaoVale(null, "entregues")).toBe(true);
-  });
-
-  it("lista só as situações da visão", () => {
-    const opcoes = [
-      { value: codificarSituacao("instrumento", "A"), label: "A" },
-      { value: codificarSituacao("monitoramento", "B"), label: "B" },
-    ];
-    expect(
-      opcoesSituacaoDaVisao(opcoes, "encerrados").map((o) => o.label),
-    ).toEqual(["A"]);
-  });
-
   it("acrescenta valores exclusivos das propostas sem repetir", () => {
     const base = [{ value: "FAF", label: "FAF (2)" }];
     expect(

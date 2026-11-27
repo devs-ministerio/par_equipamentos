@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ConvenioUnificado } from "@/types/monitoramento";
 import { filtrarDadosOficiais } from "./filtrar-dados-oficiais";
-import { criarConvenioTeste } from "@/test-fixtures/dados-oficiais";
+import {
+  criarConvenioTeste,
+  criarMarcadorTeste,
+} from "@/test-fixtures/dados-oficiais";
 
 const CONVENIO_COM_CNES: ConvenioUnificado = {
   numero: "953749",
@@ -251,5 +254,31 @@ describe("filtrarDadosOficiais com várias opções", () => {
 
   it("lista vazia não restringe", () => {
     expect(numeros([])).toEqual(["1", "2", "3"]);
+  });
+
+  it("a classe Outros identificados restringe a lista; Prioritários (padrão) mantém todos", () => {
+    const itens = [
+      criarConvenioTeste({
+        numero: "A",
+        equipamentos: [criarMarcadorTeste("Mamógrafo", true)],
+      }),
+      criarConvenioTeste({
+        numero: "B",
+        equipamentos: [
+          criarMarcadorTeste("Mamógrafo", true),
+          criarMarcadorTeste("Cadeira hospitalar"),
+        ],
+      }),
+      criarConvenioTeste({ numero: "C", equipamentos: [] }),
+    ];
+    const numeros = (classeEquipamento: "outro" | "prioritario") =>
+      filtrarDadosOficiais(
+        itens,
+        { ...vazio, classeEquipamento },
+        new Set(),
+        (item) => item.situacao,
+      ).map((item) => item.numero);
+    expect(numeros("outro")).toEqual(["B"]);
+    expect(numeros("prioritario")).toEqual(["A", "B", "C"]);
   });
 });

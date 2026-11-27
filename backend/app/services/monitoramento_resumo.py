@@ -28,6 +28,7 @@ from app.schemas_monitoramento import (
 )
 from app.services import licenca_operacao
 from app.services.fase_acompanhamento import FaseAcompanhamento
+from app.services.fatos_instrumento import carregar_etapas, datas_inauguracao
 from app.services.monitoramento_divergencias import divergencia_conclusao
 from app.services.repasses import fases_calculadas_em_lote
 
@@ -91,6 +92,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
     licencas_deferidas = 0
     licencas_vencendo: list[LicencaVencendoResumo] = []
     inauguracoes: list[InauguracaoResumo] = []
+    datas_por_instrumento: dict[int, tuple[date | None, date | None]] = {}
     divergencias_conclusao: list[DivergenciaConclusaoRead] = []
     divergencias_por_fonte: Counter[str] = Counter()
     indicadores_por_instrumento: list[IndicadoresInstrumentoRead] = []
@@ -173,7 +175,9 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
             # lista; id desempata created_at empatado (ver comentario acima).
             ev = max(evs_inaug, key=lambda e: (e.created_at, e.id), default=None)
             if ev:
-                data = ev.data_ocorrencia or ev.data_prevista
+                ocorrencia, previsao = datas_inauguracao(ev)
+                datas_por_instrumento[inst.id] = (ocorrencia, previsao)
+                data = ocorrencia or previsao
                 if data:
                     # Descricao PLANEJADA (SICONV) primeiro, cai pro FISICO
                     # (marca+modelo, so preenchido depois da entrega) --
@@ -192,7 +196,7 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
                             uf=inst.uf,
                             equipamento=equipamento,
                             data=data,
-                            realizada=ev.data_ocorrencia is not None,
+                            realizada=ocorrencia is not None,
                             dias=(data - hoje).days,
                         )
                     )
@@ -232,6 +236,8 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         for i, f, p, e in itens_repo.resumo_por_instrumento_e_familia(db, set(numero_por_id))
     ]
 
+    etapas_por_instrumento = carregar_etapas(db=db, instrumentos=instrumentos, inauguracoes=datas_por_instrumento)
+
     return ResumoMonitoramentoRead(
         total_instrumentos=len(instrumentos),
         # A fase calculada não tem percentual de referência: não se inventa medição física.
@@ -253,5 +259,6 @@ def montar_resumo_monitoramento(db: Session) -> ResumoMonitoramentoRead:
         acoes_em_aberto=acoes_em_aberto,
         fila_acoes_truncada=dados.acoes_pendentes > len(acoes_em_aberto),
         equipamentos_por_instrumento=equipamentos_por_instrumento,
+        etapas_por_instrumento=etapas_por_instrumento,
         gerado_em=datetime.now(timezone.utc),
     )

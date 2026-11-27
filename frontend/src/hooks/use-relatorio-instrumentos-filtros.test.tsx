@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { useRelatorioInstrumentosFiltros } from "./use-relatorio-instrumentos-filtros";
 
 const recortes = [
-  ["encerramento", "setEncerramento", "encerrados"],
   ["uf", "setUf", "BA"],
   ["situacao", "setSituacao", "Em execução"],
   ["anoInicio", "setAnoInicio", "2025"],
   ["anoFim", "setAnoFim", "2026"],
   ["programa", "setPrograma", "Programa sintético"],
   ["tipoContratacao", "setTipoContratacao", "Convênio"],
+  ["monitorado", "setMonitorado", "propostas"],
   ["equipamento", "setEquipamento", "mamografo"],
   ["municipio", "setMunicipio", "SALVADOR"],
   ["cnes", "setCnes", "0000001"],

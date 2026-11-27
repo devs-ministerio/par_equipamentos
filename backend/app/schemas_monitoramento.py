@@ -31,6 +31,31 @@ class InauguracaoResumo(BaseModel):
     dias: int
 
 
+class UnidadesEntreguesRead(BaseModel):
+    data: date
+    quantidade: int
+
+
+ModoOperacao = Literal["dispensada", "inaugurada", "pela_entrega"]
+
+
+class EtapasInstrumentoRead(BaseModel):
+    """Datas das etapas de um instrumento, para prazos médios e para a situação da inauguração no painel.
+    Repasse não entra: a confirmação de repasse não guarda data própria."""
+
+    nr_convenio: str
+    publicacao: date | None = None
+    entrega: date | None = None
+    inauguracao: date | None = None
+    previsao_inauguracao: date | None = None
+    conclusao: date | None = None
+    inauguracao_dispensada: bool = False
+    modo_operacao: ModoOperacao | None = None
+    conclusao_resultado: str | None = None
+    tem_acelerador_linear: bool = False
+    unidades_entregues: list[UnidadesEntreguesRead] = []
+
+
 class ContagemRotulo(BaseModel):
     """{rotulo, quantidade} generico -- usado tanto pra distribuicao por
     fase quanto pra contagem por tecnico titular."""
@@ -132,4 +157,5 @@ class ResumoMonitoramentoRead(BaseModel):
     fila_acoes_truncada: bool
     equipamentos_por_instrumento: list[EquipamentoInstrumentoResumo]
     lacunas_conclusao: list[LacunaConclusaoResumo] = []
+    etapas_por_instrumento: list[EtapasInstrumentoRead] = []
     gerado_em: datetime

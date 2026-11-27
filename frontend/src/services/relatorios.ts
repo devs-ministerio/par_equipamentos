@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/api-error";
+import type { FaseAcompanhamento } from "@/lib/fases-acompanhamento";
 import { httpFetch, mensagemErroHttp } from "@/lib/http-client";
 import {
   executarHttpComPrazo,
@@ -18,7 +19,20 @@ export type NivelRelatorio = "simplificado" | "completo";
 export type FormatoRelatorio = "xlsx" | "docx";
 // Dois relatórios INDEPENDENTES (pedido do usuário 2026-09-26: "separar o
 // relatório de instrumentos e repasse do relatório de análise de mérito").
-export type TipoRelatorio = "instrumentos_repasse" | "analise_merito";
+export type TipoMonitorado =
+  | "equipamentos_monitorados"
+  | "instrumentos_monitorados";
+export type TipoRelatorio =
+  | "instrumentos_repasse"
+  | "analise_merito"
+  | "propostas"
+  | TipoMonitorado;
+export type SituacaoEquipamento =
+  | "planejado"
+  | "entregue"
+  | "em_operacao"
+  | "cancelado";
+export type EtapaRelatorio = "propostas" | "sem" | "monitorado";
 
 export interface FiltroRelatorio {
   escopo: EscopoRelatorio;
@@ -43,6 +57,9 @@ export interface FiltroRelatorio {
    * ignorava. Só filtra Convênios (mesmo mecanismo de `/convenios`). */
   equipamento?: string;
   busca?: string;
+  etapa?: EtapaRelatorio;
+  situacoesEquipamento?: SituacaoEquipamento[];
+  fasesInstrumento?: FaseAcompanhamento[];
   encerramento?: "todos" | "encerrados" | "entregues";
   /** Origem do valor de `situacao` (filtro único): as demais seções ficam fora do relatório. */
   situacaoOrigem?: "instrumento" | "monitoramento" | "proposta";
@@ -63,18 +80,12 @@ function nomeArquivoDoHeader(header: string | null, fallback: string): string {
   return match?.[1] ?? fallback;
 }
 
-/** Baixa o relatório do backend -- rota binária (nenhum service usava
- * `httpFetch` cru até agora, ver comentário em `lib/http-client.ts`), então
- * trata status/erro aqui mesmo em vez de `requisitar` (que espera JSON). */
-export async function gerarRelatorio(
-  formato: FormatoRelatorio,
+export function parametrosRelatorio(
   tipoRelatorio: TipoRelatorio,
   nivel: NivelRelatorio,
   filtro: FiltroRelatorio,
-  signal?: AbortSignal,
-): Promise<ArquivoRelatorio> {
+) {
   const params = new URLSearchParams({
-    formato,
     tipo_relatorio: tipoRelatorio,
     nivel,
     escopo: filtro.escopo,
@@ -90,6 +101,13 @@ export async function gerarRelatorio(
   if (filtro.tipoContratacao)
     params.set("tipo_contratacao", filtro.tipoContratacao);
   if (filtro.equipamento) params.set("equipamento", filtro.equipamento);
+  if (filtro.etapa) params.set("etapa", filtro.etapa);
+  for (const situacao of filtro.situacoesEquipamento ?? []) {
+    params.append("situacao_equipamento", situacao);
+  }
+  for (const fase of filtro.fasesInstrumento ?? []) {
+    params.append("fase_instrumento", fase);
+  }
   if (filtro.busca) params.set("busca", filtro.busca);
   if (filtro.encerramento) params.set("encerramento", filtro.encerramento);
   if (filtro.situacaoOrigem)
@@ -97,6 +115,21 @@ export async function gerarRelatorio(
   if (filtro.periodoPor) params.set("periodo_por", filtro.periodoPor);
   if (filtro.dataInicio) params.set("data_inicio", filtro.dataInicio);
   if (filtro.dataFim) params.set("data_fim", filtro.dataFim);
+  return params;
+}
+
+/** Baixa o relatório do backend -- rota binária (nenhum service usava
+ * `httpFetch` cru até agora, ver comentário em `lib/http-client.ts`), então
+ * trata status/erro aqui mesmo em vez de `requisitar` (que espera JSON). */
+export async function gerarRelatorio(
+  formato: FormatoRelatorio,
+  tipoRelatorio: TipoRelatorio,
+  nivel: NivelRelatorio,
+  filtro: FiltroRelatorio,
+  signal?: AbortSignal,
+): Promise<ArquivoRelatorio> {
+  const params = parametrosRelatorio(tipoRelatorio, nivel, filtro);
+  params.set("formato", formato);
 
   try {
     // O prazo inclui refresh e leitura do corpo, não apenas os cabeçalhos.

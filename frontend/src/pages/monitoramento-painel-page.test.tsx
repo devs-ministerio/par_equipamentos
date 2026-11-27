@@ -33,7 +33,7 @@ function montar(h = prepararPainel()) {
 }
 async function pronto() {
   return screen.findByRole("heading", {
-    name: "Panorama dos Instrumentos e Programas",
+    name: "Visão geral",
   });
 }
 function metrica(rotulo: string) {
@@ -41,7 +41,7 @@ function metrica(rotulo: string) {
 }
 
 describe("Painel de gestão com composição e HTTP reais simulados", () => {
-  it("recalcula valor/vigências por recorte e remove valor cuja fonte deixou de ser confiável", async () => {
+  it("recalcula o valor por recorte e remove valor cuja fonte deixou de ser confiável", async () => {
     // Given: relógio fixo apenas para Date; chamadas assíncronas continuam reais.
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
@@ -53,39 +53,15 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     lista.itens[0]!.data_final_vigencia = "2026-10-30";
     const user = montar(h);
     await pronto();
-    expect(
-      metrica("Valor global informado").getByText(/2\.000/),
-    ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", {
-        name: /Instrumentos com vigência a encerrar/,
-      }),
-    );
-    expect(
-      within(screen.getByRole("dialog")).getByRole("link", { name: /QA001/ }),
-    ).toBeInTheDocument();
-    await user.keyboard("{Escape}");
-    // When: a vigência pertence à UF excluída.
+    expect(metrica("Valor global").getByText(/2\.000/)).toBeInTheDocument();
+    // When: o recorte exclui uma UF.
     await user.click(screen.getByRole("button", { name: /^UF/ }));
-    await user.click(screen.getByRole("option", { name: "BA" }));
-    // Then
-    expect(
-      metrica("Valor global informado").getByText(/1\.000/),
-    ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", {
-        name: /Instrumentos com vigência a encerrar/,
-      }),
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "UF" }),
+      "BA",
     );
-    expect(
-      within(screen.getByRole("dialog")).queryByRole("link"),
-    ).not.toBeInTheDocument();
-    expect(
-      within(screen.getByRole("dialog")).getByText(
-        /Nenhuma vigência com encerramento/,
-      ),
-    ).toBeInTheDocument();
-    await user.keyboard("{Escape}");
+    // Then
+    expect(metrica("Valor global").getByText(/1\.000/)).toBeInTheDocument();
     // When: atualização da fonte retira a base comparável do instrumento filtrado.
     lista.itens[1]!.financeiro_fonte_confiavel = false;
     await act(async () => {
@@ -93,15 +69,73 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     });
     // Then: não conservar a soma antiga nem transformar desconhecido em zero.
     await waitFor(() =>
-      expect(
-        metrica("Valor global informado").getByText("—"),
-      ).toBeInTheDocument(),
+      expect(metrica("Valor global").getByText("—")).toBeInTheDocument(),
     );
+  });
+
+  it("cruza o início de operação com os anos reais das unidades e oferece só as três referências", async () => {
+    const h = prepararPainel();
+    h.resumo.etapas_por_instrumento = [
+      {
+        nr_convenio: "QA001",
+        publicacao: null,
+        entrega: "2023-01-01",
+        inauguracao: null,
+        conclusao: null,
+        inauguracao_dispensada: true,
+        conclusao_resultado: "integral",
+        tem_acelerador_linear: false,
+        unidades_entregues: [
+          { data: "2023-01-01", quantidade: 1 },
+          { data: "2025-01-01", quantidade: 1 },
+        ],
+      },
+    ];
+    h.resumo.inauguracoes = [
+      {
+        nr_convenio: "QA002",
+        nome_convenente: "Unidade Beta sintética",
+        municipio: "Cidade Beta",
+        uf: "BA",
+        equipamento: null,
+        data: "2027-02-01",
+        realizada: false,
+        dias: 100,
+      },
+    ];
+    const user = montar(h);
+    await pronto();
+    await user.click(screen.getByRole("button", { name: "Período" }));
+    const referencia = screen.getByRole("combobox", { name: "Referência" });
     expect(
-      metrica("Valor global informado").getByText(
-        /Pagamento ao fornecedor sem base comparável/,
-      ),
+      within(referencia)
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual([
+      "Ano do instrumento",
+      "Início de operação",
+      "Inauguração prevista",
+    ]);
+    await user.selectOptions(referencia, "inicio_operacao");
+    const inicio = screen.getByRole("combobox", { name: "Ano inicial" });
+    expect(
+      within(inicio).getByRole("option", { name: "2023" }),
     ).toBeInTheDocument();
+    await user.selectOptions(inicio, "2025");
+    expect(metrica("Instrumentos").getByText("1")).toBeInTheDocument();
+
+    await user.selectOptions(referencia, "inauguracao_prevista");
+    expect(metrica("Instrumentos").getByText("2")).toBeInTheDocument();
+    expect(
+      within(inicio).queryByRole("option", { name: "2025" }),
+    ).not.toBeInTheDocument();
+    await user.selectOptions(inicio, "2027");
+    const anoFinal = screen.getByRole("combobox", { name: "Ano final" });
+    await user.selectOptions(anoFinal, "2027");
+    expect(
+      screen.getByRole("button", { name: "Remover filtro Período: 2027" }),
+    ).toBeInTheDocument();
+    expect(metrica("Instrumentos").getByText("1")).toBeInTheDocument();
   });
 
   it.each(ROTAS_PAINEL)("aguarda a fonte principal %s", async (rota) => {
@@ -117,7 +151,7 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", {
-        name: "Panorama dos Instrumentos e Programas",
+        name: "Visão geral",
       }),
     ).not.toBeInTheDocument();
     // When
@@ -126,7 +160,7 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     });
     // Then
     expect(await pronto()).toBeInTheDocument();
-    expect(screen.getByText("2 de 2 instrumentos")).toBeInTheDocument();
+    expect(metrica("Instrumentos").getByText("2")).toBeInTheDocument();
   });
 
   it.each(ROTAS_PAINEL)(
@@ -161,6 +195,16 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     },
   );
 
+  it("abre o painel mesmo com falha no catálogo de marcos, que nenhum gráfico usa", async () => {
+    // Given
+    const h = prepararPainel();
+    h.respostas.set("/monitoramento/marcos", { body: {}, status: 503 });
+    // When
+    montar(h);
+    // Then
+    expect(await pronto()).toBeInTheDocument();
+  });
+
   it("rejeita resumo fora do contrato em vez de mostrar indicadores parciais", async () => {
     // Given
     const h = prepararPainel();
@@ -174,9 +218,7 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     expect(
       await screen.findByText("Não foi possível carregar o painel de gestão."),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText("Valor global informado"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Valor global")).not.toBeInTheDocument();
   });
 
   it.each(["admin", "gestor", "colaborador", "leitor"])(
@@ -255,22 +297,15 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     h.resumo.indicadores_por_instrumento[0]!.acoes_pendentes = 2;
     const user = montar(h);
     await pronto();
-    // Duas ações atrasadas do mesmo instrumento: 1 instrumento, 2 ocorrências.
-    expect(
-      metrica("Instrumentos com atenção").getByText("1"),
-    ).toBeInTheDocument();
-    expect(
-      metrica("Instrumentos com atenção").getByText(/2 ocorrências/),
-    ).toBeInTheDocument();
+    expect(metrica("Instrumentos").getByText("2")).toBeInTheDocument();
     // When
     await user.click(screen.getByRole("button", { name: /^UF/ }));
-    await user.click(screen.getByRole("option", { name: "BA" }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "UF" }),
+      "BA",
+    );
     // Then
-    expect(screen.getByText("1 de 2 instrumentos")).toBeInTheDocument();
-    expect(
-      metrica("Instrumentos com atenção").getByText("0"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("1 instrumentos")).toBeInTheDocument();
+    expect(metrica("Instrumentos").getByText("1")).toBeInTheDocument();
     // When: a mesma query perde o único instrumento do recorte.
     h.respostas.set("/monitoramento/instrumentos", {
       body: [h.instrumentos[0]!],
@@ -283,12 +318,8 @@ describe("Painel de gestão com composição e HTTP reais simulados", () => {
     });
     // Then
     await waitFor(() =>
-      expect(screen.getByText("0 de 1 instrumentos")).toBeInTheDocument(),
+      expect(metrica("Instrumentos").getByText("0")).toBeInTheDocument(),
     );
-    expect(metrica("Instrumentos").getByText("0")).toBeInTheDocument();
-    expect(
-      metrica("Valor global informado").getByText("—"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("1 instrumentos")).not.toBeInTheDocument();
+    expect(metrica("Valor global").getByText("—")).toBeInTheDocument();
   });
 });

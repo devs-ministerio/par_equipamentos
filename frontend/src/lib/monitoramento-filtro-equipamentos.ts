@@ -15,6 +15,16 @@ export function chaveEquipamentoFiltro(nome: string): string {
   return nomePrioritarioCanonico(limpo) ?? normalizarTexto(limpo);
 }
 
+/** Classe do marcador: prioritário (flag ou nome canônico das 16 famílias) ou outro. */
+export function classeDoMarcador(marcador: {
+  nome: string;
+  prioritario?: boolean;
+}): "prioritario" | "outro" {
+  return marcador.prioritario || nomePrioritarioCanonico(marcador.nome) !== null
+    ? "prioritario"
+    : "outro";
+}
+
 /** Somente marcadores canônicos da listagem; nunca classifica prosa planejada. */
 export function equipamentosPorInstrumento(
   fontes: readonly FonteEquipamentosFiltro[],
@@ -64,3 +74,9 @@ export function opcoesEquipamentosFiltro(
     .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
 }
+
+export const CLASSES_FILTRO_EQUIPAMENTO = [
+  { value: "todos", label: "Todos" },
+  { value: "prioritario", label: "Prioritários" },
+  { value: "outro", label: "Outros identificados" },
+] as const;

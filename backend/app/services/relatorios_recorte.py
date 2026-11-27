@@ -11,11 +11,14 @@ from app.db.models import (
     Convenio,
     PropostaCandidata,
 )
+from app.domain_errors import ValidationError
 from app.pipeline.texto import normalizar_texto
 from app.pipeline.tipo_proposta import tipo_da_proposta
 from app.repositories import convenios as convenios_repo
 from app.repositories import equipamento_marcadores as equipamento_marcadores_repo
+from app.repositories import monitoramento as monitoramento_repo
 from app.repositories import propostas_candidatas_relatorio as propostas_repo
+from app.repositories.limites_relatorio import LimiteConsultaExcedido
 from app.services.monitoramento_instrumentos import InstrumentoComFase, listar_monitorados_para_relatorio
 from app.services.relatorios_filtro import FiltroRelatorio
 
@@ -25,13 +28,22 @@ from app.services.relatorios_filtro import FiltroRelatorio
 
 
 def _convenios(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
-    if filtro.situacao_origem == "proposta":
+    if filtro.etapa == "propostas" or filtro.situacao_origem == "proposta":
         return []
     convenios = _convenios_do_recorte(db, filtro)
     if filtro.situacao_origem == "monitoramento":
         numeros = {i.instrumento.nr_convenio for i in _instrumentos(db, filtro)}
-        return [c for c in convenios if c.numero in numeros]
-    return convenios
+        convenios = [c for c in convenios if c.numero in numeros]
+    if filtro.etapa is None:
+        return convenios
+    monitorados = monitoramento_repo.numeros_com_monitoramento(db, {c.numero for c in convenios})
+    duplicadas = {p.cd_parceria for p in _propostas(db, filtro) if p.tem_parceria}
+    return [
+        c
+        for c in convenios
+        if (c.numero in monitorados) == (filtro.etapa == "monitorado")
+        and not (c.tipo_contratacao == "FAF" and c.numero in duplicadas)
+    ]
 
 
 def _convenios_do_recorte(db: Session, filtro: FiltroRelatorio) -> list[Convenio]:
@@ -76,6 +88,17 @@ def _propostas(db: Session, filtro: FiltroRelatorio) -> list[PropostaCandidata]:
             db, "proposta_candidata", {p.id for p in propostas}, filtro.equipamento
         )
         propostas = [p for p in propostas if p.id in ids]
+    if filtro.etapa == "propostas":
+        return [p for p in propostas if not p.tem_parceria]
+    if filtro.etapa is not None:
+        confirmadas = [p for p in propostas if p.tem_parceria]
+        numeros = {p.cd_parceria or str(p.id_proposta) for p in confirmadas}
+        monitorados = monitoramento_repo.numeros_com_monitoramento(db, numeros)
+        return [
+            p
+            for p in confirmadas
+            if ((p.cd_parceria or str(p.id_proposta)) in monitorados) == (filtro.etapa == "monitorado")
+        ]
     return propostas
 
 
@@ -91,8 +114,21 @@ def _propostas_do_recorte(db: Session, filtro: FiltroRelatorio) -> list[Proposta
     )
 
 
+def previa_propostas(
+    *, db: Session, filtro: FiltroRelatorio, pagina: int, limite: int
+) -> tuple[int, list[tuple[str, str]]]:
+    if filtro.etapa != "propostas":
+        raise ValidationError("Selecione a etapa Propostas para consultar a prévia.")
+    try:
+        propostas = _propostas(db, filtro)
+    except LimiteConsultaExcedido as exc:
+        raise ValidationError("O recorte excede o limite seguro. Refine os filtros e tente novamente.") from exc
+    inicio = (pagina - 1) * limite
+    return len(propostas), [(str(p.id_proposta), p.nm_proponente or "") for p in propostas[inicio : inicio + limite]]
+
+
 def _instrumentos(db: Session, filtro: FiltroRelatorio) -> list[InstrumentoComFase]:
-    if filtro.situacao_origem in ("instrumento", "proposta"):
+    if filtro.etapa in ("sem", "propostas") or filtro.situacao_origem in ("instrumento", "proposta"):
         return []
     instrumentos = _instrumentos_do_recorte(db, filtro)
     if filtro.situacao_origem == "monitoramento" and filtro.situacao:

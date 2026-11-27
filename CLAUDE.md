@@ -294,7 +294,7 @@ Plano em `docs/planos/planmode-monitoramento-itens-detalhado-2026-10-23.md` (cla
   `instrumento_no_escopo()` (`repositories/convenios.py`) esconde o instrumento monitorado ligado a ele (o detalhe dá 404).
   Universo medido em 26/10: 560 firmados (403 Convênio, 92 PERSUS I, 50 PERSUS II, 12 FAF, 3 TED; PRONON saiu em 21/09),
   542 depois da marcação; 292 monitorados, 288 depois.
-- **Mapas Mermaid**: índice, convenções e validador em `docs/mermaid/README.md` (monitoramento interno e Radar de instrumentos). Mudou o fluxo, atualize o mapa no mesmo commit.
+- **Mapas Mermaid**: índice, convenções e validador em `docs/mermaid/README.md` (monitoramento interno, Radar, Dados oficiais, relatórios, análise de mérito, acesso e administração, banco). Mudou o fluxo, atualize o mapa no mesmo commit.
 - **Radar e conclusão (19/11/2026, `docs/mermaid/monitoramento-interno.md`)**: o Radar de instrumentos é só de `gestor`/`admin`
   (API recusa com 403 a lista, o histórico e a prova para os demais; o botão some). Card enxuto: componente, valor, UF, município, data da coleta e
   do instrumento; os itens (todos os bens da última recaptura, em tabela com quantidade e valores) abrem no botão **Itens · n** ao lado do número do convênio. O monitor da coleta (status, contagens e detalhes) é só do `admin`; os demais veem apenas data e hora da última coleta com sucesso. A lista tem duas abas: **Aguardando** (novo/em análise) e **Arquivados** (aprovado/rejeitado). **Aprovar** abre um pop-up único (igual ao de adicionar ao monitoramento interno) com técnico titular obrigatório na tela e na API (`tecnico_titular_id` sem ele é 422); sem "Iniciar análise" (sobra Aprovar e Rejeitar). A mesma transação cria o
@@ -1310,25 +1310,15 @@ bloqueado de tudo, sem exceção, em qualquer um dos dois gates abaixo.
 
 ## Relatórios Excel/Word (Plan Mode relatorios 2026-09-25/26)
 
-`docs/planos/planmode-relatorios-2026-09-25.md` fechou 6 blocos. **Dois relatórios
-independentes**, decisão do usuário 2026-09-26: `GET /relatorios` (`app/routers/relatorios.py`,
-`app/services/relatorios.py`) com `tipo_relatorio=instrumentos_repasse|analise_merito`.
+Nos três modelos de monitoramento, Word e Excel identificam os tipos de contratação do recorte e rotulam o total com Quantidade de Equipamentos, Quantidade de Instrumentos ou Quantidade de Propostas. O Word mantém o cabeçalho institucional e a data de referência.
 
-- **`instrumentos_repasse`** (convênios + propostas candidatas/"linhas de financiamento" ainda sem
-  virar convênio + monitoramento interno completo) — página própria dentro do Monitoramento
-  Interno (`frontend/src/pages/monitoramento-relatorios-page.tsx`, rota
-  `/monitoramento-equipamentos/relatorios`, nav "Relatórios").
-- **`analise_merito`** (só cobertura/déficit oncológico) — continua em `relatorios-page.tsx`, fora
-  do `MonitoramentoLayout` (mesmo lugar onde os botões de export já existiam antes). Não existe pra
-  `escopo=cnes` (`ValidationError`/422 — cobertura não tem granularidade por estabelecimento, mesma
-  limitação da seção "Limitações conhecidas" abaixo).
+`GET /relatorios` usa `app/routers/relatorios.py` e `app/services/relatorios.py`. A análise de mérito continua separada do monitoramento, sem granularidade CNES.
 
-Filtro geográfico hierárquico (Brasil→Região→UF→Município→CNES) + `ano` opcional (só
-`instrumentos_repasse` — cobertura não tem dimensão de ano civil). Nível Simplificado = estado
-atual; Completo = tudo, inclusive timeline inteira de eventos do monitoramento — no Word narra 1
-bloco por convênio/instrumento (estilo dos briefings reais do departamento, timbre institucional
-Ministério da Saúde/SAES/DECAN/CGPCAN + aviso "gerado automaticamente"); no Excel continua tabela
-(pedido explícito do usuário).
+- **Equipamentos (26/11/2026):** `tipo_relatorio=equipamentos_monitorados`; prévia, Excel e Word usam a mesma extração. O Word Simplificado agrupa 16 campos em nove colunas. O Word Completo apresenta fichas por instrumento com a contratação e o número no título. Os dados cadastrais ficam em um formulário de duas colunas. Após uma linha em branco, a tabela de sete colunas começa por Equipamento e Descrição do item do plano. As tabelas do Word ficam limitadas à área útil do A4 paisagem. O Excel usa abas Resumo e Registros, legenda abaixo dos dados e moeda numérica em R$. O resumo exibe Quantidade de Equipamentos e os tipos de contratação do recorte. Moeda ausente fica vazia.
+- **Nomes com recorte:** `relatorio-equipamentos-MG-{nivel}.{xlsx|docx}`; os demais downloads também usam o recorte real. Filtro sem família: **Todos os Equipamentos em Oncologia**. Situação (Site) é a oficial; Situação (Monitoramento) é a fase interna. Fonte de Equipamentos: `SISGEO · SICONV · RENEM · CNES`.
+- **Instrumentos e Propostas:** prévia e exportações usam o mesmo recorte. Instrumentos usa 14 ou 30 campos e acrescenta as abas Financeiro e Ações em aberto no Excel Completo. Propostas usa 10 ou 16 campos; o tipo `propostas` exporta a carteira em tramitação, sem parceria formalizada. Os modelos anteriores preservam seus contratos. O Word Simplificado traz a nota informativa. No Completo, Instrumentos usa uma ficha por instrumento com a contratação e o número no título. A tabela de equipamentos fica uma linha abaixo do formulário, com uma linha por tipo e valor unitário quando há preço uniforme no plano. Na interface de Instrumentos, o nível Completo é selecionado por padrão e o Simplificado fica desabilitado. Qtd Planejado é o saldo do plano após cancelamentos e entregas. % Em Operação é a proporção de unidades em operação sobre as unidades entregues e ainda a entregar. O Word Completo de Propostas apresenta uma ficha por proposta, com o número no título e os campos em duas colunas. A interface de Propostas oferece apenas o nível Completo.
+- **Legado mantido:** `instrumentos_repasse` reúne convênios e propostas candidatas; Word completo narra blocos por instrumento e Excel usa tabelas. `instrumentos_monitorados` continua disponível. `analise_merito` permanece na análise de cobertura. Modelos novos não alteram regras de cobertura nem ofertas SUS/em uso.
+- **Conferência local:** quatro arquivos MG em `outputs/relatorios-equipamentos-2026-11-26-revisado/`. Ensaio HTTP com autenticação simulada e leitura no clone de homologação.
 
 - **Filtro de município é feito em Python, nunca `==` em SQL** (`app/pipeline/texto.py::
   normalizar_texto`, upper+sem-acento, aplicado depois de trazer por UF) — achado ao vivo: a mesma
@@ -1363,6 +1353,14 @@ importação em lote ("Importado de Controle PERSUS.xlsx · sha256:...") que vaz
 "Observação" da timeline agora é removido só na apresentação (`_observacao_publica`, banco
 intacto). Nome de instituição ALL CAPS cru (`convenente_nome`/`nm_proponente`) **continua sem
 correção automática** — decisão deliberada, mesmo risco de quebrar sigla legítima.
+
+**Fase 0 da paridade (24/11/2026).** A página de Instrumentos e Repasses usa
+a prévia única de `montarRecorte` e tabela responsiva. O filtro Etapa é
+aplicado à prévia. Sua adoção pelo endpoint de exportação faz parte da
+Fase 2. As prévias legadas de Concluídos e Entregas saíram do frontend.
+A geração Word/Excel segue com as regras e rotas existentes. A validação
+visual e as decisões pendentes estão no
+[plano de paridade](docs/planos/planmode-relatorios-paridade-2026-11-24.md).
 
 ## Complementação PERSUS I com fontes extras (2026-09-27)
 

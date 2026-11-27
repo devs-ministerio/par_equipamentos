@@ -3,6 +3,7 @@ import { nomePrioritarioCanonico } from "./equipamento-catalogo";
 import { correspondeBuscaLivre } from "./busca-livre";
 import { chaveMunicipio, instrumentoEstaNoMunicipio } from "./municipio-filtro";
 import type {
+  ClasseEquipamento,
   FiltroDadosOficiais,
   FiltroMonitorado,
 } from "@/types/dados-oficiais";
@@ -13,6 +14,8 @@ type EstadoFiltros = {
   municipio: string[];
   cnes: string[];
   equipamento: string[];
+  /** Só "outro" restringe a lista; o padrão "prioritario" mantém todos os instrumentos. */
+  classeEquipamento?: ClasseEquipamento;
   situacao: string[];
   anoInicio: string | null;
   anoFim: string | null;
@@ -52,6 +55,17 @@ export function filtrarDadosOficiais(
       ignorar !== "cnes" &&
       estado.cnes.length > 0 &&
       !(item.cnes && estado.cnes.includes(item.cnes))
+    )
+      return false;
+    if (
+      estado.classeEquipamento === "outro" &&
+      !item.equipamentos.some(
+        (equipamento) =>
+          !(
+            equipamento.prioritario ||
+            nomePrioritarioCanonico(equipamento.nome) !== null
+          ),
+      )
     )
       return false;
     if (

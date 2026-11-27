@@ -20,6 +20,10 @@ Mapas dos fluxos e do banco (abrem direto no GitHub):
 [Radar de instrumentos](docs/mermaid/radar-instrumentos.md) ·
 [Monitoramento interno](docs/mermaid/monitoramento-interno.md) ·
 [Banco de dados](docs/mermaid/banco-de-dados.md) ·
+[Dados oficiais](docs/mermaid/dados-oficiais.md) ·
+[Relatórios do monitoramento](docs/mermaid/relatorios.md) ·
+[Análise de mérito](docs/mermaid/analise-de-merito.md) ·
+[Acesso e administração](docs/mermaid/acesso-e-administracao.md) ·
 [índice por diagrama](docs/mermaid/README.md). O significado de cada tabela e
 coluna está no [dicionário de dados](docs/dicionario-dados/README.md).
 
@@ -152,7 +156,7 @@ docs/
   planos/                                # plan-modes (histórico de decisões)
   diagnosticos/                          # diagnósticos, incidentes, revisões
   runbooks/                              # procedimentos operacionais e roteiros de release
-  mermaid/                               # mapas de fluxo e do banco (Radar, monitoramento interno, 50 tabelas)
+  mermaid/                               # mapas de fluxo e do banco (Radar, monitoramento, dados oficiais, relatórios, mérito, acesso, 50 tabelas)
   dicionario-dados/                      # dicionário de dados por domínio
   assets/                                # imagens e GeoJSON de apoio
   prototipo/decan-prototipo_1.html       # protótipo HTML standalone, anterior à app real

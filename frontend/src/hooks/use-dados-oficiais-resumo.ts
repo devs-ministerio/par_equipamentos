@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { ConvenioUnificado } from "@/types/monitoramento";
-import { SITUACOES_INSTRUMENTO_CONCLUIDO } from "@/lib/equipamento-catalogo";
 
 export interface TotalFinanceiro {
   /** Soma dos valores informados; `null` quando nenhum instrumento informou. */
@@ -63,12 +62,11 @@ export function useDadosOficiaisResumo({
         (total, item) => total + item.equipamentos.length,
         0,
       ),
-      totalConcluidos: ordenados.filter((item) => {
-        const situacao = situacaoExibida(item);
-        return (
-          situacao !== null && SITUACOES_INSTRUMENTO_CONCLUIDO.has(situacao)
-        );
-      }).length,
+      // Mesmo critério das demais telas: instrumento monitorado na fase Concluído.
+      totalConcluidos: ordenados.filter(
+        (item) =>
+          monitorados.has(item.numero) && situacaoExibida(item) === "Concluído",
+      ).length,
       totalMonitorados: ordenados.filter((item) => monitorados.has(item.numero))
         .length,
       filtrados: ordenados,

@@ -30,6 +30,7 @@ from app.routers import (
     monitoramento,
     municipality_coverage,
     notificacoes,
+    painel_tecnico,
     propostas_candidatas,
     relatorios,
     repasses,
@@ -84,6 +85,7 @@ app.include_router(licenca_operacao.router)
 app.include_router(conclusao.router)
 app.include_router(repasses.router)
 app.include_router(classificacao_itens.router)
+app.include_router(painel_tecnico.router)
 # Radar de Convenios -- notificacao de proposta candidata/atualizacao de
 # API/edicao manual, ver docs/arquitetura/fluxo_requisicao.md.
 app.include_router(notificacoes.router)

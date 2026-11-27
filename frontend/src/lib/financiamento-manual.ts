@@ -1,10 +1,11 @@
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 
-export const TIPOS_LINHA_FINANCIAMENTO = new Set(["FAF", "TED"]);
+export const TIPOS_LINHA_FINANCIAMENTO = new Set(["FAF"]);
 
 type PropostaChave = { cd_parceria: string | null; id_proposta: number };
 
-/** FAF e TED vêm de carga manual, sem proposta no TransfereGov. Entram na
+/** O FAF (fundo a fundo) é linha de financiamento; o TED é instrumento e
+ * fica com Convênio e PERSUS. O FAF vem de carga manual, sem proposta no TransfereGov. Entram na
  * lista de Linhas de financiamento junto das parcerias confirmadas, exceto
  * os que já correspondem a uma proposta pelo número. */
 export function instrumentosManuaisFinanciamento(

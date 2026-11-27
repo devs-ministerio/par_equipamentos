@@ -1,5 +1,5 @@
 import { Bell } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CentralNotificacoes } from "./central-notificacoes";
 import { NotificacaoDetalheDialog } from "./notificacao-detalhe-dialog";
@@ -39,8 +39,7 @@ export function NotificationBell() {
     useNotificacoes();
   const navigate = useNavigate();
   const { usuarioAtual } = useAuthSession();
-  const abrirDestino = useCallback((d: string) => navigate(d), [navigate]);
-  useAvisoNovoInstrumento(notificacoes, usuarioAtual, abrirDestino);
+  useAvisoNovoInstrumento(notificacoes, usuarioAtual, abrirNotificacao);
 
   async function abrirNotificacao(notificacao: Notificacao) {
     try {

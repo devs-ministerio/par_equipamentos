@@ -179,7 +179,7 @@ def unidades_entregues_por_instrumento(db: Session, instrumento_ids: set[int]) -
     return {i: entregues.get(i, 0) for i in controlados if i is not None}
 
 
-ROTULO_FAMILIA_POR_VALOR = "Outros equipamentos (a partir de R$ 300 mil)"
+ROTULO_FAMILIA_POR_VALOR = "Outros equipamentos (Não prioritários)"
 
 
 def _cancelamentos_ativos_do_item():
@@ -192,21 +192,24 @@ def _cancelamentos_ativos_do_item():
     )
 
 
-def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> list[tuple[int, str, int, int]]:
-    """(instrumento, família, planejado, entregue) dos itens controlados; planejado desconhecido não soma.
+def resumo_com_cancelamentos_por_familia(
+    db: Session, instrumento_ids: set[int]
+) -> list[tuple[int, str, int, int, int]]:
+    """(instrumento, família, planejado líquido, entregue, cancelado) dos itens controlados; planejado desconhecido não soma.
 
     Item controlado por valor, sem família no catálogo, vai para `ROTULO_FAMILIA_POR_VALOR`."""
     if not instrumento_ids:
         return []
     familia = func.coalesce(EquipamentoCatalogo.nome, ROTULO_FAMILIA_POR_VALOR)
     planejado = {
-        (int(i), str(f)): int(q)
-        for i, f, q in db.execute(
+        (int(i), str(f)): (int(q), int(c))
+        for i, f, q, c in db.execute(
             select(
                 ItemPlano.instrumento_id,
                 familia,
                 func.coalesce(func.sum(ItemPlano.quantidade_planejada), 0)
                 - func.coalesce(func.sum(_cancelamentos_ativos_do_item()), 0),
+                func.coalesce(func.sum(_cancelamentos_ativos_do_item()), 0),
             )
             .outerjoin(EquipamentoCatalogo, EquipamentoCatalogo.id == ItemPlano.catalogo_id)
             .where(
@@ -229,8 +232,14 @@ def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> 
         ).all()
     }
     return [
-        (i, f, planejado.get((i, f), 0), entregue.get((i, f), 0)) for i, f in sorted(set(planejado) | set(entregue))
+        (i, f, liquido, entregue.get((i, f), 0), cancelado)
+        for i, f in sorted(set(planejado) | set(entregue))
+        for liquido, cancelado in [planejado.get((i, f), (0, 0))]
     ]
+
+
+def resumo_por_instrumento_e_familia(db: Session, instrumento_ids: set[int]) -> list[tuple[int, str, int, int]]:
+    return [(i, f, p, e) for i, f, p, e, _ in resumo_com_cancelamentos_por_familia(db, instrumento_ids)]
 
 
 def vincular_itens_soltos_do_convenio(db: Session, *, instrumento_id: int, nr_convenio: str) -> int:

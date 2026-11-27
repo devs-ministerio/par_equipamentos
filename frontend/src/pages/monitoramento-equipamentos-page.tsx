@@ -22,24 +22,14 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/common/page-header";
-import { AnoIntervaloFilter } from "@/components/common/ano-intervalo-filter";
-import { MultiSelectFilter } from "@/components/common/multi-select-filter";
-import { SingleSelectFilter } from "@/components/common/single-select-filter";
-import { SearchInput } from "@/components/common/search-input";
 import { filtrarDadosOficiais } from "@/lib/filtrar-dados-oficiais";
 import { SecaoPropostasCandidatas } from "@/components/features/secao-propostas-candidatas";
-import {
-  AbasDadosOficiais,
-  SubAbasFinanciamento,
-} from "@/components/features/dados-oficiais-abas";
+import { AbasDadosOficiais } from "@/components/features/dados-oficiais-abas";
 import { DadosOficiaisMetricas } from "@/components/features/dados-oficiais-metricas";
 import { DadosOficiaisFiltros } from "@/components/features/dados-oficiais-filtros";
 import { DadosOficiaisLista } from "@/components/features/dados-oficiais-lista";
 import { DadosOficiaisInstrumentos } from "@/components/features/dados-oficiais-instrumentos";
-import type {
-  AbaDadosOficiais,
-  ClasseEquipamento,
-} from "@/types/dados-oficiais";
+import type { AbaDadosOficiais } from "@/types/dados-oficiais";
 import {
   TAMANHO_PAGINA_DADOS_OFICIAIS,
   useDadosOficiaisFiltros,
@@ -47,7 +37,6 @@ import {
 import { useDadosOficiaisOpcoes } from "@/hooks/use-dados-oficiais-opcoes";
 import { useDadosOficiaisResumo } from "@/hooks/use-dados-oficiais-resumo";
 import { usePropostasCandidatas } from "@/hooks/use-propostas-candidatas";
-import { estagioDeFato, type EstagioProposta } from "@/lib/proposta-status";
 import { useConveniosLista } from "@/hooks/useConveniosLista";
 import { mensagemSeguraDoErro } from "@/lib/api-error";
 import { useMonitoramentoInstrumentos } from "@/hooks/useInstrumentosMonitorados";
@@ -80,8 +69,6 @@ export function MonitoramentoEquipamentosPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const aba: AbaDadosOficiais =
     searchParams.get("aba") === "componentes" ? "componentes" : "convenios";
-  const subAbaFinanciamento: EstagioProposta =
-    searchParams.get("subaba") === "confirmada" ? "confirmada" : "tramitacao";
   const setAba = useCallback(
     (proximaAba: AbaDadosOficiais) => {
       setSearchParams(
@@ -96,50 +83,23 @@ export function MonitoramentoEquipamentosPage() {
     },
     [setSearchParams],
   );
-  const setSubAbaFinanciamento = useCallback(
-    (proximaSubAba: EstagioProposta) => {
-      setSearchParams(
-        (anteriores) => {
-          const proximos = new URLSearchParams(anteriores);
-          if (proximaSubAba === "tramitacao") proximos.delete("subaba");
-          else proximos.set("subaba", proximaSubAba);
-          return proximos;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
+  const filtrosDadosOficiais = useDadosOficiaisFiltros();
   const {
     busca,
-    setBusca,
     uf,
-    setUf,
     municipio,
-    setMunicipio,
     cnes,
-    setCnes,
     equipamento,
-    setEquipamento,
     classeEquipamento,
-    setClasseEquipamento,
     situacao,
-    setSituacao,
     anoInicio,
-    setAnoInicio,
     anoFim,
-    setAnoFim,
     programa,
-    setPrograma,
     tipoContratacao,
-    setTipoContratacao,
     monitorado,
-    setMonitorado,
     pagina,
     setPagina,
-    hasFiltros,
-    limparFiltros,
-  } = useDadosOficiaisFiltros();
+  } = filtrosDadosOficiais;
   const instrumentosQuery = useMonitoramentoInstrumentos();
   const monitoramentoPronto =
     monitorado === null || instrumentosQuery.isSuccess;
@@ -175,8 +135,8 @@ export function MonitoramentoEquipamentosPage() {
   // é bem mais leve que antes (sem siconv_raw/transferegov_raw na
   // listagem, ver services/convenios.ts) mesmo carregando tudo de uma vez.
   const conveniosQuery = useConveniosLista();
-  // FAF e TED são linhas de financiamento: aparecem em "Linhas de
-  // financiamento", não em Instrumentos/Programas.
+  // O FAF é linha de financiamento: aparece em "Linhas de
+  // financiamento", não em Instrumentos/Programas. O TED é instrumento.
   const convenios = useMemo(
     () =>
       conveniosQuery.data?.itens.filter(
@@ -203,6 +163,7 @@ export function MonitoramentoEquipamentosPage() {
           municipio,
           cnes,
           equipamento,
+          classeEquipamento,
           situacao,
           anoInicio,
           anoFim,
@@ -222,6 +183,7 @@ export function MonitoramentoEquipamentosPage() {
       cnes,
       convenios,
       equipamento,
+      classeEquipamento,
       municipio,
       monitorados,
       monitorado,
@@ -272,22 +234,23 @@ export function MonitoramentoEquipamentosPage() {
   // leve e independente do resto do estado (mesma queryKey sem status do
   // SecaoPropostasCandidatas, já cacheada quando a aba abrir de verdade).
   const { propostas: todasPropostas } = usePropostasCandidatas();
-  const totalConfirmadas =
-    todasPropostas.filter((p) => estagioDeFato(p) === "confirmada").length +
+  const totalLinhasFinanciamento =
+    todasPropostas.length +
     instrumentosManuaisFinanciamento(
       instrumentosQuery.data ?? [],
       todasPropostas,
     ).length;
-  const totalEmTramitacao = todasPropostas.filter(
-    (p) => estagioDeFato(p) !== "confirmada",
-  ).length;
 
   return (
     <div>
       <PageHeader
         eyebrow="Dados oficiais"
         title="Instrumentos e repasses"
-        description="Convênios, propostas, valores e execução das fontes oficiais."
+        description={
+          aba === "componentes"
+            ? "Parcerias confirmadas e propostas em tramitação."
+            : "Convênios, propostas, valores e execução das fontes oficiais."
+        }
       />
 
       {erro && (
@@ -301,7 +264,7 @@ export function MonitoramentoEquipamentosPage() {
       <AbasDadosOficiais
         aba={aba}
         totalInstrumentos={convenios?.length ?? 0}
-        totalPropostas={totalConfirmadas + totalEmTramitacao}
+        totalPropostas={totalLinhasFinanciamento}
         onChange={setAba}
       />
 
@@ -325,111 +288,25 @@ export function MonitoramentoEquipamentosPage() {
               )}
 
               <DadosOficiaisFiltros
-                ativos={hasFiltros}
-                onLimpar={limparFiltros}
-                contagem={
+                filtros={filtrosDadosOficiais}
+                opcoes={{
+                  tipoContratacao: tipoContratacaoOptions,
+                  uf: ufs,
+                  municipio: municipioOptions,
+                  cnes: cnesOptions,
+                  equipamento: equipamentoOptions,
+                  situacao: situacaoOptions,
+                  programa: programaOptions,
+                  ano: anoOptions,
+                }}
+                aviso={
                   monitoramentoPronto
-                    ? `${filtrados.length} de ${convenios.length} instrumentos`
+                    ? undefined
                     : instrumentosQuery.isError
                       ? "Monitoramento indisponível"
                       : "Consultando monitoramento..."
                 }
-              >
-                <SearchInput
-                  value={busca}
-                  onChange={setBusca}
-                  placeholder="Buscar número, convenente, CNES ou município"
-                  width={90}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Contratação"
-                  options={tipoContratacaoOptions}
-                  selected={tipoContratacao}
-                  onChange={setTipoContratacao}
-                />
-                <SingleSelectFilter
-                  placeholder="Monitorado"
-                  options={[
-                    { value: "sim", label: "Sim" },
-                    { value: "nao", label: "Não" },
-                  ]}
-                  value={monitorado}
-                  onChange={setMonitorado}
-                  clearLabel="Todos"
-                  minWidth={120}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="UF"
-                  options={ufs}
-                  selected={uf}
-                  onChange={setUf}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="CNES"
-                  options={cnesOptions}
-                  selected={cnes}
-                  onChange={setCnes}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Município"
-                  options={municipioOptions}
-                  selected={municipio}
-                  onChange={setMunicipio}
-                />
-                <div
-                  role="group"
-                  aria-label="Classificação e equipamento"
-                  className="flex w-full min-w-0 flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-md sm:outline sm:outline-1 sm:outline-border sm:outline-offset-2"
-                >
-                  <SingleSelectFilter
-                    placeholder="Prioritário"
-                    options={[
-                      { value: "prioritario", label: "Prioritários" },
-                      { value: "outro", label: "Outros identificados" },
-                    ]}
-                    value={classeEquipamento}
-                    onChange={(valor) =>
-                      setClasseEquipamento(
-                        (valor ?? "prioritario") as ClasseEquipamento,
-                      )
-                    }
-                    clearLabel="Prioritários"
-                    minWidth={125}
-                  />
-                  <MultiSelectFilter
-                    appearance="standard"
-                    placeholder="Equipamento"
-                    options={equipamentoOptions}
-                    selected={equipamento}
-                    onChange={setEquipamento}
-                  />
-                </div>
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Situação"
-                  options={situacaoOptions}
-                  selected={situacao}
-                  onChange={setSituacao}
-                />
-                <MultiSelectFilter
-                  appearance="standard"
-                  placeholder="Programas"
-                  options={programaOptions}
-                  selected={programa}
-                  onChange={setPrograma}
-                />
-                <AnoIntervaloFilter
-                  options={anoOptions}
-                  inicio={anoInicio}
-                  fim={anoFim}
-                  onInicioChange={setAnoInicio}
-                  onFimChange={setAnoFim}
-                />
-              </DadosOficiaisFiltros>
+              />
 
               <DadosOficiaisInstrumentos
                 carregando={!monitoramentoPronto && !instrumentosQuery.isError}
@@ -459,19 +336,7 @@ export function MonitoramentoEquipamentosPage() {
 
       {aba === "componentes" && (
         <>
-          {/* Radar de Convênios -- organizado pelo estágio real no funil
-                TransfereGov, não por critério de pagamento: "Confirmada
-                (parceria)" primeiro (fato consumado), "Em tramitação
-                (proposta)" depois (pode virar parceria ou mudar de
-                situação na fonte). */}
-          <SubAbasFinanciamento
-            atual={subAbaFinanciamento}
-            confirmadas={totalConfirmadas}
-            emTramitacao={totalEmTramitacao}
-            onChange={setSubAbaFinanciamento}
-          />
-
-          <SecaoPropostasCandidatas modo={subAbaFinanciamento} />
+          <SecaoPropostasCandidatas />
         </>
       )}
     </div>

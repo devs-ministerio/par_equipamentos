@@ -39,9 +39,3 @@ def _notificar_edicao_manual(db: Session, *, instrumento_id: int, titulo: str, c
             entidade_id=instrumento_id,
         ),
     )
-
-
-def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
-    """Autoria autenticada fica visivel junto do texto para leitura rapida."""
-    prefixo = f"[{autor_nome}]"
-    return f"{prefixo} {observacao}" if observacao else prefixo

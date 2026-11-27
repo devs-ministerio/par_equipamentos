@@ -39,10 +39,14 @@ def _ao_vivo_de(
     )
 
 
-def _compor_observacao(autor_nome: str, observacao: str | None) -> str:
-    """Autoria autenticada fica visivel junto do texto para leitura rapida."""
+def _remover_assinatura(texto: str | None, autor_nome: str | None) -> str | None:
+    """Suprime apenas o prefixo legado que coincide com a autoria do registro."""
+    if texto is None or autor_nome is None:
+        return texto
     prefixo = f"[{autor_nome}]"
-    return f"{prefixo} {observacao}" if observacao else prefixo
+    if texto == prefixo:
+        return None
+    return texto.removeprefix(f"{prefixo} ")
 
 
 def _evento_read(
@@ -51,6 +55,7 @@ def _evento_read(
     """Monta EventoMarcoRead resolvendo autor/exclusão a partir do mapa de
     nomes já carregado (evita N+1 query por evento, ver
     `monitoramento_repo.resolver_nomes_usuarios`)."""
+    autor = nomes.get(evento.autor_id) if evento.autor_id else None
     return EventoMarcoRead(
         id=evento.id,
         marco_id=evento.marco_id,
@@ -60,8 +65,8 @@ def _evento_read(
         status_regulatorio=evento.status_regulatorio,
         numero_documento=evento.numero_documento,
         data_validade=evento.data_validade,
-        observacao=evento.observacao,
-        autor_nome=nomes.get(evento.autor_id) if evento.autor_id else None,
+        observacao=_remover_assinatura(evento.observacao, autor),
+        autor_nome=autor,
         created_at=evento.created_at,
         atualizado_em=evento.atualizado_em,
         substituido_por_id=evento.substituido_por_id,
@@ -74,17 +79,18 @@ def _evento_read(
 
 
 def _acao_read(acao: AcaoMonitoramento, nr_convenio: str, nomes: dict[int, str]) -> AcaoMonitoramentoRead:
+    autor = nomes.get(acao.criado_por_id) if acao.criado_por_id else None
     return AcaoMonitoramentoRead(
         id=acao.id,
         instrumento_id=acao.instrumento_id,
         nr_convenio=nr_convenio,
-        descricao=acao.descricao,
+        descricao=_remover_assinatura(acao.descricao, autor) or "",
         data_prevista=acao.data_prevista,
         data_conclusao=acao.data_conclusao,
         responsavel=acao.responsavel,
         responsavel_id=acao.responsavel_id,
         responsavel_nome=nomes.get(acao.responsavel_id) if acao.responsavel_id else None,
-        criado_por_nome=nomes.get(acao.criado_por_id) if acao.criado_por_id else None,
+        criado_por_nome=autor,
         created_at=acao.created_at,
         atualizado_em=acao.atualizado_em,
         substituido_por_id=acao.substituido_por_id,

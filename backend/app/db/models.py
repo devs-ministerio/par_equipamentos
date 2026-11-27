@@ -1189,6 +1189,23 @@ class InstrumentoResponsavel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class UsuarioRegiaoMonitoramento(Base):
+    """UFs que o técnico acompanha no monitoramento interno (divisão da equipe).
+
+    Alimenta o painel individual (`/monitoramento/meu-painel`): a região do técnico é a união destas UFs,
+    independente de ele ser titular de instrumentos nelas. Não concede nem restringe edição (isso é
+    `instrumento_responsavel`).
+    """
+
+    __tablename__ = "usuario_regiao_monitoramento"
+
+    usuario_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE", onupdate="RESTRICT"), primary_key=True
+    )
+    uf: Mapped[str] = mapped_column(String(2), primary_key=True)
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class EventoMarco(Base):
     """Log append-only -- MESMA filosofia do ConfigDecision (nunca UPDATE):
     corrigir um marco e lancar um evento novo, nunca editar um existente.

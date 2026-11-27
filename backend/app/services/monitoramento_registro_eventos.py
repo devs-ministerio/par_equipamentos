@@ -26,7 +26,7 @@ from app.services.fase_acompanhamento import calcular_fase_acompanhamento
 from app.services.inauguracao_realizada import registrar_inauguracao_realizada
 from app.services.marcos_por_fase import JANELAS, marco_disponivel_na_fase, motivo_indisponivel
 from app.services.monitoramento_cadastro import DadosEquipamentoEntregue, _resumo_equipamento_entregue
-from app.services.monitoramento_comum import _agora_utc, _compor_observacao, _notificar_edicao_manual
+from app.services.monitoramento_comum import _agora_utc, _notificar_edicao_manual
 
 
 @dataclass(frozen=True)
@@ -203,7 +203,7 @@ def registrar_evento_monitorado(
         status_regulatorio=dados.status_regulatorio,
         numero_documento=dados.numero_documento,
         data_validade=dados.data_validade,
-        observacao=_compor_observacao(usuario.name, observacao),
+        observacao=observacao,
         autor_id=usuario.id,
     )
     monitoramento_repo.adicionar_evento(db, evento)
@@ -344,7 +344,7 @@ def editar_evento_monitorado(
         status_regulatorio=dados.status_regulatorio,
         numero_documento=dados.numero_documento,
         data_validade=dados.data_validade,
-        observacao=_compor_observacao(usuario.name, dados.observacao),
+        observacao=dados.observacao,
         autor_id=usuario.id,
     )
     monitoramento_repo.substituir_evento(db, antigo, novo)
@@ -356,7 +356,7 @@ def editar_evento_monitorado(
             marco_id=inauguracao_vinculada.marco_id,
             fase_geral_id=inauguracao_vinculada.fase_geral_id,
             data_ocorrencia=dados.data_ocorrencia,
-            observacao=_compor_observacao(usuario.name, "Data ajustada junto com a correção da conclusão."),
+            observacao="Data ajustada junto com a correção da conclusão.",
             autor_id=usuario.id,
         )
         monitoramento_repo.substituir_evento(db, inauguracao_vinculada, inauguracao_corrigida)

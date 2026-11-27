@@ -22,10 +22,13 @@ from sqlalchemy.engine import make_url
 os.environ.setdefault("ALLOWED_HOSTS", "testserver,localhost,127.0.0.1")
 
 _DB_TEST_MODULES = {
+    "test_ajustar_inauguracao_entregues_db.py",
     "test_avisos_siconv_db.py",
     "test_cancelamento_unidade_db.py",
     "test_conclusao_acompanhamento_db.py",
+    "test_etapas_instrumento_db.py",
     "test_criar_instrumento_projeta_itens_db.py",
+    "test_painel_tecnico_db.py",
     "test_trava_instrumento_db.py",
     "test_documentos_instrumento_db.py",
     "test_licenca_ansn_db.py",
@@ -37,6 +40,7 @@ _DB_TEST_MODULES = {
     "test_migracao_fluxo_db.py",
     "test_preencher_cnes_ano_descricao_instrumento_db.py",
     "test_relatorios_entregues_db.py",
+    "test_relatorios_monitorados_db.py",
     "test_recalcular_cobertura_macro_db.py",
     "test_usuarios_ultimo_login_db.py",
     "test_baseline_batch_db.py",
@@ -79,6 +83,7 @@ _DB_TEST_MODULES = {
     "test_fluxo_radar_schema_versionado_db.py",
     "test_migrations_prova_aprovacao_aditivas_db.py",
     "test_migration_escopo_radar_aditiva_db.py",
+    "test_migration_usuario_regiao_aditiva_db.py",
     "test_rollback_snapshot_recuperacao_db.py",
     "test_cadeia_migrations_recuperacao_db.py",
     "test_central_radar_sessao_real_db.py",

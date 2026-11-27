@@ -17,8 +17,7 @@ from app.repositories.convenios import listar_convenios_paginados, obter_conveni
 from app.repositories.equipamento_marcadores import listar_por_origens
 from app.schemas_convenios import ConvenioDetalheRead, ConvenioListaRead, ConvenioRead
 from app.schemas_equipamentos import serializar_marcadores
-
-TIPOS_SEM_DADOS_OFICIAIS = frozenset({"FAF", "TED", "PERSUS I", "PERSUS II", "PRONON"})
+from app.valor_global import TIPOS_SEM_DADOS_OFICIAIS
 
 
 def projecao_disponibilidade_dados(convenio: Convenio) -> dict[str, bool | float | None]:

@@ -49,6 +49,7 @@ from sqlalchemy.orm import Session
 
 from app.domain_errors import ValidationError
 from app.repositories.limites_relatorio import LimiteConsultaExcedido
+from app.services.fase_acompanhamento import FaseAcompanhamento
 from app.services.relatorios_admissao import reservar_geracao_docx
 from app.services.relatorios_docx import (  # noqa: F401
     _COLUNAS_ACOES_BLOCO,
@@ -90,6 +91,7 @@ from app.services.relatorios_merito import (  # noqa: F401
     _montar_analise_merito,
     _secao_cobertura_linhas,
 )
+from app.services.relatorios_monitorados import SituacaoEquipamento, montar_relatorio_monitorado
 from app.services.relatorios_recorte import (  # noqa: F401
     _convenios,
     _convenios_do_recorte,
@@ -144,7 +146,14 @@ def _montar_instrumentos_repasse(db: Session, formato: Formato, nivel: Nivel, fi
 
 
 def montar_relatorio(
-    *, db: Session, formato: Formato, nivel: Nivel, tipo_relatorio: TipoRelatorio, filtro: FiltroRelatorio
+    *,
+    db: Session,
+    formato: Formato,
+    nivel: Nivel,
+    tipo_relatorio: TipoRelatorio,
+    filtro: FiltroRelatorio,
+    situacoes_equipamento: tuple[SituacaoEquipamento, ...] = (),
+    fases_instrumento: tuple[FaseAcompanhamento, ...] = (),
 ) -> bytes:
     if tipo_relatorio == "analise_merito" and filtro.escopo == "cnes":
         raise ValidationError(
@@ -154,6 +163,23 @@ def montar_relatorio(
     filtro.validar_referencia_do_periodo()
     with reservar_geracao_docx() if formato == "docx" else nullcontext():
         try:
+            if tipo_relatorio in ("equipamentos_monitorados", "instrumentos_monitorados", "propostas"):
+                from app.reports.monitorados import gerar_monitorados
+
+                return gerar_monitorados(
+                    montar_relatorio_monitorado(
+                        db=db,
+                        tipo=tipo_relatorio,
+                        nivel=nivel,
+                        filtro=filtro,
+                        situacoes=situacoes_equipamento,
+                        fases=fases_instrumento,
+                        incluir_valores_unitarios=formato == "docx",
+                    ),
+                    formato=formato,
+                    recorte=filtro.titulo(),
+                    nivel=nivel,
+                )
             if filtro.encerramento == "encerrados":
                 if tipo_relatorio != "instrumentos_repasse":
                     raise ValidationError("Conclusão só se aplica ao relatório de instrumentos e parcerias.")

@@ -2,6 +2,7 @@
  * ou a data do evento de inauguração, real ou prevista. Nenhuma data é inferida. */
 export type ReferenciaPeriodo =
   | "ano_instrumento"
+  | "inicio_operacao"
   | "inauguracao_realizada"
   | "inauguracao_prevista";
 
@@ -13,7 +14,21 @@ export const OPCOES_REFERENCIA: Array<{
   { value: "inauguracao_prevista", label: "Inauguração prevista" },
 ];
 
-export function referenciaValida(valor: string | null): ReferenciaPeriodo {
+export const OPCOES_REFERENCIA_GESTAO = [
+  { value: "ano_instrumento", label: "Ano do instrumento" },
+  { value: "inicio_operacao", label: "Início de operação" },
+  { value: "inauguracao_prevista", label: "Inauguração prevista" },
+] as const;
+
+export function referenciaValida(
+  valor: string | null,
+  comInicioOperacao = false,
+): ReferenciaPeriodo {
+  if (
+    comInicioOperacao &&
+    (valor === "inicio_operacao" || valor === "inauguracao_realizada")
+  )
+    return "inicio_operacao";
   return valor === "inauguracao_realizada" || valor === "inauguracao_prevista"
     ? valor
     : "ano_instrumento";
@@ -31,7 +46,11 @@ export function anosPorReferencia(
   inauguracoes: readonly DataDeInauguracao[],
 ): Map<string, number> {
   const anos = new Map<string, number>();
-  if (referencia === "ano_instrumento") return anos;
+  if (
+    referencia !== "inauguracao_realizada" &&
+    referencia !== "inauguracao_prevista"
+  )
+    return anos;
   const realizada = referencia === "inauguracao_realizada";
   for (const item of inauguracoes) {
     if (item.realizada === realizada)

@@ -27,7 +27,10 @@ Nivel = Literal["simplificado", "completo"]
 
 Formato = Literal["xlsx", "docx"]
 
-TipoRelatorio = Literal["instrumentos_repasse", "analise_merito"]
+EtapaRelatorio = Literal["propostas", "sem", "monitorado"]
+TipoRelatorio = Literal[
+    "instrumentos_repasse", "analise_merito", "equipamentos_monitorados", "instrumentos_monitorados", "propostas"
+]
 
 _ROTULO_GRUPO_MARCO = {
     MarcoGrupo.fase_geral: "Fase geral",
@@ -65,6 +68,7 @@ class FiltroRelatorio:
     # Monitoramento não têm essa granularidade hoje.
     equipamento: str | None = None
     busca: str | None = None
+    etapa: EtapaRelatorio | None = None
     encerramento: Literal["todos", "encerrados", "entregues"] = "todos"
     # Filtro único de Situação: o valor vale só na seção da origem escolhida e as demais ficam de fora.
     # Sem origem (chamada direta da API), `situacao` segue filtrando só os convênios.

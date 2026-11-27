@@ -52,7 +52,7 @@ def test_gerar_relatorio_xlsx_brasil_default_e_instrumentos_repasse(headers_aute
     assert response.status_code == 200
     assert response.headers["content-type"] == ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     assert (
-        'filename="relatorio-instrumentos_repasse-brasil-simplificado.xlsx"' in response.headers["content-disposition"]
+        'filename="relatorio-instrumentos_repasse-BRASIL-simplificado.xlsx"' in response.headers["content-disposition"]
     )
     assert len(response.content) > 0
 
@@ -68,7 +68,7 @@ def test_gerar_relatorio_docx_uf_completo(headers_autenticados):
     assert response.headers["content-type"] == (
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
-    assert 'filename="relatorio-instrumentos_repasse-uf-completo.docx"' in response.headers["content-disposition"]
+    assert 'filename="relatorio-instrumentos_repasse-DF-completo.docx"' in response.headers["content-disposition"]
 
 
 def test_gerar_relatorio_analise_merito_xlsx(headers_autenticados):
@@ -78,7 +78,7 @@ def test_gerar_relatorio_analise_merito_xlsx(headers_autenticados):
         headers=headers_autenticados,
     )
     assert response.status_code == 200
-    assert 'filename="relatorio-analise_merito-uf-simplificado.xlsx"' in response.headers["content-disposition"]
+    assert 'filename="relatorio-analise_merito-DF-simplificado.xlsx"' in response.headers["content-disposition"]
 
 
 def test_gerar_relatorio_analise_merito_escopo_cnes_e_422(headers_autenticados):

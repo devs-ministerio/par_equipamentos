@@ -9,7 +9,7 @@ import { LinkDetalheInstrumento } from "./link-detalhe-instrumento";
 import { Campo, estiloCard, StatusPill } from "./monitoramento-ui";
 import type { InstrumentoEquipamento } from "@/services/monitoramento-instrumentos";
 
-/** Instrumento FAF ou TED de carga manual, mostrado entre as linhas de financiamento. */
+/** FAF de carga manual, mostrado entre as linhas de financiamento. */
 export function CardInstrumentoManual({ i }: { i: InstrumentoEquipamento }) {
   const [detalheAberto, setDetalheAberto] = useState(false);
   const nup = nupDoInstrumento(i.tipo_contratacao, i.nr_convenio);

@@ -13,7 +13,7 @@ from app.audit import log_action
 from app.db.models import EventoMarco, InstrumentoEquipamento, User
 from app.domain_errors import ValidationError
 from app.repositories import monitoramento as monitoramento_repo
-from app.services.monitoramento_comum import _agora_utc, _compor_observacao
+from app.services.monitoramento_comum import _agora_utc
 
 MARCO_PREVISAO = "cronograma_previsao_inauguracao"
 MARCO_DISPENSADA = "cronograma_inauguracao_dispensada"
@@ -51,7 +51,7 @@ def registrar_inauguracao_realizada(
         marco_id=marco.id,
         fase_geral_id=fase_geral_id,
         data_ocorrencia=data_ocorrencia,
-        observacao=_compor_observacao(usuario.name, observacao),
+        observacao=observacao,
         autor_id=usuario.id,
     )
     if anterior is not None:

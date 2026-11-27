@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import type { InstrumentoTimeline } from "@/services/monitoramento-instrumentos";
 import { MonitoramentoInternoCabecalho } from "./monitoramento-interno-cabecalho";
 
@@ -10,6 +10,10 @@ function renderizar(
     tipo_contratacao: "Convênio",
   },
   extra: Record<string, unknown> = {},
+  inauguracao: { data: string | null; realizada: boolean } = {
+    data: null,
+    realizada: true,
+  },
 ) {
   const timeline = {
     instrumento: {
@@ -27,8 +31,8 @@ function renderizar(
     <MonitoramentoInternoCabecalho
       timeline={timeline}
       componenteViaSiconv={null}
-      dataInauguracao={null}
-      inaugurado
+      dataInauguracao={inauguracao.data}
+      inaugurado={inauguracao.realizada}
       inauguracaoDispensada={false}
       diasInauguracao={null}
       acoesAbertasCount={0}
@@ -55,6 +59,14 @@ describe("MonitoramentoInternoCabecalho", () => {
       screen.getByText("Prestação de Contas Concluída"),
     ).toBeInTheDocument();
     expect(screen.getByText("Concluída")).toBeInTheDocument();
+  });
+
+  it("mostra a data na inauguração realizada e na prevista", () => {
+    renderizar(null, undefined, {}, { data: "2026-12-01", realizada: false });
+    expect(screen.getByText("Prevista em 01/12/2026")).toBeInTheDocument();
+    cleanup();
+    renderizar(null, undefined, {}, { data: "2026-10-07", realizada: true });
+    expect(screen.getByText("Realizada em 07/10/2026")).toBeInTheDocument();
   });
 
   it("mostra o NUP formatado só em FAF e TED", () => {

@@ -11,6 +11,8 @@ from fastapi.testclient import TestClient
 from openpyxl import load_workbook
 
 from app.main import app
+from app.services.relatorios_filtro import FiltroRelatorio
+from app.services.relatorios_modelo import nome_arquivo
 from tests.fixtures_relatorios_concorrencia import (
     CLIENTES,
     SENHA_SINTETICA,
@@ -71,8 +73,7 @@ def _conferir_respostas(pedidos, respostas, *, admite_ocupado=False):
             continue
         tipo = "spreadsheetml.sheet" if pedido.formato == "xlsx" else "wordprocessingml.document"
         assert resposta.headers["content-type"] == f"application/vnd.openxmlformats-officedocument.{tipo}"
-        escopo = pedido.filtros["escopo"]
-        nome = f"relatorio-instrumentos_repasse-{escopo}-{pedido.nivel}.{pedido.formato}"
+        nome = nome_arquivo("instrumentos_repasse", FiltroRelatorio(**pedido.filtros), pedido.nivel, pedido.formato)
         assert resposta.headers["content-disposition"] == f'attachment; filename="{nome}"'
         assert _numeros_do_arquivo(pedido.formato, resposta.content) == pedido.esperados
 

@@ -2,12 +2,12 @@ import { useState } from "react";
 
 /** Filtros do relatório de Instrumentos e Repasse -- mesmo vocabulário de
  * "Instrumentos e repasses" (Dados Oficiais, `use-dados-oficiais-filtros.ts`),
- * só que sem `busca`/`classeEquipamento`/`monitorado`/`pagina` (busca
+ * só que sem `busca`/`classeEquipamento`/`pagina` (busca
  * removida a pedido do usuário 2026-09-26; os demais não fazem sentido pra
  * prévia de relatório: filtro pensado pra recortar o que vai pro arquivo,
  * não pra paginar uma lista de UI). Estado único compartilhado entre a
- * tabela de prévia (client-side) e a geração do arquivo (`GET /relatorios`,
- * mesmos campos no backend).
+ * prévia e a geração do arquivo. Etapa é aplicada à prévia até o
+ * endpoint de exportação aceitar esse parâmetro.
  *
  * `municipio`/`cnes`/`nomeEstabelecimento` (pedido do usuário 2026-09-26)
  * são lista suspensa, mesmo modelo dos demais filtros (UF/situação/
@@ -20,16 +20,13 @@ import { useState } from "react";
  * deve ser dois campos pra gente escolher o período") substituem o antigo
  * `ano` único -- 2 seletores em vez de 1, mesmas opções (`anoOptions`). */
 export function useRelatorioInstrumentosFiltros() {
-  const [encerramento, setEncerramento] = useState<string | null>(null);
   const [uf, setUf] = useState<string | null>(null);
   const [situacao, setSituacao] = useState<string | null>(null);
-  const [periodoPor, setPeriodoPor] = useState<string | null>(null);
-  const [dataInicio, setDataInicio] = useState<string | null>(null);
-  const [dataFim, setDataFim] = useState<string | null>(null);
   const [anoInicio, setAnoInicio] = useState<string | null>(null);
   const [anoFim, setAnoFim] = useState<string | null>(null);
   const [programa, setPrograma] = useState<string | null>(null);
   const [tipoContratacao, setTipoContratacao] = useState<string | null>(null);
+  const [monitorado, setMonitorado] = useState<string | null>(null);
   const [equipamento, setEquipamento] = useState<string | null>(null);
   const [municipio, setMunicipio] = useState<string | null>(null);
   const [cnes, setCnes] = useState<string | null>(null);
@@ -38,16 +35,13 @@ export function useRelatorioInstrumentosFiltros() {
   );
 
   const limparFiltros = () => {
-    setEncerramento(null);
     setUf(null);
     setSituacao(null);
-    setPeriodoPor(null);
-    setDataInicio(null);
-    setDataFim(null);
     setAnoInicio(null);
     setAnoFim(null);
     setPrograma(null);
     setTipoContratacao(null);
+    setMonitorado(null);
     setEquipamento(null);
     setMunicipio(null);
     setCnes(null);
@@ -55,16 +49,13 @@ export function useRelatorioInstrumentosFiltros() {
   };
 
   const hasFiltros = Boolean(
-    encerramento ||
     uf ||
     situacao ||
     anoInicio ||
     anoFim ||
-    periodoPor ||
-    dataInicio ||
-    dataFim ||
     programa ||
     tipoContratacao ||
+    monitorado ||
     equipamento ||
     municipio ||
     cnes ||
@@ -72,18 +63,10 @@ export function useRelatorioInstrumentosFiltros() {
   );
 
   return {
-    encerramento,
-    setEncerramento,
     uf,
     setUf,
     situacao,
     setSituacao,
-    periodoPor,
-    setPeriodoPor,
-    dataInicio,
-    setDataInicio,
-    dataFim,
-    setDataFim,
     anoInicio,
     setAnoInicio,
     anoFim,
@@ -92,6 +75,8 @@ export function useRelatorioInstrumentosFiltros() {
     setPrograma,
     tipoContratacao,
     setTipoContratacao,
+    monitorado,
+    setMonitorado,
     equipamento,
     setEquipamento,
     municipio,

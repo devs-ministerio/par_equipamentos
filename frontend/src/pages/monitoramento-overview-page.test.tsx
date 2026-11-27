@@ -161,8 +161,11 @@ describe("Mesa de trabalho com fontes HTTP e componentes reais", () => {
       within(screen.getByText(rotulo, { exact: true }).parentElement!);
     expect(metrica("Licenças a vencer").getByText("1")).toBeInTheDocument();
     // When
-    await user.click(screen.getByRole("button", { name: /^UF/ }));
-    await user.click(screen.getByRole("option", { name: "BA" }));
+    await user.click(screen.getByRole("button", { name: "UF / Município" }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "UF" }),
+      "BA",
+    );
     // Then: nenhum indicador conserva o total global anterior.
     expect(metrica("Instrumentos").getByText("1")).toBeInTheDocument();
     expect(metrica("Licenças a vencer").getByText("0")).toBeInTheDocument();
@@ -199,9 +202,12 @@ describe("Mesa de trabalho com fontes HTTP e componentes reais", () => {
     const user = montar(prepararMesa(), "?pagina=3&origem=teste");
     await tabelaPronta();
     // When
-    await user.click(screen.getByRole("button", { name: /^Equipamento/ }));
+    await user.click(screen.getByRole("button", { name: "Equipamento" }));
     await user.click(
-      screen.getByRole("option", { name: "Cadeira hospitalar" }),
+      within(screen.getByRole("group", { name: "Equipamento" })).getByRole(
+        "button",
+        { name: "Cadeira hospitalar" },
+      ),
     );
     // Then
     const tabela = within(screen.getByRole("table"));
@@ -209,7 +215,6 @@ describe("Mesa de trabalho com fontes HTTP e componentes reais", () => {
     expect(
       tabela.queryByRole("link", { name: "QA002" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("1 de 2 instrumentos")).toBeInTheDocument();
     expect(screen.getByLabelText("URL atual")).not.toHaveTextContent("pagina=");
     expect(
       new URL(
@@ -221,7 +226,9 @@ describe("Mesa de trabalho com fontes HTTP e componentes reais", () => {
     expect(screen.getByLabelText("URL atual")).toHaveTextContent(
       "?origem=teste",
     );
-    expect(screen.getByText("2 de 2 instrumentos")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("table")).getByRole("link", { name: "QA002" }),
+    ).toBeInTheDocument();
   });
 
   it("mostra vazio real sem paginação quando a carteira não possui instrumentos", async () => {
@@ -238,7 +245,6 @@ describe("Mesa de trabalho com fontes HTTP e componentes reais", () => {
     expect(
       screen.queryByRole("button", { name: "Próxima página" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("0 de 0 instrumentos")).toBeInTheDocument();
   });
 
   it("limita a página efetiva quando um refresh reduz a mesma carteira", async () => {
