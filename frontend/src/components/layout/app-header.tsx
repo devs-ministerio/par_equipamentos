@@ -242,7 +242,7 @@ export function AppHeader({
             to="/monitoramento-equipamentos"
             className="flex shrink-0 items-center text-foreground"
           >
-            <Logo variante="completo" className="hidden h-11 lg:block" />
+            <Logo variante="completo" className="hidden h-[47px] lg:block" />
             <Logo variante="reduzido" className="h-9 lg:hidden" />
           </Link>
           <div className="hidden lg:block">{leftExtra}</div>
