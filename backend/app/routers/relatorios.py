@@ -10,7 +10,7 @@ Atrás de `require_current_user`, mesmo gate do resto do app.
 from __future__ import annotations
 
 from datetime import date
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
@@ -40,13 +40,7 @@ _MEDIA_TYPE = {
 }
 
 
-@router.get("", response_model=None, response_class=StreamingResponse)
-@limiter.limit("10/minute", key_func=chave_por_sessao)
-def gerar_relatorio(
-    request: Request,
-    formato: Literal["xlsx", "docx"],
-    tipo_relatorio: TipoRelatorio = "instrumentos_repasse",
-    nivel: Literal["simplificado", "completo"] = "simplificado",
+def _parametros_do_filtro(
     escopo: Literal["brasil", "regiao", "uf", "municipio", "cnes"] = "brasil",
     regiao: str | None = Query(default=None),
     uf: str | None = Query(default=None),
@@ -65,12 +59,8 @@ def gerar_relatorio(
     periodo_por: Literal["ano_instrumento", "data_do_evento"] = "ano_instrumento",
     data_inicio: date | None = Query(default=None),
     data_fim: date | None = Query(default=None),
-    situacao_equipamento: list[SituacaoEquipamento] = Query(default=[]),
-    fase_instrumento: Annotated[list[FaseAcompanhamento] | None, Query()] = None,
-    db: Session = Depends(get_db),
-    usuario: User = Depends(require_current_user),
-) -> StreamingResponse:
-    filtro = FiltroRelatorio(
+) -> dict[str, Any]:
+    return dict(
         escopo=escopo,
         regiao=regiao,
         uf=uf,
@@ -90,6 +80,28 @@ def gerar_relatorio(
         data_inicio=data_inicio,
         data_fim=data_fim,
     )
+
+
+_ROTULO_ARQUIVO = {
+    "equipamentos_monitorados": "equipamentos",
+    "instrumentos_monitorados": "instrumentos",
+}
+
+
+@router.get("", response_model=None, response_class=StreamingResponse)
+@limiter.limit("10/minute", key_func=chave_por_sessao)
+def gerar_relatorio(
+    request: Request,
+    formato: Literal["xlsx", "docx"],
+    tipo_relatorio: TipoRelatorio = "instrumentos_repasse",
+    nivel: Literal["simplificado", "completo"] = "simplificado",
+    parametros_do_filtro: dict[str, Any] = Depends(_parametros_do_filtro),
+    situacao_equipamento: list[SituacaoEquipamento] = Query(default=[]),
+    fase_instrumento: Annotated[list[FaseAcompanhamento] | None, Query()] = None,
+    db: Session = Depends(get_db),
+    usuario: User = Depends(require_current_user),
+) -> StreamingResponse:
+    filtro = FiltroRelatorio(**parametros_do_filtro)
     conteudo = montar_relatorio(
         db=db,
         formato=formato,
@@ -99,10 +111,7 @@ def gerar_relatorio(
         situacoes_equipamento=tuple(situacao_equipamento),
         fases_instrumento=tuple(fase_instrumento or ()),
     )
-    rotulo = {
-        "equipamentos_monitorados": "equipamentos",
-        "instrumentos_monitorados": "instrumentos",
-    }.get(tipo_relatorio, tipo_relatorio)
+    rotulo = _ROTULO_ARQUIVO.get(tipo_relatorio, tipo_relatorio)
     nome_arquivo = montar_nome_arquivo(rotulo, filtro, nivel, formato)
     return StreamingResponse(
         iter([conteudo]),

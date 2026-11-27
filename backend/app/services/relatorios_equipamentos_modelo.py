@@ -1,5 +1,6 @@
 """Extração, linhas e legenda do relatório de Equipamentos."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 
@@ -142,6 +143,38 @@ class _Carga:
     completo: bool
 
 
+def _fato_por_unidade(carga: _Carga, fato: Callable[..., FatoEquipamento], u: dict) -> FatoEquipamento:
+    return fato(
+        descricao_item=u["descricao_item"],
+        quantidade=1,
+        valor=carga.por_item.get(u["item_id"]),
+        data_entrega=u["data_entrega"],
+        marca=u["marca"],
+        modelo=u["modelo"],
+        serie=u["numero_serie"],
+    )
+
+
+def _fato_agregado(
+    carga: _Carga,
+    fato: Callable[..., FatoEquipamento],
+    *,
+    identificador: int,
+    familia: str,
+    quantidade: int,
+    da_familia: list[dict],
+    entrega: bool,
+) -> FatoEquipamento:
+    datas = [u["data_entrega"] for u in da_familia if u["data_entrega"]]
+    agregado = carga.por_familia.get((identificador, familia))
+    return fato(
+        descricao_item=carga.descricoes.get((identificador, familia)),
+        quantidade=quantidade,
+        valor=agregado[0] * quantidade / agregado[1] if agregado else None,
+        data_entrega=min(datas) if datas and not carga.completo and entrega else None,
+    )
+
+
 def _fatos_da_familia(
     carga: _Carga,
     *,
@@ -158,8 +191,7 @@ def _fatos_da_familia(
         situacao_entrega: entregue,
         "cancelado": cancelado,
     }
-    da_familia = carga.unidades.get((numero, familia), [])
-    fatos: list[FatoEquipamento] = []
+    da_familia, fatos = carga.unidades.get((numero, familia), []), list[FatoEquipamento]()
     for situacao, quantidade in quantidades.items():
         if situacao not in carga.selecionadas or quantidade <= 0:
             continue
@@ -177,29 +209,19 @@ def _fatos_da_familia(
 
         if carga.completo and situacao == situacao_entrega:
             detalhadas = da_familia[:quantidade]
-            fatos.extend(
-                fato(
-                    descricao_item=u["descricao_item"],
-                    quantidade=1,
-                    valor=carga.por_item.get(u["item_id"]),
-                    data_entrega=u["data_entrega"],
-                    marca=u["marca"],
-                    modelo=u["modelo"],
-                    serie=u["numero_serie"],
-                )
-                for u in detalhadas
-            )
+            fatos.extend(_fato_por_unidade(carga, fato, u) for u in detalhadas)
             quantidade -= len(detalhadas)
             if quantidade == 0:
                 continue
-        datas = [u["data_entrega"] for u in da_familia if u["data_entrega"]]
-        agregado = carga.por_familia.get((identificador, familia))
         fatos.append(
-            fato(
-                descricao_item=carga.descricoes.get((identificador, familia)),
+            _fato_agregado(
+                carga,
+                fato,
+                identificador=identificador,
+                familia=familia,
                 quantidade=quantidade,
-                valor=agregado[0] * quantidade / agregado[1] if agregado else None,
-                data_entrega=min(datas) if datas and not carga.completo and situacao == situacao_entrega else None,
+                da_familia=da_familia,
+                entrega=situacao == situacao_entrega,
             )
         )
     return fatos

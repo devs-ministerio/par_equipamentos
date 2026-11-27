@@ -45,6 +45,28 @@ def _mesclar_linha(linha: _Row, intervalo: tuple[int, int] | None) -> None:
                 mesclada._tc.remove(paragrafo._p)
 
 
+def _preencher_linha(
+    linha: _Row, valores: Sequence[object], secao: SecaoTabela, indice: int, alinhamentos: Sequence[int]
+) -> None:
+    linha_secao = indice - 1 in secao.linhas_de_secao
+    linha_total = indice - 1 in secao.linhas_de_total
+    for coluna, (celula, valor) in enumerate(zip(linha.cells, valores, strict=True)):
+        paragrafo = celula.paragraphs[0]
+        run = paragrafo.runs[0]
+        run.text = "" if valor is None else str(valor)
+        if alinhamentos:
+            paragrafo.alignment = alinhamentos[coluna]
+            paragrafo.paragraph_format.space_before = Pt(3)
+            paragrafo.paragraph_format.space_after = Pt(3)
+        if linha_secao or linha_total:
+            run.bold = True
+        if linha_secao:
+            paragrafo.paragraph_format.keep_with_next = True
+            fundo = OxmlElement("w:shd")
+            fundo.set(qn("w:fill"), "F4F6F9" if alinhamentos else "E7EDF5")
+            celula._tc.get_or_add_tcPr().append(fundo)
+
+
 def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> None:
     # Seção vazia ganha uma linha de aviso, igual a `docx_builder.adicionar_tabela`.
     total = max(len(secao.linhas), 1) + 1
@@ -73,23 +95,7 @@ def _escrever_tabela(xml: etree.xmlfile, tabela: Table, secao: SecaoTabela) -> N
             try:
                 mescla = secao.mesclas.get(indice)
                 alinhamentos = secao.alinhamentos if mescla is None else ()
-                linha_secao = indice - 1 in secao.linhas_de_secao
-                linha_total = indice - 1 in secao.linhas_de_total
-                for coluna, (celula, valor) in enumerate(zip(linha.cells, valores, strict=True)):
-                    paragrafo = celula.paragraphs[0]
-                    run = paragrafo.runs[0]
-                    run.text = "" if valor is None else str(valor)
-                    if alinhamentos:
-                        paragrafo.alignment = alinhamentos[coluna]
-                        paragrafo.paragraph_format.space_before = Pt(3)
-                        paragrafo.paragraph_format.space_after = Pt(3)
-                    if linha_secao or linha_total:
-                        run.bold = True
-                    if linha_secao:
-                        paragrafo.paragraph_format.keep_with_next = True
-                        fundo = OxmlElement("w:shd")
-                        fundo.set(qn("w:fill"), "F4F6F9" if alinhamentos else "E7EDF5")
-                        celula._tc.get_or_add_tcPr().append(fundo)
+                _preencher_linha(linha, valores, secao, indice, alinhamentos)
                 if total <= 6 and indice == total - 1:
                     docx_builder._formatar_linha_tabela(linha, secao.fonte_pt, indice=indice, total=total)
                 _mesclar_linha(linha, mescla)

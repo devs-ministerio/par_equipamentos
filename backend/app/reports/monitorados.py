@@ -1,7 +1,9 @@
 """Formatação da mesma extração que alimenta a prévia de Relatórios."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Literal
+
+from docx.document import Document as DocumentType
 
 from app.reports import docx_builder, xlsx_builder
 from app.reports.docx_tabelado import SecaoTabela, gerar_bytes_tabelados
@@ -80,6 +82,39 @@ def _xlsx(r: RelatorioMonitorado, recorte: str) -> bytes:
     return xlsx_builder.gerar_bytes(pasta)
 
 
+def _linha_simplificada(campos: dict[str, str], rotulo: Callable[[str, str], str]) -> list[str]:
+    municipio_uf = " / ".join(filter(None, (campos["Município"], campos["UF"])))
+    return [
+        campos["Instrumento"],
+        "\n".join(filter(None, (campos["Estabelecimento de Saúde"], rotulo("CNES", "CNES")))),
+        "\n".join(filter(None, (municipio_uf, campos["Região"]))),
+        campos["Equipamento"],
+        "\n".join(
+            filter(
+                None,
+                (
+                    campos["Situação (Equipamento)"],
+                    rotulo("Site", "Situação (Site)"),
+                    rotulo("Monitoramento", "Situação (Monitoramento)"),
+                ),
+            )
+        ),
+        campos["Qtd"],
+        campos["Valor do Equipamento"],
+        "\n".join(
+            filter(
+                None,
+                (
+                    rotulo("Entrega", "Data de Entrega do Equipamento"),
+                    rotulo("Previsão/Inauguração", "Data de Previsão/Inauguração"),
+                    rotulo("Status", "Status da Inauguração"),
+                ),
+            )
+        ),
+        campos["Técnico Responsável"],
+    ]
+
+
 def _registros_equipamentos_simplificados(r: RelatorioMonitorado) -> SecaoTabela:
     linhas = []
     textos = _linhas_tabela(r.colunas, r.linhas, colunas_data=_datas(r), colunas_moeda=r.colunas_moeda)
@@ -93,38 +128,7 @@ def _registros_equipamentos_simplificados(r: RelatorioMonitorado) -> SecaoTabela
             valor = campos[coluna]
             return f"{nome}: {valor}" if valor else ""
 
-        municipio_uf = " / ".join(filter(None, (campos["Município"], campos["UF"])))
-        linhas.append(
-            [
-                campos["Instrumento"],
-                "\n".join(filter(None, (campos["Estabelecimento de Saúde"], rotulo("CNES", "CNES")))),
-                "\n".join(filter(None, (municipio_uf, campos["Região"]))),
-                campos["Equipamento"],
-                "\n".join(
-                    filter(
-                        None,
-                        (
-                            campos["Situação (Equipamento)"],
-                            rotulo("Site", "Situação (Site)"),
-                            rotulo("Monitoramento", "Situação (Monitoramento)"),
-                        ),
-                    )
-                ),
-                campos["Qtd"],
-                campos["Valor do Equipamento"],
-                "\n".join(
-                    filter(
-                        None,
-                        (
-                            rotulo("Entrega", "Data de Entrega do Equipamento"),
-                            rotulo("Previsão/Inauguração", "Data de Previsão/Inauguração"),
-                            rotulo("Status", "Status da Inauguração"),
-                        ),
-                    )
-                ),
-                campos["Técnico Responsável"],
-            ]
-        )
+        linhas.append(_linha_simplificada(campos, rotulo))
     return SecaoTabela(
         "Registros de equipamentos",
         (
@@ -143,13 +147,10 @@ def _registros_equipamentos_simplificados(r: RelatorioMonitorado) -> SecaoTabela
     )
 
 
-def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
-    cabecalho = dict(r.cabecalho)
+def _introducao_docx(
+    documento: DocumentType, r: RelatorioMonitorado, recorte: str, cabecalho: dict, *, equipamentos: bool
+) -> None:
     referencia = cabecalho.get("Referência")
-    fonte = cabecalho.get("Fonte")
-    documento = docx_builder.novo_documento(r.titulo, paisagem=True)
-    equipamentos = r.arquivo_base == "equipamentos"
-    docx_builder.adicionar_cabecalho_institucional(documento)
     quando = f"Em {referencia}, " if referencia else ""
     unidade = r.unidade
     if equipamentos:
@@ -163,6 +164,9 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
     if not equipamentos:
         for rotulo_indicador, valor in r.indicadores:
             docx_builder.adicionar_paragrafo(documento, f"{rotulo_indicador}: {'—' if valor is None else valor}.")
+
+
+def _secoes_docx(r: RelatorioMonitorado, nivel: Nivel, *, equipamentos: bool) -> list[SecaoTabela]:
     secoes: list[SecaoTabela] = []
     if r.quebras:
         q = r.quebras[0]
@@ -192,6 +196,17 @@ def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
                 _linhas_tabela(r.colunas, r.linhas, colunas_data=_datas(r), colunas_moeda=r.colunas_moeda),
             )
         )
+    return secoes
+
+
+def _docx(r: RelatorioMonitorado, recorte: str, nivel: Nivel) -> bytes:
+    cabecalho = dict(r.cabecalho)
+    fonte = cabecalho.get("Fonte")
+    documento = docx_builder.novo_documento(r.titulo, paisagem=True)
+    equipamentos = r.arquivo_base == "equipamentos"
+    docx_builder.adicionar_cabecalho_institucional(documento)
+    _introducao_docx(documento, r, recorte, cabecalho, equipamentos=equipamentos)
+    secoes = _secoes_docx(r, nivel, equipamentos=equipamentos)
     docx_builder.adicionar_fonte(documento, fonte or "SISGEO")
     if not secoes:
         docx_builder.adicionar_logotipo_final(documento)
