@@ -98,20 +98,6 @@ test.describe("Fluxo autenticado", () => {
   );
 
   testConsulta(
-    "painel de gestão desabilitado: botão travado e rota volta à Mesa de trabalho",
-    async ({ page }) => {
-      await page.goto("/monitoramento-equipamentos/painel");
-      await expect(
-        page.getByRole("heading", { name: "Mesa de trabalho", level: 1 }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Painel de gestão" }),
-      ).toBeDisabled();
-    },
-  );
-
-  // Reativar junto com PAINEL_GESTAO_HABILITADO (monitoramento-nav-items.ts).
-  testConsulta.skip(
     "painel mostra recorte, dashboards e alternância do mapa",
     async ({ page }) => {
       await page.route("**/monitoramento/instrumentos", async (route) => {
