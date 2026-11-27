@@ -148,6 +148,59 @@ describe("usePropostasFiltros", () => {
     expect(result.current.filtradas.map((p) => p.id)).toEqual([2]);
   });
 
+  it.each([
+    [
+      "ano inicial",
+      (r: ReturnType<typeof usar>["result"]) => r.current.setAnoInicio("2020"),
+    ],
+    [
+      "ano final",
+      (r: ReturnType<typeof usar>["result"]) => r.current.setAnoFim("2030"),
+    ],
+    [
+      "programa",
+      (r: ReturnType<typeof usar>["result"]) => r.current.setPrograma(["20"]),
+    ],
+    [
+      "situação",
+      (r: ReturnType<typeof usar>["result"]) =>
+        r.current.setSituacao(["Empenhada"]),
+    ],
+    [
+      "estágio de proposta",
+      (r: ReturnType<typeof usar>["result"]) =>
+        r.current.setEstagio(["tramitacao"]),
+    ],
+  ])("%s sozinho deixa os manuais de fora", (_nome, aplicar) => {
+    const { result } = usar();
+    expect(result.current.manuaisFiltrados).toHaveLength(2);
+    act(() => aplicar(result));
+    expect(result.current.manuaisFiltrados).toHaveLength(0);
+  });
+
+  it("proposta sem UF, CNES, município ou situação não passa pelos filtros dessas colunas", () => {
+    const vazia = proposta({
+      id: 9,
+      uf: null,
+      cnes: null,
+      municipio: null,
+      situacao_proposta: null,
+    });
+    const { result } = renderHook(() => usePropostasFiltros([vazia], []));
+    expect(result.current.filtradas).toHaveLength(1);
+    act(() => result.current.setUf(["MG"]));
+    expect(result.current.filtradas).toHaveLength(0);
+    act(() => result.current.setUf([]));
+    act(() => result.current.setCnes(["1111111"]));
+    expect(result.current.filtradas).toHaveLength(0);
+    act(() => result.current.setCnes([]));
+    act(() => result.current.setMunicipio(["Belo Horizonte"]));
+    expect(result.current.filtradas).toHaveLength(0);
+    act(() => result.current.setMunicipio([]));
+    act(() => result.current.setSituacao(["Aprovada"]));
+    expect(result.current.filtradas).toHaveLength(0);
+  });
+
   it("filtra por período e exclui proposta sem data", () => {
     const { result } = usar();
     act(() => result.current.setAnoInicio("2023"));
