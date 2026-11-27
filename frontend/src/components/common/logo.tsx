@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 type VarianteLogo = "completo" | "marca" | "reduzido" | "negativo";
 
 const FONTES: Record<VarianteLogo, { src: string; proporcao: string }> = {
-  completo: { src: horizontal, proporcao: "aspect-[629/184]" },
+  completo: { src: horizontal, proporcao: "aspect-[629/197]" },
   marca: { src: marca, proporcao: "aspect-[629/138]" },
-  negativo: { src: negativo, proporcao: "aspect-[629/184]" },
+  negativo: { src: negativo, proporcao: "aspect-[629/197]" },
   reduzido: { src: simbolo, proporcao: "aspect-[52/76]" },
 };
 
