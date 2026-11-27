@@ -3,7 +3,7 @@
 Origem: checagem do PR 78 contra `padroes/` (desvios de tamanho, migration sem teste e gate). Aguarda aprovação; nada foi alterado.
 
 ## Objetivo
-Fechar os cinco desvios encontrados sem mudar comportamento: teste da migration, tamanho de função no backend, tamanho de arquivo no frontend e gate verde. Segredo de uso só em localhost fica fora de escopo (decisão do usuário em 27/11/2026).
+Fechar os desvios encontrados sem mudar comportamento: teste da migration, tamanho de função no backend, tamanho de arquivo no frontend e gate verde. Segredo de uso só em localhost fica fora de escopo (decisão do usuário em 27/11/2026).
 
 ## Fase 1: no PR 78, antes do merge (pequena, baixo risco)
 - **Teste da migration `e1f2a3b4c5d6`** (database): `backend/tests/test_migration_usuario_regiao_aditiva_db.py`, no padrão dos testes `test_migration_*_aditiva_db`. Afirma: sobe cria a tabela com PK composta e FK em cascata; desce remove; repetir é idempotente. Nome termina em `_db.py` e entra em `_DB_TEST_MODULES` antes de rodar (regra do quase-incidente de 28/10).
