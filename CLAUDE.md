@@ -294,7 +294,7 @@ Plano em `docs/planos/planmode-monitoramento-itens-detalhado-2026-10-23.md` (cla
   `instrumento_no_escopo()` (`repositories/convenios.py`) esconde o instrumento monitorado ligado a ele (o detalhe dá 404).
   Universo medido em 26/10: 560 firmados (403 Convênio, 92 PERSUS I, 50 PERSUS II, 12 FAF, 3 TED; PRONON saiu em 21/09),
   542 depois da marcação; 292 monitorados, 288 depois.
-- **Mapas Mermaid**: índice, convenções e validador em `docs/mermaid/README.md` (monitoramento interno e Radar de instrumentos). Mudou o fluxo, atualize o mapa no mesmo commit.
+- **Mapas Mermaid**: índice, convenções e validador em `docs/mermaid/README.md` (monitoramento interno, Radar, Dados oficiais, relatórios, análise de mérito, acesso e administração, banco). Mudou o fluxo, atualize o mapa no mesmo commit.
 - **Radar e conclusão (19/11/2026, `docs/mermaid/monitoramento-interno.md`)**: o Radar de instrumentos é só de `gestor`/`admin`
   (API recusa com 403 a lista, o histórico e a prova para os demais; o botão some). Card enxuto: componente, valor, UF, município, data da coleta e
   do instrumento; os itens (todos os bens da última recaptura, em tabela com quantidade e valores) abrem no botão **Itens · n** ao lado do número do convênio. O monitor da coleta (status, contagens e detalhes) é só do `admin`; os demais veem apenas data e hora da última coleta com sucesso. A lista tem duas abas: **Aguardando** (novo/em análise) e **Arquivados** (aprovado/rejeitado). **Aprovar** abre um pop-up único (igual ao de adicionar ao monitoramento interno) com técnico titular obrigatório na tela e na API (`tecnico_titular_id` sem ele é 422); sem "Iniciar análise" (sobra Aprovar e Rejeitar). A mesma transação cria o

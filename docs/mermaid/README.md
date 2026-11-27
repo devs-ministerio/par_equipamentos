@@ -9,6 +9,10 @@ Pasta de mapas de fluxo lidos do código. Cada mapa cobre um módulo, tem revis�
 | [monitoramento-interno.md](monitoramento-interno.md) | Mesa de trabalho, detalhe do instrumento, itens, entregas, conclusão, licença, avisos | 6, 24/11/2026 |
 | [radar-instrumentos.md](radar-instrumentos.md) | Radar de instrumentos: descoberta SICONV, Portal, triagem, recaptura, aprovação, avisos e popup, fontes externas, sequências de API, Portal opcional, workflow | 4, 23/11/2026 |
 | [banco-de-dados.md](banco-de-dados.md) | Banco de dados: 50 tabelas por domínio, ligações com e sem chave estrangeira, estado de uso em produção | 2, 23/11/2026 |
+| [dados-oficiais.md](dados-oficiais.md) | Página Dados oficiais: abas Instrumentos/Programas e Linhas de financiamento, escopo | 1, 27/11/2026 |
+| [relatorios.md](relatorios.md) | Relatórios do monitoramento: tipos, compatibilidade com a etapa, prévia e download | 1, 27/11/2026 |
+| [analise-de-merito.md](analise-de-merito.md) | Painel geral, Dashboard, Mapa e Relatórios de mérito, origem dos dados e regras SUS | 1, 27/11/2026 |
+| [acesso-e-administracao.md](acesso-e-administracao.md) | Login, sessão, convite e redefinição, guardas de rota, usuários, auditoria | 1, 27/11/2026 |
 
 ## Abrir direto no GitHub
 
@@ -51,6 +55,13 @@ Arquivo inteiro: [monitoramento-interno.md](monitoramento-interno.md)
 - [9. Radar de instrumentos (revisão 2)](monitoramento-interno.md#9-radar-de-instrumentos-revisão-2)
 - [10. Avisos e jobs](monitoramento-interno.md#10-avisos-e-jobs)
 - [14. Painel de gestão e Meu painel](monitoramento-interno.md#14-painel-de-gestão-e-meu-painel-24112026)
+
+### Dados oficiais, relatórios, mérito e acesso
+
+- [Dados oficiais: estrutura da página](dados-oficiais.md#1-estrutura-da-página)
+- [Relatórios: da tela ao arquivo](relatorios.md#1-da-tela-ao-arquivo)
+- [Análise de mérito: telas e navegação](analise-de-merito.md#1-telas-e-navegação)
+- [Acesso: telas e guardas de rota](acesso-e-administracao.md#1-telas-e-guardas-de-rota)
 
 ### Banco de dados
 
