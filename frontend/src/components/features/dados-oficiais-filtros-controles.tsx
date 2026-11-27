@@ -10,32 +10,20 @@ import {
   Stethoscope,
 } from "lucide-react";
 import type { Controle } from "@/components/common/controles-filtro";
-import type { RecortePainel } from "@/components/common/chips-filtros-ativos";
 import {
   OpcoesMultiplas,
   type OpcaoFiltro,
 } from "@/components/common/opcoes-multiplas";
 import { Input } from "@/components/ui/input";
-import type { useDadosOficiaisFiltros } from "@/hooks/use-dados-oficiais-filtros";
-import { CampoSelect, Opcoes } from "./painel-gestao-filtros-campos";
-
-export type FiltrosDadosOficiais = ReturnType<typeof useDadosOficiaisFiltros>;
-
-export interface OpcoesDadosOficiais {
-  tipoContratacao: OpcaoFiltro[];
-  uf: OpcaoFiltro[];
-  municipio: OpcaoFiltro[];
-  cnes: OpcaoFiltro[];
-  equipamento: OpcaoFiltro[];
-  situacao: OpcaoFiltro[];
-  programa: OpcaoFiltro[];
-  ano: OpcaoFiltro[];
-}
-
-const CLASSES = [
-  { value: "prioritario", label: "Prioritários" },
-  { value: "outro", label: "Outros identificados" },
-] as const;
+import { Opcoes } from "./painel-gestao-filtros-campos";
+import {
+  EquipamentoDadosOficiais,
+  PeriodoDadosOficiais,
+} from "./dados-oficiais-filtros-campos";
+import type {
+  FiltrosDadosOficiais,
+  OpcoesDadosOficiais,
+} from "./dados-oficiais-filtros-tipos";
 
 /** Os filtros de Dados oficiais como botões com popover, no padrão do Painel de gestão. */
 export function montarControlesDadosOficiais(
@@ -110,43 +98,7 @@ export function montarControlesDadosOficiais(
       rotulo: "Período",
       icone: CalendarRange,
       ativo: !!(f.anoInicio || f.anoFim),
-      conteudo: () => (
-        <div className="grid grid-cols-2 gap-2">
-          <CampoSelect
-            rotulo="Ano inicial"
-            value={f.anoInicio ?? ""}
-            onChange={(e) => f.setAnoInicio(e.target.value || null)}
-          >
-            <option value="">Sem início</option>
-            {o.ano
-              .filter(
-                ({ value }) => !f.anoFim || Number(value) <= Number(f.anoFim),
-              )
-              .map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-          </CampoSelect>
-          <CampoSelect
-            rotulo="Ano final"
-            value={f.anoFim ?? ""}
-            onChange={(e) => f.setAnoFim(e.target.value || null)}
-          >
-            <option value="">Sem fim</option>
-            {o.ano
-              .filter(
-                ({ value }) =>
-                  !f.anoInicio || Number(value) >= Number(f.anoInicio),
-              )
-              .map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-          </CampoSelect>
-        </div>
-      ),
+      conteudo: () => <PeriodoDadosOficiais f={f} anos={o.ano} />,
     },
     multipla(
       "Contratação",
@@ -170,35 +122,7 @@ export function montarControlesDadosOficiais(
       rotulo: "Equipamento",
       icone: Stethoscope,
       ativo: f.equipamento.length > 0 || f.classeEquipamento !== "prioritario",
-      conteudo: () => (
-        <>
-          <CampoSelect
-            rotulo="Mostrar na lista"
-            value={f.classeEquipamento}
-            onChange={(e) => {
-              const classe = CLASSES.find(
-                ({ value }) => value === e.target.value,
-              );
-              if (classe) f.setClasseEquipamento(classe.value);
-            }}
-          >
-            {CLASSES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </CampoSelect>
-          <OpcoesMultiplas
-            key={f.classeEquipamento}
-            rotulo="Equipamento"
-            opcoes={o.equipamento}
-            selecionados={f.equipamento}
-            alterar={f.setEquipamento}
-            todos="Todos os equipamentos"
-            pesquisar
-          />
-        </>
-      ),
+      conteudo: () => <EquipamentoDadosOficiais f={f} opcoes={o.equipamento} />,
     },
     multipla(
       "Situação",
@@ -217,69 +141,4 @@ export function montarControlesDadosOficiais(
       "Todos os programas",
     ),
   ];
-}
-
-/** Etiquetas removíveis dos filtros ativos de Dados oficiais. */
-export function montarRecortesDadosOficiais(
-  f: FiltrosDadosOficiais,
-  o: OpcoesDadosOficiais,
-): RecortePainel[] {
-  const recortes: RecortePainel[] = [];
-  const rotuloDe = (opcoes: OpcaoFiltro[], valor: string) =>
-    opcoes.find((opcao) => opcao.value === valor)?.label ?? valor;
-  const lista = (
-    rotulo: string,
-    valores: string[],
-    opcoes: OpcaoFiltro[],
-    limpar: () => void,
-  ) => {
-    if (valores.length)
-      recortes.push({
-        rotulo,
-        valor: valores.map((v) => rotuloDe(opcoes, v)).join(", "),
-        remover: limpar,
-      });
-  };
-  if (f.busca.trim())
-    recortes.push({
-      rotulo: "Busca",
-      valor: f.busca.trim(),
-      remover: () => f.setBusca(""),
-    });
-  lista("Contratação", f.tipoContratacao, o.tipoContratacao, () =>
-    f.setTipoContratacao([]),
-  );
-  if (f.monitorado)
-    recortes.push({
-      rotulo: "Etapa",
-      valor: f.monitorado === "sim" ? "Em monitoramento" : "Celebrado",
-      remover: () => f.setMonitorado(null),
-    });
-  lista("UF", f.uf, o.uf, () => f.setUf([]));
-  lista("Município", f.municipio, o.municipio, () => f.setMunicipio([]));
-  lista("CNES", f.cnes, o.cnes, () => f.setCnes([]));
-  if (f.classeEquipamento !== "prioritario")
-    recortes.push({
-      rotulo: "Lista de equipamentos",
-      valor: "Outros identificados",
-      remover: () => f.setClasseEquipamento("prioritario"),
-    });
-  lista("Equipamento", f.equipamento, o.equipamento, () =>
-    f.setEquipamento([]),
-  );
-  lista("Situação", f.situacao, o.situacao, () => f.setSituacao([]));
-  lista("Programa", f.programa, o.programa, () => f.setPrograma([]));
-  if (f.anoInicio || f.anoFim)
-    recortes.push({
-      rotulo: "Período",
-      valor:
-        f.anoInicio === f.anoFim
-          ? (f.anoInicio ?? "")
-          : `${f.anoInicio ?? "…"} – ${f.anoFim ?? "…"}`,
-      remover: () => {
-        f.setAnoInicio(null);
-        f.setAnoFim(null);
-      },
-    });
-  return recortes;
 }

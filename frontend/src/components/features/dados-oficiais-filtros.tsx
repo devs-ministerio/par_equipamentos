@@ -1,10 +1,10 @@
 import { BarraFiltros } from "@/components/common/barra-filtros";
-import {
-  montarControlesDadosOficiais,
-  montarRecortesDadosOficiais,
-  type FiltrosDadosOficiais,
-  type OpcoesDadosOficiais,
-} from "./dados-oficiais-filtros-controles";
+import { montarControlesDadosOficiais } from "./dados-oficiais-filtros-controles";
+import { montarRecortesDadosOficiais } from "./dados-oficiais-filtros-recortes";
+import type {
+  FiltrosDadosOficiais,
+  OpcoesDadosOficiais,
+} from "./dados-oficiais-filtros-tipos";
 
 /** Filtros de Dados oficiais no mesmo padrão do Painel de gestão. */
 export function DadosOficiaisFiltros({
