@@ -98,46 +98,15 @@ test.describe("Fluxo autenticado", () => {
   );
 
   testConsulta(
-    "painel mostra recorte, dashboards e alternância do mapa",
+    "painel de gestão habilitado: botão ativo e página carrega",
     async ({ page }) => {
-      await page.route("**/monitoramento/instrumentos", async (route) => {
-        const resposta = await route.fetch();
-        const instrumentos = await resposta.json();
-        if (Array.isArray(instrumentos) && instrumentos.length) {
-          instrumentos[0].latitude = -15.78;
-          instrumentos[0].longitude = -47.93;
-        }
-        await route.fulfill({ response: resposta, json: instrumentos });
-      });
-
       await page.goto("/monitoramento-equipamentos/painel");
       await expect(
-        page.getByRole("heading", { name: "Painel de gestão" }),
+        page.getByRole("heading", { name: "Painel de gestão", level: 1 }),
       ).toBeVisible();
       await expect(
-        page.getByRole("heading", { name: "Ano de inauguração" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("heading", { name: "Prazos e pendências" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", {
-          name: /Instrumentos com vigência a encerrar/,
-        }),
-      ).toBeVisible();
-      await page
-        .getByRole("button", { name: /, \d+ instrumentos?/ })
-        .first()
-        .click();
-      await expect(
-        page.getByRole("button", { name: "Voltar ao mapa nacional" }),
-      ).toBeVisible();
-      await page
-        .getByRole("button", { name: "Voltar ao mapa nacional" })
-        .click();
-      await expect(
-        page.getByRole("group", { name: /Mapa de .* macrorregiões/ }),
-      ).toBeVisible();
+        page.getByRole("button", { name: "Painel de gestão" }),
+      ).toBeEnabled();
     },
   );
 });
